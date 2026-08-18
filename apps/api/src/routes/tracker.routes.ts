@@ -1,5 +1,5 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
-import { db, withTenant } from '../db/client.js';
+import { withTenant, dbPlatform } from '../db/client.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -486,10 +486,10 @@ export async function trackerRoutes(fastify: FastifyInstance) {
     let shipsgoKey: string | null = null;
     let ship24Key:  string | null = null;
     try {
-      const setting = await db
+      const setting = await withTenant(user.tenant_id, trx => trx
         .selectFrom('tenant_settings').select('settings')
         .where('tenant_id', '=', user.tenant_id)
-        .executeTakeFirst();
+        .executeTakeFirst());
       if (setting) {
         const s = typeof setting.settings === 'string' ? JSON.parse(setting.settings) : setting.settings;
         shipsgoKey = s?.['int-shipsgo']?.shipsgo_api_key ?? null;
@@ -615,7 +615,9 @@ export async function trackerRoutes(fastify: FastifyInstance) {
 export async function trackerPublicRoutes(fastify: FastifyInstance) {
   fastify.get('/shared/:token', async (req: FastifyRequest, reply) => {
     const { token } = req.params as any;
-    const snap = await db.selectFrom('tracking_snapshots').selectAll()
+    // Public, unauthenticated — no tenant is knowable, access control is the
+    // unguessable token alone, same reasoning as landed-cost-share.routes.ts.
+    const snap = await dbPlatform.selectFrom('tracking_snapshots').selectAll()
       .where('share_token', '=', token).executeTakeFirst();
     if (!snap) return reply.code(404).send({ error: 'Snapshot not found or expired' });
     return snap;

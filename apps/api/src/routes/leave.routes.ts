@@ -38,8 +38,8 @@ export async function leaveRoutes(fastify: FastifyInstance) {
   fastify.post('/leave-types/generate-statutory', { preHandler: requireRole(...MGMT) }, async (req, reply) => {
     const user = req.user;
 
-    const tenant = await db.selectFrom('tenants').select(['country', 'name'])
-      .where('id', '=', user.tenant_id).executeTakeFirst();
+    const tenant = await withTenant(user.tenant_id, trx => trx.selectFrom('tenants').select(['country', 'name'])
+      .where('id', '=', user.tenant_id).executeTakeFirst());
     const country = tenant?.country ?? null;
     if (!country) {
       return reply.status(409).send({
@@ -151,9 +151,9 @@ export async function leaveRoutes(fastify: FastifyInstance) {
   /** Everyone's balances, for the approver's overview. */
   fastify.get('/leave-balances/all', { preHandler: requireRole(...MGMT, 'FINANCE') }, async (req) => {
     const user = req.user;
-    const staff = await db.selectFrom('users').select(['id', 'name', 'email'])
+    const staff = await withTenant(user.tenant_id, trx => trx.selectFrom('users').select(['id', 'name', 'email'])
       .where('tenant_id', '=', user.tenant_id).where('active', '=', true)
-      .orderBy('name').execute();
+      .orderBy('name').execute());
 
     const out = [];
     for (const s of staff) {
@@ -169,8 +169,8 @@ export async function leaveRoutes(fastify: FastifyInstance) {
     const b = (req.body ?? {}) as any;
     const ids = b.user_id
       ? [String(b.user_id)]
-      : (await db.selectFrom('users').select('id')
-          .where('tenant_id', '=', user.tenant_id).where('active', '=', true).execute()).map(r => r.id);
+      : (await withTenant(user.tenant_id, trx => trx.selectFrom('users').select('id')
+          .where('tenant_id', '=', user.tenant_id).where('active', '=', true).execute())).map(r => r.id);
 
     let rows = 0;
     for (const id of ids) rows += await persistBalances(user.tenant_id, id);

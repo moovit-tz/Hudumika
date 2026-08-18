@@ -122,7 +122,18 @@ export interface User {
 
 // ── User (safe for client consumption) ───────────────────────
 
-export type SafeUser = Omit<User, 'password_hash'>;
+/**
+ * `impersonated_by`/`impersonated_by_name` are session properties (carried on
+ * the JWT, see JWTPayload below), not columns on the `users` row itself — a
+ * real user record never has them, only a session minted by /auth/impersonate
+ * or /auth/impersonate-customer does. Echoed back here so the client can
+ * derive `isImpersonating` from the (cookie-authenticated) user object rather
+ * than from a token it can no longer read directly.
+ */
+export type SafeUser = Omit<User, 'password_hash'> & {
+  impersonated_by?: string;
+  impersonated_by_name?: string;
+};
 
 // ── Tenant ───────────────────────────────────────────────────
 

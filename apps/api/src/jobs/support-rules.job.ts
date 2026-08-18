@@ -1,4 +1,4 @@
-import { db, withTenant } from '../db/client.js';
+import { dbPlatform, withTenant } from '../db/client.js';
 import { fireNotificationTrigger } from '../routes/support.routes.js';
 
 /**
@@ -19,7 +19,7 @@ export async function runSupportRulesJob(): Promise<void> {
 }
 
 async function runSlaEscalation(): Promise<void> {
-  const rules = await db.selectFrom('support_rules').selectAll()
+  const rules = await dbPlatform.selectFrom('support_rules').selectAll()
     .where('type', '=', 'sla_escalation').where('enabled', '=', true).execute();
   if (rules.length === 0) return;
 
@@ -91,7 +91,7 @@ async function runSlaEscalation(): Promise<void> {
 }
 
 async function runStatusAutomation(): Promise<void> {
-  const rules = await db.selectFrom('support_rules').selectAll()
+  const rules = await dbPlatform.selectFrom('support_rules').selectAll()
     .where('type', '=', 'status_automation').where('enabled', '=', true).execute();
   if (rules.length === 0) return;
 

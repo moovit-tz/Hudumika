@@ -1,5 +1,6 @@
 import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { DeclarationService } from '../services/declaration.service.js';
 import { requireRole } from '../middleware/rbac.js';
 import { withTenant } from '../db/client.js';
@@ -12,6 +13,175 @@ import type {
   DeclarationStatus,
 } from '@hudumika/types';
 import { countryCodeFromText } from '@hudumika/types';
+
+// Real values — packages/types/src/declaration.ts.
+const DECLARATION_MODES = ['NORMAL', 'SIMPLIFIED', 'PROVISIONAL', 'COMPLEMENTARY'] as const;
+const TANSAD_FORM_TYPES = ['G', 'EX', 'TR'] as const;
+const SELECTIVITY_CHANNELS = ['GREEN', 'YELLOW', 'RED', 'BLUE'] as const;
+const DECLARATION_STATUSES = ['DRAFT', 'VALIDATED', 'SAVED', 'TRANSFERRED', 'ACCEPTED', 'ASSESSED', 'PAID', 'RELEASED', 'AMENDED', 'CANCELLED'] as const;
+const NOTICE_TYPES = ['SELECTIVITY_RESULT', 'ASSESSMENT_NOTICE', 'RELEASE_NOTICE', 'PAYMENT_NOTICE', 'QUERY_NOTICE', 'AMENDMENT_NOTICE', 'CANCELLATION_NOTICE'] as const;
+const TAX_TYPES = ['IMPORT_DUTY', 'VAT', 'RDL', 'APA', 'IDF', 'EXCISE', 'WITHHOLDING', 'OTHER'] as const;
+// cpc_code is CPCCode = 'IM4'|'IM7'|'IM8'|'EX1'|'EX2'|'TR1'|string — the type
+// itself keeps an escape hatch for codes outside the common set, so this
+// only checks it's a non-empty string, not a closed enum.
+
+const declarationCreateSchema = z.object({
+  shipment_id: z.string().min(1),
+  tancis_ref: z.string().trim().min(1).max(100),
+  declaration_mode: z.enum(DECLARATION_MODES),
+  tansad_form_type: z.enum(TANSAD_FORM_TYPES),
+  clearing_office: z.string().max(200),
+  reference_date: z.string(),
+  total_packages: z.number().optional(),
+  package_type: z.string().max(100).optional(),
+  gross_weight_kg: z.number().optional(),
+  net_weight_kg: z.number().optional(),
+  no_of_items: z.number().optional(),
+  consignment_country: z.string().max(2),
+  country_of_export: z.string().max(2),
+  country_of_destination: z.string().max(2),
+  importer_tin: z.string().max(50),
+  importer_name: z.string().max(300),
+  declarant_tin: z.string().max(50),
+  declarant_name: z.string().max(300),
+  total_invoice_value: z.number().optional(),
+  invoice_currency: z.string().max(10).optional(),
+  exchange_rate: z.number().optional(),
+  freight_amount: z.number().optional(),
+  insurance_amount: z.number().optional(),
+  other_charges: z.number().optional(),
+  deductions: z.number().optional(),
+  self_assessment: z.boolean().optional(),
+});
+
+// The whole-form Declaration tab save (PUT /by-shipment/:shipmentId). Every
+// field the service previously spread straight into an UPDATE/INSERT with no
+// allowlist — id/tenant_id/shipment_id/status/created_at/updated_at and the
+// workflow timestamps (declared_at/assessed_at/paid_at/released_at) are
+// deliberately absent here so a client can no longer set them: zod strips
+// unrecognized keys by default, so this schema *is* the allowlist.
+const declarationSaveSchema = z.object({
+  tancis_ref: z.string().max(100).optional(),
+  tansad_number: z.string().max(100).nullable().optional(),
+  declaration_mode: z.enum(DECLARATION_MODES).optional(),
+  tansad_form_type: z.enum(TANSAD_FORM_TYPES).optional(),
+  clearing_office: z.string().max(200).optional(),
+  reference_date: z.union([z.string(), z.date()]).optional(),
+  cl_plan: z.string().max(100).optional(),
+  total_packages: z.number().optional(),
+  package_type: z.string().max(100).optional(),
+  gross_weight_kg: z.number().optional(),
+  net_weight_kg: z.number().optional(),
+  ucr_number: z.string().max(100).optional(),
+  no_of_items: z.number().optional(),
+  consignment_country: z.string().max(2).optional(),
+  country_of_export: z.string().max(2).optional(),
+  trading_country: z.string().max(2).optional(),
+  country_of_destination: z.string().max(2).optional(),
+  exporter_tin: z.string().max(50).optional(),
+  exporter_name: z.string().max(300).optional(),
+  exporter_address: z.string().max(500).optional(),
+  importer_tin: z.string().max(50).optional(),
+  importer_name: z.string().max(300).optional(),
+  importer_address: z.string().max(500).optional(),
+  declarant_tin: z.string().max(50).optional(),
+  declarant_name: z.string().max(300).optional(),
+  declarant_address: z.string().max(500).optional(),
+  delivery_term: z.string().max(50).optional(),
+  delivery_place: z.string().max(200).optional(),
+  invoice_number: z.string().max(100).optional(),
+  invoice_date: z.union([z.string(), z.date()]).nullable().optional(),
+  total_invoice_value: z.number().optional(),
+  invoice_currency: z.string().max(10).optional(),
+  exchange_rate: z.number().optional(),
+  payment_method: z.string().max(100).optional(),
+  payment_bank: z.string().max(200).optional(),
+  payment_bank_account: z.string().max(100).optional(),
+  security_distinction_type: z.string().max(100).optional(),
+  security_account_no: z.string().max(100).optional(),
+  nature_of_transaction: z.string().max(200).optional(),
+  freight_amount: z.number().optional(),
+  freight_currency: z.string().max(10).optional(),
+  insurance_amount: z.number().optional(),
+  insurance_currency: z.string().max(10).optional(),
+  other_charges: z.number().optional(),
+  other_charges_currency: z.string().max(10).optional(),
+  deductions: z.number().optional(),
+  deductions_currency: z.string().max(10).optional(),
+  total_customs_value: z.number().optional(),
+  self_assessment: z.boolean().optional(),
+  transport_mode: z.string().max(50).optional(),
+  identity_of_transport: z.string().max(200).optional(),
+  nationality_of_transport: z.string().max(100).optional(),
+  arrival_date: z.union([z.string(), z.date()]).nullable().optional(),
+  crn: z.string().max(100).optional(),
+  bl_number: z.string().max(100).optional(),
+  vessel_name: z.string().max(200).optional(),
+  portal_of_bl: z.string().max(200).optional(),
+  shipment_place: z.string().max(200).optional(),
+  discharge_place: z.string().max(200).optional(),
+  discharge_date: z.union([z.string(), z.date()]).nullable().optional(),
+  entry_office: z.string().max(200).optional(),
+  location_of_goods: z.string().max(200).optional(),
+  total_container_count: z.number().optional(),
+  warehouse: z.string().max(200).optional(),
+  previous_warehouse: z.string().max(200).optional(),
+  period_days: z.number().optional(),
+  cargo_receipt_ref: z.string().max(100).optional(),
+  selectivity_channel: z.enum(SELECTIVITY_CHANNELS).optional(),
+});
+// Deliberately NOT .passthrough() — id/tenant_id/shipment_id/status/
+// created_at/updated_at/declared_at/assessed_at/paid_at/released_at are not
+// listed above, and zod's default behavior on a plain z.object() is to
+// strip any key that isn't, so this schema doubles as the allowlist that
+// upsertByShipment's raw `{ ...input, ... }` spread never had.
+// Items are already field-picked one at a time inside
+// DeclarationService.upsertByShipment (hs_code, commodity_description,
+// country_of_origin, cpc_code, quantity, unit_of_measure, gross_weight_kg,
+// net_weight_kg, customs_value, statistical_value) — no mass-assignment risk
+// there, so this only guards it's an array of objects, not full per-field.
+const declarationSaveBodySchema = z.object({
+  items: z.array(z.record(z.string(), z.any())).optional(),
+}).passthrough();
+
+const statusPatchSchema = z.object({
+  status: z.enum(DECLARATION_STATUSES),
+});
+const itemCreateSchema = z.object({
+  hs_code: z.string().trim().min(1).max(20),
+  country_of_origin: z.string().max(2),
+  cpc_code: z.string().trim().min(1).max(10),
+  quantity: z.number(),
+  unit_of_measure: z.string().max(20),
+  gross_weight_kg: z.number(),
+  net_weight_kg: z.number(),
+  customs_value: z.number(),
+  statistical_value: z.number().optional(),
+  is_vehicle: z.boolean().optional(),
+  brand_name: z.string().max(200).optional(),
+  commodity_description: z.string().max(2000).optional(),
+});
+const noticeCreateSchema = z.object({
+  shipment_id: z.string().optional(),
+  notice_type: z.enum(NOTICE_TYPES),
+  notice_number: z.string().trim().min(1).max(100),
+  tancis_ref: z.string().max(100),
+  importer_tin: z.string().max(50),
+  notice_date: z.string(),
+  declare_date: z.string(),
+  selectivity_channel: z.enum(SELECTIVITY_CHANNELS).optional(),
+  total_tax_amount: z.number().optional(),
+  bill_number: z.string().max(100).optional(),
+  tax_lines: z.array(z.object({
+    tax_type: z.enum(TAX_TYPES),
+    hs_code: z.string().max(20).optional(),
+    duty_rate_code: z.string().max(20).optional(),
+    rate_percent: z.number(),
+    base_amount: z.number(),
+    tax_amount: z.number(),
+    mot: z.number().optional(),
+  })).optional(),
+});
 
 const ATTACHMENT_MIME_TYPES: Record<string, string> = {
   pdf: 'application/pdf', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif',
@@ -84,13 +254,7 @@ export async function declarationRoutes(fastify: FastifyInstance) {
     { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER') },
     async (request, reply) => {
       const user = request.user;
-      const input = request.body as CreateDeclarationInput;
-
-      if (!input.shipment_id || !input.tancis_ref) {
-        return reply.status(400).send({
-          error: 'Missing required fields: shipment_id, tancis_ref',
-        });
-      }
+      const input = declarationCreateSchema.parse(request.body);
 
       try {
         const created = await DeclarationService.createDeclaration(
@@ -237,7 +401,8 @@ export async function declarationRoutes(fastify: FastifyInstance) {
     async (request, reply) => {
       const user = request.user;
       const { shipmentId } = request.params as { shipmentId: string };
-      const { items, ...fields } = request.body as { items?: Array<Record<string, any>> } & Record<string, any>;
+      const { items } = declarationSaveBodySchema.parse(request.body);
+      const fields = declarationSaveSchema.parse(request.body);
 
       try {
         const saved = await DeclarationService.upsertByShipment(user.tenant_id, shipmentId, fields, items || [], user.sub);
@@ -270,11 +435,7 @@ export async function declarationRoutes(fastify: FastifyInstance) {
     async (request, reply) => {
       const user = request.user;
       const { id } = request.params as { id: string };
-      const { status } = request.body as { status: DeclarationStatus };
-
-      if (!status) {
-        return reply.status(400).send({ error: 'Missing target status' });
-      }
+      const { status } = statusPatchSchema.parse(request.body);
 
       try {
         const updated = await DeclarationService.updateStatus(
@@ -314,7 +475,7 @@ export async function declarationRoutes(fastify: FastifyInstance) {
     async (request, reply) => {
       const user = request.user;
       const { id } = request.params as { id: string };
-      const input = request.body as Omit<CreateDeclarationItemInput, 'declaration_id'>;
+      const input = itemCreateSchema.parse(request.body);
 
       try {
         const item = await DeclarationService.addItem(user.tenant_id, {
@@ -358,7 +519,7 @@ export async function declarationRoutes(fastify: FastifyInstance) {
     async (request, reply) => {
       const user = request.user;
       const { id } = request.params as { id: string };
-      const input = request.body as Omit<CreateDeclarationNoticeInput, 'declaration_id'>;
+      const input = noticeCreateSchema.parse(request.body);
 
       // Look up the declaration to get shipment_id
       const declaration = await DeclarationService.getById(user.tenant_id, id);

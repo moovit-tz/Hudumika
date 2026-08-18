@@ -1,6 +1,6 @@
 import { env } from '../config/env.js';
 import nodemailer from 'nodemailer';
-import { db } from '../db/client.js';
+import { withTenant } from '../db/client.js';
 import { encryptSecret, decryptSecret } from '../services/onsite-secrets.service.js';
 
 /**
@@ -46,20 +46,22 @@ function decryptIfEncrypted(value: string | undefined): string | undefined {
  *  access-token expiry (~1hr) re-refreshes needlessly instead of reusing a
  *  still-valid token mail-oauth.routes.ts already stored. */
 async function persistRefreshedToken(tenantId: string, provider: 'outlook' | 'gmail', tokenInfo: { accessToken: string; expires?: number }): Promise<void> {
-  const row = await db.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', tenantId).executeTakeFirst();
-  if (!row) return;
-  const settings = typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings;
-  const emailConfig = settings.email ?? {};
-  const updated = {
-    ...settings,
-    email: {
-      ...emailConfig,
-      [`${provider}AccessToken`]: encryptSecret(tokenInfo.accessToken),
-      [`${provider}TokenExpiresAt`]: tokenInfo.expires ? new Date(tokenInfo.expires).toISOString() : emailConfig[`${provider}TokenExpiresAt`],
-    },
-  };
-  await db.updateTable('tenant_settings').set({ settings: JSON.stringify(updated), updated_at: new Date() })
-    .where('tenant_id', '=', tenantId).execute();
+  await withTenant(tenantId, async (trx) => {
+    const row = await trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', tenantId).executeTakeFirst();
+    if (!row) return;
+    const settings = typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings;
+    const emailConfig = settings.email ?? {};
+    const updated = {
+      ...settings,
+      email: {
+        ...emailConfig,
+        [`${provider}AccessToken`]: encryptSecret(tokenInfo.accessToken),
+        [`${provider}TokenExpiresAt`]: tokenInfo.expires ? new Date(tokenInfo.expires).toISOString() : emailConfig[`${provider}TokenExpiresAt`],
+      },
+    };
+    await trx.updateTable('tenant_settings').set({ settings: JSON.stringify(updated), updated_at: new Date() })
+      .where('tenant_id', '=', tenantId).execute();
+  });
 }
 
 export class EmailIntegration {
@@ -78,11 +80,13 @@ export class EmailIntegration {
 
       // 1. Fetch tenant email configuration if tenantId is provided
       if (input.tenantId) {
-        const row = await db
-          .selectFrom('tenant_settings')
-          .select('settings')
-          .where('tenant_id', '=', input.tenantId)
-          .executeTakeFirst();
+        const row = await withTenant(input.tenantId, (trx) =>
+          trx
+            .selectFrom('tenant_settings')
+            .select('settings')
+            .where('tenant_id', '=', input.tenantId!)
+            .executeTakeFirst(),
+        );
         if (row) {
           const settings = typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings;
           emailConfig = settings?.email;

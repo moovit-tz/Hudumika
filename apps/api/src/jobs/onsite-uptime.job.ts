@@ -5,7 +5,7 @@
  * if something probes it on a schedule, and an SSL expiry alert can only fire
  * if an expiry date was ever read off the live host.
  */
-import { db, withTenant } from '../db/client.js';
+import { dbPlatform, withTenant } from '../db/client.js';
 import { runCheck } from '../services/onsite-uptime.service.js';
 import { refreshDomainCertificate, certificateStatus } from '../services/onsite-ssl.service.js';
 import { NotificationService } from '../services/notification.service.js';
@@ -42,7 +42,10 @@ const DEFAULT_INTERVAL_S = 300;
 const MAX_CHECKS_PER_PASS = 100;
 
 export async function runOnsiteUptimeJob(): Promise<void> {
-  const checks = await db.selectFrom('onsite_health_checks')
+  // A scheduled sweep across every tenant's monitors, by design — the same
+  // narrow, audited cross-tenant exception platform.routes.ts/superadmin
+  // routes use, not a per-request path.
+  const checks = await dbPlatform.selectFrom('onsite_health_checks')
     .select(['id', 'tenant_id', 'name', 'url', 'method', 'expected_status', 'timeout_ms',
              'interval_s', 'last_checked_at', 'status', 'notify_on_fail'])
     .orderBy('last_checked_at', 'asc')
@@ -59,7 +62,7 @@ export async function runOnsiteUptimeJob(): Promise<void> {
 
     try {
       const wasHealthy = c.status !== 'critical';
-      const result = await runCheck(c);
+      const result = await withTenant(c.tenant_id, trx => runCheck(trx, c));
 
       /**
        * Notify on the transition, not on every failing pass.
@@ -84,7 +87,9 @@ export async function runOnsiteUptimeJob(): Promise<void> {
 }
 
 export async function runOnsiteSslSweepJob(): Promise<void> {
-  const domains = await db.selectFrom('onsite_domains')
+  // Same reasoning as the uptime sweep above: a scheduled cross-tenant scan,
+  // not a per-request path.
+  const domains = await dbPlatform.selectFrom('onsite_domains')
     .select(['id', 'tenant_id', 'domain', 'ssl_status', 'ssl_expires_at'])
     .where('status', '=', 'active')
     .limit(500)
@@ -93,7 +98,7 @@ export async function runOnsiteSslSweepJob(): Promise<void> {
   for (const d of domains) {
     try {
       const before = d.ssl_status;
-      const outcome = await refreshDomainCertificate(d.tenant_id, d);
+      const outcome = await withTenant(d.tenant_id, trx => refreshDomainCertificate(trx, d.tenant_id, d));
       if (!outcome.ok) continue;
 
       const status = certificateStatus(outcome.cert.expiresAt);

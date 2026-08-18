@@ -1,9 +1,20 @@
 import type { FastifyInstance } from 'fastify';
-import { db } from '../db/client.js';
+import { z } from 'zod';
+import { dbPlatform } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import { sql } from 'kysely';
 
 const GLOBAL_TENANT_ID = '00000000-0000-0000-0000-000000000000';
+
+// Each of these settings blobs is a genuinely dynamic, deeply-nested shape
+// (branding per app, arbitrary design tokens, SEO tags, a workspace list) —
+// SUPER_ADMIN-only already gates every write below, so these schemas exist
+// to guarantee the body is really an object/array before it's spread or
+// iterated, not to police individual field shapes.
+const brandingPatchSchema = z.record(z.string(), z.any());
+const designTokensPatchSchema = z.record(z.string(), z.any());
+const seoPatchSchema = z.record(z.string(), z.any());
+const workspacesPatchSchema = z.array(z.record(z.string(), z.any()));
 
 /**
  * Platform-wide branding — one look per app, set by a SuperAdmin, visible to
@@ -13,7 +24,7 @@ const GLOBAL_TENANT_ID = '00000000-0000-0000-0000-000000000000';
 export async function platformRoutes(fastify: FastifyInstance) {
   // GET is public — even the pre-login screen needs the platform logo/name.
   fastify.get('/branding', async (request, reply) => {
-    const row = await db.selectFrom('tenant_settings')
+    const row = await dbPlatform.selectFrom('tenant_settings')
       .select('settings')
       .where('tenant_id', '=', GLOBAL_TENANT_ID)
       .executeTakeFirst();
@@ -24,9 +35,9 @@ export async function platformRoutes(fastify: FastifyInstance) {
   fastify.put('/branding', {
     preHandler: [fastify.authenticate, requireRole('SUPER_ADMIN')],
   }, async (request, reply) => {
-    const body = request.body as Record<string, any>;
+    const body = brandingPatchSchema.parse(request.body);
 
-    const row = await db.selectFrom('tenant_settings')
+    const row = await dbPlatform.selectFrom('tenant_settings')
       .select('settings')
       .where('tenant_id', '=', GLOBAL_TENANT_ID)
       .executeTakeFirst();
@@ -42,11 +53,11 @@ export async function platformRoutes(fastify: FastifyInstance) {
     const mergedBranding = { ...existingBranding, ...body, apps: mergedApps };
     const patch = JSON.stringify({ branding: mergedBranding });
 
-    const exists = await db.selectFrom('tenant_settings').select('id').where('tenant_id', '=', GLOBAL_TENANT_ID).executeTakeFirst();
+    const exists = await dbPlatform.selectFrom('tenant_settings').select('id').where('tenant_id', '=', GLOBAL_TENANT_ID).executeTakeFirst();
     if (exists) {
-      await sql`UPDATE tenant_settings SET settings = settings || ${patch}::jsonb, updated_at = NOW() WHERE tenant_id = ${GLOBAL_TENANT_ID}`.execute(db);
+      await sql`UPDATE tenant_settings SET settings = settings || ${patch}::jsonb, updated_at = NOW() WHERE tenant_id = ${GLOBAL_TENANT_ID}`.execute(dbPlatform);
     } else {
-      await db.insertInto('tenant_settings').values({ tenant_id: GLOBAL_TENANT_ID, settings: patch }).execute();
+      await dbPlatform.insertInto('tenant_settings').values({ tenant_id: GLOBAL_TENANT_ID, settings: patch }).execute();
     }
 
     return mergedBranding;
@@ -57,7 +68,7 @@ export async function platformRoutes(fastify: FastifyInstance) {
   // 'design-tokens' key so the two never clobber each other (the settings
   // || jsonb merge below is per top-level key).
   fastify.get('/design-tokens', async (request, reply) => {
-    const row = await db.selectFrom('tenant_settings')
+    const row = await dbPlatform.selectFrom('tenant_settings')
       .select('settings')
       .where('tenant_id', '=', GLOBAL_TENANT_ID)
       .executeTakeFirst();
@@ -68,9 +79,9 @@ export async function platformRoutes(fastify: FastifyInstance) {
   fastify.put('/design-tokens', {
     preHandler: [fastify.authenticate, requireRole('SUPER_ADMIN')],
   }, async (request, reply) => {
-    const body = request.body as Record<string, any>;
+    const body = designTokensPatchSchema.parse(request.body);
 
-    const row = await db.selectFrom('tenant_settings')
+    const row = await dbPlatform.selectFrom('tenant_settings')
       .select('settings')
       .where('tenant_id', '=', GLOBAL_TENANT_ID)
       .executeTakeFirst();
@@ -80,11 +91,11 @@ export async function platformRoutes(fastify: FastifyInstance) {
     const mergedTokens = { ...existingTokens, ...body };
     const patch = JSON.stringify({ 'design-tokens': mergedTokens });
 
-    const exists = await db.selectFrom('tenant_settings').select('id').where('tenant_id', '=', GLOBAL_TENANT_ID).executeTakeFirst();
+    const exists = await dbPlatform.selectFrom('tenant_settings').select('id').where('tenant_id', '=', GLOBAL_TENANT_ID).executeTakeFirst();
     if (exists) {
-      await sql`UPDATE tenant_settings SET settings = settings || ${patch}::jsonb, updated_at = NOW() WHERE tenant_id = ${GLOBAL_TENANT_ID}`.execute(db);
+      await sql`UPDATE tenant_settings SET settings = settings || ${patch}::jsonb, updated_at = NOW() WHERE tenant_id = ${GLOBAL_TENANT_ID}`.execute(dbPlatform);
     } else {
-      await db.insertInto('tenant_settings').values({ tenant_id: GLOBAL_TENANT_ID, settings: patch }).execute();
+      await dbPlatform.insertInto('tenant_settings').values({ tenant_id: GLOBAL_TENANT_ID, settings: patch }).execute();
     }
 
     return mergedTokens;
@@ -94,7 +105,7 @@ export async function platformRoutes(fastify: FastifyInstance) {
   // sibling 'seo' key. GET is public — tracking tags and verification meta
   // tags must render on pre-login pages (/signup, /track/shared/:token) too.
   fastify.get('/seo', async (request, reply) => {
-    const row = await db.selectFrom('tenant_settings')
+    const row = await dbPlatform.selectFrom('tenant_settings')
       .select('settings')
       .where('tenant_id', '=', GLOBAL_TENANT_ID)
       .executeTakeFirst();
@@ -108,9 +119,9 @@ export async function platformRoutes(fastify: FastifyInstance) {
   fastify.put('/seo', {
     preHandler: [fastify.authenticate, requireRole('SUPER_ADMIN')],
   }, async (request, reply) => {
-    const body = request.body as Record<string, any>;
+    const body = seoPatchSchema.parse(request.body);
 
-    const row = await db.selectFrom('tenant_settings')
+    const row = await dbPlatform.selectFrom('tenant_settings')
       .select('settings')
       .where('tenant_id', '=', GLOBAL_TENANT_ID)
       .executeTakeFirst();
@@ -120,11 +131,11 @@ export async function platformRoutes(fastify: FastifyInstance) {
     const mergedSeo = { ...existingSeo, ...body };
     const patch = JSON.stringify({ seo: mergedSeo });
 
-    const exists = await db.selectFrom('tenant_settings').select('id').where('tenant_id', '=', GLOBAL_TENANT_ID).executeTakeFirst();
+    const exists = await dbPlatform.selectFrom('tenant_settings').select('id').where('tenant_id', '=', GLOBAL_TENANT_ID).executeTakeFirst();
     if (exists) {
-      await sql`UPDATE tenant_settings SET settings = settings || ${patch}::jsonb, updated_at = NOW() WHERE tenant_id = ${GLOBAL_TENANT_ID}`.execute(db);
+      await sql`UPDATE tenant_settings SET settings = settings || ${patch}::jsonb, updated_at = NOW() WHERE tenant_id = ${GLOBAL_TENANT_ID}`.execute(dbPlatform);
     } else {
-      await db.insertInto('tenant_settings').values({ tenant_id: GLOBAL_TENANT_ID, settings: patch }).execute();
+      await dbPlatform.insertInto('tenant_settings').values({ tenant_id: GLOBAL_TENANT_ID, settings: patch }).execute();
     }
 
     return mergedSeo;
@@ -132,7 +143,7 @@ export async function platformRoutes(fastify: FastifyInstance) {
 
   // ── Workspaces — platform-wide application list
   fastify.get('/workspaces', async (request, reply) => {
-    const row = await db.selectFrom('tenant_settings')
+    const row = await dbPlatform.selectFrom('tenant_settings')
       .select('settings')
       .where('tenant_id', '=', GLOBAL_TENANT_ID)
       .executeTakeFirst();
@@ -143,9 +154,9 @@ export async function platformRoutes(fastify: FastifyInstance) {
   fastify.put('/workspaces', {
     preHandler: [fastify.authenticate, requireRole('SUPER_ADMIN')],
   }, async (request, reply) => {
-    const body = request.body as any[];
+    const body = workspacesPatchSchema.parse(request.body);
 
-    const row = await db.selectFrom('tenant_settings')
+    const row = await dbPlatform.selectFrom('tenant_settings')
       .select('settings')
       .where('tenant_id', '=', GLOBAL_TENANT_ID)
       .executeTakeFirst();
@@ -153,11 +164,11 @@ export async function platformRoutes(fastify: FastifyInstance) {
     // We just overwrite the existing array with the new one
     const patch = JSON.stringify({ 'workspaces': body });
 
-    const exists = await db.selectFrom('tenant_settings').select('id').where('tenant_id', '=', GLOBAL_TENANT_ID).executeTakeFirst();
+    const exists = await dbPlatform.selectFrom('tenant_settings').select('id').where('tenant_id', '=', GLOBAL_TENANT_ID).executeTakeFirst();
     if (exists) {
-      await sql`UPDATE tenant_settings SET settings = settings || ${patch}::jsonb, updated_at = NOW() WHERE tenant_id = ${GLOBAL_TENANT_ID}`.execute(db);
+      await sql`UPDATE tenant_settings SET settings = settings || ${patch}::jsonb, updated_at = NOW() WHERE tenant_id = ${GLOBAL_TENANT_ID}`.execute(dbPlatform);
     } else {
-      await db.insertInto('tenant_settings').values({ tenant_id: GLOBAL_TENANT_ID, settings: patch }).execute();
+      await dbPlatform.insertInto('tenant_settings').values({ tenant_id: GLOBAL_TENANT_ID, settings: patch }).execute();
     }
 
     return body;

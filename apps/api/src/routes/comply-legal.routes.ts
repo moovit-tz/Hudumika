@@ -1,6 +1,14 @@
 import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { LegalMarketplaceService } from '../services/comply-legal.service.js';
+
+// Real values — packages/types/src/comply.ts's LegalEngagementStatus / LegalMilestoneStatus.
+const engagementStatusSchema = z.object({
+  status: z.enum(['requested', 'quoted', 'instructed', 'in_progress', 'milestone_due', 'completed', 'cancelled']),
+});
+const milestoneStatusSchema = z.object({ status: z.enum(['pending', 'paid', 'released']) });
+const messageCreateSchema = z.object({ body: z.string().trim().min(1) });
 
 export async function complyLegalRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
@@ -33,10 +41,10 @@ export async function complyLegalRoutes(fastify: FastifyInstance) {
   });
 
   fastify.patch('/engagements/:id', async (request: any, reply) => {
+    const { status } = engagementStatusSchema.parse(request.body);
     try {
       const { id } = request.params as { id: string };
-      const { status } = request.body as { status: string };
-      await LegalMarketplaceService.updateEngagementStatus(request.user.tenant_id, id, status as any);
+      await LegalMarketplaceService.updateEngagementStatus(request.user.tenant_id, id, status);
       return { ok: true };
     } catch (err: any) {
       return reply.status(400).send({ error: err.message });
@@ -54,12 +62,11 @@ export async function complyLegalRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post('/engagements/:id/messages', async (request: any, reply) => {
+    const { body } = messageCreateSchema.parse(request.body);
     try {
       const { id } = request.params as { id: string };
-      const { body } = request.body as { body: string };
-      if (!body?.trim()) return reply.status(400).send({ error: 'body is required' });
       return reply.status(201).send(
-        await LegalMarketplaceService.addMessage(request.user.tenant_id, id, request.user.id, body.trim()),
+        await LegalMarketplaceService.addMessage(request.user.tenant_id, id, request.user.id, body),
       );
     } catch (err: any) {
       return reply.status(400).send({ error: err.message });
@@ -67,10 +74,10 @@ export async function complyLegalRoutes(fastify: FastifyInstance) {
   });
 
   fastify.patch('/engagements/:id/milestones/:milestoneId', async (request: any, reply) => {
+    const { status } = milestoneStatusSchema.parse(request.body);
     try {
       const { id, milestoneId } = request.params as { id: string; milestoneId: string };
-      const { status } = request.body as { status: string };
-      await LegalMarketplaceService.setMilestoneStatus(request.user.tenant_id, id, milestoneId, status as any);
+      await LegalMarketplaceService.setMilestoneStatus(request.user.tenant_id, id, milestoneId, status);
       return { ok: true };
     } catch (err: any) {
       return reply.status(400).send({ error: err.message });

@@ -1,4 +1,4 @@
-import { db, withTenant } from '../db/client.js';
+import { dbPlatform, withTenant } from '../db/client.js';
 
 /**
  * Clocking out of a shift nobody clocked out of.
@@ -58,7 +58,7 @@ export function settleEntry(
  */
 export async function sweepStaleCheckIns(now = new Date()): Promise<{ closed: number }> {
   const cutoff = new Date(now.getTime() - MAX_SHIFT_MINUTES * 60000);
-  const stale = await db
+  const stale = await dbPlatform
     .selectFrom('hr_time_entries')
     .select(['id', 'tenant_id', 'user_id', 'started_at', 'notes'])
     .where('ended_at', 'is', null)

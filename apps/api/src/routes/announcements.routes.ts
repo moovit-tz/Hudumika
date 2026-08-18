@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import { db } from '../db/client.js';
+import { withTenant, dbPlatform } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 
 /**
@@ -28,7 +28,7 @@ export async function announcementRoutes(fastify: FastifyInstance) {
   fastify.get('/active', async (request) => {
     const user = request.user;
     const now = new Date();
-    const rows = await db.selectFrom('announcements')
+    const rows = await withTenant(user.tenant_id, trx => trx.selectFrom('announcements')
       .select(['id', 'title', 'body', 'link', 'badge', 'starts_at', 'ends_at'])
       // "for my workspace, or for the whole platform" — see the note above.
       .where(eb => eb.or([
@@ -47,7 +47,7 @@ export async function announcementRoutes(fastify: FastifyInstance) {
       )))
       .orderBy('starts_at', 'desc')
       .limit(5)
-      .execute();
+      .execute());
     return { data: rows };
   });
 
@@ -55,11 +55,11 @@ export async function announcementRoutes(fastify: FastifyInstance) {
   fastify.post('/:id/dismiss', async (request: any, reply) => {
     const user = request.user;
     if (!isUuid(request.params.id)) return reply.status(404).send({ error: 'Not found' });
-    await db.insertInto('announcement_dismissals')
+    await withTenant(user.tenant_id, trx => trx.insertInto('announcement_dismissals')
       .values({ announcement_id: request.params.id, user_id: user.sub })
       // Dismissing twice is not an error; the primary key already says so.
       .onConflict(oc => oc.columns(['announcement_id', 'user_id']).doNothing())
-      .execute();
+      .execute());
     return reply.status(204).send();
   });
 }
@@ -83,22 +83,25 @@ export async function tenantAnnouncementRoutes(fastify: FastifyInstance) {
 
   fastify.get('/', async (request) => {
     const user = request.user;
-    const rows = await db.selectFrom('announcements')
-      .select(['id', 'title', 'body', 'link', 'badge', 'starts_at', 'ends_at', 'active', 'created_at'])
-      .where('tenant_id', '=', user.tenant_id)
-      .orderBy('created_at', 'desc')
-      .limit(100)
-      .execute();
+    const result = await withTenant(user.tenant_id, async (trx) => {
+      const rows = await trx.selectFrom('announcements')
+        .select(['id', 'title', 'body', 'link', 'badge', 'starts_at', 'ends_at', 'active', 'created_at'])
+        .where('tenant_id', '=', user.tenant_id)
+        .orderBy('created_at', 'desc')
+        .limit(100)
+        .execute();
 
-    const counts = await db.selectFrom('announcement_dismissals as d')
-      .innerJoin('announcements as a', 'a.id', 'd.announcement_id')
-      .select(['d.announcement_id'])
-      .select(eb => eb.fn.countAll<string>().as('n'))
-      .where('a.tenant_id', '=', user.tenant_id)
-      .groupBy('d.announcement_id')
-      .execute();
-    const byId = new Map(counts.map(c => [c.announcement_id, Number(c.n)]));
-    return { data: rows.map(r => ({ ...r, dismissed_count: byId.get(r.id) ?? 0 })) };
+      const counts = await trx.selectFrom('announcement_dismissals as d')
+        .innerJoin('announcements as a', 'a.id', 'd.announcement_id')
+        .select(['d.announcement_id'])
+        .select(eb => eb.fn.countAll<string>().as('n'))
+        .where('a.tenant_id', '=', user.tenant_id)
+        .groupBy('d.announcement_id')
+        .execute();
+      const byId = new Map(counts.map(c => [c.announcement_id, Number(c.n)]));
+      return rows.map(r => ({ ...r, dismissed_count: byId.get(r.id) ?? 0 }));
+    });
+    return { data: result };
   });
 
   fastify.post('/', async (request, reply) => {
@@ -107,7 +110,7 @@ export async function tenantAnnouncementRoutes(fastify: FastifyInstance) {
     const title = String(b.title ?? '').trim();
     if (!title) return reply.status(400).send({ error: 'An announcement needs a title.' });
 
-    const row = await db.insertInto('announcements').values({
+    const row = await withTenant(user.tenant_id, trx => trx.insertInto('announcements').values({
       // The caller's own tenant, always. Never b.tenant_id — that is how a
       // workspace would post to somebody else's staff.
       tenant_id: user.tenant_id,
@@ -119,7 +122,7 @@ export async function tenantAnnouncementRoutes(fastify: FastifyInstance) {
       ends_at: b.ends_at ? new Date(b.ends_at) : null,
       active: b.active !== false,
       created_by: user.sub,
-    } as any).returningAll().executeTakeFirstOrThrow();
+    } as any).returningAll().executeTakeFirstOrThrow());
 
     return reply.status(201).send(row);
   });
@@ -135,23 +138,23 @@ export async function tenantAnnouncementRoutes(fastify: FastifyInstance) {
     if (b.ends_at !== undefined) patch.ends_at = b.ends_at ? new Date(b.ends_at) : null;
     if (Object.keys(patch).length === 0) return reply.status(400).send({ error: 'Nothing to change.' });
 
-    const updated = await db.updateTable('announcements')
+    const updated = await withTenant(user.tenant_id, trx => trx.updateTable('announcements')
       .set(patch)
       .where('id', '=', request.params.id)
       .where('tenant_id', '=', user.tenant_id)
       .returningAll()
-      .executeTakeFirst();
+      .executeTakeFirst());
     if (!updated) return reply.status(404).send({ error: 'That announcement is not in this workspace.' });
     return updated;
   });
 
   fastify.delete<{ Params: { id: string } }>('/:id', async (request, reply) => {
     const user = request.user;
-    const gone = await db.deleteFrom('announcements')
+    const gone = await withTenant(user.tenant_id, trx => trx.deleteFrom('announcements')
       .where('id', '=', request.params.id)
       .where('tenant_id', '=', user.tenant_id)
       .returning('id')
-      .executeTakeFirst();
+      .executeTakeFirst());
     if (!gone) return reply.status(404).send({ error: 'That announcement is not in this workspace.' });
     return reply.status(204).send();
   });
@@ -166,7 +169,7 @@ export async function superAdminAnnouncementRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', requireRole('SUPER_ADMIN'));
 
   fastify.get('/', async () => {
-    const rows = await db.selectFrom('announcements')
+    const rows = await dbPlatform.selectFrom('announcements')
       .leftJoin('tenants', 'tenants.id', 'announcements.tenant_id')
       .select([
         'announcements.id', 'announcements.title', 'announcements.body', 'announcements.link',
@@ -179,7 +182,7 @@ export async function superAdminAnnouncementRoutes(fastify: FastifyInstance) {
       .execute();
     // How many people have already dismissed each one — the only real signal
     // of whether an announcement has been seen.
-    const counts = await db.selectFrom('announcement_dismissals')
+    const counts = await dbPlatform.selectFrom('announcement_dismissals')
       .select(['announcement_id'])
       .select(eb => eb.fn.countAll<string>().as('n'))
       .groupBy('announcement_id')
@@ -193,7 +196,7 @@ export async function superAdminAnnouncementRoutes(fastify: FastifyInstance) {
     const title = String(b.title ?? '').trim();
     if (!title) return reply.status(400).send({ error: 'title is required' });
     if (b.tenant_id && !isUuid(b.tenant_id)) return reply.status(400).send({ error: 'tenant_id must be a uuid' });
-    const row = await db.insertInto('announcements').values({
+    const row = await dbPlatform.insertInto('announcements').values({
       // Absent or explicitly null means platform-wide, which is the common case.
       tenant_id: b.tenant_id || null,
       title,
@@ -219,7 +222,7 @@ export async function superAdminAnnouncementRoutes(fastify: FastifyInstance) {
     if (b.starts_at !== undefined) patch.starts_at = new Date(b.starts_at);
     if (b.ends_at !== undefined) patch.ends_at = b.ends_at ? new Date(b.ends_at) : null;
     if (b.active !== undefined) patch.active = !!b.active;
-    const row = await db.updateTable('announcements').set(patch)
+    const row = await dbPlatform.updateTable('announcements').set(patch)
       .where('id', '=', request.params.id).returningAll().executeTakeFirst();
     if (!row) return reply.status(404).send({ error: 'Not found' });
     return row;
@@ -227,7 +230,7 @@ export async function superAdminAnnouncementRoutes(fastify: FastifyInstance) {
 
   fastify.delete('/:id', async (request: any, reply) => {
     if (!isUuid(request.params.id)) return reply.status(404).send({ error: 'Not found' });
-    const res = await db.deleteFrom('announcements').where('id', '=', request.params.id).executeTakeFirst();
+    const res = await dbPlatform.deleteFrom('announcements').where('id', '=', request.params.id).executeTakeFirst();
     if (!Number(res.numDeletedRows)) return reply.status(404).send({ error: 'Not found' });
     return reply.status(204).send();
   });

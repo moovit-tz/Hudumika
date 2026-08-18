@@ -11,7 +11,10 @@
  * what the statute says. Resetting everyone on 1 January would hand a September
  * joiner a fresh entitlement after four months and short-change a December one.
  */
-import { db } from '../db/client.js';
+import type { Kysely, Transaction } from 'kysely';
+import { withTenant, type Database } from '../db/client.js';
+
+type Db = Kysely<Database> | Transaction<Database>;
 
 export interface LeaveCycle { start: string; end: string }
 
@@ -97,14 +100,23 @@ export async function computeBalances(
   userId: string,
   onDate: Date = new Date(),
 ): Promise<Balance[]> {
-  const user = await db.selectFrom('users')
+  return withTenant(tenantId, trx => computeBalancesWith(trx, tenantId, userId, onDate));
+}
+
+async function computeBalancesWith(
+  trx: Db,
+  tenantId: string,
+  userId: string,
+  onDate: Date,
+): Promise<Balance[]> {
+  const user = await trx.selectFrom('users')
     .select(['id', 'hire_date', 'created_at'])
     .where('id', '=', userId).where('tenant_id', '=', tenantId).executeTakeFirst();
   if (!user) return [];
 
   const hire = user.hire_date ?? user.created_at;
 
-  const types = await db.selectFrom('hr_leave_types').selectAll()
+  const types = await trx.selectFrom('hr_leave_types').selectAll()
     .where('tenant_id', '=', tenantId).where('active', '=', true)
     .orderBy('name').execute();
 
@@ -115,7 +127,7 @@ export async function computeBalances(
     const cycle = leaveCycleFor(hire, t.cycle_months, onDate);
 
     // Requests are attributed to a cycle by their start date.
-    const rows = await db.selectFrom('hr_leaves')
+    const rows = await trx.selectFrom('hr_leaves')
       .select(['status', 'days'])
       .where('tenant_id', '=', tenantId)
       .where('user_id', '=', userId)
@@ -127,7 +139,7 @@ export async function computeBalances(
     const taken = rows.filter(r => r.status === 'APPROVED').reduce((s, r) => s + num(r.days), 0);
     const pending = rows.filter(r => r.status === 'PENDING').reduce((s, r) => s + num(r.days), 0);
 
-    const stored = await db.selectFrom('hr_leave_balances')
+    const stored = await trx.selectFrom('hr_leave_balances')
       .select(['carried_forward', 'adjustment'])
       .where('tenant_id', '=', tenantId).where('user_id', '=', userId)
       .where('leave_type_id', '=', t.id).where('cycle_start', '=', cycle.start as any)
@@ -157,29 +169,31 @@ export async function computeBalances(
 
 /** Write the computed balances back, so they can be listed without recomputing. */
 export async function persistBalances(tenantId: string, userId: string, onDate: Date = new Date()): Promise<number> {
-  const balances = await computeBalances(tenantId, userId, onDate);
-  for (const b of balances) {
-    const existing = await db.selectFrom('hr_leave_balances').select('id')
-      .where('tenant_id', '=', tenantId).where('user_id', '=', userId)
-      .where('leave_type_id', '=', b.leave_type_id)
-      .where('cycle_start', '=', b.cycle_start as any).executeTakeFirst();
+  return withTenant(tenantId, async (trx) => {
+    const balances = await computeBalancesWith(trx, tenantId, userId, onDate);
+    for (const b of balances) {
+      const existing = await trx.selectFrom('hr_leave_balances').select('id')
+        .where('tenant_id', '=', tenantId).where('user_id', '=', userId)
+        .where('leave_type_id', '=', b.leave_type_id)
+        .where('cycle_start', '=', b.cycle_start as any).executeTakeFirst();
 
-    const row = {
-      entitled: String(b.entitled), taken: String(b.taken), pending: String(b.pending),
-      cycle_end: b.cycle_end, recomputed_at: new Date(), updated_at: new Date(),
-    };
-    if (existing) {
-      // carried_forward and adjustment are deliberately not written here: they
-      // are inputs a person set, not outputs of this calculation.
-      await db.updateTable('hr_leave_balances').set(row as any).where('id', '=', existing.id).execute();
-    } else {
-      await db.insertInto('hr_leave_balances').values({
-        tenant_id: tenantId, user_id: userId, leave_type_id: b.leave_type_id,
-        cycle_start: b.cycle_start, ...row,
-      } as any).execute();
+      const row = {
+        entitled: String(b.entitled), taken: String(b.taken), pending: String(b.pending),
+        cycle_end: b.cycle_end, recomputed_at: new Date(), updated_at: new Date(),
+      };
+      if (existing) {
+        // carried_forward and adjustment are deliberately not written here: they
+        // are inputs a person set, not outputs of this calculation.
+        await trx.updateTable('hr_leave_balances').set(row as any).where('id', '=', existing.id).execute();
+      } else {
+        await trx.insertInto('hr_leave_balances').values({
+          tenant_id: tenantId, user_id: userId, leave_type_id: b.leave_type_id,
+          cycle_start: b.cycle_start, ...row,
+        } as any).execute();
+      }
     }
-  }
-  return balances.length;
+    return balances.length;
+  });
 }
 
 /**

@@ -1,14 +1,24 @@
 import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { GoogleGenAI } from '@google/genai';
-import { db } from '../db/client.js';
+import { dbPlatform } from '../db/client.js';
 
 const GLOBAL_TENANT_ID = '00000000-0000-0000-0000-000000000000';
 
+const scanSchema = z.object({
+  image_base64: z.string().min(1),
+  media_type: z.string().optional(),
+  // Callers that would feed the result into a real calculation set this
+  // false — a fabricated demo document must never become cargo lines.
+  allow_simulated: z.boolean().optional(),
+});
+
 // Superadmin-configurable key (Platform Settings → OCR / Document Scanning) takes
 // priority over the env var, so it can be rotated from the UI without a redeploy.
+// GLOBAL_TENANT_ID is a platform sentinel row, not real tenant data — dbPlatform.
 async function getGeminiApiKey(): Promise<string | null> {
-  const row = await db.selectFrom('tenant_settings')
+  const row = await dbPlatform.selectFrom('tenant_settings')
     .select('settings')
     .where('tenant_id', '=', GLOBAL_TENANT_ID)
     .executeTakeFirst();
@@ -136,17 +146,7 @@ export async function ocrRoutes(fastify: FastifyInstance) {
    * Returns structured OCR extraction from Gemini vision
    */
   fastify.post('/scan', async (request, reply) => {
-    const { image_base64, media_type = 'image/jpeg', allow_simulated = true } = request.body as {
-      image_base64: string;
-      media_type?: string;
-      /** Callers that would feed the result into a real calculation set this
-       *  false — a fabricated demo document must never become cargo lines. */
-      allow_simulated?: boolean;
-    };
-
-    if (!image_base64) {
-      return reply.status(400).send({ error: 'image_base64 is required' });
-    }
+    const { image_base64, media_type = 'image/jpeg', allow_simulated = true } = scanSchema.parse(request.body);
 
     // Gemini reads PDFs directly through inlineData, so a scanned or
     // born-digital invoice needs no client-side rasterising.

@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { withTenant } from '../db/client.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
 import { requireRole } from '../middleware/rbac.js';
@@ -8,6 +9,17 @@ import { reportingCurrency } from '../services/tax-registration.service.js';
 
 const FIN_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'FINANCE'] as const;
 const isDate = (s?: string) => !!s && /^\d{4}-\d{2}-\d{2}$/.test(s);
+
+// Shape-guard only — isDate() below does the real YYYY-MM-DD format check
+// with a purpose-built error message, and the jurisdiction regex check
+// further down does the same for that field.
+const periodCreateSchema = z.object({
+  period_start: z.string(),
+  period_end: z.string(),
+  jurisdiction: z.string().optional(),
+});
+const closeSchema = z.object({ acknowledge_unclassified: z.boolean().optional() });
+const reopenSchema = z.object({ reason: z.string().optional() });
 
 /**
  * Filing periods.
@@ -61,7 +73,7 @@ export async function vatPeriodRoutes(fastify: FastifyInstance) {
   // POST /v1/vat-periods
   fastify.post('/', { preHandler: requireRole(...FIN_ROLES) }, async (request, reply) => {
     const user = request.user;
-    const body = request.body as any;
+    const body = periodCreateSchema.parse(request.body);
     if (!isDate(body?.period_start) || !isDate(body?.period_end)) {
       return reply.status(400).send({ error: 'period_start and period_end are required, as YYYY-MM-DD' });
     }
@@ -104,7 +116,7 @@ export async function vatPeriodRoutes(fastify: FastifyInstance) {
   fastify.post('/:id/close', { preHandler: requireRole(...FIN_ROLES) }, async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
-    const body = (request.body ?? {}) as { acknowledge_unclassified?: boolean };
+    const body = closeSchema.parse(request.body ?? {});
     return withTenant(user.tenant_id, async (trx) => {
       const period = await trx.selectFrom('vat_periods').selectAll()
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
@@ -145,7 +157,7 @@ export async function vatPeriodRoutes(fastify: FastifyInstance) {
   fastify.post('/:id/reopen', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
-    const { reason } = (request.body ?? {}) as { reason?: string };
+    const { reason } = reopenSchema.parse(request.body ?? {});
     if (!String(reason ?? '').trim()) {
       return reply.status(400).send({ error: 'A reason is required to reopen a filed period.' });
     }

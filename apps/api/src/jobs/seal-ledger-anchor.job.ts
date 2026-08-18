@@ -1,5 +1,5 @@
 import { sql } from 'kysely';
-import { db, withTenant } from '../db/client.js';
+import { dbPlatform, withTenant } from '../db/client.js';
 import { SealAnchorService, NothingToAnchor } from '../services/seal-anchor.service.js';
 
 /**
@@ -15,7 +15,7 @@ import { SealAnchorService, NothingToAnchor } from '../services/seal-anchor.serv
  */
 export async function runSealLedgerAnchorJob(): Promise<void> {
   try {
-    const candidates = await db.selectFrom('seal_compartments as c')
+    const candidates = await dbPlatform.selectFrom('seal_compartments as c')
       .innerJoin('tenants as t', 't.id', 'c.tenant_id')
       .leftJoin('tenant_settings as ts', 'ts.tenant_id', 't.id')
       .where('c.active', '=', true)
@@ -26,7 +26,7 @@ export async function runSealLedgerAnchorJob(): Promise<void> {
       .execute();
 
     const planGrants = new Set(
-      (await db.selectFrom('package_features').select('package_code').where('feature_key', '=', 'seal').execute())
+      (await dbPlatform.selectFrom('package_features').select('package_code').where('feature_key', '=', 'seal').execute())
         .map(r => r.package_code)
     );
 
@@ -59,7 +59,7 @@ export async function runSealLedgerAnchorJob(): Promise<void> {
  *  their own, more frequent re-check independent of when they were stamped. */
 export async function runSealLedgerAnchorConfirmationSweepJob(): Promise<void> {
   try {
-    const pending = await db.selectFrom('seal_ledger_anchors')
+    const pending = await dbPlatform.selectFrom('seal_ledger_anchors')
       .select(['id', 'tenant_id'])
       .where('status', '=', 'pending')
       .execute();

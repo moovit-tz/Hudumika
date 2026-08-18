@@ -1,8 +1,15 @@
 import { requireAnyEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { withTenant } from '../db/client.js';
 import { MinioIntegration } from '../integrations/minio.js';
 import { CloudSync } from '../services/cloud-sync.service.js';
+
+const DOC_STATUSES = ['UPLOADED', 'VERIFIED', 'REJECTED'] as const;
+const documentPatchSchema = z.object({
+  status: z.enum(DOC_STATUSES),
+  notes: z.string().max(2000).nullable().optional(),
+});
 
 // SEAL's document vault (spec §deferred from Increment 3). Deliberately
 // entity_type/entity_id generalized rather than N dedicated FK columns —
@@ -102,8 +109,8 @@ export async function sealDocumentRoutes(fastify: FastifyInstance) {
   });
 
   fastify.patch('/documents/:id', async (request: any, reply) => {
+    const b = documentPatchSchema.parse(request.body);
     try {
-      const b = request.body as any;
       return await withTenant(request.user.tenant_id, trx =>
         trx.updateTable('seal_documents').set({
           status: b.status, notes: b.notes ?? undefined,

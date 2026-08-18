@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import crypto from 'crypto';
 import type { Transaction } from 'kysely';
-import { db, withTenant, type Database } from '../db/client.js';
+import { withTenant, type Database } from '../db/client.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
 import {
   buildGoogleAuthUrl, exchangeGoogleCode, refreshGoogleAccessToken,
@@ -12,7 +12,7 @@ import { env } from '../config/env.js';
 const GOOGLE_REDIRECT_URI = `${env.OPS_BOARD_URL}/contacts/google/callback`;
 
 async function getGoogleCreds(tenantId: string): Promise<{ clientId: string; clientSecret: string } | null> {
-  const row = await db.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', tenantId).executeTakeFirst();
+  const row = await withTenant(tenantId, trx => trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', tenantId).executeTakeFirst());
   const settings = row ? (typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings) : {};
   const g = settings?.['int-google'];
   if (!g?.oauthId || !g?.oauthSecret) return null;

@@ -1,8 +1,27 @@
 import { requireEntitlement } from '../middleware/entitlement.js';
 import { emitDomainEvent } from '../services/domain-events.service.js';
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { withTenant } from '../db/client.js';
 import { SealService } from '../services/seal.service.js';
+
+const fulfillmentOrderCreateSchema = z.object({
+  compartmentId: z.string().min(1),
+  customerId: z.string().min(1),
+  lines: z.array(z.object({ lotId: z.string().min(1), qty: z.number().positive() })).min(1),
+  notes: z.string().max(2000).optional(),
+});
+const fulfillmentPickSchema = z.object({
+  lineId: z.string().min(1),
+  qty: z.number().positive(),
+});
+const fulfillmentDispatchSchema = z.object({
+  vehicleId: z.string().nullable().optional(),
+  carrierNote: z.string().max(2000).nullable().optional(),
+});
+const dispatchRequestDecisionSchema = z.object({
+  status: z.enum(['APPROVED', 'REJECTED']),
+});
 
 // Outbound fulfillment (Increment 11b) — pick list generation, partial-pick
 // handling, packing confirmation, dispatch documentation. Physical pick
@@ -121,11 +140,8 @@ export async function sealFulfillmentRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post('/fulfillment-orders', async (request: any, reply) => {
+    const b = fulfillmentOrderCreateSchema.parse(request.body);
     try {
-      const b = request.body as any;
-      if (!b.compartmentId || !b.customerId || !Array.isArray(b.lines) || b.lines.length === 0) {
-        return reply.status(400).send({ error: 'compartmentId, customerId and at least one line are required' });
-      }
       const order = await withTenant(request.user.tenant_id, async trx => {
         // Every requested qty must be currently available on the named lot —
         // checked here (not just trusted from the client) since this is the
@@ -165,10 +181,8 @@ export async function sealFulfillmentRoutes(fastify: FastifyInstance) {
   // — this is the only place a fulfillment line's picked_qty and a lot's
   // qty_on_hand both change, together, in the same transaction.
   fastify.post('/fulfillment-orders/:id/pick', async (request: any, reply) => {
+    const b = fulfillmentPickSchema.parse(request.body);
     try {
-      const b = request.body as { lineId: string; qty: number };
-      if (!b.lineId || typeof b.qty !== 'number' || b.qty <= 0) return reply.status(400).send({ error: 'lineId and a positive qty are required' });
-
       const result = await withTenant(request.user.tenant_id, async trx => {
         const order = await trx.selectFrom('seal_fulfillment_orders').selectAll().where('id', '=', request.params.id)
           .where('tenant_id', '=', request.user.tenant_id).executeTakeFirstOrThrow();
@@ -233,8 +247,8 @@ export async function sealFulfillmentRoutes(fastify: FastifyInstance) {
   // so the movement history/dispatch documentation has a real timestamped
   // "left the building" event distinct from "pulled off the rack".
   fastify.post('/fulfillment-orders/:id/dispatch', async (request: any, reply) => {
+    const b = fulfillmentDispatchSchema.parse(request.body ?? {});
     try {
-      const b = request.body as { vehicleId?: string | null; carrierNote?: string | null };
       const order = await withTenant(request.user.tenant_id, async trx => {
         const o = await trx.selectFrom('seal_fulfillment_orders').selectAll().where('id', '=', request.params.id)
           .where('tenant_id', '=', request.user.tenant_id).executeTakeFirstOrThrow();
@@ -319,11 +333,8 @@ export async function sealFulfillmentRoutes(fastify: FastifyInstance) {
   // caller of that shape from a cross-tenant-originated request; the actual
   // pick/pack/dispatch afterward stays the existing staff flow untouched.
   fastify.patch('/dispatch-requests/:id', async (request: any, reply) => {
+    const b = dispatchRequestDecisionSchema.parse(request.body);
     try {
-      const b = request.body as { status?: 'APPROVED' | 'REJECTED' };
-      if (b.status !== 'APPROVED' && b.status !== 'REJECTED') {
-        return reply.status(400).send({ error: 'status must be APPROVED or REJECTED' });
-      }
       const result = await withTenant(request.user.tenant_id, async trx => {
         const reqRow = await trx.selectFrom('seal_dispatch_requests').selectAll()
           .where('id', '=', request.params.id).where('tenant_id', '=', request.user.tenant_id).executeTakeFirstOrThrow();

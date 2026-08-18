@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import { db } from '../db/client.js';
+import { withTenant, dbPlatform } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import {
   hsMemory, chargePriors, shipmentVariance, wizardAccuracy, complianceAccuracy,
@@ -58,7 +58,7 @@ export async function intelligenceRoutes(fastify: FastifyInstance) {
         };
       });
     if (rows.length === 0) return reply.status(400).send({ error: 'events[] is required' });
-    await db.insertInto('hs_classification_events').values(rows).execute();
+    await withTenant(user.tenant_id, trx => trx.insertInto('hs_classification_events').values(rows).execute());
     return { recorded: rows.length };
   });
 
@@ -68,7 +68,7 @@ export async function intelligenceRoutes(fastify: FastifyInstance) {
     const user = request.user as any;
     const text = String(request.query?.text ?? '');
     const limit = Math.min(Math.max(parseInt(String(request.query?.limit ?? '3')) || 3, 1), 5);
-    return { data: await hsMemory(user.tenant_id, text, limit) };
+    return { data: await withTenant(user.tenant_id, trx => hsMemory(trx, user.tenant_id, text, limit)) };
   });
 
   // ── POST /v1/intel/hs-memory/bulk ─────────────────────────────────────────
@@ -79,11 +79,13 @@ export async function intelligenceRoutes(fastify: FastifyInstance) {
     const items = Array.isArray(request.body?.items) ? request.body.items.slice(0, 400) : [];
     if (items.length === 0) return reply.status(400).send({ error: 'items[] is required' });
     const out: Record<string, any[]> = {};
-    for (const it of items) {
-      if (!it?.id || typeof it.text !== 'string') continue;
-      const hits = await hsMemory(user.tenant_id, it.text, 3);
-      if (hits.length) out[it.id] = hits;
-    }
+    await withTenant(user.tenant_id, async (trx) => {
+      for (const it of items) {
+        if (!it?.id || typeof it.text !== 'string') continue;
+        const hits = await hsMemory(trx, user.tenant_id, it.text, 3);
+        if (hits.length) out[it.id] = hits;
+      }
+    });
     return { data: out };
   });
 
@@ -93,13 +95,13 @@ export async function intelligenceRoutes(fastify: FastifyInstance) {
   fastify.get<{ Querystring: { window_days?: string } }>('/charge-priors', async (request) => {
     const user = request.user as any;
     const w = Math.min(Math.max(parseInt(String(request.query?.window_days ?? '180')) || 180, 30), 730);
-    return { data: await chargePriors(user.tenant_id, w), min_sample: MIN_SAMPLE, heads: CHARGE_HEADS };
+    return { data: await withTenant(user.tenant_id, trx => chargePriors(trx, user.tenant_id, w)), min_sample: MIN_SAMPLE, heads: CHARGE_HEADS };
   });
 
   // ── GET /v1/intel/variance/:shipmentId ────────────────────────────────────
   fastify.get<{ Params: { shipmentId: string } }>('/variance/:shipmentId', async (request) => {
     const user = request.user as any;
-    return await shipmentVariance(user.tenant_id, request.params.shipmentId);
+    return withTenant(user.tenant_id, trx => shipmentVariance(trx, user.tenant_id, request.params.shipmentId));
   });
 
   // ── POST /v1/intel/trade-wizard-outcomes ──────────────────────────────────
@@ -113,7 +115,7 @@ export async function intelligenceRoutes(fastify: FastifyInstance) {
     const user = request.user as any;
     const b = request.body ?? ({} as any);
     if (!b.procedure_id) return reply.status(400).send({ error: 'procedure_id is required' });
-    const row = await db.insertInto('trade_wizard_outcomes').values({
+    const row = await withTenant(user.tenant_id, trx => trx.insertInto('trade_wizard_outcomes').values({
       tenant_id: user.tenant_id,
       search_id: typeof b.search_id === 'string' ? b.search_id : null,
       procedure_id: String(b.procedure_id).slice(0, 120),
@@ -124,7 +126,7 @@ export async function intelligenceRoutes(fastify: FastifyInstance) {
       note: b.note ? String(b.note).slice(0, 1000) : null,
       shipment_id: typeof b.shipment_id === 'string' ? b.shipment_id : null,
       created_by: user.sub ?? null,
-    }).returning(['id']).executeTakeFirstOrThrow();
+    }).returning(['id']).executeTakeFirstOrThrow());
     reply.status(201);
     return row;
   });
@@ -159,7 +161,7 @@ export async function intelligenceRoutes(fastify: FastifyInstance) {
         created_by: user.sub ?? null,
       }));
     if (rows.length === 0) return reply.status(400).send({ error: 'outcomes[] is required' });
-    await db.insertInto('compliance_outcomes').values(rows).execute();
+    await withTenant(user.tenant_id, trx => trx.insertInto('compliance_outcomes').values(rows).execute());
     reply.status(201);
     return { recorded: rows.length };
   });
@@ -169,23 +171,25 @@ export async function intelligenceRoutes(fastify: FastifyInstance) {
   // tenant. The platform-wide view lives under /v1/superadmin.
   fastify.get('/accuracy', async (request) => {
     const user = request.user as any;
-    const [wizard, compliance] = await Promise.all([
-      wizardAccuracy(user.tenant_id),
-      complianceAccuracy(user.tenant_id),
-    ]);
+    const [wizard, compliance] = await withTenant(user.tenant_id, trx => Promise.all([
+      wizardAccuracy(trx, user.tenant_id),
+      complianceAccuracy(trx, user.tenant_id),
+    ]));
     return { wizard, compliance, min_sample: MIN_SAMPLE };
   });
 
   // ── GET /v1/intel/platform-accuracy ───────────────────────────────────────
   // Cross-tenant, SUPER_ADMIN only: which procedures and rules are wrong
   // everywhere rather than just here. No tenant is named in the response.
+  // dbPlatform (BYPASSRLS), not withTenant(null, ...) — a cleared app.tenant_id
+  // matches no tenant_id under real RLS enforcement, it does not mean "all".
   fastify.get('/platform-accuracy', { preHandler: requireRole('SUPER_ADMIN') }, async () => {
     const [wizard, compliance, hs] = await Promise.all([
-      wizardAccuracy(null),
-      complianceAccuracy(null),
+      wizardAccuracy(dbPlatform, null),
+      complianceAccuracy(dbPlatform, null),
       // Where the HS ranker is most often overruled — a direct, aggregated
       // quality signal for the suggester, carrying no tenant's goods text.
-      db.selectFrom('hs_classification_events')
+      dbPlatform.selectFrom('hs_classification_events')
         .select(['accepted_code'])
         .select(eb => eb.fn.countAll<string>().as('accepted'))
         .select(eb => eb.fn.sum<string>(eb.case().when('overrode_top', '=', true).then(1).else(0).end()).as('overrode_top'))

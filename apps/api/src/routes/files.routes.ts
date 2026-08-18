@@ -3,7 +3,7 @@ import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import type { Transaction } from 'kysely';
 import type { Database } from '../db/client.js';
-import { withTenant, db } from '../db/client.js';
+import { withTenant, dbPlatform } from '../db/client.js';
 import { MinioIntegration } from '../integrations/minio.js';
 import { resolveCustomerId } from '../services/customer-identity.service.js';
 import { isPlatformSuperAdmin } from '../middleware/rbac.js';
@@ -1412,7 +1412,10 @@ export async function filesRoutes(fastify: FastifyInstance) {
 export async function filesPublicRoutes(fastify: FastifyInstance) {
   fastify.get('/:token/download', async (req, reply) => {
     const { token } = req.params as { token: string };
-    const file = await db.selectFrom('cloud_files').selectAll()
+    // Public, unauthenticated — same reasoning as landed-cost-share/tracker's
+    // public share-token routes: no tenant is knowable, access control is the
+    // unguessable token alone.
+    const file = await dbPlatform.selectFrom('cloud_files').selectAll()
       .where('share_token', '=', token).where('is_trash', '=', false).executeTakeFirst();
     if (!file) return reply.status(404).send({ error: 'This link is invalid or has been revoked.' });
     if (file.type === 'folder') return reply.status(400).send({ error: "Folders can't be shared via a public link yet." });

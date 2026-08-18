@@ -1,7 +1,7 @@
 import { WhatsAppIntegration } from '../integrations/whatsapp.js';
 import { MailService } from './mail.service.js';
 import { SmsIntegration } from '../integrations/sms.js';
-import { db } from '../db/client.js';
+import { withTenant } from '../db/client.js';
 import type { MessageChannel, MessageDirection } from '@hudumika/types';
 
 export class MessagingService {
@@ -40,7 +40,7 @@ export class MessagingService {
     }
 
     // Save outbound message to DB
-    const message = await db
+    const message = await withTenant(tenantId, trx => trx
       .insertInto('support_messages')
       .values({
         tenant_id: tenantId,
@@ -54,7 +54,7 @@ export class MessagingService {
         external_ref: externalRef || null,
       })
       .returningAll()
-      .executeTakeFirstOrThrow();
+      .executeTakeFirstOrThrow());
 
     return message;
   }

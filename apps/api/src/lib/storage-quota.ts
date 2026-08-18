@@ -1,4 +1,4 @@
-import { db } from '../db/client.js';
+import { dbPlatform, withTenant } from '../db/client.js';
 
 /**
  * Real per-tenant Cloud storage quota, hooked into the same tenants.plan →
@@ -10,9 +10,11 @@ import { db } from '../db/client.js';
  */
 
 async function getStorageLimit(tenantId: string): Promise<number | null> {
-  const tenant = await db.selectFrom('tenants').select('plan').where('id', '=', tenantId).executeTakeFirst();
+  const tenant = await withTenant(tenantId, (trx) =>
+    trx.selectFrom('tenants').select('plan').where('id', '=', tenantId).executeTakeFirst(),
+  );
   if (!tenant) return null;
-  const pkg = await db.selectFrom('packages').select('storage_limit_bytes').where('code', '=', tenant.plan).executeTakeFirst();
+  const pkg = await dbPlatform.selectFrom('packages').select('storage_limit_bytes').where('code', '=', tenant.plan).executeTakeFirst();
   // No matching package row (legacy plan code) or a genuinely unlimited tier — both read as unlimited.
   if (!pkg || pkg.storage_limit_bytes == null) return null;
   return Number(pkg.storage_limit_bytes);
@@ -22,11 +24,13 @@ async function getStorageUsed(tenantId: string): Promise<number> {
   // Folders excluded — a folder's own `size` is already a rolled-up total
   // of its children (see files.routes.ts's bumpParentCount), so including
   // it would double-count every file once directly and again per ancestor.
-  const row = await db.selectFrom('cloud_files')
-    .select(({ fn }) => fn.sum<string>('size').as('total'))
-    .where('tenant_id', '=', tenantId)
-    .where('type', '!=', 'folder')
-    .executeTakeFirst();
+  const row = await withTenant(tenantId, (trx) =>
+    trx.selectFrom('cloud_files')
+      .select(({ fn }) => fn.sum<string>('size').as('total'))
+      .where('tenant_id', '=', tenantId)
+      .where('type', '!=', 'folder')
+      .executeTakeFirst(),
+  );
   return row?.total != null ? Number(row.total) : 0;
 }
 

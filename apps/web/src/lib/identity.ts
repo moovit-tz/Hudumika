@@ -11,7 +11,7 @@
  * Without it, a staff list of forty people would issue forty requests per
  * render.
  */
-import { apiFetch, BASE_URL } from './api.js';
+import { apiFetch, apiFetchRaw } from './api.js';
 
 export interface Person {
   id: string;
@@ -68,14 +68,12 @@ export function avatarObjectUrl(id: string, kind: SubjectKind = 'people'): Promi
 
   const p = (async () => {
     try {
-      const res = await fetch(`${BASE_URL}/v1/identity/${kind}/${id}/avatar`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('hudumika_token') ?? ''}` },
-      });
-      // 404 is the ordinary answer for someone who has not set a picture. It is
-      // cached like any other, so we do not ask again on every render.
-      if (!res.ok) return null;
+      const res = await apiFetchRaw(`/v1/identity/${kind}/${id}/avatar`);
       return URL.createObjectURL(await res.blob());
     } catch {
+      // 404 is the ordinary answer for someone who has not set a picture —
+      // caught here like any other failure, and cached the same way, so we
+      // do not ask again on every render.
       return null;
     }
   })();
@@ -89,31 +87,16 @@ export function avatarObjectUrl(id: string, kind: SubjectKind = 'people'): Promi
  * re-fetch. Throws with the server's own message so a caller can show it.
  */
 export async function setAvatar(id: string, kind: SubjectKind, dataUrl: string): Promise<void> {
-  const res = await fetch(`${BASE_URL}/v1/identity/${kind}/${id}/avatar`, {
+  await apiFetchRaw(`/v1/identity/${kind}/${id}/avatar`, {
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${localStorage.getItem('hudumika_token') ?? ''}`,
-    },
     body: JSON.stringify({ data_url: dataUrl }),
   });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({} as any));
-    throw new Error(body.error || body.message || `Could not save the picture (${res.status})`);
-  }
   forgetAvatar(id, kind);
 }
 
 /** Remove a picture, returning the subject to its initials. */
 export async function clearAvatar(id: string, kind: SubjectKind): Promise<void> {
-  const res = await fetch(`${BASE_URL}/v1/identity/${kind}/${id}/avatar`, {
-    method: 'DELETE',
-    headers: { Authorization: `Bearer ${localStorage.getItem('hudumika_token') ?? ''}` },
-  });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({} as any));
-    throw new Error(body.error || body.message || `Could not remove the picture (${res.status})`);
-  }
+  await apiFetchRaw(`/v1/identity/${kind}/${id}/avatar`, { method: 'DELETE' });
   forgetAvatar(id, kind);
 }
 

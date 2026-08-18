@@ -1,4 +1,4 @@
-import { db, withTenant } from '../db/client.js';
+import { dbPlatform, withTenant } from '../db/client.js';
 import { getAdapter } from '../integrations/comply-agencies.js';
 import { MinioIntegration } from '../integrations/minio.js';
 import { CloudSync } from './cloud-sync.service.js';
@@ -614,7 +614,8 @@ export class ComplyService {
   // ── Agency Directory ──────────────────────────────────────────────────────
 
   static async getAgencyDirectory(): Promise<CompAgencyDirectoryEntry[]> {
-    const rows = await db
+    // Shared reference directory, no tenant_id — platform-scoped.
+    const rows = await dbPlatform
       .selectFrom('comply_agency_directory')
       .selectAll()
       .orderBy('code', 'asc')
@@ -637,7 +638,8 @@ export class ComplyService {
   // ── Business Licence Catalogue ───────────────────────────────────────────
 
   static async getLicenseCatalog(): Promise<CompLicenseCatalogEntry[]> {
-    const rows = await db
+    // Shared reference catalogue, no tenant_id — platform-scoped.
+    const rows = await dbPlatform
       .selectFrom('comply_license_catalog')
       .selectAll()
       .orderBy('sn', 'asc')

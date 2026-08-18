@@ -14,7 +14,7 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { randomBytes } from 'node:crypto';
 import QRCode from 'qrcode';
-import { db } from '../db/client.js';
+import { withTenant, dbPlatform } from '../db/client.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
 import { env } from '../config/env.js';
 
@@ -80,7 +80,7 @@ export async function landedCostShareRoutes(fastify: FastifyInstance) {
     const token = newToken();
     const expiresAt = new Date(Date.now() + SHARE_TTL_DAYS * 24 * 60 * 60 * 1000);
 
-    const row = await db.insertInto('landed_cost_shares').values({
+    const row = await withTenant(user.tenant_id, trx => trx.insertInto('landed_cost_shares').values({
       token,
       tenant_id: user.tenant_id,
       hs_code: body.hs_code ?? null,
@@ -89,7 +89,7 @@ export async function landedCostShareRoutes(fastify: FastifyInstance) {
       payload: JSON.stringify(body.payload),
       created_by: user.sub ?? null,
       expires_at: expiresAt,
-    } as any).returning(['id', 'token']).executeTakeFirstOrThrow();
+    } as any).returning(['id', 'token']).executeTakeFirstOrThrow());
 
     const base = resolvePublicBaseUrl();
     const url = base.url ? `${base.url}/r/${row.token}` : null;
@@ -127,7 +127,9 @@ export async function landedCostShareRoutes(fastify: FastifyInstance) {
   // report covers, but never the figures, which are what the email buys.
   fastify.get('/:token', async (req: FastifyRequest, reply) => {
     const { token } = req.params as { token: string };
-    const share = await db.selectFrom('landed_cost_shares')
+    // No tenant is knowable yet — an anonymous scanner reaches this by the
+    // unguessable token alone, so the lookup must search across all tenants.
+    const share = await dbPlatform.selectFrom('landed_cost_shares')
       .select(['id', 'tenant_id', 'hs_code', 'description', 'customer_name', 'created_at', 'expires_at'])
       .where('token', '=', token)
       .executeTakeFirst();
@@ -137,12 +139,16 @@ export async function landedCostShareRoutes(fastify: FastifyInstance) {
       return reply.status(410).send({ error: 'This report link has expired. Ask the clearing agent for a fresh copy.' });
     }
 
-    await db.updateTable('landed_cost_shares')
-      .set(eb => ({ view_count: eb('view_count', '+', 1) }))
-      .where('id', '=', share.id).execute();
+    // The token has now resolved the owning tenant — everything from here is
+    // that tenant's own data.
+    const tenant = await withTenant(share.tenant_id, async (trx) => {
+      await trx.updateTable('landed_cost_shares')
+        .set(eb => ({ view_count: eb('view_count', '+', 1) }))
+        .where('id', '=', share.id).where('tenant_id', '=', share.tenant_id).execute();
 
-    const tenant = await db.selectFrom('tenants').select(['name'])
-      .where('id', '=', share.tenant_id).executeTakeFirst();
+      return trx.selectFrom('tenants').select(['name'])
+        .where('id', '=', share.tenant_id).executeTakeFirst();
+    });
 
     return {
       hs_code: share.hs_code,
@@ -167,7 +173,8 @@ export async function landedCostShareRoutes(fastify: FastifyInstance) {
     const fullName = (body.full_name ?? '').trim() || null;
     const company = (body.company ?? '').trim() || null;
 
-    const share = await db.selectFrom('landed_cost_shares')
+    // No tenant is knowable yet — same reasoning as GET /:token above.
+    const share = await dbPlatform.selectFrom('landed_cost_shares')
       .select(['id', 'tenant_id', 'payload', 'hs_code', 'description', 'expires_at'])
       .where('token', '=', token)
       .executeTakeFirst();
@@ -177,48 +184,53 @@ export async function landedCostShareRoutes(fastify: FastifyInstance) {
       return reply.status(410).send({ error: 'This report link has expired. Ask the clearing agent for a fresh copy.' });
     }
 
-    // One capture per (share, email) — re-downloading must not spam the
-    // pipeline with duplicate leads.
-    const existing = await db.selectFrom('landed_cost_share_leads')
-      .select(['id'])
-      .where('share_id', '=', share.id).where('email', '=', email)
-      .executeTakeFirst();
+    // The token has now resolved the owning tenant — the lead this capture
+    // creates belongs to that tenant, so everything past this point is scoped
+    // to it, even though the caller is still anonymous.
+    await withTenant(share.tenant_id, async (trx) => {
+      // One capture per (share, email) — re-downloading must not spam the
+      // pipeline with duplicate leads.
+      const existing = await trx.selectFrom('landed_cost_share_leads')
+        .select(['id'])
+        .where('share_id', '=', share.id).where('email', '=', email)
+        .executeTakeFirst();
 
-    if (!existing) {
-      // `leads.company` and `contact_name` are NOT NULL. When the scanner
-      // doesn't volunteer them we derive from the address rather than invent:
-      // the domain is a factual part of the email, and the local part is
-      // flagged in `notes` as derived so sales knows it wasn't self-reported.
-      const domain = email.split('@')[1] ?? '';
-      const localPart = email.split('@')[0] ?? email;
-      const derived = !fullName || !company;
+      if (!existing) {
+        // `leads.company` and `contact_name` are NOT NULL. When the scanner
+        // doesn't volunteer them we derive from the address rather than invent:
+        // the domain is a factual part of the email, and the local part is
+        // flagged in `notes` as derived so sales knows it wasn't self-reported.
+        const domain = email.split('@')[1] ?? '';
+        const localPart = email.split('@')[0] ?? email;
+        const derived = !fullName || !company;
 
-      const lead = await db.insertInto('leads').values({
-        tenant_id: share.tenant_id,
-        company: company ?? domain,
-        contact_name: fullName ?? localPart,
-        contact_email: email,
-        source: 'Landed Cost QR',
-        stage: 'NEW',
-        notes: [
-          `Scanned the QR code on a landed-cost estimate${share.hs_code ? ` for HS ${share.hs_code}` : ''}${share.description ? ` (${share.description})` : ''} and requested the full report.`,
-          derived ? 'Company and/or contact name were derived from the email address, not supplied by the contact — confirm before onboarding.' : null,
-        ].filter(Boolean).join(' '),
-      } as any).returning(['id']).executeTakeFirstOrThrow();
+        const lead = await trx.insertInto('leads').values({
+          tenant_id: share.tenant_id,
+          company: company ?? domain,
+          contact_name: fullName ?? localPart,
+          contact_email: email,
+          source: 'Landed Cost QR',
+          stage: 'NEW',
+          notes: [
+            `Scanned the QR code on a landed-cost estimate${share.hs_code ? ` for HS ${share.hs_code}` : ''}${share.description ? ` (${share.description})` : ''} and requested the full report.`,
+            derived ? 'Company and/or contact name were derived from the email address, not supplied by the contact — confirm before onboarding.' : null,
+          ].filter(Boolean).join(' '),
+        } as any).returning(['id']).executeTakeFirstOrThrow();
 
-      await db.insertInto('landed_cost_share_leads').values({
-        share_id: share.id,
-        tenant_id: share.tenant_id,
-        email,
-        full_name: fullName,
-        company,
-        lead_id: lead.id,
-      } as any).execute();
-    }
+        await trx.insertInto('landed_cost_share_leads').values({
+          share_id: share.id,
+          tenant_id: share.tenant_id,
+          email,
+          full_name: fullName,
+          company,
+          lead_id: lead.id,
+        } as any).execute();
+      }
 
-    await db.updateTable('landed_cost_shares')
-      .set(eb => ({ unlock_count: eb('unlock_count', '+', 1) }))
-      .where('id', '=', share.id).execute();
+      await trx.updateTable('landed_cost_shares')
+        .set(eb => ({ unlock_count: eb('unlock_count', '+', 1) }))
+        .where('id', '=', share.id).where('tenant_id', '=', share.tenant_id).execute();
+    });
 
     const payload = typeof share.payload === 'string' ? JSON.parse(share.payload) : share.payload;
     return { data: payload };

@@ -1,11 +1,34 @@
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import crypto from 'crypto';
 import { sql } from 'kysely';
 import { requireRole } from '../middleware/rbac.js';
-import { db } from '../db/client.js';
+import { dbPlatform } from '../db/client.js';
 import { MailService } from '../services/mail.service.js';
 import { ALLOWED_TABLES } from '../services/queryBuilderSchema.js';
 import { runVisualQuery, runRawQuery, type VisualQueryParams } from '../services/queryBuilder.service.js';
+
+const otpVerifySchema = z.object({ code: z.string().trim().min(1) });
+// Shape-guarded only — runVisualQuery's own findAllowedTable/isAllowedColumn
+// check is the real authorization boundary (every identifier is checked
+// against a hardcoded allowlist before reaching sql.ref/sql.table; filter
+// values are always parameterized). This just ensures the JS types are what
+// the service expects before it gets there.
+const visualQuerySchema = z.object({
+  table: z.string().min(1),
+  columns: z.array(z.string()),
+  filters: z.array(z.object({
+    column: z.string(),
+    operator: z.enum(['=', '!=', '>', '<', 'contains', 'is_null', 'is_not_null']),
+    value: z.string().optional(),
+  })).optional(),
+  tenant_id: z.string().optional(),
+  group_by: z.string().optional(),
+  aggregate: z.object({ fn: z.enum(['count', 'sum']), column: z.string().optional() }).optional(),
+  order_by: z.object({ column: z.string(), direction: z.enum(['asc', 'desc']) }).optional(),
+  limit: z.number().int().positive().optional(),
+});
+const rawRunSchema = z.object({ sql: z.string().trim().min(1) });
 
 const GLOBAL_TENANT_ID = '00000000-0000-0000-0000-000000000000';
 
@@ -15,7 +38,7 @@ const GLOBAL_TENANT_ID = '00000000-0000-0000-0000-000000000000';
 const RAW_SQL_OTP_STORE = new Map<string, { code: string; expiresAt: number }>();
 
 async function readSettings(): Promise<Record<string, any>> {
-  const row = await db.selectFrom('tenant_settings')
+  const row = await dbPlatform.selectFrom('tenant_settings')
     .select('settings')
     .where('tenant_id', '=', GLOBAL_TENANT_ID)
     .executeTakeFirst();
@@ -24,7 +47,7 @@ async function readSettings(): Promise<Record<string, any>> {
 }
 
 async function writeSettings(patch: Record<string, any>): Promise<Record<string, any>> {
-  const row = await db.selectFrom('tenant_settings')
+  const row = await dbPlatform.selectFrom('tenant_settings')
     .select('settings')
     .where('tenant_id', '=', GLOBAL_TENANT_ID)
     .executeTakeFirst();
@@ -33,11 +56,11 @@ async function writeSettings(patch: Record<string, any>): Promise<Record<string,
   const merged = { ...existingQb, ...patch };
   const patchJson = JSON.stringify({ 'query-builder': merged });
 
-  const exists = await db.selectFrom('tenant_settings').select('id').where('tenant_id', '=', GLOBAL_TENANT_ID).executeTakeFirst();
+  const exists = await dbPlatform.selectFrom('tenant_settings').select('id').where('tenant_id', '=', GLOBAL_TENANT_ID).executeTakeFirst();
   if (exists) {
-    await sql`UPDATE tenant_settings SET settings = settings || ${patchJson}::jsonb, updated_at = NOW() WHERE tenant_id = ${GLOBAL_TENANT_ID}`.execute(db);
+    await sql`UPDATE tenant_settings SET settings = settings || ${patchJson}::jsonb, updated_at = NOW() WHERE tenant_id = ${GLOBAL_TENANT_ID}`.execute(dbPlatform);
   } else {
-    await db.insertInto('tenant_settings').values({ tenant_id: GLOBAL_TENANT_ID, settings: patchJson }).execute();
+    await dbPlatform.insertInto('tenant_settings').values({ tenant_id: GLOBAL_TENANT_ID, settings: patchJson }).execute();
   }
   return merged;
 }
@@ -72,7 +95,7 @@ export async function queryBuilderRoutes(fastify: FastifyInstance) {
 
   fastify.post('/raw-sql/verify-otp', async (request, reply) => {
     const actor = request.user;
-    const { code } = request.body as { code: string };
+    const { code } = otpVerifySchema.parse(request.body);
     const record = RAW_SQL_OTP_STORE.get(actor.sub);
     if (!record || record.expiresAt < Date.now()) {
       return reply.status(400).send({ error: 'Code expired or not requested — request a new one' });
@@ -93,10 +116,7 @@ export async function queryBuilderRoutes(fastify: FastifyInstance) {
 
   fastify.post('/run', async (request, reply) => {
     const actor = request.user;
-    const body = request.body as VisualQueryParams;
-    if (!body.table || !Array.isArray(body.columns)) {
-      return reply.status(400).send({ error: 'table and columns are required' });
-    }
+    const body = visualQuerySchema.parse(request.body) as VisualQueryParams;
 
     const started = Date.now();
     let rows: any[] = [];
@@ -113,7 +133,7 @@ export async function queryBuilderRoutes(fastify: FastifyInstance) {
     }
     const duration_ms = Date.now() - started;
 
-    await db.insertInto('query_builder_runs').values({
+    await dbPlatform.insertInto('query_builder_runs').values({
       mode: 'visual',
       table_name: body.table,
       columns: JSON.stringify(body.columns) as any,
@@ -136,8 +156,7 @@ export async function queryBuilderRoutes(fastify: FastifyInstance) {
     if (!settings.raw_sql_enabled) {
       return reply.status(403).send({ error: 'Raw SQL mode is disabled' });
     }
-    const { sql: sqlText } = request.body as { sql: string };
-    if (!sqlText?.trim()) return reply.status(400).send({ error: 'sql is required' });
+    const { sql: sqlText } = rawRunSchema.parse(request.body);
 
     const started = Date.now();
     let rows: any[] = [];
@@ -154,7 +173,7 @@ export async function queryBuilderRoutes(fastify: FastifyInstance) {
     }
     const duration_ms = Date.now() - started;
 
-    await db.insertInto('query_builder_runs').values({
+    await dbPlatform.insertInto('query_builder_runs').values({
       mode: 'raw',
       table_name: null,
       columns: null,
@@ -173,7 +192,7 @@ export async function queryBuilderRoutes(fastify: FastifyInstance) {
 
   fastify.get('/runs', async (request) => {
     const { limit = '50' } = request.query as { limit?: string };
-    return db.selectFrom('query_builder_runs')
+    return dbPlatform.selectFrom('query_builder_runs')
       .leftJoin('users', 'users.id', 'query_builder_runs.run_by')
       .select([
         'query_builder_runs.id', 'query_builder_runs.mode', 'query_builder_runs.table_name',

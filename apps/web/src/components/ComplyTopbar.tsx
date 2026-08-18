@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { Icon } from './Icon.js';
+import { useAuth } from '../hooks/useAuth.js';
+import { nameInitials } from '../lib/identity.js';
 import './ComplyTopbar.css';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -11,25 +13,6 @@ function getGreeting(): string {
   return 'Good Evening';
 }
 
-function getUserFromToken(): { name: string; initials: string } {
-  try {
-    const token = localStorage.getItem('hudumika_token');
-    if (!token) return { name: 'there', initials: '?' };
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    const name: string =
-      payload.name || payload.first_name || payload.email?.split('@')[0] || 'there';
-    const initials = name
-      .split(' ')
-      .map((n: string) => n[0] ?? '')
-      .slice(0, 2)
-      .join('')
-      .toUpperCase();
-    return { name, initials };
-  } catch {
-    return { name: 'there', initials: '?' };
-  }
-}
-
 // ── Component ─────────────────────────────────────────────────────────────────
 
 interface Props {
@@ -38,7 +21,13 @@ interface Props {
 
 export function ComplyTopbar({ onMenuToggle }: Props) {
   const [search, setSearch] = useState('');
-  const { name, initials } = getUserFromToken();
+  // The token used to be decoded client-side just to read this — already
+  // redundant even before the cookie migration made it impossible (an
+  // httpOnly access token is invisible to JS): the same name is already
+  // sitting in the signed-in user's own context.
+  const { user } = useAuth();
+  const name = user?.name || user?.email?.split('@')[0] || 'there';
+  const initials = nameInitials(name);
 
   return (
     <header className="comply-topbar">

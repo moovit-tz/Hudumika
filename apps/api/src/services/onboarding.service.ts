@@ -1,5 +1,5 @@
 import { sql } from 'kysely';
-import { db } from '../db/client.js';
+import { dbPlatform } from '../db/client.js';
 import { hashPassword } from '../lib/password.js';
 import { PaymentsIntegration } from '../integrations/payments.js';
 import { GLService } from './gl.service.js';
@@ -31,7 +31,7 @@ async function uniqueSlug(name: string): Promise<string> {
   const base = slugifyBase(name);
   let candidate = base;
   let n = 2;
-  while (await db.selectFrom('tenants').select('id').where('slug', '=', candidate).executeTakeFirst()) {
+  while (await dbPlatform.selectFrom('tenants').select('id').where('slug', '=', candidate).executeTakeFirst()) {
     candidate = `${base}-${n}`;
     n++;
   }
@@ -49,12 +49,12 @@ export function validateSubdomain(value: string): { ok: boolean; reason?: string
 }
 
 export async function isSubdomainAvailable(value: string): Promise<boolean> {
-  const existing = await db.selectFrom('tenants').select('id').where('subdomain', '=', value).executeTakeFirst();
+  const existing = await dbPlatform.selectFrom('tenants').select('id').where('subdomain', '=', value).executeTakeFirst();
   return !existing;
 }
 
 export async function isEmailAvailable(email: string): Promise<boolean> {
-  const existing = await db.selectFrom('users').select('id').where('email', '=', email).executeTakeFirst();
+  const existing = await dbPlatform.selectFrom('users').select('id').where('email', '=', email).executeTakeFirst();
   return !existing;
 }
 
@@ -77,7 +77,7 @@ export class OnboardingService {
       throw new OnboardingError(409, 'This subdomain is already taken');
     }
 
-    const pkg = await db.selectFrom('packages').selectAll()
+    const pkg = await dbPlatform.selectFrom('packages').selectAll()
       .where('code', '=', input.package_code)
       .where('is_active', '=', true)
       .executeTakeFirst();
@@ -95,7 +95,7 @@ export class OnboardingService {
     const now = new Date();
     const slug = await uniqueSlug(input.company.name);
 
-    const { tenant, admin } = await db.transaction().execute(async (trx) => {
+    const { tenant, admin } = await dbPlatform.transaction().execute(async (trx) => {
       const tenant = await trx.insertInto('tenants').values({
         name: input.company.name,
         slug,

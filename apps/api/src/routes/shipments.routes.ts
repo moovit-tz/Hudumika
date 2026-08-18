@@ -1,7 +1,7 @@
 import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { db, withTenant } from '../db/client.js';
+import { withTenant } from '../db/client.js';
 import { resolveCustomerId } from '../services/customer-identity.service.js';
 import { ShipmentService } from '../services/shipment.service.js';
 import { loadResolvedWorkflow, evaluateEntryConditions } from '../services/workflow-resolver.service.js';
@@ -609,13 +609,13 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
         : user.sub;
 
       // Verify the resolved user exists in this tenant to give a clear error instead of FK violation
-      const { db } = await import('../db/client.js');
-      const assigneeExists = await db
+      const { withTenant } = await import('../db/client.js');
+      const assigneeExists = await withTenant(user.tenant_id, trx => trx
         .selectFrom('users')
         .select('id')
         .where('id', '=', preferredAssignee)
         .where('tenant_id', '=', user.tenant_id)
-        .executeTakeFirst();
+        .executeTakeFirst());
 
       if (!assigneeExists) {
         return reply.status(401).send({ error: 'Session expired — please log out and log back in.' });
@@ -981,10 +981,10 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
     let shipsgoKey: string | null = null;
     let ship24Key:  string | null = null;
     try {
-      const setting = await db
+      const setting = await withTenant(user.tenant_id, trx => trx
         .selectFrom('tenant_settings').select('settings')
         .where('tenant_id', '=', user.tenant_id)
-        .executeTakeFirst();
+        .executeTakeFirst());
       if (setting) {
         const s = typeof setting.settings === 'string' ? JSON.parse(setting.settings) : setting.settings as any;
         shipsgoKey = s?.['int-shipsgo']?.shipsgo_api_key ?? null;

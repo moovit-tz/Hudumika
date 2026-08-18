@@ -1,6 +1,8 @@
 import type { FastifyInstance } from 'fastify';
 import { requireEntitlement } from '../middleware/entitlement.js';
 import { withTenant } from '../db/client.js';
+import { COOKIE_NAMES } from '../lib/cookies.js';
+import { env } from '../config/env.js';
 
 /**
  * NexusHR calls — 1:1 voice/video.
@@ -52,12 +54,24 @@ const RELAY_TYPES = new Set(['ring', 'offer', 'answer', 'ice', 'accept', 'declin
 
 export async function callsRoutes(fastify: FastifyInstance) {
   // ── Signaling socket ──────────────────────────────────────────────
-  // Browsers can't set an Authorization header on a WebSocket, so the access
-  // token is passed as a query param and verified here before anything is wired.
+  // Browsers can't set an Authorization header on a WebSocket handshake, but
+  // they DO send cookies on it — same as any other request to this origin —
+  // so the httpOnly access cookie authenticates the connection. Used to
+  // carry the raw access token as a `?token=` query param instead (browser
+  // history, server/proxy logs); the cookie migration retired that.
   fastify.get('/signal', { websocket: true }, (socket: any, req: any) => {
+    // No CORS preflight applies to a WS upgrade, so an ambient cookie
+    // credential gets its own origin check here rather than relying on the
+    // CORS plugin (which never runs for this route at all).
+    const origin = String(req.headers?.origin || '');
+    if (origin && !env.CORS_ORIGINS.split(',').includes(origin)) {
+      try { socket.close(4001, 'unauthorized'); } catch { /* ignore */ }
+      return;
+    }
+
     let claims: any;
     try {
-      const token = String((req.query as any)?.token || '');
+      const token = req.cookies?.[COOKIE_NAMES.access] || req.cookies?.[COOKIE_NAMES.orgAccess] || '';
       claims = fastify.jwt.verify(token);
     } catch {
       try { socket.close(4001, 'unauthorized'); } catch { /* ignore */ }

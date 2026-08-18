@@ -12,10 +12,12 @@ import http from 'http';
 import fs from 'fs';
 import crypto from 'crypto';
 import { XMLBuilder, XMLParser } from 'fast-xml-parser';
-import { sql } from 'kysely';
-import { db } from '../db/client.js';
+import { sql, type Kysely, type Transaction } from 'kysely';
+import { withTenant, type Database } from '../db/client.js';
 import QRCode from 'qrcode';
 import { guardPlaceholders } from './placeholder-identifiers.js';
+
+type Db = Kysely<Database> | Transaction<Database>;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -227,12 +229,12 @@ function httpRequest(options: {
 // Counter management
 // ─────────────────────────────────────────────────────────────────────────────
 
-async function getNextCounters(tenantId: string): Promise<{ gc: number; dc: number; znum: string }> {
+async function getNextCounters(trx: Db, tenantId: string): Promise<{ gc: number; dc: number; znum: string }> {
   const today = new Date();
   const todayDate = today.toISOString().slice(0, 10); // YYYY-MM-DD
   const znum = todayDate.replace(/-/g, ''); // YYYYMMDD
 
-  const config = await db
+  const config = await trx
     .selectFrom('tra_vfd_config')
     .select(['gc', 'dc', 'dc_date'])
     .where('tenant_id', '=', tenantId)
@@ -248,7 +250,7 @@ async function getNextCounters(tenantId: string): Promise<{ gc: number; dc: numb
   const newDc = needsDcReset ? 1 : (Number(config.dc) || 0) + 1;
 
   // Update counters atomically
-  await db
+  await trx
     .updateTable('tra_vfd_config')
     .set({
       gc: newGc,
@@ -272,8 +274,8 @@ async function getNextCounters(tenantId: string): Promise<{ gc: number; dc: numb
  * the VRN — the one actually seeded as TEST-VRN-NOT-REAL — lives in
  * tax_registrations.
  */
-async function vatRegistrationNumber(tenantId: string): Promise<string | null> {
-  const row = await db.selectFrom('tax_registrations')
+async function vatRegistrationNumber(trx: Db, tenantId: string): Promise<string | null> {
+  const row = await trx.selectFrom('tax_registrations')
     .select('registration_number')
     .where('tenant_id', '=', tenantId)
     .orderBy('created_at', 'desc')
@@ -368,57 +370,59 @@ export const TRAService = {
       };
 
       // Save / upsert config to DB
-      const existing = await db
-        .selectFrom('tra_vfd_config')
-        .select('id')
-        .where('tenant_id', '=', tenantId)
-        .executeTakeFirst();
+      await withTenant(tenantId, async (trx) => {
+        const existing = await trx
+          .selectFrom('tra_vfd_config')
+          .select('id')
+          .where('tenant_id', '=', tenantId)
+          .executeTakeFirst();
 
-      if (existing) {
-        await db.updateTable('tra_vfd_config').set({
-          tin,
-          cert_key: certKey,
-          cert_serial: certSerial,
-          pfx_path: pfxPath,
-          pfx_password: pfxPassword,
-          reg_id: regData.regId ?? null,
-          serial: regData.serial ?? null,
-          uin: regData.uin ?? null,
-          vrn: regData.vrn ?? null,
-          receipt_code: regData.receiptCode ?? null,
-          username: regData.username ?? null,
-          password: regData.password ?? null,
-          token_path: regData.tokenPath ?? null,
-          tax_office: regData.taxOffice ?? null,
-          tax_code: regData.taxCode ?? 'A',
-          environment,
-          registered_at: new Date(),
-          updated_at: new Date(),
-        }).where('tenant_id', '=', tenantId).execute();
-      } else {
-        await db.insertInto('tra_vfd_config').values({
-          tenant_id: tenantId,
-          tin,
-          cert_key: certKey,
-          cert_serial: certSerial,
-          pfx_path: pfxPath,
-          pfx_password: pfxPassword,
-          reg_id: regData.regId ?? null,
-          serial: regData.serial ?? null,
-          uin: regData.uin ?? null,
-          vrn: regData.vrn ?? null,
-          receipt_code: regData.receiptCode ?? null,
-          username: regData.username ?? null,
-          password: regData.password ?? null,
-          token_path: regData.tokenPath ?? null,
-          tax_office: regData.taxOffice ?? null,
-          tax_code: regData.taxCode ?? 'A',
-          environment,
-          gc: 0,
-          dc: 0,
-          registered_at: new Date(),
-        }).execute();
-      }
+        if (existing) {
+          await trx.updateTable('tra_vfd_config').set({
+            tin,
+            cert_key: certKey,
+            cert_serial: certSerial,
+            pfx_path: pfxPath,
+            pfx_password: pfxPassword,
+            reg_id: regData.regId ?? null,
+            serial: regData.serial ?? null,
+            uin: regData.uin ?? null,
+            vrn: regData.vrn ?? null,
+            receipt_code: regData.receiptCode ?? null,
+            username: regData.username ?? null,
+            password: regData.password ?? null,
+            token_path: regData.tokenPath ?? null,
+            tax_office: regData.taxOffice ?? null,
+            tax_code: regData.taxCode ?? 'A',
+            environment,
+            registered_at: new Date(),
+            updated_at: new Date(),
+          }).where('tenant_id', '=', tenantId).execute();
+        } else {
+          await trx.insertInto('tra_vfd_config').values({
+            tenant_id: tenantId,
+            tin,
+            cert_key: certKey,
+            cert_serial: certSerial,
+            pfx_path: pfxPath,
+            pfx_password: pfxPassword,
+            reg_id: regData.regId ?? null,
+            serial: regData.serial ?? null,
+            uin: regData.uin ?? null,
+            vrn: regData.vrn ?? null,
+            receipt_code: regData.receiptCode ?? null,
+            username: regData.username ?? null,
+            password: regData.password ?? null,
+            token_path: regData.tokenPath ?? null,
+            tax_office: regData.taxOffice ?? null,
+            tax_code: regData.taxCode ?? 'A',
+            environment,
+            gc: 0,
+            dc: 0,
+            registered_at: new Date(),
+          }).execute();
+        }
+      });
 
       return regData;
     } catch (err: any) {
@@ -434,7 +438,8 @@ export const TRAService = {
    */
   async getToken(tenantId: string): Promise<TRATokenResult> {
     try {
-      const config = await db
+      return await withTenant(tenantId, async (trx) => {
+      const config = await trx
         .selectFrom('tra_vfd_config')
         .selectAll()
         .where('tenant_id', '=', tenantId)
@@ -491,13 +496,14 @@ export const TRAService = {
       const expiresAt = new Date(Date.now() + expiresInSeconds * 1000);
 
       // Save token to DB
-      await db.updateTable('tra_vfd_config').set({
+      await trx.updateTable('tra_vfd_config').set({
         access_token: accessToken,
         token_expires_at: expiresAt,
         updated_at: new Date(),
       }).where('tenant_id', '=', tenantId).execute();
 
       return { success: true, accessToken, expiresAt };
+      });
     } catch (err: any) {
       console.error('[TRA] Token error:', err);
       return { success: false, error: err.message };
@@ -511,8 +517,9 @@ export const TRAService = {
    */
   async submitInvoice(tenantId: string, invoiceId: string): Promise<TRAInvoiceResult> {
     try {
+      return await withTenant(tenantId, async (trx) => {
       // 1. Load TRA config
-      const config = await db
+      const config = await trx
         .selectFrom('tra_vfd_config')
         .selectAll()
         .where('tenant_id', '=', tenantId)
@@ -531,12 +538,12 @@ export const TRAService = {
       // what the test environment is for.
       const placeholder = guardPlaceholders(config.environment, {
         TIN: config.tin,
-        'VAT registration number': await vatRegistrationNumber(tenantId),
+        'VAT registration number': await vatRegistrationNumber(trx, tenantId),
       });
       if (placeholder) return { success: false, error: placeholder };
 
       // 2. Load invoice with lines
-      const invoice = await db
+      const invoice = await trx
         .selectFrom('sales_invoices')
         .selectAll()
         .where('id', '=', invoiceId)
@@ -559,7 +566,7 @@ export const TRAService = {
 
       // Lines come with their tax treatment attached, not just a percentage —
       // see the TAXCODE derivation below for why that mattered.
-      const lines = await db
+      const lines = await trx
         .selectFrom('sales_invoice_lines as l')
         .leftJoin('tax_codes as tc', 'tc.id', 'l.tax_code_id')
         .selectAll('l')
@@ -618,7 +625,7 @@ export const TRAService = {
       }
 
       // 4. Get/increment counters
-      const { gc, dc, znum } = await getNextCounters(tenantId);
+      const { gc, dc, znum } = await getNextCounters(trx, tenantId);
 
       // 5. Load private key for signing
       if (!config.pfx_path || !config.pfx_password) {
@@ -717,7 +724,7 @@ export const TRAService = {
       // customer, so the receipt is issued to their account (CUSTIDTYPE=1)
       // instead of always going out as an anonymous walk-in sale.
       const customer = invoice.customer_id
-        ? await db.selectFrom('customers').select(['tax_id', 'phone']).where('id', '=', invoice.customer_id).executeTakeFirst()
+        ? await trx.selectFrom('customers').select(['tax_id', 'phone']).where('id', '=', invoice.customer_id).executeTakeFirst()
         : undefined;
       const custIdType = customer?.tax_id ? 1 : 6;
       const custId = customer?.tax_id ? escapeXml(customer.tax_id) : '';
@@ -803,7 +810,7 @@ export const TRAService = {
 
       // 13. Save result to invoice
       const traStatus = ackCode === 0 ? 'submitted' : 'failed';
-      await db.updateTable('sales_invoices').set({
+      await trx.updateTable('sales_invoices').set({
         tra_status: traStatus,
         tra_rctnum: rctNum,
         tra_dc: dc,
@@ -820,7 +827,7 @@ export const TRAService = {
       // Accumulate the tenant's running fiscal total so the nightly Z-report's
       // GROSSTOTAL reflects cumulative sales, not the receipt count.
       if (ackCode === 0) {
-        await db.updateTable('tra_vfd_config').set({
+        await trx.updateTable('tra_vfd_config').set({
           gross_total: sql<number>`gross_total + ${totalTaxIncl}`,
           updated_at: new Date(),
         }).where('tenant_id', '=', tenantId).execute();
@@ -831,14 +838,16 @@ export const TRAService = {
       }
 
       return { success: true, rctNum, rctvNum, qrUrl, ackCode, ackMsg };
+      });
     } catch (err: any) {
       console.error('[TRA] Invoice submission error:', err);
-      // Mark as failed in DB
-      await db.updateTable('sales_invoices').set({
+      // Mark as failed in DB — a fresh withTenant call since the one above may
+      // itself be what threw (or never got this far, e.g. before RCT was sent).
+      await withTenant(tenantId, trx => trx.updateTable('sales_invoices').set({
         tra_status: 'failed',
         tra_ack_msg: err.message,
         updated_at: new Date(),
-      }).where('id', '=', invoiceId).where('tenant_id', '=', tenantId).execute().catch(() => {});
+      }).where('id', '=', invoiceId).where('tenant_id', '=', tenantId).execute()).catch(() => {});
       return { success: false, error: err.message };
     }
   },
@@ -900,12 +909,13 @@ export const TRAService = {
    */
   async submitZReport(tenantId: string, date?: Date): Promise<{ success: boolean; ackCode?: number; ackMsg?: string; error?: string }> {
     try {
+      return await withTenant(tenantId, async (trx) => {
       const reportDate = date || new Date();
       const dateStr = reportDate.toISOString().slice(0, 10);
       const timeStr = reportDate.toTimeString().slice(0, 8);
       const znumber = dateStr.replace(/-/g, '');
 
-      const config = await db
+      const config = await trx
         .selectFrom('tra_vfd_config')
         .selectAll()
         .where('tenant_id', '=', tenantId)
@@ -918,7 +928,7 @@ export const TRAService = {
       // single invoice — arguably more so, since nobody reviews it line by line.
       const zPlaceholder = guardPlaceholders(config.environment, {
         TIN: config.tin,
-        'VAT registration number': await vatRegistrationNumber(tenantId),
+        'VAT registration number': await vatRegistrationNumber(trx, tenantId),
       });
       if (zPlaceholder) return { success: false, error: zPlaceholder };
 
@@ -939,7 +949,7 @@ export const TRAService = {
       const startOfDay = new Date(dateStr + 'T00:00:00Z');
       const endOfDay = new Date(dateStr + 'T23:59:59Z');
 
-      const dayInvoices = await db
+      const dayInvoices = await trx
         .selectFrom('sales_invoices')
         .selectAll()
         .where('tenant_id', '=', tenantId)
@@ -1028,13 +1038,14 @@ export const TRAService = {
 
       if (ackCode === 0) {
         // Update last_zreport_date
-        await db.updateTable('tra_vfd_config').set({
+        await trx.updateTable('tra_vfd_config').set({
           last_zreport_date: reportDate,
           updated_at: new Date(),
         }).where('tenant_id', '=', tenantId).execute();
       }
 
       return { success: ackCode === 0, ackCode, ackMsg };
+      });
     } catch (err: any) {
       console.error('[TRA] Z-Report error:', err);
       return { success: false, error: err.message };
@@ -1047,7 +1058,7 @@ export const TRAService = {
    * Get sanitized TRA config status for a tenant (no passwords).
    */
   async getConfig(tenantId: string) {
-    const config = await db
+    const config = await withTenant(tenantId, trx => trx
       .selectFrom('tra_vfd_config')
       .select([
         'id', 'tenant_id', 'tin', 'cert_key', 'reg_id', 'serial', 'uin',
@@ -1056,7 +1067,7 @@ export const TRAService = {
         'token_expires_at', 'created_at', 'updated_at',
       ])
       .where('tenant_id', '=', tenantId)
-      .executeTakeFirst();
+      .executeTakeFirst());
 
     if (!config) return null;
 

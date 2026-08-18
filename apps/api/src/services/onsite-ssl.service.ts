@@ -14,7 +14,10 @@
  * identically, because both are equally true of the live site.
  */
 import tls from 'node:tls';
-import { db } from '../db/client.js';
+import type { Kysely, Transaction } from 'kysely';
+import type { Database } from '../db/client.js';
+
+type Db = Kysely<Database> | Transaction<Database>;
 
 /** A handshake that has not completed in this long is a failed check. */
 const HANDSHAKE_TIMEOUT_MS = 10_000;
@@ -119,13 +122,14 @@ export function certificateStatus(expiresAt: Date | null): 'active' | 'expiring'
  * would be a different feature with different storage.
  */
 export async function refreshDomainCertificate(
+  trx: Db,
   tenantId: string,
   domain: { id: string; domain: string },
 ): Promise<InspectionOutcome> {
   const outcome = await inspectCertificate(domain.domain);
   const now = new Date();
 
-  const existing = await db.selectFrom('onsite_ssl_certificates')
+  const existing = await trx.selectFrom('onsite_ssl_certificates')
     .select('id')
     .where('tenant_id', '=', tenantId)
     .where('domain_id', '=', domain.id)
@@ -154,13 +158,13 @@ export async function refreshDomainCertificate(
       };
 
   if (existing) {
-    await db.updateTable('onsite_ssl_certificates')
+    await trx.updateTable('onsite_ssl_certificates')
       .set(values as any)
       .where('id', '=', existing.id)
       .where('tenant_id', '=', tenantId)
       .execute();
   } else {
-    await db.insertInto('onsite_ssl_certificates')
+    await trx.insertInto('onsite_ssl_certificates')
       .values({ tenant_id: tenantId, domain_id: domain.id, ...(values as any) })
       .execute();
   }
@@ -180,7 +184,7 @@ export async function refreshDomainCertificate(
     : certStatus === 'pending' ? 'unknown'
     : certStatus;
 
-  await db.updateTable('onsite_domains')
+  await trx.updateTable('onsite_domains')
     .set({
       ssl_status: domainSslStatus,
       ssl_checked_at: now,

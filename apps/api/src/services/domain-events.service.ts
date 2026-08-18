@@ -1,6 +1,6 @@
 import { createHmac } from 'node:crypto';
 import { sql } from 'kysely';
-import { db, withTenant } from '../db/client.js';
+import { withTenant } from '../db/client.js';
 import type { Transaction } from 'kysely';
 import type { Database } from '../db/client.js';
 
@@ -91,16 +91,18 @@ export async function emitDomainEvent(trx: Transaction<Database>, tenantId: stri
  * verify it came from us and was not replayed from another tenant.
  */
 async function dispatchToMarketplaceWebhooks(tenantId: string, event: DomainEvent): Promise<void> {
-  const rows = await sql<{ webhook_url: string; name: string; webhook_secret: string }>`
-    SELECT a.webhook_url, a.name, i.webhook_secret
-    FROM tenant_marketplace_installs i
-    JOIN marketplace_apps a ON a.id = i.app_id
-    WHERE i.tenant_id = ${tenantId}
-      AND i.revoked_at IS NULL
-      AND i.events_enabled = true
-      AND a.status = 'approved'
-      AND a.webhook_url IS NOT NULL
-  `.execute(db);
+  const rows = await withTenant(tenantId, trx =>
+    sql<{ webhook_url: string; name: string; webhook_secret: string }>`
+      SELECT a.webhook_url, a.name, i.webhook_secret
+      FROM tenant_marketplace_installs i
+      JOIN marketplace_apps a ON a.id = i.app_id
+      WHERE i.tenant_id = ${tenantId}
+        AND i.revoked_at IS NULL
+        AND i.events_enabled = true
+        AND a.status = 'approved'
+        AND a.webhook_url IS NOT NULL
+    `.execute(trx),
+  );
 
   for (const app of rows.rows) {
     const body = JSON.stringify({

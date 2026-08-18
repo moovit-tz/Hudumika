@@ -1,5 +1,5 @@
 import { sql } from 'kysely';
-import { db } from '../db/client.js';
+import { withTenant } from '../db/client.js';
 
 // Dedicated per-tier monthly quota for Trade Compliance Wizard runs — kept
 // separate from the generic tenant_usage_counters (lib/usage.ts), which is
@@ -12,28 +12,30 @@ function currentPeriod(): string {
 }
 
 async function getMonthlyLimit(tenantId: string): Promise<number | null> {
-  const tenant = await db.selectFrom('tenants').select('plan').where('id', '=', tenantId).executeTakeFirst();
-  if (!tenant) return null;
-  const pkg = await db.selectFrom('packages').select('trade_wizard_monthly_searches').where('code', '=', tenant.plan).executeTakeFirst();
-  return pkg?.trade_wizard_monthly_searches ?? null; // no matching package row = treat as unlimited
+  return withTenant(tenantId, async (trx) => {
+    const tenant = await trx.selectFrom('tenants').select('plan').where('id', '=', tenantId).executeTakeFirst();
+    if (!tenant) return null;
+    const pkg = await trx.selectFrom('packages').select('trade_wizard_monthly_searches').where('code', '=', tenant.plan).executeTakeFirst();
+    return pkg?.trade_wizard_monthly_searches ?? null; // no matching package row = treat as unlimited
+  });
 }
 
 async function getUsage(tenantId: string): Promise<number> {
-  const row = await db.selectFrom('trade_wizard_usage_counters')
+  const row = await withTenant(tenantId, trx => trx.selectFrom('trade_wizard_usage_counters')
     .select('searches')
     .where('tenant_id', '=', tenantId)
     .where('period', '=', currentPeriod())
-    .executeTakeFirst();
+    .executeTakeFirst());
   return row?.searches ?? 0;
 }
 
 export async function incrementTradeWizardUsage(tenantId: string): Promise<void> {
-  await db.insertInto('trade_wizard_usage_counters')
+  await withTenant(tenantId, trx => trx.insertInto('trade_wizard_usage_counters')
     .values({ tenant_id: tenantId, period: currentPeriod(), searches: 1 })
     .onConflict(oc => oc.columns(['tenant_id', 'period']).doUpdateSet({
       searches: sql`trade_wizard_usage_counters.searches + 1`,
     }))
-    .execute();
+    .execute());
 }
 
 export interface TradeWizardUsageGate {

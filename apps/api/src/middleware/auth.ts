@@ -1,8 +1,9 @@
 import type { FastifyRequest, FastifyReply, FastifyInstance } from 'fastify';
 import type { JWTPayload } from '@hudumika/types';
 import { createHash } from 'crypto';
-import { db } from '../db/client.js';
+import { dbPlatform } from '../db/client.js';
 import { isMeteredPath, checkUsageLimit } from '../lib/usage.js';
+import { verifyCsrf } from './csrf.js';
 
 declare module '@fastify/jwt' {
   interface FastifyJWT {
@@ -52,6 +53,12 @@ const ORG_ALLOWED_ROUTES: { method: string; url: string }[] = [
   { method: 'GET', url: '/v1/org/seal-lots' },
   { method: 'POST', url: '/v1/org/seal-lots/:lotId/dispatch-request' },
   { method: 'GET', url: '/v1/org/dispatch-requests' },
+  // Session-cookie migration: an org session needs somewhere to clear its
+  // own cookies server-side (authRoutes is mounted at both prefixes — see
+  // index.ts). Everything else /auth/logout does (hr_devices revocation) is
+  // staff-only and skipped for an ORG actor inside the handler itself.
+  { method: 'POST', url: '/auth/logout' },
+  { method: 'POST', url: '/v1/auth/logout' },
 ];
 
 import fp from 'fastify-plugin';
@@ -79,7 +86,9 @@ export const authPlugin = fp(async (fastify: FastifyInstance) => {
     const apiKeyHeader = request.headers['x-api-key'];
     if (typeof apiKeyHeader === 'string' && apiKeyHeader.length > 0) {
       const keyHash = hashApiKey(apiKeyHeader);
-      const row = await db.selectFrom('api_keys')
+      // Structurally pre-tenant: the tenant isn't known until this lookup
+      // resolves, so it can't be scoped in advance — dbPlatform, not db.
+      const row = await dbPlatform.selectFrom('api_keys')
         .selectAll()
         .where('key_hash', '=', keyHash)
         .where('revoked_at', 'is', null)
@@ -128,7 +137,7 @@ export const authPlugin = fp(async (fastify: FastifyInstance) => {
       };
       request.apiKeyScopes = row.scopes;
 
-      db.updateTable('api_keys').set({ last_used_at: new Date() }).where('id', '=', row.id).execute().catch(() => {});
+      dbPlatform.updateTable('api_keys').set({ last_used_at: new Date() }).where('id', '=', row.id).execute().catch(() => {});
       if (await enforceUsageGate(request, reply)) return;
       return;
     }
@@ -138,6 +147,13 @@ export const authPlugin = fp(async (fastify: FastifyInstance) => {
     } catch (err) {
       return reply.status(401).send({ error: 'Unauthorized: Invalid or expired token' });
     }
+
+    // Cookie-priority extraction (lib/cookies.ts's extractToken) means the
+    // absence of an Authorization header is exactly the signal that this
+    // request's credential was the ambient session cookie, not something
+    // explicitly attached — the double-submit CSRF check only applies to
+    // that case (see middleware/csrf.ts's own doc comment for why).
+    if (!verifyCsrf(request, reply, !request.headers.authorization)) return;
 
     // A refresh token is not a key to the API. It is long-lived on purpose and
     // only /auth/refresh accepts it; without this check the split between the
@@ -159,7 +175,9 @@ export const authPlugin = fp(async (fastify: FastifyInstance) => {
     // "Sign Out" in Workspace ▸ Security revokes, re-checked live on every
     // request rather than trusting what the token claimed at sign-in.
     if (request.user.device_id) {
-      const device = await db.selectFrom('hr_devices').select('revoked_at')
+      // Also structurally pre-tenant-context for this check — it exists to
+      // catch a revoked session regardless of what the token itself claims.
+      const device = await dbPlatform.selectFrom('hr_devices').select('revoked_at')
         .where('id', '=', request.user.device_id).executeTakeFirst();
       if (device?.revoked_at) {
         return reply.status(401).send({ error: 'Unauthorized: Session has been signed out' });

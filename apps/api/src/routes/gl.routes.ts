@@ -4,7 +4,7 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { CostPostingService } from '../services/cost-posting.service.js';
 import { GLService } from '../services/gl.service.js';
-import { db } from '../db/client.js';
+import { withTenant } from '../db/client.js';
 import { toDateParam } from '../utils/dates.js';
 
 const ACCOUNT_TYPES = ['ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE'] as const;
@@ -37,6 +37,13 @@ const journalEntrySchema = z.object({
     dimensions: z.record(z.string()).optional(),
   })).min(1),
 });
+const accountPatchSchema = z.object({
+  name: z.string().trim().min(1).max(200).optional(),
+  description: z.string().max(2000).nullable().optional(),
+  subtype: z.string().max(50).nullable().optional(),
+  parent_id: z.string().uuid().nullable().optional(),
+  is_active: z.boolean().optional(),
+});
 
 export async function glRoutes(fastify: FastifyInstance) {
   // Ensure user is authenticated for all GL routes
@@ -53,12 +60,12 @@ export async function glRoutes(fastify: FastifyInstance) {
   fastify.get('/chart-of-accounts', async (request: any, reply) => {
     try {
       const tenantId = request.user.tenant_id;
-      const accounts = await db
+      const accounts = await withTenant(tenantId, trx => trx
         .selectFrom('chart_of_accounts')
         .select(['id', 'code', 'name', 'type', 'subtype', 'parent_id', 'description', 'is_system', 'is_active', 'normal_balance', 'currency'])
         .where('tenant_id', '=', tenantId)
         .orderBy('code', 'asc')
-        .execute();
+        .execute());
 
       // Build hierarchical tree
       const accountMap = new Map<string, any>();
@@ -90,7 +97,7 @@ export async function glRoutes(fastify: FastifyInstance) {
     const b = accountCreateSchema.parse(request.body);
 
     try {
-      const account = await db.insertInto('chart_of_accounts').values({
+      const account = await withTenant(tenantId, trx => trx.insertInto('chart_of_accounts').values({
         tenant_id: tenantId,
         code: b.code,
         name: b.name,
@@ -100,7 +107,7 @@ export async function glRoutes(fastify: FastifyInstance) {
         description: b.description ?? null,
         normal_balance: b.normal_balance ?? (b.type === 'ASSET' || b.type === 'EXPENSE' ? 'DEBIT' : 'CREDIT'),
         is_system: false,
-      }).returningAll().executeTakeFirstOrThrow();
+      }).returningAll().executeTakeFirstOrThrow());
       reply.status(201);
       return account;
     } catch (err: any) {
@@ -113,17 +120,17 @@ export async function glRoutes(fastify: FastifyInstance) {
   fastify.patch('/chart-of-accounts/:id', { preHandler: requireRole(...COA_WRITE_ROLES) }, async (request: any, reply) => {
     const tenantId = request.user.tenant_id;
     const { id } = request.params as { id: string };
-    const b = request.body as Record<string, any>;
-    const editable = ['name', 'description', 'subtype', 'parent_id', 'is_active'];
+    const b = accountPatchSchema.parse(request.body);
+    const editable = ['name', 'description', 'subtype', 'parent_id', 'is_active'] as const;
     const patch: Record<string, any> = { updated_at: new Date() };
     for (const key of editable) if (key in b) patch[key] = b[key];
 
-    const account = await db.updateTable('chart_of_accounts')
+    const account = await withTenant(tenantId, trx => trx.updateTable('chart_of_accounts')
       .set(patch)
       .where('id', '=', id)
       .where('tenant_id', '=', tenantId)
       .returningAll()
-      .executeTakeFirst();
+      .executeTakeFirst());
     if (!account) return reply.status(404).send({ error: 'Account not found' });
     return account;
   });
@@ -134,22 +141,24 @@ export async function glRoutes(fastify: FastifyInstance) {
     const tenantId = request.user.tenant_id;
     const { id } = request.params as { id: string };
 
-    const account = await db.selectFrom('chart_of_accounts').selectAll()
-      .where('id', '=', id).where('tenant_id', '=', tenantId).executeTakeFirst();
-    if (!account) return reply.status(404).send({ error: 'Account not found' });
-    if (account.is_system) return reply.status(400).send({ error: 'System accounts cannot be deleted' });
+    return withTenant(tenantId, async (trx) => {
+      const account = await trx.selectFrom('chart_of_accounts').selectAll()
+        .where('id', '=', id).where('tenant_id', '=', tenantId).executeTakeFirst();
+      if (!account) return reply.status(404).send({ error: 'Account not found' });
+      if (account.is_system) return reply.status(400).send({ error: 'System accounts cannot be deleted' });
 
-    const usedInJournal = await db.selectFrom('journal_lines').select('id')
-      .where('account_id', '=', id).executeTakeFirst();
-    if (usedInJournal) return reply.status(400).send({ error: 'Account has journal activity and cannot be deleted' });
+      const usedInJournal = await trx.selectFrom('journal_lines').select('id')
+        .where('account_id', '=', id).executeTakeFirst();
+      if (usedInJournal) return reply.status(400).send({ error: 'Account has journal activity and cannot be deleted' });
 
-    const hasChildren = await db.selectFrom('chart_of_accounts').select('id')
-      .where('parent_id', '=', id).executeTakeFirst();
-    if (hasChildren) return reply.status(400).send({ error: 'Account has sub-accounts and cannot be deleted' });
+      const hasChildren = await trx.selectFrom('chart_of_accounts').select('id')
+        .where('parent_id', '=', id).executeTakeFirst();
+      if (hasChildren) return reply.status(400).send({ error: 'Account has sub-accounts and cannot be deleted' });
 
-    await db.deleteFrom('chart_of_accounts').where('id', '=', id).where('tenant_id', '=', tenantId).execute();
-    reply.status(204);
-    return null;
+      await trx.deleteFrom('chart_of_accounts').where('id', '=', id).where('tenant_id', '=', tenantId).execute();
+      reply.status(204);
+      return null;
+    });
   });
 
   /**
@@ -190,47 +199,49 @@ export async function glRoutes(fastify: FastifyInstance) {
   fastify.get('/journal-entries', async (request: any, reply) => {
     try {
       const tenantId = request.user.tenant_id;
-      const entries = await db
-        .selectFrom('journal_entries')
-        .select(['id', 'entry_number', 'entry_date', 'reference', 'description', 'status', 'source_module', 'source_id', 'created_by', 'posted_at'])
-        .where('tenant_id', '=', tenantId)
-        .orderBy('entry_date', 'desc')
-        .orderBy('entry_number', 'desc')
-        .execute();
-
-      const entryIds = entries.map(e => e.id);
-      let lines: any[] = [];
-      if (entryIds.length > 0) {
-        lines = await db
-          .selectFrom('journal_lines')
-          .innerJoin('chart_of_accounts', 'chart_of_accounts.id', 'journal_lines.account_id')
-          .select([
-            'journal_lines.id',
-            'journal_lines.journal_entry_id',
-            'journal_lines.account_id',
-            'chart_of_accounts.code as account_code',
-            'chart_of_accounts.name as account_name',
-            'journal_lines.debit',
-            'journal_lines.credit',
-            'journal_lines.description',
-            'journal_lines.currency',
-            'journal_lines.exchange_rate',
-            'journal_lines.dimensions'
-          ])
-          .where('journal_lines.journal_entry_id', 'in', entryIds)
-          .orderBy('journal_lines.sort_order', 'asc')
+      const result = await withTenant(tenantId, async (trx) => {
+        const entries = await trx
+          .selectFrom('journal_entries')
+          .select(['id', 'entry_number', 'entry_date', 'reference', 'description', 'status', 'source_module', 'source_id', 'created_by', 'posted_at'])
+          .where('tenant_id', '=', tenantId)
+          .orderBy('entry_date', 'desc')
+          .orderBy('entry_number', 'desc')
           .execute();
-    }
 
-      const result = entries.map(e => ({
-        ...e,
-        // entry_date is a DATE — already 'YYYY-MM-DD' from the driver (see the
-        // type parser in db/client.ts). posted_at is a TIMESTAMPTZ and really
-        // is an instant, so it stays a Date and keeps toISOString().
-        entry_date: String(e.entry_date).slice(0, 10),
-        posted_at: e.posted_at ? e.posted_at.toISOString() : null,
-        lines: lines.filter(l => l.journal_entry_id === e.id)
-      }));
+        const entryIds = entries.map(e => e.id);
+        let lines: any[] = [];
+        if (entryIds.length > 0) {
+          lines = await trx
+            .selectFrom('journal_lines')
+            .innerJoin('chart_of_accounts', 'chart_of_accounts.id', 'journal_lines.account_id')
+            .select([
+              'journal_lines.id',
+              'journal_lines.journal_entry_id',
+              'journal_lines.account_id',
+              'chart_of_accounts.code as account_code',
+              'chart_of_accounts.name as account_name',
+              'journal_lines.debit',
+              'journal_lines.credit',
+              'journal_lines.description',
+              'journal_lines.currency',
+              'journal_lines.exchange_rate',
+              'journal_lines.dimensions'
+            ])
+            .where('journal_lines.journal_entry_id', 'in', entryIds)
+            .orderBy('journal_lines.sort_order', 'asc')
+            .execute();
+        }
+
+        return entries.map(e => ({
+          ...e,
+          // entry_date is a DATE — already 'YYYY-MM-DD' from the driver (see the
+          // type parser in db/client.ts). posted_at is a TIMESTAMPTZ and really
+          // is an instant, so it stays a Date and keeps toISOString().
+          entry_date: String(e.entry_date).slice(0, 10),
+          posted_at: e.posted_at ? e.posted_at.toISOString() : null,
+          lines: lines.filter(l => l.journal_entry_id === e.id)
+        }));
+      });
 
       return { journal_entries: result };
     } catch (err: any) {
@@ -323,78 +334,82 @@ export async function glRoutes(fastify: FastifyInstance) {
         return reply.status(400).send({ error: 'Missing from or to query parameters' });
       }
       
-      // Query TZS bank (1010), USD bank (1011) and Cash on hand (1001)
-      const cashAccounts = await db
-        .selectFrom('chart_of_accounts')
-        .select(['id', 'code'])
-        .where('tenant_id', '=', tenantId)
-        .where('code', 'in', ['1001', '1010', '1011'])
-        .execute();
-      
-      const cashAccountIds = cashAccounts.map(a => a.id);
+      const { opening_cash, closing_cash, arReceipts, apPayments, directExpenses } = await withTenant(tenantId, async (trx) => {
+        // Query TZS bank (1010), USD bank (1011) and Cash on hand (1001)
+        const cashAccounts = await trx
+          .selectFrom('chart_of_accounts')
+          .select(['id', 'code'])
+          .where('tenant_id', '=', tenantId)
+          .where('code', 'in', ['1001', '1010', '1011'])
+          .execute();
 
-      let opening_cash = 0;
-      let closing_cash = 0;
+        const cashAccountIds = cashAccounts.map(a => a.id);
 
-      if (cashAccountIds.length > 0) {
-        const openingSum = await db
+        let opening_cash = 0;
+        let closing_cash = 0;
+
+        if (cashAccountIds.length > 0) {
+          const openingSum = await trx
+            .selectFrom('journal_lines')
+            .innerJoin('journal_entries', 'journal_entries.id', 'journal_lines.journal_entry_id')
+            .select([trx.fn.sum('journal_lines.debit').as('debits'), trx.fn.sum('journal_lines.credit').as('credits')])
+            .where('journal_entries.tenant_id', '=', tenantId)
+            .where('journal_lines.account_id', 'in', cashAccountIds)
+            .where('journal_entries.entry_date', '<', toDateParam(new Date(from)))
+            .executeTakeFirst();
+
+          opening_cash = Number(openingSum?.debits || 0) - Number(openingSum?.credits || 0);
+
+          const closingSum = await trx
+            .selectFrom('journal_lines')
+            .innerJoin('journal_entries', 'journal_entries.id', 'journal_lines.journal_entry_id')
+            .select([trx.fn.sum('journal_lines.debit').as('debits'), trx.fn.sum('journal_lines.credit').as('credits')])
+            .where('journal_entries.tenant_id', '=', tenantId)
+            .where('journal_lines.account_id', 'in', cashAccountIds)
+            .where('journal_entries.entry_date', '<=', toDateParam(new Date(to)))
+            .executeTakeFirst();
+
+          closing_cash = Number(closingSum?.debits || 0) - Number(closingSum?.credits || 0);
+        }
+
+        // Receipts from AR (Operating)
+        const arReceipts = await trx
           .selectFrom('journal_lines')
           .innerJoin('journal_entries', 'journal_entries.id', 'journal_lines.journal_entry_id')
-          .select([db.fn.sum('journal_lines.debit').as('debits'), db.fn.sum('journal_lines.credit').as('credits')])
+          .select(trx.fn.sum('journal_lines.debit').as('total'))
           .where('journal_entries.tenant_id', '=', tenantId)
           .where('journal_lines.account_id', 'in', cashAccountIds)
-          .where('journal_entries.entry_date', '<', toDateParam(new Date(from)))
-          .executeTakeFirst();
-
-        opening_cash = Number(openingSum?.debits || 0) - Number(openingSum?.credits || 0);
-
-        const closingSum = await db
-          .selectFrom('journal_lines')
-          .innerJoin('journal_entries', 'journal_entries.id', 'journal_lines.journal_entry_id')
-          .select([db.fn.sum('journal_lines.debit').as('debits'), db.fn.sum('journal_lines.credit').as('credits')])
-          .where('journal_entries.tenant_id', '=', tenantId)
-          .where('journal_lines.account_id', 'in', cashAccountIds)
+          .where('journal_entries.source_module', '=', 'AR')
+          .where('journal_entries.entry_date', '>=', toDateParam(new Date(from)))
           .where('journal_entries.entry_date', '<=', toDateParam(new Date(to)))
           .executeTakeFirst();
 
-        closing_cash = Number(closingSum?.debits || 0) - Number(closingSum?.credits || 0);
-      }
+        // Payments to AP (Operating)
+        const apPayments = await trx
+          .selectFrom('journal_lines')
+          .innerJoin('journal_entries', 'journal_entries.id', 'journal_lines.journal_entry_id')
+          .select(trx.fn.sum('journal_lines.credit').as('total'))
+          .where('journal_entries.tenant_id', '=', tenantId)
+          .where('journal_lines.account_id', 'in', cashAccountIds)
+          .where('journal_entries.source_module', '=', 'AP')
+          .where('journal_entries.entry_date', '>=', toDateParam(new Date(from)))
+          .where('journal_entries.entry_date', '<=', toDateParam(new Date(to)))
+          .executeTakeFirst();
 
-      // Receipts from AR (Operating)
-      const arReceipts = await db
-        .selectFrom('journal_lines')
-        .innerJoin('journal_entries', 'journal_entries.id', 'journal_lines.journal_entry_id')
-        .select(db.fn.sum('journal_lines.debit').as('total'))
-        .where('journal_entries.tenant_id', '=', tenantId)
-        .where('journal_lines.account_id', 'in', cashAccountIds)
-        .where('journal_entries.source_module', '=', 'AR')
-        .where('journal_entries.entry_date', '>=', toDateParam(new Date(from)))
-        .where('journal_entries.entry_date', '<=', toDateParam(new Date(to)))
-        .executeTakeFirst();
+        // Direct Expenses (Operating)
+        const directExpenses = await trx
+          .selectFrom('journal_lines')
+          .innerJoin('journal_entries', 'journal_entries.id', 'journal_lines.journal_entry_id')
+          .select(trx.fn.sum('journal_lines.credit').as('total'))
+          .where('journal_entries.tenant_id', '=', tenantId)
+          .where('journal_lines.account_id', 'in', cashAccountIds)
+          .where('journal_entries.source_module', '=', 'EXPENSE')
+          .where('journal_entries.entry_date', '>=', toDateParam(new Date(from)))
+          .where('journal_entries.entry_date', '<=', toDateParam(new Date(to)))
+          .executeTakeFirst();
 
-      // Payments to AP (Operating)
-      const apPayments = await db
-        .selectFrom('journal_lines')
-        .innerJoin('journal_entries', 'journal_entries.id', 'journal_lines.journal_entry_id')
-        .select(db.fn.sum('journal_lines.credit').as('total'))
-        .where('journal_entries.tenant_id', '=', tenantId)
-        .where('journal_lines.account_id', 'in', cashAccountIds)
-        .where('journal_entries.source_module', '=', 'AP')
-        .where('journal_entries.entry_date', '>=', toDateParam(new Date(from)))
-        .where('journal_entries.entry_date', '<=', toDateParam(new Date(to)))
-        .executeTakeFirst();
-
-      // Direct Expenses (Operating)
-      const directExpenses = await db
-        .selectFrom('journal_lines')
-        .innerJoin('journal_entries', 'journal_entries.id', 'journal_lines.journal_entry_id')
-        .select(db.fn.sum('journal_lines.credit').as('total'))
-        .where('journal_entries.tenant_id', '=', tenantId)
-        .where('journal_lines.account_id', 'in', cashAccountIds)
-        .where('journal_entries.source_module', '=', 'EXPENSE')
-        .where('journal_entries.entry_date', '>=', toDateParam(new Date(from)))
-        .where('journal_entries.entry_date', '<=', toDateParam(new Date(to)))
-        .executeTakeFirst();
+        return { cashAccountIds, opening_cash, closing_cash, arReceipts, apPayments, directExpenses };
+      });
 
       const receiptsVal = Number(arReceipts?.total || 0);
       const paymentsVal = Number(apPayments?.total || 0);

@@ -1,4 +1,4 @@
-import { db, withTenant } from '../db/client.js';
+import { dbPlatform, withTenant } from '../db/client.js';
 import { MinioIntegration } from '../integrations/minio.js';
 
 // 30 days — matches Google Drive's own default, stated explicitly rather
@@ -18,7 +18,7 @@ export async function runCloudTrashExpiryJob(): Promise<void> {
   try {
     const cutoff = new Date(Date.now() - TRASH_RETENTION_DAYS * 86_400_000);
 
-    const expired = await db.selectFrom('cloud_files')
+    const expired = await dbPlatform.selectFrom('cloud_files')
       .select(['id', 'tenant_id', 'storage_key'])
       .where('is_trash', '=', true)
       .where('trashed_at', 'is not', null)

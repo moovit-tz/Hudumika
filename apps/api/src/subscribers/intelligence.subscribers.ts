@@ -36,7 +36,7 @@ registerSubscriber('shipment.cost_recorded', async (tenantId, event) => {
   if (!shipmentId) return;
   if (await isSupersededByStudio(tenantId, 'intelligence.cost_variance')) return;
 
-  const variance = await shipmentVariance(tenantId, shipmentId);
+  const variance = await withTenant(tenantId, trx => shipmentVariance(trx, tenantId, shipmentId));
   // No estimate was ever linked to this shipment — nothing to compare against.
   if (!variance.estimate) return;
 
@@ -84,7 +84,7 @@ registerSubscriber('declaration.released', async (tenantId, event) => {
   if (!shipmentId) return;
   if (await isSupersededByStudio(tenantId, 'intelligence.cost_variance')) return;
 
-  const variance = await shipmentVariance(tenantId, shipmentId);
+  const variance = await withTenant(tenantId, trx => shipmentVariance(trx, tenantId, shipmentId));
   const duty = variance.lines.find(l => l.head === 'DUTY_TAXES');
   if (!variance.estimate || !duty || duty.varianceTzs == null || duty.variancePct == null) return;
   if (Math.abs(duty.variancePct) < MATERIAL_PCT || Math.abs(duty.varianceTzs) < MATERIAL_TZS) return;

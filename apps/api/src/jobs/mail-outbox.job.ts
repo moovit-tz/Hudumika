@@ -1,5 +1,5 @@
 import { sql } from 'kysely';
-import { db, withTenant } from '../db/client.js';
+import { dbPlatform, withTenant } from '../db/client.js';
 import { EmailIntegration } from '../integrations/email.js';
 
 const BATCH_SIZE = 50;
@@ -27,7 +27,7 @@ export async function runMailOutboxJob(): Promise<void> {
     // at all (rather than being fetched every poll forever and potentially
     // crowding LIMIT 50 out of newer retriable rows once enough rows have
     // exhausted their retries over time).
-    const due = await db.selectFrom('email_outbox').selectAll()
+    const due = await dbPlatform.selectFrom('email_outbox').selectAll()
       .where(sql<boolean>`(status = 'pending') OR (status = 'failed' AND attempts < max_attempts AND next_attempt_at <= now())`)
       .orderBy('created_at', 'asc')
       .limit(BATCH_SIZE)

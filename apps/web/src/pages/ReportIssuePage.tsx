@@ -156,15 +156,7 @@ export const ReportIssuePage: React.FC = () => {
         const fd = new FormData();
         fd.append('file', f);
         try {
-          const res = await fetch(`${BASE_URL}/v1/platform-support/tickets/${ticket.id}/attachments`, {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${localStorage.getItem('hudumika_token') ?? ''}` },
-            body: fd,
-          });
-          if (!res.ok) {
-            const body = await res.json().catch(() => ({}));
-            failed.push(`${f.name} — ${body.error ?? res.statusText}`);
-          }
+          await apiFetch(`/v1/platform-support/tickets/${ticket.id}/attachments`, { method: 'POST', body: fd });
         } catch (e: any) {
           failed.push(`${f.name} — ${e?.message ?? 'upload failed'}`);
         }

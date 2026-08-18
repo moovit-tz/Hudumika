@@ -1,5 +1,8 @@
 import { sql } from 'kysely';
-import { db } from '../db/client.js';
+import type { Kysely, Transaction } from 'kysely';
+import type { Database } from '../db/client.js';
+
+type Db = Kysely<Database> | Transaction<Database>;
 
 /**
  * The feedback loop: what the platform observed, and what it learned from it.
@@ -64,11 +67,11 @@ export interface HsMemoryHit {
  * how similar the wording was. A wrong code declared consistently is still a
  * wrong code, so nothing here bypasses the human acceptance step.
  */
-export async function hsMemory(tenantId: string, description: string, limit = 3): Promise<HsMemoryHit[]> {
+export async function hsMemory(trx: Db, tenantId: string, description: string, limit = 3): Promise<HsMemoryHit[]> {
   const text = description.trim().toLowerCase();
   if (text.length < 4) return [];
 
-  const rows = await db
+  const rows = await trx
     .selectFrom('hs_classification_events')
     .select(['accepted_code', 'description', 'created_at'])
     .select(sql<number>`similarity(lower(description), ${text})`.as('sim'))
@@ -121,8 +124,8 @@ export interface ChargePrior {
  * shipment will ever be, and it is precisely the calm middle that makes a
  * useful default.
  */
-export async function chargePriors(tenantId: string, windowDays = 180): Promise<ChargePrior[]> {
-  const rows = await db
+export async function chargePriors(trx: Db, tenantId: string, windowDays = 180): Promise<ChargePrior[]> {
+  const rows = await trx
     .selectFrom('expenses')
     .select(['charge_head'])
     .select(sql<number>`percentile_cont(0.5) within group (order by amount_tzs)`.as('median'))
@@ -183,13 +186,13 @@ function estimateByHead(payload: any): Partial<Record<ChargeHead, number>> {
  * saving, and reporting it as one would make the whole panel untrustworthy the
  * first time somebody read it mid-clearance.
  */
-export async function shipmentVariance(tenantId: string, shipmentId: string): Promise<{
+export async function shipmentVariance(trx: Db, tenantId: string, shipmentId: string): Promise<{
   estimate: { id: string; created_at: Date; total_tzs: number | null } | null;
   lines: VarianceLine[];
   actualTotalTzs: number;
   estimatedTotalTzs: number;
 }> {
-  const estimate = await db
+  const estimate = await trx
     .selectFrom('landed_cost_records')
     .select(['id', 'created_at', 'total_tzs', 'payload'])
     .where('tenant_id', '=', tenantId)
@@ -197,7 +200,7 @@ export async function shipmentVariance(tenantId: string, shipmentId: string): Pr
     .orderBy('created_at', 'desc')
     .executeTakeFirst();
 
-  const actuals = await db
+  const actuals = await trx
     .selectFrom('expenses')
     .select(['charge_head'])
     .select(sql<string>`sum(amount_tzs)`.as('total'))
@@ -242,8 +245,8 @@ export async function shipmentVariance(tenantId: string, shipmentId: string): Pr
  * per-procedure: a single badly-mapped procedure among hundreds is invisible
  * in an aggregate accuracy number and obvious here.
  */
-export async function wizardAccuracy(tenantId: string | null) {
-  let q = db
+export async function wizardAccuracy(trx: Db, tenantId: string | null) {
+  let q = trx
     .selectFrom('trade_wizard_outcomes')
     .select(['procedure_id', 'procedure_name'])
     .select(sql<string>`count(*)`.as('selected'))
@@ -278,8 +281,8 @@ export async function wizardAccuracy(tenantId: string | null) {
  * having been predicted is a rule gap, and it is the only class of error here
  * that costs the tenant a delay rather than a wasted certificate.
  */
-export async function complianceAccuracy(tenantId: string | null) {
-  let q = db
+export async function complianceAccuracy(trx: Db, tenantId: string | null) {
+  let q = trx
     .selectFrom('compliance_outcomes')
     .select(['requirement'])
     .select(sql<string>`count(*)`.as('reported'))

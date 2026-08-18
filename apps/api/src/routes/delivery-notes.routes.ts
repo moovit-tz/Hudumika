@@ -1,7 +1,39 @@
 import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { db, withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
+
+// Real values — 022_purchase_orders_delivery_notes.sql's CHECK constraint.
+const DN_STATUSES = ['DRAFT', 'DISPATCHED', 'DELIVERED', 'RETURNED'] as const;
+const dnLineSchema = z.object({
+  description: z.string().max(500).optional(),
+  qty_ordered: z.number().optional(),
+  qty_delivered: z.number().optional(),
+  unit: z.string().max(50).optional(),
+  notes: z.string().max(2000).optional(),
+}).passthrough();
+const dnCreateSchema = z.object({
+  dn_number: z.string().max(100).optional(),
+  invoice_id: z.string().optional(),
+  customer_id: z.string().optional(),
+  customer_name: z.string().max(300).optional(),
+  delivery_date: z.string().nullable().optional(),
+  status: z.enum(DN_STATUSES).optional(),
+  notes: z.string().max(5000).optional(),
+  lines: z.array(dnLineSchema).optional(),
+});
+const dnPatchSchema = z.object({
+  dn_number: z.string().max(100).optional(),
+  invoice_id: z.string().nullable().optional(),
+  customer_id: z.string().nullable().optional(),
+  customer_name: z.string().max(300).nullable().optional(),
+  delivery_date: z.string().nullable().optional(),
+  status: z.enum(DN_STATUSES).optional(),
+  notes: z.string().max(5000).nullable().optional(),
+  lines: z.array(dnLineSchema).optional(),
+});
+const dnStatusSchema = z.object({ status: z.enum(DN_STATUSES) });
 
 export async function deliveryNoteRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
@@ -24,9 +56,9 @@ export async function deliveryNoteRoutes(fastify: FastifyInstance) {
   // POST /v1/delivery-notes
   fastify.post('/', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request: any, reply) => {
     const user = request.user;
-    const body = request.body as any;
+    const body = dnCreateSchema.parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
-      const items = Array.isArray(body.lines) ? body.lines : [];
+      const items = body.lines ?? [];
 
       const dn = await trx
         .insertInto('delivery_notes')
@@ -94,7 +126,7 @@ export async function deliveryNoteRoutes(fastify: FastifyInstance) {
   fastify.patch('/:id', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request: any, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
-    const body = request.body as any;
+    const body = dnPatchSchema.parse(request.body) as Record<string, any>;
     return withTenant(user.tenant_id, async (trx) => {
       const existing = await trx
         .selectFrom('delivery_notes')
@@ -144,7 +176,7 @@ export async function deliveryNoteRoutes(fastify: FastifyInstance) {
   fastify.patch('/:id/status', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request: any, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
-    const { status } = request.body as { status: string };
+    const { status } = dnStatusSchema.parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
       await trx
         .updateTable('delivery_notes')

@@ -1,4 +1,4 @@
-import { db } from '../db/client.js';
+import { withTenant } from '../db/client.js';
 import { TRAService } from './tra.service.js';
 import { tenantJurisdiction } from './vat-period.service.js';
 
@@ -126,7 +126,7 @@ export async function fiscaliseInvoice(tenantId: string, invoiceId: string): Pro
    * migration 183 removed. Worth revisiting; deliberately not in this change,
    * because it would alter period behaviour for every existing tenant.
    */
-  const jurisdiction = (await tenantJurisdiction(db, tenantId)).toUpperCase();
+  const jurisdiction = (await withTenant(tenantId, trx => tenantJurisdiction(trx, tenantId))).toUpperCase();
 
   const adapter = adapterForJurisdiction(jurisdiction);
   if (adapter) return adapter.submitInvoice(tenantId, invoiceId);

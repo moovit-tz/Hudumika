@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
-import { db } from '../db/client.js';
+import { withTenant } from '../db/client.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
 import { encryptSecret, decryptSecret, MASKED_VALUE } from '../services/onsite-secrets.service.js';
 import { checkDnsPropagation, verifyTxtRecord } from '../services/onsite-dns-probe.service.js';
@@ -137,33 +137,33 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
       recentDeployments,
       expiringDomains,
       expiringSsl,
-    ] = await Promise.all([
-      db.selectFrom('onsite_projects').select(sql<number>`count(*)::int`.as('c')).where('tenant_id', '=', tenantId).executeTakeFirst(),
-      db.selectFrom('onsite_domains').select(sql<number>`count(*)::int`.as('c')).where('tenant_id', '=', tenantId).executeTakeFirst(),
-      db.selectFrom('onsite_applications').select(sql<number>`count(*)::int`.as('c')).where('tenant_id', '=', tenantId).executeTakeFirst(),
-      db.selectFrom('onsite_servers').select(sql<number>`count(*)::int`.as('c')).where('tenant_id', '=', tenantId).executeTakeFirst(),
-      db.selectFrom('onsite_health_checks').select(sql<number>`count(*)::int`.as('c')).where('tenant_id', '=', tenantId).executeTakeFirst(),
+    ] = await withTenant(tenantId, trx => Promise.all([
+      trx.selectFrom('onsite_projects').select(sql<number>`count(*)::int`.as('c')).where('tenant_id', '=', tenantId).executeTakeFirst(),
+      trx.selectFrom('onsite_domains').select(sql<number>`count(*)::int`.as('c')).where('tenant_id', '=', tenantId).executeTakeFirst(),
+      trx.selectFrom('onsite_applications').select(sql<number>`count(*)::int`.as('c')).where('tenant_id', '=', tenantId).executeTakeFirst(),
+      trx.selectFrom('onsite_servers').select(sql<number>`count(*)::int`.as('c')).where('tenant_id', '=', tenantId).executeTakeFirst(),
+      trx.selectFrom('onsite_health_checks').select(sql<number>`count(*)::int`.as('c')).where('tenant_id', '=', tenantId).executeTakeFirst(),
       // Real, now that something probes these. It read a hardcoded 0, so the
       // dashboard showed no failing monitors during an actual outage.
-      db.selectFrom('onsite_health_checks').select(sql<number>`count(*)::int`.as('c'))
+      trx.selectFrom('onsite_health_checks').select(sql<number>`count(*)::int`.as('c'))
         .where('tenant_id', '=', tenantId).where('status', '=', 'critical').executeTakeFirst(),
-      db.selectFrom('onsite_deployments')
+      trx.selectFrom('onsite_deployments')
         .selectAll()
         .where('tenant_id', '=', tenantId)
         .orderBy('created_at', 'desc')
         .limit(5)
         .execute(),
-      db.selectFrom('onsite_domains')
+      trx.selectFrom('onsite_domains')
         .selectAll()
         .where('tenant_id', '=', tenantId)
         .where('expires_at', '<=', new Date(Date.now() + 30 * 86400 * 1000))
         .execute(),
-      db.selectFrom('onsite_ssl_certificates')
+      trx.selectFrom('onsite_ssl_certificates')
         .selectAll()
         .where('tenant_id', '=', tenantId)
         .where('expires_at', '<=', new Date(Date.now() + 30 * 86400 * 1000))
         .execute(),
-    ]);
+    ]));
 
     const alerts: Array<{
       id: string;
@@ -218,18 +218,18 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
 
   // ─── Projects CRUD ───────────────────────────────────────────
   fastify.get('/projects', async (request: FastifyRequest, reply: FastifyReply) => {
-    const projects = await db.selectFrom('onsite_projects')
+    const projects = await withTenant(request.user.tenant_id, trx => trx.selectFrom('onsite_projects')
       .selectAll()
       .where('tenant_id', '=', request.user.tenant_id)
       .orderBy('created_at', 'desc')
-      .execute();
+      .execute());
     return reply.send(projects);
   });
 
   fastify.post('/projects', async (request: FastifyRequest, reply: FastifyReply) => {
     const body = projectCreateSchema.parse(request.body);
 
-    const created = await db.insertInto('onsite_projects')
+    const created = await withTenant(request.user.tenant_id, trx => trx.insertInto('onsite_projects')
       .values({
         tenant_id: request.user.tenant_id,
         name: body.name,
@@ -238,18 +238,18 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
         created_by: actorId(request),
       })
       .returningAll()
-      .executeTakeFirstOrThrow();
+      .executeTakeFirstOrThrow());
 
     return reply.status(201).send(created);
   });
 
   fastify.get('/projects/:id', async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
-    const project = await db.selectFrom('onsite_projects')
+    const project = await withTenant(request.user.tenant_id, trx => trx.selectFrom('onsite_projects')
       .selectAll()
       .where('id', '=', id)
       .where('tenant_id', '=', request.user.tenant_id)
-      .executeTakeFirst();
+      .executeTakeFirst());
 
     if (!project) return reply.status(404).send({ error: 'Project not found' });
     return reply.send(project);
@@ -257,10 +257,10 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
 
   fastify.delete('/projects/:id', async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
-    const res = await db.deleteFrom('onsite_projects')
+    const res = await withTenant(request.user.tenant_id, trx => trx.deleteFrom('onsite_projects')
       .where('id', '=', id)
       .where('tenant_id', '=', request.user.tenant_id)
-      .executeTakeFirst();
+      .executeTakeFirst());
 
     if (res.numDeletedRows === 0n) return reply.status(404).send({ error: 'Project not found' });
     return reply.send({ success: true });
@@ -268,11 +268,11 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
 
   // ─── Domains CRUD ────────────────────────────────────────────
   fastify.get('/domains', async (request: FastifyRequest, reply: FastifyReply) => {
-    const domains = await db.selectFrom('onsite_domains')
+    const domains = await withTenant(request.user.tenant_id, trx => trx.selectFrom('onsite_domains')
       .selectAll()
       .where('tenant_id', '=', request.user.tenant_id)
       .orderBy('created_at', 'desc')
-      .execute();
+      .execute());
     return reply.send(domains);
   });
 
@@ -281,73 +281,75 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
 
     const cleanDomain = body.domain.trim().toLowerCase();
 
-    // Check duplicate
-    const existing = await db.selectFrom('onsite_domains')
-      .select('id')
-      .where('tenant_id', '=', request.user.tenant_id)
-      .where('domain', '=', cleanDomain)
-      .executeTakeFirst();
+    return withTenant(request.user.tenant_id, async (trx) => {
+      // Check duplicate
+      const existing = await trx.selectFrom('onsite_domains')
+        .select('id')
+        .where('tenant_id', '=', request.user.tenant_id)
+        .where('domain', '=', cleanDomain)
+        .executeTakeFirst();
 
-    if (existing) return reply.status(409).send({ error: 'Domain already exists in your workspace' });
+      if (existing) return reply.status(409).send({ error: 'Domain already exists in your workspace' });
 
-    const createdDomain = await db.insertInto('onsite_domains')
-      .values({
-        tenant_id: request.user.tenant_id,
-        project_id: body.project_id ?? null,
-        domain: cleanDomain,
-        registrar: body.registrar ?? null,
-        auto_renew: body.auto_renew ?? false,
-        status: 'active',
-        created_by: actorId(request),
-      })
-      .returningAll()
-      .executeTakeFirstOrThrow();
-
-    // Automatically create a default DNS Zone for this domain
-    const zone = await db.insertInto('onsite_dns_zones')
-      .values({
-        tenant_id: request.user.tenant_id,
-        domain_id: createdDomain.id,
-        provider: 'internal',
-        status: 'active',
-      })
-      .returningAll()
-      .executeTakeFirstOrThrow();
-
-    // Add default SOA / NS records
-    await db.insertInto('onsite_dns_records')
-      .values([
-        {
+      const createdDomain = await trx.insertInto('onsite_domains')
+        .values({
           tenant_id: request.user.tenant_id,
-          zone_id: zone.id,
-          name: '@',
-          type: 'NS',
-          value: 'ns1.hudumika.com',
-          ttl: 3600,
+          project_id: body.project_id ?? null,
+          domain: cleanDomain,
+          registrar: body.registrar ?? null,
+          auto_renew: body.auto_renew ?? false,
+          status: 'active',
           created_by: actorId(request),
-        },
-        {
-          tenant_id: request.user.tenant_id,
-          zone_id: zone.id,
-          name: '@',
-          type: 'NS',
-          value: 'ns2.hudumika.com',
-          ttl: 3600,
-          created_by: actorId(request),
-        },
-      ])
-      .execute();
+        })
+        .returningAll()
+        .executeTakeFirstOrThrow();
 
-    return reply.status(201).send(createdDomain);
+      // Automatically create a default DNS Zone for this domain
+      const zone = await trx.insertInto('onsite_dns_zones')
+        .values({
+          tenant_id: request.user.tenant_id,
+          domain_id: createdDomain.id,
+          provider: 'internal',
+          status: 'active',
+        })
+        .returningAll()
+        .executeTakeFirstOrThrow();
+
+      // Add default SOA / NS records
+      await trx.insertInto('onsite_dns_records')
+        .values([
+          {
+            tenant_id: request.user.tenant_id,
+            zone_id: zone.id,
+            name: '@',
+            type: 'NS',
+            value: 'ns1.hudumika.com',
+            ttl: 3600,
+            created_by: actorId(request),
+          },
+          {
+            tenant_id: request.user.tenant_id,
+            zone_id: zone.id,
+            name: '@',
+            type: 'NS',
+            value: 'ns2.hudumika.com',
+            ttl: 3600,
+            created_by: actorId(request),
+          },
+        ])
+        .execute();
+
+      return reply.status(201).send(createdDomain);
+    });
   });
 
   fastify.get('/domains/:id', async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
-    const domain = await db.selectFrom('onsite_domains')
+    const domain = await withTenant(request.user.tenant_id, trx => trx.selectFrom('onsite_domains')
       .selectAll()
       .where('id', '=', id)
       .where('tenant_id', '=', request.user.tenant_id)
-      .executeTakeFirst();
+      .executeTakeFirst());
 
     if (!domain) return reply.status(404).send({ error: 'Domain not found' });
     return reply.send(domain);
@@ -355,10 +357,10 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
 
   fastify.delete('/domains/:id', async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
-    const res = await db.deleteFrom('onsite_domains')
+    const res = await withTenant(request.user.tenant_id, trx => trx.deleteFrom('onsite_domains')
       .where('id', '=', id)
       .where('tenant_id', '=', request.user.tenant_id)
-      .executeTakeFirst();
+      .executeTakeFirst());
 
     if (res.numDeletedRows === 0n) return reply.status(404).send({ error: 'Domain not found' });
     return reply.send({ success: true });
@@ -366,11 +368,11 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
 
   fastify.post('/domains/:id/probe', async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
-    const domain = await db.selectFrom('onsite_domains')
+    const domain = await withTenant(request.user.tenant_id, trx => trx.selectFrom('onsite_domains')
       .selectAll()
       .where('id', '=', id)
       .where('tenant_id', '=', request.user.tenant_id)
-      .executeTakeFirst();
+      .executeTakeFirst());
 
     if (!domain) return reply.status(404).send({ error: 'Domain not found' });
 
@@ -378,14 +380,14 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
     const results = await checkDnsPropagation(domain.domain, 'A', '0.0.0.0');
     const isVerified = results.some(r => r.actual !== null);
 
-    const updated = await db.updateTable('onsite_domains')
+    const updated = await withTenant(request.user.tenant_id, trx => trx.updateTable('onsite_domains')
       .set({
         dns_status: isVerified ? 'active' : 'misconfigured',
         dns_checked_at: new Date(),
       })
       .where('id', '=', id)
       .returningAll()
-      .executeTakeFirstOrThrow();
+      .executeTakeFirstOrThrow());
 
     return reply.send({ domain: updated, probe_results: results });
   });
@@ -393,23 +395,28 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
   // ─── DNS Zones & Records ─────────────────────────────────────
   fastify.get('/domains/:domainId/dns', async (request: FastifyRequest, reply: FastifyReply) => {
     const { domainId } = request.params as { domainId: string };
-    const zone = await db.selectFrom('onsite_dns_zones')
-      .selectAll()
-      .where('domain_id', '=', domainId)
-      .where('tenant_id', '=', request.user.tenant_id)
-      .executeTakeFirst();
+    const result = await withTenant(request.user.tenant_id, async (trx) => {
+      const zone = await trx.selectFrom('onsite_dns_zones')
+        .selectAll()
+        .where('domain_id', '=', domainId)
+        .where('tenant_id', '=', request.user.tenant_id)
+        .executeTakeFirst();
 
-    if (!zone) return reply.status(404).send({ error: 'DNS zone not found for this domain' });
+      if (!zone) return null;
 
-    const records = await db.selectFrom('onsite_dns_records')
-      .selectAll()
-      .where('zone_id', '=', zone.id)
-      .where('tenant_id', '=', request.user.tenant_id)
-      .orderBy('type', 'asc')
-      .orderBy('name', 'asc')
-      .execute();
+      const records = await trx.selectFrom('onsite_dns_records')
+        .selectAll()
+        .where('zone_id', '=', zone.id)
+        .where('tenant_id', '=', request.user.tenant_id)
+        .orderBy('type', 'asc')
+        .orderBy('name', 'asc')
+        .execute();
 
-    return reply.send({ zone, records });
+      return { zone, records };
+    });
+
+    if (!result) return reply.status(404).send({ error: 'DNS zone not found for this domain' });
+    return reply.send(result);
   });
 
   fastify.post('/domains/:domainId/dns', async (request: FastifyRequest, reply: FastifyReply) => {
@@ -427,29 +434,31 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
     const invalid = validateRecord(body);
     if (invalid) return reply.status(400).send({ error: invalid });
 
-    const zone = await db.selectFrom('onsite_dns_zones')
-      .select('id')
-      .where('domain_id', '=', domainId)
-      .where('tenant_id', '=', request.user.tenant_id)
-      .executeTakeFirst();
+    return withTenant(request.user.tenant_id, async (trx) => {
+      const zone = await trx.selectFrom('onsite_dns_zones')
+        .select('id')
+        .where('domain_id', '=', domainId)
+        .where('tenant_id', '=', request.user.tenant_id)
+        .executeTakeFirst();
 
-    if (!zone) return reply.status(404).send({ error: 'DNS zone not found' });
+      if (!zone) return reply.status(404).send({ error: 'DNS zone not found' });
 
-    const record = await db.insertInto('onsite_dns_records')
-      .values({
-        tenant_id: request.user.tenant_id,
-        zone_id: zone.id,
-        name: body.name,
-        type: body.type.toUpperCase(),
-        value: body.value,
-        ttl: body.ttl ?? 3600,
-        priority: body.priority ?? null,
-        created_by: actorId(request),
-      })
-      .returningAll()
-      .executeTakeFirstOrThrow();
+      const record = await trx.insertInto('onsite_dns_records')
+        .values({
+          tenant_id: request.user.tenant_id,
+          zone_id: zone.id,
+          name: body.name,
+          type: body.type.toUpperCase(),
+          value: body.value,
+          ttl: body.ttl ?? 3600,
+          priority: body.priority ?? null,
+          created_by: actorId(request),
+        })
+        .returningAll()
+        .executeTakeFirstOrThrow();
 
-    return reply.status(201).send(record);
+      return reply.status(201).send(record);
+    });
   });
 
   /**
@@ -465,30 +474,32 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
     const { recordId } = request.params as { domainId: string; recordId: string };
     const q = request.query as { confirm?: string };
 
-    const record = await db.selectFrom('onsite_dns_records')
-      .select(['id', 'zone_id', 'name', 'type', 'value'])
-      .where('id', '=', recordId)
-      .where('tenant_id', '=', request.user.tenant_id)
-      .executeTakeFirst();
-    if (!record) return reply.status(404).send({ error: 'DNS record not found' });
+    return withTenant(request.user.tenant_id, async (trx) => {
+      const record = await trx.selectFrom('onsite_dns_records')
+        .select(['id', 'zone_id', 'name', 'type', 'value'])
+        .where('id', '=', recordId)
+        .where('tenant_id', '=', request.user.tenant_id)
+        .executeTakeFirst();
+      if (!record) return reply.status(404).send({ error: 'DNS record not found' });
 
-    const siblings = await db.selectFrom('onsite_dns_records')
-      .select(['name', 'type'])
-      .where('zone_id', '=', record.zone_id)
-      .where('tenant_id', '=', request.user.tenant_id)
-      .where('id', '!=', recordId)
-      .execute();
+      const siblings = await trx.selectFrom('onsite_dns_records')
+        .select(['name', 'type'])
+        .where('zone_id', '=', record.zone_id)
+        .where('tenant_id', '=', request.user.tenant_id)
+        .where('id', '!=', recordId)
+        .execute();
 
-    const impact = deletionImpact(record, siblings);
-    if (impact && q.confirm !== 'true') {
-      return reply.status(409).send({ error: impact, requires_confirmation: true });
-    }
+      const impact = deletionImpact(record, siblings);
+      if (impact && q.confirm !== 'true') {
+        return reply.status(409).send({ error: impact, requires_confirmation: true });
+      }
 
-    await db.deleteFrom('onsite_dns_records')
-      .where('id', '=', recordId)
-      .where('tenant_id', '=', request.user.tenant_id)
-      .execute();
-    return reply.send({ success: true, warned: impact ?? null });
+      await trx.deleteFrom('onsite_dns_records')
+        .where('id', '=', recordId)
+        .where('tenant_id', '=', request.user.tenant_id)
+        .execute();
+      return reply.send({ success: true, warned: impact ?? null });
+    });
   });
 
   /**
@@ -499,25 +510,30 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
    */
   fastify.get('/domains/:domainId/dns/export', async (request: FastifyRequest, reply: FastifyReply) => {
     const { domainId } = request.params as { domainId: string };
-    const domain = await db.selectFrom('onsite_domains')
-      .select(['id', 'domain'])
-      .where('id', '=', domainId)
-      .where('tenant_id', '=', request.user.tenant_id)
-      .executeTakeFirst();
-    if (!domain) return reply.status(404).send({ error: 'Domain not found' });
+    const result = await withTenant(request.user.tenant_id, async (trx) => {
+      const domain = await trx.selectFrom('onsite_domains')
+        .select(['id', 'domain'])
+        .where('id', '=', domainId)
+        .where('tenant_id', '=', request.user.tenant_id)
+        .executeTakeFirst();
+      if (!domain) return null;
 
-    const records = await db.selectFrom('onsite_dns_records as r')
-      .innerJoin('onsite_dns_zones as z', 'z.id', 'r.zone_id')
-      .select(['r.name', 'r.type', 'r.value', 'r.ttl', 'r.priority'])
-      .where('z.domain_id', '=', domainId)
-      .where('r.tenant_id', '=', request.user.tenant_id)
-      .orderBy('r.type').orderBy('r.name')
-      .execute();
+      const records = await trx.selectFrom('onsite_dns_records as r')
+        .innerJoin('onsite_dns_zones as z', 'z.id', 'r.zone_id')
+        .select(['r.name', 'r.type', 'r.value', 'r.ttl', 'r.priority'])
+        .where('z.domain_id', '=', domainId)
+        .where('r.tenant_id', '=', request.user.tenant_id)
+        .orderBy('r.type').orderBy('r.name')
+        .execute();
 
+      return { domain, records };
+    });
+
+    if (!result) return reply.status(404).send({ error: 'Domain not found' });
     return reply
       .header('Content-Type', 'text/plain; charset=utf-8')
-      .header('Content-Disposition', 'attachment; filename="' + domain.domain + '.zone"')
-      .send(toZoneFile(domain.domain, records));
+      .header('Content-Disposition', 'attachment; filename="' + result.domain.domain + '.zone"')
+      .send(toZoneFile(result.domain.domain, result.records));
   });
 
   /**
@@ -533,67 +549,69 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
     const { domainId } = request.params as { domainId: string };
     const body = dnsImportSchema.parse(request.body);
 
-    const zone = await db.selectFrom('onsite_dns_zones as z')
-      .innerJoin('onsite_domains as d', 'd.id', 'z.domain_id')
-      .select(['z.id as zone_id', 'd.domain as domain'])
-      .where('z.domain_id', '=', domainId)
-      .where('z.tenant_id', '=', request.user.tenant_id)
-      .executeTakeFirst();
-    if (!zone) return reply.status(404).send({ error: 'DNS zone not found' });
+    return withTenant(request.user.tenant_id, async (trx) => {
+      const zone = await trx.selectFrom('onsite_dns_zones as z')
+        .innerJoin('onsite_domains as d', 'd.id', 'z.domain_id')
+        .select(['z.id as zone_id', 'd.domain as domain'])
+        .where('z.domain_id', '=', domainId)
+        .where('z.tenant_id', '=', request.user.tenant_id)
+        .executeTakeFirst();
+      if (!zone) return reply.status(404).send({ error: 'DNS zone not found' });
 
-    const parsed = parseZoneFile(body.zone_file);
-    const errors = parsed.filter(x => x.error);
-    const good = parsed.filter(x => x.record).map(x => x.record!);
+      const parsed = parseZoneFile(body.zone_file);
+      const errors = parsed.filter(x => x.error);
+      const good = parsed.filter(x => x.record).map(x => x.record!);
 
-    const existing = await db.selectFrom('onsite_dns_records')
-      .select(['name', 'type', 'value', 'ttl', 'priority'])
-      .where('zone_id', '=', zone.zone_id)
-      .where('tenant_id', '=', request.user.tenant_id)
-      .execute();
-
-    const plan = planImport(good, existing);
-    const toCreate = plan.filter(x => x.action === 'create');
-
-    if (!body.apply) {
-      return reply.send({
-        applied: false,
-        domain: zone.domain,
-        create: toCreate.length,
-        unchanged: plan.length - toCreate.length,
-        errors: errors.map(e => ({ line: e.line, raw: e.raw, error: e.error })),
-        plan,
-      });
-    }
-
-    // A file with an unreadable line is not applied piecemeal: the caller fixes
-    // it and re-imports, rather than being left guessing which half landed.
-    if (errors.length) {
-      return reply.status(400).send({
-        error: errors.length + ' line(s) could not be read. Nothing was imported.',
-        errors: errors.map(e => ({ line: e.line, raw: e.raw, error: e.error })),
-      });
-    }
-
-    if (toCreate.length) {
-      await db.insertInto('onsite_dns_records')
-        .values(toCreate.map(x => ({
-          tenant_id: request.user.tenant_id,
-          zone_id: zone.zone_id,
-          name: x.record.name,
-          type: x.record.type.toUpperCase(),
-          value: x.record.value,
-          ttl: x.record.ttl ?? 3600,
-          priority: x.record.priority ?? null,
-          created_by: actorId(request),
-        })))
+      const existing = await trx.selectFrom('onsite_dns_records')
+        .select(['name', 'type', 'value', 'ttl', 'priority'])
+        .where('zone_id', '=', zone.zone_id)
+        .where('tenant_id', '=', request.user.tenant_id)
         .execute();
-    }
 
-    return reply.send({
-      applied: true,
-      domain: zone.domain,
-      created: toCreate.length,
-      unchanged: plan.length - toCreate.length,
+      const plan = planImport(good, existing);
+      const toCreate = plan.filter(x => x.action === 'create');
+
+      if (!body.apply) {
+        return reply.send({
+          applied: false,
+          domain: zone.domain,
+          create: toCreate.length,
+          unchanged: plan.length - toCreate.length,
+          errors: errors.map(e => ({ line: e.line, raw: e.raw, error: e.error })),
+          plan,
+        });
+      }
+
+      // A file with an unreadable line is not applied piecemeal: the caller fixes
+      // it and re-imports, rather than being left guessing which half landed.
+      if (errors.length) {
+        return reply.status(400).send({
+          error: errors.length + ' line(s) could not be read. Nothing was imported.',
+          errors: errors.map(e => ({ line: e.line, raw: e.raw, error: e.error })),
+        });
+      }
+
+      if (toCreate.length) {
+        await trx.insertInto('onsite_dns_records')
+          .values(toCreate.map(x => ({
+            tenant_id: request.user.tenant_id,
+            zone_id: zone.zone_id,
+            name: x.record.name,
+            type: x.record.type.toUpperCase(),
+            value: x.record.value,
+            ttl: x.record.ttl ?? 3600,
+            priority: x.record.priority ?? null,
+            created_by: actorId(request),
+          })))
+          .execute();
+      }
+
+      return reply.send({
+        applied: true,
+        domain: zone.domain,
+        created: toCreate.length,
+        unchanged: plan.length - toCreate.length,
+      });
     });
   });
 
@@ -635,11 +653,11 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
     const { domainId } = request.params as { domainId: string };
     const body = dnsPropagationCheckSchema.parse(request.body);
 
-    const domain = await db.selectFrom('onsite_domains')
+    const domain = await withTenant(request.user.tenant_id, trx => trx.selectFrom('onsite_domains')
       .select('domain')
       .where('id', '=', domainId)
       .where('tenant_id', '=', request.user.tenant_id)
-      .executeTakeFirst();
+      .executeTakeFirst());
 
     if (!domain) return reply.status(404).send({ error: 'Domain not found' });
 
@@ -650,75 +668,84 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
 
   // ─── Applications CRUD ───────────────────────────────────────
   fastify.get('/applications', async (request: FastifyRequest, reply: FastifyReply) => {
-    const apps = await db.selectFrom('onsite_applications')
+    const apps = await withTenant(request.user.tenant_id, trx => trx.selectFrom('onsite_applications')
       .selectAll()
       .where('tenant_id', '=', request.user.tenant_id)
       .orderBy('created_at', 'desc')
-      .execute();
+      .execute());
     return reply.send(apps);
   });
 
   fastify.post('/applications', async (request: FastifyRequest, reply: FastifyReply) => {
     const body = applicationCreateSchema.parse(request.body);
 
-    const createdApp = await db.insertInto('onsite_applications')
-      .values({
-        tenant_id: request.user.tenant_id,
-        project_id: body.project_id ?? null,
-        domain_id: body.domain_id ?? null,
-        name: body.name,
-        runtime: body.runtime ?? 'nodejs',
-        default_branch: body.default_branch?.trim() || 'main',
-        repo_url: body.repo_url ?? null,
-        build_command: body.build_command ?? null,
-        start_command: body.start_command ?? null,
-        output_dir: body.output_dir ?? null,
-        port: body.port ?? 3000,
-        status: 'inactive',
-        created_by: actorId(request),
-      })
-      .returningAll()
-      .executeTakeFirstOrThrow();
+    const createdApp = await withTenant(request.user.tenant_id, async (trx) => {
+      const createdApp = await trx.insertInto('onsite_applications')
+        .values({
+          tenant_id: request.user.tenant_id,
+          project_id: body.project_id ?? null,
+          domain_id: body.domain_id ?? null,
+          name: body.name,
+          runtime: body.runtime ?? 'nodejs',
+          default_branch: body.default_branch?.trim() || 'main',
+          repo_url: body.repo_url ?? null,
+          build_command: body.build_command ?? null,
+          start_command: body.start_command ?? null,
+          output_dir: body.output_dir ?? null,
+          port: body.port ?? 3000,
+          status: 'inactive',
+          created_by: actorId(request),
+        })
+        .returningAll()
+        .executeTakeFirstOrThrow();
 
-    // Default production environment
-    await db.insertInto('onsite_environments')
-      .values({
-        tenant_id: request.user.tenant_id,
-        application_id: createdApp.id,
-        name: 'production',
-        branch: 'main',
-        status: 'inactive',
-      })
-      .execute();
+      // Default production environment
+      await trx.insertInto('onsite_environments')
+        .values({
+          tenant_id: request.user.tenant_id,
+          application_id: createdApp.id,
+          name: 'production',
+          branch: 'main',
+          status: 'inactive',
+        })
+        .execute();
+
+      return createdApp;
+    });
 
     return reply.status(201).send(createdApp);
   });
 
   fastify.get('/applications/:id', async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
-    const app = await db.selectFrom('onsite_applications')
-      .selectAll()
-      .where('id', '=', id)
-      .where('tenant_id', '=', request.user.tenant_id)
-      .executeTakeFirst();
+    const result = await withTenant(request.user.tenant_id, async (trx) => {
+      const app = await trx.selectFrom('onsite_applications')
+        .selectAll()
+        .where('id', '=', id)
+        .where('tenant_id', '=', request.user.tenant_id)
+        .executeTakeFirst();
 
-    if (!app) return reply.status(404).send({ error: 'Application not found' });
+      if (!app) return null;
 
-    const envs = await db.selectFrom('onsite_environments')
-      .selectAll()
-      .where('application_id', '=', id)
-      .where('tenant_id', '=', request.user.tenant_id)
-      .execute();
+      const envs = await trx.selectFrom('onsite_environments')
+        .selectAll()
+        .where('application_id', '=', id)
+        .where('tenant_id', '=', request.user.tenant_id)
+        .execute();
 
-    return reply.send({ ...app, environments: envs });
+      return { ...app, environments: envs };
+    });
+
+    if (!result) return reply.status(404).send({ error: 'Application not found' });
+    return reply.send(result);
   });
 
   fastify.delete('/applications/:id', async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
-    const res = await db.deleteFrom('onsite_applications')
+    const res = await withTenant(request.user.tenant_id, trx => trx.deleteFrom('onsite_applications')
       .where('id', '=', id)
       .where('tenant_id', '=', request.user.tenant_id)
-      .executeTakeFirst();
+      .executeTakeFirst());
 
     if (res.numDeletedRows === 0n) return reply.status(404).send({ error: 'Application not found' });
     return reply.send({ success: true });
@@ -727,12 +754,12 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
   // ─── Environments & Secrets ──────────────────────────────────
   fastify.get('/environments/:envId/secrets', async (request: FastifyRequest, reply: FastifyReply) => {
     const { envId } = request.params as { envId: string };
-    const secrets = await db.selectFrom('onsite_secrets')
+    const secrets = await withTenant(request.user.tenant_id, trx => trx.selectFrom('onsite_secrets')
       .selectAll()
       .where('environment_id', '=', envId)
       .where('tenant_id', '=', request.user.tenant_id)
       .orderBy('key', 'asc')
-      .execute();
+      .execute());
 
     // Never return real value plaintext in list view — return value_masked
     const safeSecrets = secrets.map(s => ({
@@ -757,7 +784,7 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
 
     const valueCipher = encryptSecret(body.value);
 
-    const created = await db.insertInto('onsite_secrets')
+    const created = await withTenant(request.user.tenant_id, trx => trx.insertInto('onsite_secrets')
       .values({
         tenant_id: request.user.tenant_id,
         environment_id: envId,
@@ -773,7 +800,7 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
         updated_at: new Date(),
       }))
       .returningAll()
-      .executeTakeFirstOrThrow();
+      .executeTakeFirstOrThrow());
 
     return reply.status(201).send({
       id: created.id,
@@ -788,10 +815,10 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
 
   fastify.delete('/secrets/:secretId', async (request: FastifyRequest, reply: FastifyReply) => {
     const { secretId } = request.params as { secretId: string };
-    const res = await db.deleteFrom('onsite_secrets')
+    const res = await withTenant(request.user.tenant_id, trx => trx.deleteFrom('onsite_secrets')
       .where('id', '=', secretId)
       .where('tenant_id', '=', request.user.tenant_id)
-      .executeTakeFirst();
+      .executeTakeFirst());
 
     if (res.numDeletedRows === 0n) return reply.status(404).send({ error: 'Secret not found' });
     return reply.send({ success: true });
@@ -799,12 +826,12 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
 
   // ─── Deployments ─────────────────────────────────────────────
   fastify.get('/deployments', async (request: FastifyRequest, reply: FastifyReply) => {
-    const deployments = await db.selectFrom('onsite_deployments')
+    const deployments = await withTenant(request.user.tenant_id, trx => trx.selectFrom('onsite_deployments')
       .selectAll()
       .where('tenant_id', '=', request.user.tenant_id)
       .orderBy('created_at', 'desc')
       .limit(50)
-      .execute();
+      .execute());
     return reply.send(deployments);
   });
 
@@ -812,7 +839,8 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
     const { appId } = request.params as { appId: string };
     const body = deploySchema.parse(request.body);
 
-    const app = await db.selectFrom('onsite_applications')
+    return withTenant(request.user.tenant_id, async (trx) => {
+    const app = await trx.selectFrom('onsite_applications')
       .selectAll()
       .where('id', '=', appId)
       .where('tenant_id', '=', request.user.tenant_id)
@@ -822,7 +850,7 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
 
     let envId = body.environment_id;
     if (!envId) {
-      const defaultEnv = await db.selectFrom('onsite_environments')
+      const defaultEnv = await trx.selectFrom('onsite_environments')
         .select('id')
         .where('application_id', '=', appId)
         .where('tenant_id', '=', request.user.tenant_id)
@@ -851,7 +879,7 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
 
     const branch = body.branch ?? app.default_branch ?? 'main';
 
-    const deployment = await db.insertInto('onsite_deployments')
+    const deployment = await trx.insertInto('onsite_deployments')
       .values({
         tenant_id: request.user.tenant_id,
         application_id: appId,
@@ -869,7 +897,7 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
 
     try {
       const pipeline = await ci.trigger({ branch });
-      const updated = await db.updateTable('onsite_deployments')
+      const updated = await trx.updateTable('onsite_deployments')
         .set({
           status: 'building',
           ci_pipeline_id: pipeline.id,
@@ -887,7 +915,7 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
     } catch (err: any) {
       // A refusal is a real, recorded failure with the provider's own reason,
       // not a silently discarded attempt.
-      const failed = await db.updateTable('onsite_deployments')
+      const failed = await trx.updateTable('onsite_deployments')
         .set({
           status: 'failed',
           completed_at: new Date(),
@@ -902,22 +930,23 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
         deployment: failed ?? deployment,
       });
     }
+    });
   });
 
   // ─── Servers CRUD ────────────────────────────────────────────
   fastify.get('/servers', async (request: FastifyRequest, reply: FastifyReply) => {
-    const servers = await db.selectFrom('onsite_servers')
+    const servers = await withTenant(request.user.tenant_id, trx => trx.selectFrom('onsite_servers')
       .selectAll()
       .where('tenant_id', '=', request.user.tenant_id)
       .orderBy('created_at', 'desc')
-      .execute();
+      .execute());
     return reply.send(servers);
   });
 
   fastify.post('/servers', async (request: FastifyRequest, reply: FastifyReply) => {
     const body = serverCreateSchema.parse(request.body);
 
-    const server = await db.insertInto('onsite_servers')
+    const server = await withTenant(request.user.tenant_id, trx => trx.insertInto('onsite_servers')
       .values({
         tenant_id: request.user.tenant_id,
         name: body.name,
@@ -932,17 +961,17 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
         created_by: actorId(request),
       })
       .returningAll()
-      .executeTakeFirstOrThrow();
+      .executeTakeFirstOrThrow());
 
     return reply.status(201).send(server);
   });
 
   fastify.delete('/servers/:id', async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
-    const res = await db.deleteFrom('onsite_servers')
+    const res = await withTenant(request.user.tenant_id, trx => trx.deleteFrom('onsite_servers')
       .where('id', '=', id)
       .where('tenant_id', '=', request.user.tenant_id)
-      .executeTakeFirst();
+      .executeTakeFirst());
 
     if (res.numDeletedRows === 0n) return reply.status(404).send({ error: 'Server not found' });
     return reply.send({ success: true });
@@ -950,18 +979,18 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
 
   // ─── Health Checks ───────────────────────────────────────────
   fastify.get('/health-checks', async (request: FastifyRequest, reply: FastifyReply) => {
-    const checks = await db.selectFrom('onsite_health_checks')
+    const checks = await withTenant(request.user.tenant_id, trx => trx.selectFrom('onsite_health_checks')
       .selectAll()
       .where('tenant_id', '=', request.user.tenant_id)
       .orderBy('created_at', 'desc')
-      .execute();
+      .execute());
     return reply.send(checks);
   });
 
   fastify.post('/health-checks', async (request: FastifyRequest, reply: FastifyReply) => {
     const body = healthCheckCreateSchema.parse(request.body);
 
-    const check = await db.insertInto('onsite_health_checks')
+    const check = await withTenant(request.user.tenant_id, trx => trx.insertInto('onsite_health_checks')
       .values({
         tenant_id: request.user.tenant_id,
         name: body.name,
@@ -984,17 +1013,17 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
         created_by: actorId(request),
       })
       .returningAll()
-      .executeTakeFirstOrThrow();
+      .executeTakeFirstOrThrow());
 
     return reply.status(201).send(check);
   });
 
   fastify.delete('/health-checks/:id', async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
-    const res = await db.deleteFrom('onsite_health_checks')
+    const res = await withTenant(request.user.tenant_id, trx => trx.deleteFrom('onsite_health_checks')
       .where('id', '=', id)
       .where('tenant_id', '=', request.user.tenant_id)
-      .executeTakeFirst();
+      .executeTakeFirst());
 
     if (res.numDeletedRows === 0n) return reply.status(404).send({ error: 'Health check not found' });
     return reply.send({ success: true });
@@ -1010,20 +1039,24 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
    */
   fastify.post('/health-checks/:id/run', async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
-    const check = await db.selectFrom('onsite_health_checks')
-      .select(['id', 'tenant_id', 'url', 'method', 'expected_status', 'timeout_ms'])
-      .where('id', '=', id)
-      .where('tenant_id', '=', request.user.tenant_id)
-      .executeTakeFirst();
-    if (!check) return reply.status(404).send({ error: 'Health check not found' });
+    const outcome = await withTenant(request.user.tenant_id, async (trx) => {
+      const check = await trx.selectFrom('onsite_health_checks')
+        .select(['id', 'tenant_id', 'url', 'method', 'expected_status', 'timeout_ms'])
+        .where('id', '=', id)
+        .where('tenant_id', '=', request.user.tenant_id)
+        .executeTakeFirst();
+      if (!check) return null;
 
-    const result = await runCheck(check);
-    const updated = await db.selectFrom('onsite_health_checks')
-      .selectAll()
-      .where('id', '=', id)
-      .where('tenant_id', '=', request.user.tenant_id)
-      .executeTakeFirst();
-    return reply.send({ result, check: updated });
+      const result = await runCheck(trx, check);
+      const updated = await trx.selectFrom('onsite_health_checks')
+        .selectAll()
+        .where('id', '=', id)
+        .where('tenant_id', '=', request.user.tenant_id)
+        .executeTakeFirst();
+      return { result, check: updated };
+    });
+    if (!outcome) return reply.status(404).send({ error: 'Health check not found' });
+    return reply.send(outcome);
   });
 
   /** The samples behind the uptime figure, most recent first. */
@@ -1032,21 +1065,24 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
     const q = request.query as { limit?: string };
     const limit = Math.min(Number(q.limit) || 100, 500);
 
-    const owned = await db.selectFrom('onsite_health_checks')
-      .select('id')
-      .where('id', '=', id)
-      .where('tenant_id', '=', request.user.tenant_id)
-      .executeTakeFirst();
-    if (!owned) return reply.status(404).send({ error: 'Health check not found' });
+    const result = await withTenant(request.user.tenant_id, async (trx) => {
+      const owned = await trx.selectFrom('onsite_health_checks')
+        .select('id')
+        .where('id', '=', id)
+        .where('tenant_id', '=', request.user.tenant_id)
+        .executeTakeFirst();
+      if (!owned) return null;
 
-    const results = await db.selectFrom('onsite_health_check_results')
-      .select(['id', 'checked_at', 'ok', 'status_code', 'response_ms', 'error'])
-      .where('check_id', '=', id)
-      .where('tenant_id', '=', request.user.tenant_id)
-      .orderBy('checked_at', 'desc')
-      .limit(limit)
-      .execute();
-    return reply.send(results);
+      return trx.selectFrom('onsite_health_check_results')
+        .select(['id', 'checked_at', 'ok', 'status_code', 'response_ms', 'error'])
+        .where('check_id', '=', id)
+        .where('tenant_id', '=', request.user.tenant_id)
+        .orderBy('checked_at', 'desc')
+        .limit(limit)
+        .execute();
+    });
+    if (result === null) return reply.status(404).send({ error: 'Health check not found' });
+    return reply.send(result);
   });
 
   // ─── SSL certificates ────────────────────────────────────────
@@ -1058,7 +1094,7 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
    * them certificates. These rows come from a TLS handshake against each host.
    */
   fastify.get('/ssl', async (request: FastifyRequest, reply: FastifyReply) => {
-    const certs = await db.selectFrom('onsite_ssl_certificates as c')
+    const certs = await withTenant(request.user.tenant_id, trx => trx.selectFrom('onsite_ssl_certificates as c')
       .leftJoin('onsite_domains as d', 'd.id', 'c.domain_id')
       .select([
         'c.id', 'c.domain_id', 'c.provider', 'c.issuer', 'c.subject', 'c.sans',
@@ -1067,7 +1103,7 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
       ])
       .where('c.tenant_id', '=', request.user.tenant_id)
       .orderBy('c.expires_at', 'asc')
-      .execute();
+      .execute());
     return reply.send(certs);
   });
 
@@ -1079,26 +1115,31 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
    */
   fastify.post('/domains/:id/ssl/inspect', async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
-    const domain = await db.selectFrom('onsite_domains')
-      .select(['id', 'domain'])
-      .where('id', '=', id)
-      .where('tenant_id', '=', request.user.tenant_id)
-      .executeTakeFirst();
-    if (!domain) return reply.status(404).send({ error: 'Domain not found' });
+    const outcome = await withTenant(request.user.tenant_id, async (trx) => {
+      const domain = await trx.selectFrom('onsite_domains')
+        .select(['id', 'domain'])
+        .where('id', '=', id)
+        .where('tenant_id', '=', request.user.tenant_id)
+        .executeTakeFirst();
+      if (!domain) return null;
 
-    const outcome = await refreshDomainCertificate(request.user.tenant_id, domain);
-    if (!outcome.ok) {
+      const result = await refreshDomainCertificate(trx, request.user.tenant_id, domain);
+      return { domain, result };
+    });
+    if (!outcome) return reply.status(404).send({ error: 'Domain not found' });
+
+    if (!outcome.result.ok) {
       // 200, not an error status: the check ran and its finding is that the
       // host has no usable certificate. That is a result worth displaying, not
       // a failed request.
-      return reply.send({ ok: false, error: outcome.error, domain: domain.domain });
+      return reply.send({ ok: false, error: outcome.result.error, domain: outcome.domain.domain });
     }
-    return reply.send({ ok: true, domain: domain.domain, certificate: outcome.cert });
+    return reply.send({ ok: true, domain: outcome.domain.domain, certificate: outcome.result.cert });
   });
 
   // ─── Provider Connections ────────────────────────────────────
   fastify.get('/provider-connections', async (request: FastifyRequest, reply: FastifyReply) => {
-    const connections = await db.selectFrom('onsite_provider_connections')
+    const connections = await withTenant(request.user.tenant_id, trx => trx.selectFrom('onsite_provider_connections')
       .select([
         'id', 'tenant_id', 'provider', 'name',
         'external_id', 'external_name', 'status',
@@ -1106,7 +1147,7 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
         'created_by', 'created_at', 'updated_at'
       ])
       .where('tenant_id', '=', request.user.tenant_id)
-      .execute();
+      .execute());
     return reply.send(connections);
   });
 
@@ -1130,67 +1171,71 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
      * schema designates for the credential found nothing, and the connection
      * was unusable no matter what was typed into it.
      */
-    const conn = await db.insertInto('onsite_provider_connections')
-      .values({
-        tenant_id: request.user.tenant_id,
-        provider: body.provider,
-        name: body.name,
-        access_token_cipher: encryptSecret(token),
-        // config_cipher is NOT NULL and holds the connection's non-credential
-        // settings. It used to hold the credential itself, which is why the
-        // column named for the credential was empty.
-        config_cipher: encryptSecret(JSON.stringify({ project_slug: body.external_id?.trim() || null })),
-        external_id: body.external_id?.trim() || null,
-        external_name: body.external_name?.trim() || null,
-        /**
-         * 'pending' until something has actually talked to the provider.
-         *
-         * This used to write 'active' and stamp last_verified_at with the
-         * current time on the way in, having verified nothing — the connection
-         * claimed to be live and checked before a single request had left the
-         * building. Verification happens below and the row is corrected to
-         * what the provider says.
-         */
-        status: 'pending',
-        created_by: actorId(request),
-      })
-      .returning(['id', 'tenant_id', 'provider', 'name', 'external_id', 'external_name', 'status', 'created_at'])
-      .executeTakeFirstOrThrow();
+    const result = await withTenant(request.user.tenant_id, async (trx) => {
+      const conn = await trx.insertInto('onsite_provider_connections')
+        .values({
+          tenant_id: request.user.tenant_id,
+          provider: body.provider,
+          name: body.name,
+          access_token_cipher: encryptSecret(token),
+          // config_cipher is NOT NULL and holds the connection's non-credential
+          // settings. It used to hold the credential itself, which is why the
+          // column named for the credential was empty.
+          config_cipher: encryptSecret(JSON.stringify({ project_slug: body.external_id?.trim() || null })),
+          external_id: body.external_id?.trim() || null,
+          external_name: body.external_name?.trim() || null,
+          /**
+           * 'pending' until something has actually talked to the provider.
+           *
+           * This used to write 'active' and stamp last_verified_at with the
+           * current time on the way in, having verified nothing — the connection
+           * claimed to be live and checked before a single request had left the
+           * building. Verification happens below and the row is corrected to
+           * what the provider says.
+           */
+          status: 'pending',
+          created_by: actorId(request),
+        })
+        .returning(['id', 'tenant_id', 'provider', 'name', 'external_id', 'external_name', 'status', 'created_at'])
+        .executeTakeFirstOrThrow();
 
-    // Ask the provider whether the credential works. A failure here is not a
-    // failure to save — the connection is kept so it can be corrected, and it
-    // carries the provider's reason.
-    const verdict = await verifyProviderConnection(body.provider, token);
-    const updated = await db.updateTable('onsite_provider_connections')
-      .set({
-        status: verdict.ok ? 'active' : 'error',
-        last_verified_at: new Date(),
-        error_message: verdict.ok ? null : verdict.detail.slice(0, 500),
-        ...(verdict.ok && verdict.accountName ? { external_name: conn.external_name ?? verdict.accountName } : {}),
-      })
-      .where('id', '=', conn.id)
-      .where('tenant_id', '=', request.user.tenant_id)
-      .returning(['id', 'tenant_id', 'provider', 'name', 'external_id', 'external_name',
-                  'status', 'error_message', 'last_verified_at', 'created_at'])
-      .executeTakeFirst();
+      // Ask the provider whether the credential works. A failure here is not a
+      // failure to save — the connection is kept so it can be corrected, and it
+      // carries the provider's reason.
+      const verdict = await verifyProviderConnection(body.provider, token);
+      const updated = await trx.updateTable('onsite_provider_connections')
+        .set({
+          status: verdict.ok ? 'active' : 'error',
+          last_verified_at: new Date(),
+          error_message: verdict.ok ? null : verdict.detail.slice(0, 500),
+          ...(verdict.ok && verdict.accountName ? { external_name: conn.external_name ?? verdict.accountName } : {}),
+        })
+        .where('id', '=', conn.id)
+        .where('tenant_id', '=', request.user.tenant_id)
+        .returning(['id', 'tenant_id', 'provider', 'name', 'external_id', 'external_name',
+                    'status', 'error_message', 'last_verified_at', 'created_at'])
+        .executeTakeFirst();
 
-    return reply.status(201).send(updated ?? conn);
+      return updated ?? conn;
+    });
+
+    return reply.status(201).send(result);
   });
 
   // ─── Websites CRUD & Grouping (Hostinger style) ───────────────
   fastify.get('/websites', async (request: FastifyRequest, reply: FastifyReply) => {
-    const websites = await db.selectFrom('onsite_websites')
+    const websites = await withTenant(request.user.tenant_id, trx => trx.selectFrom('onsite_websites')
       .selectAll()
       .where('tenant_id', '=', request.user.tenant_id)
       .orderBy('created_at', 'desc')
-      .execute();
+      .execute());
     return reply.send(websites);
   });
 
   fastify.post('/websites', async (request: FastifyRequest, reply: FastifyReply) => {
     const body = websiteCreateSchema.parse(request.body);
 
-    const created = await db.insertInto('onsite_websites')
+    const created = await withTenant(request.user.tenant_id, trx => trx.insertInto('onsite_websites')
       .values({
         tenant_id: request.user.tenant_id,
         name: body.name,
@@ -1203,17 +1248,17 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
         created_by: actorId(request),
       })
       .returningAll()
-      .executeTakeFirstOrThrow();
+      .executeTakeFirstOrThrow());
 
     return reply.status(201).send(created);
   });
 
   fastify.delete('/websites/:id', async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
-    const res = await db.deleteFrom('onsite_websites')
+    const res = await withTenant(request.user.tenant_id, trx => trx.deleteFrom('onsite_websites')
       .where('id', '=', id)
       .where('tenant_id', '=', request.user.tenant_id)
-      .executeTakeFirst();
+      .executeTakeFirst());
 
     if (res.numDeletedRows === 0n) return reply.status(404).send({ error: 'Website not found' });
     return reply.send({ success: true });
@@ -1265,7 +1310,7 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
 
     const cleanDomain = body.domain.trim().toLowerCase();
 
-    const created = await db.insertInto('onsite_domains')
+    const created = await withTenant(request.user.tenant_id, trx => trx.insertInto('onsite_domains')
       .values({
         tenant_id: request.user.tenant_id,
         domain: cleanDomain,
@@ -1274,7 +1319,7 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
         created_by: actorId(request),
       })
       .returningAll()
-      .executeTakeFirstOrThrow();
+      .executeTakeFirstOrThrow());
 
     return reply.status(201).send(created);
   });

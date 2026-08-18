@@ -3,7 +3,7 @@ import { PageHeader } from '../../components/PageHeader.js';
 import { showAlert } from '../../lib/alert.js';
 import { showConfirm } from '../../lib/confirm.js';
 import { useParams, Link } from 'react-router-dom';
-import { apiFetch, BASE_URL } from '../../lib/api.js';
+import { apiFetch, apiFetchRaw } from '../../lib/api.js';
 import type { OnsiteDnsRecord, DnsPropagationResult } from '@hudumika/types';
 import { Icon } from '../../components/Icon.js';
 import './Onsite.css';
@@ -129,10 +129,7 @@ export function OnsiteDNS() {
   const handleExport = async () => {
     if (!domainId) return;
     try {
-      const res = await fetch(`${BASE_URL}/v1/onsite/domains/${domainId}/dns/export`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('hudumika_token') ?? ''}` },
-      });
-      if (!res.ok) throw new Error(`Export failed (${res.status})`);
+      const res = await apiFetchRaw(`/v1/onsite/domains/${domainId}/dns/export`);
       const text = await res.text();
       // Saved through a blob rather than opened in a tab: a zone file is a
       // file, and the browser would render it as plain text otherwise.

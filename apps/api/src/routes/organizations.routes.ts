@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import { db } from '../db/client.js';
+import { dbPlatform } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 
 // Staff-only search/create for linking a tenant's own customer record to a
@@ -18,7 +18,7 @@ export async function organizationsRoutes(fastify: FastifyInstance) {
   // organization isn't owned by the searching staff member's tenant).
   fastify.get('/', async (req) => {
     const { q } = req.query as { q?: string };
-    let query = db.selectFrom('organizations').select(['id', 'name', 'email', 'tax_id']);
+    let query = dbPlatform.selectFrom('organizations').select(['id', 'name', 'email', 'tax_id']);
     if (q?.trim()) query = query.where('name', 'ilike', `%${q.trim()}%`);
     return query.orderBy('name').limit(20).execute();
   });
@@ -27,7 +27,7 @@ export async function organizationsRoutes(fastify: FastifyInstance) {
   fastify.post('/', async (req, reply) => {
     const body = req.body as { name?: string; email?: string; tax_id?: string };
     if (!body.name?.trim()) return reply.status(400).send({ error: 'Organization name is required' });
-    const row = await db.insertInto('organizations').values({
+    const row = await dbPlatform.insertInto('organizations').values({
       name: body.name.trim(),
       email: body.email?.trim() || null,
       tax_id: body.tax_id?.trim() || null,

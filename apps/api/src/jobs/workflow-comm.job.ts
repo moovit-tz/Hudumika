@@ -1,4 +1,4 @@
-import { db } from '../db/client.js';
+import { dbPlatform, withTenant } from '../db/client.js';
 import { sendOneComm } from '../services/workflow-comms.service.js';
 import { settleQueuedComm } from '../services/workflow-runs.service.js';
 
@@ -9,7 +9,7 @@ import { settleQueuedComm } from '../services/workflow-runs.service.js';
 export async function runWorkflowCommQueueJob(): Promise<void> {
   console.log('⏳ Running background job: Workflow Comm Queue...');
   try {
-    const due = await db
+    const due = await dbPlatform
       .selectFrom('workflow_comm_queue')
       .selectAll()
       .where('status', '=', 'PENDING')
@@ -21,9 +21,11 @@ export async function runWorkflowCommQueueJob(): Promise<void> {
 
     /** Marks a queued row cancelled and tells its run, so neither is left reading PENDING/QUEUED. */
     const cancel = async (row: typeof due[number], reason?: string) => {
-      await db.updateTable('workflow_comm_queue')
-        .set({ status: 'CANCELLED', ...(reason ? { error: reason } : {}) })
-        .where('id', '=', row.id).execute();
+      await withTenant(row.tenant_id, (trx) =>
+        trx.updateTable('workflow_comm_queue')
+          .set({ status: 'CANCELLED', ...(reason ? { error: reason } : {}) })
+          .where('id', '=', row.id).execute(),
+      );
       if (row.run_id) {
         await settleQueuedComm(row.tenant_id, row.run_id, row.auto_comm_id, { status: 'CANCELLED' });
       }
@@ -31,11 +33,12 @@ export async function runWorkflowCommQueueJob(): Promise<void> {
 
     for (const row of due) {
       try {
-        const shipment = await db
-          .selectFrom('shipment_cases')
-          .select(['workflow_step_id'])
-          .where('id', '=', row.shipment_id)
-          .executeTakeFirst();
+        const shipment = await withTenant(row.tenant_id, (trx) =>
+          trx.selectFrom('shipment_cases')
+            .select(['workflow_step_id'])
+            .where('id', '=', row.shipment_id)
+            .executeTakeFirst(),
+        );
 
         // The shipment moved off this step before the delay elapsed — the
         // transition engine cancels these proactively, but this is a
@@ -45,11 +48,12 @@ export async function runWorkflowCommQueueJob(): Promise<void> {
           continue;
         }
 
-        const step = await db
-          .selectFrom('workflow_steps')
-          .select(['name', 'auto_comms'])
-          .where('id', '=', row.workflow_step_id)
-          .executeTakeFirst();
+        const step = await withTenant(row.tenant_id, (trx) =>
+          trx.selectFrom('workflow_steps')
+            .select(['name', 'auto_comms'])
+            .where('id', '=', row.workflow_step_id)
+            .executeTakeFirst(),
+        );
         if (!step) {
           await cancel(row, 'Step no longer exists');
           continue;
@@ -63,9 +67,11 @@ export async function runWorkflowCommQueueJob(): Promise<void> {
         }
 
         const result = await sendOneComm(row.tenant_id, row.shipment_id, comm, step.name);
-        await db.updateTable('workflow_comm_queue')
-          .set({ status: result.success ? 'SENT' : 'FAILED', error: result.error ?? null, sent_at: new Date() })
-          .where('id', '=', row.id).execute();
+        await withTenant(row.tenant_id, (trx) =>
+          trx.updateTable('workflow_comm_queue')
+            .set({ status: result.success ? 'SENT' : 'FAILED', error: result.error ?? null, sent_at: new Date() })
+            .where('id', '=', row.id).execute(),
+        );
 
         // Write the outcome back onto the transition that queued it, so a
         // delayed message that failed downgrades that run to PARTIAL rather
@@ -78,7 +84,9 @@ export async function runWorkflowCommQueueJob(): Promise<void> {
         }
       } catch (err: any) {
         console.error(`❌ Failed to send queued workflow comm ${row.id}:`, err);
-        await db.updateTable('workflow_comm_queue').set({ status: 'FAILED', error: err.message }).where('id', '=', row.id).execute().catch(() => {});
+        await withTenant(row.tenant_id, (trx) =>
+          trx.updateTable('workflow_comm_queue').set({ status: 'FAILED', error: err.message }).where('id', '=', row.id).execute(),
+        ).catch(() => {});
       }
     }
     console.log('✅ Workflow Comm Queue job completed.');

@@ -1,5 +1,5 @@
 import { sql } from 'kysely';
-import { db } from '../db/client.js';
+import { dbPlatform } from '../db/client.js';
 
 /**
  * SuperAdmin-only, cross-tenant analytics over the Trade Compliance Wizard's
@@ -25,7 +25,7 @@ function applyDateFilters<T extends { where: any }>(qb: any, column: string, fil
 
 export const tradeWizardAnalyticsService = {
   async getSummary(filters: AnalyticsFilters) {
-    let searchQ = db.selectFrom('trade_wizard_searches').select(eb => [
+    let searchQ = dbPlatform.selectFrom('trade_wizard_searches').select(eb => [
       eb.fn.countAll().as('total_searches'),
       eb.fn.count('tenant_id').distinct().as('unique_tenants'),
       sql<number>`COUNT(*) FILTER (WHERE results_count = 0)`.as('no_result_searches'),
@@ -33,7 +33,7 @@ export const tradeWizardAnalyticsService = {
     searchQ = applyDateFilters(searchQ, 'created_at', filters);
     const searchRow = await searchQ.executeTakeFirst();
 
-    let runQ = db.selectFrom('trade_wizard_runs').select(eb => eb.fn.countAll().as('total_runs'));
+    let runQ = dbPlatform.selectFrom('trade_wizard_runs').select(eb => eb.fn.countAll().as('total_runs'));
     runQ = applyDateFilters(runQ, 'created_at', filters);
     const runRow = await runQ.executeTakeFirst();
 
@@ -52,7 +52,7 @@ export const tradeWizardAnalyticsService = {
   },
 
   async getTopSearchTerms(filters: AnalyticsFilters, limit = 20) {
-    let q = db.selectFrom('trade_wizard_searches')
+    let q = dbPlatform.selectFrom('trade_wizard_searches')
       .select(eb => [
         sql<string>`lower(trim(query))`.as('term'),
         eb.fn.countAll().as('count'),
@@ -66,7 +66,7 @@ export const tradeWizardAnalyticsService = {
   },
 
   async getTopProcedures(filters: AnalyticsFilters, limit = 20) {
-    let q = db.selectFrom('trade_wizard_runs')
+    let q = dbPlatform.selectFrom('trade_wizard_runs')
       .innerJoin('trade_procedures', 'trade_procedures.id', 'trade_wizard_runs.procedure_id')
       .select(eb => [
         'trade_procedures.id as procedure_id', 'trade_procedures.name', 'trade_procedures.kind',
@@ -78,7 +78,7 @@ export const tradeWizardAnalyticsService = {
   },
 
   async getSearchesByKind(filters: AnalyticsFilters) {
-    let q = db.selectFrom('trade_wizard_searches').select(eb => ['kind', eb.fn.countAll().as('count')]);
+    let q = dbPlatform.selectFrom('trade_wizard_searches').select(eb => ['kind', eb.fn.countAll().as('count')]);
     q = applyDateFilters(q, 'created_at', filters);
     const rows = await q.groupBy('kind').orderBy('count', 'desc').execute();
     return rows.map(r => ({ kind: r.kind ?? 'unspecified', count: Number(r.count) }));
@@ -94,13 +94,13 @@ export const tradeWizardAnalyticsService = {
     // endpoint 500). Returning text from SQL fixes both at the source.
     const DAY = sql<string>`to_char(created_at, 'YYYY-MM-DD')`;
 
-    let searchQ = db.selectFrom('trade_wizard_searches')
+    let searchQ = dbPlatform.selectFrom('trade_wizard_searches')
       .select(eb => [DAY.as('day'), eb.fn.countAll().as('searches')])
       .where('created_at', '>=', new Date(from));
     if (filters.tenant_id) searchQ = searchQ.where('tenant_id', '=', filters.tenant_id);
     const searchRows = await searchQ.groupBy(DAY).orderBy('day').execute();
 
-    let runQ = db.selectFrom('trade_wizard_runs')
+    let runQ = dbPlatform.selectFrom('trade_wizard_runs')
       .select(eb => [DAY.as('day'), eb.fn.countAll().as('runs')])
       .where('created_at', '>=', new Date(from));
     if (filters.tenant_id) runQ = runQ.where('tenant_id', '=', filters.tenant_id);
@@ -117,14 +117,14 @@ export const tradeWizardAnalyticsService = {
   },
 
   async getByTenant(filters: AnalyticsFilters, limit = 25) {
-    let searchQ = db.selectFrom('trade_wizard_searches')
+    let searchQ = dbPlatform.selectFrom('trade_wizard_searches')
       .innerJoin('tenants', 'tenants.id', 'trade_wizard_searches.tenant_id')
       .select(eb => ['tenants.id as tenant_id', 'tenants.name as tenant_name', eb.fn.countAll().as('search_count')]);
     searchQ = applyDateFilters(searchQ, 'trade_wizard_searches.created_at' as any, filters);
     const searchRows = await searchQ.groupBy(['tenants.id', 'tenants.name']).orderBy('search_count', 'desc').limit(limit).execute();
 
-    const runCounts = await db.selectFrom('trade_wizard_runs')
-      .select(['tenant_id', db.fn.countAll().as('run_count')])
+    const runCounts = await dbPlatform.selectFrom('trade_wizard_runs')
+      .select(['tenant_id', dbPlatform.fn.countAll().as('run_count')])
       .groupBy('tenant_id')
       .execute();
     const runsByTenant = new Map(runCounts.map(r => [r.tenant_id, Number(r.run_count)]));
@@ -137,7 +137,7 @@ export const tradeWizardAnalyticsService = {
 
   /** The most actionable view: real searches that found nothing — tells you which procedures to research next. */
   async getNoResultSearches(filters: AnalyticsFilters, limit = 30) {
-    let q = db.selectFrom('trade_wizard_searches')
+    let q = dbPlatform.selectFrom('trade_wizard_searches')
       .select(eb => [sql<string>`lower(trim(query))`.as('term'), eb.fn.countAll().as('count')])
       .where('results_count', '=', 0)
       .where('query', 'is not', null)

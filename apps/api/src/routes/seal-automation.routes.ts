@@ -1,9 +1,27 @@
 import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import type { Transaction } from 'kysely';
 import type { Database } from '../db/client.js';
 import { withTenant } from '../db/client.js';
 import { toDateParam } from '../utils/dates.js';
+
+// Real values — 118_seal_automation.sql's CHECK constraints.
+const TRIGGER_TYPES = ['lot_flagged', 'storage_expiring', 'examination_pending', 'low_stock'] as const;
+const ACTION_TYPES = ['create_task', 'create_ticket'] as const;
+const ruleCreateSchema = z.object({
+  compartmentId: z.string().nullable().optional(),
+  name: z.string().trim().min(1).max(200),
+  triggerType: z.enum(TRIGGER_TYPES),
+  thresholdValue: z.number().nullable().optional(),
+  actionType: z.enum(ACTION_TYPES),
+  actionAssignee: z.string().nullable().optional(),
+});
+const rulePatchSchema = z.object({
+  active: z.boolean().optional(),
+  thresholdValue: z.number().nullable().optional(),
+  actionAssignee: z.string().nullable().optional(),
+});
 
 // SEAL-owned automation rules — confirmed during planning that both of the
 // platform's existing workflow engines (ClearOS's shipment-lifecycle step-
@@ -132,11 +150,8 @@ export async function sealAutomationRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post('/automation-rules', async (request: any, reply) => {
+    const b = ruleCreateSchema.parse(request.body);
     try {
-      const b = request.body as any;
-      if (!b.name?.trim() || !b.triggerType || !b.actionType) {
-        return reply.status(400).send({ error: 'name, triggerType and actionType are required' });
-      }
       const row = await withTenant(request.user.tenant_id, trx =>
         trx.insertInto('seal_automation_rules').values({
           tenant_id: request.user.tenant_id,
@@ -155,8 +170,8 @@ export async function sealAutomationRoutes(fastify: FastifyInstance) {
   });
 
   fastify.patch('/automation-rules/:id', async (request: any, reply) => {
+    const b = rulePatchSchema.parse(request.body);
     try {
-      const b = request.body as any;
       const patch: any = { updated_at: new Date() };
       if (b.active !== undefined) patch.active = b.active;
       if (b.thresholdValue !== undefined) patch.threshold_value = b.thresholdValue != null ? String(b.thresholdValue) : null;

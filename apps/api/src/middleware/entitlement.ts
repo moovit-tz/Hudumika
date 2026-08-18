@@ -1,5 +1,5 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
-import { db } from '../db/client.js';
+import { dbPlatform, withTenant } from '../db/client.js';
 
 /**
  * Route preHandler hook that unifies requireAppEnabled() (appGate.ts) and
@@ -30,7 +30,7 @@ async function checkEntitlement(
     return { status: 403, body: { error: 'This API key is not scoped for this feature.', code: 'SCOPE_INSUFFICIENT' } };
   }
 
-  const appStatus = await db.selectFrom('app_status')
+  const appStatus = await dbPlatform.selectFrom('app_status')
     .select('status')
     .where('app_id', '=', featureKey)
     .executeTakeFirst();
@@ -41,32 +41,43 @@ async function checkEntitlement(
   // SuperAdmins administer every tenant/app regardless of plan or overrides.
   if (user.role === 'SUPER_ADMIN') return null;
 
-  const settingsRow = await db.selectFrom('tenant_settings')
-    .select('settings')
-    .where('tenant_id', '=', user.tenant_id)
-    .executeTakeFirst();
-  const settings = settingsRow
-    ? (typeof settingsRow.settings === 'string' ? JSON.parse(settingsRow.settings) : settingsRow.settings)
-    : {};
-  const enabledApps = settings['enabled-apps'] as Record<string, boolean> | undefined;
+  type TenantCheck =
+    | { outcome: 'fail'; failure: { status: number; body: Record<string, unknown> } }
+    | { outcome: 'pass' }
+    | { outcome: 'continue'; plan: string };
 
-  if (enabledApps && enabledApps[featureKey] === false) {
-    return { status: 403, body: { error: 'This app is not enabled for your organization.' } };
-  }
-  // An explicit true override grants access regardless of the tenant's package.
-  if (enabledApps && enabledApps[featureKey] === true) return null;
+  const tenantCheck = await withTenant(user.tenant_id, async (trx): Promise<TenantCheck> => {
+    const settingsRow = await trx.selectFrom('tenant_settings')
+      .select('settings')
+      .where('tenant_id', '=', user.tenant_id)
+      .executeTakeFirst();
+    const settings = settingsRow
+      ? (typeof settingsRow.settings === 'string' ? JSON.parse(settingsRow.settings) : settingsRow.settings)
+      : {};
+    const enabledApps = settings['enabled-apps'] as Record<string, boolean> | undefined;
 
-  const tenant = await db.selectFrom('tenants')
-    .select('plan')
-    .where('id', '=', user.tenant_id)
-    .executeTakeFirst();
-  if (!tenant) {
-    return { status: 403, body: { error: 'Tenant not found.' } };
-  }
+    if (enabledApps && enabledApps[featureKey] === false) {
+      return { outcome: 'fail', failure: { status: 403, body: { error: 'This app is not enabled for your organization.' } } };
+    }
+    // An explicit true override grants access regardless of the tenant's package.
+    if (enabledApps && enabledApps[featureKey] === true) return { outcome: 'pass' };
 
-  const grant = await db.selectFrom('package_features')
+    const tenant = await trx.selectFrom('tenants')
+      .select('plan')
+      .where('id', '=', user.tenant_id)
+      .executeTakeFirst();
+    if (!tenant) {
+      return { outcome: 'fail', failure: { status: 403, body: { error: 'Tenant not found.' } } };
+    }
+    return { outcome: 'continue', plan: tenant.plan };
+  });
+
+  if (tenantCheck.outcome === 'fail') return tenantCheck.failure;
+  if (tenantCheck.outcome === 'pass') return null;
+
+  const grant = await dbPlatform.selectFrom('package_features')
     .select('feature_key')
-    .where('package_code', '=', tenant.plan)
+    .where('package_code', '=', tenantCheck.plan)
     .where('feature_key', '=', featureKey)
     .executeTakeFirst();
   if (!grant) {
@@ -85,26 +96,33 @@ async function checkEntitlement(
  * administrator's bypass — it acts for the tenant, not for a person.
  */
 export async function tenantHasEntitlement(tenantId: string, featureKey: string): Promise<boolean> {
-  const appStatus = await db.selectFrom('app_status')
+  const appStatus = await dbPlatform.selectFrom('app_status')
     .select('status').where('app_id', '=', featureKey).executeTakeFirst();
   if (appStatus?.status === 'maintenance') return false;
 
-  const settingsRow = await db.selectFrom('tenant_settings')
-    .select('settings').where('tenant_id', '=', tenantId).executeTakeFirst();
-  const settings = settingsRow
-    ? (typeof settingsRow.settings === 'string' ? JSON.parse(settingsRow.settings) : settingsRow.settings)
-    : {};
-  const enabledApps = settings['enabled-apps'] as Record<string, boolean> | undefined;
-  if (enabledApps && enabledApps[featureKey] === false) return false;
-  if (enabledApps && enabledApps[featureKey] === true) return true;
+  type TenantCheck = { decided: boolean } | { plan: string };
 
-  const tenant = await db.selectFrom('tenants')
-    .select('plan').where('id', '=', tenantId).executeTakeFirst();
-  if (!tenant) return false;
+  const tenantCheck = await withTenant(tenantId, async (trx): Promise<TenantCheck> => {
+    const settingsRow = await trx.selectFrom('tenant_settings')
+      .select('settings').where('tenant_id', '=', tenantId).executeTakeFirst();
+    const settings = settingsRow
+      ? (typeof settingsRow.settings === 'string' ? JSON.parse(settingsRow.settings) : settingsRow.settings)
+      : {};
+    const enabledApps = settings['enabled-apps'] as Record<string, boolean> | undefined;
+    if (enabledApps && enabledApps[featureKey] === false) return { decided: false };
+    if (enabledApps && enabledApps[featureKey] === true) return { decided: true };
 
-  const grant = await db.selectFrom('package_features')
+    const tenant = await trx.selectFrom('tenants')
+      .select('plan').where('id', '=', tenantId).executeTakeFirst();
+    if (!tenant) return { decided: false };
+    return { plan: tenant.plan };
+  });
+
+  if ('decided' in tenantCheck) return tenantCheck.decided;
+
+  const grant = await dbPlatform.selectFrom('package_features')
     .select('feature_key')
-    .where('package_code', '=', tenant.plan)
+    .where('package_code', '=', tenantCheck.plan)
     .where('feature_key', '=', featureKey)
     .executeTakeFirst();
   return !!grant;

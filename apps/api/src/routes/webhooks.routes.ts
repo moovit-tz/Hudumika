@@ -1,8 +1,18 @@
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import crypto from 'crypto';
-import { db, withTenant } from '../db/client.js';
+import { withTenant, dbPlatform } from '../db/client.js';
 import { env } from '../config/env.js';
 import { NotificationService } from '../services/notification.service.js';
+
+// These two are public webhooks fed by third-party services (GPSWOX, Meta's
+// WhatsApp Cloud API) whose payload shape is theirs to evolve, not ours to
+// pin down — a strict schema would risk rejecting a legitimate payload we
+// don't fully control. This only guards against a `null`/array/non-object
+// body, which would otherwise throw on the very first `payload.foo` access
+// below (a JSON POST body of literally `null` is valid JSON) and 500 an
+// endpoint the internet can hit unauthenticated.
+const webhookPayloadSchema = z.record(z.string(), z.any());
 
 /** Verifies Meta's X-Hub-Signature-256 HMAC over the exact raw request bytes
  *  — must run before JSON.parse touches the body, since re-serializing would
@@ -67,7 +77,7 @@ export async function webhookRoutes(fastify: FastifyInstance) {
         }
       }
 
-      const payload = request.body as any;
+      const payload = webhookPayloadSchema.parse(request.body ?? {});
       console.log('📥 GPSWOX Webhook Received:', payload);
 
       // Extract device ID (IMEI)
@@ -77,8 +87,9 @@ export async function webhookRoutes(fastify: FastifyInstance) {
         return reply.status(400).send({ error: 'Missing device IMEI in payload' });
       }
 
-      // Find the corresponding vehicle
-      const vehicle = await db.selectFrom('vehicles')
+      // Find the corresponding vehicle — pre-tenant: GPSWOX identifies a
+      // device by IMEI alone, so the tenant isn't known until this resolves.
+      const vehicle = await dbPlatform.selectFrom('vehicles')
         .select(['id', 'tenant_id', 'name'])
         .where('device_id', '=', imei)
         .where('status', '=', 'ACTIVE')
@@ -161,7 +172,7 @@ export async function webhookRoutes(fastify: FastifyInstance) {
       return reply.status(401).send({ error: 'Invalid webhook signature' });
     }
 
-    const payload = request.body as any;
+    const payload = webhookPayloadSchema.parse(request.body ?? {});
 
     // Parse message details
     const entry = payload.entry?.[0];
@@ -175,8 +186,9 @@ export async function webhookRoutes(fastify: FastifyInstance) {
 
       console.log(`📥 Webhook Inbound Message: From +${fromPhone} -> "${textBody}"`);
 
-      // 1. Resolve Customer by matching WA phone formats
-      const customer = await db
+      // 1. Resolve Customer by matching WA phone formats — pre-tenant: an
+      // inbound WhatsApp message identifies a phone number, not a tenant.
+      const customer = await dbPlatform
         .selectFrom('customers')
         .selectAll()
         .where((eb) =>
@@ -189,16 +201,16 @@ export async function webhookRoutes(fastify: FastifyInstance) {
         .executeTakeFirst();
 
       if (customer) {
-        // 2. Find their most recently updated active Support Ticket
-        let activeTicket = await db
-          .selectFrom('support_tickets')
-          .selectAll()
-          .where('customer_id', '=', customer.id)
-          .where('status', 'in', ['OPEN', 'IN_PROGRESS'])
-          .orderBy('updated_at', 'desc')
-          .executeTakeFirst();
+        const activeTicket = await withTenant(customer.tenant_id, async (trx) => {
+          // 2. Find their most recently updated active Support Ticket
+          let activeTicket = await trx
+            .selectFrom('support_tickets')
+            .selectAll()
+            .where('customer_id', '=', customer.id)
+            .where('status', 'in', ['OPEN', 'IN_PROGRESS'])
+            .orderBy('updated_at', 'desc')
+            .executeTakeFirst();
 
-        await withTenant(customer.tenant_id, async (trx) => {
           if (!activeTicket) {
             // Auto-create ticket if none exists
             const ref_number = `SUP-WA-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -240,6 +252,8 @@ export async function webhookRoutes(fastify: FastifyInstance) {
             .set({ updated_at: new Date() })
             .where('id', '=', activeTicket.id)
             .execute();
+
+          return activeTicket;
         });
 
         // 3. Broadcast real-time WebSocket event to connected ops boards
@@ -247,7 +261,7 @@ export async function webhookRoutes(fastify: FastifyInstance) {
           client.send(
             JSON.stringify({
               type: 'support.message_received',
-              ticketId: activeTicket!.id,
+              ticketId: activeTicket.id,
               message: textBody,
             })
           );

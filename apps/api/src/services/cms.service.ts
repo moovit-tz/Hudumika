@@ -1,5 +1,5 @@
 import sanitizeHtml from 'sanitize-html';
-import { db, withTenant } from '../db/client.js';
+import { dbPlatform, withTenant } from '../db/client.js';
 import type {
   CmsPage, CreateCmsPageInput, UpdateCmsPageInput,
   CmsPost, CreateCmsPostInput, UpdateCmsPostInput,
@@ -85,7 +85,7 @@ export class CMSService {
 
   /** Public — only ever returns a published page. */
   static async getPublishedPlatformPage(slug: string): Promise<CmsPage | null> {
-    const row = await db
+    const row = await dbPlatform
       .selectFrom('cms_pages')
       .selectAll()
       .where('tenant_id', 'is', null)
@@ -97,7 +97,7 @@ export class CMSService {
 
   /** SuperAdmin — all statuses. */
   static async getPlatformPages(): Promise<CmsPage[]> {
-    const rows = await db
+    const rows = await dbPlatform
       .selectFrom('cms_pages')
       .selectAll()
       .where('tenant_id', 'is', null)
@@ -107,7 +107,7 @@ export class CMSService {
   }
 
   static async getPlatformPage(slug: string): Promise<CmsPage> {
-    const row = await db
+    const row = await dbPlatform
       .selectFrom('cms_pages')
       .selectAll()
       .where('tenant_id', 'is', null)
@@ -119,7 +119,7 @@ export class CMSService {
   /** Upsert-by-slug — a platform page's slug is its stable identity. */
   static async upsertPlatformPage(userId: string, input: CreateCmsPageInput): Promise<CmsPage> {
     const content = sanitizeContent(input.content ?? '');
-    const existing = await db
+    const existing = await dbPlatform
       .selectFrom('cms_pages')
       .select('id')
       .where('tenant_id', 'is', null)
@@ -127,7 +127,7 @@ export class CMSService {
       .executeTakeFirst();
 
     if (existing) {
-      const row = await db
+      const row = await dbPlatform
         .updateTable('cms_pages')
         .set({
           title: input.title,
@@ -143,7 +143,7 @@ export class CMSService {
       return toCmsPage(row);
     }
 
-    const row = await db
+    const row = await dbPlatform
       .insertInto('cms_pages')
       .values({
         tenant_id: null,
@@ -315,44 +315,50 @@ export class CMSService {
   // keyed by the real tenant_id instead of the GLOBAL_TENANT_ID row.
 
   static async getSiteSettings(tenantId: string): Promise<CmsSiteSettings> {
-    const row = await db.selectFrom('tenant_settings')
-      .select('settings')
-      .where('tenant_id', '=', tenantId)
-      .executeTakeFirst();
-    const settings = row ? (typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings) : {};
-    const tenant = await db.selectFrom('tenants').select('slug').where('id', '=', tenantId).executeTakeFirst();
-    return { ...DEFAULT_SITE_SETTINGS, ...(settings.onesite || {}), tenantSlug: tenant?.slug };
+    return withTenant(tenantId, async (trx) => {
+      const row = await trx.selectFrom('tenant_settings')
+        .select('settings')
+        .where('tenant_id', '=', tenantId)
+        .executeTakeFirst();
+      const settings = row ? (typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings) : {};
+      const tenant = await trx.selectFrom('tenants').select('slug').where('id', '=', tenantId).executeTakeFirst();
+      return { ...DEFAULT_SITE_SETTINGS, ...(settings.onesite || {}), tenantSlug: tenant?.slug };
+    });
   }
 
   static async updateSiteSettings(tenantId: string, input: Partial<CmsSiteSettings>): Promise<CmsSiteSettings> {
     // tenantSlug is derived (from tenants.slug), never persisted into the settings blob.
     const { tenantSlug: _ignored, ...realInput } = input;
-    const row = await db.selectFrom('tenant_settings')
-      .select('settings')
-      .where('tenant_id', '=', tenantId)
-      .executeTakeFirst();
-    const existing = row ? (typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings) : {};
-    const merged = { ...DEFAULT_SITE_SETTINGS, ...(existing.onesite || {}), ...realInput };
-    const nextSettings = { ...existing, onesite: merged };
-
-    if (row) {
-      await db.updateTable('tenant_settings')
-        .set({ settings: JSON.stringify(nextSettings) })
+    return withTenant(tenantId, async (trx) => {
+      const row = await trx.selectFrom('tenant_settings')
+        .select('settings')
         .where('tenant_id', '=', tenantId)
-        .execute();
-    } else {
-      await db.insertInto('tenant_settings')
-        .values({ tenant_id: tenantId, settings: JSON.stringify(nextSettings) })
-        .execute();
-    }
-    const tenant = await db.selectFrom('tenants').select('slug').where('id', '=', tenantId).executeTakeFirst();
-    return { ...merged, tenantSlug: tenant?.slug };
+        .executeTakeFirst();
+      const existing = row ? (typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings) : {};
+      const merged = { ...DEFAULT_SITE_SETTINGS, ...(existing.onesite || {}), ...realInput };
+      const nextSettings = { ...existing, onesite: merged };
+
+      if (row) {
+        await trx.updateTable('tenant_settings')
+          .set({ settings: JSON.stringify(nextSettings) })
+          .where('tenant_id', '=', tenantId)
+          .execute();
+      } else {
+        await trx.insertInto('tenant_settings')
+          .values({ tenant_id: tenantId, settings: JSON.stringify(nextSettings) })
+          .execute();
+      }
+      const tenant = await trx.selectFrom('tenants').select('slug').where('id', '=', tenantId).executeTakeFirst();
+      return { ...merged, tenantSlug: tenant?.slug };
+    });
   }
 
   // ── Public site (unauthenticated) ─────────────────────────────────────────
 
+  // Pre-tenant: an unauthenticated visitor identifies a tenant by its public
+  // slug, so the tenant isn't known until this resolves.
   private static async resolveTenantBySlug(tenantSlug: string) {
-    return db.selectFrom('tenants')
+    return dbPlatform.selectFrom('tenants')
       .select(['id', 'name', 'logo_url'])
       .where('slug', '=', tenantSlug)
       .executeTakeFirst();
@@ -362,12 +368,13 @@ export class CMSService {
     const tenant = await this.resolveTenantBySlug(tenantSlug);
     if (!tenant) return null;
     const settings = await this.getSiteSettings(tenant.id);
-    const pages = await db.selectFrom('cms_pages')
+    // The slug has now resolved a real tenant — scoped from here on.
+    const pages = await withTenant(tenant.id, trx => trx.selectFrom('cms_pages')
       .select(['slug', 'title'])
       .where('tenant_id', '=', tenant.id)
       .where('status', '=', 'published')
       .orderBy('title', 'asc')
-      .execute();
+      .execute());
     return {
       tenantName: settings.siteTitle || tenant.name,
       settings,
@@ -378,12 +385,12 @@ export class CMSService {
   static async getPublicPage(tenantSlug: string, pageSlug: string): Promise<CmsPage | null> {
     const tenant = await this.resolveTenantBySlug(tenantSlug);
     if (!tenant) return null;
-    const row = await db.selectFrom('cms_pages')
+    const row = await withTenant(tenant.id, trx => trx.selectFrom('cms_pages')
       .selectAll()
       .where('tenant_id', '=', tenant.id)
       .where('slug', '=', pageSlug)
       .where('status', '=', 'published')
-      .executeTakeFirst();
+      .executeTakeFirst());
     return row ? toCmsPage(row) : null;
   }
 }

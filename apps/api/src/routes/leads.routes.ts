@@ -1,8 +1,44 @@
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 
 const LEAD_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'SALES'] as const;
+// Real values — 128_crm_leads.sql's CHECK constraints.
+const LEAD_STAGES = ['NEW', 'CONTACTED', 'QUALIFIED', 'PROPOSAL', 'NEGOTIATION', 'WON', 'LOST'] as const;
+const LEAD_PRIORITIES = ['HIGH', 'MEDIUM', 'LOW'] as const;
+const leadCreateSchema = z.object({
+  company: z.string().trim().min(1).max(300),
+  contact_name: z.string().trim().min(1).max(300),
+  contact_email: z.string().max(320).optional(),
+  contact_phone: z.string().max(50).optional(),
+  source: z.string().max(100).optional(),
+  stage: z.enum(LEAD_STAGES).optional(),
+  value: z.number().optional(),
+  priority: z.enum(LEAD_PRIORITIES).optional(),
+  assigned_to: z.string().optional(),
+  expected_close: z.string().nullable().optional(),
+  notes: z.string().max(5000).optional(),
+  industry: z.string().max(200).optional(),
+  location: z.string().max(200).optional(),
+  website: z.string().max(500).optional(),
+});
+const leadPatchSchema = z.object({
+  company: z.string().trim().min(1).max(300).optional(),
+  contact_name: z.string().trim().min(1).max(300).optional(),
+  contact_email: z.string().max(320).nullable().optional(),
+  contact_phone: z.string().max(50).nullable().optional(),
+  source: z.string().max(100).optional(),
+  stage: z.enum(LEAD_STAGES).optional(),
+  value: z.number().optional(),
+  priority: z.enum(LEAD_PRIORITIES).optional(),
+  assigned_to: z.string().nullable().optional(),
+  expected_close: z.string().nullable().optional(),
+  notes: z.string().max(5000).nullable().optional(),
+  industry: z.string().max(200).nullable().optional(),
+  location: z.string().max(200).nullable().optional(),
+  website: z.string().max(500).nullable().optional(),
+});
 
 function mapLead(row: any) {
   return {
@@ -41,16 +77,13 @@ export async function leadsRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post('/', async (request: any, reply) => {
+    const b = leadCreateSchema.parse(request.body);
     try {
-      const b = request.body as any;
-      if (!b.company?.trim() || !b.contact_name?.trim()) {
-        return reply.status(400).send({ error: 'company and contact_name are required' });
-      }
       const row = await withTenant(request.user.tenant_id, trx =>
         trx.insertInto('leads').values({
           tenant_id: request.user.tenant_id,
-          company: b.company.trim(),
-          contact_name: b.contact_name.trim(),
+          company: b.company,
+          contact_name: b.contact_name,
           contact_email: b.contact_email || null,
           contact_phone: b.contact_phone || null,
           source: b.source || 'Web Form',
@@ -72,11 +105,11 @@ export async function leadsRoutes(fastify: FastifyInstance) {
   });
 
   fastify.patch('/:id', async (request: any, reply) => {
+    const b = leadPatchSchema.parse(request.body);
     try {
-      const b = request.body as any;
       const patch: Record<string, unknown> = { updated_at: new Date() };
-      if (b.company !== undefined) patch.company = b.company.trim();
-      if (b.contact_name !== undefined) patch.contact_name = b.contact_name.trim();
+      if (b.company !== undefined) patch.company = b.company;
+      if (b.contact_name !== undefined) patch.contact_name = b.contact_name;
       if (b.contact_email !== undefined) patch.contact_email = b.contact_email || null;
       if (b.contact_phone !== undefined) patch.contact_phone = b.contact_phone || null;
       if (b.source !== undefined) patch.source = b.source;

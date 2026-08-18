@@ -3,7 +3,7 @@ import { resolveCustomerId } from '../services/customer-identity.service.js';
 import { emitDomainEvent } from '../services/domain-events.service.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { db, withTenant } from '../db/client.js';
+import { withTenant } from '../db/client.js';
 
 // Real values — Billing.tsx's own `Status` type.
 const INVOICE_STATUS = ['Draft', 'Partial', 'Paid', 'Credited', 'Unpaid', 'Overdue'] as const;
@@ -834,12 +834,12 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
     const { id } = request.params as { id: string };
 
     // Ensure invoice belongs to tenant and is not Draft
-    const inv = await db
+    const inv = await withTenant(user.tenant_id, trx => trx
       .selectFrom('sales_invoices')
       .select(['id', 'status', 'tra_status', 'tra_rctvnum', 'tra_ack_code', 'tra_qr_url'])
       .where('id', '=', id)
       .where('tenant_id', '=', user.tenant_id)
-      .executeTakeFirst();
+      .executeTakeFirst());
 
     if (!inv) return reply.status(404).send({ error: 'Invoice not found' });
     if (inv.status === 'Draft') return reply.status(400).send({ error: 'Cannot submit Draft invoices to TRA. Change status first.' });
@@ -871,7 +871,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
     const user = request.user as any;
     const { id } = request.params as { id: string };
 
-    const inv = await db
+    const inv = await withTenant(user.tenant_id, trx => trx
       .selectFrom('sales_invoices')
       .select([
         'id', 'invoice_number', 'client_name', 'bill_date',
@@ -880,7 +880,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
       ])
       .where('id', '=', id)
       .where('tenant_id', '=', user.tenant_id)
-      .executeTakeFirst();
+      .executeTakeFirst());
 
     if (!inv) return reply.status(404).send({ error: 'Invoice not found' });
 

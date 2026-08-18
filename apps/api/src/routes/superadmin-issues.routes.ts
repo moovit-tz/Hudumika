@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import { db } from '../db/client.js';
+import { dbPlatform } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 
 /**
@@ -25,7 +25,7 @@ export async function superAdminIssuesRoutes(fastify: FastifyInstance) {
     const search = String(q.q ?? '').trim();
 
     const base = () => {
-      let qb = db.selectFrom('platform_support_tickets as t')
+      let qb = dbPlatform.selectFrom('platform_support_tickets as t')
         .leftJoin('tenants as tn', 'tn.id', 't.tenant_id')
         .leftJoin('users as u', 'u.id', 't.created_by');
       if (q.kind && q.kind !== 'all') qb = qb.where('t.kind', '=', String(q.kind));
@@ -67,7 +67,7 @@ export async function superAdminIssuesRoutes(fastify: FastifyInstance) {
       base().select(eb => eb.fn.countAll<string>().as('n')).executeTakeFirst(),
       // The apps that have actually reported something, so the filter offers
       // real options rather than a hardcoded list that drifts.
-      db.selectFrom('platform_support_tickets').select('app')
+      dbPlatform.selectFrom('platform_support_tickets').select('app')
         .where('app', 'is not', null).distinct().execute(),
     ]);
 
@@ -81,7 +81,7 @@ export async function superAdminIssuesRoutes(fastify: FastifyInstance) {
 
   // ── GET /v1/superadmin/issues/:id ─────────────────────────────────────────
   fastify.get<{ Params: { id: string } }>('/issues/:id', async (request, reply) => {
-    const ticket = await db.selectFrom('platform_support_tickets as t')
+    const ticket = await dbPlatform.selectFrom('platform_support_tickets as t')
       .leftJoin('tenants as tn', 'tn.id', 't.tenant_id')
       .leftJoin('users as u', 'u.id', 't.created_by')
       .selectAll('t')
@@ -91,13 +91,13 @@ export async function superAdminIssuesRoutes(fastify: FastifyInstance) {
     if (!ticket) return reply.status(404).send({ error: 'Issue not found.' });
 
     const [messages, attachments, record] = await Promise.all([
-      db.selectFrom('platform_support_messages').selectAll()
+      dbPlatform.selectFrom('platform_support_messages').selectAll()
         .where('ticket_id', '=', ticket.id).orderBy('created_at', 'asc').execute(),
-      db.selectFrom('platform_support_attachments')
+      dbPlatform.selectFrom('platform_support_attachments')
         .select(['id', 'filename', 'mime_type', 'size_bytes', 'created_at'])
         .where('ticket_id', '=', ticket.id).orderBy('created_at', 'asc').execute(),
       ticket.record_id
-        ? db.selectFrom('landed_cost_records').selectAll().where('id', '=', ticket.record_id).executeTakeFirst()
+        ? dbPlatform.selectFrom('landed_cost_records').selectAll().where('id', '=', ticket.record_id).executeTakeFirst()
         : Promise.resolve(undefined),
     ]);
     return { ...ticket, messages, attachments, record: record ?? null };
@@ -120,7 +120,7 @@ export async function superAdminIssuesRoutes(fastify: FastifyInstance) {
     if (b.priority && ['LOW', 'NORMAL', 'HIGH', 'URGENT'].includes(b.priority)) patch.priority = b.priority;
     if (typeof b.resolution === 'string') patch.resolution = b.resolution.trim().slice(0, 4000) || null;
 
-    const updated = await db.updateTable('platform_support_tickets')
+    const updated = await dbPlatform.updateTable('platform_support_tickets')
       .set(patch).where('id', '=', request.params.id).returningAll().executeTakeFirst();
     if (!updated) return reply.status(404).send({ error: 'Issue not found.' });
     return updated;
@@ -132,11 +132,11 @@ export async function superAdminIssuesRoutes(fastify: FastifyInstance) {
     const user = request.user as any;
     const content = String(request.body?.message ?? '').trim();
     if (!content) return reply.status(400).send({ error: 'A message is required.' });
-    const ticket = await db.selectFrom('platform_support_tickets').select(['id', 'tenant_id'])
+    const ticket = await dbPlatform.selectFrom('platform_support_tickets').select(['id', 'tenant_id'])
       .where('id', '=', request.params.id).executeTakeFirst();
     if (!ticket) return reply.status(404).send({ error: 'Issue not found.' });
 
-    const message = await db.insertInto('platform_support_messages').values({
+    const message = await dbPlatform.insertInto('platform_support_messages').values({
       ticket_id: ticket.id,
       tenant_id: ticket.tenant_id,
       author_id: user.sub,
@@ -144,7 +144,7 @@ export async function superAdminIssuesRoutes(fastify: FastifyInstance) {
       is_platform_staff: true,
       content,
     }).returningAll().executeTakeFirstOrThrow();
-    await db.updateTable('platform_support_tickets').set({ updated_at: new Date() })
+    await dbPlatform.updateTable('platform_support_tickets').set({ updated_at: new Date() })
       .where('id', '=', ticket.id).execute();
     reply.status(201);
     return message;
@@ -162,7 +162,7 @@ export async function superAdminIssuesRoutes(fastify: FastifyInstance) {
     const search = String(q.q ?? '').trim();
 
     const base = () => {
-      let qb = db.selectFrom('landed_cost_records as r')
+      let qb = dbPlatform.selectFrom('landed_cost_records as r')
         .leftJoin('tenants as tn', 'tn.id', 'r.tenant_id')
         .leftJoin('users as u', 'u.id', 'r.created_by');
       if (q.tenant_id) qb = qb.where('r.tenant_id', '=', String(q.tenant_id));

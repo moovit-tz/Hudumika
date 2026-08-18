@@ -1,12 +1,21 @@
 import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { db, withTenant } from '../db/client.js';
 import { FinanceService } from '../services/finance.service.js';
 import { requireRole } from '../middleware/rbac.js';
-import type { RecordExpenseInput } from '@hudumika/types';
 import { computeVatReturn } from '../services/vat-return.service.js';
 import { reportingCurrency } from '../services/tax-registration.service.js';
 import { resolveCustomerId } from '../services/customer-identity.service.js';
+
+const EXPENSE_CATEGORIES = ['DUTY', 'PORT', 'INSPECTION', 'TRANSPORT', 'STORAGE', 'AGENCY', 'CLEARANCE', 'OTHER'] as const;
+const recordExpenseSchema = z.object({
+  category: z.enum(EXPENSE_CATEGORIES),
+  label: z.string().trim().min(1).max(200),
+  amount_tzs: z.number(),
+  is_revenue: z.boolean().optional(),
+  is_passthrough: z.boolean().optional(),
+});
 
 export async function financeRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
@@ -175,7 +184,7 @@ export async function financeRoutes(fastify: FastifyInstance) {
   fastify.post('/:id/expenses', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER', 'FINANCE') }, async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
-    const input = request.body as RecordExpenseInput;
+    const input = recordExpenseSchema.parse(request.body);
 
     try {
       const recorded = await FinanceService.recordExpense(user.tenant_id, id, {

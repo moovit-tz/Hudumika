@@ -152,6 +152,16 @@ export async function identityRoutes(fastify: FastifyInstance) {
           },
         } : undefined,
         created_at: row.created_at, updated_at: row.updated_at,
+        // Session properties, not columns on `users` — sourced from the JWT
+        // claims (req.user), not the re-fetched row. See SafeUser's doc
+        // comment. Explicit `?? null` rather than omitting the key: the
+        // client merges this response onto its cached user object
+        // ({...prev, ...me}), and an *omitted* key doesn't unset a
+        // previously-cached one — a real actor's session ending an
+        // impersonation would keep reading as impersonated forever unless
+        // this is stated, not implied.
+        impersonated_by: user.impersonated_by ?? null,
+        impersonated_by_name: user.impersonated_by_name ?? null,
       };
     });
   });

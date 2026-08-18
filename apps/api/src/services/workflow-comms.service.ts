@@ -1,4 +1,4 @@
-import { withTenant, db } from '../db/client.js';
+import { withTenant } from '../db/client.js';
 import { formatTemplate } from '../lib/template.js';
 import { MailService } from './mail.service.js';
 import { WhatsAppIntegration } from '../integrations/whatsapp.js';
@@ -132,50 +132,52 @@ export async function resolveComm(
   comm: AutoComm,
   stepName: string,
 ): Promise<ResolvedComm | null> {
-  const shipment = await db.selectFrom('shipment_cases').selectAll().where('tenant_id', '=', tenantId).where('id', '=', shipmentId).executeTakeFirst();
-  if (!shipment) return null;
+  return withTenant(tenantId, async (trx) => {
+    const shipment = await trx.selectFrom('shipment_cases').selectAll().where('tenant_id', '=', tenantId).where('id', '=', shipmentId).executeTakeFirst();
+    if (!shipment) return null;
 
-  const customer = await db.selectFrom('customers').selectAll().where('tenant_id', '=', tenantId).where('id', '=', shipment.customer_id).executeTakeFirst();
-  const officer = shipment.assigned_to
-    ? await db.selectFrom('users').selectAll().where('tenant_id', '=', tenantId).where('id', '=', shipment.assigned_to).executeTakeFirst()
-    : null;
+    const customer = await trx.selectFrom('customers').selectAll().where('tenant_id', '=', tenantId).where('id', '=', shipment.customer_id).executeTakeFirst();
+    const officer = shipment.assigned_to
+      ? await trx.selectFrom('users').selectAll().where('tenant_id', '=', tenantId).where('id', '=', shipment.assigned_to).executeTakeFirst()
+      : null;
 
-  // Template variables — only include ones we can honestly populate.
-  // {{eta}}/{{duty_amount}} intentionally stay literal placeholders when
-  // unavailable (no ETA set, no duty-amount column exists at all on
-  // shipment_cases today) rather than being fabricated or silently blanked.
-  const vars: Record<string, string> = {
-    ref: shipment.ref_number,
-    customer_name: customer?.name || 'Customer',
-    vessel: shipment.vessel || '',
-    current_step: stepName,
-  };
-  if (shipment.eta) vars.eta = new Date(shipment.eta).toLocaleDateString();
-  if (officer?.name) vars.agent_name = officer.name;
+    // Template variables — only include ones we can honestly populate.
+    // {{eta}}/{{duty_amount}} intentionally stay literal placeholders when
+    // unavailable (no ETA set, no duty-amount column exists at all on
+    // shipment_cases today) rather than being fabricated or silently blanked.
+    const vars: Record<string, string> = {
+      ref: shipment.ref_number,
+      customer_name: customer?.name || 'Customer',
+      vessel: shipment.vessel || '',
+      current_step: stepName,
+    };
+    if (shipment.eta) vars.eta = new Date(shipment.eta).toLocaleDateString();
+    if (officer?.name) vars.agent_name = officer.name;
 
-  const out: ResolvedComm = {
-    shipment,
-    subject: formatTemplate(comm.subject, vars),
-    body: formatTemplate(comm.template, vars),
-  };
+    const out: ResolvedComm = {
+      shipment,
+      subject: formatTemplate(comm.subject, vars),
+      body: formatTemplate(comm.template, vars),
+    };
 
-  if (comm.recipient === 'customer') {
-    out.toEmail = customer?.email || undefined;
-    out.toPhone = customer?.phone_wa || customer?.phone || undefined;
-  } else if (comm.recipient === 'assigned_agent') {
-    out.toEmail = officer?.email || undefined;
-    out.toPhone = officer?.phone || undefined;
-    out.toUserId = officer?.id;
-  } else if (comm.recipient === 'manager') {
-    const manager = await db.selectFrom('users').selectAll().where('tenant_id', '=', tenantId).where('role', '=', 'MANAGER').where('active', '=', true).executeTakeFirst();
-    out.toEmail = manager?.email || undefined;
-    out.toPhone = manager?.phone || undefined;
-    out.toUserId = manager?.id;
-  } else if (comm.recipient === 'custom_email') {
-    out.toEmail = comm.customEmail || undefined;
-  }
+    if (comm.recipient === 'customer') {
+      out.toEmail = customer?.email || undefined;
+      out.toPhone = customer?.phone_wa || customer?.phone || undefined;
+    } else if (comm.recipient === 'assigned_agent') {
+      out.toEmail = officer?.email || undefined;
+      out.toPhone = officer?.phone || undefined;
+      out.toUserId = officer?.id;
+    } else if (comm.recipient === 'manager') {
+      const manager = await trx.selectFrom('users').selectAll().where('tenant_id', '=', tenantId).where('role', '=', 'MANAGER').where('active', '=', true).executeTakeFirst();
+      out.toEmail = manager?.email || undefined;
+      out.toPhone = manager?.phone || undefined;
+      out.toUserId = manager?.id;
+    } else if (comm.recipient === 'custom_email') {
+      out.toEmail = comm.customEmail || undefined;
+    }
 
-  return out;
+    return out;
+  });
 }
 
 /** Sends (or honestly logs, for channels with no real integration) a single AutoComm. Exported for the delayed-queue job to reuse. */
@@ -202,7 +204,7 @@ export async function sendOneComm(tenantId: string, shipmentId: string, comm: Au
       return { success: result.success, error: result.error };
     }
     case 'webhook': {
-      const settingsRow = await db.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', tenantId).executeTakeFirst();
+      const settingsRow = await withTenant(tenantId, trx => trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', tenantId).executeTakeFirst());
       const settings = settingsRow?.settings ? (typeof settingsRow.settings === 'string' ? JSON.parse(settingsRow.settings) : settingsRow.settings) : {};
       const url = settings?.workflow_webhook_url;
       if (!url) return { success: false, error: 'No workflow_webhook_url configured for this tenant' };

@@ -1,7 +1,14 @@
 import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { withTenant } from '../db/client.js';
 import { InventoryService } from '../services/inventory.service.js';
+
+const sessionCreateSchema = z.object({
+  warehouseId: z.string().min(1),
+  notes: z.string().max(2000).nullable().optional(),
+});
+const lineCountSchema = z.object({ countedQty: z.number() });
 
 // Inventory Control Phase 4 — stock counts / cycle counts. expected_qty is
 // snapshotted from inventory_stock_levels at session start and never
@@ -93,9 +100,8 @@ export async function inventoryCountsRoutes(fastify: FastifyInstance) {
   // frozen at this moment and never recomputed, even if other movements
   // happen elsewhere while this count is in progress.
   fastify.post('/count-sessions', async (request: any, reply) => {
+    const b = sessionCreateSchema.parse(request.body);
     try {
-      const b = request.body as any;
-      if (!b.warehouseId) return reply.status(400).send({ error: 'warehouseId is required' });
       const session = await withTenant(request.user.tenant_id, async trx => {
         // warehouseId arrives from the client, so it is checked against this
         // tenant before anything is snapshotted from it — otherwise a count
@@ -138,9 +144,8 @@ export async function inventoryCountsRoutes(fastify: FastifyInstance) {
   });
 
   fastify.patch('/count-sessions/:id/lines/:lineId', async (request: any, reply) => {
+    const b = lineCountSchema.parse(request.body);
     try {
-      const b = request.body as any;
-      if (b.countedQty == null) return reply.status(400).send({ error: 'countedQty is required' });
       const row = await withTenant(request.user.tenant_id, async trx => {
         const session = await trx.selectFrom('inventory_count_sessions').select('status')
           .where('tenant_id', '=', request.user.tenant_id)

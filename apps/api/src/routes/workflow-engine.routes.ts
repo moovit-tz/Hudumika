@@ -1,8 +1,11 @@
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { requireRole } from '../middleware/rbac.js';
 import { WorkflowEngineService, registeredEntityTypes } from '../services/workflow-engine.service.js';
 
 const OPS_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'SENIOR', 'JUNIOR', 'OFFICER'] as const;
+const startSchema = z.object({ workflowId: z.string().min(1) });
+const advanceSchema = z.object({ toStepId: z.string().min(1), note: z.string().max(2000).optional() });
 
 /**
  * Generic workflow engine over any entity (migration 222). ClearOS shipments
@@ -20,8 +23,7 @@ export async function workflowEngineRoutes(fastify: FastifyInstance) {
   fastify.post('/:entityType/:entityId/start', { preHandler: requireRole(...OPS_ROLES) }, async (request, reply) => {
     const user = request.user;
     const { entityType, entityId } = request.params as { entityType: string; entityId: string };
-    const { workflowId } = request.body as { workflowId: string };
-    if (!workflowId) return reply.status(400).send({ error: 'workflowId is required' });
+    const { workflowId } = startSchema.parse(request.body);
     try {
       const inst = await WorkflowEngineService.start(user.tenant_id, { entityType, entityId, workflowId, actorId: user.sub });
       return { success: true, instance: inst };
@@ -34,8 +36,7 @@ export async function workflowEngineRoutes(fastify: FastifyInstance) {
   fastify.post('/:entityType/:entityId/advance', { preHandler: requireRole(...OPS_ROLES) }, async (request, reply) => {
     const user = request.user;
     const { entityType, entityId } = request.params as { entityType: string; entityId: string };
-    const { toStepId, note } = request.body as { toStepId: string; note?: string };
-    if (!toStepId) return reply.status(400).send({ error: 'toStepId is required' });
+    const { toStepId, note } = advanceSchema.parse(request.body);
     try {
       const res = await WorkflowEngineService.advance(user.tenant_id, { entityType, entityId, toStepId, actorId: user.sub, note });
       return res;

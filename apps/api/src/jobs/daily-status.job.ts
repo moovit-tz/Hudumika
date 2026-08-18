@@ -1,4 +1,4 @@
-import { db, withTenant } from '../db/client.js';
+import { dbPlatform, withTenant } from '../db/client.js';
 import { NotificationService } from '../services/notification.service.js';
 
 /**
@@ -7,7 +7,7 @@ import { NotificationService } from '../services/notification.service.js';
 export async function runDailyStatusJob(): Promise<void> {
   console.log('⏳ Running background job: Daily Status WhatsApp Updates...');
   try {
-    const activeShipments = await db
+    const activeShipments = await dbPlatform
       .selectFrom('shipment_cases')
       .selectAll()
       .where('stage', 'not in', ['CLOSED', 'DELIVERY'])

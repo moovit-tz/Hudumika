@@ -1,7 +1,7 @@
 import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { db, withTenant } from '../db/client.js';
+import { withTenant } from '../db/client.js';
 
 const BILL_STATUS = ['DRAFT', 'POSTED', 'PAID', 'PARTIAL', 'VOID'] as const;
 const recurringBillSchema = z.object({
@@ -44,6 +44,7 @@ const billCreateSchema = z.object({
   recurring_id: z.string().uuid().optional(),
   notes: z.string().max(5000).optional(),
 });
+const efdVerifySchema = z.object({ efd_receipt_number: z.string().trim().min(1) });
 import { requireRole } from '../middleware/rbac.js';
 import { GLService } from '../services/gl.service.js';
 import { emitDomainEvent } from '../services/domain-events.service.js';
@@ -681,23 +682,19 @@ export async function billRoutes(fastify: FastifyInstance) {
   fastify.post('/:id/verify-efd', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request, reply) => {
     const user = request.user as any;
     const { id } = request.params as { id: string };
-    const { efd_receipt_number } = request.body as any;
-
-    if (!efd_receipt_number) {
-      return reply.status(400).send({ error: 'efd_receipt_number is required' });
-    }
+    const { efd_receipt_number } = efdVerifySchema.parse(request.body);
 
     // Verify with TRA
     const verifyResult = await TRAService.verifyEFDReceipt(efd_receipt_number);
 
     // Save to DB regardless of verification (user might want to track the receipt number)
-    await db.updateTable('supplier_bills').set({
+    await withTenant(user.tenant_id, trx => trx.updateTable('supplier_bills').set({
       efd_receipt_number,
       efd_verified: verifyResult.verified ?? false,
       efd_verified_at: verifyResult.verified ? new Date() : null,
       efd_verification_data: verifyResult.data ?? null,
       updated_at: new Date(),
-    }).where('id', '=', id).where('tenant_id', '=', user.tenant_id).execute();
+    }).where('id', '=', id).where('tenant_id', '=', user.tenant_id).execute());
 
     return {
       success: true,

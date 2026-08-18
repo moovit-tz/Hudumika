@@ -6,12 +6,27 @@ import { requireEntitlement } from '../middleware/entitlement.js';
  */
 
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { requireRole } from '../middleware/rbac.js';
 import { TRAService } from '../services/tra.service.js';
-import { db, withTenant } from '../db/client.js';
+import { withTenant } from '../db/client.js';
 import fs from 'fs';
 import path from 'path';
 import { fiscaliseInvoice } from '../services/fiscalisation.service.js';
+
+const traRegisterSchema = z.object({
+  tin: z.string().trim().min(1),
+  cert_key: z.string().trim().min(1),
+  cert_serial: z.string().trim().min(1),
+  pfx_path: z.string().trim().min(1).optional(),
+  pfx_password: z.string().optional(),
+  environment: z.enum(['test', 'production']).optional(),
+});
+const zReportSchema = z.object({ date: z.string().optional() });
+const verifyReceiptSchema = z.object({
+  rctvnum: z.string().trim().min(1),
+  bill_id: z.string().optional(),
+});
 
 export async function traRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
@@ -33,8 +48,6 @@ export async function traRoutes(fastify: FastifyInstance) {
     { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') },
     async (request, reply) => {
       const user = request.user as any;
-      const body = request.body as any;
-
       const {
         tin,
         cert_key,
@@ -42,11 +55,7 @@ export async function traRoutes(fastify: FastifyInstance) {
         pfx_path,
         pfx_password,
         environment = 'test',
-      } = body;
-
-      if (!tin || !cert_key || !cert_serial) {
-        return reply.status(400).send({ error: 'tin, cert_key, and cert_serial are required' });
-      }
+      } = traRegisterSchema.parse(request.body);
 
       // Determine PFX path: either provided directly or look in uploads
       let resolvedPfxPath = pfx_path;
@@ -125,8 +134,8 @@ export async function traRoutes(fastify: FastifyInstance) {
     { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'FINANCE') },
     async (request, reply) => {
       const user = request.user as any;
-      const body = request.body as any;
-      const date = body?.date ? new Date(body.date) : undefined;
+      const body = zReportSchema.parse(request.body ?? {});
+      const date = body.date ? new Date(body.date) : undefined;
 
       const result = await TRAService.submitZReport(user.tenant_id, date);
       if (!result.success) {
@@ -144,32 +153,31 @@ export async function traRoutes(fastify: FastifyInstance) {
     '/verify-receipt',
     async (request, reply) => {
       const user = request.user as any;
-      const body = request.body as any;
-      const { rctvnum, bill_id } = body;
-
-      if (!rctvnum) {
-        return reply.status(400).send({ error: 'rctvnum is required' });
-      }
+      const { rctvnum, bill_id } = verifyReceiptSchema.parse(request.body);
 
       const result = await TRAService.verifyEFDReceipt(rctvnum);
 
       if (bill_id) {
-        const bill = await db
-          .selectFrom('supplier_bills')
-          .select('id')
-          .where('id', '=', bill_id)
-          .where('tenant_id', '=', user.tenant_id)
-          .executeTakeFirst();
+        const billFound = await withTenant(user.tenant_id, async (trx) => {
+          const bill = await trx
+            .selectFrom('supplier_bills')
+            .select('id')
+            .where('id', '=', bill_id)
+            .where('tenant_id', '=', user.tenant_id)
+            .executeTakeFirst();
 
-        if (!bill) return reply.status(404).send({ error: 'Bill not found' });
+          if (!bill) return false;
 
-        await db.updateTable('supplier_bills').set({
-          efd_receipt_number: rctvnum,
-          efd_verified: !!result.verified,
-          efd_verified_at: new Date(),
-          efd_verification_data: result.data ?? { error: result.error },
-          updated_at: new Date(),
-        }).where('id', '=', bill_id).where('tenant_id', '=', user.tenant_id).execute();
+          await trx.updateTable('supplier_bills').set({
+            efd_receipt_number: rctvnum,
+            efd_verified: !!result.verified,
+            efd_verified_at: new Date(),
+            efd_verification_data: result.data ?? { error: result.error },
+            updated_at: new Date(),
+          }).where('id', '=', bill_id).where('tenant_id', '=', user.tenant_id).execute();
+          return true;
+        });
+        if (!billFound) return reply.status(404).send({ error: 'Bill not found' });
       }
 
       return result;
@@ -235,12 +243,12 @@ export async function traRoutes(fastify: FastifyInstance) {
     const user = request.user as any;
     const { id } = request.params as { id: string };
 
-    const invoice = await db
+    const invoice = await withTenant(user.tenant_id, trx => trx
       .selectFrom('sales_invoices')
       .select(['tra_rctvnum', 'tra_status', 'tra_qr_url'])
       .where('id', '=', id)
       .where('tenant_id', '=', user.tenant_id)
-      .executeTakeFirst();
+      .executeTakeFirst());
 
     if (!invoice) return reply.status(404).send({ error: 'Invoice not found' });
     if (!invoice.tra_rctvnum) return reply.status(400).send({ error: 'Invoice not yet submitted to TRA' });

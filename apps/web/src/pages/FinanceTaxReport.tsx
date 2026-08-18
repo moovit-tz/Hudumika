@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Icon } from '../components/Icon.js';
-import { apiFetch, BASE_URL } from '../lib/api.js';
+import { apiFetch, apiFetchBlob } from '../lib/api.js';
 import { useCompany } from '../data/companyStore.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { PageHeader } from '../components/PageHeader.js';
@@ -98,12 +98,13 @@ export const FinanceTaxReport: React.FC = () => {
   }, [range.from, range.to]);
 
   async function downloadSubmission() {
-    const res = await fetch(
-      `${BASE_URL}/v1/finance/vat-return/export?from=${range.from}&to=${range.to}`,
-      { headers: { Authorization: `Bearer ${localStorage.getItem('hudumika_token') ?? ''}` } },
-    );
-    if (!res.ok) { setError((await res.json().catch(() => ({}))).error ?? 'Could not build the file'); return; }
-    const blob = await res.blob();
+    let blob: Blob;
+    try {
+      blob = await apiFetchBlob(`/v1/finance/vat-return/export?from=${range.from}&to=${range.to}`);
+    } catch (e: any) {
+      setError(e?.message ?? 'Could not build the file');
+      return;
+    }
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;

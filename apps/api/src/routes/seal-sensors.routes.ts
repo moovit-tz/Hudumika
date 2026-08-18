@@ -1,6 +1,25 @@
 import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { withTenant } from '../db/client.js';
+
+// Real values — 117_seal_geofence_and_sensors.sql's CHECK constraints.
+const SENSOR_DEVICE_TYPES = ['camera', 'occupancy_sensor', 'weight_sensor', 'door_sensor'] as const;
+const SENSOR_READING_TYPES = ['occupancy_count', 'motion', 'weight_kg', 'door_state'] as const;
+const sensorCreateSchema = z.object({
+  compartmentId: z.string().min(1),
+  zoneId: z.string().nullable().optional(),
+  locationId: z.string().nullable().optional(),
+  deviceId: z.string().trim().min(1).max(200),
+  deviceType: z.enum(SENSOR_DEVICE_TYPES),
+  name: z.string().trim().min(1).max(200),
+});
+const sensorIngestSchema = z.object({
+  device_id: z.string().trim().min(1),
+  reading_type: z.enum(SENSOR_READING_TYPES),
+  value: z.number(),
+  recorded_at: z.string().optional(),
+});
 
 // Zone-occupancy sensor/camera registry + ingestion — mirrors
 // POST /v1/tracking/positions/ingest's exact pattern (device_id ->
@@ -69,11 +88,8 @@ export async function sealSensorsRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post('/sensors', async (request: any, reply) => {
+    const b = sensorCreateSchema.parse(request.body);
     try {
-      const b = request.body as any;
-      if (!b.compartmentId || !b.deviceId?.trim() || !b.deviceType || !b.name?.trim()) {
-        return reply.status(400).send({ error: 'compartmentId, deviceId, deviceType and name are required' });
-      }
       const row = await withTenant(request.user.tenant_id, trx =>
         trx.insertInto('seal_sensor_devices').values({
           tenant_id: request.user.tenant_id,
@@ -109,11 +125,8 @@ export async function sealSensorsRoutes(fastify: FastifyInstance) {
   // token, with the specific device identified by device_id rather than a
   // separate device-auth scheme.
   fastify.post('/sensors/ingest', async (request: any, reply) => {
+    const b = sensorIngestSchema.parse(request.body);
     try {
-      const b = request.body as { device_id: string; reading_type: string; value: number; recorded_at?: string };
-      if (!b.device_id || !b.reading_type || typeof b.value !== 'number') {
-        return reply.status(400).send({ error: 'device_id, reading_type and value are required' });
-      }
       const result = await withTenant(request.user.tenant_id, async trx => {
         const device = await trx.selectFrom('seal_sensor_devices').selectAll()
           .where('device_id', '=', b.device_id).where('tenant_id', '=', request.user.tenant_id)

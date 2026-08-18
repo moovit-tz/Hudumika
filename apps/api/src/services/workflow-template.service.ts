@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import { db } from '../db/client.js';
+import { dbPlatform } from '../db/client.js';
 import { DEFAULT_WORKFLOWS, type DefaultWorkflowDef, type DefaultStepDef } from '../config/default-workflows.js';
 import type { FieldCondition, AutoComm } from '@hudumika/types';
 
@@ -110,7 +110,7 @@ export class WorkflowTemplateService {
   }
 
   /** Latest published version of every template_key (what tenants see / new tenants get). */
-  static async listPublished(trx: any = db): Promise<Array<{ id: string; def: TemplateDef; version: number; source: string; isSystem: boolean }>> {
+  static async listPublished(trx: any = dbPlatform): Promise<Array<{ id: string; def: TemplateDef; version: number; source: string; isSystem: boolean }>> {
     const rows = await trx.selectFrom('workflow_templates').selectAll()
       .where('status', '=', 'published').orderBy('template_key').orderBy('version', 'desc').execute();
     const seen = new Set<string>();
@@ -166,7 +166,7 @@ export class WorkflowTemplateService {
 
   // ── Superadmin management ────────────────────────────────────────────────
   static async listAll(): Promise<any[]> {
-    const rows = await db.selectFrom('workflow_templates').selectAll()
+    const rows = await dbPlatform.selectFrom('workflow_templates').selectAll()
       .orderBy('template_key').orderBy('version', 'desc').execute();
     return rows.map((r) => ({
       id: r.id, templateKey: r.template_key, version: r.version, name: r.name, description: r.description,
@@ -179,7 +179,7 @@ export class WorkflowTemplateService {
   /** Create a brand-new template key at version 1 (superadmin authoring). */
   static async create(input: TemplateDef & { source?: string }, createdBy: string | null): Promise<{ id: string }> {
     const now = new Date();
-    const row = await db.insertInto('workflow_templates').values({
+    const row = await dbPlatform.insertInto('workflow_templates').values({
       template_key: input.templateKey, version: 1, name: input.name, description: input.description ?? '',
       freight_modes: JSON.stringify(input.freightModes ?? []), consignment_types: JSON.stringify(input.consignmentTypes ?? []),
       steps: JSON.stringify(input.steps ?? []), status: 'published', is_system: false,
@@ -190,13 +190,13 @@ export class WorkflowTemplateService {
 
   /** Publish the next version of an existing template key. */
   static async publishNewVersion(templateKey: string, input: Partial<TemplateDef> & { source?: string }, createdBy: string | null): Promise<{ id: string; version: number }> {
-    const latest = await db.selectFrom('workflow_templates').selectAll()
+    const latest = await dbPlatform.selectFrom('workflow_templates').selectAll()
       .where('template_key', '=', templateKey).orderBy('version', 'desc').executeTakeFirst();
     if (!latest) throw new Error('Template key not found');
     const base = rowToDef(latest);
     const version = latest.version + 1;
     const now = new Date();
-    const row = await db.insertInto('workflow_templates').values({
+    const row = await dbPlatform.insertInto('workflow_templates').values({
       template_key: templateKey, version,
       name: input.name ?? base.name, description: input.description ?? base.description,
       freight_modes: JSON.stringify(input.freightModes ?? base.freightModes),
@@ -208,6 +208,6 @@ export class WorkflowTemplateService {
   }
 
   static async setStatus(id: string, status: 'draft' | 'published' | 'archived'): Promise<void> {
-    await db.updateTable('workflow_templates').set({ status, updated_at: new Date() }).where('id', '=', id).execute();
+    await dbPlatform.updateTable('workflow_templates').set({ status, updated_at: new Date() }).where('id', '=', id).execute();
   }
 }

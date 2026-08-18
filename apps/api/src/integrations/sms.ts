@@ -1,4 +1,4 @@
-import { db } from '../db/client.js';
+import { withTenant } from '../db/client.js';
 
 export class SmsIntegration {
   /**
@@ -11,7 +11,9 @@ export class SmsIntegration {
    * when they don't.
    */
   static async sendSms(tenantId: string, to: string, message: string): Promise<{ success: boolean; messageId?: string; error?: string }> {
-    const row = await db.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', tenantId).executeTakeFirst();
+    const row = await withTenant(tenantId, (trx) =>
+      trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', tenantId).executeTakeFirst(),
+    );
     const settings = row ? (typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings) : {};
     const cfg = settings?.['int-sms'];
 

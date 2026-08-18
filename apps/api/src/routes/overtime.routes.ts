@@ -14,7 +14,7 @@
  * day, and a later change must not rewrite what somebody earned.
  */
 import type { FastifyInstance } from 'fastify';
-import { withTenant, db } from '../db/client.js';
+import { withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
 import { HolidaysService } from '../services/holidays.service.js';
@@ -39,12 +39,14 @@ function isoDate(v: unknown): string {
 /** Hours already approved in the four weeks ending on `dateISO`. */
 async function approvedHoursInWindow(tenantId: string, userId: string, dateISO: string, excludeId?: string) {
   const w = fourWeekWindow(dateISO);
-  let q = db.selectFrom('hr_overtime_requests').select(db.fn.sum('hours').as('h'))
-    .where('tenant_id', '=', tenantId).where('user_id', '=', userId)
-    .where('status', '=', 'APPROVED')
-    .where('date', '>=', w.from as any).where('date', '<=', w.to as any);
-  if (excludeId) q = q.where('id', '!=', excludeId);
-  return num((await q.executeTakeFirst())?.h);
+  return withTenant(tenantId, async (trx) => {
+    let q = trx.selectFrom('hr_overtime_requests').select(trx.fn.sum('hours').as('h'))
+      .where('tenant_id', '=', tenantId).where('user_id', '=', userId)
+      .where('status', '=', 'APPROVED')
+      .where('date', '>=', w.from as any).where('date', '<=', w.to as any);
+    if (excludeId) q = q.where('id', '!=', excludeId);
+    return num((await q.executeTakeFirst())?.h);
+  });
 }
 
 export async function overtimeRoutes(fastify: FastifyInstance) {
@@ -166,8 +168,8 @@ export async function overtimeRoutes(fastify: FastifyInstance) {
       return reply.status(400).send({ error: 'A reason is required when rejecting overtime' });
     }
 
-    const existing = await db.selectFrom('hr_overtime_requests').selectAll()
-      .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+    const existing = await withTenant(user.tenant_id, trx => trx.selectFrom('hr_overtime_requests').selectAll()
+      .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst());
     if (!existing) return reply.status(404).send({ error: 'Overtime claim not found' });
     if (existing.paid_in_run_id) {
       return reply.status(409).send({ error: 'This overtime has already been paid and cannot be changed.' });
@@ -209,7 +211,7 @@ export async function overtimeRoutes(fastify: FastifyInstance) {
     }
 
     const settings = { daysPerMonth: 26, hoursPerDay: 8 };
-    const rows = await db.selectFrom('hr_overtime_requests as o')
+    const rows = await withTenant(user.tenant_id, trx => trx.selectFrom('hr_overtime_requests as o')
       .innerJoin('users as u', 'u.id', 'o.user_id')
       .select(['o.id', 'o.user_id', 'o.date', 'o.hours', 'o.kind', 'o.rate_multiplier',
                'u.name', 'u.basic_salary'])
@@ -217,7 +219,7 @@ export async function overtimeRoutes(fastify: FastifyInstance) {
       .where('o.status', '=', 'APPROVED')
       .where('o.paid_in_run_id', 'is', null)
       .where('o.date', '>=', from as any).where('o.date', '<=', to as any)
-      .orderBy('u.name').orderBy('o.date').execute();
+      .orderBy('u.name').orderBy('o.date').execute());
 
     return rows.map(r => {
       const { hourlyRate, amount } = overtimeAmount(

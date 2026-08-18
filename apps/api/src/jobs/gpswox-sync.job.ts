@@ -1,4 +1,4 @@
-import { db } from '../db/client.js';
+import { dbPlatform } from '../db/client.js';
 import { gpswoxService } from '../services/gpswox.service.js';
 
 /**
@@ -9,7 +9,7 @@ import { gpswoxService } from '../services/gpswox.service.js';
  */
 export async function runGpswoxSyncJob(): Promise<void> {
   try {
-    const rows = await db.selectFrom('tenant_settings')
+    const rows = await dbPlatform.selectFrom('tenant_settings')
       .select(['tenant_id', 'settings'])
       .execute();
 

@@ -1,4 +1,4 @@
-import { db } from '../db/client.js';
+import { dbPlatform } from '../db/client.js';
 import { WorkflowTemplateService } from './workflow-template.service.js';
 import type { DefaultStepDef } from '../config/default-workflows.js';
 
@@ -112,14 +112,14 @@ export class WorkflowLearningService {
       const base = baseToNorm(tpl.def.steps as DefaultStepDef[]);
 
       // Every tenant workflow descended from this template.
-      const wfs = await db.selectFrom('workflows').select(['id', 'tenant_id'])
+      const wfs = await dbPlatform.selectFrom('workflows').select(['id', 'tenant_id'])
         .where('origin_template_key', '=', templateKey).where('deleted_at', 'is', null).execute();
 
       const agg = new Map<string, AggSignal>();
       const editingTenants = new Set<string>();
 
       for (const wf of wfs) {
-        const rows = await db.selectFrom('workflow_steps').selectAll().where('workflow_id', '=', wf.id).execute();
+        const rows = await dbPlatform.selectFrom('workflow_steps').selectAll().where('workflow_id', '=', wf.id).execute();
         const events = diff(base, rowsToNorm(rows));
         if (events.length === 0) continue;
         editingTenants.add(wf.tenant_id);
@@ -138,14 +138,14 @@ export class WorkflowLearningService {
       const denom = editingTenants.size || 1;
 
       // Persist signals (replace this template's prior snapshot).
-      await db.deleteFrom('workflow_learning_signals').where('template_key', '=', templateKey).execute();
+      await dbPlatform.deleteFrom('workflow_learning_signals').where('template_key', '=', templateKey).execute();
       const now = new Date();
       const signalRows = [...agg.values()].map((s) => ({
         template_key: templateKey, base_version: tpl.version, edit_type: s.editType, step_signature: s.stepSignature,
         anchor_after: s.anchorAfter, detail: JSON.stringify(s.detail), support_tenants: s.tenants.size,
         editing_tenants: editingTenants.size, support_pct: Number((s.tenants.size / denom).toFixed(4)), computed_at: now,
       }));
-      if (signalRows.length) await db.insertInto('workflow_learning_signals').values(signalRows).execute();
+      if (signalRows.length) await dbPlatform.insertInto('workflow_learning_signals').values(signalRows).execute();
 
       // Dominant edits = enough tenants AND enough share.
       const dominant = [...agg.values()].filter((s) => s.tenants.size >= MIN_SUPPORT_TENANTS && (s.tenants.size / denom) >= MIN_SUPPORT_PCT);
@@ -156,7 +156,7 @@ export class WorkflowLearningService {
         proposal = 'created';
       } else {
         // No live consensus → retire any stale pending proposal.
-        await db.updateTable('workflow_template_proposals').set({ status: 'superseded' })
+        await dbPlatform.updateTable('workflow_template_proposals').set({ status: 'superseded' })
           .where('template_key', '=', templateKey).where('status', '=', 'pending').execute();
       }
       summary.push({ templateKey, editingTenants: editingTenants.size, signals: signalRows.length, proposal });
@@ -220,10 +220,10 @@ export class WorkflowLearningService {
     const rationale = dominant.map((d) => ({ editType: d.editType, stepSignature: d.stepSignature, anchorAfter: d.anchorAfter, detail: d.detail, supportTenants: d.tenants.size, supportPct: Number((d.tenants.size / denom).toFixed(4)) }));
 
     // One live proposal per key: supersede any older pending, then insert.
-    await db.updateTable('workflow_template_proposals').set({ status: 'superseded' })
+    await dbPlatform.updateTable('workflow_template_proposals').set({ status: 'superseded' })
       .where('template_key', '=', templateKey).where('status', '=', 'pending').execute();
 
-    await db.insertInto('workflow_template_proposals').values({
+    await dbPlatform.insertInto('workflow_template_proposals').values({
       template_key: templateKey, base_version: tpl.version, proposed_version: proposedVersion,
       name: tpl.def.name, description: tpl.def.description,
       freight_modes: JSON.stringify(tpl.def.freightModes), consignment_types: JSON.stringify(tpl.def.consignmentTypes),
@@ -235,14 +235,14 @@ export class WorkflowLearningService {
 
   // ── Read surfaces ─────────────────────────────────────────────────────────
   static async listProposals(status?: string): Promise<any[]> {
-    let q = db.selectFrom('workflow_template_proposals').selectAll().orderBy('created_at', 'desc');
+    let q = dbPlatform.selectFrom('workflow_template_proposals').selectAll().orderBy('created_at', 'desc');
     if (status) q = q.where('status', '=', status);
     const rows = await q.execute();
     return rows.map(proposalToJson);
   }
 
   static async getSignals(templateKey?: string): Promise<any[]> {
-    let q = db.selectFrom('workflow_learning_signals').selectAll().orderBy('support_pct', 'desc');
+    let q = dbPlatform.selectFrom('workflow_learning_signals').selectAll().orderBy('support_pct', 'desc');
     if (templateKey) q = q.where('template_key', '=', templateKey);
     const rows = await q.execute();
     return rows.map((r) => ({
@@ -255,7 +255,7 @@ export class WorkflowLearningService {
 
   /** Approve → publish as a real new template version (source='learned'). */
   static async approve(proposalId: string, decidedBy: string | null): Promise<{ version: number }> {
-    const p = await db.selectFrom('workflow_template_proposals').selectAll().where('id', '=', proposalId).executeTakeFirst();
+    const p = await dbPlatform.selectFrom('workflow_template_proposals').selectAll().where('id', '=', proposalId).executeTakeFirst();
     if (!p) throw new Error('Proposal not found');
     if (p.status !== 'pending') throw new Error(`Proposal already ${p.status}`);
 
@@ -265,17 +265,17 @@ export class WorkflowLearningService {
       steps: parseArr(p.steps), source: 'learned',
     }, decidedBy);
 
-    await db.updateTable('workflow_template_proposals')
+    await dbPlatform.updateTable('workflow_template_proposals')
       .set({ status: 'approved', decided_by: decidedBy, decided_at: new Date() })
       .where('id', '=', proposalId).execute();
     return { version: res.version };
   }
 
   static async reject(proposalId: string, decidedBy: string | null, note?: string): Promise<void> {
-    const p = await db.selectFrom('workflow_template_proposals').select(['status']).where('id', '=', proposalId).executeTakeFirst();
+    const p = await dbPlatform.selectFrom('workflow_template_proposals').select(['status']).where('id', '=', proposalId).executeTakeFirst();
     if (!p) throw new Error('Proposal not found');
     if (p.status !== 'pending') throw new Error(`Proposal already ${p.status}`);
-    await db.updateTable('workflow_template_proposals')
+    await dbPlatform.updateTable('workflow_template_proposals')
       .set({ status: 'rejected', decided_by: decidedBy, decided_at: new Date(), decision_note: note ?? null })
       .where('id', '=', proposalId).execute();
   }

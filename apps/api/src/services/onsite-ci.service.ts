@@ -20,7 +20,7 @@
  * When no provider is connected, `resolveCIProvider` returns null and the
  * caller must refuse the deployment. It must never invent one.
  */
-import { db } from '../db/client.js';
+import { withTenant } from '../db/client.js';
 import { decryptSecret, decryptJson } from './onsite-secrets.service.js';
 
 export type CIStatus = 'queued' | 'building' | 'deploying' | 'succeeded' | 'failed' | 'cancelled';
@@ -147,7 +147,7 @@ class CircleCIProvider implements CIProvider {
  * response.
  */
 export async function resolveCIProvider(tenantId: string): Promise<CIProvider | null> {
-  const row = await db.selectFrom('onsite_provider_connections')
+  const row = await withTenant(tenantId, trx => trx.selectFrom('onsite_provider_connections')
     .select(['provider', 'access_token_cipher', 'config_cipher', 'external_id', 'status'])
     .where('tenant_id', '=', tenantId)
     .where('provider', '=', 'circleci')
@@ -157,7 +157,7 @@ export async function resolveCIProvider(tenantId: string): Promise<CIProvider | 
     // matches nothing, which would have made every deployment report "no CI
     // provider is connected" no matter how many were.
     .where('status', '=', 'active')
-    .executeTakeFirst();
+    .executeTakeFirst());
 
   if (!row?.access_token_cipher) return null;
 

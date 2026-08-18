@@ -1,6 +1,18 @@
 import { requireAnyEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { withTenant } from '../db/client.js';
+
+const EXAM_STATUSES = ['REQUESTED', 'SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'WAIVED'] as const;
+const EXAM_OUTCOMES = ['CLEARED', 'DISCREPANCY_FOUND', 'SEIZURE_RECOMMENDED'] as const;
+const examinationPatchSchema = z.object({
+  status: z.enum(EXAM_STATUSES).optional(),
+  officerName: z.string().max(200).nullable().optional(),
+  officerReference: z.string().max(200).nullable().optional(),
+  scheduledAt: z.string().nullable().optional(),
+  findings: z.string().max(5000).nullable().optional(),
+  outcome: z.enum(EXAM_OUTCOMES).optional(),
+});
 
 // SEAL examination management (spec, deferred from Increment 3). Rows are
 // created by SealDeclarationService.submit() (see seal-declaration.service.ts)
@@ -60,8 +72,8 @@ export async function sealExaminationRoutes(fastify: FastifyInstance) {
   });
 
   fastify.patch('/examinations/:id', async (request: any, reply) => {
+    const b = examinationPatchSchema.parse(request.body);
     try {
-      const b = request.body as any;
       const patch: any = { updated_at: new Date() };
       if (b.status) patch.status = b.status;
       if (b.officerName !== undefined) patch.officer_name = b.officerName || null;

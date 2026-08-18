@@ -1,11 +1,39 @@
 import { requireAnyEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { withTenant } from '../db/client.js';
 import { IllegalCustomsTransition, BondHeadroomExceeded } from '../services/seal.service.js';
 import { computeDuty, HsCodeNotFound } from '../services/seal-duty.service.js';
 import { SealDeclarationService, IllegalDeclarationTransition, ExaminationPending } from '../services/seal-declaration.service.js';
 import { bondHeadroomResponse, stableJson } from './seal.routes.js';
 import { legalNextSealDeclarationStatuses, type SealDeclarationStatus } from '@hudumika/types';
+
+const SEAL_DECLARATION_STATUSES = ['DRAFT', 'SUBMITTED', 'QUERIED', 'ASSESSED', 'PAID', 'RELEASED', 'CANCELLED'] as const;
+const dutyQuoteSchema = z.object({
+  hsCode: z.string().trim().min(1),
+  invoiceValue: z.number(),
+  currency: z.string().trim().min(1).max(10),
+  fxRate: z.number(),
+  freight: z.number().optional(),
+  insurance: z.number().optional(),
+});
+const declarationCreateSchema = z.object({
+  lotId: z.string().min(1),
+  hsCode: z.string().trim().min(1),
+  declarationDate: z.string().min(1),
+  invoiceValue: z.number(),
+  currency: z.string().trim().min(1).max(10),
+  fxRate: z.number(),
+  procedureCode: z.string().max(50).optional(),
+  countryOfOrigin: z.string().max(2).optional(),
+  freight: z.number().optional(),
+  insurance: z.number().optional(),
+});
+const declarationSubmitSchema = z.object({ submissionReference: z.string().trim().min(1) });
+const declarationAdvanceSchema = z.object({
+  to: z.enum(SEAL_DECLARATION_STATUSES),
+  reference: z.string().max(200).optional(),
+});
 
 // Ex-warehouse customs declarations against a bonded SEAL lot — the duty
 // engine and seal_customs_entries stay owned by SEAL (a release-triggered
@@ -84,11 +112,8 @@ export async function sealDeclarationRoutes(fastify: FastifyInstance) {
   // What-if calculator — no persistence, lets a declarant try HS codes/values
   // before committing to a draft (spec M9.6).
   fastify.post('/duty-quote', async (request: any, reply) => {
+    const b = dutyQuoteSchema.parse(request.body);
     try {
-      const b = request.body as any;
-      if (!b.hsCode || b.invoiceValue == null || !b.currency || !b.fxRate) {
-        return reply.status(400).send({ error: 'hsCode, invoiceValue, currency and fxRate are required' });
-      }
       const computation = await computeDuty({
         hsCode: b.hsCode, invoiceValue: Number(b.invoiceValue), freight: b.freight != null ? Number(b.freight) : undefined,
         insurance: b.insurance != null ? Number(b.insurance) : undefined, currency: b.currency, fxRate: Number(b.fxRate),
@@ -147,11 +172,8 @@ export async function sealDeclarationRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post('/customs-entries', async (request: any, reply) => {
+    const b = declarationCreateSchema.parse(request.body);
     try {
-      const b = request.body as any;
-      if (!b.lotId || !b.hsCode || !b.declarationDate || b.invoiceValue == null || !b.currency || !b.fxRate) {
-        return reply.status(400).send({ error: 'lotId, hsCode, declarationDate, invoiceValue, currency and fxRate are required' });
-      }
       const entry = await withTenant(request.user.tenant_id, trx =>
         SealDeclarationService.createDeclaration(trx, request.user.tenant_id, request.user.sub, {
           lotId: b.lotId, procedureCode: b.procedureCode ?? 'EX_WAREHOUSE_HOME_USE', declarationDate: b.declarationDate,
@@ -184,9 +206,8 @@ export async function sealDeclarationRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post('/customs-entries/:id/submit', async (request: any, reply) => {
+    const b = declarationSubmitSchema.parse(request.body);
     try {
-      const b = request.body as any;
-      if (!b.submissionReference) return reply.status(400).send({ error: 'submissionReference is required' });
       const entry = await withTenant(request.user.tenant_id, trx =>
         SealDeclarationService.submit(trx, request.user.tenant_id, request.params.id, b.submissionReference)
       );
@@ -197,9 +218,8 @@ export async function sealDeclarationRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post('/customs-entries/:id/advance', async (request: any, reply) => {
+    const b = declarationAdvanceSchema.parse(request.body);
     try {
-      const b = request.body as any;
-      if (!b.to) return reply.status(400).send({ error: 'to is required' });
       const entry = await withTenant(request.user.tenant_id, trx =>
         SealDeclarationService.advanceStatus(trx, request.user.tenant_id, request.params.id, b.to, b.reference)
       );

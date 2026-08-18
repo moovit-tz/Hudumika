@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import { db, withTenant } from '../db/client.js';
+import { dbPlatform, withTenant } from '../db/client.js';
 import { MinioIntegration } from '../integrations/minio.js';
 
 /** What an attachment may be. A bug report wants a screenshot, a PDF of the
@@ -126,15 +126,15 @@ export default async function platformSupportRoutes(fastify: FastifyInstance) {
     const data = await (request as any).file();
     if (!data) return reply.status(400).send({ error: 'No file uploaded.' });
 
-    const ticket = await db.selectFrom('platform_support_tickets').select('id')
+    const ticket = await withTenant(user.tenant_id, trx => trx.selectFrom('platform_support_tickets').select('id')
       .where('id', '=', request.params.id)
       .where('tenant_id', '=', user.tenant_id)
-      .executeTakeFirst();
+      .executeTakeFirst());
     if (!ticket) return reply.status(404).send({ error: 'Ticket not found.' });
 
-    const existing = await db.selectFrom('platform_support_attachments')
+    const existing = await withTenant(user.tenant_id, trx => trx.selectFrom('platform_support_attachments')
       .select(eb => eb.fn.countAll<string>().as('n'))
-      .where('ticket_id', '=', ticket.id).executeTakeFirst();
+      .where('ticket_id', '=', ticket.id).executeTakeFirst());
     if (Number(existing?.n ?? 0) >= MAX_ATTACHMENTS_PER_TICKET) {
       return reply.status(400).send({ error: `A report can carry at most ${MAX_ATTACHMENTS_PER_TICKET} attachments.` });
     }
@@ -147,7 +147,7 @@ export default async function platformSupportRoutes(fastify: FastifyInstance) {
       return reply.status(413).send({ error: `That file is ${(buffer.length / 1048576).toFixed(1)} MB — the limit is ${MAX_ATTACHMENT_BYTES / 1048576} MB.` });
     }
 
-    const row = await db.insertInto('platform_support_attachments').values({
+    const row = await withTenant(user.tenant_id, trx => trx.insertInto('platform_support_attachments').values({
       ticket_id: ticket.id,
       tenant_id: user.tenant_id,
       filename: data.filename,
@@ -155,14 +155,14 @@ export default async function platformSupportRoutes(fastify: FastifyInstance) {
       size_bytes: buffer.length,
       storage_key: '',
       uploaded_by: user.sub ?? null,
-    }).returning(['id']).executeTakeFirstOrThrow();
+    }).returning(['id']).executeTakeFirstOrThrow());
 
     const { storageKey } = await MinioIntegration.uploadSupportAttachment(user.tenant_id, row.id, data.filename, buffer);
-    const saved = await db.updateTable('platform_support_attachments')
+    const saved = await withTenant(user.tenant_id, trx => trx.updateTable('platform_support_attachments')
       .set({ storage_key: storageKey })
       .where('id', '=', row.id)
       .returning(['id', 'filename', 'mime_type', 'size_bytes', 'created_at'])
-      .executeTakeFirstOrThrow();
+      .executeTakeFirstOrThrow());
     reply.status(201);
     return saved;
   });
@@ -174,9 +174,13 @@ export default async function platformSupportRoutes(fastify: FastifyInstance) {
   fastify.get<{ Params: { id: string } }>('/attachments/:id', async (request, reply) => {
     const user = request.user as any;
     const isPlatformStaff = user.role === 'SUPER_ADMIN';
-    let q = db.selectFrom('platform_support_attachments').selectAll().where('id', '=', request.params.id);
-    if (!isPlatformStaff) q = q.where('tenant_id', '=', user.tenant_id);
-    const att = await q.executeTakeFirst();
+    // Platform staff can read any tenant's attachment — a genuine cross-tenant
+    // read via dbPlatform; everyone else stays scoped to their own tenant.
+    const att = isPlatformStaff
+      ? await dbPlatform.selectFrom('platform_support_attachments').selectAll()
+          .where('id', '=', request.params.id).executeTakeFirst()
+      : await withTenant(user.tenant_id, trx => trx.selectFrom('platform_support_attachments').selectAll()
+          .where('id', '=', request.params.id).where('tenant_id', '=', user.tenant_id).executeTakeFirst());
     if (!att) return reply.status(404).send({ error: 'Attachment not found.' });
 
     const buf = MinioIntegration.readFile(att.storage_key);

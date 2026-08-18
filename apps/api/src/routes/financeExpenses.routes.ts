@@ -1,8 +1,44 @@
 import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import { GLService } from '../services/gl.service.js';
+
+// Real values — FinanceExpenseNew.tsx's own CATS map. No DB CHECK constraint
+// backs this (finance_expenses.category is a plain VARCHAR), so this is the
+// only real source of truth for the set the create form actually offers.
+const EXPENSE_CATEGORIES = ['PORT_CHARGES', 'CUSTOMS_DUTY', 'FREIGHT', 'HANDLING', 'TRANSPORT', 'INSPECTION_FEE', 'AGENT_FEE', 'MISCELLANEOUS'] as const;
+const expenseCreateSchema = z.object({
+  name: z.string().trim().min(1).max(255),
+  amount: z.number(),
+  expense_date: z.string().optional(),
+  category: z.enum(EXPENSE_CATEGORIES).optional(),
+  shipment_id: z.string().nullable().optional(),
+  customer_id: z.string().nullable().optional(),
+  supplier_id: z.string().nullable().optional(),
+  payment_mode: z.string().max(50).nullable().optional(),
+  reference: z.string().max(255).nullable().optional(),
+  note: z.string().max(5000).nullable().optional(),
+  is_revenue: z.boolean().optional(),
+  attachment_data: z.string().nullable().optional(),
+});
+const expensePatchSchema = z.object({
+  name: z.string().trim().min(1).max(255).optional(),
+  amount: z.number().optional(),
+  expense_date: z.string().optional(),
+  category: z.enum(EXPENSE_CATEGORIES).optional(),
+  shipment_id: z.string().nullable().optional(),
+  customer_id: z.string().nullable().optional(),
+  supplier_id: z.string().nullable().optional(),
+  payment_mode: z.string().max(50).nullable().optional(),
+  reference: z.string().max(255).nullable().optional(),
+  note: z.string().max(5000).nullable().optional(),
+  is_revenue: z.boolean().optional(),
+  attachment_data: z.string().nullable().optional(),
+  efd_verified: z.boolean().optional(),
+  efd_error: z.string().nullable().optional(),
+});
 
 type FinanceExpenseSource = 'finance' | 'fleet_vehicle' | 'fleet_fuel' | 'fleet_maintenance';
 
@@ -159,11 +195,7 @@ export async function financeExpensesRoutes(fastify: FastifyInstance) {
    */
   fastify.post('/expenses', { preHandler: requireRole(...WRITE_ROLES) }, async (request, reply) => {
     const user = request.user;
-    const body = request.body as any;
-
-    if (!body.name || body.amount == null) {
-      return reply.status(400).send({ error: 'name and amount are required' });
-    }
+    const body = expenseCreateSchema.parse(request.body);
 
     const row = await withTenant(user.tenant_id, async (trx) => {
       return trx.insertInto('finance_expenses').values({
@@ -196,7 +228,7 @@ export async function financeExpensesRoutes(fastify: FastifyInstance) {
   fastify.patch('/expenses/:id', { preHandler: requireRole(...WRITE_ROLES) }, async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
-    const body = request.body as any;
+    const body = expensePatchSchema.parse(request.body) as Record<string, any>;
 
     const patch: Record<string, any> = {};
     for (const key of ['name', 'category', 'payment_mode', 'reference', 'note', 'attachment_data', 'efd_verified', 'efd_error'] as const) {

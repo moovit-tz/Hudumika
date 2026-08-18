@@ -61,7 +61,13 @@ export function issueTokens(fastify: FastifyInstance, claims: AccessClaims): Iss
   const access = fastify.jwt.sign({ ...claims, typ: 'access' } as any, { expiresIn: env.JWT_EXPIRES_IN });
   const refresh = fastify.jwt.sign(
     {
-      sub: claims.sub, tenant_id: claims.tenant_id, device_id: claims.device_id, typ: 'refresh',
+      sub: claims.sub, tenant_id: claims.tenant_id, device_id: claims.device_id,
+      // Only claim /auth/refresh actually branches on today — org sessions
+      // (organization_users, no tenant_id/device_id at all) have nothing
+      // else to identify them by on the refresh token alone. Without this,
+      // an org refresh token was indistinguishable from a malformed staff
+      // one and always 401'd (see /auth/refresh's ORG branch).
+      role: claims.role, typ: 'refresh',
       ...(claims.impersonated_by ? { impersonated_by: claims.impersonated_by, impersonated_by_name: claims.impersonated_by_name } : {}),
     } as any,
     { expiresIn: env.JWT_REFRESH_EXPIRES_IN },

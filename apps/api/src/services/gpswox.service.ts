@@ -1,4 +1,4 @@
-import { withTenant, db } from '../db/client.js';
+import { withTenant } from '../db/client.js';
 import { checkGeofenceTransitions } from '../routes/tracking.routes.js';
 
 export interface GpswoxCreds {
@@ -40,10 +40,10 @@ export class GpswoxService {
    * GPSWOX is typically self-hosted per deployment, so base_url isn't a constant.
    */
   async getCreds(tenantId: string): Promise<GpswoxCreds | null> {
-    const row = await db.selectFrom('tenant_settings')
+    const row = await withTenant(tenantId, trx => trx.selectFrom('tenant_settings')
       .select('settings')
       .where('tenant_id', '=', tenantId)
-      .executeTakeFirst();
+      .executeTakeFirst());
     if (!row) return null;
     const settings = typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings;
     const c = settings?.['int-gpswox'];
@@ -107,7 +107,8 @@ export class GpswoxService {
   private async recordSyncResult(tenantId: string, patch: Partial<GpswoxSyncResult>): Promise<void> {
     const { sql } = await import('kysely');
     const value = JSON.stringify({ gpswox_status: { ...patch, synced_at: new Date().toISOString() } });
-    await sql`UPDATE tenant_settings SET settings = settings || ${value}::jsonb, updated_at = NOW() WHERE tenant_id = ${tenantId}`.execute(db);
+    await withTenant(tenantId, trx =>
+      sql`UPDATE tenant_settings SET settings = settings || ${value}::jsonb, updated_at = NOW() WHERE tenant_id = ${tenantId}`.execute(trx));
   }
 
   /**
@@ -222,8 +223,8 @@ export class GpswoxService {
   /** GET /v1/tracking/gpswox/status — last sync outcome, read back from tenant_settings. */
   async getStatus(tenantId: string): Promise<{ configured: boolean; last_sync: any | null }> {
     const creds = await this.getCreds(tenantId);
-    const row = await db.selectFrom('tenant_settings').select('settings')
-      .where('tenant_id', '=', tenantId).executeTakeFirst();
+    const row = await withTenant(tenantId, trx => trx.selectFrom('tenant_settings').select('settings')
+      .where('tenant_id', '=', tenantId).executeTakeFirst());
     const settings = row ? (typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings) : {};
     return { configured: !!creds, last_sync: settings?.gpswox_status ?? null };
   }

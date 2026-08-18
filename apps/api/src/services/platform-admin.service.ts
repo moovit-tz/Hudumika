@@ -1,7 +1,7 @@
 import dns from 'node:dns/promises';
 import tls from 'node:tls';
 import crypto from 'node:crypto';
-import { db } from '../db/client.js';
+import { dbPlatform } from '../db/client.js';
 
 /**
  * Platform-level audit trail and custom domains.
@@ -38,7 +38,7 @@ export class PlatformAdminService {
    */
   static async recordActivity(input: ActivityInput): Promise<void> {
     try {
-      await db.insertInto('platform_activity_log').values({
+      await dbPlatform.insertInto('platform_activity_log').values({
         actor_user_id: input.actorUserId,
         actor_name: input.actorName,
         action: input.action,
@@ -55,7 +55,7 @@ export class PlatformAdminService {
   }
 
   static async listActivity(opts: { category?: string; tenantId?: string; limit?: number } = {}) {
-    let q = db.selectFrom('platform_activity_log as a')
+    let q = dbPlatform.selectFrom('platform_activity_log as a')
       .leftJoin('tenants as t', 't.id', 'a.tenant_id')
       .select([
         'a.id', 'a.actor_name', 'a.action', 'a.category', 'a.target_type',
@@ -72,7 +72,7 @@ export class PlatformAdminService {
   // ─── Domains ───────────────────────────────────────────────────────────────
 
   static async listDomains() {
-    const rows = await db.selectFrom('platform_domains as d')
+    const rows = await dbPlatform.selectFrom('platform_domains as d')
       .leftJoin('tenants as t', 't.id', 'd.tenant_id')
       .select([
         'd.id', 'd.tenant_id', 'd.domain', 'd.verification_token', 'd.status',
@@ -100,10 +100,10 @@ export class PlatformAdminService {
     if (!/^(?=.{1,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/.test(host)) {
       throw new Error(`"${host}" is not a valid hostname.`);
     }
-    const tenant = await db.selectFrom('tenants').select(['id', 'name']).where('id', '=', tenantId).executeTakeFirst();
+    const tenant = await dbPlatform.selectFrom('tenants').select(['id', 'name']).where('id', '=', tenantId).executeTakeFirst();
     if (!tenant) throw new Error('Company not found');
 
-    const existing = await db.selectFrom('platform_domains as d')
+    const existing = await dbPlatform.selectFrom('platform_domains as d')
       .leftJoin('tenants as t', 't.id', 'd.tenant_id')
       .select(['d.id', 't.name as tenant_name'])
       .where('d.domain', '=', host).executeTakeFirst();
@@ -112,7 +112,7 @@ export class PlatformAdminService {
     }
 
     // Created unverified. The token is what the tenant puts in DNS.
-    return db.insertInto('platform_domains').values({
+    return dbPlatform.insertInto('platform_domains').values({
       tenant_id: tenantId,
       domain: host,
       verification_token: 'hudumika-verify=' + crypto.randomBytes(16).toString('hex'),
@@ -121,10 +121,10 @@ export class PlatformAdminService {
   }
 
   static async deleteDomain(id: string) {
-    const row = await db.selectFrom('platform_domains').select(['id', 'domain', 'tenant_id'])
+    const row = await dbPlatform.selectFrom('platform_domains').select(['id', 'domain', 'tenant_id'])
       .where('id', '=', id).executeTakeFirst();
     if (!row) throw new Error('Domain not found');
-    await db.deleteFrom('platform_domains').where('id', '=', id).execute();
+    await dbPlatform.deleteFrom('platform_domains').where('id', '=', id).execute();
     return row;
   }
 
@@ -138,7 +138,7 @@ export class PlatformAdminService {
    * from a check that passed months ago.
    */
   static async checkDomain(id: string) {
-    const row = await db.selectFrom('platform_domains').selectAll().where('id', '=', id).executeTakeFirst();
+    const row = await dbPlatform.selectFrom('platform_domains').selectAll().where('id', '=', id).executeTakeFirst();
     if (!row) throw new Error('Domain not found');
 
     let dnsVerifiedAt: Date | null = null;
@@ -178,7 +178,7 @@ export class PlatformAdminService {
       : errors.length === 2 ? 'failed'
       : 'pending';
 
-    await db.updateTable('platform_domains').set({
+    await dbPlatform.updateTable('platform_domains').set({
       status,
       dns_verified_at: dnsVerifiedAt,
       ssl_verified_at: sslVerifiedAt,

@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import crypto from 'crypto';
 import { z } from 'zod';
-import { db, withTenant } from '../db/client.js';
+import { withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import { MinioIntegration } from '../integrations/minio.js';
 import { CloudSync } from '../services/cloud-sync.service.js';
@@ -31,6 +31,46 @@ function pick(norm: Record<string, string>, aliases: string[]): string | undefin
 function parseCsv(buf: Buffer): Record<string, unknown>[] {
   return parse(buf, { columns: true, skip_empty_lines: true, trim: true, bom: true }) as Record<string, unknown>[];
 }
+
+// Shape-guard only — the handler below still field-picks against its own
+// `allowed` allowlist before building the update patch, so this just
+// guarantees each value is the right primitive type before it reaches Kysely.
+const customerPatchSchema = z.object({
+  name: z.string().trim().min(1).optional(),
+  contact_name: z.string().nullable().optional(),
+  contact_person: z.string().nullable().optional(),
+  email: z.string().nullable().optional(),
+  phone: z.string().nullable().optional(),
+  phone_wa: z.string().nullable().optional(),
+  phone_wechat: z.string().nullable().optional(),
+  tax_id: z.string().nullable().optional(),
+  tin_number: z.string().nullable().optional(),
+  address: z.string().nullable().optional(),
+  category: z.string().nullable().optional(),
+  preferred_channel: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
+  account_status: z.string().nullable().optional(),
+  active: z.boolean().optional(),
+  assigned_officer_id: z.string().nullable().optional(),
+  registry_number: z.string().nullable().optional(),
+  entity_type: z.string().nullable().optional(),
+  registration_status: z.string().nullable().optional(),
+  registered_address: z.string().nullable().optional(),
+  incorporation_date: z.string().nullable().optional(),
+  website: z.string().nullable().optional(),
+  city: z.string().nullable().optional(),
+  country: z.string().nullable().optional(),
+  vat_number: z.string().nullable().optional(),
+  import_license: z.string().nullable().optional(),
+  preferred_port: z.string().nullable().optional(),
+  freight_terms: z.string().nullable().optional(),
+  commodity_type: z.string().nullable().optional(),
+  credit_days: z.number().nullable().optional(),
+  client_type: z.string().nullable().optional(),
+  currency: z.string().nullable().optional(),
+  tancis_number: z.string().nullable().optional(),
+  organization_id: z.string().nullable().optional(),
+});
 
 export async function customerRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
@@ -225,7 +265,7 @@ export async function customerRoutes(fastify: FastifyInstance) {
   fastify.patch('/:id', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER', 'SALES') }, async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
-    const body = request.body as Record<string, any>;
+    const body = customerPatchSchema.parse(request.body) as Record<string, any>;
 
     const allowed = ['name', 'contact_name', 'contact_person', 'email', 'phone', 'phone_wa', 'phone_wechat',
                      'tax_id', 'tin_number', 'address', 'category', 'preferred_channel',
@@ -342,12 +382,12 @@ export async function customerRoutes(fastify: FastifyInstance) {
       return reply.status(403).send({ error: 'Forbidden: Access denied' });
     }
 
-    const customer = await db
+    const customer = await withTenant(user.tenant_id, trx => trx
       .selectFrom('customers')
       .selectAll()
       .where('id', '=', id)
       .where('tenant_id', '=', user.tenant_id)
-      .executeTakeFirst();
+      .executeTakeFirst());
 
     if (!customer) {
       return reply.status(404).send({ error: 'Customer not found' });
@@ -496,12 +536,12 @@ export async function customerRoutes(fastify: FastifyInstance) {
     const user = request.user;
     const { id } = request.params as { id: string };
 
-    const customer = await db
+    const customer = await withTenant(user.tenant_id, trx => trx
       .selectFrom('customers')
       .selectAll()
       .where('id', '=', id)
       .where('tenant_id', '=', user.tenant_id)
-      .executeTakeFirst();
+      .executeTakeFirst());
 
     if (!customer) {
       return reply.status(404).send({ error: 'Customer not found' });

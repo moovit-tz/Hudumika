@@ -82,9 +82,12 @@ export function Calls() {
   };
 
   useEffect(() => {
-    const token = localStorage.getItem('hudumika_token');
-    if (!token) return;
-    const wsUrl = BASE_URL.replace(/^http/, 'ws') + `/v1/hr/signal?token=${token}`;
+    // Browsers send cookies on a WS handshake the same as any other request
+    // to this origin, so the httpOnly access cookie authenticates this
+    // connection with nothing to attach — see calls.routes.ts's /signal.
+    // No more raw access token riding in the URL (server/proxy logs,
+    // browser history).
+    const wsUrl = BASE_URL.replace(/^http/, 'ws') + '/v1/hr/signal';
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 

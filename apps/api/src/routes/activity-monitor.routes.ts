@@ -1,9 +1,27 @@
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { requireRole } from '../middleware/rbac.js';
 import { ActivityMonitorService, type RawSample } from '../services/activity-monitor.service.js';
 
 const ADMIN_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'] as const;
 const LEAD_ROLES = new Set(['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'SENIOR']);
+
+const settingsPatchSchema = z.object({
+  enabled: z.boolean().optional(),
+  captureKeystrokes: z.boolean().optional(),
+  captureHeatmap: z.boolean().optional(),
+  intervalSeconds: z.number().optional(),
+});
+const consentSchema = z.object({ consent: z.boolean() });
+// Shape guard only — ActivityMonitorService.ingest/sanitize does the real
+// per-field clamping/validation (bounded ints, regex-checked zone keys,
+// truncated strings) and drops anything malformed rather than storing it.
+const samplesSchema = z.object({
+  samples: z.array(z.object({
+    windowStart: z.string(),
+    windowEnd: z.string(),
+  }).passthrough()),
+});
 
 /**
  * Opt-in, intensity-only activity monitoring. The frontend collector reads
@@ -29,7 +47,7 @@ export async function activityMonitorRoutes(fastify: FastifyInstance) {
   /** PATCH /settings — tenant-level enable + capture options (admin only). */
   fastify.patch('/settings', { preHandler: requireRole(...ADMIN_ROLES) }, async (request) => {
     const user = request.user;
-    const body = request.body as any;
+    const body = settingsPatchSchema.parse(request.body);
     const settings = await ActivityMonitorService.setSettings(user.tenant_id, user.sub, {
       enabled: body.enabled, captureKeystrokes: body.captureKeystrokes, captureHeatmap: body.captureHeatmap, intervalSeconds: body.intervalSeconds,
     });
@@ -39,16 +57,16 @@ export async function activityMonitorRoutes(fastify: FastifyInstance) {
   /** POST /consent — the individual opts in or out for themselves. */
   fastify.post('/consent', async (request) => {
     const user = request.user;
-    const { consent } = request.body as { consent: boolean };
-    const value = await ActivityMonitorService.setConsent(user.tenant_id, user.sub, !!consent);
+    const { consent } = consentSchema.parse(request.body);
+    const value = await ActivityMonitorService.setConsent(user.tenant_id, user.sub, consent);
     return { success: true, consent: value };
   });
 
   /** POST /samples — ingest the CURRENT user's own samples (gated + sanitized). */
   fastify.post('/samples', async (request) => {
     const user = request.user;
-    const { samples } = request.body as { samples: RawSample[] };
-    return ActivityMonitorService.ingest(user.tenant_id, user.sub, samples);
+    const { samples } = samplesSchema.parse(request.body);
+    return ActivityMonitorService.ingest(user.tenant_id, user.sub, samples as RawSample[]);
   });
 
   /**

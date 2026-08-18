@@ -1,4 +1,4 @@
-import { db, withTenant } from '../db/client.js';
+import { dbPlatform, withTenant } from '../db/client.js';
 import type {
   CompLegalFirm,
   CompLegalEngagement,
@@ -37,7 +37,8 @@ function mapMessage(r: any): CompLegalMessage {
 export class LegalMarketplaceService {
 
   static async getFirms(): Promise<CompLegalFirm[]> {
-    const rows = await db
+    // Shared marketplace directory, no tenant_id — platform-scoped.
+    const rows = await dbPlatform
       .selectFrom('comply_legal_firms')
       .selectAll()
       .orderBy('rating', 'desc')

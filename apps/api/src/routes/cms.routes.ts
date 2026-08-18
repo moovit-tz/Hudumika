@@ -1,7 +1,57 @@
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { requireRole } from '../middleware/rbac.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
 import { CMSService } from '../services/cms.service.js';
+
+const PAGE_STATUSES = ['draft', 'published'] as const;
+const POST_STATUSES = ['draft', 'published', 'trash'] as const;
+const COMMENT_STATUSES = ['approved', 'pending', 'spam'] as const;
+
+// content is raw HTML from RichTextEditor — CMSService.sanitizeContent()
+// strips anything outside its toolbar allowlist before it ever reaches the
+// DB, so these schemas are shape-guards only, not the sanitization layer.
+const platformPageUpsertSchema = z.object({
+  title: z.string().trim().min(1).max(300),
+  content: z.string().optional(),
+  status: z.enum(PAGE_STATUSES).optional(),
+  seo_description: z.string().max(500).nullable().optional(),
+});
+const pageCreateSchema = z.object({
+  slug: z.string().trim().min(1).max(200),
+  title: z.string().trim().min(1).max(300),
+  content: z.string().optional(),
+  status: z.enum(PAGE_STATUSES).optional(),
+  seo_description: z.string().max(500).nullable().optional(),
+});
+const pagePatchSchema = z.object({
+  title: z.string().trim().min(1).max(300).optional(),
+  content: z.string().optional(),
+  status: z.enum(PAGE_STATUSES).optional(),
+  seo_description: z.string().max(500).nullable().optional(),
+});
+const postCreateSchema = z.object({
+  title: z.string().trim().min(1).max(300),
+  content: z.string().optional(),
+  status: z.enum(POST_STATUSES).optional(),
+  category: z.string().max(100).optional(),
+  tags: z.string().max(500).optional(),
+});
+const postPatchSchema = z.object({
+  title: z.string().trim().min(1).max(300).optional(),
+  content: z.string().optional(),
+  status: z.enum(POST_STATUSES).optional(),
+  category: z.string().max(100).optional(),
+  tags: z.string().max(500).optional(),
+});
+const commentStatusSchema = z.object({ status: z.enum(COMMENT_STATUSES) });
+const siteSettingsPatchSchema = z.object({
+  siteTitle: z.string().max(200).optional(),
+  tagline: z.string().max(300).optional(),
+  logoUrl: z.string().max(2000).optional(),
+  faviconUrl: z.string().max(2000).optional(),
+  accentColor: z.string().max(20).optional(),
+});
 
 /**
  * CMS — Hudumika's own public pages (Privacy, Terms, ...) plus each tenant's
@@ -60,9 +110,10 @@ export async function cmsRoutes(fastify: FastifyInstance) {
   fastify.put('/platform-admin/pages/:slug', {
     preHandler: [fastify.authenticate, requireRole('SUPER_ADMIN')],
   }, async (request: any, reply) => {
+    const { slug } = request.params as { slug: string };
+    const body = platformPageUpsertSchema.parse(request.body);
     try {
-      const { slug } = request.params as { slug: string };
-      return await CMSService.upsertPlatformPage(request.user.id, { ...request.body, slug });
+      return await CMSService.upsertPlatformPage(request.user.id, { ...body, slug });
     } catch (err: any) {
       return reply.status(400).send({ error: err.message });
     }
@@ -92,9 +143,10 @@ export async function cmsRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post('/pages', async (request: any, reply) => {
+    const body = pageCreateSchema.parse(request.body);
     try {
       return reply.status(201).send(
-        await CMSService.createTenantPage(request.user.tenant_id, request.user.id, request.body),
+        await CMSService.createTenantPage(request.user.tenant_id, request.user.id, body),
       );
     } catch (err: any) {
       return reply.status(400).send({ error: err.message });
@@ -102,9 +154,10 @@ export async function cmsRoutes(fastify: FastifyInstance) {
   });
 
   fastify.patch('/pages/:id', async (request: any, reply) => {
+    const { id } = request.params as { id: string };
+    const body = pagePatchSchema.parse(request.body);
     try {
-      const { id } = request.params as { id: string };
-      return await CMSService.updateTenantPage(request.user.tenant_id, id, request.body);
+      return await CMSService.updateTenantPage(request.user.tenant_id, id, body);
     } catch (err: any) {
       return reply.status(400).send({ error: err.message });
     }
@@ -130,9 +183,10 @@ export async function cmsRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post('/posts', async (request: any, reply) => {
+    const body = postCreateSchema.parse(request.body);
     try {
       return reply.status(201).send(
-        await CMSService.createTenantPost(request.user.tenant_id, request.user.id, request.body),
+        await CMSService.createTenantPost(request.user.tenant_id, request.user.id, body),
       );
     } catch (err: any) {
       return reply.status(400).send({ error: err.message });
@@ -140,9 +194,10 @@ export async function cmsRoutes(fastify: FastifyInstance) {
   });
 
   fastify.patch('/posts/:id', async (request: any, reply) => {
+    const { id } = request.params as { id: string };
+    const body = postPatchSchema.parse(request.body);
     try {
-      const { id } = request.params as { id: string };
-      return await CMSService.updateTenantPost(request.user.tenant_id, id, request.body);
+      return await CMSService.updateTenantPost(request.user.tenant_id, id, body);
     } catch (err: any) {
       return reply.status(400).send({ error: err.message });
     }
@@ -158,9 +213,9 @@ export async function cmsRoutes(fastify: FastifyInstance) {
   });
 
   fastify.patch('/comments/:id', async (request: any, reply) => {
+    const { id } = request.params as { id: string };
+    const { status } = commentStatusSchema.parse(request.body);
     try {
-      const { id } = request.params as { id: string };
-      const { status } = request.body as { status: 'approved' | 'pending' | 'spam' };
       await CMSService.updateCommentStatus(request.user.tenant_id, id, status);
       return { ok: true };
     } catch (err: any) {
@@ -188,8 +243,9 @@ export async function cmsRoutes(fastify: FastifyInstance) {
   });
 
   fastify.put('/site-settings', async (request: any, reply) => {
+    const body = siteSettingsPatchSchema.parse(request.body);
     try {
-      return await CMSService.updateSiteSettings(request.user.tenant_id, request.body);
+      return await CMSService.updateSiteSettings(request.user.tenant_id, body);
     } catch (err: any) {
       return reply.status(400).send({ error: err.message });
     }

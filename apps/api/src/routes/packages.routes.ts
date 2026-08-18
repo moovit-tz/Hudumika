@@ -1,7 +1,35 @@
 import type { FastifyInstance } from 'fastify';
-import { db } from '../db/client.js';
+import { z } from 'zod';
+import { dbPlatform } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import type { Package, TenantPlan } from '@hudumika/types';
+
+const packageCreateSchema = z.object({
+  code: z.string().trim().min(1).max(50),
+  name: z.string().trim().min(1).max(200),
+  monthly_price: z.number().optional(),
+  annual_price: z.number().optional(),
+  max_users: z.number().int().optional(),
+  price_per_seat: z.number().nullable().optional(),
+  monthly_item_limit: z.number().int().nullable().optional(),
+  features: z.array(z.any()).optional(),
+  color: z.string().max(20).optional(),
+  popular: z.boolean().optional(),
+  sort_order: z.number().int().optional(),
+});
+const packagePatchSchema = z.object({
+  name: z.string().trim().min(1).max(200).optional(),
+  monthly_price: z.number().optional(),
+  annual_price: z.number().optional(),
+  max_users: z.number().int().optional(),
+  price_per_seat: z.number().nullable().optional(),
+  monthly_item_limit: z.number().int().nullable().optional(),
+  features: z.array(z.any()).optional(),
+  color: z.string().max(20).optional(),
+  popular: z.boolean().optional(),
+  sort_order: z.number().int().optional(),
+  is_active: z.boolean().optional(),
+});
 
 function toPackage(r: any): Package {
   return {
@@ -28,7 +56,7 @@ export async function packagesRoutes(fastify: FastifyInstance) {
    * as the single source of truth for plan tiers and pricing.
    */
   fastify.get('/', async () => {
-    const rows = await db.selectFrom('packages').selectAll()
+    const rows = await dbPlatform.selectFrom('packages').selectAll()
       .where('is_active', '=', true)
       .orderBy('sort_order', 'asc')
       .execute();
@@ -40,12 +68,9 @@ export async function packagesRoutes(fastify: FastifyInstance) {
    * POST /v1/packages — create a new package (SuperAdmin only).
    */
   fastify.post('/', { preHandler: [fastify.authenticate, requireRole('SUPER_ADMIN')] }, async (request, reply) => {
-    const body = request.body as Partial<Package> & { code: string; name: string };
-    if (!body.code?.trim() || !body.name?.trim()) {
-      return reply.status(400).send({ error: 'code and name are required' });
-    }
+    const body = packageCreateSchema.parse(request.body);
 
-    const row = await db.insertInto('packages')
+    const row = await dbPlatform.insertInto('packages')
       .values({
         code: body.code.trim(),
         name: body.name.trim(),
@@ -69,12 +94,12 @@ export async function packagesRoutes(fastify: FastifyInstance) {
   /**
    * PATCH /v1/packages/:code — update pricing/features/display (SuperAdmin only).
    */
-  fastify.patch<{ Params: { code: string }; Body: Partial<Package> }>(
+  fastify.patch<{ Params: { code: string } }>(
     '/:code',
     { preHandler: [fastify.authenticate, requireRole('SUPER_ADMIN')] },
     async (request, reply) => {
       const { code } = request.params;
-      const body = request.body;
+      const body = packagePatchSchema.parse(request.body);
 
       const updates: Record<string, unknown> = { updated_at: new Date() };
       if (body.name !== undefined) updates.name = body.name;
@@ -89,7 +114,7 @@ export async function packagesRoutes(fastify: FastifyInstance) {
       if (body.sort_order !== undefined) updates.sort_order = body.sort_order;
       if (body.is_active !== undefined) updates.is_active = body.is_active;
 
-      const row = await db.updateTable('packages').set(updates)
+      const row = await dbPlatform.updateTable('packages').set(updates)
         .where('code', '=', code)
         .returningAll()
         .executeTakeFirst();
@@ -108,7 +133,7 @@ export async function packagesRoutes(fastify: FastifyInstance) {
     { preHandler: [fastify.authenticate, requireRole('SUPER_ADMIN')] },
     async (request, reply) => {
       const { code } = request.params;
-      const row = await db.updateTable('packages').set({ is_active: false, updated_at: new Date() })
+      const row = await dbPlatform.updateTable('packages').set({ is_active: false, updated_at: new Date() })
         .where('code', '=', code)
         .returningAll()
         .executeTakeFirst();

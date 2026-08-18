@@ -1,5 +1,5 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
-import { db } from '../db/client.js';
+import { dbPlatform } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import { parse } from 'csv-parse/sync';
 
@@ -72,7 +72,7 @@ export async function referenceRoutes(fastify: FastifyInstance) {
     const limit = Math.min(Number((req.query as any).limit) || 50, 200);
     const offset = Math.max(Number((req.query as any).offset) || 0, 0);
 
-    let base = db.selectFrom('carrier_directory');
+    let base = dbPlatform.selectFrom('carrier_directory');
     if (q) base = base.where(eb => eb.or([
       eb('name', 'ilike', `%${q}%`),
       eb('scac_or_iata', 'ilike', `%${q}%`),
@@ -90,7 +90,7 @@ export async function referenceRoutes(fastify: FastifyInstance) {
   // GET /v1/reference/icd-operators?q=&region=&type=
   fastify.get('/icd-operators', async (req: FastifyRequest) => {
     const { q, region, type } = req.query as { q?: string; region?: string; type?: string };
-    let query = db.selectFrom('icd_directory').selectAll();
+    let query = dbPlatform.selectFrom('icd_directory').selectAll();
     if (q) query = query.where(eb => eb.or([
       eb('name', 'ilike', `%${q}%`),
       eb('license_no', 'ilike', `%${q}%`),
@@ -117,7 +117,7 @@ export async function referenceRoutes(fastify: FastifyInstance) {
     if (Object.keys(patch).length === 0) return reply.status(400).send({ error: 'No editable fields provided' });
     if (!patch.name && patch.name !== undefined) return reply.status(400).send({ error: 'Name cannot be empty' });
     patch.updated_at = new Date();
-    const row = await db.updateTable('icd_directory').set(patch).where('id', '=', id).returningAll().executeTakeFirst();
+    const row = await dbPlatform.updateTable('icd_directory').set(patch).where('id', '=', id).returningAll().executeTakeFirst();
     if (!row) return reply.status(404).send({ error: 'Operator not found' });
     return { data: row };
   });
@@ -138,10 +138,10 @@ export async function referenceRoutes(fastify: FastifyInstance) {
       const license_no = pick(norm, ['license_no', 'licence_no', 'license_number', 'licence_number', 'lic']) ?? null;
 
       let existing = license_no
-        ? await db.selectFrom('icd_directory').select('id').where('license_no', '=', license_no).executeTakeFirst()
+        ? await dbPlatform.selectFrom('icd_directory').select('id').where('license_no', '=', license_no).executeTakeFirst()
         : undefined;
       if (!existing) {
-        existing = await db.selectFrom('icd_directory').select('id').where('name', 'ilike', name).executeTakeFirst();
+        existing = await dbPlatform.selectFrom('icd_directory').select('id').where('name', 'ilike', name).executeTakeFirst();
       }
 
       const fields: Record<string, any> = {};
@@ -164,10 +164,10 @@ export async function referenceRoutes(fastify: FastifyInstance) {
 
       if (existing) {
         fields.updated_at = new Date();
-        await db.updateTable('icd_directory').set(fields).where('id', '=', existing.id).execute();
+        await dbPlatform.updateTable('icd_directory').set(fields).where('id', '=', existing.id).execute();
         summary.updated++;
       } else {
-        await db.insertInto('icd_directory').values({ ...fields, operator_type: fields.operator_type || 'OTHER' } as any).execute();
+        await dbPlatform.insertInto('icd_directory').values({ ...fields, operator_type: fields.operator_type || 'OTHER' } as any).execute();
         summary.inserted++;
       }
     }
@@ -180,7 +180,7 @@ export async function referenceRoutes(fastify: FastifyInstance) {
     const limit = Math.min(Number((req.query as any).limit) || 50, 200);
     const offset = Math.max(Number((req.query as any).offset) || 0, 0);
 
-    let base = db.selectFrom('clearing_agents_registry');
+    let base = dbPlatform.selectFrom('clearing_agents_registry');
     if (q) base = base.where(eb => eb.or([
       eb('name', 'ilike', `%${q}%`),
       eb('license_no', 'ilike', `%${q}%`),
@@ -205,7 +205,7 @@ export async function referenceRoutes(fastify: FastifyInstance) {
     if (Object.keys(patch).length === 0) return reply.status(400).send({ error: 'No editable fields provided' });
     if (patch.name === null) return reply.status(400).send({ error: 'Name cannot be empty' });
     patch.updated_at = new Date();
-    const row = await db.updateTable('clearing_agents_registry').set(patch).where('id', '=', id).returningAll().executeTakeFirst();
+    const row = await dbPlatform.updateTable('clearing_agents_registry').set(patch).where('id', '=', id).returningAll().executeTakeFirst();
     if (!row) return reply.status(404).send({ error: 'Agent not found' });
     return { data: row };
   });
@@ -226,10 +226,10 @@ export async function referenceRoutes(fastify: FastifyInstance) {
       const license_no = pick(norm, ['license_no', 'licence_no', 'license_number', 'licence_number', 'lic']) ?? null;
 
       let existing = license_no
-        ? await db.selectFrom('clearing_agents_registry').select('id').where('license_no', '=', license_no).executeTakeFirst()
+        ? await dbPlatform.selectFrom('clearing_agents_registry').select('id').where('license_no', '=', license_no).executeTakeFirst()
         : undefined;
       if (!existing) {
-        existing = await db.selectFrom('clearing_agents_registry').select('id').where('name', 'ilike', name).executeTakeFirst();
+        existing = await dbPlatform.selectFrom('clearing_agents_registry').select('id').where('name', 'ilike', name).executeTakeFirst();
       }
 
       const fields: Record<string, any> = { name };
@@ -245,10 +245,10 @@ export async function referenceRoutes(fastify: FastifyInstance) {
 
       if (existing) {
         fields.updated_at = new Date();
-        await db.updateTable('clearing_agents_registry').set(fields).where('id', '=', existing.id).execute();
+        await dbPlatform.updateTable('clearing_agents_registry').set(fields).where('id', '=', existing.id).execute();
         summary.updated++;
       } else {
-        await db.insertInto('clearing_agents_registry').values(fields as any).execute();
+        await dbPlatform.insertInto('clearing_agents_registry').values(fields as any).execute();
         summary.inserted++;
       }
     }
@@ -258,7 +258,7 @@ export async function referenceRoutes(fastify: FastifyInstance) {
   // GET /v1/reference/excise?q=&category=
   fastify.get('/excise', async (req: FastifyRequest) => {
     const { q, category } = req.query as { q?: string; category?: string };
-    let query = db.selectFrom('eac_excise_schedules').selectAll();
+    let query = dbPlatform.selectFrom('eac_excise_schedules').selectAll();
     if (q) query = query.where('item_description', 'ilike', `%${q}%`);
     if (category) query = query.where('category', '=', category);
     const data = await query.orderBy('category').orderBy('item_description').execute();
@@ -267,7 +267,7 @@ export async function referenceRoutes(fastify: FastifyInstance) {
 
   // GET /v1/reference/excise/categories
   fastify.get('/excise/categories', async () => {
-    const rows = await db
+    const rows = await dbPlatform
       .selectFrom('eac_excise_schedules')
       .select('category')
       .distinct()
@@ -288,7 +288,7 @@ export async function referenceRoutes(fastify: FastifyInstance) {
       return reply.status(400).send({ error: 'Category and item description cannot be empty' });
     }
     patch.updated_at = new Date();
-    const row = await db.updateTable('eac_excise_schedules').set(patch).where('id', '=', id).returningAll().executeTakeFirst();
+    const row = await dbPlatform.updateTable('eac_excise_schedules').set(patch).where('id', '=', id).returningAll().executeTakeFirst();
     if (!row) return reply.status(404).send({ error: 'Excise line not found' });
     return { data: row };
   });
@@ -302,7 +302,7 @@ export async function referenceRoutes(fastify: FastifyInstance) {
     const limit = Math.min(Number((req.query as any).limit) || 100, 500);
     const offset = Math.max(Number((req.query as any).offset) || 0, 0);
 
-    let base = db.selectFrom('port_tariff_items').where('status', '=', 'active');
+    let base = dbPlatform.selectFrom('port_tariff_items').where('status', '=', 'active');
     if (authority) base = base.where('authority', '=', authority);
     if (category) base = base.where('category', '=', category);
     if (q) base = base.where(eb => eb.or([
@@ -322,7 +322,7 @@ export async function referenceRoutes(fastify: FastifyInstance) {
   // GET /v1/reference/tariff/categories?authority=
   fastify.get('/tariff/categories', async (req: FastifyRequest) => {
     const { authority } = req.query as { authority?: string };
-    let query = db.selectFrom('port_tariff_items').select('category').distinct().where('status', '=', 'active');
+    let query = dbPlatform.selectFrom('port_tariff_items').select('category').distinct().where('status', '=', 'active');
     if (authority) query = query.where('authority', '=', authority);
     const rows = await query.orderBy('category').execute();
     return { data: rows.map(r => r.category) };
@@ -343,7 +343,7 @@ export async function referenceRoutes(fastify: FastifyInstance) {
     if (patch.item_name === null) return reply.status(400).send({ error: 'Item name cannot be empty' });
     patch.updated_by = (req as any).user?.id ?? null;
     patch.updated_at = new Date();
-    const row = await db.updateTable('port_tariff_items').set(patch).where('id', '=', id).returningAll().executeTakeFirst();
+    const row = await dbPlatform.updateTable('port_tariff_items').set(patch).where('id', '=', id).returningAll().executeTakeFirst();
     if (!row) return reply.status(404).send({ error: 'Tariff item not found' });
     return { data: row };
   });
@@ -354,7 +354,7 @@ export async function referenceRoutes(fastify: FastifyInstance) {
     if (!b.authority || !b.category || !b.item_name || !b.source_document) {
       return reply.status(400).send({ error: 'authority, category, item_name and source_document are required' });
     }
-    const row = await db.insertInto('port_tariff_items').values({
+    const row = await dbPlatform.insertInto('port_tariff_items').values({
       authority: b.authority, clause_ref: b.clause_ref ?? null, category: b.category,
       subcategory: b.subcategory ?? null, item_name: b.item_name, unit: b.unit ?? null,
       cargo_type: b.cargo_type ?? null, container_size: b.container_size ?? null,
@@ -385,14 +385,14 @@ export async function referenceRoutes(fastify: FastifyInstance) {
       source_page: b.source_page ?? null, notes: b.notes ?? null,
       is_placeholder: b.is_placeholder ?? false, updated_by: (req as any).user?.id ?? null,
     }));
-    const rows = await db.insertInto('port_tariff_items').values(values as any).returningAll().execute();
+    const rows = await dbPlatform.insertInto('port_tariff_items').values(values as any).returningAll().execute();
     return reply.status(201).send({ data: { inserted: rows.length } });
   });
 
   // DELETE /v1/reference/tariff/:id
   fastify.delete('/tariff/:id', { preHandler: REFERENCE_ADMIN }, async (req, reply) => {
     const { id } = req.params as { id: string };
-    const row = await db.deleteFrom('port_tariff_items').where('id', '=', id).returningAll().executeTakeFirst();
+    const row = await dbPlatform.deleteFrom('port_tariff_items').where('id', '=', id).returningAll().executeTakeFirst();
     if (!row) return reply.status(404).send({ error: 'Tariff item not found' });
     return { data: row };
   });
@@ -412,7 +412,7 @@ export async function referenceRoutes(fastify: FastifyInstance) {
       const item_description = pick(norm, ['item_description', 'item', 'description', 'product']);
       if (!category || !item_description) { summary.skipped++; continue; }
 
-      const existing = await db.selectFrom('eac_excise_schedules').select('id')
+      const existing = await dbPlatform.selectFrom('eac_excise_schedules').select('id')
         .where('category', 'ilike', category)
         .where('item_description', 'ilike', item_description)
         .executeTakeFirst();
@@ -431,10 +431,10 @@ export async function referenceRoutes(fastify: FastifyInstance) {
 
       if (existing) {
         fields.updated_at = new Date();
-        await db.updateTable('eac_excise_schedules').set(fields).where('id', '=', existing.id).execute();
+        await dbPlatform.updateTable('eac_excise_schedules').set(fields).where('id', '=', existing.id).execute();
         summary.updated++;
       } else {
-        await db.insertInto('eac_excise_schedules').values(fields as any).execute();
+        await dbPlatform.insertInto('eac_excise_schedules').values(fields as any).execute();
         summary.inserted++;
       }
     }

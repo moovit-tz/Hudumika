@@ -5,7 +5,7 @@
  * close of business) each day.
  */
 
-import { db } from '../db/client.js';
+import { dbPlatform } from '../db/client.js';
 import { TRAService } from '../services/tra.service.js';
 
 export async function runTRAZReportJob(): Promise<void> {
@@ -13,7 +13,7 @@ export async function runTRAZReportJob(): Promise<void> {
 
   try {
     // Get all tenants with TRA VFD configured and registered
-    const configs = await db
+    const configs = await dbPlatform
       .selectFrom('tra_vfd_config')
       .select(['tenant_id', 'last_zreport_date', 'environment'])
       .where('reg_id', 'is not', null)

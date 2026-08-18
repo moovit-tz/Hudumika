@@ -2,7 +2,7 @@ import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import crypto from 'crypto';
-import { db, withTenant } from '../db/client.js';
+import { withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import { MailService } from '../services/mail.service.js';
 import { emitDomainEvent, emitDomainEventStandalone } from '../services/domain-events.service.js';
@@ -1277,12 +1277,12 @@ export async function hrRoutes(fastify: FastifyInstance) {
     let leaveTypeId: string | null = null;
     let payDays: { full: number; reduced: number } | null = null;
 
-    const type = body.leave_type_id
-      ? await db.selectFrom('hr_leave_types').selectAll()
+    const type = await withTenant(user.tenant_id, trx => body.leave_type_id
+      ? trx.selectFrom('hr_leave_types').selectAll()
           .where('id', '=', String(body.leave_type_id)).where('tenant_id', '=', user.tenant_id).executeTakeFirst()
-      : await db.selectFrom('hr_leave_types').selectAll()
+      : trx.selectFrom('hr_leave_types').selectAll()
           .where('tenant_id', '=', user.tenant_id).where('code', '=', String(body.type ?? '').toUpperCase())
-          .executeTakeFirst();
+          .executeTakeFirst());
 
     if (type) {
       leaveTypeId = type.id;

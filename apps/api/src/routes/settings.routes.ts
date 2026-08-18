@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { withTenant } from '../db/client.js';
 import nodeCrypto from 'node:crypto';
 import { sql } from 'kysely';
@@ -9,6 +10,25 @@ import { buildSmtpTransporter } from '../integrations/email.js';
 import { encryptSecret, MASKED_VALUE } from '../services/onsite-secrets.service.js';
 
 const DOC_TYPES: DocType[] = ['invoice', 'quotation', 'purchase_order'];
+
+// The settings blob is a genuinely dynamic, dozens-of-sections JSONB
+// document (email, notifications, freight, payment gateways, ...) — shape-
+// guarded as a record here, not enumerated field-by-field; mergeSettings()
+// and the MANAGER_WRITABLE allowlist below do the real per-key policing.
+const settingsPatchSchema = z.record(z.string(), z.any());
+const cronRunSchema = z.object({
+  jobId: z.string().optional(),
+  jobName: z.string().optional(),
+}).refine(b => b.jobId || b.jobName, { message: 'jobId or jobName required' });
+const emailTestSchema = z.object({
+  host: z.string().trim().min(1),
+  port: z.number().optional(),
+  user: z.string().trim().min(1),
+  pass: z.string().min(1),
+  enc: z.string().max(10).optional(),
+  fromName: z.string().max(200).optional(),
+  fromEmail: z.string().max(320).optional(),
+});
 
 /** Secrets under each of these top-level settings keys that get masked on
  *  read / encrypted on write — settings.email's SMTP password + each OAuth
@@ -130,7 +150,7 @@ export async function settingsRoutes(fastify: FastifyInstance) {
   // PATCH /v1/settings
   fastify.patch('/', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') }, async (request, reply) => {
     const user = request.user;
-    const { $replace, ...updates } = request.body as Record<string, any>;
+    const { $replace, ...updates } = settingsPatchSchema.parse(request.body);
 
     if (user.role === 'MANAGER') {
       const forbidden = Object.keys(updates).filter(k => !MANAGER_WRITABLE.has(k));
@@ -355,8 +375,7 @@ export async function settingsRoutes(fastify: FastifyInstance) {
 
   // POST /v1/settings/cron/run  — trigger a named cron job immediately
   fastify.post('/cron/run', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (request, reply) => {
-    const { jobId, jobName } = request.body as { jobId: string; jobName: string };
-    if (!jobId && !jobName) return reply.status(400).send({ error: 'jobId or jobName required' });
+    const { jobId, jobName } = cronRunSchema.parse(request.body);
 
     // Dispatch to built-in job handlers
     const handlers: Record<string, () => Promise<void>> = {
@@ -380,11 +399,7 @@ export async function settingsRoutes(fastify: FastifyInstance) {
 
   // POST /v1/settings/email/test  — verify SMTP and send a test message
   fastify.post('/email/test', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') }, async (request, reply) => {
-    const { host, port, user, pass, enc, fromName, fromEmail } = request.body as {
-      host: string; port: number; user: string; pass: string;
-      enc?: string; fromName?: string; fromEmail?: string;
-    };
-    if (!host || !user || !pass) return reply.status(400).send({ ok: false, error: 'Fill in SMTP host, username and password first.' });
+    const { host, port, user, pass, enc, fromName, fromEmail } = emailTestSchema.parse(request.body);
     if (pass === MASKED_VALUE) return reply.status(400).send({ ok: false, error: 'Re-enter the password to test — the saved value is masked here for display, not sent back to the browser.' });
 
     const smtpPort = Number(port) || (enc === 'ssl' ? 465 : 587);

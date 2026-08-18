@@ -1,7 +1,23 @@
 import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { ContactsService } from '../services/contacts.service.js';
 import { parse } from 'csv-parse/sync';
+
+const mergeSchema = z.object({
+  primary_id: z.string().min(1),
+  duplicate_ids: z.array(z.string()).min(1),
+});
+const labelCreateSchema = z.object({ name: z.string().trim().min(1).max(100) });
+const bulkDeleteSchema = z.object({
+  ids: z.array(z.string()).min(1),
+  status: z.enum(['TRASHED', 'ACTIVE', 'DELETE']),
+});
+const bulkLabelSchema = z.object({
+  contact_ids: z.array(z.string()).min(1),
+  label_id: z.string().min(1),
+  action: z.enum(['ADD', 'REMOVE']),
+});
 
 export async function contactsRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
@@ -87,9 +103,9 @@ export async function contactsRoutes(fastify: FastifyInstance) {
 
   // Merge duplicate contacts
   fastify.post('/merge', async (request: any, reply) => {
+    const { primary_id, duplicate_ids } = mergeSchema.parse(request.body);
     try {
       const tenantId = request.user.tenant_id;
-      const { primary_id, duplicate_ids } = request.body as { primary_id: string; duplicate_ids: string[] };
       return await ContactsService.mergeContacts(tenantId, primary_id, duplicate_ids);
     } catch (err: any) {
       return reply.status(400).send({ error: err.message });
@@ -108,9 +124,9 @@ export async function contactsRoutes(fastify: FastifyInstance) {
 
   // Create a label
   fastify.post('/labels', async (request: any, reply) => {
+    const { name } = labelCreateSchema.parse(request.body);
     try {
       const tenantId = request.user.tenant_id;
-      const { name } = request.body as { name: string };
       return await ContactsService.createLabel(tenantId, name);
     } catch (err: any) {
       return reply.status(400).send({ error: err.message });
@@ -130,9 +146,9 @@ export async function contactsRoutes(fastify: FastifyInstance) {
 
   // Bulk Delete
   fastify.post('/bulk-delete', async (request: any, reply) => {
+    const { ids, status } = bulkDeleteSchema.parse(request.body);
     try {
       const tenantId = request.user.tenant_id;
-      const { ids, status } = request.body as { ids: string[]; status: 'TRASHED' | 'ACTIVE' | 'DELETE' };
       return await ContactsService.bulkDelete(tenantId, ids, status);
     } catch (err: any) {
       return reply.status(400).send({ error: err.message });
@@ -141,9 +157,9 @@ export async function contactsRoutes(fastify: FastifyInstance) {
 
   // Bulk Label mapping
   fastify.post('/bulk-label', async (request: any, reply) => {
+    const { contact_ids, label_id, action } = bulkLabelSchema.parse(request.body);
     try {
       const tenantId = request.user.tenant_id;
-      const { contact_ids, label_id, action } = request.body as { contact_ids: string[]; label_id: string; action: 'ADD' | 'REMOVE' };
       return await ContactsService.bulkLabel(tenantId, contact_ids, label_id, action);
     } catch (err: any) {
       return reply.status(400).send({ error: err.message });

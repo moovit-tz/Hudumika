@@ -1,4 +1,4 @@
-import { db } from '../db/client.js';
+import { withTenant } from '../db/client.js';
 
 /**
  * Which customer a CUSTOMER-role login acts for.
@@ -28,23 +28,24 @@ export async function resolveCustomerId(
   const hit = cache.get(user.sub);
   if (hit && Date.now() - hit.at < TTL_MS) return hit.id;
 
-  const row = await db.selectFrom('users').select(['customer_id', 'email'])
-    .where('id', '=', user.sub).where('tenant_id', '=', user.tenant_id)
-    .executeTakeFirst();
+  const id = await withTenant(user.tenant_id, async (trx) => {
+    const row = await trx.selectFrom('users').select(['customer_id', 'email'])
+      .where('id', '=', user.sub).where('tenant_id', '=', user.tenant_id)
+      .executeTakeFirst();
 
-  let id = row?.customer_id ?? null;
+    if (row?.customer_id) return row.customer_id;
 
-  if (!id) {
     const email = row?.email ?? user.email;
     if (email) {
-      const matches = await db.selectFrom('customers').select('id')
+      const matches = await trx.selectFrom('customers').select('id')
         .where('tenant_id', '=', user.tenant_id)
         .where(eb => eb(eb.fn('lower', ['email']), '=', email.toLowerCase()))
         .limit(2).execute();
       // Exactly one, or nothing. See the note above.
-      id = matches.length === 1 ? matches[0].id : null;
+      return matches.length === 1 ? matches[0].id : null;
     }
-  }
+    return null;
+  });
 
   cache.set(user.sub, { id, at: Date.now() });
   return id;

@@ -1,4 +1,4 @@
-import { db, withTenant } from '../db/client.js';
+import { dbPlatform, withTenant } from '../db/client.js';
 import { emitDomainEvent } from '../services/domain-events.service.js';
 import { NotificationService } from '../services/notification.service.js';
 import { WhatsAppIntegration } from '../integrations/whatsapp.js';
@@ -58,7 +58,7 @@ const REMINDER_STAGES = [
 export async function runComplyExpiryReminderJob(): Promise<void> {
   console.log('⏳ Running ComplyOS expiry reminder scan...');
   try {
-    const certs = await db
+    const certs = await dbPlatform
       .selectFrom('comply_certificates')
       .select([
         'id', 'tenant_id', 'name', 'agency_code', 'cert_number', 'expiry_date',
@@ -125,7 +125,7 @@ export async function runComplyRenewalJob(): Promise<void> {
     cutoff.setDate(cutoff.getDate() + RENEWAL_LEAD_DAYS);
 
     // Find certs expiring within the window that have auto_renew=true
-    const certs = await db
+    const certs = await dbPlatform
       .selectFrom('comply_certificates')
       .select(['id', 'tenant_id', 'name', 'agency_code', 'expiry_date', 'cert_number'])
       .where('expiry_date', '<=', toDateParam(cutoff))

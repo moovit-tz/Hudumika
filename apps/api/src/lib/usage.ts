@@ -1,5 +1,5 @@
 import { sql } from 'kysely';
-import { db } from '../db/client.js';
+import { withTenant } from '../db/client.js';
 
 // Route prefixes that are account/platform administration, not a tenant
 // "using" the product — excluded from the monthly item count. Everything
@@ -25,29 +25,31 @@ function currentPeriod(): string {
 }
 
 async function getMonthlyLimit(tenantId: string): Promise<number | null> {
-  const tenant = await db.selectFrom('tenants').select('plan').where('id', '=', tenantId).executeTakeFirst();
-  if (!tenant) return null;
-  const pkg = await db.selectFrom('packages').select('monthly_item_limit').where('code', '=', tenant.plan).executeTakeFirst();
-  return pkg?.monthly_item_limit ?? null; // no matching package row (legacy plan code) = treat as unlimited
+  return withTenant(tenantId, async (trx) => {
+    const tenant = await trx.selectFrom('tenants').select('plan').where('id', '=', tenantId).executeTakeFirst();
+    if (!tenant) return null;
+    const pkg = await trx.selectFrom('packages').select('monthly_item_limit').where('code', '=', tenant.plan).executeTakeFirst();
+    return pkg?.monthly_item_limit ?? null; // no matching package row (legacy plan code) = treat as unlimited
+  });
 }
 
 async function getUsage(tenantId: string): Promise<number> {
-  const row = await db.selectFrom('tenant_usage_counters')
+  const row = await withTenant(tenantId, trx => trx.selectFrom('tenant_usage_counters')
     .select('count')
     .where('tenant_id', '=', tenantId)
     .where('period', '=', currentPeriod())
-    .executeTakeFirst();
+    .executeTakeFirst());
   return row?.count ?? 0;
 }
 
 export async function incrementUsage(tenantId: string): Promise<void> {
-  await db.insertInto('tenant_usage_counters')
+  await withTenant(tenantId, trx => trx.insertInto('tenant_usage_counters')
     .values({ tenant_id: tenantId, period: currentPeriod(), count: 1 })
     .onConflict(oc => oc.columns(['tenant_id', 'period']).doUpdateSet({
       count: sql`tenant_usage_counters.count + 1`,
       updated_at: new Date(),
     }))
-    .execute();
+    .execute());
 }
 
 export interface UsageGate {

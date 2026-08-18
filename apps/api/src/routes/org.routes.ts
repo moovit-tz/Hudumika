@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import crypto from 'crypto';
-import { db, withTenant } from '../db/client.js';
+import { dbPlatform, withTenant } from '../db/client.js';
 import { MinioIntegration } from '../integrations/minio.js';
 import { applyAutoAssignRules, fireNotificationTrigger } from './support.routes.js';
 import type { OrgJWTPayload, TicketPriority } from '@hudumika/types';
@@ -35,7 +35,7 @@ function orgUser(req: any): OrgJWTPayload {
 /** Every (tenant, customer) pair this organization has been linked to —
  *  the fan-out list every /v1/org/* aggregation below starts from. */
 function getLinkedTenants(orgId: string) {
-  return db.selectFrom('customers')
+  return dbPlatform.selectFrom('customers')
     .innerJoin('tenants', 'tenants.id', 'customers.tenant_id')
     .select(['customers.tenant_id', 'customers.id as customer_id', 'tenants.name as tenant_name'])
     .where('customers.organization_id', '=', orgId)
@@ -79,7 +79,7 @@ export async function orgRoutes(fastify: FastifyInstance) {
   // this is "you also run a workspace here", not "you're a client of one".
   fastify.get('/workspaces', async (req) => {
     const user = orgUser(req);
-    return db.selectFrom('tenants')
+    return dbPlatform.selectFrom('tenants')
       .select(['id as tenant_id', 'name as tenant_name', 'slug'])
       .where('organization_id', '=', user.org_id)
       .orderBy('name')
@@ -90,7 +90,7 @@ export async function orgRoutes(fastify: FastifyInstance) {
   // to as a customer, staff-initiated only (see organizations.routes.ts).
   fastify.get('/customers', async (req) => {
     const user = orgUser(req);
-    return db.selectFrom('customers')
+    return dbPlatform.selectFrom('customers')
       .innerJoin('tenants', 'tenants.id', 'customers.tenant_id')
       .select([
         'customers.id as customer_id', 'customers.name as customer_name',
@@ -114,7 +114,7 @@ export async function orgRoutes(fastify: FastifyInstance) {
     const code = (req.body as { code?: string }).code?.trim();
     if (!code) return reply.status(400).send({ error: 'A code is required' });
 
-    const claim = await db.selectFrom('customer_claim_codes').selectAll()
+    const claim = await dbPlatform.selectFrom('customer_claim_codes').selectAll()
       .where('token', '=', code).executeTakeFirst();
     if (!claim) return reply.status(400).send({ error: 'Invalid code' });
     if (claim.used_at) return reply.status(400).send({ error: 'This code has already been used' });
@@ -506,7 +506,7 @@ export async function orgRoutes(fastify: FastifyInstance) {
     const link = links.find(l => l.tenant_id === tenant_id);
     if (!link) return reply.status(404).send({ error: 'Not linked to this warehouse' });
 
-    const org = await db.selectFrom('organizations').select('name').where('id', '=', user.org_id).executeTakeFirst();
+    const org = await dbPlatform.selectFrom('organizations').select('name').where('id', '=', user.org_id).executeTakeFirst();
 
     return withTenant(tenant_id, async trx => {
       const lot = await trx.selectFrom('seal_lots').select(['id', 'owner_id', 'qty_on_hand', 'description'])

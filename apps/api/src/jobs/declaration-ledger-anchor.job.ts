@@ -1,5 +1,5 @@
 import { sql } from 'kysely';
-import { db, withTenant } from '../db/client.js';
+import { dbPlatform, withTenant } from '../db/client.js';
 import { DeclarationAnchorService, NothingToAnchor } from '../services/declaration-anchor.service.js';
 
 /**
@@ -10,7 +10,7 @@ import { DeclarationAnchorService, NothingToAnchor } from '../services/declarati
  */
 export async function runDeclarationLedgerAnchorJob(): Promise<void> {
   try {
-    const candidates = await db.selectFrom('tenants as t')
+    const candidates = await dbPlatform.selectFrom('tenants as t')
       .leftJoin('tenant_settings as ts', 'ts.tenant_id', 't.id')
       .where(({ exists, selectFrom }) => exists(
         selectFrom('declarations as d').select(sql`1`.as('one')).whereRef('d.tenant_id', '=', 't.id')
@@ -19,7 +19,7 @@ export async function runDeclarationLedgerAnchorJob(): Promise<void> {
       .execute();
 
     const planGrants = new Set(
-      (await db.selectFrom('package_features').select('package_code').where('feature_key', '=', 'clearos').execute())
+      (await dbPlatform.selectFrom('package_features').select('package_code').where('feature_key', '=', 'clearos').execute())
         .map(r => r.package_code)
     );
 
@@ -51,7 +51,7 @@ export async function runDeclarationLedgerAnchorJob(): Promise<void> {
  *  to days (real Bitcoin block-mining time), independent of the stamp cadence. */
 export async function runDeclarationLedgerAnchorConfirmationSweepJob(): Promise<void> {
   try {
-    const pending = await db.selectFrom('declaration_ledger_anchors')
+    const pending = await dbPlatform.selectFrom('declaration_ledger_anchors')
       .select(['id', 'tenant_id'])
       .where('status', '=', 'pending')
       .execute();

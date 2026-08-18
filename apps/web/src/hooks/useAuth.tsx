@@ -6,14 +6,12 @@ import { hydrateCompanyFromServer, resetCompanyCache } from '../data/companyStor
 import { hydrateTasksFromServer, resetTasksCache } from '../data/calendarStore.js';
 import { applyTenantLocale } from '../lib/tenantLocale.js';
 
+// Session-cookie migration (security checklist #9): the access/refresh
+// tokens are httpOnly cookies now, invisible to JS entirely — only the
+// cached user object (not sensitive, needed for instant UI hydration
+// before any round-trip completes) still lives here.
 const KEYS = {
-  token: 'hudumika_token',
-  // Long-lived, and only /auth/refresh accepts it. Stored so a one-hour access
-  // token can renew itself rather than ending the session.
-  refresh: 'hudumika_refresh',
-  user:  'hudumika_user',
-  superToken: 'hudumika_super_token',
-  superUser:  'hudumika_super_user',
+  user: 'hudumika_user',
 };
 
 interface AuthContextType {
@@ -24,7 +22,7 @@ interface AuthContextType {
   logout: () => void;
   impersonate: (tenantId: string) => Promise<void>;
   impersonateCustomer: (customerId: string) => Promise<void>;
-  stopImpersonating: () => void;
+  stopImpersonating: () => Promise<void>;
   updateUser: (patch: Partial<SafeUser>) => void;
   loading: boolean;
 }
@@ -37,7 +35,9 @@ const AuthContext = createContext<AuthContextType | null>(null);
  * Merged onto the stored copy rather than replacing it, so a field the identity
  * endpoint does not return cannot be blanked out by a refresh. Failure is
  * silent on purpose: the cached user is still usable, and an unreachable API
- * should not sign anybody out.
+ * should not sign anybody out — a genuinely dead session (401) is already
+ * handled globally by api.ts's handleUnauthorized, which this call would
+ * have gone through on its way here.
  */
 async function hydrateIdentityFromServer(setUser: (u: any) => void): Promise<void> {
   try {
@@ -75,12 +75,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<SafeUser | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const isImpersonating = !!localStorage.getItem(KEYS.superToken);
+  const isImpersonating = !!user?.impersonated_by;
 
   useEffect(() => {
     const storedUser = localStorage.getItem(KEYS.user);
-    const storedToken = localStorage.getItem(KEYS.token);
-    if (storedUser && storedToken) {
+    if (storedUser) {
       try {
         setUser(JSON.parse(storedUser));
         hydrateCompanyFromServer();
@@ -90,10 +89,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // phone changed by an administrator — appeared nowhere until the person
         // signed out and back in. NexusHR looked right only because it fetches
         // staff rows itself; every other app drew initials from stale data.
+        // Also the *only* real signal of whether this browser still holds a
+        // live session at all — there's no client-readable token to check
+        // anymore, so a dead session surfaces via this call's 401 (handled
+        // globally in api.ts) rather than a synchronous local check.
         hydrateIdentityFromServer(setUser);
       } catch {
         localStorage.removeItem(KEYS.user);
-        localStorage.removeItem(KEYS.token);
       }
     }
     setLoading(false);
@@ -104,9 +106,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
-    localStorage.setItem(KEYS.token, res.access_token);
-    if (res.refresh_token) localStorage.setItem(KEYS.refresh, res.refresh_token);
-    localStorage.setItem(KEYS.user,  JSON.stringify(res.user));
+    localStorage.setItem(KEYS.user, JSON.stringify(res.user));
     resetEnabledAppsCache();
     resetCompanyCache();
     resetTasksCache();
@@ -121,9 +121,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const completeOnboarding = (res: OnboardingCompleteResponse) => {
-    localStorage.setItem(KEYS.token, res.access_token);
-    if (res.refresh_token) localStorage.setItem(KEYS.refresh, res.refresh_token);
-    localStorage.setItem(KEYS.user,  JSON.stringify(res.user));
+    localStorage.setItem(KEYS.user, JSON.stringify(res.user));
     setUser(res.user);
     hydrateCompanyFromServer();
     hydrateTasksFromServer();
@@ -144,10 +142,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
-    // Tell the server first — it needs the token that is about to be deleted.
-    // Not awaited: sign-out must not hang on a slow or unreachable API, and it
-    // must not fail either. The device row is revoked server-side, which is
-    // what actually ends the session; clearing storage only ends it here.
+    // Tell the server first — it needs the session cookie that is about to
+    // be cleared. Not awaited: sign-out must not hang on a slow or
+    // unreachable API, and it must not fail either. The device row is
+    // revoked server-side, which is what actually ends the session;
+    // clearing local state only ends it here.
     apiFetch('/auth/logout', { method: 'POST' }).catch(() => {});
     clearSessionLocally();
   };
@@ -160,9 +159,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
    * other tab ended the session". A tab that clears the whole store reports
    * `key: null`, so that case has to be handled too rather than filtered out.
    *
-   * The token going missing is not the only thing worth reacting to. If
+   * The user going missing is not the only thing worth reacting to. If
    * another tab signs in as somebody else, this tab keeps rendering the old
-   * user while every request it makes now carries the new user's token —
+   * user while every request it makes now carries the new user's session —
    * showing one person's screen and acting as another. There is no way to
    * repair that in place, so the tab reloads and adopts whoever is now
    * signed in.
@@ -170,18 +169,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
       if (e.storageArea && e.storageArea !== localStorage) return;
-      if (e.key !== null && e.key !== KEYS.token && e.key !== KEYS.user) return;
+      if (e.key !== null && e.key !== KEYS.user) return;
 
-      const token = localStorage.getItem(KEYS.token);
-      if (!token) {
+      const stored = localStorage.getItem(KEYS.user);
+      if (!stored) {
         // Already signed out here — nothing to do, and setUser would loop.
-        if (!localStorage.getItem(KEYS.user) && !user) return;
+        if (!user) return;
         clearSessionLocally();
         return;
       }
       try {
-        const stored = JSON.parse(localStorage.getItem(KEYS.user) || 'null');
-        if (user && stored?.id && stored.id !== user.id) window.location.reload();
+        const parsed = JSON.parse(stored);
+        if (user && parsed?.id && parsed.id !== user.id) window.location.reload();
       } catch { /* an unreadable user blob is handled on next load */ }
     };
     window.addEventListener('storage', onStorage);
@@ -189,17 +188,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [user]);
 
   const impersonate = async (tenantId: string) => {
+    // The server stashes the caller's own current session cookies before
+    // overwriting them with the impersonated one (see auth.routes.ts's
+    // /impersonate and lib/cookies.ts's setSuperCookies) — nothing for the
+    // client to juggle anymore.
     const res = await apiFetch('/auth/impersonate', {
       method: 'POST',
       body: JSON.stringify({ tenant_id: tenantId }),
     });
-    // Save current superadmin session
-    localStorage.setItem(KEYS.superToken, localStorage.getItem(KEYS.token)!);
-    localStorage.setItem(KEYS.superUser,  localStorage.getItem(KEYS.user)!);
-    // Switch to impersonated session
-    localStorage.setItem(KEYS.token, res.access_token);
-    if (res.refresh_token) localStorage.setItem(KEYS.refresh, res.refresh_token);
-    localStorage.setItem(KEYS.user,  JSON.stringify(res.user));
+    localStorage.setItem(KEYS.user, JSON.stringify(res.user));
     setUser(res.user);
     // Navigate to home so the tenant app loads fresh
     window.location.href = '/';
@@ -210,11 +207,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       method: 'POST',
       body: JSON.stringify({ customer_id: customerId }),
     });
-    localStorage.setItem(KEYS.superToken, localStorage.getItem(KEYS.token)!);
-    localStorage.setItem(KEYS.superUser,  localStorage.getItem(KEYS.user)!);
-    localStorage.setItem(KEYS.token, res.access_token);
-    if (res.refresh_token) localStorage.setItem(KEYS.refresh, res.refresh_token);
-    localStorage.setItem(KEYS.user,  JSON.stringify(res.user));
+    localStorage.setItem(KEYS.user, JSON.stringify(res.user));
     setUser(res.user);
     window.location.href = '/';
   };
@@ -228,30 +221,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
-  const stopImpersonating = () => {
-    const savedToken = localStorage.getItem(KEYS.superToken);
-    const savedUser  = localStorage.getItem(KEYS.superUser);
-    if (!savedToken || !savedUser) return;
-    // Read the impersonated identity before it's overwritten below, so the
-    // audit call (issued after restoring the real token) can describe what
-    // session just ended.
-    const impersonatedUserRaw = localStorage.getItem(KEYS.user);
-    localStorage.setItem(KEYS.token, savedToken);
-    localStorage.setItem(KEYS.user,  savedUser);
-    localStorage.removeItem(KEYS.superToken);
-    localStorage.removeItem(KEYS.superUser);
+  /**
+   * The current `user` state IS the impersonated identity at the moment
+   * this is called — describing it in the audit body is exactly what the
+   * pre-cookie version did by reading it out of localStorage before
+   * overwriting it. What's different now: the server (not this function)
+   * restores the real actor's session cookies, so there's no local copy of
+   * *that* identity to switch back to — the full-page navigation below
+   * re-derives it via the ordinary AuthProvider init → hydrateIdentityFromServer
+   * path, authenticated by the now-restored cookie.
+   */
+  const stopImpersonating = async () => {
+    const target = user;
+    let res: { success: boolean } | null = null;
     try {
-      const target = impersonatedUserRaw ? JSON.parse(impersonatedUserRaw) : null;
-      if (target) {
-        apiFetch('/auth/stop-impersonating', {
-          method: 'POST',
-          body: JSON.stringify({
-            target_id: target.id ?? null, target_role: target.role ?? null,
-            tenant_id: target.tenant_id ?? null, target_name: target.name ?? null,
-          }),
-        }).catch(() => {});
-      }
-    } catch { /* best-effort audit call, never blocks exiting impersonation */ }
+      res = await apiFetch('/auth/stop-impersonating', {
+        method: 'POST',
+        body: JSON.stringify({
+          target_id: target?.id ?? null, target_role: target?.role ?? null,
+          tenant_id: target?.tenant_id ?? null, target_name: target?.name ?? null,
+        }),
+      });
+    } catch { /* best-effort — fall through without navigating if this failed */ return; }
+    if (!res?.success) return;
     window.location.href = '/admin?v=companies';
   };
 

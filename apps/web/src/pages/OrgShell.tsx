@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { showAlert } from '../lib/alert.js';
-import { useOrgAuth, orgApiFetch } from '../hooks/useOrgAuth.js';
+import { useOrgAuth, orgApiFetch, orgFetchRaw } from '../hooks/useOrgAuth.js';
 import { mapApiInvoice, invoiceTotals, fmtTZS, STATUS_STYLE } from './Billing.js';
 
 interface LinkedAgent {
@@ -346,10 +346,7 @@ export const OrgShell: React.FC = () => {
 
   async function downloadDoc(doc: OrgDocument) {
     try {
-      const res = await fetch(`http://localhost:3001/v1/org/documents/${doc.id}/download?tenant_id=${doc.tenant_id}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('hudumika_org_token')}` },
-      });
-      if (!res.ok) throw new Error('Download failed');
+      const res = await orgFetchRaw(`/v1/org/documents/${doc.id}/download?tenant_id=${doc.tenant_id}`);
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');

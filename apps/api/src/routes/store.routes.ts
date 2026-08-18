@@ -1,7 +1,7 @@
 import { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { sql } from 'kysely';
-import { db } from '../db/client.js';
+import { dbPlatform } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -24,7 +24,7 @@ export const storeRoutes: FastifyPluginAsync = async (app) => {
       FROM marketplace_apps
       WHERE status = 'approved'
       ORDER BY created_at DESC
-    `.execute(db);
+    `.execute(dbPlatform);
     return result.rows;
   });
 
@@ -40,7 +40,7 @@ export const storeRoutes: FastifyPluginAsync = async (app) => {
         rating, reviews_count as "reviewsCount", installs, status
       FROM marketplace_apps
       ORDER BY created_at DESC
-    `.execute(db);
+    `.execute(dbPlatform);
     return result.rows;
   });
 
@@ -74,7 +74,7 @@ export const storeRoutes: FastifyPluginAsync = async (app) => {
       VALUES 
         (${body.name}, ${userId}, ${body.developer_name}, ${body.category}, ${body.short_desc}, ${body.long_desc}, ${JSON.stringify(body.features)}, ${JSON.stringify(body.permissions)}, ${body.icon_url || null}, ${body.webhook_url || null}, 'pending')
       RETURNING *
-    `.execute(db);
+    `.execute(dbPlatform);
 
     return result.rows[0];
   });
@@ -92,7 +92,7 @@ export const storeRoutes: FastifyPluginAsync = async (app) => {
       SET status = ${status}, updated_at = NOW() 
       WHERE id = ${id} 
       RETURNING *
-    `.execute(db);
+    `.execute(dbPlatform);
 
     if (result.rows.length === 0) {
       return reply.status(404).send({ error: 'App not found' });

@@ -2,12 +2,14 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { issueTokens, durationSeconds } from '../services/token.service.js';
 import crypto from 'crypto';
-import { db, withTenant } from '../db/client.js';
+import { withTenant, dbPlatform } from '../db/client.js';
 import { hashPassword, verifyPassword, needsRehash } from '../lib/password.js';
 import { verifyTotp } from '../lib/totp.js';
 import { MailService } from '../services/mail.service.js';
 import { env } from '../config/env.js';
 import { PlatformAdminService } from '../services/platform-admin.service.js';
+import { COOKIE_NAMES, setSessionCookies, clearSessionCookies, setSuperCookies, clearSuperCookies } from '../lib/cookies.js';
+import { verifyCsrf } from '../middleware/csrf.js';
 import type { LoginInput, CustomerOTPInput, CustomerVerifyInput, SafeUser, JWTPayload, OrgLoginInput, SafeOrgUser } from '@hudumika/types';
 
 // Simple in-memory storage for customer OTPs in dev
@@ -55,8 +57,9 @@ function parseDevice(userAgent: string): { label: string; type: string } {
 // "signed out" for real (see hr_devices.revoked_at, checked in middleware/auth.ts).
 async function recordLogin(tenantId: string, userId: string, status: 'SUCCESS' | 'FAILED', ip: string, userAgent: string): Promise<string | null> {
   try {
-    await db.insertInto('hr_login_history').values({ tenant_id: tenantId, user_id: userId, ip, user_agent: userAgent, status }).execute();
-    if (status === 'SUCCESS') {
+    return await withTenant(tenantId, async (trx) => {
+      await trx.insertInto('hr_login_history').values({ tenant_id: tenantId, user_id: userId, ip, user_agent: userAgent, status }).execute();
+      if (status !== 'SUCCESS') return null;
       /**
        * users.last_login_at, which nothing had ever written.
        *
@@ -66,7 +69,7 @@ async function recordLogin(tenantId: string, userId: string, status: 'SUCCESS' |
        * there. A tenant administrator asking "who has not used this since we
        * bought it" needs this one field to be true.
        */
-      await db.updateTable('users')
+      await trx.updateTable('users')
         .set({ last_login_at: new Date() })
         .where('id', '=', userId)
         .where('tenant_id', '=', tenantId)
@@ -78,20 +81,20 @@ async function recordLogin(tenantId: string, userId: string, status: 'SUCCESS' |
       // gets a row too, so "Sign out" can always reach it.
       const ua = userAgent || 'unknown-client';
       const { label, type } = parseDevice(ua);
-      const existing = await db.selectFrom('hr_devices').select('id')
+      const existing = await trx.selectFrom('hr_devices').select('id')
         .where('user_id', '=', userId).where('user_agent', '=', ua).executeTakeFirst();
       if (existing) {
         // A fresh login re-authenticates the device — clears any prior revocation
         // rather than leaving a token that would 401 on its very next request.
-        await db.updateTable('hr_devices').set({ last_used_at: new Date(), revoked_at: null }).where('id', '=', existing.id).execute();
+        await trx.updateTable('hr_devices').set({ last_used_at: new Date(), revoked_at: null }).where('id', '=', existing.id).execute();
         return existing.id;
       } else {
-        const created = await db.insertInto('hr_devices').values({
+        const created = await trx.insertInto('hr_devices').values({
           tenant_id: tenantId, user_id: userId, device_label: label, device_type: type, user_agent: ua, trusted: true,
         }).returning('id').executeTakeFirst();
         return created?.id ?? null;
       }
-    }
+    });
   } catch { /* login/device tracking must never block auth */ }
   return null;
 }
@@ -110,18 +113,20 @@ async function recordLogin(tenantId: string, userId: string, status: 'SUCCESS' |
 // never calls recordLogin either).
 async function registerImpersonationDevice(tenantId: string, userId: string, actorName: string, userAgent: string): Promise<string | null> {
   try {
-    const ua = userAgent || 'unknown-client';
-    const label = `Impersonated by ${actorName || 'SuperAdmin'}`;
-    const existing = await db.selectFrom('hr_devices').select('id')
-      .where('user_id', '=', userId).where('user_agent', '=', ua).executeTakeFirst();
-    if (existing) {
-      await db.updateTable('hr_devices').set({ last_used_at: new Date(), revoked_at: null }).where('id', '=', existing.id).execute();
-      return existing.id;
-    }
-    const created = await db.insertInto('hr_devices').values({
-      tenant_id: tenantId, user_id: userId, device_label: label, device_type: 'Desktop', user_agent: ua, trusted: false,
-    }).returning('id').executeTakeFirst();
-    return created?.id ?? null;
+    return await withTenant(tenantId, async (trx) => {
+      const ua = userAgent || 'unknown-client';
+      const label = `Impersonated by ${actorName || 'SuperAdmin'}`;
+      const existing = await trx.selectFrom('hr_devices').select('id')
+        .where('user_id', '=', userId).where('user_agent', '=', ua).executeTakeFirst();
+      if (existing) {
+        await trx.updateTable('hr_devices').set({ last_used_at: new Date(), revoked_at: null }).where('id', '=', existing.id).execute();
+        return existing.id;
+      }
+      const created = await trx.insertInto('hr_devices').values({
+        tenant_id: tenantId, user_id: userId, device_label: label, device_type: 'Desktop', user_agent: ua, trusted: false,
+      }).returning('id').executeTakeFirst();
+      return created?.id ?? null;
+    });
   } catch { return null; } // device tracking must never block impersonation
 }
 
@@ -137,7 +142,8 @@ export async function authRoutes(fastify: FastifyInstance) {
   fastify.post('/login', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (request, reply) => {
     const { email, password, totp } = loginSchema.parse(request.body) as LoginInput;
 
-    const user = await db
+    // Pre-tenant: the tenant isn't known until this resolves — dbPlatform.
+    const user = await dbPlatform
       .selectFrom('users')
       .selectAll()
       .where('email', '=', email)
@@ -184,15 +190,15 @@ export async function authRoutes(fastify: FastifyInstance) {
     // no forced reset, no bulk migration, every account upgrades itself the
     // next time its owner actually signs in.
     if (needsRehash(user.password_hash)) {
-      await db.updateTable('users').set({ password_hash: hashPassword(password) }).where('id', '=', user.id).execute();
+      await withTenant(user.tenant_id, trx => trx.updateTable('users').set({ password_hash: hashPassword(password) }).where('id', '=', user.id).execute());
     }
 
     // Second factor — only gates login once the user has actually completed
     // setup+verification in Workspace ▸ Security (user_totp.enabled). Not
     // sent back with a fake "verified" state: the client must submit a real
     // TOTP code that verifyTotp() checks before a token is ever issued.
-    const totpRow = await db.selectFrom('user_totp').select(['secret', 'enabled'])
-      .where('user_id', '=', user.id).executeTakeFirst();
+    const totpRow = await withTenant(user.tenant_id, trx => trx.selectFrom('user_totp').select(['secret', 'enabled'])
+      .where('user_id', '=', user.id).executeTakeFirst());
     if (totpRow?.enabled) {
       if (!totp) {
         return reply.status(200).send({ requires_2fa: true });
@@ -231,6 +237,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       updated_at: user.updated_at.toISOString(),
     };
 
+    setSessionCookies(reply, tokens);
     return { ...tokens, user: safeUser };
   });
 
@@ -241,25 +248,31 @@ export async function authRoutes(fastify: FastifyInstance) {
   fastify.post('/accept-invite', async (request, reply) => {
     const { token, name, password } = acceptInviteSchema.parse(request.body);
 
-    const invite = await db.selectFrom('hr_invitations').selectAll()
+    // Pre-tenant: the invite lookup by token is what discovers the tenant.
+    const invite = await dbPlatform.selectFrom('hr_invitations').selectAll()
       .where('token', '=', token).executeTakeFirst();
     if (!invite) return reply.status(404).send({ error: 'Invitation not found' });
     if (invite.status !== 'PENDING') return reply.status(400).send({ error: 'Invitation is no longer valid' });
     if (new Date(invite.expires_at) < new Date()) {
-      await db.updateTable('hr_invitations').set({ status: 'EXPIRED' }).where('id', '=', invite.id).execute();
+      await withTenant(invite.tenant_id, trx => trx.updateTable('hr_invitations').set({ status: 'EXPIRED' }).where('id', '=', invite.id).execute());
       return reply.status(400).send({ error: 'Invitation has expired' });
     }
 
-    const newUser = await db.insertInto('users').values({
-      tenant_id: invite.tenant_id,
-      email: invite.email,
-      password_hash: hashPassword(password),
-      role: invite.role as any,
-      name,
-      active: true,
-    }).returningAll().executeTakeFirstOrThrow();
+    // The invite's own tenant is now known — everything past this point is
+    // that tenant's own data.
+    const { newUser } = await withTenant(invite.tenant_id, async (trx) => {
+      const newUser = await trx.insertInto('users').values({
+        tenant_id: invite.tenant_id,
+        email: invite.email,
+        password_hash: hashPassword(password),
+        role: invite.role as any,
+        name,
+        active: true,
+      }).returningAll().executeTakeFirstOrThrow();
 
-    await db.updateTable('hr_invitations').set({ status: 'ACCEPTED' }).where('id', '=', invite.id).execute();
+      await trx.updateTable('hr_invitations').set({ status: 'ACCEPTED' }).where('id', '=', invite.id).execute();
+      return { newUser };
+    });
 
     const payload: Omit<JWTPayload, 'iat' | 'exp'> = {
       sub: newUser.id, tenant_id: newUser.tenant_id, role: newUser.role, email: newUser.email, name: newUser.name,
@@ -271,6 +284,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       created_at: newUser.created_at.toISOString(), updated_at: newUser.updated_at.toISOString(),
     };
 
+    setSessionCookies(reply, tokens);
     return { ...tokens, user: safeUser };
   });
 
@@ -282,13 +296,16 @@ export async function authRoutes(fastify: FastifyInstance) {
   fastify.post('/forgot-password', { config: { rateLimit: { max: 5, timeWindow: '1 minute' } } }, async (request, reply) => {
     const { email } = forgotPasswordSchema.parse(request.body);
 
-    const user = await db.selectFrom('users').selectAll()
+    // Pre-tenant: an unauthenticated email lookup, and password_reset_tokens
+    // itself carries no tenant_id at all (its own security boundary is
+    // possession of the emailed token, not tenant membership) — dbPlatform.
+    const user = await dbPlatform.selectFrom('users').selectAll()
       .where('email', '=', email).where('active', '=', true).executeTakeFirst();
 
     if (user) {
       const token = crypto.randomBytes(24).toString('hex');
       const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
-      await db.insertInto('password_reset_tokens').values({ user_id: user.id, token, expires_at: expiresAt }).execute();
+      await dbPlatform.insertInto('password_reset_tokens').values({ user_id: user.id, token, expires_at: expiresAt }).execute();
 
       const resetUrl = `${env.OPS_BOARD_URL}/auth/reset-password?token=${token}`;
       await MailService.enqueueTemplated(user.tenant_id, 'auth.password_reset', user.email, { resetUrl }, 'auth')
@@ -305,15 +322,16 @@ export async function authRoutes(fastify: FastifyInstance) {
   fastify.post('/reset-password', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (request, reply) => {
     const { token, password } = resetPasswordSchema.parse(request.body);
 
-    const row = await db.selectFrom('password_reset_tokens').selectAll()
+    // Same reasoning as /forgot-password above — dbPlatform throughout.
+    const row = await dbPlatform.selectFrom('password_reset_tokens').selectAll()
       .where('token', '=', token).executeTakeFirst();
     if (!row) return reply.status(404).send({ error: 'Invalid or expired reset link' });
     if (row.used_at) return reply.status(400).send({ error: 'This reset link has already been used' });
     if (new Date(row.expires_at) < new Date()) return reply.status(400).send({ error: 'This reset link has expired' });
 
-    await db.updateTable('users').set({ password_hash: hashPassword(password), updated_at: new Date() })
+    await dbPlatform.updateTable('users').set({ password_hash: hashPassword(password), updated_at: new Date() })
       .where('id', '=', row.user_id).execute();
-    await db.updateTable('password_reset_tokens').set({ used_at: new Date() }).where('id', '=', row.id).execute();
+    await dbPlatform.updateTable('password_reset_tokens').set({ used_at: new Date() }).where('id', '=', row.id).execute();
 
     return { ok: true };
   });
@@ -325,8 +343,9 @@ export async function authRoutes(fastify: FastifyInstance) {
   fastify.post('/customer-otp', { config: { rateLimit: { max: 5, timeWindow: '1 minute' } } }, async (request, reply) => {
     const { phone_wa } = customerOtpSchema.parse(request.body) as CustomerOTPInput;
 
-    // Check if customer exists
-    const customer = await db
+    // Pre-tenant: phone-number lookup across all tenants, same reasoning as
+    // /login's email lookup.
+    const customer = await dbPlatform
       .selectFrom('customers')
       .selectAll()
       .where('phone_wa', '=', phone_wa)
@@ -380,7 +399,8 @@ export async function authRoutes(fastify: FastifyInstance) {
 
     OTP_STORE.delete(phone_wa); // consume
 
-    const customer = await db
+    // Pre-tenant, same reasoning as above.
+    const customer = await dbPlatform
       .selectFrom('customers')
       .selectAll()
       .where('phone_wa', '=', phone_wa)
@@ -413,6 +433,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       updated_at: customer.updated_at.toISOString(),
     };
 
+    setSessionCookies(reply, tokens);
     return { ...tokens, user: safeUser };
   });
 
@@ -429,7 +450,9 @@ export async function authRoutes(fastify: FastifyInstance) {
   fastify.post('/org-login', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (request, reply) => {
     const { email, password } = orgLoginSchema.parse(request.body) as OrgLoginInput;
 
-    const orgUser = await db
+    // organization_users carries no tenant_id at all (see the comment above) —
+    // genuinely platform-level, not just pre-tenant.
+    const orgUser = await dbPlatform
       .selectFrom('organization_users')
       .selectAll()
       .where('email', '=', email)
@@ -441,7 +464,7 @@ export async function authRoutes(fastify: FastifyInstance) {
     }
 
     if (needsRehash(orgUser.password_hash)) {
-      await db.updateTable('organization_users').set({ password_hash: hashPassword(password) }).where('id', '=', orgUser.id).execute();
+      await dbPlatform.updateTable('organization_users').set({ password_hash: hashPassword(password) }).where('id', '=', orgUser.id).execute();
     }
 
     const payload = {
@@ -462,6 +485,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       updated_at: orgUser.updated_at.toISOString(),
     };
 
+    setSessionCookies(reply, tokens, { org: true });
     return { ...tokens, user: safeOrgUser };
   });
 
@@ -482,7 +506,9 @@ export async function authRoutes(fastify: FastifyInstance) {
       return reply.status(400).send({ error: 'tenant_id is required' });
     }
 
-    const target = await db
+    // SUPER_ADMIN picking an arbitrary tenant to impersonate into — a
+    // genuine cross-tenant read, not this actor's own tenant.
+    const target = await dbPlatform
       .selectFrom('users')
       .selectAll()
       .where('tenant_id', '=', tenant_id)
@@ -521,6 +547,8 @@ export async function authRoutes(fastify: FastifyInstance) {
       active: target.active,
       created_at: target.created_at.toISOString(),
       updated_at: target.updated_at.toISOString(),
+      impersonated_by: actor.sub,
+      impersonated_by_name: actor.name,
     };
 
     await PlatformAdminService.recordActivity({
@@ -530,6 +558,16 @@ export async function authRoutes(fastify: FastifyInstance) {
       metadata: { impersonated_user_id: target.id },
     });
 
+    // Stash the actor's own current session before overwriting the primary
+    // cookies with the impersonated one — /stop-impersonating reads these
+    // back to recover the real actor. Only present once the caller's own
+    // session was itself cookie-issued (every session is, from here on).
+    const actorAccess = request.cookies[COOKIE_NAMES.access];
+    const actorRefresh = request.cookies[COOKIE_NAMES.refresh];
+    if (actorAccess && actorRefresh) {
+      setSuperCookies(reply, actorAccess, actorRefresh, durationSeconds(env.JWT_EXPIRES_IN));
+    }
+    setSessionCookies(reply, tokens);
     return { ...tokens, user: safeUser };
   });
 
@@ -556,13 +594,15 @@ export async function authRoutes(fastify: FastifyInstance) {
       return reply.status(400).send({ error: 'customer_id is required' });
     }
 
-    const customer = await db.selectFrom('customers').selectAll()
+    // SUPER_ADMIN picking an arbitrary customer by id — same reasoning as
+    // /impersonate above.
+    const customer = await dbPlatform.selectFrom('customers').selectAll()
       .where('id', '=', customer_id).where('active', '=', true).executeTakeFirst();
     if (!customer) {
       return reply.status(404).send({ error: 'Customer not found or inactive' });
     }
 
-    const linkedUser = await db.selectFrom('users').selectAll()
+    const linkedUser = await dbPlatform.selectFrom('users').selectAll()
       .where('customer_id', '=', customer.id).where('tenant_id', '=', customer.tenant_id)
       .where('role', '=', 'CUSTOMER').where('active', '=', true)
       .orderBy('created_at', 'asc').executeTakeFirst();
@@ -593,11 +633,13 @@ export async function authRoutes(fastify: FastifyInstance) {
           id: linkedUser.id, tenant_id: linkedUser.tenant_id, email: linkedUser.email, role: 'CUSTOMER',
           name: linkedUser.name, active: linkedUser.active,
           created_at: linkedUser.created_at.toISOString(), updated_at: linkedUser.updated_at.toISOString(),
+          impersonated_by: actor.sub, impersonated_by_name: actor.name,
         }
       : {
           id: customer.id, tenant_id: customer.tenant_id, email: customer.email || '', role: 'CUSTOMER',
           name: customer.name, phone: customer.phone_wa || undefined, active: customer.active,
           created_at: customer.created_at.toISOString(), updated_at: customer.updated_at.toISOString(),
+          impersonated_by: actor.sub, impersonated_by_name: actor.name,
         };
 
     await PlatformAdminService.recordActivity({
@@ -607,6 +649,12 @@ export async function authRoutes(fastify: FastifyInstance) {
       metadata: { via: linkedUser ? 'linked_user' : 'legacy_customer_login' },
     });
 
+    const actorAccess = request.cookies[COOKIE_NAMES.access];
+    const actorRefresh = request.cookies[COOKIE_NAMES.refresh];
+    if (actorAccess && actorRefresh) {
+      setSuperCookies(reply, actorAccess, actorRefresh, durationSeconds(env.JWT_EXPIRES_IN));
+    }
+    setSessionCookies(reply, tokens);
     return { ...tokens, user: safeUser };
   });
 
@@ -625,8 +673,20 @@ export async function authRoutes(fastify: FastifyInstance) {
    * token too rather than letting the session reappear an hour later.
    */
   fastify.post('/refresh', async (request, reply) => {
-    const { refresh_token } = (request.body ?? {}) as { refresh_token?: string };
+    const body = (request.body ?? {}) as { refresh_token?: string };
+    // Cookie-first, body-fallback — mirrors the same dual-mode everywhere
+    // else. A cookie-authenticated caller (the SPA, once migrated) sends no
+    // body at all; a Bearer/JSON caller still passes it explicitly.
+    const cookieRefresh = request.cookies[COOKIE_NAMES.refresh] || request.cookies[COOKIE_NAMES.orgRefresh];
+    const refresh_token = cookieRefresh || body.refresh_token;
     if (!refresh_token) return reply.status(400).send({ error: 'refresh_token is required' });
+
+    // CSRF: this route has no preHandler:[authenticate] of its own (it IS
+    // the mechanism that re-authenticates), so the double-submit check is
+    // applied explicitly here. Only relevant when the token was sourced
+    // from the ambient cookie — a body-supplied token was never CSRF-able
+    // in the first place (a forged cross-site request can't read/replay it).
+    if (!verifyCsrf(request, reply, !!cookieRefresh)) return;
 
     let claims: any;
     try {
@@ -638,8 +698,26 @@ export async function authRoutes(fastify: FastifyInstance) {
       return reply.status(401).send({ error: 'That is not a refresh token.' });
     }
 
+    // Org sessions (organization_users) have no tenant_id/device_id at all —
+    // the hr_devices-based checks below don't apply to them, and never will.
+    // See token.service.ts's issueTokens() for why the refresh token now
+    // carries `role` at all (it didn't before; this branch was unreachable).
+    if (claims.role === 'ORG') {
+      const orgUser = await dbPlatform.selectFrom('organization_users').selectAll()
+        .where('id', '=', claims.sub).where('active', '=', true).executeTakeFirst();
+      if (!orgUser) return reply.status(401).send({ error: 'This account is no longer active.' });
+
+      const tokens = issueTokens(fastify, {
+        sub: orgUser.id, org_id: orgUser.organization_id, role: 'ORG', email: orgUser.email, name: orgUser.name,
+      } as any);
+      setSessionCookies(reply, tokens, { org: true });
+      return tokens;
+    }
+
+    // Pre-tenant re-verification, deliberately independent of what the token
+    // claims — dbPlatform throughout this handler.
     const device = claims.device_id
-      ? await db.selectFrom('hr_devices').select('revoked_at').where('id', '=', claims.device_id).executeTakeFirst()
+      ? await dbPlatform.selectFrom('hr_devices').select('revoked_at').where('id', '=', claims.device_id).executeTakeFirst()
       : null;
     if (!claims.device_id || device?.revoked_at) {
       return reply.status(401).send({ error: 'This session has been signed out.' });
@@ -647,20 +725,22 @@ export async function authRoutes(fastify: FastifyInstance) {
 
     // Re-read the user: a role change, a deactivation or a move between tenants
     // must take effect on refresh rather than riding the old claims for 30 days.
-    const user = await db.selectFrom('users').selectAll()
+    const user = await dbPlatform.selectFrom('users').selectAll()
       .where('id', '=', claims.sub).where('active', '=', true).executeTakeFirst();
     if (!user) return reply.status(401).send({ error: 'This account is no longer active.' });
 
-    await db.updateTable('hr_devices').set({ last_used_at: new Date() })
+    await dbPlatform.updateTable('hr_devices').set({ last_used_at: new Date() })
       .where('id', '=', claims.device_id).execute();
 
-    return issueTokens(fastify, {
+    const tokens = issueTokens(fastify, {
       sub: user.id, tenant_id: user.tenant_id, role: user.role,
       email: user.email, name: user.name, device_id: claims.device_id,
       // Impersonation is a property of the session (the verified refresh
       // token), not the re-fetched target user — carried through as-is.
       ...(claims.impersonated_by ? { impersonated_by: claims.impersonated_by, impersonated_by_name: claims.impersonated_by_name } : {}),
     });
+    setSessionCookies(reply, tokens);
+    return tokens;
   });
 
   /**
@@ -683,8 +763,21 @@ export async function authRoutes(fastify: FastifyInstance) {
    */
   fastify.post('/logout', {
     preHandler: [fastify.authenticate],
-  }, async (request) => {
+  }, async (request, reply) => {
     const actor = request.user;
+
+    // organization_users has no device/revocation concept at all — clearing
+    // its cookies (plus any stashed super_* pair, in case an impersonation
+    // was mid-flight) is the entire sign-out.
+    if ((actor.role as string) === 'ORG') {
+      clearSessionCookies(reply, { org: true });
+      clearSuperCookies(reply);
+      return { success: true, revoked: false };
+    }
+
+    clearSessionCookies(reply);
+    clearSuperCookies(reply);
+
     // No device_id means a token minted before device tracking existed; there
     // is nothing to revoke, and the client clearing its own keys is all that
     // is left to do. Not an error — sign-out must always appear to succeed.
@@ -719,16 +812,18 @@ export async function authRoutes(fastify: FastifyInstance) {
       return reply.status(400).send({ error: 'New password must be at least 8 characters' });
     }
 
-    const user = await db.selectFrom('users').selectAll().where('id', '=', actor.sub).executeTakeFirst();
-    if (!user) return reply.status(404).send({ error: 'User not found' });
+    return withTenant(actor.tenant_id, async (trx) => {
+      const user = await trx.selectFrom('users').selectAll().where('id', '=', actor.sub).executeTakeFirst();
+      if (!user) return reply.status(404).send({ error: 'User not found' });
 
-    const isMatch = verifyPassword(current_password, user.password_hash);
-    if (!isMatch) return reply.status(401).send({ error: 'Current password is incorrect' });
+      const isMatch = verifyPassword(current_password, user.password_hash);
+      if (!isMatch) return reply.status(401).send({ error: 'Current password is incorrect' });
 
-    const new_hash = hashPassword(new_password);
+      const new_hash = hashPassword(new_password);
 
-    await db.updateTable('users').set({ password_hash: new_hash, updated_at: new Date() }).where('id', '=', actor.sub).execute();
-    return { success: true };
+      await trx.updateTable('users').set({ password_hash: new_hash, updated_at: new Date() }).where('id', '=', actor.sub).execute();
+      return { success: true };
+    });
   });
 
   /**
@@ -751,23 +846,25 @@ export async function authRoutes(fastify: FastifyInstance) {
     if (typeof body.phone === 'string') patch.phone = body.phone.trim() || null;
     if (body.avatar_url !== undefined) patch.avatar_url = body.avatar_url ? body.avatar_url.trim() : null;
 
-    if (body.profile && typeof body.profile === 'object') {
-      const existing = await db.selectFrom('users').select('profile').where('id', '=', actor.sub).executeTakeFirst();
-      // Guarded: the driver hands JSONB back as a string in some paths, but a
-      // malformed value would throw here and 500 the whole profile update
-      // rather than just losing one field.
-      let existingProfile: Record<string, any> = {};
-      if (typeof existing?.profile === 'string') {
-        try { existingProfile = JSON.parse(existing.profile) || {}; } catch { existingProfile = {}; }
-      } else {
-        existingProfile = (existing?.profile as Record<string, any>) || {};
+    const updated = await withTenant(actor.tenant_id, async (trx) => {
+      if (body.profile && typeof body.profile === 'object') {
+        const existing = await trx.selectFrom('users').select('profile').where('id', '=', actor.sub).executeTakeFirst();
+        // Guarded: the driver hands JSONB back as a string in some paths, but a
+        // malformed value would throw here and 500 the whole profile update
+        // rather than just losing one field.
+        let existingProfile: Record<string, any> = {};
+        if (typeof existing?.profile === 'string') {
+          try { existingProfile = JSON.parse(existing.profile) || {}; } catch { existingProfile = {}; }
+        } else {
+          existingProfile = (existing?.profile as Record<string, any>) || {};
+        }
+        patch.profile = JSON.stringify({ ...existingProfile, ...body.profile });
       }
-      patch.profile = JSON.stringify({ ...existingProfile, ...body.profile });
-    }
 
-    await db.updateTable('users').set(patch).where('id', '=', actor.sub).execute();
+      await trx.updateTable('users').set(patch).where('id', '=', actor.sub).execute();
 
-    const updated = await db.selectFrom('users').selectAll().where('id', '=', actor.sub).executeTakeFirst();
+      return trx.selectFrom('users').selectAll().where('id', '=', actor.sub).executeTakeFirst();
+    });
     if (!updated) return reply.status(404).send({ error: 'User not found' });
 
     const safeUser: SafeUser & { profile?: Record<string, any> } = {
@@ -790,16 +887,40 @@ export async function authRoutes(fastify: FastifyInstance) {
 
   /**
    * POST /auth/stop-impersonating
-   * Client restores the SuperAdmin's own token to localStorage before
-   * calling this, so it authenticates as the real actor with no JWT
-   * trickery needed — the impersonated identity being exited is described
-   * in the body instead, since by the time this lands the token no longer
-   * carries it.
+   *
+   * Used to work by having the client restore the SuperAdmin's own token to
+   * localStorage before calling this, so it authenticated as the real actor
+   * with no JWT trickery needed. That's impossible once the token is an
+   * httpOnly cookie — JS can't read a cookie's value to stash it, and can't
+   * swap one cookie's value in before a single fetch. The server does the
+   * stacking instead now: /auth/impersonate copies the caller's own current
+   * session into hudumika_super_access/_refresh before overwriting the
+   * primary pair (see lib/cookies.ts's setSuperCookies), and this handler
+   * reads that stash back — NOT request.user, which under cookie-priority
+   * extraction (middleware/auth.ts) resolves to the *impersonated* identity,
+   * since the primary cookie still holds it at this point.
    */
   fastify.post('/stop-impersonating', {
     preHandler: [fastify.authenticate],
-  }, async (request) => {
-    const actor = request.user;
+  }, async (request, reply) => {
+    const superAccess = request.cookies[COOKIE_NAMES.superAccess];
+    const superRefresh = request.cookies[COOKIE_NAMES.superRefresh];
+    if (!superAccess || !superRefresh) {
+      return { success: false, reason: 'no_active_impersonation' };
+    }
+
+    let actor: { sub: string; name?: string; email?: string; role: string };
+    try {
+      actor = fastify.jwt.verify(superAccess);
+    } catch {
+      // Stale/expired stash — nothing safe to restore. Clear it so the
+      // client doesn't keep retrying against a dead cookie; the primary
+      // (impersonated) session is left exactly as it was, since there's no
+      // verified real actor to hand control back to.
+      clearSuperCookies(reply);
+      return { success: false, reason: 'stale_session' };
+    }
+
     const body = request.body as { target_id?: string; target_role?: string; tenant_id?: string; target_name?: string } | undefined;
     if (actor.role === 'SUPER_ADMIN' && body?.target_id) {
       await PlatformAdminService.recordActivity({
@@ -810,6 +931,9 @@ export async function authRoutes(fastify: FastifyInstance) {
         targetId: body.target_id, targetName: body.target_name ?? null, tenantId: body.tenant_id ?? null,
       });
     }
+
+    setSessionCookies(reply, { access_token: superAccess, refresh_token: superRefresh, expires_in: durationSeconds(env.JWT_EXPIRES_IN) });
+    clearSuperCookies(reply);
     return { success: true };
   });
 }

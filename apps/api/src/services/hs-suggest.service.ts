@@ -1,5 +1,5 @@
 import { sql } from 'kysely';
-import { db } from '../db/client.js';
+import { dbPlatform } from '../db/client.js';
 
 /**
  * Suggests HS codes for free-text goods descriptions.
@@ -103,7 +103,7 @@ export async function suggestHsCodes(items: SuggestInput[], perItem = 3): Promis
   // matched "Safety headgear", so "Hex head bolts" suggested a hydrocarbon and
   // a hard hat. \y is Postgres' word boundary.
   const variantsOf = (t: string) => Array.from(new Set([t, t.endsWith('s') ? t.slice(0, -1) : `${t}s`]));
-  const rows = await db.selectFrom('hs_codes')
+  const rows = await dbPlatform.selectFrom('hs_codes')
     .select(['code', 'description', 'import_duty_rate', 'vat_rate', 'level'])
     .where(eb => eb.or(allTokens.flatMap(t =>
       variantsOf(t).map(v => sql<boolean>`description ~* ${'\\y' + v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\y'}`),

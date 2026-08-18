@@ -1,5 +1,5 @@
 import { sql } from 'kysely';
-import { db, dbReadonly } from '../db/client.js';
+import { dbPlatform, dbReadonly } from '../db/client.js';
 import { findAllowedTable, isAllowedColumn } from './queryBuilderSchema.js';
 
 export interface QueryFilter {
@@ -87,8 +87,8 @@ export async function runVisualQuery(params: VisualQueryParams): Promise<{ rows:
   }
   query = sql`${query} LIMIT ${limit}`;
 
-  const compiled = query.compile(db);
-  const result = await query.execute(db);
+  const compiled = query.compile(dbPlatform);
+  const result = await query.execute(dbPlatform);
   return { rows: result.rows, generated_sql: compiled.sql };
 }
 

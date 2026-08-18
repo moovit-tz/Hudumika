@@ -1,8 +1,23 @@
 import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { sql } from 'kysely';
 import { withTenant } from '../db/client.js';
 import { InventoryService, UnknownUom, InvalidMovement } from '../services/inventory.service.js';
+
+const MOVEMENT_TYPES = ['receipt', 'issue', 'transfer', 'adjust', 'count_correction'] as const;
+const movementCreateSchema = z.object({
+  movementType: z.enum(MOVEMENT_TYPES),
+  itemId: z.string().min(1),
+  fromLocationId: z.string().nullable().optional(),
+  toLocationId: z.string().nullable().optional(),
+  enteredQty: z.union([z.number(), z.string()]),
+  enteredUom: z.string().min(1),
+  batchNo: z.string().nullable().optional(),
+  expiryDate: z.string().nullable().optional(),
+  reasonCode: z.string().nullable().optional(),
+  reference: z.string().nullable().optional(),
+});
 
 // Inventory Control Phase 2 — the core stock ledger. Every quantity change
 // goes through InventoryService.recordMovement(); this file is just the
@@ -216,11 +231,8 @@ export async function inventoryStockRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post('/movements', async (request: any, reply) => {
+    const b = movementCreateSchema.parse(request.body);
     try {
-      const b = request.body as any;
-      if (!b.movementType || !b.itemId || !b.enteredQty || !b.enteredUom) {
-        return reply.status(400).send({ error: 'movementType, itemId, enteredQty and enteredUom are required' });
-      }
       const movement = await withTenant(request.user.tenant_id, trx =>
         InventoryService.recordMovement(trx, request.user.tenant_id, {
           actorId: request.user.sub,

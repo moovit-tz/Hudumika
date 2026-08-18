@@ -1,6 +1,28 @@
 import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { withTenant } from '../db/client.js';
+
+// Real values — 115_seal_tasks.sql's inline comment (mirrors shipment_tasks/invoice_tasks).
+const SEAL_TASK_STATUSES = ['open', 'in_progress', 'complete', 'blocked'] as const;
+const SEAL_TASK_PRIORITIES = ['low', 'medium', 'high', 'urgent'] as const;
+const taskCreateSchema = z.object({
+  compartmentId: z.string().nullable().optional(),
+  lotId: z.string().nullable().optional(),
+  title: z.string().trim().min(1).max(500),
+  priority: z.enum(SEAL_TASK_PRIORITIES).optional(),
+  assignedTo: z.string().nullable().optional(),
+  dueDate: z.string().nullable().optional(),
+  note: z.string().max(5000).nullable().optional(),
+});
+const taskPatchSchema = z.object({
+  status: z.enum(SEAL_TASK_STATUSES).optional(),
+  priority: z.enum(SEAL_TASK_PRIORITIES).optional(),
+  assignedTo: z.string().nullable().optional(),
+  dueDate: z.string().nullable().optional(),
+  note: z.string().max(5000).nullable().optional(),
+  title: z.string().trim().min(1).max(500).optional(),
+});
 
 // Warehouse activity/task allocation — the real HR link (assigned_to →
 // any tenant user, same as shipment_tasks/invoice_tasks already do) and the
@@ -61,9 +83,8 @@ export async function sealTasksRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post('/tasks', async (request: any, reply) => {
+    const b = taskCreateSchema.parse(request.body);
     try {
-      const b = request.body as any;
-      if (!b.title?.trim()) return reply.status(400).send({ error: 'title is required' });
       const row = await withTenant(request.user.tenant_id, trx =>
         trx.insertInto('seal_tasks').values({
           tenant_id: request.user.tenant_id,
@@ -84,8 +105,8 @@ export async function sealTasksRoutes(fastify: FastifyInstance) {
   });
 
   fastify.patch('/tasks/:id', async (request: any, reply) => {
+    const b = taskPatchSchema.parse(request.body);
     try {
-      const b = request.body as any;
       const patch: any = { updated_at: new Date() };
       if (b.status !== undefined) patch.status = b.status;
       if (b.priority !== undefined) patch.priority = b.priority;

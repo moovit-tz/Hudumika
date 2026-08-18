@@ -10,7 +10,10 @@
  * A check that has never run reports nothing, which the UI renders as "Not
  * measured yet" — that is the honest answer, not a placeholder.
  */
-import { db } from '../db/client.js';
+import type { Kysely, Transaction } from 'kysely';
+import type { Database } from '../db/client.js';
+
+type Db = Kysely<Database> | Transaction<Database>;
 
 /** Matches the window uptime_30d is named for. */
 const UPTIME_WINDOW_DAYS = 30;
@@ -83,11 +86,12 @@ export async function probe(target: {
  * window keeps a null uptime rather than being rounded up to 100.
  */
 export async function recordProbe(
+  trx: Db,
   tenantId: string,
   checkId: string,
   result: ProbeResult,
 ): Promise<{ uptime30d: number | null; samples: number }> {
-  await db.insertInto('onsite_health_check_results')
+  await trx.insertInto('onsite_health_check_results')
     .values({
       tenant_id: tenantId,
       check_id: checkId,
@@ -108,7 +112,7 @@ export async function recordProbe(
    * "Not measured yet".
    */
   const since = new Date(Date.now() - UPTIME_WINDOW_DAYS * 86_400_000);
-  const rows = await db.selectFrom('onsite_health_check_results')
+  const rows = await trx.selectFrom('onsite_health_check_results')
     .select(['ok'])
     .where('check_id', '=', checkId)
     .where('tenant_id', '=', tenantId)
@@ -121,7 +125,7 @@ export async function recordProbe(
   // availability figure.
   const uptime30d = samples > 0 ? Math.round((up / samples) * 10000) / 100 : null;
 
-  await db.updateTable('onsite_health_checks')
+  await trx.updateTable('onsite_health_checks')
     .set({
       status: result.ok ? 'healthy' : 'critical',
       last_checked_at: new Date(),
@@ -139,7 +143,7 @@ export async function recordProbe(
 }
 
 /** Probe one check and store the outcome. Used by the job and by "Run now". */
-export async function runCheck(check: {
+export async function runCheck(trx: Db, check: {
   id: string;
   tenant_id: string;
   url: string;
@@ -148,6 +152,6 @@ export async function runCheck(check: {
   timeout_ms: number | null;
 }): Promise<ProbeResult> {
   const result = await probe(check);
-  await recordProbe(check.tenant_id, check.id, result);
+  await recordProbe(trx, check.tenant_id, check.id, result);
   return result;
 }

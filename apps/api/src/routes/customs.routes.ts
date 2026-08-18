@@ -29,7 +29,7 @@ import {
 import { suggestHsCodes } from '../services/hs-suggest.service.js';
 import { hsMemory } from '../services/intelligence.service.js';
 import { callAI } from './ai.routes.js';
-import { db, withTenant } from '../db/client.js';
+import { withTenant, dbPlatform } from '../db/client.js';
 import { sql } from 'kysely';
 
 /** Whitelists and coerces the caller-supplied rate overrides. Anything not
@@ -149,7 +149,7 @@ export async function customsRoutes(fastify: FastifyInstance) {
 
     const digits4 = entry.code.replace(/\./g, '').slice(0, 4);
     const alternatives = digits4.length === 4
-      ? await db.selectFrom('hs_codes')
+      ? await dbPlatform.selectFrom('hs_codes')
           .select(['code', 'description', 'import_duty_rate', 'excise_rate', 'vat_rate'])
           .where(sql<boolean>`replace(code, '.', '') LIKE ${digits4 + '%'}`)
           .where('level', '=', 8)
@@ -167,7 +167,7 @@ export async function customsRoutes(fastify: FastifyInstance) {
   // substring ones so typing "tan" offers Tanzania before Mauritania.
   fastify.get('/countries', async (request) => {
     const q = String((request.query as any).q ?? '').trim().toLowerCase();
-    let query = db.selectFrom('reference_countries').select(['code', 'code3', 'name', 'is_eac']);
+    let query = dbPlatform.selectFrom('reference_countries').select(['code', 'code3', 'name', 'is_eac']);
     if (q) query = query.where(sql<boolean>`lower(name) LIKE ${'%' + q + '%'} OR lower(code) = ${q} OR lower(code3) = ${q}`);
     const rows = await query.orderBy('name').limit(50).execute();
     if (!q) return { data: rows };
@@ -202,18 +202,18 @@ export async function customsRoutes(fastify: FastifyInstance) {
     // memory exists it is by far the strongest signal available, and it is
     // exactly what breaks the three-way ties word-frequency cannot.
     const user = request.user as any;
-    const withMemory = await Promise.all(data.map(async (r) => {
+    const withMemory = await withTenant(user.tenant_id, trx => Promise.all(data.map(async (r) => {
       const item = items.find((i: { id: string }) => i.id === r.id);
       if (!item?.text) return r;
       try {
-        const memory = await hsMemory(user.tenant_id, item.text, 3);
+        const memory = await hsMemory(trx, user.tenant_id, item.text, 3);
         return memory.length ? { ...r, memory } : r;
       } catch {
         // Memory is an enhancement; a failure here must not cost the caller
         // their suggestions.
         return r;
       }
-    }));
+    })));
     return { data: withMemory };
   });
 
@@ -423,7 +423,7 @@ ${items.map((i: any) => `- id ${i.id} | goods: "${i.text}"\n  candidates:\n${i.c
 
     // Optionally save to history
     if (body.save_to_history !== false) {
-      await db.insertInto('landed_cost_records').values({
+      await withTenant(user.tenant_id, trx => trx.insertInto('landed_cost_records').values({
         tenant_id: user.tenant_id,
         shipment_ref: body.shipment_ref ?? null,
         hs_code: result.hs_code,
@@ -451,7 +451,7 @@ ${items.map((i: any) => `- id ${i.id} | goods: "${i.text}"\n  candidates:\n${i.c
         shipment_mode: result.mode,
         price_basis: ['EXW', 'FOB', 'CFR', 'CIF'].includes(body.price_basis) ? body.price_basis : null,
         ...historyExtras(body, result, 1),
-      }).execute().catch(() => {}); // Non-blocking
+      }).execute()).catch(() => {}); // Non-blocking
     }
 
     return result;
@@ -469,60 +469,62 @@ ${items.map((i: any) => `- id ${i.id} | goods: "${i.text}"\n  candidates:\n${i.c
     const offset = Math.max(parseInt(q.offset) || 0, 0);
     const search = String(q.q ?? '').trim();
 
-    const base = () => {
-      let qb = db.selectFrom('landed_cost_records')
-        // Tenant isolation is explicit on every branch — RLS is not on its own
-        // a guarantee here, and history is the one table that would otherwise
-        // hand a competitor's cargo values over whole.
-        .where('tenant_id', '=', user.tenant_id);
-      if (search) {
-        const like = `%${search.replace(/[%_]/g, m => '\\' + m)}%`;
-        qb = qb.where(eb => eb.or([
-          eb('description', 'ilike', like),
-          eb('hs_code', 'ilike', like),
-          eb('customer_name', 'ilike', like),
-          eb('title', 'ilike', like),
-          eb('shipment_ref', 'ilike', like),
-          eb('destination', 'ilike', like),
-        ]));
-      }
-      if (q.mode) qb = qb.where('shipment_mode', '=', String(q.mode));
-      if (q.kind === 'multi') qb = qb.where('hs_code', '=', 'MULTI');
-      if (q.kind === 'single') qb = qb.where('hs_code', '!=', 'MULTI');
-      // Only calculations that can actually be reopened.
-      if (q.reopenable === 'true') qb = qb.where('payload', 'is not', null);
-      return qb;
-    };
+    return withTenant(user.tenant_id, async (trx) => {
+      const base = () => {
+        let qb = trx.selectFrom('landed_cost_records')
+          // Tenant isolation is explicit on every branch — RLS is not on its own
+          // a guarantee here, and history is the one table that would otherwise
+          // hand a competitor's cargo values over whole.
+          .where('tenant_id', '=', user.tenant_id);
+        if (search) {
+          const like = `%${search.replace(/[%_]/g, m => '\\' + m)}%`;
+          qb = qb.where(eb => eb.or([
+            eb('description', 'ilike', like),
+            eb('hs_code', 'ilike', like),
+            eb('customer_name', 'ilike', like),
+            eb('title', 'ilike', like),
+            eb('shipment_ref', 'ilike', like),
+            eb('destination', 'ilike', like),
+          ]));
+        }
+        if (q.mode) qb = qb.where('shipment_mode', '=', String(q.mode));
+        if (q.kind === 'multi') qb = qb.where('hs_code', '=', 'MULTI');
+        if (q.kind === 'single') qb = qb.where('hs_code', '!=', 'MULTI');
+        // Only calculations that can actually be reopened.
+        if (q.reopenable === 'true') qb = qb.where('payload', 'is not', null);
+        return qb;
+      };
 
-    // Allow-list, not a pass-through: an ORDER BY built from a query string is
-    // an injection surface, and a sort on an unindexed column is a table scan.
-    const SORTS: Record<string, 'created_at' | 'total_tzs' | 'customer_name' | 'description' | 'qty'> = {
-      created_at: 'created_at', total: 'total_tzs', customer: 'customer_name',
-      description: 'description', items: 'qty',
-    };
-    const sort = SORTS[String(q.sort ?? 'created_at')] ?? 'created_at';
-    const dir = String(q.dir ?? 'desc').toLowerCase() === 'asc' ? 'asc' : 'desc';
+      // Allow-list, not a pass-through: an ORDER BY built from a query string is
+      // an injection surface, and a sort on an unindexed column is a table scan.
+      const SORTS: Record<string, 'created_at' | 'total_tzs' | 'customer_name' | 'description' | 'qty'> = {
+        created_at: 'created_at', total: 'total_tzs', customer: 'customer_name',
+        description: 'description', items: 'qty',
+      };
+      const sort = SORTS[String(q.sort ?? 'created_at')] ?? 'created_at';
+      const dir = String(q.dir ?? 'desc').toLowerCase() === 'asc' ? 'asc' : 'desc';
 
-    const [rows, counted] = await Promise.all([
-      base()
-        // The payload can be megabytes on a 200-line consignment; the list
-        // only needs to know whether there is one.
-        .select([
-          'id', 'tenant_id', 'shipment_ref', 'hs_code', 'description', 'cif_usd', 'fx_rate',
-          'cif_tzs', 'duty_amount', 'vat_amount', 'total_tzs', 'qty', 'per_unit_tzs', 'source',
-          'created_by', 'created_at', 'origin_country', 'loading_point', 'shipment_mode',
-          'price_basis', 'customer_name', 'customer_email', 'destination', 'title',
-          'parent_id', 'version', 'item_count', 'share_token',
-        ])
-        .select(eb => eb.case().when('payload', 'is not', null).then(true).else(false).end().as('has_payload'))
-        .orderBy(sort, dir)
-        .orderBy('created_at', 'desc')
-        .limit(limit).offset(offset)
-        .execute(),
-      base().select(eb => eb.fn.countAll<string>().as('n')).executeTakeFirst(),
-    ]);
+      const [rows, counted] = await Promise.all([
+        base()
+          // The payload can be megabytes on a 200-line consignment; the list
+          // only needs to know whether there is one.
+          .select([
+            'id', 'tenant_id', 'shipment_ref', 'hs_code', 'description', 'cif_usd', 'fx_rate',
+            'cif_tzs', 'duty_amount', 'vat_amount', 'total_tzs', 'qty', 'per_unit_tzs', 'source',
+            'created_by', 'created_at', 'origin_country', 'loading_point', 'shipment_mode',
+            'price_basis', 'customer_name', 'customer_email', 'destination', 'title',
+            'parent_id', 'version', 'item_count', 'share_token',
+          ])
+          .select(eb => eb.case().when('payload', 'is not', null).then(true).else(false).end().as('has_payload'))
+          .orderBy(sort, dir)
+          .orderBy('created_at', 'desc')
+          .limit(limit).offset(offset)
+          .execute(),
+        base().select(eb => eb.fn.countAll<string>().as('n')).executeTakeFirst(),
+      ]);
 
-    return { data: rows, total: Number(counted?.n ?? 0), limit, offset };
+      return { data: rows, total: Number(counted?.n ?? 0), limit, offset };
+    });
   });
 
   // ── GET /v1/customs/landed-cost/history/:id ───────────────────────────────
@@ -532,23 +534,27 @@ ${items.map((i: any) => `- id ${i.id} | goods: "${i.text}"\n  candidates:\n${i.c
   // costings to anyone who had one.
   fastify.get<{ Params: { id: string } }>('/landed-cost/history/:id', async (request, reply) => {
     const user = request.user as any;
-    const row = await db.selectFrom('landed_cost_records').selectAll()
-      .where('id', '=', request.params.id)
-      .where('tenant_id', '=', user.tenant_id)
-      .executeTakeFirst();
-    if (!row) return reply.status(404).send({ error: 'Calculation not found.' });
+    const result = await withTenant(user.tenant_id, async (trx) => {
+      const row = await trx.selectFrom('landed_cost_records').selectAll()
+        .where('id', '=', request.params.id)
+        .where('tenant_id', '=', user.tenant_id)
+        .executeTakeFirst();
+      if (!row) return null;
 
-    // Every version derived from the same original, so the page can show the
-    // lineage instead of presenting an amendment as an unrelated estimate.
-    const rootId = row.parent_id ?? row.id;
-    const versions = await db.selectFrom('landed_cost_records')
-      .select(['id', 'version', 'title', 'total_tzs', 'created_at', 'parent_id'])
-      .where('tenant_id', '=', user.tenant_id)
-      .where(eb => eb.or([eb('id', '=', rootId), eb('parent_id', '=', rootId)]))
-      .orderBy('version', 'asc')
-      .execute();
+      // Every version derived from the same original, so the page can show the
+      // lineage instead of presenting an amendment as an unrelated estimate.
+      const rootId = row.parent_id ?? row.id;
+      const versions = await trx.selectFrom('landed_cost_records')
+        .select(['id', 'version', 'title', 'total_tzs', 'created_at', 'parent_id'])
+        .where('tenant_id', '=', user.tenant_id)
+        .where(eb => eb.or([eb('id', '=', rootId), eb('parent_id', '=', rootId)]))
+        .orderBy('version', 'asc')
+        .execute();
 
-    return { ...row, versions };
+      return { ...row, versions };
+    });
+    if (!result) return reply.status(404).send({ error: 'Calculation not found.' });
+    return result;
   });
 
   // ── PATCH /v1/customs/landed-cost/history/:id ─────────────────────────────
@@ -557,12 +563,12 @@ ${items.map((i: any) => `- id ${i.id} | goods: "${i.text}"\n  candidates:\n${i.c
   fastify.patch<{ Params: { id: string }; Body: { title?: string } }>('/landed-cost/history/:id', async (request, reply) => {
     const user = request.user as any;
     const title = String(request.body?.title ?? '').trim().slice(0, 160);
-    const updated = await db.updateTable('landed_cost_records')
+    const updated = await withTenant(user.tenant_id, trx => trx.updateTable('landed_cost_records')
       .set({ title: title || null })
       .where('id', '=', request.params.id)
       .where('tenant_id', '=', user.tenant_id)
       .returning(['id', 'title'])
-      .executeTakeFirst();
+      .executeTakeFirst());
     if (!updated) return reply.status(404).send({ error: 'Calculation not found.' });
     return updated;
   });
@@ -600,7 +606,7 @@ ${items.map((i: any) => `- id ${i.id} | goods: "${i.text}"\n  candidates:\n${i.c
     }
 
     if (body.save_to_history !== false) {
-      await db.insertInto('landed_cost_records').values({
+      await withTenant(user.tenant_id, trx => trx.insertInto('landed_cost_records').values({
         tenant_id: user.tenant_id,
         shipment_ref: body.shipment_ref ?? null,
         hs_code: 'MULTI',
@@ -622,7 +628,7 @@ ${items.map((i: any) => `- id ${i.id} | goods: "${i.text}"\n  candidates:\n${i.c
         created_by: user.sub ?? null,
         shipment_mode: result.mode,
         ...historyExtras(body, result, result.items.length),
-      }).execute().catch(() => {});
+      }).execute()).catch(() => {});
     }
 
     return result;
@@ -648,7 +654,7 @@ ${items.map((i: any) => `- id ${i.id} | goods: "${i.text}"\n  candidates:\n${i.c
 
     if (body.save_to_history !== false) {
       const hsEntry = await getHsCode(body.hs_code).catch(() => null);
-      db.insertInto('compliance_check_log').values({
+      withTenant(user.tenant_id, trx => trx.insertInto('compliance_check_log').values({
         tenant_id: user.tenant_id,
         user_id: user.sub ?? null,
         hs_code: body.hs_code,
@@ -657,7 +663,7 @@ ${items.map((i: any) => `- id ${i.id} | goods: "${i.text}"\n  candidates:\n${i.c
         total_checks: checks.length,
         required_count: required.length,
         risk_level: riskLevel,
-      }).execute().catch(() => {}); // Non-blocking
+      }).execute()).catch(() => {}); // Non-blocking
     }
 
     return {
@@ -676,12 +682,12 @@ ${items.map((i: any) => `- id ${i.id} | goods: "${i.text}"\n  candidates:\n${i.c
   // ── GET /v1/customs/compliance-check/history ─────────────────────────────────
   fastify.get('/compliance-check/history', async (request) => {
     const user = request.user as any;
-    return db.selectFrom('compliance_check_log')
+    return withTenant(user.tenant_id, trx => trx.selectFrom('compliance_check_log')
       .selectAll()
       .where('tenant_id', '=', user.tenant_id)
       .orderBy('created_at', 'desc')
       .limit(50)
-      .execute();
+      .execute());
   });
 
   // ── POST /v1/customs/penalty-calc ────────────────────────────────────────────
@@ -704,7 +710,7 @@ ${items.map((i: any) => `- id ${i.id} | goods: "${i.text}"\n  candidates:\n${i.c
 
     // Save penalty record to DB if significant
     if (result.total_penalty_tzs > 0 && body.save_record !== false) {
-      await db.insertInto('customs_penalties').values({
+      await withTenant(user.tenant_id, trx => trx.insertInto('customs_penalties').values({
         tenant_id: user.tenant_id,
         shipment_ref: body.shipment_ref ?? null,
         hs_code: body.hs_code ?? null,
@@ -719,7 +725,7 @@ ${items.map((i: any) => `- id ${i.id} | goods: "${i.text}"\n  candidates:\n${i.c
         currency: 'TZS',
         status: 'open',
         created_by: user.sub ?? null,
-      }).execute().catch(() => {});
+      }).execute()).catch(() => {});
     }
 
     return result;
@@ -729,11 +735,11 @@ ${items.map((i: any) => `- id ${i.id} | goods: "${i.text}"\n  candidates:\n${i.c
   // List saved penalty records for tenant
   fastify.get('/penalties', async (request) => {
     const user = request.user as any;
-    return db.selectFrom('customs_penalties')
+    return withTenant(user.tenant_id, trx => trx.selectFrom('customs_penalties')
       .selectAll()
       .where('tenant_id', '=', user.tenant_id)
       .orderBy('created_at', 'desc')
-      .execute();
+      .execute());
   });
 
   // ── PATCH /v1/customs/penalties/:id ──────────────────────────────────────────
@@ -743,12 +749,12 @@ ${items.map((i: any) => `- id ${i.id} | goods: "${i.text}"\n  candidates:\n${i.c
     const { id } = request.params as { id: string };
     const { status, notes } = penaltyPatchSchema.parse(request.body);
 
-    return db.updateTable('customs_penalties')
+    return withTenant(user.tenant_id, trx => trx.updateTable('customs_penalties')
       .set({ status: status ?? undefined, notes: notes ?? undefined, updated_at: new Date() })
       .where('id', '=', id)
       .where('tenant_id', '=', user.tenant_id)
       .returningAll()
-      .executeTakeFirst();
+      .executeTakeFirst());
   });
 
   // ── GET /v1/customs/vessel/:identifier ───────────────────────────────────────
@@ -770,7 +776,7 @@ ${items.map((i: any) => `- id ${i.id} | goods: "${i.text}"\n  candidates:\n${i.c
   // List all tracked vessels (most recently updated first)
   fastify.get('/vessels', async (request) => {
     const q = (request.query as any).q ?? '';
-    let query = db.selectFrom('vessel_positions').selectAll();
+    let query = dbPlatform.selectFrom('vessel_positions').selectAll();
     if (q) {
       query = query.where('vessel_name', 'ilike', `%${q}%`);
     }
@@ -780,7 +786,7 @@ ${items.map((i: any) => `- id ${i.id} | goods: "${i.text}"\n  candidates:\n${i.c
   // ── GET /v1/customs/tariff-summary ────────────────────────────────────────────
   // Returns a summary of the Tanzania tariff schedule (chapter level)
   fastify.get('/tariff-summary', async () => {
-    return db.selectFrom('hs_codes')
+    return dbPlatform.selectFrom('hs_codes')
       .select(['code', 'description', 'import_duty_rate', 'vat_rate', 'excise_rate', 'pvoc_required', 'di_required', 'permits', 'notes'])
       .where('level', '=', 2)
       .orderBy('code', 'asc')

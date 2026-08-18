@@ -2159,8 +2159,8 @@ export interface LensAreasTable {
 export interface LensCyclesTable {
   id: Generated<string>;
   name: string;
-  start_date: Date | null;
-  end_date: Date | null;
+  start_date: DateOnlyNull;
+  end_date: DateOnlyNull;
   status: Generated<'PLANNING' | 'ACTIVE' | 'CLOSED'>;
   created_by: string | null;
   created_at: Generated<Date>;
@@ -5963,8 +5963,16 @@ export type DateOnlyNull = ColumnType<string | null, Date | string | null, Date 
 /** DATE with a database default — absent on insert. */
 export type DateOnlyGenerated = ColumnType<string, Date | string | undefined, Date | string>;
 
+// Phase 4 cutover (RLS enforcement project): the app's real day-to-day
+// connection is the restricted, non-superuser, non-BYPASSRLS `hudumika_app`
+// role (db/migrations/241_rls_restricted_roles.sql) — not the superuser
+// DATABASE_URL, which now exists only as db/migrate.ts's migration
+// credential (CREATE POLICY/ALTER TABLE/CREATE ROLE/GRANT all require it).
+// This is the change that makes every RLS policy in the database load-bearing:
+// until this flipped, the superuser connection bypassed RLS unconditionally
+// regardless of policy, exactly as CLAUDE.md's tenant_id-filter rule assumed.
 const pool = new pg.Pool({
-  connectionString: env.DATABASE_URL,
+  connectionString: env.DATABASE_URL_APP,
 });
 
 export const db = new Kysely<Database>({
@@ -5985,6 +5993,25 @@ const readonlyPool = new pg.Pool({
 export const dbReadonly = new Kysely<Database>({
   dialect: new PostgresDialect({
     pool: readonlyPool,
+  }),
+});
+
+// Separate connection, separate Postgres role (hudumika_platform, granted
+// BYPASSRLS — see db/migrations/241_rls_restricted_roles.sql). A narrow,
+// explicitly-audited exception for the small set of confirmed
+// SUPER_ADMIN-gated / genuinely cross-tenant call sites (SuperAdmin
+// console, tenant management & reports, platform settings, lens,
+// reference data, the two pre-tenant lookups in middleware/auth.ts) that
+// legitimately need to read/write across tenant boundaries. Never import
+// this for anything handling ordinary tenant traffic — use `db` inside
+// withTenant() instead, so RLS (once enforced) actually applies.
+const platformPool = new pg.Pool({
+  connectionString: env.DATABASE_URL_PLATFORM,
+});
+
+export const dbPlatform = new Kysely<Database>({
+  dialect: new PostgresDialect({
+    pool: platformPool,
   }),
 });
 

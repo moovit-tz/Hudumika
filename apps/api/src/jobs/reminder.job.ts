@@ -1,4 +1,4 @@
-import { db, withTenant } from '../db/client.js';
+import { dbPlatform, withTenant } from '../db/client.js';
 import { NotificationService } from '../services/notification.service.js';
 
 /**
@@ -27,7 +27,7 @@ const REMINDER_COOLDOWN_MS = 20 * 60 * 60 * 1000;
 export async function runMissingDocReminderJob(): Promise<void> {
   console.log('⏳ Running background job: Missing Documents Reminders...');
   try {
-    const requiredDocs = await db
+    const requiredDocs = await dbPlatform
       .selectFrom('case_documents')
       .selectAll()
       .where('status', '=', 'REQUIRED')

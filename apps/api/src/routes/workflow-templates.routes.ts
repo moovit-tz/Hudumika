@@ -1,7 +1,33 @@
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { requireRole } from '../middleware/rbac.js';
 import { WorkflowTemplateService, type TemplateDef } from '../services/workflow-template.service.js';
 import { WorkflowLearningService } from '../services/workflow-learning.service.js';
+
+// steps[] is intentionally z.any() — DefaultStepDef is a deep, nested
+// workflow-step shape (entry conditions, comms, ...) and
+// WorkflowTemplateService/the installer are the real consumers of its
+// structure; this only guards the top-level authoring fields.
+const templateCreateSchema = z.object({
+  templateKey: z.string().trim().min(1).max(100),
+  name: z.string().trim().min(1).max(200),
+  description: z.string().max(2000).optional(),
+  freightModes: z.array(z.string()).optional(),
+  consignmentTypes: z.array(z.string()).optional(),
+  steps: z.array(z.any()).min(1),
+  source: z.string().max(100).optional(),
+}).passthrough();
+const templateVersionSchema = z.object({
+  name: z.string().trim().min(1).max(200).optional(),
+  description: z.string().max(2000).optional(),
+  freightModes: z.array(z.string()).optional(),
+  consignmentTypes: z.array(z.string()).optional(),
+  steps: z.array(z.any()).optional(),
+  source: z.string().max(100).optional(),
+}).passthrough();
+const TEMPLATE_STATUSES = ['draft', 'published', 'archived'] as const;
+const statusPatchSchema = z.object({ status: z.enum(TEMPLATE_STATUSES) });
+const rejectSchema = z.object({ note: z.string().max(2000).optional() });
 
 /**
  * Platform superadmin management of the workflow template library
@@ -23,10 +49,7 @@ export async function workflowTemplateRoutes(fastify: FastifyInstance) {
 
   /** POST / — author a brand-new template key at version 1. */
   fastify.post('/', async (request, reply) => {
-    const body = request.body as TemplateDef & { source?: string };
-    if (!body?.templateKey || !body?.name || !Array.isArray(body?.steps)) {
-      return reply.status(400).send({ error: 'templateKey, name and steps[] are required' });
-    }
+    const body = templateCreateSchema.parse(request.body) as TemplateDef & { source?: string };
     const res = await WorkflowTemplateService.create(body, actorId(request));
     return reply.status(201).send({ success: true, id: res.id });
   });
@@ -34,7 +57,7 @@ export async function workflowTemplateRoutes(fastify: FastifyInstance) {
   /** POST /:key/versions — publish the next version of an existing key. */
   fastify.post('/:key/versions', async (request, reply) => {
     const { key } = request.params as { key: string };
-    const body = request.body as Partial<TemplateDef> & { source?: string };
+    const body = templateVersionSchema.parse(request.body) as Partial<TemplateDef> & { source?: string };
     try {
       const res = await WorkflowTemplateService.publishNewVersion(key, body, actorId(request));
       return reply.status(201).send({ success: true, ...res });
@@ -46,10 +69,7 @@ export async function workflowTemplateRoutes(fastify: FastifyInstance) {
   /** PATCH /:id/status — publish | archive | draft a specific version. */
   fastify.patch('/:id/status', async (request, reply) => {
     const { id } = request.params as { id: string };
-    const { status } = request.body as { status: 'draft' | 'published' | 'archived' };
-    if (!['draft', 'published', 'archived'].includes(status)) {
-      return reply.status(400).send({ error: 'status must be draft, published or archived' });
-    }
+    const { status } = statusPatchSchema.parse(request.body);
     await WorkflowTemplateService.setStatus(id, status);
     return { success: true, status };
   });
@@ -88,7 +108,7 @@ export async function workflowTemplateRoutes(fastify: FastifyInstance) {
   /** POST /proposals/:id/reject */
   fastify.post('/proposals/:id/reject', async (request, reply) => {
     const { id } = request.params as { id: string };
-    const { note } = (request.body ?? {}) as { note?: string };
+    const { note } = rejectSchema.parse(request.body ?? {});
     try {
       await WorkflowLearningService.reject(id, request.user?.sub ?? null, note);
       return { success: true };

@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import { db, withTenant } from '../db/client.js';
+import { withTenant } from '../db/client.js';
 import { generateTotpSecret, buildTotpUri, verifyTotp, generateBackupCodes } from '../lib/totp.js';
 
 // Self-service security settings for the currently-authenticated user —
@@ -14,8 +14,8 @@ export default async function securityRoutes(fastify: FastifyInstance) {
 
   fastify.get('/2fa/status', async (request) => {
     const user = request.user;
-    const row = await db.selectFrom('user_totp').select(['enabled', 'enabled_at'])
-      .where('user_id', '=', user.sub).executeTakeFirst();
+    const row = await withTenant(user.tenant_id, trx => trx.selectFrom('user_totp').select(['enabled', 'enabled_at'])
+      .where('user_id', '=', user.sub).executeTakeFirst());
     return { enabled: !!row?.enabled, enabled_at: row?.enabled_at ?? null };
   });
 
@@ -26,10 +26,10 @@ export default async function securityRoutes(fastify: FastifyInstance) {
     const user = request.user;
     const secret = generateTotpSecret();
 
-    await db.insertInto('user_totp')
+    await withTenant(user.tenant_id, trx => trx.insertInto('user_totp')
       .values({ tenant_id: user.tenant_id, user_id: user.sub, secret, enabled: false })
       .onConflict((oc) => oc.column('user_id').doUpdateSet({ secret, enabled: false, backup_codes: '[]', enabled_at: null }))
-      .execute();
+      .execute());
 
     reply.status(200);
     return { secret, uri: buildTotpUri(secret, user.email) };
@@ -37,8 +37,8 @@ export default async function securityRoutes(fastify: FastifyInstance) {
 
   fastify.post<{ Body: { token: string } }>('/2fa/verify', async (request, reply) => {
     const user = request.user;
-    const row = await db.selectFrom('user_totp').select(['secret', 'enabled'])
-      .where('user_id', '=', user.sub).executeTakeFirst();
+    const row = await withTenant(user.tenant_id, trx => trx.selectFrom('user_totp').select(['secret', 'enabled'])
+      .where('user_id', '=', user.sub).executeTakeFirst());
     if (!row) {
       reply.status(400);
       return { error: 'Run /2fa/setup first' };
@@ -49,10 +49,10 @@ export default async function securityRoutes(fastify: FastifyInstance) {
     }
 
     const backupCodes = generateBackupCodes();
-    await db.updateTable('user_totp')
+    await withTenant(user.tenant_id, trx => trx.updateTable('user_totp')
       .set({ enabled: true, enabled_at: new Date(), backup_codes: JSON.stringify(backupCodes) })
       .where('user_id', '=', user.sub)
-      .execute();
+      .execute());
 
     reply.status(200);
     // Backup codes are only ever returned this once — same convention as an
@@ -62,8 +62,8 @@ export default async function securityRoutes(fastify: FastifyInstance) {
 
   fastify.post<{ Body: { token: string } }>('/2fa/disable', async (request, reply) => {
     const user = request.user;
-    const row = await db.selectFrom('user_totp').select('secret')
-      .where('user_id', '=', user.sub).where('enabled', '=', true).executeTakeFirst();
+    const row = await withTenant(user.tenant_id, trx => trx.selectFrom('user_totp').select('secret')
+      .where('user_id', '=', user.sub).where('enabled', '=', true).executeTakeFirst());
     if (!row) {
       reply.status(400);
       return { error: '2FA is not enabled' };
@@ -72,7 +72,7 @@ export default async function securityRoutes(fastify: FastifyInstance) {
       reply.status(400);
       return { error: 'Incorrect code' };
     }
-    await db.deleteFrom('user_totp').where('user_id', '=', user.sub).execute();
+    await withTenant(user.tenant_id, trx => trx.deleteFrom('user_totp').where('user_id', '=', user.sub).execute());
     reply.status(200);
     return { enabled: false };
   });

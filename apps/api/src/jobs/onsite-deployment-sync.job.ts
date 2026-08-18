@@ -11,7 +11,7 @@
  * deployment the provider cannot be reached about keeps its status too, and
  * stays in this job's queue until it can be.
  */
-import { db } from '../db/client.js';
+import { dbPlatform, withTenant } from '../db/client.js';
 import { resolveCIProvider } from '../services/onsite-ci.service.js';
 
 /** Past this, a run that never reported is stale rather than in progress. */
@@ -20,7 +20,7 @@ const ABANDON_AFTER_MS = 6 * 60 * 60 * 1000;
 const IN_FLIGHT = ['queued', 'building', 'deploying'];
 
 export async function runOnsiteDeploymentSyncJob(): Promise<void> {
-  const open = await db.selectFrom('onsite_deployments')
+  const open = await dbPlatform.selectFrom('onsite_deployments')
     .select(['id', 'tenant_id', 'application_id', 'ci_pipeline_id', 'status', 'queued_at', 'created_at'])
     .where('status', 'in', IN_FLIGHT)
     .where('ci_pipeline_id', 'is not', null)
@@ -58,33 +58,35 @@ export async function runOnsiteDeploymentSyncJob(): Promise<void> {
 
       const terminal = ['succeeded', 'failed', 'cancelled'].includes(state.status);
 
-      await db.updateTable('onsite_deployments')
-        .set({
-          status: state.status,
-          ...(state.url ? { ci_build_url: state.url } : {}),
-          ...(terminal ? { completed_at: new Date() } : {}),
-          ...(state.error ? { error_message: state.error.slice(0, 500) } : {}),
-        })
-        .where('id', '=', d.id)
-        .where('tenant_id', '=', d.tenant_id)
-        .execute();
-
-      /**
-       * An application is only "active" on a deployment the provider actually
-       * finished, and its version is the pipeline that produced it rather than
-       * a number derived from the clock.
-       */
-      if (state.status === 'succeeded') {
-        await db.updateTable('onsite_applications')
+      await withTenant(d.tenant_id, async (trx) => {
+        await trx.updateTable('onsite_deployments')
           .set({
-            status: 'active',
-            current_version: d.ci_pipeline_id,
-            last_deployed_at: new Date(),
+            status: state.status,
+            ...(state.url ? { ci_build_url: state.url } : {}),
+            ...(terminal ? { completed_at: new Date() } : {}),
+            ...(state.error ? { error_message: state.error.slice(0, 500) } : {}),
           })
-          .where('id', '=', d.application_id)
+          .where('id', '=', d.id)
           .where('tenant_id', '=', d.tenant_id)
           .execute();
-      }
+
+        /**
+         * An application is only "active" on a deployment the provider actually
+         * finished, and its version is the pipeline that produced it rather than
+         * a number derived from the clock.
+         */
+        if (state.status === 'succeeded') {
+          await trx.updateTable('onsite_applications')
+            .set({
+              status: 'active',
+              current_version: d.ci_pipeline_id,
+              last_deployed_at: new Date(),
+            })
+            .where('id', '=', d.application_id)
+            .where('tenant_id', '=', d.tenant_id)
+            .execute();
+        }
+      });
     } catch (err) {
       // One unreachable tenant must not stop the sweep for the rest. The
       // deployment keeps its status and is picked up next pass.
@@ -104,13 +106,15 @@ async function abandonIfStale(d: { id: string; tenant_id: string; queued_at: Dat
   const started = (d.queued_at ?? d.created_at).getTime();
   if (Date.now() - started < ABANDON_AFTER_MS) return;
 
-  await db.updateTable('onsite_deployments')
-    .set({
-      status: 'failed',
-      completed_at: new Date(),
-      error_message: 'No status was reported by the CI provider within 6 hours. The outcome of this run is unknown.',
-    })
-    .where('id', '=', d.id)
-    .where('tenant_id', '=', d.tenant_id)
-    .execute();
+  await withTenant(d.tenant_id, (trx) =>
+    trx.updateTable('onsite_deployments')
+      .set({
+        status: 'failed',
+        completed_at: new Date(),
+        error_message: 'No status was reported by the CI provider within 6 hours. The outcome of this run is unknown.',
+      })
+      .where('id', '=', d.id)
+      .where('tenant_id', '=', d.tenant_id)
+      .execute(),
+  );
 }

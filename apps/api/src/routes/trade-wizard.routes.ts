@@ -1,8 +1,14 @@
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { requireEntitlement } from '../middleware/entitlement.js';
 import { tradeWizardService } from '../services/tradeWizard.service.js';
 import { getTradeWizardUsageSummary } from '../lib/tradeWizardUsage.js';
-import { db } from '../db/client.js';
+import { withTenant } from '../db/client.js';
+
+const runWizardSchema = z.object({
+  procedure_id: z.string().min(1).optional(),
+  answers: z.record(z.string(), z.string()).optional(),
+});
 
 export async function tradeWizardRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
@@ -24,7 +30,7 @@ export async function tradeWizardRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post('/run', async (request, reply) => {
-    const body = request.body as { procedure_id?: string; answers?: Record<string, string> };
+    const body = runWizardSchema.parse(request.body);
     if (!body.procedure_id) return reply.status(400).send({ error: 'procedure_id is required' });
     const result = await tradeWizardService.runWizard(
       request.user.tenant_id, request.user.sub, request.user.role, body.procedure_id, body.answers ?? {}
@@ -48,7 +54,7 @@ export async function tradeWizardRoutes(fastify: FastifyInstance) {
   // This tenant's own recent completed wizard runs (not the cross-tenant
   // SuperAdmin analytics view) — powers the Compliance Overview tab.
   fastify.get('/history', async (request) => {
-    return db.selectFrom('trade_wizard_runs')
+    return withTenant(request.user.tenant_id, trx => trx.selectFrom('trade_wizard_runs')
       .innerJoin('trade_procedures', 'trade_procedures.id', 'trade_wizard_runs.procedure_id')
       .select([
         'trade_wizard_runs.id', 'trade_wizard_runs.created_at', 'trade_wizard_runs.procedure_id',
@@ -57,6 +63,6 @@ export async function tradeWizardRoutes(fastify: FastifyInstance) {
       .where('trade_wizard_runs.tenant_id', '=', request.user.tenant_id)
       .orderBy('trade_wizard_runs.created_at', 'desc')
       .limit(20)
-      .execute();
+      .execute());
   });
 }

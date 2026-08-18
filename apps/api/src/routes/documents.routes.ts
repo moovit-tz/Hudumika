@@ -1,11 +1,17 @@
 import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { db, withTenant } from '../db/client.js';
 import { MinioIntegration } from '../integrations/minio.js';
 import { NotificationService } from '../services/notification.service.js';
 import { CloudSync } from '../services/cloud-sync.service.js';
 import { requireRole } from '../middleware/rbac.js';
-import type { DocumentType, DocumentStatus } from '@hudumika/types';
+import type { DocumentType } from '@hudumika/types';
+
+const verifySchema = z.object({
+  status: z.enum(['VERIFIED', 'REJECTED', 'MISSING']),
+  notes: z.string().max(2000).optional(),
+});
 
 export async function documentRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
@@ -210,11 +216,7 @@ export async function documentRoutes(fastify: FastifyInstance) {
     async (request, reply) => {
       const user = request.user;
       const { id, docId } = request.params as { id: string; docId: string };
-      const { status, notes } = request.body as { status: DocumentStatus; notes?: string };
-
-      if (!['VERIFIED', 'REJECTED', 'MISSING'].includes(status)) {
-        return reply.status(400).send({ error: 'Invalid verification status' });
-      }
+      const { status, notes } = verifySchema.parse(request.body);
 
       return withTenant(user.tenant_id, async (trx) => {
         const doc = await trx.selectFrom('case_documents').selectAll()

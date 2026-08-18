@@ -1,9 +1,23 @@
 import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { MailService } from '../services/mail.service.js';
 import { db, withTenant } from '../db/client.js';
 
 type Folder = 'inbox' | 'sent' | 'drafts' | 'spam' | 'trash';
+const FOLDERS = ['inbox', 'sent', 'drafts', 'spam', 'trash'] as const;
+const messagePatchSchema = z.object({
+  read: z.boolean().optional(),
+  starred: z.boolean().optional(),
+  folder: z.enum(FOLDERS).optional(),
+  labels: z.array(z.string()).optional(),
+});
+const sendSchema = z.object({
+  to: z.string().trim().min(1),
+  cc: z.string().optional(),
+  subject: z.string().trim().min(1).max(998),
+  body: z.string().min(1),
+});
 
 function daysAgo(n: number, hour = 9, min = 0): Date {
   const d = new Date();
@@ -150,7 +164,7 @@ export async function emailRoutes(fastify: FastifyInstance) {
   fastify.patch('/:id', async (request: any, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
-    const b = request.body as { read?: boolean; starred?: boolean; folder?: Folder; labels?: string[] };
+    const b = messagePatchSchema.parse(request.body);
 
     return withTenant(user.tenant_id, async (trx) => {
       const patch: Record<string, any> = {};
@@ -189,13 +203,7 @@ export async function emailSendRoutes(fastify: FastifyInstance) {
 
   // POST /v1/email/send
   fastify.post('/send', async (request: any, reply) => {
-    const { to, cc, subject, body } = request.body as {
-      to: string; cc?: string; subject: string; body: string;
-    };
-
-    if (!to || !subject || !body) {
-      return reply.status(400).send({ success: false, error: 'Recipient (to), subject, and body are required.' });
-    }
+    const { to, cc, subject, body } = sendSchema.parse(request.body);
 
     const user = request.user;
     const tenantId = user.tenant_id;

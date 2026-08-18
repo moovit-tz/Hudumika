@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { requireRole } from '../middleware/rbac.js';
-import { db } from '../db/client.js';
+import { dbPlatform, withTenant } from '../db/client.js';
 import { sql } from 'kysely';
 import { GLService } from '../services/gl.service.js';
 import { DefaultWorkflowService } from '../services/default-workflow.service.js';
@@ -52,15 +52,15 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
 
   // 1. GET /v1/superadmin/dashboard-stats
   fastify.get('/dashboard-stats', async (request, reply) => {
-    const totalTenantsRow = await db.selectFrom('tenants').select(db.fn.count('id').as('count')).executeTakeFirst();
-    const activeTenantsRow = await db.selectFrom('tenants').select(db.fn.count('id').as('count')).where('active', '=', true).executeTakeFirst();
-    const totalUsersRow = await db.selectFrom('users').select(db.fn.count('id').as('count')).executeTakeFirst();
+    const totalTenantsRow = await dbPlatform.selectFrom('tenants').select(dbPlatform.fn.count('id').as('count')).executeTakeFirst();
+    const activeTenantsRow = await dbPlatform.selectFrom('tenants').select(dbPlatform.fn.count('id').as('count')).where('active', '=', true).executeTakeFirst();
+    const totalUsersRow = await dbPlatform.selectFrom('users').select(dbPlatform.fn.count('id').as('count')).executeTakeFirst();
 
     const totalTenants = Number(totalTenantsRow?.count ?? 0);
     const activeTenants = Number(activeTenantsRow?.count ?? 0);
     const totalSubscribers = Number(totalUsersRow?.count ?? 0);
 
-    const tenants = await db.selectFrom('tenants').select(['id', 'plan', 'active', 'name', 'created_at']).execute();
+    const tenants = await dbPlatform.selectFrom('tenants').select(['id', 'plan', 'active', 'name', 'created_at']).execute();
 
     // Real list prices from the packages catalog, keyed by code — replaces a
     // previously hardcoded 3-tier ternary that didn't match the real 4-tier
@@ -68,7 +68,7 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
     // price (custom/"talk to sales"), so it contributes 0 to these estimates
     // rather than a fabricated number — real enterprise revenue lives in
     // platform_transactions, not this list-price-based estimate.
-    const packageRows = await db.selectFrom('packages').select(['code', 'monthly_price']).execute();
+    const packageRows = await dbPlatform.selectFrom('packages').select(['code', 'monthly_price']).execute();
     const priceByCode = Object.fromEntries(packageRows.map(p => [p.code, Number(p.monthly_price)]));
 
     let totalEarnings = 0;
@@ -121,12 +121,12 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
 
     const monthKey = (v: unknown) => (v ? new Date(v as string).toISOString().slice(0, 7) : null);
 
-    const txRows = await db.selectFrom('platform_transactions')
+    const txRows = await dbPlatform.selectFrom('platform_transactions')
       .select(['tx_ref', 'tenant_id', 'amount', 'currency', 'status', 'method', 'package_code', 'payer_name', 'created_at'])
       .orderBy('created_at', 'desc')
       .execute();
 
-    const userRows = await db.selectFrom('users').select(['created_at']).execute();
+    const userRows = await dbPlatform.selectFrom('users').select(['created_at']).execute();
 
     // Cumulative counts as at the end of each month — the shape a sparkline
     // implies. A month before anything existed is 0, which is true.
@@ -223,7 +223,7 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
     const { status, limit } = request.query as { status?: string; limit?: string };
     const take = Math.min(Math.max(Number(limit) || 200, 1), 1000);
 
-    let q = db.selectFrom('platform_transactions as t')
+    let q = dbPlatform.selectFrom('platform_transactions as t')
       .leftJoin('tenants', 'tenants.id', 't.tenant_id')
       .select(['t.id', 't.tx_ref', 't.tenant_id', 't.amount', 't.currency', 't.method', 't.status',
                't.package_code', 't.billing_cycle', 't.payer_name', 't.card_last4', 't.created_at',
@@ -235,19 +235,19 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
 
     // Aggregates over the whole table, not the returned page — a "total
     // revenue" that silently meant "of the last 200" would be worse than none.
-    const tally = await db.selectFrom('platform_transactions')
+    const tally = await dbPlatform.selectFrom('platform_transactions')
       .select(['status'])
-      .select(db.fn.count('id').as('n'))
-      .select(db.fn.sum('amount').as('total'))
+      .select(dbPlatform.fn.count('id').as('n'))
+      .select(dbPlatform.fn.sum('amount').as('total'))
       .groupBy('status')
       .execute();
 
     const byStatus = Object.fromEntries(tally.map(t => [t.status, { count: Number(t.n), total: Number(t.total ?? 0) }]));
 
-    const monthly = await db.selectFrom('platform_transactions')
+    const monthly = await dbPlatform.selectFrom('platform_transactions')
       .select([sql<string>`to_char(created_at, 'YYYY-MM')`.as('month')])
-      .select(db.fn.sum('amount').as('total'))
-      .select(db.fn.count('id').as('n'))
+      .select(dbPlatform.fn.sum('amount').as('total'))
+      .select(dbPlatform.fn.count('id').as('n'))
       .where('status', '=', 'completed')
       .groupBy(sql`to_char(created_at, 'YYYY-MM')`)
       .orderBy('month')
@@ -284,13 +284,13 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
 
   // 2. GET /v1/superadmin/tenants
   fastify.get('/tenants', async (request, reply) => {
-    const list = await db.selectFrom('tenants')
+    const list = await dbPlatform.selectFrom('tenants')
       .selectAll()
       .execute();
 
     const tenantsWithUsers = await Promise.all(list.map(async (t) => {
-      const userCountRow = await db.selectFrom('users')
-        .select(db.fn.count('id').as('count'))
+      const userCountRow = await dbPlatform.selectFrom('users')
+        .select(dbPlatform.fn.count('id').as('count'))
         .where('tenant_id', '=', t.id)
         .executeTakeFirst();
       
@@ -314,7 +314,7 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
   fastify.post('/tenants', async (request, reply) => {
     const body = tenantCreateSchema.parse(request.body);
     const now = new Date();
-    const result = await db.insertInto('tenants')
+    const result = await dbPlatform.insertInto('tenants')
       .values({
         name: body.name,
         slug: body.slug || body.name.split(' ')[0].toLowerCase(),
@@ -328,9 +328,13 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
       .returningAll()
       .executeTakeFirstOrThrow();
 
-    await GLService.seedChartOfAccounts(db, result.id);
+    // These seed the new tenant's own chart of accounts / default workflows —
+    // tenant-scoped writes, even though the actor provisioning them is
+    // platform-level, so they go through withTenant like any other write to
+    // that tenant's data, not the cross-tenant dbPlatform connection.
+    await withTenant(result.id, trx => GLService.seedChartOfAccounts(trx, result.id));
     // Platform default workflows (Sea/Air/Road/Sea-transit) for the new tenant.
-    await DefaultWorkflowService.seedForTenant(db, result.id, null);
+    await withTenant(result.id, trx => DefaultWorkflowService.seedForTenant(trx, result.id, null));
 
     await PlatformAdminService.recordActivity({
       ...actor(request), category: 'company',
@@ -345,7 +349,7 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
   fastify.patch('/tenants/:id', async (request, reply) => {
     const { id } = request.params as { id: string };
     const body = tenantPatchSchema.parse(request.body);
-    const before = await db.selectFrom('tenants').select(['name', 'plan', 'active'])
+    const before = await dbPlatform.selectFrom('tenants').select(['name', 'plan', 'active'])
       .where('id', '=', id).executeTakeFirst();
     const updates: any = { updated_at: new Date() };
     if (body.name !== undefined) updates.name = body.name;
@@ -355,7 +359,7 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
     if (body.logo_url !== undefined) updates.logo_url = body.logo_url;
     if (body.primary_color !== undefined) updates.primary_color = body.primary_color;
 
-    const result = await db.updateTable('tenants')
+    const result = await dbPlatform.updateTable('tenants')
       .set(updates)
       .where('id', '=', id)
       .returningAll()
@@ -387,9 +391,9 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
     const { id } = request.params as { id: string };
     // Read the name before it is gone — the audit row has to outlive the row
     // it describes, and tenant_id is SET NULL on delete for the same reason.
-    const doomed = await db.selectFrom('tenants').select(['name', 'plan'])
+    const doomed = await dbPlatform.selectFrom('tenants').select(['name', 'plan'])
       .where('id', '=', id).executeTakeFirst();
-    await db.deleteFrom('tenants')
+    await dbPlatform.deleteFrom('tenants')
       .where('id', '=', id)
       .execute();
     await PlatformAdminService.recordActivity({
@@ -404,7 +408,7 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
   // 5b. GET /v1/superadmin/tenants/:id/apps — which apps are enabled for this tenant
   fastify.get('/tenants/:id/apps', async (request, reply) => {
     const { id } = request.params as { id: string };
-    const row = await db.selectFrom('tenant_settings')
+    const row = await dbPlatform.selectFrom('tenant_settings')
       .select('settings')
       .where('tenant_id', '=', id)
       .executeTakeFirst();
@@ -417,18 +421,18 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
     const { id } = request.params as { id: string };
     const { enabledApps } = tenantAppsPatchSchema.parse(request.body);
 
-    const existing = await db.selectFrom('tenant_settings').select('id').where('tenant_id', '=', id).executeTakeFirst();
+    const existing = await dbPlatform.selectFrom('tenant_settings').select('id').where('tenant_id', '=', id).executeTakeFirst();
     const patch = JSON.stringify({ 'enabled-apps': enabledApps });
     if (existing) {
-      await sql`UPDATE tenant_settings SET settings = settings || ${patch}::jsonb, updated_at = NOW() WHERE tenant_id = ${id}`.execute(db);
+      await sql`UPDATE tenant_settings SET settings = settings || ${patch}::jsonb, updated_at = NOW() WHERE tenant_id = ${id}`.execute(dbPlatform);
     } else {
-      await db.insertInto('tenant_settings').values({ tenant_id: id, settings: patch }).execute();
+      await dbPlatform.insertInto('tenant_settings').values({ tenant_id: id, settings: patch }).execute();
     }
 
-    const row = await db.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', id).executeTakeFirst();
+    const row = await dbPlatform.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', id).executeTakeFirst();
     const settings = row ? (typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings) : {};
 
-    const tenant = await db.selectFrom('tenants').select('name').where('id', '=', id).executeTakeFirst();
+    const tenant = await dbPlatform.selectFrom('tenants').select('name').where('id', '=', id).executeTakeFirst();
     const on = Object.entries(enabledApps).filter(([, v]) => v).map(([k]) => k);
     await PlatformAdminService.recordActivity({
       ...actor(request), category: 'system',
@@ -445,7 +449,7 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
   // this way, matching every other route here.
   fastify.get('/tenants/:id/customers', async (request, reply) => {
     const { id } = request.params as { id: string };
-    const rows = await db.selectFrom('customers')
+    const rows = await dbPlatform.selectFrom('customers')
       .select(['id', 'name', 'email', 'phone', 'phone_wa', 'account_status', 'active', 'created_at'])
       .where('tenant_id', '=', id)
       .orderBy('name', 'asc')
@@ -458,7 +462,7 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
   // predate entity-linking (see cloud-sync.service.ts backfillTenant()).
   fastify.post('/tenants/:id/resync-cloud-links', async (request, reply) => {
     const { id } = request.params as { id: string };
-    const tenant = await db.selectFrom('tenants').select('name').where('id', '=', id).executeTakeFirst();
+    const tenant = await dbPlatform.selectFrom('tenants').select('name').where('id', '=', id).executeTakeFirst();
     if (!tenant) return reply.status(404).send({ error: 'Tenant not found' });
 
     const result = await CloudSync.backfillTenant(id);
@@ -473,7 +477,7 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
 
   // 6. GET /v1/superadmin/settings
   fastify.get('/settings', async (request, reply) => {
-    const row = await db.selectFrom('tenant_settings')
+    const row = await dbPlatform.selectFrom('tenant_settings')
       .selectAll()
       .where('tenant_id', '=', GLOBAL_TENANT_ID)
       .executeTakeFirst();
@@ -485,7 +489,7 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
   // 7. POST /v1/superadmin/settings
   fastify.post('/settings', async (request, reply) => {
     const body = platformSettingsSchema.parse(request.body);
-    const existing = await db.selectFrom('tenant_settings')
+    const existing = await dbPlatform.selectFrom('tenant_settings')
       .select('id')
       .where('tenant_id', '=', GLOBAL_TENANT_ID)
       .executeTakeFirst();
@@ -493,9 +497,9 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
     if (existing) {
       // Shallow-merge into the existing JSONB blob so unrelated sections (branding, feature
       // flags, SMTP, etc.) written by other screens aren't clobbered by this screen's save.
-      await sql`UPDATE tenant_settings SET settings = settings || ${JSON.stringify(body)}::jsonb, updated_at = NOW() WHERE tenant_id = ${GLOBAL_TENANT_ID}`.execute(db);
+      await sql`UPDATE tenant_settings SET settings = settings || ${JSON.stringify(body)}::jsonb, updated_at = NOW() WHERE tenant_id = ${GLOBAL_TENANT_ID}`.execute(dbPlatform);
     } else {
-      await db.insertInto('tenant_settings')
+      await dbPlatform.insertInto('tenant_settings')
         .values({
           tenant_id: GLOBAL_TENANT_ID,
           settings: JSON.stringify(body),
@@ -505,7 +509,7 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
         .execute();
     }
 
-    const row = await db.selectFrom('tenant_settings')
+    const row = await dbPlatform.selectFrom('tenant_settings')
       .selectAll()
       .where('tenant_id', '=', GLOBAL_TENANT_ID)
       .executeTakeFirst();
@@ -546,7 +550,7 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
 
   // 9. GET /v1/superadmin/app-status — per-app maintenance kill switch state
   fastify.get('/app-status', async (request, reply) => {
-    const rows = await db.selectFrom('app_status').selectAll().execute();
+    const rows = await dbPlatform.selectFrom('app_status').selectAll().execute();
     return { appStatus: rows };
   });
 
@@ -558,19 +562,19 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
       const { status, message } = request.body;
       const user = request.user;
 
-      const existing = await db.selectFrom('app_status').select('app_id').where('app_id', '=', appId).executeTakeFirst();
+      const existing = await dbPlatform.selectFrom('app_status').select('app_id').where('app_id', '=', appId).executeTakeFirst();
       if (existing) {
-        await db.updateTable('app_status')
+        await dbPlatform.updateTable('app_status')
           .set({ status, message: message ?? null, updated_by: user.sub, updated_at: new Date() })
           .where('app_id', '=', appId)
           .execute();
       } else {
-        await db.insertInto('app_status')
+        await dbPlatform.insertInto('app_status')
           .values({ app_id: appId, status, message: message ?? null, updated_by: user.sub })
           .execute();
       }
 
-      const row = await db.selectFrom('app_status').selectAll().where('app_id', '=', appId).executeTakeFirstOrThrow();
+      const row = await dbPlatform.selectFrom('app_status').selectAll().where('app_id', '=', appId).executeTakeFirstOrThrow();
       await PlatformAdminService.recordActivity({
         ...actor(request), category: 'system',
         action: status === 'maintenance'
@@ -586,7 +590,7 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
   // 11. GET /v1/superadmin/packages/:code/features — which feature keys a package grants
   fastify.get<{ Params: { code: string } }>('/packages/:code/features', async (request, reply) => {
     const { code } = request.params;
-    const rows = await db.selectFrom('package_features').select('feature_key').where('package_code', '=', code).execute();
+    const rows = await dbPlatform.selectFrom('package_features').select('feature_key').where('package_code', '=', code).execute();
     return { packageCode: code, features: rows.map(r => r.feature_key) };
   });
 
@@ -597,7 +601,7 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
       const { code } = request.params;
       const { features } = request.body;
 
-      await db.transaction().execute(async (trx) => {
+      await dbPlatform.transaction().execute(async (trx) => {
         await trx.deleteFrom('package_features').where('package_code', '=', code).execute();
         if (features.length > 0) {
           await trx.insertInto('package_features')
@@ -644,7 +648,7 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
       const { tenant_id, domain } = request.body ?? {};
       if (!tenant_id) return reply.status(400).send({ error: 'tenant_id is required' });
       const row = await PlatformAdminService.addDomain(tenant_id, domain);
-      const tenant = await db.selectFrom('tenants').select('name').where('id', '=', tenant_id).executeTakeFirst();
+      const tenant = await dbPlatform.selectFrom('tenants').select('name').where('id', '=', tenant_id).executeTakeFirst();
       await PlatformAdminService.recordActivity({
         ...actor(request), category: 'system',
         action: `Added custom domain ${row.domain}`,

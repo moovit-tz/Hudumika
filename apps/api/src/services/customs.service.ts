@@ -10,7 +10,7 @@
  */
 
 import https from 'https';
-import { db } from '../db/client.js';
+import { dbPlatform } from '../db/client.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // FX Rate (open.er-api.com — truly free, no key required)
@@ -126,7 +126,7 @@ export async function searchHsCodes(query: string, limit = 20) {
     // Numeric: match by code prefix, dot-insensitively — codes are stored
     // dotted ("2523.29.00") but users type/paste with or without dots.
     const digits = q.replace(/\./g, '');
-    return db.selectFrom('hs_codes')
+    return dbPlatform.selectFrom('hs_codes')
       .selectAll()
       .where(sql<boolean>`replace(code, '.', '') LIKE ${digits + '%'}`)
       .orderBy('level', 'desc')
@@ -139,7 +139,7 @@ export async function searchHsCodes(query: string, limit = 20) {
   const searchTerms = Array.from(new Set([qLower, ...(COMMON_ALIASES[qLower] || [])]));
 
   // Text search across terms using ILIKE
-  return db.selectFrom('hs_codes')
+  return dbPlatform.selectFrom('hs_codes')
     .selectAll()
     .where(eb => eb.or(
       searchTerms.flatMap(term => [
@@ -160,7 +160,7 @@ export async function getHsCode(code: string) {
   const digits = normalized.replace(/\./g, '');
 
   // Exact match, dot-insensitive ("25232900" and "2523.29.00" both hit)
-  const entry = await db.selectFrom('hs_codes')
+  const entry = await dbPlatform.selectFrom('hs_codes')
     .selectAll()
     .where(sql<boolean>`replace(code, '.', '') = ${digits}`)
     .orderBy('level', 'desc')
@@ -170,7 +170,7 @@ export async function getHsCode(code: string) {
   // (8471.30 not found → try 8471.* line, then 84.71 heading, then 84).
   let resolved = entry ?? null;
   if (!resolved && /^\d+$/.test(digits) && digits.length >= 2) {
-    resolved = await db.selectFrom('hs_codes')
+    resolved = await dbPlatform.selectFrom('hs_codes')
       .selectAll()
       .where(sql<boolean>`${digits} LIKE replace(code, '.', '') || '%'`)
       .orderBy('level', 'desc')
@@ -186,7 +186,7 @@ export async function getHsCode(code: string) {
   // matching ancestor rather than only trusting the most specific row.
   if (!resolved.pvoc_required || !resolved.di_required) {
     const resolvedDigits = resolved.code.replace(/\./g, '');
-    const ancestors = await db.selectFrom('hs_codes')
+    const ancestors = await dbPlatform.selectFrom('hs_codes')
       .select(['pvoc_required', 'di_required'])
       .where(sql<boolean>`${resolvedDigits} LIKE replace(code, '.', '') || '%'`)
       .where('level', '<', resolved.level)
@@ -1087,7 +1087,7 @@ export interface ComplianceCheck {
 let _wmaCache: { rows: Awaited<ReturnType<typeof fetchWmaRows>>; fetchedAt: number } | null = null;
 
 function fetchWmaRows() {
-  return db.selectFrom('wma_hs_codes').selectAll().execute();
+  return dbPlatform.selectFrom('wma_hs_codes').selectAll().execute();
 }
 
 async function getWmaRows() {
@@ -1397,21 +1397,21 @@ export async function calculatePenalty(input: PenaltyInput): Promise<PenaltyResu
  */
 export async function getVesselPosition(identifier: string) {
   // Try MMSI first
-  const byMmsi = await db.selectFrom('vessel_positions')
+  const byMmsi = await dbPlatform.selectFrom('vessel_positions')
     .selectAll()
     .where('mmsi', '=', identifier)
     .executeTakeFirst();
   if (byMmsi) return byMmsi;
 
   // Try IMO
-  const byImo = await db.selectFrom('vessel_positions')
+  const byImo = await dbPlatform.selectFrom('vessel_positions')
     .selectAll()
     .where('imo', '=', identifier)
     .executeTakeFirst();
   if (byImo) return byImo;
 
   // Try vessel name (partial)
-  const byName = await db.selectFrom('vessel_positions')
+  const byName = await dbPlatform.selectFrom('vessel_positions')
     .selectAll()
     .where('vessel_name', 'ilike', `%${identifier}%`)
     .executeTakeFirst();
@@ -1437,7 +1437,7 @@ export async function upsertVesselPosition(data: {
   draught?: number;
 }) {
   const { sql } = await import('kysely');
-  await db.insertInto('vessel_positions')
+  await dbPlatform.insertInto('vessel_positions')
     .values({
       mmsi: data.mmsi,
       imo: data.imo ?? null,

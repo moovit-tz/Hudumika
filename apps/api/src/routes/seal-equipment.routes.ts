@@ -1,6 +1,42 @@
 import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { withTenant } from '../db/client.js';
+
+// Real values — 116_seal_equipment.sql's CHECK constraints.
+const EQUIPMENT_TYPES = ['forklift', 'pallet_jack', 'reach_truck', 'scanner', 'racking', 'conveyor', 'reefer_unit', 'generator', 'hvac', 'scale', 'other'] as const;
+const EQUIPMENT_STATUSES = ['operational', 'under_maintenance', 'out_of_service', 'retired'] as const;
+const EQUIPMENT_CONDITIONS = ['good', 'fair', 'poor'] as const;
+const MAINTENANCE_TYPES = ['inspection', 'repair', 'service', 'calibration'] as const;
+
+const equipmentCreateSchema = z.object({
+  compartmentId: z.string().min(1),
+  equipmentType: z.enum(EQUIPMENT_TYPES),
+  assetTag: z.string().trim().min(1).max(100),
+  name: z.string().trim().min(1).max(200),
+  status: z.enum(EQUIPMENT_STATUSES).optional(),
+  condition: z.enum(EQUIPMENT_CONDITIONS).optional(),
+  lastServiceDate: z.string().nullable().optional(),
+  nextServiceDueDate: z.string().nullable().optional(),
+  notes: z.string().max(2000).optional(),
+});
+const equipmentPatchSchema = z.object({
+  status: z.enum(EQUIPMENT_STATUSES).optional(),
+  condition: z.enum(EQUIPMENT_CONDITIONS).optional(),
+  lastServiceDate: z.string().nullable().optional(),
+  nextServiceDueDate: z.string().nullable().optional(),
+  notes: z.string().max(2000).nullable().optional(),
+});
+const maintenanceRecordCreateSchema = z.object({
+  maintenanceType: z.enum(MAINTENANCE_TYPES),
+  performedAt: z.string().optional(),
+  performedBy: z.string().max(255).optional(),
+  description: z.string().max(2000).optional(),
+  cost: z.number().optional(),
+  nextDueDate: z.string().nullable().optional(),
+  condition: z.enum(EQUIPMENT_CONDITIONS).optional(),
+  resultingStatus: z.enum(EQUIPMENT_STATUSES).optional(),
+});
 
 // Warehouse equipment/tools maintenance tracking — forklifts, scanners,
 // racking hardware, reefer/HVAC plant. Deliberately distinct from Tracking/
@@ -68,11 +104,8 @@ export async function sealEquipmentRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post('/equipment', async (request: any, reply) => {
+    const b = equipmentCreateSchema.parse(request.body);
     try {
-      const b = request.body as any;
-      if (!b.compartmentId || !b.equipmentType || !b.assetTag?.trim() || !b.name?.trim()) {
-        return reply.status(400).send({ error: 'compartmentId, equipmentType, assetTag and name are required' });
-      }
       const row = await withTenant(request.user.tenant_id, trx =>
         trx.insertInto('seal_equipment').values({
           tenant_id: request.user.tenant_id,
@@ -94,8 +127,8 @@ export async function sealEquipmentRoutes(fastify: FastifyInstance) {
   });
 
   fastify.patch('/equipment/:id', async (request: any, reply) => {
+    const b = equipmentPatchSchema.parse(request.body);
     try {
-      const b = request.body as any;
       const patch: any = { updated_at: new Date() };
       if (b.status !== undefined) patch.status = b.status;
       if (b.condition !== undefined) patch.condition = b.condition;
@@ -132,9 +165,8 @@ export async function sealEquipmentRoutes(fastify: FastifyInstance) {
   // of "the latest one," same relationship seal_lots.storage_billed_through
   // has to its own invoice history.
   fastify.post('/equipment/:id/maintenance', async (request: any, reply) => {
+    const b = maintenanceRecordCreateSchema.parse(request.body);
     try {
-      const b = request.body as any;
-      if (!b.maintenanceType) return reply.status(400).send({ error: 'maintenanceType is required' });
       const result = await withTenant(request.user.tenant_id, async trx => {
         const record = await trx.insertInto('seal_equipment_maintenance_records').values({
           tenant_id: request.user.tenant_id,

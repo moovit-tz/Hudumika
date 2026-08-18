@@ -1,6 +1,7 @@
 import fastify from 'fastify';
 import helmet from '@fastify/helmet';
 import cors from '@fastify/cors';
+import cookie from '@fastify/cookie';
 import jwt from '@fastify/jwt';
 import multipart from '@fastify/multipart';
 import websocket from '@fastify/websocket';
@@ -11,6 +12,7 @@ import swaggerUi from '@fastify/swagger-ui';
 import { env } from './config/env.js';
 import { db } from './db/client.js';
 import { authPlugin } from './middleware/auth.js';
+import { extractToken } from './lib/cookies.js';
 import { bootstrapJobs } from './jobs/index.js';
 import { bootstrapSubscribers } from './subscribers/index.js';
 import { workflowEngineRoutes } from './routes/workflow-engine.routes.js';
@@ -144,6 +146,17 @@ const server = fastify({
   // Default (1 MiB) is too small for base64-encoded image payloads (branding
   // logos/favicons, etc.) sent as plain JSON rather than multipart uploads.
   bodyLimit: 15 * 1024 * 1024, // 15 MiB
+  // Deployment is a single VPS with nginx terminating TLS and reverse-proxying
+  // to this app on localhost — so the peer address Node sees on every request
+  // is nginx's own loopback address, never the visitor's. Without this, every
+  // request looks like it came from 127.0.0.1: the per-IP rate limits below
+  // (login, forgot-password, etc.) would either lump every real visitor into
+  // one shared bucket or, worse, be trivially bypassable by whoever's first.
+  // 'loopback' (127.0.0.1/8, ::1/128) means X-Forwarded-For is only honoured
+  // when the immediate connection is from localhost — i.e. only when it
+  // actually came through nginx — so it can't be spoofed by a request that
+  // reaches the app directly from the public internet.
+  trustProxy: 'loopback',
 });
 
 // Bootstrap fastify server setup
@@ -167,8 +180,14 @@ async function main() {
       credentials: true,
     });
 
+    // Registered before `jwt` so `request.cookies` is populated by the time
+    // any custom JWT extractor reads it. Unsigned: the JWT payload itself is
+    // already signed/tamper-evident, no need for a second cookie-signing secret.
+    await server.register(cookie);
+
     await server.register(jwt, {
       secret: env.JWT_SECRET,
+      verify: { extractToken },
     });
 
     await server.register(multipart, {

@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
-import { db } from '../db/client.js';
+import { z } from 'zod';
+import { dbPlatform } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import {
   PROVIDERS, type Provider, listIntegrations, testConnection,
@@ -16,9 +17,10 @@ import { preflight } from '../services/lens-preflight.service.js';
  * so access is by role instead. See migration 191 for the full reasoning — and
  * do not "fix" this by adding a tenant filter.
  *
- * Because it is platform-scoped it uses `db` directly rather than
- * `withTenant()`, which exists to bind RLS to a tenant that these rows have no
- * concept of.
+ * Because it is platform-scoped it uses `dbPlatform` (the narrow, audited
+ * BYPASSRLS connection — see db/migrations/241_rls_restricted_roles.sql)
+ * rather than `withTenant()`, which exists to bind RLS to a tenant that these
+ * rows have no concept of.
  */
 
 type Kind = 'BUG' | 'FEATURE' | 'DEBT' | 'DECISION' | 'QUESTION' | 'RISK' | 'EPIC';
@@ -59,19 +61,34 @@ function validate(body: any, partial: boolean): string | null {
 const asJson = (v: unknown, fallback: unknown[]) =>
   JSON.stringify(Array.isArray(v) ? v : fallback);
 
+// Real values — migration 194_lens_planning.sql's CHECK constraint.
+const LENS_CYCLE_STATUSES = ['PLANNING', 'ACTIVE', 'CLOSED'] as const;
+const cycleCreateSchema = z.object({
+  name: z.string().trim().min(1).max(200),
+  start_date: z.string().nullable().optional(),
+  end_date: z.string().nullable().optional(),
+  status: z.enum(LENS_CYCLE_STATUSES).optional(),
+});
+const cyclePatchSchema = z.object({
+  name: z.string().trim().min(1).max(200).optional(),
+  start_date: z.string().nullable().optional(),
+  end_date: z.string().nullable().optional(),
+  status: z.enum(LENS_CYCLE_STATUSES).optional(),
+});
+
 export async function lensRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireRole('SUPER_ADMIN'));
 
   // GET /v1/lens/areas
   fastify.get('/areas', async () =>
-    db.selectFrom('lens_areas').selectAll().orderBy('sort_order', 'asc').execute());
+    dbPlatform.selectFrom('lens_areas').selectAll().orderBy('sort_order', 'asc').execute());
 
   // GET /v1/lens/items?status=&kind=&area=&confidence=&q=
   fastify.get('/items', async (request) => {
     const { status, kind, area, confidence, q, include_closed } = request.query as Record<string, string>;
 
-    let query = db.selectFrom('lens_items as i')
+    let query = dbPlatform.selectFrom('lens_items as i')
       .leftJoin('lens_areas as a', 'a.id', 'i.area_id')
       .select([
         'i.id', 'i.ref', 'i.kind', 'i.title', 'i.body', 'i.area_id', 'i.status',
@@ -107,7 +124,7 @@ export async function lensRoutes(fastify: FastifyInstance) {
 
   // GET /v1/lens/stats — what the board is actually made of.
   fastify.get('/stats', async () => {
-    const rows = await db.selectFrom('lens_items')
+    const rows = await dbPlatform.selectFrom('lens_items')
       .select(['status', 'kind', 'severity', 'confidence']).execute();
     const open = rows.filter(r => !CLOSED.includes(r.status));
     const count = (k: 'status' | 'kind' | 'severity' | 'confidence') =>
@@ -131,10 +148,10 @@ export async function lensRoutes(fastify: FastifyInstance) {
   // GET /v1/lens/items/:ref
   fastify.get('/items/:ref', async (request, reply) => {
     const { ref } = request.params as { ref: string };
-    const item = await db.selectFrom('lens_items').selectAll()
+    const item = await dbPlatform.selectFrom('lens_items').selectAll()
       .where('ref', '=', ref.toUpperCase()).executeTakeFirst();
     if (!item) return reply.status(404).send({ error: 'Item not found' });
-    const events = await db.selectFrom('lens_events').selectAll()
+    const events = await dbPlatform.selectFrom('lens_events').selectAll()
       .where('item_id', '=', item.id).orderBy('created_at', 'desc').execute();
     return { ...item, events };
   });
@@ -146,10 +163,10 @@ export async function lensRoutes(fastify: FastifyInstance) {
     const err = validate(body, false);
     if (err) return reply.status(400).send({ error: err });
 
-    const next = await db.selectNoFrom(
+    const next = await dbPlatform.selectNoFrom(
       eb => eb.fn<number>('nextval', [eb.val('lens_item_ref_seq')]).as('n')).executeTakeFirstOrThrow();
 
-    const item = await db.insertInto('lens_items').values({
+    const item = await dbPlatform.insertInto('lens_items').values({
       ref: `LENS-${next.n}`,
       kind: body.kind,
       title: String(body.title).trim(),
@@ -172,7 +189,7 @@ export async function lensRoutes(fastify: FastifyInstance) {
       resolved_at: CLOSED.includes(body.status) ? new Date() : null,
     }).returningAll().executeTakeFirstOrThrow();
 
-    await db.insertInto('lens_events').values({
+    await dbPlatform.insertInto('lens_events').values({
       item_id: item.id, kind: 'created',
       detail: `${item.kind} opened at ${item.confidence.toLowerCase()} confidence`,
       actor_id: user.sub ?? null, actor_name: user.name ?? user.email ?? null,
@@ -187,7 +204,7 @@ export async function lensRoutes(fastify: FastifyInstance) {
     const { ref } = request.params as { ref: string };
     const body = request.body as any;
 
-    const existing = await db.selectFrom('lens_items').selectAll()
+    const existing = await dbPlatform.selectFrom('lens_items').selectAll()
       .where('ref', '=', ref.toUpperCase()).executeTakeFirst();
     if (!existing) return reply.status(404).send({ error: 'Item not found' });
 
@@ -209,7 +226,7 @@ export async function lensRoutes(fastify: FastifyInstance) {
       updates.resolved_at = CLOSED.includes(body.status) ? (existing.resolved_at ?? new Date()) : null;
     }
 
-    const item = await db.updateTable('lens_items').set(updates)
+    const item = await dbPlatform.updateTable('lens_items').set(updates)
       .where('ref', '=', ref.toUpperCase()).returningAll().executeTakeFirstOrThrow();
 
     // What changed, kept rather than overwritten — the trail is how you see
@@ -225,7 +242,7 @@ export async function lensRoutes(fastify: FastifyInstance) {
       changes.push(`severity ${existing.severity} → ${body.severity}`);
     }
     if (changes.length > 0) {
-      await db.insertInto('lens_events').values({
+      await dbPlatform.insertInto('lens_events').values({
         item_id: item.id, kind: 'updated', detail: changes.join(', '),
         actor_id: user.sub ?? null, actor_name: user.name ?? user.email ?? null,
       }).execute();
@@ -240,11 +257,11 @@ export async function lensRoutes(fastify: FastifyInstance) {
     const { note } = (request.body ?? {}) as { note?: string };
     if (!String(note ?? '').trim()) return reply.status(400).send({ error: 'note is required' });
 
-    const item = await db.selectFrom('lens_items').select('id')
+    const item = await dbPlatform.selectFrom('lens_items').select('id')
       .where('ref', '=', ref.toUpperCase()).executeTakeFirst();
     if (!item) return reply.status(404).send({ error: 'Item not found' });
 
-    const ev = await db.insertInto('lens_events').values({
+    const ev = await dbPlatform.insertInto('lens_events').values({
       item_id: item.id, kind: 'note', detail: String(note).trim(),
       actor_id: user.sub ?? null, actor_name: user.name ?? user.email ?? null,
     }).returningAll().executeTakeFirstOrThrow();
@@ -257,10 +274,10 @@ export async function lensRoutes(fastify: FastifyInstance) {
   fastify.get('/board', async (request) => {
     const { area, kind } = request.query as Record<string, string>;
 
-    const columns = await db.selectFrom('lens_columns').selectAll()
+    const columns = await dbPlatform.selectFrom('lens_columns').selectAll()
       .orderBy('sort_order', 'asc').execute();
 
-    let q = db.selectFrom('lens_items as i')
+    let q = dbPlatform.selectFrom('lens_items as i')
       .leftJoin('lens_areas as a', 'a.id', 'i.area_id')
       .select(['i.id', 'i.ref', 'i.kind', 'i.title', 'i.status', 'i.severity',
                'i.confidence', 'i.waiting_on', 'i.area_id', 'a.name as area_name',
@@ -272,7 +289,7 @@ export async function lensRoutes(fastify: FastifyInstance) {
     if (KINDS.includes(kind as Kind)) q = q.where('i.kind', '=', kind as Kind);
     const items = await q.orderBy('i.updated_at', 'desc').execute();
 
-    const links = await db.selectFrom('lens_links')
+    const links = await dbPlatform.selectFrom('lens_links')
       .select(['item_id', 'provider', 'kind', 'external_id', 'url', 'external_status'])
       .execute();
     const byItem = new Map<string, typeof links>();
@@ -305,11 +322,11 @@ export async function lensRoutes(fastify: FastifyInstance) {
     if (!String(b.external_id ?? '').trim()) {
       return reply.status(400).send({ error: 'external_id is required' });
     }
-    const item = await db.selectFrom('lens_items').select('id')
+    const item = await dbPlatform.selectFrom('lens_items').select('id')
       .where('ref', '=', ref.toUpperCase()).executeTakeFirst();
     if (!item) return reply.status(404).send({ error: 'Item not found' });
 
-    const link = await db.insertInto('lens_links').values({
+    const link = await dbPlatform.insertInto('lens_links').values({
       item_id: item.id,
       provider: b.provider,
       kind: b.kind || 'issue',
@@ -321,7 +338,7 @@ export async function lensRoutes(fastify: FastifyInstance) {
     }).onConflict(oc => oc.columns(['item_id', 'provider', 'external_id']).doNothing())
       .returningAll().executeTakeFirst();
 
-    await db.insertInto('lens_events').values({
+    await dbPlatform.insertInto('lens_events').values({
       item_id: item.id, kind: 'linked',
       detail: `${b.provider} ${b.kind || 'issue'} ${b.external_id}`,
       actor_id: user.sub ?? null, actor_name: user.name ?? user.email ?? null,
@@ -338,7 +355,7 @@ export async function lensRoutes(fastify: FastifyInstance) {
     if (!['github', 'jira', 'linear'].includes(String(provider))) {
       return reply.status(400).send({ error: 'provider must be github, jira or linear' });
     }
-    const item = await db.selectFrom('lens_items').selectAll()
+    const item = await dbPlatform.selectFrom('lens_items').selectAll()
       .where('ref', '=', ref.toUpperCase()).executeTakeFirst();
     if (!item) return reply.status(404).send({ error: 'Item not found' });
 
@@ -346,13 +363,13 @@ export async function lensRoutes(fastify: FastifyInstance) {
     // The provider's own words, unedited. A paraphrased failure is a lost one.
     if (!r.ok) return reply.status(502).send({ error: r.detail, provider_status: r.status });
 
-    await db.insertInto('lens_links').values({
+    await dbPlatform.insertInto('lens_links').values({
       item_id: item.id, provider: provider as any, kind: 'issue',
       external_id: r.external_id!, url: r.url ?? null,
       title: item.title, synced_at: new Date(),
     }).onConflict(oc => oc.columns(['item_id', 'provider', 'external_id']).doNothing()).execute();
 
-    await db.insertInto('lens_events').values({
+    await dbPlatform.insertInto('lens_events').values({
       item_id: item.id, kind: 'pushed',
       detail: `Opened in ${provider} as ${r.external_id}`,
       actor_id: user.sub ?? null, actor_name: user.name ?? user.email ?? null,
@@ -379,7 +396,7 @@ export async function lensRoutes(fastify: FastifyInstance) {
     if (typeof b.credential === 'string' && b.credential.trim()) values.credential = b.credential.trim();
     if (typeof b.webhook_secret === 'string') values.webhook_secret = b.webhook_secret.trim() || null;
 
-    await db.insertInto('lens_integrations').values({ ...values, status: 'disconnected' })
+    await dbPlatform.insertInto('lens_integrations').values({ ...values, status: 'disconnected' })
       .onConflict(oc => oc.column('provider').doUpdateSet(values)).execute();
 
     // Say immediately whether it works, rather than letting the first real use
@@ -417,7 +434,7 @@ export async function lensRoutes(fastify: FastifyInstance) {
   fastify.post('/items/:ref/notify', async (request, reply) => {
     const { ref } = request.params as { ref: string };
     const { event } = (request.body ?? {}) as { event?: string };
-    const item = await db.selectFrom('lens_items').selectAll()
+    const item = await dbPlatform.selectFrom('lens_items').selectAll()
       .where('ref', '=', ref.toUpperCase()).executeTakeFirst();
     if (!item) return reply.status(404).send({ error: 'Item not found' });
     const r = await notifySlack(item, event || 'updated');
@@ -438,19 +455,16 @@ export async function lensRoutes(fastify: FastifyInstance) {
 
   // GET /v1/lens/cycles
   fastify.get('/cycles', async () => {
-    const rows = await db.selectFrom('lens_cycles').selectAll().orderBy('created_at', 'desc').execute();
+    const rows = await dbPlatform.selectFrom('lens_cycles').selectAll().orderBy('created_at', 'desc').execute();
     return rows;
   });
 
   // POST /v1/lens/cycles
   fastify.post('/cycles', async (request, reply) => {
     const user = request.user;
-    const body = request.body as any;
-    if (!String(body.name ?? '').trim()) {
-      return reply.status(400).send({ error: 'name is required' });
-    }
-    const cycle = await db.insertInto('lens_cycles').values({
-      name: String(body.name).trim(),
+    const body = cycleCreateSchema.parse(request.body);
+    const cycle = await dbPlatform.insertInto('lens_cycles').values({
+      name: body.name,
       start_date: body.start_date ?? null,
       end_date: body.end_date ?? null,
       status: body.status ?? 'PLANNING',
@@ -462,7 +476,7 @@ export async function lensRoutes(fastify: FastifyInstance) {
   // PATCH /v1/lens/cycles/:id
   fastify.patch('/cycles/:id', async (request, reply) => {
     const { id } = request.params as { id: string };
-    const body = request.body as any;
+    const body = cyclePatchSchema.parse(request.body) as Record<string, unknown>;
     const updates: any = { updated_at: new Date() };
     for (const f of ['name', 'start_date', 'end_date', 'status']) {
       if (body[f] !== undefined) updates[f] = body[f];
@@ -470,7 +484,7 @@ export async function lensRoutes(fastify: FastifyInstance) {
     
     if (Object.keys(updates).length === 1) return reply.send({ ok: true }); // only updated_at
     
-    const cycle = await db.updateTable('lens_cycles').set(updates)
+    const cycle = await dbPlatform.updateTable('lens_cycles').set(updates)
       .where('id', '=', id).returningAll().executeTakeFirst();
     if (!cycle) return reply.status(404).send({ error: 'Cycle not found' });
     return reply.send(cycle);

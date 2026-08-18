@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import { FileUploader } from '../components/ui/file-uploader.js';
-import { BASE_URL } from '../lib/api.js';
+import { apiFetch } from '../lib/api.js';
 
 const TEMPLATE_COLUMNS = ['company_name', 'email', 'phone', 'country', 'address', 'currency'];
 
@@ -34,16 +34,9 @@ export const CustomerBulkUpload: React.FC = () => {
     setUploading(true);
     setError('');
     try {
-      const token = localStorage.getItem('hudumika_token');
       const form = new FormData();
       form.append('file', file);
-      const res = await fetch(`${BASE_URL}/v1/customers/bulk-import`, {
-        method: 'POST',
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-        body: form,
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || 'Import failed');
+      const json = await apiFetch('/v1/customers/bulk-import', { method: 'POST', body: form });
       setSummary(json.data);
     } catch (e: any) {
       setError(e.message || 'Import failed');

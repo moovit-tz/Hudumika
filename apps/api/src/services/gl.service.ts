@@ -1,4 +1,4 @@
-import { db, withTenant, type Database } from '../db/client.js';
+import { withTenant, type Database } from '../db/client.js';
 import type { Kysely, Transaction } from 'kysely';
 import { toDateParam } from '../utils/dates.js';
 import type {

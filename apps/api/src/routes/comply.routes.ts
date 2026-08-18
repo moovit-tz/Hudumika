@@ -5,7 +5,7 @@ import { sql } from 'kysely';
 import { GoogleGenAI } from '@google/genai';
 import { ComplyService } from '../services/comply.service.js';
 import { AGENCY_ADAPTERS } from '../integrations/comply-agencies.js';
-import { withTenant, db } from '../db/client.js';
+import { withTenant, dbPlatform } from '../db/client.js';
 
 const GLOBAL_TENANT_ID = '00000000-0000-0000-0000-000000000000';
 
@@ -36,7 +36,7 @@ const tausiImportSchema = z.object({
 // Same superadmin-configurable key lookup as ocr.routes.ts / comply-ocr.routes.ts
 // (Platform Settings → OCR / Document Scanning) — one key covers all three.
 async function getGeminiApiKey(): Promise<string | null> {
-  const row = await db.selectFrom('tenant_settings')
+  const row = await dbPlatform.selectFrom('tenant_settings')
     .select('settings')
     .where('tenant_id', '=', GLOBAL_TENANT_ID)
     .executeTakeFirst();

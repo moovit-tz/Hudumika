@@ -14,6 +14,21 @@ const envSchema = z.object({
   // not just the application-layer keyword checks. Rotate this for any
   // non-local deployment rather than relying on the migration's dev default.
   DATABASE_URL_READONLY: z.string().url().default('postgresql://hudumika_readonly:hudumika_readonly_pass@localhost:5432/clearos'),
+  // RLS hardening (security checklist #4, see db/migrations/241_rls_restricted_roles.sql).
+  // DATABASE_URL_APP is the app's real day-to-day connection once cutover
+  // happens — ordinary read/write, but not a superuser/BYPASSRLS role, so
+  // FORCE ROW LEVEL SECURITY actually constrains it. Dormant until then:
+  // client.ts's `db`/`withTenant()` still point at DATABASE_URL (the
+  // superuser) until every tenant-scoped query in the app is verified to
+  // route through withTenant().
+  DATABASE_URL_APP: z.string().url().default('postgresql://hudumika_app:hudumika_app_pass@localhost:5432/clearos'),
+  // DATABASE_URL_PLATFORM is a narrow, explicitly-audited BYPASSRLS
+  // exception for the small set of confirmed SUPER_ADMIN-gated /
+  // genuinely cross-tenant call sites (SuperAdmin console, tenant
+  // management & reports, platform settings, lens, reference data, the
+  // two pre-tenant auth lookups) — never used by anything handling
+  // ordinary tenant traffic.
+  DATABASE_URL_PLATFORM: z.string().url().default('postgresql://hudumika_platform:hudumika_platform_pass@localhost:5432/clearos'),
   REDIS_URL: z.string().url().default('redis://localhost:6379'),
   
   JWT_SECRET: z.string().default('change-this-in-production-min-32-characters-long'),
@@ -23,6 +38,12 @@ const envSchema = z.object({
   // throw away the point of having two.
   JWT_EXPIRES_IN: z.string().default('1h'),
   JWT_REFRESH_EXPIRES_IN: z.string().default('30d'),
+  // Session-cookie migration (security checklist #9). 'lax' is correct when
+  // the frontend and API share a registrable domain (e.g. app.hudumika.co /
+  // api.hudumika.co) — the expected production topology. Override to 'none'
+  // (requires `secure`, which APP_ENV=production already forces) only if a
+  // deployment ever puts the frontend on a genuinely unrelated domain.
+  COOKIE_SAME_SITE: z.enum(['lax', 'strict', 'none']).default('lax'),
 
   /**
    * Encrypts Onsite's stored credentials — environment secrets, CI tokens,
@@ -112,6 +133,10 @@ const PUBLISHED_DEFAULTS: [key: string, value: string, why: string][] = [
    'the primary read-write database would be reachable with a published password — a strictly bigger exposure than the read-only role below'],
   ['DATABASE_URL_READONLY', 'postgresql://hudumika_readonly:hudumika_readonly_pass@localhost:5432/clearos',
    'the Query Builder\'s raw-SQL role would be reachable with a published password'],
+  ['DATABASE_URL_APP', 'postgresql://hudumika_app:hudumika_app_pass@localhost:5432/clearos',
+   'the app\'s restricted read-write role would be reachable with a published password'],
+  ['DATABASE_URL_PLATFORM', 'postgresql://hudumika_platform:hudumika_platform_pass@localhost:5432/clearos',
+   'the BYPASSRLS platform role would be reachable with a published password — it can read and write across every tenant'],
   ['ONSITE_SECRETS_KEY', '6f6e73697465646576656c6f706d656e746b65796e6f74666f7270726f6475637469'.slice(0, 64),
    'every Onsite environment variable, CI token and cloud credential could be decrypted from this repository'],
 ];

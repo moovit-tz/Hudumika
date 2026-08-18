@@ -1,5 +1,5 @@
 import { sql } from 'kysely';
-import { db } from '../db/client.js';
+import { dbPlatform } from '../db/client.js';
 
 /**
  * Phase 1 metric registry — a curated set of predefined app metrics rather
@@ -67,6 +67,6 @@ export async function runMetric(metricKey: string, filters: MetricFilters): Prom
     ORDER BY value DESC
   `;
 
-  const result = await query.execute(db);
+  const result = await query.execute(dbPlatform);
   return result.rows.map(r => ({ ...r, value: Number(r.value) }));
 }

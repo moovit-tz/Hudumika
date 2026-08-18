@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import { db } from '../db/client.js';
+import { withTenant } from '../db/client.js';
 import type { FeatureKey } from '@hudumika/types';
 import { ALL_FEATURE_KEYS } from '@hudumika/types';
 import { getUsageSummary } from '../lib/usage.js';
@@ -30,10 +30,12 @@ export async function entitlementsRoutes(fastify: FastifyInstance) {
   fastify.get('/', async (request, reply) => {
     const user = request.user;
 
-    const [appStatusRows, settingsRow, tenant, usage] = await Promise.all([
-      db.selectFrom('app_status').select(['app_id', 'status']).execute(),
-      db.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', user.tenant_id).executeTakeFirst(),
-      db.selectFrom('tenants').select('plan').where('id', '=', user.tenant_id).executeTakeFirst(),
+    const [[appStatusRows, settingsRow, tenant], usage] = await Promise.all([
+      withTenant(user.tenant_id, trx => Promise.all([
+        trx.selectFrom('app_status').select(['app_id', 'status']).execute(),
+        trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', user.tenant_id).executeTakeFirst(),
+        trx.selectFrom('tenants').select('plan').where('id', '=', user.tenant_id).executeTakeFirst(),
+      ])),
       getUsageSummary(user.tenant_id),
     ]);
 
@@ -46,7 +48,7 @@ export async function entitlementsRoutes(fastify: FastifyInstance) {
     const overrides = (settings['enabled-apps'] as Record<string, boolean> | undefined) ?? {};
 
     const planGrants = tenant
-      ? await db.selectFrom('package_features').select('feature_key').where('package_code', '=', tenant.plan).execute()
+      ? await withTenant(user.tenant_id, trx => trx.selectFrom('package_features').select('feature_key').where('package_code', '=', tenant.plan).execute())
       : [];
     const planGrantSet = new Set(planGrants.map(r => r.feature_key));
 

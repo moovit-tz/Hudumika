@@ -1,15 +1,70 @@
 import type { FastifyInstance } from 'fastify';
 import crypto from 'node:crypto';
-import { db, withTenant } from '../db/client.js';
+import { z } from 'zod';
+import { withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import { evaluateEntryConditions } from '../services/workflow-resolver.service.js';
 import { WorkflowTemplateService } from '../services/workflow-template.service.js';
 import { WorkflowLearningService } from '../services/workflow-learning.service.js';
 import { resolveComm } from '../services/workflow-comms.service.js';
 import { recordRun } from '../services/workflow-runs.service.js';
-import type { CreateWorkflowInput, UpdateWorkflowInput, Workflow, WorkflowStep, WorkflowTrigger } from '@hudumika/types';
+import type { CreateWorkflowInput, Workflow, WorkflowStep, WorkflowTrigger } from '@hudumika/types';
 
 const OPS_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'SENIOR', 'JUNIOR', 'OFFICER'] as const;
+
+// Real shape, straight from packages/types/src/workflow.ts — steps feed
+// directly into workflow_steps columns (step_order, is_start, next_step_ids, ...)
+// and a wrong type there is a raw DB/JSON error, not a business-rule check.
+const FIELD_CONDITION_OPERATORS = ['required', 'not_empty', 'equals', 'greater_than', 'less_than', 'contains'] as const;
+const fieldConditionSchema = z.object({
+  id: z.string(),
+  field: z.string(),
+  operator: z.enum(FIELD_CONDITION_OPERATORS),
+  value: z.string().optional(),
+  label: z.string(),
+});
+const AUTO_COMM_CHANNELS = ['email', 'sms', 'whatsapp', 'system_notification', 'webhook'] as const;
+const AUTO_COMM_RECIPIENTS = ['customer', 'assigned_agent', 'manager', 'custom_email'] as const;
+const autoCommSchema = z.object({
+  id: z.string(),
+  channel: z.enum(AUTO_COMM_CHANNELS),
+  recipient: z.enum(AUTO_COMM_RECIPIENTS),
+  customEmail: z.string().optional(),
+  subject: z.string(),
+  template: z.string(),
+  delayMinutes: z.number(),
+});
+const workflowStepSchema = z.object({
+  id: z.string(),
+  name: z.string().trim().min(1),
+  description: z.string(),
+  order: z.number(),
+  isStart: z.boolean(),
+  isTerminal: z.boolean(),
+  nextStepIds: z.array(z.string()),
+  entryConditions: z.array(fieldConditionSchema),
+  autoComms: z.array(autoCommSchema),
+  slaHours: z.number().optional(),
+  color: z.string(),
+});
+const workflowTriggerSchema = z.object({
+  freightModes: z.array(z.string()),
+  consignmentTypes: z.array(z.string()),
+  customerIds: z.array(z.string()),
+  originCountries: z.array(z.string()),
+  destinationCountries: z.array(z.string()),
+  isDefault: z.boolean(),
+});
+const workflowCreateSchema = z.object({
+  name: z.string().trim().min(1).max(200),
+  description: z.string().optional(),
+  isActive: z.boolean().optional(),
+  isDefault: z.boolean().optional(),
+  triggers: workflowTriggerSchema,
+  steps: z.array(workflowStepSchema),
+});
+const workflowPatchSchema = workflowCreateSchema.partial();
+const dryRunSchema = z.object({ shipmentId: z.string().optional() });
 
 function parseJson<T>(val: unknown, fallback: T): T {
   if (val == null) return fallback;
@@ -185,11 +240,7 @@ export async function workflowRoutes(fastify: FastifyInstance) {
   /** POST /v1/workflows — create a workflow + its steps. */
   fastify.post('/', { preHandler: requireRole(...OPS_ROLES) }, async (request, reply) => {
     const user = request.user;
-    const input = request.body as CreateWorkflowInput;
-
-    if (!input.name || !Array.isArray(input.steps)) {
-      return reply.status(400).send({ error: 'name and steps are required' });
-    }
+    const input = workflowCreateSchema.parse(request.body);
 
     return withTenant(user.tenant_id, async (trx) => {
       const now = new Date();
@@ -242,7 +293,7 @@ export async function workflowRoutes(fastify: FastifyInstance) {
   fastify.patch('/:id', { preHandler: requireRole(...OPS_ROLES) }, async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
-    const input = request.body as UpdateWorkflowInput;
+    const input = workflowPatchSchema.parse(request.body);
 
     return withTenant(user.tenant_id, async (trx) => {
       const existing = await trx.selectFrom('workflows').selectAll()
@@ -515,7 +566,7 @@ export async function workflowRoutes(fastify: FastifyInstance) {
   fastify.post('/:id/dry-run', { preHandler: requireRole(...OPS_ROLES) }, async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
-    const { shipmentId } = (request.body ?? {}) as { shipmentId?: string };
+    const { shipmentId } = dryRunSchema.parse(request.body ?? {});
     const startedAt = Date.now();
 
     const loaded = await withTenant(user.tenant_id, async (trx) => {

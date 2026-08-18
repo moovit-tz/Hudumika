@@ -1,4 +1,4 @@
-import { db } from '../db/client.js';
+import { withTenant } from '../db/client.js';
 import { decryptSecret } from '../services/onsite-secrets.service.js';
 
 /**
@@ -10,10 +10,12 @@ import { decryptSecret } from '../services/onsite-secrets.service.js';
  * rather than rejecting every request against a secret that doesn't exist.
  */
 export async function verifyRecaptcha(tenantId: string, token: string | undefined): Promise<boolean> {
-  const row = await db.selectFrom('tenant_settings')
-    .select('settings')
-    .where('tenant_id', '=', tenantId)
-    .executeTakeFirst();
+  const row = await withTenant(tenantId, (trx) =>
+    trx.selectFrom('tenant_settings')
+      .select('settings')
+      .where('tenant_id', '=', tenantId)
+      .executeTakeFirst(),
+  );
   if (!row) return true;
 
   const settings = typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings;

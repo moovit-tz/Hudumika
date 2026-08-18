@@ -1,7 +1,7 @@
 import { ImapFlow } from 'imapflow';
 import { simpleParser } from 'mailparser';
 import sanitizeHtml from 'sanitize-html';
-import { db, withTenant } from '../db/client.js';
+import { dbPlatform, withTenant } from '../db/client.js';
 import { decryptSecret } from '../services/onsite-secrets.service.js';
 import { MailService } from '../services/mail.service.js';
 import { createTicketRow } from '../routes/support.routes.js';
@@ -15,7 +15,7 @@ const TICKET_TAG_RE = /\[?#?(SUP-\d+)\]?/i;
 interface EnabledTenant { tenantId: string; config: TicketImapConfig }
 
 async function loadEnabledTenants(): Promise<EnabledTenant[]> {
-  const rows = await db.selectFrom('tenant_settings').select(['tenant_id', 'settings']).execute();
+  const rows = await dbPlatform.selectFrom('tenant_settings').select(['tenant_id', 'settings']).execute();
   const out: EnabledTenant[] = [];
   for (const row of rows) {
     const settings = typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings;

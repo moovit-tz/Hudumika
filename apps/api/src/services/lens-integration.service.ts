@@ -1,4 +1,4 @@
-import { db } from '../db/client.js';
+import { dbPlatform } from '../db/client.js';
 
 /**
  * Lens ↔ GitHub, Slack, Jira, Linear, CircleCI.
@@ -128,17 +128,17 @@ async function call(
 }
 
 export async function getIntegration(provider: Provider) {
-  return db.selectFrom('lens_integrations').selectAll()
+  return dbPlatform.selectFrom('lens_integrations').selectAll()
     .where('provider', '=', provider).executeTakeFirst();
 }
 
 /** Never returns the credential — only whether one is set. */
 export async function listIntegrations() {
-  const rows = await db.selectFrom('lens_integrations')
+  const rows = await dbPlatform.selectFrom('lens_integrations')
     .select(['provider', 'status', 'config', 'last_sync_at', 'last_error', 'updated_at'])
     .execute();
   const byProvider = new Map(rows.map(r => [r.provider, r]));
-  const withSecret = await db.selectFrom('lens_integrations')
+  const withSecret = await dbPlatform.selectFrom('lens_integrations')
     .select(['provider', 'credential']).execute();
   const hasCred = new Map(withSecret.map(r => [r.provider, !!r.credential]));
 
@@ -157,7 +157,7 @@ export async function listIntegrations() {
 }
 
 async function record(provider: Provider, result: CallResult) {
-  await db.updateTable('lens_integrations').set({
+  await dbPlatform.updateTable('lens_integrations').set({
     status: result.ok ? 'connected' : 'error',
     last_error: result.ok ? null : `${result.status}: ${result.detail}`.slice(0, 1000),
     last_sync_at: result.ok ? new Date() : undefined,

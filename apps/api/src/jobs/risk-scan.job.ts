@@ -1,4 +1,4 @@
-import { db } from '../db/client.js';
+import { dbPlatform } from '../db/client.js';
 import { ShipmentService } from '../services/shipment.service.js';
 
 /**
@@ -11,14 +11,14 @@ import { ShipmentService } from '../services/shipment.service.js';
 export async function runRiskScanJob(): Promise<void> {
   console.log('⏳ Running background job: Risk Scan...');
   try {
-    const legacyShipments = await db
+    const legacyShipments = await dbPlatform
       .selectFrom('shipment_cases')
       .select(['id', 'tenant_id'])
       .where('workflow_id', 'is', null)
       .where('stage', 'not in', ['CLOSED', 'DELIVERY'])
       .execute();
 
-    const customShipments = await db
+    const customShipments = await dbPlatform
       .selectFrom('shipment_cases')
       .innerJoin('workflow_steps', 'workflow_steps.id', 'shipment_cases.workflow_step_id')
       .select(['shipment_cases.id as id', 'shipment_cases.tenant_id as tenant_id'])

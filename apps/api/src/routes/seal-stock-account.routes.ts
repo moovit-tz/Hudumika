@@ -1,7 +1,15 @@
 import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { withTenant } from '../db/client.js';
 import { SealStockAccountService, StockAccountPeriodExists } from '../services/seal-stock-account.service.js';
+
+const periodCreateSchema = z.object({
+  compartmentId: z.string().min(1),
+  periodStart: z.string().min(1),
+  periodEnd: z.string().min(1),
+});
+const periodSubmitSchema = z.object({ submissionReference: z.string().trim().min(1) });
 
 function mapPeriod(row: any) {
   return {
@@ -92,11 +100,8 @@ export async function sealStockAccountRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post('/stock-account/periods', async (request: any, reply) => {
+    const b = periodCreateSchema.parse(request.body);
     try {
-      const b = request.body as any;
-      if (!b.compartmentId || !b.periodStart || !b.periodEnd) {
-        return reply.status(400).send({ error: 'compartmentId, periodStart and periodEnd are required' });
-      }
       const period = await withTenant(request.user.tenant_id, trx =>
         SealStockAccountService.generatePeriod(trx, request.user.tenant_id, request.user.sub, {
           compartmentId: b.compartmentId, periodStart: b.periodStart, periodEnd: b.periodEnd,
@@ -110,9 +115,8 @@ export async function sealStockAccountRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post('/stock-account/periods/:id/submit', async (request: any, reply) => {
+    const b = periodSubmitSchema.parse(request.body);
     try {
-      const b = request.body as any;
-      if (!b.submissionReference) return reply.status(400).send({ error: 'submissionReference is required' });
       const period = await withTenant(request.user.tenant_id, trx =>
         SealStockAccountService.submit(trx, request.user.tenant_id, request.params.id, b.submissionReference)
       );

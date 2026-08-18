@@ -1,5 +1,15 @@
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { withTenant } from '../db/client.js';
+
+const channelCreateSchema = z.object({
+  type: z.enum(['channel', 'dm', 'group']),
+  name: z.string().trim().max(200).optional(),
+  description: z.string().max(2000).optional(),
+  member_ids: z.array(z.string()).optional(),
+});
+const messageCreateSchema = z.object({ content: z.string().trim().min(1).max(10000) });
+const reactionSchema = z.object({ emoji: z.string().trim().min(1).max(20) });
 
 /**
  * Real team chat backend (channels, DMs, groups, messages, reactions).
@@ -99,13 +109,20 @@ export async function chatRoutes(fastify: FastifyInstance) {
   // body: { type: 'channel'|'dm'|'group', name?, description?, member_ids? }
   fastify.post('/channels', async (request, reply) => {
     const user = request.user;
-    const { type, name, description, member_ids } = request.body as { type: 'channel' | 'dm' | 'group'; name?: string; description?: string; member_ids?: string[] };
-    if (!type) return reply.status(400).send({ error: 'type is required' });
+    const { type, name, description, member_ids } = channelCreateSchema.parse(request.body);
 
     return withTenant(user.tenant_id, async (trx) => {
       if (type === 'dm') {
         const otherId = member_ids?.[0];
         if (!otherId) return reply.status(400).send({ error: 'member_ids[0] is required for a DM' });
+
+        // member_ids is client-supplied — without this check a cross-tenant
+        // user id could be added as a channel member, and that other
+        // tenant's user would then see this channel (name/description, if
+        // not its messages) in their own GET /channels.
+        const otherInTenant = await trx.selectFrom('users').select('id')
+          .where('id', '=', otherId).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+        if (!otherInTenant) return reply.status(404).send({ error: 'User not found' });
 
         // Re-use an existing DM between these two users instead of creating duplicates.
         const mine = await trx.selectFrom('chat_channel_members').select('channel_id').where('user_id', '=', user.sub).execute();
@@ -130,11 +147,20 @@ export async function chatRoutes(fastify: FastifyInstance) {
       }
 
       if (!name) return reply.status(400).send({ error: 'name is required' });
+
+      // Same reasoning as the DM branch above: only add members who are
+      // actually in this tenant, silently dropping anything else rather
+      // than trusting the client-supplied id list wholesale.
+      const requestedIds = [...new Set(member_ids ?? [])].filter((uid) => uid !== user.sub);
+      const validMembers = requestedIds.length > 0
+        ? await trx.selectFrom('users').select('id').where('id', 'in', requestedIds).where('tenant_id', '=', user.tenant_id).execute()
+        : [];
+      const memberIds = new Set([user.sub, ...validMembers.map((m) => m.id)]);
+
       const channel = await trx.insertInto('chat_channels').values({
         tenant_id: user.tenant_id, type, name, description: description || null, created_by: user.sub,
       }).returningAll().executeTakeFirstOrThrow();
 
-      const memberIds = new Set([user.sub, ...(member_ids ?? [])]);
       await trx.insertInto('chat_channel_members').values(
         [...memberIds].map((uid) => ({ channel_id: channel.id, user_id: uid }))
       ).execute();
@@ -195,8 +221,7 @@ export async function chatRoutes(fastify: FastifyInstance) {
   fastify.post('/channels/:id/messages', async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
-    const { content } = request.body as { content?: string };
-    if (!content?.trim()) return reply.status(400).send({ error: 'content is required' });
+    const { content } = messageCreateSchema.parse(request.body);
 
     return withTenant(user.tenant_id, async (trx) => {
       const member = await trx.selectFrom('chat_channel_members').select('user_id')
@@ -229,8 +254,7 @@ export async function chatRoutes(fastify: FastifyInstance) {
   fastify.post('/messages/:id/reactions', async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
-    const { emoji } = request.body as { emoji?: string };
-    if (!emoji) return reply.status(400).send({ error: 'emoji is required' });
+    const { emoji } = reactionSchema.parse(request.body);
 
     return withTenant(user.tenant_id, async (trx) => {
       const message = await trx.selectFrom('chat_messages').select('id')
