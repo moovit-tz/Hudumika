@@ -1,4 +1,4 @@
-import { requireEntitlement } from '../middleware/entitlement.js';
+import { requireEntitlement, requireAnyEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { withTenant } from '../db/client.js';
@@ -36,7 +36,11 @@ const customerPricesSchema = z.object({
 
 export async function productRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
-  fastify.addHook('preHandler', requireEntitlement('finops'));
+  // ProductsServices.tsx is mounted in both ClearOS (/clearos/products) and
+  // FinOps — gating on 'finops' alone 403'd any tenant holding clearos but
+  // not finops the moment they clicked their own app's nav item. Same fix
+  // shape as freight-booking.routes.ts's carrierGate.
+  fastify.addHook('preHandler', requireAnyEntitlement(['clearos', 'finops']));
 
   // GET /v1/products
   // When `customer_id` is given, each product this customer has a contract

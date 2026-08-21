@@ -50,10 +50,10 @@
   align-items: center;
   gap: 6px;
   padding: var(--ds-btn-py) 16px;
-  background: var(--teal);
+  background: hsl(var(--primary));
   border: none;
   border-radius: 9px;
-  color: #fff;
+  color: hsl(var(--primary-foreground));
   cursor: pointer;
   font-family: var(--font);
   font-weight: 700;

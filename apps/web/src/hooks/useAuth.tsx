@@ -5,6 +5,7 @@ import { resetEnabledAppsCache } from './useEnabledApps.js';
 import { hydrateCompanyFromServer, resetCompanyCache } from '../data/companyStore.js';
 import { hydrateTasksFromServer, resetTasksCache } from '../data/calendarStore.js';
 import { applyTenantLocale } from '../lib/tenantLocale.js';
+import { clearIdleLockState } from '../lib/idleLockKeys.js';
 
 // Session-cookie migration (security checklist #9): the access/refresh
 // tokens are httpOnly cookies now, invisible to JS entirely — only the
@@ -135,6 +136,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
    */
   const clearSessionLocally = () => {
     for (const k of Object.values(KEYS)) localStorage.removeItem(k);
+    clearIdleLockState();
     resetEnabledAppsCache();
     resetCompanyCache();
     resetTasksCache();

@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { PoweredByHudumika } from '../components/PoweredByHudumika.js';
 import { useCMSPage } from '../hooks/useCMSPage.js';
+import { usePageSEO } from '../hooks/usePageSEO.js';
 import './LegalPages.css';
 
 /** Parses `<h2 id="...">Label</h2>` out of CMS HTML to build the sidebar TOC — no hand-maintained list to fall out of sync with the actual content. */
@@ -15,6 +16,7 @@ export const PrivacyPolicy: React.FC = () => {
   const navigate = useNavigate();
   const { page, loading, error } = useCMSPage('privacy');
   const toc = useMemo(() => (page ? extractTOC(page.content) : []), [page]);
+  usePageSEO(page?.title || 'Privacy Policy', page?.seo_description || 'Hudumika’s Privacy Policy — how the Hudumika platform collects, uses and protects your data.');
 
   return (
     <div className="lp-page">

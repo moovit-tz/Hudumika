@@ -111,7 +111,7 @@ export const CustomerBulkUpload: React.FC = () => {
                   )}
                 </div>
                 {summary.inserted > 0 && (
-                  <Link to="/customers" style={{ marginLeft: 'auto', padding: '7px 16px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', textDecoration: 'none' }}>
+                  <Link to="/customers" style={{ marginLeft: 'auto', padding: '7px 16px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 12, fontWeight: 700, cursor: 'pointer', textDecoration: 'none' }}>
                     View List
                   </Link>
                 )}
@@ -166,7 +166,7 @@ export const CustomerBulkUpload: React.FC = () => {
               <button
                 onClick={handleImport}
                 disabled={uploading}
-                style={{ padding: 'var(--ds-btn-py) 22px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: uploading ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: 7, opacity: uploading ? 0.7 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
+                style={{ padding: 'var(--ds-btn-py) 22px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 13, fontWeight: 700, cursor: uploading ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: 7, opacity: uploading ? 0.7 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
               >
                 <Icon name="upload" size={14} /> {uploading ? 'Uploading…' : 'Upload & Import'}
               </button>

@@ -45,7 +45,7 @@ export function ConfirmHost() {
           {variant === 'danger' ? (
             <Button variant="destructive" className="min-w-[100px]" onClick={confirmAccept}>{req?.confirmLabel ?? 'Confirm'}</Button>
           ) : (
-            <Button className="min-w-[100px]" style={{ background: 'var(--teal)', color: '#fff' }} onClick={confirmAccept}>{req?.confirmLabel ?? 'Confirm'}</Button>
+            <Button className="min-w-[100px]" style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' }} onClick={confirmAccept}>{req?.confirmLabel ?? 'Confirm'}</Button>
           )}
         </DialogFooter>
       </DialogContent>

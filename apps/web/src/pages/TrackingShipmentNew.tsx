@@ -272,12 +272,12 @@ export const TrackingShipmentNew: React.FC = () => {
         {step < 4 ? (
           <button type="button" disabled={step === 1 ? !jobType : step === 2 ? !canAdvanceFromStep2() : !vehicleId}
             onClick={() => setStep(s => s + 1)}
-            style={{ padding: 'var(--ds-btn-py) 20px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontFamily: 'var(--font)', fontWeight: 700, fontSize: 13, cursor: 'pointer', opacity: (step === 1 && !jobType) || (step === 2 && !canAdvanceFromStep2()) || (step === 3 && !vehicleId) ? 0.5 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+            style={{ padding: 'var(--ds-btn-py) 20px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontFamily: 'var(--font)', fontWeight: 700, fontSize: 13, cursor: 'pointer', opacity: (step === 1 && !jobType) || (step === 2 && !canAdvanceFromStep2()) || (step === 3 && !vehicleId) ? 0.5 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
             Continue
           </button>
         ) : (
           <button type="button" disabled={saving} onClick={submit}
-            style={{ padding: 'var(--ds-btn-py) 20px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontFamily: 'var(--font)', fontWeight: 700, fontSize: 13, cursor: 'pointer', opacity: saving ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+            style={{ padding: 'var(--ds-btn-py) 20px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontFamily: 'var(--font)', fontWeight: 700, fontSize: 13, cursor: 'pointer', opacity: saving ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
             {saving ? 'Creating…' : 'Create Shipment'}
           </button>
         )}

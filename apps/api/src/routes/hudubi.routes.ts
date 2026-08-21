@@ -1,8 +1,12 @@
 import type { FastifyInstance } from 'fastify';
 import { sql } from 'kysely';
+import { z } from 'zod';
 import { requireEntitlement } from '../middleware/entitlement.js';
 import { withTenant } from '../db/client.js';
 import { callAI } from './ai.routes.js';
+import {
+  HUDUBI_METRICS, runHuduBIMetric, listWidgets, createWidget, updateWidget, deleteWidget, getWidgetData,
+} from '../services/hudubi-widgets.service.js';
 
 /**
  * HuduBI — the tenant's data layer surfaced as an executive snapshot.
@@ -188,5 +192,76 @@ export async function hudubiRoutes(fastify: FastifyInstance) {
       rationale: 'Every figure is a live count or sum scoped to this tenant. Percentages are shares of the tenant\'s own totals.',
       note: 'HuduBI reports what the data says; it does not predict or invent figures.',
     };
+  });
+
+  // ── Configurable widget/report builder (M9) ───────────────────────
+  // See hudubi-widgets.service.ts: a curated, hardcoded metric registry —
+  // every one of these is a piece of the fixed dashboard above, unbundled
+  // into something a tenant can pick, filter by date, and save.
+
+  fastify.get('/metrics', async () => {
+    return HUDUBI_METRICS.map(m => ({ key: m.key, label: m.label, defaultChartType: m.defaultChartType, supportsDateRange: m.supportsDateRange }));
+  });
+
+  fastify.get('/metrics/:key/preview', async (req: any, reply) => {
+    const { key } = req.params as { key: string };
+    const { date_from, date_to } = req.query as { date_from?: string; date_to?: string };
+    try {
+      return await runHuduBIMetric(req.user.tenant_id, key, { date_from, date_to });
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message });
+    }
+  });
+
+  fastify.get('/widgets', async (req: any) => {
+    return listWidgets(req.user.tenant_id);
+  });
+
+  fastify.post('/widgets', async (req: any, reply) => {
+    const body = z.object({
+      name: z.string().trim().min(1).max(200),
+      metricKey: z.string().trim().min(1),
+      chartType: z.enum(['number', 'bar', 'line', 'table']).optional(),
+      filters: z.object({ date_from: z.string().optional(), date_to: z.string().optional() }).optional(),
+    }).parse(req.body);
+    try {
+      return reply.status(201).send(await createWidget(req.user.tenant_id, req.user.sub, body));
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message });
+    }
+  });
+
+  fastify.patch('/widgets/:id', async (req: any, reply) => {
+    const { id } = req.params as { id: string };
+    const body = z.object({
+      name: z.string().trim().min(1).max(200).optional(),
+      chartType: z.enum(['number', 'bar', 'line', 'table']).optional(),
+      filters: z.object({ date_from: z.string().optional(), date_to: z.string().optional() }).optional(),
+      sortOrder: z.number().int().optional(),
+    }).parse(req.body);
+    try {
+      return await updateWidget(req.user.tenant_id, id, body);
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message });
+    }
+  });
+
+  fastify.delete('/widgets/:id', async (req: any, reply) => {
+    const { id } = req.params as { id: string };
+    try {
+      await deleteWidget(req.user.tenant_id, id);
+      return { ok: true };
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message });
+    }
+  });
+
+  fastify.get('/widgets/:id/data', async (req: any, reply) => {
+    const { id } = req.params as { id: string };
+    try {
+      return await getWidgetData(req.user.tenant_id, id);
+    } catch (err: any) {
+      return reply.status(404).send({ error: err.message });
+    }
   });
 }

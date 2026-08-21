@@ -1,8 +1,20 @@
 import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { apiFetch } from '../../lib/api.js';
+import { showAlert } from '../../lib/alert.js';
 import { Icon } from '../../components/Icon.js';
 import './Onsite.css';
+
+interface SearchSuggestion {
+  domain: string;
+  tld: string;
+  available: boolean;
+  error: string | null;
+}
+interface SearchResults {
+  query: string;
+  suggestions: SearchSuggestion[];
+}
 
 export function OnsiteDomainSearch() {
   const navigate = useNavigate();
@@ -10,16 +22,8 @@ export function OnsiteDomainSearch() {
   const initialQuery = searchParams.get('query') || '';
   const [query, setQuery] = useState(initialQuery);
   const [searching, setSearching] = useState(false);
-  const [results, setResults] = useState<any | null>(null);
-
-  const tldPricing = [
-    { tld: '.com', orig: '$19.99', price: '$0.01' },
-    { tld: '.net', orig: '$17.99', price: '$11.99' },
-    { tld: '.io', orig: '$74.99', price: '$31.99' },
-    { tld: '.org', orig: '$17.99', price: '$8.99' },
-    { tld: '.online', orig: '$35.99', price: '$0.99' },
-    { tld: '.shop', orig: '$34.99', price: '$0.99' },
-  ];
+  const [results, setResults] = useState<SearchResults | null>(null);
+  const [requesting, setRequesting] = useState<string | null>(null);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,16 +32,31 @@ export function OnsiteDomainSearch() {
     try {
       const res = await apiFetch(`/v1/onsite/domains/search-lookup?query=${encodeURIComponent(query)}`);
       setResults(res);
-    } catch {
+    } catch (err: any) {
+      showAlert(err.message || 'Could not check availability right now.', { variant: 'error' });
       setResults(null);
     } finally {
       setSearching(false);
     }
   };
 
+  const handleRequest = async (domain: string) => {
+    setRequesting(domain);
+    try {
+      await apiFetch('/v1/onsite/domains/request', {
+        method: 'POST',
+        body: JSON.stringify({ domain }),
+      });
+      showAlert(`${domain} has been recorded as a request. Connecting a registrar to complete the purchase isn't available yet — we'll follow up once it is.`, { variant: 'success' });
+    } catch (err: any) {
+      showAlert(err.message || 'Could not record this request.', { variant: 'error' });
+    } finally {
+      setRequesting(null);
+    }
+  };
+
   return (
     <div className="onsite-page">
-      {/* Hostinger Hero Search Banner (Image 4) */}
       <div className="onsite-domain-search-hero">
         <h2>Search for a domain name</h2>
 
@@ -46,111 +65,79 @@ export function OnsiteDomainSearch() {
           <input
             type="text"
             className="onsite-prompt-input"
-            placeholder="Type a domain or describe your idea"
+            placeholder="Type a domain name"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
-          <button type="submit" className="onsite-prompt-submit">
-            <Icon name="arrowRight" size={16} />
+          <button type="submit" className="onsite-prompt-submit" disabled={searching}>
+            <Icon name={searching ? 'refresh' : 'arrowRight'} size={16} className={searching ? 'onsite-spin' : ''} />
           </button>
         </form>
-
-        {/* TLD Price Cards */}
-        <div className="onsite-tld-cards">
-          {tldPricing.map((item) => (
-            <div key={item.tld} className="onsite-tld-card">
-              <div className="onsite-tld-name">{item.tld}</div>
-              <div className="onsite-tld-orig-price">{item.orig}</div>
-              <div className="onsite-tld-price">{item.price}</div>
-            </div>
-          ))}
-        </div>
+        <p style={{ fontSize: '0.8125rem', color: 'var(--ink3)', marginTop: '0.5rem' }}>
+          Availability is checked live via RDAP — the real registry record for each name.
+        </p>
       </div>
 
-      {/* Search Results if submitted */}
       {results && (
         <div className="onsite-card">
-          <h3 className="onsite-card-title">Available Domain Extensions for "{results.query}"</h3>
+          <h3 className="onsite-card-title">Results for "{results.query}"</h3>
           <div className="onsite-table-wrapper">
             <table className="onsite-table">
               <thead>
                 <tr>
                   <th>Domain Name</th>
                   <th>Status</th>
-                  <th>Price</th>
                   <th>Action</th>
                 </tr>
               </thead>
               <tbody>
-                {results.suggestions.map((s: any) => (
+                {results.suggestions.map((s) => (
                   <tr key={s.domain}>
                     <td style={{ fontWeight: 600, fontSize: '1rem' }}>{s.domain}</td>
                     <td>
-                      <span className="onsite-badge succeeded">Available</span>
+                      {s.error ? (
+                        <span className="onsite-badge unknown" title={s.error}>Couldn't check</span>
+                      ) : s.available ? (
+                        <span className="onsite-badge succeeded">Available</span>
+                      ) : (
+                        <span className="onsite-badge failed">Taken</span>
+                      )}
                     </td>
                     <td>
-                      <span style={{ fontSize: '0.8125rem', color: '#a1a1aa', textDecoration: 'line-through', marginRight: '0.5rem' }}>{s.originalPrice}</span>
-                      <span style={{ fontWeight: 700, color: '#673de6' }}>{s.price}</span>
-                    </td>
-                    <td>
-                      <button className="onsite-btn-purple">
-                        Add to cart
-                      </button>
+                      {s.available && !s.error && (
+                        <button
+                          className="onsite-btn-purple"
+                          disabled={requesting === s.domain}
+                          onClick={() => handleRequest(s.domain)}
+                        >
+                          {requesting === s.domain ? 'Requesting…' : 'Request this domain'}
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+          <p style={{ fontSize: '0.8125rem', color: 'var(--ink3)', marginTop: '0.75rem' }}>
+            Requesting a domain records it as pending and notifies your workspace admins — connecting a registrar to complete the purchase automatically isn't available yet.
+          </p>
         </div>
       )}
 
-      {/* 3 Promo Banners Grid (Image 4) */}
       <div className="onsite-feature-banners">
-        {/* Banner 1: .com promo */}
-        <div className="onsite-feature-banner" style={{ background: '#673de6', color: '#ffffff' }}>
-          <div style={{ width: '36px', height: '36px', borderRadius: '0.5rem', background: '#ccff00', color: '#000000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '1.125rem' }}>
-            %
-          </div>
-          <div>
-            <h3 style={{ color: '#ffffff', fontSize: '1.35rem', marginTop: '1rem' }}>
-              Register .com domain for only $0.01*/1st yr
-            </h3>
-            <p style={{ color: '#e4d4ff', fontSize: '0.8125rem', marginTop: '0.5rem' }}>
-              *Applicable when you choose a 3-year term. Standard renewal rates apply after year one.
-            </p>
-          </div>
-        </div>
-
-        {/* Banner 2: 9M+ domains */}
-        <div className="onsite-feature-banner" style={{ background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)', color: '#ffffff' }}>
-          <div>
-            <div style={{ fontSize: '2rem', fontWeight: 800, color: '#ffffff' }}>9M+</div>
-            <div style={{ fontSize: '0.9375rem', color: '#c7d2fe' }}>domains registered</div>
-
-            <div style={{ fontSize: '2rem', fontWeight: 800, color: '#ffffff', marginTop: '1.5rem' }}>400+</div>
-            <div style={{ fontSize: '0.9375rem', color: '#c7d2fe' }}>domain extensions</div>
-          </div>
-        </div>
-
-        {/* Banner 3: Transfer promo */}
         <div className="onsite-feature-banner" style={{ background: '#4c1d95', color: '#ffffff' }}>
           <div style={{ width: '40px', height: '40px', borderRadius: '0.5rem', background: '#6d28d9', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Icon name="refresh" size={20} />
           </div>
           <div>
-            <h3 style={{ color: '#ffffff', fontSize: '1.35rem', marginTop: '1rem' }}>Domain transfer</h3>
-            <p style={{ color: '#ddd6fe', marginTop: '0.5rem' }}>Bring your domain over easily — .com from $9.99</p>
+            <h3 style={{ color: '#ffffff', fontSize: '1.35rem', marginTop: '1rem' }}>Already own a domain?</h3>
+            <p style={{ color: '#ddd6fe', marginTop: '0.5rem' }}>Bring it over — we'll record the transfer request for you.</p>
           </div>
           <button className="onsite-btn-outline" style={{ background: '#ffffff', color: '#18181b', marginTop: '1rem' }} onClick={() => navigate('/onsite/domains/transfers')}>
             Transfer domain ↗
           </button>
         </div>
-      </div>
-
-      {/* Trustpilot Banner */}
-      <div style={{ textAlign: 'center', padding: '1.5rem 0', color: '#71717a', fontSize: '0.875rem' }}>
-        Excellent ★★★★★ <strong style={{ color: '#18181b' }}>71,028 reviews</strong> on <strong>Trustpilot</strong>
       </div>
     </div>
   );

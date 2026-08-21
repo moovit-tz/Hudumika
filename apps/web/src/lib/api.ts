@@ -1,9 +1,11 @@
+import { clearIdleLockState } from './idleLockKeys.js';
+
 export const BASE_URL = 'http://localhost:3001';
 
 /** Reads the non-httpOnly CSRF cookie the server sets alongside every
  *  session cookie (double-submit pattern — see apps/api/src/middleware/csrf.ts).
  *  Absent for a Bearer-header-only caller, which never needs it. */
-function csrfToken(): string | null {
+export function csrfToken(): string | null {
   const m = document.cookie.match(/(?:^|; )hudumika_csrf=([^;]+)/);
   return m ? decodeURIComponent(m[1]) : null;
 }
@@ -12,17 +14,32 @@ function csrfToken(): string | null {
  * API rejects our session (expired/invalid) so the user gets a clean re-login
  * prompt instead of every page independently surfacing the raw 401 body. */
 function handleUnauthorized() {
+  // A visitor who was never signed in on this browser (no cached user) isn't
+  // "logged out" — they were never logged in. useBranding.ts's tenant-
+  // branding probe, for one, is fetched unconditionally by a provider that
+  // mounts on every route (DesignSystemProvider/SeoAnalyticsProvider wrap
+  // the whole app in App.tsx, above any auth check) and its own comment
+  // says a 401 there is the ordinary case for an anonymous visitor — it's
+  // already caught at the call site with .catch(() => {}). Redirecting
+  // anyway broke every public page (why-complyos, /site/:tenantSlug, and
+  // the M7 agency directory): load one with no session and it bounced
+  // straight to /login before the page ever rendered. Same reasoning as the
+  // existing hudumika_user gate on the 401-retry below, and generalizes the
+  // /org carve-out (a separate session, same "never logged in here" case)
+  // to every public route without needing a path allowlist.
+  const hadSession = !!localStorage.getItem('hudumika_user');
   localStorage.removeItem('hudumika_user');
+  if (!hadSession) return;
+  // A session that just died 401'd is not "still locked" — the next login
+  // (even in this same tab, no reload) must start with a clean idle clock,
+  // not re-apply whatever lock state this session happened to be in.
+  clearIdleLockState();
+
   // Best-effort — the session cookie is httpOnly and may already be the
   // thing that's invalid/expired, but this is what actually revokes the
   // device server-side (see auth.routes.ts's /logout) rather than just
   // bouncing the UI while the real session lingers.
   fetch(`${BASE_URL}/auth/logout`, { method: 'POST', credentials: 'include' }).catch(() => {});
-  // The org portal (see useOrgAuth.tsx) is a completely separate session
-  // from this one, reached at /org/*. A background call made by a provider
-  // that mounts regardless of route (e.g. useDesignSystem.ts's unconditional
-  // design-tokens fetch) has no staff session there and 401s — that must not
-  // bounce an org-portal visitor into the staff login page.
   const path = window.location.pathname;
   if (!path.startsWith('/login') && !path.startsWith('/org')) {
     window.location.href = '/login?expired=1';

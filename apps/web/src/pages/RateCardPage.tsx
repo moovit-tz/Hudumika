@@ -9,6 +9,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { EntityPicker, PickerItem } from '../components/EntityPicker.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 // ── Rate Card — the tenant's own per-consignment ICD & C&F/agency charges,
 // used to preload the Landed Cost Calculator's defaults instead of the
@@ -167,12 +168,9 @@ export const RateCardPage: React.FC = () => {
 
   function renderTable(rows: RateCardItem[], title: string, hint: string) {
     return (
-      <div style={{ marginBottom: 22 }}>
-        <div style={{ marginBottom: 8 }}>
-          <h3 style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)', margin: 0 }}>{title}</h3>
-          <p style={{ fontSize: 12, color: 'var(--ink3)', margin: '2px 0 0' }}>{hint}</p>
-        </div>
-        <div style={{ border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden', overflowX: 'auto' }}>
+      <SectionCard title={title} padded={false}>
+        <p style={{ fontSize: 12, color: 'var(--ink3)', margin: '0', padding: '12px 16px 0' }}>{hint}</p>
+        <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 560 }}>
             <thead><tr style={{ background: 'var(--bg)' }}>
               <th style={th}>Charge</th><th style={th}>Unit</th><th style={th}>Rate</th><th style={th}>Min</th><th style={th}>Notes</th>
@@ -234,7 +232,7 @@ export const RateCardPage: React.FC = () => {
                       <td style={{ ...td, whiteSpace: 'nowrap' }}>
                         {isEditing ? (
                           <div style={{ display: 'flex', gap: 6 }}>
-                            <button type="button" disabled={saving} onClick={() => saveEdit(row)} style={{ background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 'var(--r)', width: 26, height: 26, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="check" size={13} /></button>
+                            <button type="button" disabled={saving} onClick={() => saveEdit(row)} style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', width: 26, height: 26, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="check" size={13} /></button>
                             <button type="button" onClick={cancelEdit} style={{ background: 'var(--bg)', color: 'var(--ink3)', border: '1px solid var(--border)', borderRadius: 'var(--r)', width: 26, height: 26, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="x" size={13} /></button>
                           </div>
                         ) : (
@@ -256,15 +254,15 @@ export const RateCardPage: React.FC = () => {
             </tbody>
           </table>
         </div>
-      </div>
+      </SectionCard>
     );
   }
 
   return (
     <div style={{ padding: '0 0 32px', flex: 1, overflowY: 'auto' }}>
       <PageHeader
-        crumbs={['ClearOS', 'Rate Card']}
-        titlePlain="Rate"
+        crumbs={['ClearOS', 'Clearing Rate Card']}
+        titlePlain="Clearing rate"
         titleEm="card"
         subtitle="Your own per-consignment ICD and clearing-agent charges, split by container/mode. The Landed Cost Calculator preloads these as its defaults for the matching card."
       />
@@ -331,15 +329,17 @@ export const RateCardPage: React.FC = () => {
               <div style={{ padding: 24, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading…</div>
             ) : (
               <>
-                {/* Air freight never routes through an ICD — an empty "ICD
-                    Charges" table here isn't a gap to fill, it's a category
-                    that doesn't apply. Still shown if something was added to
-                    it anyway (e.g. after switching a shipment's mode), so
-                    nothing already saved goes missing. */}
-                {(c.key !== 'air' || icdRows.length > 0) &&
-                  renderTable(icdRows, c.key === 'sea' ? 'ICD / CFS Charges' : 'ICD Charges', c.key === 'sea' ? 'Per-CBM handling, corridor levy, removal, storage and stripping charges for consolidated cargo.' : 'The charges common to every consignment at your ICD.')}
-                {renderTable(agencyRows, c.key === 'air' ? 'Documentation & Agency Charges' : 'C&F / Agency Charges', c.key === 'air' ? 'Per-AWB documentation, notification and your standard agency fee.' : 'Verification, documentation and your standard agency fee.')}
-                {renderTable(otherRows, c.key === 'air' ? 'Airport / Handling Charges' : 'Other Charges', c.key === 'air' ? 'Airport authority, handling, equipment, security and data-discharge fees, mostly per kg.' : c.key === 'sea' ? 'Shipping line, consolidation and DO fees for LCL cargo.' : 'Extra charges specific to this card — not read by the calculator, shown for reference alongside your quote.')}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 16 }}>
+                  {/* Air freight never routes through an ICD — an empty "ICD
+                      Charges" table here isn't a gap to fill, it's a category
+                      that doesn't apply. Still shown if something was added to
+                      it anyway (e.g. after switching a shipment's mode), so
+                      nothing already saved goes missing. */}
+                  {(c.key !== 'air' || icdRows.length > 0) &&
+                    renderTable(icdRows, c.key === 'sea' ? 'ICD / CFS Charges' : 'ICD Charges', c.key === 'sea' ? 'Per-CBM handling, corridor levy, removal, storage and stripping charges for consolidated cargo.' : 'The charges common to every consignment at your ICD.')}
+                  {renderTable(agencyRows, c.key === 'air' ? 'Documentation & Agency Charges' : 'C&F / Agency Charges', c.key === 'air' ? 'Per-AWB documentation, notification and your standard agency fee.' : 'Verification, documentation and your standard agency fee.')}
+                  {renderTable(otherRows, c.key === 'air' ? 'Airport / Handling Charges' : 'Other Charges', c.key === 'air' ? 'Airport authority, handling, equipment, security and data-discharge fees, mostly per kg.' : c.key === 'sea' ? 'Shipping line, consolidation and DO fees for LCL cargo.' : 'Extra charges specific to this card — not read by the calculator, shown for reference alongside your quote.')}
+                </div>
 
                 {canEdit && (
                   addingExtra ? (
@@ -362,7 +362,7 @@ export const RateCardPage: React.FC = () => {
                         </SelectContent>
                       </Select>
                       <input style={{ ...editInput, width: 100 }} type="number" min="0" step="0.01" placeholder="Rate" value={extraDraft.rate_amount} onChange={e => setExtraDraft(d => ({ ...d, rate_amount: e.target.value }))} />
-                      <button type="button" disabled={saving} onClick={addExtra} style={{ background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 14px', fontSize: 13, fontWeight: 700, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Add</button>
+                      <button type="button" disabled={saving} onClick={addExtra} style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 14px', fontSize: 13, fontWeight: 700, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Add</button>
                       <button type="button" onClick={() => setAddingExtra(false)} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 14px', fontSize: 13, fontWeight: 600, color: 'var(--ink3)', cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
                     </div>
                   ) : (

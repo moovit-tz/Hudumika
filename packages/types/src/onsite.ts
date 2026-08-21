@@ -354,3 +354,56 @@ export interface OnsiteAlert {
   resource_id: string;
   resource_name: string;
 }
+
+/** AgencyHost M1 — a client tenant an agency created and manages. */
+export type AgencyManagedClientStatus = 'active' | 'detached';
+
+export interface AgencyManagedClient {
+  id: string;
+  status: AgencyManagedClientStatus;
+  attached_at: string;
+  detached_at: string | null;
+  tenant_id: string;
+  tenant_name: string;
+  tenant_subdomain: string | null;
+  tenant_created_at: string;
+}
+
+/** AgencyHost M7 — a tenant's public listing in the agency directory. */
+export type AgencyProfileStatus = 'pending' | 'approved' | 'rejected';
+export type AgencyPricingTier = 'budget' | 'standard' | 'premium';
+
+export interface OnsiteAgencyProfile {
+  id: string;
+  tenant_id: string;
+  headline: string;
+  description: string;
+  service_tags: string[];
+  portfolio_links: string[];
+  pricing_tier: AgencyPricingTier;
+  region: string | null;
+  languages: string[];
+  status: AgencyProfileStatus;
+  profile_views: number;
+  inquiries_count: number;
+  created_at: string;
+  updated_at: string;
+  // Joined / computed, present on public + admin listings
+  tenant_name?: string;
+  /** Live COUNT(*) against agency_managed_tenants at read time — never stored. */
+  client_count?: number;
+}
+
+/** AgencyHost M6 — a snapshot of a tenant's own Onsite configuration
+ *  (domains, DNS, applications, environments, secrets, websites, health
+ *  checks, provider connections) — never a website's actual files or
+ *  database, which this platform has never stored a copy of. */
+export interface OnsiteBackup {
+  id: string;
+  trigger: 'manual' | 'scheduled';
+  status: 'completed' | 'failed';
+  size_bytes: number;
+  error_message: string | null;
+  created_by: string | null;
+  created_at: string;
+}

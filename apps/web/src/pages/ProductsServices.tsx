@@ -598,7 +598,7 @@ function DetailPanel({ product, onEdit, onDelete, onToggleStatus, onClose }: {
 
         <div style={{ padding: '16px 22px', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 8 }}>
           <button type="button" title="Edit service" onClick={onEdit}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py) 16px', border: 'none', borderRadius: 'var(--r)', background: 'var(--teal)', color: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py) 16px', border: 'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor: 'pointer', fontWeight: 600, fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
             <Icon name="edit" size={14} /> Edit Service
           </button>
           <div style={{ display: 'flex', gap: 8 }}>
@@ -903,7 +903,7 @@ export const ProductsServices: React.FC = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 14 }}>
               <span style={{ fontSize: 12, color: 'var(--ink3)' }}>{tariffSelected.size} selected</span>
               <button type="button" disabled={tariffSelected.size === 0 || tariffImporting} onClick={handleImportSelectedTariff}
-                style={{ padding: 'var(--ds-btn-py) 16px', border: 'none', borderRadius: 'var(--r)', background: 'var(--teal)', color: '#fff', cursor: tariffSelected.size === 0 ? 'default' : 'pointer', fontWeight: 700, fontSize: 13, opacity: tariffSelected.size === 0 || tariffImporting ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                style={{ padding: 'var(--ds-btn-py) 16px', border: 'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor: tariffSelected.size === 0 ? 'default' : 'pointer', fontWeight: 700, fontSize: 13, opacity: tariffSelected.size === 0 || tariffImporting ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
                 {tariffImporting ? 'Adding…' : `Add ${tariffSelected.size || ''} Service${tariffSelected.size === 1 ? '' : 's'}`}
               </button>
             </div>
@@ -984,7 +984,7 @@ export const ProductsServices: React.FC = () => {
               <div style={{ marginBottom: 12 }}><Icon name="package" size={44} color="var(--border)" /></div>
               <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 }}>No services found</div>
               <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 20 }}>{search ? 'Try a different search.' : 'Add your first service to the catalog.'}</div>
-              {!search && <button type="button" title="Add service" onClick={() => setEditing('new')} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 20px', border: 'none', borderRadius: 'var(--r)', background: 'var(--teal)', color: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}><Icon name="plus" size={13} /> New Service</button>}
+              {!search && <button type="button" title="Add service" onClick={() => setEditing('new')} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 20px', border: 'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor: 'pointer', fontWeight: 600, fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}><Icon name="plus" size={13} /> New Service</button>}
             </div>
           ) : (
             <div className="rtbl-wrap" style={{ overflowX: 'auto' }}>

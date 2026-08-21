@@ -3,8 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import type { ShipmentCase } from '@hudumika/types';
 import { StatusPill, ProgressSegments } from '@hudumika/ui';
 import { Icon } from './Icon.js';
-import { Badge } from './ui/badge.js';
-import { LANE, STATUS_VARIANT, declMoney } from '../lib/declarationMeta.js';
+import { STAGES, toStage } from '../pages/clearanceData.js';
 
 interface ShipmentRowProps {
   shipment: ShipmentCase;
@@ -27,6 +26,20 @@ export const ShipmentRow: React.FC<ShipmentRowProps> = ({ shipment, to }) => {
     : shipment.active_risk_types?.includes('SLA_BREACH') ? ' risk-amber'
     : '';
 
+  // Stage progress. A shipment on a real custom workflow already carries its
+  // own workflow_step_order/workflow_step_count (set by
+  // ShipmentService.listGroupedByCustomer) — pass those straight through.
+  // Everything else falls into ProgressSegments' own fallback, which scales
+  // against the full 19-value CLEARANCE_STAGES enum — a different, finer
+  // scale than the 11-step collapse ShipmentDetail's own stepper uses
+  // (toStage()/STAGES), so the same shipment showed a different fraction of
+  // the bar filled in the list than inside the shipment itself. Deriving the
+  // same order/count here via toStage()/STAGES keeps both views in lockstep.
+  const legacyStageId = toStage(shipment.stage);
+  const legacyStepOrder = STAGES.findIndex(s => s.id === legacyStageId);
+  const stepOrder = shipment.workflow_step_order ?? (legacyStepOrder >= 0 ? legacyStepOrder : 0);
+  const stepCount = shipment.workflow_step_count ?? STAGES.length;
+
   // Calculate days elapsed
   const createdDate = new Date(shipment.created_at);
   const now = new Date();
@@ -35,15 +48,6 @@ export const ShipmentRow: React.FC<ShipmentRowProps> = ({ shipment, to }) => {
 
   // Determine if late
   const isLate = shipment.active_risk_types && shipment.active_risk_types.length > 0;
-
-  // Attached by ShipmentService.listGroupedByCustomer; null when nothing has
-  // been lodged for this shipment yet.
-  const decl = (shipment as any).declaration as {
-    tancis_ref: string | null; tansad_number: string | null; status: string;
-    selectivity_channel: string | null; no_of_items: number | null;
-    total_customs_value: string | number | null;
-  } | null | undefined;
-  const laneMeta = decl?.selectivity_channel ? LANE[decl.selectivity_channel] : null;
 
   const getInitials = (name?: string) => {
     if (!name) return '??';
@@ -74,8 +78,16 @@ export const ShipmentRow: React.FC<ShipmentRowProps> = ({ shipment, to }) => {
       <div style={{ width: '15px', marginRight: '12px', flexShrink: 0 }} />
 
       {/* Ref Number */}
-      <div className="sr-ref" style={{ width: '130px', flexShrink: 0, fontFamily: 'var(--mono)', fontSize: '12px' }}>
+      <div className="sr-ref" style={{ width: '130px', flexShrink: 0, fontFamily: 'var(--mono)', fontSize: '12px', display: 'flex', alignItems: 'center', gap: 5 }}>
         {shipment.ref_number}
+        {(shipment as any).has_dangerous_goods && (
+          <span
+            title="Carries a dangerous-goods declaration"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 2, fontSize: 9, fontWeight: 700, color: 'var(--gold)', background: 'var(--gold-l)', borderRadius: 4, padding: '1px 4px', flexShrink: 0, fontFamily: 'var(--font)' }}
+          >
+            <Icon name="alertTriangle" size={9} color="var(--gold)" /> DG
+          </span>
+        )}
       </div>
 
       {/* Type */}
@@ -83,11 +95,7 @@ export const ShipmentRow: React.FC<ShipmentRowProps> = ({ shipment, to }) => {
         {shipment.type.replace('_', ' ')}
       </div>
 
-      {/* Description — rendered before Declaration to match TableHeader's
-          column order (Cargo Description, then Declaration). They used to
-          be swapped here, so every row's declaration badges sat under the
-          "Cargo Description" label and the goods description sat under
-          "Declaration". */}
+      {/* Description */}
       <div className="sr-desc" style={{ flex: 1, minWidth: 0, paddingRight: '12px' }}>
         <div className="sr-goods" style={{ fontWeight: 600, fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {shipment.goods_desc}
@@ -97,41 +105,9 @@ export const ShipmentRow: React.FC<ShipmentRowProps> = ({ shipment, to }) => {
         </div>
       </div>
 
-      {/* Declaration — TANCIS ref, filing status, TRA lane, declared value and
-          item count. Carried over from /clearos/declarations, which this list
-          replaces. "Not declared" is a real state, not missing data, so it is
-          said plainly rather than left as an em-dash. */}
-      <div className="sr-decl" style={{ width: '196px', flexShrink: 0, paddingRight: 12, minWidth: 0 }}>
-        {decl ? (
-          <>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
-              <Badge variant={STATUS_VARIANT[decl.status] ?? 'gray'}>
-                {decl.status.charAt(0) + decl.status.slice(1).toLowerCase()}
-              </Badge>
-              {laneMeta && (
-                <span title={laneMeta.hint}>
-                  <Badge variant={laneMeta.variant}>{laneMeta.label}</Badge>
-                </span>
-              )}
-            </div>
-            <div style={{ fontSize: 10.5, color: 'var(--ink3)', marginTop: 3, fontFamily: 'var(--mono)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {decl.tancis_ref || decl.tansad_number || '—'}
-              {decl.no_of_items ? ` · ${decl.no_of_items} item${decl.no_of_items === 1 ? '' : 's'}` : ''}
-            </div>
-            {Number(decl.total_customs_value ?? 0) > 0 && (
-              <div style={{ fontSize: 10.5, color: 'var(--ink3)', marginTop: 1 }}>
-                {declMoney(decl.total_customs_value)}
-              </div>
-            )}
-          </>
-        ) : (
-          <span style={{ fontSize: 11.5, color: 'var(--ink3)' }}>Not declared</span>
-        )}
-      </div>
-
       {/* Stage Progress Bar */}
       <div className="sr-stage" style={{ width: '160px', flexShrink: 0, padding: '0 12px' }}>
-        <ProgressSegments currentStage={shipment.stage} workflowStepOrder={shipment.workflow_step_order} workflowStepCount={shipment.workflow_step_count} />
+        <ProgressSegments currentStage={shipment.stage} workflowStepOrder={stepOrder} workflowStepCount={stepCount} />
       </div>
 
       {/* Status Pill */}

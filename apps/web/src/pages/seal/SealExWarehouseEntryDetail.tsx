@@ -42,6 +42,7 @@ export function SealExWarehouseEntryDetail() {
   const [examinations, setExaminations] = useState<Examination[]>([]);
 
   const [submissionReference, setSubmissionReference] = useState('');
+  const [selectivityChannel, setSelectivityChannel] = useState<'GREEN' | 'YELLOW' | 'RED' | ''>('');
   const [showSubmit, setShowSubmit] = useState(false);
   const [paymentReference, setPaymentReference] = useState('');
   const [showPay, setShowPay] = useState(false);
@@ -59,11 +60,14 @@ export function SealExWarehouseEntryDetail() {
   useEffect(() => { load(); }, [load]);
 
   async function handleSubmitDeclaration() {
-    if (!id || !submissionReference.trim()) return;
+    if (!id || !submissionReference.trim() || !selectivityChannel) return;
     setBusy(true);
     try {
-      await apiFetch(`/v1/seal/customs-entries/${id}/submit`, { method: 'POST', body: JSON.stringify({ submissionReference: submissionReference.trim() }) });
-      setShowSubmit(false); setSubmissionReference(''); load();
+      await apiFetch(`/v1/seal/customs-entries/${id}/submit`, {
+        method: 'POST',
+        body: JSON.stringify({ submissionReference: submissionReference.trim(), selectivityChannel }),
+      });
+      setShowSubmit(false); setSubmissionReference(''); setSelectivityChannel(''); load();
     } catch (err: any) {
       showAlert(err.message || 'Failed to submit declaration.');
     } finally { setBusy(false); }
@@ -154,10 +158,21 @@ export function SealExWarehouseEntryDetail() {
                   </div>
                 )}
                 {showSubmit ? (
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-                    <input type="text" className="input-field" style={{ width: 220 }} value={submissionReference} onChange={e => setSubmissionReference(e.target.value)} placeholder="Submission reference (from TANCIS)" />
-                    <button type="button" className="btn btn-primary" disabled={busy || !submissionReference.trim()} onClick={handleSubmitDeclaration}>{busy ? 'Submitting…' : 'Confirm Submission'}</button>
-                    <button type="button" className="btn btn-secondary" onClick={() => setShowSubmit(false)}>Cancel</button>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div style={{ fontSize: 12, color: 'var(--ink3)' }}>
+                      Both fields come from the same real TANESW/TANCIS submission — this records what the portal returned, it does not assign either one.
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                      <input type="text" className="input-field" style={{ width: 220 }} value={submissionReference} onChange={e => setSubmissionReference(e.target.value)} placeholder="Submission reference (from TANESW)" />
+                      <select className="input-field" style={{ width: 200 }} value={selectivityChannel} onChange={e => setSelectivityChannel(e.target.value as any)}>
+                        <option value="">Selectivity channel…</option>
+                        <option value="GREEN">GREEN — no examination</option>
+                        <option value="YELLOW">YELLOW — document check</option>
+                        <option value="RED">RED — physical exam</option>
+                      </select>
+                      <button type="button" className="btn btn-primary" disabled={busy || !submissionReference.trim() || !selectivityChannel} onClick={handleSubmitDeclaration}>{busy ? 'Submitting…' : 'Confirm Submission'}</button>
+                      <button type="button" className="btn btn-secondary" onClick={() => setShowSubmit(false)}>Cancel</button>
+                    </div>
                   </div>
                 ) : (
                   <button type="button" className="btn btn-primary" style={{ alignSelf: 'flex-start' }} onClick={() => setShowSubmit(true)}>

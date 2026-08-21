@@ -16,6 +16,7 @@ export default
     "exitFullPage": "إنهاء الصفحة الكاملة",
     "myProfile": "ملفي الشخصي",
     "adminPanel": "لوحة الإدارة",
+    "lockWorkspace": "قفل مساحة العمل",
     "signOut": "تسجيل الخروج",
     "account": "الحساب"
   },

@@ -94,7 +94,7 @@
   background: var(--border);
   color: var(--ink2);
 }
-.inv-status-chip--active .inv-status-chip-count { background: var(--teal); color: #fff; }
+.inv-status-chip--active .inv-status-chip-count { background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }
 
 .inv-search-wrap { position: relative; }
 .inv-search-icon { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); pointer-events: none; }

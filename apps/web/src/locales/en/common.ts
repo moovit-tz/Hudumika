@@ -18,6 +18,7 @@ export default
     "switchTask": "Switch what you're working on",
     "myProfile": "My profile",
     "adminPanel": "Superadmin",
+    "lockWorkspace": "Lock workspace",
     "signOut": "Sign out",
     "account": "Account"
   },
@@ -139,7 +140,7 @@ export default
       "receivables": "RECEIVABLES",
       "invoices": "Invoices",
       "quotations": "Quotations",
-      "deliveryNotes": "Delivery Notes",
+      "deliveryNotes": "Delivery Documents",
       "salesReport": "Sales Report",
       "payables": "PAYABLES",
       "purchaseOrders": "Purchase Orders",

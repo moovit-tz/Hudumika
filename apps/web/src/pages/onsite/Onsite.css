@@ -187,12 +187,21 @@
   background: var(--ink);
   color: var(--white);
   border: none;
-  padding: 0.55rem 1.25rem;
+  padding: 0.45rem 1.125rem;
   border-radius: 9999px;
   font-weight: 600;
   font-size: 0.8125rem;
+  line-height: 1;
   cursor: pointer;
   width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: 0.45rem;
+  white-space: nowrap;
+  min-height: 36px;
   transition: opacity 0.15s ease;
 }
 
@@ -204,12 +213,21 @@
   background: var(--purple);
   color: #ffffff;
   border: none;
-  padding: 0.55rem 1.25rem;
+  padding: 0.45rem 1.125rem;
   border-radius: 9999px;
   font-weight: 600;
   font-size: 0.8125rem;
+  line-height: 1;
   cursor: pointer;
   width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: 0.45rem;
+  white-space: nowrap;
+  min-height: 36px;
   transition: opacity 0.15s ease;
 }
 
@@ -221,17 +239,34 @@
   background: var(--white);
   color: var(--ink);
   border: 1px solid var(--border);
-  padding: 0.5rem 1rem;
+  padding: 0.45rem 1.125rem;
   border-radius: 9999px;
   font-weight: 600;
   font-size: 0.8125rem;
+  line-height: 1;
   cursor: pointer;
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: 0.45rem;
+  white-space: nowrap;
+  min-height: 36px;
   transition: all 0.15s ease;
 }
 
 .onsite-btn-outline:hover {
   border-color: var(--purple);
   color: var(--purple);
+}
+
+.onsite-btn-purple svg,
+.onsite-btn-outline svg,
+.onsite-btn-black svg {
+  flex-shrink: 0;
+  margin: 0;
 }
 
 /* Tabs Header */
@@ -721,3 +756,892 @@
   color: var(--ink3);
   margin: 0 0 0.75rem;
 }
+
+/* ─── Domain Portfolio & Management Redesign ─── */
+.onsite-domains-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+@media (max-width: 1024px) {
+  .onsite-domains-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .onsite-domains-stats {
+    grid-template-columns: 1fr;
+  }
+}
+
+.onsite-domain-stat-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  padding: 1.125rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.onsite-domain-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  border-color: rgba(110, 64, 201, 0.3);
+}
+
+.onsite-domain-stat-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.onsite-domain-stat-icon.purple { background: var(--purple-l); color: var(--purple); }
+.onsite-domain-stat-icon.green  { background: var(--green-l);  color: var(--green); }
+.onsite-domain-stat-icon.red    { background: var(--red-l);    color: var(--red); }
+.onsite-domain-stat-icon.blue   { background: var(--blue-l);   color: var(--blue); }
+
+.onsite-domain-stat-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.onsite-domain-stat-val {
+  font-size: 1.5rem;
+  font-weight: 750;
+  color: var(--ink);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.onsite-domain-stat-lbl {
+  font-size: 0.8125rem;
+  color: var(--ink2);
+  font-weight: 500;
+  margin-top: 0.2rem;
+}
+
+.onsite-domain-stat-sub {
+  font-size: 0.72rem;
+  color: var(--ink3);
+  margin-top: 0.15rem;
+}
+
+/* Status Pulse Dot */
+.onsite-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  position: relative;
+}
+
+.onsite-status-dot.active {
+  background-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+}
+
+.onsite-status-dot.failed,
+.onsite-status-dot.expired {
+  background-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+}
+
+.onsite-status-dot.pending {
+  background-color: #f59e0b;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+}
+
+.onsite-status-dot.unknown {
+  background-color: #9ca3af;
+}
+
+/* Filter & Controls Toolbar */
+.onsite-domains-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 0.875rem 1.25rem;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.onsite-domains-search-box {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex: 1;
+  min-width: 220px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 0.625rem;
+  padding: 0.45rem 0.85rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.onsite-domains-search-box:focus-within {
+  border-color: var(--purple);
+  box-shadow: 0 0 0 3px rgba(110, 64, 201, 0.15);
+  background: var(--white);
+}
+
+.onsite-domains-search-input {
+  border: none;
+  background: transparent;
+  outline: none;
+  width: 100%;
+  font-size: 0.875rem;
+  color: var(--ink);
+}
+
+.onsite-domains-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  flex-wrap: wrap;
+}
+
+.onsite-select-sm {
+  padding: 0.45rem 0.75rem;
+  border-radius: 0.625rem;
+  border: 1px solid var(--border);
+  background: var(--white);
+  color: var(--ink);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.onsite-select-sm:focus {
+  border-color: var(--purple);
+}
+
+/* Domain Logo / Avatar */
+.onsite-domain-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 0.5rem;
+  background: linear-gradient(135deg, rgba(110, 64, 201, 0.12) 0%, rgba(16, 185, 129, 0.12) 100%);
+  border: 1px solid rgba(110, 64, 201, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.8125rem;
+  color: var(--purple);
+  flex-shrink: 0;
+}
+
+/* Responsive Table & Card Views */
+.onsite-domain-desktop-table {
+  display: table;
+  width: 100%;
+}
+
+.onsite-domain-mobile-cards {
+  display: none;
+}
+
+/* Mobile Responsive Rules (< 768px) */
+@media (max-width: 768px) {
+  .onsite-page {
+    padding: 1rem;
+    gap: 1rem;
+  }
+
+  .onsite-domain-desktop-table {
+    display: none;
+  }
+  
+  .onsite-domain-mobile-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+    padding: 0.75rem;
+  }
+
+  .onsite-header-actions {
+    width: 100%;
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .onsite-header-actions button {
+    flex: 1;
+    text-align: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    padding: 0.4rem 0.6rem;
+  }
+
+/* Single horizontal row 1: Tabs + Refresh Status */
+.onsite-tabs-row {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 0.75rem !important;
+  width: 100% !important;
+  flex-wrap: nowrap !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.onsite-tabs-row::-webkit-scrollbar {
+  display: none;
+}
+
+.onsite-tabs {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 0.35rem !important;
+  background: var(--bg);
+  padding: 0.25rem;
+  border-radius: 9999px;
+  flex-shrink: 0 !important;
+  white-space: nowrap !important;
+}
+
+.onsite-tab {
+  flex-shrink: 0 !important;
+  white-space: nowrap !important;
+}
+
+.onsite-refresh-btn {
+  flex-shrink: 0 !important;
+  white-space: nowrap !important;
+}
+
+/* Single horizontal row 2: Search box + Status Select + Sort Select */
+.onsite-domains-toolbar {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 0.5rem !important;
+  padding: 0.5rem 0.75rem !important;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  box-shadow: var(--shadow-sm);
+  width: 100% !important;
+  flex-wrap: nowrap !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.onsite-domains-toolbar::-webkit-scrollbar {
+  display: none;
+}
+
+.onsite-domains-search-box {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.4rem !important;
+  flex: 1 1 auto !important;
+  min-width: 120px !important;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 0.625rem;
+  padding: 0.35rem 0.65rem !important;
+}
+
+.onsite-domains-filter-group {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 0.4rem !important;
+  flex-shrink: 0 !important;
+  flex-wrap: nowrap !important;
+  width: auto !important;
+}
+
+  .onsite-domains-filter-group > button,
+  .onsite-domains-filter-group [role="combobox"] {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    min-width: 0 !important;
+  }
+
+  /* Promo Banner Mobile Layout */
+  .onsite-promo-wrapper {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.875rem;
+  }
+
+  .onsite-promo-right {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+/* Mobile Card Styling */
+.onsite-domain-mobile-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 0.875rem;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.15s ease;
+}
+
+.onsite-domain-mobile-card:hover {
+  border-color: var(--purple);
+}
+
+.onsite-domain-mobile-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.onsite-domain-mobile-card-top a {
+  word-break: break-all;
+  overflow-wrap: anywhere;
+}
+
+.onsite-domain-mobile-card-details {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.625rem;
+  padding: 0.625rem 0.75rem;
+  background: var(--bg);
+  border-radius: 0.625rem;
+  font-size: 0.8125rem;
+}
+
+.onsite-domain-mobile-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.onsite-domain-mobile-card-actions > a,
+.onsite-domain-mobile-card-actions > button:not(.onsite-btn-icon-sm) {
+  flex: 1;
+  text-align: center;
+  justify-content: center;
+  font-size: 0.8125rem;
+  min-height: 38px;
+  height: 38px;
+}
+
+.onsite-domain-mobile-card-actions .onsite-btn-icon-sm {
+  flex: 0 0 38px !important;
+  width: 38px !important;
+  min-width: 38px !important;
+  height: 38px !important;
+  min-height: 38px !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Custom Modal Backdrop & Dialog */
+.onsite-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(4px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  animation: onsiteFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.onsite-modal-box {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 1.25rem;
+  width: 100%;
+  max-width: 520px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: onsiteSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.onsite-modal-header {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.onsite-modal-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.onsite-modal-body {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.125rem;
+}
+
+.onsite-modal-footer {
+  padding: 1rem 1.5rem;
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+@keyframes onsiteFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes onsiteSlideUp {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Skeleton Loading State */
+.onsite-skeleton-line {
+  height: 1rem;
+  background: linear-gradient(90deg, var(--bg) 25%, rgba(200, 200, 200, 0.2) 50%, var(--bg) 75%);
+  background-size: 200% 100%;
+  animation: onsiteShimmer 1.5s infinite;
+  border-radius: 0.375rem;
+}
+
+@keyframes onsiteShimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Toggle Switch */
+.onsite-switch-label {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+  gap: 0.5rem;
+}
+
+.onsite-switch-track {
+  width: 36px;
+  height: 20px;
+  background-color: var(--border);
+  border-radius: 9999px;
+  position: relative;
+  transition: background-color 0.2s ease;
+}
+
+.onsite-switch-track.on {
+  background-color: var(--purple);
+}
+
+.onsite-switch-thumb {
+  width: 16px;
+  height: 16px;
+  background-color: #ffffff;
+  border-radius: 50%;
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  transition: transform 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* ─── Website Control Plane Mobile Responsiveness ─── */
+.onsite-plan-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+@media (max-width: 768px) {
+  .onsite-plan-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.875rem;
+  }
+
+  .onsite-plan-header-actions {
+    width: 100%;
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .onsite-plan-header-actions > * {
+    flex: 1;
+    text-align: center;
+    justify-content: center;
+    font-size: 0.8125rem;
+    min-height: 36px;
+  }
+
+  .onsite-website-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.875rem;
+    padding: 1rem 0;
+  }
+
+  .onsite-site-info {
+    width: 100%;
+  }
+
+  .onsite-site-domain {
+    word-break: break-all;
+    overflow-wrap: anywhere;
+  }
+
+  .onsite-site-actions {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .onsite-site-actions > a,
+  .onsite-site-actions > button:not(.onsite-btn-icon-sm) {
+    flex: 1;
+    text-align: center;
+    justify-content: center;
+    font-size: 0.8125rem;
+    min-height: 36px;
+    height: 36px;
+  }
+
+  .onsite-site-actions .onsite-btn-icon-sm {
+    flex: 0 0 36px !important;
+    width: 36px !important;
+    min-width: 36px !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    padding: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+}
+
+/* ─── Email Hosting & Mailboxes Redesign ─── */
+.onsite-email-banner {
+  background: #f5f3ff;
+  border: 1px solid #e9d5ff;
+  border-radius: 1.25rem;
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  box-shadow: 0 2px 10px rgba(139, 92, 246, 0.05);
+}
+
+.onsite-email-banner-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.onsite-email-banner-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #ede9fe;
+  color: #7c3aed;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.onsite-email-badge-new {
+  background: #7c3aed;
+  color: #ffffff;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+  letter-spacing: 0.05em;
+}
+
+.onsite-email-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+/* Domain Detail Header Card */
+.onsite-email-domain-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 1.25rem;
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.onsite-email-domain-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--ink);
+  flex-shrink: 0;
+}
+
+/* Storage Bar Indicator */
+.onsite-storage-progress {
+  width: 100%;
+  height: 6px;
+  background: var(--bg);
+  border-radius: 9999px;
+  overflow: hidden;
+  margin-top: 0.35rem;
+}
+
+.onsite-storage-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #7c3aed 0%, #a855f7 100%);
+  border-radius: 9999px;
+  transition: width 0.3s ease;
+}
+
+/* Agentic Ready Pill Badge */
+.onsite-agentic-badge {
+  background: #f3e8ff;
+  color: #7c3aed;
+  border: 1px solid #e9d5ff;
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.onsite-agentic-badge:hover {
+  background: #ede9fe;
+  color: #6d28d9;
+}
+
+@media (max-width: 768px) {
+  .onsite-email-banner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .onsite-email-banner-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .onsite-email-domain-card {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  .onsite-email-domain-card button {
+    width: 100%;
+  }
+}
+
+/* Toast Container */
+.onsite-toast {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  background: var(--ink);
+  color: #ffffff;
+  padding: 0.75rem 1.25rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+  font-size: 0.875rem;
+  font-weight: 600;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  animation: onsiteSlideUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Promo Card Styling */
+.onsite-promo-card {
+  background: linear-gradient(135deg, rgba(110, 64, 201, 0.05) 0%, rgba(16, 185, 129, 0.05) 100%);
+  border: 1px solid rgba(110, 64, 201, 0.2);
+  border-radius: 1rem;
+  padding: 1.25rem 1.5rem;
+  position: relative;
+}
+
+.onsite-promo-dismiss {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  border: none;
+  background: transparent;
+  color: var(--ink3);
+  cursor: pointer;
+  padding: 0.25rem;
+}
+
+.onsite-promo-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.onsite-promo-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.onsite-promo-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--purple-l);
+  color: var(--purple);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.onsite-promo-tag {
+  font-size: 0.75rem;
+  color: var(--ink2);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.onsite-promo-domain {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.onsite-promo-link {
+  font-size: 0.8125rem;
+  color: var(--purple);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.onsite-promo-right {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.onsite-promo-save {
+  background: var(--blue-l);
+  color: var(--blue);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.2rem 0.55rem;
+  border-radius: 9999px;
+  margin-right: 0.5rem;
+}
+
+.onsite-promo-orig-price {
+  font-size: 0.8125rem;
+  color: var(--ink3);
+  text-decoration: line-through;
+  margin-right: 0.4rem;
+}
+
+.onsite-promo-price {
+  font-size: 1.15rem;
+  font-weight: 750;
+  color: var(--ink);
+}
+
+.onsite-promo-unit {
+  font-size: 0.75rem;
+  color: var(--ink2);
+  font-weight: 500;
+}
+
+/* Bulk Actions Bar */
+.onsite-bulk-bar {
+  background: var(--purple-l);
+  border: 1px solid var(--purple);
+  border-radius: 0.75rem;
+  padding: 0.625rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.875rem;
+  color: var(--purple);
+  font-weight: 600;
+}
+
+/* Tabs & Toolbar Row */
+.onsite-tabs-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+

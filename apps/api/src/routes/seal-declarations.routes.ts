@@ -29,7 +29,13 @@ const declarationCreateSchema = z.object({
   freight: z.number().optional(),
   insurance: z.number().optional(),
 });
-const declarationSubmitSchema = z.object({ submissionReference: z.string().trim().min(1) });
+const declarationSubmitSchema = z.object({
+  submissionReference: z.string().trim().min(1),
+  // The real selectivity result from the same TANESW/TANCIS portal
+  // submission this reference number was taken from — required, same as the
+  // reference itself; see seal-declaration.service.ts's submit().
+  selectivityChannel: z.enum(['GREEN', 'YELLOW', 'RED']),
+});
 const declarationAdvanceSchema = z.object({
   to: z.enum(SEAL_DECLARATION_STATUSES),
   reference: z.string().max(200).optional(),
@@ -209,7 +215,7 @@ export async function sealDeclarationRoutes(fastify: FastifyInstance) {
     const b = declarationSubmitSchema.parse(request.body);
     try {
       const entry = await withTenant(request.user.tenant_id, trx =>
-        SealDeclarationService.submit(trx, request.user.tenant_id, request.params.id, b.submissionReference)
+        SealDeclarationService.submit(trx, request.user.tenant_id, request.params.id, b.submissionReference, b.selectivityChannel)
       );
       return mapDeclaration(entry);
     } catch (err: any) {

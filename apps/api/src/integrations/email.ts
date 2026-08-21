@@ -74,6 +74,7 @@ export class EmailIntegration {
     bodyHtml: string;
     tenantId?: string;
     cc?: string[];
+    attachments?: { filename: string; content: Buffer }[];
   }): Promise<{ success: boolean; messageId?: string; error?: string; simulated?: boolean }> {
     try {
       let emailConfig: any = null;
@@ -178,6 +179,7 @@ export class EmailIntegration {
         cc: input.cc?.length ? input.cc.join(',') : undefined,
         subject: input.subject,
         html: input.bodyHtml,
+        attachments: input.attachments,
       });
 
       console.log(`✉️ Email sent successfully to ${input.to}. Message ID: ${info.messageId}`);

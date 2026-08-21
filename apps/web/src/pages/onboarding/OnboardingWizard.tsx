@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { apiFetch } from '../../lib/api.js';
 import { Icon } from '../../components/Icon.js';
 import { useBranding } from '../../hooks/useBranding.js';
@@ -24,8 +24,9 @@ const LOGIN_BG_MAP: Record<string, string> = {
   white:    '#f0f4f9',
 };
 
-function toCompleteInput(draft: OnboardingDraft): OnboardingCompleteInput {
+function toCompleteInput(draft: OnboardingDraft, referralCode: string | null): OnboardingCompleteInput {
   return {
+    referral_code: referralCode || undefined,
     account: { name: draft.name, email: draft.email, password: draft.password },
     company: { name: draft.companyName, industry: draft.industry || undefined, country: draft.country || undefined },
     package_code: draft.package_code,
@@ -53,6 +54,11 @@ export const OnboardingWizard: React.FC = () => {
   const navigate = useNavigate();
   const rootRef  = useRef<HTMLDivElement>(null);
   const { completeOnboarding } = useAuth();
+  const [searchParams] = useSearchParams();
+  // Captured once, from whatever ?ref= link brought this signup here — the
+  // backend resolves it against a real tenant slug and silently ignores a
+  // stale/mistyped one rather than failing the signup over it.
+  const referralCodeRef = useRef<string | null>(searchParams.get('ref'));
 
   const [step, setStep]     = useState(1);
   const [draft, setDraft]   = useState<OnboardingDraft>(EMPTY_DRAFT);
@@ -126,7 +132,7 @@ export const OnboardingWizard: React.FC = () => {
     try {
       const res: OnboardingCompleteResponse = await apiFetch('/v1/onboarding/complete', {
         method: 'POST',
-        body: JSON.stringify(toCompleteInput(draft)),
+        body: JSON.stringify(toCompleteInput(draft, referralCodeRef.current)),
       });
       setSuccess(res);
     } catch (err: any) {

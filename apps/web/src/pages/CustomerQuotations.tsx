@@ -134,7 +134,7 @@ function AcceptModal({ quote, onClose, onAccept }: {
             Cancel
           </button>
           <button type="button" title="Accept quote" onClick={onAccept}
-            style={{ flex: 1, padding: '13px', border: 'none', borderRadius: 'var(--r)', background: 'var(--teal)', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)' }}>
+            style={{ flex: 1, padding: '13px', border: 'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)' }}>
             Yes, Accept
           </button>
         </div>
@@ -308,7 +308,7 @@ function QuoteDetail({ quote: initial, onBack }: { quote: Quote; onBack: () => v
                 Reject
               </button>
               <button type="button" title="Accept this quote" onClick={() => setAccepting(true)} disabled={saving}
-                style={{ flex: 2, padding: 'var(--ds-btn-py-lg) 0', border: 'none', borderRadius: 'var(--r)', background: 'var(--teal)', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 'var(--ctl-h-lg)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                style={{ flex: 2, padding: 'var(--ds-btn-py-lg) 0', border: 'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 'var(--ctl-h-lg)', boxSizing: 'border-box', lineHeight: 1.25}}>
                 <Icon name="checkCircle" size={15} color="#fff" />
                 {saving ? 'Saving…' : 'Accept Quote'}
               </button>
@@ -328,7 +328,7 @@ function QuoteDetail({ quote: initial, onBack }: { quote: Quote; onBack: () => v
             </Link>
             {quote.status === 'EXPIRED' && (
               <Link to="/support/tickets" title="Request a new quote"
-                style={{ flex: 2, padding: '12px 0', border: 'none', borderRadius: 9, background: 'var(--teal)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, textDecoration: 'none' }}>
+                style={{ flex: 2, padding: '12px 0', border: 'none', borderRadius: 9, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, textDecoration: 'none' }}>
                 <Icon name="refresh" size={15} color="#fff" />
                 Request New Quote
               </Link>
@@ -464,7 +464,7 @@ export const CustomerQuotations: React.FC = () => {
             <Icon name="alertCircle" size={36} color="var(--red)" />
             <p style={{ color: 'var(--ink2)', fontSize: 14, margin: '12px 0 4px', fontWeight: 600 }}>Couldn't load your quotations</p>
             <p style={{ color: 'var(--ink3)', fontSize: 13, margin: '0 0 16px' }}>Check your connection and try again.</p>
-            <button type="button" onClick={load} style={{ padding: 'var(--ds-btn-py) 20px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box' }}>
+            <button type="button" onClick={load} style={{ padding: 'var(--ds-btn-py) 20px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 13, fontWeight: 700, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box' }}>
               Retry
             </button>
           </div>

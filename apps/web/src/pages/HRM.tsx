@@ -507,7 +507,7 @@ export function RolesPage() {
       <PageHeader icon="shield" title="Roles & Permissions" sub="Manage access control for each role across all modules" backTo="/nexushr">
         {dirty && (
           <button type="button" onClick={save} disabled={saving}
-            style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 16px', borderRadius:'var(--r)', border:'none', background:'var(--teal)', color:'#fff', fontWeight:700, fontSize:13, fontFamily:'var(--font)', cursor:'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+            style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 16px', borderRadius:'var(--r)', border:'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight:700, fontSize:13, fontFamily:'var(--font)', cursor:'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
             <Icon name="save" size={14} color="#fff" />{saving ? 'Saving—' : 'Save Changes'}
           </button>
         )}
@@ -711,7 +711,7 @@ export function PermissionsPage() {
       <PageHeader icon="key" title="Permission Matrix" sub="Full cross-role permission overview — toggle access per module and action" backTo="/nexushr">
         {dirty && (
           <button type="button" onClick={save} disabled={saving}
-            style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 16px', borderRadius:'var(--r)', border:'none', background:'var(--teal)', color:'#fff', fontWeight:700, fontSize:13, fontFamily:'var(--font)', cursor:'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+            style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 16px', borderRadius:'var(--r)', border:'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight:700, fontSize:13, fontFamily:'var(--font)', cursor:'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
             <Icon name="save" size={14} color="#fff" />{saving ? 'Saving—' : 'Save Changes'}
           </button>
         )}
@@ -1901,7 +1901,7 @@ export function AttendancePage() {
                 <tr key={emp.id} style={{ borderBottom: '1px solid var(--border)' }} className="hover-bg">
                   <td style={{ padding: '8px 16px', borderRight: '1px solid var(--border)', background: 'var(--white)', position: 'sticky', left: 0, zIndex: 5 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <div style={{ width: 24, height: 24, borderRadius: 9, background: 'var(--teal)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, flexShrink: 0 }}>{emp.avatar}</div>
+                      <div style={{ width: 24, height: 24, borderRadius: 9, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, flexShrink: 0 }}>{emp.avatar}</div>
                       <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--navy)', whiteSpace: 'nowrap' }}>{emp.name}</div>
                     </div>
                   </td>
@@ -2302,7 +2302,7 @@ export function ShiftsPage() {
               <tr key={emp.id} style={{ borderBottom: '1px solid var(--border)' }}>
                 <td style={{ padding: '10px 16px', borderRight: '1px solid var(--border)', background: 'var(--white)', position: 'sticky', left: 0, zIndex: 5 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ width: 32, height: 32, borderRadius: 9, background: 'var(--teal)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{emp.avatar}</div>
+                    <div style={{ width: 32, height: 32, borderRadius: 9, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{emp.avatar}</div>
                     <div>
                       <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)' }}>{emp.name}</div>
                       <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{emp.role}</div>

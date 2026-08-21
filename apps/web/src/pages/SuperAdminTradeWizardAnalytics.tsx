@@ -65,7 +65,7 @@ export function SuperAdminTradeWizardAnalytics() {
   return (
     <div>
       <PageHeader
-        crumbs={['Super Admin', 'Trade Wizard Analytics']}
+        crumbs={['HuduBI', 'Trade Wizard Analytics']}
         titlePlain="Trade Wizard"
         titleEm="analytics"
         subtitle="Cross-tenant search and usage analytics for the ClearOS Trade Compliance Wizard"

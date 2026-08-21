@@ -20,6 +20,12 @@ export function OnsiteApplicationDetail() {
   const [newValue, setNewValue] = useState('');
   const [savingSecret, setSavingSecret] = useState(false);
 
+  // Environment form
+  const [showAddEnv, setShowAddEnv] = useState(false);
+  const [envName, setEnvName] = useState('');
+  const [envBranch, setEnvBranch] = useState('');
+  const [savingEnv, setSavingEnv] = useState(false);
+
   const fetchAppData = () => {
     if (!id) return;
     setLoading(true);
@@ -73,6 +79,26 @@ export function OnsiteApplicationDetail() {
       }
     } catch (err: any) {
       showAlert(err.message || 'Failed to delete secret', { variant: 'error' });
+    }
+  };
+
+  const handleAddEnvironment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!id || !envName.trim()) return;
+    setSavingEnv(true);
+    try {
+      await apiFetch(`/v1/onsite/applications/${id}/environments`, {
+        method: 'POST',
+        body: JSON.stringify({ name: envName.trim(), branch: envBranch.trim() || undefined }),
+      });
+      setShowAddEnv(false);
+      setEnvName('');
+      setEnvBranch('');
+      fetchAppData();
+    } catch (err: any) {
+      showAlert(err.message || 'Failed to add environment', { variant: 'error' });
+    } finally {
+      setSavingEnv(false);
     }
   };
 
@@ -201,16 +227,40 @@ export function OnsiteApplicationDetail() {
 
         <div>
           <div className="onsite-card">
-            <h3 className="onsite-card-title">Environments</h3>
-            {app.environments?.map((env) => (
-              <div key={env.id} style={{ padding: '0.75rem', borderRadius: '0.5rem', background: 'var(--bg-subtle, #f8fafc)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <div style={{ fontWeight: 600, textTransform: 'capitalize' }}>{env.name}</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--ink-muted)' }}>Branch: {env.branch || 'main'}</div>
+            <div className="onsite-card-header">
+              <h3 className="onsite-card-title">Environments</h3>
+              <button className="btn btn-sm btn-secondary" onClick={() => setShowAddEnv(true)}>
+                <Icon name="plus" size={14} /> Add environment
+              </button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              {app.environments?.map((env) => (
+                <div key={env.id} style={{ padding: '0.75rem', borderRadius: '0.5rem', background: 'var(--bg-subtle, #f8fafc)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ fontWeight: 600, textTransform: 'capitalize' }}>{env.name}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--ink-muted)' }}>Branch: {env.branch || 'main'}</div>
+                  </div>
+                  <span className={`onsite-badge ${env.status}`}>{env.status}</span>
                 </div>
-                <span className={`onsite-badge ${env.status}`}>{env.status}</span>
-              </div>
-            ))}
+              ))}
+            </div>
+
+            {showAddEnv && (
+              <form onSubmit={handleAddEnvironment} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--border-subtle)' }}>
+                <div className="onsite-form-group">
+                  <label>Environment name *</label>
+                  <input type="text" className="onsite-input" placeholder="staging" value={envName} onChange={(e) => setEnvName(e.target.value)} required />
+                </div>
+                <div className="onsite-form-group">
+                  <label>Branch</label>
+                  <input type="text" className="onsite-input" placeholder="develop" value={envBranch} onChange={(e) => setEnvBranch(e.target.value)} />
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                  <button type="button" className="btn btn-sm btn-secondary" onClick={() => setShowAddEnv(false)}>Cancel</button>
+                  <button type="submit" className="btn btn-sm btn-primary" disabled={savingEnv}>{savingEnv ? 'Adding…' : 'Add'}</button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       </div>

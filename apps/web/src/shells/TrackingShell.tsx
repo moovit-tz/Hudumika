@@ -41,6 +41,7 @@ import { TrackingIssueNew } from '../pages/TrackingIssueNew.js';
 import { TrackingIssueDetail } from '../pages/TrackingIssueDetail.js';
 import { TrackingNewExpense } from '../pages/TrackingNewExpense.js';
 import { TrackingDevices } from '../pages/TrackingDevices.js';
+import { DepotPage } from '../pages/DepotPage.js';
 
 export function TrackingShell() {
   const { hasPlan } = useTenantPlan();
@@ -75,6 +76,16 @@ export function TrackingShell() {
       title: 'Warehouse',
       items: [
         { label: 'Locations & Dock Schedule', icon: 'folder', path: '/tracking/warehouse', ...enterpriseBadge },
+      ],
+    },
+    // Equipment/Interchange Receipts moved here from ClearOS — collecting
+    // cargo against a release document is a fleet act (EIR already carries
+    // driver + vehicle fields). Links back to the release/delivery order in
+    // FinOps via release_document_id. See depot.routes.ts.
+    {
+      title: 'Equipment & Depot',
+      items: [
+        { label: 'Equipment & Interchange Receipts', icon: 'package', path: '/tracking/depot' },
       ],
     },
     {
@@ -161,6 +172,7 @@ export function TrackingShell() {
                 <Route path="analytics" element={<TrackingAnalytics />} />
                 <Route path="expenses/new" element={<TrackingNewExpense />} />
                 <Route path="devices" element={<TrackingDevices />} />
+                <Route path="depot" element={<DepotPage />} />
               </Route>
               <Route path="*" element={<Navigate to="/tracking" replace />} />
             </Routes>

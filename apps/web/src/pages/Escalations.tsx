@@ -109,7 +109,7 @@ function EscCard({ esc, canResolve, onResolve }: {
             onClick={() => onResolve(esc.id)}
             style={{
               fontSize: 12, fontWeight: 600, padding: 'var(--ds-btn-py-sm) 14px', borderRadius: 'var(--r)', cursor: 'pointer',
-              background: 'var(--teal)', color: '#fff', border: 'none', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
+              background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
             {esc.status === 'PENDING' ? 'Accept & Work' : 'Mark Resolved'}
           </button>
         </div>
@@ -186,7 +186,7 @@ function EscalateModal({ onClose, onSubmit }: {
               Cancel
             </button>
             <button type="submit" title="Submit escalation"
-              style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+              style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
               Escalate
             </button>
           </div>
@@ -254,7 +254,7 @@ export const Escalations: React.FC = () => {
         {isJunior && (
           <button type="button" title="Create new escalation" onClick={() => setShowModal(true)}
             style={{
-              background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 'var(--r)',
+              background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)',
               padding: 'var(--ds-btn-py) 18px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
             + Escalate Case
           </button>

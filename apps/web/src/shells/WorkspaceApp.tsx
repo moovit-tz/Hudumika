@@ -17,6 +17,9 @@ const UNGATED_APP_IDS = new Set<AppId>(['admin']);
 interface WorkspaceAppProps {
   appId: AppId;
   children: React.ReactNode;
+  /** See RequireAppEnabled's own doc comment — routes that must render even
+   *  when this app is blocked by plan/maintenance. */
+  bypassGatePaths?: string[];
 }
 
 // Map app id → brand label shown next to the Hudumika logo
@@ -47,6 +50,8 @@ export const APP_LABELS: Record<AppId, string> = {
   seal:          'SEAL',
   inventory:     'Inventory Control',
   hudubi:        'HuduBI',
+  petti:         'Petti',
+  notes:         'Notes',
 };
 
 // Every app defaults to the single brand accent (matches --teal in index.css)
@@ -66,9 +71,9 @@ export const APP_COLORS: Record<AppId, string> = {
   onsite: DEFAULT_APP_COLOR,
   ai: DEFAULT_APP_COLOR, workspace: DEFAULT_APP_COLOR, admin: DEFAULT_APP_COLOR,
   email: DEFAULT_APP_COLOR, crm: DEFAULT_APP_COLOR, contacts: DEFAULT_APP_COLOR,
-  store: DEFAULT_APP_COLOR, calendar: DEFAULT_APP_COLOR, tasks: DEFAULT_APP_COLOR,
+  store: DEFAULT_APP_COLOR, calendar: DEFAULT_APP_COLOR, tasks: DEFAULT_APP_COLOR, notes: DEFAULT_APP_COLOR,
   demurrage: DEFAULT_APP_COLOR, cargotracker: DEFAULT_APP_COLOR, seal: DEFAULT_APP_COLOR,
-  inventory: DEFAULT_APP_COLOR, hudubi: DEFAULT_APP_COLOR,
+  inventory: DEFAULT_APP_COLOR, hudubi: DEFAULT_APP_COLOR, petti: DEFAULT_APP_COLOR,
 };
 
 /**
@@ -89,11 +94,11 @@ export const APP_COLORS: Record<AppId, string> = {
 export const APP_PALETTE_SLOT: Record<AppId, number> = {
   // Internal tooling — takes the neutral slot so a tenant's brand preset does
   // not recolour a developer tool.
-  lens: 0,
+  lens: 0, notes: 4,
   // 0 — clearance & customs
   clearos: 0, cargotracker: 0, demurrage: 0,
   // 1 — finance & commerce
-  finops: 1, store: 1,
+  finops: 1, store: 1, petti: 1,
   // 2 — compliance & legal
   complyos: 2,
   // 3 — warehouse & stock
@@ -116,7 +121,7 @@ export const MobileNavContext = React.createContext<{
   setMobileOpen: (v: boolean) => void;
 }>({ mobileOpen: false, setMobileOpen: () => {} });
 
-export function WorkspaceApp({ appId, children }: WorkspaceAppProps) {
+export function WorkspaceApp({ appId, children, bypassGatePaths }: WorkspaceAppProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const branding = useBranding();
@@ -265,7 +270,7 @@ export function WorkspaceApp({ appId, children }: WorkspaceAppProps) {
   );
 
   if (UNGATED_APP_IDS.has(appId)) return body;
-  return <RequireAppEnabled appId={appId}>{body}</RequireAppEnabled>;
+  return <RequireAppEnabled appId={appId} bypassPaths={bypassGatePaths}>{body}</RequireAppEnabled>;
 }
 
 export function useActiveApp(): AppId | null {

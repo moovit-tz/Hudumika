@@ -257,7 +257,7 @@
 /* Tag pills for trigger config */
 .wfb-tag-pill { padding:var(--badge-py) var(--badge-px); border-radius:100px; border:1.5px solid var(--border); font-size:var(--badge-fs); font-weight:600; cursor:pointer; transition:all 0.1s; background:var(--white); color:var(--ink2); user-select:none; }
 .wfb-tag-pill:hover { border-color:var(--teal); color:var(--teal); }
-.wfb-tag-pill.sel { background:var(--teal); border-color:var(--teal); color:white; }
+.wfb-tag-pill.sel { background:hsl(var(--primary)); border-color:hsl(var(--primary)); color:hsl(var(--primary-foreground)); }
 
 /* ── Test / History drawer (migration 168 capabilities) ─────────────
    Right-anchored sheet on the desktop, full-height bottom sheet on a

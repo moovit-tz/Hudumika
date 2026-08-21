@@ -46,6 +46,7 @@ const onboardingCompleteSchema = z.object({
     hq_city: z.string().max(100).optional(),
     hq_country: z.string().max(100).optional(),
   }),
+  referral_code: z.string().trim().max(63).optional(),
 });
 
 export async function onboardingRoutes(fastify: FastifyInstance) {

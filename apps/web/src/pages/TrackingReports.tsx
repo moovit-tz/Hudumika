@@ -158,7 +158,7 @@ export const TrackingReports: React.FC = () => {
           {loadingPreview ? 'Loading…' : 'Preview'}
         </button>
         <button type="button" onClick={() => preview && generateReportPDF(reportType, from, to, preview, vehicleName)} disabled={!preview}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: preview ? 'pointer' : 'default', opacity: preview ? 1 : 0.5, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 700, fontSize: 13, cursor: preview ? 'pointer' : 'default', opacity: preview ? 1 : 0.5, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
           <Icon name="download" size={14} /> Generate PDF
         </button>
       </div>

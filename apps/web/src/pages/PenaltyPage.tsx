@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { usePageSEO } from '../hooks/usePageSEO.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { SectionCard } from '../components/SectionCard.js';
 import { Icon, type IconName } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
 
@@ -192,8 +193,7 @@ export const PenaltyPage: React.FC = () => {
 
       {/* ── Step 1: Violation Type ── */}
       {step === 1 && (
-        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 16, padding: 28 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>Select Violation Type</div>
+        <SectionCard title="Select violation type" collapsible={false}>
           <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 24 }}>Choose the type of customs violation to estimate the applicable penalty.</div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 32 }}>
@@ -246,20 +246,19 @@ export const PenaltyPage: React.FC = () => {
               <span style={{ fontSize: 15 }}>→</span>
             </button>
           </div>
-        </div>
+        </SectionCard>
       )}
 
       {/* ── Step 2: Declaration Values ── */}
       {step === 2 && (
-        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 16, padding: 28 }}>
+        <SectionCard title="Declaration values" collapsible={false}>
           {/* Info banner */}
           <div style={{ padding: '14px 18px', borderRadius: 10, background: 'var(--teal-l, rgba(13, 148, 136, 0.07))', border: '1px solid rgba(13, 148, 136, 0.2)', marginBottom: 24, fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.6 }}>
             Penalty rates: <strong>Under-declaration 3× duty shortfall</strong> (s.133) · <strong>Mis-classification 1.5× duty diff.</strong> (s.128) · Late payment <strong>2%/month</strong> · No PVoC <strong>TZS 10M</strong> · No DI <strong>TZS 5M</strong> — Tanzania CEMA CAP 403
           </div>
 
-          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 20 }}>
-            Enter Declaration Values
-            <span style={{ marginLeft: 10, fontSize: 12, fontWeight: 600, color: 'var(--teal, #0d9488)', background: 'var(--teal-l, rgba(13, 148, 136, 0.08))', border: '1px solid rgba(13, 148, 136, 0.2)', borderRadius: 6, padding: '3px 10px' }}>
+          <div style={{ marginBottom: 20 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--teal, #0d9488)', background: 'var(--teal-l, rgba(13, 148, 136, 0.08))', border: '1px solid rgba(13, 148, 136, 0.2)', borderRadius: 6, padding: '3px 10px' }}>
               {VIOLATION_CARDS.find(c => c.value === violation)?.title}
             </span>
           </div>
@@ -343,7 +342,7 @@ export const PenaltyPage: React.FC = () => {
               <span style={{ fontSize: 15 }}>→</span>
             </button>
           </div>
-        </div>
+        </SectionCard>
       )}
 
       {/* ── Step 3: Penalty Assessment ── */}
@@ -351,63 +350,59 @@ export const PenaltyPage: React.FC = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           {/* Estimate button shown while no result yet */}
           {!result && (
-            <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 16, padding: 32, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-              <div style={{ fontSize: 13.5, color: 'var(--ink3)' }}>{calcLoading ? 'Calculating estimate…' : 'Ready to calculate estimate.'}</div>
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={calculate}
-                disabled={calcLoading}
-                style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py) 36px', borderRadius: 'var(--r)', fontSize: 14, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
-              >
-                <Icon name="alertCircle" size={15} color="#fff" />
-                <span>{calcLoading ? 'Calculating…' : 'Estimate Penalty'}</span>
-              </button>
-            </div>
+            <SectionCard collapsible={false}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+                <div style={{ fontSize: 13.5, color: 'var(--ink3)' }}>{calcLoading ? 'Calculating estimate…' : 'Ready to calculate estimate.'}</div>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={calculate}
+                  disabled={calcLoading}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py) 36px', borderRadius: 'var(--r)', fontSize: 14, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
+                >
+                  <Icon name="alertCircle" size={15} color="#fff" />
+                  <span>{calcLoading ? 'Calculating…' : 'Estimate Penalty'}</span>
+                </button>
+              </div>
+            </SectionCard>
           )}
 
           {/* Result breakdown */}
           {result && (
-            <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden', boxShadow: 'var(--elev-lg)' }}>
-              <div style={{ padding: '14px 22px', background: 'var(--teal-l, rgba(13, 148, 136, 0.08))', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10 }}>
-                <Icon name="alertCircle" size={16} color="var(--teal, #0d9488)" />
-                <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)' }}>Penalty Breakdown</span>
-                <span style={{ marginLeft: 'auto', fontSize: 11.5, color: 'var(--ink3)' }}>EAC CET · CEMA CAP 403</span>
-              </div>
-              <div style={{ padding: '20px 26px' }}>
-                {result.breakdown.map((b, i) => (
-                  <RRow key={i}
-                    label={b.label}
-                    value={`TZS ${fmt(b.amount)}`}
-                    red={b.label.includes('TOTAL')}
-                  />
-                ))}
-                {result.total_penalty_tzs === 0 && <div style={{ fontSize: 13, color: 'var(--ink3)', padding: '8px 0' }}>No penalties apply with the inputs provided.</div>}
-                <div style={{ height: 1, background: 'var(--border)', margin: '8px 0' }} />
-                <RRow label="Total Estimated Penalty" value={`TZS ${fmt(result.total_penalty_tzs)}`} red />
+            <SectionCard
+              title="Penalty breakdown"
+              action={<span style={{ fontSize: 11.5, color: 'var(--ink3)' }}>EAC CET · CEMA CAP 403</span>}
+            >
+              {result.breakdown.map((b, i) => (
+                <RRow key={i}
+                  label={b.label}
+                  value={`TZS ${fmt(b.amount)}`}
+                  red={b.label.includes('TOTAL')}
+                />
+              ))}
+              {result.total_penalty_tzs === 0 && <div style={{ fontSize: 13, color: 'var(--ink3)', padding: '8px 0' }}>No penalties apply with the inputs provided.</div>}
+              <div style={{ height: 1, background: 'var(--border)', margin: '8px 0' }} />
+              <RRow label="Total Estimated Penalty" value={`TZS ${fmt(result.total_penalty_tzs)}`} red />
 
-                {result.legal_references.length > 0 && (
-                  <div style={{ marginTop: 20, padding: '16px 18px', borderRadius: 10, background: 'var(--teal-l, rgba(13, 148, 136, 0.06))', border: '1px solid rgba(13, 148, 136, 0.2)' }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--teal, #0d9488)', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 10 }}>Legal Basis — CEMA CAP 403</div>
-                    {result.legal_references.map((b, i) => (
-                      <div key={i} style={{ fontSize: 12.5, color: 'var(--ink2)', paddingLeft: 12, borderLeft: '2px solid var(--teal, #0d9488)', marginBottom: 6, lineHeight: 1.6 }}>{b}</div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
+              {result.legal_references.length > 0 && (
+                <div style={{ marginTop: 20, padding: '16px 18px', borderRadius: 10, background: 'var(--teal-l, rgba(13, 148, 136, 0.06))', border: '1px solid rgba(13, 148, 136, 0.2)' }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--teal, #0d9488)', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 10 }}>Legal Basis — CEMA CAP 403</div>
+                  {result.legal_references.map((b, i) => (
+                    <div key={i} style={{ fontSize: 12.5, color: 'var(--ink2)', paddingLeft: 12, borderLeft: '2px solid var(--teal, #0d9488)', marginBottom: 6, lineHeight: 1.6 }}>{b}</div>
+                  ))}
+                </div>
+              )}
+            </SectionCard>
           )}
 
           {/* AI Analysis panel */}
           {summary && (
-            <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden' }}>
-              <div style={{ padding: '12px 22px', background: 'var(--bg)', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Icon name="zap" size={15} color="var(--teal, #0d9488)" />
-                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>AI Analysis</span>
-                <button type="button" onClick={() => setSummary('')} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 18, lineHeight: 1, padding: 0 }}>×</button>
-              </div>
-              <div style={{ padding: '18px 22px', fontSize: 13.5, color: 'var(--ink)', lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>{summary}</div>
-            </div>
+            <SectionCard
+              title="AI analysis"
+              action={<button type="button" onClick={() => setSummary('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 18, lineHeight: 1, padding: 0 }}>×</button>}
+            >
+              <div style={{ fontSize: 13.5, color: 'var(--ink)', lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>{summary}</div>
+            </SectionCard>
           )}
 
           {aiError && !summary && (

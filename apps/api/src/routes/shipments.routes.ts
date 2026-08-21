@@ -13,6 +13,7 @@ import { WhatsAppIntegration } from '../integrations/whatsapp.js';
 import { MailService } from '../services/mail.service.js';
 import { MinioIntegration } from '../integrations/minio.js';
 import { NotificationService } from '../services/notification.service.js';
+import { renderShipmentReportPdf, getOrCreateShareToken } from '../services/shipment-report.service.js';
 import type { CreateShipmentInput, AdvanceStageInput } from '@hudumika/types';
 import { buildMockResult, trackViaShipsGo, trackViaShip24 } from './tracker.routes.js';
 import { sql } from 'kysely';
@@ -98,6 +99,9 @@ const shipmentPatchSchema = z.object({
   whatsapp_bot_active: z.boolean().optional(),
   due_date: z.string().nullable().optional(),
   created_at: z.string().nullable().optional(),
+  // Daily shipment-report automation (migration 258) — null = inherit the
+  // customer's own setting; see shipment-report.service.ts's tri-state logic.
+  daily_report_enabled: z.boolean().nullable().optional(),
 });
 const flagCreateSchema = z.object({
   type: z.enum(RISK_FLAG_TYPES),
@@ -450,6 +454,41 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
 
       return { invoices, demurrage_containers: containers, tracker_snapshots: trackerSnapshots, transport_trips: trips };
     });
+  });
+
+  /**
+   * GET /v1/shipments/:id/report.pdf
+   * On-demand download of the same PDF the daily automation emails —
+   * shipment-report.service.ts's pdfkit renderer, always generated fresh.
+   */
+  fastify.get('/:id/report.pdf', async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    const shipment = await withTenant(user.tenant_id, (trx) =>
+      trx.selectFrom('shipment_cases').select(['ref_number']).where('id', '=', id).where('tenant_id', '=', user.tenant_id).where('deleted_at', 'is', null).executeTakeFirst()
+    );
+    if (!shipment) return reply.status(404).send({ error: 'Shipment not found' });
+    const pdf = await renderShipmentReportPdf(user.tenant_id, id);
+    reply.header('Content-Type', 'application/pdf');
+    reply.header('Content-Disposition', `attachment; filename="${(shipment.ref_number || id)}-report.pdf"`);
+    return reply.send(pdf);
+  });
+
+  /**
+   * POST /v1/shipments/:id/report-share
+   * Get-or-create this shipment's public "check progress" link — the same
+   * one the daily WhatsApp automation sends, so a staff member can also
+   * share it manually on demand.
+   */
+  fastify.post('/:id/report-share', async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    const shipment = await withTenant(user.tenant_id, (trx) =>
+      trx.selectFrom('shipment_cases').select(['id']).where('id', '=', id).where('tenant_id', '=', user.tenant_id).where('deleted_at', 'is', null).executeTakeFirst()
+    );
+    if (!shipment) return reply.status(404).send({ error: 'Shipment not found' });
+    const { token, url } = await getOrCreateShareToken(user.tenant_id, id, user.sub);
+    return { token, url };
   });
 
   /**
@@ -838,7 +877,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
       'origin_port', 'port_of_loading', 'dest_port', 'port_of_discharge',
       'eta', 'free_time_end', 'sla_deadline', 'assigned_to',
       'gross_weight_kg', 'cif_value_usd', 'container_numbers', 'internal_notes',
-      'whatsapp_bot_active',
+      'whatsapp_bot_active', 'daily_report_enabled',
       // Key Dates panel (Shipment Detail sidebar) — editing either sends a
       // real notification to the shipment's listeners, below.
       'due_date', 'created_at',

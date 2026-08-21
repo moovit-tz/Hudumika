@@ -78,7 +78,7 @@ export const FinancePlaceholder: React.FC = () => {
           style={{
             display: 'inline-block',
             padding: '10px 24px', borderRadius: 9, border: 'none', cursor: 'pointer',
-            background: 'var(--teal)', color: '#fff', fontSize: 13.5, fontWeight: 600,
+            background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 13.5, fontWeight: 600,
             fontFamily: 'var(--font)', textDecoration: 'none',
           }}
         >

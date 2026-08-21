@@ -368,7 +368,7 @@ export const SystemUpdate: React.FC = () => {
               </button>
               <button
                 onClick={startUpdate}
-                style={{ padding:'var(--ds-btn-py) 20px', borderRadius: 'var(--r)', border:'none', background:'var(--teal)', color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
+                style={{ padding:'var(--ds-btn-py) 20px', borderRadius: 'var(--r)', border:'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize:13, fontWeight:700, cursor:'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
               >
                 Update Now
               </button>

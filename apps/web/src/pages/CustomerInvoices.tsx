@@ -334,7 +334,7 @@ function InvoiceDetail({ inv, onBack }: { inv: Invoice; onBack: () => void }) {
       </div>
 
       {disputed && (
-        <div style={{ position: 'fixed', bottom: 130, left: 16, right: 16, background: 'var(--teal)', color: '#fff', borderRadius: 9, padding: '12px 16px', fontSize: 13, fontWeight: 600, zIndex: 200, textAlign: 'center' }}>
+        <div style={{ position: 'fixed', bottom: 130, left: 16, right: 16, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', borderRadius: 9, padding: '12px 16px', fontSize: 13, fontWeight: 600, zIndex: 200, textAlign: 'center' }}>
           Dispute submitted — opening support ticket…
         </div>
       )}
@@ -422,7 +422,7 @@ export const CustomerInvoices: React.FC = () => {
             <Icon name="alertCircle" size={36} color="var(--red)" />
             <p style={{ color: 'var(--ink2)', fontSize: 14, margin: '12px 0 4px', fontWeight: 600 }}>Couldn't load your invoices</p>
             <p style={{ color: 'var(--ink3)', fontSize: 13, margin: '0 0 16px' }}>Check your connection and try again.</p>
-            <button type="button" onClick={load} style={{ padding: 'var(--ds-btn-py) 20px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box' }}>
+            <button type="button" onClick={load} style={{ padding: 'var(--ds-btn-py) 20px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 13, fontWeight: 700, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box' }}>
               Retry
             </button>
           </div>

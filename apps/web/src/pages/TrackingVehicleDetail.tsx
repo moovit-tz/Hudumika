@@ -188,7 +188,7 @@ export const TrackingVehicleDetail: React.FC = () => {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button type="button"
-                style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 16px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 16px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
                 <Icon name="plus" size={15} /> Add <Icon name="chevronDown" size={12} />
               </button>
             </DropdownMenuTrigger>
@@ -229,7 +229,7 @@ export const TrackingVehicleDetail: React.FC = () => {
                   <button type="button" onClick={() => setEditing(false)}
                     style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink3)', background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 12px', cursor: 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
                   <button type="button" onClick={saveEdit} disabled={saving}
-                    style={{ fontSize: 12, fontWeight: 600, color: '#fff', background: 'var(--teal)', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 12px', cursor: 'pointer', opacity: saving ? 0.6 : 1, minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                    style={{ fontSize: 12, fontWeight: 600, color: 'hsl(var(--primary-foreground))', background: 'hsl(var(--primary))', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 12px', cursor: 'pointer', opacity: saving ? 0.6 : 1, minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
                     {saving ? 'Saving…' : 'Save'}
                   </button>
                 </div>
@@ -742,7 +742,7 @@ function VehicleLoadPlanTab({ vehicleId }: { vehicleId: string }) {
       <div style={{ ...cardStyle, padding: '40px 20px', textAlign: 'center' }}>
         <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 12 }}>No load plan yet for this vehicle.</div>
         <button type="button" onClick={createDefaultPlan} disabled={creating}
-          style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer', opacity: creating ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+          style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 600, fontSize: 13, cursor: 'pointer', opacity: creating ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
           {creating ? 'Creating…' : 'Create load plan'}
         </button>
       </div>
@@ -774,7 +774,7 @@ function VehicleLoadPlanTab({ vehicleId }: { vehicleId: string }) {
               <input type="number" value={itemWeight} onChange={e => setItemWeight(e.target.value)} placeholder="kg" style={smallInput} />
               <input type="number" value={itemQty} onChange={e => setItemQty(e.target.value)} placeholder="Qty" style={smallInput} />
             </div>
-            <button type="submit" style={{ padding: 'var(--ds-btn-py) 12px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontWeight: 600, fontSize: 12, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Add item</button>
+            <button type="submit" style={{ padding: 'var(--ds-btn-py) 12px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 600, fontSize: 12, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Add item</button>
           </form>
         </div>
 

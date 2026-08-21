@@ -13,10 +13,14 @@ export function getHudumikaLogoHtml(): string {
     if (!logoLight && !logoDark && favicon) logoLight = favicon;
   }
 
-  if (logoLight && logoDark) {
-    return `<img src="${logoLight}" alt="Hudumika" class="logo-light-only" style="height: 24px; max-width: 155px; object-fit: contain; vertical-align: middle; display: inline-block; margin: 0 4px;" /><img src="${logoDark}" alt="Hudumika" class="logo-dark-only" style="height: 24px; max-width: 155px; object-fit: contain; vertical-align: middle; display: inline-block; margin: 0 4px;" />`;
-  }
-
+  // A printed/exported document has no dark mode — it's paper (or a PDF
+  // meant to look like paper), always on a light background. Emitting both
+  // the light- and dark-background logo variants side by side (relying on
+  // index.css's `.logo-light-only`/`.logo-dark-only` + `[data-theme]` rules
+  // to hide one) only works inside the live app shell; a standalone
+  // print/export document built by this module has neither index.css nor a
+  // `data-theme` attribute, so both logos rendered unconditionally — the
+  // literal "hudumika hudumika" double-logo bug. Always pick exactly one.
   const singleLogo = logoLight || logoDark;
   if (singleLogo) {
     return `<img src="${singleLogo}" alt="Hudumika" style="height: 24px; max-width: 155px; object-fit: contain; vertical-align: middle; display: inline-block; margin: 0 4px;" />`;

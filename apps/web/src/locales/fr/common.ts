@@ -16,6 +16,7 @@ export default
     "exitFullPage": "Quitter le plein écran",
     "myProfile": "Mon profil",
     "adminPanel": "Panneau d'administration",
+    "lockWorkspace": "Verrouiller l'espace de travail",
     "signOut": "Déconnexion",
     "account": "Compte"
   },

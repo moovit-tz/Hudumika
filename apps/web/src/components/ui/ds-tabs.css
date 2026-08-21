@@ -86,8 +86,8 @@
 }
 :root[data-tabs="pill"] .ds-tabs-trigger[data-state="active"],
 .ds-tabs-trigger[data-variant="pill"][data-state="active"] {
-  background: var(--teal);
-  color: var(--white);
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
 }
 
 /* ── segmented ───────────────────────────────────────────────────────

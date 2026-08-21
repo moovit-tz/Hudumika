@@ -16,6 +16,7 @@ export default
     "exitFullPage": "退出全屏页面",
     "myProfile": "我的资料",
     "adminPanel": "管理面板",
+    "lockWorkspace": "锁定工作区",
     "signOut": "退出登录",
     "account": "账户"
   },

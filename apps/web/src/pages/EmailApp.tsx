@@ -533,7 +533,7 @@ export const EmailApp: React.FC = () => {
               <input type="text" placeholder="Time (e.g. 10:00)" value={newEventTime} onChange={e => setNewEventTime(e.target.value)} style={{ padding: '6px 10px', borderRadius: 9, border: '0.5px solid var(--border)', fontSize: 12, outline: 'none', background: 'var(--white)' }} />
               <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
                 <button type="button" onClick={() => setShowAddEvent(false)} style={{ background: 'none', border: 'none', fontSize: 11, cursor: 'pointer', color: 'var(--ink3)' }}>Cancel</button>
-                <button type="button" onClick={handleAddEvent} style={{ background: 'var(--teal)', color: '#fff', border: 'none', padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 'var(--r)', fontSize: 11, fontWeight: 600, cursor: 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>Save</button>
+                <button type="button" onClick={handleAddEvent} style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 'var(--r)', fontSize: 11, fontWeight: 600, cursor: 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>Save</button>
               </div>
             </div>
           )}
@@ -649,7 +649,7 @@ export const EmailApp: React.FC = () => {
               </div>
               <div style={{ display: 'flex', gap: 6 }}>
                 <button type="button" onClick={() => setShowAddNote(false)} style={{ background: 'none', border: 'none', fontSize: 11, cursor: 'pointer', color: 'var(--ink3)' }}>Cancel</button>
-                <button type="button" onClick={handleAddNote} style={{ background: 'var(--teal)', color: '#fff', border: 'none', padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 'var(--r)', fontSize: 11, fontWeight: 600, cursor: 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>Done</button>
+                <button type="button" onClick={handleAddNote} style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 'var(--r)', fontSize: 11, fontWeight: 600, cursor: 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>Done</button>
               </div>
             </div>
           </div>

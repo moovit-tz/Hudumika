@@ -4,6 +4,7 @@ import { hashPassword } from '../lib/password.js';
 import { PaymentsIntegration } from '../integrations/payments.js';
 import { GLService } from './gl.service.js';
 import { DefaultWorkflowService } from './default-workflow.service.js';
+import { computeAndRecordCommission } from './referral.service.js';
 import type { OnboardingCompleteInput, OnboardingCompleteResponse, TenantPlan, JWTPayload } from '@hudumika/types';
 import type { FastifyInstance } from 'fastify';
 
@@ -92,6 +93,18 @@ export class OnboardingService {
       throw new OnboardingError(402, charge.error || 'Payment was declined');
     }
 
+    // A stale or mistyped ?ref= link is never a signup error — it's just
+    // silently not a referral. Resolved against a real, active tenant's
+    // slug only; matched here rather than trusted from the client.
+    let referredByTenantId: string | null = null;
+    if (input.referral_code) {
+      const referrer = await dbPlatform.selectFrom('tenants').select('id')
+        .where('slug', '=', input.referral_code.trim().toLowerCase())
+        .where('active', '=', true)
+        .executeTakeFirst();
+      referredByTenantId = referrer?.id ?? null;
+    }
+
     const now = new Date();
     const slug = await uniqueSlug(input.company.name);
 
@@ -102,6 +115,7 @@ export class OnboardingService {
         subdomain: input.subdomain,
         plan: pkg.code as TenantPlan,
         active: true,
+        referred_by_tenant_id: referredByTenantId,
         created_at: now,
         updated_at: now,
       }).returningAll().executeTakeFirstOrThrow();
@@ -164,6 +178,14 @@ export class OnboardingService {
 
       return { tenant, admin };
     });
+
+    if (referredByTenantId) {
+      // Referral tracking must never block a real signup that already
+      // succeeded — a commission that fails to record is a bug to fix, not
+      // a reason to fail the account creation that already happened.
+      computeAndRecordCommission(tenant.id, amount, 'USD', charge.tx_ref, input.payment.mobile_number ?? null)
+        .catch(err => fastify.log.error(err, 'Failed to record referral commission'));
+    }
 
     const payload: Omit<JWTPayload, 'iat' | 'exp'> = {
       sub: admin.id,

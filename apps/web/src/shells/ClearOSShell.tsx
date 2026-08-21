@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route, Navigate, useParams } from 'react-router-dom';
+import { Routes, Route, Navigate, useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import '../pages/ClearOS.css';
 import { WorkspaceApp } from './WorkspaceApp.js';
 import { AppSidebar } from '../components/AppSidebar.js';
@@ -8,6 +8,8 @@ import { AppHeader } from '../components/AppHeader.js';
 import { RequireRoles } from '../components/RequireRoles.js';
 import { PageLayout } from '../components/PageLayout.js';
 import { OPS_ROLES, MGMT_ROLES } from '../lib/permissions.js';
+import { FeaturedIcon } from '../components/ui/featured-icon.js';
+import { Button } from '../components/ui/button.js';
 
 import { CommandCenter }    from '../pages/CommandCenter.js';
 import { ClearOSLanding }   from '../pages/ClearOSLanding.js';
@@ -18,19 +20,20 @@ import { LandedCostHistoryPage } from '../pages/LandedCostHistoryPage.js';
 import { ReportIssuePage } from '../pages/ReportIssuePage.js';
 import { CompliancePage }   from '../pages/CompliancePage.js';
 import { ComplianceOverview } from '../pages/compliance/ComplianceOverview.js';
+import { SanctionsScreeningPage } from '../pages/compliance/SanctionsScreeningPage.js';
+import { CertificateOfOriginPage } from '../pages/compliance/CertificateOfOriginPage.js';
 import { QuickComplianceCheck } from '../pages/QuickComplianceCheck.js';
 import { TradeWizard }      from '../pages/trade-wizard/TradeWizard.js';
 import { PenaltyPage }      from '../pages/PenaltyPage.js';
 import { CustomsReference } from '../pages/CustomsReference.js';
 import { ShipmentEdit }     from '../pages/ShipmentEdit.js';
 import { CarbonPortfolio }  from '../pages/CarbonPortfolio.js';
-import { CarriersPage }     from '../pages/CarriersPage.js';
-import { FreightRateCardsPage } from '../pages/FreightRateCardsPage.js';
-import { FreightBookingsPage } from '../pages/FreightBookingsPage.js';
-import { CreateFreightBookingPage } from '../pages/CreateFreightBookingPage.js';
 import { ProductsServices } from '../pages/ProductsServices.js';
 import { RateCardPage } from '../pages/RateCardPage.js';
 import { DutyCheckPage } from '../pages/DutyCheckPage.js';
+import { LclCalculatorPage } from '../pages/LclCalculatorPage.js';
+import { AirCalculatorPage } from '../pages/AirCalculatorPage.js';
+import { TransitCalculatorPage } from '../pages/TransitCalculatorPage.js';
 
 /**
  * Carries a workflow id across the move to Studio.
@@ -45,15 +48,51 @@ function WorkflowRedirect() {
 }
 
 /**
- * Carries an ex-warehouse entry id back to SEAL.
+ * Explains an ex-warehouse entry bookmark before sending it to SEAL, rather
+ * than silently swapping apps out from under whoever followed the link.
  *
  * /clearos/declarations/:id used to render a SEAL customs entry, so any such
  * bookmark holds a seal_customs_entries id. ClearOS's Declarations screen now
- * lists real TANSAD declarations, where that id means nothing.
+ * lists real TANSAD declarations, where that id means nothing — a plain
+ * <Navigate replace> landed a bookmarked link in a visually different app
+ * (SEAL, not ClearOS) with zero indication anything had happened, which read
+ * as "my bookmark is broken" rather than "this moved."
  */
 function ExWarehouseRedirect() {
   const { id } = useParams();
-  return <Navigate to={id ? `/seal/ex-warehouse/${id}` : '/seal/ex-warehouse'} replace />;
+  const navigate = useNavigate();
+  const target = id ? `/seal/ex-warehouse/${id}` : '/seal/ex-warehouse';
+  return (
+    <div style={{
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      height: '100%', width: '100%', textAlign: 'center', padding: 24, gap: 14,
+    }}>
+      <FeaturedIcon variant="info" size="lg" shape="circle">
+        <span style={{ fontSize: 22, fontWeight: 700 }}>→</span>
+      </FeaturedIcon>
+      <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)' }}>This entry now lives in SEAL</div>
+      <div style={{ fontSize: 14, color: 'var(--ink3)', maxWidth: 420 }}>
+        Ex-warehouse declarations moved out of ClearOS's Declarations screen, which now lists real TANSAD
+        declarations instead. Your bookmark still works — it just opens in SEAL now.
+      </div>
+      <Button onClick={() => navigate(target, { replace: true })}>Continue to SEAL</Button>
+    </div>
+  );
+}
+
+/**
+ * DangerousGoodsPage.tsx was removed — every declaration it managed (view,
+ * create, issue, PDF) now lives inline on the shipment it belongs to (see
+ * DangerousGoodsPanel.tsx on ShipmentDetail), since DG cargo follows the
+ * same clearing flow as any other shipment rather than a separate process.
+ * A bookmarked `?shipment=` deep-link still lands on that shipment; without
+ * one, there's no single "all declarations" list anymore, so this falls
+ * back to Ops Command.
+ */
+function DangerousGoodsRedirect() {
+  const [params] = useSearchParams();
+  const shipmentId = params.get('shipment');
+  return <Navigate to={shipmentId ? `/clearos/clearance/${shipmentId}` : '/clearos/ops'} replace />;
 }
 
 const NAV: SidebarSection[] = [
@@ -68,7 +107,10 @@ const NAV: SidebarSection[] = [
       { label: 'Ops Command',   icon: 'monitor',    path: '/clearos/ops' },
       { label: 'Duty Check',    icon: 'percent',    path: '/clearos/duty-check' },
       { label: 'Landed Cost',   icon: 'package',    path: '/clearos/customs-tools', exact: true, children: [
-        { label: 'Calculator', icon: 'calculator', path: '/clearos/customs-tools', exact: true },
+        { label: 'Calculator (FCL)', icon: 'calculator', path: '/clearos/customs-tools', exact: true },
+        { label: 'LCL',         icon: 'package',    path: '/clearos/customs-tools/lcl' },
+        { label: 'Air Freight', icon: 'send',       path: '/clearos/customs-tools/air' },
+        { label: 'Transit',     icon: 'truck',      path: '/clearos/customs-tools/transit' },
         { label: 'History',    icon: 'clock',      path: '/clearos/customs-tools/history' },
       ] },
       { label: 'Compliance',    icon: 'shield',     path: '/clearos/compliance', exact: true, children: [
@@ -79,20 +121,31 @@ const NAV: SidebarSection[] = [
         // screen — "Advanced Check" was the only place it went by another
         // name, which is exactly where someone goes looking for it.
         { label: 'Trade Wizard', icon: 'compass', path: '/clearos/compliance/advanced' },
+        { label: 'Screening',   icon: 'userCheck', path: '/clearos/compliance/screening' },
+        { label: 'Certificate of Origin', icon: 'award', path: '/clearos/compliance/origin' },
       ] },
       { label: 'Penalty',       icon: 'alertCircle', path: '/clearos/penalty' },
       { label: 'Carbon Portfolio', icon: 'globe',   path: '/clearos/carbon' },
     ],
   },
-  // FREIGHT BOOKING (Bookings, Rate Cards, Carriers) hidden — feature-to-come,
-  // not ready for general use yet. Routes below stay mounted so in-progress
-  // work isn't lost; just no sidebar entry point until they're finished.
+  // Freight Booking (Bookings, Freight Rate Cards, Carriers, Carrier
+  // Contracts) moved to live entirely in the CargoTracker app — see
+  // freight-booking.routes.ts's own header comment. ClearOS and CargoTracker
+  // are sold as a bundle, so nothing here is lost; old /clearos/freight-
+  // booking/* links redirect to their new /cargotracker/* home below.
+  // Release/Delivery Orders merged into FinOps's Delivery Documents
+  // (delivery-document.service.ts) and Container Depot moved to live in
+  // HuduFreight (depot.routes.ts) — old /clearos/release-orders and
+  // /clearos/depot links redirect to their new homes below.
   {
     title: 'TOOLS',
     items: [
       { label: 'Products & Services', icon: 'tag', path: '/clearos/products' },
       { label: 'Reference', icon: 'layers',     path: '/clearos/reference' },
-      { label: 'Rate Card', icon: 'sliders',    path: '/clearos/rate-card' },
+      // Distinct from Freight Booking's "Freight Rate Cards" (carrier
+      // buy/sell pricing) — this is the tenant's own ICD/clearing-agency
+      // charges, feeding the Landed Cost Calculator's defaults.
+      { label: 'Clearing Rate Card', icon: 'sliders',    path: '/clearos/rate-card' },
     ],
   },
   {
@@ -143,13 +196,20 @@ export function ClearOSShell() {
                 <Route path="declarations/:id" element={<ExWarehouseRedirect />} />
                 <Route path="consignments"    element={<Navigate to="/tracking/shipments" replace />} />
                 <Route path="customs-tools"   element={<RequireRoles roles={OPS_ROLES}><LandedCostPage /></RequireRoles>} />
+                <Route path="customs-tools/lcl"     element={<RequireRoles roles={OPS_ROLES}><LclCalculatorPage /></RequireRoles>} />
+                <Route path="customs-tools/air"     element={<RequireRoles roles={OPS_ROLES}><AirCalculatorPage /></RequireRoles>} />
+                <Route path="customs-tools/transit" element={<RequireRoles roles={OPS_ROLES}><TransitCalculatorPage /></RequireRoles>} />
                 <Route path="customs-tools/history" element={<RequireRoles roles={OPS_ROLES}><LandedCostHistoryPage /></RequireRoles>} />
+                <Route path="dangerous-goods" element={<DangerousGoodsRedirect />} />
+                <Route path="compliance/dangerous-goods" element={<DangerousGoodsRedirect />} />
                 <Route path="report-issue"    element={<ReportIssuePage />} />
                 <Route path="quick-compliance" element={<Navigate to="/clearos/compliance/quick" replace />} />
                 <Route path="compliance" element={<RequireRoles roles={OPS_ROLES}><CompliancePage /></RequireRoles>}>
                   <Route index          element={<ComplianceOverview />} />
                   <Route path="quick"    element={<QuickComplianceCheck />} />
                   <Route path="advanced" element={<TradeWizard />} />
+                  <Route path="screening" element={<SanctionsScreeningPage />} />
+                  <Route path="origin" element={<CertificateOfOriginPage />} />
                 </Route>
                 <Route path="penalty"         element={<RequireRoles roles={OPS_ROLES}><PenaltyPage /></RequireRoles>} />
                 <Route path="carbon"          element={<RequireRoles roles={[...MGMT_ROLES, 'FINANCE', 'SENIOR']}><CarbonPortfolio /></RequireRoles>} />
@@ -160,10 +220,15 @@ export function ClearOSShell() {
                 <Route path="chat"            element={<Navigate to="/bliss/team-chat" replace />} />
                 <Route path="reference"       element={<CustomsReference />} />
                 <Route path="rate-card"       element={<RequireRoles roles={OPS_ROLES}><RateCardPage /></RequireRoles>} />
-                <Route path="freight-booking/bookings"   element={<RequireRoles roles={OPS_ROLES}><FreightBookingsPage /></RequireRoles>} />
-                <Route path="freight-booking/new"        element={<RequireRoles roles={OPS_ROLES}><CreateFreightBookingPage /></RequireRoles>} />
-                <Route path="freight-booking/rate-cards" element={<RequireRoles roles={OPS_ROLES}><FreightRateCardsPage /></RequireRoles>} />
-                <Route path="freight-booking/carriers"   element={<RequireRoles roles={OPS_ROLES}><CarriersPage /></RequireRoles>} />
+                {/* Freight Booking moved to CargoTracker — see nav comment above. */}
+                <Route path="freight-booking/bookings"   element={<Navigate to="/cargotracker/bookings" replace />} />
+                <Route path="freight-booking/new"        element={<Navigate to="/cargotracker/bookings/new" replace />} />
+                <Route path="freight-booking/rate-cards" element={<Navigate to="/cargotracker/rate-cards" replace />} />
+                <Route path="freight-booking/carriers"   element={<Navigate to="/cargotracker/carriers" replace />} />
+                <Route path="freight-booking/contracts"  element={<Navigate to="/cargotracker/contracts" replace />} />
+                {/* Release Orders merged into FinOps; Depot moved to HuduFreight — see nav comment above. */}
+                <Route path="release-orders"   element={<Navigate to="/finance/delivery-documents" replace />} />
+                <Route path="depot"            element={<Navigate to="/tracking/depot" replace />} />
                 <Route path="workflows"        element={<Navigate to="/studio/clearance" replace />} />
                 <Route path="workflows/new"    element={<Navigate to="/studio/clearance/new" replace />} />
                 <Route path="workflows/:id/edit" element={<WorkflowRedirect />} />

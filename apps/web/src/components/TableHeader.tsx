@@ -11,9 +11,6 @@ export const TableHeader: React.FC<TableHeaderProps> = ({ sortBy, setSortBy }) =
     { label: 'Ref Number', className: 'th-ref', field: 'created' as const },
     { label: 'Type', className: 'th-type' },
     { label: 'Cargo Description', className: 'th-desc' },
-    // From /clearos/declarations, which this list replaces: the TANCIS ref,
-    // filing status and TRA lane, plus the declared value and item count.
-    { label: 'Declaration', className: 'th-decl' },
     { label: 'Stage Progress', className: 'th-stage' },
     { label: 'Status', className: 'th-status' },
     { label: 'Officer', className: 'th-officer' },

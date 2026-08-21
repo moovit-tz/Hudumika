@@ -34,6 +34,11 @@ export const APP_META: Record<string, { name: string; desc: string; icon: IconNa
   tracking:     { name: 'HuduFreight',   desc: 'Fleet, vehicle and driver tracking.',                   icon: 'truck' },
   demurrage:    { name: 'Demurrage',     desc: 'Container dwell time and demurrage cost tracking.',     icon: 'timer' },
   cargotracker: { name: 'CargoTracker',  desc: 'Cargo manifest and load tracking.',                     icon: 'ship' },
+  // Same "missing from here means it can never be toggled off" gap as the
+  // 213 batch above — petti/notes had real feature keys and grants but
+  // weren't listed here either (see entitlements.ts's own comment).
+  petti:        { name: 'Petti',         desc: 'Petty-cash wallets — deposit, request, approve and disburse.', icon: 'wallet' },
+  notes:        { name: 'Notes',         desc: 'Shared team notes, checklists and sketches.',           icon: 'fileText' },
 };
 
 function ToolCard({ icon, title, desc, action }: { icon: IconName; title: string; desc: string; action: React.ReactNode }) {

@@ -1,6 +1,7 @@
 import { withTenant } from '../db/client.js';
 import { MailTemplateService } from './mail-template.service.js';
 import { EmailIntegration } from '../integrations/email.js';
+import { MinioIntegration } from '../integrations/minio.js';
 
 interface EnqueueInput {
   to: string;
@@ -9,6 +10,11 @@ interface EnqueueInput {
   cc?: string[];
   templateKey?: string;
   sourceApp: string;
+  /** A storage_key from MinioIntegration (e.g. uploadShipmentReport) to
+   *  attach — mail-outbox.job.ts reads it at send time, so the file only
+   *  needs to exist by then, not at enqueue time. */
+  attachmentStorageKey?: string;
+  attachmentFilename?: string;
 }
 
 interface SendResult {
@@ -52,26 +58,33 @@ export const MailService = {
         body_html: input.bodyHtml,
         template_key: input.templateKey ?? null,
         source_app: input.sourceApp,
+        attachment_storage_key: input.attachmentStorageKey ?? null,
+        attachment_filename: input.attachmentFilename ?? null,
       }).returning('id').executeTakeFirstOrThrow();
       return row.id;
     });
   },
 
   /** Renders templateKey via MailTemplateService, then enqueues the result. */
-  async enqueueTemplated(tenantId: string, templateKey: string, to: string, vars: Record<string, string>, sourceApp: string): Promise<string> {
+  async enqueueTemplated(tenantId: string, templateKey: string, to: string, vars: Record<string, string>, sourceApp: string, attachment?: { storageKey: string; filename: string }): Promise<string> {
     const { subject, bodyHtml } = await MailTemplateService.render(tenantId, templateKey, vars);
-    return this.enqueue(tenantId, { to, subject, bodyHtml, templateKey, sourceApp });
+    return this.enqueue(tenantId, { to, subject, bodyHtml, templateKey, sourceApp, attachmentStorageKey: attachment?.storageKey, attachmentFilename: attachment?.filename });
   },
 
   /** Sends already-built subject/bodyHtml synchronously — see class doc for when to reach for this over enqueue(). */
   async sendNow(tenantId: string, input: EnqueueInput): Promise<SendResult> {
-    const result = await EmailIntegration.sendEmail({ to: input.to, subject: input.subject, bodyHtml: input.bodyHtml, cc: input.cc, tenantId });
+    const attachments = input.attachmentStorageKey
+      ? (() => { const content = MinioIntegration.readFile(input.attachmentStorageKey!); return content ? [{ filename: input.attachmentFilename || 'attachment', content }] : undefined; })()
+      : undefined;
+    const result = await EmailIntegration.sendEmail({ to: input.to, subject: input.subject, bodyHtml: input.bodyHtml, cc: input.cc, tenantId, attachments });
     const outboxId = await withTenant(tenantId, async (trx) => {
       const row = await trx.insertInto('email_outbox').values({
         tenant_id: tenantId, to_address: input.to,
         cc_addresses: input.cc && input.cc.length ? JSON.stringify(input.cc) : null,
         subject: input.subject, body_html: input.bodyHtml,
         template_key: input.templateKey ?? null, source_app: input.sourceApp,
+        attachment_storage_key: input.attachmentStorageKey ?? null,
+        attachment_filename: input.attachmentFilename ?? null,
         status: result.success ? 'sent' : 'failed',
         attempts: 1,
         sent_at: result.success ? new Date() : null,

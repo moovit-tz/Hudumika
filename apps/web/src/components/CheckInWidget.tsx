@@ -317,7 +317,7 @@ export const CheckInWidget: React.FC = () => {
                   Check Out
                 </button>
                 <button type="button" disabled={!selTask || saving} onClick={switchTask}
-                  style={{ background: 'var(--teal)', color: '#fff', border: 'none', padding: 'var(--ds-btn-py) 20px', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 600, cursor: (!selTask || saving) ? 'default' : 'pointer', opacity: (!selTask || saving) ? 0.6 : 1, transition: 'opacity 0.2s', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                  style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', padding: 'var(--ds-btn-py) 20px', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 600, cursor: (!selTask || saving) ? 'default' : 'pointer', opacity: (!selTask || saving) ? 0.6 : 1, transition: 'opacity 0.2s', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
                   {saving ? 'Switching…' : 'Switch Task'}
                 </button>
               </>
@@ -328,7 +328,7 @@ export const CheckInWidget: React.FC = () => {
                   Cancel
                 </button>
                 <button type="button" disabled={saving || (!selShipment && checkInMode === 'shipment') || (!selTask && checkInMode === 'task')} onClick={startTask}
-                  style={{ background: 'var(--teal)', color: '#fff', border: 'none', padding: 'var(--ds-btn-py) 20px', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 600, cursor: saving || (!selShipment && checkInMode === 'shipment') || (!selTask && checkInMode === 'task') ? 'default' : 'pointer', opacity: saving || (!selShipment && checkInMode === 'shipment') || (!selTask && checkInMode === 'task') ? 0.6 : 1, transition: 'opacity 0.2s', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                  style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', padding: 'var(--ds-btn-py) 20px', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 600, cursor: saving || (!selShipment && checkInMode === 'shipment') || (!selTask && checkInMode === 'task') ? 'default' : 'pointer', opacity: saving || (!selShipment && checkInMode === 'shipment') || (!selTask && checkInMode === 'task') ? 0.6 : 1, transition: 'opacity 0.2s', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
                   {saving ? 'Starting…' : 'Check In'}
                 </button>
               </>

@@ -1,20 +1,9 @@
-/* CRM brand color — set dynamically by WorkspaceApp via useBranding() */
+/* ── CRM Brand & Theming ─────────────────────────────────────────── */
 .app-shell[data-crm] {}
-
-/* ── Larger class-based buttons ─────────────────────────────────── */
-[data-crm] .btn-primary {
-  font-weight: 700;
-}
-[data-crm] .btn-secondary {
-}
-[data-crm] .btn-sm {
-}
-
-/* ── Section stretching ──────────────────────────────────────────── */
 
 /* ── CRM Layout & Cards ─────────────────────────────────────────── */
 .crm-card {
-  background: var(--white);
+  background: var(--card-bg, var(--white));
   border: 1px solid var(--border);
   border-radius: 10px;
   box-shadow: var(--elev-sm);
@@ -64,6 +53,7 @@
 .crm-table td {
   padding: 13px 14px;
   border-bottom: 1px solid var(--border);
+  color: var(--ink);
 }
 
 .crm-table tr {
@@ -79,5 +69,35 @@
   accent-color: var(--teal);
   width: 14px;
   height: 14px;
+}
+
+/* ── CRM Dark Mode Rules ────────────────────────────────────────── */
+[data-theme="dark"] [data-crm="true"] {
+  color-scheme: dark;
+}
+
+[data-theme="dark"] .crm-card {
+  background: var(--card-bg, #111827);
+  border-color: var(--border, #1f2937);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+}
+
+[data-theme="dark"] .crm-table th {
+  background: var(--bg, #0b0f17);
+  color: var(--ink3, #9ca3af);
+  border-color: var(--border, #1f2937);
+}
+
+[data-theme="dark"] .crm-table td {
+  border-color: var(--border, #1f2937);
+  color: var(--ink, #f3f4f6);
+}
+
+[data-theme="dark"] .crm-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.04) !important;
+}
+
+[data-theme="dark"] .crm-toolbar {
+  border-color: var(--border, #1f2937);
 }
 

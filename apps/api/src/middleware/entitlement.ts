@@ -7,13 +7,35 @@ import { dbPlatform, withTenant } from '../db/client.js';
  *   1. app_status       — global maintenance kill switch (503), SUPER_ADMIN bypasses.
  *   2. tenant_settings['enabled-apps'][featureKey] — per-tenant manual override,
  *      if a SuperAdmin has explicitly set one (true or false either way).
- *   3. package_features — otherwise, does the tenant's plan grant this feature.
+ *   3. agency-managed inheritance — see agencyManagedOnsiteGrant() below.
+ *   4. package_features — otherwise, does the tenant's plan grant this feature.
  * An API-key-authenticated request (see middleware/auth.ts) carries a fixed
  * scope list on request.apiKeyScopes — that's a hard ceiling checked first,
  * regardless of the key's acting role, since scoping would be meaningless
  * if a SUPER_ADMIN-created key could bypass it.
  * Must run after fastify.authenticate (needs request.user).
  */
+
+/**
+ * AgencyHost M1: a client tenant an agency manages (an active
+ * agency_managed_tenants row) is entitled to 'onsite' specifically, sourced
+ * from the relationship rather than its own plan — the 'agency-managed'
+ * package (see migration 243) deliberately grants nothing via
+ * package_features, so this is the only thing standing between an attached
+ * client and a 403. Scoped to 'onsite' only, not a generic pass-through of
+ * whatever the agency's own plan grants: the relationship exists to cover
+ * hosting, not to accidentally widen a client's access to every app the
+ * agency happens to have.
+ */
+export async function agencyManagedOnsiteGrant(tenantId: string, featureKey: string): Promise<boolean> {
+  if (featureKey !== 'onsite') return false;
+  const managed = await dbPlatform.selectFrom('agency_managed_tenants')
+    .select('id')
+    .where('client_tenant_id', '=', tenantId)
+    .where('status', '=', 'active')
+    .executeTakeFirst();
+  return !!managed;
+}
 /**
  * The actual entitlement check for one feature key, factored out so both
  * requireEntitlement() (single key) and requireAnyEntitlement() (OR across
@@ -75,6 +97,8 @@ async function checkEntitlement(
   if (tenantCheck.outcome === 'fail') return tenantCheck.failure;
   if (tenantCheck.outcome === 'pass') return null;
 
+  if (await agencyManagedOnsiteGrant(user.tenant_id, featureKey)) return null;
+
   const grant = await dbPlatform.selectFrom('package_features')
     .select('feature_key')
     .where('package_code', '=', tenantCheck.plan)
@@ -119,6 +143,8 @@ export async function tenantHasEntitlement(tenantId: string, featureKey: string)
   });
 
   if ('decided' in tenantCheck) return tenantCheck.decided;
+
+  if (await agencyManagedOnsiteGrant(tenantId, featureKey)) return true;
 
   const grant = await dbPlatform.selectFrom('package_features')
     .select('feature_key')

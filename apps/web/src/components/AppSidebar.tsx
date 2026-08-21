@@ -69,6 +69,8 @@ const APP_ICONS: Record<AppId, IconName> = {
   inventory: 'package',
   studio:    'gitBranch',
   hudubi:    'barChart2',
+  petti:     'wallet',
+  notes:     'fileText',
 };
 
 const APP_SUBTITLES: Partial<Record<AppId, string>> = {
@@ -91,6 +93,7 @@ const APP_SUBTITLES: Partial<Record<AppId, string>> = {
   cargotracker:  'Cargo Tracking & Demurrage',
   seal:          'Bonded Warehouse Ledger',
   inventory:     'Inventory Control',
+  petti:         'Petty Cash Wallet',
 };
 
 export function AppSidebar({ appId, sections, beforeNav, fillNav, afterNav, loading }: Props) {

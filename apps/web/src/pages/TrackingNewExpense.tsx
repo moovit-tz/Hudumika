@@ -19,11 +19,20 @@ interface Vendor {
   name: string;
 }
 
+interface Trip {
+  id: string;
+  origin: string | null;
+  destination: string | null;
+  customer_id: string | null;
+  shipment_ref: string | null;
+}
+
 export const TrackingNewExpense: React.FC = () => {
   const navigate = useNavigate();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [vendors, setVendors] = useState<Vendor[]>([]);
-  
+  const [trips, setTrips] = useState<Trip[]>([]);
+
   const [form, setForm] = useState({
     vehicle_id: '',
     category: '',
@@ -31,7 +40,9 @@ export const TrackingNewExpense: React.FC = () => {
     amount: '',
     date: new Date().toISOString().split('T')[0],
     frequency: 'single',
-    notes: ''
+    notes: '',
+    trip_id: '',
+    billable: false,
   });
 
   const [saving, setSaving] = useState(false);
@@ -40,6 +51,7 @@ export const TrackingNewExpense: React.FC = () => {
   useEffect(() => {
     apiFetch('/v1/tracking/vehicles').then(setVehicles).catch(console.error);
     apiFetch('/v1/tracking/vendors').then(setVendors).catch(console.error);
+    apiFetch('/v1/tracking/trips').then(setTrips).catch(console.error);
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -65,7 +77,9 @@ export const TrackingNewExpense: React.FC = () => {
           amount: Number(form.amount),
           expense_date: form.date,
           vendor_id: form.vendor_id || undefined,
-          description: finalDescription
+          description: finalDescription,
+          trip_id: form.trip_id || undefined,
+          billable: form.billable,
         })
       });
       navigate(`/tracking/vehicles/${form.vehicle_id}`);
@@ -152,19 +166,41 @@ export const TrackingNewExpense: React.FC = () => {
               <label className="exp-label">Amount <span className="required">*</span></label>
               <div style={{ position: 'relative' }}>
                 <span style={{ position: 'absolute', left: 14, top: 10, color: 'var(--ink3)', fontWeight: 500 }}>$</span>
-                <input 
-                  type="number" 
-                  step="0.01" 
+                <input
+                  type="number"
+                  step="0.01"
                   min="0"
-                  className="exp-input" 
+                  className="exp-input"
                   style={{ paddingLeft: 28 }}
-                  value={form.amount} 
-                  onChange={e => setForm({...form, amount: e.target.value})} 
+                  value={form.amount}
+                  onChange={e => setForm({...form, amount: e.target.value})}
                   placeholder=""
                   required
                 />
               </div>
             </div>
+
+            <div className="exp-field-group">
+              <label className="exp-label">Trip</label>
+              <Combobox
+                options={trips.map(t => ({ value: t.id, label: `${t.origin || '—'} → ${t.destination || '—'}`, sublabel: t.shipment_ref || undefined }))}
+                value={form.trip_id} onChange={v => setForm({...form, trip_id: v})} placeholder="Not linked to a trip"
+              />
+            </div>
+
+            <label className="exp-radio-label" style={{ marginTop: 8 }}>
+              <input
+                type="checkbox"
+                className="exp-radio-input"
+                checked={form.billable}
+                disabled={!form.trip_id}
+                onChange={e => setForm({...form, billable: e.target.checked})}
+              />
+              <div className="exp-radio-text-group">
+                <div className="exp-radio-title">Bill to customer</div>
+                <div className="exp-radio-desc">{form.trip_id ? 'Recovers this cost on the trip’s customer invoice.' : 'Link a trip first to make this billable.'}</div>
+              </div>
+            </label>
           </div>
 
           <div className="exp-section">

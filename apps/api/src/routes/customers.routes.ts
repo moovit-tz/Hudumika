@@ -5,6 +5,7 @@ import { withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import { MinioIntegration } from '../integrations/minio.js';
 import { CloudSync } from '../services/cloud-sync.service.js';
+import { screenSubject } from '../services/sanctions.service.js';
 import { MailService } from '../services/mail.service.js';
 import { WhatsAppIntegration } from '../integrations/whatsapp.js';
 import type { CreateCustomerInput, CustomerAnalytics } from '@hudumika/types';
@@ -70,6 +71,9 @@ const customerPatchSchema = z.object({
   currency: z.string().nullable().optional(),
   tancis_number: z.string().nullable().optional(),
   organization_id: z.string().nullable().optional(),
+  // Daily shipment-report automation (migration 258) — null = platform
+  // default (on); see shipment-report.service.ts's tri-state logic.
+  daily_report_enabled: z.boolean().nullable().optional(),
 });
 
 export async function customerRoutes(fastify: FastifyInstance) {
@@ -189,6 +193,9 @@ export async function customerRoutes(fastify: FastifyInstance) {
       MinioIntegration.ensureCustomerFolder(user.tenant_id, customer.id, customer.name);
       // …and a matching folder in the Cloud file manager (Drive app), best-effort.
       CloudSync.ensureCustomerFolder(user.tenant_id, customer.id, customer.name).catch(err => console.error('[Cloud] customer folder failed:', err.message));
+      // Denied-party screen against OFAC SDN + UN Consolidated, best-effort —
+      // never blocks customer creation on an external-list lookup.
+      screenSubject(user.tenant_id, 'customer', customer.id, customer.name).catch(err => console.error('[Sanctions] screen failed:', err.message));
 
       // 201 Created — was 211, which is not a registered HTTP status.
       reply.status(201);
@@ -273,7 +280,7 @@ export async function customerRoutes(fastify: FastifyInstance) {
                      'registry_number', 'entity_type', 'registration_status', 'registered_address', 'incorporation_date',
                      'website', 'city', 'country', 'vat_number', 'import_license', 'preferred_port',
                      'freight_terms', 'commodity_type', 'credit_days', 'client_type', 'currency', 'tancis_number',
-                     'organization_id'];
+                     'organization_id', 'daily_report_enabled'];
 
     const patch: Record<string, any> = { updated_at: new Date() };
     for (const key of allowed) {

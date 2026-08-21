@@ -322,6 +322,24 @@ export const FileBrowser: React.FC = () => {
         )}
       </div>
 
+      {/* Mobile Floating Action Button (+ FAB) */}
+      <button
+        className="cloud-fab-btn"
+        title="Upload or create"
+        onClick={() => {
+          const input = document.createElement('input');
+          input.type = 'file';
+          input.multiple = true;
+          input.onchange = e => {
+            const fl = Array.from((e.target as HTMLInputElement).files ?? []);
+            if (fl.length) uploadFiles(fl, currentFolderId);
+          };
+          input.click();
+        }}
+      >
+        <Icon name="plus" size={24} color="#ffffff" />
+      </button>
+
       {lightboxItem && (
         <Lightbox
           item={lightboxItem}

@@ -176,38 +176,45 @@ export function WorkflowList() {
         </div>
       )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {visible.map(w => {
           const trig = triggerById.get(w.trigger_event);
           return (
             <div key={w.id}
-              style={{ display: 'flex', gap: 14, alignItems: 'center', padding: '13px 15px', border: '1px solid var(--border)', borderRadius: 12, background: 'var(--card-bg, var(--white))', cursor: 'pointer' }}
+              className="studio-card-interactive studio-workflow-item-mobile"
+              style={{ display: 'flex', gap: 14, alignItems: 'center', padding: '14px 16px', border: '1px solid var(--border)', borderRadius: 12, background: 'var(--card-bg, var(--white))', cursor: 'pointer' }}
               onClick={() => navigate(`/studio/w/${w.id}${returnTo ? `?return=${encodeURIComponent(returnTo)}` : ''}`)}
             >
-              <div onClick={e => e.stopPropagation()} title={w.supersedes_subscriber ? `Activating stands down the ${w.supersedes_subscriber} code subscriber` : undefined}>
-                <Switch checked={w.status === 'ACTIVE'} disabled={busyId === w.id || !trig} onCheckedChange={v => toggle(w, v)} />
-              </div>
-
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: 13.5, fontWeight: 650, color: 'var(--ink)' }}>{w.name}</span>
+              <div className="studio-workflow-item-header">
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <div onClick={e => e.stopPropagation()} title={w.supersedes_subscriber ? `Activating stands down the ${w.supersedes_subscriber} code subscriber` : undefined}>
+                    <Switch checked={w.status === 'ACTIVE'} disabled={busyId === w.id || !trig} onCheckedChange={v => toggle(w, v)} />
+                  </div>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{w.name}</span>
                   <Badge variant={w.status === 'ACTIVE' ? 'success' : w.status === 'PAUSED' ? 'warning' : 'gray'}>{w.status}</Badge>
                   {!trig && <Badge variant="error">Trigger not registered</Badge>}
                   {w.supersedes_subscriber && <Badge variant="info">Replaces code</Badge>}
                 </div>
-                {w.description && (
-                  <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{w.description}</div>
-                )}
               </div>
 
-              <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                <div style={{ fontSize: 11.5, color: 'var(--ink2)' }}>{trig ? `${trig.appName} · ${trig.label}` : w.trigger_event}</div>
-                <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>
-                  {w.run_count} run{w.run_count === 1 ? '' : 's'}
-                  {w.last_run_at ? ` · last ${new Date(w.last_run_at).toLocaleDateString()}` : ' · never run'}
+              {w.description && (
+                <div style={{ fontSize: 12.5, color: 'var(--ink2)', lineClamp: 2, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                  {w.description}
+                </div>
+              )}
+
+              <div className="studio-workflow-item-meta">
+                <div>
+                  <span style={{ fontWeight: 600, color: 'var(--ink2)' }}>{trig ? `${trig.appName} · ${trig.label}` : w.trigger_event}</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span>
+                    {w.run_count} run{w.run_count === 1 ? '' : 's'}
+                    {w.last_run_at ? ` · ${new Date(w.last_run_at).toLocaleDateString()}` : ' · never run'}
+                  </span>
+                  <Icon name="arrowRight" size={14} color="var(--ink3)" />
                 </div>
               </div>
-              <Icon name="arrowRight" size={15} color="var(--ink3)" />
             </div>
           );
         })}

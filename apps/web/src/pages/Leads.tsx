@@ -722,7 +722,7 @@ export const Leads: React.FC = () => {
             <div style={{ padding: '24px 28px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
                 <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)' }}>Documents</span>
-                <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', border: '1.5px solid var(--teal)', borderRadius: 9, background: 'var(--teal)', color: '#fff', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)' }}>
+                <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', border: '1.5px solid var(--teal)', borderRadius: 9, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)' }}>
                   <Icon name="upload" size={13} strokeWidth={2} />
                   Upload File
                   <input type="file" multiple style={{ display: 'none' }}
@@ -852,7 +852,7 @@ export const Leads: React.FC = () => {
             <button type="button" onClick={() => exportLeadsCSV(filtered)} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 18px', fontSize: 13, borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
               <Icon name="download" size={14} strokeWidth={2} /> Export CSV
             </button>
-            <button type="button" onClick={() => { setAddForm({ ...EMPTY_FORM }); setEditingId(null); setShowAdd(true); }} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 22px', fontSize: 14, fontWeight: 700, borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+            <button type="button" onClick={() => { setAddForm({ ...EMPTY_FORM }); setEditingId(null); setShowAdd(true); }} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 22px', fontSize: 14, fontWeight: 700, borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
               <Icon name="plus" size={15} strokeWidth={2.5} color="#fff" /> New Lead
             </button>
           </div>

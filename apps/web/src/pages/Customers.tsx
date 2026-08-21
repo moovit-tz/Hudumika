@@ -19,6 +19,7 @@ import {
 } from '../components/ui/dropdown-menu.js';
 import { showConfirm } from '../lib/confirm.js';
 import { SkeletonPage } from '../components/ui/skeleton.js';
+import { SwitchRow } from '../components/ui/list-item-row.js';
 import { getCompany } from '../data/companyStore.js';
 
 /* ── Statement of Account — print/PDF ──
@@ -126,6 +127,10 @@ interface Customer {
    *  tenant that has linked a customer record to it. Staff-linked only. */
   organization_id?: string;
   organization_name?: string;
+  // Daily shipment-report automation (migration 258) — null = platform
+  // default (on); a shipment can further override this. See
+  // shipment-report.service.ts's tri-state resolution.
+  daily_report_enabled?: boolean | null;
 }
 
 /* ── Avatar helper ──
@@ -1092,6 +1097,22 @@ export const Customers: React.FC = () => {
               </div>
             );
           })()}
+
+          {/* Daily shipment-report automation (migration 258) — the
+              customer-level default; an individual shipment can still
+              override it (ShipmentDetail's own Automation card). */}
+          <div className="crm-card" style={{ marginBottom: 24, padding: '4px 18px' }}>
+            <SwitchRow
+              title="Daily shipment progress reports"
+              description="Sends today's PDF report by email and a live-status link by WhatsApp, ~21:00 EAT, for every active shipment unless that shipment overrides it."
+              checked={sel.daily_report_enabled !== false}
+              onCheckedChange={(enabled) => {
+                apiFetch(`/v1/customers/${sel.id}`, { method: 'PATCH', body: JSON.stringify({ daily_report_enabled: enabled }) })
+                  .then(() => { setSelected(prev => prev ? { ...prev, daily_report_enabled: enabled } : prev); setCustomers(cs => cs.map(x => x.id === sel.id ? { ...x, daily_report_enabled: enabled } : x)); })
+                  .catch(err => showAlert(err.message || 'Failed to update daily report setting'));
+              }}
+            />
+          </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 340px', gap: 20 }}>
             {/* Recent shipments */}
@@ -2175,7 +2196,7 @@ function EmptyState({ icon, title, sub }: { icon: IconName; title: string; sub: 
 function PagBtn({ label, active, disabled, onClick }: { label: string; active?: boolean; disabled?: boolean; onClick: () => void }) {
   return (
     <button type="button" disabled={disabled} onClick={onClick}
-      style={{ minWidth: 32, height: 32, padding: '0 8px', border: active ? 'none' : '1.5px solid var(--border)', borderRadius: 'var(--r)', background: active ? 'var(--navy)' : disabled ? 'var(--bg)' : '#fff', color: active ? '#fff' : disabled ? 'var(--ink3)' : 'var(--ink)', fontSize: 13, fontWeight: active ? 700 : 500, cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: 'var(--font)' }}>
+      style={{ minWidth: 32, height: 32, padding: '0 8px', border: active ? 'none' : '1.5px solid var(--border)', borderRadius: 'var(--r)', background: active ? 'var(--navy)' : disabled ? 'var(--bg)' : 'var(--card-bg, var(--white))', color: active ? 'var(--white)' : disabled ? 'var(--ink3)' : 'var(--ink)', fontSize: 13, fontWeight: active ? 700 : 500, cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: 'var(--font)' }}>
       {label}
     </button>
   );

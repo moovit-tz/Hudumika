@@ -1,5 +1,6 @@
 import { withTenant } from '../db/client.js';
 import { pick } from '../lib/pick.js';
+import { getCarrierAdapter } from './carrier-adapter.js';
 
 export const freightBookingService = {
   // ── Carriers ─────────────────────────────────────────────────────────────
@@ -100,6 +101,106 @@ export const freightBookingService = {
         .where('tenant_id', '=', tenantId)
         .returningAll()
         .executeTakeFirstOrThrow();
+    });
+  },
+
+  // ── Carrier rate contracts (buy-side only, M7) ──────────────────────────
+  async listRateContracts(tenantId: string, filters?: { carrier_id?: string; mode?: string; origin_port?: string; destination_port?: string }) {
+    return withTenant(tenantId, async (trx) => {
+      let query = trx
+        .selectFrom('carrier_rate_contracts')
+        .leftJoin('carriers', 'carriers.id', 'carrier_rate_contracts.carrier_id')
+        .where('carrier_rate_contracts.tenant_id', '=', tenantId)
+        .select([
+          'carrier_rate_contracts.id', 'carrier_rate_contracts.carrier_id', 'carrier_rate_contracts.contract_reference',
+          'carrier_rate_contracts.mode', 'carrier_rate_contracts.origin_port', 'carrier_rate_contracts.destination_port',
+          'carrier_rate_contracts.buy_rate', 'carrier_rate_contracts.currency', 'carrier_rate_contracts.transit_days',
+          'carrier_rate_contracts.valid_from', 'carrier_rate_contracts.valid_to', 'carrier_rate_contracts.notes',
+          'carrier_rate_contracts.active', 'carrier_rate_contracts.created_at',
+          'carriers.name as carrier_name',
+        ]);
+      if (filters?.carrier_id) query = query.where('carrier_rate_contracts.carrier_id', '=', filters.carrier_id);
+      if (filters?.mode) query = query.where('carrier_rate_contracts.mode', '=', filters.mode);
+      if (filters?.origin_port) query = query.where('carrier_rate_contracts.origin_port', '=', filters.origin_port);
+      if (filters?.destination_port) query = query.where('carrier_rate_contracts.destination_port', '=', filters.destination_port);
+      return query.orderBy('carrier_rate_contracts.created_at', 'desc').execute();
+    });
+  },
+
+  async createRateContract(tenantId: string, userId: string, data: {
+    carrier_id: string; contract_reference?: string; mode: string; origin_port: string; destination_port: string;
+    buy_rate: number; currency?: string; transit_days?: number; valid_from?: string; valid_to?: string; notes?: string;
+  }) {
+    return withTenant(tenantId, async (trx) => {
+      return trx.insertInto('carrier_rate_contracts').values({
+        tenant_id: tenantId,
+        carrier_id: data.carrier_id,
+        contract_reference: data.contract_reference || null,
+        mode: data.mode,
+        origin_port: data.origin_port,
+        destination_port: data.destination_port,
+        buy_rate: data.buy_rate,
+        currency: data.currency || 'USD',
+        transit_days: data.transit_days ?? null,
+        valid_from: (data.valid_from as any) ?? null,
+        valid_to: (data.valid_to as any) ?? null,
+        notes: data.notes || null,
+        created_by: userId,
+        created_at: new Date(),
+        updated_at: new Date(),
+      }).returningAll().executeTakeFirstOrThrow();
+    });
+  },
+
+  async updateRateContract(tenantId: string, id: string, data: Partial<{
+    contract_reference: string | null; buy_rate: number; currency: string; transit_days: number | null;
+    valid_from: string | null; valid_to: string | null; notes: string | null; active: boolean;
+  }>) {
+    return withTenant(tenantId, async (trx) => {
+      const { valid_from, valid_to } = data;
+      const rest = pick(data, ['contract_reference', 'buy_rate', 'currency', 'transit_days', 'notes', 'active']);
+      return trx.updateTable('carrier_rate_contracts')
+        .set({
+          ...rest,
+          ...(valid_from !== undefined ? { valid_from: valid_from as any } : {}),
+          ...(valid_to !== undefined ? { valid_to: valid_to as any } : {}),
+          updated_at: new Date(),
+        })
+        .where('id', '=', id)
+        .where('tenant_id', '=', tenantId)
+        .returningAll()
+        .executeTakeFirstOrThrow();
+    });
+  },
+
+  /**
+   * Rate shopping — every active carrier contract for a lane+mode whose
+   * validity window covers `asOf` (defaults to today), cheapest first. The
+   * real "compare carriers" view: before this, one lane could only ever
+   * hold a single bundled cost+sell row, so there was nothing to shop
+   * between.
+   */
+  async rateShopping(tenantId: string, params: { mode: string; origin_port: string; destination_port: string; as_of?: string }) {
+    const asOf = params.as_of ? new Date(params.as_of) : new Date();
+    return withTenant(tenantId, async (trx) => {
+      return trx
+        .selectFrom('carrier_rate_contracts')
+        .leftJoin('carriers', 'carriers.id', 'carrier_rate_contracts.carrier_id')
+        .where('carrier_rate_contracts.tenant_id', '=', tenantId)
+        .where('carrier_rate_contracts.mode', '=', params.mode)
+        .where('carrier_rate_contracts.origin_port', '=', params.origin_port)
+        .where('carrier_rate_contracts.destination_port', '=', params.destination_port)
+        .where('carrier_rate_contracts.active', '=', true)
+        .where(eb => eb.or([eb('carrier_rate_contracts.valid_from', 'is', null), eb('carrier_rate_contracts.valid_from', '<=', asOf as any)]))
+        .where(eb => eb.or([eb('carrier_rate_contracts.valid_to', 'is', null), eb('carrier_rate_contracts.valid_to', '>=', asOf as any)]))
+        .select([
+          'carrier_rate_contracts.id', 'carrier_rate_contracts.carrier_id', 'carrier_rate_contracts.contract_reference',
+          'carrier_rate_contracts.buy_rate', 'carrier_rate_contracts.currency', 'carrier_rate_contracts.transit_days',
+          'carrier_rate_contracts.valid_to',
+          'carriers.name as carrier_name', 'carriers.scac_or_iata',
+        ])
+        .orderBy('carrier_rate_contracts.buy_rate', 'asc')
+        .execute();
     });
   },
 
@@ -230,6 +331,19 @@ export const freightBookingService = {
         .where('id', '=', bookingId).where('tenant_id', '=', tenantId).selectAll().executeTakeFirstOrThrow();
       if (booking.status !== 'RATE_QUOTED') throw new Error('Only rate-quoted bookings can be confirmed');
 
+      // Routed through the CarrierAdapter seam (M7) so a real carrier
+      // integration, once one exists, changes nothing here — only when a
+      // reference is actually supplied, preserving the field's existing
+      // optional behavior exactly.
+      let carrierBookingRef: string | null = data.carrier_booking_ref || null;
+      if (data.carrier_booking_ref) {
+        const carrier = booking.carrier_id
+          ? await trx.selectFrom('carriers').select(['name', 'scac_or_iata']).where('id', '=', booking.carrier_id).executeTakeFirst()
+          : null;
+        const confirmation = await getCarrierAdapter(carrier?.scac_or_iata, carrier?.name).confirmBooking({ humanProvidedRef: data.carrier_booking_ref });
+        carrierBookingRef = confirmation.carrierBookingRef;
+      }
+
       const count = await trx
         .selectFrom('shipment_cases')
         .where('tenant_id', '=', tenantId)
@@ -267,7 +381,7 @@ export const freightBookingService = {
           status: 'CONFIRMED',
           vessel_name: data.vessel_name,
           voyage_number: data.voyage_number || null,
-          carrier_booking_ref: data.carrier_booking_ref || null,
+          carrier_booking_ref: carrierBookingRef,
           bl_number: data.bl_number || null,
           awb_number: data.awb_number || null,
           eta: data.eta ? new Date(data.eta) : null,

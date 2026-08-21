@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useContext, useMemo } 
 import { createPortal } from 'react-dom';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.js';
+import { useIdleLock } from '../hooks/useIdleLock.js';
 import { PersonAvatar } from './PersonAvatar.js';
 import { NotificationCentre } from './NotificationCentre.js';
 import { HeaderPill } from './HeaderPill.js';
@@ -83,6 +84,7 @@ export function AppHeader({
   filterControl?: { open: boolean; onToggle: () => void; hasActive?: boolean };
 } = {}) {
   const { user, logout } = useAuth();
+  const { lock } = useIdleLock();
 
   /**
    * Check-in state and the shipment context to open it with. A CUSTOMER has no
@@ -871,8 +873,19 @@ export function AppHeader({
 
                 <DropdownMenuSeparator />
 
-                {/* Logout item (Compact) */}
-                <div style={{ paddingTop: 2 }}>
+                {/* Session actions (Compact) — lock is reversible (same overlay
+                    as the 15-minute idle timeout, see useIdleLock), sign out is not. */}
+                <div style={{ paddingTop: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <DropdownMenuItem
+                    onClick={() => lock()}
+                    style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 9, padding: '6px 8px', borderRadius: 'var(--r)', cursor: 'pointer', color: 'var(--ink)', background: 'transparent', fontSize: 13, fontWeight: 600 }}
+                  >
+                    <div style={{ width: 24, height: 24, borderRadius: 'var(--r-sm)', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <Icon name="lock" size={13} style={{ color: 'var(--ink2)' } as React.CSSProperties} />
+                    </div>
+                    <span>{t('header.lockWorkspace')}</span>
+                  </DropdownMenuItem>
+
                   <DropdownMenuItem
                     onClick={() => logout()}
                     style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 9, padding: '6px 8px', borderRadius: 'var(--r)', cursor: 'pointer', color: 'var(--red)', background: 'transparent', fontSize: 13, fontWeight: 600 }}

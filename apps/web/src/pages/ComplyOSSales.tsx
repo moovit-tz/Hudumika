@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { PoweredByHudumika } from '../components/PoweredByHudumika.js';
 import { useCMSPage } from '../hooks/useCMSPage.js';
+import { usePageSEO } from '../hooks/usePageSEO.js';
 import './LegalPages.css';
 
 /**
@@ -24,6 +25,11 @@ export function ComplyOSSales() {
   const navigate = useNavigate();
   const { page, loading, error } = useCMSPage('why-complyos');
   const toc = useMemo(() => (page ? extractTOC(page.content) : []), [page]);
+  // The CMS already collects an SEO title/description (editable at
+  // /admin/cms-pages) — this page just never applied it to the actual
+  // browser tab / meta tag, so every edit an admin made there was invisible
+  // outside the article body itself.
+  usePageSEO(page?.title || 'Why ComplyOS', page?.seo_description || 'ComplyOS automates BRELA, TRA, NSSF and other Tanzanian regulatory filings — tracking deadlines, auto-filling filings, and managing renewals before penalties occur.');
 
   return (
     <div className="lp-page">

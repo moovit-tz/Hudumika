@@ -43,6 +43,10 @@ const orgLoginSchema = z.object({
   email: z.string().trim().email().max(320),
   password: z.string().min(1).max(200),
 });
+const verifyPasswordSchema = z.object({
+  password: z.string().min(1).max(200),
+  totp: z.string().max(20).optional(),
+});
 
 function parseDevice(userAgent: string): { label: string; type: string } {
   const ua = userAgent || '';
@@ -934,6 +938,43 @@ export async function authRoutes(fastify: FastifyInstance) {
 
     setSessionCookies(reply, { access_token: superAccess, refresh_token: superRefresh, expires_in: durationSeconds(env.JWT_EXPIRES_IN) });
     clearSuperCookies(reply);
+    return { success: true };
+  });
+
+  /**
+   * POST /auth/verify-password — the idle-lock unlock check.
+   *
+   * Re-checks the *current* session's own password (request.user.sub is
+   * never caller-supplied) without issuing anything: no new tokens, no
+   * cookie writes, no hr_login_history/hr_devices row. Locking is a
+   * client-side overlay sitting in front of an already-live session — this
+   * only answers "does this password match," the same way /login already
+   * does, so unlocking is never a weaker check than logging in was.
+   */
+  fastify.post('/verify-password', {
+    preHandler: [fastify.authenticate],
+    config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
+  }, async (request, reply) => {
+    const { password, totp } = verifyPasswordSchema.parse(request.body);
+    const actor = request.user;
+
+    const user = await dbPlatform.selectFrom('users').selectAll()
+      .where('id', '=', actor.sub).where('active', '=', true).executeTakeFirst();
+    if (!user || !verifyPassword(password, user.password_hash)) {
+      return reply.status(401).send({ error: 'Incorrect password' });
+    }
+
+    // Same second-factor gate /login enforces — unlocking must ask for
+    // whatever logging in would have asked for.
+    const totpRow = await withTenant(user.tenant_id, trx => trx.selectFrom('user_totp').select(['secret', 'enabled'])
+      .where('user_id', '=', user.id).executeTakeFirst());
+    if (totpRow?.enabled) {
+      if (!totp) return reply.status(200).send({ requires_2fa: true });
+      if (!verifyTotp(totpRow.secret, totp)) {
+        return reply.status(401).send({ error: 'Invalid authentication code' });
+      }
+    }
+
     return { success: true };
   });
 }

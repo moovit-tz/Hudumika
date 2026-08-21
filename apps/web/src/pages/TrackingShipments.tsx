@@ -20,6 +20,7 @@ interface Trip {
   shipment_ref: string | null;
 }
 interface Customer { id: string; name: string }
+interface TripExpense { id: string; category: string; description: string | null; amount: number; billable: boolean; invoice_id: string | null }
 
 const STATUS_COLORS: Record<string, { bg: string; fg: string; dot: string }> = {
   PLANNED:     { bg: '#f1f5f9', fg: '#475569', dot: '#94a3b8' },
@@ -36,6 +37,30 @@ export const TrackingShipments: React.FC = () => {
   const [filter, setFilter] = useState('All');
   const [search, setSearch] = useState('');
   const [expandedTrip, setExpandedTrip] = useState<string | null>(null);
+  const [tripExpenses, setTripExpenses] = useState<Record<string, TripExpense[]>>({});
+  const [billing, setBilling] = useState<string | null>(null);
+  const [billError, setBillError] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (!expandedTrip || tripExpenses[expandedTrip]) return;
+    apiFetch(`/v1/tracking/trips/${expandedTrip}/expenses`)
+      .then((rows: TripExpense[]) => setTripExpenses(p => ({ ...p, [expandedTrip]: rows })))
+      .catch(() => setTripExpenses(p => ({ ...p, [expandedTrip]: [] })));
+  }, [expandedTrip]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function billTripExpenses(tripId: string) {
+    setBilling(tripId);
+    setBillError(p => ({ ...p, [tripId]: '' }));
+    try {
+      await apiFetch(`/v1/tracking/trips/${tripId}/bill-expenses`, { method: 'POST' });
+      const rows: TripExpense[] = await apiFetch(`/v1/tracking/trips/${tripId}/expenses`);
+      setTripExpenses(p => ({ ...p, [tripId]: rows }));
+    } catch (err: any) {
+      setBillError(p => ({ ...p, [tripId]: err.message || 'Could not bill this trip.' }));
+    } finally {
+      setBilling(null);
+    }
+  }
 
   const reload = useCallback(() => {
     setLoading(true);
@@ -96,7 +121,7 @@ export const TrackingShipments: React.FC = () => {
               style={{ padding: '8px 16px 8px 34px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 13, width: 220, outline: 'none' }}
             />
           </div>
-          <Link to="/tracking/shipments/new" style={{ padding: '9px 16px', background: 'var(--teal)', color: '#fff', borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Link to="/tracking/shipments/new" style={{ padding: '9px 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>
             <Icon name="plus" size={14} /> New Trip
           </Link>
         </div>
@@ -193,7 +218,7 @@ export const TrackingShipments: React.FC = () => {
                 {expandedTrip === s.id && (
                   <tr style={{ background: '#f8fafc', borderBottom: '1px solid var(--border)' }}>
                     <td colSpan={7} style={{ padding: '20px' }}>
-                      <div style={{ background: '#fff', padding: 20, borderRadius: 8, border: '1px solid var(--border)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+                      <div style={{ background: '#fff', padding: 20, borderRadius: 8, border: '1px solid var(--border)', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 24 }}>
                         <div>
                           <h3 style={{ fontSize: 14, fontWeight: 700, margin: '0 0 16px 0', color: 'var(--ink)' }}>Trip Details</h3>
                           <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '12px 0', fontSize: 13 }}>
@@ -219,6 +244,34 @@ export const TrackingShipments: React.FC = () => {
                               </SelectContent>
                             </Select>
                           </div>
+                        </div>
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <h3 style={{ fontSize: 14, fontWeight: 700, margin: '0 0 16px 0', color: 'var(--ink)' }}>Expenses → Invoice</h3>
+                          {(() => {
+                            const rows = tripExpenses[s.id];
+                            if (!rows) return <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>Loading…</div>;
+                            const unbilled = rows.filter(r => r.billable && !r.invoice_id);
+                            const alreadyBilled = rows.filter(r => r.invoice_id).length;
+                            const total = unbilled.reduce((sum, r) => sum + r.amount, 0);
+                            return (
+                              <div style={{ fontSize: 13 }}>
+                                <div style={{ color: 'var(--ink2)', marginBottom: 4 }}>
+                                  {unbilled.length} billable expense{unbilled.length === 1 ? '' : 's'} pending — TZS {total.toLocaleString('en')}
+                                </div>
+                                {alreadyBilled > 0 && <div style={{ color: 'var(--ink3)', fontSize: 12, marginBottom: 8 }}>{alreadyBilled} already invoiced</div>}
+                                {billError[s.id] && <div style={{ color: 'var(--red)', fontSize: 12, marginBottom: 8 }}>{billError[s.id]}</div>}
+                                <button
+                                  disabled={unbilled.length === 0 || billing === s.id || (!s.customer_id && !s.shipment_ref)}
+                                  onClick={() => billTripExpenses(s.id)}
+                                  className="btn btn-primary"
+                                  style={{ fontSize: 12.5, padding: '6px 14px', opacity: unbilled.length === 0 ? 0.5 : 1 }}
+                                  title={!s.customer_id && !s.shipment_ref ? 'This trip has no customer to bill' : undefined}
+                                >
+                                  {billing === s.id ? 'Billing…' : 'Bill to customer'}
+                                </button>
+                              </div>
+                            );
+                          })()}
                         </div>
                       </div>
                     </td>

@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { PersonAvatar } from '../components/PersonAvatar.js';
+import { ExaminationsQueue } from '../components/ExaminationsQueue.js';
+import { DangerousGoodsPanel } from '../components/DangerousGoodsPanel.js';
 import { usePageSEO } from '../hooks/usePageSEO.js';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { useIsMobile } from '../hooks/useIsMobile.js';
@@ -24,6 +26,7 @@ import {
   type InternalTask, type TimeEntry, type ActivityEvent, type TaskStatus, type Listener,
 } from './clearanceData.js';
 import { ChBadge } from '../components/ClearanceChips.js';
+import { VesselLiveStatus } from '../components/VesselLiveStatus.js';
 import { EMPLOYEES, empInitials, empAvatarColor } from '../data/staffData.js';
 import type { Employee } from '../data/staffData.js';
 import { CUSTOMER_MILESTONES, MILESTONE_LABELS, STAGE_TO_MILESTONE } from '@hudumika/types';
@@ -34,6 +37,7 @@ import { Badge } from '../components/ui/badge.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { Popover, PopoverTrigger, PopoverContent } from '../components/ui/popover.js';
 import { HoverCard, HoverCardTrigger, HoverCardContent } from '../components/ui/hover-card.js';
+import { SwitchRow } from '../components/ui/list-item-row.js';
 
 // ─── Clock-in gate ───────────────────────────────────────────────────────────
 
@@ -146,110 +150,239 @@ function docIcon(type: string): IconName {
   return m[type] || 'file';
 }
 
-/* ── Shipment report — printable summary window, mirrors Billing.tsx's openPrintWindow ── */
-function openShipmentReportWindow(job: ClearanceJob) {
-  const co = getCompany();
-  const stageLabel = jobStageLabel(job);
-  const genDate = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+/**
+ * Builds the Shipment Report HTML — same generator this app's own manual
+ * "Print shipment report" button uses (openShipmentReportWindow, just below)
+ * AND the server-side scheduled/on-demand report job (see
+ * shipment-report.service.ts on the API, which mirrors this markup exactly
+ * so the emailed PDF and the in-app print preview never drift apart —
+ * confirm both are updated together if this template changes again).
+ *
+ * "Days Since Declaration" is relative to the case's own initialization —
+ * the earliest stage-timeline event's date, not the generation date itself.
+ */
+export function buildShipmentReportHtml(job: ClearanceJob, opts?: { generatedAt?: Date; company?: Partial<ReturnType<typeof getCompany>>; stageLabel?: string }): string {
+  // Falls back to this browser's own hydrated company store for the normal
+  // in-app "Print shipment report" button; the public share page (which has
+  // no authenticated session, so no local company store to read) instead
+  // passes the owning tenant's own company info fetched from the public API.
+  const co = { ...getCompany(), ...opts?.company };
+  // The public share page has no resolved `workflow` block to derive this
+  // from (jobStageLabel needs workflowKind/workflowSteps, which the trimmed
+  // public payload doesn't carry) — it passes the server's own already-
+  // correct stage label instead, resolved the same way for both legacy and
+  // custom-workflow shipments (see shipment-report.service.ts).
+  const stageLabel = opts?.stageLabel ?? jobStageLabel(job);
+  const generatedAt = opts?.generatedAt ?? new Date();
+  const genDate = generatedAt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  const genTime = generatedAt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 
-  const timelineRows = job.timeline.map(t => `
-    <tr><td>${new Date(t.ts).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
-    <td>${t.label}</td><td>${t.note || ''}</td></tr>`).join('');
+  const sortedTimeline = [...job.timeline].sort((a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime());
+  const declaredAt = sortedTimeline[0]?.ts ? new Date(sortedTimeline[0].ts) : null;
+  const dayFmt = (d: Date) => d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  const daysSince = (d: Date) => declaredAt ? Math.round((d.getTime() - declaredAt.getTime()) / 86400000) : null;
+  const daysAsOf = declaredAt ? daysSince(generatedAt) : null;
 
-  const docRows = job.documents.map(d => `
-    <tr><td>${d.name}</td><td>${d.type.toUpperCase()}</td><td>${d.extracted?.status || 'pending'}</td></tr>`).join('');
+  const timelineRows = sortedTimeline.map(t => {
+    const n = daysSince(new Date(t.ts));
+    return `<tr>
+      <td>${dayFmt(new Date(t.ts))}</td>
+      <td class="stage-tag">${t.label}</td>
+      <td>${t.note || ''}</td>
+      <td class="num"><span class="day-count${n === 0 ? ' zero' : ''}">Day ${n ?? '—'}</span></td>
+    </tr>`;
+  }).join('');
+
+  const statusClass: Record<string, string> = { pending: 'pending', processing: 'pending', done: 'received', failed: 'failed' };
+  const statusLabel: Record<string, string> = { pending: 'Pending', processing: 'Processing', done: 'Received', failed: 'Failed' };
+  const docRows = job.documents.map(d => {
+    const st = d.extracted?.status || 'pending';
+    return `<tr>
+      <td>${d.name}</td>
+      <td>${d.type.toUpperCase()}</td>
+      <td><span class="status-flag ${statusClass[st] || 'pending'}">${statusLabel[st] || st}</span></td>
+    </tr>`;
+  }).join('');
 
   const co2Kg = job.co2EmissionsKg;
   const credits = job.carbonCreditsSaved;
   const calc = job.co2CalcDetails;
-
   const carbonSection = co2Kg != null ? `
-    <div class="section">
-      <div class="sec-hdr">Carbon Footprint (Estimate)</div>
-      <div class="carbon-box">
-        <div><span class="cl">CO₂ Emissions</span><strong>${Number(co2Kg).toLocaleString('en')} kg</strong></div>
-        <div><span class="cl">Credits Saved (est.)</span><strong style="color:#059669">${Number(credits ?? 0).toFixed(2)}</strong></div>
-        ${calc ? `<div><span class="cl">Distance</span><strong>${calc.distance_km ?? '—'} km</strong></div>` : ''}
-        ${calc ? `<div><span class="cl">Mode</span><strong>${calc.mode ?? job.mode}</strong></div>` : ''}
-      </div>
-      <p class="disclosure">GLEC v3.2 / ISO 14083 methodology, computed from route distance and cargo weight. Internal ESG estimate — not a registry-issued or tradeable carbon credit.</p>
-    </div>` : '';
+  <div class="section-title">Carbon Footprint (Estimate)</div>
+  <table class="kv">
+    <tr>
+      <td class="k">CO₂ Emissions</td><td class="v">${Number(co2Kg).toLocaleString('en')} kg</td>
+      <td class="k">Credits Saved (est.)</td><td class="v">${Number(credits ?? 0).toFixed(2)}</td>
+    </tr>
+    ${calc ? `<tr>
+      <td class="k">Distance</td><td class="v">${calc.distance_km ?? '—'} km</td>
+      <td class="k">Mode</td><td class="v">${calc.mode ?? job.mode}</td>
+    </tr>` : ''}
+  </table>
+  <div class="note-line">GLEC v3.2 / ISO 14083 methodology, computed from route distance and cargo weight. Internal ESG estimate — not a registry-issued or tradeable carbon credit.</div>` : '';
 
-  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
-<title>${job.sysRef || job.id} — Shipment Report</title><style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:Arial,sans-serif;color:#111;padding:24px 32px;font-size:11px}
-.top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid #e5e7eb}
-.from strong{color:#111;font-size:14px}
-.from{line-height:1.6;color:#555}
-.title{font-size:18px;font-weight:900;color:#0b1e3a;margin-bottom:4px}
-.meta{text-align:right;color:#6b7280}
-.section{margin-bottom:16px}
-.sec-hdr{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#374151;padding:5px 8px;background:#f3f4f6;border-left:3px solid #0b1e3a;margin-bottom:8px}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 24px;padding:8px 10px;background:#f9fafb;border-radius:6px;font-size:10.5px}
-.grid strong{color:#374151}
-table{width:100%;border-collapse:collapse;margin-top:4px}
-thead tr{background:#f9fafb;border-bottom:1px solid #e5e7eb}
-th{padding:5px 8px;text-align:left;font-size:9px;font-weight:700;color:#6b7280;letter-spacing:.04em}
-td{padding:5px 8px;border-bottom:1px solid #f3f4f6;font-size:10.5px}
-.carbon-box{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:12px;background:#ecfdf5;border-radius:6px;border:1px solid #a7f3d0}
-.carbon-box .cl{display:block;font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px}
-.disclosure{font-size:9px;color:#9ca3af;margin-top:6px;font-style:italic}
-.footer{margin-top:24px;padding-top:8px;border-top:1px solid #e5e7eb;font-size:9px;color:#9ca3af;text-align:center}
-@media print{body{padding:10px 16px}}
-</style></head><body>
-<div class="top">
-  <div class="from">
-    ${co.logoUrl ? `<img src="${co.logoUrl}" style="max-height:36px;max-width:140px;object-fit:contain;margin-bottom:4px" alt="${co.name}">` : `<strong>${co.name}</strong>`}
-    <br>${co.address}<br>${co.city}, ${co.country}
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
+<title>${job.sysRef || job.id} — Shipment Report</title>
+<style>
+  @page { size: A4; margin: 14mm 14mm 12mm 14mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { font-family: Arial, Helvetica, sans-serif; color: #171717; font-size: 11px; line-height: 1.4; }
+  .sheet { width: 210mm; min-height: 297mm; margin: 0 auto; padding: 14mm 14mm 12mm 14mm; background: #fff; }
+
+  .doc-header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #171717; padding-bottom: 8px; }
+  .org-logo { height: 26px; display: block; }
+  .org-name { font-size: 14px; font-weight: 700; }
+  .org-addr { font-size: 9.5px; color: #555; margin-top: 6px; }
+  .doc-id-block { text-align: right; }
+  .doc-label { font-size: 9px; letter-spacing: 1px; text-transform: uppercase; color: #555; }
+  .doc-number { font-size: 16px; font-weight: 700; letter-spacing: 0.3px; }
+  .doc-generated { font-size: 9.5px; color: #555; margin-top: 2px; }
+
+  .metrics-strip { display: table; width: 100%; table-layout: fixed; border: 1px solid #171717; border-top: none; margin-bottom: 14px; }
+  .metric-cell { display: table-cell; border-right: 1px solid #d0d0d0; padding: 7px 10px; vertical-align: middle; }
+  .metric-cell:last-child { border-right: none; }
+  .metric-cell.emph { background: #171717; }
+  .metric-label { font-size: 8.5px; letter-spacing: 0.6px; text-transform: uppercase; color: #666; }
+  .metric-cell.emph .metric-label { color: #ccc; }
+  .metric-value { font-size: 13px; font-weight: 700; margin-top: 1px; }
+  .metric-cell.emph .metric-value { color: #fff; }
+
+  .section-title { font-size: 10.5px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; padding: 4px 0; margin-top: 14px; margin-bottom: 6px; border-bottom: 1px solid #171717; }
+
+  table.kv { width: 100%; border-collapse: collapse; border: 1px solid #c8c8c8; }
+  table.kv td { border: 1px solid #c8c8c8; padding: 5px 8px; font-size: 10.5px; vertical-align: top; }
+  table.kv td.k { width: 17%; background: #f4f4f4; font-weight: 700; color: #444; font-size: 9px; letter-spacing: 0.4px; text-transform: uppercase; }
+  table.kv td.v { width: 33%; font-weight: 600; }
+  td.mono { font-family: "Courier New", monospace; letter-spacing: 0.2px; }
+
+  table.tl { width: 100%; border-collapse: collapse; font-size: 10px; }
+  table.tl th { text-align: left; font-size: 8.5px; letter-spacing: 0.5px; text-transform: uppercase; color: #fff; background: #171717; padding: 5px 8px; border: 1px solid #171717; }
+  table.tl th.num, table.tl td.num { text-align: right; }
+  table.tl td { padding: 5px 8px; border: 1px solid #d8d8d8; vertical-align: top; }
+  table.tl tr:nth-child(even) td { background: #fafafa; }
+  .stage-tag { font-weight: 700; font-size: 9.5px; }
+  .day-count { font-family: "Courier New", monospace; font-weight: 700; }
+  .day-count.zero { color: #555; }
+
+  table.docs { width: 100%; border-collapse: collapse; font-size: 10.5px; }
+  table.docs th { text-align: left; font-size: 8.5px; letter-spacing: 0.5px; text-transform: uppercase; color: #fff; background: #171717; padding: 5px 8px; border: 1px solid #171717; }
+  table.docs td { padding: 6px 8px; border: 1px solid #d8d8d8; }
+  table.docs tr:nth-child(even) td { background: #fafafa; }
+  .status-flag { font-size: 9px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; padding: 1px 6px; border: 1px solid #171717; display: inline-block; }
+  .status-flag.pending { color: #7a4b00; border-color: #b8860b; background: #fff8ea; }
+  .status-flag.received { color: #145a32; border-color: #1e8449; background: #eafaf1; }
+  .status-flag.failed { color: #7a1a1a; border-color: #b83030; background: #fff0f0; }
+
+  .doc-footer { margin-top: 22px; padding-top: 6px; border-top: 1px solid #171717; display: flex; justify-content: space-between; font-size: 8.5px; color: #666; }
+  .note-line { margin-top: 8px; font-size: 8.5px; color: #777; font-style: italic; }
+
+  @media print { .sheet { width: auto; min-height: 0; margin: 0; padding: 0; } }
+</style>
+</head><body>
+<div class="sheet">
+
+  <div class="doc-header">
+    <div>
+      ${co.logoUrl ? `<img class="org-logo" src="${co.logoUrl}" alt="${co.name}">` : `<div class="org-name">${co.name}</div>`}
+      <div class="org-addr">${co.address} &nbsp;|&nbsp; ${co.city}, ${co.country}</div>
+    </div>
+    <div class="doc-id-block">
+      <div class="doc-label">Shipment Report</div>
+      <div class="doc-number">${job.sysRef || job.id}</div>
+      <div class="doc-generated">Generated: ${genDate}, ${genTime}</div>
+    </div>
   </div>
-  <div class="meta">
-    <div class="title">Shipment Report</div>
-    <div>${job.sysRef || job.id}</div>
-    <div>Generated ${genDate}</div>
+
+  <div class="metrics-strip">
+    <div class="metric-cell">
+      <div class="metric-label">Current Stage</div>
+      <div class="metric-value">${stageLabel}</div>
+    </div>
+    <div class="metric-cell">
+      <div class="metric-label">Declaration Date</div>
+      <div class="metric-value">${declaredAt ? dayFmt(declaredAt) : '—'}</div>
+    </div>
+    <div class="metric-cell emph">
+      <div class="metric-label">Days Since Declaration</div>
+      <div class="metric-value">${daysAsOf ?? '—'} Days</div>
+    </div>
+    <div class="metric-cell">
+      <div class="metric-label">Mode</div>
+      <div class="metric-value">${job.mode}</div>
+    </div>
   </div>
+
+  <div class="section-title">Shipment Overview</div>
+  <table class="kv">
+    <tr>
+      <td class="k">Goods</td><td class="v">${job.title}</td>
+      <td class="k">Customer</td><td class="v">${job.customer}</td>
+    </tr>
+    <tr>
+      <td class="k">Origin</td><td class="v">${job.origin}</td>
+      <td class="k">Destination</td><td class="v">${job.destination}</td>
+    </tr>
+    <tr>
+      <td class="k">Weight</td><td class="v">${job.weight || '—'}</td>
+      <td class="k">Declared Value</td><td class="v">${job.invoiceValue || '—'}</td>
+    </tr>
+    <tr>
+      <td class="k">B/L Number</td><td class="v mono">${job.bl || '—'}</td>
+      <td class="k">TANSAD</td><td class="v mono">${job.tansad || '—'}</td>
+    </tr>
+    ${job.vessel || (job.containers && job.containers.length > 0) ? `<tr>
+      <td class="k">Vessel</td><td class="v">${job.vessel || '—'}</td>
+      <td class="k">Containers</td><td class="v">${job.containers && job.containers.length > 0 ? job.containers.join(', ') : '—'}</td>
+    </tr>` : ''}
+  </table>
+
+  ${carbonSection}
+
+  ${sortedTimeline.length > 0 ? `
+  <div class="section-title">Stage Timeline</div>
+  <table class="tl">
+    <colgroup><col style="width:16%"><col style="width:22%"><col style="width:44%"><col style="width:18%"></colgroup>
+    <tr><th>Date</th><th>Stage</th><th>Note</th><th class="num">Days Since Declaration</th></tr>
+    ${timelineRows}
+  </table>
+  ${declaredAt ? `<div class="note-line">Days Since Declaration is calculated relative to the case initialization date (${dayFmt(declaredAt)}). Report generated at Day ${daysAsOf}.</div>` : ''}` : ''}
+
+  ${job.documents.length > 0 ? `
+  <div class="section-title">Documents</div>
+  <table class="docs">
+    <colgroup><col style="width:46%"><col style="width:27%"><col style="width:27%"></colgroup>
+    <tr><th>Document</th><th>Type</th><th>Status</th></tr>
+    ${docRows}
+  </table>` : ''}
+
+  ${HUDUMIKA_FOOTER_HTML}
+
 </div>
-
-<div class="section">
-  <div class="sec-hdr">Shipment Overview</div>
-  <div class="grid">
-    <div><strong>Goods:</strong> ${job.title}</div>
-    <div><strong>Customer:</strong> ${job.customer}</div>
-    <div><strong>Stage:</strong> ${stageLabel}</div>
-    <div><strong>Mode:</strong> ${job.mode}</div>
-    <div><strong>Origin:</strong> ${job.origin}</div>
-    <div><strong>Destination:</strong> ${job.destination}</div>
-    ${job.bl ? `<div><strong>B/L:</strong> ${job.bl}</div>` : ''}
-    ${job.vessel ? `<div><strong>Vessel:</strong> ${job.vessel}</div>` : ''}
-    ${job.weight ? `<div><strong>Weight:</strong> ${job.weight}</div>` : ''}
-    ${job.invoiceValue ? `<div><strong>Value:</strong> ${job.invoiceValue}</div>` : ''}
-    ${job.tansad ? `<div><strong>TANSAD:</strong> ${job.tansad}</div>` : ''}
-    ${job.containers && job.containers.length > 0 ? `<div><strong>Containers:</strong> ${job.containers.join(', ')}</div>` : ''}
-  </div>
-</div>
-
-${carbonSection}
-
-${job.timeline.length > 0 ? `
-<div class="section">
-  <div class="sec-hdr">Stage Timeline</div>
-  <table><thead><tr><th>Date</th><th>Stage</th><th>Note</th></tr></thead>
-  <tbody>${timelineRows}</tbody></table>
-</div>` : ''}
-
-${job.documents.length > 0 ? `
-<div class="section">
-  <div class="sec-hdr">Documents</div>
-  <table><thead><tr><th>Document</th><th>Type</th><th>Status</th></tr></thead>
-  <tbody>${docRows}</tbody></table>
-</div>` : ''}
-
-${HUDUMIKA_FOOTER_HTML}
-<script>window.onload=function(){window.print()}</script>
 </body></html>`;
+}
 
+/* ── Shipment report — printable summary window, mirrors Billing.tsx's openPrintWindow ── */
+function openShipmentReportWindow(job: ClearanceJob) {
+  const html = buildShipmentReportHtml(job).replace('</body>', '<script>window.onload=function(){window.print()}</script></body>');
   const win = window.open('', '_blank', 'width=860,height=1000');
   if (win) { win.document.write(html); win.document.close(); }
+}
+
+/** Gets or creates this shipment's public "check progress" link (the same
+ *  one the daily WhatsApp automation sends) and copies it to the clipboard —
+ *  see shipment-report.service.ts / ShipmentReportShared.tsx. */
+async function shareShipmentReportLink(id: string) {
+  try {
+    const res = await apiFetch(`/v1/shipments/${id}/report-share`, { method: 'POST' });
+    if (res?.url) {
+      await navigator.clipboard.writeText(res.url);
+      showAlert('Progress link copied — share it via WhatsApp or email.', { variant: 'success' });
+    } else {
+      showAlert('Link created, but the public app URL isn’t configured yet — ask an admin to set it before sharing.', { variant: 'warning' });
+    }
+  } catch (e: any) {
+    showAlert(e.message || 'Could not create a share link.', { variant: 'error' });
+  }
 }
 
 /**
@@ -489,6 +622,41 @@ function DSelect({ value, onChange, options }: { value: string; onChange: (v: st
   );
 }
 
+/**
+ * Real customs-value risk signal for one declaration line — the platform's
+ * own historical declared values for this HS code (+ origin), aggregated
+ * across every tenant's finalized declarations. See customs.service.ts's
+ * getValuationReference: anonymized stats only, gated behind a minimum
+ * sample size, never a raw declaration or another tenant's identity.
+ */
+function ValuationSignalBadge({ hsCode, countryOfOrigin }: { hsCode: string; countryOfOrigin: string }) {
+  const [ref, setRef] = useState<{ sampleCount: number; medianUnitValueTzs: number; minUnitValueTzs: number; maxUnitValueTzs: number } | null>(null);
+  const [checked, setChecked] = useState(false);
+
+  useEffect(() => {
+    const hs = hsCode.trim();
+    if (!hs) { setRef(null); setChecked(false); return; }
+    const t = setTimeout(() => {
+      const params = new URLSearchParams({ hs_code: hs });
+      if (countryOfOrigin.trim()) params.set('country_of_origin', countryOfOrigin.trim());
+      apiFetch(`/v1/customs/valuation-reference?${params.toString()}`)
+        .then((res: any) => { setRef(res?.rows?.[0] ?? null); setChecked(true); })
+        .catch(() => { setRef(null); setChecked(true); });
+    }, 400);
+    return () => clearTimeout(t);
+  }, [hsCode, countryOfOrigin]);
+
+  if (!hsCode.trim() || !checked || !ref) return null;
+
+  return (
+    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: -2, marginBottom: 8, marginLeft: 10, fontSize: 11.5, color: 'var(--ink3)' }}>
+      <Icon name="trendingUp" size={11} color="var(--ink3)" />
+      Typical declared value: TZS {Math.round(ref.medianUnitValueTzs).toLocaleString()} / unit
+      <span style={{ color: 'var(--ink3)' }}>(range {Math.round(ref.minUnitValueTzs).toLocaleString()}–{Math.round(ref.maxUnitValueTzs).toLocaleString()}, {ref.sampleCount} past declarations)</span>
+    </div>
+  );
+}
+
 // ─── Stage Stepper ────────────────────────────────────────────────────────────
 
 function StageStepper({ job }: { job: ClearanceJob }) {
@@ -667,7 +835,7 @@ function CustomerAgentCard({ job }: { job: ClearanceJob }) {
       </div>
       {agent && (
         <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-          <a href={`tel:${agent.phone}`} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px 0', background: 'var(--teal)', color: '#fff', borderRadius: 7, fontSize: 12.5, fontWeight: 700, textDecoration: 'none' }}>
+          <a href={`tel:${agent.phone}`} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px 0', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', borderRadius: 7, fontSize: 12.5, fontWeight: 700, textDecoration: 'none' }}>
             <Icon name="phone" size={13} color="#fff" /> Call
           </a>
           <a href={`mailto:${agent.email}`} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px 0', background: 'var(--bg)', color: 'var(--ink)', border: '1px solid var(--border)', borderRadius: 7, fontSize: 12.5, fontWeight: 700, textDecoration: 'none' }}>
@@ -939,7 +1107,7 @@ function EntryPointSteps({ entryOffice }: { entryOffice: string }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {cfg.steps.map((step, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                <span style={{ width: 20, height: 20, borderRadius: '50%', background: 'var(--teal)', color: '#fff', fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>{i + 1}</span>
+                <span style={{ width: 20, height: 20, borderRadius: '50%', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>{i + 1}</span>
                 <span style={{ fontSize: 12, color: 'var(--ink2)', lineHeight: 1.45 }}>{step}</span>
               </div>
             ))}
@@ -1363,8 +1531,12 @@ function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Clearance
   const ins     = Number(financial.insurance_usd) || 0;
   const cifTzs  = (cifUsd + frt + ins) * er;
   const dutyAmt = cifTzs * (Number(financial.duty_rate) / 100);
-  const vatAmt  = (cifTzs + dutyAmt) * (Number(financial.vat_rate) / 100);
-  const excAmt  = cifTzs * (Number(financial.excise_rate) / 100);
+  // Excise (Management and Tariff) Act, Cap.147 R.E. 2019, s.141(1)(a): the
+  // excisable value of an imported article is CIF plus the import duty
+  // payable — not CIF alone. VAT is then assessed on the duty-and-excise-
+  // inclusive value, same as the Landed Cost Calculator (customs.service.ts).
+  const excAmt  = (cifTzs + dutyAmt) * (Number(financial.excise_rate) / 100);
+  const vatAmt  = (cifTzs + dutyAmt + excAmt) * (Number(financial.vat_rate) / 100);
   const totalTax = dutyAmt + vatAmt + excAmt;
 
   const currentIdx = stageIdx(job.stage);
@@ -1468,7 +1640,7 @@ function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Clearance
               Dismiss
             </button>
             <button type="button" title="Apply OCR extracted data to all declaration fields" onClick={applyOcrData}
-              style={{ fontSize: 11, fontWeight: 700, color: '#fff', background: 'var(--teal)', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 12px', cursor: 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
+              style={{ fontSize: 11, fontWeight: 700, color: 'hsl(var(--primary-foreground))', background: 'hsl(var(--primary))', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 12px', cursor: 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
               Apply OCR data
             </button>
           </div>
@@ -1704,6 +1876,7 @@ function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Clearance
                   <Icon name="percent" size={11} color="var(--teal)" /> Check duty for {line.hs.trim()} <Icon name="externalLink" size={10} color="var(--teal)" />
                 </a>
               )}
+              <ValuationSignalBadge hsCode={line.hs} countryOfOrigin={line.origin} />
               <DField label="Description of Goods">
                 <input className="input-field" title="Goods description" placeholder="Full description per invoice" value={line.desc} onChange={e => setItems(p => p.map((l, j) => j === i ? { ...l, desc: e.target.value } : l))} style={{ fontSize: 12, padding: '5px 8px', marginTop: 2 }} />
               </DField>
@@ -2020,7 +2193,7 @@ function OverviewTab({ job, isMobile, isLive, onRefresh }: { job: ClearanceJob; 
               <div>
                 <SpecRow label="B/L Number" value={job.bl || '—'} mono />
                 <SpecRow label="TANSAD" value={job.tansad || '—'} mono />
-                <SpecRow label="Vessel" value={job.vessel || '—'} />
+                <SpecRow label="Vessel" value={<VesselLiveStatus vesselName={job.vessel} mode={job.mode} />} />
                 <SpecRow label="Transport" value={job.mode} />
                 <SpecRow label="Containers" value={(job.containers?.length ?? 0) > 0 ? job.containers!.join(', ') : '—'} mono />
               </div>
@@ -2391,7 +2564,7 @@ function TasksTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
       {/* Toolbar */}
       <div style={{ display: 'flex', gap: 10, marginBottom: 12, alignItems: 'center' }}>
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search tasks…" className="input-field" style={{ flex: 1, fontSize: 13 }} />
-        <button type="button" onClick={() => setShowAdd(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+        <button type="button" onClick={() => setShowAdd(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
           <Icon name="plus" size={14} /> Add Task
         </button>
       </div>
@@ -2637,7 +2810,7 @@ function TimesheetsTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: 
             <span> · Billable: <span style={{ fontWeight: 700, color: 'var(--teal)' }}>{Object.entries(billableByCurrency).map(([cur, amt]) => fmtServiceRate(amt, cur)).join(' + ')}</span></span>
           )}
         </div>
-        <button type="button" onClick={() => setShowLog(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+        <button type="button" onClick={() => setShowLog(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
           <Icon name="clock" size={14} /> Log Time
         </button>
       </div>
@@ -3218,7 +3391,7 @@ function FilesTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
             </SelectContent>
           </Select>
           <button type="button" onClick={() => handleUploadClick()} disabled={savingStaged}
-            style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 16px', background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: savingStaged ? 'wait' : 'pointer', opacity: savingStaged ? 0.75 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+            style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: savingStaged ? 'wait' : 'pointer', opacity: savingStaged ? 0.75 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
             <Icon name="upload" size={14} /> Upload Document
           </button>
         </div>
@@ -3263,7 +3436,7 @@ function FilesTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
               + Add more
             </button>
             <button type="button" onClick={saveStagedFiles} disabled={savingStaged}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: savingStaged ? 'wait' : 'pointer', opacity: savingStaged ? 0.75 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 13, fontWeight: 700, cursor: savingStaged ? 'wait' : 'pointer', opacity: savingStaged ? 0.75 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
               {savingStaged ? 'Saving…' : `Save ${stagedFiles.length} file${stagedFiles.length !== 1 ? 's' : ''}`}
             </button>
           </div>
@@ -3557,7 +3730,7 @@ function LedgerTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; 
       {/* Add entry */}
       <div style={{ marginBottom: 20, display: 'flex', gap: 10 }}>
         {!showForm ? (
-          <button type="button" onClick={() => setShowForm(true)} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 16px', background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+          <button type="button" onClick={() => setShowForm(true)} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
             <Icon name="plus" size={14} /> Record Entry
           </button>
         ) : null}
@@ -4071,6 +4244,25 @@ function ListenersSidebar({ job, shipmentId, isLive, onRefresh }: { job: Clearan
 
   const [editingDate, setEditingDate] = useState<'created' | 'due' | null>(null);
   const [savingDate, setSavingDate] = useState(false);
+  const [savingReportToggle, setSavingReportToggle] = useState(false);
+
+  // null (inherit the customer's own setting) displays as "on" — the
+  // platform default — since there's no per-shipment override yet to show.
+  async function handleDailyReportToggle(enabled: boolean) {
+    setSavingReportToggle(true);
+    try {
+      if (isLive) {
+        await apiFetch(`/v1/shipments/${shipmentId}`, { method: 'PATCH', body: JSON.stringify({ daily_report_enabled: enabled }) });
+        onRefresh();
+      } else {
+        updateJob(job.id, j => ({ ...j, dailyReportEnabled: enabled }));
+      }
+    } catch (err: any) {
+      showAlert(err.message || 'Failed to update daily report setting');
+    } finally {
+      setSavingReportToggle(false);
+    }
+  }
 
   async function handleKeyDateChange(field: 'created_at' | 'due_date', label: string, d: Date | undefined) {
     setEditingDate(null);
@@ -4608,6 +4800,21 @@ function ListenersSidebar({ job, shipmentId, isLive, onRefresh }: { job: Clearan
         ))}
       </Card>
 
+      {/* Daily shipment-report automation (migration 258) — email (PDF) +
+          WhatsApp (link) around 21:00 EAT. A shipment-level override; the
+          customer-level default lives on the customer record itself. */}
+      <Card title="Automation" padded={false}>
+        <div style={{ padding: '4px 16px' }}>
+          <SwitchRow
+            title="Daily progress report"
+            description="Sends today's PDF report by email and a live-status link by WhatsApp, ~21:00 EAT."
+            checked={job.dailyReportEnabled !== false}
+            onCheckedChange={handleDailyReportToggle}
+            disabled={!canManage || savingReportToggle}
+          />
+        </div>
+      </Card>
+
       {/* Tags & Flags — pulled off this sidebar for now, tracked as
           LENS-xxxx (area: clearos) for a proper pass later rather than left
           silently unused: job.flags/FlagChip are untouched, so restoring
@@ -4745,6 +4952,67 @@ function WorkflowCard({ job, shipmentId, isLive, onRefresh, canManage }: {
         </div>
       )}
     </Card>
+  );
+}
+
+// ─── Linked operational documents ──────────────────────────────────────────
+// Delivery Documents (release/delivery orders + delivery notes, merged —
+// migration 263, lives in FinOps) soft-link to a shipment via a real
+// shipment id — surfaced here so they resolve to this one shipment instead
+// of living in a disconnected app tab with no visible relationship to it.
+interface LinkedDoc { id: string; doc_type: string; doc_number: string | null; status: string; }
+interface LinkedCoO { id: string; agreement_code: string; eligibility_status: string; certificate_number: string | null; status: string; }
+
+const LINKED_DOC_TYPE_ICON: Record<string, IconName> = { RELEASE_ORDER: 'fileText', DELIVERY_ORDER: 'fileText', DELIVERY_NOTE: 'truck' };
+const LINKED_DOC_TYPE_LABEL: Record<string, string> = { RELEASE_ORDER: 'Release Order', DELIVERY_ORDER: 'Delivery Order', DELIVERY_NOTE: 'Delivery Note' };
+
+function LinkedOperationalDocs({ shipmentId }: { shipmentId: string }) {
+  const [docs, setDocs] = useState<LinkedDoc[]>([]);
+  const [coos, setCoos] = useState<LinkedCoO[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    Promise.all([
+      apiFetch(`/v1/delivery-documents?shipment_id=${shipmentId}`).catch(() => []),
+      apiFetch(`/v1/customs/certificates-of-origin?shipment_id=${shipmentId}`).catch(() => []),
+    ]).then(([docRes, coRes]) => {
+      setDocs(Array.isArray(docRes) ? docRes : []);
+      setCoos(Array.isArray(coRes) ? coRes : []);
+    }).finally(() => setLoading(false));
+  }, [shipmentId]);
+
+  const docVariant: Record<string, 'gray' | 'info' | 'success' | 'warning' | 'error'> = {
+    draft: 'gray', issued: 'info', dispatched: 'info', delivered: 'success', used: 'success',
+    returned: 'warning', expired: 'warning', cancelled: 'error',
+  };
+  const coVariant: Record<string, 'gray' | 'success' | 'error' | 'warning'> = {
+    ELIGIBLE: 'success', NOT_ELIGIBLE: 'error', NEEDS_REVIEW: 'warning', INSUFFICIENT_DATA: 'gray',
+  };
+
+  if (loading) return null;
+  if (docs.length === 0 && coos.length === 0) return null;
+
+  return (
+    <div style={{ marginTop: 20, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', overflow: 'hidden' }}>
+      <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', fontSize: 12.5, fontWeight: 700, color: 'var(--ink2)' }}>Linked operational documents</div>
+      <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {docs.map(d => (
+          <Link key={d.id} to={`/finance/delivery-documents?shipment=${shipmentId}`} style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
+            <Icon name={LINKED_DOC_TYPE_ICON[d.doc_type] ?? 'fileText'} size={14} color="var(--ink3)" />
+            <span style={{ fontSize: 12.5, color: 'var(--ink)', fontWeight: 600 }}>{LINKED_DOC_TYPE_LABEL[d.doc_type] ?? d.doc_type}{d.doc_number ? ` · ${d.doc_number}` : ''}</span>
+            <Badge variant={docVariant[d.status] ?? 'gray'}>{d.status}</Badge>
+          </Link>
+        ))}
+        {coos.map(co => (
+          <Link key={co.id} to={`/clearos/compliance/origin?shipment=${shipmentId}`} style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
+            <Icon name="award" size={14} color="var(--ink3)" />
+            <span style={{ fontSize: 12.5, color: 'var(--ink)', fontWeight: 600 }}>Certificate of Origin ({co.agreement_code}){co.certificate_number ? ` · ${co.certificate_number}` : ''}</span>
+            <Badge variant={coVariant[co.eligibility_status] ?? 'gray'}>{co.status === 'issued' ? 'issued' : co.eligibility_status.replace('_', ' ').toLowerCase()}</Badge>
+          </Link>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -4894,7 +5162,7 @@ export function ShipmentDetail() {
   if (!job) return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 12 }}>
       <div style={{ fontSize: 16, color: 'var(--ink3)' }}>Shipment not found.</div>
-      <Link to="/" style={{ padding: '8px 16px', background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 13, textDecoration: 'none' }}>← Back</Link>
+      <Link to="/" style={{ padding: '8px 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 13, textDecoration: 'none' }}>← Back</Link>
     </div>
   );
 
@@ -4945,12 +5213,18 @@ export function ShipmentDetail() {
                 <span style={{ fontFamily: 'var(--mono)', fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.06em' }}>{job.sysRef}</span>
               )}
               {bookingRef && (
-                <Link to="/clearos/freight-booking/bookings" title="View freight booking" style={{ fontSize: 10.5, padding: '2px 8px', background: 'var(--white)', border: '1px solid var(--border)', color: 'var(--ink2)', borderRadius: 4, fontWeight: 700, textDecoration: 'none' }}>
+                <Link to="/cargotracker/bookings" title="View freight booking" style={{ fontSize: 10.5, padding: '2px 8px', background: 'var(--white)', border: '1px solid var(--border)', color: 'var(--ink2)', borderRadius: 4, fontWeight: 700, textDecoration: 'none' }}>
                   Booked via {bookingRef.booking_number}
                 </Link>
               )}
               {!isMock && <span style={{ fontSize: 10.5, padding: '2px 7px', background: 'var(--green-l)', color: 'var(--green)', borderRadius: 4, fontWeight: 700 }}>LIVE</span>}
               {isOverdue && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 12, fontWeight: 700, color: 'var(--red)' }}><Icon name="alertTriangle" size={11} /> Overdue</span>}
+              {job.hasDangerousGoods && (
+                <a href="#dg-panel" title="Carries a dangerous-goods declaration — jump to it"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10.5, padding: '2px 7px', background: 'var(--gold-l)', color: 'var(--gold)', borderRadius: 4, fontWeight: 700, textDecoration: 'none' }}>
+                  <Icon name="alertTriangle" size={11} color="var(--gold)" /> DG
+                </a>
+              )}
 
               {!isMobile && <div style={{ width: 1, height: 18, background: 'var(--border)', margin: '0 4px' }} />}
 
@@ -4985,6 +5259,11 @@ export function ShipmentDetail() {
               <button type="button" onClick={() => openShipmentReportWindow(job)} title="Print shipment report" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 'var(--ctl-h)', height: 'var(--ctl-h)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', cursor: 'pointer', flexShrink: 0 }}>
                 <Icon name="printer" size={15} />
               </button>
+              {isStaff && (
+                <button type="button" onClick={() => shareShipmentReportLink(job.id)} title="Copy progress link (for WhatsApp/email)" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 'var(--ctl-h)', height: 'var(--ctl-h)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', cursor: 'pointer', flexShrink: 0 }}>
+                  <Icon name="link" size={15} />
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -4994,6 +5273,16 @@ export function ShipmentDetail() {
           {isStaff ? <StageStepper job={job} /> : (
             <div style={{ padding: '0 24px' }}><CustomerMilestoneTimeline job={job} compact /></div>
           )}
+          {/* Examination is a step within this shipment's own clearance, not a
+              separate process — rendered right here rather than as a global
+              worklist elsewhere (see ExaminationsQueue.tsx). Renders nothing
+              when this shipment has no examinations. */}
+          {isStaff && <ExaminationsQueue shipmentId={job.id} />}
+          {/* Dangerous goods follow the same clearing flow as any other
+              shipment, with an extra layer of paperwork — declared, issued
+              and printed right here rather than on a separate worklist page
+              (DangerousGoodsPage.tsx has been removed). */}
+          {isStaff && <DangerousGoodsPanel shipmentId={job.id} customerId={job.customerId} customerName={job.customer} />}
         </div>
         <div style={{ height: isMobile ? 8 : 10 }} />
 
@@ -5042,6 +5331,7 @@ export function ShipmentDetail() {
               {tab === 'declaration'  && isStaff && <DeclarationTab job={job} shipmentId={id || job.id} isLive={!isMock} onRefresh={refreshJob} />}
               {tab === 'updates'      && <UpdatesTab     job={job} shipmentId={id || job.id} isLive={!isMock} onRefresh={refreshJob} />}
               {tab === 'files'        && <DocumentsPanel job={job} shipmentId={id || job.id} isLive={!isMock} onRefresh={refreshJob} />}
+              {tab === 'files'        && isStaff && <LinkedOperationalDocs shipmentId={id || job.id} />}
               {tab === 'ledger'       && isStaff && <LedgerTab      job={job} shipmentId={id || job.id} isLive={!isMock} onRefresh={refreshJob} />}
               {tab === 'co2'          && <CO2Tab         job={job} shipmentId={id || job.id} isLive={!isMock} onRefresh={refreshJob} />}
             </div>

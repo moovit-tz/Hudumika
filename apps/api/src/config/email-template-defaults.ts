@@ -60,6 +60,38 @@ export const EMAIL_TEMPLATE_DEFAULTS: Record<string, EmailTemplateDefault> = {
     `,
   },
 
+  'agency.client_tenant_ready': {
+    category: 'account',
+    subject: '{{agencyName}} has set up your hosting account',
+    body: `
+      <p>{{agencyName}} has set up a hosting account for {{companyName}} on Hudumika.</p>
+      <p><a href="{{acceptUrl}}" style="background:#0d7a6b;color:#ffffff;padding:10px 18px;text-decoration:none;border-radius:6px;display:inline-block;">Activate your account</a></p>
+      <p>This link expires in 7 days.</p>
+    `,
+  },
+
+  'agency.client_detached': {
+    category: 'account',
+    subject: 'Your hosting is no longer managed by {{agencyName}}',
+    body: `
+      <p>{{agencyName}} is no longer managing hosting for {{companyName}} on Hudumika. Your account and all its data are unaffected — nothing was moved or deleted.</p>
+      <p>To keep your sites, domains and DNS running, activate a plan of your own:</p>
+      <p><a href="{{activateUrl}}" style="background:#0d7a6b;color:#ffffff;padding:10px 18px;text-decoration:none;border-radius:6px;display:inline-block;">Activate hosting</a></p>
+    `,
+  },
+
+  'agency.directory_inquiry': {
+    category: 'account',
+    subject: 'New inquiry from the agency directory: {{inquirerName}}',
+    body: `
+      <p>Someone found your "{{headline}}" listing in the Hudumika agency directory and wants to get in touch.</p>
+      <p><strong>From:</strong> {{inquirerName}} ({{inquirerEmail}})</p>
+      <p><strong>Message:</strong></p>
+      <p>{{message}}</p>
+      <p>Reply directly to {{inquirerEmail}} to follow up.</p>
+    `,
+  },
+
   'payroll.payslip': {
     category: 'transactional',
     subject: 'Your payslip — {{runName}}',
@@ -83,6 +115,19 @@ export const EMAIL_TEMPLATE_DEFAULTS: Record<string, EmailTemplateDefault> = {
     category: 'support',
     subject: 'Support Ticket Response - Shipment Case #{{refNumber}}',
     body: `{{content}}`,
+  },
+
+  // Daily shipment-report automation — sent ~21:00 EAT, PDF attached
+  // (mail.service.ts attachment plumbing), the WhatsApp send alongside it
+  // carries the live link instead (see daily-shipment-report.job.ts).
+  'clearos.daily_shipment_report': {
+    category: 'transactional',
+    subject: 'Shipment progress report — {{refNumber}}',
+    body: `
+      <p>Hello {{customerName}},</p>
+      <p>Attached is today's progress report for shipment <strong>{{refNumber}}</strong> — currently at <strong>{{stageLabel}}</strong>.</p>
+      <p>Reply to this email or reach your clearing agent directly with any questions.</p>
+    `,
   },
 
   // One key, not per-scenario (overdue / due-soon / renewal-started) — all

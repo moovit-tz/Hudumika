@@ -151,7 +151,7 @@
 .rtbl-bold      { font-weight: 600; }
 .rtbl-nowrap    { white-space: nowrap; }
 .rtbl-mr        { margin-right: 6px; }
-.s-base-badge   { font-size: var(--badge-fs); padding: var(--badge-py) var(--badge-px); border-radius: 20px; background: var(--teal); color: #fff; }
+.s-base-badge   { font-size: var(--badge-fs); padding: var(--badge-py) var(--badge-px); border-radius: 20px; background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }
 
 /* ══════════════════════════════════════════════════════════
    Expense categories

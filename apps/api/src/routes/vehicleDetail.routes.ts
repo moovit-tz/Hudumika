@@ -344,15 +344,36 @@ export async function vehicleDetailRoutes(fastify: FastifyInstance) {
   fastify.post('/vehicles/:id/expenses', { preHandler: requireRole(...FLEET_ROLES) }, async (req) => {
     const user = req.user;
     const { id } = req.params as { id: string };
-    const body = req.body as { category?: string; description?: string; amount: number; expense_date?: string; vendor_id?: string };
+    const body = req.body as { category?: string; description?: string; amount: number; expense_date?: string; vendor_id?: string; trip_id?: string; billable?: boolean };
     return withTenant(user.tenant_id, async (trx) =>
       trx.insertInto('vehicle_expenses').values({
         tenant_id: user.tenant_id, vehicle_id: id, category: body.category ?? 'OTHER',
         description: body.description ?? null, amount: body.amount,
         expense_date: body.expense_date ? new Date(body.expense_date) : new Date(),
         vendor_id: body.vendor_id ?? null, created_by: user.sub,
+        trip_id: body.trip_id ?? null, billable: body.billable ?? false,
       } as any).returningAll().executeTakeFirstOrThrow()
     );
+  });
+
+  // Toggling "billable" or attaching a trip after the fact — e.g. an
+  // expense logged before the trip's customer was known.
+  fastify.patch('/expenses/:id', { preHandler: requireRole(...FLEET_ROLES) }, async (req, reply) => {
+    const user = req.user;
+    const { id } = req.params as { id: string };
+    const body = req.body as Partial<{ category: string; description: string; amount: number; expense_date: string; vendor_id: string | null; trip_id: string | null; billable: boolean }>;
+    return withTenant(user.tenant_id, async (trx) => {
+      const existing = await trx.selectFrom('vehicle_expenses').select('invoice_id')
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!existing) return reply.status(404).send({ error: 'Expense not found' });
+      if (existing.invoice_id) return reply.status(400).send({ error: 'Already invoiced — cannot change a billed expense.' });
+      return trx.updateTable('vehicle_expenses').set({
+        ...body,
+        expense_date: body.expense_date ? new Date(body.expense_date) : undefined,
+      } as any)
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
+        .returningAll().executeTakeFirstOrThrow();
+    });
   });
 
   fastify.delete('/expenses/:id', { preHandler: requireRole(...FLEET_ROLES) }, async (req) => {

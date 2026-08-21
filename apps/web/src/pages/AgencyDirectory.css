@@ -1,0 +1,363 @@
+/* ═══════════════════════════════════════════════════════════════
+   Agency Directory — public marketplace page (AgencyHost M7)
+   Uses the platform's own tokens (--teal, --ink, --bg, --border) so it
+   inherits whatever accent/theme preset is active, same as every other
+   page — no separate palette invented for this one.
+   ═══════════════════════════════════════════════════════════════ */
+
+.ad-page {
+  min-height: 100%;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font, -apple-system, BlinkMacSystemFont, 'Inter', sans-serif);
+}
+.ad-page * { box-sizing: border-box; }
+
+.ad-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
+}
+.ad-topbar-inner {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 16px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.ad-brand {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+  text-decoration: none;
+}
+.ad-brand span {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-style: italic;
+  font-weight: 700;
+  color: var(--teal);
+  margin-left: 4px;
+}
+.ad-topbar-links { display: flex; align-items: center; gap: 20px; }
+.ad-topbar-links a {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink2);
+  text-decoration: none;
+}
+.ad-topbar-links a:last-child {
+  color: var(--white, #fff);
+  background: var(--teal);
+  padding: 8px 16px;
+  border-radius: var(--r, 8px);
+}
+.ad-topbar-links a:hover { opacity: 0.85; }
+
+.ad-hero {
+  padding: 56px 28px 40px;
+  text-align: center;
+}
+.ad-hero-inner { max-width: 680px; margin: 0 auto; }
+.ad-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink3);
+  margin-bottom: 18px;
+}
+.ad-eyebrow-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--teal);
+}
+.ad-hero h1 {
+  font-family: var(--font, sans-serif);
+  font-weight: 300;
+  font-size: 40px;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  margin: 0 0 16px;
+  text-wrap: balance;
+}
+.ad-hero p {
+  font-size: 15.5px;
+  line-height: 1.6;
+  color: var(--ink2);
+  margin: 0;
+}
+
+.ad-filters {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 0 28px 28px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+.ad-filter-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface, #fff);
+  border: 1px solid var(--border);
+  border-radius: var(--r, 8px);
+  padding: 0 12px;
+  min-width: 260px;
+  color: var(--ink3);
+}
+.ad-filter-search input {
+  border: none;
+  outline: none;
+  background: transparent;
+  padding: 10px 0;
+  font-size: 13.5px;
+  color: var(--ink);
+  width: 100%;
+}
+.ad-filter-select {
+  border: 1px solid var(--border);
+  border-radius: var(--r, 8px);
+  background: var(--surface, #fff);
+  color: var(--ink);
+  font-size: 13.5px;
+  padding: 0 12px;
+  min-height: 40px;
+}
+.ad-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--teal);
+  background: var(--teal-l, #fff7ed);
+  color: var(--teal);
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 0 12px;
+  min-height: 40px;
+  cursor: pointer;
+}
+
+.ad-grid-wrap {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 0 28px 72px;
+}
+.ad-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  padding: 64px 20px;
+  color: var(--ink3);
+}
+.ad-empty h3 { color: var(--ink); font-size: 16px; margin: 4px 0 0; }
+.ad-empty p { font-size: 13.5px; max-width: 360px; margin: 0; }
+
+.ad-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 18px;
+}
+.ad-card {
+  background: var(--surface, #fff);
+  border: 1px solid var(--border);
+  border-radius: var(--r, 12px);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: var(--elev-sm, none);
+}
+.ad-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+.ad-card-top h3 {
+  font-size: 15.5px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--ink);
+  text-wrap: balance;
+}
+.ad-tier {
+  flex-shrink: 0;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 3px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.ad-tier-budget   { background: var(--green-l, #ecfdf5); color: var(--green, #1a7f37); }
+.ad-tier-standard { background: var(--blue-l, #eff6ff);  color: var(--blue, #2563eb); }
+.ad-tier-premium  { background: var(--gold-l, #fffbeb);  color: var(--gold, #b45309); }
+
+.ad-card-desc {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--ink2);
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.ad-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  font-size: 12px;
+  color: var(--ink3);
+}
+.ad-card-meta span { display: inline-flex; align-items: center; gap: 5px; }
+
+.ad-card-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.ad-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink2);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 3px 9px;
+  font-family: inherit;
+  cursor: pointer;
+}
+.ad-tag:hover { border-color: var(--teal); color: var(--teal); }
+/* Also matched as :hover — a selected tag is exactly what the pointer sits
+   on right after the click that selected it, and :hover's own color would
+   otherwise win on specificity, painting the label the same orange as the
+   background it's now sitting on. */
+.ad-tag-active,
+.ad-tag-active:hover {
+  background: var(--teal);
+  border-color: var(--teal);
+  color: var(--white, #fff);
+}
+
+.ad-card-portfolio {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ad-card-portfolio a {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--teal);
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ad-card-portfolio a:hover { text-decoration: underline; }
+
+.ad-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  margin-top: auto;
+}
+.ad-card-agency { font-size: 12px; font-weight: 600; color: var(--ink3); }
+.ad-btn-contact {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--teal);
+  color: var(--white, #fff);
+  border: none;
+  border-radius: var(--r-sm, 6px);
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+.ad-btn-contact:hover { opacity: 0.9; }
+.ad-btn-contact:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.ad-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.ad-modal {
+  background: var(--surface, #fff);
+  border-radius: var(--r, 12px);
+  width: 100%;
+  max-width: 420px;
+  padding: 22px;
+}
+.ad-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.ad-modal-header h3 { font-size: 15px; margin: 0; color: var(--ink); }
+.ad-modal-close {
+  background: none;
+  border: none;
+  color: var(--ink3);
+  cursor: pointer;
+  padding: 2px;
+}
+.ad-modal-form { display: flex; flex-direction: column; gap: 12px; }
+.ad-modal-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink2);
+}
+.ad-modal-form input, .ad-modal-form textarea {
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm, 6px);
+  padding: 9px 11px;
+  font-size: 13.5px;
+  font-family: inherit;
+  color: var(--ink);
+  background: var(--bg);
+  resize: vertical;
+}
+.ad-modal-form button { margin-top: 4px; justify-content: center; }
+.ad-modal-sent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+  padding: 12px 0;
+  color: var(--green, #1a7f37);
+}
+.ad-modal-sent p { color: var(--ink2); font-size: 13.5px; margin: 0; }
+
+@media (max-width: 640px) {
+  .ad-hero h1 { font-size: 30px; }
+  .ad-topbar-links a:first-child { display: none; }
+}

@@ -24,23 +24,16 @@ import {
 import { BrandingView } from '../pages/BrandingView.js';
 import { DesignSystemView } from '../pages/DesignSystemView.js';
 import { SeoAnalyticsView } from '../pages/SeoAnalyticsView.js';
-import { SuperAdminReports } from '../pages/SuperAdminReports.js';
-import { SuperAdminQueryBuilder } from '../pages/SuperAdminQueryBuilder.js';
-import { SuperAdminTradeWizardAnalytics } from '../pages/SuperAdminTradeWizardAnalytics.js';
 import ComponentShowcase from '../pages/ComponentShowcase.js';
 import { AdminCMSPages } from '../pages/AdminCMSPages.js';
 import { SuperAdminIssues } from '../pages/SuperAdminIssues.js';
+import { SuperAdminReferrals } from '../pages/SuperAdminReferrals.js';
 import { SuperAdminAnnouncements } from '../pages/SuperAdminAnnouncements.js';
-import { SuperAdminCalculations } from '../pages/SuperAdminCalculations.js';
-import { SuperAdminIntelligence } from '../pages/SuperAdminIntelligence.js';
 
 const NAV: SidebarSection[] = [
   {
     items: [
       { label: 'Dashboard',     icon: 'monitor',    path: '/admin/dashboard'     },
-      { label: 'Reports',       icon: 'barChart',   path: '/admin/reports'       },
-      { label: 'Trade Wizard Analytics', icon: 'search', path: '/admin/trade-wizard-analytics' },
-      { label: 'Query Builder', icon: 'terminal',   path: '/admin/query-builder' },
       { label: 'Companies',     icon: 'building',   path: '/admin/companies'     },
       { label: 'Subscriptions', icon: 'creditCard', path: '/admin/subscriptions' },
       { label: 'Packages',      icon: 'package',    path: '/admin/packages'      },
@@ -54,9 +47,8 @@ const NAV: SidebarSection[] = [
     title: 'PLATFORM',
     items: [
       { label: 'Reported Issues',   icon: 'alertCircle', path: '/admin/issues'      },
+      { label: 'Referral Commissions', icon: 'link', path: '/admin/referrals'    },
       { label: 'Announcements',     icon: 'bell',      path: '/admin/announcements' },
-      { label: 'Landed Cost Activity', icon: 'package', path: '/admin/calculations' },
-      { label: 'Intelligence',      icon: 'sparkle',  path: '/admin/intelligence' },
       { label: 'App Status',        icon: 'shield',   path: '/admin/app-status'     },
       { label: 'CMS Pages',         icon: 'fileText', path: '/admin/cms-pages'      },
       { label: 'Branding',          icon: 'image',    path: '/admin/branding'       },
@@ -80,9 +72,6 @@ function AdminContent() {
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route element={<PageLayout />}>
           <Route path="dashboard"     element={<DashboardView />} />
-          <Route path="reports"       element={<SuperAdminReports />} />
-          <Route path="trade-wizard-analytics" element={<SuperAdminTradeWizardAnalytics />} />
-          <Route path="query-builder" element={<SuperAdminQueryBuilder />} />
           <Route path="companies"     element={<CompaniesView />} />
           <Route path="subscriptions" element={<SubscriptionsView />} />
           <Route path="packages"      element={<PackagesView />} />
@@ -91,9 +80,8 @@ function AdminContent() {
           <Route path="domains"       element={<DomainsView />} />
           <Route path="activity"      element={<ActivityView />} />
           <Route path="issues"        element={<SuperAdminIssues />} />
+          <Route path="referrals"     element={<SuperAdminReferrals />} />
           <Route path="announcements" element={<SuperAdminAnnouncements />} />
-          <Route path="calculations" element={<SuperAdminCalculations />} />
-          <Route path="intelligence" element={<SuperAdminIntelligence />} />
           <Route path="app-status"    element={<AppStatusView />} />
           <Route path="cms-pages"     element={<AdminCMSPages />} />
           <Route path="branding"       element={<BrandingView />} />

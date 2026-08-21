@@ -1,4 +1,4 @@
-import { requireEntitlement } from '../middleware/entitlement.js';
+import { requireEntitlement, requireAnyEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { db, withTenant } from '../db/client.js';
@@ -19,7 +19,13 @@ const recordExpenseSchema = z.object({
 
 export async function financeRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
-  fastify.addHook('preHandler', requireEntitlement('finops'));
+  // Every route in this file is shipment-scoped (VAT return, per-shipment
+  // P&L/expenses/invoice finalise/pay) — it's registered at both /v1/finance
+  // and, aliased, /v1/shipments (index.ts), and ClearOS's own ShipmentDetail
+  // Ledger tab calls it directly. Gating on 'finops' alone 403'd a
+  // ClearOS-only tenant recording a cost against their own shipment. Same
+  // fix shape as products.routes.ts/freight-booking.routes.ts.
+  fastify.addHook('preHandler', requireAnyEntitlement(['clearos', 'finops']));
 
   /**
    * GET /v1/finance/vat-return?from=&to=

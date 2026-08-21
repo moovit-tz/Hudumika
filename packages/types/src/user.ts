@@ -33,13 +33,15 @@ export type AppId =
   | 'inventory'    // General multi-warehouse stock control (separate from SEAL's bonded-warehouse domain)
   | 'studio'       // Workflow Studio — the platform's automation control plane
   | 'hudubi'       // Data Layer & AI Analytics Engine
+  | 'petti'        // Tenant petty-cash wallet — deposits, request/approve/disburse withdrawals
+  | 'notes'        // Google Keep style notes app — free app
   | 'lens';        // Internal developer record — SuperAdmin only, never customer-facing
 
 export const ALL_APP_IDS: AppId[] = [
   'clearos', 'finops', 'complyos', 'bliss',
   'nexushr', 'onesite', 'onsite', 'oneid', 'tracking', 'cloud', 'ai', 'workspace', 'admin', 'email', 'crm', 'contacts', 'store',
-  'calendar', 'tasks',
-  'demurrage', 'cargotracker', 'seal', 'inventory', 'studio', 'hudubi',
+  'calendar', 'tasks', 'notes',
+  'demurrage', 'cargotracker', 'seal', 'inventory', 'studio', 'hudubi', 'petti',
   // Internal tooling. Present so the app shell and design system can resolve it
   // like any other app; the launcher filters it out for non-SuperAdmins and
   // both its route and its endpoints require that role.
@@ -153,9 +155,22 @@ export type TenantPlan =
   | 'enterprise'
   | 'operations' // legacy
   | 'finance'    // legacy
-  | 'professional'; // legacy
+  | 'professional' // legacy
+  // Internal marker, never purchased directly (packages.is_active = false) —
+  // a client tenant created and managed by an agency (AgencyHost M1). Grants
+  // nothing on its own; 'onsite' access while attached comes from
+  // middleware/entitlement.ts checking agency_managed_tenants directly, not
+  // from this plan's (nonexistent) package_features rows.
+  | 'agency-managed'
+  // Real, purchasable (packages.is_active = true) — grants only 'onsite'.
+  // The landing spot for a former agency-managed client once its
+  // agency_managed_tenants relationship ends (AgencyHost M3/M4), and the
+  // direct answer for a signup that wants hosting alone.
+  | 'onsite-standalone';
 
 export const PLAN_LEVELS: Record<TenantPlan, number> = {
+  'agency-managed': 0, // grants no tier-gated feature on its own — see TenantPlan's doc comment
+  'onsite-standalone': 0, // grants exactly one feature (onsite), not a tier
   starter:      1,
   operations:   2,
   growth:       2,
@@ -175,6 +190,8 @@ export function planHas(userPlan: TenantPlan, required: TenantPlan): boolean {
  * Higher plans include all roles from lower plans.
  */
 export const PLAN_ROLES: Record<TenantPlan, UserRole[]> = {
+  'agency-managed': ['ADMIN', 'CUSTOMER'],
+  'onsite-standalone': ['ADMIN', 'CUSTOMER'],
   starter:      ['ADMIN', 'SALES', 'CUSTOMER'],
   operations:   ['ADMIN', 'SALES', 'CUSTOMER', 'JUNIOR', 'SENIOR'],
   growth:       ['ADMIN', 'SALES', 'CUSTOMER', 'JUNIOR', 'SENIOR'],

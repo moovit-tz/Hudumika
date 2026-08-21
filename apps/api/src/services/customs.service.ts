@@ -200,6 +200,94 @@ export async function getHsCode(code: string) {
   return resolved;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Customs valuation reference (M2 of the ClearOS roadmap)
+//
+// "Accepted values for identical/similar goods" built from this platform's
+// own real transaction history, not fabricated statistics — declaration_items
+// from every tenant whose declaration reached at least ACCEPTED status,
+// grouped by HS code + country of origin. Cross-tenant by deliberate design
+// (approved explicitly, not a default): a single agency's own history is
+// usually too thin to be a useful signal, and this is genuinely how real
+// customs valuation databases work — but the response carries ONLY
+// aggregate statistics, never a raw declaration, tenant name or importer
+// name, and MIN_SAMPLE (shared with wizardAccuracy/complianceAccuracy in
+// intelligence.service.ts) gates anything from showing at all below a
+// deanonymizing sample size.
+//
+// customs_value on declaration_items is TZS, full stop — confirmed against
+// ShipmentDetail.tsx's own field name (customs_value_tzs) before writing
+// this query, not assumed from the column name alone. Do not blend it with
+// invoice_currency (routinely USD) — they are different values entirely.
+import { sql as kyselySql } from 'kysely';
+
+const VALUATION_MIN_SAMPLE = 3;
+const FINALIZED_STATUSES = ['ACCEPTED', 'ASSESSED', 'PAID', 'RELEASED', 'AMENDED'] as const;
+
+export interface ValuationReferenceRow {
+  hsCode: string;
+  countryOfOrigin: string;
+  sampleCount: number;
+  avgUnitValueTzs: number;
+  medianUnitValueTzs: number;
+  minUnitValueTzs: number;
+  maxUnitValueTzs: number;
+  mostRecent: string;
+}
+
+export async function getValuationReference(hsCode: string, countryOfOrigin?: string): Promise<ValuationReferenceRow[]> {
+  const digits = hsCode.replace(/[.\s]/g, '');
+  if (!digits) return [];
+
+  let q = dbPlatform
+    .selectFrom('declaration_items as di')
+    .innerJoin('declarations as d', 'd.id', 'di.declaration_id')
+    .select(({ fn }) => [
+      'di.hs_code as hsCode',
+      'di.country_of_origin as countryOfOrigin',
+      fn.count<string>('di.id').as('sampleCount'),
+      kyselySql<string>`avg(di.customs_value / NULLIF(di.quantity, 0))`.as('avgUnitValueTzs'),
+      kyselySql<string>`percentile_cont(0.5) WITHIN GROUP (ORDER BY di.customs_value / NULLIF(di.quantity, 0))`.as('medianUnitValueTzs'),
+      kyselySql<string>`min(di.customs_value / NULLIF(di.quantity, 0))`.as('minUnitValueTzs'),
+      kyselySql<string>`max(di.customs_value / NULLIF(di.quantity, 0))`.as('maxUnitValueTzs'),
+      fn.max<string>('d.reference_date').as('mostRecent'),
+    ])
+    .where(kyselySql<boolean>`replace(di.hs_code, '.', '') = ${digits}`)
+    .where('d.status', 'in', [...FINALIZED_STATUSES])
+    .where('di.customs_value', '>', 0)
+    .where('di.quantity', '>', 0)
+    .groupBy(['di.hs_code', 'di.country_of_origin']);
+
+  if (countryOfOrigin) q = q.where('di.country_of_origin', '=', countryOfOrigin.toUpperCase());
+
+  const rows = await q.execute();
+
+  return rows
+    .map((r) => ({
+      hsCode: r.hsCode,
+      countryOfOrigin: r.countryOfOrigin,
+      sampleCount: Number(r.sampleCount),
+      avgUnitValueTzs: Number(r.avgUnitValueTzs),
+      medianUnitValueTzs: Number(r.medianUnitValueTzs),
+      minUnitValueTzs: Number(r.minUnitValueTzs),
+      maxUnitValueTzs: Number(r.maxUnitValueTzs),
+      mostRecent: String(r.mostRecent),
+    }))
+    .filter((r) => r.sampleCount >= VALUATION_MIN_SAMPLE)
+    .sort((a, b) => b.sampleCount - a.sampleCount);
+}
+
+export type ValuationSignal = 'normal' | 'below_typical' | 'above_typical' | 'no_data';
+
+/** How far a declared unit value sits from the real historical median for this HS/origin — the actual "risk signal" surfaced on a new declaration. */
+export function classifyValuationSignal(declaredUnitValueTzs: number, reference: ValuationReferenceRow | undefined): { signal: ValuationSignal; deviationPct: number | null } {
+  if (!reference || reference.medianUnitValueTzs <= 0) return { signal: 'no_data', deviationPct: null };
+  const deviationPct = ((declaredUnitValueTzs - reference.medianUnitValueTzs) / reference.medianUnitValueTzs) * 100;
+  if (deviationPct <= -30) return { signal: 'below_typical', deviationPct };
+  if (deviationPct >= 50) return { signal: 'above_typical', deviationPct };
+  return { signal: 'normal', deviationPct };
+}
+
 /** TPA wharfage on imports — 1.6% of CIF (TPA Tariff Book, Sea Ports:
  *  "Wharfage (Imports) 1.6% of CIF"; exports are charged 1%). The charge is
  *  itself VAT-able like the other TPA service lines, but that 18% is applied
@@ -338,8 +426,10 @@ export interface RateOverrides {
 }
 
 /** Applies an override only when it's a usable non-negative number, and
- *  records the field name so callers can label it as user-entered. */
-function pickRate(
+ *  records the field name so callers can label it as user-entered. Exported
+ *  for advanced-calculators.service.ts, which reuses this same rate-override
+ *  convention rather than reimplementing it. */
+export function pickRate(
   base: number,
   override: number | undefined,
   field: string,
@@ -605,7 +695,16 @@ export async function calculateLandedCost(input: LandedCostInput): Promise<Lande
    *  so the calculator should send fob_usd whenever it has it. */
   const cpfBaseTzs = (input.fob_usd ?? input.cif_usd) * fxRate;
   const duty     = cifTzs * dutyRate / 100;
-  const excise   = cifTzs * effectiveExciseRate / 100;
+  // Excise (Management and Tariff) Act, Cap.147 R.E. 2019, s.141(1)(a): the
+  // excisable value of an IMPORTED scheduled article is the EACCMA s.122
+  // customs value "taking into account the import duty payable" — i.e. the
+  // excise base is CIF + import duty, not CIF alone. Confirmed against the
+  // Act's own text (fetched from mof.go.tz), not a blog paraphrase — an
+  // earlier version of this calculator omitted duty from the base, which
+  // understated excise (and, since VAT below is assessed on this same
+  // duty-and-excise-inclusive figure, subtly understated VAT too) on every
+  // ad-valorem excisable good (vehicles, plastic/rubber clogs, etc).
+  const excise   = (cifTzs + duty) * effectiveExciseRate / 100;
   const rdl      = cifTzs * rdlRate / 100;
   const cpf      = cpfBaseTzs * cpfRate / 100;
   // VAT is assessed on the duty-inclusive value: CIF plus every duty and levy
@@ -941,11 +1040,13 @@ export async function calculateMultiItemLandedCost(input: MultiItemInput): Promi
     const insuranceTzs = insuranceAlloc[i];
     const cifTzs = fobTzs + freightTzs + insuranceTzs;
 
-    // Same bases as the single-item calculator: CPF on FOB, VAT on the
-    // duty-inclusive value. These were duplicated here and drifted once
-    // already — any change to one must be mirrored in the other.
+    // Same bases as the single-item calculator: CPF on FOB, excise on
+    // CIF+duty (Excise Act Cap.147 s.141(1)(a) — see that calculator's own
+    // comment), VAT on the duty-and-excise-inclusive value. These were
+    // duplicated here and drifted once already — any change to one must be
+    // mirrored in the other.
     const duty = cifTzs * dutyRate / 100;
-    const excise = cifTzs * exciseRate / 100;
+    const excise = (cifTzs + duty) * exciseRate / 100;
     const rdl = cifTzs * rdlRate / 100;
     const cpf = fobTzs * cpfRate / 100;
     const vat = (cifTzs + duty + excise + rdl + cpf) * vatRate / 100;

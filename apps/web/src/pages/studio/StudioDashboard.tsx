@@ -6,6 +6,7 @@ import { Icon } from '../../components/Icon.js';
 import { Badge } from '../../components/ui/badge.js';
 import { FeaturedIcon } from '../../components/ui/featured-icon.js';
 import { PageHeader } from '../../components/PageHeader.js';
+import { Button } from '../../components/ui/button.js';
 
 interface Stats {
   workflows: { total: number; active: number; draft: number; paused: number; unrunnable: number };
@@ -72,13 +73,25 @@ export function StudioDashboard() {
   const statuses = Object.entries(stats.runs.byStatusLast30d).sort((a, b) => b[1] - a[1]);
 
   return (
-    <div style={{ maxWidth: 1320, }}>
-      <PageHeader
-        crumbs={['Studio', 'Studio']}
-        titlePlain="Workflow"
-        titleEm="studio"
-        subtitle="One place for every automation on the platform — what fires it, what it does, and what really happened."
-      />
+    <div style={{ maxWidth: 1320 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
+        <PageHeader
+          crumbs={['Studio', 'Studio']}
+          titlePlain="Workflow"
+          titleEm="studio"
+          subtitle="One place for every automation on the platform — what fires it, what it does, and what really happened."
+        />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <Button type="button" variant="outline" size="sm" onClick={() => navigate('/studio/catalog')}>
+            <Icon name="layers" size={14} />
+            <span>Browse Catalog</span>
+          </Button>
+          <Button type="button" size="sm" onClick={() => navigate('/studio/new')}>
+            <Icon name="plus" size={14} />
+            <span>Create Automation</span>
+          </Button>
+        </div>
+      </div>
 
       <div className="studio-tiles">
         {tile('Workflows', stats.workflows.total, 'brand', 'zap', `${stats.workflows.draft} draft`)}

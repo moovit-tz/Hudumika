@@ -39,7 +39,7 @@ const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '0.0.0.0', '::1']);
  * the QR is withheld. An estimate that prints without a QR is a small loss; a
  * thousand estimates printed with a QR pointing at localhost is unrecoverable.
  */
-function resolvePublicBaseUrl(): { url: string; trusted: boolean; reason?: string } {
+export function resolvePublicBaseUrl(): { url: string; trusted: boolean; reason?: string } {
   const configured = (env.PUBLIC_APP_URL || env.CORS_ORIGINS.split(',')[0] || '').trim().replace(/\/+$/, '');
   if (!configured) {
     return { url: '', trusted: false, reason: 'Neither PUBLIC_APP_URL nor CORS_ORIGINS is set, so the QR target is unknown.' };

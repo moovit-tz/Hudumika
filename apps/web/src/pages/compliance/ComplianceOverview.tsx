@@ -10,6 +10,7 @@ import { Badge } from '../../components/ui/badge.js';
 import { FeaturedIcon } from '../../components/ui/featured-icon.js';
 import { apiFetch } from '../../lib/api.js';
 import { useIsDarkMode } from '../../hooks/useIsDarkMode.js';
+import { SectionCard } from '../../components/SectionCard.js';
 
 interface CheckLogRow {
   id: string;
@@ -236,7 +237,7 @@ export function ComplianceOverview() {
       {/* Quick actions */}
       <div style={{ display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap' }}>
         <button type="button" onClick={() => navigate('/clearos/compliance/quick')} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
-          <Icon name="shield" size={14} color="#fff" /> Run a Quick Check
+          <Icon name="shield" size={14} color="currentColor" /> Run a Quick Check
         </button>
         <button type="button" onClick={() => navigate('/clearos/compliance/advanced')} className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
           <Icon name="compass" size={14} color="var(--teal)" /> Open Advanced Wizard
@@ -245,11 +246,7 @@ export function ComplianceOverview() {
 
       {/* ── Charts row: activity trend (wide) + risk donut ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(0, 1fr)', gap: 16, marginBottom: 16 }}>
-        <div style={{ ...cardStyle, padding: '18px 20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-            <Icon name="activity" size={15} color="var(--teal)" />
-            <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)' }}>Activity — Last 14 Days</span>
-          </div>
+        <SectionCard title="Activity — last 14 days">
           <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 8 }}>Quick checks vs. guided wizard runs, by day.</div>
           {loading ? (
             <div style={{ height: 220, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink3)', fontSize: 12.5 }}>Loading…</div>
@@ -290,13 +287,9 @@ export function ComplianceOverview() {
               <span style={{ width: 8, height: 8, borderRadius: 2, background: C.blue, display: 'inline-block' }} /> Wizard Runs
             </div>
           </div>
-        </div>
+        </SectionCard>
 
-        <div style={{ ...cardStyle, padding: '18px 20px', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-            <Icon name="pieChart" size={15} color="var(--teal)" />
-            <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)' }}>Risk Breakdown</span>
-          </div>
+        <SectionCard title="Risk breakdown">
           <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 8 }}>All quick-check results, by risk level.</div>
           {loading ? (
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink3)', fontSize: 12.5 }}>Loading…</div>
@@ -329,16 +322,12 @@ export function ComplianceOverview() {
               </div>
             </>
           )}
-        </div>
+        </SectionCard>
       </div>
 
       {/* ── Second charts row: wizard runs by kind + quota gauge ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr)', gap: 16, marginBottom: 24 }}>
-        <div style={{ ...cardStyle, padding: '18px 20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-            <Icon name="barChart" size={15} color="var(--teal)" />
-            <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)' }}>Wizard Runs by Type</span>
-          </div>
+        <SectionCard title="Wizard runs by type">
           <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 8 }}>What the team has been searching for.</div>
           {loading ? (
             <div style={{ height: 150, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink3)', fontSize: 12.5 }}>Loading…</div>
@@ -362,13 +351,9 @@ export function ComplianceOverview() {
               </ResponsiveContainer>
             </div>
           )}
-        </div>
+        </SectionCard>
 
-        <div style={{ ...cardStyle, padding: '18px 20px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-            <Icon name="target" size={15} color="var(--teal)" />
-            <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)' }}>Wizard Search Quota</span>
-          </div>
+        <SectionCard title="Wizard search quota">
           {wizardUsage?.limit === null ? (
             <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginTop: 8 }}>Unlimited searches on your plan.</div>
           ) : wizardUsage ? (
@@ -390,17 +375,15 @@ export function ComplianceOverview() {
           ) : (
             <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginTop: 8 }}>Loading…</div>
           )}
-        </div>
+        </SectionCard>
       </div>
 
       {/* Unified, sortable history — Quick Checks + Wizard Runs together, each labeled by type */}
-      <div style={{ ...cardStyle, overflow: 'hidden' }}>
-        <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Icon name="clock" size={15} color="var(--teal)" />
-          <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)' }}>Recent Activity</span>
-          <span style={{ fontSize: 11.5, color: 'var(--ink4)' }}>— click a row to reopen and customize it</span>
-        </div>
-
+      <SectionCard
+        title="Recent activity"
+        padded={false}
+        action={<span style={{ fontSize: 11.5, color: 'var(--ink4)' }}>Click a row to reopen and customize it</span>}
+      >
         {loading ? (
           <div style={{ padding: 20, fontSize: 12.5, color: 'var(--ink3)' }}>Loading…</div>
         ) : historyRows.length === 0 ? (
@@ -448,7 +431,7 @@ export function ComplianceOverview() {
             </table>
           </div>
         )}
-      </div>
+      </SectionCard>
     </div>
   );
 }

@@ -5,10 +5,15 @@ import { apiFetch } from '../lib/api.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 
-interface Carrier { id: string; name: string; }
+interface Carrier { id: string; name: string; active?: boolean; }
 interface RateCard {
   id: string; carrier_id: string; carrier_name: string | null; mode: string;
-  origin_port: string; destination_port: string; cost_rate: number; sell_rate: number;
+  origin_port: string; destination_port: string;
+  // Postgres numeric columns come back through pg/Kysely as strings, not
+  // JS numbers — .toFixed() on these without Number(...) first throws and
+  // takes the whole page down (found live: crashed right after saving the
+  // very first rate card).
+  cost_rate: string | number; sell_rate: string | number;
   currency: string; active: boolean;
 }
 
@@ -34,10 +39,15 @@ export function FreightRateCardsPage() {
     setLoading(true);
     Promise.all([
       apiFetch('/v1/freight-booking/rate-cards'),
-      apiFetch('/v1/freight-booking/carriers?active_only=true'),
+      // Unfiltered — an inactive carrier still needs to be distinguishable
+      // from "no carrier exists at all" for the empty-state message below;
+      // the picker itself filters to active ones.
+      apiFetch('/v1/freight-booking/carriers'),
     ]).then(([rc, c]) => { setCards(rc); setCarriers(c); }).catch(() => {}).finally(() => setLoading(false));
   }
   useEffect(load, []);
+
+  const activeCarriers = carriers.filter(c => (c as any).active !== false);
 
   async function saveCard() {
     if (!form.carrier_id || !form.origin_port.trim() || !form.destination_port.trim() || !form.cost_rate || !form.sell_rate) {
@@ -64,8 +74,8 @@ export function FreightRateCardsPage() {
   return (
     <div style={{ flex: 1, overflowY: 'auto' }}>
       <PageHeader
-        crumbs={['Freight Booking', 'Rate Cards']}
-        titlePlain="Rate"
+        crumbs={['CargoTracker', 'Freight Booking', 'Freight Rate Cards']}
+        titlePlain="Freight rate"
         titleEm="cards"
         subtitle="Carrier cost vs. customer sell rate by lane — the margin on every booking comes from here"
         actions={
@@ -75,9 +85,11 @@ export function FreightRateCardsPage() {
         }
       />
 
-      {carriers.length === 0 && !loading && (
+      {activeCarriers.length === 0 && !loading && (
         <div style={{ padding: '12px 18px', borderRadius: 9, background: 'rgba(184,121,28,0.08)', border: '1px solid rgba(184,121,28,0.25)', marginBottom: 20, fontSize: 12.5, color: 'var(--ink2)' }}>
-          Add a carrier first — rate cards belong to a carrier.
+          {carriers.length === 0
+            ? 'Add a carrier first — rate cards belong to a carrier.'
+            : 'No active carriers — activate one on the Carriers page before adding a rate card.'}
         </div>
       )}
 
@@ -86,7 +98,7 @@ export function FreightRateCardsPage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 16 }}>
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Carrier *</label>
-              <Combobox options={carriers.map(c => ({ value: c.id, label: c.name }))} value={form.carrier_id} onChange={v => setForm(p => ({ ...p, carrier_id: v }))} placeholder="Choose carrier…" />
+              <Combobox options={activeCarriers.map(c => ({ value: c.id, label: c.name }))} value={form.carrier_id} onChange={v => setForm(p => ({ ...p, carrier_id: v }))} placeholder="Choose carrier…" />
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Mode</label>
@@ -148,9 +160,9 @@ export function FreightRateCardsPage() {
                   <td style={{ padding: '12px 16px', fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>{c.carrier_name || '—'}</td>
                   <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)' }}>{MODES.find(m => m.value === c.mode)?.label || c.mode}</td>
                   <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)' }}>{c.origin_port} → {c.destination_port}</td>
-                  <td style={{ padding: '12px 16px', fontSize: 12.5, fontFamily: 'var(--mono)', color: 'var(--ink3)' }}>{c.currency} {c.cost_rate.toFixed(2)}</td>
-                  <td style={{ padding: '12px 16px', fontSize: 12.5, fontFamily: 'var(--mono)', color: 'var(--ink)' }}>{c.currency} {c.sell_rate.toFixed(2)}</td>
-                  <td style={{ padding: '12px 16px', fontSize: 12.5, fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--teal)' }}>{c.currency} {(c.sell_rate - c.cost_rate).toFixed(2)}</td>
+                  <td style={{ padding: '12px 16px', fontSize: 12.5, fontFamily: 'var(--mono)', color: 'var(--ink3)' }}>{c.currency} {Number(c.cost_rate).toFixed(2)}</td>
+                  <td style={{ padding: '12px 16px', fontSize: 12.5, fontFamily: 'var(--mono)', color: 'var(--ink)' }}>{c.currency} {Number(c.sell_rate).toFixed(2)}</td>
+                  <td style={{ padding: '12px 16px', fontSize: 12.5, fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--teal)' }}>{c.currency} {(Number(c.sell_rate) - Number(c.cost_rate)).toFixed(2)}</td>
                 </tr>
               ))}
             </tbody>

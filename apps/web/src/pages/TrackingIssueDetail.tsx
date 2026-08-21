@@ -112,7 +112,7 @@ export const TrackingIssueDetail: React.FC = () => {
         <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)' }}>{issue.title}</div>
         {issue.status !== 'RESOLVED' && (
           <button type="button" onClick={resolve} disabled={resolving}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 18px', fontFamily: 'var(--font)', fontWeight: 700, fontSize: 13, cursor: 'pointer', opacity: resolving ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 18px', fontFamily: 'var(--font)', fontWeight: 700, fontSize: 13, cursor: 'pointer', opacity: resolving ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
             <Icon name="checkCircle" size={15} /> {resolving ? 'Resolving…' : 'Resolve'}
           </button>
         )}
@@ -187,7 +187,7 @@ export const TrackingIssueDetail: React.FC = () => {
 
             <form onSubmit={postComment} style={{ marginTop: 24, display: 'flex', gap: 8 }}>
               <input type="text" placeholder="Add a comment..." value={commentText} onChange={e => setCommentText(e.target.value)} style={{ flex: 1, padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 13, fontFamily: 'var(--font)' }} />
-              <button type="submit" disabled={!commentText.trim()} style={{ background: 'var(--teal)', color: '#fff', border: 'none', padding: '0 16px', borderRadius: 'var(--r)', fontWeight: 600, cursor: 'pointer', opacity: !commentText.trim() ? 0.6 : 1 }}>Post</button>
+              <button type="submit" disabled={!commentText.trim()} style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', padding: '0 16px', borderRadius: 'var(--r)', fontWeight: 600, cursor: 'pointer', opacity: !commentText.trim() ? 0.6 : 1 }}>Post</button>
             </form>
           </div>
         </div>

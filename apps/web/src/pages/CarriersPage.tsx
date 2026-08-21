@@ -49,6 +49,7 @@ export function CarriersPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({ name: '', mode: 'OCEAN', scac_or_iata: '', contact_name: '', contact_email: '', contact_phone: '' });
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   // ── Browse the global carrier directory ──
   const [showDirectory, setShowDirectory] = useState(false);
@@ -99,6 +100,18 @@ export function CarriersPage() {
     }
   }
 
+  async function toggleActive(c: Carrier) {
+    setTogglingId(c.id);
+    try {
+      await apiFetch(`/v1/freight-booking/carriers/${c.id}`, { method: 'PATCH', body: JSON.stringify({ active: !c.active }) });
+      setCarriers(prev => prev.map(x => x.id === c.id ? { ...x, active: !x.active } : x));
+    } catch (err: any) {
+      showAlert(err?.message || 'Failed to update carrier status');
+    } finally {
+      setTogglingId(null);
+    }
+  }
+
   async function saveCarrier() {
     if (!form.name.trim()) { setError('Carrier name is required.'); return; }
     setSaving(true);
@@ -118,7 +131,7 @@ export function CarriersPage() {
   return (
     <div style={{ padding: '0 0 24px', flex: 1, overflowY: 'auto' }}>
       <PageHeader
-        crumbs={['CargoTracker', 'Carriers']}
+        crumbs={['CargoTracker', 'Freight Booking', 'Carriers']}
         titlePlain="Carrier"
         titleEm="directory"
         subtitle="Shipping lines, airlines, road and rail carriers used for rate cards and bookings"
@@ -264,7 +277,17 @@ export function CarriersPage() {
                   <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)' }}>{MODES.find(m => m.value === c.mode)?.label || c.mode}</td>
                   <td style={{ padding: '12px 16px', fontSize: 12.5, fontFamily: 'var(--mono)', color: 'var(--ink3)' }}>{c.scac_or_iata || '—'}</td>
                   <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)' }}>{c.contact_name || c.contact_email || '—'}</td>
-                  <td style={{ padding: '12px 16px' }}><Badge variant={c.active ? 'success' : 'gray'}>{c.active ? 'Active' : 'Inactive'}</Badge></td>
+                  <td style={{ padding: '12px 16px' }}>
+                    <button
+                      type="button"
+                      onClick={() => toggleActive(c)}
+                      disabled={togglingId === c.id}
+                      title={c.active ? 'Click to deactivate' : 'Click to activate'}
+                      style={{ background: 'none', border: 'none', padding: 0, cursor: togglingId === c.id ? 'wait' : 'pointer' }}
+                    >
+                      <Badge variant={c.active ? 'success' : 'gray'}>{togglingId === c.id ? 'Updating…' : c.active ? 'Active' : 'Inactive'}</Badge>
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>

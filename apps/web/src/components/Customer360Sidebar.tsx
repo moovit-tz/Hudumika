@@ -47,8 +47,6 @@ export interface CustomerContext {
   shipments?: Shipment[];
   // Filled when AI suggestion is fetched
   aiSuggestion?: string;
-  aiSentiment?: string;
-  aiNextAction?: string;
 }
 
 type Tab = 'profile' | 'invoices' | 'shipments' | 'ai' | 'timeline';
@@ -87,8 +85,7 @@ export function Customer360Sidebar({
   const [tab, setTab] = useState<Tab>('profile');
   const [aiLoading, setAiLoading] = useState(false);
   const [aiSuggestion, setAiSuggestion] = useState<string>('');
-  const [aiSentiment, setAiSentiment] = useState('neutral');
-  const [aiNextAction, setAiNextAction] = useState('');
+  const [aiIsMock, setAiIsMock] = useState(true);
 
   useEffect(() => {
     setTab('profile');
@@ -101,10 +98,10 @@ export function Customer360Sidebar({
     try {
       const res: any = await apiFetch(`/v1/support/tickets/${ticketId}/ai-suggest`, { method: 'POST' });
       setAiSuggestion(res.suggestion || '');
-      setAiSentiment(res.sentiment || 'neutral');
-      setAiNextAction(res.next_action || '');
-    } catch {
-      setAiSuggestion('Unable to generate AI suggestion at this time.');
+      setAiIsMock(res.is_mock !== false);
+    } catch (err: any) {
+      setAiSuggestion(err?.message || 'Unable to generate AI suggestion at this time.');
+      setAiIsMock(true);
     } finally {
       setAiLoading(false);
     }
@@ -209,7 +206,7 @@ export function Customer360Sidebar({
             {assets.length > 0 && (
               <div>
                 <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
-                  Financial Assets <span style={{ background: 'var(--teal)', color: '#fff', borderRadius: 6, padding: '1px 6px', fontSize: 9 }}>{assets.length}</span>
+                  Financial Assets <span style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', borderRadius: 6, padding: '1px 6px', fontSize: 9 }}>{assets.length}</span>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {assets.map((a, i) => {
@@ -315,15 +312,19 @@ export function Customer360Sidebar({
               </div>
             ) : aiSuggestion ? (
               <div>
-                {/* Sentiment badge */}
+                {/* Real-AI vs template disclosure — a human deciding whether
+                    to trust this before clicking "Use This Reply" needs to
+                    know which one they're looking at. */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 700, color: aiSentiment === 'negative' ? '#ef4444' : aiSentiment === 'positive' ? '#10b981' : '#f59e0b', background: aiSentiment === 'negative' ? '#fee2e2' : aiSentiment === 'positive' ? '#ecfdf5' : '#fef3c7', padding: '2px 8px', borderRadius: 10 }}>
-                    <Icon name={aiSentiment === 'negative' ? 'alertTriangle' : aiSentiment === 'positive' ? 'smile' : 'circle'} size={11} />
-                    {aiSentiment === 'negative' ? 'Negative' : aiSentiment === 'positive' ? 'Positive' : 'Neutral'} Sentiment
-                  </span>
-                  {aiNextAction && (
-                    <span style={{ fontSize: 10, fontWeight: 700, color: '#6366f1', background: 'var(--purple-l)', padding: '2px 8px', borderRadius: 10 }}>
-                      → {aiNextAction.replace('_', ' ')}
+                  {aiIsMock ? (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 700, color: '#92400e', background: '#fef3c7', padding: '2px 8px', borderRadius: 10 }}>
+                      <Icon name="alertTriangle" size={11} />
+                      Template reply — AI not configured
+                    </span>
+                  ) : (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 700, color: '#10b981', background: '#ecfdf5', padding: '2px 8px', borderRadius: 10 }}>
+                      <Icon name="sparkle" size={11} />
+                      AI-drafted reply
                     </span>
                   )}
                 </div>
@@ -340,7 +341,7 @@ export function Customer360Sidebar({
                     <button
                       type="button"
                       onClick={() => onUseAiReply(aiSuggestion)}
-                      style={{ flex: 1, padding: 'var(--ds-btn-py) 12px', background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 'var(--r)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                      style={{ flex: 1, padding: 'var(--ds-btn-py) 12px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
                       ✓ Use This Reply
                     </button>
                   )}
@@ -357,7 +358,7 @@ export function Customer360Sidebar({
                 <div style={{ marginBottom: 10, display: 'flex', justifyContent: 'center' }}><Icon name="sparkle" size={36} color="var(--teal)" strokeWidth={1.25} /></div>
                 <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 16 }}>Generate an AI-powered reply suggestion based on this conversation</div>
                 <button type="button" onClick={fetchAI}
-                  style={{ padding: 'var(--ds-btn-py) 20px', background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                  style={{ padding: 'var(--ds-btn-py) 20px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
                   Generate Suggestion
                 </button>
               </div>

@@ -5,11 +5,13 @@ import { requireEntitlement } from '../middleware/entitlement.js';
 import { encryptSecret, decryptSecret, MASKED_VALUE } from '../services/onsite-secrets.service.js';
 import { checkDnsPropagation, verifyTxtRecord } from '../services/onsite-dns-probe.service.js';
 import { resolveCIProvider, verifyProviderConnection, NO_CI_PROVIDER_MESSAGE } from '../services/onsite-ci.service.js';
-import { runCheck } from '../services/onsite-uptime.service.js';
+import { runCheck, runServerReachabilityCheck } from '../services/onsite-uptime.service.js';
 import { refreshDomainCertificate } from '../services/onsite-ssl.service.js';
 import {
   validateRecord, deletionImpact, toZoneFile, parseZoneFile, planImport, DNS_TEMPLATES,
 } from '../services/onsite-dns.service.js';
+import { emitDomainEvent } from '../services/domain-events.service.js';
+import { checkAvailabilityForTlds } from '../services/onsite-rdap.service.js';
 import { sql } from 'kysely';
 
 const ONSITE_RUNTIMES = ['static', 'nodejs', 'python', 'php', 'ruby', 'go', 'rust', 'container', 'custom'] as const;
@@ -24,6 +26,11 @@ const domainCreateSchema = z.object({
   project_id: z.string().optional(),
   registrar: z.string().max(100).optional(),
   auto_renew: z.boolean().optional(),
+});
+const domainUpdateSchema = z.object({
+  auto_renew: z.boolean().optional(),
+  registrar: z.string().max(100).optional(),
+  notes: z.string().max(2000).optional(),
 });
 // Shape guard only — validateRecord() does the real per-type/value validation
 // (A/AAAA/CNAME/MX/TXT/etc, and that an MX carries a priority).
@@ -54,6 +61,14 @@ const applicationCreateSchema = z.object({
   start_command: z.string().max(1000).optional(),
   output_dir: z.string().max(500).optional(),
   port: z.number().int().positive().optional(),
+});
+const environmentCreateSchema = z.object({
+  name: z.string().trim().min(1).max(100),
+  branch: z.string().trim().max(200).optional(),
+  domain_id: z.string().optional(),
+});
+const cloneSchema = z.object({
+  name: z.string().trim().min(1).max(200).optional(),
 });
 const secretCreateSchema = z.object({
   key: z.string().trim().min(1).max(200),
@@ -339,6 +354,11 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
         ])
         .execute();
 
+      emitDomainEvent(trx, request.user.tenant_id, {
+        type: 'onsite.domain.created', sourceApp: 'onsite', entityType: 'onsite_domain', entityId: createdDomain.id,
+        payload: { domain: createdDomain.domain }, actorId: actorId(request),
+      }).catch(console.error);
+
       return reply.status(201).send(createdDomain);
     });
   });
@@ -355,14 +375,49 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
     return reply.send(domain);
   });
 
+  fastify.patch('/domains/:id', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { id } = request.params as { id: string };
+    const body = domainUpdateSchema.parse(request.body);
+    if (Object.keys(body).length === 0) return reply.status(400).send({ error: 'No fields to update' });
+
+    const updated = await withTenant(request.user.tenant_id, async (trx) => {
+      const row = await trx.updateTable('onsite_domains')
+        .set({ ...body, updated_at: new Date() })
+        .where('id', '=', id)
+        .where('tenant_id', '=', request.user.tenant_id)
+        .returningAll()
+        .executeTakeFirst();
+      if (row) {
+        emitDomainEvent(trx, request.user.tenant_id, {
+          type: 'onsite.domain.updated', sourceApp: 'onsite', entityType: 'onsite_domain', entityId: row.id,
+          payload: { domain: row.domain, fields: Object.keys(body) }, actorId: actorId(request),
+        }).catch(console.error);
+      }
+      return row;
+    });
+
+    if (!updated) return reply.status(404).send({ error: 'Domain not found' });
+    return reply.send(updated);
+  });
+
   fastify.delete('/domains/:id', async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
-    const res = await withTenant(request.user.tenant_id, trx => trx.deleteFrom('onsite_domains')
-      .where('id', '=', id)
-      .where('tenant_id', '=', request.user.tenant_id)
-      .executeTakeFirst());
+    const deletedDomain = await withTenant(request.user.tenant_id, async (trx) => {
+      const row = await trx.deleteFrom('onsite_domains')
+        .where('id', '=', id)
+        .where('tenant_id', '=', request.user.tenant_id)
+        .returningAll()
+        .executeTakeFirst();
+      if (row) {
+        emitDomainEvent(trx, request.user.tenant_id, {
+          type: 'onsite.domain.deleted', sourceApp: 'onsite', entityType: 'onsite_domain', entityId: row.id,
+          payload: { domain: row.domain }, actorId: actorId(request),
+        }).catch(console.error);
+      }
+      return row;
+    });
 
-    if (res.numDeletedRows === 0n) return reply.status(404).send({ error: 'Domain not found' });
+    if (!deletedDomain) return reply.status(404).send({ error: 'Domain not found' });
     return reply.send({ success: true });
   });
 
@@ -419,6 +474,46 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
     return reply.send(result);
   });
 
+  /**
+   * Mail-DNS status for a domain — a read over the same real
+   * onsite_dns_records this domain's DNS page already manages, filtered to
+   * the four record types that make a domain able to send/receive mail
+   * cleanly. No new mail-server logic here: MX/SPF/DKIM/DMARC are just DNS
+   * records, and this domain's zone already has real ones or doesn't.
+   */
+  fastify.get('/domains/:id/mail-dns', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { id } = request.params as { id: string };
+    const result = await withTenant(request.user.tenant_id, async (trx) => {
+      const domain = await trx.selectFrom('onsite_domains')
+        .select(['id', 'domain']).where('id', '=', id).where('tenant_id', '=', request.user.tenant_id).executeTakeFirst();
+      if (!domain) return null;
+
+      const zone = await trx.selectFrom('onsite_dns_zones')
+        .select('id').where('domain_id', '=', id).where('tenant_id', '=', request.user.tenant_id).executeTakeFirst();
+      const records = zone
+        ? await trx.selectFrom('onsite_dns_records').selectAll()
+            .where('zone_id', '=', zone.id).where('tenant_id', '=', request.user.tenant_id).execute()
+        : [];
+
+      const mx = records.filter(r => r.type === 'MX');
+      const spf = records.find(r => r.type === 'TXT' && r.value.trim().toLowerCase().startsWith('v=spf1'));
+      const dkim = records.filter(r => r.type === 'TXT' && r.name.toLowerCase().includes('_domainkey'));
+      const dmarc = records.find(r => r.type === 'TXT' && r.name.toLowerCase().startsWith('_dmarc'));
+
+      return {
+        domain: domain.domain,
+        domain_id: domain.id,
+        mx: mx.map(r => ({ id: r.id, name: r.name, value: r.value, priority: r.priority })),
+        spf: spf ? { id: spf.id, value: spf.value } : null,
+        dkim: dkim.map(r => ({ id: r.id, name: r.name })),
+        dmarc: dmarc ? { id: dmarc.id, value: dmarc.value } : null,
+      };
+    });
+
+    if (!result) return reply.status(404).send({ error: 'Domain not found' });
+    return reply.send(result);
+  });
+
   fastify.post('/domains/:domainId/dns', async (request: FastifyRequest, reply: FastifyReply) => {
     const { domainId } = request.params as { domainId: string };
     const body = dnsRecordCreateSchema.parse(request.body);
@@ -456,6 +551,11 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
         })
         .returningAll()
         .executeTakeFirstOrThrow();
+
+      emitDomainEvent(trx, request.user.tenant_id, {
+        type: 'onsite.dns_record.created', sourceApp: 'onsite', entityType: 'onsite_dns_record', entityId: record.id,
+        payload: { domain_id: domainId, name: record.name, dns_type: record.type }, actorId: actorId(request),
+      }).catch(console.error);
 
       return reply.status(201).send(record);
     });
@@ -498,6 +598,12 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
         .where('id', '=', recordId)
         .where('tenant_id', '=', request.user.tenant_id)
         .execute();
+
+      emitDomainEvent(trx, request.user.tenant_id, {
+        type: 'onsite.dns_record.deleted', sourceApp: 'onsite', entityType: 'onsite_dns_record', entityId: record.id,
+        payload: { name: record.name, dns_type: record.type, warned: impact ?? null }, actorId: actorId(request),
+      }).catch(console.error);
+
       return reply.send({ success: true, warned: impact ?? null });
     });
   });
@@ -710,6 +816,11 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
         })
         .execute();
 
+      emitDomainEvent(trx, request.user.tenant_id, {
+        type: 'onsite.application.created', sourceApp: 'onsite', entityType: 'onsite_application', entityId: createdApp.id,
+        payload: { name: createdApp.name, runtime: createdApp.runtime }, actorId: actorId(request),
+      }).catch(console.error);
+
       return createdApp;
     });
 
@@ -749,6 +860,98 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
 
     if (res.numDeletedRows === 0n) return reply.status(404).send({ error: 'Application not found' });
     return reply.send({ success: true });
+  });
+
+  /**
+   * A second (or third) named environment for an application — 'production'
+   * is the only one POST /applications ever creates automatically. Onsite's
+   * own onsite_environments table already supports more; this is the
+   * missing route to add one (AgencyHost M5).
+   */
+  fastify.post('/applications/:id/environments', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { id } = request.params as { id: string };
+    const body = environmentCreateSchema.parse(request.body);
+
+    return withTenant(request.user.tenant_id, async (trx) => {
+      const app = await trx.selectFrom('onsite_applications').select('id')
+        .where('id', '=', id).where('tenant_id', '=', request.user.tenant_id).executeTakeFirst();
+      if (!app) return reply.status(404).send({ error: 'Application not found' });
+
+      const existing = await trx.selectFrom('onsite_environments').select('id')
+        .where('application_id', '=', id).where('tenant_id', '=', request.user.tenant_id)
+        .where('name', '=', body.name).executeTakeFirst();
+      if (existing) return reply.status(409).send({ error: `An environment named "${body.name}" already exists for this application` });
+
+      // Nothing has run in it yet — same convention a fresh health check or
+      // domain starts with, not a status implying activity that never happened.
+      const env = await trx.insertInto('onsite_environments').values({
+        tenant_id: request.user.tenant_id,
+        application_id: id,
+        name: body.name,
+        branch: body.branch ?? null,
+        domain_id: body.domain_id ?? null,
+        status: 'inactive',
+      }).returningAll().executeTakeFirstOrThrow();
+
+      return reply.status(201).send(env);
+    });
+  });
+
+  /**
+   * Duplicates an application's *configuration* — not its deployed files or
+   * data (provider-dependent, not something this platform can honestly claim
+   * to do yet) and not its secrets (copying credentials into a new resource
+   * without explicit review is its own separate concern, not a silent side
+   * effect of "clone"). The clone starts exactly like a freshly created
+   * application does: inactive, undeployed, no domain assigned.
+   */
+  fastify.post('/applications/:id/clone', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { id } = request.params as { id: string };
+    const body = cloneSchema.parse(request.body);
+
+    return withTenant(request.user.tenant_id, async (trx) => {
+      const source = await trx.selectFrom('onsite_applications').selectAll()
+        .where('id', '=', id).where('tenant_id', '=', request.user.tenant_id).executeTakeFirst();
+      if (!source) return reply.status(404).send({ error: 'Application not found' });
+
+      const sourceEnvs = await trx.selectFrom('onsite_environments').selectAll()
+        .where('application_id', '=', id).where('tenant_id', '=', request.user.tenant_id).execute();
+
+      const clone = await trx.insertInto('onsite_applications').values({
+        tenant_id: request.user.tenant_id,
+        name: body.name?.trim() || `${source.name} (copy)`,
+        runtime: source.runtime,
+        repo_provider: source.repo_provider,
+        repo_owner: source.repo_owner,
+        repo_name: source.repo_name,
+        repo_url: source.repo_url,
+        default_branch: source.default_branch,
+        build_command: source.build_command,
+        start_command: source.start_command,
+        output_dir: source.output_dir,
+        port: source.port,
+        // Not source.domain_id — a clone needs its own domain assigned later;
+        // copying it would point two applications at the same one.
+        domain_id: null,
+        status: 'inactive',
+        created_by: actorId(request),
+      }).returningAll().executeTakeFirstOrThrow();
+
+      const clonedEnvs = sourceEnvs.length > 0
+        ? await trx.insertInto('onsite_environments').values(
+            sourceEnvs.map(env => ({
+              tenant_id: request.user.tenant_id,
+              application_id: clone.id,
+              name: env.name,
+              branch: env.branch,
+              domain_id: null,
+              status: 'inactive',
+            })),
+          ).returningAll().execute()
+        : [];
+
+      return reply.status(201).send({ ...clone, environments: clonedEnvs, secrets_cloned: false });
+    });
   });
 
   // ─── Environments & Secrets ──────────────────────────────────
@@ -908,6 +1111,11 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
         .where('tenant_id', '=', request.user.tenant_id)
         .returningAll()
         .executeTakeFirst();
+      emitDomainEvent(trx, request.user.tenant_id, {
+        type: 'onsite.deployment.triggered', sourceApp: 'onsite', entityType: 'onsite_deployment', entityId: deployment.id,
+        payload: { application_id: appId, branch, ci_provider: ci.key }, actorId: actorId(request),
+      }).catch(console.error);
+
       // 202: the provider has it, and it is not finished. The sync job below
       // moves it to succeeded/failed when the provider says so — nothing here
       // decides that.
@@ -946,7 +1154,7 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
   fastify.post('/servers', async (request: FastifyRequest, reply: FastifyReply) => {
     const body = serverCreateSchema.parse(request.body);
 
-    const server = await withTenant(request.user.tenant_id, trx => trx.insertInto('onsite_servers')
+    let server = await withTenant(request.user.tenant_id, trx => trx.insertInto('onsite_servers')
       .values({
         tenant_id: request.user.tenant_id,
         name: body.name,
@@ -957,24 +1165,63 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
         cpu_count: body.cpu_count ?? 2,
         ram_mb: body.ram_mb ?? 4096,
         disk_gb: body.disk_gb ?? 80,
-        status: 'running',
+        // Not 'running' — nothing has checked this box yet. A real probe
+        // fires immediately below when an IP was given; the scheduled sweep
+        // (onsite-uptime.job.ts) keeps it current after that.
+        status: 'unknown',
         created_by: actorId(request),
       })
       .returningAll()
       .executeTakeFirstOrThrow());
+
+    if (server.ip_address) {
+      await withTenant(request.user.tenant_id, trx => runServerReachabilityCheck(trx, server));
+      const refreshed = await withTenant(request.user.tenant_id, trx => trx.selectFrom('onsite_servers')
+        .selectAll().where('id', '=', server.id).where('tenant_id', '=', request.user.tenant_id).executeTakeFirst());
+      if (refreshed) server = refreshed;
+    }
+
+    await withTenant(request.user.tenant_id, trx => emitDomainEvent(trx, request.user.tenant_id, {
+      type: 'onsite.server.created', sourceApp: 'onsite', entityType: 'onsite_server', entityId: server.id,
+      payload: { name: server.name, provider: server.provider }, actorId: actorId(request),
+    })).catch(console.error);
 
     return reply.status(201).send(server);
   });
 
   fastify.delete('/servers/:id', async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
-    const res = await withTenant(request.user.tenant_id, trx => trx.deleteFrom('onsite_servers')
-      .where('id', '=', id)
-      .where('tenant_id', '=', request.user.tenant_id)
-      .executeTakeFirst());
-
-    if (res.numDeletedRows === 0n) return reply.status(404).send({ error: 'Server not found' });
+    const deleted = await withTenant(request.user.tenant_id, async (trx) => {
+      const row = await trx.deleteFrom('onsite_servers')
+        .where('id', '=', id)
+        .where('tenant_id', '=', request.user.tenant_id)
+        .returningAll()
+        .executeTakeFirst();
+      if (row) {
+        emitDomainEvent(trx, request.user.tenant_id, {
+          type: 'onsite.server.deleted', sourceApp: 'onsite', entityType: 'onsite_server', entityId: row.id,
+          payload: { name: row.name }, actorId: actorId(request),
+        }).catch(console.error);
+      }
+      return row;
+    });
+    if (!deleted) return reply.status(404).send({ error: 'Server not found' });
     return reply.send({ success: true });
+  });
+
+  // Manual re-probe — same "Check now" idea health checks already offer,
+  // for a tenant who doesn't want to wait for the scheduled sweep.
+  fastify.post('/servers/:id/check', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { id } = request.params as { id: string };
+    const server = await withTenant(request.user.tenant_id, trx => trx.selectFrom('onsite_servers')
+      .selectAll().where('id', '=', id).where('tenant_id', '=', request.user.tenant_id).executeTakeFirst());
+    if (!server) return reply.status(404).send({ error: 'Server not found' });
+    if (!server.ip_address) return reply.status(400).send({ error: 'This server has no IP address to probe.' });
+
+    const result = await withTenant(request.user.tenant_id, trx => runServerReachabilityCheck(trx, server));
+    const refreshed = await withTenant(request.user.tenant_id, trx => trx.selectFrom('onsite_servers')
+      .selectAll().where('id', '=', id).where('tenant_id', '=', request.user.tenant_id).executeTakeFirst());
+    return reply.send({ ...refreshed, probe: result });
   });
 
   // ─── Health Checks ───────────────────────────────────────────
@@ -1235,73 +1482,142 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
   fastify.post('/websites', async (request: FastifyRequest, reply: FastifyReply) => {
     const body = websiteCreateSchema.parse(request.body);
 
-    const created = await withTenant(request.user.tenant_id, trx => trx.insertInto('onsite_websites')
-      .values({
-        tenant_id: request.user.tenant_id,
-        name: body.name,
-        type: body.type ?? 'php',
-        url: body.url ?? `https://${body.name}`,
-        project_id: body.project_id ?? null,
-        domain_id: body.domain_id ?? null,
-        hosting_provider: body.hosting_provider ?? 'Business',
-        status: 'active',
-        created_by: actorId(request),
-      })
-      .returningAll()
-      .executeTakeFirstOrThrow());
+    const created = await withTenant(request.user.tenant_id, async (trx) => {
+      const row = await trx.insertInto('onsite_websites')
+        .values({
+          tenant_id: request.user.tenant_id,
+          name: body.name,
+          type: body.type ?? 'php',
+          url: body.url ?? `https://${body.name}`,
+          project_id: body.project_id ?? null,
+          domain_id: body.domain_id ?? null,
+          hosting_provider: body.hosting_provider ?? 'Business',
+          status: 'active',
+          created_by: actorId(request),
+        })
+        .returningAll()
+        .executeTakeFirstOrThrow();
+
+      emitDomainEvent(trx, request.user.tenant_id, {
+        type: 'onsite.website.created', sourceApp: 'onsite', entityType: 'onsite_website', entityId: row.id,
+        payload: { name: row.name, type: row.type }, actorId: actorId(request),
+      }).catch(console.error);
+
+      return row;
+    });
 
     return reply.status(201).send(created);
   });
 
+  /**
+   * Same "config only" honesty as /applications/:id/clone — not the
+   * domain, hosting_id, url or health fields, all of which describe the
+   * ORIGINAL's live instance and would be actively misleading to duplicate
+   * onto a new row that has never actually been hosted anywhere.
+   */
+  fastify.post('/websites/:id/clone', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { id } = request.params as { id: string };
+    const body = cloneSchema.parse(request.body);
+
+    return withTenant(request.user.tenant_id, async (trx) => {
+      const source = await trx.selectFrom('onsite_websites').selectAll()
+        .where('id', '=', id).where('tenant_id', '=', request.user.tenant_id).executeTakeFirst();
+      if (!source) return reply.status(404).send({ error: 'Website not found' });
+
+      const name = body.name?.trim() || `${source.name} (copy)`;
+      const clone = await trx.insertInto('onsite_websites').values({
+        tenant_id: request.user.tenant_id,
+        name,
+        type: source.type,
+        url: `https://${name}`,
+        hosting_provider: source.hosting_provider,
+        status: 'active',
+        created_by: actorId(request),
+      }).returningAll().executeTakeFirstOrThrow();
+
+      return reply.status(201).send(clone);
+    });
+  });
+
   fastify.delete('/websites/:id', async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
-    const res = await withTenant(request.user.tenant_id, trx => trx.deleteFrom('onsite_websites')
-      .where('id', '=', id)
-      .where('tenant_id', '=', request.user.tenant_id)
-      .executeTakeFirst());
+    const deleted = await withTenant(request.user.tenant_id, async (trx) => {
+      const row = await trx.deleteFrom('onsite_websites')
+        .where('id', '=', id)
+        .where('tenant_id', '=', request.user.tenant_id)
+        .returningAll()
+        .executeTakeFirst();
+      if (row) {
+        emitDomainEvent(trx, request.user.tenant_id, {
+          type: 'onsite.website.deleted', sourceApp: 'onsite', entityType: 'onsite_website', entityId: row.id,
+          payload: { name: row.name }, actorId: actorId(request),
+        }).catch(console.error);
+      }
+      return row;
+    });
 
-    if (res.numDeletedRows === 0n) return reply.status(404).send({ error: 'Website not found' });
+    if (!deleted) return reply.status(404).send({ error: 'Website not found' });
     return reply.send({ success: true });
   });
 
-  // ─── Domain Search & Pricing (Hostinger style) ────────────────
+  // ─── Domain Search (real RDAP availability) ───────────────────
   fastify.get('/domains/search-lookup', async (request: FastifyRequest, reply: FastifyReply) => {
     const { query } = request.query as { query?: string };
     const q = (query || '').trim().toLowerCase();
 
-    const tldPricing = [
-      { tld: '.com', price: '$0.01', originalPrice: '$19.99', popular: true },
-      { tld: '.net', price: '$11.99', originalPrice: '$17.99', popular: false },
-      { tld: '.io', price: '$31.99', originalPrice: '$74.99', popular: true },
-      { tld: '.org', price: '$8.99', originalPrice: '$17.99', popular: false },
-      { tld: '.online', price: '$0.99', originalPrice: '$35.99', popular: true },
-      { tld: '.shop', price: '$0.99', originalPrice: '$34.99', popular: false },
-      { tld: '.co.tz', price: '$14.99', originalPrice: '$25.00', popular: true },
-      { tld: '.tz', price: '$19.99', originalPrice: '$30.00', popular: false },
-    ];
+    const TLDS = ['.com', '.net', '.io', '.org', '.online', '.shop', '.co.tz', '.tz'];
 
     if (!q) {
-      return reply.send({ query: '', available: true, tldPricing, suggestions: [] });
+      return reply.send({ query: '', suggestions: [] });
     }
 
-    const suggestions = tldPricing.map(t => {
-      const baseName = q.includes('.') ? q.split('.')[0] : q;
-      const domainName = `${baseName}${t.tld}`;
-      return {
-        domain: domainName,
-        tld: t.tld,
-        price: t.price,
-        originalPrice: t.originalPrice,
-        available: true,
-      };
+    const baseName = q.includes('.') ? q.split('.')[0] : q;
+    const results = await checkAvailabilityForTlds(baseName, TLDS);
+
+    const suggestions = results.map((r, i) => ({
+      domain: r.domain,
+      tld: TLDS[i],
+      available: r.available,
+      // Real registrar pricing isn't available until a registrar is
+      // connected (see POST /domains/request) — no invented figures here.
+      error: r.error,
+    }));
+
+    return reply.send({ query: q, suggestions });
+  });
+
+  /**
+   * "Buy" without a connected registrar: records a real pending request and
+   * notifies this tenant's own admins, same honest shape POST
+   * /domains/transfer already uses for the same reason — connecting a
+   * registrar to actually complete a purchase isn't available yet, and this
+   * says so rather than pretending to process an order.
+   */
+  fastify.post('/domains/request', async (request: FastifyRequest, reply: FastifyReply) => {
+    const body = domainCreateSchema.pick({ domain: true }).parse(request.body);
+    const cleanDomain = body.domain.trim().toLowerCase();
+
+    const created = await withTenant(request.user.tenant_id, async (trx) => {
+      const row = await trx.insertInto('onsite_domains')
+        .values({
+          tenant_id: request.user.tenant_id,
+          domain: cleanDomain,
+          status: 'pending',
+          notes: 'Registration requested via Domain Search. Connecting a registrar to complete the purchase is not available yet.',
+          created_by: actorId(request),
+        })
+        .returningAll()
+        .executeTakeFirstOrThrow();
+
+      emitDomainEvent(trx, request.user.tenant_id, {
+        type: 'onsite.domain.requested', sourceApp: 'onsite', entityType: 'onsite_domain', entityId: row.id,
+        payload: { domain: row.domain }, actorId: actorId(request),
+      }).catch(console.error);
+
+      return row;
     });
 
-    return reply.send({
-      query: q,
-      available: true,
-      tldPricing,
-      suggestions,
-    });
+    return reply.status(201).send(created);
   });
 
   // ─── Domain Transfers (Hostinger style) ────────────────────────

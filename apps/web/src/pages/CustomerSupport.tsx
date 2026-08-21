@@ -520,7 +520,7 @@ export const CustomerSupport: React.FC = () => {
           title="Create new ticket"
           onClick={() => setShowNew(true)}
           style={{
-            background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 'var(--r)',
+            background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)',
             padding: 'var(--ds-btn-py) 18px', fontSize: 14, fontWeight: 700,
             cursor: 'pointer', fontFamily: 'var(--font)',
             display: 'flex', alignItems: 'center', gap: 6, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
@@ -560,7 +560,7 @@ export const CustomerSupport: React.FC = () => {
             <Icon name="alertCircle" size={36} color="var(--red)" />
             <p style={{ color: 'var(--ink2)', fontSize: 14, margin: '12px 0 4px', fontWeight: 600 }}>Couldn't load your tickets</p>
             <p style={{ color: 'var(--ink3)', fontSize: 13, margin: '0 0 16px' }}>Check your connection and try again.</p>
-            <button type="button" onClick={load} style={{ padding: 'var(--ds-btn-py) 20px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box' }}>
+            <button type="button" onClick={load} style={{ padding: 'var(--ds-btn-py) 20px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 13, fontWeight: 700, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box' }}>
               Retry
             </button>
           </div>
@@ -576,7 +576,7 @@ export const CustomerSupport: React.FC = () => {
             </p>
             <button type="button" title="Open new ticket" onClick={() => setShowNew(true)}
               style={{
-                background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 'var(--r)',
+                background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)',
                 padding: 'var(--ds-btn-py) 22px', fontSize: 14, fontWeight: 700,
                 cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
               Open a Ticket

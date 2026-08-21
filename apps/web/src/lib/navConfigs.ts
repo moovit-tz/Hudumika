@@ -245,6 +245,7 @@ export const NAV_CONFIGS: Record<AppId, NavCategory[]> = {
   // Studio builds its own sidebar in StudioShell.tsx, like the other
   // shells that outgrew this map.
   studio: [],
+  notes: [],
   clearos:   clearosNav,
   finops:    [],
   nexushr:     onepiNav,
@@ -268,6 +269,8 @@ export const NAV_CONFIGS: Record<AppId, NavCategory[]> = {
   seal:          [],
   inventory:     [],
   hudubi:        [],
+  // Petti builds its own sidebar in PettiShell.tsx, like Lens/Onsite/Studio.
+  petti:         [],
 };
 
 /** Filter a nav config to only categories and items the given role can see. */

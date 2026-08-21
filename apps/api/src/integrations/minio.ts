@@ -140,6 +140,28 @@ export class MinioIntegration {
   }
 
   /**
+   * Stores a generated shipment-report PDF (daily automation + on-demand
+   * downloads). Deliberately its own tree, same reasoning as
+   * uploadHrDocument/uploadSupportAttachment — a report snapshot is neither
+   * a customer-uploaded document nor a cloud file.
+   */
+  static async uploadShipmentReport(
+    tenantId: string,
+    shipmentId: string,
+    filename: string,
+    fileBuffer: Buffer
+  ): Promise<{ storageKey: string; size: number }> {
+    const cleanFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '_') || 'report.pdf';
+    const unique = `${Date.now()}-${cleanFilename}`;
+    const localDir = path.join(UPLOADS_DIR, 'tenants', tenantId, 'shipment-reports', shipmentId);
+    fs.mkdirSync(localDir, { recursive: true });
+    const storageKey = `tenants/${tenantId}/shipment-reports/${shipmentId}/${unique}`;
+    fs.writeFileSync(path.join(localDir, unique), fileBuffer);
+    console.log(`🗄️ Storage: Shipment report saved — ${storageKey}`);
+    return { storageKey, size: fileBuffer.length };
+  }
+
+  /**
    * Generates a signed URL for reading/downloading a document.
    */
   static async getSignedUrl(

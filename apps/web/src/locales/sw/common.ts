@@ -16,6 +16,7 @@ export default
     "exitFullPage": "Ondoka ukurasa mzima",
     "myProfile": "Wasifu wangu",
     "adminPanel": "Paneli ya msimamizi",
+    "lockWorkspace": "Funga nafasi ya kazi",
     "signOut": "Toka",
     "account": "Akaunti"
   },

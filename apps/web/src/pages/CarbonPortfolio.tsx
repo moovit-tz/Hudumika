@@ -6,7 +6,6 @@ import {
 import type { DateRange } from 'react-day-picker';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
-import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { Button } from '../components/ui/button.js';
 import { DateRangePicker } from '../components/ui/date-picker.js';
 import { MetricsRow } from '../components/MetricCard.js';
@@ -14,6 +13,7 @@ import { exportCsv, ExportButton, StatTile, DataTable, ClickableBarChart } from 
 import type { ColumnDef } from '../components/AnalyticsKit.js';
 import type { CarbonPortfolioResponse, CarbonModeBreakdown, CarbonCustomerBreakdown } from '@hudumika/types';
 import { PageHeader } from '../components/PageHeader.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip);
 
@@ -193,79 +193,50 @@ export const CarbonPortfolio: React.FC = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
 
               {/* ── By mode ── */}
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                    <FeaturedIcon variant="info" size="sm" shape="square">
-                      <Icon name="truck" size={14} strokeWidth={1.75} />
-                    </FeaturedIcon>
-                    <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--navy)' }}>Emissions by Transport Mode</h2>
-                  </div>
-                  <ExportButton onClick={exportModeCsv} />
-                </div>
-                <div className="card">
-                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
-                    {(data?.by_mode ?? []).map((m: CarbonModeBreakdown) => (
-                      <StatTile key={m.mode} label={`${m.mode} · ${m.shipment_count} shipment${m.shipment_count === 1 ? '' : 's'}`} value={`${m.co2_kg.toLocaleString('en')} kg`} />
-                    ))}
-                    {(!data || data.by_mode.length === 0) && (
-                      <div style={{ padding: 12, color: 'var(--ink3)', fontSize: 13 }}>No calculated shipments yet.</div>
-                    )}
-                  </div>
-                  {data && data.by_mode.length > 0 && (
-                    <ClickableBarChart
-                      labels={data.by_mode.map(m => m.mode)}
-                      values={data.by_mode.map(m => m.co2_kg)}
-                      barColors={data.by_mode.map(m => MODE_COLOR[m.mode] ?? 'rgba(107,114,128,.75)')}
-                      yLabel="CO₂ (kg)"
-                    />
+              <SectionCard title="Emissions by transport mode" action={<ExportButton onClick={exportModeCsv} />}>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
+                  {(data?.by_mode ?? []).map((m: CarbonModeBreakdown) => (
+                    <StatTile key={m.mode} label={`${m.mode} · ${m.shipment_count} shipment${m.shipment_count === 1 ? '' : 's'}`} value={`${m.co2_kg.toLocaleString('en')} kg`} />
+                  ))}
+                  {(!data || data.by_mode.length === 0) && (
+                    <div style={{ padding: 12, color: 'var(--ink3)', fontSize: 13 }}>No calculated shipments yet.</div>
                   )}
                 </div>
-              </div>
+                {data && data.by_mode.length > 0 && (
+                  <ClickableBarChart
+                    labels={data.by_mode.map(m => m.mode)}
+                    values={data.by_mode.map(m => m.co2_kg)}
+                    barColors={data.by_mode.map(m => MODE_COLOR[m.mode] ?? 'rgba(107,114,128,.75)')}
+                    yLabel="CO₂ (kg)"
+                  />
+                )}
+              </SectionCard>
 
               {/* ── Trend by month ── */}
               {data && data.by_month.length > 0 && (
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                      <FeaturedIcon variant="warning" size="sm" shape="square">
-                        <Icon name="clock" size={14} strokeWidth={1.75} />
-                      </FeaturedIcon>
-                      <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--navy)' }}>Monthly Trend</h2>
-                    </div>
-                    {hasMonthlyTrend && <ExportButton onClick={exportMonthCsv} />}
-                  </div>
+                <SectionCard
+                  title="Monthly trend"
+                  action={hasMonthlyTrend ? <ExportButton onClick={exportMonthCsv} /> : undefined}
+                >
                   {hasMonthlyTrend ? (
-                    <div className="card">
-                      <ClickableBarChart
-                        labels={monthLabels}
-                        values={monthValues}
-                        barColors={monthLabels.map(() => 'rgba(20,184,166,.75)')}
-                        yLabel="CO₂ (kg)"
-                      />
-                    </div>
+                    <ClickableBarChart
+                      labels={monthLabels}
+                      values={monthValues}
+                      barColors={monthLabels.map(() => 'rgba(20,184,166,.75)')}
+                      yLabel="CO₂ (kg)"
+                    />
                   ) : (
-                    <div className="card" style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--ink3)', fontSize: 13 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--ink3)', fontSize: 13 }}>
                       <Icon name="info" size={15} strokeWidth={1.75} style={{ flexShrink: 0 }} />
                       Only {data.by_month.length} month of data recorded so far ({fmtMonth(data.by_month[0].month)}: {data.by_month[0].co2_kg.toLocaleString('en')} kg) —
                       a trend needs at least two months to compare.
                     </div>
                   )}
-                </div>
+                </SectionCard>
               )}
 
               {/* ── By customer ── */}
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                    <FeaturedIcon variant="brand" size="sm" shape="square">
-                      <Icon name="users" size={14} strokeWidth={1.75} />
-                    </FeaturedIcon>
-                    <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--navy)' }}>Emissions by Customer</h2>
-                  </div>
-                  <ExportButton onClick={exportCustomerCsv} />
-                </div>
-
+              <SectionCard title="Emissions by customer" action={<ExportButton onClick={exportCustomerCsv} />}>
                 <button
                   type="button"
                   onClick={() => setTableOpen(o => !o)}
@@ -285,7 +256,7 @@ export const CarbonPortfolio: React.FC = () => {
                     emptyMessage="No calculated shipments to break down by customer yet."
                   />
                 )}
-              </div>
+              </SectionCard>
 
             </div>
           )}

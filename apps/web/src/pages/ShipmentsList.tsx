@@ -343,7 +343,7 @@ export const ShipmentsList: React.FC = () => {
       {/* -- action bar -- */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 0',borderBottom: '1px solid var(--border)', flexShrink: 0, background: 'var(--white)' }}>
         <Link to="/shipments/new"
-          style={{ padding: '11px 22px', fontSize: 14, fontWeight: 700, borderRadius: 10, border: 'none', background: 'var(--teal)', color: '#fff', cursor: 'pointer', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', gap: 7, textDecoration: 'none' }}>
+          style={{ padding: '11px 22px', fontSize: 14, fontWeight: 700, borderRadius: 10, border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor: 'pointer', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', gap: 7, textDecoration: 'none' }}>
           <Icon name="plus" size={14} strokeWidth={2.5} /> New Shipment
         </Link>
         <button type="button" onClick={() => exportCsv(shipments)}
@@ -639,8 +639,8 @@ export const ShipmentsList: React.FC = () => {
                     <td style={{ padding: '8px 8px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <div style={{
-                          width: 24, height: 24, borderRadius: 6, background: 'var(--teal)',
-                          color: '#fff', fontSize: 10, fontWeight: 700,
+                          width: 24, height: 24, borderRadius: 6, background: 'hsl(var(--primary))',
+                          color: 'hsl(var(--primary-foreground))', fontSize: 10, fontWeight: 700,
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                           flexShrink: 0,
                         }}>

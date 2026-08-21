@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
+import { usePageSEO } from '../hooks/usePageSEO.js';
 import type { CmsPublicSite, CmsPage } from '@hudumika/types';
 import '../pages/LegalPages.css';
 import './OneSitePublic.css';
@@ -38,6 +39,51 @@ export function OneSitePublic() {
       .catch((e: any) => setError(e.message))
       .finally(() => setLoading(false));
   }, [tenantSlug, pageSlug]);
+
+  // This tenant's own public business site never carried its own tab
+  // title/description at all — every visitor page showed the same generic
+  // platform fallback. siteTitle/tagline (Customize → Site Identity) and a
+  // page's own seo_description already exist for exactly this; they just
+  // weren't applied.
+  const siteName = site?.settings.siteTitle || site?.tenantName;
+  usePageSEO(
+    page ? (siteName ? `${page.title} · ${siteName}` : page.title) : (siteName || 'Site'),
+    page ? (page.seo_description || site?.settings.tagline || undefined) : (site?.settings.tagline || undefined)
+  );
+
+  // Same idea for the browser-tab icon — a tenant's own OneSite visitors
+  // should see their favicon, not Hudumika's, while on their site. Restored
+  // on unmount so navigating elsewhere in the SPA (no full reload) doesn't
+  // leave a stray tenant favicon behind.
+  //
+  // useBranding.ts (mounted ambiently via AutoSEO, active on this public
+  // route too) independently overwrites the same <link rel="icon"> once its
+  // own async /v1/platform/branding fetch resolves — a real race confirmed
+  // live (the platform favicon won on a cold load, the OneSite one won on a
+  // warm one, depending purely on which fetch settled last). A MutationObserver
+  // re-asserts the OneSite favicon instead of relying on effect ordering, so
+  // it wins deterministically for as long as this page is mounted.
+  useEffect(() => {
+    const faviconUrl = site?.settings.faviconUrl;
+    if (!faviconUrl) return;
+    let link = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
+    const prevHref = link?.getAttribute('href') ?? null;
+    if (!link) {
+      link = document.createElement('link');
+      link.rel = 'icon';
+      document.head.appendChild(link);
+    }
+    const enforce = () => { if (link && link.getAttribute('href') !== faviconUrl) link.setAttribute('href', faviconUrl); };
+    enforce();
+    const observer = new MutationObserver(enforce);
+    observer.observe(link, { attributes: true, attributeFilter: ['href'] });
+    return () => {
+      observer.disconnect();
+      if (!link) return;
+      if (prevHref) link.setAttribute('href', prevHref);
+      else link.removeAttribute('href');
+    };
+  }, [site?.settings.faviconUrl]);
 
   if (loading) return <div className="onesite-pub-loading">Loading…</div>;
   if (error || !site) return <div className="onesite-pub-loading">This site isn't available.</div>;

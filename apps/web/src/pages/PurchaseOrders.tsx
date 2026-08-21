@@ -1602,8 +1602,8 @@ export const PurchaseOrders: React.FC = () => {
                         padding: 'var(--ds-btn-py) 16px',
                         borderRadius: 'var(--r)',
                         border: 'none',
-                        background: 'var(--teal)',
-                        color: '#fff',
+                        background: 'hsl(var(--primary))',
+                        color: 'hsl(var(--primary-foreground))',
                         fontSize: 13,
                         fontWeight: 600,
                         cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
@@ -1809,8 +1809,8 @@ export const PurchaseOrders: React.FC = () => {
                     padding: 'var(--ds-btn-py-sm) 12px',
                     borderRadius: 'var(--r)',
                     border: 'none',
-                    background: 'var(--teal)',
-                    color: '#fff',
+                    background: 'hsl(var(--primary))',
+                    color: 'hsl(var(--primary-foreground))',
                     fontSize: 12,
                     fontWeight: 600,
                     cursor: 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}

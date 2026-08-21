@@ -1,10 +1,16 @@
 import React from 'react';
+import { useLocation } from 'react-router-dom';
 import { useEntitlements } from '../hooks/useEntitlements.js';
 import { Icon, type IconName } from './Icon.js';
 
 interface RequireAppEnabledProps {
   children: React.ReactNode;
   appId: string;
+  /** Route paths that render regardless of entitlement — for a self-service
+   *  page whose whole job is fixing the very block this component would
+   *  otherwise show (e.g. Onsite's /onsite/activate for a tenant that just
+   *  lost its plan). Exact match, not a prefix. */
+  bypassPaths?: string[];
 }
 
 function FullScreenNotice({ icon, title, message }: { icon: IconName; title: string; message: string }) {
@@ -27,8 +33,11 @@ function FullScreenNotice({ icon, title, message }: { icon: IconName; title: str
 }
 
 /** Blocks an app's shell when it's under maintenance or not included in the tenant's plan. */
-export function RequireAppEnabled({ children, appId }: RequireAppEnabledProps) {
+export function RequireAppEnabled({ children, appId, bypassPaths }: RequireAppEnabledProps) {
   const entitlements = useEntitlements();
+  const location = useLocation();
+
+  if (bypassPaths?.includes(location.pathname)) return <>{children}</>;
 
   if (entitlements === null) return <>{children}</>; // still loading — don't flash a redirect before we know
 

@@ -279,7 +279,7 @@ export const DetailPanel: React.FC<DetailPanelProps> = ({ shipmentId, onClose })
               title="Open full shipment view"
               style={{
                 width: '100%', boxSizing: 'border-box', padding: '14px 16px',
-                background: 'var(--teal)', color: '#fff',
+                background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))',
                 border: 'none', borderRadius: 9,
                 fontSize: 15, fontWeight: 700, cursor: 'pointer',
                 fontFamily: 'var(--font)', textDecoration: 'none',

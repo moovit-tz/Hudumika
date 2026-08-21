@@ -54,6 +54,15 @@ export const ALL_FEATURE_KEYS = [
   'store',
   'onesite',
   'hudubi',
+  // Both shipped with real package_features/app_status rows already seeded,
+  // but were never added here — the same "onsite/seal/inventory" drift this
+  // file's own history above already describes once. Without a key here,
+  // GET /v1/entitlements never reports features.petti or features.notes at
+  // all, and RequireAppEnabled only blocks on an explicit `=== false` — so
+  // `undefined` silently passes and both apps have been rendering for every
+  // tenant regardless of plan since they shipped.
+  'petti',
+  'notes',
 ] as const;
 
 /** Feature keys correspond 1:1 with the appId strings the API gates on. */

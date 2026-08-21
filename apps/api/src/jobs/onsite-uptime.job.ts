@@ -6,7 +6,7 @@
  * if an expiry date was ever read off the live host.
  */
 import { dbPlatform, withTenant } from '../db/client.js';
-import { runCheck } from '../services/onsite-uptime.service.js';
+import { runCheck, runServerReachabilityCheck } from '../services/onsite-uptime.service.js';
 import { refreshDomainCertificate, certificateStatus } from '../services/onsite-ssl.service.js';
 import { NotificationService } from '../services/notification.service.js';
 
@@ -82,6 +82,45 @@ export async function runOnsiteUptimeJob(): Promise<void> {
     } catch (err: any) {
       // One unreachable host must not end the pass for the others.
       console.error(`[onsite-uptime] check ${c.id}:`, err);
+    }
+  }
+}
+
+/** A server is re-probed at most this often — no point hammering the same
+ *  port every minute when nothing about reachability changes that fast. */
+const SERVER_PROBE_INTERVAL_MS = 5 * 60 * 1000;
+const MAX_SERVERS_PER_PASS = 100;
+
+export async function runOnsiteServerReachabilityJob(): Promise<void> {
+  const servers = await dbPlatform.selectFrom('onsite_servers')
+    .select(['id', 'tenant_id', 'name', 'ip_address', 'status', 'last_checked_at'])
+    .where('ip_address', 'is not', null)
+    .orderBy('last_checked_at', 'asc')
+    .limit(MAX_SERVERS_PER_PASS)
+    .execute();
+
+  const now = Date.now();
+
+  for (const s of servers) {
+    if (s.last_checked_at && now - new Date(s.last_checked_at).getTime() < SERVER_PROBE_INTERVAL_MS) continue;
+
+    try {
+      const wasRunning = s.status === 'running';
+      const result = await withTenant(s.tenant_id, trx => runServerReachabilityCheck(trx, s));
+
+      // Same "notify on transition, not every failing pass" reasoning as the
+      // uptime job above — a server down for a day should not page anyone
+      // every five minutes.
+      if (result && wasRunning && !result.ok) {
+        await alertAdmins(s.tenant_id, {
+          type: 'server_unreachable',
+          title: `${s.name} is not responding`,
+          message: `${s.ip_address} — ${result.error ?? 'no response'}`,
+          link: '/onsite/servers',
+        });
+      }
+    } catch (err: any) {
+      console.error(`[onsite-servers] probe ${s.id}:`, err);
     }
   }
 }

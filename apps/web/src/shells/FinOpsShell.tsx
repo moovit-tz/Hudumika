@@ -23,7 +23,7 @@ function buildNav(t: TFunction): SidebarSection[] {
       items: [
         { label: t('finance.nav.invoices'),      icon: 'receipt',   path: '/finance/invoices'       },
         { label: t('finance.nav.quotations'),    icon: 'fileText',  path: '/finance/quotations'     },
-        { label: t('finance.nav.deliveryNotes'), icon: 'package',   path: '/finance/delivery-notes' },
+        { label: t('finance.nav.deliveryNotes'), icon: 'package',   path: '/finance/delivery-documents' },
       ],
     },
     {
@@ -49,6 +49,7 @@ function buildNav(t: TFunction): SidebarSection[] {
         { label: t('finance.nav.profitLoss'),       icon: 'trendingUp', path: '/finance/accounts/profit-loss'         },
         { label: t('finance.nav.agedReceivables'),  icon: 'clock',      path: '/finance/accounts/aged-receivables'    },
         { label: t('finance.nav.agedPayables'),     icon: 'clock',      path: '/finance/accounts/aged-payables'       },
+        { label: 'Multi-Entity',                    icon: 'building',   path: '/finance/accounts/multi-entity'        },
       ],
     },
     {
@@ -91,6 +92,7 @@ import { FinanceBalanceSheet }    from '../pages/FinanceBalanceSheet.js';
 import { FinanceProfitLoss }      from '../pages/FinanceProfitLoss.js';
 import { FinanceAgedReceivables } from '../pages/FinanceAgedReceivables.js';
 import { FinanceAgedPayables }    from '../pages/FinanceAgedPayables.js';
+import { MultiEntityAccounting }  from '../pages/MultiEntityAccounting.js';
 import { FinanceReportsHub } from '../pages/FinanceReportsHub.js';
 import { FinanceSalesReport }          from '../pages/FinanceSalesReport.js';
 import { FinanceExpensesReport }       from '../pages/FinanceExpensesReport.js';
@@ -99,7 +101,7 @@ import { FinanceTaxReport }            from '../pages/FinanceTaxReport.js';
 import { FinanceCashFlow }             from '../pages/FinanceCashFlow.js';
 import { AccountsQuery }               from '../pages/AccountsQuery.js';
 import { ChartOfAccounts }            from '../pages/ChartOfAccounts.js';
-import { DeliveryNotes }               from '../pages/DeliveryNotes.js';
+import { DeliveryDocumentsPage }       from '../pages/DeliveryDocumentsPage.js';
 import { AccountingIntegrations }      from '../pages/AccountingIntegrations.js';
 
 export function FinOpsShell() {
@@ -120,7 +122,8 @@ export function FinOpsShell() {
           {/* Receivables */}
           <Route path="invoices"       element={<RequireRoles roles={FIN_ROLES}><Billing /></RequireRoles>} />
           <Route path="quotations"     element={<RequireRoles roles={FIN_ROLES}><Quotations /></RequireRoles>} />
-          <Route path="delivery-notes" element={<RequireRoles roles={FIN_ROLES}><DeliveryNotes /></RequireRoles>} />
+          <Route path="delivery-documents" element={<RequireRoles roles={FIN_ROLES}><DeliveryDocumentsPage /></RequireRoles>} />
+          <Route path="delivery-notes" element={<Navigate to="/finance/delivery-documents" replace />} />
 
           {/* Payables */}
           <Route path="purchase-orders" element={<RequireRoles roles={FIN_ROLES}><PurchaseOrders /></RequireRoles>} />
@@ -144,6 +147,7 @@ export function FinOpsShell() {
             <Route path="profit-loss"     element={<RequireRoles roles={FIN_ROLES}><FinanceProfitLoss /></RequireRoles>} />
             <Route path="aged-receivables"element={<RequireRoles roles={FIN_ROLES}><FinanceAgedReceivables /></RequireRoles>} />
             <Route path="aged-payables"   element={<RequireRoles roles={FIN_ROLES}><FinanceAgedPayables /></RequireRoles>} />
+            <Route path="multi-entity"    element={<RequireRoles roles={FIN_ROLES}><MultiEntityAccounting /></RequireRoles>} />
           </Route>
 
           {/* Reports */}

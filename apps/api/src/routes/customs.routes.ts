@@ -15,6 +15,10 @@ import { z } from 'zod';
 import {
   searchHsCodes,
   getHsCode,
+  getValuationReference,
+  classifyValuationSignal,
+} from '../services/customs.service.js';
+import {
   calculateLandedCost,
   calculateMultiItemLandedCost,
   checkCompliance,
@@ -26,6 +30,14 @@ import {
   type RateOverrides,
   type ContainerLot,
 } from '../services/customs.service.js';
+import {
+  checkEligibility,
+  createCertificateOfOrigin,
+  listCertificatesOfOrigin,
+  getCertificateOfOrigin,
+  issueCertificateOfOrigin,
+  renderCoOPdf,
+} from '../services/origin-rules.service.js';
 import { suggestHsCodes } from '../services/hs-suggest.service.js';
 import { hsMemory } from '../services/intelligence.service.js';
 import { callAI } from './ai.routes.js';
@@ -122,6 +134,90 @@ export async function customsRoutes(fastify: FastifyInstance) {
     const entry = await getHsCode(code);
     if (!entry) return reply.status(404).send({ error: `HS code ${code} not found` });
     return entry;
+  });
+
+  // ── GET /v1/customs/valuation-reference?hs_code=&country_of_origin=&declared_unit_value= ──
+  // Real historical customs-value stats for this HS code (+ origin, if
+  // given), aggregated across every tenant's finalized declarations — see
+  // customs.service.ts's getValuationReference for the anonymization and
+  // MIN_SAMPLE floor. Pass declared_unit_value to also get back a
+  // normal/below_typical/above_typical classification against the best
+  // (highest-sample) matching row.
+  fastify.get('/valuation-reference', async (request) => {
+    const { hs_code, country_of_origin, declared_unit_value } = request.query as {
+      hs_code?: string; country_of_origin?: string; declared_unit_value?: string;
+    };
+    if (!hs_code) return { rows: [], signal: null };
+    const rows = await getValuationReference(hs_code, country_of_origin);
+    const declared = declared_unit_value ? Number(declared_unit_value) : null;
+    const signal = declared != null && Number.isFinite(declared)
+      ? classifyValuationSignal(declared, rows[0])
+      : null;
+    return { rows, signal };
+  });
+
+  // ── Preferential origin / Certificate of Origin (M5) ──────────────────
+  // See origin-rules.service.ts's header for what's real, sourced data
+  // (EAC's First Schedule subset) versus general-framework-only (AfCFTA).
+
+  fastify.get('/origin-eligibility', async (request) => {
+    const { agreement, hs_code, non_originating_value_pct, wholly_obtained_confirmed } = request.query as {
+      agreement?: string; hs_code?: string; non_originating_value_pct?: string; wholly_obtained_confirmed?: string;
+    };
+    if (!agreement || !hs_code) return { status: 'INSUFFICIENT_DATA', basis: 'Choose an agreement and HS code.', rule: null };
+    return checkEligibility({
+      agreementCode: agreement,
+      hsCode: hs_code,
+      nonOriginatingValuePct: non_originating_value_pct != null ? Number(non_originating_value_pct) : undefined,
+      whollyObtainedConfirmed: wholly_obtained_confirmed != null ? wholly_obtained_confirmed === 'true' : undefined,
+    });
+  });
+
+  fastify.get('/certificates-of-origin', async (request: any, reply) => {
+    const { shipment_id } = request.query as { shipment_id?: string };
+    try {
+      return await listCertificatesOfOrigin(request.user.tenant_id, { subjectId: shipment_id });
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  fastify.get('/certificates-of-origin/:id', async (request: any, reply) => {
+    const { id } = request.params as { id: string };
+    const row = await getCertificateOfOrigin(request.user.tenant_id, id);
+    if (!row) return reply.status(404).send({ error: 'Certificate of Origin not found' });
+    return row;
+  });
+
+  fastify.post('/certificates-of-origin', async (request: any, reply) => {
+    try {
+      return reply.status(201).send(
+        await createCertificateOfOrigin(request.user.tenant_id, request.user.sub, request.body)
+      );
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message });
+    }
+  });
+
+  fastify.patch('/certificates-of-origin/:id/issue', async (request: any, reply) => {
+    const { id } = request.params as { id: string };
+    try {
+      return await issueCertificateOfOrigin(request.user.tenant_id, id, request.user.sub);
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message });
+    }
+  });
+
+  fastify.get('/certificates-of-origin/:id/pdf', async (request: any, reply) => {
+    const { id } = request.params as { id: string };
+    try {
+      const pdf = await renderCoOPdf(request.user.tenant_id, id);
+      reply.header('Content-Type', 'application/pdf');
+      reply.header('Content-Disposition', `inline; filename="coo-${id}.pdf"`);
+      return reply.send(pdf);
+    } catch (err: any) {
+      return reply.status(404).send({ error: err.message });
+    }
   });
 
   /**

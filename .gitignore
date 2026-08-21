@@ -2,16 +2,12 @@
 node_modules/
 
 .claude/*
-# ...but the agent's memory is the one thing in there worth keeping. It
-# lived only under the user's home .claude/projects/ directory, outside
-# any repo -- untracked, unpushed, and gone with the machine. Tracking it
-# makes git the backup of record.
-#
-# Note `.claude/*` not `.claude/` -- git cannot re-include a path inside an
-# excluded *directory*, so the negation below only works if the directory
-# itself is never excluded, only its contents.
-!.claude/memory/
-!.claude/memory/**
+# Agent memory is intentionally NOT tracked/pushed. It used to carry a
+# carve-out here (!.claude/memory/) reasoning that tracking it in git made
+# git "the backup of record" -- reversed by explicit instruction: memory is
+# local working state for the agent, not project source, and must never
+# leave the machine via a push. It still lives durably under the user's own
+# ~/.claude/projects/ directory outside any repo, which is its real home.
 
 # Build outputs
 dist/

@@ -7,6 +7,7 @@ import { Badge } from '../components/ui/badge.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet.js';
 import { apiFetch } from '../lib/api.js';
+import { usePageSEO } from '../hooks/usePageSEO.js';
 import {
   printSharedReport, rateCardKeyFor, fetchRateCardDefaults, fetchSizeCardsForLots,
 } from './LandedCostPage.js';
@@ -53,6 +54,7 @@ type SortKey = 'created_at' | 'total' | 'customer' | 'description' | 'items';
 
 const MODE_LABEL: Record<string, string> = {
   sea_fcl: 'Sea · FCL', sea_lcl: 'Sea · LCL', air: 'Airfreight', road: 'Road',
+  sea_lcl_advanced: 'LCL (advanced)', air_advanced: 'Air (advanced)', transit: 'Transit',
 };
 
 const num = (v: unknown) => (v == null ? 0 : Number(v));
@@ -68,6 +70,7 @@ function fmtWhen(iso: string): string {
 }
 
 export const LandedCostHistoryPage: React.FC = () => {
+  usePageSEO('Calculation History', 'Every landed cost estimate this workspace has run — search it, reopen the report, or amend one into a new version.');
   const navigate = useNavigate();
   const [rows, setRows] = useState<HistoryRow[]>([]);
   const [total, setTotal] = useState(0);
@@ -151,6 +154,17 @@ export const LandedCostHistoryPage: React.FC = () => {
         setNotice('This calculation was saved before full results were kept, so it cannot be reopened. Its totals are still on record.');
         return;
       }
+      // The three advanced calculators (LCL/Air/Transit) save a differently-
+      // shaped result here — this printer expects the legacy sea_fcl/sea_lcl/
+      // air calculator's own LandedCostResult/MultiItemResult shape, and
+      // would render a broken document if fed the advanced shape instead.
+      // Reopen each of those on its own calculator page until this printer
+      // learns the new shape too.
+      if (['sea_lcl_advanced', 'air_advanced', 'transit'].includes(rec.shipment_mode)) {
+        const path = rec.shipment_mode === 'transit' ? 'transit' : rec.shipment_mode === 'air_advanced' ? 'air' : 'lcl';
+        setNotice(`This was calculated on the ${MODE_LABEL[rec.shipment_mode]} tool — open it from Landed Cost → ${MODE_LABEL[rec.shipment_mode]} (/clearos/customs-tools/${path}) rather than from here; the printed-report view isn't wired up for it yet.`);
+        return;
+      }
       const inputs = payload.inputs ?? {};
       const isMulti = Array.isArray(payload.result.items) && rec.hs_code === 'MULTI';
       const container = inputs.container ?? '20ft';
@@ -230,12 +244,19 @@ export const LandedCostHistoryPage: React.FC = () => {
         .lch-scroll tbody tr { border-bottom: 1px solid var(--border); }
         .lch-scroll tbody tr:hover { background: var(--teal-l); }
         .lch-scroll td { padding: 11px 12px; vertical-align: top; }
-        .lch-acts { display: flex; gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
-        .lch-act { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 700;
-                   padding: 5px 10px; border-radius: var(--r-sm); cursor: pointer;
+        .lch-acts { display: flex; gap: 6px; justify-content: flex-end; }
+        /* Icon-only — three text-labelled buttons per row was the widest
+           thing in the table and the one part that never fit on a phone,
+           wrapping onto a second line under its own row. A fixed-size
+           square keeps all three on one line at any width; the label moves
+           to the title/aria-label instead of disappearing. */
+        .lch-act { display: inline-flex; align-items: center; justify-content: center;
+                   width: 30px; height: 30px; flex-shrink: 0; border-radius: var(--r-sm); cursor: pointer;
                    border: 1px solid var(--border); background: var(--card-bg, var(--white)); color: var(--ink2); }
         .lch-act:hover { border-color: var(--teal); color: var(--teal); }
         .lch-act[disabled] { opacity: .45; cursor: not-allowed; }
+        .lch-act-spin { animation: lch-spin 0.8s linear infinite; }
+        @keyframes lch-spin { to { transform: rotate(360deg); } }
         .lch-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px;
                     padding: 14px 18px; border-top: 1px solid var(--border); font-size: 12.5px; color: var(--ink3); flex-wrap: wrap; }
         @media (max-width: 900px) {
@@ -291,6 +312,9 @@ export const LandedCostHistoryPage: React.FC = () => {
               <SelectItem value="sea_fcl">Sea · FCL</SelectItem>
               <SelectItem value="sea_lcl">Sea · LCL</SelectItem>
               <SelectItem value="air">Airfreight</SelectItem>
+              <SelectItem value="sea_lcl_advanced">LCL (advanced)</SelectItem>
+              <SelectItem value="air_advanced">Air (advanced)</SelectItem>
+              <SelectItem value="transit">Transit</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -344,21 +368,23 @@ export const LandedCostHistoryPage: React.FC = () => {
                     <td style={{ textAlign: 'right', fontWeight: 800, color: 'var(--teal)', fontVariantNumeric: 'tabular-nums' }}>{fmtTzs(r.total_tzs)}</td>
                     <td>
                       <div className="lch-acts">
-                        <button type="button" className="lch-act" onClick={() => openDetail(r.id)}>
-                          <Icon name="eye" size={12} /> View
+                        <button type="button" className="lch-act" title="View" aria-label="View" onClick={() => openDetail(r.id)}>
+                          <Icon name="eye" size={14} />
                         </button>
                         {/* Offered only when the record can actually produce a
                             document. A disabled button that explains itself is
                             better than one that fails after the click. */}
                         <button type="button" className="lch-act" disabled={!r.has_payload || busyId === r.id}
-                          title={r.has_payload ? 'Open the printable report' : 'Saved before full results were kept — totals only'}
+                          title={busyId === r.id ? 'Opening…' : r.has_payload ? 'Report' : 'Saved before full results were kept — totals only'}
+                          aria-label="Report"
                           onClick={() => openReport(r.id)}>
-                          <Icon name="download" size={12} /> {busyId === r.id ? 'Opening…' : 'Report'}
+                          <Icon name={busyId === r.id ? 'refresh' : 'download'} size={14} className={busyId === r.id ? 'lch-act-spin' : undefined} />
                         </button>
                         <button type="button" className="lch-act" disabled={!r.has_payload}
-                          title={r.has_payload ? 'Load into the calculator and save as a new version' : 'Cannot be amended — no saved inputs'}
+                          title={r.has_payload ? 'Customise' : 'Cannot be amended — no saved inputs'}
+                          aria-label="Customise"
                           onClick={() => customise(r)}>
-                          <Icon name="edit" size={12} /> Customise
+                          <Icon name="edit" size={14} />
                         </button>
                       </div>
                     </td>

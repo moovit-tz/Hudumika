@@ -508,7 +508,7 @@ function ImportTimesheetsModal({ shipmentId, shipmentRef, sectionCurrency, onImp
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
             <button type="button" onClick={onClose} style={{ padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', fontWeight: 600, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
-            <button type="button" onClick={handleImport} disabled={selected.size === 0} style={{ padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontWeight: 600, cursor: selected.size ? 'pointer' : 'default', opacity: selected.size ? 1 : 0.5, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Import {selected.size} {selected.size === 1 ? 'Entry' : 'Entries'}</button>
+            <button type="button" onClick={handleImport} disabled={selected.size === 0} style={{ padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 600, cursor: selected.size ? 'pointer' : 'default', opacity: selected.size ? 1 : 0.5, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Import {selected.size} {selected.size === 1 ? 'Entry' : 'Entries'}</button>
           </div>
         </div>
       </div>
@@ -1278,7 +1278,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
                   <span style={{ fontFamily: 'var(--mono)' }}>{fmtTZS(T.shippingTotal * inv.exchangeRate)}</span>
                 </div>
               )}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--teal)', color: '#fff', borderRadius: 9, padding: '12px 16px', marginBottom: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', borderRadius: 9, padding: '12px 16px', marginBottom: 8 }}>
                 <span style={{ fontSize: 13, fontWeight: 800 }}>TOTAL</span>
                 <span style={{ fontSize: 15, fontWeight: 900, fontFamily: 'var(--mono)' }}>{fmt(T.grandTotalTZS, 'TZS')}</span>
               </div>

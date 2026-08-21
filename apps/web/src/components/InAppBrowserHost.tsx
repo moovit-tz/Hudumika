@@ -128,22 +128,22 @@ export function InAppBrowserHost() {
           </div>
 
           {/* Honest embedding note — some portals refuse to be framed, and the
-              fallback is a real tab, not a broken panel. */}
+              fallback is a real tab, not a broken panel. Neutral styling
+              deliberately: this host is shared across every app, so it must
+              not carry one app's own accent/button class (it briefly
+              acquired Onsite's `onsite-btn-purple` and a `--blue-l` fallback
+              that was actually green-hued, both fixed here). */}
           <div style={{
-            display: 'flex', alignItems: 'center', gap: 8, padding: '6px 14px',
-            fontSize: 11.5, color: 'var(--ink3)', background: 'var(--bg)',
+            display: 'flex', alignItems: 'center', gap: 10, padding: '8px 14px',
+            fontSize: 12, color: 'var(--ink2)', background: 'var(--bg)',
             borderBottom: '1px solid var(--border)', flexShrink: 0,
           }}>
-            <Icon name="shield" size={12} style={{ flexShrink: 0 }} />
-            <span style={{ flex: 1, minWidth: 0 }}>
-              Viewing inside Hudumika. Some official portals block in-app view — if the page looks blank,
+            <Icon name="shield" size={14} style={{ flexShrink: 0, color: 'var(--ink3)' }} />
+            <span style={{ flex: 1, minWidth: 0, fontWeight: 500 }}>
+              Viewing inside Hudumika. External portals (like WP-Admin or Webmail) may block in-app frames.
             </span>
-            <button
-              type="button"
-              onClick={openNative}
-              style={{ border: 'none', background: 'transparent', color: 'var(--teal)', cursor: 'pointer', fontWeight: 600, fontSize: 11.5, padding: 0, flexShrink: 0 }}
-            >
-              open in a new tab ↗
+            <button type="button" onClick={openNative} style={{ ...iconBtn, width: 'auto', padding: '0 10px', fontSize: 11.5, height: 28, fontWeight: 600 }}>
+              Open in new tab ↗
             </button>
           </div>
 

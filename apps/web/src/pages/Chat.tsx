@@ -76,7 +76,7 @@ function CRow({ ch, active, onClick }: { ch: ApiChannel; active: boolean; onClic
         <span style={{ color: 'var(--ink3)', fontSize: 15, width: 16, textAlign: 'center', flexShrink: 0, fontWeight: 800, lineHeight: 1 }}>#</span>
       )}
       <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ch.name}</span>
-      {ch.unread > 0 && <span style={{ background: 'var(--teal)', color: '#fff', borderRadius: 9, fontSize: 10, fontWeight: 700, padding: '1px 6px', flexShrink: 0 }}>{ch.unread > 99 ? '99+' : ch.unread}</span>}
+      {ch.unread > 0 && <span style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', borderRadius: 9, fontSize: 10, fontWeight: 700, padding: '1px 6px', flexShrink: 0 }}>{ch.unread > 99 ? '99+' : ch.unread}</span>}
     </button>
   );
 }
@@ -222,7 +222,7 @@ export const Chat: React.FC = () => {
       <button type="button" onClick={() => setOpenSecs(p => ({ ...p, [sk]: !p[sk] }))} style={{ display: 'flex', alignItems: 'center', gap: 4, width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: 'var(--ds-btn-py) 10px 3px', color: 'var(--ink3)', fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
         <Icon name={openSecs[sk] ? 'chevronDown' : 'chevronRight'} size={10} />
         {label}
-        {count > 0 && <span style={{ marginLeft: 'auto', background: 'var(--teal)', color: '#fff', borderRadius: 9, fontSize: 9, fontWeight: 700, padding: '1px 5px' }}>{count}</span>}
+        {count > 0 && <span style={{ marginLeft: 'auto', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', borderRadius: 9, fontSize: 9, fontWeight: 700, padding: '1px 5px' }}>{count}</span>}
       </button>
     );
   }

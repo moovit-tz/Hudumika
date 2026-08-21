@@ -33,10 +33,11 @@ const AVAILABLE: Service[] = [
     desc: 'Records with validation, zone import and export, and one-click setup templates.', cta: 'Open domains' },
   { icon: 'gitBranch', title: 'Deployments', to: '/onsite/deployments',
     desc: 'Trigger a build through a connected CI provider and follow it to done.', cta: 'Open deployments' },
+  { icon: 'layers', title: 'Automated backups', to: '/onsite/backups',
+    desc: 'Daily scheduled snapshots of your configuration, on-demand backups, and one-click restore.', cta: 'Open backups' },
 ];
 
 const PLANNED: Service[] = [
-  { icon: 'layers', title: 'Automated backups', desc: 'Scheduled snapshots with retention and one-click restore.' },
   { icon: 'zap', title: 'CDN & DDoS protection', desc: 'Edge caching and mitigation, once a CDN provider is connected.' },
   { icon: 'search', title: 'Malware scanning', desc: 'Scheduled scans for hosted applications.' },
   { icon: 'zap', title: 'GPU compute', desc: 'On-demand GPU instances for AI workloads.' },

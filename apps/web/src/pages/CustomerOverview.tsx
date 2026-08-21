@@ -153,7 +153,7 @@ export const CustomerOverview: React.FC = () => {
               <Icon name="users" size={13} /> Customer List
             </Link>
             <Link to="/customers/bulk-upload"
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 9, border: 'none', background: 'var(--teal)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', textDecoration: 'none' }}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 9, border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', textDecoration: 'none' }}
             >
               <Icon name="upload" size={13} /> Bulk Upload
             </Link>

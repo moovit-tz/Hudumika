@@ -12,10 +12,12 @@ interface Booking {
   carrier_id: string | null; carrier_name: string | null; mode: string;
   origin_port: string; destination_port: string; cargo_desc: string | null;
   status: 'REQUESTED' | 'RATE_QUOTED' | 'CONFIRMED' | 'CANCELLED';
-  quoted_cost: number | null; quoted_sell: number | null; currency: string;
+  // Postgres numeric columns come back through pg/Kysely as strings, not JS
+  // numbers — .toFixed() on these without Number(...) first throws.
+  quoted_cost: string | number | null; quoted_sell: string | number | null; currency: string;
   vessel_name: string | null; converted_shipment_id: string | null; created_at: string;
 }
-interface RateCard { id: string; carrier_id: string; carrier_name: string | null; mode: string; origin_port: string; destination_port: string; cost_rate: number; sell_rate: number; currency: string; }
+interface RateCard { id: string; carrier_id: string; carrier_name: string | null; mode: string; origin_port: string; destination_port: string; cost_rate: string | number; sell_rate: string | number; currency: string; }
 interface Carrier { id: string; name: string; }
 
 const STATUS_VARIANT: Record<string, 'gray' | 'warning' | 'success' | 'error'> = {
@@ -113,12 +115,12 @@ export function FreightBookingsPage() {
   return (
     <div style={{ flex: 1, overflowY: 'auto' }}>
       <PageHeader
-        crumbs={['Freight Booking', 'Bookings']}
+        crumbs={['CargoTracker', 'Freight Booking', 'Bookings']}
         titlePlain="Freight"
         titleEm="bookings"
         subtitle="Request a rate, confirm the booking, and it becomes a real clearance case automatically"
         actions={
-          <Link to="/clearos/freight-booking/new" className="btn btn-primary">
+          <Link to="/cargotracker/bookings/new" className="btn btn-primary">
             <Icon name="plus" size={14} /> New Booking
           </Link>
         }
@@ -148,7 +150,7 @@ export function FreightBookingsPage() {
                     </div>
                   </div>
                   {b.quoted_sell != null && (
-                    <div style={{ fontSize: 12.5, fontFamily: 'var(--mono)', color: 'var(--teal)', fontWeight: 700 }}>{b.currency} {b.quoted_sell.toFixed(2)}</div>
+                    <div style={{ fontSize: 12.5, fontFamily: 'var(--mono)', color: 'var(--teal)', fontWeight: 700 }}>{b.currency} {Number(b.quoted_sell).toFixed(2)}</div>
                   )}
                   {b.converted_shipment_id && (
                     <Link to={`/clearos/clearance/${b.converted_shipment_id}`} onClick={e => e.stopPropagation()} style={{ fontSize: 12, color: 'var(--teal)', textDecoration: 'none', fontWeight: 600 }}>

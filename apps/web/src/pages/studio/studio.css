@@ -402,3 +402,71 @@
   border-color: var(--teal-m);
   color: var(--teal);
 }
+
+/* ─── Workflow Studio Mobile & Responsive Perfections ─── */
+.studio-card-interactive {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.studio-card-interactive:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  border-color: var(--teal-m);
+}
+
+/* Base (desktop) layout for the workflow list item's header/meta rows —
+   the item itself stays a single horizontal row via its own inline flex
+   style; these two just need to lay their children out sanely before the
+   768px breakpoint below switches the whole item to a stacked card. Without
+   this, .studio-workflow-item-header/-meta had no rule at all above 768px,
+   so their child rows silently fell back to block stacking on desktop. */
+.studio-workflow-item-header {
+  display: flex;
+  align-items: center;
+}
+.studio-workflow-item-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 11.5px;
+  color: var(--ink2);
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .studio-dash-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+  }
+
+  .studio-tiles {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.625rem !important;
+  }
+
+  .studio-tile {
+    padding: 0.875rem !important;
+    border-radius: 0.875rem !important;
+  }
+
+  .studio-workflow-item-mobile {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.75rem !important;
+    padding: 0.875rem !important;
+  }
+
+  .studio-workflow-item-header {
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .studio-workflow-item-meta {
+    width: 100%;
+    font-size: 0.75rem;
+    color: var(--ink3);
+    border-top: 1px dashed var(--border);
+    padding-top: 0.5rem;
+    margin-top: 0.25rem;
+  }
+}

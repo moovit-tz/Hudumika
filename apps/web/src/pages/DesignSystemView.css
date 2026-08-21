@@ -310,8 +310,8 @@
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: var(--teal);
-  color: var(--white);
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
 }
 
 .ds-theme-swatch {

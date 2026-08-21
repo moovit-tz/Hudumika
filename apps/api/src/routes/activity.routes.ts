@@ -30,6 +30,8 @@ const READABLE_ENTITIES = new Set([
   'user', 'shipment', 'declaration', 'invoice', 'customer', 'lead',
   'leave', 'overtime', 'payroll_run', 'seal_lot', 'seal_fulfillment_order',
   'ticket', 'task', 'document', 'hr_holidays', 'quotation', 'product',
+  'onsite_domain', 'onsite_dns_record', 'onsite_application', 'onsite_deployment',
+  'onsite_server', 'onsite_website', 'onsite_backup',
 ]);
 
 export async function activityRoutes(fastify: FastifyInstance) {
@@ -49,11 +51,11 @@ export async function activityRoutes(fastify: FastifyInstance) {
    * one.
    */
   fastify.get<{
-    Querystring: { limit?: string; before?: string; type?: string; entity?: string };
+    Querystring: { limit?: string; before?: string; type?: string; entity?: string; source_app?: string };
   }>('/', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (request) => {
     const user = request.user;
     const limit = Math.min(Math.max(Number(request.query.limit) || 50, 1), 200);
-    const { before, type, entity } = request.query;
+    const { before, type, entity, source_app } = request.query;
 
     return withTenant(user.tenant_id, async (trx) => {
       let q = trx
@@ -70,6 +72,10 @@ export async function activityRoutes(fastify: FastifyInstance) {
       if (before) q = q.where('e.created_at', '<', new Date(before));
       if (type) q = q.where('e.event_type', '=', type);
       if (entity) q = q.where('e.entity_type', '=', entity);
+      // Coarser than `entity`/`type` — lets a caller like Onsite's Audit Feed
+      // ask for "everything this app did" without knowing every entity type
+      // it emits.
+      if (source_app) q = q.where('e.source_app', '=', source_app);
 
       const rows = await q.execute();
       return rows.map(r => ({

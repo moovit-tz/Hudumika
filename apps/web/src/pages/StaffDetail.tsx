@@ -662,7 +662,7 @@ export const StaffDetail: React.FC = () => {
                     onClick={() => photoInputRef.current?.click()}
                     style={{
                       position: 'absolute', right: -2, bottom: -2, width: 24, height: 24, borderRadius: '50%',
-                      border: '2px solid var(--white)', background: 'var(--teal)', color: '#fff',
+                      border: '2px solid var(--white)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))',
                       display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0,
                     }}
                   >

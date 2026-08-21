@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Routes, Route, Link, useLocation, useParams, useNavigate } from 'react-router-dom';
 import { Icon } from '../../components/Icon.js';
+import { apiFetch } from '../../lib/api.js';
+import type { OnsiteWebsite } from '@hudumika/types';
 
 import { OnsiteWebsiteAnalytics } from './OnsiteWebsiteAnalytics.js';
 import { OnsiteWebsiteSSL } from './OnsiteWebsiteSSL.js';
@@ -14,6 +16,13 @@ export function OnsiteWebsiteDetailShell() {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchMenu, setSearchMenu] = useState('');
+  const [websites, setWebsites] = useState<OnsiteWebsite[]>([]);
+
+  useEffect(() => {
+    apiFetch('/v1/onsite/websites')
+      .then((res: any) => setWebsites(Array.isArray(res) ? res : []))
+      .catch(() => setWebsites([]));
+  }, []);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     security: true,
     website: true,
@@ -46,20 +55,18 @@ export function OnsiteWebsiteDetailShell() {
         gap: '1rem',
         height: 'fit-content'
       }}>
-        {/* Domain Selector */}
+        {/* Website Selector */}
         <div className="onsite-form-group">
           <label style={{ fontSize: '0.75rem', color: 'var(--ink2)', fontWeight: 600 }}>Website name</label>
           <select
             className="onsite-select"
-            value={siteId === '1' ? 'internal.gmtl.co.tz' : siteId === '2' ? 'gmtl.co.tz' : 'hudumika.tz'}
+            value={siteId ?? ''}
             onChange={(e) => navigate(`/onsite/websites/${e.target.value}`)}
             style={{ fontWeight: 600, fontSize: '0.875rem' }}
           >
-            <option value="hudumika.tz">hudumika.tz</option>
-            <option value="gmtl.co.tz">gmtl.co.tz</option>
-            <option value="internal.gmtl.co.tz">internal.gmtl.co.tz</option>
-            <option value="moovit.co.tz">moovit.co.tz</option>
-            <option value="oneid.hudumika.tz">oneid.hudumika.tz</option>
+            {websites.map(w => (
+              <option key={w.id} value={w.id}>{w.name}</option>
+            ))}
           </select>
         </div>
 

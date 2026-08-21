@@ -136,7 +136,7 @@ export const SupportChat: React.FC = () => {
                   placeholder="Type a reply..."
                   style={{ flex: 1, minWidth: 0, padding: '10px 14px', borderRadius: 9, border: '1.5px solid var(--border)', outline: 'none', fontFamily: 'var(--font)' }}
                 />
-                <button onClick={sendMessage} disabled={sending || !draft.trim()} style={{ background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 'var(--r)', padding: '0 20px', fontWeight: 600, cursor: 'pointer', flexShrink: 0, opacity: sending || !draft.trim() ? 0.6 : 1 }}>Send</button>
+                <button onClick={sendMessage} disabled={sending || !draft.trim()} style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', padding: '0 20px', fontWeight: 600, cursor: 'pointer', flexShrink: 0, opacity: sending || !draft.trim() ? 0.6 : 1 }}>Send</button>
               </div>
             </div>
           </div>

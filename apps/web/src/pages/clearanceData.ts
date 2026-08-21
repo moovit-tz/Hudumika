@@ -220,6 +220,12 @@ export interface ClearanceJob {
   workflowName?: string;
   workflowSteps?: WfStep[];
   currentStepId?: string;
+  // Daily shipment-report automation (migration 258) — tri-state: null
+  // inherits the customer's own setting. See shipment-report.service.ts.
+  dailyReportEnabled?: boolean | null;
+  // True when at least one dangerous-goods declaration (dg_declarations) is
+  // linked to this shipment — see ShipmentService.getById/listGroupedByCustomer.
+  hasDangerousGoods?: boolean;
 }
 
 export interface WfStep {
@@ -368,226 +374,6 @@ export const CUSTOMERS_LIST = [
   'Vodacom Tanzania', 'TANESCO', '+ Onboard new customer',
 ];
 
-// ─── Mock Data ────────────────────────────────────────────────────────────────
-
-const MOCK_TASKS_1: InternalTask[] = [
-  { id: 'tk1', title: 'Collect & verify shipping documents', status: 'complete', priority: 'high', assignees: ['Baraka Osei'], startDate: new Date('2026-02-11'), dueDate: new Date('2026-02-11'), tags: ['docs'], timeEstimateH: 2 },
-  { id: 'tk2', title: 'Submit TANCIS entry declaration', status: 'complete', priority: 'high', assignees: ['Baraka Osei'], startDate: new Date('2026-02-12'), dueDate: new Date('2026-02-12'), tags: ['tancis'], timeEstimateH: 4 },
-  { id: 'tk3', title: 'Review TRA customs value assessment', status: 'complete', priority: 'urgent', assignees: ['Amina Rashid', 'Baraka Osei'], startDate: new Date('2026-02-13'), dueDate: new Date('2026-02-13'), tags: ['tansad', 'assessment'], description: 'Value uplifted 2× — need finance sign-off' },
-  { id: 'tk4', title: 'Process duty & tax payment (TZS 22.1M)', status: 'complete', priority: 'urgent', assignees: ['James Mwangi'], startDate: new Date('2026-02-14'), dueDate: new Date('2026-02-14'), tags: ['finance'], timeEstimateH: 1 },
-  { id: 'tk5', title: 'Obtain Delivery Order from COSCO', status: 'complete', priority: 'high', assignees: ['Baraka Osei'], startDate: new Date('2026-02-15'), dueDate: new Date('2026-02-15'), tags: ['do'] },
-  { id: 'tk6', title: 'Apply for Pharmacy Board permit (OGA)', status: 'complete', priority: 'medium', assignees: ['Baraka Osei'], startDate: new Date('2026-02-12'), dueDate: new Date('2026-02-13'), tags: ['permit', 'oga'] },
-  { id: 'tk7', title: 'Book & coordinate joint inspection at Silver ICD', status: 'in_progress', priority: 'high', assignees: ['Baraka Osei', 'Amina Rashid'], startDate: new Date('2026-02-16'), dueDate: new Date('2026-02-17'), tags: ['inspection'], timeEstimateH: 3 },
-  { id: 'tk8', title: 'Arrange 2 trucks for container transport', status: 'awaiting_feedback', priority: 'high', assignees: ['Baraka Osei'], startDate: new Date('2026-02-17'), dueDate: new Date('2026-02-18'), tags: ['transport'], description: 'Awaiting client confirmation of delivery address' },
-  { id: 'tk9', title: 'Confirm delivery to client warehouse & close file', status: 'not_started', priority: 'medium', assignees: ['Baraka Osei'], startDate: new Date('2026-02-18'), dueDate: new Date('2026-02-20'), tags: ['closing'] },
-];
-
-const MOCK_TIME_1: TimeEntry[] = [
-  { id: 'te1', memberId: 'u1', memberName: 'Baraka Osei',   taskId: 'tk1', taskTitle: 'Collect & verify shipping documents', duration: '02:30:00', hours: 2.50, date: new Date('2026-02-11'), billable: true  },
-  { id: 'te2', memberId: 'u1', memberName: 'Baraka Osei',   taskId: 'tk2', taskTitle: 'Submit TANCIS entry declaration',      duration: '04:15:00', hours: 4.25, date: new Date('2026-02-12'), billable: true  },
-  { id: 'te3', memberId: 'u2', memberName: 'Amina Rashid',  taskId: 'tk3', taskTitle: 'Review TRA customs value assessment',  duration: '01:45:00', hours: 1.75, date: new Date('2026-02-13'), billable: true  },
-  { id: 'te4', memberId: 'u1', memberName: 'Baraka Osei',   taskId: 'tk3', taskTitle: 'Review TRA customs value assessment',  duration: '00:45:00', hours: 0.75, date: new Date('2026-02-13'), billable: true  },
-  { id: 'te5', memberId: 'u3', memberName: 'James Mwangi',  taskId: 'tk4', taskTitle: 'Process duty & tax payment',           duration: '00:30:00', hours: 0.50, date: new Date('2026-02-14'), billable: false },
-  { id: 'te6', memberId: 'u1', memberName: 'Baraka Osei',   taskId: 'tk5', taskTitle: 'Obtain Delivery Order from COSCO',     duration: '01:00:00', hours: 1.00, date: new Date('2026-02-15'), billable: true  },
-  { id: 'te7', memberId: 'u1', memberName: 'Baraka Osei',   taskId: 'tk7', taskTitle: 'Book & coordinate joint inspection',   duration: '02:00:00', hours: 2.00, date: new Date('2026-02-16'), billable: true  },
-  { id: 'te8', memberId: 'u2', memberName: 'Amina Rashid',  taskId: 'tk7', taskTitle: 'Book & coordinate joint inspection',   duration: '01:30:00', hours: 1.50, date: new Date('2026-02-16'), billable: true  },
-];
-
-const MOCK_ACTIVITY_1: ActivityEvent[] = [
-  { id: 'a1',  userId: 'system', userName: 'System',        action: 'added',        subject: 'Clearance job CLR-2026-0001 created',                  ts: new Date('2026-02-11T08:00:00') },
-  { id: 'a2',  userId: 'u1',     userName: 'Baraka Osei',   action: 'uploaded',     subject: 'COSU6441534213_BL.pdf',                                ts: new Date('2026-02-11T08:05:00') },
-  { id: 'a3',  userId: 'u1',     userName: 'Baraka Osei',   action: 'uploaded',     subject: 'Invoice_SL-2026-CN-00412.pdf',                         ts: new Date('2026-02-11T08:10:00') },
-  { id: 'a4',  userId: 'u1',     userName: 'Baraka Osei',   action: 'stage_change', subject: 'Stage: Docs Received → Validation',                    ts: new Date('2026-02-11T11:00:00') },
-  { id: 'a5',  userId: 'u1',     userName: 'Baraka Osei',   action: 'extracted',    subject: 'AI extracted B/L data — 97% confidence',               ts: new Date('2026-02-11T11:30:00') },
-  { id: 'a6',  userId: 'u1',     userName: 'Baraka Osei',   action: 'stage_change', subject: 'Stage: Validation → Entry Preparation',                ts: new Date('2026-02-12T09:00:00') },
-  { id: 'a7',  userId: 'u1',     userName: 'Baraka Osei',   action: 'stage_change', subject: 'Stage: Entry Prep → TANCIS Registration',              ts: new Date('2026-02-12T14:30:00'), detail: 'TANSAD: TZDL261095360' },
-  { id: 'a8',  userId: 'u2',     userName: 'Amina Rashid',  action: 'uploaded',     subject: 'TRA_Assessment_TZDL261095360.pdf',                     ts: new Date('2026-02-13T16:00:00') },
-  { id: 'a9',  userId: 'u2',     userName: 'Amina Rashid',  action: 'stage_change', subject: 'Stage: TANCIS Reg → Assessment & Payment',             ts: new Date('2026-02-13T16:05:00'), detail: '⚠ Customs value uplifted 2×' },
-  { id: 'a10', userId: 'u2',     userName: 'Amina Rashid',  action: 'extracted',    subject: 'AI extracted TRA Assessment — value discrepancy flagged',ts: new Date('2026-02-13T16:30:00') },
-  { id: 'a11', userId: 'u3',     userName: 'James Mwangi',  action: 'payment',      subject: 'Tax payment confirmed — TZS 22,136,845',               ts: new Date('2026-02-15T08:00:00'), detail: 'Ref: CRDB-26-887234' },
-  { id: 'a12', userId: 'u1',     userName: 'Baraka Osei',   action: 'stage_change', subject: 'Stage: Assessment → Tax Payment',                      ts: new Date('2026-02-15T08:05:00') },
-  { id: 'a13', userId: 'u1',     userName: 'Baraka Osei',   action: 'task_done',    subject: 'Task completed: Obtain Delivery Order from COSCO',      ts: new Date('2026-02-15T10:00:00') },
-  { id: 'a14', userId: 'u1',     userName: 'Baraka Osei',   action: 'stage_change', subject: 'Stage: DO Application → Inspection Booking',           ts: new Date('2026-02-16T09:00:00'), detail: 'Joint inspection: Feb 17th @ Silver ICD' },
-  { id: 'a15', userId: 'u1',     userName: 'Baraka Osei',   action: 'uploaded',     subject: 'SilverICD_Invoice_26-4421.pdf',                        ts: new Date('2026-02-16T09:05:00') },
-  { id: 'a16', userId: 'u1',     userName: 'Baraka Osei',   action: 'assigned',     subject: 'Amina Rashid assigned to joint inspection task',        ts: new Date('2026-02-16T09:10:00') },
-];
-
-const MOCK_CLOUD_1: CloudLink[] = [
-  { id: 'cl1', provider: 'gdrive',    name: 'CLR-2026-0001 Shared Folder', url: 'https://drive.google.com/drive/folders/abc123', linkedAt: new Date('2026-02-11'), linkedBy: 'Baraka Osei' },
-  { id: 'cl2', provider: 'gsheets',  name: 'Duty Calculation Sheet',       url: 'https://docs.google.com/spreadsheets/d/xyz456', linkedAt: new Date('2026-02-13'), linkedBy: 'James Mwangi' },
-];
-
-const MOCK_LISTENERS_1: Listener[] = [
-  { id: 'u1', name: 'Baraka Osei',   role: 'Clearance Officer', type: 'internal', channel: ['internal', 'email'] },
-  { id: 'u2', name: 'Amina Rashid',  role: 'Senior Manager',    type: 'internal', channel: ['internal', 'teams'] },
-  { id: 'u3', name: 'James Mwangi',  role: 'Finance',           type: 'internal', channel: ['internal'] },
-  { id: 'c1', name: 'Samuel Bello',  role: 'Procurement Mgr',   type: 'customer', channel: ['whatsapp', 'email'] },
-  { id: 'c2', name: 'Ngozi Adeyemi', role: 'Logistics Coord.',  type: 'customer', channel: ['whatsapp'] },
-];
-
-const MOCK_THREAD_1: ThreadMsg[] = [
-  { id: 't1', userId: 'u1', userName: 'Baraka Osei', content: 'Docs received from shipper. Packing list, invoice and B/L confirmed. Starting validation.', ts: new Date('2026-02-11T08:30:00'), channels: ['internal'], isInternal: true },
-  { id: 't2', userId: 'u1', userName: 'Baraka Osei', content: 'Good morning, we have received your shipping documents and are starting the clearance process. Estimated clearance: 7–10 working days.', ts: new Date('2026-02-11T09:00:00'), channels: ['whatsapp', 'email'], isInternal: false, reactions: [{ emoji: '👍', count: 2 }] },
-  { id: 't3', userId: 'c1', userName: 'Samuel Bello', content: 'Thank you. Please expedite — we have a production deadline on Feb 20th.', ts: new Date('2026-02-11T09:45:00'), channels: ['whatsapp'], isInternal: false },
-  { id: 't4', userId: 'u2', userName: 'Amina Rashid', content: 'INTERNAL: Customs value uplift flagged by TRA. Assessed FOB is TZS 60.4M vs declared TZS 27.4M. Need finance sign-off before proceeding.', ts: new Date('2026-02-12T14:00:00'), channels: ['internal'], isInternal: true },
-  { id: 't5', userId: 'u1', userName: 'Baraka Osei', content: 'Assessment document received from TRA. Total duty assessment: TZS 22.1M. Sending payment advice now.', ts: new Date('2026-02-14T10:20:00'), channels: ['whatsapp', 'email', 'teams'], isInternal: false, attachments: ['Assessment_TZDL261095360.pdf'], reactions: [{ emoji: '👀', count: 1 }] },
-  { id: 't6', userId: 'c1', userName: 'Samuel Bello', content: 'Payment initiated. Transfer ref: CRDB-26-887234. Should reflect within 24 hours.', ts: new Date('2026-02-14T15:30:00'), channels: ['whatsapp'], isInternal: false },
-  { id: 't7', userId: 'u3', userName: 'James Mwangi', content: 'Payment confirmed on our end. Proceeding with DO application and inspection booking.', ts: new Date('2026-02-15T08:00:00'), channels: ['internal', 'whatsapp'], isInternal: false },
-];
-
-const MOCK_TIMELINE_1: TimelineEvent[] = [
-  { id: 'e1', stage: 'docs_received',       label: 'Docs Received',       userId: 'u1', userName: 'Baraka Osei',  ts: new Date('2026-02-11T08:30:00'), note: 'All documents received: Invoice, B/L, Packing List' },
-  { id: 'e2', stage: 'validation',           label: 'Validation',          userId: 'u1', userName: 'Baraka Osei',  ts: new Date('2026-02-11T11:00:00'), note: 'Documents validated. Minor discrepancy in quantity on packing list corrected.' },
-  { id: 'e3', stage: 'entry_preparation',    label: 'Entry Preparation',   userId: 'u1', userName: 'Baraka Osei',  ts: new Date('2026-02-12T09:00:00') },
-  { id: 'e4', stage: 'tancis_registration',  label: 'TANCIS Registration', userId: 'u1', userName: 'Baraka Osei',  ts: new Date('2026-02-12T14:30:00'), note: 'Declaration submitted under TZDL261095360' },
-  { id: 'e5', stage: 'assessment_payment',   label: 'Assessment & Payment',userId: 'u2', userName: 'Amina Rashid', ts: new Date('2026-02-13T10:00:00'), note: 'TRA assessment received. Customs value uplifted significantly.' },
-  { id: 'e6', stage: 'tax_payment',          label: 'Tax Payment',         userId: 'u3', userName: 'James Mwangi', ts: new Date('2026-02-15T08:00:00'), note: 'Payment confirmed. Ref: CRDB-26-887234' },
-  { id: 'e7', stage: 'do_application',       label: 'DO Application',      userId: 'u1', userName: 'Baraka Osei',  ts: new Date('2026-02-15T10:00:00'), note: 'DO obtained from COSCO. Container released.' },
-  { id: 'e8', stage: 'inspection_booking',   label: 'Inspection Booking',  userId: 'u1', userName: 'Baraka Osei',  ts: new Date('2026-02-16T09:00:00'), note: 'Joint inspection booked for Feb 17th at Silver ICD.' },
-];
-
-const MOCK_DOCS_1: ShipDoc[] = [
-  {
-    id: 'd1', name: 'COSU6441534213_BL.pdf', type: 'bl',
-    uploadedAt: new Date('2026-02-11T08:00:00'), uploadedBy: 'Samuel Bello', size: '412 KB',
-    extracted: {
-      status: 'done', docType: 'Bill of Lading', confidence: 97,
-      sections: [
-        { title: 'Shipment Info', fields: [
-          { label: 'B/L Number', value: 'COSU6441534213', flag: 'ok' },
-          { label: 'Carrier', value: 'COSCO SHIPPING' },
-          { label: 'Vessel', value: 'CAPE FLORES' },
-          { label: 'Port of Loading', value: 'Nansha, China (CNNSA)' },
-          { label: 'Port of Discharge', value: 'Dar es Salaam (TZDW)' },
-          { label: 'ETA', value: '04/02/2026' },
-        ]},
-        { title: 'Cargo', fields: [
-          { label: 'Description', value: 'Crusher Accessories & Spare Parts' },
-          { label: 'Packages', value: '339 PK' },
-          { label: 'Gross Weight', value: '23,535 KGS' },
-          { label: 'Container 1', value: 'CSNU2541982 (20GP)' },
-          { label: 'Container 2', value: 'COSU7812345 (40HQ)' },
-        ]},
-        { title: 'Parties', fields: [
-          { label: 'Shipper', value: 'Shanghai Lofida Supply Chain Co., Ltd' },
-          { label: 'Consignee', value: 'Timeline Company Limited' },
-          { label: 'Notify Party', value: 'Aleka Holdings Limited' },
-        ]},
-      ],
-      summary: 'Bill of Lading for 339 packages (2 containers) of Crusher Accessories shipped via COSCO from Nansha to Dar es Salaam.',
-    },
-  },
-  {
-    id: 'd2', name: 'Invoice_SL-2026-CN-00412.pdf', type: 'invoice',
-    uploadedAt: new Date('2026-02-11T08:05:00'), uploadedBy: 'Samuel Bello', size: '198 KB',
-    extracted: {
-      status: 'done', docType: 'Commercial Invoice', confidence: 95,
-      sections: [
-        { title: 'Invoice Details', fields: [
-          { label: 'Invoice No.', value: 'SL-2026-CN-00412', flag: 'ok' },
-          { label: 'Invoice Date', value: '15/01/2026' },
-          { label: 'Total Invoice Value', value: 'USD 23,553.59', flag: 'ok' },
-          { label: 'Incoterms', value: 'FOB Nansha' },
-        ]},
-        { title: 'Parties', fields: [
-          { label: 'Seller', value: 'Shanghai Lofida Supply Chain Co., Ltd' },
-          { label: 'Buyer', value: 'Timeline Company Limited, Tanzania' },
-          { label: 'Payment Terms', value: 'T/T 30 days' },
-        ]},
-      ],
-      tables: [
-        { title: 'Line Items (Sample)', headers: ['#', 'Description', 'HS Code', 'Qty', 'Unit Price', 'Total'], rows: [
-          ['1', 'Jaw Plate (Fixed)', '8474.90.00', '12', 'USD 350.00', 'USD 4,200.00'],
-          ['2', 'Jaw Plate (Swing)', '8474.90.00', '12', 'USD 330.00', 'USD 3,960.00'],
-          ['3', 'Eccentric Shaft', '8483.10.00', '4', 'USD 620.00', 'USD 2,480.00'],
-          ['4', 'Toggle Plate', '8474.90.00', '8', 'USD 185.00', 'USD 1,480.00'],
-          ['…', '(197 more items)', '', '', '', '…'],
-        ], totalRow: ['', '', '', '201 items', '', 'USD 23,553.59'] },
-      ],
-      summary: 'Commercial invoice for 201 line items of crusher spare parts. Total FOB: USD 23,553.59.',
-    },
-  },
-  {
-    id: 'd3', name: 'TRA_Assessment_TZDL261095360.pdf', type: 'assessment',
-    uploadedAt: new Date('2026-02-13T16:00:00'), uploadedBy: 'Baraka Osei', size: '4.2 MB',
-    extracted: {
-      status: 'done', docType: 'TRA Customs Assessment', confidence: 92,
-      sections: [
-        { title: 'Declaration Info', fields: [
-          { label: 'TANSAD Number', value: 'TZDL261095360', flag: 'ok' },
-          { label: 'Entry Date', value: '11/02/2026' },
-          { label: 'Declaration Type', value: 'IM4 (Home Use)' },
-          { label: 'Entry Office', value: 'Dar Customs Service Centre' },
-          { label: 'Location of Goods', value: 'WITZDL019 — Silver ICD' },
-          { label: 'Receipt No.', value: '926052412250245' },
-        ]},
-        { title: 'Trade Operators', fields: [
-          { label: 'Exporter', value: 'Shanghai Lofida Supply Chain Co., Ltd' },
-          { label: 'Importer', value: 'Timeline Company Limited' },
-          { label: 'Importer TIN', value: '152-013-019', flag: 'ok' },
-          { label: 'Declarant', value: 'Aleka Holdings Limited' },
-          { label: 'Declarant TIN', value: '137-644-169' },
-        ]},
-        { title: 'Transport', fields: [
-          { label: 'Mode', value: 'Sea (1)' },
-          { label: 'B/L Number', value: 'COSU6441534213', flag: 'ok' },
-          { label: 'Vessel', value: 'CAPE FLORES' },
-          { label: 'Packages', value: '339 PK' },
-          { label: 'Gross Weight', value: '23,535 KGS' },
-        ]},
-        { title: 'Financial — ⚠ Uplift Detected', fields: [
-          { label: 'Exchange Rate', value: 'TZS 2,568.08/USD' },
-          { label: 'Declared Invoice Value', value: 'USD 23,553.59' },
-          { label: 'Declared FOB (TZS)', value: '27,481,563', flag: 'warn' },
-          { label: 'ASSESSED FOB (TZS)', value: '60,487,506', flag: 'err' },
-          { label: 'Declared CIF (TZS)', value: '31,369,636', flag: 'warn' },
-          { label: 'ASSESSED CIF (TZS)', value: '64,375,579', flag: 'err' },
-          { label: 'Uplift Factor', value: '2.05× (105% uplift)', flag: 'err' },
-        ]},
-        { title: 'Tax Summary', fields: [
-          { label: 'Import Duty (IMP)', value: 'TZS 9,245,230', flag: 'ok' },
-          { label: 'VAT (18%)', value: 'TZS 11,604,103', flag: 'ok' },
-          { label: 'CPF (0.5%)', value: 'TZS 321,878', flag: 'ok' },
-          { label: 'RDL (1.5%)', value: 'TZS 965,634', flag: 'ok' },
-          { label: 'TOTAL TAXES DUE', value: 'TZS 22,136,845', flag: 'err' },
-        ]},
-      ],
-      tables: [
-        { title: 'Top 10 Items (of 201)', headers: ['#', 'Description', 'HS Code', 'Qty', 'Ass. Value TZS', 'Duty', 'VAT'], rows: [
-          ['1', 'Jaw Plate Fixed',    '8474.90.00', '12 UN', '10,763,041', '1,614,456', '2,195,340'],
-          ['2', 'Jaw Plate Swing',    '8474.90.00', '12 UN', '10,154,687', '1,523,203', '2,071,555'],
-          ['3', 'Eccentric Shaft',    '8483.10.00', '4 UN',  '6,368,640',  '955,296',   '1,299,203'],
-          ['4', 'Toggle Plate',       '8474.90.00', '8 UN',  '4,748,770',  '712,316',   '968,849'],
-          ['5', 'Bearing Assembly',   '8482.10.10', '24 UN', '3,858,120',  '578,718',   '787,457'],
-          ['6', 'Spring Assembly',    '8484.10.00', '16 UN', '3,088,896',  '463,334',   '630,000'],
-          ['7', 'Side Liner',         '8474.90.00', '20 UN', '2,574,080',  '386,112',   '525,113'],
-          ['8', 'Cheek Plate',        '8474.90.00', '20 UN', '2,316,672',  '347,501',   '472,601'],
-          ['9', 'Flywheel',           '8483.50.00', '4 UN',  '2,059,264',  '308,890',   '420,090'],
-          ['10','Drive Belt Set',     '4010.33.00', '12 SET','1,801,856',  '270,278',   '367,579'],
-        ], totalRow: ['201 items', '', '', '', '64,375,579', '9,245,230+', '22,136,845'] },
-      ],
-      summary: '101-page TRA assessment. Customs value uplifted 2×. Total taxes: TZS 22.1M on assessed CIF of TZS 64.4M.',
-    },
-  },
-  { id: 'd4', name: 'ReleaseOrder_TZDL261095360.pdf', type: 'release_order', uploadedAt: new Date('2026-02-15T14:00:00'), uploadedBy: 'Baraka Osei', size: '88 KB', extracted: { status: 'done', docType: 'TRA Release Order', confidence: 99, sections: [{ title: 'Release Info', fields: [{ label: 'TANSAD', value: 'TZDL261095360', flag: 'ok' }, { label: 'Release Date', value: '15/02/2026' }, { label: 'Channel', value: 'Green Channel ✓', flag: 'ok' }] }], summary: 'Release order issued — Green Channel. No physical inspection required.' } },
-  { id: 'd5', name: 'COSCO_DeliveryOrder.pdf', type: 'delivery_order', uploadedAt: new Date('2026-02-15T11:00:00'), uploadedBy: 'Baraka Osei', size: '120 KB', extracted: { status: 'pending' } },
-  { id: 'd6', name: 'SilverICD_Invoice_26-4421.pdf', type: 'icd_invoice', uploadedAt: new Date('2026-02-16T09:00:00'), uploadedBy: 'Baraka Osei', size: '95 KB', extracted: { status: 'processing' } },
-];
-
-const MOCK_LEDGER_1: LedgerEntry[] = [
-  { id: 'l1',  description: 'Clearing Agency Fee',          amount: 1680600,  currency: 'TZS', type: 'charge',  date: new Date('2026-02-15'), status: 'paid',    reference: 'INV-2026-ALK-001' },
-  { id: 'l2',  description: 'Import Duty (IMP)',             amount: 9245230,  currency: 'TZS', type: 'charge',  date: new Date('2026-02-14'), status: 'paid',    reference: 'TZDL261095360' },
-  { id: 'l3',  description: 'VAT (18%)',                     amount: 11604103, currency: 'TZS', type: 'charge',  date: new Date('2026-02-14'), status: 'paid',    reference: 'TZDL261095360' },
-  { id: 'l4',  description: 'CPF (0.5%)',                    amount: 321878,   currency: 'TZS', type: 'charge',  date: new Date('2026-02-14'), status: 'paid',    reference: 'TZDL261095360' },
-  { id: 'l5',  description: 'RDL (1.5%)',                    amount: 965634,   currency: 'TZS', type: 'charge',  date: new Date('2026-02-14'), status: 'paid',    reference: 'TZDL261095360' },
-  { id: 'l6',  description: 'Shipping Line DO Charges',      amount: 250969,   currency: 'TZS', type: 'charge',  date: new Date('2026-02-15'), status: 'paid' },
-  { id: 'l7',  description: 'ICD Storage & Handling (Silver)',amount: 1657310, currency: 'TZS', type: 'charge',  date: new Date('2026-02-16'), status: 'pending' },
-  { id: 'l8',  description: 'Demurrage — CSNU2541982 (3d)', amount: 77000,    currency: 'TZS', type: 'charge',  date: new Date('2026-02-14'), status: 'paid' },
-  { id: 'l9',  description: 'Transport to Client Warehouse', amount: 3200000,  currency: 'TZS', type: 'charge',  date: new Date('2026-02-17'), status: 'pending' },
-  { id: 'l10', description: 'Client Advance Payment',        amount: 28000000, currency: 'TZS', type: 'payment', date: new Date('2026-02-11'), status: 'paid',    reference: 'CRDB-26-887234' },
-];
-
-
 // ─── API → ClearanceJob adapter ──────────────────────────────────────────────
 
 export function toStage(s: string): Stage {
@@ -599,6 +385,18 @@ export function toStage(s: string): Stage {
   return STAGES.find(x => x.id === n) ? n : 'docs_received';
 }
 
+// The frontend's TransportMode union predates RAIL/BULK (see CommandCenter.tsx,
+// CreateShipmentPage.tsx) so those two normalize to the closest represented
+// mode rather than widening the type here — same fallback shape as before for
+// a row with no real type at all.
+function normalizeMode(raw: string | undefined | null): TransportMode {
+  const t = (raw || '').toUpperCase();
+  if (t.includes('AIR')) return 'AIR';
+  if (t.includes('ROAD') || t.includes('RAIL')) return 'ROAD';
+  if (t.includes('LCL')) return 'SEA LCL';
+  return 'SEA FCL';
+}
+
 export function apiToJob(data: any): ClearanceJob {
   return {
     id: String(data.id),
@@ -606,12 +404,20 @@ export function apiToJob(data: any): ClearanceJob {
     sysRef: data.ref_number,
     customer: data.customer_name || 'Unknown',
     customerId: String(data.customer_id || ''),
-    mode: 'SEA FCL',
+    // Was hardcoded 'SEA FCL' for every shipment regardless of its real type —
+    // harmless for display (nothing branched on it) until VesselLiveStatus
+    // needed a real signal for "is this shipment sea-going" to gate an AIS
+    // lookup.
+    mode: normalizeMode(data.type || data.consignment_type),
     origin: data.port_of_loading || '—',
     destination: data.port_of_discharge || 'Dar es Salaam',
     bl: data.bl_number,
     tansad: data.tansad_number,
-    vessel: data.vessel_name,
+    // API returns this field as `vessel` (the shipment_cases column, spread
+    // as-is by GET /v1/shipments/:id) — reading `vessel_name` here always
+    // read undefined, so every shipment showed a blank Vessel field
+    // regardless of what was actually on file.
+    vessel: data.vessel,
     containers: data.container_numbers || [],
     weight: data.gross_weight_kg ? `${Number(data.gross_weight_kg).toLocaleString()} KG` : undefined,
     invoiceValue: data.cif_value_usd ? `USD ${Number(data.cif_value_usd).toLocaleString()}` : undefined,
@@ -702,6 +508,8 @@ export function apiToJob(data: any): ClearanceJob {
     assigneeEmail: data.assigned_officer_email || undefined,
     assigneePhone: data.assigned_officer_phone || undefined,
     whatsappBotActive: data.whatsapp_bot_active !== false,
+    dailyReportEnabled: data.daily_report_enabled ?? null,
+    hasDangerousGoods: !!data.has_dangerous_goods,
   };
 }
 

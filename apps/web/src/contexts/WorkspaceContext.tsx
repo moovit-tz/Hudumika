@@ -42,6 +42,7 @@ const APP_PREFIXES: Array<[string, AppId]> = [
   ['/tenant-management','workspace'],
   ['/system-update',    'workspace'],
   ['/settings',         'workspace'],
+  ['/petti',            'petti'],
 ];
 
 function detectApp(pathname: string): AppId | null {

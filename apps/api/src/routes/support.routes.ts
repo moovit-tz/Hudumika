@@ -5,6 +5,7 @@ import { db, withTenant, type Database } from '../db/client.js';
 import { MessagingService } from '../services/messaging.service.js';
 import { requireRole } from '../middleware/rbac.js';
 import { resolveCustomerId } from '../services/customer-identity.service.js';
+import { callAI } from './ai.routes.js';
 import type { MessageChannel, TicketPriority, TicketStatus, UserRole } from '@hudumika/types';
 
 // The two endpoints CUSTOMER_ALLOWED_ROUTES below actually lets a CUSTOMER
@@ -12,6 +13,10 @@ import type { MessageChannel, TicketPriority, TicketStatus, UserRole } from '@hu
 // caller isn't a vetted staff role, so runtime shape-checking matters most
 // here. Fastify's `post<{ Body: ... }>()` generics only type-check at
 // compile time; a customer-submitted body was never actually validated.
+// A small, explicit allowlist rather than a free-text field — a caller
+// tagging a ticket's origin app shouldn't be able to write an arbitrary
+// string into a column other code (the Onsite priority queue) filters on.
+const SOURCE_APPS = ['onsite'] as const;
 const createTicketSchema = z.object({
   customer_id: z.string().uuid().optional(), // ignored for CUSTOMER logins (see below), required for staff
   subject: z.string().trim().min(1).max(300),
@@ -19,6 +24,7 @@ const createTicketSchema = z.object({
   channel: z.enum(['WHATSAPP', 'EMAIL', 'IN_APP', 'SMS', 'SYSTEM']).optional(),
   priority: z.enum(['LOW', 'NORMAL', 'MEDIUM', 'HIGH', 'URGENT']),
   category: z.string().trim().min(1).max(100),
+  source_app: z.enum(SOURCE_APPS).optional(),
 });
 const customerReplySchema = z.object({ content: z.string().trim().min(1).max(10_000) });
 
@@ -104,7 +110,7 @@ export async function applyAutoAssignRules(trx: Transaction<Database>, tenantId:
 export async function createTicketRow(
   trx: Transaction<Database>,
   tenantId: string,
-  input: { customerId: string; subject: string; description?: string | null; channel: MessageChannel; priority: TicketPriority; category: string },
+  input: { customerId: string; subject: string; description?: string | null; channel: MessageChannel; priority: TicketPriority; category: string; sourceApp?: string | null },
 ) {
   const slaDeadline = new Date(Date.now() + SLA_HOURS[input.priority] * 3600_000);
   let ticket = await trx
@@ -121,6 +127,7 @@ export async function createTicketRow(
       status: 'OPEN',
       tags: JSON.stringify([]),
       sla_deadline: slaDeadline,
+      source_app: input.sourceApp ?? null,
     })
     .returningAll()
     .executeTakeFirstOrThrow();
@@ -192,7 +199,7 @@ export default async function supportRoutes(fastify: FastifyInstance) {
   });
 
   // 1. List all tickets
-  fastify.get<{ Querystring: { customer_id?: string } }>('/tickets', async (request, reply) => {
+  fastify.get<{ Querystring: { customer_id?: string; source_app?: string } }>('/tickets', async (request, reply) => {
     const user = request.user;
     return withTenant(user.tenant_id, async (trx) => {
       let query = trx
@@ -203,6 +210,7 @@ export default async function supportRoutes(fastify: FastifyInstance) {
         .select([
           'st.id', 'st.ref_number as ref', 'st.subject', 'st.description',
           'st.channel', 'st.status', 'st.priority', 'st.category', 'st.tags',
+          'st.source_app', 'st.sla_deadline',
           'st.created_at', 'st.updated_at',
           'c.name as customer', 'c.id as customer_id', 'c.email as customer_email', 'c.phone as customer_phone',
           'u.name as assigned_to', 'u.id as assigned_to_id',
@@ -217,6 +225,9 @@ export default async function supportRoutes(fastify: FastifyInstance) {
         query = query.where('st.customer_id', '=', cid ?? NIL_UUID);
       } else if (request.query.customer_id) {
         query = query.where('st.customer_id', '=', request.query.customer_id);
+      }
+      if (request.query.source_app) {
+        query = query.where('st.source_app', '=', request.query.source_app);
       }
       const tickets = await query
         .orderBy('st.created_at', 'desc')
@@ -237,7 +248,7 @@ export default async function supportRoutes(fastify: FastifyInstance) {
 
   // 2. Create a new ticket
   fastify.post<{
-    Body: { customer_id: string; subject: string; description?: string; channel: MessageChannel; priority: TicketPriority; category: string }
+    Body: { customer_id: string; subject: string; description?: string; channel: MessageChannel; priority: TicketPriority; category: string; source_app?: string }
   }>('/tickets', async (request, reply) => {
     const user = request.user;
     const b = createTicketSchema.parse(request.body);
@@ -270,6 +281,7 @@ export default async function supportRoutes(fastify: FastifyInstance) {
         channel: user.role === 'CUSTOMER' ? 'IN_APP' : (b.channel ?? 'IN_APP'),
         priority: b.priority,
         category: b.category,
+        sourceApp: b.source_app ?? null,
       });
 
       reply.status(201);
@@ -578,21 +590,32 @@ export default async function supportRoutes(fastify: FastifyInstance) {
       return { error: 'Ticket not found' };
     }
 
-    // Get AI settings
+    // Get AI settings — 'int-ai' is the real key Settings → Integrations
+    // writes to (confirmed against ai.routes.ts and every other AI feature
+    // in this platform). This previously read settings.ai, a key nothing
+    // ever wrote, so this endpoint had always silently hit the mock
+    // fallback below in production regardless of whether a tenant had
+    // actually configured AI.
     const settings = await withTenant(user.tenant_id, async (trx) => {
       const row = await trx.selectFrom('tenant_settings').select('settings')
         .where('tenant_id', '=', user.tenant_id).executeTakeFirst();
-      return row?.settings ? JSON.parse(String(row.settings)) : null;
+      // The pg driver hands jsonb columns back already parsed — JSON.parse(String(...))
+      // on an already-parsed object stringifies it to the literal text
+      // "[object Object]" first, which then fails to parse, throwing a 500
+      // on every tenant that has a settings row at all. Same defensive
+      // check used everywhere else this column is read (settings.routes.ts,
+      // mail-template.service.ts).
+      if (!row?.settings) return null;
+      return typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings;
     });
 
-    const apiKey = settings?.ai?.apiKey;
-    if (!apiKey) {
-      // Return a mock suggestion if no AI key is configured
+    const aiCfg = settings?.['int-ai'];
+    if (!aiCfg?.on || !aiCfg?.apiKey) {
+      // Honest template, not an AI opinion — is_mock lets the UI say so
+      // rather than presenting this as a real model-generated draft.
       return {
         suggestion: `Thank you for reaching out regarding "${context.ticket.subject}". I have reviewed your case and our team is looking into this now. We will have a full update for you within 2 business hours. Please don't hesitate to call us if this is urgent.`,
-        sentiment: 'neutral',
-        next_action: 'follow_up',
-        confidence: 0.85,
+        is_mock: true,
       };
     }
 
@@ -600,8 +623,7 @@ export default async function supportRoutes(fastify: FastifyInstance) {
       `[${m.author_type}]: ${m.content}`
     ).join('\n');
 
-    try {
-      const prompt = `You are a professional customer support agent for a financial services company in East Africa.
+    const prompt = `You are a professional customer support agent for a financial services company in East Africa.
 
 Ticket: "${context.ticket.subject}" (${context.ticket.category}, ${context.ticket.priority} priority)
 Customer: ${context.ticket.customer}
@@ -611,42 +633,21 @@ ${thread || '(no messages yet)'}
 
 Write a professional, empathetic reply to this customer. Be concise (2–4 sentences). Do not use placeholder text. Respond in English.`;
 
-      const model = settings?.ai?.model || 'claude-haiku-4-5-20251001';
-      const provider = settings?.ai?.provider || 'anthropic';
-
-      const res = await fetch(
-        provider === 'anthropic' ? 'https://api.anthropic.com/v1/messages' : 'https://api.openai.com/v1/chat/completions',
-        {
-          method: 'POST',
-          headers: provider === 'anthropic'
-            ? { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }
-            : { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify(
-            provider === 'anthropic'
-              ? { model, max_tokens: 300, temperature: 0.4, messages: [{ role: 'user', content: prompt }] }
-              : { model, max_tokens: 300, temperature: 0.4, messages: [{ role: 'user', content: prompt }] }
-          ),
-        }
+    try {
+      const suggestion = await callAI(
+        aiCfg.apiKey,
+        aiCfg.model || 'claude-haiku-4-5-20251001',
+        aiCfg.provider || 'anthropic',
+        [{ role: 'user', content: prompt }],
+        300, 0.4,
       );
-
-      const data: any = await res.json();
-      const suggestion = provider === 'anthropic'
-        ? data.content?.[0]?.text
-        : data.choices?.[0]?.message?.content;
-
-      return {
-        suggestion: suggestion || 'Unable to generate suggestion.',
-        sentiment: 'neutral',
-        next_action: 'reply',
-        confidence: 0.9,
-      };
-    } catch {
-      return {
-        suggestion: `Thank you for reaching out regarding "${context.ticket.subject}". We have received your message and our team is reviewing it now. We will get back to you shortly.`,
-        sentiment: 'neutral',
-        next_action: 'follow_up',
-        confidence: 0.7,
-      };
+      return { suggestion: suggestion || 'Unable to generate suggestion.', is_mock: false };
+    } catch (err: any) {
+      // A real call that failed (bad key, provider outage) is not the same
+      // as "no AI configured" — say so, rather than quietly handing back
+      // the same template as the not-configured case.
+      reply.status(502);
+      return { error: `AI suggestion failed: ${err?.message ?? err}` };
     }
   });
 

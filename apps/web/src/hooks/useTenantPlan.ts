@@ -7,6 +7,8 @@ interface PackageInfo { code: TenantPlan; name: string; features: string[]; max_
 // Mirrors PLAN_LEVELS in packages/types/src/user.ts, inlined here rather than
 // imported at runtime — see apps/api/src/middleware/planGate.ts for why.
 const PLAN_LEVELS: Record<TenantPlan, number> = {
+  'agency-managed': 0,
+  'onsite-standalone': 0,
   starter: 1, operations: 2, growth: 2, professional: 3, finance: 3, scale: 3, enterprise: 4,
 };
 

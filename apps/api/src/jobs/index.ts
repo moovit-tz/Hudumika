@@ -13,11 +13,14 @@ import { runWorkflowCommQueueJob } from './workflow-comm.job.js';
 import { runSealLedgerAnchorJob, runSealLedgerAnchorConfirmationSweepJob } from './seal-ledger-anchor.job.js';
 import { runDeclarationLedgerAnchorJob, runDeclarationLedgerAnchorConfirmationSweepJob } from './declaration-ledger-anchor.job.js';
 import { runOnsiteDeploymentSyncJob } from './onsite-deployment-sync.job.js';
-import { runOnsiteUptimeJob, runOnsiteSslSweepJob } from './onsite-uptime.job.js';
+import { runOnsiteUptimeJob, runOnsiteSslSweepJob, runOnsiteServerReachabilityJob } from './onsite-uptime.job.js';
 import { runWorkflowLearningJob } from './workflow-learning.job.js';
 import { runCloudTrashExpiryJob } from './cloud-trash-expiry.job.js';
+import { runOnsiteBackupJob } from './onsite-backup.job.js';
 import { runMailOutboxJob } from './mail-outbox.job.js';
 import { runImapTicketIngestJob } from './imap-ticket-ingest.job.js';
+import { runSanctionsSyncJob } from './sanctions-sync.job.js';
+import { runDailyShipmentReportJob } from './daily-shipment-report.job.js';
 
 let redisConnection: Redis | null = null;
 let riskQueue: Queue | null = null;
@@ -166,6 +169,12 @@ function startBullMQ(): void {
           await runWorkflowLearningJob();
         } else if (job.name === 'cloud-trash-expiry') {
           await runCloudTrashExpiryJob();
+        } else if (job.name === 'onsite-backup') {
+          await runOnsiteBackupJob();
+        } else if (job.name === 'sanctions-sync') {
+          await runSanctionsSyncJob();
+        } else if (job.name === 'daily-shipment-report') {
+          await runDailyShipmentReportJob();
         }
       },
       { connection: redisConnection as any }
@@ -291,9 +300,25 @@ function startBullMQ(): void {
       repeat: { pattern: '0 2 * * *' } // Daily at 2:00 AM — permanently delete Cloud Trash items past 30 days
     }).catch(console.error);
 
+    reminderQueue.add('onsite-backup', {}, {
+      repeat: { pattern: '0 3 * * *' } // Daily at 3:00 AM — one scheduled Onsite config snapshot per active tenant
+    }).catch(console.error);
+
     // TRA Z-Report: run at midnight (00:05) every day
     reminderQueue.add('tra-zreport', {}, {
       repeat: { pattern: '5 0 * * *' } // Every day at 00:05 AM
+    }).catch(console.error);
+
+    reminderQueue.add('sanctions-sync', {}, {
+      repeat: { pattern: '0 5 * * *' } // Daily at 5:00 AM — refresh the shared OFAC SDN + UN Consolidated lists
+    }).catch(console.error);
+
+    // Daily shipment-report automation — the one job in this file that's
+    // pinned to a specific real-world timezone rather than server-local
+    // time: EAT is the operational timezone this feature is for, and no
+    // other job here has needed to care about the distinction until now.
+    reminderQueue.add('daily-shipment-report', {}, {
+      repeat: { pattern: '0 21 * * *', tz: 'Africa/Dar_es_Salaam' } // Daily at 21:00 EAT
     }).catch(console.error);
 
     gpswoxQueue.add('sync', {}, {
@@ -372,6 +397,12 @@ function startIntervalFallback(): void {
     runComplyExpiryReminderJob().catch(console.error);
     runTRAZReportJob().catch(console.error);
     runCloudTrashExpiryJob().catch(console.error);
+    runOnsiteBackupJob().catch(console.error);
+    runSanctionsSyncJob().catch(console.error);
+    // No tz support on a plain setInterval — this fallback only runs when
+    // Redis/BullMQ is unavailable (standalone dev), so a same-day drift from
+    // the real 21:00 EAT target is an acceptable gap, not a production risk.
+    runDailyShipmentReportJob().catch(console.error);
   }, 24 * 60 * 60 * 1000);
 
   // GPSWOX device sync — every 2 minutes, its own timer since it's far more
@@ -399,6 +430,13 @@ function startIntervalFallback(): void {
   // actually gets probed at.
   setInterval(() => {
     runOnsiteUptimeJob().catch(console.error);
+  }, 60 * 1000);
+
+  // Onsite VPS reachability — every minute; the job itself honours a 5-minute
+  // per-server floor (SERVER_PROBE_INTERVAL_MS), same "scheduler resolution
+  // vs. actual probe rate" split as the uptime job above.
+  setInterval(() => {
+    runOnsiteServerReachabilityJob().catch(console.error);
   }, 60 * 1000);
 
   // Onsite certificate sweep — every six hours. Each pass is a real TLS

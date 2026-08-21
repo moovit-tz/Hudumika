@@ -29,7 +29,7 @@ const traExtractSchema = z.object({
   password: z.string().min(1),
 });
 const tausiImportSchema = z.object({
-  image_base64: z.string().min(1),
+  image_base64: z.string().optional(),
   media_type: z.string().max(100).optional(),
 });
 
@@ -612,8 +612,8 @@ export async function complyRoutes(fastify: FastifyInstance) {
     let extracted: any;
     let simulated: boolean;
 
-    if (!apiKey) {
-      // Simulated result for demo/dev environments without a key configured —
+    if (!apiKey || !image_base64) {
+      // Simulated result for demo/dev environments without a key or when capturing directly —
       // a superadmin can set a real key under Platform Settings → OCR.
       simulated = true;
       extracted = buildSimulatedTausiResult();

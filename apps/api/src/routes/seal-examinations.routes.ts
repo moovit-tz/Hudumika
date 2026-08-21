@@ -16,16 +16,23 @@ const examinationPatchSchema = z.object({
 
 // SEAL examination management (spec, deferred from Increment 3). Rows are
 // created by SealDeclarationService.submit() (see seal-declaration.service.ts)
-// with a simulated selectivity channel assignment — this file only exposes
-// the worklist (triage across declarations) and the completion action.
-// GREEN-channel rows arrive pre-WAIVED and never need an officer's action;
-// this route lets an officer act on YELLOW/RED ones.
+// from the real selectivity channel a human read off the TANESW/TANCIS
+// portal at submission time — this file only exposes the worklist (triage
+// across declarations) and the completion action. GREEN-channel rows arrive
+// pre-WAIVED and never need an officer's action; this route lets an officer
+// act on YELLOW/RED ones.
 
 function mapExamination(row: any) {
   return {
     id: row.id,
     customsEntryId: row.customs_entry_id,
     lotDescription: row.lot_description ?? undefined,
+    // Soft reference (seal_lots.shipment_case_id, not a hard FK — see
+    // 106_seal_bonded_warehouse.sql) back to the ClearOS shipment this lot
+    // originated from, when one exists. Lets Ops Command deep-link an
+    // examination back to its shipment instead of showing it as an
+    // island only SEAL has context for.
+    shipmentCaseId: row.shipment_case_id ?? undefined,
     selectivityChannel: row.selectivity_channel,
     examinationType: row.examination_type,
     status: row.status,
@@ -47,13 +54,14 @@ export async function sealExaminationRoutes(fastify: FastifyInstance) {
 
   fastify.get('/examinations', async (request: any, reply) => {
     try {
-      const { status, customs_entry_id } = request.query as { status?: string; customs_entry_id?: string };
+      const { status, customs_entry_id, shipment_case_id } = request.query as { status?: string; customs_entry_id?: string; shipment_case_id?: string };
       const rows = await withTenant(request.user.tenant_id, trx => {
         let q = trx.selectFrom('seal_examinations')
           .leftJoin('seal_customs_entries', 'seal_customs_entries.id', 'seal_examinations.customs_entry_id')
           .leftJoin('seal_lots', 'seal_lots.id', 'seal_customs_entries.lot_id')
           .select([
             'seal_examinations.id', 'seal_examinations.customs_entry_id', 'seal_lots.description as lot_description',
+            'seal_lots.shipment_case_id',
             'seal_examinations.selectivity_channel', 'seal_examinations.examination_type', 'seal_examinations.status',
             'seal_examinations.officer_name', 'seal_examinations.officer_reference', 'seal_examinations.scheduled_at',
             'seal_examinations.completed_at', 'seal_examinations.outcome', 'seal_examinations.findings',
@@ -63,6 +71,7 @@ export async function sealExaminationRoutes(fastify: FastifyInstance) {
           .orderBy('seal_examinations.created_at', 'desc');
         if (status) q = q.where('seal_examinations.status', '=', status);
         if (customs_entry_id) q = q.where('seal_examinations.customs_entry_id', '=', customs_entry_id);
+        if (shipment_case_id) q = q.where('seal_lots.shipment_case_id', '=', shipment_case_id);
         return q.execute();
       });
       return rows.map(mapExamination);

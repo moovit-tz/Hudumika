@@ -23,6 +23,14 @@ import { OnsiteMonitoring } from '../pages/onsite/OnsiteMonitoring.js';
 import { OnsiteSSL } from '../pages/onsite/OnsiteSSL.js';
 import { OnsiteActivity } from '../pages/onsite/OnsiteActivity.js';
 import { OnsiteSettings } from '../pages/onsite/OnsiteSettings.js';
+import { OnsiteAgencyClients } from '../pages/onsite/OnsiteAgencyClients.js';
+import { OnsiteAgencyClientManage } from '../pages/onsite/OnsiteAgencyClientManage.js';
+import { OnsiteAgencyDirectoryProfile } from '../pages/onsite/OnsiteAgencyDirectoryProfile.js';
+import { OnsiteAgencyDirectoryAdmin } from '../pages/onsite/OnsiteAgencyDirectoryAdmin.js';
+import { OnsiteActivateStandalone } from '../pages/onsite/OnsiteActivateStandalone.js';
+import { OnsiteBackups } from '../pages/onsite/OnsiteBackups.js';
+import { OnsiteSupport } from '../pages/onsite/OnsiteSupport.js';
+import { OnsiteReferrals } from '../pages/onsite/OnsiteReferrals.js';
 
 import { OnsiteWebsiteDetailShell } from '../pages/onsite/OnsiteWebsiteDetailShell.js';
 
@@ -36,32 +44,25 @@ const NAV: SidebarSection[] = [
       { label: 'Domains', icon: 'globe', path: '/onsite/domains' },
       { label: 'Emails', icon: 'mail', path: '/onsite/emails' },
       { label: 'More services', icon: 'shoppingCart', path: '/onsite/services' },
+      { label: 'Support', icon: 'helpCircle', path: '/onsite/support' },
     ],
   },
   {
-    title: 'Onsite apps',
+    title: 'Agency',
     items: [
-      { label: 'Horizons', icon: 'sparkle', path: '/onsite/horizons' },
-      { label: 'Email marketing', icon: 'send', path: '/onsite/email-marketing' },
-      { label: 'Ecommerce', icon: 'shoppingCart', path: '/onsite/ecommerce' },
-    ],
-  },
-  {
-    title: 'AI agents',
-    items: [
-      { label: 'Agent', icon: 'sparkle', path: '/onsite/ai-agent' },
-      { label: 'OpenClaw', icon: 'terminal', path: '/onsite/openclaw' },
-      { label: 'Hermes Agent', icon: 'zap', path: '/onsite/hermes' },
-      { label: 'n8n Workflow', icon: 'gitBranch', path: '/onsite/n8n' },
+      { label: 'Clients', icon: 'users', path: '/onsite/agency/clients' },
+      { label: 'Directory listing', icon: 'briefcase', path: '/onsite/agency/directory-profile' },
+      { label: 'Directory moderation', icon: 'shield', path: '/onsite/agency/directory-admin' },
+      { label: 'Referrals', icon: 'link', path: '/onsite/agency/referrals' },
     ],
   },
   {
     title: 'Dev tools',
     items: [
       { label: 'VPS', icon: 'monitor', path: '/onsite/servers' },
-      { label: 'GPU Compute', icon: 'bolt', path: '/onsite/gpu' },
-      { label: 'API Keys', icon: 'key', path: '/onsite/settings' },
-      { label: 'AI Router', icon: 'compass', path: '/onsite/ai-router' },
+      { label: 'Projects', icon: 'folder', path: '/onsite/projects' },
+      { label: 'Provider connections', icon: 'key', path: '/onsite/settings' },
+      { label: 'Backups', icon: 'layers', path: '/onsite/backups' },
     ],
   },
   {
@@ -82,7 +83,7 @@ export function OnsiteShell() {
   // sidebar icon and entitlement, and the header renders "oneSite / Web & CMS"
   // over the infrastructure console.
   return (
-    <WorkspaceApp appId="onsite">
+    <WorkspaceApp appId="onsite" bypassGatePaths={['/onsite/activate']}>
       <div className="app-shell">
         <AppSidebar appId="onsite" sections={NAV} />
         <div className="app-main">
@@ -100,6 +101,14 @@ export function OnsiteShell() {
                 <Route path="domains/:domainId/dns" element={<OnsiteDNS />} />
                 <Route path="emails" element={<OnsiteEmails />} />
                 <Route path="services" element={<OnsiteServices />} />
+                <Route path="support" element={<OnsiteSupport />} />
+                <Route path="agency/clients" element={<OnsiteAgencyClients />} />
+                <Route path="agency/clients/:clientTenantId" element={<OnsiteAgencyClientManage />} />
+                <Route path="agency/directory-profile" element={<OnsiteAgencyDirectoryProfile />} />
+                <Route path="agency/directory-admin" element={<OnsiteAgencyDirectoryAdmin />} />
+                <Route path="agency/referrals" element={<OnsiteReferrals />} />
+                <Route path="activate" element={<OnsiteActivateStandalone />} />
+                <Route path="backups" element={<OnsiteBackups />} />
 
                 {/* Dev Tools & Infrastructure */}
                 <Route path="projects" element={<OnsiteProjects />} />

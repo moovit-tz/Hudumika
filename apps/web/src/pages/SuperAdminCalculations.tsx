@@ -96,7 +96,7 @@ export const SuperAdminCalculations: React.FC = () => {
       `}</style>
 
       <PageHeader
-        crumbs={['Platform', 'Calculations']}
+        crumbs={['HuduBI', 'Calculations']}
         titlePlain="Landed Cost"
         titleEm="Activity"
         subtitle="Every calculation run across all tenants — what is being priced, from where, and by whom. Summary figures only."

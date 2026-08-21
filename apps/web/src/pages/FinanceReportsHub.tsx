@@ -4,6 +4,7 @@ import { PageHeader } from '../components/PageHeader.js';
 import { Icon, type IconName } from '../components/Icon.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { Badge } from '../components/ui/badge.js';
+import { useAuth } from '../hooks/useAuth.js';
 
 /**
  * The index for /finance/reports.
@@ -30,6 +31,10 @@ interface ReportLink {
   /** Which app owns the underlying records. Shown so it is obvious when a
    *  report reads another app's data rather than FinOps' own. */
   source?: string;
+  /** Cross-tenant, dbPlatform-backed pages under HuduBI's SUPER_ADMIN
+   *  section — pointless (and misleading) to show a card for these to a
+   *  tenant user who will just be bounced by RequireRoles on click. */
+  superAdminOnly?: boolean;
 }
 
 const STATEMENTS: ReportLink[] = [
@@ -79,8 +84,8 @@ const CROSS_APP: ReportLink[] = [
   { to: '/tracking/reports', label: 'Fleet Reports', icon: 'fileText',
     variant: 'info', source: 'HuduFreight',
     blurb: 'Operational reports for vehicles, drivers and maintenance.' },
-  { to: '/admin/trade-wizard-analytics', label: 'Trade Wizard Analytics', icon: 'search',
-    variant: 'gray', source: 'Platform',
+  { to: '/hudubi/trade-wizard-analytics', label: 'Trade Wizard Analytics', icon: 'search',
+    variant: 'gray', source: 'HuduBI', superAdminOnly: true,
     blurb: 'What tenants search for, and the permits it resolves to.' },
 ];
 
@@ -123,7 +128,11 @@ function Section({ title, hint, items }: { title: string; hint: string; items: R
   );
 }
 
-export const FinanceReportsHub: React.FC = () => (
+export const FinanceReportsHub: React.FC = () => {
+  const { user } = useAuth();
+  const crossApp = CROSS_APP.filter(r => !r.superAdminOnly || user?.role === 'SUPER_ADMIN');
+
+  return (
   <div>
     <PageHeader
       crumbs={['FinOps', 'Reports']}
@@ -145,7 +154,7 @@ export const FinanceReportsHub: React.FC = () => (
     <Section
       title="Across the platform"
       hint="Operational reports owned by another app. The badge names which one, so it is clear whose records you are reading."
-      items={CROSS_APP}
+      items={crossApp}
     />
 
     <div className="card" style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
@@ -160,4 +169,5 @@ export const FinanceReportsHub: React.FC = () => (
       </div>
     </div>
   </div>
-);
+  );
+};

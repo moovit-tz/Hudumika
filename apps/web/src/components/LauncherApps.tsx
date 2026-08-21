@@ -35,8 +35,10 @@ export const LAUNCHER_APPS: Array<{ id: string; name: string; color: string; pat
   // AppId union. Without an entry here it appeared in neither this launcher
   // nor the workspace hub, since WorkspaceHome builds its grid from this
   // same list.
+  { id: 'notes',     name: 'Notes',    color: '#fbbc04', path: '/notes'    },
   { id: 'onsite',    name: 'Onsite',   color: '#0f172a', path: '/onsite'    },
   { id: 'hudubi',    name: 'HuduBI',   color: '#18181b', path: '/hudubi'    },
+  { id: 'petti',     name: 'Petti',    color: '#16a34a', path: '/petti'     },
 ];
 
 // ── App SVG icons for launcher ─────────────────────────────────
@@ -63,10 +65,12 @@ export const LAUNCHER_SVG_ICONS: Record<string, React.ReactElement> = {
   oneid:    (<g><circle cx="20" cy="12" r="5.5" fill="white"/><path d="M7 38C7 26.5 12.5 21 20 21C27.5 21 33 26.5 33 38Z" fill="white"/><path d="M14 38C14 30.5 16.5 27.5 20 27.5C23.5 27.5 26 30.5 26 38Z" fill="#4361EE"/></g>),
   tracking: (<g><path d="M20 4C13 4 8 9.5 8 16C8 25 20 36 20 36C20 36 32 25 32 16C32 9.5 27 4 20 4Z" fill="white"/><circle cx="20" cy="16" r="5.5" fill="#0891b2"/></g>),
   calendar: (<g fill="white"><path d="M11 9h18v3H11z" /><path d="M11 14h18v15H11z" opacity="0.6"/><rect x="15" y="6" width="2" height="5" rx="1" fill="white" /><rect x="23" y="6" width="2" height="5" rx="1" fill="white" /></g>),
+  notes:    (<g stroke="white" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="7" width="22" height="26" rx="3"/><line x1="14" y1="14" x2="26" y2="14"/><line x1="14" y1="20" x2="26" y2="20"/><line x1="14" y1="26" x2="21" y2="26"/></g>),
   tasks:    (<g stroke="white" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round"><path d="M14 20l4 4 8-8" /><circle cx="20" cy="20" r="10" /></g>),
   demurrage: (<g stroke="white" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L34 30H6Z"/><line x1="20" y1="15" x2="20" y2="23"/><circle cx="20" cy="27" r="0.6" fill="white"/></g>),
   cargotracker: (<g stroke="white" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="10" width="17" height="14"/><path d="M21 15h6l5 5v4h-11z"/><circle cx="11" cy="27" r="2.3" fill="white" stroke="none"/><circle cx="26" cy="27" r="2.3" fill="white" stroke="none"/></g>),
   hudubi: (<g fill="white"><rect x="8" y="24" width="5.5" height="10" rx="1.5"/><rect x="17.25" y="16" width="5.5" height="18" rx="1.5" opacity="0.85"/><rect x="26.5" y="8" width="5.5" height="26" rx="1.5" opacity="0.7"/><path d="M7 18 L16 11 L23 15 L33 6" stroke="#fcd34d" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round"/><circle cx="33" cy="6" r="2" fill="#fcd34d"/></g>),
+  petti: (<g><path d="M7 12C7 9.8 8.8 8 11 8H27C29.2 8 31 9.8 31 12V13H11C8.8 13 7 14.8 7 17V26C7 28.2 8.8 30 11 30H29C30.7 30 32 28.7 32 27V16C32 14.3 30.7 13 29 13" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/><path d="M7 17V27C7 29.2 8.8 31 11 31H29C30.7 31 32 29.7 32 28V16" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" opacity="0.55"/><circle cx="25.5" cy="21.5" r="2.4" fill="#facc15"/></g>),
   // Not part of LAUNCHER_APPS (that list is shared with the header/AppLauncher
   // switcher, which every tenant user sees, unfiltered by role) — this icon is
   // only referenced directly, by id, from WorkspaceHome's own SUPER_ADMIN-only

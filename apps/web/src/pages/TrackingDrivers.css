@@ -25,8 +25,8 @@
    directly beneath the real PageHeader saying the same thing. */
 
 .drv-add-btn {
-  background: var(--teal);
-  color: #fff;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
   border: none;
   border-radius: var(--r);
   padding: var(--ds-btn-py) 16px;

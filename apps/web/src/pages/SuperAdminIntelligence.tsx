@@ -76,7 +76,7 @@ export const SuperAdminIntelligence: React.FC = () => {
       `}</style>
 
       <PageHeader
-        crumbs={['Platform', 'Intelligence']}
+        crumbs={['HuduBI', 'Intelligence']}
         titlePlain="Platform"
         titleEm="Intelligence"
         subtitle="What the apps have got right and wrong, aggregated across every tenant — for finding defects that no single workspace can see."

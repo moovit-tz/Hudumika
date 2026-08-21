@@ -75,6 +75,8 @@ export interface PostingRequest {
   sourceModule: SourceModule;
   sourceId?: string;
   createdBy?: string;
+  /** Tags this entry to one of the tenant's accounting_entities (M8, multi-entity accounting). Omit for a tenant with no branches — unchanged from before this field existed. */
+  entityId?: string;
   lines: PostingLineInput[];
 }
 

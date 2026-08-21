@@ -7,11 +7,25 @@ import type { OnsiteServer } from '@hudumika/types';
 import { Icon } from '../../components/Icon.js';
 import './Onsite.css';
 
+// onsite_servers.status's real check constraint (209_onsite_core.sql) is
+// unknown/running/stopped/error/provisioning/deleted — not every value has
+// its own badge colour in Onsite.css, so map onto the closest one that does
+// rather than rendering an uncoloured badge for 'stopped'/'provisioning'.
+const STATUS_META: Record<string, { badge: string; label: string }> = {
+  unknown:      { badge: 'unknown',  label: 'Not checked yet' },
+  running:      { badge: 'running',  label: 'Running' },
+  stopped:      { badge: 'error',    label: 'Not responding' },
+  error:        { badge: 'error',    label: 'Error' },
+  provisioning: { badge: 'pending',  label: 'Provisioning' },
+  deleted:      { badge: 'unknown',  label: 'Deleted' },
+};
+
 export function OnsiteServers() {
   const [servers, setServers] = useState<OnsiteServer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [checking, setChecking] = useState<string | null>(null);
 
   const [name, setName] = useState('');
   const [ipAddress, setIpAddress] = useState('');
@@ -61,13 +75,25 @@ export function OnsiteServers() {
     }
   };
 
+  const handleCheckNow = async (id: string) => {
+    setChecking(id);
+    try {
+      await apiFetch(`/v1/onsite/servers/${id}/check`, { method: 'POST' });
+      fetchServers();
+    } catch (err: any) {
+      showAlert(err.message || 'Could not check this server.', { variant: 'error' });
+    } finally {
+      setChecking(null);
+    }
+  };
+
   return (
     <div className="onsite-page">
       <PageHeader
         crumbs={['Onsite', 'Servers']}
         titlePlain="Compute"
         titleEm="servers"
-        subtitle="Monitor Virtual Private Servers (VPS), bare metal, and cloud instances."
+        subtitle="Track reachability for your Virtual Private Servers (VPS), bare metal, and cloud instances."
         actions={<><button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
                     <Icon name="plus" size={16} /> Add Server
                   </button></>}
@@ -86,7 +112,7 @@ export function OnsiteServers() {
           <Icon name="monitor" size={48} style={{ color: 'var(--ink-muted)', margin: '0 auto 1rem auto' }} />
           <h3>No servers connected</h3>
           <p style={{ color: 'var(--ink-muted)', marginBottom: '1.5rem' }}>
-            Add your cloud VPS or bare metal server to monitor RAM, CPU, and disk usage.
+            Add your cloud VPS or bare metal server to track whether it's reachable. Live CPU/RAM/disk usage needs an agent installed on the box, which isn't available yet.
           </p>
           <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
             <Icon name="plus" size={16} /> Add Compute Instance
@@ -123,11 +149,24 @@ export function OnsiteServers() {
                       </span>
                     </td>
                     <td>
-                      <span className={`onsite-badge ${s.status}`}>
-                        {s.status}
+                      <span className={`onsite-badge ${(STATUS_META[s.status] ?? STATUS_META.unknown).badge}`}>
+                        {(STATUS_META[s.status] ?? STATUS_META.unknown).label}
                       </span>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--ink-muted)', marginTop: '0.2rem' }}>
+                        {s.last_checked_at ? `Checked ${new Date(s.last_checked_at).toLocaleString()}` : 'Never checked'}
+                      </div>
                     </td>
                     <td>
+                      {s.ip_address && (
+                        <button
+                          className="btn btn-sm btn-ghost"
+                          disabled={checking === s.id}
+                          onClick={() => handleCheckNow(s.id)}
+                          title="Check reachability now"
+                        >
+                          <Icon name="refresh" size={14} className={checking === s.id ? 'onsite-spin' : ''} />
+                        </button>
+                      )}
                       <button className="btn btn-sm btn-ghost" style={{ color: '#ef4444' }} onClick={() => handleDelete(s.id, s.name)}>
                         <Icon name="trash2" size={14} />
                       </button>

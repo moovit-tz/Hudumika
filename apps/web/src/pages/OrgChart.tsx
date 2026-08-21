@@ -423,7 +423,7 @@ function Sidebar({ node, allNodes, staffList, onClose, onSave, onDelete, saving 
       <div style={{ padding: '14px 20px', borderTop: '1px solid var(--border)', display: 'flex', gap: 10 }}>
         <button type="button" onClick={() => onSave(node.id, form)} disabled={saving || !form.label.trim()}
           style={{ flex: 1, padding: '10px', borderRadius: 'var(--r)', border: 'none', cursor: 'pointer',
-            background: 'var(--teal)', color: '#fff', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font)' }}>
+            background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font)' }}>
           {saving ? 'Saving…' : 'Save Changes'}
         </button>
         <button type="button" onClick={() => onDelete(node.id)} disabled={saving}

@@ -30,7 +30,13 @@ const verifyReceiptSchema = z.object({
 
 export async function traRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
-  fastify.addHook('preHandler', requireEntitlement('clearos'));
+  // VFD/EFDMS e-invoicing is fiscalising a sales invoice/receipt for TRA — a
+  // FinOps concern, not a customs-clearance one. Every real caller (Bills,
+  // Expenses, Billing, Settings) is a Finance page; this was gated on
+  // 'clearos' instead, which meant a tenant with Finance but not ClearOS
+  // couldn't reach VAT e-invoicing at all, and a tenant with ClearOS but not
+  // Finance had a live entitlement to an endpoint nothing of theirs ever calls.
+  fastify.addHook('preHandler', requireEntitlement('finops'));
 
   // ── GET /v1/tra/config ──────────────────────────────────────────────────────
   // Returns current TRA VFD configuration status for the tenant.

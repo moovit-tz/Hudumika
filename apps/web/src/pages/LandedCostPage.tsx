@@ -1,11 +1,14 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader.js';
+import { SectionCard } from '../components/SectionCard.js';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { EntityPicker, PickerItem } from '../components/EntityPicker.js';
+import { CustomerLeadPicker, type CustomerLeadDetails } from '../components/CustomerLeadPicker.js';
+import { usePageSEO } from '../hooks/usePageSEO.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { apiFetch } from '../lib/api.js';
 import { HUDUMIKA_FOOTER_HTML } from '../lib/watermark.js';
@@ -2493,6 +2496,7 @@ function ESTIMATE_BY_HEAD(r: MultiItemResult | null): Record<string, number> {
 // ── Main Component ────────────────────────────────────────────────────────────
 
 export const LandedCostPage: React.FC = () => {
+  usePageSEO('Landed Cost Calculator', 'Tanzania EAC CET landed cost calculator — compute full landed cost from CIF to your door, with a live FX rate and a branded PDF estimate.');
   // Read once, before any state initialiser below reads from it.
   const navigate = useNavigate();
   const [urlParams] = useSearchParams();
@@ -2505,6 +2509,10 @@ export const LandedCostPage: React.FC = () => {
   const [customerName,  setCustomerName]  = useState(() => fromDraft(d, 'customerName', ''));
   const [customerEmail, setCustomerEmail] = useState(() => fromDraft(d, 'customerEmail', ''));
   const [customerPhone, setCustomerPhone] = useState(() => fromDraft(d, 'customerPhone', ''));
+  // Not draft-persisted — only the resulting name/email/phone strings above
+  // are (and that's what the PDF actually uses); re-selecting the CRM
+  // record itself isn't needed to restore a draft.
+  const [customerLead, setCustomerLead] = useState<PickerItem | null>(null);
   const [destination,   setDestination]   = useState(() => fromDraft(d, 'destination', 'Dar es Salaam, Tanzania'));
   // Ties this estimate to a real shipment so its actual costs, once logged
   // on the shipment's Ledger, can be compared against it — see
@@ -4505,18 +4513,25 @@ export const LandedCostPage: React.FC = () => {
         {/* RIGHT COLUMN: Step Content Area */}
         <div>
           {step === 1 && (
-            <div className="lcp-card">
+            <>
               <StepCaption index={0} />
-              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Icon name="user" size={18} color="var(--teal)" /> Your Details
-              </div>
+              <SectionCard title="Your details" collapsible={false}>
               <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 22 }}>
                 Who this estimate is for. These appear on the exported PDF and don't affect any figure.
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-                <Field label="Company / Customer Name">
-                  <TextInput value={customerName} onChange={setCustomerName} placeholder="e.g. Harmony New Energy Tanzania Auto Services Ltd" />
+                <Field label="Company / Customer Name" hint="Search real customers & leads, or type a new name to add it as a lead.">
+                  <CustomerLeadPicker
+                    value={customerLead}
+                    onChange={(item: PickerItem | null, details: CustomerLeadDetails | null) => {
+                      setCustomerLead(item);
+                      setCustomerName(details?.name || item?.label || '');
+                      if (details?.email) setCustomerEmail(details.email);
+                      if (details?.phone) setCustomerPhone(details.phone);
+                    }}
+                    source="Landed Cost Calculator"
+                  />
                 </Field>
                 <div className="lcp-btn-row">
                   <Field label="Contact Email">
@@ -4554,15 +4569,14 @@ export const LandedCostPage: React.FC = () => {
               </div>
 
               {navRow}
-            </div>
+              </SectionCard>
+            </>
           )}
 
           {step === 3 && (
-            <div className="lcp-card">
+            <>
               <StepCaption index={2} />
-              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Icon name="package" size={18} color="var(--teal)" /> {itemMode === 'multi' ? 'Confirm Cargo Lines' : 'Cargo Items'}
-              </div>
+              <SectionCard title={itemMode === 'multi' ? 'Confirm cargo lines' : 'Cargo items'} collapsible={false}>
               <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 18 }}>
                 {itemMode === 'multi'
                   // An uploaded invoice carries no HS codes, or carries ones Excel
@@ -4935,15 +4949,14 @@ export const LandedCostPage: React.FC = () => {
               )}
 
               {navRow}
-            </div>
+              </SectionCard>
+            </>
           )}
 
           {step === 2 && (
-            <div className="lcp-card">
+            <>
               <StepCaption index={1} />
-              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Icon name="truck" size={18} color="var(--teal)" /> Shipment Mode &amp; Dimensions
-              </div>
+              <SectionCard title="Shipment mode & dimensions" collapsible={false}>
               <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 24 }}>How the cargo travels. This drives which rate card is used and how port/handling charges are computed.</div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -5154,15 +5167,14 @@ export const LandedCostPage: React.FC = () => {
               )}
 
               {navRow}
-            </div>
+              </SectionCard>
+            </>
           )}
 
           {step === 4 && (
-            <div className="lcp-card">
+            <>
               <StepCaption index={3} />
-              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Icon name="calculator" size={18} color="var(--teal)" /> Results Breakdown
-              </div>
+              <SectionCard title="Results breakdown" collapsible={false}>
               <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 24 }}>
                 {itemMode === 'single' ? (
                   <>
@@ -5305,7 +5317,7 @@ export const LandedCostPage: React.FC = () => {
                         )}
 
                         <button type="button" onClick={runAi} disabled={aiPending}
-                          style={{ width: '100%', padding: 'var(--ds-btn-py) 0', borderRadius: 'var(--r-sm)', border: 'none', background: 'var(--teal)', color: '#fff', fontWeight: 700, fontSize: 14, cursor: aiPending ? 'default' : 'pointer', opacity: aiPending ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: '0 4px 14px color-mix(in srgb, var(--teal) 25%, transparent)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                          style={{ width: '100%', padding: 'var(--ds-btn-py) 0', borderRadius: 'var(--r-sm)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 700, fontSize: 14, cursor: aiPending ? 'default' : 'pointer', opacity: aiPending ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: '0 4px 14px color-mix(in srgb, var(--teal) 25%, transparent)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
                           <Icon name="sparkle" size={14} color="#fff" />
                           {aiPending ? 'Analysing…' : aiError ? 'Retry AI Analysis' : 'Run AI Analysis'}
                         </button>
@@ -5585,7 +5597,8 @@ export const LandedCostPage: React.FC = () => {
               )}
 
               {navRow}
-            </div>
+              </SectionCard>
+            </>
           )}
         </div>
 

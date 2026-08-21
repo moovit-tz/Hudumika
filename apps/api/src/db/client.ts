@@ -51,6 +51,9 @@ export interface TenantsTable {
    *  tenant independent of being anyone's customer. Additive/nullable — the
    *  flow to set it is separate follow-on work, not built alongside this column. */
   organization_id: string | null;
+  /** AgencyHost M8 — which tenant's referral link this tenant signed up
+   *  through, if any. Set once at signup, never reassigned. Migration 250. */
+  referred_by_tenant_id: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -151,6 +154,51 @@ export interface LeadsTable {
   updated_at: Generated<Date>;
 }
 
+/** Every real customer/lead search — see 264_crm_search_history.sql. */
+export interface CrmSearchHistoryTable {
+  id: Generated<string>;
+  tenant_id: string;
+  searched_by: string;
+  query: string;
+  result_count: Generated<number>;
+  source: string | null;
+  created_at: Generated<Date>;
+}
+
+/** Real notes-app storage — see 265_notes_app.sql. */
+export interface NoteLabelsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  name: string;
+  created_by: string;
+  created_at: Generated<Date>;
+}
+
+export interface NotesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  /** Nullable — 266_notes_migrate_existing.sql backfills legacy notes
+   *  pulled from other apps' own single-field notes, which have no real
+   *  per-note author to attribute (see that migration's own header). Every
+   *  note created through the Notes app itself always sets a real one. */
+  created_by: string | null;
+  title: Generated<string>;
+  content: Generated<string>;
+  color: Generated<string>;
+  is_pinned: Generated<boolean>;
+  is_archived: Generated<boolean>;
+  is_trashed: Generated<boolean>;
+  checklist: any; // JSONB: ChecklistItem[]
+  images: string[]; // native text[] — pg driver auto-parses to a native array
+  drawing: string | null;
+  reminder_at: Date | null;
+  label_ids: string[]; // native uuid[]
+  subject_type: string | null;
+  subject_id: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
 export interface CustomersTable {
   /** A real logo, when the company has one. Initials are derived, not stored. */
   logo_url: string | null;
@@ -214,6 +262,14 @@ export interface CustomersTable {
    *  more than one tenant can be tracked as one identity. Nullable/additive —
    *  staff-linked only, no self-service claiming (see organizations.routes.ts). */
   organization_id: string | null;
+  /** AgencyHost M9 — when this customers row (in an agency's own tenant)
+   *  represents one of that agency's real agency_managed_tenants clients,
+   *  this is the exact tenant it stands in for. Migration 249. */
+  linked_client_tenant_id: string | null;
+  /** Daily shipment-report automation (migration 258) — tri-state: NULL =
+   *  platform default (on), true/false = explicit customer-level choice.
+   *  A shipment_cases row can further override this per shipment. */
+  daily_report_enabled: boolean | null;
 }
 
 /** Platform-level identity for a real-world company, sitting above `tenants`
@@ -319,6 +375,9 @@ export interface ShipmentCasesTable {
   whatsapp_bot_active: Generated<boolean>;
   deleted_at: Date | null;
   deleted_by: string | null;
+  /** Daily shipment-report automation (migration 258) — tri-state override
+   *  of the parent customer's daily_report_enabled; NULL = inherit. */
+  daily_report_enabled: boolean | null;
 }
 
 export interface StageHistoryTable {
@@ -1489,6 +1548,26 @@ export interface FreightRateCardsTable {
   valid_to: DateOnlyNull;
   notes: string | null;
   active: Generated<boolean>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface CarrierRateContractsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  carrier_id: string;
+  contract_reference: string | null;
+  mode: string;
+  origin_port: string;
+  destination_port: string;
+  buy_rate: number;
+  currency: Generated<string>;
+  transit_days: number | null;
+  valid_from: DateOnlyNull;
+  valid_to: DateOnlyNull;
+  notes: string | null;
+  active: Generated<boolean>;
+  created_by: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -2954,6 +3033,9 @@ export interface SupportTicketsTable {
   resolution_time_seconds: number | null;
   sla_deadline: Date | null;
   sla_escalated_at: Date | null;
+  /** Which app this ticket originated from, e.g. 'onsite' — null for every
+   *  other channel. See migration 248_support_tickets_source_app.sql. */
+  source_app: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -3203,6 +3285,9 @@ export interface Database {
   organization_users: OrganizationUsersTable;
   customer_claim_codes: CustomerClaimCodesTable;
   leads: LeadsTable;
+  crm_search_history: CrmSearchHistoryTable;
+  notes: NotesTable;
+  note_labels: NoteLabelsTable;
   shipment_cases: ShipmentCasesTable;
   stage_history: StageHistoryTable;
   workflows: WorkflowsTable;
@@ -3275,6 +3360,7 @@ export interface Database {
   quotation_lines: QuotationLinesTable;
   carriers: CarriersTable;
   freight_rate_cards: FreightRateCardsTable;
+  carrier_rate_contracts: CarrierRateContractsTable;
   freight_bookings: FreightBookingsTable;
   // Road Consignments
   road_consignments: RoadConsignmentsTable;
@@ -3387,18 +3473,23 @@ export interface Database {
   // General Ledger
   chart_of_accounts: ChartOfAccountsTable;
   journal_entries: JournalEntriesTable;
+  accounting_entities: AccountingEntitiesTable;
+  intercompany_transactions: IntercompanyTransactionsTable;
   journal_lines: JournalLinesTable;
-  // Purchase Orders & Delivery Notes
+  // Purchase Orders
   purchase_orders: PurchaseOrdersTable;
   purchase_order_lines: PurchaseOrderLinesTable;
-  delivery_notes: DeliveryNotesTable;
-  delivery_note_lines: DeliveryNoteLinesTable;
   // Accounting Integrations
   accounting_integrations: AccountingIntegrationsTable;
   accounting_marketplace_requests: AccountingMarketplaceRequestsTable;
   email_messages: EmailMessagesTable;
   email_templates: EmailTemplatesTable;
   email_outbox: EmailOutboxTable;
+  shipment_report_shares: ShipmentReportSharesTable;
+  transit_route_rates: TransitRouteRatesTable;
+  petti_wallets: PettiWalletsTable;
+  petti_deposits: PettiDepositsTable;
+  petti_withdrawal_requests: PettiWithdrawalRequestsTable;
   accounting_sync_logs: AccountingSyncLogsTable;
   user_totp: UserTotpTable;
   workflow_studio_apps: WorkflowStudioAppsTable;
@@ -3429,6 +3520,10 @@ export interface Database {
   onsite_provider_connections: OnsiteProviderConnectionsTable;
   onsite_health_checks: OnsiteHealthChecksTable;
   onsite_health_check_results: OnsiteHealthCheckResultsTable;
+  onsite_backups: OnsiteBackupsTable;
+  agency_managed_tenants: AgencyManagedTenantsTable;
+  onsite_agency_profiles: OnsiteAgencyProfilesTable;
+  referral_commissions: ReferralCommissionsTable;
   // NexusHR Core
   hr_legal_entities: HrLegalEntitiesTable;
   hr_locations: HrLocationsTable;
@@ -3505,7 +3600,20 @@ export interface Database {
   reference_countries: ReferenceCountriesTable;
   landed_cost_share_leads: LandedCostShareLeadsTable;
   customs_penalties: CustomsPenaltiesTable;
+  sanctions_entries: SanctionsEntriesTable;
+  sanctions_aliases: SanctionsAliasesTable;
+  sanctions_sync_runs: SanctionsSyncRunsTable;
+  sanctions_screenings: SanctionsScreeningsTable;
+  dangerous_goods_reference: DangerousGoodsReferenceTable;
+  dg_declarations: DgDeclarationsTable;
+  origin_rules: OriginRulesTable;
+  certificates_of_origin: CertificatesOfOriginTable;
+  delivery_documents: DeliveryDocumentsTable;
+  delivery_document_lines: DeliveryDocumentLinesTable;
+  depot_equipment: DepotEquipmentTable;
+  equipment_interchange_receipts: EquipmentInterchangeReceiptsTable;
   landed_cost_records: LandedCostRecordsTable;
+  hudubi_widget_definitions: HuduBIWidgetDefinitionsTable;
   hs_classification_events: HsClassificationEventsTable;
   trade_wizard_outcomes: TradeWizardOutcomesTable;
   compliance_outcomes: ComplianceOutcomesTable;
@@ -3882,6 +3990,236 @@ export interface CustomsPenaltiesTable {
   updated_at: Generated<Date>;
 }
 
+export interface SanctionsEntriesTable {
+  id: Generated<string>;
+  source: string;
+  source_uid: string;
+  entry_type: string;
+  primary_name: string;
+  programs: string | null;
+  listed_on: Date | null;
+  remarks: string | null;
+  raw: unknown | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface SanctionsAliasesTable {
+  id: Generated<string>;
+  entry_id: string;
+  alias_name: string;
+}
+
+export interface SanctionsSyncRunsTable {
+  id: Generated<string>;
+  source: string;
+  started_at: Generated<Date>;
+  completed_at: Date | null;
+  status: Generated<string>;
+  entries_count: number | null;
+  error: string | null;
+}
+
+export interface SanctionsScreeningsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  subject_type: string;
+  subject_id: string | null;
+  screened_name: string;
+  best_match_entry_id: string | null;
+  best_match_name: string | null;
+  best_match_score: number | null;
+  status: Generated<string>;
+  reviewed_by: string | null;
+  reviewed_at: Date | null;
+  review_note: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface DangerousGoodsReferenceTable {
+  id: Generated<string>;
+  un_number: string;
+  proper_shipping_name: string;
+  class_or_division: string;
+  subsidiary_risk: string | null;
+  packing_group: string | null;
+  air_transport_restriction: string | null;
+  notes: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface DgDeclarationsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  subject_type: Generated<string>;
+  subject_id: string | null;
+  transport_mode: string;
+  reference_id: string | null;
+  un_number: string;
+  proper_shipping_name: string;
+  class_or_division: string;
+  subsidiary_risk: string | null;
+  packing_group: string | null;
+  packaging_type: string | null;
+  number_of_packages: number | null;
+  net_quantity: number | null;
+  quantity_unit: string | null;
+  air_transport_restriction: string | null;
+  shipper_name: string;
+  shipper_address: string | null;
+  consignee_name: string;
+  consignee_address: string | null;
+  emergency_contact: string | null;
+  additional_handling_info: string | null;
+  status: Generated<string>;
+  issued_by: string | null;
+  issued_at: Date | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface OriginRulesTable {
+  id: Generated<string>;
+  agreement_code: string;
+  hs_match: string;
+  description: string;
+  criteria_type: string;
+  criteria_text: string;
+  max_non_originating_pct: number | null;
+  source_citation: string;
+  created_at: Generated<Date>;
+}
+
+export interface CertificatesOfOriginTable {
+  id: Generated<string>;
+  tenant_id: string;
+  subject_type: Generated<string>;
+  subject_id: string | null;
+  agreement_code: string;
+  hs_code: string;
+  country_of_origin: string;
+  matched_rule_id: string | null;
+  eligibility_status: string;
+  eligibility_basis: string | null;
+  non_originating_value_pct: number | null;
+  wholly_obtained_confirmed: boolean | null;
+  exporter_name: string | null;
+  exporter_address: string | null;
+  consignee_name: string | null;
+  consignee_address: string | null;
+  goods_description: string | null;
+  invoice_number: string | null;
+  certificate_number: string | null;
+  status: Generated<string>;
+  issued_by: string | null;
+  issued_at: Date | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface DeliveryDocumentsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  doc_type: string;
+  doc_number: string | null;
+  subject_type: Generated<string>;
+  subject_id: string | null;
+  invoice_id: string | null;
+  customer_id: string | null;
+  customer_name: string | null;
+  customer_address: string | null;
+  contact_person: string | null;
+  contact_phone: string | null;
+  contact_email: string | null;
+  delivery_address: string | null;
+  city: string | null;
+  containers: Generated<unknown>;
+  carrier_name: string | null;
+  vessel_voyage: string | null;
+  driver_name: string | null;
+  vehicle_no: string | null;
+  driver_contact: string | null;
+  release_conditions: string | null;
+  discrepancy_notes: string | null;
+  valid_from: Date | null;
+  valid_until: Date | null;
+  delivery_date: Date | null;
+  status: Generated<string>;
+  issued_by: string | null;
+  issued_at: Date | null;
+  dispatched_at: Date | null;
+  delivered_at: Date | null;
+  used_at: Date | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface DeliveryDocumentLinesTable {
+  id: Generated<string>;
+  document_id: string;
+  description: string;
+  qty_ordered: Generated<number>;
+  qty_delivered: Generated<number>;
+  unit: string | null;
+  condition: string | null;
+  remarks: string | null;
+  sort_order: Generated<number>;
+}
+
+export interface DepotEquipmentTable {
+  id: Generated<string>;
+  tenant_id: string;
+  equipment_number: string;
+  equipment_type: string;
+  condition: Generated<string>;
+  location: string | null;
+  status: Generated<string>;
+  owner_carrier: string | null;
+  last_movement_at: Date | null;
+  notes: string | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface EquipmentInterchangeReceiptsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  subject_type: Generated<string>;
+  subject_id: string | null;
+  equipment_number: string;
+  direction: string;
+  party_name: string;
+  condition_at_interchange: Generated<string>;
+  damage_notes: string | null;
+  seal_number: string | null;
+  driver_name: string | null;
+  vehicle_reg: string | null;
+  signature_name: string | null;
+  reference_number: string | null;
+  occurred_at: Generated<Date>;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  release_document_id: string | null;
+}
+
+export interface HuduBIWidgetDefinitionsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  name: string;
+  metric_key: string;
+  chart_type: Generated<string>;
+  filters: Generated<unknown>;
+  sort_order: Generated<number>;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
 export interface HsClassificationEventsTable {
   id: Generated<string>;
   tenant_id: string;
@@ -3974,6 +4312,65 @@ export interface LandedCostRecordsTable {
   /** The shipment this estimate was produced for, when there was one.
    *  No FK: shipment_cases is partitioned on (id, created_at). */
   shipment_id: string | null;
+}
+
+export interface TransitRouteRatesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  destination: string;
+  border_post: string | null;
+  distance_km: Generated<number>;
+  transport_20ft_usd: Generated<number>;
+  transport_40ft_usd: Generated<number>;
+  weighbridge_count: Generated<number>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface PettiWalletsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  name: string;
+  description: string | null;
+  gl_account_id: string;
+  currency: Generated<string>;
+  status: Generated<string>;
+  created_by: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface PettiDepositsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  wallet_id: string;
+  amount: number;
+  method: Generated<string>;
+  gateway_provider: string | null;
+  gateway_tx_ref: string | null;
+  reference: string | null;
+  note: string | null;
+  journal_entry_id: string | null;
+  recorded_by: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface PettiWithdrawalRequestsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  wallet_id: string;
+  amount: number;
+  category: Generated<string>;
+  purpose: string;
+  status: Generated<string>;
+  requested_by: string;
+  requested_at: Generated<Date>;
+  approved_by: string | null;
+  approved_at: Date | null;
+  rejection_reason: string | null;
+  disbursed_by: string | null;
+  disbursed_at: Date | null;
+  finance_expense_id: string | null;
+  journal_entry_id: string | null;
 }
 
 export interface ReferenceCountriesTable {
@@ -4094,6 +4491,10 @@ export interface VehicleExpensesTable {
   vendor_id: string | null;
   created_by: string | null;
   created_at: Generated<Date>;
+  /** Fleet expense → customer invoice bridge, migration 260. */
+  trip_id: string | null;
+  billable: Generated<boolean>;
+  invoice_id: string | null;
 }
 
 export interface VehicleMeterReadingsTable {
@@ -4448,6 +4849,20 @@ export interface EmailOutboxTable {
   next_attempt_at: Generated<Date>;
   created_at:      Generated<Date>;
   sent_at:         Date | null;
+  /** Daily shipment-report automation (migration 258) — storage_key of a
+   *  generated PDF to attach; NULL for every other email in this queue. */
+  attachment_storage_key: string | null;
+  attachment_filename:    string | null;
+}
+
+export interface ShipmentReportSharesTable {
+  id: Generated<string>;
+  token: string;
+  tenant_id: string;
+  shipment_id: string;
+  view_count: Generated<number>;
+  created_by: string | null;
+  created_at: Generated<Date>;
 }
 
 export interface UserTotpTable {
@@ -4568,6 +4983,7 @@ export interface ChartOfAccountsTable {
   is_active: Generated<boolean>;
   normal_balance: 'DEBIT' | 'CREDIT' | null;
   currency: Generated<string>;
+  entity_id: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -4587,6 +5003,40 @@ export interface JournalEntriesTable {
   voided_at: Date | null;
   voided_by: string | null;
   void_reason: string | null;
+  entity_id: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface AccountingEntitiesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  name: string;
+  entity_code: string;
+  country_code: string | null;
+  currency: Generated<string>;
+  tax_id: string | null;
+  registered_address: string | null;
+  active: Generated<boolean>;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface IntercompanyTransactionsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  from_entity_id: string;
+  to_entity_id: string;
+  description: string;
+  amount: number;
+  currency: Generated<string>;
+  from_account_code: string;
+  to_account_code: string;
+  ar_journal_entry_id: string | null;
+  ap_journal_entry_id: string | null;
+  status: Generated<string>;
+  created_by: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -4639,32 +5089,6 @@ export interface PurchaseOrderLinesTable {
   tax_amount: Generated<number>;
   line_total: Generated<number>;
   received_qty: Generated<number>;
-  sort_order: Generated<number>;
-}
-
-export interface DeliveryNotesTable {
-  id: Generated<string>;
-  tenant_id: string;
-  dn_number: string;
-  invoice_id: string | null;
-  customer_id: string | null;
-  customer_name: string | null;
-  delivery_date: DateOnlyNull;
-  status: Generated<string>;
-  notes: string | null;
-  created_by: string | null;
-  created_at: Generated<Date>;
-  updated_at: Generated<Date>;
-}
-
-export interface DeliveryNoteLinesTable {
-  id: Generated<string>;
-  dn_id: string;
-  description: string;
-  qty_ordered: Generated<number>;
-  qty_delivered: Generated<number>;
-  unit: string | null;
-  notes: string | null;
   sort_order: Generated<number>;
 }
 
@@ -5799,6 +6223,18 @@ export interface OnsiteHealthCheckResultsTable {
   error: string | null;
 }
 
+export interface OnsiteBackupsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  trigger: 'manual' | 'scheduled';
+  status: Generated<string>; // 'completed' | 'failed'
+  snapshot: unknown; // jsonb — see onsite-backup.service.ts's OnsiteConfigSnapshot
+  size_bytes: number;
+  error_message: string | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+}
+
 export interface OnsiteHealthChecksTable {
   id: Generated<string>;
   tenant_id: string;
@@ -5817,6 +6253,77 @@ export interface OnsiteHealthChecksTable {
   application_id: string | null;
   domain_id: string | null;
   notify_on_fail: Generated<boolean>;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+/**
+ * AgencyHost M1 — the relationship between an agency tenant and a client
+ * tenant it manages. Deliberately no `tenant_id` column: this table spans
+ * two tenants by design (agency_tenant_id, client_tenant_id), same shape as
+ * OrganizationsTable's own reasoning for having none. See migration
+ * 243_agency_managed_tenants.sql for why it carries no RLS policy either.
+ */
+export interface AgencyManagedTenantsTable {
+  id: Generated<string>;
+  agency_tenant_id: string;
+  client_tenant_id: string;
+  status: Generated<string>; // 'active' | 'detached'
+  attached_at: Generated<Date>;
+  detached_at: Date | null;
+  created_by: string | null;
+  detached_by: string | null;
+  created_at: Generated<Date>;
+}
+
+/**
+ * AgencyHost M8 — a real commission earned by referring_tenant_id when
+ * referred_tenant_id made its first real payment. No RLS — platform-level,
+ * dual-tenant, same precedent as AgencyManagedTenantsTable. payout_method/
+ * payout_note stay null until a SUPER_ADMIN manually records an out-of-band
+ * payout (bank transfer etc.) — there is no real disbursement provider
+ * connected anywhere in this platform yet; see referral-payout.service.ts.
+ */
+export interface ReferralCommissionsTable {
+  id: Generated<string>;
+  referring_tenant_id: string;
+  referred_tenant_id: string;
+  amount: string; // numeric(14,2) — Kysely/pg return numeric as string
+  currency: string;
+  rate: string; // numeric(5,4)
+  source_payment_ref: string | null;
+  status: Generated<string>; // 'pending' | 'flagged' | 'approved' | 'paid' | 'rejected'
+  flagged_reason: string | null;
+  created_at: Generated<Date>;
+  decided_at: Date | null;
+  decided_by: string | null;
+  paid_at: Date | null;
+  payout_method: string | null;
+  payout_note: string | null;
+}
+
+/**
+ * AgencyHost M7 — a tenant's public listing in the agency directory.
+ * `tenant_id` is UNIQUE (one profile per agency). No RLS, deliberately —
+ * same reasoning as marketplace_apps: an approved row must be visible to a
+ * caller with no tenant session at all. client_count is intentionally NOT a
+ * column here — it's a live COUNT(*) against agency_managed_tenants
+ * computed at read time in onsite-agency-directory.routes.ts, never stored.
+ */
+export interface OnsiteAgencyProfilesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  headline: string;
+  description: string;
+  service_tags: Generated<unknown>; // jsonb string[]
+  portfolio_links: Generated<unknown>; // jsonb string[]
+  pricing_tier: string; // 'budget' | 'standard' | 'premium'
+  region: string | null;
+  languages: Generated<unknown>; // jsonb string[]
+  status: Generated<string>; // 'pending' | 'approved' | 'rejected'
+  profile_views: Generated<number>;
+  inquiries_count: Generated<number>;
   created_by: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;

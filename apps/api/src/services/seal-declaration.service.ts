@@ -19,19 +19,6 @@ export class ExaminationPending extends Error {
   }
 }
 
-// Simulates TANCIS's real selectivity assignment at submission (spec's own
-// examination-management scope, Increment 4) — weighted toward GREEN like a
-// real risk-based system, not a coin flip. GREEN never needs an officer to
-// act, so its examination row is created already WAIVED/CLEARED — the row
-// still exists (so the UI always has something to show for "what channel
-// was this"), it's just not a blocker.
-function assignSelectivityChannel(): 'GREEN' | 'YELLOW' | 'RED' {
-  const r = Math.random();
-  if (r < 0.7) return 'GREEN';
-  if (r < 0.9) return 'YELLOW';
-  return 'RED';
-}
-
 // Which customs_status an ex-warehouse declaration moves its lot to on
 // release — mirrors the legal transitions already enforced in seal.ts's
 // CUSTOMS_STATUS_TRANSITIONS, so SealService.recordMovement's own legality
@@ -114,14 +101,22 @@ export class SealDeclarationService {
     }).where('tenant_id', '=', tenantId).where('id', '=', entryId).returningAll().executeTakeFirstOrThrow();
   }
 
-  static async submit(trx: Transaction<Database>, tenantId: string, entryId: string, humanProvidedReference: string) {
+  // The selectivity channel is the real TANESW/TANCIS result, typed in by
+  // the same officer who is, in this same action, typing in the reference
+  // number from that identical portal submission — not simulated. Matches
+  // ClearOS's own declarations.routes.ts, which has always treated this
+  // field as manually-recorded rather than invented; the two now agree.
+  static async submit(trx: Transaction<Database>, tenantId: string, entryId: string, humanProvidedReference: string, humanProvidedChannel: 'GREEN' | 'YELLOW' | 'RED') {
     const entry = await trx.selectFrom('seal_customs_entries').selectAll().where('tenant_id', '=', tenantId).where('id', '=', entryId).executeTakeFirstOrThrow();
     if (entry.status !== 'DRAFT') throw new Error(`Only a DRAFT declaration can be submitted (this one is ${entry.status}).`);
 
     const adapter = getCustomsAdapter(entry.jurisdiction);
     const receipt = await adapter.submitDeclaration({ entryId, humanProvidedReference });
 
-    const channel = assignSelectivityChannel();
+    // GREEN never needs an officer to act, so its examination row is created
+    // already WAIVED/CLEARED — the row still exists (so the UI always has
+    // something to show for "what channel was this"), it's just not a blocker.
+    const channel = humanProvidedChannel;
     await trx.insertInto('seal_examinations').values({
       tenant_id: entry.tenant_id,
       customs_entry_id: entryId,

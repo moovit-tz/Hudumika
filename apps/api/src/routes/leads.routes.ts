@@ -3,7 +3,11 @@ import { z } from 'zod';
 import { withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 
-const LEAD_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'SALES'] as const;
+// SENIOR/JUNIOR/OFFICER added alongside the original CRM-pipeline roles —
+// the landed-cost calculators (OPS_ROLES-gated) let clearing staff create a
+// lead inline for a prospect who isn't a customer yet, so whoever can run a
+// calculator needs to be able to search/create leads, not just Sales/Mgmt.
+const LEAD_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'SALES', 'SENIOR', 'JUNIOR', 'OFFICER'] as const;
 // Real values — 128_crm_leads.sql's CHECK constraints.
 const LEAD_STAGES = ['NEW', 'CONTACTED', 'QUALIFIED', 'PROPOSAL', 'NEGOTIATION', 'WON', 'LOST'] as const;
 const LEAD_PRIORITIES = ['HIGH', 'MEDIUM', 'LOW'] as const;

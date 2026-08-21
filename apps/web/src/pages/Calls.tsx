@@ -179,7 +179,7 @@ export function Calls() {
               return (
                 <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 6px', borderBottom: '1px solid var(--border)' }}>
                   <div style={{ position: 'relative', flexShrink: 0 }}>
-                    <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'var(--teal)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700 }}>{ini(p.name)}</div>
+                    <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700 }}>{ini(p.name)}</div>
                     <span style={{ position: 'absolute', right: -1, bottom: -1, width: 10, height: 10, borderRadius: '50%', border: '2px solid var(--white)', background: isOnline ? 'var(--green)' : 'var(--ink3)' }} />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -230,7 +230,7 @@ export function Calls() {
       {callState === 'incoming' && peer && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ background: 'var(--white)', borderRadius: 18, padding: 32, width: 340, textAlign: 'center', boxShadow: 'var(--elev-lg)' }}>
-            <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'var(--teal)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, fontWeight: 700, margin: '0 auto 14px' }}>{ini(peer.name)}</div>
+            <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, fontWeight: 700, margin: '0 auto 14px' }}>{ini(peer.name)}</div>
             <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)' }}>{peer.name}</div>
             <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 4, marginBottom: 24 }}>Incoming {kind === 'VIDEO' ? 'video' : 'voice'} call…</div>
             <div style={{ display: 'flex', gap: 14, justifyContent: 'center' }}>

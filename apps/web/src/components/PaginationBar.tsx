@@ -63,7 +63,7 @@ export function PaginationBar({
         {pages.map((p, i) => p === '…'
           ? <span key={`e${i}`} style={{ fontSize: 13, color: 'var(--ink3)', padding: '0 2px' }}>…</span>
           : <button key={p} type="button" onClick={() => onPageChange(p as number)}
-              style={{ ...btn, cursor: 'pointer', background: page === p ? 'var(--teal)' : 'var(--white)', color: page === p ? '#fff' : 'var(--ink)' }}>
+              style={{ ...btn, cursor: 'pointer', background: page === p ? 'hsl(var(--primary))' : 'var(--white)', color: page === p ? 'hsl(var(--primary-foreground))' : 'var(--ink)' }}>
               {p}
             </button>
         )}

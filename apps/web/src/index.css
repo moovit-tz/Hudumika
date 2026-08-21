@@ -660,7 +660,7 @@ body {
 /* Primary button */
 .auth-btn-primary {
   width: 100%; height: 42px;
-  background: var(--teal); color: #fff;
+  background: hsl(var(--primary)); color: hsl(var(--primary-foreground));
   border: none; border-radius: 9px;
   font-size: 14px; font-weight: 600;
   cursor: pointer; font-family: var(--font);
@@ -732,7 +732,7 @@ body {
 }
 .auth-verify-num {
   width: 20px; height: 20px; flex-shrink: 0;
-  background: var(--teal); color: #fff;
+  background: hsl(var(--primary)); color: hsl(var(--primary-foreground));
   border-radius: 50%; font-size: 11px; font-weight: 700;
   display: flex; align-items: center; justify-content: center;
 }
@@ -1104,7 +1104,7 @@ body {
 .btn-md  { padding: var(--ds-btn-py, 7px) 20px; font-size: 14px; min-height: var(--ctl-h); }
 .btn-lg  { padding: var(--ds-btn-py-lg, 10px) 24px; font-size: 15px; min-height: var(--ctl-h-lg); }
 
-.btn-primary   { background: var(--teal); color: #fff; border-color: var(--teal); }
+.btn-primary   { background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); border-color: hsl(var(--primary)); }
 .btn-primary:hover { filter: brightness(0.88); }
 
 .btn-secondary { background: var(--white); color: var(--ink); border-color: var(--border); }
@@ -1315,8 +1315,8 @@ select.input-field { cursor: pointer; }
   height: 15px;
   padding: 0 4px;
   border-radius: 20px;
-  background: var(--teal);
-  color: #fff;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
   font-size: 9.5px;
   font-weight: 700;
   line-height: 1;
@@ -1352,7 +1352,6 @@ select.input-field { cursor: pointer; }
 .th-ref     { width: 130px; flex-shrink: 0; }
 .th-type    { width: 80px;  flex-shrink: 0; }
 .th-desc    { flex: 1; }
-.th-decl    { width: 196px; flex-shrink: 0; padding-right: 12px; }
 .th-stage   { width: 160px; flex-shrink: 0; padding: 0 12px; }
 .th-status  { width: 140px; flex-shrink: 0; }
 .th-officer { width: 100px; flex-shrink: 0; }
@@ -2668,8 +2667,8 @@ select.input-field { cursor: pointer; }
   transition: background 0.12s, color 0.12s, box-shadow 0.12s;
 }
 .cc-view-btn.active {
-  background: var(--teal);
-  color: #fff;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
   box-shadow: var(--elev-sm);
 }
 .cc-view-btn:not(.active):hover { background: var(--white); color: var(--ink2); }
@@ -3482,8 +3481,8 @@ select.input-field { cursor: pointer; }
 .hub2-plan-btn {
   font-size: 13px;
   font-weight: 700;
-  color: #fff;
-  background: var(--teal);
+  color: hsl(var(--primary-foreground));
+  background: hsl(var(--primary));
   border: none;
   border-radius: 9px;
   padding: var(--ds-btn-py) 20px;
@@ -5208,7 +5207,7 @@ html:not([data-theme="dark"]) .page-layout {
 
 .fin-page-btn:hover:not(:disabled) { background: var(--white); border-color: var(--teal); color: var(--teal); }
 .fin-page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-.fin-page-btn--active { background: var(--teal); color: #fff; border-color: var(--teal); }
+.fin-page-btn--active { background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); border-color: hsl(var(--primary)); }
 .fin-page-btn--active:hover { background: var(--teal); }
 .fin-page-btn--nav { padding: 0 12px; font-size: 13px; }
 
@@ -5686,8 +5685,8 @@ html:not([data-theme="dark"]) .page-layout {
   padding: var(--ds-btn-py) 14px;
   border-radius: 7px;
   border: none;
-  background: var(--teal);
-  color: #fff;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
   cursor: pointer;
   font-size: 12px;
   font-weight: 700;
@@ -5758,7 +5757,7 @@ html:not([data-theme="dark"]) .page-layout {
 .inv-tab-submit {
   display: flex; align-items: center; gap: 5px;
   padding: 6px 13px; border-radius: 7px; border: none;
-  background: var(--teal); color: #fff; font-size: 12px; font-weight: 600;
+  background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); font-size: 12px; font-weight: 600;
   cursor: pointer; font-family: var(--font);
 }
 .inv-tab-submit:disabled { opacity: 0.45; cursor: default; }
@@ -5840,7 +5839,7 @@ html:not([data-theme="dark"]) .page-layout {
 .frm-btn--excel { color: #166534; border-color: #bbf7d0; background: var(--green-l); }
 .frm-btn--excel:hover { background: var(--green-l); border-color: #4ade80; }
 .frm-btn--schedule {
-  background: var(--teal); color: #fff; border-color: transparent;
+  background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); border-color: transparent;
   padding: 0 16px;
 }
 .frm-btn--schedule:hover { background: var(--teal-d, #0d766a); }
@@ -5894,7 +5893,7 @@ html:not([data-theme="dark"]) .page-layout {
 .frm-modal-confirm {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 0 18px; height: 36px; border-radius: 8px; border: none;
-  background: var(--teal); color: #fff; font-size: 13px; font-weight: 600;
+  background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); font-size: 13px; font-weight: 600;
   cursor: pointer; font-family: var(--font);
 }
 .frm-modal-confirm:disabled { opacity: 0.45; cursor: default; }
@@ -5928,7 +5927,7 @@ html:not([data-theme="dark"]) .page-layout {
 .notif-panel-hd { background: var(--white); padding: 14px 18px 0; border-bottom: 1px solid var(--border); }
 .notif-panel-hd-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
 .notif-panel-title { font-size: 14px; font-weight: 700; color: var(--ink); }
-.notif-panel-badge { background: var(--teal); color: #fff; font-size: var(--badge-fs); font-weight: 700; padding: var(--badge-py) var(--badge-px); border-radius: 20px; }
+.notif-panel-badge { background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); font-size: var(--badge-fs); font-weight: 700; padding: var(--badge-py) var(--badge-px); border-radius: 20px; }
 .notif-tabs { display: flex; gap: 0; }
 .notif-tab-btn {
   padding: var(--ds-btn-py) 14px; border: none; cursor: pointer;
@@ -6110,7 +6109,6 @@ html[data-expanded="true"] .fin-shell {
 
 @media (max-width: 767px) {
   .th-type, .sr-type,
-  .th-decl, .sr-decl,
   .th-stage, .sr-stage,
   .th-officer, .sr-officer,
   .th-days, .sr-days {

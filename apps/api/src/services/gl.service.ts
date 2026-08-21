@@ -136,6 +136,7 @@ export class GLService {
           source_module: req.sourceModule,
           source_id:     req.sourceId ?? null,
           created_by:    req.createdBy ?? null,
+          entity_id:     req.entityId ?? null,
           posted_at:     new Date(),
         })
         .returning('id')
@@ -339,7 +340,8 @@ export class GLService {
   }
 
   /** Profit & loss — revenue and expense movements for a period */
-  static async profitLoss(tenantId: string, fromStr: string, toStr: string): Promise<ProfitLossReport> {
+  /** entityId, when given, restricts to one accounting_entities branch (M8) — omit for the tenant-wide consolidated view, which is every report's existing, unchanged default. */
+  static async profitLoss(tenantId: string, fromStr: string, toStr: string, entityId?: string): Promise<ProfitLossReport> {
     const from = new Date(fromStr);
     const to = new Date(toStr);
 
@@ -352,15 +354,15 @@ export class GLService {
         .orderBy('code', 'asc')
         .execute();
 
-      const movements = await trx
+      let movementsQuery = trx
         .selectFrom('journal_lines')
         .innerJoin('journal_entries', 'journal_entries.id', 'journal_lines.journal_entry_id')
         .select(['journal_lines.account_id', trx.fn.sum('journal_lines.debit').as('debits'), trx.fn.sum('journal_lines.credit').as('credits')])
         .where('journal_entries.tenant_id', '=', tenantId)
         .where('journal_entries.entry_date', '>=', toDateParam(from))
-        .where('journal_entries.entry_date', '<=', toDateParam(to))
-        .groupBy('journal_lines.account_id')
-        .execute();
+        .where('journal_entries.entry_date', '<=', toDateParam(to));
+      if (entityId) movementsQuery = movementsQuery.where('journal_entries.entity_id', '=', entityId);
+      const movements = await movementsQuery.groupBy('journal_lines.account_id').execute();
 
       const movementMap = Object.fromEntries(movements.map(m => [m.account_id, {
         debit: Number(m.debits || 0),
@@ -673,5 +675,202 @@ export class GLService {
         totals
       };
     });
+  }
+
+  // ── Multi-entity accounting (M8) ────────────────────────────────────────
+  // Additive on top of everything above: a tenant that never creates an
+  // accounting_entities row keeps posting/reporting exactly as before —
+  // entity_id stays NULL everywhere, and every report method's existing
+  // no-filter behavior already IS the consolidated-across-everything view.
+
+  static async listEntities(tenantId: string) {
+    return withTenant(tenantId, (trx) =>
+      trx.selectFrom('accounting_entities').selectAll()
+        .where('tenant_id', '=', tenantId)
+        .orderBy('name', 'asc')
+        .execute()
+    );
+  }
+
+  static async createEntity(tenantId: string, userId: string, data: { name: string; entityCode: string; countryCode?: string; currency?: string; taxId?: string; registeredAddress?: string }) {
+    return withTenant(tenantId, (trx) =>
+      trx.insertInto('accounting_entities').values({
+        tenant_id: tenantId,
+        name: data.name,
+        entity_code: data.entityCode.trim().toUpperCase(),
+        country_code: data.countryCode ?? null,
+        currency: data.currency || 'TZS',
+        tax_id: data.taxId ?? null,
+        registered_address: data.registeredAddress ?? null,
+        created_by: userId,
+      }).returningAll().executeTakeFirstOrThrow()
+    );
+  }
+
+  static async updateEntity(tenantId: string, id: string, data: Partial<{ name: string; countryCode: string | null; currency: string; taxId: string | null; registeredAddress: string | null; active: boolean }>) {
+    return withTenant(tenantId, (trx) =>
+      trx.updateTable('accounting_entities')
+        .set({
+          ...(data.name !== undefined ? { name: data.name } : {}),
+          ...(data.countryCode !== undefined ? { country_code: data.countryCode } : {}),
+          ...(data.currency !== undefined ? { currency: data.currency } : {}),
+          ...(data.taxId !== undefined ? { tax_id: data.taxId } : {}),
+          ...(data.registeredAddress !== undefined ? { registered_address: data.registeredAddress } : {}),
+          ...(data.active !== undefined ? { active: data.active } : {}),
+          updated_at: new Date(),
+        })
+        .where('id', '=', id).where('tenant_id', '=', tenantId)
+        .returningAll().executeTakeFirstOrThrow()
+    );
+  }
+
+  /**
+   * Consolidated P&L, broken down by entity plus a Total column — the real
+   * "consolidated multi-branch reporting" deliverable. Entries never tagged
+   * to an entity (every entry, for a tenant that hasn't adopted branches)
+   * land in an "Unassigned" bucket, so this is meaningful even for a
+   * single-entity tenant — it just has one bucket.
+   */
+  static async consolidatedProfitLoss(tenantId: string, fromStr: string, toStr: string) {
+    const entities = await GLService.listEntities(tenantId);
+    const buckets = await Promise.all([
+      GLService.profitLoss(tenantId, fromStr, toStr).then(pl => ({ entityId: null, entityName: 'Unassigned', ...pl })),
+      ...entities.map(e => GLService.profitLoss(tenantId, fromStr, toStr, e.id).then(pl => ({ entityId: e.id, entityName: e.name, ...pl }))),
+    ]);
+    // profitLoss(tenantId,...) with no entityId returns the whole tenant, not
+    // just the unassigned slice — the true "Unassigned" figure is the
+    // consolidated total minus every real entity's own total, computed here
+    // rather than re-querying, since it's the same numbers already fetched.
+    const consolidated = buckets[0];
+    const perEntity = buckets.slice(1);
+    const entityRevenue = perEntity.reduce((s, b) => s + b.totals.revenue, 0);
+    const entityExpenses = perEntity.reduce((s, b) => s + b.totals.expenses, 0);
+    const unassigned = {
+      entityId: null as string | null,
+      entityName: 'Unassigned',
+      totals: {
+        revenue: consolidated.totals.revenue - entityRevenue,
+        expenses: consolidated.totals.expenses - entityExpenses,
+        net: (consolidated.totals.revenue - entityRevenue) - (consolidated.totals.expenses - entityExpenses),
+      },
+    };
+    return {
+      period: { from: fromStr, to: toStr },
+      entities: [unassigned, ...perEntity.map(b => ({ entityId: b.entityId, entityName: b.entityName, totals: b.totals }))],
+      total: consolidated.totals,
+    };
+  }
+
+  /**
+   * Auto-creates the two intercompany clearing accounts for a tenant if
+   * they don't already exist — same idempotent, code-based pattern as
+   * seedChartOfAccounts, but using non-numeric codes ('IC-AR'/'IC-AP') so
+   * they can never collide with a tenant's own numeric COA.
+   *
+   * Deliberately its own top-level withTenant call (its own committed
+   * transaction), NOT run inside another still-open transaction: this
+   * codebase's GLService.post() always opens its own separate transaction
+   * (withTenant → db.transaction()), on its own DB connection — so an
+   * account created but not yet committed in an outer transaction is
+   * invisible to it under Postgres's default READ COMMITTED isolation.
+   * Found live: posting an intercompany transaction failed with a NULL
+   * account_id because the just-inserted IC-AR account, still sitting in
+   * an uncommitted outer transaction, couldn't be seen by post()'s own
+   * fresh transaction. Fixed by making every step here its own committed
+   * step, in sequence, rather than one nested attempt.
+   */
+  private static async ensureIntercompanyAccounts(tenantId: string): Promise<void> {
+    await withTenant(tenantId, async (trx) => {
+      const existing = await trx.selectFrom('chart_of_accounts').select(['code'])
+        .where('tenant_id', '=', tenantId).where('code', 'in', ['IC-AR', 'IC-AP']).execute();
+      const codes = new Set(existing.map(a => a.code));
+
+      if (!codes.has('IC-AR')) {
+        await trx.insertInto('chart_of_accounts').values({
+          tenant_id: tenantId, code: 'IC-AR', name: 'Intercompany Receivable', type: 'ASSET', subtype: 'CURRENT_ASSET', normal_balance: 'DEBIT', is_system: true,
+        }).execute();
+      }
+      if (!codes.has('IC-AP')) {
+        await trx.insertInto('chart_of_accounts').values({
+          tenant_id: tenantId, code: 'IC-AP', name: 'Intercompany Payable', type: 'LIABILITY', subtype: 'CURRENT_LIABILITY', normal_balance: 'CREDIT', is_system: true,
+        }).execute();
+      }
+    });
+  }
+
+  /**
+   * Posts an intercompany transaction as two individually-balanced journal
+   * entries — an AR-shaped entry in the selling (from) entity's books, an
+   * AP-shaped entry in the buying (to) entity's — linked by this row rather
+   * than one shared cross-entity entry, matching how the DB's own
+   * check_journal_balance trigger already requires each entry to balance on
+   * its own (021_finance_gl.sql).
+   */
+  static async postIntercompanyTransaction(tenantId: string, userId: string, data: {
+    fromEntityId: string; toEntityId: string; description: string; amount: number; currency?: string;
+    fromAccountCode: string; toAccountCode: string; entryDate?: string;
+  }) {
+    if (data.fromEntityId === data.toEntityId) throw new Error('An intercompany transaction must be between two different entities.');
+    if (data.amount <= 0) throw new Error('Amount must be positive.');
+    const entryDate = data.entryDate || new Date().toISOString().slice(0, 10);
+    const currency = data.currency || 'TZS';
+
+    const entities = await withTenant(tenantId, (trx) =>
+      trx.selectFrom('accounting_entities').select(['id', 'name'])
+        .where('tenant_id', '=', tenantId).where('id', 'in', [data.fromEntityId, data.toEntityId]).execute()
+    );
+    const fromEntity = entities.find(e => e.id === data.fromEntityId);
+    const toEntity = entities.find(e => e.id === data.toEntityId);
+    if (!fromEntity || !toEntity) throw new Error('Both entities must belong to this tenant.');
+
+    await GLService.ensureIntercompanyAccounts(tenantId);
+
+    const arEntryId = await GLService.post(tenantId, {
+      entryDate, description: `Intercompany: ${data.description} (to ${toEntity.name})`,
+      sourceModule: 'MANUAL', entityId: data.fromEntityId, createdBy: userId,
+      lines: [
+        { accountCode: 'IC-AR', debit: data.amount, credit: 0, currency },
+        { accountCode: data.fromAccountCode, debit: 0, credit: data.amount, currency },
+      ],
+    });
+
+    const apEntryId = await GLService.post(tenantId, {
+      entryDate, description: `Intercompany: ${data.description} (from ${fromEntity.name})`,
+      sourceModule: 'MANUAL', entityId: data.toEntityId, createdBy: userId,
+      lines: [
+        { accountCode: data.toAccountCode, debit: data.amount, credit: 0, currency },
+        { accountCode: 'IC-AP', debit: 0, credit: data.amount, currency },
+      ],
+    });
+
+    return withTenant(tenantId, (trx) => trx.insertInto('intercompany_transactions').values({
+      tenant_id: tenantId,
+      from_entity_id: data.fromEntityId,
+      to_entity_id: data.toEntityId,
+      description: data.description,
+      amount: data.amount,
+      currency,
+      from_account_code: data.fromAccountCode,
+      to_account_code: data.toAccountCode,
+      ar_journal_entry_id: arEntryId,
+      ap_journal_entry_id: apEntryId,
+      created_by: userId,
+    }).returningAll().executeTakeFirstOrThrow());
+  }
+
+  static async listIntercompanyTransactions(tenantId: string) {
+    return withTenant(tenantId, (trx) =>
+      trx.selectFrom('intercompany_transactions')
+        .leftJoin('accounting_entities as from_e', 'from_e.id', 'intercompany_transactions.from_entity_id')
+        .leftJoin('accounting_entities as to_e', 'to_e.id', 'intercompany_transactions.to_entity_id')
+        .where('intercompany_transactions.tenant_id', '=', tenantId)
+        .select([
+          'intercompany_transactions.id', 'intercompany_transactions.description', 'intercompany_transactions.amount',
+          'intercompany_transactions.currency', 'intercompany_transactions.status', 'intercompany_transactions.created_at',
+          'from_e.name as from_entity_name', 'to_e.name as to_entity_name',
+        ])
+        .orderBy('intercompany_transactions.created_at', 'desc')
+        .execute()
+    );
   }
 }

@@ -281,14 +281,92 @@ export async function glRoutes(fastify: FastifyInstance) {
   fastify.get('/profit-loss', async (request: any, reply) => {
     try {
       const tenantId = request.user.tenant_id;
-      const { from, to } = request.query as { from: string; to: string };
+      const { from, to, entity_id } = request.query as { from: string; to: string; entity_id?: string };
       if (!from || !to) {
         return reply.status(400).send({ error: 'Missing from or to date query parameters' });
       }
-      const report = await GLService.profitLoss(tenantId, from, to);
+      const report = await GLService.profitLoss(tenantId, from, to, entity_id || undefined);
       return report;
     } catch (err: any) {
       return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  // ── Multi-entity accounting (M8) ────────────────────────────────────────
+  fastify.get('/entities', async (request: any, reply) => {
+    try {
+      return await GLService.listEntities(request.user.tenant_id);
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  fastify.post('/entities', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE') }, async (request: any, reply) => {
+    const body = z.object({
+      name: z.string().trim().min(1).max(200),
+      entityCode: z.string().trim().min(1).max(20),
+      countryCode: z.string().length(2).optional(),
+      currency: z.string().max(5).optional(),
+      taxId: z.string().max(100).optional(),
+      registeredAddress: z.string().max(1000).optional(),
+    }).parse(request.body);
+    try {
+      return reply.status(201).send(await GLService.createEntity(request.user.tenant_id, request.user.sub, body));
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message });
+    }
+  });
+
+  fastify.patch('/entities/:id', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE') }, async (request: any, reply) => {
+    const { id } = request.params as { id: string };
+    const body = z.object({
+      name: z.string().trim().min(1).max(200).optional(),
+      countryCode: z.string().length(2).nullable().optional(),
+      currency: z.string().max(5).optional(),
+      taxId: z.string().max(100).nullable().optional(),
+      registeredAddress: z.string().max(1000).nullable().optional(),
+      active: z.boolean().optional(),
+    }).parse(request.body);
+    try {
+      return await GLService.updateEntity(request.user.tenant_id, id, body);
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message });
+    }
+  });
+
+  fastify.get('/consolidated-profit-loss', async (request: any, reply) => {
+    try {
+      const { from, to } = request.query as { from: string; to: string };
+      if (!from || !to) return reply.status(400).send({ error: 'Missing from or to date query parameters' });
+      return await GLService.consolidatedProfitLoss(request.user.tenant_id, from, to);
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  fastify.get('/intercompany-transactions', async (request: any, reply) => {
+    try {
+      return await GLService.listIntercompanyTransactions(request.user.tenant_id);
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  fastify.post('/intercompany-transactions', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE') }, async (request: any, reply) => {
+    const body = z.object({
+      fromEntityId: z.string().uuid(),
+      toEntityId: z.string().uuid(),
+      description: z.string().trim().min(1).max(500),
+      amount: z.number().positive(),
+      currency: z.string().max(5).optional(),
+      fromAccountCode: z.string().trim().min(1).max(20),
+      toAccountCode: z.string().trim().min(1).max(20),
+      entryDate: z.string().optional(),
+    }).parse(request.body);
+    try {
+      return reply.status(201).send(await GLService.postIntercompanyTransaction(request.user.tenant_id, request.user.sub, body));
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message });
     }
   });
 

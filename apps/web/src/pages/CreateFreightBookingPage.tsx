@@ -28,8 +28,11 @@ export function CreateFreightBookingPage() {
   });
 
   useEffect(() => {
+    // GET /v1/customers responds { data: [...] } — reading `.customers` here
+    // always fell through to [], so this picker never had anything to show
+    // no matter how many real customers the tenant had.
     apiFetch('/v1/customers').then(res => {
-      const list = Array.isArray(res) ? res : res.customers || [];
+      const list = Array.isArray(res) ? res : res.data || [];
       setCustomers(list);
     }).catch(() => {});
   }, []);
@@ -46,7 +49,7 @@ export function CreateFreightBookingPage() {
         method: 'POST',
         body: JSON.stringify({ ...form, quantity: parseInt(form.quantity, 10) || 1 }),
       });
-      navigate('/clearos/freight-booking/bookings', { state: { newBookingId: booking.id } });
+      navigate('/cargotracker/bookings', { state: { newBookingId: booking.id } });
     } catch (err: any) {
       setError(err?.message || 'Failed to create booking request');
     } finally {
@@ -56,7 +59,7 @@ export function CreateFreightBookingPage() {
 
   return (
     <div style={{ flex: 1, overflowY: 'auto' }}>
-      <PageHeader crumbs={['Freight Booking', 'New']} titlePlain="New booking" titleEm="request" subtitle="Vessel, voyage and BL/AWB are entered later once the carrier confirms — this just captures what the customer wants shipped." />
+      <PageHeader crumbs={['CargoTracker', 'Freight Booking', 'New']} titlePlain="New booking" titleEm="request" subtitle="Vessel, voyage and BL/AWB are entered later once the carrier confirms — this just captures what the customer wants shipped." />
 
       <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: '28px 32px', maxWidth: 720 }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>

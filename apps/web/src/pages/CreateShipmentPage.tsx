@@ -10,9 +10,28 @@ import { Combobox } from '../components/ui/combobox.js';
 import { Popover, PopoverAnchor, PopoverContent } from '../components/ui/popover.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { AiExtractedCard } from '../components/AiExtractedCard.js';
+import { EntityPicker, type PickerItem } from '../components/EntityPicker.js';
 import { showAlert } from '../lib/alert.js';
 import { readXlsxSheets } from '../lib/xlsx-read.js';
 import './CreateShipmentPage.css';
+
+/**
+ * Dangerous goods aren't a separate creation process — same clearing flow as
+ * any other shipment, with one extra tag ("Nature of Goods") that reveals
+ * the extra layer of legally-required fields a DG shipment needs (UN
+ * number, packaging, shipper/consignee for the declaration itself). The
+ * linked draft declaration this creates is then viewed/issued/printed
+ * inline on the shipment's own page (see DangerousGoodsPanel.tsx) — there
+ * is no separate declarations screen anymore.
+ */
+interface DgReferenceEntry {
+  un_number: string;
+  proper_shipping_name: string;
+  class_or_division: string;
+  subsidiary_risk: string | null;
+  packing_group: string | null;
+  air_transport_restriction: string | null;
+}
 
 function OfficerMentionInput({
   officers,
@@ -193,9 +212,40 @@ export function CreateShipmentPage() {
   
   const [createLoading, setCreateLoading] = useState(false);
 
-  const missingRequired = REQUIRED
-    .filter(f => !String((createForm as any)[f.key] ?? '').trim())
-    .map(f => f.label);
+  // Nature of Goods — the tag the user asked for. Dangerous goods are not a
+  // separate creation process; picking it here just reveals the extra layer
+  // of legally-required fields (mirrors DangerousGoodsPage.tsx's own form,
+  // trimmed to what's essential inline) and, on submit, creates a draft
+  // dg_declarations row linked to the new shipment.
+  const [natureOfGoods, setNatureOfGoods] = useState<'general' | 'dangerous'>('general');
+  const [dgForm, setDgForm] = useState({
+    transportMode: 'SEA' as 'AIR' | 'SEA' | 'ROAD',
+    packagingType: '', numberOfPackages: '', netQuantity: '', quantityUnit: 'kg',
+    shipperName: '', shipperAddress: '', emergencyContact: '',
+  });
+  const [selectedDg, setSelectedDg] = useState<PickerItem | null>(null);
+  const [selectedDgEntry, setSelectedDgEntry] = useState<DgReferenceEntry | null>(null);
+
+  const searchDg = async (q: string): Promise<PickerItem[]> => {
+    if (!q.trim()) return [];
+    const res: DgReferenceEntry[] = await apiFetch(`/v1/dangerous-goods/reference?q=${encodeURIComponent(q)}`);
+    return res.map(e => ({ id: e.un_number, label: `${e.un_number} — ${e.proper_shipping_name}`, sublabel: `Class ${e.class_or_division}${e.packing_group ? ` · PG ${e.packing_group}` : ''}` }));
+  };
+
+  const onPickDg = async (item: PickerItem | null) => {
+    setSelectedDg(item);
+    if (!item) { setSelectedDgEntry(null); return; }
+    const res: DgReferenceEntry[] = await apiFetch(`/v1/dangerous-goods/reference?q=${encodeURIComponent(item.id)}`);
+    setSelectedDgEntry(res.find(e => e.un_number === item.id) ?? null);
+  };
+
+  const missingRequired = [
+    ...REQUIRED
+      .filter(f => !String((createForm as any)[f.key] ?? '').trim())
+      .map(f => f.label),
+    ...(natureOfGoods === 'dangerous' && !selectedDgEntry ? ['UN number (Dangerous Goods)'] : []),
+    ...(natureOfGoods === 'dangerous' && !dgForm.shipperName.trim() ? ['Shipper name (Dangerous Goods)'] : []),
+  ];
 
   /**
    * Feedback on the container number as it is typed.
@@ -486,6 +536,38 @@ export function CreateShipmentPage() {
         }).catch(() => {});
       }
 
+      if (natureOfGoods === 'dangerous' && selectedDgEntry && shipmentId) {
+        const customer = customers.find(c => c.id === createForm.customer_id);
+        try {
+          await apiFetch('/v1/dangerous-goods/declarations', {
+            method: 'POST',
+            body: JSON.stringify({
+              subjectType: 'shipment',
+              subjectId: shipmentId,
+              transportMode: dgForm.transportMode,
+              unNumber: selectedDgEntry.un_number,
+              packagingType: dgForm.packagingType.trim() || undefined,
+              numberOfPackages: dgForm.numberOfPackages ? parseInt(dgForm.numberOfPackages, 10) : undefined,
+              netQuantity: dgForm.netQuantity ? parseFloat(dgForm.netQuantity) : undefined,
+              quantityUnit: dgForm.quantityUnit.trim() || undefined,
+              shipperName: dgForm.shipperName.trim(),
+              shipperAddress: dgForm.shipperAddress.trim() || undefined,
+              consigneeName: customer?.name || '',
+              consigneeAddress: customer?.address || undefined,
+              emergencyContact: dgForm.emergencyContact.trim() || undefined,
+            }),
+          });
+        } catch (err: any) {
+          // The shipment itself was created successfully — don't undo that or
+          // block navigation over this second call failing. Stay honest about
+          // it rather than silently dropping the declaration.
+          showAlert(
+            `Shipment ${refNumber} was created, but its dangerous goods declaration could not be saved (${err.message || 'unknown error'}). Add it from the shipment's own page once it opens.`,
+            { variant: 'error' },
+          );
+        }
+      }
+
       navigate(`/clearos/clearance/${shipmentId}`);
     } catch (err: any) {
       showAlert(err.message || 'Failed to create case');
@@ -683,6 +765,87 @@ export function CreateShipmentPage() {
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--ink2)', marginBottom: '6px' }}>Goods Description *</label>
                   <input type="text" className="input-field" placeholder="e.g. 500 MT of Medical Supplies" value={createForm.goods_desc} onChange={e => setCreateForm(p => ({ ...p, goods_desc: e.target.value }))} style={{ width: '100%' }} />
                 </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--ink2)', marginBottom: '6px' }}>Nature of Goods</label>
+                  <Select value={natureOfGoods} onValueChange={v => setNatureOfGoods(v as any)}>
+                    <SelectTrigger className="input-field" style={{ width: '100%' }}><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="general">General cargo</SelectItem>
+                      <SelectItem value="dangerous">Dangerous goods</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Dangerous goods follow the same clearing flow as any other
+                    shipment — this just tags it and collects the extra layer
+                    of legally-required fields, right here, instead of a
+                    separate creation process. A linked draft declaration is
+                    created together with the shipment on submit. */}
+                {natureOfGoods === 'dangerous' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: 18, background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 12 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <Icon name="alertTriangle" size={16} color="var(--gold)" />
+                      <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Dangerous goods — extra requirements</span>
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: -8 }}>
+                      Creates a linked draft declaration alongside this shipment. Issue and print it from the shipment's own page once confirmed.
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '16px' }}>
+                      <div style={{ flex: 1 }}>
+                        <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 600, color: 'var(--ink2)', marginBottom: '4px' }}>Transport mode</label>
+                        <Select value={dgForm.transportMode} onValueChange={v => setDgForm(p => ({ ...p, transportMode: v as any }))}>
+                          <SelectTrigger className="input-field" style={{ width: '100%' }}><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="SEA">Sea</SelectItem>
+                            <SelectItem value="AIR">Air</SelectItem>
+                            <SelectItem value="ROAD">Road</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div style={{ flex: 2 }}>
+                        <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 600, color: 'var(--ink2)', marginBottom: '4px' }}>UN number / goods *</label>
+                        <EntityPicker value={selectedDg} onChange={onPickDg} search={searchDg} placeholder="Search UN number or name…" />
+                      </div>
+                    </div>
+
+                    {selectedDgEntry && (
+                      <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', padding: '10px 14px', borderRadius: 9, background: 'var(--white)', fontSize: 12.5 }}>
+                        <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{selectedDgEntry.un_number}</span>
+                        <span style={{ color: 'var(--ink)' }}>{selectedDgEntry.proper_shipping_name}</span>
+                        <span style={{ color: 'var(--ink3)' }}>
+                          Class {selectedDgEntry.class_or_division}
+                          {selectedDgEntry.subsidiary_risk ? ` (sub. ${selectedDgEntry.subsidiary_risk})` : ''}
+                          {selectedDgEntry.packing_group ? ` · PG ${selectedDgEntry.packing_group}` : ''}
+                        </span>
+                        {dgForm.transportMode === 'AIR' && selectedDgEntry.air_transport_restriction && (
+                          <span style={{
+                            fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 20,
+                            background: selectedDgEntry.air_transport_restriction === 'FORBIDDEN' ? 'var(--red-l)' : 'var(--gold-l)',
+                            color: selectedDgEntry.air_transport_restriction === 'FORBIDDEN' ? 'var(--red)' : 'var(--gold)',
+                          }}>
+                            {selectedDgEntry.air_transport_restriction.replace(/_/g, ' ')}
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    <div style={{ display: 'flex', gap: '16px' }}>
+                      {fld('Packaging type', dgForm.packagingType, v => setDgForm(p => ({ ...p, packagingType: v })), { placeholder: 'e.g. Fibreboard box' })}
+                      {fld('No. of packages', dgForm.numberOfPackages, v => setDgForm(p => ({ ...p, numberOfPackages: v.replace(/[^0-9]/g, '') })))}
+                      {fld('Net quantity', dgForm.netQuantity, v => setDgForm(p => ({ ...p, netQuantity: v.replace(/[^0-9.]/g, '') })))}
+                      {fld('Unit', dgForm.quantityUnit, v => setDgForm(p => ({ ...p, quantityUnit: v })))}
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '16px' }}>
+                      {fld('Shipper name *', dgForm.shipperName, v => setDgForm(p => ({ ...p, shipperName: v })))}
+                      {fld('Shipper address', dgForm.shipperAddress, v => setDgForm(p => ({ ...p, shipperAddress: v })))}
+                    </div>
+
+                    {fld('Emergency contact', dgForm.emergencyContact, v => setDgForm(p => ({ ...p, emergencyContact: v })), { placeholder: 'name + 24h phone' })}
+                  </div>
+                )}
 
                 <div style={{ display: 'flex', gap: '16px' }}>
                   {fld('BL / Doc Number', createForm.bl_number, v => setCreateForm(p => ({ ...p, bl_number: v })), { placeholder: 'e.g. MEDU90123456' })}

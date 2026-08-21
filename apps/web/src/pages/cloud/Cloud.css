@@ -1,0 +1,325 @@
+/* ── Google Drive UI Inspiration & Hudumika Cloud Design System ── */
+
+[data-cloud="true"] {
+  --cloud-accent: var(--teal, #0d9488);
+  --cloud-accent-hover: #0f766e;
+  --cloud-blue: #1a73e8;
+  --cloud-card-bg: var(--card-bg, #ffffff);
+  --cloud-border: var(--border, #e2e8f0);
+}
+
+.cloud-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font);
+}
+
+/* ── Google Drive Style Sidebar Content ── */
+.cloud-sidebar-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 12px 12px 24px 12px;
+  height: 100%;
+}
+
+.cloud-new-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--card-bg, #ffffff);
+  color: var(--navy, #0f172a);
+  border: 1px solid var(--border, #e2e8f0);
+  padding: 12px 20px;
+  border-radius: 16px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  width: fit-content;
+}
+
+.cloud-new-btn:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12), 0 8px 24px rgba(13, 148, 136, 0.15);
+  border-color: var(--cloud-accent);
+  background: var(--card-bg, #ffffff);
+  transform: translateY(-1px);
+}
+
+/* Sidebar Nav Items */
+.cloud-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 16px;
+  border-radius: 0 24px 24px 0;
+  border: none;
+  background: transparent;
+  color: var(--ink2, #475569);
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
+  width: 100%;
+}
+
+.cloud-nav-item:hover {
+  background: var(--bg, #f8fafc);
+  color: var(--ink, #0f172a);
+}
+
+.cloud-nav-item.active {
+  background: rgba(13, 148, 136, 0.12);
+  color: var(--cloud-accent);
+  font-weight: 700;
+}
+
+[data-theme="dark"] .cloud-nav-item.active {
+  background: rgba(13, 148, 136, 0.22);
+  color: #2dd4bf;
+}
+
+/* ── Google Drive Filter Chips Bar ── */
+.cloud-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.cloud-filter-bar::-webkit-scrollbar { display: none; }
+
+.cloud-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--card-bg, #ffffff);
+  color: var(--ink2);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.cloud-chip:hover {
+  background: var(--bg);
+  color: var(--ink);
+  border-color: var(--cloud-accent);
+}
+
+.cloud-chip.active {
+  background: rgba(13, 148, 136, 0.1);
+  color: var(--cloud-accent);
+  border-color: var(--cloud-accent);
+  font-weight: 700;
+}
+
+/* ── Folder & File Cards Grid ── */
+.cloud-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 16px;
+  padding: 16px 0;
+}
+
+/* Google Drive Folder Card */
+.drive-folder-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--card-bg, #ffffff);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.drive-folder-card:hover {
+  background: var(--bg);
+  border-color: var(--cloud-accent);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  transform: translateY(-1px);
+}
+
+.drive-folder-card.selected {
+  border-color: var(--cloud-accent) !important;
+  background: rgba(13, 148, 136, 0.08) !important;
+  box-shadow: inset 0 0 0 1px var(--cloud-accent);
+}
+
+.drive-folder-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+
+/* Google Drive File Preview Card */
+.drive-file-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: var(--card-bg, #ffffff);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.drive-file-card:hover {
+  border-color: var(--cloud-accent);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+}
+
+.drive-file-card.selected {
+  border-color: var(--cloud-accent) !important;
+  box-shadow: inset 0 0 0 1px var(--cloud-accent), 0 4px 14px rgba(13, 148, 136, 0.15);
+}
+
+.drive-file-preview-header {
+  height: 125px;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.drive-file-thumbnail {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.drive-file-type-pill {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(4px);
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.drive-file-body {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: var(--card-bg, #ffffff);
+}
+
+.drive-file-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.drive-file-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11.5px;
+  color: var(--ink3);
+}
+
+/* ── Google Drive File Table ── */
+.drive-table-container {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.drive-table-container th {
+  padding: 10px 16px;
+  text-align: left;
+  font-weight: 600;
+  color: var(--ink3);
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.drive-table-container td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  color: var(--ink);
+}
+
+.drive-table-container tr {
+  transition: background 0.15s;
+}
+
+.drive-table-container tbody tr:hover {
+  background: var(--bg) !important;
+}
+
+.drive-table-container tbody tr.selected {
+  background: rgba(13, 148, 136, 0.08) !important;
+}
+
+/* ── Mobile Floating Action Button (FAB) ── */
+.cloud-fab-btn {
+  display: none;
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: var(--cloud-accent);
+  color: #ffffff;
+  border: none;
+  box-shadow: 0 4px 20px rgba(13, 148, 136, 0.4);
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 90;
+  transition: transform 0.2s ease;
+}
+
+.cloud-fab-btn:active {
+  transform: scale(0.95);
+}
+
+/* Responsive Rules */
+@media (max-width: 768px) {
+  .cloud-fab-btn {
+    display: flex;
+  }
+  .cloud-grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+  }
+  .drive-file-preview-header {
+    height: 100px;
+  }
+}

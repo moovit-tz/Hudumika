@@ -247,6 +247,12 @@ export class ShipmentService {
 
       // Fetch shipments
       let shipmentsQuery = trx.selectFrom('shipment_cases').selectAll()
+        .select((eb) => eb.exists(
+          eb.selectFrom('dg_declarations').select('id')
+            .whereRef('dg_declarations.subject_id', '=', 'shipment_cases.id')
+            .where('dg_declarations.tenant_id', '=', tenantId)
+            .where('dg_declarations.subject_type', '=', 'shipment')
+        ).as('has_dangerous_goods'))
         .where('tenant_id', '=', tenantId)
         .where('deleted_at', 'is', null);
       if (filters.assigned_to) {
@@ -525,6 +531,12 @@ export class ShipmentService {
       const shipment = await trx
         .selectFrom('shipment_cases')
         .selectAll()
+        .select((eb) => eb.exists(
+          eb.selectFrom('dg_declarations').select('id')
+            .whereRef('dg_declarations.subject_id', '=', 'shipment_cases.id')
+            .where('dg_declarations.tenant_id', '=', tenantId)
+            .where('dg_declarations.subject_type', '=', 'shipment')
+        ).as('has_dangerous_goods'))
         .where('id', '=', shipmentId)
         .where('tenant_id', '=', tenantId)
         .where('deleted_at', 'is', null)
@@ -534,7 +546,7 @@ export class ShipmentService {
 
       const customer = await trx
         .selectFrom('customers')
-        .select(['name', 'contact_name', 'email', 'phone'])
+        .select(['name', 'contact_name', 'email', 'phone', 'phone_wa'])
         .where('id', '=', shipment.customer_id)
         .where('tenant_id', '=', tenantId)
         .executeTakeFirst();
@@ -626,6 +638,7 @@ export class ShipmentService {
         customer_contact_name: customer?.contact_name ?? null,
         customer_email: customer?.email ?? null,
         customer_phone: customer?.phone ?? null,
+        customer_phone_wa: customer?.phone_wa ?? null,
         assigned_officer_name: officer?.name,
         assigned_officer_email: officer?.email ?? null,
         assigned_officer_phone: officer?.phone ?? null,

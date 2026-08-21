@@ -10,6 +10,7 @@
  * A check that has never run reports nothing, which the UI renders as "Not
  * measured yet" — that is the honest answer, not a placeholder.
  */
+import net from 'node:net';
 import type { Kysely, Transaction } from 'kysely';
 import type { Database } from '../db/client.js';
 
@@ -153,5 +154,66 @@ export async function runCheck(trx: Db, check: {
 }): Promise<ProbeResult> {
   const result = await probe(check);
   await recordProbe(trx, check.tenant_id, check.id, result);
+  return result;
+}
+
+export interface ReachabilityResult {
+  ok: boolean;
+  error: string | null;
+}
+
+/**
+ * A raw TCP connect to port 22 (SSH) — present on virtually every VPS
+ * regardless of what's actually hosted on it, unlike 80/443 which a
+ * freshly-provisioned box may not be listening on yet. This answers "is
+ * this host up on the network," not "is it healthy" — CPU/RAM/disk still
+ * need an agent installed on the box, which this platform does not operate,
+ * so onsite_servers.cpu_percent/ram_percent/disk_percent/metrics_at stay
+ * null rather than being guessed at. Same honest-probe shape as probe()
+ * above, just TCP instead of HTTP.
+ */
+export async function probeServerReachability(ipAddress: string, port = 22, timeoutMs = 5000): Promise<ReachabilityResult> {
+  return new Promise((resolve) => {
+    const socket = new net.Socket();
+    let settled = false;
+    const finish = (result: ReachabilityResult) => {
+      if (settled) return;
+      settled = true;
+      socket.destroy();
+      resolve(result);
+    };
+    socket.setTimeout(timeoutMs);
+    socket.once('connect', () => finish({ ok: true, error: null }));
+    socket.once('timeout', () => finish({ ok: false, error: `No response on port ${port} within ${timeoutMs}ms.` }));
+    socket.once('error', (err: Error) => finish({ ok: false, error: `Could not reach ${ipAddress}:${port} — ${err.message}` }));
+    socket.connect(port, ipAddress);
+  });
+}
+
+/**
+ * Probe one server and store the outcome — used by the job and by a manual
+ * "Check now". Unreachable maps to 'stopped' rather than 'error': a probe
+ * failure doesn't distinguish "genuinely stopped" from "firewalled" or
+ * "wrong port," but 'stopped' is the most honest label this column's own
+ * enum offers for "not responding," matching how the rest of Onsite already
+ * treats a failed health check as down rather than inventing a third state.
+ */
+export async function runServerReachabilityCheck(trx: Db, server: {
+  id: string;
+  tenant_id: string;
+  ip_address: string | null;
+}): Promise<ReachabilityResult | null> {
+  if (!server.ip_address) return null;
+
+  const result = await probeServerReachability(server.ip_address);
+  await trx.updateTable('onsite_servers')
+    .set({
+      status: result.ok ? 'running' : 'stopped',
+      last_checked_at: new Date(),
+      updated_at: new Date(),
+    })
+    .where('id', '=', server.id)
+    .where('tenant_id', '=', server.tenant_id)
+    .execute();
   return result;
 }

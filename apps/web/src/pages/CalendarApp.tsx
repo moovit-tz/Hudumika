@@ -637,7 +637,7 @@ export const CalendarApp: React.FC = () => {
               </div>
               <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 8 }}>
                 <button onClick={() => setShowModal(false)} style={{ padding: 'var(--ds-btn-py) 18px', border: '1px solid var(--border)', background: 'transparent', borderRadius: 'var(--r)', cursor: 'pointer', fontWeight: 500, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
-                <button onClick={handleSave} style={{ padding: 'var(--ds-btn-py) 18px', border: 'none', background: 'var(--teal)', color: '#fff', borderRadius: 'var(--r)', cursor: 'pointer', fontWeight: 600, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Save</button>
+                <button onClick={handleSave} style={{ padding: 'var(--ds-btn-py) 18px', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', borderRadius: 'var(--r)', cursor: 'pointer', fontWeight: 600, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Save</button>
               </div>
             </div>
           </div>

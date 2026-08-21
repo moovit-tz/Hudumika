@@ -1,6 +1,7 @@
 import { sql } from 'kysely';
 import { dbPlatform, withTenant } from '../db/client.js';
 import { EmailIntegration } from '../integrations/email.js';
+import { MinioIntegration } from '../integrations/minio.js';
 
 const BATCH_SIZE = 50;
 const BACKOFF_CAP_MINUTES = 60;
@@ -42,12 +43,19 @@ export async function runMailOutboxJob(): Promise<void> {
         await trx.updateTable('email_outbox').set({ status: 'sending' }).where('id', '=', item.id).execute();
       });
 
+      // Read lazily, at send time rather than enqueue time, so a report
+      // generated moments before this poll runs is already on disk.
+      const attachments = item.attachment_storage_key
+        ? (() => { const content = MinioIntegration.readFile(item.attachment_storage_key!); return content ? [{ filename: item.attachment_filename || 'attachment', content }] : undefined; })()
+        : undefined;
+
       const result = await EmailIntegration.sendEmail({
         to: item.to_address,
         cc: item.cc_addresses ? (typeof item.cc_addresses === 'string' ? JSON.parse(item.cc_addresses) : item.cc_addresses as any) : undefined,
         subject: item.subject,
         bodyHtml: item.body_html,
         tenantId: item.tenant_id,
+        attachments,
       });
 
       await withTenant(item.tenant_id, async (trx) => {

@@ -256,7 +256,7 @@ function SendModal({ quote, onSend, onCancel }: { quote:Quote; onSend:(email:str
         <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
           <button type="button" title="Cancel" onClick={onCancel} style={{ padding:'var(--ds-btn-py) 18px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:13, color:'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
           <button type="button" title="Send quotation" onClick={()=>email.trim()&&onSend(email.trim(),msg)}
-            style={{ padding:'var(--ds-btn-py) 18px', border:'none', borderRadius: 'var(--r)', background:'var(--teal)', color:'#fff', cursor:email.trim()?'pointer':'not-allowed', fontWeight:600, fontSize:13, display:'flex', alignItems:'center', gap:6, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+            style={{ padding:'var(--ds-btn-py) 18px', border:'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor:email.trim()?'pointer':'not-allowed', fontWeight:600, fontSize:13, display:'flex', alignItems:'center', gap:6, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
             <Icon name="send" size={13}/> Send Quote
           </button>
         </div>
@@ -1225,7 +1225,7 @@ export const Quotations: React.FC = () => {
           <button type="button" onClick={exportCsv} style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', borderRadius:'var(--r)', border:'1px solid var(--border)', background:'var(--white)', color:'var(--ink2)', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'var(--font)', whiteSpace:'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
             <Icon name="download" size={13}/> Export CSV
           </button>
-          <button type="button" onClick={()=>setView('create')} style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 18px', borderRadius:'var(--r)', border:'none', background:'var(--teal)', color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:'var(--font)', whiteSpace:'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+          <button type="button" onClick={()=>setView('create')} style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 18px', borderRadius:'var(--r)', border:'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:'var(--font)', whiteSpace:'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
             <Icon name="plus" size={13}/> New Quotation
           </button>
         </div>
@@ -1239,7 +1239,7 @@ export const Quotations: React.FC = () => {
                 <div style={{ marginBottom:12 }}><Icon name="fileText" size={48} color="var(--border)"/></div>
                 <div style={{ fontSize:15, fontWeight:600, color:'var(--ink)', marginBottom:6 }}>No quotations found</div>
                 <div style={{ fontSize:13, color:'var(--ink3)', marginBottom:20 }}>{search?'Try a different search term.':'Get started by creating your first quotation.'}</div>
-                {!search&&<button type="button" title="Create quotation" onClick={()=>setView('create')} style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 20px', border:'none', borderRadius: 'var(--r)', background:'var(--teal)', color:'#fff', cursor:'pointer', fontWeight:600, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}><Icon name="plus" size={13}/>New Quotation</button>}
+                {!search&&<button type="button" title="Create quotation" onClick={()=>setView('create')} style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 20px', border:'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor:'pointer', fontWeight:600, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}><Icon name="plus" size={13}/>New Quotation</button>}
               </div>
             : <div className="rtbl-wrap" style={{ overflowX:'auto' }}>
                 <table className="rtbl" style={{ borderCollapse:'collapse', fontSize:13 }}>

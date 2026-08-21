@@ -61,7 +61,7 @@ export const LiveChatWidget: React.FC = () => {
           fontFamily: 'var(--font)'
         }}>
           {/* Header */}
-          <div style={{ padding: '16px 20px', background: 'var(--teal)', color: '#fff', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ padding: '16px 20px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Icon name="headphones" size={20} />
             </div>

@@ -7,6 +7,8 @@ import { useAuth } from '../hooks/useAuth.js';
 import { DatePicker, toDateOnlyString } from '../components/ui/date-picker.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { showAlert } from '../lib/alert.js';
+import { SectionCard } from '../components/SectionCard.js';
+import { PaginationBar } from '../components/PaginationBar.js';
 
 // ── Customs Reference — ICD directory, TASAC agents, EAC excise, port/agency tariff ──
 // Real gazette data imported from the public EAC customs suite
@@ -153,7 +155,6 @@ export const CustomsReference: React.FC = () => {
     if (tab === 'tariff') { setTariffPage(p); load(q, p); }
     else { setAgentsPage(p); load(q, p); }
   };
-  const totalPages = Math.max(1, Math.ceil((tab === 'tariff' ? tariffTotal : agentsTotal) / PAGE));
 
   const fmtDate = (d: string | null) => (d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—');
 
@@ -242,7 +243,7 @@ export const CustomsReference: React.FC = () => {
         subtitle="Licensed ICD operators, TASAC clearing-agent registry (GN 83/2026), EAC excise duty schedules, and the TPA/TASAC port & agency tariff book."
         actions={canEdit && tab !== 'tariff' ? (
           <button type="button" onClick={() => handleUploadClick(tab)} disabled={importBusy !== null}
-            style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 16px', background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: importBusy ? 'wait' : 'pointer', opacity: importBusy ? 0.7 : 1, flexShrink: 0, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+            style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: importBusy ? 'wait' : 'pointer', opacity: importBusy ? 0.7 : 1, flexShrink: 0, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
             <Icon name="upload" size={15} /> {importBusy === tab ? 'Uploading…' : `Upload fresh ${TABS.find(t => t.key === tab)?.label} list`}
           </button>
         ) : undefined}
@@ -317,7 +318,7 @@ export const CustomsReference: React.FC = () => {
       </div>
 
       {/* Table card */}
-      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
+      <SectionCard collapsible={false} padded={false}>
         <div className="rtbl-wrap" style={{ overflowX: 'auto' }}>
           {tab === 'icd' && (
             <table className="rtbl" style={{ borderCollapse: 'collapse', fontSize: 13, width: '100%' }}>
@@ -519,27 +520,15 @@ export const CustomsReference: React.FC = () => {
 
         {/* Agents / Tariff pagination */}
         {((tab === 'agents' && agentsTotal > PAGE) || (tab === 'tariff' && tariffTotal > PAGE)) && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', borderTop: '1px solid var(--border)', flexWrap: 'wrap', gap: 8 }}>
-            <span style={{ fontSize: 12, color: 'var(--ink3)' }}>
-              {(() => { const p = tab === 'tariff' ? tariffPage : agentsPage; const total = tab === 'tariff' ? tariffTotal : agentsTotal; return `${p * PAGE + 1}–${Math.min((p + 1) * PAGE, total)} of ${total.toLocaleString()} ${tab === 'tariff' ? 'tariff items' : 'licensed agents'}`; })()}
-            </span>
-            <div style={{ display: 'flex', gap: 6 }}>
-              {(() => { const p = tab === 'tariff' ? tariffPage : agentsPage; return (
-                <>
-                  <button type="button" disabled={p === 0} onClick={() => gotoPage(p - 1)}
-                    style={{ height: 30, padding: '0 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: p === 0 ? 'var(--ink3)' : 'var(--ink)', fontSize: 12, fontWeight: 600, cursor: p === 0 ? 'default' : 'pointer' }}>
-                    ‹ Prev
-                  </button>
-                  <button type="button" disabled={p >= totalPages - 1} onClick={() => gotoPage(p + 1)}
-                    style={{ height: 30, padding: '0 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: p >= totalPages - 1 ? 'var(--ink3)' : 'var(--ink)', fontSize: 12, fontWeight: 600, cursor: p >= totalPages - 1 ? 'default' : 'pointer' }}>
-                    Next ›
-                  </button>
-                </>
-              ); })()}
-            </div>
-          </div>
+          <PaginationBar
+            page={(tab === 'tariff' ? tariffPage : agentsPage) + 1}
+            pageSize={PAGE}
+            total={tab === 'tariff' ? tariffTotal : agentsTotal}
+            onPageChange={p => gotoPage(p - 1)}
+            itemLabel={tab === 'tariff' ? 'tariff item' : 'licensed agent'}
+          />
         )}
-      </div>
+      </SectionCard>
     </div>
   );
 };

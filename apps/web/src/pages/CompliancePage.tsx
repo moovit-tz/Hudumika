@@ -50,12 +50,13 @@ export const CompliancePage: React.FC = () => {
 
   usePageSEO(`Compliance — ${section.crumb}`, section.seoDesc);
 
-  // Advanced Check (TradeWizard) now renders its own PageHeader + padding —
-  // it needs the header's `actions` slot for the search-quota badge, which
-  // this shared layout has no way to pass through. Rendering both here and
-  // there duplicated the title/breadcrumb, so this layout steps aside for
-  // that one route instead of wrapping it a second time.
-  if (segment === 'advanced') return <Outlet />;
+  // Advanced Check (TradeWizard), Screening and Certificate of Origin all
+  // render their own PageHeader — Screening/Origin need this too: neither
+  // segment exists in SECTIONS above, so without this guard they silently
+  // fell through to the Overview copy ("Compliance centre") and rendered
+  // it here ABOVE their own real header, stacking two titles on one page.
+  // Any route whose child owns its own header belongs in this list.
+  if (segment === 'advanced' || segment === 'screening' || segment === 'origin') return <Outlet />;
 
   return (
     <div style={{ flex: 1, overflowY: 'auto' }}>

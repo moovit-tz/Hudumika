@@ -3,6 +3,7 @@ import { withTenant } from '../db/client.js';
 import type { FeatureKey } from '@hudumika/types';
 import { ALL_FEATURE_KEYS } from '@hudumika/types';
 import { getUsageSummary } from '../lib/usage.js';
+import { agencyManagedOnsiteGrant } from '../middleware/entitlement.js';
 
 /**
  * The features this endpoint reports on.
@@ -52,6 +53,15 @@ export async function entitlementsRoutes(fastify: FastifyInstance) {
       : [];
     const planGrantSet = new Set(planGrants.map(r => r.feature_key));
 
+    // AgencyHost M1: a client tenant managed by an agency inherits 'onsite'
+    // from that relationship, not from its own (deliberately empty)
+    // 'agency-managed' plan — same check requireEntitlement() already makes
+    // for the actual API routes. Without this, a real, actively-managed
+    // client would pass every backend call yet still see "Not included in
+    // your plan" from RequireAppEnabled, since this endpoint is what drives
+    // that screen and previously only ever looked at package_features.
+    const onsiteInherited = await agencyManagedOnsiteGrant(user.tenant_id, 'onsite');
+
     const features: Record<string, boolean> = {};
     for (const key of BASE_FEATURES) {
       if (user.role === 'SUPER_ADMIN') {
@@ -64,6 +74,10 @@ export async function entitlementsRoutes(fastify: FastifyInstance) {
       }
       if (key in overrides) {
         features[key] = overrides[key];
+        continue;
+      }
+      if (key === 'onsite' && onsiteInherited) {
+        features[key] = true;
         continue;
       }
       features[key] = planGrantSet.has(key);

@@ -75,7 +75,7 @@ export const TrackingAssignments: React.FC = () => {
       />
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--ink)' }}>Vehicle Assignments</div>
-        <button onClick={() => setShowAddModal(true)} style={{ background: 'var(--teal)', color: '#fff', border: 'none', padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', fontWeight: 600, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+        <button onClick={() => setShowAddModal(true)} style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', fontWeight: 600, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
           Add Assignment
         </button>
       </div>
@@ -233,7 +233,7 @@ const AddAssignmentModal = ({ onClose, onSave }: { onClose: () => void, onSave: 
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 24 }}>
           <button onClick={onClose} style={{ padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: 'none', background: 'transparent', color: 'var(--ink)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
-          <button onClick={handleSave} disabled={saving || !form.vehicle_id || !form.driver_id || !form.start_time} style={{ padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer', opacity: (saving || !form.vehicle_id || !form.driver_id || !form.start_time) ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+          <button onClick={handleSave} disabled={saving || !form.vehicle_id || !form.driver_id || !form.start_time} style={{ padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 600, fontSize: 13, cursor: 'pointer', opacity: (saving || !form.vehicle_id || !form.driver_id || !form.start_time) ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
             {saving ? 'Saving...' : 'Save Assignment'}
           </button>
         </div>

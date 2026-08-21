@@ -65,8 +65,8 @@ export const TenantManagement: React.FC = () => {
       <button
         onClick={() => setShowForm(true)}
         style={{
-          background: 'var(--teal)',
-          color: '#fff',
+          background: 'hsl(var(--primary))',
+          color: 'hsl(var(--primary-foreground))',
           border: 'none',
           padding: 'var(--ds-btn-py) 16px',
           borderRadius: '4px',

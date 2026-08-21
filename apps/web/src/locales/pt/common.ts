@@ -16,6 +16,7 @@ export default
     "exitFullPage": "Sair da página inteira",
     "myProfile": "Meu perfil",
     "adminPanel": "Painel de administração",
+    "lockWorkspace": "Bloquear espaço de trabalho",
     "signOut": "Sair",
     "account": "Conta"
   },

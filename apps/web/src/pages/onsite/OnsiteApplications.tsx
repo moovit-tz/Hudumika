@@ -93,6 +93,17 @@ export function OnsiteApplications() {
     }
   };
 
+  const handleClone = async (appId: string, appName: string) => {
+    if (!(await showConfirm(`Clone "${appName}"? The new application copies its configuration only — secrets and deployed data are not copied.`, { confirmLabel: 'Clone' }))) return;
+    try {
+      const clone = await apiFetch(`/v1/onsite/applications/${appId}/clone`, { method: 'POST', body: JSON.stringify({}) });
+      showAlert(`Created "${clone.name}". Add secrets and a domain, then deploy it separately.`, { variant: 'success' });
+      fetchApps();
+    } catch (err: any) {
+      showAlert(err.message || 'Failed to clone application', { variant: 'error' });
+    }
+  };
+
   return (
     <div className="onsite-page">
       <PageHeader
@@ -175,6 +186,9 @@ export function OnsiteApplications() {
                         <Link to={`/onsite/applications/${app.id}`} className="btn btn-sm btn-ghost">
                           <Icon name="settings" size={14} /> Details
                         </Link>
+                        <button className="btn btn-sm btn-ghost" onClick={() => handleClone(app.id, app.name)} title="Clone">
+                          <Icon name="copy" size={14} />
+                        </button>
                         <button className="btn btn-sm btn-ghost" style={{ color: '#ef4444' }} onClick={() => handleDelete(app.id, app.name)}>
                           <Icon name="trash2" size={14} />
                         </button>

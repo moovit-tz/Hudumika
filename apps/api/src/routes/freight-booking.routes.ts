@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { requireEntitlement, requireAnyEntitlement } from '../middleware/entitlement.js';
+import { requireEntitlement } from '../middleware/entitlement.js';
 import { freightBookingService } from '../services/freightBooking.service.js';
 
 const carrierCreateSchema = z.object({
@@ -41,6 +41,29 @@ const rateCardPatchSchema = z.object({
   notes: z.string().max(2000).nullable().optional(),
   active: z.boolean().optional(),
 });
+const rateContractCreateSchema = z.object({
+  carrier_id: z.string().uuid(),
+  contract_reference: z.string().max(100).optional(),
+  mode: z.string().min(1).max(30),
+  origin_port: z.string().min(1).max(100),
+  destination_port: z.string().min(1).max(100),
+  buy_rate: z.number().min(0),
+  currency: z.string().max(10).optional(),
+  transit_days: z.number().int().positive().optional(),
+  valid_from: z.string().optional(),
+  valid_to: z.string().optional(),
+  notes: z.string().max(2000).optional(),
+});
+const rateContractPatchSchema = z.object({
+  contract_reference: z.string().max(100).nullable().optional(),
+  buy_rate: z.number().min(0).optional(),
+  currency: z.string().max(10).optional(),
+  transit_days: z.number().int().positive().nullable().optional(),
+  valid_from: z.string().nullable().optional(),
+  valid_to: z.string().nullable().optional(),
+  notes: z.string().max(2000).nullable().optional(),
+  active: z.boolean().optional(),
+});
 const bookingCreateSchema = z.object({
   customer_id: z.string().uuid(),
   mode: z.string().min(1).max(30),
@@ -69,34 +92,36 @@ const bookingConfirmSchema = z.object({
 export async function freightBookingRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
 
-  // Carriers are shared with the standalone CargoTracker app's Carrier
-  // directory (same table/service, different entitlement gate) — a tenant
-  // with either 'clearos' or 'cargotracker' can reach them. Rate cards and
-  // bookings stay ClearOS-only, gated per-route below.
-  const carrierGate = requireAnyEntitlement(['clearos', 'cargotracker']);
-  const clearosGate = requireEntitlement('clearos');
+  // Freight Booking (carriers, rate cards, buy-side rate contracts, bookings)
+  // now lives entirely in the CargoTracker app — moved out of ClearOS's own
+  // nav, which used to host it under a per-route mix of gates (carriers dual-
+  // gated requireAnyEntitlement(['clearos','cargotracker']), everything else
+  // ClearOS-only). ClearOS and CargoTracker are sold as a bundle, so a single
+  // 'cargotracker' gate is sufficient — ClearOS's own pages (e.g.
+  // ShipmentDetail's booking-reference badge, GET .../bookings/by-shipment)
+  // still call this API directly; the gate checks the tenant's entitlements,
+  // not which app's frontend made the call.
+  fastify.addHook('preHandler', requireEntitlement('cargotracker'));
 
   // ── Carriers ─────────────────────────────────────────────────────────────
-  fastify.get('/carriers', { preHandler: carrierGate }, async (request) => {
+  fastify.get('/carriers', async (request) => {
     const { active_only } = request.query as { active_only?: string };
     return freightBookingService.listCarriers(request.user.tenant_id, active_only === 'true');
   });
 
-  fastify.post('/carriers', { preHandler: carrierGate }, async (request, reply) => {
+  fastify.post('/carriers', async (request, reply) => {
     const body = carrierCreateSchema.parse(request.body);
     const carrier = await freightBookingService.createCarrier(request.user.tenant_id, body);
     return reply.status(201).send(carrier);
   });
 
-  fastify.patch('/carriers/:id', { preHandler: carrierGate }, async (request) => {
+  fastify.patch('/carriers/:id', async (request) => {
     const { id } = request.params as { id: string };
     const body = carrierPatchSchema.parse(request.body);
     return freightBookingService.updateCarrier(request.user.tenant_id, id, body);
   });
 
   // ── Rate cards ───────────────────────────────────────────────────────────
-  fastify.addHook('preHandler', clearosGate);
-
   fastify.get('/rate-cards', async (request) => {
     const q = request.query as { carrier_id?: string; mode?: string; origin_port?: string; destination_port?: string };
     return freightBookingService.listRateCards(request.user.tenant_id, q);
@@ -112,6 +137,37 @@ export async function freightBookingRoutes(fastify: FastifyInstance) {
     const { id } = request.params as { id: string };
     const body = rateCardPatchSchema.parse(request.body);
     return freightBookingService.updateRateCard(request.user.tenant_id, id, body);
+  });
+
+  // ── Carrier rate contracts (buy-side, M7) ───────────────────────────────
+  fastify.get('/rate-contracts', async (request) => {
+    const q = request.query as { carrier_id?: string; mode?: string; origin_port?: string; destination_port?: string };
+    return freightBookingService.listRateContracts(request.user.tenant_id, q);
+  });
+
+  fastify.post('/rate-contracts', async (request, reply) => {
+    const body = rateContractCreateSchema.parse(request.body);
+    const contract = await freightBookingService.createRateContract(request.user.tenant_id, request.user.sub, body);
+    return reply.status(201).send(contract);
+  });
+
+  fastify.patch('/rate-contracts/:id', async (request) => {
+    const { id } = request.params as { id: string };
+    const body = rateContractPatchSchema.parse(request.body);
+    return freightBookingService.updateRateContract(request.user.tenant_id, id, body);
+  });
+
+  // GET /v1/freight-booking/rate-shopping?mode=&origin_port=&destination_port=&as_of=
+  // Every active carrier contract for a lane, cheapest first — the actual
+  // "compare carriers" view (see freightBooking.service.ts's rateShopping).
+  fastify.get('/rate-shopping', async (request, reply) => {
+    const { mode, origin_port, destination_port, as_of } = request.query as {
+      mode?: string; origin_port?: string; destination_port?: string; as_of?: string;
+    };
+    if (!mode || !origin_port || !destination_port) {
+      return reply.status(400).send({ error: 'mode, origin_port and destination_port are required.' });
+    }
+    return freightBookingService.rateShopping(request.user.tenant_id, { mode, origin_port, destination_port, as_of });
   });
 
   // ── Bookings ─────────────────────────────────────────────────────────────

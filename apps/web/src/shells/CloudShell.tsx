@@ -8,6 +8,7 @@ import { FileBrowser } from '../pages/cloud/FileBrowser.js';
 import { CloudHome } from '../pages/cloud/CloudHome.js';
 import { CloudProvider, useCloud } from './cloud-context.js';
 import { CloudSidebarContent } from './CloudSidebar.js';
+import '../pages/cloud/Cloud.css';
 
 function CloudHeader() {
   const { search, setSearch } = useCloud();

@@ -7,8 +7,8 @@
 }
 
 .skb-new-btn {
-  background: var(--teal);
-  color: #fff;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
   border: none;
   border-radius: 9px;
   padding: var(--ds-btn-py) 16px;
@@ -35,8 +35,8 @@
 }
 
 .skb-tab--active {
-  background: var(--teal);
-  color: #fff;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
 }
 
 .skb-table-card {

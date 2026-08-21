@@ -47,7 +47,7 @@ export const TrackingIssues: React.FC = () => {
           />
         </div>
         <Link to="/tracking/issues/new"
-          style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 9, padding: '9px 16px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: 'pointer', textDecoration: 'none' }}>
+          style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 9, padding: '9px 16px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: 'pointer', textDecoration: 'none' }}>
           <Icon name="plus" size={15} /> Report Issue
         </Link>
       </div>

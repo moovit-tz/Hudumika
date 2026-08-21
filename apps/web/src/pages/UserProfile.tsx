@@ -512,7 +512,7 @@ export const UserProfile: React.FC = () => {
                 )}
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
                   <button type="button" onClick={() => setPwForm({current:'',next:'',confirm:''})} style={{ padding: 'var(--ds-btn-py) 20px', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', fontSize: 14, fontWeight: 600, fontFamily: 'var(--font)', color: 'var(--ink)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
-                  <button type="submit" disabled={pwSaving} style={{ padding: 'var(--ds-btn-py) 22px', border: 'none', borderRadius: 'var(--r)', background: 'var(--teal)', color: '#fff', cursor: 'pointer', fontSize: 14, fontWeight: 700, fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                  <button type="submit" disabled={pwSaving} style={{ padding: 'var(--ds-btn-py) 22px', border: 'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor: 'pointer', fontSize: 14, fontWeight: 700, fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
                     {pwSaving ? 'Updating…' : 'Update Password'}
                   </button>
                 </div>
@@ -617,7 +617,7 @@ export const UserProfile: React.FC = () => {
             </Card>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <button type="button" style={{ padding: 'var(--ds-btn-py) 22px', border: 'none', borderRadius: 'var(--r)', background: 'var(--teal)', color: '#fff', cursor: 'pointer', fontSize: 14, fontWeight: 700, fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Save Preferences</button>
+              <button type="button" style={{ padding: 'var(--ds-btn-py) 22px', border: 'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor: 'pointer', fontSize: 14, fontWeight: 700, fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Save Preferences</button>
             </div>
           </>
         )}

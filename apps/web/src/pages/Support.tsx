@@ -104,6 +104,7 @@ interface Ticket {
   tags?: string[]; related_shipments?: string[];
   customerContext?: CustomerContext;
   group_id?: string | null; group_name?: string | null; group_color?: string | null;
+  source_app?: string | null; sla_deadline?: string | null;
 }
 
 interface SupportGroup { id: string; name: string; color: string; ticket_count?: number; }
@@ -156,6 +157,19 @@ function sortTickets(a: Ticket, b: Ticket) {
   const so = STATUS_ORDER[a.status] - STATUS_ORDER[b.status];
   if (so !== 0) return so;
   return (b.message_count ?? 0) - (a.message_count ?? 0);
+}
+
+const PRIORITY_ORDER: Record<PriorityKey, number> = { URGENT: 0, HIGH: 1, MEDIUM: 2, NORMAL: 2, LOW: 3 };
+
+/** Urgent-first, then soonest SLA deadline — the first place in this
+ *  ticketing system priority actually decides order rather than just
+ *  drawing a badge/border colour on rows sorted by something else. */
+function sortByPriority(a: Ticket, b: Ticket) {
+  const po = PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority];
+  if (po !== 0) return po;
+  const ad = a.sla_deadline ? new Date(a.sla_deadline).getTime() : Infinity;
+  const bd = b.sla_deadline ? new Date(b.sla_deadline).getTime() : Infinity;
+  return ad - bd;
 }
 
 /* ── Helpers ── */
@@ -216,7 +230,7 @@ function ChPill({ ch }: { ch: ChannelId }) {
 ══════════════════════════════════════════ */
 const CONV_PAGE_SIZE = 8;
 
-type InboxFilter = 'inbox' | 'unassigned' | 'closed' | 'all';
+type InboxFilter = 'inbox' | 'unassigned' | 'closed' | 'all' | 'onsite';
 type FilterSel =
   | { kind: 'fixed'; key: InboxFilter }
   | { kind: 'group'; id: string }
@@ -250,6 +264,7 @@ function ConvList({ tickets, selected, onSelect, onNew, groups, views, onCreateG
     if (k === 'inbox')      return tickets.filter(t => t.status === 'IN_PROGRESS').length;
     if (k === 'unassigned') return tickets.filter(t => !t.assigned_to).length;
     if (k === 'closed')     return tickets.filter(t => t.status === 'CLOSED').length;
+    if (k === 'onsite')     return tickets.filter(t => t.source_app === 'onsite' && t.status !== 'CLOSED').length;
     return tickets.length;
   };
 
@@ -258,6 +273,7 @@ function ConvList({ tickets, selected, onSelect, onNew, groups, views, onCreateG
       return sel.key === 'all'        ? true :
         sel.key === 'inbox'      ? t.status === 'IN_PROGRESS' :
         sel.key === 'unassigned' ? !t.assigned_to :
+        sel.key === 'onsite'     ? t.source_app === 'onsite' && t.status !== 'CLOSED' :
         t.status === 'CLOSED';
     }
     if (sel.kind === 'group') return t.group_id === sel.id;
@@ -269,6 +285,7 @@ function ConvList({ tickets, selected, onSelect, onNew, groups, views, onCreateG
     if (f.priority && t.priority !== f.priority) return false;
     return true;
   }).sort((a, b) => {
+    if (sel.kind === 'fixed' && sel.key === 'onsite') return sortByPriority(a, b);
     if (viewMode !== 'table') return sortTickets(a, b);
     let av: string, bv: string;
     switch (sortKey) {
@@ -296,6 +313,7 @@ function ConvList({ tickets, selected, onSelect, onNew, groups, views, onCreateG
   const INBOX_ITEMS: { key: InboxFilter; label: string; icon: IconName }[] = [
     { key: 'inbox',      label: 'Your inbox',  icon: 'mail'      },
     { key: 'unassigned', label: 'Unassigned',  icon: 'users'     },
+    { key: 'onsite',     label: 'Onsite priority queue', icon: 'monitor' },
     { key: 'closed',     label: 'Closed',      icon: 'checkCircle' },
     { key: 'all',        label: 'All',         icon: 'list'      },
   ];
@@ -1121,6 +1139,8 @@ export const Support: React.FC = () => {
       group_id: s.group_id ?? null,
       group_name: s.group_name ?? null,
       group_color: s.group_color ?? null,
+      source_app: s.source_app ?? null,
+      sla_deadline: s.sla_deadline ?? null,
     }));
   }, []);
 

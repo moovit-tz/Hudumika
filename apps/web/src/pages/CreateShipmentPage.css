@@ -72,9 +72,9 @@
 }
 
 .create-shipment-step.active .create-shipment-step-indicator {
-  background: var(--teal);
-  border-color: var(--teal);
-  color: #fff;
+  background: hsl(var(--primary));
+  border-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
 }
 
 .create-shipment-step.completed .create-shipment-step-indicator {

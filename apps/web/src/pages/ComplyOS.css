@@ -2018,7 +2018,79 @@
 [data-complyos] .btn-primary {
   font-weight: 700;
 }
-[data-complyos] .btn-secondary {
+/* ── In-App Tausi Browser Panel in ComplyOS ── */
+.comply-inapp-browser {
+  background: #0f172a;
+  border: 1px solid #1e293b;
+  border-radius: 1rem;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.25);
+  min-height: 540px;
 }
-[data-complyos] .btn-sm {
+
+.comply-browser-chrome {
+  background: #1e293b;
+  border-bottom: 1px solid #334155;
+  padding: 0.6rem 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.comply-browser-url {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 0.5rem;
+  padding: 0.35rem 0.75rem;
+  color: #94a3b8;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.75rem;
+}
+
+.comply-browser-url span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.comply-browser-frame {
+  flex: 1;
+  min-height: 380px;
+  width: 100%;
+  border: none;
+  background: #ffffff;
+}
+
+@media (max-width: 1024px) {
+  .comply-automation-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .comply-browser-chrome {
+    flex-wrap: wrap;
+    padding: 0.5rem;
+  }
+  .comply-browser-url {
+    order: 1;
+    width: 100%;
+    flex: 1 1 100%;
+  }
+  .comply-inapp-browser {
+    min-height: 420px;
+  }
+  .tausi-login-dialog {
+    width: 96vw !important;
+    height: 90vh !important;
+    max-height: none !important;
+    border-radius: 0.75rem !important;
+  }
 }

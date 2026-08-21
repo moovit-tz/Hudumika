@@ -435,6 +435,99 @@ export async function fleetOpsRoutes(fastify: FastifyInstance) {
     return { ok: true };
   });
 
+  // ── Trip expenses → customer invoice (migration 260) ────────────
+  //
+  // Confirmed by direct research that no such bridge existed anywhere in
+  // HuduFreight before this — ClearOS already bridges shipment `expenses`
+  // (is_revenue=true) into sales_invoices on Finalize Invoice
+  // (finance.routes.ts), and SEAL already bridges bonded-storage accrual
+  // the same way (seal-billing.service.ts generateStorageInvoice). This
+  // follows SEAL's shape exactly: a standalone Draft sales_invoices row,
+  // left Draft deliberately so GL posting stays inside FinOps's own
+  // POST /v1/invoices flow — not duplicated here.
+
+  fastify.get('/trips/:id/expenses', async (req, reply) => {
+    const user = req.user;
+    const { id } = req.params as { id: string };
+    return withTenant(user.tenant_id, async (trx) => {
+      const trip = await trx.selectFrom('trips').select('id')
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!trip) return reply.status(404).send({ error: 'Trip not found' });
+      const rows = await trx.selectFrom('vehicle_expenses').selectAll()
+        .where('trip_id', '=', id).where('tenant_id', '=', user.tenant_id)
+        .orderBy('expense_date', 'desc').execute();
+      return rows.map(r => ({ ...r, amount: Number(r.amount) }));
+    });
+  });
+
+  fastify.post('/trips/:id/bill-expenses', { preHandler: requireRole(...FLEET_ROLES) }, async (req, reply) => {
+    const user = req.user;
+    const { id } = req.params as { id: string };
+    return withTenant(user.tenant_id, async (trx) => {
+      const trip = await trx.selectFrom('trips').selectAll()
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!trip) return reply.status(404).send({ error: 'Trip not found' });
+
+      // A trip carries an optional direct customer_id, or an optional link
+      // to a ClearOS shipment (which has its own customer) — either is
+      // enough to know who to bill; neither means there's genuinely no one
+      // to invoice yet.
+      let customerId = trip.customer_id;
+      let shipmentRef: string | null = null;
+      if (trip.shipment_id) {
+        const shipment = await trx.selectFrom('shipment_cases').select(['ref_number', 'customer_id'])
+          .where('id', '=', trip.shipment_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+        if (shipment) {
+          shipmentRef = shipment.ref_number;
+          customerId = customerId ?? shipment.customer_id;
+        }
+      }
+      if (!customerId) {
+        return reply.status(400).send({ error: 'This trip has no customer to bill — set a customer on the trip, or link it to a shipment.' });
+      }
+
+      const billable = await trx.selectFrom('vehicle_expenses').selectAll()
+        .where('trip_id', '=', id).where('tenant_id', '=', user.tenant_id)
+        .where('billable', '=', true).where('invoice_id', 'is', null)
+        .execute();
+      if (billable.length === 0) {
+        return reply.status(400).send({ error: 'No billable, not-yet-invoiced expenses on this trip.' });
+      }
+
+      const invoice = await trx.insertInto('sales_invoices').values({
+        tenant_id: user.tenant_id,
+        invoice_number: `FLEET-${Date.now()}`,
+        shipment_ref: shipmentRef ?? trip.id,
+        customer_id: customerId,
+        client_address: '[]',
+        bill_date: new Date(),
+        status: 'Draft',
+        received: 0,
+        version: 1,
+        notes: `Trip expenses — ${trip.origin ?? '—'} → ${trip.destination ?? '—'}.`,
+        created_by: user.sub,
+      } as any).returningAll().executeTakeFirstOrThrow();
+
+      await trx.insertInto('sales_invoice_lines').values(
+        billable.map((e, i) => ({
+          invoice_id: invoice.id,
+          name: `${e.category}${e.description ? ` — ${e.description}` : ''}`,
+          unit: 'FLAT',
+          rate: Number(e.amount),
+          qty: 1,
+          line_group: 'other',
+          currency: 'TZS',
+          sort_order: i,
+        }))
+      ).execute();
+
+      await trx.updateTable('vehicle_expenses').set({ invoice_id: invoice.id })
+        .where('id', 'in', billable.map(e => e.id)).where('tenant_id', '=', user.tenant_id).execute();
+
+      return { invoice, billed_count: billable.length };
+    });
+  });
+
   // ── Maintenance ──────────────────────────────────────────────
 
   fastify.get('/maintenance', async (req) => {

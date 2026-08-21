@@ -2,6 +2,8 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation, useParams, Link } from 'react-router-dom';
 import { AuthProvider, useAuth } from './hooks/useAuth.js';
 import { OrgAuthProvider, useOrgAuth } from './hooks/useOrgAuth.js';
+import { IdleLockProvider, useIdleLock } from './hooks/useIdleLock.js';
+import { LockScreen } from './components/LockScreen.js';
 import { OrgLogin } from './pages/OrgLogin.js';
 import { OrgShell } from './pages/OrgShell.js';
 import { useBranding } from './hooks/useBranding.js';
@@ -18,12 +20,14 @@ import { ResetPassword }   from './pages/ResetPassword.js';
 import { AcceptInvite }    from './pages/AcceptInvite.js';
 import { VerifyEmail }     from './pages/VerifyEmail.js';
 import { ComplyOSSales }   from './pages/ComplyOSSales.js';
+import { AgencyDirectory } from './pages/AgencyDirectory.js';
 
 import { CommandCenter }  from './pages/CommandCenter.js';
 import { ActivityMonitorPage } from './pages/ActivityMonitor.js';
 import { ShipmentsList }  from './pages/ShipmentsList.js';
 import { ShipmentDetail } from './pages/ShipmentDetail.js';
 import { TrackingShared } from './pages/TrackingShared.js';
+import { ShipmentReportShared } from './pages/ShipmentReportShared.js';
 import { SharedLandedCostReport } from './pages/SharedLandedCostReport.js';
 import { UserProfile }    from './pages/UserProfile.js';
 import { Support }        from './pages/Support.js';
@@ -74,8 +78,10 @@ import { StoreShell }    from './shells/StoreShell.js';
 import { OneIdShell }    from './shells/OneIdShell.js';
 import { TrackingShell } from './shells/TrackingShell.js';
 import { CargoTrackerShell } from './shells/CargoTrackerShell.js';
+import { PettiShell } from './shells/PettiShell.js';
 import { CalendarShell } from './shells/CalendarShell.js';
 import { TasksShell }    from './shells/TasksShell.js';
+import { NotesShell }    from './shells/NotesShell.js';
 import { CMSShell }      from './shells/CMSShell.js';
 import { StudioShell } from './shells/StudioShell.js';
 import { OnsiteShell } from './shells/OnsiteShell.js';
@@ -261,7 +267,7 @@ const CustomerShell: React.FC = () => {
 };
 
 /* ── Main app shell ── */
-const AppContent: React.FC = () => {
+const AppContentBody: React.FC = () => {
   const { user, loading } = useAuth();
   const { orgUser, orgLoading } = useOrgAuth();
   const { pathname } = useLocation();
@@ -301,8 +307,10 @@ const AppContent: React.FC = () => {
       <Route path="/privacy"              element={<PrivacyPolicy />} />
       <Route path="/support-ticket"       element={<SupportTicket />} />
       <Route path="/track/shared/:token"  element={<TrackingShared />} />
+      <Route path="/track/shipment-report/:token" element={<ShipmentReportShared />} />
       <Route path="/r/:token"             element={<SharedLandedCostReport />} />
       <Route path="/why-complyos"         element={<ComplyOSSales />} />
+      <Route path="/agency-directory"     element={<AgencyDirectory />} />
       <Route path="/site/:tenantSlug"             element={<OneSitePublic />} />
       <Route path="/site/:tenantSlug/:pageSlug"   element={<OneSitePublic />} />
       <Route path="*"                     element={<Login />} />
@@ -327,6 +335,7 @@ const AppContent: React.FC = () => {
           <Route path="/privacy"        element={<PrivacyPolicy />} />
           <Route path="/support-ticket" element={<SupportTicket />} />
           <Route path="/why-complyos"   element={<ComplyOSSales />} />
+          <Route path="/agency-directory" element={<AgencyDirectory />} />
           <Route path="/site/:tenantSlug"           element={<OneSitePublic />} />
           <Route path="/site/:tenantSlug/:pageSlug" element={<OneSitePublic />} />
           <Route path="/subscription" element={<Navigate to="/workspace/billing" replace />} />
@@ -372,6 +381,7 @@ const AppContent: React.FC = () => {
           <Route path="/studio/*"    element={<StudioShell />} />
           <Route path="/onsite/*"    element={<OnsiteShell />} />
           <Route path="/hudubi/*"    element={<HuduBIShell />} />
+          <Route path="/petti/*"     element={<PettiShell />} />
 
           {/* Legacy redirects for old routes */}
           <Route path="/billing"         element={<Navigate to="/finance/invoices"        replace />} />
@@ -434,6 +444,7 @@ const AppContent: React.FC = () => {
           {/* ── App shells (prefix-based routes) that use WorkspaceApp ── */}
           <Route path="/calendar/*"       element={<CalendarShell />} />
           <Route path="/tasks/*"          element={<TasksShell />} />
+          <Route path="/notes/*"          element={<NotesShell />} />
 
           {/* Legacy HRM routes — superseded by the OnePI shell (/nexushr/*), kept as redirects for old links/bookmarks */}
           <Route path="/hrm"           element={<Navigate to="/nexushr" replace />} />
@@ -445,6 +456,7 @@ const AppContent: React.FC = () => {
           ))}
 
           <Route path="/track/shared/:token" element={<TrackingShared />} />
+          <Route path="/track/shipment-report/:token" element={<ShipmentReportShared />} />
           <Route path="/r/:token" element={<SharedLandedCostReport />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
@@ -453,6 +465,28 @@ const AppContent: React.FC = () => {
     </div>
   );
 };
+
+/**
+ * Renders the lock overlay *alongside* whichever branch AppContentBody
+ * picked (main shell, customer portal, org shell) rather than swapping it
+ * out — anything already polling underneath keeps running while locked,
+ * which is what keeps the session genuinely alive rather than merely
+ * hidden. Gated on a real staff/customer session existing at all; the
+ * Organization portal (useOrgAuth) is a separate session this doesn't cover.
+ */
+const LockScreenGate: React.FC = () => {
+  const { user } = useAuth();
+  const { locked } = useIdleLock();
+  if (!user || !locked) return null;
+  return <LockScreen />;
+};
+
+const AppContent: React.FC = () => (
+  <IdleLockProvider>
+    <AppContentBody />
+    <LockScreenGate />
+  </IdleLockProvider>
+);
 
 const App: React.FC = () => (
   <>
