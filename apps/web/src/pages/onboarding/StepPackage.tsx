@@ -79,7 +79,8 @@ export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack
       {/* 3-Column Pricing Grid (Imitating Sample Image) */}
       <div className="ob-pkg-grid">
         {packages.map((pkg, idx) => {
-          const price = draft.billing_cycle === 'annual' ? pkg.annual_price : pkg.monthly_price;
+          const isCustom = pkg.code === 'enterprise';
+          const seatPrice = isCustom ? 0 : (draft.billing_cycle === 'annual' ? Math.round(pkg.annual_price / 12) : pkg.monthly_price);
           const selected = draft.package_code === pkg.code;
           const isPro = pkg.popular || idx === 1;
 
@@ -103,10 +104,22 @@ export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack
               </div>
 
               {/* Price */}
-              <div className="ob-pkg-price">
-                ${price}
-                <span>/{draft.billing_cycle === 'annual' ? 'mo' : 'mo'}</span>
-              </div>
+              {isCustom ? (
+                <div className="ob-pkg-price" style={{ fontSize: '24px' }}>
+                  Custom
+                  <span style={{ fontSize: '12px', display: 'block', fontWeight: 'normal', color: 'var(--ink3)' }}>Metered per quotation</span>
+                </div>
+              ) : (
+                <div className="ob-pkg-price">
+                  ${seatPrice}
+                  <span>/user/mo</span>
+                  {draft.billing_cycle === 'annual' && (
+                    <span style={{ fontSize: '11px', display: 'block', color: 'var(--ink3)', fontWeight: 'normal', marginTop: 4 }}>
+                      Billed annually (${pkg.annual_price}/seat/yr)
+                    </span>
+                  )}
+                </div>
+              )}
 
               {/* Action Button */}
               <button
@@ -114,7 +127,7 @@ export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack
                 className={`ob-pkg-btn ${isPro || selected ? 'ob-pkg-btn--solid' : 'ob-pkg-btn--outline'}`}
                 onClick={(e) => { e.stopPropagation(); update({ package_code: pkg.code }); }}
               >
-                {selected ? 'Plan Selected ✓' : 'Buy Plan'}
+                {selected ? 'Plan Selected ✓' : isCustom ? 'Contact Sales' : 'Buy Plan'}
               </button>
 
               {/* Payment Logos Row */}
@@ -128,7 +141,6 @@ export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack
                     <span className="ob-pkg-feature-icon">✓</span>
                     <span>{pkg.max_users === 0 ? 'Unlimited users' : `Up to ${pkg.max_users} users`}</span>
                     {idx === 1 && <span className="ob-boosted-pill">Boosted ↑</span>}
-                    {idx === 2 && <span className="ob-boosted-pill">Boosted ↑↑</span>}
                   </li>
                   <li className="ob-pkg-feature-item">
                     <span className="ob-pkg-feature-icon">✓</span>
@@ -142,15 +154,16 @@ export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack
                 <ul className="ob-pkg-feature-list">
                   <li className="ob-pkg-feature-item">
                     <span className="ob-pkg-feature-icon">✓</span>
-                    <span>{idx === 0 ? '50 shipments / mo' : idx === 1 ? '250 shipments / mo' : '1,000 shipments / mo'}</span>
+                    <span>
+                      {pkg.monthly_item_limit === null ? 'Unlimited shipments / month' : `${pkg.monthly_item_limit.toLocaleString()} shipments / month`}
+                    </span>
                     {idx === 1 && <span className="ob-boosted-pill">Boosted ↑</span>}
-                    {idx === 2 && <span className="ob-boosted-pill">Boosted ↑↑</span>}
                   </li>
                   <li className="ob-pkg-feature-item">
                     <span className="ob-pkg-feature-icon">✓</span>
                     <span>Customs &amp; TANCIS integration</span>
                   </li>
-                  {idx >= 1 && (
+                  {!isCustom && pkg.code !== 'starter' && (
                     <li className="ob-pkg-feature-item">
                       <span className="ob-pkg-feature-icon">✓</span>
                       <span>Demurrage Risk Radar</span>
@@ -165,7 +178,7 @@ export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack
                 <ul className="ob-pkg-feature-list">
                   <li className="ob-pkg-feature-item">
                     <span className="ob-pkg-feature-icon">✓</span>
-                    <span>{idx === 0 ? '10 GB Cloud Vault' : idx === 1 ? '50 GB Cloud Vault' : '250 GB Cloud Vault'}</span>
+                    <span>{pkg.code === 'starter' ? '10 GB Cloud Vault' : pkg.code === 'growth' ? '50 GB Cloud Vault' : 'Unlimited storage'}</span>
                   </li>
                   <li className="ob-pkg-feature-item">
                     <span className="ob-pkg-feature-icon">✓</span>
@@ -194,9 +207,9 @@ export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack
             <thead>
               <tr>
                 <th>Features</th>
-                <th>Starter ($29)</th>
-                <th>Growth ($99)</th>
-                <th>Scale ($299)</th>
+                <th>HuduStarter ($6/user)</th>
+                <th>HuduPlus ($18/user)</th>
+                <th>Hudu Advanced (Custom)</th>
               </tr>
             </thead>
             <tbody>
@@ -205,9 +218,9 @@ export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack
               </tr>
               <tr>
                 <td>Team Members &amp; Staff</td>
-                <td>Up to 5</td>
-                <td>Up to 20</td>
-                <td>Up to 99</td>
+                <td>Up to 300</td>
+                <td>Up to 300</td>
+                <td>Unlimited</td>
               </tr>
               <tr>
                 <td>Role-Based Access (RBAC)</td>
@@ -221,9 +234,9 @@ export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack
               </tr>
               <tr>
                 <td>Monthly Shipment Cases</td>
-                <td>50 / mo</td>
-                <td>250 / mo</td>
-                <td>1,000 / mo</td>
+                <td>100 / mo</td>
+                <td>500 / mo</td>
+                <td>Unlimited</td>
               </tr>
               <tr>
                 <td>Customs Declaration &amp; TANCIS</td>
@@ -245,7 +258,7 @@ export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack
                 <td>Cloud Document Vault</td>
                 <td>10 GB</td>
                 <td>50 GB</td>
-                <td>250 GB</td>
+                <td>Unlimited</td>
               </tr>
               <tr>
                 <td>OCR &amp; Document AI Extraction</td>

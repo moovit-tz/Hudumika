@@ -33,10 +33,10 @@ interface Transaction { id:string; txRef:string; companyId:string; plan:PlanId; 
    CONFIG
 ══════════════════════════════════════════════════ */
 const PLAN_CFG: Record<PlanId,{label:string;color:string;bg:string}> = {
-  starter:    { label:'Starter',    color:'var(--blue)', bg:'var(--blue-l)'  },
-  growth:     { label:'Growth',     color:'var(--purple)', bg:'var(--purple-l)'  },
-  scale:      { label:'Scale',      color:'var(--blue)', bg:'var(--blue-l)'  },
-  enterprise: { label:'Enterprise', color:'var(--teal)', bg:'var(--teal-l)'  },
+  starter:    { label:'HuduStarter',    color:'var(--blue)', bg:'var(--blue-l)'  },
+  growth:     { label:'HuduPlus',       color:'var(--purple)', bg:'var(--purple-l)'  },
+  scale:      { label:'Legacy Scale',   color:'var(--blue)', bg:'var(--blue-l)'  },
+  enterprise: { label:'Hudu Advanced',   color:'var(--teal)', bg:'var(--teal-l)'  },
 };
 const CO_CFG: Record<CoStatus,{label:string;color:string;bg:string}> = {
   active:    { label:'Active',    color:'var(--green)', bg:'var(--green-l)' },
@@ -78,14 +78,14 @@ const COMPANIES: Company[] = [
 ];
 
 const PACKAGES: Package[] = [
-  { id:'P1', code:'starter',  name:'Starter',  monthly:29,  annual:290,  maxUsers:5,  active:0, color:'#0891b2',
-    features:['0-5 employees — East African startups & entrepreneurs','Up to 5 users','10 GB storage','50 shipments / month','Basic shipment tracking','TANCIS integration','Email support','Local mobile money (M-Pesa, Tigo Pesa, Airtel Money)'] },
-  { id:'P2', code:'growth',   name:'Growth',   monthly:99,  annual:990,  maxUsers:20, active:0, color:'#0d7a6b', popular:true,
-    features:['6-20 employees — growing logistics & trading teams','Up to 20 users','50 GB storage','250 shipments / month','Advanced tracking & alerts','Finance module (invoices, bills)','CRM & Leads','WhatsApp Bot','Priority 24h support'] },
-  { id:'P3', code:'scale',    name:'Scale',    monthly:299, annual:2990, maxUsers:99, active:0, color:'#2563eb',
-    features:['21-99 employees — established multi-branch operators','Up to 99 users','250 GB storage','1,000 shipments / month','Full API access','HR / People module','TANESW integration','Demurrage tracking','Custom reports','Multi-branch support'] },
-  { id:'P4', code:'enterprise', name:'Enterprise', monthly:0, annual:0, maxUsers:0,  active:0, color:'#6e40c9',
-    features:['100+ employees — large enterprises & financial institutions','Unlimited users','Unlimited storage','Unlimited shipments','Dedicated account manager','24/7 phone & WhatsApp support','Custom integrations (core banking APIs)','White-label option','99.99% SLA guarantee','On-premise / private cloud option'] },
+  { id:'P1', code:'starter',  name:'HuduStarter',  monthly:6,  annual:60,  maxUsers:300,  active:0, color:'#0891b2',
+    features:['Every module included','Up to 300 users','10 GB storage','100 shipments / month','Basic shipment tracking','TANCIS integration','Email support','Local mobile money (M-Pesa, Tigo Pesa, Airtel Money)'] },
+  { id:'P2', code:'growth',   name:'HuduPlus',   monthly:18,  annual:180,  maxUsers:300, active:0, color:'#0d7a6b', popular:true,
+    features:['Every module included','Up to 300 users','50 GB storage','500 shipments / month','Advanced tracking & alerts','Finance module (invoices, bills)','CRM & Leads','WhatsApp Bot','Priority 24h support'] },
+  { id:'P3', code:'scale',    name:'Legacy Scale',    monthly:19, annual:190, maxUsers:99, active:0, color:'#2563eb',
+    features:['Every module included','Up to 99 users','250 GB storage','1,000 shipments / month','Full API access','HR / People module','TANESW integration','Demurrage tracking','Custom reports','Multi-branch support'] },
+  { id:'P4', code:'enterprise', name:'Hudu Advanced', monthly:0, annual:0, maxUsers:0,  active:0, color:'#6e40c9',
+    features:['Every module included','Unlimited users','Unlimited storage','Unlimited shipments','Dedicated account manager','24/7 phone & WhatsApp support','Custom integrations (core banking APIs)','White-label option','99.99% SLA guarantee','Metered option shared per quotation'] },
 ];
 
 const SUBSCRIPTIONS: Subscription[] = [

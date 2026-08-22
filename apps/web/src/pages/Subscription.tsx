@@ -29,20 +29,20 @@ type PlanDisplay = { name: string; color: string; bg: string; pricePerSeat: numb
 // they're differentiated by icon (PLAN_ICONS) and the "Most Popular"/"Current Plan" badges instead.
 const PLAN_DEFAULTS: Record<PlanKey, PlanDisplay> = {
   starter: {
-    name: 'Starter', color: 'var(--teal)', bg: 'var(--teal-l)', pricePerSeat: 4, itemLimit: 50,
-    features: ['Every module included', '50 items / month', '10 GB storage', 'Basic shipment tracking', 'TANCIS integration', 'Email support', 'Local mobile money (M-Pesa, Tigo Pesa, Airtel Money)'],
+    name: 'HuduStarter', color: 'var(--teal)', bg: 'var(--teal-l)', pricePerSeat: 6, itemLimit: 100,
+    features: ['Every module included', '100 items / month', '10 GB storage', 'Basic shipment tracking', 'TANCIS integration', 'Email support', 'Local mobile money (M-Pesa, Tigo Pesa, Airtel Money)'],
   },
   growth: {
-    name: 'Growth', color: 'var(--teal)', bg: 'var(--teal-l)', pricePerSeat: 9, itemLimit: 300, badge: 'Most Popular',
-    features: ['Every module included', '300 items / month', '50 GB storage', 'Advanced tracking & alerts', 'WhatsApp Bot', 'Priority 24h support'],
+    name: 'HuduPlus', color: 'var(--teal)', bg: 'var(--teal-l)', pricePerSeat: 18, itemLimit: 500, badge: 'Most Popular',
+    features: ['Every module included', '500 items / month', '50 GB storage', 'Advanced tracking & alerts', 'WhatsApp Bot', 'Priority 24h support'],
   },
   scale: {
-    name: 'Scale', color: 'var(--teal)', bg: 'var(--teal-l)', pricePerSeat: 19, itemLimit: 1500,
+    name: 'Scale (Legacy)', color: 'var(--teal)', bg: 'var(--teal-l)', pricePerSeat: 19, itemLimit: 1500,
     features: ['Every module included', '1,500 items / month', '250 GB storage', 'Full API access', 'TANESW integration', 'Custom reports', 'Multi-branch support'],
   },
   enterprise: {
-    name: 'Enterprise', color: 'var(--teal)', bg: 'var(--teal-l)', pricePerSeat: null, itemLimit: null,
-    features: ['Every module included', 'Unlimited items / month', 'Unlimited storage', 'Dedicated account manager', '24/7 phone & WhatsApp support', 'Custom integrations (core banking APIs)', 'White-label option', '99.99% SLA guarantee', 'On-premise / private cloud option'],
+    name: 'Hudu Advanced', color: 'var(--teal)', bg: 'var(--teal-l)', pricePerSeat: null, itemLimit: null,
+    features: ['Every module included', 'Unlimited items / month', 'Unlimited storage', 'Dedicated account manager', '24/7 phone & WhatsApp support', 'Custom integrations (core banking APIs)', 'White-label option', '99.99% SLA guarantee', 'Metered option shared per quotation'],
   },
 };
 
@@ -1022,30 +1022,30 @@ function SecurityTab() {
 
 // ─── Tab: Plans ───────────────────────────────────────────────────────────────
 
-const PLAN_ORDER: PlanKey[] = ['starter', 'growth', 'scale', 'enterprise'];
+const PLAN_ORDER: PlanKey[] = ['starter', 'growth', 'enterprise'];
 
 const PLAN_TAGLINES: Record<PlanKey, string> = {
-  starter: 'For solo founders and small teams just getting started',
-  growth: 'For growing teams scaling their operations',
-  scale: 'For scaling multi-branch operations across East Africa',
-  enterprise: 'For large enterprises & financial institutions — custom-built for mission-critical deployments',
+  starter: 'HuduStarter — For solo founders and small teams just getting started',
+  growth: 'HuduPlus — For growing teams scaling their operations',
+  scale: 'Legacy Plan — Scale',
+  enterprise: 'Hudu Advanced — Metered option shared per quotation',
 };
 
 const PLAN_ICONS: Record<PlanKey, IconName> = {
   starter: 'zap', growth: 'trendingUp', scale: 'barChart', enterprise: 'crown',
 };
 
-const COMPARE_ROWS: [string, string, string, string, string][] = [
-  ['Shipments / month', '50', '250', '1000', 'Unlimited'],
-  ['User accounts', '5', '20', '99', 'Unlimited'],
-  ['Document storage', '10 GB', '50 GB', '250 GB', 'Unlimited'],
-  ['TANCIS integration', '✓', '✓', '✓', '✓'],
-  ['TANESW integration', '—', '—', '✓', '✓'],
-  ['WhatsApp Bot', '—', '✓', '✓', '✓'],
-  ['API access', '—', '—', '✓', '✓'],
-  ['Custom branding', '—', '—', '—', '✓'],
-  ['Dedicated manager', '—', '—', '—', '✓'],
-  ['SLA uptime', '99%', '99.5%', '99.9%', '99.99%'],
+const COMPARE_ROWS: [string, string, string, string][] = [
+  ['Shipments / month', '100', '500', 'Unlimited'],
+  ['User accounts limit', 'Up to 300', 'Up to 300', 'Unlimited'],
+  ['Document storage', '10 GB', '50 GB', 'Unlimited'],
+  ['TANCIS integration', '✓', '✓', '✓'],
+  ['TANESW integration', '—', '✓', '✓'],
+  ['WhatsApp Bot', '—', '✓', '✓'],
+  ['API access', '—', '✓', '✓'],
+  ['Custom branding', '—', '—', '✓'],
+  ['Dedicated manager', '—', '—', '✓'],
+  ['SLA uptime', '99%', '99.5%', '99.99%'],
 ];
 
 function PlansTab({ tenant, onReload }: { tenant: any; onReload: () => Promise<void> }) {
@@ -1076,8 +1076,8 @@ function PlansTab({ tenant, onReload }: { tenant: any; onReload: () => Promise<v
         <div className="sub-billing-toggle" style={{ background: 'var(--bg)', border: '1.5px solid var(--border)' }}>
           {(['monthly', 'yearly'] as const).map(b => (
             <button key={b} className={`sub-toggle-btn${billing === b ? ' active' : ''}`}
-              style={billing === b ? { background: 'var(--navy)', color: '#fff' } : { color: 'var(--ink3)' }}
-              onClick={() => setBilling(b)}>
+               style={billing === b ? { background: 'var(--navy)', color: '#fff' } : { color: 'var(--ink3)' }}
+               onClick={() => setBilling(b)}>
               {b.charAt(0).toUpperCase() + b.slice(1)}
               {b === 'yearly' && <span className="sub-toggle-badge">Save ~17%</span>}
             </button>
@@ -1171,7 +1171,7 @@ function PlansTab({ tenant, onReload }: { tenant: any; onReload: () => Promise<v
         <CardHead title="Compare plans" sub="Every feature, side by side." />
         <div className="sub-compare-scroll">
           <div className="sub-compare-grid">
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr repeat(4, 150px)', borderBottom: '1px solid var(--border)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: `1fr repeat(${PLAN_ORDER.length}, 150px)`, borderBottom: '1px solid var(--border)' }}>
               <div style={{ padding: '16px 20px' }} />
               {PLAN_ORDER.map(k => {
                 const p = plans[k]; const isCur = k === currentPlan;
@@ -1184,7 +1184,7 @@ function PlansTab({ tenant, onReload }: { tenant: any; onReload: () => Promise<v
               })}
             </div>
             {COMPARE_ROWS.map(([feat, ...vals]) => (
-              <div key={feat} style={{ display: 'grid', gridTemplateColumns: '1fr repeat(4, 150px)', borderBottom: '1px solid var(--border)' }}>
+              <div key={feat} style={{ display: 'grid', gridTemplateColumns: `1fr repeat(${PLAN_ORDER.length}, 150px)`, borderBottom: '1px solid var(--border)' }}>
                 <div style={{ padding: '11px 20px', fontSize: 13, color: 'var(--ink2)' }}>{feat}</div>
                 {vals.map((v, i) => (
                   <div key={i} style={{ padding: '11px 14px', textAlign: 'center', borderLeft: '1px solid var(--border)', fontSize: 13, color: v === '—' ? 'var(--ink3)' : '#059669', fontWeight: v === '—' ? 400 : 600 }}>{v}</div>
