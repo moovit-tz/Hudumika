@@ -63,131 +63,167 @@ export function SignVerifyPage() {
   }
 
   return (
-    <div className="sign-verify-hero">
-      <div className="sign-verify-card">
-        {/* Brand header */}
-        <div style={{ textAlign: 'center', marginBottom: 28 }}>
-          <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--blue-l)', border: '2px solid var(--blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
-            <Icon name="edit" size={24} style={{ color: 'var(--blue)' }} />
+    <div className="sign-verify-page" style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', flexDirection: 'column' }}>
+      {/* Public Branded Header */}
+      <header style={{ background: '#fff', borderBottom: '1px solid var(--border)', height: 60, display: 'flex', alignItems: 'center', padding: '0 24px', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 16, color: 'var(--ink)' }}>
+          <div style={{ width: 32, height: 32, borderRadius: 6, background: 'var(--blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
+            <Icon name="edit" size={16} />
           </div>
-          <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)', margin: '0 0 4px' }}>Document Verification</h1>
-          <p style={{ fontSize: 13.5, color: 'var(--ink3)', margin: 0 }}>Verify the authenticity of a Hudumika eSign document</p>
+          <span>Hudumika eSign</span>
         </div>
+      </header>
 
-        {/* Code input */}
-        <div style={{ display: 'flex', gap: 8 }}>
-          <input
-            value={code}
-            onChange={e => setCode(e.target.value.toUpperCase())}
-            onKeyDown={e => e.key === 'Enter' && verify(code)}
-            placeholder="HSGN-XXXXXX-XXXXXX"
-            style={{
-              flex: 1, padding: '12px 16px', borderRadius: 10, border: '2px solid var(--border)',
-              fontSize: 16, fontFamily: 'Courier New, monospace', fontWeight: 700,
-              letterSpacing: '0.08em', color: 'var(--ink)', background: 'var(--bg)', outline: 'none',
-            }}
-          />
-          {/* --blue isn't run through the --primary contrast-floor math
-              (CLAUDE.md: that floor only exists for --primary today) — #fff
-              matches every other fixed-semantic-color solid button on this
-              page and elsewhere in the platform's current, un-floored state. */}
-          <Button variant="default" onClick={() => verify(code)} disabled={loading || !code.trim()}
-            style={{ background: 'var(--blue)', color: '#fff', whiteSpace: 'nowrap' }}>
-            {loading ? '…' : 'Verify'} <Icon name="arrowRight" size={14} />
-          </Button>
-        </div>
+      {/* Main Content Area */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 24px' }}>
+        <div style={{ maxWidth: 540, width: '100%', background: '#fff', border: '1px solid var(--border)', borderRadius: 8, padding: '32px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', marginBottom: 8, textAlign: 'center' }}>Verify a Document</h2>
+          <p style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 24, textAlign: 'center' }}>
+            Enter the verification code printed at the bottom of the signed document pages.
+          </p>
 
-        <p style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 8, textAlign: 'center' }}>
-          The verification code is printed on every signed document (e.g. HSGN-A1B2C3-D4E5F6)
-        </p>
-
-        {/* Result */}
-        {error && (
-          <div className="sign-verify-result-invalid">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--sign-red-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Icon name="xCircle" size={16} style={{ color: 'var(--sign-red)' }} />
-              </div>
-              <div>
-                <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--sign-red)' }}>Verification Failed</div>
-                <div style={{ fontSize: 13, color: 'var(--ink2)', marginTop: 2 }}>{error}</div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {result && (
-          <div className="sign-verify-result-valid">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-              <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--sign-green-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Icon name="lock" size={16} style={{ color: 'var(--sign-green)' }} />
-              </div>
-              <div>
-                <div style={{ fontWeight: 800, fontSize: 15, color: 'var(--sign-green)' }}>Document Verified</div>
-                <div style={{ fontFamily: 'Courier New, monospace', fontSize: 14, color: 'var(--sign-green)', fontWeight: 700, letterSpacing: '0.08em' }}>{result.verification_code}</div>
-              </div>
-              <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
-                <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--sign-green)' }}>Status</div>
-                <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)', textTransform: 'capitalize' }}>{result.status}</div>
-              </div>
-            </div>
-
-            <div style={{ background: 'var(--card-bg)', borderRadius: 10, padding: '14px 16px', marginBottom: 14 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--ink3)', marginBottom: 6 }}>Document</div>
-              <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--ink)', marginBottom: 2 }}>{result.title}</div>
-              {result.completed_at && (
-                <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>
-                  Completed on {new Date(result.completed_at).toLocaleString()}
+          {/* Code input */}
+          {(() => {
+            // "Verified" isn't just "a result exists" — it has to be the
+            // result for what's currently typed, or editing the code field
+            // after a successful check would keep showing a stale green
+            // "Verified" state for a code that was never actually looked up.
+            const isCurrentlyVerified = !!result && result.verification_code === code.trim().toUpperCase();
+            return (
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <div style={{ position: 'relative', flex: 1 }}>
+                    <input
+                      value={code}
+                      onChange={e => setCode(e.target.value.toUpperCase())}
+                      onKeyDown={e => e.key === 'Enter' && verify(code)}
+                      placeholder="e.g. HSGN-A1B2C3-D4E5F6"
+                      style={{
+                        width: '100%', padding: isCurrentlyVerified ? '10px 36px 10px 14px' : '10px 14px', borderRadius: 6,
+                        border: `1px solid ${isCurrentlyVerified ? 'var(--sign-green)' : 'var(--border)'}`,
+                        fontSize: 14, fontFamily: 'monospace', fontWeight: 600,
+                        color: 'var(--ink)', background: 'var(--bg)', outline: 'none', boxSizing: 'border-box',
+                      }}
+                    />
+                    {isCurrentlyVerified && (
+                      <Icon name="checkCircle" size={16} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--sign-green)' }} />
+                    )}
+                  </div>
+                  <Button variant="default" onClick={() => verify(code)} disabled={loading || !code.trim()}
+                    style={{ background: isCurrentlyVerified ? 'var(--sign-green)' : 'var(--blue)', color: '#fff', padding: '0 20px', borderRadius: 6, fontSize: 13.5, fontWeight: 600 }}>
+                    {loading ? 'Verifying...' : isCurrentlyVerified ? 'Re-verify' : 'Verify'}
+                  </Button>
                 </div>
-              )}
-            </div>
+                {isCurrentlyVerified && (
+                  <div style={{ fontSize: 11.5, color: 'var(--sign-green)', marginTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <Icon name="checkCircle" size={11} /> Verified — re-verify to check for status updates (e.g. Bitcoin confirmation).
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
-            <div>
-              <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--ink3)', marginBottom: 8 }}>Signers</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {result.signers.map((s, i) => (
-                  <div key={i} style={{ background: 'var(--card-bg)', borderRadius: 8, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: s.status === 'signed' ? 'var(--sign-green)' : 'var(--border)', color: s.status === 'signed' ? '#fff' : 'var(--ink3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, flexShrink: 0 }}>
-                      {s.status === 'signed' ? <Icon name="check" size={14} /> : '?'}
+          {/* Result */}
+          {/* Result */}
+          {error && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', background: '#fef2f2', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 6, marginTop: 16 }}>
+              <Icon name="xCircle" size={16} style={{ color: '#ef4444' }} />
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 13.5, color: '#ef4444' }}>Verification Failed</div>
+                <div style={{ fontSize: 12.5, color: '#4b5563', marginTop: 2 }}>{error}</div>
+              </div>
+            </div>
+          )}
+
+          {result && (
+            <div style={{ marginTop: 24 }}>
+              {/* Status Banner */}
+              <div style={{ background: '#ecfdf5', border: '1px solid rgba(16,185,129,0.2)', borderRadius: 6, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 8, marginBottom: 24 }}>
+                <Icon name="checkCircle" size={18} style={{ color: '#10b981' }} />
+                <div style={{ fontSize: 13.5, fontWeight: 600, color: '#10b981' }}>
+                  This document is authentic and verified.
+                </div>
+              </div>
+
+              {/* Document Info Table */}
+              <div style={{ marginBottom: 24 }}>
+                <h3 style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#6b7280', marginBottom: 8, borderBottom: '1px solid #e5e7eb', paddingBottom: 4 }}>Document Details</h3>
+                <table style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse' }}>
+                  <tbody>
+                    <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '8px 0', color: '#6b7280', width: '30%' }}>File Name</td>
+                      <td style={{ padding: '8px 0', fontWeight: 600, color: '#111827' }}>{result.title}</td>
+                    </tr>
+                    <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '8px 0', color: '#6b7280' }}>Code</td>
+                      <td style={{ padding: '8px 0', fontFamily: 'monospace', fontWeight: 600, color: '#111827' }}>{result.verification_code}</td>
+                    </tr>
+                    <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '8px 0', color: '#6b7280' }}>Completed</td>
+                      <td style={{ padding: '8px 0', color: '#111827' }}>{result.completed_at ? new Date(result.completed_at).toLocaleString() : 'N/A'}</td>
+                    </tr>
+                    <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '8px 0', color: '#6b7280' }}>Status</td>
+                      <td style={{ padding: '8px 0', textTransform: 'capitalize', fontWeight: 600, color: '#111827' }}>{result.status}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Signers Grid */}
+              <div style={{ marginBottom: 24 }}>
+                <h3 style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#6b7280', marginBottom: 12, borderBottom: '1px solid #e5e7eb', paddingBottom: 4 }}>Signers</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {result.signers.map((s, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 13 }}>
+                      <div style={{ width: 24, height: 24, borderRadius: '50%', background: s.status === 'signed' ? '#ecfdf5' : '#f3f4f6', color: s.status === 'signed' ? '#10b981' : '#6b7280', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <Icon name={s.status === 'signed' ? 'check' : 'clock'} size={12} />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 600, color: '#111827' }}>{s.name}</div>
+                        <div style={{ fontSize: 11.5, color: '#6b7280' }}>{s.email}{s.role_label ? ` · ${s.role_label}` : ''}</div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <span style={{ fontSize: 11.5, fontWeight: 600, color: s.status === 'signed' ? '#10b981' : '#f59e0b', textTransform: 'capitalize' }}>{s.status}</span>
+                        {s.signed_at && <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>{new Date(s.signed_at).toLocaleDateString()}</div>}
+                      </div>
                     </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)' }}>{s.name}</div>
-                      <div style={{ fontSize: 12, color: 'var(--ink3)' }}>{s.email}{s.role_label ? ` · ${s.role_label}` : ''}</div>
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: 11.5, fontWeight: 700, color: s.status === 'signed' ? 'var(--sign-green)' : 'var(--sign-orange)', textTransform: 'capitalize' }}>{s.status}</div>
-                      {s.signed_at && <div style={{ fontSize: 10.5, color: 'var(--ink3)' }}>{new Date(s.signed_at).toLocaleDateString()}</div>}
+                  ))}
+                </div>
+              </div>
+
+              {/* Cryptographic Proof Details */}
+              <div style={{ padding: '16px', background: '#f9fafb', borderRadius: 6, border: '1px solid #e5e7eb' }}>
+                {result.stamp_applied && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#10b981', fontWeight: 600, marginBottom: 8 }}>
+                    <Icon name="checkCircle" size={14} />
+                    <span>Visual audit stamp applied to all pages.</span>
+                  </div>
+                )}
+                {result.anchor_status && (
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, fontSize: 11.5, color: '#374151', lineHeight: '1.4' }}>
+                    <Icon name={result.anchor_status === 'confirmed' ? 'lock' : 'clock'} size={12} style={{ marginTop: 2, color: result.anchor_status === 'confirmed' ? '#10b981' : '#6b7280' }} />
+                    <div>
+                      {result.anchor_status === 'confirmed'
+                        ? `Cryptographically anchored to the Bitcoin blockchain (Block #${result.anchor_block_height}).`
+                        : 'Bitcoin blockchain anchor pending confirmation.'}
                     </div>
                   </div>
-                ))}
+                )}
               </div>
+
+              {result.has_signed_pdf && (
+                <a href={`${BASE_URL}/v1/sign/public/verify/${result.verification_code}/download`} download
+                  style={{ display: 'block', textAlign: 'center', marginTop: 24, padding: '10px 16px', borderRadius: 6, background: 'var(--blue)', color: '#fff', fontSize: 13.5, fontWeight: 600, textDecoration: 'none', transition: 'background 0.15s' }}>
+                  Download Signed PDF
+                </a>
+              )}
             </div>
+          )}
+        </div>
 
-            <div style={{ marginTop: 14, textAlign: 'center', fontSize: 11.5, color: 'var(--ink3)' }}>
-              This document was signed electronically via Hudumika eSign.
-              {result.stamp_applied && <span style={{ color: 'var(--sign-green)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 3 }}> <Icon name="checkCircle" size={12} /> Stamp applied.</span>}
-            </div>
-
-            {result.anchor_status && (
-              <div style={{ marginTop: 8, textAlign: 'center', fontSize: 11.5, color: result.anchor_status === 'confirmed' ? 'var(--sign-green)' : 'var(--ink3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-                <Icon name={result.anchor_status === 'confirmed' ? 'lock' : 'clock'} size={11} />
-                {result.anchor_status === 'confirmed'
-                  ? `Anchored to the Bitcoin blockchain — confirmed in block #${result.anchor_block_height}`
-                  : 'Bitcoin anchor submitted, awaiting block confirmation'}
-              </div>
-            )}
-
-            {result.has_signed_pdf && (
-              <a href={`${BASE_URL}/v1/sign/public/verify/${result.verification_code}/download`}
-                style={{ display: 'block', textAlign: 'center', marginTop: 14, padding: '10px', borderRadius: 8, background: 'var(--blue-l)', color: 'var(--blue)', border: '1.5px solid var(--blue)', fontSize: 12.5, fontWeight: 700, textDecoration: 'none' }}>
-                Download signed PDF
-              </a>
-            )}
-          </div>
-        )}
-
-        <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border)', textAlign: 'center', fontSize: 12, color: 'var(--ink3)' }}>
-          Powered by <strong style={{ color: 'var(--blue)' }}>Hudumika eSign</strong> · Electronic signature verification
+        <div style={{ marginTop: 24, textAlign: 'center', fontSize: 12, color: 'var(--ink3)' }}>
+          Powered by <strong>Hudumika eSign</strong> · Electronic signature verification
         </div>
       </div>
     </div>

@@ -115,6 +115,7 @@ import { cmsRoutes } from './routes/cms.routes.js';
 import { complyOcrRoutes } from './routes/comply-ocr.routes.js';
 import { complyLegalRoutes } from './routes/comply-legal.routes.js';
 import { superAdminRoutes } from './routes/superadmin.routes.js';
+import { superAdminSigningCertRoutes } from './routes/superadmin-signing-cert.routes.js';
 import { superAdminReportsRoutes } from './routes/superadmin-reports.routes.js';
 import { superAdminTradeWizardRoutes } from './routes/superadmin-trade-wizard.routes.js';
 import { superAdminIssuesRoutes } from './routes/superadmin-issues.routes.js';
@@ -153,7 +154,7 @@ import { onsitePlanRoutes } from './routes/onsite-plan.routes.js';
 import { onsiteAgencyClientRoutes } from './routes/onsite-agency-client.routes.js';
 import { onsiteAgencyDirectoryPublicRoutes, onsiteAgencyDirectoryManageRoutes } from './routes/onsite-agency-directory.routes.js';
 import { onsiteBackupsRoutes } from './routes/onsite-backups.routes.js';
-import { isMeteredPath, incrementUsage } from './lib/usage.js';
+import { isMeteredPath, incrementUsage, incrementAppUsage } from './lib/usage.js';
 import { signRoutes, signPublicRoutes } from './routes/sign.routes.js';
 import { signStampsRoutes } from './routes/sign-stamps.routes.js';
 
@@ -280,7 +281,11 @@ async function main() {
     // against the tenant's package cap. Enforcement (402 when over the cap)
     // happens earlier, in authenticate() (middleware/auth.ts), since that's
     // the one preHandler every route already runs; this just records the
-    // count once we know the request actually succeeded.
+    // count once we know the request actually succeeded. The per-app counter
+    // (request.meteredAppId, stashed by requireEntitlement()'s checkEntitlement
+    // in middleware/entitlement.ts) only exists for requests that passed
+    // through an entitlement check — most of the platform, but not every
+    // unguarded route — same enforcement point as the per-app quota itself.
     server.addHook('onResponse', async (request, reply) => {
       const user = (request as any).user;
       if (!user?.tenant_id) return;
@@ -288,6 +293,8 @@ async function main() {
       if (reply.statusCode < 200 || reply.statusCode >= 300) return;
       if (!isMeteredPath(request.routeOptions?.url || request.url)) return;
       incrementUsage(user.tenant_id).catch(() => {});
+      const appId = request.meteredAppId;
+      if (appId) incrementAppUsage(user.tenant_id, appId).catch(() => {});
     });
 
     // 3. WebSocket handler
@@ -335,6 +342,7 @@ async function main() {
     await server.register(consignmentRoutes, { prefix: '/v1/consignments' });
     await server.register(tenantRoutes, { prefix: '/v1/tenants' });
     await server.register(superAdminRoutes, { prefix: '/v1/superadmin' });
+    await server.register(superAdminSigningCertRoutes, { prefix: '/v1/superadmin' });
     await server.register(superAdminReportsRoutes, { prefix: '/v1/superadmin/reports' });
     await server.register(superAdminTradeWizardRoutes, { prefix: '/v1/superadmin/trade-wizard' });
     await server.register(superAdminIssuesRoutes, { prefix: '/v1/superadmin' });

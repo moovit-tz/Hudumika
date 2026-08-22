@@ -38,15 +38,21 @@ async function mirrorExpenseAttachment(tenantId: string, expense: { id: string; 
   });
 }
 
-// Real values — FinanceExpenseNew.tsx's own CATS map. No DB CHECK constraint
-// backs this (finance_expenses.category is a plain VARCHAR), so this is the
-// only real source of truth for the set the create form actually offers.
+// FinanceExpenseNew.tsx's own default CATS map. No DB CHECK constraint backs
+// this (finance_expenses.category is a plain VARCHAR) — a tenant can add its
+// own categories at Settings ▸ Finance ▸ Expenses Categories (stored on
+// tenant_settings, key 'expenses-categories'), which is why category below
+// is a free string rather than z.enum(EXPENSE_CATEGORIES): an unmapped
+// custom category still posts safely to the 5900 "Other Operating Expenses"
+// GL fallback (see EXPENSE_ACCOUNT/postExpenseToGl below), same as any of
+// this platform's other free-vocabulary category fields (e.g. Petti's own
+// PETTI_CATEGORIES).
 const EXPENSE_CATEGORIES = ['PORT_CHARGES', 'CUSTOMS_DUTY', 'FREIGHT', 'HANDLING', 'TRANSPORT', 'INSPECTION_FEE', 'AGENT_FEE', 'MISCELLANEOUS'] as const;
 const expenseCreateSchema = z.object({
   name: z.string().trim().min(1).max(255),
   amount: z.number(),
   expense_date: z.string().optional(),
-  category: z.enum(EXPENSE_CATEGORIES).optional(),
+  category: z.string().trim().max(50).optional(),
   shipment_id: z.string().nullable().optional(),
   customer_id: z.string().nullable().optional(),
   supplier_id: z.string().nullable().optional(),
@@ -60,7 +66,7 @@ const expensePatchSchema = z.object({
   name: z.string().trim().min(1).max(255).optional(),
   amount: z.number().optional(),
   expense_date: z.string().optional(),
-  category: z.enum(EXPENSE_CATEGORIES).optional(),
+  category: z.string().trim().max(50).optional(),
   shipment_id: z.string().nullable().optional(),
   customer_id: z.string().nullable().optional(),
   supplier_id: z.string().nullable().optional(),

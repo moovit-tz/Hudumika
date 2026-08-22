@@ -31,52 +31,72 @@ interface SettingsCtxType {
 }
 const SettingsCtx = createContext<SettingsCtxType>({ s: {}, save: async () => {} });
 
-// -- nav structure ----------------------------------------------------------
-const NAV: Array<{ group: string; items: Array<{ key: string; label: string; icon: IconName }> }> = [
-  { group: 'Platform', items: [
-    { key: 'modules',            label: 'Modules & Extensions', icon: 'grid'          },
-  ]},
-  { group: 'General', items: [
+// -- nav structure ------------------------------------------------------------
+// Exported: AdminShell.tsx builds the main app sidebar's Settings entries
+// straight from this array (one expandable top-level item per group) rather
+// than hand-duplicating the same list in two places. This used to be 8
+// groups, several down to a single item after the DEAD/STUB cleanup below —
+// regrouped into 5 properly populated categories instead of leaving
+// one-item groups (Platform, Sales, App Settings, Other) standing alone.
+export const NAV: Array<{ group: string; icon: IconName; items: Array<{ key: string; label: string; icon: IconName }> }> = [
+  { group: 'General', icon: 'settings', items: [
     { key: 'company',            label: 'Company Information',  icon: 'building'      },
     { key: 'localization',       label: 'Localization',         icon: 'globe'         },
     // Branding was mounted only in the platform console, so a tenant could not
     // put their own logo or colour on the workspace they pay for.
     { key: 'branding',           label: 'Branding',             icon: 'sparkle'       },
+    { key: 'modules',            label: 'Modules & Extensions', icon: 'grid'          },
+    { key: 'email',              label: 'Email',                icon: 'mail'          },
+    { key: 'notifications',      label: 'Notifications',        icon: 'bell'          },
+  ]},
+  { group: 'Finance', icon: 'dollarSign', items: [
+    { key: 'finance-general',    label: 'General',              icon: 'dollarSign'    },
+    // Now the real source of truth for Petti's wallet gateway and the
+    // onboarding charge flow — see lib/payment-gateway.ts. Payment Modes
+    // and e-Invoice were removed: no component, no backend, gated nothing.
+    { key: 'payment-gateways',   label: 'Payment Gateways',     icon: 'creditCard'    },
+    { key: 'expenses-categories',label: 'Expenses Categories',  icon: 'tag'           },
+    { key: 'invoices',           label: 'Invoices',             icon: 'fileText'      },
     // Tax rates, quotations, purchase orders and currencies each had a panel
     // here that saved to a key nothing read, while the real implementations
     // live in FinOps. One control per thing; this one points at it.
     { key: 'elsewhere',          label: 'Finance setup',        icon: 'externalLink' },
-    { key: 'email',              label: 'Email',                icon: 'mail'          },
-    { key: 'notifications',      label: 'Notifications',        icon: 'bell'          },
+    // Credit Notes and Subscriptions removed: no component, no backend —
+    // real credit-note/subscription concepts live elsewhere (Customers,
+    // seal-billing, SuperAdmin's Company Subscriptions), not this key.
   ]},
-  { group: 'Finance', items: [
-    { key: 'finance-general',    label: 'General',              icon: 'dollarSign'    },
-    { key: 'payment-gateways',   label: 'Payment Gateways',     icon: 'creditCard'    },
-    { key: 'payment-modes',      label: 'Payment Modes',        icon: 'wallet'        },
-    { key: 'einvoice',           label: 'e-Invoice',            icon: 'invoice'       },
-    { key: 'expenses-categories',label: 'Expenses Categories',  icon: 'tag'           },
-  ]},
-  { group: 'Sales', items: [
-    { key: 'invoices',           label: 'Invoices',             icon: 'fileText'      },
-    { key: 'credit-notes',       label: 'Credit Notes',         icon: 'receipt'       },
-    { key: 'subscriptions',      label: 'Subscriptions',        icon: 'refresh'       },
-  ]},
-  { group: 'Configure Features', items: [
-    { key: 'feat-customers',     label: 'Customers',            icon: 'users'         },
-    { key: 'feat-tasks',         label: 'Tasks',                icon: 'tasks'         },
-    { key: 'feat-support',       label: 'Support',              icon: 'headphones'    },
-    { key: 'feat-leads',         label: 'Leads',                icon: 'target'        },
-  ]},
-  { group: 'App Settings', items: [
+  // "Configure Features" (Customers/Tasks/Support/Leads) removed. Tasks,
+  // Support and Leads had no component or backend at all. Customers' one
+  // real, enforced toggle (Enable Customer Portal) moved to NexusHR ▸ Team
+  // ▸ People, per the "control access from Team" decision — the rest of
+  // that panel (self-registration, VAT field, groups) either gated a
+  // feature that doesn't exist (no customer self-signup route anywhere) or
+  // was write-only with no consumer, so it didn't move with it.
+  { group: 'Apps', icon: 'package', items: [
     { key: 'app-freight',        label: 'ClearOS / Freight',    icon: 'package'       },
+    // Calendar, PDF and Tags removed: no component, no backend (PDF's
+    // "engine: wkhtmltopdf" option didn't even match how this platform
+    // actually generates PDFs — pdfkit, everywhere).
+    { key: 'other-esign',        label: 'E-Sign',               icon: 'stamp'         },
   ]},
-  { group: 'Integrations', items: [
+  { group: 'Integrations', icon: 'globe', items: [
     { key: 'int-google',         label: 'Google',               icon: 'globe'         },
+    // 'int-ai' and 'int-openai' were two NAV rows pointing at the exact same
+    // component and the exact same settings key (OpenAISection / 'int-ai')
+    // — not two settings, one form shown twice. Kept the one label that
+    // doesn't imply a specific provider, since the model picker inside
+    // isn't OpenAI-only.
     { key: 'int-ai',             label: 'AI Integration',       icon: 'sparkle'       },
-    { key: 'int-openai',         label: 'OpenAI',               icon: 'sparkle'       },
-    { key: 'int-sms',            label: 'SMS / WhatsApp',       icon: 'messageSquare' },
+    // SMS only: no tenant-level WhatsApp credential exists anywhere in the
+    // platform — whatsapp.ts always uses the platform-wide META_* env vars,
+    // and the tenant-override params it accepts have no caller. This label
+    // used to claim a WhatsApp config that didn't exist here or anywhere.
+    { key: 'int-sms',            label: 'SMS',                  icon: 'messageSquare' },
     { key: 'int-tancis',         label: 'TRA VFD / EFDMS',      icon: 'anchor'        },
-    { key: 'int-tpa',            label: 'TPA Port Authority',   icon: 'ship'          },
+    // 'int-tpa' (TPA Port Authority) removed: no component (fell through to
+    // the "Configuration pending" placeholder), no backend, and no real TPA
+    // API integration anywhere in the platform to eventually back it with —
+    // same category as the other dead placeholders already removed.
     { key: 'int-shipsgo',        label: 'ShipsGo / Ship24',     icon: 'compass'       },
     { key: 'int-gpswox',         label: 'GPSWOX Fleet Tracking', icon: 'mapPin'       },
     // MinIO, Redis/BullMQ and the vague "General" tab are removed. They are
@@ -86,13 +106,7 @@ const NAV: Array<{ group: string; items: Array<{ key: string; label: string; ico
     // business configuring the platform's message queue; a settings tab for it
     // is a category error, not just a dead stub.
   ]},
-  { group: 'Other', items: [
-    { key: 'other-calendar',     label: 'Calendar',             icon: 'calendar'      },
-    { key: 'other-pdf',          label: 'PDF',                  icon: 'file'          },
-    { key: 'other-esign',        label: 'E-Sign',               icon: 'stamp'         },
-    { key: 'other-tags',         label: 'Tags',                 icon: 'tag'           },
-  ]},
-  { group: 'Developer', items: [
+  { group: 'Developer', icon: 'key', items: [
     { key: 'developer-api',      label: 'API Keys',             icon: 'key'           },
   ]},
 ];
@@ -610,23 +624,29 @@ const EmailSection: React.FC = () => {
 };
 
 // -- section: Finance General ------------------------------------------------
+/**
+ * Used to also carry a "Tax & Pricing" card (a second, competing Default Tax
+ * Rate select, plus "Show Tax Per Item"/"Show Quantity Field" toggles) that
+ * saved to a `finance-general` key nothing in the platform ever reads —
+ * grepped the whole repo, zero hits outside this file. Real per-transaction
+ * tax rates are configured once, for real, in FinOps ▸ Tax codes & rates
+ * (linked from the "Finance setup" card below) — this used to be a second,
+ * dead surface for the exact same concern. Currency and Fiscal Year Start
+ * are real (they write into the `company` key, read by tax-code seeding and
+ * the invoice PDF header), so those stay.
+ */
 const FinanceGeneralSection: React.FC = () => {
   const co = getCompany();
-  const { save: apiSave } = useContext(SettingsCtx);
   const [f, set] = useFields({
     currency: co.currency ?? 'TZS',
     fiscalMonth: String(co.fiscalMonth ?? 1),
-    defaultTax: String(co.defaultTax ?? 18),
   });
-  const [taxPerItem, setTaxPerItem] = useState(false);
-  const [showQty, setShowQty] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
   async function handleSave() {
     setSaving(true);
-    setCompany({ currency: f.currency, defaultTax: parseFloat(f.defaultTax) || 0, fiscalMonth: parseInt(f.fiscalMonth, 10) || 1 });
-    try { await apiSave('finance-general', { ...f, taxPerItem, showQty }); } catch {}
+    setCompany({ currency: f.currency, fiscalMonth: parseInt(f.fiscalMonth, 10) || 1 });
     setSaving(false); setSaved(true); setTimeout(() => setSaved(false), 2500);
   }
 
@@ -637,7 +657,7 @@ const FinanceGeneralSection: React.FC = () => {
           <Select value={f.currency} onValueChange={v => set('currency', v)}>
             <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
             <SelectContent>
-              {[['TZS','TZS � Tanzanian Shilling'],['USD','USD � US Dollar'],['EUR','EUR � Euro'],['GBP','GBP � British Pound'],['KES','KES � Kenyan Shilling'],['UGX','UGX � Ugandan Shilling'],['ZAR','ZAR � South African Rand'],['AED','AED � UAE Dirham']].map(([v,l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}
+              {[['TZS','TZS — Tanzanian Shilling'],['USD','USD — US Dollar'],['EUR','EUR — Euro'],['GBP','GBP — British Pound'],['KES','KES — Kenyan Shilling'],['UGX','UGX — Ugandan Shilling'],['ZAR','ZAR — South African Rand'],['AED','AED — UAE Dirham']].map(([v,l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}
             </SelectContent>
           </Select>
         </Field>
@@ -652,54 +672,30 @@ const FinanceGeneralSection: React.FC = () => {
           </Select>
         </Field>
       </Card>
-      <Card title="Tax & Pricing" desc="Number of decimal places is configured in General ? Localization.">
-        <Field label="Default Tax Rate" hint="Pre-filled on new bill and invoice line items � add rates in Finance ? Tax Rates">
-          <Select value={f.defaultTax} onValueChange={v => set('defaultTax', v)}>
-            <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="0">0% � Exempt / Zero-rated</SelectItem>
-              <SelectItem value="5">5% � Withholding Tax</SelectItem>
-              <SelectItem value="18">18% � VAT Standard</SelectItem>
-            </SelectContent>
-          </Select>
-        </Field>
-        <ToggleRow label="Show Tax Per Item" hint="Tax breakdown per line item on invoices" value={taxPerItem} onChange={setTaxPerItem} />
-        <ToggleRow label="Show Quantity Field" hint="Quantity column in invoice line items" value={showQty} onChange={setShowQty} />
-      </Card>
       <SaveRow onSave={handleSave} saving={saving} saved={saved} />
     </>
   );
 };
 
-// -- section: Invoices -------------------------------------------------------
+/**
+ * Used to also carry Default Due Days, a Content & Appearance card (Show
+ * Logo / Terms & Conditions / Footer Note) and a Payments card (Allow
+ * Partial Payments / Payment Instructions) — all saved to a generic
+ * `invoices` settings key with zero readers anywhere in the platform
+ * (grepped both apps/api and apps/web). FinOps's real Billing.tsx invoice
+ * screen never consulted any of them; it has its own separate hardcoded
+ * defaults (a 14-day terms string, always-on logo) — so "Terms &
+ * Conditions" here was a second, dead, drifted copy of a decision FinOps
+ * had already made elsewhere, not a real setting. Only Numbering survives:
+ * it is genuinely backed by /v1/settings/numbering/invoice, the same
+ * counter invoices.routes.ts uses when actually issuing a number.
+ */
 const InvoicesSection: React.FC = () => {
-  // prefix/pad/nextInv are backed by the real numbering counters (GET/PATCH
-  // /v1/settings/numbering/invoice, consumed by invoices.routes.ts POST /) —
-  // kept OUT of the generic useSettingsFields blob so a stale copy in the
-  // JSONB settings blob can never drift from what the real counter produces.
-  const [f, set] = useSettingsFields('invoices', { due: '30', terms: '', footer: '', payInstr: '' });
   const [prefix, setPrefix] = useState('INV-');
   const [pad, setPad] = useState('4');
   const [nextInv, setNextInv] = useState('1');
-  const [logo, setLogo] = useState(true);
-  const [partial, setPartial] = useState(true);
-  const [showPayInstr, setShowPayInstr] = useState(false);
-  const [editNo, setEditNo] = useState(false);
-  const { s, save } = useContext(SettingsCtx);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const hydratedExtra = useRef(false);
-
-  useEffect(() => {
-    if (hydratedExtra.current) return;
-    if (s.invoices) {
-      setLogo(s.invoices.logo ?? true);
-      setPartial(s.invoices.partial ?? true);
-      setShowPayInstr(s.invoices.showPayInstr ?? false);
-      setEditNo(s.invoices.editNo ?? false);
-      hydratedExtra.current = true;
-    }
-  }, [s]);
 
   useEffect(() => {
     apiFetch('/v1/settings/numbering/invoice')
@@ -710,7 +706,6 @@ const InvoicesSection: React.FC = () => {
   async function handleSave() {
     setSaving(true);
     try {
-      await save('invoices', { ...f, logo, partial, showPayInstr, editNo });
       const num = await apiFetch('/v1/settings/numbering/invoice', {
         method: 'PATCH',
         body: JSON.stringify({ prefix, pad_length: Number(pad), next_number: Number(nextInv) }),
@@ -721,7 +716,7 @@ const InvoicesSection: React.FC = () => {
   }
   return (
     <>
-      <Card title="Invoice Format">
+      <Card title="Numbering" desc="Backed by the real invoice number counter used by ClearOS/FinOps when issuing invoices.">
         <Field label="Prefix" hint="e.g. INV-0001"><input className="input-field" value={prefix} onChange={e => setPrefix(e.target.value)} /></Field>
         <Field label="Number Padding">
           <Select value={pad} onValueChange={setPad}>
@@ -733,29 +728,7 @@ const InvoicesSection: React.FC = () => {
             </SelectContent>
           </Select>
         </Field>
-        <Field label="Default Due Days" hint="Days before invoice is overdue"><input className="input-field" type="number" value={f.due} onChange={e => set('due', e.target.value)} /></Field>
-      </Card>
-      <Card title="Content & Appearance">
-        <ToggleRow label="Show Company Logo on Invoice PDF" value={logo} onChange={setLogo} />
-        <Field label="Terms & Conditions" full>
-          <textarea className="input-field s-resize-v" rows={3} value={f.terms} onChange={e => set('terms', e.target.value)} placeholder="Default payment terms�" />
-        </Field>
-        <Field label="Footer Note" full>
-          <textarea className="input-field s-resize-v" rows={2} value={f.footer} onChange={e => set('footer', e.target.value)} placeholder="Thank you for your business�" />
-        </Field>
-      </Card>
-      <Card title="Payments">
-        <ToggleRow label="Allow Partial Payments" hint="Customers can pay in multiple installments" value={partial} onChange={setPartial} />
-        <ToggleRow label="Show Payment Instructions on Invoice PDF" value={showPayInstr} onChange={setShowPayInstr} />
-        {showPayInstr && (
-          <Field label="Payment Instructions" full>
-            <textarea className="input-field s-resize-v" rows={3} value={f.payInstr} onChange={e => set('payInstr', e.target.value)} placeholder="e.g. Transfer to Account No: 123-456 CRDB Bank" />
-          </Field>
-        )}
-      </Card>
-      <Card title="Numbering" desc="Backed by the real invoice number counter used by ClearOS/FinOps when issuing invoices.">
         <Field label="Next Invoice #" hint="Starting number for the next auto-generated invoice"><input className="input-field" type="number" placeholder="1" value={nextInv} onChange={e => setNextInv(e.target.value)} /></Field>
-        <ToggleRow label="Allow Manual Invoice Number Editing" hint="Let users override the auto-generated invoice number" value={editNo} onChange={setEditNo} />
       </Card>
       <SaveRow saving={saving} saved={saved} onSave={handleSave} />
     </>
@@ -1416,65 +1389,20 @@ const ExpensesCategoriesSection: React.FC = () => {
   );
 };
 
-// -- section: Configure Features � Customers ---------------------------------
-const FeatCustomersSection: React.FC = () => {
-  const [portal, setPortal] = useState(true);
-  const [selfReg, setSelfReg] = useState(false);
-  const [vat, setVat] = useState(true);
-  const [groups, setGroups] = useState(true);
-  const [defaultGroup, setDefaultGroup] = useState('none');
-  const { s, save } = useContext(SettingsCtx);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const hydrated = useRef(false);
-
-  useEffect(() => {
-    if (hydrated.current) return;
-    if (s['feat-customers']) {
-      const d = s['feat-customers'];
-      setPortal(d.portal ?? true);
-      setSelfReg(d.selfReg ?? false);
-      setVat(d.vat ?? true);
-      setGroups(d.groups ?? true);
-      setDefaultGroup(d.defaultGroup ?? 'none');
-      hydrated.current = true;
-    }
-  }, [s]);
-
-  async function handleSave() { setSaving(true); try { await save('feat-customers', { portal, selfReg, vat, groups, defaultGroup }); setSaved(true); setTimeout(() => setSaved(false), 2000); } catch {} finally { setSaving(false); } }
-  return (
-    <>
-      <Card title="Customer Portal">
-        <ToggleRow label="Enable Customer Portal" hint="Customers can log in to view invoices, shipments, and tickets" value={portal} onChange={setPortal} />
-        <ToggleRow label="Allow Self-Registration" hint="New customers can sign up without an admin invitation" value={selfReg} onChange={setSelfReg} />
-      </Card>
-      <Card title="Customer Profile">
-        <ToggleRow label="Show VAT / Tax Number Field" value={vat} onChange={setVat} />
-        <ToggleRow label="Enable Customer Groups" hint="Segment customers and apply group-level discounts" value={groups} onChange={setGroups} />
-        {groups && (
-          <Field label="Default Group for New Customers">
-            <Select value={defaultGroup} onValueChange={setDefaultGroup}>
-              <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">� None �</SelectItem>
-                <SelectItem value="enterprise">Enterprise Importers</SelectItem>
-                <SelectItem value="sme">SME Importers</SelectItem>
-                <SelectItem value="individual">Individual</SelectItem>
-              </SelectContent>
-            </Select>
-          </Field>
-        )}
-      </Card>
-      <SaveRow saving={saving} saved={saved} onSave={handleSave} />
-    </>
-  );
-};
-
 // -- section: Google ---------------------------------------------------------
+/**
+ * Used to also carry "Google Analytics" (Measurement ID) and "Google Maps"
+ * (API key) cards, both saved under this same `int-google` key. Neither had
+ * a consumer anywhere — no gtag/GTM injection reads `gaId`, and no map
+ * component anywhere in the codebase reads `mapsKey` (there IS a real GA4
+ * analytics system, apps/web/src/pages/SeoAnalyticsView.tsx, but it is a
+ * platform-level, SuperAdmin-only screen storing to localStorage — a
+ * different scope entirely, not this tenant key). OAuth + reCAPTCHA are
+ * real: recaptcha.ts reads rcSecret, contacts-sync/google-contacts.ts read
+ * oauthId/oauthSecret.
+ */
 const GoogleSection: React.FC = () => {
-  const [f, set] = useSettingsFields('int-google', { gaId: '', mapsKey: '', rcSite: '', rcSecret: '', oauthId: '', oauthSecret: '' });
-  const [ga, setGa] = useState(false);
-  const [maps, setMaps] = useState(false);
+  const [f, set] = useSettingsFields('int-google', { rcSite: '', rcSecret: '', oauthId: '', oauthSecret: '' });
   const [rc, setRc] = useState(false);
   const { s, save } = useContext(SettingsCtx);
   const [saving, setSaving] = useState(false);
@@ -1485,24 +1413,14 @@ const GoogleSection: React.FC = () => {
     if (hydratedExtra.current) return;
     if (s['int-google']) {
       const d = s['int-google'];
-      setGa(d.ga ?? false);
-      setMaps(d.maps ?? false);
       setRc(d.rc ?? false);
       hydratedExtra.current = true;
     }
   }, [s]);
 
-  async function handleSave() { setSaving(true); try { await save('int-google', { ...f, ga, maps, rc }); setSaved(true); setTimeout(() => setSaved(false), 2000); } catch {} finally { setSaving(false); } }
+  async function handleSave() { setSaving(true); try { await save('int-google', { ...f, rc }); setSaved(true); setTimeout(() => setSaved(false), 2000); } catch {} finally { setSaving(false); } }
   return (
     <>
-      <Card title="Google Analytics">
-        <ToggleRow label="Enable Google Analytics" hint="Track usage with GA4" value={ga} onChange={setGa} />
-        {ga && <Field label="Measurement ID" hint="e.g. G-XXXXXXXXXX"><input className="input-field" placeholder="G-XXXXXXXXXX" value={f.gaId} onChange={e => set('gaId', e.target.value)} /></Field>}
-      </Card>
-      <Card title="Google Maps">
-        <ToggleRow label="Enable Google Maps" hint="Show maps on address fields" value={maps} onChange={setMaps} />
-        {maps && <Field label="Maps API Key"><input className="input-field" value={f.mapsKey} onChange={e => set('mapsKey', e.target.value)} /></Field>}
-      </Card>
       <Card title="reCAPTCHA">
         <ToggleRow label="Enable reCAPTCHA" hint="Protect forms with Google reCAPTCHA" value={rc} onChange={setRc} />
         {rc && <>
@@ -1892,59 +1810,6 @@ const TRASection: React.FC = () => {
   );
 };
 
-// -- section: PDF ------------------------------------------------------------
-const PDFSection: React.FC = () => {
-  const [f, set] = useSettingsFields('other-pdf', { engine: 'wkhtmltopdf', paper: 'A4', orient: 'portrait', mTop: '10', mRight: '10', mBottom: '10', mLeft: '10' });
-  const { save } = useContext(SettingsCtx);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-  async function handleSave() { setSaving(true); try { await save('other-pdf', { ...f }); setSaved(true); setTimeout(() => setSaved(false), 2000); } catch {} finally { setSaving(false); } }
-  return (
-    <>
-      <Card title="PDF Engine & Layout">
-        <Field label="PDF Generator">
-          <Select value={f.engine} onValueChange={v => set('engine', v)}>
-            <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="wkhtmltopdf">wkhtmltopdf (Recommended)</SelectItem>
-              <SelectItem value="puppeteer">Puppeteer / Chromium</SelectItem>
-              <SelectItem value="dompdf">DomPDF</SelectItem>
-            </SelectContent>
-          </Select>
-        </Field>
-        <Field label="Paper Size">
-          <Select value={f.paper} onValueChange={v => set('paper', v)}>
-            <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="A4">A4 (210�297mm)</SelectItem>
-              <SelectItem value="Letter">Letter (8.5�11in)</SelectItem>
-              <SelectItem value="A3">A3 (297�420mm)</SelectItem>
-              <SelectItem value="Legal">Legal (8.5�14in)</SelectItem>
-            </SelectContent>
-          </Select>
-        </Field>
-        <Field label="Orientation">
-          <Select value={f.orient} onValueChange={v => set('orient', v)}>
-            <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="portrait">Portrait</SelectItem>
-              <SelectItem value="landscape">Landscape</SelectItem>
-            </SelectContent>
-          </Select>
-        </Field>
-        <div />
-        {(['mTop','mRight','mBottom','mLeft'] as const).map(k => (
-          <Field key={k} label={`Margin ${k.slice(1)} (mm)`}>
-            <input className="input-field" type="number" value={f[k]} onChange={e => set(k, e.target.value)} />
-          </Field>
-        ))}
-      </Card>
-      <SaveRow saving={saving} saved={saved} onSave={handleSave} />
-    </>
-  );
-};
-
-
 // -- section: Modules --------------------------------------------------------
 // Real module-enable system (same data source as Utilities.tsx's Modules
 // block): the tenant's actual entitled apps + the `enabled-apps` override map
@@ -2073,25 +1938,10 @@ const NotificationsSection: React.FC = () => {
 };
 
 // -- section: ClearOS / Freight app settings ---------------------------------
-const FREIGHT_STAGES = [
-  'DOCS_RECEIVED','VALIDATION','PERMITS','ENTRY_PREP','TANCIS_REG',
-  'ASSESSMENT','TAX_PAYMENT','DO_APPLICATION','INSPECTION_BOOKING','INSPECTION',
-  'GOV_REMARKS','RELEASE','ICD_PAYMENT','GATE_PASS','TRANSPORT',
-  'DELIVERY','EMPTY_RETURN','INVOICING','CLOSED',
-];
-const FREIGHT_SLA_DEFAULTS: Record<string, number> = {
-  DOCS_RECEIVED:1, VALIDATION:2, PERMITS:3, ENTRY_PREP:1,
-  TANCIS_REG:2, ASSESSMENT:3, TAX_PAYMENT:1, DO_APPLICATION:2,
-  INSPECTION_BOOKING:1, INSPECTION:2, GOV_REMARKS:3, RELEASE:1,
-  ICD_PAYMENT:1, GATE_PASS:1, TRANSPORT:2, DELIVERY:1,
-  EMPTY_RETURN:5, INVOICING:3, CLOSED:1,
-};
-
 const FreightSection: React.FC = () => {
   const { s, save } = useContext(SettingsCtx);
   const [freeTime, setFreeTime] = useState(7);
   const [autoRisk, setAutoRisk] = useState(true);
-  const [sla, setSla] = useState({ ...FREIGHT_SLA_DEFAULTS });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const hydrated = useRef(false);
@@ -2102,14 +1952,13 @@ const FreightSection: React.FC = () => {
       const d = s.freight;
       setFreeTime(d.free_time_days ?? 7);
       setAutoRisk(d.auto_risk_flags ?? true);
-      if (d.sla_days) setSla({ ...FREIGHT_SLA_DEFAULTS, ...d.sla_days });
       hydrated.current = true;
     }
   }, [s]);
 
   async function handleSave() {
     setSaving(true);
-    try { await save('freight', { free_time_days: freeTime, auto_risk_flags: autoRisk, sla_days: sla }); } catch {}
+    try { await save('freight', { free_time_days: freeTime, auto_risk_flags: autoRisk }); } catch {}
     setSaving(false); setSaved(true); setTimeout(() => setSaved(false), 2000);
   }
 
@@ -2121,20 +1970,15 @@ const FreightSection: React.FC = () => {
         </Field>
         <ToggleRow label="Auto Risk Flagging" hint="Automatically flag shipments that breach demurrage or SLA thresholds" value={autoRisk} onChange={setAutoRisk} />
       </Card>
-      <Card title="SLA Stage Limits" desc="Maximum working days allowed per clearance stage before a breach is flagged" twoCol>
-        {FREIGHT_STAGES.map(stage => (
-          <div key={stage} className="s-sla-row">
-            <span className="s-sla-stage">{stage.replace(/_/g,' ')}</span>
-            <div className="s-sla-right">
-              <input type="number" min={1} max={30} className="input-field s-sla-in" value={sla[stage] ?? 2} onChange={e => setSla(p => ({ ...p, [stage]: Number(e.target.value) }))} />
-              <span className="s-sla-unit">days</span>
-            </div>
+      <Card title="Per-stage SLA" desc="Real, enforced SLA targets are set per clearance stage on each Workflow, not here.">
+        <Link to="/studio/clearance" className="s-elsewhere-row">
+          <div>
+            <div className="s-elsewhere-label">ClearOS ▸ Workflow Builder</div>
+            <div className="s-elsewhere-desc">Configure per-stage SLA hours on the workflow a shipment is actually assigned — this used to be a second, non-binding "reference" grid here that duplicated it.</div>
           </div>
-        ))}
+          <Icon name="chevronRight" size={16} color="var(--ink3)" />
+        </Link>
       </Card>
-      <p className="s-fld-hint" style={{ margin: '4px 2px 12px' }}>
-        Per-stage SLA targets shown here are reference/planning values — live enforcement uses each shipment's assigned Workflow (see ClearOS ▸ Workflow Builder).
-      </p>
       <SaveRow saving={saving} saved={saved} onSave={handleSave} />
     </>
   );
@@ -2193,7 +2037,10 @@ const EsignSection: React.FC = () => {
           <div style={{ color: 'var(--ink3)', fontSize: 13 }}>Loading…</div>
         ) : stamp && !showPad ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-            <div style={{ width: 160, height: 90, border: '1px solid var(--border)', borderRadius: 8, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+            {/* Square, not the old 160×90 letterbox — a round or circular
+                stamp (the common case) needs equal width and height to show
+                at a legible size instead of being shrunk to fit a short box. */}
+            <div style={{ width: 160, height: 160, border: '1px solid var(--border)', borderRadius: 8, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
               <img src={stamp.image_data} alt="Company stamp" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -2203,13 +2050,18 @@ const EsignSection: React.FC = () => {
           </div>
         ) : (
           <div style={{ maxWidth: 560 }}>
-            <SignaturePad onCapture={handleCapture} />
+            <SignaturePad onCapture={handleCapture} kind="stamp" />
             {stamp && <Button variant="ghost" size="sm" onClick={() => setShowPad(false)} style={{ marginTop: 8 }}>Cancel</Button>}
           </div>
         )}
       </Card>
       {saving && <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginTop: 8 }}>Saving…</div>}
       {saved && <div style={{ fontSize: 12.5, color: 'var(--green)', marginTop: 8 }}>Saved.</div>}
+      <Card title="Who can apply the stamp">
+        <div style={{ fontSize: 13, color: 'var(--ink2)' }}>
+          Managed from NexusHR ▸ <Link to="/nexushr/permissions" style={{ color: 'var(--blue)' }}>Roles &amp; Permissions</Link> — the platform's real access-control page, not a second copy of it here.
+        </div>
+      </Card>
     </>
   );
 };
@@ -2646,16 +2498,13 @@ function renderSection(key: string): React.ReactNode {
     case 'currencies':          return <CurrenciesSection />;
     case 'payment-gateways':    return <PaymentGatewaysSection />;
     case 'expenses-categories': return <ExpensesCategoriesSection />;
-    case 'feat-customers':      return <FeatCustomersSection />;
     case 'int-google':          return <GoogleSection />;
     case 'int-pusher':          return <PusherSection />;
     case 'int-shipsgo':         return <ShipsGoSection />;
     case 'int-gpswox':          return <GpswoxSection />;
-    case 'int-ai':
-    case 'int-openai':          return <OpenAISection />;
+    case 'int-ai':               return <OpenAISection />;
     case 'int-sms':             return <SMSSection />;
     case 'int-tancis':          return <TRASection />;
-    case 'other-pdf':           return <PDFSection />;
     case 'other-esign':         return <EsignSection />;
     case 'modules':             return <ModulesSection />;
     case 'developer-api':       return <ApiKeysSection />;
@@ -2674,9 +2523,8 @@ function getSectionTitle(key: string): string {
 // -- main export -------------------------------------------------------------
 export const Settings: React.FC = () => {
   const isMobile = useIsMobile();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const current = searchParams.get('s') ?? 'company';
-  const go = (key: string) => setSearchParams({ s: key });
   const [globalSettings, setGlobalSettings] = useState<Record<string, any>>({});
 
   useEffect(() => {
@@ -2704,44 +2552,11 @@ export const Settings: React.FC = () => {
 
   return (
     <SettingsCtx.Provider value={{ s: globalSettings, save: saveSection }}>
-    <div className={isMobile ? 'sett-root sett-root--col' : 'sett-root'}>
+    <div className="sett-root">
 
-      {/* -- inner sidebar -- */}
-      <div className={isMobile ? 'sett-side sett-side--mob' : 'sett-side'}>
-        <div className="sett-sb-hdr">
-          <div className="sett-sb-brand">
-            <Icon name="building" size={14} color="var(--ink2)" />
-            <span className="sett-sb-name">Organization Settings</span>
-          </div>
-          <div className="sett-sb-sub">
-            <span className="sett-sb-dot" />
-            <span className="sett-sb-badge">Tenant configuration</span>
-          </div>
-        </div>
-
-        {NAV.map(g => (
-          <div key={g.group} className="sett-nav-grp">
-            <span className="sett-nav-lbl">{g.group}</span>
-            {g.items.map(item => {
-              const active = current === item.key;
-              return (
-                <button
-                  key={item.key}
-                  type="button"
-                  title={item.label}
-                  onClick={() => go(item.key)}
-                  className={active ? 'sett-nav-btn sett-nav-btn--on' : 'sett-nav-btn'}
-                >
-                  <Icon name={item.icon} size={14} />
-                  {item.label}
-                </button>
-              );
-            })}
-          </div>
-        ))}
-      </div>
-
-      {/* -- right content -- */}
+      {/* Section navigation now lives in the main app sidebar (AdminShell.tsx
+          builds it straight from this file's own NAV export) — this page is
+          just its content pane, full width, no second inner sidebar. */}
       <div className={isMobile ? 'sett-content sett-content--mob' : 'sett-content'}>
 
         {/* Breadcrumb */}

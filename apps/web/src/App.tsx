@@ -404,14 +404,17 @@ const AppContentBody: React.FC = () => {
           <Route path="/demurrage/*"     element={<Navigate to="/cargotracker/demurrage"  replace />} />
 
           {/* ── Legacy redirects for old admin / settings paths ── */}
-          <Route path="/settings"          element={<Navigate to="/workspace/settings" replace />} />
+          {/* ?s=company matches the sidebar's own "General" group first item
+              (AdminShell.tsx) so the just-landed page highlights a real
+              section instead of no sidebar item matching anything. */}
+          <Route path="/settings"          element={<Navigate to="/workspace/settings?s=company" replace />} />
           <Route path="/system-update"     element={<Navigate to="/admin"              replace />} />
           <Route path="/tenant-management" element={<Navigate to="/admin"              replace />} />
           <Route path="/superadmin"        element={<Navigate to="/admin"              replace />} />
           <Route path="/clearos/trade-wizard" element={<Navigate to="/clearos/compliance/advanced" replace />} />
           <Route path="/reports"           element={<Navigate to="/workspace/reports"  replace />} />
           <Route path="/utilities"         element={<Navigate to="/workspace/utilities" replace />} />
-          <Route path="/setup"             element={<Navigate to="/workspace/settings" replace />} />
+          <Route path="/setup"             element={<Navigate to="/workspace/settings?s=company" replace />} />
 
           {/* ── CRM / Sales / Finance shortcuts → canonical shell routes ── */}
           <Route path="/customers/overview"    element={<Navigate to="/crm/overview"              replace />} />

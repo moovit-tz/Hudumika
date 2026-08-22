@@ -25,6 +25,11 @@ export const FinanceExpenseNew: React.FC = () => {
   const navigate = useNavigate();
   const [shipments, setShipments] = useState<ShipmentOpt[]>([]);
   const [customers, setCustomers] = useState<CustomerOpt[]>([]);
+  // Categories an admin added at Settings ▸ Finance ▸ Expenses Categories
+  // (tenant_settings key 'expenses-categories') — merged in alongside the
+  // built-in CATS so that screen's categories are actually selectable here,
+  // not just persisted and ignored.
+  const [customCats, setCustomCats] = useState<{ id: string; name: string }[]>([]);
 
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
@@ -44,6 +49,7 @@ export const FinanceExpenseNew: React.FC = () => {
   useEffect(() => {
     apiFetch('/v1/shipments').then((res: any) => setShipments(res?.data ?? res ?? [])).catch(() => setShipments([]));
     apiFetch('/v1/customers').then((res: any) => setCustomers(res?.data ?? res ?? [])).catch(() => setCustomers([]));
+    apiFetch('/v1/settings').then((res: any) => setCustomCats(res?.settings?.['expenses-categories']?.categories ?? [])).catch(() => setCustomCats([]));
   }, []);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -112,6 +118,7 @@ export const FinanceExpenseNew: React.FC = () => {
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 {Object.entries(CATS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                {customCats.filter(c => !(c.name in CATS)).map(c => <SelectItem key={`custom-${c.id}`} value={c.name}>{c.name}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>

@@ -26,6 +26,7 @@
 import fs from 'fs';
 import path from 'path';
 import { env } from '../config/env.js';
+import { getActiveIdentity } from './platform-signing-cert.service.js';
 
 const IDENTITY_DIR = path.join(process.cwd(), 'uploads', 'platform');
 const P12_PATH = path.join(IDENTITY_DIR, 'hudumika-sign-identity.p12');
@@ -60,9 +61,23 @@ async function generate(): Promise<Buffer> {
   cert.setSubject(attrs);
   cert.setIssuer(attrs); // self-signed: issuer === subject
   cert.setExtensions([
-    { name: 'basicConstraints', cA: false },
-    { name: 'keyUsage', digitalSignature: true, nonRepudiation: true, keyEncipherment: false, dataEncipherment: false },
-    { name: 'extKeyUsage', codeSigning: false, emailProtection: false, timeStamping: false },
+    { name: 'basicConstraints', cA: false, critical: true },
+    // keyUsage marked critical (RFC 5280 §4.2.1.3: SHOULD be critical when
+    // present) — a real, separate defect from the self-signed-trust
+    // question, found via a real PDF viewer's own signature panel (Edge/
+    // PDFium) reporting "Invalid Signature" even though OpenSSL confirmed
+    // the underlying CMS/PKCS#7 signature itself verifies cleanly. The
+    // extKeyUsage extension that used to sit here (codeSigning/
+    // emailProtection/timeStamping, all false) is removed rather than
+    // fixed: setting every flag false doesn't omit the extension, it emits
+    // an EMPTY "permitted uses" list — worse than no extension at all to a
+    // strict validator, since it can read as "no use is permitted." PDF/
+    // CMS document signing has no dedicated, universally-recognized EKU
+    // OID the way code-signing or email does; keyUsage's own
+    // digitalSignature + nonRepudiation bits are what the PDF spec (and
+    // Adobe/PDFium) actually key off, so the honest fix is to not claim an
+    // extended-use restriction this certificate was never given.
+    { name: 'keyUsage', critical: true, digitalSignature: true, nonRepudiation: true, keyEncipherment: false, dataEncipherment: false },
   ]);
   cert.sign(keys.privateKey, forge.md.sha256.create());
 
@@ -71,16 +86,25 @@ async function generate(): Promise<Buffer> {
   return Buffer.from(p12Der, 'binary');
 }
 
-/** Returns the platform's signing P12, generating it on first call and
- *  reusing the same identity (from disk, then from an in-process cache)
- *  on every call after — the same certificate signs every envelope, the
- *  way one organization's real signing key would. */
-export async function getSigningP12(): Promise<Buffer> {
-  if (cached) return cached;
+/** Returns the platform's current signing identity — a real, SuperAdmin-
+ *  activated CA-issued certificate (platform-signing-cert.service.ts) if
+ *  one exists, otherwise the self-signed default below, generated once and
+ *  reused (from disk, then an in-process cache) after that. `password` is
+ *  returned alongside the P12 because a real uploaded certificate has its
+ *  own password, not the fixed `env.SIGN_CERT_PASSWORD` the self-signed
+ *  identity uses — callers must not assume the env password applies.
+ *  `displayName` is the real cert's own subject CN once one is active, so
+ *  the signature panel a viewer shows reflects who actually signed rather
+ *  than a stale "Hudumika eSign" label from the self-signed fallback. */
+export async function getSigningIdentity(): Promise<{ p12: Buffer; password: string; displayName: string }> {
+  const real = await getActiveIdentity();
+  if (real) return real;
+
+  if (cached) return { p12: cached, password: env.SIGN_CERT_PASSWORD, displayName: 'Hudumika eSign' };
 
   if (fs.existsSync(P12_PATH)) {
     cached = fs.readFileSync(P12_PATH);
-    return cached;
+    return { p12: cached, password: env.SIGN_CERT_PASSWORD, displayName: 'Hudumika eSign' };
   }
 
   const p12 = await generate();
@@ -88,5 +112,5 @@ export async function getSigningP12(): Promise<Buffer> {
   fs.writeFileSync(P12_PATH, p12);
   console.log(`🔏 Generated a new platform PDF-signing identity — ${P12_PATH}`);
   cached = p12;
-  return p12;
+  return { p12, password: env.SIGN_CERT_PASSWORD, displayName: 'Hudumika eSign' };
 }

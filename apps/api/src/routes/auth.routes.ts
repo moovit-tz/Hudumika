@@ -134,6 +134,20 @@ async function registerImpersonationDevice(tenantId: string, userId: string, act
   } catch { return null; } // device tracking must never block impersonation
 }
 
+/** Workspace ▸ Settings ▸ Configure Features ▸ Customers ▸ "Enable Customer
+ *  Portal" toggle (now surfaced from NexusHR ▸ Team, see Team.tsx) — the one
+ *  real, enforced control from that settings section; default true (a
+ *  workspace with no explicit setting keeps working exactly as before this
+ *  gate existed), matching FeatCustomersSection's own `portal ?? true`. */
+async function customerPortalEnabled(tenantId: string): Promise<boolean> {
+  return withTenant(tenantId, async (trx) => {
+    const row = await trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', tenantId).executeTakeFirst();
+    const settings = row ? (typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings) : {};
+    const portal = (settings as Record<string, any>)['feat-customers']?.portal;
+    return portal !== false;
+  });
+}
+
 export async function authRoutes(fastify: FastifyInstance) {
   /**
    * POST /auth/login
@@ -359,6 +373,9 @@ export async function authRoutes(fastify: FastifyInstance) {
     if (!customer) {
       return reply.status(404).send({ error: 'Customer phone number not registered' });
     }
+    if (!(await customerPortalEnabled(customer.tenant_id))) {
+      return reply.status(403).send({ error: 'The customer portal is currently disabled for this workspace.' });
+    }
 
     // Generate 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -413,6 +430,9 @@ export async function authRoutes(fastify: FastifyInstance) {
 
     if (!customer) {
       return reply.status(404).send({ error: 'Customer record not found' });
+    }
+    if (!(await customerPortalEnabled(customer.tenant_id))) {
+      return reply.status(403).send({ error: 'The customer portal is currently disabled for this workspace.' });
     }
 
     // Generate customer JWT payload

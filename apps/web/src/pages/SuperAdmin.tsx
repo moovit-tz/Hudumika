@@ -25,7 +25,7 @@ type PayMethod = 'card' | 'bank' | 'mpesa' | 'paypal';
 
 interface Company { id:string; name:string; email:string; phone:string; plan:PlanId; users:number; status:CoStatus; domain:string; created:string; owner:string; country:string; color:string; }
 interface Subscription { id:string; companyId:string; plan:PlanId; start:string; end:string; amount:number; billing:'monthly'|'annual'; status:SubStatus; }
-interface Package { id:string; code:string; name:string; monthly:number; annual:number; maxUsers:number; features:string[]; active:number; color:string; popular?:boolean; }
+interface Package { id:string; code:string; name:string; monthly:number; annual:number; maxUsers:number; monthlyItemLimit:number|null; storageLimitGb:number|null; features:string[]; active:number; color:string; popular?:boolean; }
 interface Domain { id:string; domain:string; companyId:string; status:DomainStatus; ssl:boolean; created:string; }
 interface Transaction { id:string; txRef:string; companyId:string; plan:PlanId; amount:number; date:string; method:PayMethod; status:TxStatus; }
 
@@ -78,13 +78,13 @@ const COMPANIES: Company[] = [
 ];
 
 const PACKAGES: Package[] = [
-  { id:'P1', code:'starter',  name:'HuduStarter',  monthly:6,  annual:60,  maxUsers:300,  active:0, color:'#0891b2',
+  { id:'P1', code:'starter',  name:'HuduStarter',  monthly:6,  annual:60,  maxUsers:300,  monthlyItemLimit:50,   storageLimitGb:10,  active:0, color:'#0891b2',
     features:['Every module included','Up to 300 users','10 GB storage','100 shipments / month','Basic shipment tracking','TANCIS integration','Email support','Local mobile money (M-Pesa, Tigo Pesa, Airtel Money)'] },
-  { id:'P2', code:'growth',   name:'HuduPlus',   monthly:18,  annual:180,  maxUsers:300, active:0, color:'#0d7a6b', popular:true,
+  { id:'P2', code:'growth',   name:'HuduPlus',   monthly:18,  annual:180,  maxUsers:300, monthlyItemLimit:300,  storageLimitGb:50,  active:0, color:'#0d7a6b', popular:true,
     features:['Every module included','Up to 300 users','50 GB storage','500 shipments / month','Advanced tracking & alerts','Finance module (invoices, bills)','CRM & Leads','WhatsApp Bot','Priority 24h support'] },
-  { id:'P3', code:'scale',    name:'Legacy Scale',    monthly:19, annual:190, maxUsers:99, active:0, color:'#2563eb',
+  { id:'P3', code:'scale',    name:'Legacy Scale',    monthly:19, annual:190, maxUsers:99, monthlyItemLimit:1500, storageLimitGb:250, active:0, color:'#2563eb',
     features:['Every module included','Up to 99 users','250 GB storage','1,000 shipments / month','Full API access','HR / People module','TANESW integration','Demurrage tracking','Custom reports','Multi-branch support'] },
-  { id:'P4', code:'enterprise', name:'Hudu Advanced', monthly:0, annual:0, maxUsers:0,  active:0, color:'#6e40c9',
+  { id:'P4', code:'enterprise', name:'Hudu Advanced', monthly:0, annual:0, maxUsers:0,  monthlyItemLimit:null, storageLimitGb:null, active:0, color:'#6e40c9',
     features:['Every module included','Unlimited users','Unlimited storage','Unlimited shipments','Dedicated account manager','24/7 phone & WhatsApp support','Custom integrations (core banking APIs)','White-label option','99.99% SLA guarantee','Metered option shared per quotation'] },
 ];
 
@@ -1049,6 +1049,85 @@ function FeatureGatesEditor({ packageCode }: { packageCode: string }) {
   );
 }
 
+/** Real, wired editor for per-app monthly item quotas on a package — PATCHes
+ *  /v1/superadmin/packages/:code/quotas (backed by package_app_quotas,
+ *  migration 280). Layered on top of the blanket "Monthly item limit"
+ *  field in the parent modal: both apply, whichever a tenant hits first
+ *  blocks the request (see apps/api/src/lib/usage.ts checkAppUsageLimit).
+ *  Blank/empty = unlimited for that app under this tier, same convention
+ *  FeatureGatesEditor's absent-row-means-off already uses. */
+function AppQuotasEditor({ packageCode }: { packageCode: string }) {
+  const [quotas, setQuotas] = useState<Record<string, number | ''>>({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    setLoading(true);
+    apiFetch(`/v1/superadmin/packages/${packageCode}/quotas`)
+      .then(res => { if (alive) setQuotas(res.quotas || {}); })
+      .catch(() => { if (alive) setQuotas({}); })
+      .finally(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
+  }, [packageCode]);
+
+  function setLimit(key: string, value: string) {
+    setQuotas(prev => {
+      const next = { ...prev };
+      if (value.trim() === '') delete next[key];
+      else next[key] = Math.max(0, Number(value));
+      return next;
+    });
+  }
+
+  async function save() {
+    setSaving(true);
+    try {
+      const payload: Record<string, number> = {};
+      for (const [k, v] of Object.entries(quotas)) if (v !== '') payload[k] = v as number;
+      await apiFetch(`/v1/superadmin/packages/${packageCode}/quotas`, {
+        method: 'PATCH',
+        body: JSON.stringify({ quotas: payload }),
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 1500);
+    } catch (err: any) {
+      showAlert(`Failed to save app quotas: ${err?.message ?? 'Unknown error'}`);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div style={{ marginBottom:16, paddingTop:14, borderTop:'1px solid var(--border)' }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
+        <label style={{ fontSize:12, fontWeight:600, color:'var(--ink2)' }}>Per-app monthly quotas ({packageCode})</label>
+        <button type="button" onClick={save} disabled={loading || saving} className="btn btn-secondary btn-sm" style={{ fontSize:11 }}>
+          {saved ? 'Saved' : saving ? 'Saving…' : 'Save Quotas'}
+        </button>
+      </div>
+      {loading ? (
+        <div style={{ fontSize:12, color:'var(--ink3)' }}>Loading…</div>
+      ) : (
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(2,1fr)', gap:6, maxHeight:220, overflowY:'auto' }}>
+          {ALL_FEATURE_KEYS.map(key => (
+            <label key={key} style={{ display:'flex', alignItems:'center', gap:6, fontSize:11.5, color:'var(--ink2)' }}>
+              <span style={{ flex:1 }}>{key}</span>
+              <input
+                type="number" min={0} placeholder="∞"
+                value={quotas[key] ?? ''}
+                onChange={e => setLimit(key, e.target.value)}
+                className="input-field" style={{ width:70, padding:'4px 6px', fontSize:11.5 }}
+              />
+            </label>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function PackagesView() {
   const [packages, setPackages] = useState(PACKAGES);
   const [billing, setBilling] = useState<'monthly'|'annual'>('monthly');
@@ -1060,7 +1139,7 @@ export function PackagesView() {
   // Edit/Create/Deactivate below are wired to real endpoints (packages.routes.ts POST/PATCH/DELETE,
   // SuperAdmin-gated). The Feature Gates checklist in the edit modal is a separate, already-wired
   // endpoint (/v1/superadmin/packages/:code/features) — see FeatureGatesEditor below.
-  function mapFromApi(pkg: { id:string; code:string; name:string; monthly_price:number; annual_price:number; max_users:number; features:string[]; color:string; popular:boolean }): Package {
+  function mapFromApi(pkg: { id:string; code:string; name:string; monthly_price:number; annual_price:number; max_users:number; monthly_item_limit:number|null; storage_limit_bytes:number|null; features:string[]; color:string; popular:boolean }): Package {
     return {
       id: pkg.id,
       code: pkg.code,
@@ -1068,6 +1147,8 @@ export function PackagesView() {
       monthly: pkg.monthly_price,
       annual: pkg.annual_price,
       maxUsers: pkg.max_users,
+      monthlyItemLimit: pkg.monthly_item_limit,
+      storageLimitGb: pkg.storage_limit_bytes != null ? Math.round(pkg.storage_limit_bytes / 1073741824) : null,
       active: 0,
       color: pkg.color,
       popular: pkg.popular,
@@ -1157,13 +1238,16 @@ export function PackagesView() {
               { label:'Monthly Price ($)',  key:'monthly', type:'number' },
               { label:'Annual Price ($)',   key:'annual',  type:'number' },
               { label:'Max Users (0 = unlimited)', key:'maxUsers', type:'number' },
+              { label:'Monthly item limit, all apps (0 = unlimited)', key:'monthlyItemLimit', type:'number' },
+              { label:'Storage limit, GB (0 = unlimited)', key:'storageLimitGb', type:'number' },
             ].map(f=>(
               <div key={f.key} style={{ marginBottom:14 }}>
                 <label style={{ fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:5 }}>{f.label}</label>
-                <input type={f.type} value={(editing as any)[f.key]} onChange={e=>setEditing(p=>p?({...p,[f.key]:Number(e.target.value)}):p)} className="input-field" style={{ width:'100%' }} />
+                <input type={f.type} value={(editing as any)[f.key] ?? 0} onChange={e=>setEditing(p=>p?({...p,[f.key]:Number(e.target.value)}):p)} className="input-field" style={{ width:'100%' }} />
               </div>
             ))}
             <FeatureGatesEditor packageCode={editing.code} />
+            <AppQuotasEditor packageCode={editing.code} />
             <div style={{ display:'flex', gap:10, justifyContent:'space-between', marginTop:4 }}>
               <button
                 onClick={async () => {
@@ -1188,7 +1272,11 @@ export function PackagesView() {
                     try {
                       const updated = await apiFetch(`/v1/packages/${editing.code}`, {
                         method: 'PATCH',
-                        body: JSON.stringify({ monthly_price: editing.monthly, annual_price: editing.annual, max_users: editing.maxUsers }),
+                        body: JSON.stringify({
+                          monthly_price: editing.monthly, annual_price: editing.annual, max_users: editing.maxUsers,
+                          monthly_item_limit: editing.monthlyItemLimit ? editing.monthlyItemLimit : null,
+                          storage_limit_bytes: editing.storageLimitGb ? editing.storageLimitGb * 1073741824 : null,
+                        }),
                       });
                       setPackages(p => p.map(pk => pk.id === editing.id ? mapFromApi(updated) : pk));
                       setEditing(null);

@@ -4,6 +4,9 @@ import { emitDomainEvent } from '../services/domain-events.service.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { withTenant } from '../db/client.js';
+import { renderInvoicePdf } from '../services/invoice-pdf.service.js';
+import { applyStamp, StampAccessDeniedError } from '../services/stamp.service.js';
+import { MinioIntegration } from '../integrations/minio.js';
 
 // Real values — Billing.tsx's own `Status` type.
 const INVOICE_STATUS = ['Draft', 'Partial', 'Paid', 'Credited', 'Unpaid', 'Overdue'] as const;
@@ -503,6 +506,69 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
       }
 
       return { ...inv, items: lines, payments, shipment_carbon };
+    });
+  });
+
+  // GET /v1/invoices/:id/pdf — the real invoice PDF (invoice-pdf.service.ts),
+  // the one M6 needs to exist before a stamp can be applied to it; also the
+  // first genuine server-generated invoice PDF this app has ever had (the
+  // customer portal's own "Download" was a client-side window.print()).
+  fastify.get('/:id/pdf', async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    try {
+      const pdf = await renderInvoicePdf(user.tenant_id, id);
+      reply.header('Content-Type', 'application/pdf');
+      reply.header('Content-Disposition', `inline; filename="invoice.pdf"`);
+      return reply.send(pdf);
+    } catch (err) {
+      return reply.status(404).send({ error: (err as Error).message });
+    }
+  });
+
+  // POST /v1/invoices/:id/sign-stamp — the one concrete, wired M6 example:
+  // a financial manager (or whoever clears the tenant's stamp-access gate —
+  // sign-stamps.routes.ts) applying the company stamp to a real invoice PDF.
+  // Blocked callers get StampAccessDeniedError → 403, same as the generic
+  // /v1/sign/stamps/apply route, so the frontend can show "Request stamping"
+  // instead on the exact same signal.
+  fastify.post('/:id/sign-stamp', async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    try {
+      const pdfBytes = await renderInvoicePdf(user.tenant_id, id);
+      const stamped = await applyStamp({
+        tenantId: user.tenant_id, userId: user.sub, userRole: user.role,
+        pdfBytes, ownerType: 'tenant',
+        // Bottom-right of the page — clear of the line-item table and totals
+        // block above it for a typical one-page invoice.
+        position: { page: 1, x: 0.62, y: 0.86, width: 0.3, height: 0.09 },
+      });
+      const { storageKey } = await MinioIntegration.uploadStampedInvoice(user.tenant_id, id, stamped);
+      const updated = await withTenant(user.tenant_id, trx =>
+        trx.updateTable('sales_invoices').set({ stamped_file_url: storageKey, stamped_at: new Date() })
+          .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
+          .returning(['id', 'stamped_file_url', 'stamped_at']).executeTakeFirstOrThrow());
+      return reply.send(updated);
+    } catch (err) {
+      if (err instanceof StampAccessDeniedError) return reply.status(403).send({ error: err.message });
+      return reply.status(400).send({ error: (err as Error).message });
+    }
+  });
+
+  // GET /v1/invoices/:id/stamped-pdf — download the stamped copy once one exists.
+  fastify.get('/:id/stamped-pdf', async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    return withTenant(user.tenant_id, async (trx) => {
+      const inv = await trx.selectFrom('sales_invoices').select(['stamped_file_url'])
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!inv?.stamped_file_url) return reply.status(404).send({ error: 'No stamped copy exists for this invoice yet' });
+      const buf = MinioIntegration.readFile(inv.stamped_file_url);
+      if (!buf) return reply.status(404).send({ error: 'Stamped file is missing from storage' });
+      reply.header('Content-Type', 'application/pdf');
+      reply.header('Content-Disposition', `attachment; filename="invoice-stamped.pdf"`);
+      return reply.send(buf);
     });
   });
 

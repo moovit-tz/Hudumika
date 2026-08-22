@@ -12,6 +12,7 @@ const packageCreateSchema = z.object({
   max_users: z.number().int().optional(),
   price_per_seat: z.number().nullable().optional(),
   monthly_item_limit: z.number().int().nullable().optional(),
+  storage_limit_bytes: z.number().nullable().optional(),
   features: z.array(z.any()).optional(),
   color: z.string().max(20).optional(),
   popular: z.boolean().optional(),
@@ -24,6 +25,7 @@ const packagePatchSchema = z.object({
   max_users: z.number().int().optional(),
   price_per_seat: z.number().nullable().optional(),
   monthly_item_limit: z.number().int().nullable().optional(),
+  storage_limit_bytes: z.number().nullable().optional(),
   features: z.array(z.any()).optional(),
   color: z.string().max(20).optional(),
   popular: z.boolean().optional(),
@@ -41,6 +43,7 @@ function toPackage(r: any): Package {
     max_users: r.max_users,
     price_per_seat: r.price_per_seat !== null && r.price_per_seat !== undefined ? Number(r.price_per_seat) : null,
     monthly_item_limit: r.monthly_item_limit ?? null,
+    storage_limit_bytes: r.storage_limit_bytes !== null && r.storage_limit_bytes !== undefined ? Number(r.storage_limit_bytes) : null,
     features: r.features,
     color: r.color || '#0d7a6b',
     popular: r.popular,
@@ -79,6 +82,7 @@ export async function packagesRoutes(fastify: FastifyInstance) {
         max_users: body.max_users ?? 0,
         price_per_seat: body.price_per_seat ?? null,
         monthly_item_limit: body.monthly_item_limit ?? null,
+        storage_limit_bytes: body.storage_limit_bytes != null ? String(body.storage_limit_bytes) : null,
         features: JSON.stringify(body.features ?? []) as unknown as string[],
         color: body.color ?? '#0d7a6b',
         popular: body.popular ?? false,
@@ -108,6 +112,7 @@ export async function packagesRoutes(fastify: FastifyInstance) {
       if (body.max_users !== undefined) updates.max_users = body.max_users;
       if (body.price_per_seat !== undefined) updates.price_per_seat = body.price_per_seat;
       if (body.monthly_item_limit !== undefined) updates.monthly_item_limit = body.monthly_item_limit;
+      if (body.storage_limit_bytes !== undefined) updates.storage_limit_bytes = body.storage_limit_bytes != null ? String(body.storage_limit_bytes) : null;
       if (body.features !== undefined) updates.features = JSON.stringify(body.features);
       if (body.color !== undefined) updates.color = body.color;
       if (body.popular !== undefined) updates.popular = body.popular;

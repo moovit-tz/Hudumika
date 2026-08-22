@@ -2194,6 +2194,8 @@ export interface SalesInvoicesTable {
   tra_ack_msg: string | null;
   tra_qr_url: string | null;
   tra_total_incl: number | null;             // Tax-inclusive total submitted to TRA
+  stamped_file_url: string | null;
+  stamped_at: Date | null;
 }
 
 export interface SalesInvoiceLinesTable {
@@ -2831,6 +2833,21 @@ export interface TenantUsageCountersTable {
   updated_at: Generated<Date>;
 }
 
+export interface PackageAppQuotasTable {
+  package_code: string;
+  app_id: string;
+  monthly_limit: number;
+  updated_at: Generated<Date>;
+}
+
+export interface TenantAppUsageCountersTable {
+  tenant_id: string;
+  app_id: string;
+  period: string;   // 'YYYY-MM'
+  count: Generated<number>;
+  updated_at: Generated<Date>;
+}
+
 export interface TaskListsTable {
   id: string;
   tenant_id: string;
@@ -3388,6 +3405,35 @@ export interface SignStampsTable {
   updated_at: Generated<Date>;
 }
 
+export interface SignStampRequestsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  requested_by: string;
+  approver_id: string;
+  target_type: string | null;
+  target_ref: string | null;
+  note: string | null;
+  status: Generated<string>; // 'pending' | 'approved' | 'declined'
+  decision_note: string | null;
+  created_at: Generated<Date>;
+  decided_at: Date | null;
+}
+
+export interface PlatformSigningIdentitiesTable {
+  id: Generated<string>;
+  label: string;
+  encrypted_p12: string;
+  subject: string;
+  issuer: string;
+  is_self_signed: boolean;
+  not_before: Date;
+  not_after: Date;
+  verified_at: Date | null;
+  enabled: Generated<boolean>;
+  uploaded_by: string;
+  created_at: Generated<Date>;
+}
+
 export interface Database {
   inventory_warehouses: InventoryWarehousesTable;
   inventory_locations: InventoryLocationsTable;
@@ -3593,6 +3639,8 @@ export interface Database {
   // Signup / Onboarding
   packages: PackagesTable;
   tenant_usage_counters: TenantUsageCountersTable;
+  package_app_quotas: PackageAppQuotasTable;
+  tenant_app_usage_counters: TenantAppUsageCountersTable;
   platform_transactions: PlatformTransactionsTable;
   platform_activity_log: PlatformActivityLogTable;
   platform_domains: PlatformDomainsTable;
@@ -3801,6 +3849,8 @@ export interface Database {
   sign_templates: SignTemplatesTable;
   sign_verifications: SignVerificationsTable;
   sign_stamps: SignStampsTable;
+  sign_stamp_requests: SignStampRequestsTable;
+  platform_signing_identities: PlatformSigningIdentitiesTable;
 }
 
 // ── TRA VFD Integration ──────────────────────────────────────────────────────

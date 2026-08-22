@@ -1,5 +1,15 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import { dbPlatform, withTenant } from '../db/client.js';
+import { checkAppUsageLimit } from '../lib/usage.js';
+
+declare module 'fastify' {
+  interface FastifyRequest {
+    /** The app/feature key checkEntitlement() resolved this request against
+     *  — stashed here so index.ts's onResponse hook can increment that
+     *  app's usage counter on success, without a separate route→app map. */
+    meteredAppId?: string | null;
+  }
+}
 
 /**
  * Route preHandler hook that unifies requireAppEnabled() (appGate.ts) and
@@ -47,6 +57,9 @@ async function checkEntitlement(
   featureKey: string,
 ): Promise<{ status: number; body: Record<string, unknown> } | null> {
   const user = request.user!;
+  // Stashed unconditionally, before any pass/fail branch below — harmless if
+  // this request ultimately fails (onResponse only ever acts on a 2xx reply).
+  request.meteredAppId = featureKey;
 
   if (request.apiKeyScopes && !request.apiKeyScopes.includes(featureKey)) {
     return { status: 403, body: { error: 'This API key is not scoped for this feature.', code: 'SCOPE_INSUFFICIENT' } };
@@ -106,6 +119,20 @@ async function checkEntitlement(
     .executeTakeFirst();
   if (!grant) {
     return { status: 403, body: { error: 'Your current plan does not include this feature.', code: 'PLAN_UPGRADE_REQUIRED' } };
+  }
+
+  // Per-app quota, layered on top of the blanket monthly_item_limit checked
+  // earlier in authenticate() — only once the tenant is confirmed to have
+  // this app at all, and only for the same POST-only convention isMeteredPath
+  // already uses for the blanket limit.
+  if (request.method === 'POST') {
+    const appGate = await checkAppUsageLimit(user.tenant_id, tenantCheck.plan, featureKey);
+    if (appGate.exceeded) {
+      return {
+        status: 402,
+        body: { error: 'APP_USAGE_LIMIT_EXCEEDED', message: appGate.message, used: appGate.used, limit: appGate.limit, app: featureKey },
+      };
+    }
   }
 
   return null;

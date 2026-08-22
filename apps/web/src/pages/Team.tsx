@@ -389,6 +389,77 @@ function RolesTab({ canManage }: { canManage: boolean }) {
       .finally(() => setLoading(false));
   }, []);
 
+  return (
+    <>
+      <CustomerAccessCard canManage={canManage} />
+      <RolePermissionMatrix
+        perms={perms} meta={meta} loading={loading} dirty={dirty} saving={saving} role={role}
+        canManage={canManage} setRole={setRole} setPerms={setPerms} setDirty={setDirty} setSaving={setSaving}
+      />
+    </>
+  );
+}
+
+/**
+ * The one real, enforced control that used to live at Workspace Settings ▸
+ * Configure Features ▸ Customers ▸ "Enable Customer Portal" — moved here
+ * because "who can get into this workspace" (including the customer side of
+ * it) is exactly what this tab already answers for staff. Reuses the same
+ * tenant_settings key ('feat-customers') so no data migration was needed;
+ * actually gates POST /auth/customer-otp and /auth/customer/verify (see
+ * customerPortalEnabled() in auth.routes.ts) rather than just persisting.
+ * The rest of that old panel (self-registration, VAT field, customer
+ * groups) didn't move with it — self-registration gated a feature that has
+ * no real signup route anywhere in the codebase, and the others were
+ * customer-form concerns, not workspace access.
+ */
+function CustomerAccessCard({ canManage }: { canManage: boolean }) {
+  const [portal, setPortal] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    apiFetch('/v1/settings')
+      .then((r: any) => setPortal(r?.settings?.['feat-customers']?.portal ?? true))
+      .catch(() => setPortal(true))
+      .finally(() => setLoading(false));
+  }, []);
+
+  async function toggle(next: boolean) {
+    setPortal(next);
+    setSaving(true);
+    try {
+      await apiFetch('/v1/settings', { method: 'PATCH', body: JSON.stringify({ 'feat-customers': { portal: next } }) });
+    } catch (e: any) {
+      setPortal(!next);
+      showAlert(e.message || 'Could not update the customer portal setting.', { variant: 'error' });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (loading) return null;
+  return (
+    <div className="team-card" style={{ padding: '14px 16px', marginBottom: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+      <div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Customer portal</div>
+        <div style={{ fontSize: 12, color: 'var(--ink3)' }}>Lets customers log in (phone OTP) to view their invoices, shipments and tickets.</div>
+      </div>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: 'var(--ink2)', cursor: canManage ? 'pointer' : 'default' }}>
+        <input type="checkbox" checked={portal} disabled={!canManage || saving} onChange={e => toggle(e.target.checked)} />
+        {portal ? 'Enabled' : 'Disabled'}
+      </label>
+    </div>
+  );
+}
+
+function RolePermissionMatrix({ perms, meta, loading, dirty, saving, role, canManage, setRole, setPerms, setDirty, setSaving }: {
+  perms: Perm[]; meta: { roles: string[]; resources: string[]; actions: string[] } | null; loading: boolean;
+  dirty: boolean; saving: boolean; role: string; canManage: boolean;
+  setRole: (r: string) => void; setPerms: React.Dispatch<React.SetStateAction<Perm[]>>;
+  setDirty: (d: boolean) => void; setSaving: (s: boolean) => void;
+}) {
+
   const toggle = (resource: string, action: string) => {
     setPerms(prev => prev.map(p =>
       p.role === role && p.resource === resource && p.action === action

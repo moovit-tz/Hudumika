@@ -11,6 +11,7 @@ export interface Package {
   max_users: number;
   price_per_seat: number | null;      // USD/user/month — null only for custom-pricing tiers
   monthly_item_limit: number | null;  // billable items/month platform-wide — null = unlimited
+  storage_limit_bytes: number | null; // Cloud storage quota — null = unlimited
   features: string[];
   color: string;
   popular: boolean;

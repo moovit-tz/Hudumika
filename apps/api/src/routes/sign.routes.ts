@@ -37,6 +37,7 @@ import { requireEntitlement } from '../middleware/entitlement.js';
 import { SmsIntegration } from '../integrations/sms.js';
 import { MinioIntegration } from '../integrations/minio.js';
 import { buildSignedPdf } from '../services/sign-pdf.service.js';
+import { canApplyTenantStamp } from './sign-stamps.routes.js';
 import {
   logEvent, buildStampPayload, getEnvelopeWithRelations, recipientsToNotify, notifyRecipients,
 } from '../services/sign-notify.service.js';
@@ -50,6 +51,19 @@ import {
 const OTP_TTL_MS = 10 * 60 * 1000;
 function hashOtp(code: string): string {
   return createHash('sha256').update(code).digest('hex');
+}
+
+/** A safe Content-Disposition value for a filename built from free text
+ *  (an envelope title, typed by a tenant, in any script). Node's raw HTTP
+ *  header setter throws ERR_INVALID_CHAR — a real 500, confirmed live — on
+ *  any header value byte past U+00FF, so an em dash, an accented name, or
+ *  non-Latin script in the title crashed every download of that envelope.
+ *  filename= carries an ASCII-sanitized fallback (required — that's what a
+ *  browser uses when it doesn't parse filename*); filename* (RFC 5987)
+ *  carries the real name for the current browsers that do. */
+function safeContentDisposition(disposition: 'attachment' | 'inline', filename: string): string {
+  const ascii = filename.replace(/["\r\n]/g, '').replace(/[^\x20-\x7E]/g, '_');
+  return `${disposition}; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(filename)}`;
 }
 
 function tenantId(req: FastifyRequest): string {
@@ -223,7 +237,7 @@ export async function signRoutes(fastify: FastifyInstance) {
       const buf = MinioIntegration.readFile(envelope.stamped_file_url);
       if (!buf) return reply.status(404).send({ error: 'Signed document file not found' });
       reply.header('Content-Type', 'application/pdf');
-      reply.header('Content-Disposition', `attachment; filename="${envelope.title.replace(/["\r\n]/g, '')} — signed.pdf"`);
+      reply.header('Content-Disposition', safeContentDisposition('attachment', `${envelope.title} - signed.pdf`));
       return reply.send(buf);
     });
   });
@@ -568,6 +582,40 @@ export async function signPublicRoutes(fastify: FastifyInstance) {
     const tenant = await dbPlatform.selectFrom('tenants').select(['logo_url', 'primary_color'])
       .where('id', '=', envelope.tenant_id).executeTakeFirst();
 
+    // A recipient tagged to a real colleague (sign_recipients.user_id, M4's
+    // "sign in person" tag) gets their own saved signature offered as a
+    // one-click fill instead of a blank pad every time — the same
+    // sign_stamps rows their NexusHR profile (StaffDetail.tsx's Signature
+    // tab) already manages. An untagged/external recipient has no profile
+    // to pull from and keeps drawing fresh, same as before.
+    let savedSignature: string | null = null;
+    // The tenant's actual configured company stamp (Settings ▸ E-Sign) is
+    // only ever handed to a tagged recipient whose role clears the same
+    // canApplyTenantStamp gate that governs applying it everywhere else in
+    // the app — an anonymous external signer assigned a stamp field (a
+    // form-building mistake, not a real use case) never sees the real seal
+    // image over this unauthenticated endpoint; the field still renders
+    // (SignPublicPage's existing generic placeholder) so the document isn't
+    // silently missing content.
+    let tenantStampImage: string | null = null;
+    if (recipient.user_id) {
+      const personal = await dbPlatform.selectFrom('sign_stamps').select('image_data')
+        .where('tenant_id', '=', envelope.tenant_id).where('owner_type', '=', 'user')
+        .where('owner_user_id', '=', recipient.user_id)
+        .orderBy('created_at', 'desc').executeTakeFirst();
+      savedSignature = personal?.image_data ?? null;
+
+      if (fields.some(f => f.field_type === 'stamp')) {
+        const taggedUser = await dbPlatform.selectFrom('users').select('role')
+          .where('id', '=', recipient.user_id).executeTakeFirst();
+        if (taggedUser && await canApplyTenantStamp(dbPlatform, envelope.tenant_id, taggedUser.role)) {
+          const tenantStamp = await dbPlatform.selectFrom('sign_stamps').select('image_data')
+            .where('tenant_id', '=', envelope.tenant_id).where('owner_type', '=', 'tenant').executeTakeFirst();
+          tenantStampImage = tenantStamp?.image_data ?? null;
+        }
+      }
+    }
+
     // Return only safe public fields — phone is masked (last 4 digits only)
     // so the OTP gate can say where a code was sent without handing an
     // unauthenticated caller the recipient's full phone number.
@@ -579,12 +627,14 @@ export async function signPublicRoutes(fastify: FastifyInstance) {
         expires_at: envelope.expires_at,
         verification_code: envelope.verification_code,
         require_otp: envelope.require_otp,
+        tenant_stamp_image: tenantStampImage,
       },
       recipient: {
         id: recipient.id, name: recipient.name, email: recipient.email,
         role_label: recipient.role_label, status: recipient.status,
         phone_masked: recipient.phone ? recipient.phone.replace(/.(?=.{4})/g, '•') : null,
         otp_verified: !!recipient.otp_verified_at,
+        saved_signature: savedSignature,
       },
       tenant: {
         logo_url: tenant?.logo_url ?? null,
@@ -824,7 +874,7 @@ export async function signPublicRoutes(fastify: FastifyInstance) {
     const buf = MinioIntegration.readFile(envelope.stamped_file_url);
     if (!buf) return reply.status(404).send({ error: 'Signed document file not found' });
     reply.header('Content-Type', 'application/pdf');
-    reply.header('Content-Disposition', `attachment; filename="${envelope.title.replace(/["\r\n]/g, '')} — signed.pdf"`);
+    reply.header('Content-Disposition', safeContentDisposition('attachment', `${envelope.title} - signed.pdf`));
     return reply.send(buf);
   });
 
@@ -879,13 +929,29 @@ export async function signPublicRoutes(fastify: FastifyInstance) {
 
   // ── Download the signed PDF via its public verification code ──────────────
   fastify.get('/public/verify/:code/download', async (req: FastifyRequest<{ Params: { code: string } }>, reply: FastifyReply) => {
-    const envelope = await dbPlatform.selectFrom('sign_envelopes').select(['title', 'stamped_file_url'])
+    const envelope = await dbPlatform.selectFrom('sign_envelopes').selectAll()
       .where('verification_code', '=', req.params.code.toUpperCase()).executeTakeFirst();
     if (!envelope || !envelope.stamped_file_url) return reply.status(404).send({ error: 'Signed document not available' });
-    const buf = MinioIntegration.readFile(envelope.stamped_file_url);
-    if (!buf) return reply.status(404).send({ error: 'Signed document file not found' });
+    let buf = MinioIntegration.readFile(envelope.stamped_file_url);
+    if (!buf) {
+      try {
+        const recipients = await dbPlatform.selectFrom('sign_recipients').selectAll()
+          .where('envelope_id', '=', envelope.id).orderBy('sign_order', 'asc').execute();
+        const fields = await dbPlatform.selectFrom('sign_fields').selectAll()
+          .where('envelope_id', '=', envelope.id).execute();
+        const events = await dbPlatform.selectFrom('sign_events').selectAll()
+          .where('envelope_id', '=', envelope.id).orderBy('created_at', 'asc').execute();
+        
+        buf = await buildSignedPdf(envelope, recipients, fields, events);
+        await MinioIntegration.uploadSignedDocument(envelope.tenant_id, envelope.id, buf);
+      } catch (err) {
+        console.error(`[Sign] Failed to rebuild signed PDF for envelope ${envelope.id}:`, (err as Error).message);
+        return reply.status(404).send({ error: 'Signed document file not found and regeneration failed' });
+      }
+    }
     reply.header('Content-Type', 'application/pdf');
-    reply.header('Content-Disposition', `attachment; filename="${envelope.title.replace(/["\r\n]/g, '')} — signed.pdf"`);
+    const safeFilename = envelope.title.replace(/[^a-zA-Z0-9.-]/g, '_');
+    reply.header('Content-Disposition', `attachment; filename="${safeFilename}_signed.pdf"`);
     return reply.send(buf);
   });
 }

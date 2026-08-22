@@ -1,65 +1,740 @@
-.bliss-notif-tabs {
+﻿/* ══════════════════════════════════════════════════════════
+   Bliss Notification Centre — Full-Page Master/Detail Layout
+   Follows the Hudumika design system tokens.
+   This overrides the old tabs/list CSS from the previous
+   narrow-list implementation; none of the legacy selectors
+   are imported anywhere else so renaming them is safe.
+══════════════════════════════════════════════════════════ */
+
+/* Root: full-height, two-column layout */
+.bnc-root {
   display: flex;
-  gap: 4px;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 16px;
+  height: 100%;
+  min-height: 0;
+  background: var(--bg);
+  overflow: hidden;
 }
 
-.bliss-notif-tab {
+/* ── LEFT PANEL ── */
+.bnc-left {
+  display: flex;
+  flex-direction: column;
+  width: 360px;
+  min-width: 280px;
+  max-width: 400px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border);
+  background: var(--white);
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Header area */
+.bnc-left-hdr {
+  flex-shrink: 0;
+  padding: 16px 16px 0;
+  background: var(--white);
+  border-bottom: 1px solid var(--border);
+}
+
+.bnc-left-hdr-top {
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.bnc-title-block {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bnc-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--navy);
+  letter-spacing: -0.01em;
+  font-family: var(--font);
+}
+
+.bnc-badge {
+  background: var(--teal-l);
+  color: var(--teal);
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 10px;
+  padding: 2px 7px;
+  line-height: 1.3;
+  font-family: var(--font);
+}
+
+.bnc-hdr-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.bnc-icon-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--ink3);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s, color 0.12s;
+}
+
+.bnc-icon-btn:hover {
+  background: var(--bg);
+  color: var(--ink);
+}
+
+/* Search */
+.bnc-search-wrap {
+  position: relative;
+  margin-bottom: 12px;
+}
+
+.bnc-search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--ink3);
+  pointer-events: none;
+}
+
+.bnc-search {
+  width: 100%;
+  height: 34px;
+  padding: 0 30px 0 32px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 13px;
+  font-family: var(--font);
+  outline: none;
+  transition: border-color 0.12s;
+  box-sizing: border-box;
+}
+
+.bnc-search:focus {
+  border-color: var(--teal);
+}
+
+.bnc-search-clear {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
   background: none;
   border: none;
   cursor: pointer;
-  padding: 8px 4px 10px;
-  margin-right: 20px;
-  font-size: 13.5px;
+  color: var(--ink3);
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+}
+
+.bnc-search-clear:hover { color: var(--ink); }
+
+/* Filter chips */
+.bnc-chips {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 12px;
+  scrollbar-width: none;
+}
+
+.bnc-chips::-webkit-scrollbar { display: none; }
+
+.bnc-chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  padding: 4px 10px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--ink3);
+  font-size: 12px;
   font-weight: 600;
+  font-family: var(--font);
+  cursor: pointer;
+  transition: all 0.12s;
+  flex-shrink: 0;
+}
+
+.bnc-chip:hover {
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.bnc-chip--active {
+  background: var(--teal-l);
+  color: var(--teal);
+  border-color: var(--teal);
+}
+
+/* Notification list */
+.bnc-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+
+.bnc-list::-webkit-scrollbar { width: 4px; }
+.bnc-list::-webkit-scrollbar-track { background: transparent; }
+.bnc-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* Empty state */
+.bnc-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  gap: 8px;
+  text-align: center;
+  padding: 24px;
+}
+
+.bnc-empty-ico {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--border2);
+  margin-bottom: 4px;
+}
+
+.bnc-empty-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--navy);
+  font-family: var(--font);
+}
+
+.bnc-empty-sub {
+  font-size: 12.5px;
+  color: var(--ink3);
+}
+
+/* Loading spinner */
+.bnc-empty-spin {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--border);
+  border-top-color: var(--teal);
+  border-radius: 50%;
+  animation: bnc-spin 0.7s linear infinite;
+  margin-bottom: 8px;
+}
+
+@keyframes bnc-spin { to { transform: rotate(360deg); } }
+
+/* ── Notification Row ── */
+.bnc-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 16px;
+  cursor: pointer;
+  position: relative;
+  transition: background 0.1s;
+  border-bottom: 1px solid transparent;
+}
+
+.bnc-row:hover {
+  background: var(--bg);
+}
+
+.bnc-row--unread {
+  background: color-mix(in srgb, var(--teal-l) 35%, transparent);
+}
+
+.bnc-row--unread:hover {
+  background: color-mix(in srgb, var(--teal-l) 55%, transparent);
+}
+
+.bnc-row--active {
+  background: var(--teal-l) !important;
+  border-right: 3px solid var(--teal);
+}
+
+/* Left accent bar for unread */
+.bnc-row-bar {
+  position: absolute;
+  left: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  border-radius: 0 2px 2px 0;
+}
+
+.bnc-row-avatar-wrap {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+}
+
+.bnc-row-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--border);
+}
+
+.bnc-row-initials {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.bnc-row-type-badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--white);
+  border: 1.5px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.bnc-row-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.bnc-row-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+
+.bnc-row-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--navy);
+  font-family: var(--font);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.bnc-row-title--bold {
+  font-weight: 700;
+}
+
+.bnc-row-time {
+  font-size: 10.5px;
+  color: var(--ink3);
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-family: var(--font);
+}
+
+.bnc-row-msg {
+  font-size: 11.5px;
+  color: var(--ink2);
+  line-height: 1.4;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  text-overflow: ellipsis;
+  margin-bottom: 5px;
+}
+
+.bnc-row-tags {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.bnc-tag {
+  font-size: 10.5px;
+  font-weight: 700;
+  font-family: var(--font);
+  border-radius: 6px;
+  padding: 2px 7px;
+  text-transform: capitalize;
+  letter-spacing: 0.02em;
+}
+
+.bnc-row-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--teal);
+  flex-shrink: 0;
+  margin-top: 6px;
+}
+
+/* Pagination */
+.bnc-pagination {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+  background: var(--white);
+}
+
+.bnc-pg-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--ink3);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.12s;
+}
+
+.bnc-pg-btn:hover:not(:disabled) {
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.bnc-pg-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.bnc-pg-label {
+  font-size: 12px;
   color: var(--ink3);
   font-family: var(--font);
-  border-bottom: 2px solid transparent;
-  transition: color 0.12s, border-color 0.12s;
 }
 
-.bliss-notif-tab:hover { color: var(--ink); }
-
-.bliss-notif-tab--active {
-  color: var(--teal);
-  border-bottom-color: var(--teal);
-}
-
-.bliss-notif-tab-count {
+/* ── RIGHT PANEL ── */
+.bnc-right {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
   background: var(--bg);
-  border-radius: 10px;
-  padding: 1px 7px;
-  font-size: 11px;
-  color: var(--ink3);
 }
 
-.bliss-notif-tab--active .bliss-notif-tab-count {
+.bnc-right::-webkit-scrollbar { width: 6px; }
+.bnc-right::-webkit-scrollbar-track { background: transparent; }
+.bnc-right::-webkit-scrollbar-thumb { background: var(--border); border-radius: 6px; }
+
+/* Detail empty state */
+.bnc-detail-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+  padding: 40px;
+  min-height: 300px;
+}
+
+.bnc-detail-empty-ico {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--white);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--border2);
+  margin-bottom: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.bnc-detail-empty-label {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--navy);
+  font-family: var(--font);
+}
+
+.bnc-detail-empty-sub {
+  font-size: 13px;
+  color: var(--ink3);
+  max-width: 280px;
+}
+
+/* Detail panel */
+.bnc-detail {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 24px;
+  max-width: 720px;
+}
+
+/* Detail header */
+.bnc-detail-hdr {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 20px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.bnc-detail-hdr-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.bnc-detail-hdr-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.bnc-detail-headline {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--navy);
+  margin: 0 0 6px;
+  font-family: var(--font);
+  line-height: 1.3;
+}
+
+.bnc-detail-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--ink3);
+  flex-wrap: wrap;
+}
+
+.bnc-detail-meta-dot {
+  color: var(--border2);
+}
+
+/* Callout banner */
+.bnc-detail-callout {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px 16px;
+  border-left: 3px solid var(--teal);
+  background: var(--white);
+  border-radius: 0 8px 8px 0;
+  margin-bottom: 20px;
+  border-top: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.bnc-detail-callout-text {
+  font-size: 13.5px;
+  color: var(--ink);
+  line-height: 1.55;
+  font-family: var(--font);
+}
+
+/* Detail section */
+.bnc-detail-section {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.bnc-detail-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--ink3);
+  margin: 0 0 14px;
+  font-family: var(--font);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 8px;
+}
+
+.bnc-detail-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+
+.bnc-detail-table tr {
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.bnc-detail-table tr:last-child {
+  border-bottom: none;
+}
+
+.bnc-detail-table td {
+  padding: 9px 0;
+  color: var(--ink);
+  vertical-align: top;
+}
+
+.bnc-detail-td-label {
+  width: 120px;
+  color: var(--ink3);
+  font-weight: 600;
+  padding-right: 16px !important;
+}
+
+.bnc-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  font-weight: 700;
+  border-radius: 6px;
+  padding: 3px 9px;
+  font-family: var(--font);
+}
+
+.bnc-status-badge--unread {
   background: var(--teal-l);
   color: var(--teal);
 }
 
-.bliss-notif-list {
-  background: var(--white);
-  border: 1px solid var(--border);
-  border-radius: 12px;
+.bnc-status-badge--read {
+  background: var(--bg);
+  color: var(--ink3);
+}
+
+.bnc-detail-link {
+  color: var(--teal);
+  text-decoration: none;
+  font-size: 12.5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.bnc-detail-link:hover { text-decoration: underline; }
+
+/* Actions */
+.bnc-detail-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.bnc-detail-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+}
+
+/* ── Dark mode ── */
+[data-theme="dark"] .bnc-left,
+[data-theme="dark"] .bnc-left-hdr {
+  background: var(--card-bg);
+}
+
+[data-theme="dark"] .bnc-row--active {
+  background: rgba(13, 148, 136, 0.15) !important;
+}
+
+[data-theme="dark"] .bnc-row--unread {
+  background: rgba(13, 148, 136, 0.08);
+}
+
+[data-theme="dark"] .bnc-detail-hdr,
+[data-theme="dark"] .bnc-detail-section,
+[data-theme="dark"] .bnc-detail-callout {
+  background: var(--card-bg);
+  border-color: rgba(255,255,255,0.08);
+}
+
+[data-theme="dark"] .bnc-row-type-badge {
+  background: var(--card-bg);
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .bnc-root { flex-direction: column; }
+  .bnc-left {
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    max-height: 50vh;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+  .bnc-right { flex: 1; min-height: 300px; }
+  .bnc-detail { padding: 16px; }
+}
+
+/* ── Override: when BlissNotifications is inside PageLayout,
+   the page-layout wrapper adds its own padding and scroll.
+   The bnc-root needs to fill that space fully without
+   creating a double-scroll. ── */
+.page-layout > .bnc-root,
+.app-shell-content .bnc-root {
+  height: 100%;
+}
+
+/* ── Escape page-layout padding / row-gap so the master-detail
+   fills its container edge-to-edge (same pattern as Chat, TradeWizard). ── */
+.page-layout:has(> .bnc-root) {
+  padding: 0 !important;
+  row-gap: 0 !important;
   overflow: hidden;
 }
 
-/* Rows reuse .notif-panel-item* from NotificationCentre.css, but they're
-   wider here than in the popup — relax the fixed 292px assumptions. */
-.bliss-notif-list .notif-panel-item {
-  padding: 14px 20px;
+/* Re-expose --bg as var(--bg) inside bnc-root since page-layout
+   forces it to white in light mode. */
+.bnc-root {
+  --bg: #f8fafc;
 }
 
-.bliss-notif-pagination {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 4px 0;
-  font-size: 12.5px;
-  color: var(--ink3);
+[data-theme="dark"] .bnc-root {
+  --bg: var(--body-bg, #0e1117);
 }

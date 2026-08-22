@@ -1,6 +1,7 @@
 import type { UserRole } from '@hudumika/types';
 import { withTenant } from '../db/client.js';
 import { GLService } from './gl.service.js';
+import { getActiveGateway, type ActiveGateway } from '../lib/payment-gateway.js';
 
 // Petty-cash withdrawal categories. Deliberately its own small vocabulary
 // rather than reusing financeExpenses.routes.ts's EXPENSE_CATEGORIES
@@ -33,7 +34,11 @@ const BANK_ACCOUNT = '1010'; // Bank Account (TZS) — see STANDARD_COA
 // this codebase — integrations/payments.ts's PaymentsIntegration.simulateCharge()
 // is explicitly documented as a simulator used only for onboarding signup.
 // Wiring a live gateway needs real merchant credentials, a business decision
-// for the platform team, not something buildable from here.
+// for the platform team, not something buildable from here. What IS real:
+// which gateway a tenant has switched on at Settings ▸ Finance ▸ Payment
+// Gateways (lib/payment-gateway.ts) — that config is now the source of
+// truth this seam reads, rather than trusting whatever provider string the
+// request happened to send.
 export interface PaymentGatewayAdapter {
   provider: string;
   confirmDeposit(input: { amount: number; reference?: string; gatewayTxRef?: string }): Promise<{ confirmed: true; providerRef?: string }>;
@@ -49,16 +54,25 @@ class ManualDepositAdapter implements PaymentGatewayAdapter {
 }
 
 class StubGatewayAdapter implements PaymentGatewayAdapter {
-  constructor(public provider: string) {}
+  provider: string;
+  constructor(private configured: ActiveGateway | null) {
+    this.provider = configured?.id ?? 'gateway';
+  }
   async confirmDeposit(): Promise<never> {
+    if (!this.configured) {
+      throw new Error(
+        `No payment gateway is configured for this workspace yet. An admin can enable one at Settings → Finance → Payment Gateways, or record this deposit with method: 'manual' once the funds are confirmed by other means (bank statement, mobile money SMS, etc.).`
+      );
+    }
     throw new Error(
-      `No live "${this.provider}" payment gateway is wired up yet. Record this deposit with method: 'manual' once the funds are confirmed by other means (bank statement, mobile money SMS, etc.), or ask the platform team to wire a real gateway integration — that needs real merchant credentials, a business decision, not a code change.`
+      `"${this.configured.id}" is configured at Settings → Finance → Payment Gateways, but no live charge-processing integration for it is wired into the platform yet — that needs a real provider SDK and merchant credentials, a separate engineering task. Record this deposit with method: 'manual' once the funds are confirmed by other means.`
     );
   }
 }
 
-function getPaymentGatewayAdapter(method: 'manual' | 'gateway', provider?: string): PaymentGatewayAdapter {
-  return method === 'manual' ? new ManualDepositAdapter() : new StubGatewayAdapter(provider || 'gateway');
+async function getPaymentGatewayAdapter(tenantId: string, method: 'manual' | 'gateway'): Promise<PaymentGatewayAdapter> {
+  if (method === 'manual') return new ManualDepositAdapter();
+  return new StubGatewayAdapter(await getActiveGateway(tenantId));
 }
 
 // ── Roles ──────────────────────────────────────────────────────────────────
@@ -412,8 +426,8 @@ export class PettiService {
     if (!wallet) throw new Error('Wallet not found.');
     if (wallet.status !== 'active') throw new Error('This wallet is closed and cannot accept deposits.');
 
-    const confirmation = await getPaymentGatewayAdapter(method, data.gatewayProvider)
-      .confirmDeposit({ amount: data.amount, reference: data.reference, gatewayTxRef: data.gatewayTxRef });
+    const adapter = await getPaymentGatewayAdapter(tenantId, method);
+    const confirmation = await adapter.confirmDeposit({ amount: data.amount, reference: data.reference, gatewayTxRef: data.gatewayTxRef });
 
     const walletAccount = await withTenant(tenantId, (trx) =>
       trx.selectFrom('chart_of_accounts').select('code').where('id', '=', wallet.gl_account_id).executeTakeFirstOrThrow()

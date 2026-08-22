@@ -620,6 +620,43 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
     }
   );
 
+  // 13. GET /v1/superadmin/packages/:code/quotas — per-app monthly item caps for a package.
+  // Absent app_id = unlimited for that app under this tier (package_app_quotas, migration 280).
+  fastify.get<{ Params: { code: string } }>('/packages/:code/quotas', async (request, reply) => {
+    const { code } = request.params;
+    const rows = await dbPlatform.selectFrom('package_app_quotas')
+      .select(['app_id', 'monthly_limit']).where('package_code', '=', code).execute();
+    return { packageCode: code, quotas: Object.fromEntries(rows.map(r => [r.app_id, r.monthly_limit])) };
+  });
+
+  // 14. PATCH /v1/superadmin/packages/:code/quotas — replace the full per-app quota set for a
+  // package. quotas: { [appId]: monthlyLimit | null } — null/absent removes the row (unlimited).
+  fastify.patch<{ Params: { code: string }; Body: { quotas: Record<string, number | null> } }>(
+    '/packages/:code/quotas',
+    async (request, reply) => {
+      const { code } = request.params;
+      const { quotas } = request.body;
+      const entries = Object.entries(quotas || {}).filter((e): e is [string, number] => typeof e[1] === 'number' && e[1] >= 0);
+
+      await dbPlatform.transaction().execute(async (trx) => {
+        await trx.deleteFrom('package_app_quotas').where('package_code', '=', code).execute();
+        if (entries.length > 0) {
+          await trx.insertInto('package_app_quotas')
+            .values(entries.map(([app_id, monthly_limit]) => ({ package_code: code, app_id, monthly_limit })))
+            .execute();
+        }
+      });
+
+      await PlatformAdminService.recordActivity({
+        ...actor(request), category: 'billing',
+        action: `Set ${code} plan per-app quotas (${entries.length})`,
+        targetType: 'package', targetId: null, targetName: code, tenantId: null,
+        metadata: { quotas: Object.fromEntries(entries) },
+      });
+      return { packageCode: code, quotas: Object.fromEntries(entries) };
+    }
+  );
+
   // ─── Activity log ──────────────────────────────────────────────────────────
 
   fastify.get('/activity', async (request: any, reply) => {

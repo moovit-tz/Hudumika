@@ -1,18 +1,45 @@
-// ─── SignaturePad.tsx — shared draw/type/upload signature capture ─────────────
+// ─── SignaturePad.tsx — shared draw/type/upload signature/stamp capture ──────
 // Extracted from SignPublicPage.tsx's own SignatureCanvas (the signer-facing
 // public page), which had no page-specific coupling — every dependency was
 // either its own internal state or plain design tokens. Reused wherever this
 // platform needs to capture a signature/stamp image: the public signing page
 // itself, the tenant company-stamp setting (Settings.tsx EsignSection), and a
 // person's own saved signature under their NexusHR profile.
+//
+// kind='stamp' switches both the canvas shape and every string that said
+// "signature". A signature is naturally wide and short (a scrawled name), so
+// the original 520×140 canvas fit it well — but a company stamp is normally
+// round or square (an ink seal), and a wide-short canvas forces it small to
+// fit the height, leaving it tiny with wasted space on either side. A square
+// canvas displays a round, circular OR rectangular stamp properly: whichever
+// dimension is the tighter fit, drawImageFile's scale-to-fit already centers
+// it either way.
 
 import React, { useRef, useState } from 'react';
 import { Icon } from './Icon.js';
 import { Button } from './ui/button.js';
 
 type SignMode = 'draw' | 'type' | 'upload';
+type PadKind = 'signature' | 'stamp';
 
-export function SignaturePad({ onCapture }: { onCapture: (dataUrl: string) => void }) {
+const KIND_COPY: Record<PadKind, { drawHint: string; uploadLabel: string; uploadHint: string; typePlaceholder: string; useButton: string }> = {
+  signature: {
+    drawHint: 'Sign here with your mouse or finger',
+    uploadLabel: 'Upload signature image',
+    uploadHint: 'Click to browse or drag & drop',
+    typePlaceholder: 'Type your full name…',
+    useButton: 'Use This Signature',
+  },
+  stamp: {
+    drawHint: 'Draw the stamp outline',
+    uploadLabel: 'Upload stamp image',
+    uploadHint: 'A round, circular or rectangular stamp all display correctly here',
+    typePlaceholder: 'Type company name…',
+    useButton: 'Use This Stamp',
+  },
+};
+
+export function SignaturePad({ onCapture, kind = 'signature' }: { onCapture: (dataUrl: string) => void; kind?: PadKind }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasDrawn, setHasDrawn] = useState(false);
@@ -20,6 +47,11 @@ export function SignaturePad({ onCapture }: { onCapture: (dataUrl: string) => vo
   const [typedName, setTypedName] = useState('');
   const lastPos = useRef<{ x: number; y: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const copy = KIND_COPY[kind];
+  // A stamp's canvas is square so a round/circular seal is never forced into
+  // a wide-short letterbox; a signature keeps its original wide, short shape.
+  const canvasW = kind === 'stamp' ? 360 : 520;
+  const canvasH = kind === 'stamp' ? 360 : 140;
 
   function getPos(e: React.MouseEvent | React.TouchEvent) {
     const canvas = canvasRef.current!;
@@ -74,10 +106,25 @@ export function SignaturePad({ onCapture }: { onCapture: (dataUrl: string) => vo
     const canvas = canvasRef.current!;
     const ctx = canvas.getContext('2d')!;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.font = 'italic 48px Georgia, serif';
     ctx.fillStyle = '#1a1a2e';
     ctx.textBaseline = 'middle';
     ctx.textAlign = 'center';
+    // A signature's canvas is wide and short — 48px cursive fits a typical
+    // name. A stamp's canvas is square, and a company name is often longer
+    // than a person's — shrink the font until it fits the available width
+    // (with a margin) rather than letting it run off the edges.
+    const maxWidth = canvas.width * 0.88;
+    let size = kind === 'stamp' ? 32 : 48;
+    // Canvas 2D context's font string can't resolve a CSS custom property
+    // like var(--font) — it needs a concrete family, same literal stack the
+    // platform's own --font token resolves to (index.css).
+    const font = kind === 'stamp' ? 'bold' : 'italic';
+    const family = kind === 'stamp' ? "'Google Sans Flex', 'DM Sans', system-ui, sans-serif" : 'Georgia, serif';
+    ctx.font = `${font} ${size}px ${family}`;
+    while (size > 12 && ctx.measureText(typedName).width > maxWidth) {
+      size -= 2;
+      ctx.font = `${font} ${size}px ${family}`;
+    }
     ctx.fillText(typedName, canvas.width / 2, canvas.height / 2);
     setHasDrawn(true);
   }
@@ -123,30 +170,30 @@ export function SignaturePad({ onCapture }: { onCapture: (dataUrl: string) => vo
       {mode === 'type' && (
         <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
           <input value={typedName} onChange={e => setTypedName(e.target.value)}
-            placeholder="Type your full name…"
+            placeholder={copy.typePlaceholder}
             style={{ flex: 1, padding: '9px 12px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 14 }} />
           <Button variant="default" size="sm" onClick={renderTyped}>Preview</Button>
         </div>
       )}
 
-      <div style={{ border: '2px solid var(--border)', borderRadius: 8, overflow: 'hidden', background: 'var(--bg)', position: 'relative', touchAction: 'none', height: 140 }}>
-        <canvas ref={canvasRef} width={520} height={140}
-          style={{ display: 'block', width: '100%', height: 140, touchAction: 'none' }}
+      <div style={{ border: '2px solid var(--border)', borderRadius: 8, overflow: 'hidden', background: 'var(--bg)', position: 'relative', touchAction: 'none', height: canvasH, maxWidth: kind === 'stamp' ? canvasW : undefined, margin: kind === 'stamp' ? '0 auto' : undefined }}>
+        <canvas ref={canvasRef} width={canvasW} height={canvasH}
+          style={{ display: 'block', width: '100%', height: canvasH, touchAction: 'none' }}
           onMouseDown={startDraw} onMouseMove={draw} onMouseUp={stopDraw} onMouseLeave={stopDraw}
           onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={stopDraw} />
         {!hasDrawn && mode === 'draw' && (
-          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: 'var(--ink3)', pointerEvents: 'none', fontStyle: 'italic' }}>
-            Sign here with your mouse or finger
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: 'var(--ink3)', pointerEvents: 'none', fontStyle: 'italic', textAlign: 'center', padding: '0 16px' }}>
+            {copy.drawHint}
           </div>
         )}
         {!hasDrawn && mode === 'upload' && (
           <div onClick={() => fileInputRef.current?.click()}
             onDragOver={e => e.preventDefault()}
             onDrop={e => { e.preventDefault(); const file = e.dataTransfer.files?.[0]; if (file) drawImageFile(file); }}
-            style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)', cursor: 'pointer', gap: 6, border: '1.5px dashed var(--border)', borderRadius: 8 }}>
+            style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)', cursor: 'pointer', gap: 6, border: '1.5px dashed var(--border)', borderRadius: 8, textAlign: 'center', padding: '0 20px' }}>
             <Icon name="upload" size={24} style={{ color: 'var(--teal)', opacity: 0.7 }} />
-            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--teal)' }}>Upload signature image</span>
-            <span style={{ fontSize: 11, color: 'var(--ink3)' }}>Click to browse or drag &amp; drop</span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--teal)' }}>{copy.uploadLabel}</span>
+            <span style={{ fontSize: 11, color: 'var(--ink3)' }}>{copy.uploadHint}</span>
           </div>
         )}
       </div>
@@ -160,7 +207,7 @@ export function SignaturePad({ onCapture }: { onCapture: (dataUrl: string) => vo
           </>
         )}
         <Button variant="default" size="sm" onClick={capture} disabled={!hasDrawn}>
-          Use This Signature <Icon name="arrowRight" size={13} />
+          {copy.useButton} <Icon name="arrowRight" size={13} />
         </Button>
       </div>
     </div>

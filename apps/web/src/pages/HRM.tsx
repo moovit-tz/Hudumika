@@ -5,6 +5,8 @@ import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { MetricsRow, type MetricCardProps } from '../components/MetricCard.js';
 import { apiFetch, apiDownload } from '../lib/api.js';
+import { Button } from '../components/ui/button.js';
+import { CheckboxRow } from '../components/ui/list-item-row.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import type { EmpStatus, Employee } from '../data/staffData.js';
 import type { AttendanceStatus, AttendanceRecord, ShiftType, ShiftAssignment, Employee as ShiftEmployee } from '../data/hrmData.js';
@@ -789,6 +791,104 @@ export function PermissionsPage() {
           </div>
         ))}
       </div>
+
+      {/* eSign stamp access — a separate role allow-list (tenant_settings,
+          not this page's own resource×action grid above: 'stamp' has no
+          natural fit among shipments/clearance/finance/hr/sales/crm/
+          documents/reports/settings, and extending that shared grid for one
+          feature's own gate was judged riskier than it's worth). Lives here
+          because this is where a tenant actually looks for "who can do X",
+          not buried in a settings page unrelated to permissions. */}
+      <StampAccessCard />
+      <StampRequestsCard />
+    </div>
+  );
+}
+
+const STAMP_ROLE_OPTIONS = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES', 'SENIOR', 'JUNIOR'];
+
+function StampAccessCard() {
+  const [roles, setRoles] = useState<string[] | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    apiFetch('/v1/sign/stamps/access').then(r => setRoles(r.stampRoles)).catch(() => setRoles(STAMP_ROLE_OPTIONS));
+  }, []);
+
+  async function toggle(role: string, on: boolean) {
+    if (!roles) return;
+    const next = on ? [...roles, role] : roles.filter(r => r !== role);
+    if (!next.length) return; // at least one role must keep access
+    setRoles(next);
+    setSaving(true);
+    try { await apiFetch('/v1/sign/stamps/access', { method: 'PUT', body: JSON.stringify({ stamp_roles: next }) }); }
+    finally { setSaving(false); }
+  }
+
+  return (
+    <div style={{ background:'var(--white)', borderRadius:10, border:'1px solid var(--border)', padding:20, marginTop:24 }}>
+      <div style={{ fontSize:14, fontWeight:700, color:'var(--ink)', marginBottom:4 }}>Who can apply the eSign stamp</div>
+      <div style={{ fontSize:12.5, color:'var(--ink3)', marginBottom:14 }}>
+        Only these roles can apply the company stamp directly (Hudumika eSign, and any other app using the shared stamp API). Anyone else sees a "Request stamping" option instead, which tags a real person below to approve it.
+      </div>
+      {roles === null ? (
+        <div style={{ color:'var(--ink3)', fontSize:13 }}>Loading…</div>
+      ) : (
+        <div style={{ display:'flex', flexDirection:'column', gap:2 }}>
+          {STAMP_ROLE_OPTIONS.map(role => (
+            <CheckboxRow key={role} title={role.replace('_', ' ')} checked={roles.includes(role)}
+              onCheckedChange={c => toggle(role, c)} disabled={saving} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StampRequestsCard() {
+  const [requests, setRequests] = useState<Array<{ id: string; note: string | null; target_ref: string | null; status: string; created_at: string }> | null>(null);
+  const [deciding, setDeciding] = useState<string | null>(null);
+
+  const load = useCallback(() => {
+    apiFetch('/v1/sign/stamp-requests?box=incoming').then(setRequests).catch(() => setRequests([]));
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  async function decide(id: string, decision: 'approved' | 'declined') {
+    setDeciding(id);
+    try {
+      await apiFetch(`/v1/sign/stamp-requests/${id}/decide`, { method: 'POST', body: JSON.stringify({ decision }) });
+      load();
+    } finally {
+      setDeciding(null);
+    }
+  }
+
+  const pending = (requests ?? []).filter(r => r.status === 'pending');
+
+  return (
+    <div style={{ background:'var(--white)', borderRadius:10, border:'1px solid var(--border)', padding:20, marginTop:16 }}>
+      <div style={{ fontSize:14, fontWeight:700, color:'var(--ink)', marginBottom:4 }}>Stamp requests</div>
+      <div style={{ fontSize:12.5, color:'var(--ink3)', marginBottom:14 }}>People without direct stamp access who have tagged you as their approver.</div>
+      {requests === null ? (
+        <div style={{ color:'var(--ink3)', fontSize:13 }}>Loading…</div>
+      ) : pending.length === 0 ? (
+        <div style={{ color:'var(--ink3)', fontSize:13 }}>No pending requests.</div>
+      ) : (
+        <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+          {pending.map(r => (
+            <div key={r.id} style={{ display:'flex', alignItems:'center', gap:12, padding:'10px 12px', border:'1px solid var(--border)', borderRadius:8 }}>
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ fontSize:13, color:'var(--ink)' }}>{r.note || r.target_ref || 'Stamp requested'}</div>
+                <div style={{ fontSize:11.5, color:'var(--ink3)' }}>{new Date(r.created_at).toLocaleString()}</div>
+              </div>
+              <Button variant="outline" size="xs" disabled={deciding === r.id} onClick={() => decide(r.id, 'declined')}
+                style={{ borderColor:'var(--red)', color:'var(--red)' }}>Decline</Button>
+              <Button variant="default" size="xs" disabled={deciding === r.id} onClick={() => decide(r.id, 'approved')}>Approve</Button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

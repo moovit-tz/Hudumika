@@ -29,6 +29,7 @@ import { AdminCMSPages } from '../pages/AdminCMSPages.js';
 import { SuperAdminIssues } from '../pages/SuperAdminIssues.js';
 import { SuperAdminReferrals } from '../pages/SuperAdminReferrals.js';
 import { SuperAdminAnnouncements } from '../pages/SuperAdminAnnouncements.js';
+import { SuperAdminSigningCert } from '../pages/SuperAdminSigningCert.js';
 
 const NAV: SidebarSection[] = [
   {
@@ -56,6 +57,7 @@ const NAV: SidebarSection[] = [
       { label: 'SEO & Analytics',   icon: 'trendingUp', path: '/admin/seo'          },
       { label: 'Components',        icon: 'layers',   path: '/admin/components'     },
       { label: 'Platform Settings', icon: 'settings', path: '/admin/settings'       },
+      { label: 'Signing Certificate', icon: 'lock', path: '/admin/signing-cert'     },
     ],
   },
 ];
@@ -89,6 +91,7 @@ function AdminContent() {
           <Route path="seo"           element={<SeoAnalyticsView />} />
           <Route path="components"    element={<ComponentShowcase />} />
           <Route path="settings"      element={<SettingsView />} />
+          <Route path="signing-cert"  element={<SuperAdminSigningCert />} />
         </Route>
         <Route path="*" element={<Navigate to="dashboard" replace />} />
       </Routes>

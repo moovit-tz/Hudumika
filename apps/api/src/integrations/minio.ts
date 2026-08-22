@@ -182,6 +182,23 @@ export class MinioIntegration {
     return { storageKey, size: fileBuffer.length };
   }
 
+  /** Same per-purpose storage-key convention as uploadSignedDocument, for the
+   *  M6 cross-app stamp example's one concrete consumer — a customer
+   *  invoice PDF once someone with stamp access applies the company stamp. */
+  static async uploadStampedInvoice(
+    tenantId: string,
+    invoiceId: string,
+    fileBuffer: Buffer
+  ): Promise<{ storageKey: string; size: number }> {
+    const localDir = path.join(UPLOADS_DIR, 'tenants', tenantId, 'invoice-documents', invoiceId);
+    fs.mkdirSync(localDir, { recursive: true });
+    const filename = 'stamped.pdf';
+    const storageKey = `tenants/${tenantId}/invoice-documents/${invoiceId}/${filename}`;
+    fs.writeFileSync(path.join(localDir, filename), fileBuffer);
+    console.log(`🗄️ Storage: Stamped invoice saved — ${storageKey}`);
+    return { storageKey, size: fileBuffer.length };
+  }
+
   /**
    * Generates a signed URL for reading/downloading a document.
    */

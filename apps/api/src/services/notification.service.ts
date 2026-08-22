@@ -203,6 +203,17 @@ export class NotificationService {
       // which is the one thing someone reads that log to find out.
       deliveryStatus = !result.success ? 'FAILED' : result.simulated ? 'SIMULATED' : 'SENT';
     } else if (channel === 'EMAIL' && target.email) {
+      // Same tenant-wide kill switch as WHATSAPP above (Workspace ▸ Settings
+      // ▸ Notifications ▸ "Email Notifications") — this toggle used to save
+      // to tenant_settings and nothing anywhere ever read it back. Unlike
+      // WhatsApp, this one defaults OFF in the UI (NotificationsSection's
+      // own `useState(false)`), so the gate must require an explicit `true`
+      // rather than skip only on an explicit `false` — an unset tenant
+      // never opted in, so it must not start sending until they do.
+      const settingsRow = await trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', tenantId).executeTakeFirst();
+      const tenantSettings = settingsRow ? (typeof settingsRow.settings === 'string' ? JSON.parse(settingsRow.settings) : settingsRow.settings) : {};
+      if (tenantSettings?.notifications?.email !== true) return;
+
       // Was hardcoded to "Msomi Freight Notification" for every tenant
       // regardless of the tenant's actual name — fixed by resolving the
       // real tenant name as a template var instead of a literal string.

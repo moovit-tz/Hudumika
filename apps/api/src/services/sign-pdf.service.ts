@@ -25,14 +25,14 @@
 // not only inside Hudumika's own UI. See pdf-signing-identity.service.ts
 // for the platform's own signing certificate.
 
-import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFImage } from 'pdf-lib';
+import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFImage, type PDFPage } from 'pdf-lib';
 import { pdflibAddPlaceholder } from '@signpdf/placeholder-pdf-lib';
 import { P12Signer } from '@signpdf/signer-p12';
 import { SUBFILTER_ETSI_CADES_DETACHED } from '@signpdf/utils';
 import { dbPlatform } from '../db/client.js';
 import { MinioIntegration } from '../integrations/minio.js';
-import { getSigningP12 } from './pdf-signing-identity.service.js';
-import { env } from '../config/env.js';
+import { getSigningIdentity } from './pdf-signing-identity.service.js';
+import { canApplyTenantStamp } from '../routes/sign-stamps.routes.js';
 
 const PAGE_W = 595.28; // A4 in points
 const PAGE_H = 841.89;
@@ -52,6 +52,7 @@ interface SourceRecipient {
   name: string;
   email: string;
   signature_data: string | null;
+  user_id?: string | null;
 }
 
 interface SourceField {
@@ -106,6 +107,37 @@ function isPngBytes(bytes: Buffer): boolean {
   return bytes.length > 8 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47;
 }
 
+/** The reusable kernel behind drawFields()'s own signature/stamp image
+ *  branch, extracted so a generic cross-app "apply this stamp" call
+ *  (stamp.service.ts) draws through the exact same code, not a second
+ *  copy that could drift — same magic-byte guard against pdf-lib's PNG
+ *  decoder hang (a real, confirmed incident, not a hypothetical), same
+ *  scale-to-fit-box math, same optional caption line. Takes plain PNG
+ *  bytes and a box in PDF points (not fractions, not envelope/recipient
+ *  rows) — the minimal shape any caller actually has. */
+export async function drawStampImage(
+  doc: PDFDocument,
+  page: PDFPage,
+  pngBytes: Buffer,
+  box: { x: number; y: number; width: number; height: number },
+  caption?: string,
+): Promise<void> {
+  if (!isPngBytes(pngBytes)) return;
+  const png = await doc.embedPng(pngBytes);
+  const scale = Math.min(box.width / png.width, box.height / png.height);
+  const w = png.width * scale, h = png.height * scale;
+  page.drawImage(png, { x: box.x + (box.width - w) / 2, y: box.y + (box.height - h) / 2, width: w, height: h });
+
+  if (caption) {
+    const font = await doc.embedFont(StandardFonts.Helvetica);
+    const captionSize = 5.5;
+    page.drawText(caption, {
+      x: box.x, y: Math.max(2, box.y - captionSize - 2),
+      size: captionSize, font, color: rgb(0.45, 0.45, 0.45),
+    });
+  }
+}
+
 export async function buildSignedPdf(
   envelope: SourceEnvelope,
   recipients: SourceRecipient[],
@@ -128,7 +160,7 @@ export async function buildSignedPdf(
     doc = await buildFallbackDoc(envelope, null);
   }
 
-  await drawFields(doc, envelope, recipients, fields);
+  await drawFields(doc, envelope, recipients, fields, await resolveTenantStamp(envelope, recipients, fields));
   await drawAuditTrail(doc, envelope, events);
 
   const unsigned = Buffer.from(await doc.save());
@@ -157,14 +189,21 @@ async function applyDigitalSignature(
   envelope: SourceEnvelope,
   recipients: SourceRecipient[],
 ): Promise<Buffer> {
+  // Fetched before the placeholder is built (not just before signing) so
+  // `name` below can reflect whichever identity actually signs — the real
+  // uploaded certificate's own subject once a SuperAdmin has activated one
+  // (platform-signing-cert.service.ts), not a hardcoded "Hudumika eSign"
+  // label that would go stale the moment a real cert goes live.
+  const identity = await getSigningIdentity();
+
   const withPlaceholder = await PDFDocument.load(pdfBytes);
   pdflibAddPlaceholder({
     pdfDoc: withPlaceholder,
     reason: envelope.verification_code
-      ? `Certified by Hudumika eSign — verification code ${envelope.verification_code}`
-      : 'Certified by Hudumika eSign',
+      ? `Certified by ${identity.displayName} — verification code ${envelope.verification_code}`
+      : `Certified by ${identity.displayName}`,
     contactInfo: 'support@hudumika.com',
-    name: 'Hudumika eSign',
+    name: identity.displayName,
     location: recipients.map(r => r.name).join(', ') || envelope.title,
     signingTime: envelope.completed_at ?? new Date(),
     // PAdES (ISO 32000-2) rather than the classic Adobe.PPKLite/PKCS7
@@ -175,8 +214,7 @@ async function applyDigitalSignature(
   });
   const placeholderBytes = Buffer.from(await withPlaceholder.save({ useObjectStreams: false }));
 
-  const p12 = await getSigningP12();
-  const signer = new P12Signer(p12, { passphrase: env.SIGN_CERT_PASSWORD });
+  const signer = new P12Signer(identity.p12, { passphrase: identity.password });
   // Dynamic import, same ESM/CJS interop category as node-forge elsewhere in
   // this codebase (see tra.service.ts) — @signpdf/signpdf's compiled output
   // is `exports.default = new SignPdf()`, a real instance confirmed by
@@ -208,11 +246,52 @@ async function buildFallbackDoc(envelope: SourceEnvelope, imageBytes: Buffer | n
   return doc;
 }
 
+/** Resolves the tenant's real configured company stamp (Settings ▸ E-Sign)
+ *  for any 'stamp' field on this document, plus which recipients are
+ *  actually cleared to have it drawn on their behalf — a recipient tagged
+ *  to a real colleague (sign_recipients.user_id) whose role clears the same
+ *  canApplyTenantStamp gate the rest of the stamp system already enforces.
+ *  Returns null bytes / an empty allow-set when there's no stamp field at
+ *  all, so drawFields falls back to its old per-recipient-signature
+ *  behavior for an untagged/unauthorized recipient rather than leaving the
+ *  field blank. */
+async function resolveTenantStamp(
+  envelope: SourceEnvelope, recipients: SourceRecipient[], fields: SourceField[],
+): Promise<{ bytes: Buffer | null; authorizedRecipientIds: Set<string> }> {
+  if (!fields.some(f => f.field_type === 'stamp')) return { bytes: null, authorizedRecipientIds: new Set() };
+
+  const taggedRecipients = recipients.filter((r): r is SourceRecipient & { user_id: string } => !!r.user_id);
+  const authorizedRecipientIds = new Set<string>();
+  if (taggedRecipients.length) {
+    const users = await dbPlatform.selectFrom('users').select(['id', 'role'])
+      .where('id', 'in', taggedRecipients.map(r => r.user_id)).execute();
+    const roleByUserId = new Map(users.map(u => [u.id, u.role]));
+    for (const r of taggedRecipients) {
+      const role = roleByUserId.get(r.user_id);
+      if (role && await canApplyTenantStamp(dbPlatform, envelope.tenant_id, role)) authorizedRecipientIds.add(r.id);
+    }
+  }
+  if (!authorizedRecipientIds.size) return { bytes: null, authorizedRecipientIds };
+
+  const stampRow = await dbPlatform.selectFrom('sign_stamps').select('image_data')
+    .where('tenant_id', '=', envelope.tenant_id).where('owner_type', '=', 'tenant').executeTakeFirst();
+  const parsed = stampRow ? parseDataUrl(stampRow.image_data) : null;
+  return { bytes: parsed?.bytes ?? null, authorizedRecipientIds };
+}
+
 /** Draws each placed field onto its real page — the recipient's captured
- *  signature image for signature/initials/stamp fields (the same image
- *  reused across every field belonging to that recipient, matching how
+ *  signature image for signature/initials fields (the same image reused
+ *  across every field belonging to that recipient, matching how
  *  sign_recipients.signature_data is captured once per signer, not once
  *  per field), the filled value for text/date, a mark for a checked box.
+ *
+ *  A 'stamp' field draws the tenant's own configured company stamp
+ *  (resolveTenantStamp above) when this field's recipient is tagged and
+ *  cleared for it — a real business seal, not the individual signer's hand
+ *  drawing. Falls back to the same signature-image behavior as
+ *  signature/initials for an untagged/unauthorized recipient, so a stamp
+ *  field never renders blank just because nobody's cleared to apply the
+ *  real seal.
  *
  *  Signature/initials fields also get a small "Signed by: {name} / {id}"
  *  caption drawn just below the image — the same visual convention
@@ -225,9 +304,11 @@ async function buildFallbackDoc(envelope: SourceEnvelope, imageBytes: Buffer | n
  *  own box, not inside it — the box is user-sized to fit exactly the
  *  signature image, and DocuSign's real fields reserve extra room for this
  *  caption the same way; a fixed field size here has nowhere to add it. */
-async function drawFields(doc: PDFDocument, envelope: SourceEnvelope, recipients: SourceRecipient[], fields: SourceField[]): Promise<void> {
+async function drawFields(
+  doc: PDFDocument, envelope: SourceEnvelope, recipients: SourceRecipient[], fields: SourceField[],
+  tenantStamp: { bytes: Buffer | null; authorizedRecipientIds: Set<string> },
+): Promise<void> {
   const recipientById = new Map(recipients.map(r => [r.id, r]));
-  const pngCache = new Map<string, PDFImage>();
   const pages = doc.getPages();
   let font: PDFFont | null = null;
   let boldFont: PDFFont | null = null;
@@ -246,36 +327,18 @@ async function drawFields(doc: PDFDocument, envelope: SourceEnvelope, recipients
 
     const recipient = recipientById.get(field.recipient_id);
 
-    if ((field.field_type === 'signature' || field.field_type === 'initials' || field.field_type === 'stamp') && recipient?.signature_data) {
+    if (field.field_type === 'stamp' && tenantStamp.bytes && tenantStamp.authorizedRecipientIds.has(field.recipient_id)) {
       try {
-        let png = pngCache.get(recipient.id);
-        if (!png) {
-          const parsed = parseDataUrl(recipient.signature_data);
-          // A real signature is always canvas.toDataURL('image/png') from
-          // SignPublicPage's own capture — this is a magic-byte sanity
-          // check, not a real-world branch: pdf-lib's PNG decoder was
-          // confirmed (this session) to hang the entire Node event loop
-          // rather than throw on malformed input, which would otherwise
-          // block every tenant's requests, not just this one signer's.
-          if (parsed && isPngBytes(parsed.bytes)) {
-            png = await doc.embedPng(parsed.bytes);
-            pngCache.set(recipient.id, png);
-          }
-        }
-        if (png) {
-          const scale = Math.min(boxW / png.width, boxH / png.height);
-          const w = png.width * scale, h = png.height * scale;
-          page.drawImage(png, { x: boxX + (boxW - w) / 2, y: boxY + (boxH - h) / 2, width: w, height: h });
-
-          if (field.field_type !== 'stamp') {
-            font ??= await doc.embedFont(StandardFonts.Helvetica);
-            const captionSize = 5.5;
-            const caption = `Signed by: ${recipient.name} · ${shortId}`;
-            page.drawText(caption, {
-              x: boxX, y: Math.max(2, boxY - captionSize - 2),
-              size: captionSize, font, color: rgb(0.45, 0.45, 0.45),
-            });
-          }
+        await drawStampImage(doc, page, tenantStamp.bytes, { x: boxX, y: boxY, width: boxW, height: boxH });
+      } catch (err) {
+        console.error('[Sign PDF] Failed to embed the tenant stamp image:', (err as Error).message);
+      }
+    } else if ((field.field_type === 'signature' || field.field_type === 'initials' || field.field_type === 'stamp') && recipient?.signature_data) {
+      try {
+        const parsed = parseDataUrl(recipient.signature_data);
+        if (parsed) {
+          const caption = field.field_type === 'stamp' ? undefined : `Signed by: ${recipient.name} · ${shortId}`;
+          await drawStampImage(doc, page, parsed.bytes, { x: boxX, y: boxY, width: boxW, height: boxH }, caption);
         }
       } catch (err) {
         console.error('[Sign PDF] Failed to embed a signature image:', (err as Error).message);

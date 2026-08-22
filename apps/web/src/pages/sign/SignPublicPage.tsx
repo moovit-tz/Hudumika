@@ -12,26 +12,48 @@ import { SignaturePad } from '../../components/SignaturePad.js';
 import { pickForegroundHsl } from '../../lib/color.js';
 import '../sign/Sign.css';
 
-interface PublicSigningData {
-  envelope: {
-    id: string; title: string; message: string | null;
-    document_data: string | null; file_name: string | null;
-    status: string; expires_at: string | null;
-    verification_code: string | null;
-    require_otp: boolean;
-  };
-  recipient: {
-    id: string; name: string; email: string; role_label: string | null; status: string;
-    phone_masked: string | null; otp_verified: boolean;
-  };
-  tenant: { logo_url: string | null; primary_color: string | null };
-  fields: Array<{
-    id: string; field_type: string; page: number;
-    x: number; y: number; width: number; height: number;
-    required: boolean; placeholder: string | null; value: string | null;
-  }>;
-  already_completed?: boolean;
+interface PublicSigningEnvelope {
+  id: string; title: string; message: string | null;
+  document_data: string | null; file_name: string | null;
+  status: string; expires_at: string | null;
+  verification_code: string | null;
+  require_otp: boolean;
+  // Only ever populated for a recipient tagged to a real colleague whose
+  // role clears the tenant's own stamp-access gate (Settings ▸ E-Sign) —
+  // null for every external/untagged signer, even when the tenant has a
+  // stamp configured. See GET /public/:token's own comment.
+  tenant_stamp_image: string | null;
 }
+
+// A discriminated union, not one interface with optional fields — the
+// backend's GET /public/:token genuinely sends two different shapes: once
+// an envelope is completed it short-circuits to just
+// `{ already_completed: true, envelope }` (nothing left to review/sign), so
+// recipient/tenant/fields are never present together with that flag. Modeled
+// this way so TypeScript itself catches any future code that reads
+// data.fields etc. without first checking already_completed, instead of a
+// runtime crash on a signer's second visit to their own link (the actual
+// bug this fixes — the page never checked the flag at all before).
+type PublicSigningData =
+  | { already_completed: true; envelope: PublicSigningEnvelope }
+  | {
+      already_completed?: false;
+      envelope: PublicSigningEnvelope;
+      recipient: {
+        id: string; name: string; email: string; role_label: string | null; status: string;
+        phone_masked: string | null; otp_verified: boolean;
+        // Their own saved signature (StaffDetail.tsx's Signature tab / NexusHR
+        // profile), only present when this recipient is tagged to a real
+        // platform user — null for an external signer with no profile to pull.
+        saved_signature: string | null;
+      };
+      tenant: { logo_url: string | null; primary_color: string | null };
+      fields: Array<{
+        id: string; field_type: string; page: number;
+        x: number; y: number; width: number; height: number;
+        required: boolean; placeholder: string | null; value: string | null;
+      }>;
+    };
 
 interface StampPayload {
   verification_code: string;
@@ -67,7 +89,7 @@ export function SignPublicPage() {
   // email-envelope.ts already read for unauthenticated/system contexts.
   // Falls back to the original fixed blue until data (and therefore the
   // tenant) has loaded, or for a tenant that never set a brand color.
-  const accent = data?.tenant?.primary_color || '#1a56db';
+  const accent = (data && !data.already_completed ? data.tenant.primary_color : null) || '#1a56db';
   // accent is an arbitrary tenant-picked hex with no contrast guarantee —
   // same risk CLAUDE.md documents for --primary, but this page has no
   // --primary-foreground to read (it's a no-auth public page, no tenant
@@ -79,7 +101,15 @@ export function SignPublicPage() {
   useEffect(() => {
     fetch(`${BASE_URL}/v1/sign/public/${token}`)
       .then(r => { if (!r.ok) throw new Error('Signing link not found'); return r.json(); })
-      .then((d: PublicSigningData) => { setData(d); setOtpVerified(!!d.recipient?.otp_verified); })
+      .then((d: PublicSigningData) => {
+        setData(d);
+        setOtpVerified(!d.already_completed && !!d.recipient.otp_verified);
+        // A tagged colleague's own saved signature (their NexusHR profile)
+        // pre-fills instead of forcing a fresh draw every time — the
+        // existing "Change" button below still lets them draw a different
+        // one for this specific document.
+        if (!d.already_completed && d.recipient.saved_signature) setSignature(d.recipient.saved_signature);
+      })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
   }, [token]);
@@ -210,7 +240,7 @@ export function SignPublicPage() {
           </div>
         )}
 
-        <a href={`${BASE_URL}/v1/sign/public/${token}/download`}
+        <a href={`${BASE_URL}/v1/sign/public/${token}/download`} download
           style={{ display: 'block', textAlign: 'center', width: '100%', padding: '12px', borderRadius: 10, background: 'var(--sign-green-l)', color: 'var(--sign-green)', border: '1.5px solid var(--sign-green)', cursor: 'pointer', fontSize: 14, fontWeight: 700, textDecoration: 'none', marginBottom: 10, boxSizing: 'border-box' }}>
           Download your signed copy
         </a>
@@ -223,6 +253,41 @@ export function SignPublicPage() {
   );
 
   if (!data) return null;
+
+  // A signer revisiting their own link after already completing it — the
+  // backend deliberately sends only { already_completed, envelope } at that
+  // point (nothing left to review/sign), and this page used to never check
+  // for it at all, so it fell straight into the normal signing render and
+  // crashed on data.fields being undefined. Real fix, not a guess: give
+  // them the same confirmation + a real (download-attributed, so the
+  // platform's in-app-browser link interceptor leaves it alone) link to
+  // their signed copy, rather than a broken page.
+  if (data.already_completed) return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)', fontFamily: 'var(--font)', padding: 32 }}>
+      <div style={{ background: 'var(--card-bg)', borderRadius: 20, padding: 40, maxWidth: 480, width: '100%', boxShadow: 'var(--elev-lg)', textAlign: 'center' }}>
+        <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--sign-green-l)', border: '2px solid var(--sign-green)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+          <Icon name="checkCircle" size={32} style={{ color: 'var(--sign-green)' }} />
+        </div>
+        <h1 style={{ fontSize: 22, fontWeight: 800, margin: '0 0 8px', color: 'var(--ink)' }}>Already Signed</h1>
+        <p style={{ color: 'var(--ink3)', fontSize: 14, margin: '0 0 4px' }}><strong>{data.envelope.title}</strong> has already been completed.</p>
+        {data.envelope.verification_code && (
+          <p style={{ fontFamily: 'Courier New, monospace', fontSize: 13, color: 'var(--sign-green)', fontWeight: 700, letterSpacing: '0.06em', margin: '8px 0 20px' }}>
+            {data.envelope.verification_code}
+          </p>
+        )}
+        <a href={`${BASE_URL}/v1/sign/public/${token}/download`} download
+          style={{ display: 'block', textAlign: 'center', width: '100%', padding: '12px', borderRadius: 10, background: 'var(--sign-green-l)', color: 'var(--sign-green)', border: '1.5px solid var(--sign-green)', cursor: 'pointer', fontSize: 14, fontWeight: 700, textDecoration: 'none', marginBottom: 10, boxSizing: 'border-box' }}>
+          Download your signed copy
+        </a>
+        {data.envelope.verification_code && (
+          <a href={`/sign/verify/${data.envelope.verification_code}`} target="_blank" rel="noreferrer"
+            style={{ fontSize: 12.5, color: 'var(--ink3)' }}>
+            View full verification details
+          </a>
+        )}
+      </div>
+    </div>
+  );
 
   // A document sent with "Require SMS verification" cannot be reviewed or
   // signed until the recipient proves they hold the phone on file — this
@@ -328,7 +393,8 @@ export function SignPublicPage() {
               const isCheckbox = field.field_type === 'checkbox';
               const isFilled =
                 fieldValues[field.id] ||
-                ((field.field_type === 'signature' || field.field_type === 'initials' || field.field_type === 'stamp') && signature);
+                (isStamp && (data.envelope.tenant_stamp_image || signature)) ||
+                ((field.field_type === 'signature' || field.field_type === 'initials') && signature);
 
               return (
                 <div key={field.id}
@@ -348,7 +414,9 @@ export function SignPublicPage() {
                     if (reqIdx !== -1) setCurrentField(reqIdx);
                   }}>
                   {field.field_type === 'stamp' ? (
-                    signature ? (
+                    data.envelope.tenant_stamp_image ? (
+                      <img src={data.envelope.tenant_stamp_image} alt="Verification stamp" style={{ maxWidth: '90%', maxHeight: '90%', objectFit: 'contain' }} />
+                    ) : signature ? (
                       <div style={{
                         width: '100%', height: '100%', borderRadius: '50%',
                         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
@@ -409,7 +477,11 @@ export function SignPublicPage() {
               <div style={{ fontSize: 12.5, fontWeight: 600, marginBottom: 8, color: 'var(--ink)' }}>Signing Progress</div>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 {requiredFields.map((f, i) => {
-                  const isDone = !!(fieldValues[f.id] || (f.field_type === 'signature' && signature));
+                  const isDone = !!(
+                    fieldValues[f.id] ||
+                    (f.field_type === 'signature' && signature) ||
+                    (f.field_type === 'stamp' && (data.envelope.tenant_stamp_image || signature))
+                  );
                   return (
                     <div key={f.id} style={{ width: 28, height: 28, borderRadius: 6, background: isDone ? 'var(--sign-green)' : i === currentField ? accent : 'var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: isDone ? '#fff' : i === currentField ? accentFg : 'var(--ink3)', fontWeight: 700 }} title={f.field_type}>
                       {isDone ? <Icon name="check" size={12} /> : i + 1}
@@ -426,6 +498,11 @@ export function SignPublicPage() {
               {signature ? (
                 <div style={{ border: '1.5px solid var(--sign-green)', borderRadius: 8, padding: 8, background: 'var(--sign-green-l)', display: 'flex', flexDirection: 'column', gap: 8 }}>
                   <img src={signature} alt="signature" style={{ width: '100%', height: 60, objectFit: 'contain', background: '#fff', borderRadius: 4 }} />
+                  {data.recipient.saved_signature === signature && (
+                    <div style={{ fontSize: 11, color: 'var(--ink3)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <Icon name="checkCircle" size={11} style={{ color: 'var(--sign-green)' }} /> Using your saved signature from your profile
+                    </div>
+                  )}
                   <Button variant="outline" size="sm" onClick={() => setSignature(null)}>Change</Button>
                 </div>
               ) : (
@@ -433,8 +510,22 @@ export function SignPublicPage() {
               )}
             </div>
 
-            {/* Text fields */}
-            {data.fields.filter(f => f.field_type !== 'signature' && f.field_type !== 'initials').map(field => (
+            {/* When this recipient is cleared to apply the tenant's real
+                stamp, say so plainly — the on-document preview already
+                shows the actual image, this just explains why there's
+                nothing to draw for it. */}
+            {data.envelope.tenant_stamp_image && data.fields.some(f => f.field_type === 'stamp') && (
+              <div style={{ fontSize: 12, color: 'var(--ink3)', display: 'flex', alignItems: 'flex-start', gap: 6, background: 'var(--sign-green-l)', border: '1px solid var(--sign-green)', borderRadius: 8, padding: '8px 10px' }}>
+                <Icon name="stamp" size={13} style={{ color: 'var(--sign-green)', flexShrink: 0, marginTop: 1 }} />
+                <span>Your organization's verification stamp will be applied automatically — configured in Settings.</span>
+              </div>
+            )}
+
+            {/* Text fields — stamp is excluded too: it's never manually
+                typed, it's either the tenant's real stamp (auto-applied for
+                an authorized colleague) or falls back to the drawn
+                signature above, same as signature/initials. */}
+            {data.fields.filter(f => f.field_type !== 'signature' && f.field_type !== 'initials' && f.field_type !== 'stamp').map(field => (
               <div key={field.id}>
                 <label style={{ fontSize: 12.5, fontWeight: 600, display: 'block', marginBottom: 5, color: 'var(--ink)' }}>
                   {field.placeholder ?? field.field_type} {field.required && <span style={{ color: 'var(--sign-red)' }}>*</span>}

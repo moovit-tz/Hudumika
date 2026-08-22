@@ -5,12 +5,15 @@ import { Icon } from '../components/Icon.js';
 import { getCompany, subscribeCompany } from '../data/companyStore.js';
 import { useCurrency } from '../hooks/useCurrency.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
-import { apiFetch } from '../lib/api.js';
+import { apiFetch, apiDownload } from '../lib/api.js';
 import { EntityPicker, PickerItem } from '../components/EntityPicker.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { Button } from '../components/ui/button.js';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import './Billing.css';
 import { showConfirm } from '../lib/confirm.js';
+import { showAlert } from '../lib/alert.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { FormPage } from '../components/FormPage.js';
 
@@ -938,6 +941,72 @@ export interface DetailPanelProps {
   onSubmitTRA?: () => Promise<void>;
 }
 
+/** Single-step "tag an approver + optional note" form — a Dialog, not a
+ *  dedicated page, matching the same precedent SignTemplates.tsx's own
+ *  BulkSendModal already established: CLAUDE.md's no-popup-forms rule is
+ *  about *multi-step* forms, and this collects exactly one flat request. */
+function RequestStampDialog({ invoiceLabel, onClose }: { invoiceLabel: string; onClose: () => void }) {
+  const [approver, setApprover] = useState<PickerItem | null>(null);
+  const [note, setNote] = useState('');
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  async function submit() {
+    if (!approver) return;
+    setSending(true);
+    try {
+      await apiFetch('/v1/sign/stamp-requests', {
+        method: 'POST',
+        body: JSON.stringify({ approver_id: approver.id, target_type: 'invoice', target_ref: invoiceLabel, note: note.trim() || undefined }),
+      });
+      setSent(true);
+    } catch (e: any) {
+      showAlert(e?.message || 'Failed to send the request', { title: 'Could not send request' });
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <Dialog open onOpenChange={o => !o && onClose()}>
+      <DialogContent className="sm:max-w-105">
+        <DialogHeader><DialogTitle>Request stamping</DialogTitle></DialogHeader>
+        {sent ? (
+          <>
+            <p style={{ fontSize: 13.5, color: 'var(--ink2)' }}>Your request has been sent — you'll get a notification once it's decided.</p>
+            <Button variant="default" onClick={onClose}>Done</Button>
+          </>
+        ) : (
+          <>
+            <p style={{ fontSize: 13, color: 'var(--ink3)', margin: '0 0 10px' }}>
+              Your role doesn't have direct stamp access for <strong>{invoiceLabel}</strong>. Tag who should approve it.
+            </p>
+            <EntityPicker
+              label="Approver" placeholder="Search staff…"
+              value={approver} onChange={setApprover}
+              search={async q => {
+                const rows = await apiFetch(`/v1/hr/staff?search=${encodeURIComponent(q)}`).catch(() => []);
+                return rows.map((u: any) => ({ id: u.id, label: u.name, sublabel: u.email }));
+              }}
+            />
+            <div style={{ marginTop: 10 }}>
+              <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--ink3)', marginBottom: 4 }}>Note (optional)</label>
+              <textarea value={note} onChange={e => setNote(e.target.value)} rows={3}
+                style={{ width: '100%', padding: '8px 10px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, resize: 'vertical', boxSizing: 'border-box' }} />
+            </div>
+            <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+              <Button variant="outline" onClick={onClose} style={{ flex: 1 }}>Cancel</Button>
+              <Button variant="default" onClick={submit} disabled={!approver || sending} style={{ flex: 2 }}>
+                {sending ? 'Sending…' : 'Send Request'}
+              </Button>
+            </div>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onRecordPayment, onSubmitTRA, isMobile = false }: DetailPanelProps & { isMobile?: boolean }) {
   const { fmt } = useCurrency();
   const [co, setCo] = useState(getCompany);
@@ -965,10 +1034,36 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
   function loadReminders() { if (dbId) apiFetch(`/v1/invoices/${dbId}/reminders`).then((r: any) => setReminders(r?.data ?? [])).catch(() => {}); }
   function loadActivity()  { if (dbId) apiFetch(`/v1/invoices/${dbId}/activity`).then((r: any) => setActivity(r?.data ?? [])).catch(() => {}); }
 
+  /* ── Sign & Stamp (M6 cross-app stamp API) ── */
+  const [stampAllowed, setStampAllowed] = useState<boolean | null>(null);
+  const [stampedFileUrl, setStampedFileUrl] = useState<string | null>(null);
+  const [stamping, setStamping] = useState(false);
+  const [showRequestStamp, setShowRequestStamp] = useState(false);
+
+  function loadStampStatus() {
+    if (!dbId) return;
+    apiFetch('/v1/sign/stamps/access').then(r => setStampAllowed(r.allowed)).catch(() => setStampAllowed(false));
+    apiFetch(`/v1/invoices/${dbId}`).then((r: any) => setStampedFileUrl(r?.stamped_file_url ?? null)).catch(() => {});
+  }
+
+  async function handleSignAndStamp() {
+    if (!dbId) return;
+    setStamping(true);
+    try {
+      const r = await apiFetch(`/v1/invoices/${dbId}/sign-stamp`, { method: 'POST' });
+      setStampedFileUrl(r.stamped_file_url);
+    } catch (e: any) {
+      showAlert(e?.message || 'Failed to apply the stamp', { title: 'Could not stamp this invoice' });
+    } finally {
+      setStamping(false);
+    }
+  }
+
   useEffect(() => {
     setNotes([]); setTasks([]); setReminders([]); setActivity([]);
+    setStampAllowed(null); setStampedFileUrl(null);
     if (!dbId) return;
-    loadNotes(); loadTasks(); loadReminders(); loadActivity();
+    loadNotes(); loadTasks(); loadReminders(); loadActivity(); loadStampStatus();
   }, [dbId]); // eslint-disable-line
 
   /* ── Notes state ── */
@@ -1137,6 +1232,27 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
             {traSubmitting ? 'Submitting…' : inv.traStatus === 'failed' ? 'Retry TRA Submission' : 'Submit to TRA'}
           </button>
         ) : null}
+        {dbId && (
+          stampedFileUrl ? (
+            <button type="button" onClick={() => apiDownload(`/v1/invoices/${dbId}/stamped-pdf`, `${inv.id} — stamped.pdf`)}
+              title="Download the company-stamped copy"
+              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 20, border: 'none', fontSize: 11, fontWeight: 700, cursor: 'pointer', background: 'var(--green-l)', color: 'var(--green)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+              <Icon name="checkCircle" size={12} color="var(--green)" /> Stamped
+            </button>
+          ) : stampAllowed === true ? (
+            <button type="button" onClick={handleSignAndStamp} disabled={stamping}
+              title="Apply the company stamp to this invoice"
+              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 20, border: 'none', fontSize: 11, fontWeight: 700, cursor: stamping ? 'default' : 'pointer', background: 'var(--blue-l)', color: 'var(--blue)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+              <Icon name="stamp" size={12} color="var(--blue)" /> {stamping ? 'Stamping…' : 'Sign & Stamp'}
+            </button>
+          ) : stampAllowed === false ? (
+            <button type="button" onClick={() => setShowRequestStamp(true)}
+              title="Your role doesn't have direct stamp access — tag someone who can approve it"
+              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 20, border: '1px solid var(--border)', fontSize: 11, fontWeight: 700, cursor: 'pointer', background: 'var(--bg)', color: 'var(--ink2)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+              <Icon name="stamp" size={12} color="var(--ink3)" /> Request Stamping
+            </button>
+          ) : null
+        )}
         <div style={{ flex: 1 }} />
         <button type="button" onClick={onEdit} style={tbBtn} title="Edit"><Icon name="edit" size={13} color="var(--ink2)" /></button>
         <button type="button" onClick={onCopy} style={tbBtn} title="Duplicate"><Icon name="copy" size={13} color="var(--ink2)" /></button>
@@ -1198,6 +1314,10 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
             <button type="button" onClick={() => setShowPayment(false)} style={tbBtn}>Cancel</button>
           </div>
         </div>
+      )}
+
+      {showRequestStamp && dbId && (
+        <RequestStampDialog invoiceLabel={inv.id} onClose={() => setShowRequestStamp(false)} />
       )}
 
       {/* Tab content */}
