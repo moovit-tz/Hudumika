@@ -41,6 +41,7 @@ import {
 import { suggestHsCodes } from '../services/hs-suggest.service.js';
 import { hsMemory } from '../services/intelligence.service.js';
 import { callAI } from './ai.routes.js';
+import { CloudSync } from '../services/cloud-sync.service.js';
 import { withTenant, dbPlatform } from '../db/client.js';
 import { sql } from 'kysely';
 
@@ -202,7 +203,39 @@ export async function customsRoutes(fastify: FastifyInstance) {
   fastify.patch('/certificates-of-origin/:id/issue', async (request: any, reply) => {
     const { id } = request.params as { id: string };
     try {
-      return await issueCertificateOfOrigin(request.user.tenant_id, id, request.user.sub);
+      const cert = await issueCertificateOfOrigin(request.user.tenant_id, id, request.user.sub);
+
+      // Same reasoning as delivery-documents.routes.ts's own issue handler:
+      // an issued certificate is a real, final document from here on
+      // (eligibility already gated issuance), worth a persisted copy in the
+      // shipment's own Cloud folder instead of only a live re-render on
+      // every GET /pdf. Only when subject_type is really 'shipment' — a
+      // 'declaration_item'/'adhoc' certificate has no shipment/BL folder to
+      // file it under. Never lets a Cloud failure fail the issuance itself.
+      if (cert.subject_type === 'shipment' && cert.subject_id) {
+        try {
+          const shipment = await withTenant(request.user.tenant_id, trx =>
+            trx.selectFrom('shipment_cases').select(['customer_id', 'bl_number', 'awb_number', 'ref_number'])
+              .where('id', '=', cert.subject_id!).where('tenant_id', '=', request.user.tenant_id).executeTakeFirst()
+          );
+          const blRef = (shipment?.bl_number || shipment?.awb_number || shipment?.ref_number || '').trim();
+          if (shipment && blRef) {
+            const pdf = await renderCoOPdf(request.user.tenant_id, id);
+            await CloudSync.syncShipmentDoc(request.user.tenant_id, {
+              customerId: shipment.customer_id ?? null,
+              shipmentId: cert.subject_id,
+              blRef,
+              filename: `${cert.certificate_number}.pdf`,
+              buffer: pdf,
+              mime: 'application/pdf',
+            });
+          }
+        } catch (err: any) {
+          request.log.warn({ err: err.message, certId: id }, '[CertificatesOfOrigin] Cloud mirror failed — issuance still succeeded');
+        }
+      }
+
+      return cert;
     } catch (err: any) {
       return reply.status(400).send({ error: err.message });
     }

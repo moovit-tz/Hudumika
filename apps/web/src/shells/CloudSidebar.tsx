@@ -67,10 +67,17 @@ export function CloudSidebarContent({ collapsed }: { collapsed: boolean }) {
   const active  = files.filter(f => !f.is_trash);
   const trashed = files.filter(f => f.is_trash);
 
+  // 'images'/'documents'/'media' deliberately live only in catItems below —
+  // this used to also carry a "Photos" entry for the same 'images' view,
+  // so two sidebar rows lit up together and did the exact same navigation.
+  // 'starred' is a real CloudView (FileBrowser.tsx already filters on it)
+  // that had no sidebar entry at all — reachable only from BrowserToolbar's
+  // now-removed duplicate filter-chip row, i.e. not reachable from the
+  // sidebar in its collapsed state. Added here so it has exactly one home.
   const navItems: { view: CloudView; icon: IconName; label: string }[] = [
     { view: 'all',     icon: 'folder', label: 'My Files' },
     { view: 'recent',  icon: 'clock',  label: 'Recent' },
-    { view: 'images',  icon: 'camera', label: 'Photos' },
+    { view: 'starred', icon: 'star',   label: 'Starred' },
     { view: 'shared',  icon: 'users',  label: 'Shared' },
     { view: 'trash',   icon: 'trash',  label: 'Recycle bin' },
   ];

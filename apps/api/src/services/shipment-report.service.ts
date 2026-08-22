@@ -17,6 +17,7 @@ import PDFDocument from 'pdfkit';
 import { withTenant, dbPlatform } from '../db/client.js';
 import { ShipmentService } from './shipment.service.js';
 import { MinioIntegration } from '../integrations/minio.js';
+import { CloudSync } from './cloud-sync.service.js';
 import { MailService } from './mail.service.js';
 import { WhatsAppIntegration } from '../integrations/whatsapp.js';
 import { resolvePublicBaseUrl } from '../routes/landed-cost-share.routes.js';
@@ -331,8 +332,29 @@ export async function sendDailyShipmentReport(tenantId: string, shipmentId: stri
   }
 
   const pdf = await renderShipmentReportPdf(tenantId, shipmentId);
-  const { storageKey } = await MinioIntegration.uploadShipmentReport(tenantId, shipmentId, `${s.ref_number || shipmentId}.pdf`, pdf);
+  const reportFilename = `${s.ref_number || shipmentId}.pdf`;
+  const { storageKey } = await MinioIntegration.uploadShipmentReport(tenantId, shipmentId, reportFilename, pdf);
   const { url } = await getOrCreateShareToken(tenantId, shipmentId);
+
+  // Also file a real copy where staff actually go looking for a shipment's
+  // paperwork — Customers ▸ <customer> ▸ <BL/AWB/ref>. This used to be a
+  // deliberate exclusion (a report snapshot isn't a customer-uploaded
+  // document), reversed by explicit request: every document real to a
+  // shipment, daily reports included, belongs in its own Cloud folder.
+  // Minio's own shipment-reports/ tree above stays the source of record for
+  // the emailed/WhatsApp'd copy — this is an additional, best-effort mirror,
+  // named by date so each day's report doesn't overwrite the last.
+  const blRef = s.bl_number || s.awb_number || s.ref_number;
+  if (blRef) {
+    CloudSync.syncShipmentDoc(tenantId, {
+      customerId: s.customer_id ?? null,
+      shipmentId,
+      blRef,
+      filename: `Daily Report — ${new Date().toISOString().slice(0, 10)}.pdf`,
+      buffer: pdf,
+      mime: 'application/pdf',
+    }).catch(err => console.error('[Cloud] daily shipment report mirror failed:', err.message));
+  }
 
   let emailSent = false;
   let whatsappSent = false;

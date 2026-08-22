@@ -8,6 +8,204 @@
   --cloud-border: var(--border, #e2e8f0);
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   CLOUD HOME — Premium landing page
+════════════════════════════════════════════════════════════════ */
+
+.cloud-home-root {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  background: var(--bg);
+  font-family: var(--font);
+  min-height: 0;
+}
+
+/* ── Hero ────────────────────────────────────────────────────── */
+.cloud-home-hero {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--teal) 0%, #0891b2 60%, #6366f1 100%);
+  padding: 40px 36px 48px;
+  flex-shrink: 0;
+}
+
+[data-theme="dark"] .cloud-home-hero {
+  background: linear-gradient(135deg, #0f766e 0%, #155e75 60%, #4338ca 100%);
+}
+
+.cloud-home-hero-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 900px;
+}
+
+.cloud-home-hero-text {}
+
+.cloud-home-hero-title {
+  font-size: 28px;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0 0 6px;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.cloud-home-hero-sub {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.75);
+  margin: 0;
+  font-weight: 500;
+}
+
+/* Quick-action buttons row */
+.cloud-home-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.cloud-home-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 18px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.15s, box-shadow 0.15s;
+  white-space: nowrap;
+}
+
+.cloud-home-action-btn:hover {
+  background: rgba(255, 255, 255, 0.28);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.cloud-home-action-icon {
+  display: flex;
+  align-items: center;
+}
+
+/* Decorative gradient blob */
+.cloud-home-hero-blob {
+  position: absolute;
+  top: -60px;
+  right: -80px;
+  width: 360px;
+  height: 360px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,255,255,0.12) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ── Body ────────────────────────────────────────────────────── */
+.cloud-home-body {
+  flex: 1;
+  padding: 32px 36px 56px;
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
+}
+
+/* ── Section ─────────────────────────────────────────────────── */
+.cloud-home-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.cloud-home-see-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--teal);
+  padding: 0;
+  transition: opacity 0.15s;
+}
+
+.cloud-home-see-all:hover {
+  opacity: 0.75;
+}
+
+/* ── Folders grid ────────────────────────────────────────────── */
+.cloud-home-folders-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 10px;
+}
+
+/* ── Bottom 3-col grid ───────────────────────────────────────── */
+.cloud-home-bottom-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 24px;
+  align-items: start;
+}
+
+/* ── Loading ─────────────────────────────────────────────────── */
+.cloud-home-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  height: 100%;
+  color: var(--ink3);
+  font-size: 14px;
+  font-family: var(--font);
+}
+
+.cloud-home-loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--border);
+  border-top-color: var(--teal);
+  border-radius: 50%;
+  animation: cloud-spin 0.75s linear infinite;
+}
+
+@keyframes cloud-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Responsive ──────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .cloud-home-hero {
+    padding: 28px 20px 36px;
+  }
+  .cloud-home-hero-title {
+    font-size: 22px;
+  }
+  .cloud-home-body {
+    padding: 20px 16px 48px;
+    gap: 28px;
+  }
+  .cloud-home-bottom-grid {
+    grid-template-columns: 1fr;
+  }
+  .cloud-home-folders-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+}
+
+
 .cloud-page {
   display: flex;
   flex-direction: column;
@@ -82,47 +280,6 @@
 [data-theme="dark"] .cloud-nav-item.active {
   background: rgba(13, 148, 136, 0.22);
   color: #2dd4bf;
-}
-
-/* ── Google Drive Filter Chips Bar ── */
-.cloud-filter-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 24px;
-  border-bottom: 1px solid var(--border);
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-.cloud-filter-bar::-webkit-scrollbar { display: none; }
-
-.cloud-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--card-bg, #ffffff);
-  color: var(--ink2);
-  font-size: 12.5px;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.15s ease;
-}
-
-.cloud-chip:hover {
-  background: var(--bg);
-  color: var(--ink);
-  border-color: var(--cloud-accent);
-}
-
-.cloud-chip.active {
-  background: rgba(13, 148, 136, 0.1);
-  color: var(--cloud-accent);
-  border-color: var(--cloud-accent);
-  font-weight: 700;
 }
 
 /* ── Folder & File Cards Grid ── */
@@ -321,5 +478,417 @@
   }
   .drive-file-preview-header {
     height: 100px;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   LIGHTBOX — Full-screen file viewer (single-bar redesign)
+   All the old two-row header is gone; one `lbx-bar` row contains
+   left (badge+filename) · center (page/zoom pills) · right (actions)
+════════════════════════════════════════════════════════════════ */
+
+/* ── Single toolbar bar ──────────────────────────────────────── */
+.lbx-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 52px;
+  padding: 0 16px;
+  background: #111827;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.lbx-bar::-webkit-scrollbar { display: none; }
+
+/* Left section */
+.lbx-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.lbx-type-badge {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  flex-shrink: 0;
+}
+
+.lbx-filename {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #f3f4f6;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Center section */
+.lbx-bar-center {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* Pill group (page nav / zoom) */
+.lbx-pill {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 4px 8px;
+}
+
+.lbx-page-sep {
+  font-size: 12px;
+  color: #6b7280;
+  white-space: nowrap;
+  flex-shrink: 0;
+  padding: 0 2px;
+}
+
+.lbx-zoom-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #e5e7eb;
+  min-width: 36px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.lbx-zoom-btn {
+  color: #9ca3af;
+  font-size: 15px;
+}
+
+/* Right section */
+.lbx-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* Icon button base */
+.lbx-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #9ca3af;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.13s, color 0.13s;
+}
+
+.lbx-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #f3f4f6;
+}
+
+.lbx-icon-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.lbx-action-btn {
+  width: 34px;
+  height: 34px;
+}
+
+.lbx-close-btn {
+  width: 34px;
+  height: 34px;
+  color: #6b7280;
+}
+.lbx-close-btn:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+}
+
+/* Divider */
+.lbx-divider {
+  width: 1px;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
+  margin: 0 4px;
+}
+
+/* Page input */
+.lbx-page-input {
+  width: 32px;
+  padding: 2px 0;
+  border: none;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #f3f4f6;
+  font-size: 12px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.lbx-page-input:focus {
+  outline: 1px solid var(--cloud-accent, #0d9488);
+}
+
+/* Sign & Stamp button */
+.lbx-sign-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 16px;
+  border: none;
+  border-radius: 8px;
+  background: var(--cloud-accent, #0d9488);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s, transform 0.1s;
+}
+
+.lbx-sign-btn:hover {
+  background: var(--cloud-accent-hover, #0f766e);
+  transform: translateY(-1px);
+}
+
+/* Status (loading / error) in doc area */
+.lbx-status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: #4b5563;
+  font-size: 14px;
+}
+
+.lbx-status--error {
+  color: #f87171;
+}
+
+.lbx-status-spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid rgba(255, 255, 255, 0.1);
+  border-top-color: var(--cloud-accent, #0d9488);
+  border-radius: 50%;
+  animation: cloud-spin 0.75s linear infinite;
+}
+
+/* ── Keep all body / canvas / thumbnail / edge-nav styles ──── */
+
+/* Row containing the page thumbnail rail (PDF only) + the document itself —
+   a flex row, so it needs its own min-height:0 the same way every nested
+   flex container in this file does, or it refuses to shrink to the space
+   left by the two toolbar rows above it. */
+.lightbox-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.pdf-thumb-rail {
+  width: 132px;
+  flex-shrink: 0;
+  background: #0d1117;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  overflow-y: auto;
+  padding: 12px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pdf-thumb {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  border-radius: 6px;
+  padding: 4px;
+  border: 2px solid transparent;
+  transition: background 0.13s;
+}
+
+.pdf-thumb:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.pdf-thumb--active {
+  border-color: var(--cloud-accent, #0d9488);
+  background: rgba(13, 148, 136, 0.12);
+}
+
+.pdf-thumb-page {
+  width: 100%;
+  min-height: 130px;
+  background: #1a2235;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  border-radius: 3px;
+}
+
+.pdf-thumb-page canvas {
+  display: block;
+  max-width: 100%;
+}
+
+.pdf-thumb-num {
+  font-size: 11px;
+  color: #6b7280;
+  font-weight: 600;
+}
+
+.pdf-thumb--active .pdf-thumb-num {
+  color: #e5e7eb;
+}
+
+/* Fills the real available area — this used to be a hardcoded 740×920px
+   box, so "100%" zoom never actually meant "fills the screen." The area
+   is a flex-centered stage, not a stretched sheet: each content type
+   (canvas/img/fallback) sizes itself at its own real aspect ratio, and
+   zoom/overflow here is what makes zooming in scrollable. */
+.lightbox-doc-area {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0c0f1a;
+  overflow: auto;
+  padding: 32px;
+}
+
+.lightbox-pdf-canvas {
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.7);
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.lightbox-image {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.7);
+  transform-origin: center center;
+  transition: transform 0.15s ease;
+  border-radius: 2px;
+}
+
+.lightbox-doc-sheet {
+  width: 560px;
+  height: 720px;
+  max-width: 100%;
+  max-height: 100%;
+  background: #ffffff;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.8);
+  transform-origin: center center;
+  transition: transform 0.15s ease;
+  flex-shrink: 0;
+}
+
+.lightbox-status {
+  color: #64748b;
+  font-size: 14px;
+}
+
+.lightbox-status--error {
+  color: #f87171;
+}
+
+.lightbox-edge-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(17, 24, 39, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 2;
+  transition: background 0.15s ease;
+}
+
+.lightbox-edge-nav:hover {
+  background: rgba(31, 41, 55, 0.9);
+}
+
+.lightbox-edge-nav:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.lightbox-edge-nav--left {
+  left: 16px;
+}
+
+.lightbox-edge-nav--right {
+  right: 16px;
+}
+
+@media (max-width: 640px) {
+  .lightbox-title-row {
+    padding: 8px 10px;
+  }
+  .lightbox-title-text {
+    font-size: 13px;
+  }
+  .lightbox-actions-row {
+    padding: 8px 10px;
+  }
+  .lightbox-signstamp-btn span {
+    display: none;
+  }
+  .lightbox-signstamp-btn {
+    padding: 7px 10px;
+    margin-left: 0;
+  }
+  .lightbox-doc-area {
+    padding: 10px;
+  }
+  .pdf-thumb-rail {
+    width: 84px;
+    padding: 8px 6px;
+  }
+  .pdf-thumb-page {
+    min-height: 80px;
+  }
+  .lightbox-edge-nav {
+    width: 32px;
+    height: 32px;
   }
 }

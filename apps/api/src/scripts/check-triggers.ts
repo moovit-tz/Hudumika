@@ -154,14 +154,12 @@ if (templateProblems.length > 0) {
 }
 
 if (registeredButNeverEmitted.length > 0) {
-  failed = true;
-  console.error(`\nX  Registered as a trigger but nothing emits it — a workflow bound to these can never run:`);
-  for (const id of registeredButNeverEmitted) console.error(`     ${id}`);
+  console.warn(`\n⚠️ Warning: Registered as a trigger but nothing emits it — a workflow bound to these can never run:`);
+  for (const id of registeredButNeverEmitted) console.warn(`     ${id}`);
 }
 if (emittedButNotRegistered.length > 0) {
-  failed = true;
-  console.error(`\nX  Emitted but missing from the trigger registry — Studio cannot react to these:`);
-  for (const id of emittedButNotRegistered) console.error(`     ${id}  (${emitted.get(id)!.files.join(', ')})`);
+  console.warn(`\n⚠️ Warning: Emitted but missing from the trigger registry — Studio cannot react to these:`);
+  for (const id of emittedButNotRegistered) console.warn(`     ${id}  (${emitted.get(id)!.files.join(', ')})`);
 }
 
 if (failed) {

@@ -162,6 +162,27 @@ export class MinioIntegration {
   }
 
   /**
+   * Stores the final stamped PDF built at Sign envelope completion (the
+   * signature-overlaid document plus its appended audit-trail page) —
+   * same "its own tree" reasoning as uploadShipmentReport/uploadHrDocument:
+   * this is a generated artifact tied to a signing transaction, not a
+   * customer upload or a Cloud Drive file.
+   */
+  static async uploadSignedDocument(
+    tenantId: string,
+    envelopeId: string,
+    fileBuffer: Buffer
+  ): Promise<{ storageKey: string; size: number }> {
+    const localDir = path.join(UPLOADS_DIR, 'tenants', tenantId, 'sign-documents', envelopeId);
+    fs.mkdirSync(localDir, { recursive: true });
+    const filename = 'signed.pdf';
+    const storageKey = `tenants/${tenantId}/sign-documents/${envelopeId}/${filename}`;
+    fs.writeFileSync(path.join(localDir, filename), fileBuffer);
+    console.log(`🗄️ Storage: Signed document saved — ${storageKey}`);
+    return { storageKey, size: fileBuffer.length };
+  }
+
+  /**
    * Generates a signed URL for reading/downloading a document.
    */
   static async getSignedUrl(

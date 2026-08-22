@@ -71,6 +71,7 @@ const APP_ICONS: Record<AppId, IconName> = {
   hudubi:    'barChart2',
   petti:     'wallet',
   notes:     'fileText',
+  sign:      'stamp',
 };
 
 const APP_SUBTITLES: Partial<Record<AppId, string>> = {

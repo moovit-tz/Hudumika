@@ -6,6 +6,8 @@ import {
   issueDeliveryDocument, markDeliveryDocumentUsed, setDeliveryDocumentStatus, deleteDeliveryDocument,
   renderDeliveryDocumentPdf,
 } from '../services/delivery-document.service.js';
+import { CloudSync } from '../services/cloud-sync.service.js';
+import { withTenant } from '../db/client.js';
 
 const containerSchema = z.object({
   number: z.string().trim().min(1),
@@ -111,7 +113,42 @@ export async function deliveryDocumentsRoutes(fastify: FastifyInstance) {
   fastify.patch('/:id/issue', async (request: any, reply) => {
     const { id } = request.params as { id: string };
     try {
-      return await issueDeliveryDocument(request.user.tenant_id, id, request.user.sub);
+      const doc = await issueDeliveryDocument(request.user.tenant_id, id, request.user.sub);
+
+      // Mirror the real issued PDF into the shipment's own Cloud folder —
+      // renderDeliveryDocumentPdf/GET /:id/pdf regenerated this on every
+      // request with nowhere it ever actually landed; an issued release
+      // order/delivery note is a real, final document from here on (status
+      // only ever moves forward: draft -> issued -> used), so it's worth a
+      // persisted copy, not just a live re-render. Only when there's a real
+      // shipment to file it under — an 'adhoc' document has no BL/AWB folder
+      // to put it in, same reasoning CloudSync itself already applies
+      // everywhere else (no folder without a real entity behind it). A sync
+      // failure must never fail the issuance it's riding on.
+      if (doc.subject_type === 'shipment' && doc.subject_id) {
+        try {
+          const shipment = await withTenant(request.user.tenant_id, trx =>
+            trx.selectFrom('shipment_cases').select(['bl_number', 'awb_number', 'ref_number'])
+              .where('id', '=', doc.subject_id).where('tenant_id', '=', request.user.tenant_id).executeTakeFirst()
+          );
+          const blRef = (shipment?.bl_number || shipment?.awb_number || shipment?.ref_number || '').trim();
+          if (blRef) {
+            const pdf = await renderDeliveryDocumentPdf(request.user.tenant_id, id);
+            await CloudSync.syncShipmentDoc(request.user.tenant_id, {
+              customerId: doc.customer_id ?? null,
+              shipmentId: doc.subject_id,
+              blRef,
+              filename: `${doc.doc_number}.pdf`,
+              buffer: pdf,
+              mime: 'application/pdf',
+            });
+          }
+        } catch (err: any) {
+          request.log.warn({ err: err.message, docId: id }, '[DeliveryDocuments] Cloud mirror failed — issuance still succeeded');
+        }
+      }
+
+      return doc;
     } catch (err: any) {
       return reply.status(400).send({ error: err.message });
     }

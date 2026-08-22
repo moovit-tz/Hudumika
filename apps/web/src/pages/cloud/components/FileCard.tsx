@@ -48,8 +48,8 @@ export function FileCard({ item, selected, onClick, onDoubleClick, onContextMenu
           {/* Header Bar inside card */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', gap: 8 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-              <span style={{ background: badgeColor, color: '#fff', fontSize: 10, fontWeight: 800, padding: '2px 6px', borderRadius: 4, textTransform: 'uppercase', letterSpacing: '0.04em', flexShrink: 0 }}>
-                {badgeLabel}
+              <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22, borderRadius: 5, background: badgeColor, color: '#fff', flexShrink: 0 }}>
+                <Icon name={cfg.icon} size={13} />
               </span>
               <span title={item.name} style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {item.name}
@@ -77,9 +77,9 @@ export function FileCard({ item, selected, onClick, onDoubleClick, onContextMenu
 
           {/* Card Footer */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', fontSize: 11.5, color: 'var(--ink3)' }}>
-            <PersonAvatar name={item.owner_name} size={18} />
+            <PersonAvatar name={item.owner_name} userId={item.owner_id} size={18} />
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              You edited · {fmtRelative(item.updated_at)}
+              Updated {fmtRelative(item.updated_at)}
             </span>
           </div>
         </Card>

@@ -11,16 +11,22 @@ export function fmtDate(d?: string | null): string {
   return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
+/** A relative time span, with no claim about *what* happened at that time —
+ *  every caller passes item.updated_at, and "updated" covers upload, rename,
+ *  edit, restore, etc. This used to hardcode "Opened " onto every branch
+ *  regardless of what actually happened, so a freshly-uploaded file (never
+ *  opened by anyone) still read "Opened just now". Callers supply their own
+ *  honest prefix — see FileCard.tsx / SuggestedFilesStrip.tsx. */
 export function fmtRelative(d: string): string {
   const ms = Date.now() - new Date(d).getTime();
   const min = Math.round(ms / 60000);
-  if (min < 1) return 'Opened just now';
-  if (min < 60) return `Opened ${min}m ago`;
+  if (min < 1) return 'just now';
+  if (min < 60) return `${min}m ago`;
   const hr = Math.round(min / 60);
-  if (hr < 24) return `Opened ${hr}h ago`;
+  if (hr < 24) return `${hr}h ago`;
   const day = Math.round(hr / 24);
-  if (day < 7) return `Opened ${day}d ago`;
-  return `Opened ${fmtDate(d)}`;
+  if (day < 7) return `${day}d ago`;
+  return fmtDate(d);
 }
 
 // Matches TRASH_RETENTION_DAYS in apps/api/src/jobs/cloud-trash-expiry.job.ts

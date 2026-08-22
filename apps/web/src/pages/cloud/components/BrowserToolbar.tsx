@@ -3,7 +3,7 @@ import { Icon } from '../../../components/Icon.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../../components/ui/select.js';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '../../../components/ui/dropdown-menu.js';
 import { showConfirm } from '../../../lib/confirm.js';
-import { useCloud, type CloudFile, type Crumb, type CloudView } from '../../../shells/cloud-context.js';
+import type { CloudFile, Crumb, CloudView } from '../../../shells/cloud-context.js';
 import { FileMenuItems, type FileMenuHandlers } from './FileMenu.js';
 
 type SortBy = 'name' | 'size' | 'modified';
@@ -36,21 +36,11 @@ export function BrowserToolbar(props: {
   onBulkRestore: () => void;
   onBulkPermanentDelete: () => void;
 }) {
-  const { goToView } = useCloud();
   const {
     isTrashView, currentView, searchTerm, breadcrumb, currentFolderItem, navToBreadcrumb, menuHandlers, onShareFolder,
     sortBy, setSortBy, viewMode, setViewMode, trashedCount, canPermanentlyDelete, onEmptyTrash,
     selectedCount, onClearSelection, onBulkDownload, onBulkShare, onBulkMove, onBulkStar, onBulkTrash, onBulkRestore, onBulkPermanentDelete,
   } = props;
-
-  const filterChips: { id: CloudView; label: string; icon: string }[] = [
-    { id: 'all', label: 'All Items', icon: 'folder' },
-    { id: 'documents', label: 'Documents', icon: 'fileText' },
-    { id: 'images', label: 'Photos & Images', icon: 'camera' },
-    { id: 'media', label: 'Videos & Audio', icon: 'monitor' },
-    { id: 'shared', label: 'Shared', icon: 'users' },
-    { id: 'starred', label: 'Starred', icon: 'star' },
-  ];
 
   if (selectedCount > 0) {
     return (
@@ -169,25 +159,6 @@ export function BrowserToolbar(props: {
           </div>
         </div>
       </div>
-
-      {/* Google Drive Style Filter Chips Bar */}
-      {!isTrashView && (
-        <div className="cloud-filter-bar">
-          {filterChips.map(c => {
-            const isActive = currentView === c.id;
-            return (
-              <button
-                key={c.id}
-                onClick={() => goToView(c.id)}
-                className={`cloud-chip ${isActive ? 'active' : ''}`}
-              >
-                <Icon name={c.icon as any} size={14} color={isActive ? 'var(--teal)' : 'var(--ink3)'} />
-                <span>{c.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      )}
     </div>
   );
 }

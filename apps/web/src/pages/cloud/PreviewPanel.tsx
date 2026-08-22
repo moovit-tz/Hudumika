@@ -58,6 +58,17 @@ const EVENT_META: Record<string, { icon: IconName; label: (p: Record<string, any
 
 const CAN_MODERATE_COMMENTS = new Set(['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN']);
 
+/** One shared shape for every action-row button — View/Download used to be
+ *  a wide text+icon primary button while Share/Star/Delete sat beside it as
+ *  small icon-only squares; same row, two different button languages. Every
+ *  action here is now the same icon-only square, distinguished by title
+ *  tooltip and colour alone. */
+const actionBtnStyle: React.CSSProperties = {
+  background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)',
+  padding: 'var(--ds-btn-py-sm) 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+  minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25,
+};
+
 export function PreviewPanel({ item, onClose, onStar, onDownload, onDelete, onShare, onExpand }: {
   item: CloudFile;
   onClose: () => void;
@@ -219,19 +230,24 @@ export function PreviewPanel({ item, onClose, onStar, onDownload, onDelete, onSh
       </div>
 
       <div style={{ padding: '12px 16px', display: 'flex', gap: 8, borderBottom: '1px solid var(--border)' }}>
-        {item.type !== 'folder' && (
-          <button onClick={() => onDownload(item)} className="btn btn-primary btn-sm" style={{ flex: 1 }}>
-            <Icon name="download" size={13} /> Download
+        {item.type !== 'folder' && kind && (
+          <button onClick={() => onExpand(item)} title="View" style={{ ...actionBtnStyle, flex: 1 }}>
+            <Icon name="eye" size={15} color="var(--teal)" />
           </button>
         )}
-        <button onClick={() => onShare(item)} style={{ flex: item.type === 'folder' ? 1 : undefined, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: 'var(--ds-btn-py-sm) 10px', cursor: 'pointer', color: 'var(--teal)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }}>
-          <Icon name="userPlus" size={14} color="var(--teal)" />
+        {item.type !== 'folder' && (
+          <button onClick={() => onDownload(item)} title="Download" style={{ ...actionBtnStyle, flex: 1 }}>
+            <Icon name="download" size={15} color="var(--ink2)" />
+          </button>
+        )}
+        <button onClick={() => onShare(item)} title="Share" style={{ ...actionBtnStyle, flex: item.type === 'folder' ? 1 : undefined }}>
+          <Icon name="userPlus" size={15} color="var(--teal)" />
         </button>
-        <button onClick={() => onStar(item)} style={{ background: item.starred ? 'var(--gold-l)' : 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: 'var(--ds-btn-py-sm) 10px', cursor: 'pointer', color: item.starred ? 'var(--gold)' : 'var(--ink3)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }}>
-          <Icon name="star" size={14} color={item.starred ? 'var(--gold)' : 'var(--ink3)'} />
+        <button onClick={() => onStar(item)} title={item.starred ? 'Unstar' : 'Star'} style={{ ...actionBtnStyle, background: item.starred ? 'var(--gold-l)' : 'var(--bg)' }}>
+          <Icon name="star" size={15} color={item.starred ? 'var(--gold)' : 'var(--ink3)'} />
         </button>
-        <button onClick={() => onDelete(item)} style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: 'var(--ds-btn-py-sm) 10px', cursor: 'pointer', color: 'var(--red)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }}>
-          <Icon name="trash" size={14} color="var(--red)" />
+        <button onClick={() => onDelete(item)} title="Delete" style={actionBtnStyle}>
+          <Icon name="trash" size={15} color="var(--red)" />
         </button>
       </div>
 
@@ -362,7 +378,7 @@ export function PreviewPanel({ item, onClose, onStar, onDownload, onDelete, onSh
               const isEditing = editingId === c.id;
               return (
                 <div key={c.id} style={{ display: 'flex', gap: 10 }}>
-                  <PersonAvatar name={c.author_name} size={28} />
+                  <PersonAvatar name={c.author_name} userId={c.author_id} size={28} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
                       <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)' }}>{c.author_name}</span>

@@ -12,6 +12,7 @@ import { emitDomainEvent } from '../services/domain-events.service.js';
 import { WhatsAppIntegration } from '../integrations/whatsapp.js';
 import { MailService } from '../services/mail.service.js';
 import { MinioIntegration } from '../integrations/minio.js';
+import { CloudSync } from '../services/cloud-sync.service.js';
 import { NotificationService } from '../services/notification.service.js';
 import { renderShipmentReportPdf, getOrCreateShareToken } from '../services/shipment-report.service.js';
 import type { CreateShipmentInput, AdvanceStageInput } from '@hudumika/types';
@@ -619,9 +620,16 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
           })
           .execute();
 
-        // 7. Create BL/shipment folder in file storage
+        // 7. Create BL/shipment folder in file storage — bulk-import used to
+        // only do the raw Minio folder, not the Cloud file manager's own
+        // Customers ▸ <customer> ▸ <BL> entry (unlike the single-shipment
+        // create path in shipment.service.ts), so an imported shipment with
+        // no documents yet had no visible Cloud folder until something
+        // happened to mirror a file into it later.
         const folderName = row.bl_number || row.awb_number || refNumber;
         MinioIntegration.ensureFolder(user.tenant_id, customer.id, folderName);
+        CloudSync.ensureShipmentFolder(user.tenant_id, customer.id, shipment.id, folderName)
+          .catch(err => console.error('[Cloud] bulk-import shipment folder failed:', err.message));
 
         imported.push(shipment.id);
       }

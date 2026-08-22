@@ -86,6 +86,9 @@ import { CMSShell }      from './shells/CMSShell.js';
 import { StudioShell } from './shells/StudioShell.js';
 import { OnsiteShell } from './shells/OnsiteShell.js';
 import { HuduBIShell } from './shells/HuduBIShell.js';
+import { SignShell } from './shells/SignShell.js';
+import { SignPublicPage } from './pages/sign/SignPublicPage.js';
+import { SignVerifyPage } from './pages/sign/SignVerifyPage.js';
 import { AppHeader }    from './components/AppHeader.js';
 import { WorkspaceHome } from './pages/WorkspaceHome.js';
 
@@ -313,6 +316,10 @@ const AppContentBody: React.FC = () => {
       <Route path="/agency-directory"     element={<AgencyDirectory />} />
       <Route path="/site/:tenantSlug"             element={<OneSitePublic />} />
       <Route path="/site/:tenantSlug/:pageSlug"   element={<OneSitePublic />} />
+      {/* eSign public routes — external signers access these without a Hudumika account */}
+      <Route path="/sign/public/:token"  element={<SignPublicPage />} />
+      <Route path="/sign/verify/:code"   element={<SignVerifyPage />} />
+      <Route path="/sign/verify"         element={<SignVerifyPage />} />
       <Route path="*"                     element={<Login />} />
     </Routes>
   );
@@ -445,6 +452,7 @@ const AppContentBody: React.FC = () => {
           <Route path="/calendar/*"       element={<CalendarShell />} />
           <Route path="/tasks/*"          element={<TasksShell />} />
           <Route path="/notes/*"          element={<NotesShell />} />
+          <Route path="/sign/*"           element={<SignShell />} />
 
           {/* Legacy HRM routes — superseded by the OnePI shell (/nexushr/*), kept as redirects for old links/bookmarks */}
           <Route path="/hrm"           element={<Navigate to="/nexushr" replace />} />
@@ -458,7 +466,12 @@ const AppContentBody: React.FC = () => {
           <Route path="/track/shared/:token" element={<TrackingShared />} />
           <Route path="/track/shipment-report/:token" element={<ShipmentReportShared />} />
           <Route path="/r/:token" element={<SharedLandedCostReport />} />
+          {/* eSign public routes accessible while authenticated too */}
+          <Route path="/sign/public/:token"  element={<SignPublicPage />} />
+          <Route path="/sign/verify/:code"   element={<SignVerifyPage />} />
+          <Route path="/sign/verify"         element={<SignVerifyPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
+
         </Routes>
       </main>
       <CheckInWidget />

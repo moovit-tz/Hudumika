@@ -3255,6 +3255,122 @@ export interface InventoryTasksTable {
   updated_at: Generated<Date>;
 }
 
+
+// ── eSign App Tables ─────────────────────────────────────────────────────────
+
+export interface SignEnvelopesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  created_by: string;
+  title: string;
+  message: string | null;
+  file_id: string | null;
+  file_name: string | null;
+  document_data: string | null;
+  status: Generated<string>; // sign_envelope_status enum
+  order_mode: Generated<string>; // sign_order_mode enum
+  template_id: string | null;
+  require_otp: Generated<boolean>;
+  expires_at: Date | null;
+  sent_at: Date | null;
+  completed_at: Date | null;
+  voided_at: Date | null;
+  void_reason: string | null;
+  verification_code: Generated<string | null>;
+  stamp_applied: Generated<boolean>;
+  stamped_at: Date | null;
+  stamped_file_url: string | null;
+  ots_proof: Buffer | null;
+  ots_proof_upgraded: Buffer | null;
+  anchor_hash: string | null;
+  anchor_status: string | null;
+  anchor_block_height: number | null;
+  anchor_block_time: Date | null;
+  anchor_checked_at: Date | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface SignRecipientsTable {
+  id: Generated<string>;
+  envelope_id: string;
+  tenant_id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  role_label: string | null;
+  sign_order: Generated<number>;
+  status: Generated<string>; // sign_recipient_status enum
+  token: Generated<string>;
+  signature_data: string | null;
+  signed_at: Date | null;
+  declined_at: Date | null;
+  decline_reason: string | null;
+  viewed_at: Date | null;
+  signed_ip: string | null;
+  signed_user_agent: string | null;
+  otp_code_hash: string | null;
+  otp_expires_at: Date | null;
+  otp_verified_at: Date | null;
+  created_at: Generated<Date>;
+}
+
+export interface SignFieldsTable {
+  id: Generated<string>;
+  envelope_id: string;
+  tenant_id: string;
+  recipient_id: string;
+  field_type: string; // sign_field_type enum
+  page: Generated<number>;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  required: Generated<boolean>;
+  placeholder: string | null;
+  value: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface SignEventsTable {
+  id: Generated<string>;
+  envelope_id: string;
+  tenant_id: string;
+  recipient_id: string | null;
+  event_type: string; // sign_event_type enum
+  actor_name: string | null;
+  actor_email: string | null;
+  ip_address: string | null;
+  user_agent: string | null;
+  note: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface SignTemplatesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  created_by: string;
+  name: string;
+  description: string | null;
+  fields: unknown; // JSONB SignTemplateFieldDef[]
+  recipients: unknown; // JSONB SignTemplateRecipientDef[]
+  file_id: string | null;
+  file_name: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface SignVerificationsTable {
+  id: Generated<string>;
+  envelope_id: string | null;
+  tenant_id: string | null;
+  verification_code: string;
+  looked_up_at: Generated<Date>;
+  ip_address: string | null;
+  user_agent: string | null;
+  result: string;
+}
+
 export interface Database {
   inventory_warehouses: InventoryWarehousesTable;
   inventory_locations: InventoryLocationsTable;
@@ -3659,6 +3775,13 @@ export interface Database {
   // Public/partner API layer
   api_keys: ApiKeysTable;
   api_usage_events: ApiUsageEventsTable;
+  // eSign — signature envelopes, recipients, fields, audit trail, templates
+  sign_envelopes: SignEnvelopesTable;
+  sign_recipients: SignRecipientsTable;
+  sign_fields: SignFieldsTable;
+  sign_events: SignEventsTable;
+  sign_templates: SignTemplatesTable;
+  sign_verifications: SignVerificationsTable;
 }
 
 // ── TRA VFD Integration ──────────────────────────────────────────────────────

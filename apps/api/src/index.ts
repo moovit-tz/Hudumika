@@ -154,6 +154,7 @@ import { onsiteAgencyClientRoutes } from './routes/onsite-agency-client.routes.j
 import { onsiteAgencyDirectoryPublicRoutes, onsiteAgencyDirectoryManageRoutes } from './routes/onsite-agency-directory.routes.js';
 import { onsiteBackupsRoutes } from './routes/onsite-backups.routes.js';
 import { isMeteredPath, incrementUsage } from './lib/usage.js';
+import { signRoutes, signPublicRoutes } from './routes/sign.routes.js';
 
 const server = fastify({
   logger: {
@@ -447,6 +448,9 @@ async function main() {
     await server.register(onsiteBackupsRoutes, { prefix: '/v1/onsite/backups' });
     await server.register(onsiteAgencyDirectoryPublicRoutes, { prefix: '/v1/agency-directory' });
     await server.register(onsiteAgencyDirectoryManageRoutes, { prefix: '/v1/onsite/agency/directory' });
+    await server.register(signRoutes, { prefix: '/v1/sign' });
+    await server.register(signPublicRoutes, { prefix: '/v1/sign' });
+
 
     // Health check
     server.get('/health', async () => {

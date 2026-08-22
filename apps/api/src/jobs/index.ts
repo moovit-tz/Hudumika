@@ -21,6 +21,10 @@ import { runMailOutboxJob } from './mail-outbox.job.js';
 import { runImapTicketIngestJob } from './imap-ticket-ingest.job.js';
 import { runSanctionsSyncJob } from './sanctions-sync.job.js';
 import { runDailyShipmentReportJob } from './daily-shipment-report.job.js';
+import { runSignExpiryJob } from './sign-expiry.job.js';
+import { runSignReminderJob } from './sign-reminder.job.js';
+import { runSignAnchorConfirmJob } from './sign-anchor-confirm.job.js';
+import { runSignAnchorStampJob } from './sign-anchor-stamp.job.js';
 
 let redisConnection: Redis | null = null;
 let riskQueue: Queue | null = null;
@@ -175,6 +179,14 @@ function startBullMQ(): void {
           await runSanctionsSyncJob();
         } else if (job.name === 'daily-shipment-report') {
           await runDailyShipmentReportJob();
+        } else if (job.name === 'sign-expiry') {
+          await runSignExpiryJob();
+        } else if (job.name === 'sign-reminder') {
+          await runSignReminderJob();
+        } else if (job.name === 'sign-anchor-confirm') {
+          await runSignAnchorConfirmJob();
+        } else if (job.name === 'sign-anchor-stamp') {
+          await runSignAnchorStampJob();
         }
       },
       { connection: redisConnection as any }
@@ -321,6 +333,22 @@ function startBullMQ(): void {
       repeat: { pattern: '0 21 * * *', tz: 'Africa/Dar_es_Salaam' } // Daily at 21:00 EAT
     }).catch(console.error);
 
+    reminderQueue.add('sign-expiry', {}, {
+      repeat: { pattern: '0 6 * * *' } // Daily at 6:00 AM — flip 'sent' envelopes past expires_at to 'expired'
+    }).catch(console.error);
+
+    reminderQueue.add('sign-reminder', {}, {
+      repeat: { pattern: '0 9 * * *' } // Daily at 9:00 AM — auto-remind whichever recipient is currently due, 3-day cooldown, capped at 3
+    }).catch(console.error);
+
+    reminderQueue.add('sign-anchor-confirm', {}, {
+      repeat: { every: 60 * 60 * 1000 } // Every hour — re-check pending Sign envelope anchors for Bitcoin confirmation
+    }).catch(console.error);
+
+    reminderQueue.add('sign-anchor-stamp', {}, {
+      repeat: { every: 15 * 60 * 1000 } // Every 15 minutes — submit the OpenTimestamps calendar attestation for newly-completed envelopes
+    }).catch(console.error);
+
     gpswoxQueue.add('sync', {}, {
       repeat: { every: 2 * 60 * 1000 } // Every 2 minutes — GPSWOX device position/alert sync
     }).catch(console.error);
@@ -376,6 +404,9 @@ function startIntervalFallback(): void {
   runGpswoxSyncJob().catch(console.error);
   runWorkflowCommQueueJob().catch(console.error);
   runMailOutboxJob().catch(console.error);
+  runSignExpiryJob().catch(console.error);
+  runSignReminderJob().catch(console.error);
+  runSignAnchorStampJob().catch(console.error);
 
   // Set interval timers
   fallbackTimer = setInterval(() => {
@@ -403,6 +434,8 @@ function startIntervalFallback(): void {
     // Redis/BullMQ is unavailable (standalone dev), so a same-day drift from
     // the real 21:00 EAT target is an acceptable gap, not a production risk.
     runDailyShipmentReportJob().catch(console.error);
+    runSignExpiryJob().catch(console.error);
+    runSignReminderJob().catch(console.error);
   }, 24 * 60 * 60 * 1000);
 
   // GPSWOX device sync — every 2 minutes, its own timer since it's far more
@@ -461,6 +494,23 @@ function startIntervalFallback(): void {
   setInterval(() => {
     runSealLedgerAnchorConfirmationSweepJob().catch(console.error);
   }, 60 * 60 * 1000);
+
+  // Sign envelope anchor confirmation — hourly (real Bitcoin confirmation
+  // takes hours to days regardless of how soon it's submitted).
+  setInterval(() => {
+    runSignAnchorConfirmJob().catch(console.error);
+  }, 60 * 60 * 1000);
+
+  // Sign envelope anchor stamp submission — every 15 minutes, not daily
+  // like SEAL/declaration's own stamp job: this submits one lightweight
+  // per-envelope call, not a tenant-wide ledger batch, and a signer
+  // reasonably expects it to start moving soon after their document
+  // completes. Safe to also run on startup (below) for the same reason
+  // mail-outbox/imap-ticket-ingest are: each envelope is claimed by its
+  // own ots_proof IS NULL check and only ever submitted once.
+  setInterval(() => {
+    runSignAnchorStampJob().catch(console.error);
+  }, 15 * 60 * 1000);
 
   // ClearOS declaration ledger anchoring — same "not on startup" reasoning
   // as SEAL's anchor job above (each stamp is a real external network call

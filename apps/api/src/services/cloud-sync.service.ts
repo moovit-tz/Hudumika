@@ -1,5 +1,6 @@
 import { withTenant } from '../db/client.js';
 import { MinioIntegration } from '../integrations/minio.js';
+import { bumpCloudFolderCount } from '../lib/cloud-folder-count.js';
 
 /**
  * Keeps the Cloud file manager (Drive app) in step with the rest of the
@@ -150,7 +151,7 @@ export const CloudSync = {
       const blFolder = await ensureFolder(trx, tenantId, driveId, ref, custFolder, { type: 'shipment', id: args.shipmentId });
 
       // Replace a same-named file instead of piling up duplicates on re-upload.
-      const dup = await trx.selectFrom('cloud_files').select(['id'])
+      const dup = await trx.selectFrom('cloud_files').select(['id', 'size'])
         .where('tenant_id', '=', tenantId).where('parent_id', '=', blFolder).where('name', '=', args.filename).executeTakeFirst();
       const fileId = dup?.id ?? (await trx.insertInto('cloud_files').values({
         tenant_id: tenantId, drive_id: driveId, name: args.filename, type: extOf(args.filename),
@@ -162,6 +163,14 @@ export const CloudSync = {
       await trx.updateTable('cloud_files')
         .set({ storage_key: storageKey, size: args.buffer.length, updated_at: new Date(), entity_type: 'shipment', entity_id: args.shipmentId })
         .where('id', '=', fileId).execute();
+
+      // The insert above (and every sibling sync* below) used to leave the
+      // BL folder's own file_count/size exactly where it was — a customer's
+      // shipment folder could genuinely hold a real mirrored document and
+      // still show "0 files" in the UI, because nothing had ever told the
+      // parent row its count changed the way every real upload/move/delete
+      // in files.routes.ts already does via this same helper.
+      await bumpCloudFolderCount(trx, blFolder, tenantId, dup ? 0 : 1, args.buffer.length - Number(dup?.size ?? 0));
     });
   },
 
@@ -197,7 +206,7 @@ export const CloudSync = {
       const root = await ensureFolder(trx, tenantId, driveId, 'Employees', null);
       const empFolder = await ensureFolder(trx, tenantId, driveId, name, root, { type: 'employee', id: userId });
 
-      const dup = await trx.selectFrom('cloud_files').select(['id'])
+      const dup = await trx.selectFrom('cloud_files').select(['id', 'size'])
         .where('tenant_id', '=', tenantId).where('parent_id', '=', empFolder).where('name', '=', args.filename).executeTakeFirst();
       const fileId = dup?.id ?? (await trx.insertInto('cloud_files').values({
         tenant_id: tenantId, drive_id: driveId, name: args.filename, type: extOf(args.filename),
@@ -209,6 +218,8 @@ export const CloudSync = {
       await trx.updateTable('cloud_files')
         .set({ storage_key: storageKey, size: args.buffer.length, updated_at: new Date(), entity_type: 'employee', entity_id: userId })
         .where('id', '=', fileId).execute();
+
+      await bumpCloudFolderCount(trx, empFolder, tenantId, dup ? 0 : 1, args.buffer.length - Number(dup?.size ?? 0));
     });
   },
 
@@ -259,7 +270,7 @@ export const CloudSync = {
       const entityType = `seal_${args.sealType}`;
       const sealFolder = await ensureFolder(trx, tenantId, driveId, resolved.label, sealRoot, { type: entityType, id: args.sealId });
 
-      const dup = await trx.selectFrom('cloud_files').select(['id'])
+      const dup = await trx.selectFrom('cloud_files').select(['id', 'size'])
         .where('tenant_id', '=', tenantId).where('parent_id', '=', sealFolder).where('name', '=', args.filename).executeTakeFirst();
       const fileId = dup?.id ?? (await trx.insertInto('cloud_files').values({
         tenant_id: tenantId, drive_id: driveId, name: args.filename, type: extOf(args.filename),
@@ -271,6 +282,8 @@ export const CloudSync = {
       await trx.updateTable('cloud_files')
         .set({ storage_key: storageKey, size: args.buffer.length, updated_at: new Date(), entity_type: entityType, entity_id: args.sealId })
         .where('id', '=', fileId).execute();
+
+      await bumpCloudFolderCount(trx, sealFolder, tenantId, dup ? 0 : 1, args.buffer.length - Number(dup?.size ?? 0));
     });
   },
 

@@ -7,7 +7,8 @@ import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem, C
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '../../../components/ui/dropdown-menu.js';
 import type { CloudFile } from '../../../shells/cloud-context.js';
 import { fmtSize, fmtDate, fmtExpiresIn } from '../lib/format.js';
-import { fileTypeStyle } from '../lib/fileTypeStyle.js';
+import { fileTypeStyle, previewKind } from '../lib/fileTypeStyle.js';
+import { usePreviewBlob } from '../lib/usePreviewBlob.js';
 import { DND_TYPE } from '../lib/dnd.js';
 import { FileMenuItems, type FileMenuHandlers } from './FileMenu.js';
 import { PersonAvatar } from './PersonAvatar.js';
@@ -28,6 +29,11 @@ function FileTableRow({ item, selected, onClick, onDoubleClick, onContextMenuOpe
   const [dropHov, setDropHov] = useState(false);
   const cfg = fileTypeStyle(item.type);
   const folderColor = item.color ?? '#f59e0b';
+  // List rows used to show the same generic type icon for every file,
+  // including a real photo — only the grid view (FileCard.tsx) ever fetched
+  // an actual thumbnail. Same real preview fetch, just at row-icon size.
+  const isImage = previewKind(item.type) === 'image';
+  const { url: thumbUrl } = usePreviewBlob(isImage ? item.id : null);
 
   return (
     <ContextMenu>
@@ -59,7 +65,9 @@ function FileTableRow({ item, selected, onClick, onDoubleClick, onContextMenuOpe
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               {item.type === 'folder'
                 ? <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, borderRadius: 'var(--r)', background: `${folderColor}22`, flexShrink: 0 }}><Icon name="folder" size={16} color={folderColor} /></span>
-                : <FeaturedIcon variant={cfg.variant} size="sm"><Icon name={cfg.icon} size={15} /></FeaturedIcon>
+                : isImage && thumbUrl
+                  ? <img src={thumbUrl} alt="" style={{ width: 32, height: 32, borderRadius: 'var(--r-sm)', objectFit: 'cover', flexShrink: 0, border: '1px solid var(--border)' }} />
+                  : <FeaturedIcon variant={cfg.variant} size="sm"><Icon name={cfg.icon} size={15} /></FeaturedIcon>
               }
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.name}</div>
@@ -79,9 +87,18 @@ function FileTableRow({ item, selected, onClick, onDoubleClick, onContextMenuOpe
           </TableCell>
           <TableCell style={{ color: 'var(--ink3)', whiteSpace: 'nowrap' }}>{fmtSize(item.size)}</TableCell>
           <TableCell>
-            <div style={{ display: 'flex' }}>
-              {(item.shared ?? []).slice(0, 3).map((p, i) => <span key={i} style={{ marginLeft: i > 0 ? -6 : 0 }}><PersonAvatar name={p.name} size={20} /></span>)}
-            </div>
+            {(item.shared ?? []).length > 0 ? (
+              <div style={{ display: 'flex' }}>
+                {item.shared!.slice(0, 3).map((p, i) => <span key={i} style={{ marginLeft: i > 0 ? -6 : 0 }}><PersonAvatar name={p.name} size={20} /></span>)}
+                {item.shared!.length > 3 && (
+                  <span style={{ marginLeft: -6, width: 20, height: 20, borderRadius: '50%', border: '2px solid var(--white)', background: 'var(--bg)', color: 'var(--ink3)', fontSize: 9.5, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    +{item.shared!.length - 3}
+                  </span>
+                )}
+              </div>
+            ) : (
+              <span style={{ fontSize: 12, color: 'var(--ink3)' }}>—</span>
+            )}
           </TableCell>
           <TableCell onClick={e => e.stopPropagation()}>
             <DropdownMenu>
@@ -104,7 +121,7 @@ function FileTableRow({ item, selected, onClick, onDoubleClick, onContextMenuOpe
   );
 }
 
-export function FileTable({ items, selectedIds, isTrashed, menuHandlers, onItemClick, onItemDoubleClick, onContextMenuOpen, onToggleSelect, onMoveHere }: {
+export function FileTable({ items, selectedIds, isTrashed, menuHandlers, onItemClick, onItemDoubleClick, onContextMenuOpen, onToggleSelect, onSelectAll, onMoveHere }: {
   items: CloudFile[];
   selectedIds: Set<string>;
   isTrashed: boolean;
@@ -113,14 +130,26 @@ export function FileTable({ items, selectedIds, isTrashed, menuHandlers, onItemC
   onItemDoubleClick: (item: CloudFile) => void;
   onContextMenuOpen: (item: CloudFile) => void;
   onToggleSelect: (item: CloudFile) => void;
+  onSelectAll: (items: CloudFile[], selected: boolean) => void;
   onMoveHere: (draggedId: string, targetFolderId: string) => void;
 }) {
+  // Selecting was only ever possible one row at a time (click, ctrl/cmd-
+  // click, or shift-click) — there was no way to select every row in a
+  // section in one action, the header checkbox slot sat empty.
+  const allSelected = items.length > 0 && items.every(i => selectedIds.has(i.id));
+  const someSelected = !allSelected && items.some(i => selectedIds.has(i.id));
   return (
     <div style={{ border: 'var(--card-border)', borderRadius: 'var(--r)', overflow: 'hidden', background: 'var(--card-bg)' }}>
       <Table>
         <TableHeader>
           <TableRow className="hover:bg-transparent">
-            <TableHead style={{ width: 36 }} />
+            <TableHead style={{ width: 36 }}>
+              <Checkbox
+                checked={allSelected ? true : someSelected ? 'indeterminate' : false}
+                onCheckedChange={checked => onSelectAll(items, checked === true)}
+                aria-label="Select all"
+              />
+            </TableHead>
             <TableHead>Name</TableHead>
             <TableHead>Owner</TableHead>
             <TableHead>{isTrashed ? 'Deleted' : 'Last modified'}</TableHead>

@@ -39,6 +39,7 @@ export const LAUNCHER_APPS: Array<{ id: string; name: string; color: string; pat
   { id: 'onsite',    name: 'Onsite',   color: '#0f172a', path: '/onsite'    },
   { id: 'hudubi',    name: 'HuduBI',   color: '#18181b', path: '/hudubi'    },
   { id: 'petti',     name: 'Petti',    color: '#16a34a', path: '/petti'     },
+  { id: 'sign',      name: 'eSign',    color: '#2563eb', path: '/sign'      },
 ];
 
 // ── App SVG icons for launcher ─────────────────────────────────
@@ -71,6 +72,7 @@ export const LAUNCHER_SVG_ICONS: Record<string, React.ReactElement> = {
   cargotracker: (<g stroke="white" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="10" width="17" height="14"/><path d="M21 15h6l5 5v4h-11z"/><circle cx="11" cy="27" r="2.3" fill="white" stroke="none"/><circle cx="26" cy="27" r="2.3" fill="white" stroke="none"/></g>),
   hudubi: (<g fill="white"><rect x="8" y="24" width="5.5" height="10" rx="1.5"/><rect x="17.25" y="16" width="5.5" height="18" rx="1.5" opacity="0.85"/><rect x="26.5" y="8" width="5.5" height="26" rx="1.5" opacity="0.7"/><path d="M7 18 L16 11 L23 15 L33 6" stroke="#fcd34d" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round"/><circle cx="33" cy="6" r="2" fill="#fcd34d"/></g>),
   petti: (<g><path d="M7 12C7 9.8 8.8 8 11 8H27C29.2 8 31 9.8 31 12V13H11C8.8 13 7 14.8 7 17V26C7 28.2 8.8 30 11 30H29C30.7 30 32 28.7 32 27V16C32 14.3 30.7 13 29 13" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/><path d="M7 17V27C7 29.2 8.8 31 11 31H29C30.7 31 32 29.7 32 28V16" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" opacity="0.55"/><circle cx="25.5" cy="21.5" r="2.4" fill="#facc15"/></g>),
+  sign: (<g stroke="white" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round"><path d="M31 9L27 5L13 19L11 25L17 23L31 9Z" /><path d="M9 31C16 31 20 28 31 28" opacity="0.75" /></g>),
   // Not part of LAUNCHER_APPS (that list is shared with the header/AppLauncher
   // switcher, which every tenant user sees, unfiltered by role) — this icon is
   // only referenced directly, by id, from WorkspaceHome's own SUPER_ADMIN-only

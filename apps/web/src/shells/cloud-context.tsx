@@ -25,6 +25,11 @@ export interface CloudFile {
   color: string | null;
   description: string | null;
   owner_name: string;
+  /** A real users.id for every staff-created row (files.routes.ts) — null
+   *  only for a customer-portal upload (no matching users row to point at).
+   *  Lets an owner's card show their real uploaded photo instead of always
+   *  falling back to initials from owner_name. */
+  owner_id: string | null;
   starred: boolean;
   is_trash: boolean;
   trashed_at: string | null;

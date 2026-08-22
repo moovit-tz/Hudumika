@@ -52,6 +52,7 @@ export const APP_LABELS: Record<AppId, string> = {
   hudubi:        'HuduBI',
   petti:         'Petti',
   notes:         'Notes',
+  sign:          'eSign',
 };
 
 // Every app defaults to the single brand accent (matches --teal in index.css)
@@ -72,6 +73,7 @@ export const APP_COLORS: Record<AppId, string> = {
   ai: DEFAULT_APP_COLOR, workspace: DEFAULT_APP_COLOR, admin: DEFAULT_APP_COLOR,
   email: DEFAULT_APP_COLOR, crm: DEFAULT_APP_COLOR, contacts: DEFAULT_APP_COLOR,
   store: DEFAULT_APP_COLOR, calendar: DEFAULT_APP_COLOR, tasks: DEFAULT_APP_COLOR, notes: DEFAULT_APP_COLOR,
+  sign: '#1a56db',
   demurrage: DEFAULT_APP_COLOR, cargotracker: DEFAULT_APP_COLOR, seal: DEFAULT_APP_COLOR,
   inventory: DEFAULT_APP_COLOR, hudubi: DEFAULT_APP_COLOR, petti: DEFAULT_APP_COLOR,
 };
@@ -112,6 +114,7 @@ export const APP_PALETTE_SLOT: Record<AppId, number> = {
   // 7 — platform, identity & tooling
   admin: 7, oneid: 7, onesite: 7, onsite: 7, workspace: 7,
   studio: 7, ai: 7, calendar: 7, tasks: 7, cloud: 7, hudubi: 7,
+  sign: 2,  // compliance & legal slot — signatures belong here
 };
 
 export const ActiveAppContext = React.createContext<AppId | null>(null);

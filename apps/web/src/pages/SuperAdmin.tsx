@@ -494,6 +494,8 @@ const TENANT_APPS: { id: string; name: string; color: string }[] = [
   { id: 'demurrage',     name: 'Demurrage',    color: 'var(--red)' },
   { id: 'cargotracker',  name: 'CargoTracker', color: 'var(--purple)' },
   { id: 'petti',         name: 'Petti',        color: 'var(--green)' },
+  { id: 'notes',         name: 'Notes',        color: 'var(--gold)' },
+  { id: 'sign',          name: 'eSign',        color: 'var(--blue)' },
 ];
 
 interface TenantCustomer {
@@ -981,7 +983,7 @@ export function SubscriptionsView() {
 const ALL_FEATURE_KEYS = [
   'ai', 'clearos', 'cloud', 'complyos', 'contacts', 'email', 'finops', 'oneid', 'nexushr', 'tracking',
   'tracking.cargo-loading', 'tracking.warehouse', 'tracking.analytics', 'tracking.reports',
-  'demurrage', 'cargotracker', 'petti',
+  'demurrage', 'cargotracker', 'petti', 'notes', 'sign',
 ];
 
 /** Real, wired editor for which entitlement feature keys a package grants — PATCHes
@@ -2218,14 +2220,14 @@ const APP_LABELS: Record<string, string> = {
   ai: 'AI', clearos: 'ClearOS', cloud: 'Cloud', complyos: 'ComplyOS',
   contacts: 'Contacts', email: 'Email', finops: 'FinOps', oneid: 'Ondi',
   nexushr: 'NexusHR', tracking: 'Tracking', demurrage: 'Demurrage', cargotracker: 'CargoTracker',
-  petti: 'Petti',
+  petti: 'Petti', notes: 'Notes', sign: 'eSign',
 };
 
 const APP_ICONS: Record<string, IconName> = {
   ai: 'sparkle', clearos: 'ship', cloud: 'folder', complyos: 'shield',
   contacts: 'contact', email: 'mail', finops: 'dollarSign', oneid: 'key',
   nexushr: 'users', tracking: 'truck', demurrage: 'timer', cargotracker: 'container',
-  petti: 'wallet',
+  petti: 'wallet', notes: 'fileText', sign: 'stamp',
 };
 
 interface AppStatusRow { app_id: string; status: 'active' | 'maintenance'; message: string | null; updated_at: string; }

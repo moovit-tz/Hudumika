@@ -11,6 +11,7 @@ import { CloudSync } from '../services/cloud-sync.service.js';
 import { getStorageQuota, wouldExceedStorageQuota } from '../lib/storage-quota.js';
 import { emitDomainEvent } from '../services/domain-events.service.js';
 import { resolveServedContentType } from '../lib/safe-file-serving.js';
+import { bumpCloudFolderCount } from '../lib/cloud-folder-count.js';
 
 function fmtGB(bytes: number): string {
   return `${(bytes / 1_073_741_824).toFixed(1)} GB`;
@@ -42,58 +43,19 @@ async function ensureDefaultDrive(trx: Transaction<Database>, tenantId: string):
 const STORAGE_PROVIDERS = ['box', 'dropbox', 'mega', 'onedrive'] as const;
 type StorageProvider = typeof STORAGE_PROVIDERS[number];
 
-const PROVIDER_LABEL: Record<StorageProvider, string> = {
-  box: 'Box', dropbox: 'Dropbox', mega: 'Mega', onedrive: 'OneDrive',
-};
-
-interface ExtSeedItem { key: string; parentKey: string | null; name: string; type: string; size?: number; daysAgo?: number }
-
-function externalSeedFor(provider: StorageProvider): ExtSeedItem[] {
-  const p = PROVIDER_LABEL[provider];
-  return [
-    { key:'F1', parentKey:null, name:`${p} Backups`,     type:'folder', daysAgo:40 },
-    { key:'F2', parentKey:null, name:`${p} Shared Docs`, type:'folder', daysAgo:20 },
-    { key:'R1', parentKey:null, name:'Company_Overview.pdf', type:'pdf', size:1_200_000, daysAgo:10 },
-    { key:'S1', parentKey:'F1', name:'Backup_2025-01.zip', type:'zip', size:820_000_000, daysAgo:35 },
-    { key:'S2', parentKey:'F1', name:'Backup_2025-02.zip', type:'zip', size:910_000_000, daysAgo:5 },
-    { key:'S3', parentKey:'F2', name:'Team_Notes.docx',   type:'docx', size:150_000, daysAgo:12 },
-    { key:'S4', parentKey:'F2', name:'Roadmap.xlsx',      type:'xlsx', size:340_000, daysAgo:8 },
-  ];
-}
-
-async function seedExternalFilesIfEmpty(trx: Transaction<Database>, tenantId: string, provider: StorageProvider) {
-  const existing = await trx.selectFrom('cloud_external_files').select(['id'])
-    .where('tenant_id', '=', tenantId).where('provider', '=', provider).executeTakeFirst();
-  if (existing) return;
-
-  const idMap = new Map<string, string>();
-  const remaining = externalSeedFor(provider);
-  while (remaining.length) {
-    const doneIdxs: number[] = [];
-    for (let i = 0; i < remaining.length; i++) {
-      const item = remaining[i];
-      if (item.parentKey !== null && !idMap.has(item.parentKey)) continue;
-      const row = await trx.insertInto('cloud_external_files').values({
-        tenant_id: tenantId,
-        provider,
-        name: item.name,
-        type: item.type,
-        size: item.size ?? null,
-        parent_id: item.parentKey ? idMap.get(item.parentKey)! : null,
-        created_at: daysAgo(item.daysAgo ?? 10),
-        updated_at: daysAgo(item.daysAgo ?? 10),
-      }).returningAll().executeTakeFirstOrThrow();
-      idMap.set(item.key, row.id);
-      doneIdxs.push(i);
-    }
-    if (doneIdxs.length === 0) break;
-    for (let i = doneIdxs.length - 1; i >= 0; i--) remaining.splice(doneIdxs[i], 1);
-  }
-}
-
-function daysAgo(days: number) {
-  return new Date(Date.now() - days * 86_400_000);
-}
+// There is no real Box/Dropbox/Mega/OneDrive integration anywhere in this
+// codebase — POST /connections/:provider/connect below is a genuinely mocked
+// OAuth handshake (it just records whatever label the user typed), which is
+// an honest, clearly-scoped placeholder on its own. What used to sit here
+// was not: seedExternalFilesIfEmpty invented an entire fake synced file
+// tree — "Backup_2025-01.zip" at 820MB, a "Company_Overview.pdf", etc. — the
+// moment anyone connected a provider, regardless of what (if anything) is
+// actually in their real account. A tenant "connecting" their real Dropbox
+// would see files that were never there. GET /connections/:provider/files
+// now returns whatever is genuinely in cloud_external_files — nothing,
+// until a real sync exists — and the frontend's existing "Nothing synced
+// here yet" empty state (ProviderFilesPanel.tsx) already handles that
+// honestly.
 
 /** Rows come back from pg with BIGINT columns as strings — normalize for the frontend. */
 function serialize(row: any, shared: { name: string; role: string; principal_type?: string | null; principal_id?: string | null }[] = []) {
@@ -171,123 +133,22 @@ async function canCustomerAccessFile(
   return !!shared;
 }
 
-async function bumpParentCount(trx: Transaction<Database>, parentId: string, tenantId: string, countDelta: number, sizeDelta: number) {
-  const parent = await trx.selectFrom('cloud_files').select(['file_count', 'size'])
-    .where('id', '=', parentId).where('tenant_id', '=', tenantId).executeTakeFirst();
-  if (!parent) return;
-  await trx.updateTable('cloud_files').set({
-    file_count: Math.max(0, Number(parent.file_count || 0) + countDelta),
-    size: Math.max(0, Number(parent.size || 0) + sizeDelta),
-    updated_at: new Date(),
-  }).where('id', '=', parentId).execute();
-}
+const bumpParentCount = bumpCloudFolderCount;
 
-interface SeedItem {
-  key: string;
-  parentKey: string | null;
-  name: string;
-  type: string;
-  size?: number;
-  fileCount?: number;
-  color?: string;
-  description?: string;
-  starred?: boolean;
-  shared?: { name: string; role: 'Viewer' | 'Editor' }[];
-  createdDaysAgo?: number;
-  modifiedDaysAgo?: number;
-}
-
-const SEED: SeedItem[] = [
-  { key:'F1', parentKey:null, name:'Shipment Documents',   type:'folder', fileCount:47,  size:2_300_000_000, color:'#f59e0b', description:'Bills of lading, manifests and cargo documents',        createdDaysAgo:150, modifiedDaysAgo:1 },
-  { key:'F2', parentKey:null, name:'Invoices & Billing',   type:'folder', fileCount:234, size:4_800_000_000, color:'#22c55e', description:'Customer invoices, payment receipts and billing records', createdDaysAgo:150, modifiedDaysAgo:2 },
-  { key:'F3', parentKey:null, name:'Customs Declarations', type:'folder', fileCount:89,  size:1_200_000_000, color:'#3b82f6', description:'TANCIS declarations, customs entries and permits',      createdDaysAgo:150, modifiedDaysAgo:3 },
-  { key:'F4', parentKey:null, name:'Purchase Orders',      type:'folder', fileCount:56,  size:  890_000_000, color:'#a855f7', description:'Supplier purchase orders and goods receipts',           createdDaysAgo:150, modifiedDaysAgo:4 },
-  { key:'F5', parentKey:null, name:'Contracts',            type:'folder', fileCount:23,  size:  450_000_000, color:'#0891b2', description:'Client contracts and service agreements',               createdDaysAgo:150, modifiedDaysAgo:5 },
-  { key:'F6', parentKey:null, name:'Clearance Reports',    type:'folder', fileCount:112, size:3_100_000_000, color:'#ef4444', description:'Monthly and annual clearance summary reports',          createdDaysAgo:150, modifiedDaysAgo:6 },
-  { key:'F7', parentKey:null, name:'Templates',            type:'folder', fileCount:18,  size:  220_000_000, color:'#6b7280', description:'Document templates for common operations',              createdDaysAgo:150, modifiedDaysAgo:16 },
-  { key:'F8', parentKey:null, name:'Client Documents',     type:'folder', fileCount:67,  size:1_700_000_000, color:'#6366f1', description:'Client-specific document collections',                  createdDaysAgo:150, modifiedDaysAgo:1 },
-
-  { key:'R1', parentKey:null, name:'Q1_2025_Summary_Report.pdf',       type:'pdf',  size:2_300_000, starred:true,  shared:[{name:'Amina Hassan',role:'Editor'},{name:'John Mwangi',role:'Viewer'}], createdDaysAgo:1,  modifiedDaysAgo:1 },
-  { key:'R2', parentKey:null, name:'Annual_Clearance_Stats_2024.xlsx', type:'xlsx', size:1_800_000, shared:[{name:'Peter Kimani',role:'Editor'}], createdDaysAgo:20, modifiedDaysAgo:3 },
-  { key:'R3', parentKey:null, name:'Company_Profile.docx',             type:'docx', size:  850_000, createdDaysAgo:40, modifiedDaysAgo:8 },
-  { key:'R4', parentKey:null, name:'Port_Procedures_Handbook.pdf',     type:'pdf',  size:4_200_000, starred:true, shared:[{name:'Fatuma Ally',role:'Viewer'},{name:'Grace Osei',role:'Editor'},{name:'Amina Hassan',role:'Viewer'}], createdDaysAgo:60, modifiedDaysAgo:16 },
-  { key:'R5', parentKey:null, name:'KPI_Dashboard_Feb2025.xlsx',       type:'xlsx', size:2_100_000, shared:[{name:'John Mwangi',role:'Viewer'}], createdDaysAgo:5, modifiedDaysAgo:5 },
-
-  { key:'S1', parentKey:'F1', name:'BL_Summit_Traders_2025-001.pdf',  type:'pdf',  size:450_000, shared:[{name:'Amina Hassan',role:'Viewer'}], createdDaysAgo:1, modifiedDaysAgo:1 },
-  { key:'S2', parentKey:'F1', name:'BL_Serengeti_Foods_2025-002.pdf', type:'pdf',  size:380_000, starred:true, createdDaysAgo:2, modifiedDaysAgo:2 },
-  { key:'S3', parentKey:'F1', name:'Cargo_Manifest_Jan2025.xlsx',     type:'xlsx', size:920_000, createdDaysAgo:14, modifiedDaysAgo:14 },
-  { key:'S4', parentKey:'F1', name:'Packing_List_EAC_001.docx',       type:'docx', size:240_000, createdDaysAgo:17, modifiedDaysAgo:17 },
-  { key:'S5', parentKey:'F1', name:'Insurance_Certificate_Jan.pdf',   type:'pdf',  size:610_000, shared:[{name:'Peter Kimani',role:'Editor'}], createdDaysAgo:20, modifiedDaysAgo:20 },
-  { key:'S6', parentKey:'F1', name:'Freight_Rate_Matrix_Q1.xlsx',     type:'xlsx', size:1_200_000, createdDaysAgo:25, modifiedDaysAgo:25 },
-  { key:'S7', parentKey:'F1', name:'Vessel_Schedule_Feb2025.pdf',     type:'pdf',  size:890_000, createdDaysAgo:7, modifiedDaysAgo:7 },
-  { key:'S8', parentKey:'F1', name:'Arrival_Notice_KE_Cement.pdf',    type:'pdf',  size:320_000, starred:true, createdDaysAgo:3, modifiedDaysAgo:3 },
-  { key:'SF1', parentKey:'F1', name:'Sea Freight', type:'folder', fileCount:12, size:1_100_000_000, color:'#f59e0b', createdDaysAgo:120, modifiedDaysAgo:14 },
-  { key:'SF2', parentKey:'F1', name:'Air Freight',  type:'folder', fileCount:8,  size:  540_000_000, color:'#f59e0b', createdDaysAgo:120, modifiedDaysAgo:21 },
-
-  { key:'I1', parentKey:'F2', name:'INV-2025-001_Summit_Traders.pdf',  type:'pdf',  size:280_000, shared:[{name:'Amina Hassan',role:'Viewer'}], createdDaysAgo:1, modifiedDaysAgo:1 },
-  { key:'I2', parentKey:'F2', name:'INV-2025-002_Serengeti_Foods.pdf', type:'pdf',  size:295_000, createdDaysAgo:3, modifiedDaysAgo:3 },
-  { key:'I3', parentKey:'F2', name:'Invoice_Register_Feb2025.xlsx',    type:'xlsx', size:1_400_000, starred:true, createdDaysAgo:14, modifiedDaysAgo:1 },
-  { key:'I4', parentKey:'F2', name:'Payment_Receipts_Jan2025.pdf',     type:'pdf',  size:760_000, createdDaysAgo:10, modifiedDaysAgo:10 },
-  { key:'I5', parentKey:'F2', name:'Duty_Payments_Q1_2025.xlsx',       type:'xlsx', size:2_200_000, shared:[{name:'John Mwangi',role:'Editor'},{name:'Peter Kimani',role:'Viewer'}], createdDaysAgo:5, modifiedDaysAgo:5 },
-  { key:'I6', parentKey:'F2', name:'Credit_Notes_Summary.docx',        type:'docx', size:430_000, createdDaysAgo:9, modifiedDaysAgo:9 },
-
-  { key:'C1', parentKey:'F3', name:'Declaration_TZ-2025-0341.pdf',    type:'pdf',  size:520_000, createdDaysAgo:2, modifiedDaysAgo:2 },
-  { key:'C2', parentKey:'F3', name:'Declaration_TZ-2025-0342.pdf',    type:'pdf',  size:490_000, starred:true, createdDaysAgo:3, modifiedDaysAgo:3 },
-  { key:'C3', parentKey:'F3', name:'Customs_Entries_Jan2025.xlsx',    type:'xlsx', size:1_800_000, shared:[{name:'Grace Osei',role:'Editor'}], createdDaysAgo:10, modifiedDaysAgo:10 },
-  { key:'C4', parentKey:'F3', name:'Import_Permits_Q1.pdf',           type:'pdf',  size:670_000, createdDaysAgo:16, modifiedDaysAgo:16 },
-  { key:'C5', parentKey:'F3', name:'Tariff_Classification_Guide.pdf', type:'pdf',  size:3_400_000, shared:[{name:'Amina Hassan',role:'Viewer'},{name:'John Mwangi',role:'Viewer'}], createdDaysAgo:30, modifiedDaysAgo:30 },
-];
-
-async function seedSampleFiles(trx: Transaction<Database>, tenantId: string, driveId: string) {
-  const idMap = new Map<string, string>();
-  const remaining = [...SEED];
-  while (remaining.length) {
-    const doneIdxs: number[] = [];
-    for (let i = 0; i < remaining.length; i++) {
-      const item = remaining[i];
-      if (item.parentKey !== null && !idMap.has(item.parentKey)) continue;
-      const row = await trx.insertInto('cloud_files').values({
-        tenant_id: tenantId,
-        drive_id: driveId,
-        name: item.name,
-        type: item.type,
-        size: item.size ?? null,
-        file_count: item.fileCount ?? 0,
-        parent_id: item.parentKey ? idMap.get(item.parentKey)! : null,
-        color: item.color ?? null,
-        description: item.description ?? null,
-        owner_name: 'You',
-        starred: item.starred ?? false,
-        created_at: daysAgo(item.createdDaysAgo ?? 30),
-        updated_at: daysAgo(item.modifiedDaysAgo ?? item.createdDaysAgo ?? 5),
-      }).returningAll().executeTakeFirstOrThrow();
-      idMap.set(item.key, row.id);
-      if (item.shared?.length) {
-        await trx.insertInto('cloud_file_shares').values(
-          item.shared.map(s => ({ file_id: row.id, person_name: s.name, role: s.role }))
-        ).execute();
-      }
-      doneIdxs.push(i);
-    }
-    if (doneIdxs.length === 0) break; // safety valve against a bad parentKey
-    for (let i = doneIdxs.length - 1; i >= 0; i--) remaining.splice(doneIdxs[i], 1);
-  }
-
-  // The SEED table above hand-writes each folder's fileCount/size as flavor
-  // text (e.g. "47 files / 2.3GB") — numbers that never matched the handful
-  // of rows actually seeded underneath. Recompute every folder's real
-  // direct-child count/size from what was actually inserted, the same way
-  // bumpParentCount keeps it correct for every real upload/delete afterward.
-  const folderIds = [...idMap.values()];
-  for (const folderId of folderIds) {
-    const agg = await trx.selectFrom('cloud_files')
-      .select(({ fn }) => [fn.countAll<number>().as('n'), fn.sum<string>('size').as('total_size')])
-      .where('parent_id', '=', folderId).where('tenant_id', '=', tenantId).executeTakeFirst();
-    await trx.updateTable('cloud_files')
-      .set({ file_count: Number(agg?.n ?? 0), size: agg?.total_size != null ? Number(agg.total_size) : 0 })
-      .where('id', '=', folderId).where('tenant_id', '=', tenantId).execute();
-  }
-}
+// A brand-new tenant's Drive used to be seeded here with an entire fake
+// document tree on first load — 8 category folders each hand-annotated with
+// a fabricated file count ("47 files / 2.3GB"), 17 demo files with invented
+// business names (BL_Summit_Traders_2025-001.pdf, INV-2025-001...), and
+// several of those "shared" with fictional colleagues (Amina Hassan, John
+// Mwangi, ...) who don't exist as real users in this or any tenant. Same
+// reasoning as the Notes app's own seed removal this session: a new tenant
+// starts with a genuinely empty Drive, exactly like it starts with zero
+// customers, zero shipments, zero of anything else real. FileBrowser.tsx's
+// UploadDropzone and CloudHome's conditional sections already handle an
+// empty drive correctly — there was never a rendering reason for this to
+// exist, only a "the demo looks nicer non-empty" one. The real, structural
+// folders (Customers ▸ <name>, Employees ▸ <name>, ...) are created for real
+// as real customers/shipments/employees are added — see cloud-sync.service.ts.
 
 export async function filesRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
@@ -545,18 +406,8 @@ export async function filesRoutes(fastify: FastifyInstance) {
           .where('id', '=', drive_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
         if (!drive) return reply.status(404).send({ error: 'Drive not found' });
 
-        let rows = await trx.selectFrom('cloud_files').selectAll()
+        const rows = await trx.selectFrom('cloud_files').selectAll()
           .where('tenant_id', '=', user.tenant_id).where('drive_id', '=', drive_id).orderBy('created_at').execute();
-
-        if (rows.length === 0 && drive.type === 'personal') {
-          const driveCount = await trx.selectFrom('cloud_drives').select(({ fn }) => fn.countAll().as('n'))
-            .where('tenant_id', '=', user.tenant_id).executeTakeFirst();
-          if (Number(driveCount?.n ?? 0) === 1) {
-            await seedSampleFiles(trx, user.tenant_id, drive_id);
-            rows = await trx.selectFrom('cloud_files').selectAll()
-              .where('tenant_id', '=', user.tenant_id).where('drive_id', '=', drive_id).orderBy('created_at').execute();
-          }
-        }
         return attachShares(trx, rows);
       });
     } catch (err: any) {
@@ -1324,7 +1175,6 @@ export async function filesRoutes(fastify: FastifyInstance) {
           status: 'connected', account_label: account_label?.trim() || null,
           connected_at: now, last_synced_at: now, updated_at: now,
         })).execute();
-        await seedExternalFilesIfEmpty(trx, user.tenant_id, provider as StorageProvider);
         return trx.selectFrom('cloud_storage_connections').selectAll()
           .where('tenant_id', '=', user.tenant_id).where('provider', '=', provider).executeTakeFirstOrThrow();
       });
@@ -1333,7 +1183,12 @@ export async function filesRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // GET /connections/:provider/files — the (mocked) synced folders/files for this provider
+  // GET /connections/:provider/files — whatever cloud_external_files
+  // genuinely holds for this provider. Nothing writes to that table today
+  // (no real Box/Dropbox/Mega/OneDrive sync exists) — this used to fall back
+  // to fabricating an entire fake synced tree the first time it came back
+  // empty; it no longer does, so this is honestly empty until a real sync
+  // is built.
   fastify.get('/connections/:provider/files', async (req, reply) => {
     const user = req.user;
     if (user.role === 'CUSTOMER') return reply.status(403).send({ error: 'Not available for customer accounts' });

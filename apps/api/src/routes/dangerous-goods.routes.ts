@@ -5,6 +5,8 @@ import {
   searchDgReference, createDgDeclaration, listDgDeclarations, getDgDeclaration,
   issueDgDeclaration, renderDgDeclarationPdf,
 } from '../services/dangerous-goods.service.js';
+import { withTenant } from '../db/client.js';
+import { CloudSync } from '../services/cloud-sync.service.js';
 
 const createSchema = z.object({
   subjectType: z.enum(['shipment', 'seal_lot', 'adhoc']).default('adhoc'),
@@ -71,8 +73,39 @@ export async function dangerousGoodsRoutes(fastify: FastifyInstance) {
 
   fastify.patch('/declarations/:id/issue', async (request: any, reply) => {
     const { id } = request.params as { id: string };
+    const tenantId = request.user.tenant_id;
     try {
-      return await issueDgDeclaration(request.user.tenant_id, id, request.user.sub);
+      const decl = await issueDgDeclaration(tenantId, id, request.user.sub);
+
+      // Same treatment as Release Orders/CoO's own issue handlers: file the
+      // real, final declaration in the shipment's own Cloud folder instead
+      // of only ever regenerating it on demand. Only when subject_type is
+      // really 'shipment' — a seal_lot/adhoc declaration has no BL folder.
+      if (decl.subject_type === 'shipment' && decl.subject_id) {
+        const shipment = await withTenant(tenantId, trx =>
+          trx.selectFrom('shipment_cases').select(['customer_id', 'bl_number', 'awb_number', 'ref_number'])
+            .where('id', '=', decl.subject_id!).where('tenant_id', '=', tenantId).executeTakeFirst()
+        );
+        const blRef = (shipment?.bl_number || shipment?.awb_number || shipment?.ref_number || '').trim();
+        if (blRef) {
+          renderDgDeclarationPdf(tenantId, id).then(pdf =>
+            CloudSync.syncShipmentDoc(tenantId, {
+              customerId: shipment?.customer_id ?? null,
+              shipmentId: decl.subject_id!,
+              blRef,
+              // un_number is sometimes typed with the "UN" prefix already
+              // (e.g. "UN1230"), sometimes without (just "1230") — this
+              // used to always prepend one, producing "UNUN1230.pdf" for
+              // the former.
+              filename: `DG Declaration — ${/^un/i.test(decl.un_number) ? decl.un_number : `UN${decl.un_number}`}.pdf`,
+              buffer: pdf,
+              mime: 'application/pdf',
+            })
+          ).catch(err => console.error('[Cloud] DG declaration mirror failed:', err.message));
+        }
+      }
+
+      return decl;
     } catch (err: any) {
       return reply.status(400).send({ error: err.message });
     }

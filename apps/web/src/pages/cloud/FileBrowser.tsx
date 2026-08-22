@@ -48,6 +48,10 @@ export const FileBrowser: React.FC = () => {
   const [moveTarget, setMoveTarget] = useState<string[] | null>(null);
   const [renameTarget, setRenameTarget] = useState<CloudFile | null>(null);
   const [lightboxItem, setLightboxItem] = useState<CloudFile | null>(null);
+  // Re-derived from the live files list (not the stale object captured when
+  // the lightbox opened) so its own Star button reflects the toggle it just
+  // made, same reasoning as previewItem above.
+  const liveLightboxItem = lightboxItem ? files.find(f => f.id === lightboxItem.id) ?? lightboxItem : null;
 
   function clearSelection() { setSelectedIds(new Set()); setLastAnchorId(null); }
 
@@ -112,6 +116,19 @@ export const FileBrowser: React.FC = () => {
     });
     setLastAnchorId(item.id);
   }
+
+  function handleSelectAll(itemsToSelect: CloudFile[], select: boolean) {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      for (const item of itemsToSelect) {
+        if (select) next.add(item.id);
+        else next.delete(item.id);
+      }
+      return next;
+    });
+  }
+
+
 
   function openItem(item: CloudFile) {
     if (item.type === 'folder' && !isTrashView) { openFolder(item); clearSelection(); }
@@ -257,12 +274,13 @@ export const FileBrowser: React.FC = () => {
             )}
 
             {folders.length > 0 && (
-              <div style={{ marginBottom: 24 }}>
-                <div style={{ fontSize: 14.5, fontWeight: 500, color: 'var(--ink2)', margin: '0 0 12px' }}>
-                  Folders <span style={{ fontWeight: 400 }}>({folders.length})</span>
+              <div style={{ marginBottom: 28 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink3)', margin: '0 0 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ textTransform: 'uppercase', letterSpacing: '0.06em', fontSize: 11 }}>Folders</span>
+                  <span style={{ fontWeight: 400, color: 'var(--ink3)' }}>({folders.length})</span>
                 </div>
                 {viewMode === 'grid' ? (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10 }}>
                     {folders.map(item => (
                       <FolderCard key={item.id} item={item} selected={selectedIds.has(item.id)} isTrashed={isTrashView} menuHandlers={menuHandlers}
                         onClick={e => selectItem(item, e)}
@@ -276,7 +294,7 @@ export const FileBrowser: React.FC = () => {
                   <FileTable
                     items={folders} selectedIds={selectedIds} isTrashed={isTrashView} menuHandlers={menuHandlers}
                     onItemClick={selectItem} onItemDoubleClick={openItem} onContextMenuOpen={selectForContextMenu}
-                    onToggleSelect={toggleSelect} onMoveHere={handleMoveHere}
+                    onToggleSelect={toggleSelect} onSelectAll={handleSelectAll} onMoveHere={handleMoveHere}
                   />
                 )}
               </div>
@@ -284,11 +302,12 @@ export const FileBrowser: React.FC = () => {
 
             {filesOnly.length > 0 && (
               <div>
-                <div style={{ fontSize: 14.5, fontWeight: 500, color: 'var(--ink2)', margin: '0 0 12px' }}>
-                  Files <span style={{ fontWeight: 400 }}>({filesOnly.length})</span>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink3)', margin: '0 0 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ textTransform: 'uppercase', letterSpacing: '0.06em', fontSize: 11 }}>Files</span>
+                  <span style={{ fontWeight: 400, color: 'var(--ink3)' }}>({filesOnly.length})</span>
                 </div>
                 {viewMode === 'grid' ? (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: 16 }}>
                     {filesOnly.map(item => (
                       <FileCard key={item.id} item={item} selected={selectedIds.has(item.id)} isTrashed={isTrashView} menuHandlers={menuHandlers}
                         onClick={e => selectItem(item, e)}
@@ -301,7 +320,7 @@ export const FileBrowser: React.FC = () => {
                   <FileTable
                     items={filesOnly} selectedIds={selectedIds} isTrashed={isTrashView} menuHandlers={menuHandlers}
                     onItemClick={selectItem} onItemDoubleClick={openItem} onContextMenuOpen={selectForContextMenu}
-                    onToggleSelect={toggleSelect} onMoveHere={handleMoveHere}
+                    onToggleSelect={toggleSelect} onSelectAll={handleSelectAll} onMoveHere={handleMoveHere}
                   />
                 )}
               </div>
@@ -340,11 +359,19 @@ export const FileBrowser: React.FC = () => {
         <Icon name="plus" size={24} color="#ffffff" />
       </button>
 
-      {lightboxItem && (
+      {liveLightboxItem && (
         <Lightbox
-          item={lightboxItem}
+          item={liveLightboxItem}
           onClose={() => setLightboxItem(null)}
           onDownload={handleDownload}
+          // ShareModal is a plain .modal-overlay (z-index: 200); Lightbox is
+          // a Radix Dialog (z-[9999]). Opening Share while the Lightbox
+          // stayed open rendered the modal genuinely mounted, just entirely
+          // behind the still-open viewer — clicking it did nothing visible,
+          // which is exactly what "the button doesn't work" looks like.
+          // Closing the Lightbox first makes the modal the only overlay.
+          onShare={item => { setLightboxItem(null); setShareTarget(item); }}
+          onStar={handleStar}
         />
       )}
 

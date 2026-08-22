@@ -4,6 +4,39 @@ import { z } from 'zod';
 import { withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import { GLService } from '../services/gl.service.js';
+import { CloudSync } from '../services/cloud-sync.service.js';
+
+/** A shipment expense's receipt used to live only as a base64 blob inline in
+ *  Postgres (finance_expenses.attachment_data) — real, but invisible outside
+ *  this one screen, never showing up alongside the rest of a shipment's
+ *  paperwork in Cloud. Mirrors a copy into the shipment's own Customers ▸
+ *  <customer> ▸ <BL> folder without changing attachment_data's role as the
+ *  record's own source of truth. No-ops silently when there's no shipment to
+ *  file it under, or the data URL doesn't parse (never blocks the expense
+ *  save itself). */
+async function mirrorExpenseAttachment(tenantId: string, expense: { id: string; name: string; shipment_id: string | null; attachment_data: string | null }) {
+  if (!expense.shipment_id || !expense.attachment_data) return;
+  const match = expense.attachment_data.match(/^data:([^;]+);base64,(.+)$/);
+  if (!match) return;
+  const [, mime, base64] = match;
+  const ext = mime.split('/')[1]?.split('+')[0] || 'bin';
+
+  const shipment = await withTenant(tenantId, trx =>
+    trx.selectFrom('shipment_cases').select(['customer_id', 'bl_number', 'awb_number', 'ref_number'])
+      .where('id', '=', expense.shipment_id!).where('tenant_id', '=', tenantId).executeTakeFirst()
+  );
+  const blRef = (shipment?.bl_number || shipment?.awb_number || shipment?.ref_number || '').trim();
+  if (!blRef) return;
+
+  await CloudSync.syncShipmentDoc(tenantId, {
+    customerId: shipment?.customer_id ?? null,
+    shipmentId: expense.shipment_id,
+    blRef,
+    filename: `Expense — ${expense.name}.${ext}`,
+    buffer: Buffer.from(base64, 'base64'),
+    mime,
+  });
+}
 
 // Real values — FinanceExpenseNew.tsx's own CATS map. No DB CHECK constraint
 // backs this (finance_expenses.category is a plain VARCHAR), so this is the
@@ -219,6 +252,7 @@ export async function financeExpensesRoutes(fastify: FastifyInstance) {
     // recorded expense, but it is logged, never silently swallowed.
     try { await postExpenseToGl(user.tenant_id, row, user.sub); }
     catch (e: any) { request.log.error({ err: e }, '[Finance] expense GL post failed'); }
+    mirrorExpenseAttachment(user.tenant_id, row).catch(e => request.log.warn({ err: e.message }, '[Cloud] expense attachment mirror failed'));
     return reply.status(201).send(row);
   });
 
@@ -259,6 +293,9 @@ export async function financeExpensesRoutes(fastify: FastifyInstance) {
       await GLService.reverseBySource(user.tenant_id, 'EXPENSE', id);
       await postExpenseToGl(user.tenant_id, row, user.sub);
     } catch (e: any) { request.log.error({ err: e }, '[Finance] expense GL re-post failed'); }
+    if ('attachment_data' in patch || 'shipment_id' in patch) {
+      mirrorExpenseAttachment(user.tenant_id, row).catch(e => request.log.warn({ err: e.message }, '[Cloud] expense attachment mirror failed'));
+    }
     return row;
   });
 

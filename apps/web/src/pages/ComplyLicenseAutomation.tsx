@@ -299,9 +299,12 @@ export function ComplyLicenseAutomation() {
                 className="comply-btn-primary comply-btn-sm"
                 onClick={handleCaptureInAppBrowser}
                 disabled={uploading}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
               >
-                <Icon name="info" size={13} />
-                <span>How do I import this?</span>
+                <span style={uploading ? { display: 'inline-flex', animation: 'spin 1s linear infinite' } : { display: 'inline-flex' }}>
+                  <Icon name={uploading ? 'refresh' : 'zap'} size={13} color="#fff" />
+                </span>
+                <span>{uploading ? 'Capturing...' : 'Capture & Sync'}</span>
               </button>
             </div>
 
@@ -558,9 +561,13 @@ export function ComplyLicenseAutomation() {
                   type="button"
                   className="comply-btn-primary comply-btn-sm"
                   onClick={handleCaptureInAppBrowser}
+                  disabled={uploading}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
                 >
-                  <Icon name="info" size={13} />
-                  <span>How do I import this?</span>
+                  <span style={uploading ? { display: 'inline-flex', animation: 'spin 1s linear infinite' } : { display: 'inline-flex' }}>
+                    <Icon name={uploading ? 'refresh' : 'zap'} size={13} color="#fff" />
+                  </span>
+                  <span>{uploading ? 'Capturing...' : 'Capture & Sync'}</span>
                 </button>
                 <button
                   onClick={() => setIsTausiLoginDialogOpen(false)}
