@@ -15,6 +15,8 @@ import './Settings.css';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Badge } from '../components/ui/badge.js';
 import { EntityPicker } from '../components/EntityPicker.js';
+import { Button } from '../components/ui/button.js';
+import { SignaturePad } from '../components/SignaturePad.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import { useEntitlements, resetEntitlementsCache } from '../hooks/useEntitlements.js';
@@ -2148,6 +2150,70 @@ interface ApiKeyRow {
   last_used_at: string | null; revoked_at: string | null; created_at: string;
 }
 
+// -- section: E-Sign (company stamp) -----------------------------------------
+// The 'other-esign' nav entry existed with no case in renderSection below —
+// it fell through to a placeholder GenericSection. This is the tenant's one
+// company stamp (sign_stamps, owner_type='tenant' — migration 277), applied
+// to documents by whoever has stamp access (role gate: M5) or via the
+// generic cross-app stamp API (M6). A person's own personal signature is a
+// separate, self-managed thing under their own NexusHR profile, not here.
+const EsignSection: React.FC = () => {
+  const [stamp, setStamp] = useState<{ id: string; image_data: string; label: string | null } | null | undefined>(undefined);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [showPad, setShowPad] = useState(false);
+
+  useEffect(() => {
+    apiFetch('/v1/sign/stamps/tenant').then(setStamp).catch(() => setStamp(null));
+  }, []);
+
+  async function handleCapture(dataUrl: string) {
+    setSaving(true);
+    try {
+      const row = await apiFetch('/v1/sign/stamps/tenant', { method: 'PUT', body: JSON.stringify({ image_data: dataUrl }) });
+      setStamp(row);
+      setShowPad(false);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleRemove() {
+    if (!confirm('Remove the company stamp? Anyone applying a tenant stamp to a document will no longer have one until a new one is saved.')) return;
+    await apiFetch('/v1/sign/stamps/tenant', { method: 'DELETE' });
+    setStamp(null);
+  }
+
+  return (
+    <>
+      <Card title="Company Stamp" desc="The one official stamp your team applies to documents through Hudumika eSign — visible on any envelope or cross-app document a person with stamp access signs on the company's behalf.">
+        {stamp === undefined ? (
+          <div style={{ color: 'var(--ink3)', fontSize: 13 }}>Loading…</div>
+        ) : stamp && !showPad ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+            <div style={{ width: 160, height: 90, border: '1px solid var(--border)', borderRadius: 8, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+              <img src={stamp.image_data} alt="Company stamp" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <Button variant="outline" size="sm" onClick={() => setShowPad(true)}>Replace</Button>
+              <Button variant="outline" size="sm" onClick={handleRemove} style={{ borderColor: 'var(--red)', color: 'var(--red)' }}>Remove</Button>
+            </div>
+          </div>
+        ) : (
+          <div style={{ maxWidth: 560 }}>
+            <SignaturePad onCapture={handleCapture} />
+            {stamp && <Button variant="ghost" size="sm" onClick={() => setShowPad(false)} style={{ marginTop: 8 }}>Cancel</Button>}
+          </div>
+        )}
+      </Card>
+      {saving && <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginTop: 8 }}>Saving…</div>}
+      {saved && <div style={{ fontSize: 12.5, color: 'var(--green)', marginTop: 8 }}>Saved.</div>}
+    </>
+  );
+};
+
 const ApiKeysSection: React.FC = () => {
   const [keys, setKeys] = useState<ApiKeyRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -2590,6 +2656,7 @@ function renderSection(key: string): React.ReactNode {
     case 'int-sms':             return <SMSSection />;
     case 'int-tancis':          return <TRASection />;
     case 'other-pdf':           return <PDFSection />;
+    case 'other-esign':         return <EsignSection />;
     case 'modules':             return <ModulesSection />;
     case 'developer-api':       return <ApiKeysSection />;
     default: {

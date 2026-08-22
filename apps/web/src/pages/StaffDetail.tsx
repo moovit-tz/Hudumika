@@ -11,6 +11,8 @@ import { showAlert } from '../lib/alert.js';
 import { RecordActivity } from '../components/RecordActivity.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { StaffContracts, StaffEmergencyContacts } from '../components/StaffContracts.js';
+import { Button } from '../components/ui/button.js';
+import { SignaturePad } from '../components/SignaturePad.js';
 
 interface StaffData {
   id: string;
@@ -240,6 +242,85 @@ function TabTable({ loading, rows, head, row, empty, summary }: {
   );
 }
 
+/** A person's own saved signature(s)/stamp(s) (sign_stamps, migration 277)
+ *  — self-managed via /v1/sign/stamps/mine, same convention as the "Tag a
+ *  person" picker's own preference for real records over free text. A
+ *  manager/HR admin viewing a report's profile gets the exact same
+ *  read-only-vs-editable split the Permissions tab already established
+ *  ("Derived from the role checks the API actually enforces"): here, that's
+ *  simply isSelf, since writing is inherently self-only by construction. */
+function SignatureTab({ isSelf, stamps, loading, onChanged }: {
+  isSelf: boolean;
+  stamps: Array<{ id: string; image_data: string; label: string | null; created_at: string }>;
+  loading: boolean;
+  onChanged: () => void;
+}) {
+  const [showPad, setShowPad] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  async function handleCapture(dataUrl: string) {
+    setSaving(true);
+    try {
+      await apiFetch('/v1/sign/stamps/mine', { method: 'POST', body: JSON.stringify({ image_data: dataUrl }) });
+      setShowPad(false);
+      onChanged();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDelete(stampId: string) {
+    if (!confirm('Remove this signature?')) return;
+    await apiFetch(`/v1/sign/stamps/mine/${stampId}`, { method: 'DELETE' });
+    onChanged();
+  }
+
+  if (loading) {
+    return <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--ink3)', background: 'var(--white)', borderRadius: 10, border: '1px solid var(--border)' }}>Loading…</div>;
+  }
+
+  return (
+    <div>
+      {isSelf && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+          <Button variant="default" size="sm" onClick={() => setShowPad(v => !v)}>
+            {showPad ? 'Cancel' : '+ Add signature'}
+          </Button>
+        </div>
+      )}
+
+      {showPad && (
+        <div style={{ maxWidth: 560, marginBottom: 16, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 10, padding: 16 }}>
+          <SignaturePad onCapture={handleCapture} />
+          {saving && <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 8 }}>Saving…</div>}
+        </div>
+      )}
+
+      {stamps.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--ink3)', background: 'var(--white)', borderRadius: 10, border: '1px solid var(--border)' }}>
+          {isSelf ? 'You have no saved signature yet — add one above to use it when signing documents in Hudumika eSign.' : 'This person has no saved signature.'}
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
+          {stamps.map(s => (
+            <div key={s.id} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 10, padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ height: 70, background: '#fff', border: '1px solid var(--border)', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                <img src={s.image_data} alt={s.label ?? 'Signature'} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{formatDate(s.created_at)}</div>
+              {isSelf && (
+                <Button variant="outline" size="xs" onClick={() => handleDelete(s.id)} style={{ borderColor: 'var(--red)', color: 'var(--red)' }}>
+                  Remove
+                </Button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export const StaffDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -263,8 +344,8 @@ export const StaffDetail: React.FC = () => {
   const [editForm, setEditForm] = useState<Partial<StaffData> & { profile: Partial<UserProfileFields> }>({ profile: {} });
 
   const TABS = [
-    'Profile', 'Attendance', 'Leaves', 'Tasks', 'Projects', 'Timesheet', 
-    'Documents', 'Payroll', 'Tickets', 'Shift Roster', 'Permissions', 'Activity'
+    'Profile', 'Attendance', 'Leaves', 'Tasks', 'Projects', 'Timesheet',
+    'Documents', 'Signature', 'Payroll', 'Tickets', 'Shift Roster', 'Permissions', 'Activity'
   ];
 
   // The tabs with a real endpoint behind them. Loaded when the tab is opened
@@ -277,6 +358,7 @@ export const StaffDetail: React.FC = () => {
     Timesheet: `/v1/hr/staff/${id}/timesheet`,
     Projects: `/v1/hr/staff/${id}/projects`,
     Documents: `/v1/hr/staff/${id}/documents`,
+    Signature: `/v1/hr/staff/${id}/signature`,
     Tickets: `/v1/hr/staff/${id}/tickets`,
     'Shift Roster': `/v1/hr/staff/${id}/shift-roster`,
     Permissions: `/v1/hr/staff/${id}/permissions`,
@@ -1079,6 +1161,15 @@ export const StaffDetail: React.FC = () => {
               row={r => [r.name, r.type || '—', <StatusChip key="s" value={r.status} />, formatDate(r.created_at)]}
             />
           </div>
+        )}
+
+        {tab === 'Signature' && !tabDenied && (
+          <SignatureTab
+            isSelf={authUser?.id === id}
+            stamps={tabRows.Signature ?? []}
+            loading={tabLoading}
+            onChanged={() => loadTab('Signature')}
+          />
         )}
 
         {tab === 'Tickets' && !tabDenied && (

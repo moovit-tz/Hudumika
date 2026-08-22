@@ -9,6 +9,20 @@ import { apiFetch, apiFetchBlob } from '../../lib/api.js';
 import type { SignFieldType } from '@hudumika/types';
 import { Icon } from '../../components/Icon.js';
 import type { IconName } from '../../components/Icon.js';
+import { Button } from '../../components/ui/button.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
+import { EntityPicker, type PickerItem } from '../../components/EntityPicker.js';
+// Reused as-is from Cloud's Lightbox, built earlier this session for the
+// exact same underlying problem: an <iframe> showing a PDF via the
+// browser's native viewer is a separate browsing context, and native
+// HTML5 drag events don't reliably cross into/out of one — dragging a
+// field from the palette onto the document silently failed everywhere
+// except a sliver of margin outside the iframe, which for a full-bleed
+// preview is nowhere at all. A real <canvas> render lives in the same DOM
+// tree as everything else, so the existing onDrop/onClick handlers on the
+// wrapping div see it like any other element.
+import { usePdfDocument } from '../cloud/lib/usePdfDocument.js';
+import { PdfPageCanvas } from '../cloud/components/PdfPageCanvas.js';
 import './Sign.css';
 
 const FIELD_TYPES: { type: SignFieldType; label: string; icon: IconName; defaultW: number; defaultH: number }[] = [
@@ -34,6 +48,9 @@ interface PlacedField {
 
 interface RecipientInput {
   name: string; email: string; phone: string; role_label: string; sign_order: number;
+  // Set when tagged to a real internal platform user via EntityPicker
+  // rather than typed in freeform — see migration 276_sign_recipient_user_tag.
+  user_id?: string | null;
 }
 
 const A4_ASPECT = 1.414; // height/width ratio of A4
@@ -58,8 +75,28 @@ export function SignEditor() {
   // never sent to the server.
   const [sourceFileId, setSourceFileId] = useState<string | null>(null);
   const [previewSrc, setPreviewSrc] = useState<string | null>(null);
+  const isPdf = !!fileName?.toLowerCase().endsWith('.pdf');
+  const { doc: pdfDoc, numPages: pdfNumPages, loading: pdfLoading, error: pdfError } = usePdfDocument(isPdf ? previewSrc : null);
+  const [currentPdfPage, setCurrentPdfPage] = useState(1);
+  // The real page's own proportions, not a fixed A4 guess — sign-pdf.service.ts
+  // bakes fields onto the real PDF using its own real page.getSize(), so the
+  // editor's own "page box" has to be shaped like the actual page or a field
+  // placed correctly here would land in the wrong spot once signed. Reset
+  // whenever the document itself changes.
+  const [naturalPageSize, setNaturalPageSize] = useState<{ width: number; height: number } | null>(null);
+  useEffect(() => { setCurrentPdfPage(1); setNaturalPageSize(null); }, [pdfDoc]);
+  useEffect(() => {
+    if (!pdfDoc) return;
+    let cancelled = false;
+    pdfDoc.getPage(1).then(page => {
+      if (cancelled) return;
+      const vp = page.getViewport({ scale: 1 });
+      setNaturalPageSize({ width: vp.width, height: vp.height });
+    });
+    return () => { cancelled = true; };
+  }, [pdfDoc]);
   const [recipients, setRecipients] = useState<RecipientInput[]>([
-    { name: '', email: '', phone: '', role_label: '', sign_order: 1 },
+    { name: '', email: '', phone: '', role_label: '', sign_order: 1, user_id: null },
   ]);
   const [fields, setFields] = useState<PlacedField[]>([]);
   const [activeRecipient, setActiveRecipient] = useState(0);
@@ -70,6 +107,19 @@ export function SignEditor() {
 
   const pageRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Full staff records for the "Tag a person" picker below — EntityPicker's
+  // own PickerItem only carries {id, label, sublabel}, not email/phone, so
+  // each search response is cached here (by id) to pull the real email/
+  // phone once a result is actually picked, rather than a second round trip.
+  const staffCacheRef = useRef<Map<string, { name: string; email: string; phone: string | null }>>(new Map());
+  const searchStaff = useCallback(async (q: string): Promise<PickerItem[]> => {
+    const rows = await apiFetch(`/v1/hr/staff?search=${encodeURIComponent(q)}`);
+    return rows.map((u: { id: string; name: string; email: string; phone: string | null }) => {
+      staffCacheRef.current.set(u.id, { name: u.name, email: u.email, phone: u.phone ?? null });
+      return { id: u.id, label: u.name, sublabel: u.email };
+    });
+  }, []);
 
   // ── Load existing envelope ────────────────────────────────────────────────
   useEffect(() => {
@@ -87,7 +137,7 @@ export function SignEditor() {
         apiFetchBlob(`/v1/files/${env.file_id}/preview`).then(blob => setPreviewSrc(URL.createObjectURL(blob))).catch(console.error);
       }
       if (env.recipients?.length) {
-        setRecipients(env.recipients.map((r: RecipientInput & { id: string }) => ({ name: r.name, email: r.email, phone: r.phone ?? '', role_label: r.role_label ?? '', sign_order: r.sign_order })));
+        setRecipients(env.recipients.map((r: RecipientInput & { id: string }) => ({ name: r.name, email: r.email, phone: r.phone ?? '', role_label: r.role_label ?? '', sign_order: r.sign_order, user_id: r.user_id ?? null })));
       }
       if (env.fields?.length) {
         setFields(env.fields.map((f: PlacedField & { id: string; recipient_id: string }) => ({
@@ -126,7 +176,7 @@ export function SignEditor() {
     apiFetch(`/v1/sign/templates/${templateId}`).then(t => {
       setTitle(prev => prev || t.name);
       if (t.recipients?.length) {
-        setRecipients(t.recipients.map((r: RecipientInput) => ({ name: r.name ?? '', email: r.email ?? '', phone: r.phone ?? '', role_label: r.role_label ?? '', sign_order: r.sign_order ?? 1 })));
+        setRecipients(t.recipients.map((r: RecipientInput) => ({ name: r.name ?? '', email: r.email ?? '', phone: r.phone ?? '', role_label: r.role_label ?? '', sign_order: r.sign_order ?? 1, user_id: r.user_id ?? null })));
       }
       if (t.fields?.length) {
         setFields(t.fields.map((f: Omit<PlacedField, 'id'>) => ({
@@ -195,7 +245,7 @@ export function SignEditor() {
       id: crypto.randomUUID(),
       field_type: type,
       recipient_index: activeRecipient,
-      page: 1,
+      page: currentPdfPage,
       x: Math.max(0, Math.min(1 - tpl.defaultW, xFrac - tpl.defaultW / 2)),
       y: Math.max(0, Math.min(1 - tpl.defaultH, yFrac - tpl.defaultH / 2)),
       width: tpl.defaultW,
@@ -217,7 +267,7 @@ export function SignEditor() {
       id: crypto.randomUUID(),
       field_type: placingType,
       recipient_index: activeRecipient,
-      page: 1,
+      page: currentPdfPage,
       x: Math.max(0, Math.min(1 - tpl.defaultW, xFrac - tpl.defaultW / 2)),
       y: Math.max(0, Math.min(1 - tpl.defaultH, yFrac - tpl.defaultH / 2)),
       width: tpl.defaultW,
@@ -302,7 +352,7 @@ export function SignEditor() {
         body: JSON.stringify({
           name: name.trim(),
           fields: fields.map(f => ({ recipient_index: f.recipient_index, field_type: f.field_type, page: f.page, x: f.x, y: f.y, width: f.width, height: f.height, required: f.required, placeholder: f.placeholder ?? null })),
-          recipients: recipients.map(r => ({ name: r.name, email: r.email, phone: r.phone || null, role_label: r.role_label || null, sign_order: r.sign_order })),
+          recipients: recipients.map(r => ({ name: r.name, email: r.email, phone: r.phone || null, user_id: r.user_id || null, role_label: r.role_label || null, sign_order: r.sign_order })),
           file_id: sourceFileId,
           file_name: fileName,
         }),
@@ -315,7 +365,15 @@ export function SignEditor() {
 
   // ── Computed page size ────────────────────────────────────────────────────
   const [pageW, setPageW] = useState(600);
-  const pageH = Math.round(pageW * A4_ASPECT);
+  // The real PDF page's own aspect ratio once known (see naturalPageSize
+  // above) — a plain A4 guess for anything else (an image, or before the
+  // PDF has loaded), same as before.
+  const pageH = Math.round(pageW * (naturalPageSize ? naturalPageSize.height / naturalPageSize.width : A4_ASPECT));
+  // pdf.js scale that renders the real page at exactly pageW wide, so
+  // "the box the editor places fields in" and "the canvas actually shown"
+  // are the same size — required for the drop-position math below to land
+  // fields where the cursor actually is.
+  const pdfRenderScale = naturalPageSize ? pageW / naturalPageSize.width : 1;
 
   useEffect(() => {
     function measure() {
@@ -327,7 +385,7 @@ export function SignEditor() {
     return () => window.removeEventListener('resize', measure);
   }, []);
 
-  const addRecipient = () => setRecipients(prev => [...prev, { name: '', email: '', phone: '', role_label: '', sign_order: prev.length + 1 }]);
+  const addRecipient = () => setRecipients(prev => [...prev, { name: '', email: '', phone: '', role_label: '', sign_order: prev.length + 1, user_id: null }]);
   const removeRecipient = (i: number) => {
     setRecipients(prev => prev.filter((_, idx) => idx !== i));
     setFields(prev => prev.filter(f => f.recipient_index !== i).map(f => ({ ...f, recipient_index: f.recipient_index > i ? f.recipient_index - 1 : f.recipient_index })));
@@ -340,31 +398,28 @@ export function SignEditor() {
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', fontFamily: 'var(--font)' }}>
       {/* Top bar */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 20px', borderBottom: '1px solid var(--border)', background: 'var(--card-bg)', flexShrink: 0 }}>
-        <button onClick={() => navigate('/sign')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 18, padding: 4 }}>←</button>
+        <Button variant="ghost" size="icon" onClick={() => navigate('/sign')} aria-label="Back to Sign">
+          <Icon name="arrowLeft" size={16} />
+        </Button>
         <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Envelope title…"
           style={{ flex: 1, fontSize: 16, fontWeight: 600, border: 'none', background: 'transparent', color: 'var(--ink)', outline: 'none' }} />
-        <select value={orderMode} onChange={e => setOrderMode(e.target.value as 'sequential' | 'parallel')}
-          style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13 }}>
-          <option value="sequential">Sequential signing</option>
-          <option value="parallel">Parallel signing</option>
-        </select>
+        <Select value={orderMode} onValueChange={v => setOrderMode(v as 'sequential' | 'parallel')}>
+          <SelectTrigger className="w-45"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="sequential">Sequential signing</SelectItem>
+            <SelectItem value="parallel">Parallel signing</SelectItem>
+          </SelectContent>
+        </Select>
         <label title="Each recipient must have a phone number on file — they'll get a text code before they can sign"
           style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: 'var(--ink2)', cursor: 'pointer', whiteSpace: 'nowrap' }}>
           <input type="checkbox" checked={requireOtp} onChange={e => setRequireOtp(e.target.checked)} />
           Require SMS verification
         </label>
-        <button onClick={handleSaveAsTemplate}
-          style={{ padding: '8px 16px', borderRadius: 8, border: '1.5px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', cursor: 'pointer', fontSize: 13, fontWeight: 500 }}>
-          Save as Template
-        </button>
-        <button onClick={handleSave} disabled={saving}
-          style={{ padding: '8px 16px', borderRadius: 8, border: '1.5px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', cursor: 'pointer', fontSize: 13, fontWeight: 500 }}>
-          {saving ? 'Saving…' : 'Save Draft'}
-        </button>
-        <button onClick={handleSend} disabled={sending}
-          style={{ padding: '8px 18px', borderRadius: 8, background: 'var(--teal)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
-          {sending ? 'Sending…' : 'Send ➤'}
-        </button>
+        <Button variant="outline" size="sm" onClick={handleSaveAsTemplate}>Save as Template</Button>
+        <Button variant="outline" size="sm" onClick={handleSave} disabled={saving}>{saving ? 'Saving…' : 'Save Draft'}</Button>
+        <Button variant="default" size="sm" onClick={handleSend} disabled={sending}>
+          {sending ? 'Sending…' : 'Send'} <Icon name="send" size={14} />
+        </Button>
       </div>
 
       {/* Three-column editor body */}
@@ -386,19 +441,42 @@ export function SignEditor() {
                   <div style={{ fontSize: 11, color: 'var(--ink3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.email || 'no email'}</div>
                 </div>
                 {recipients.length > 1 && (
-                  <button onClick={e => { e.stopPropagation(); removeRecipient(i); }}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 2, fontSize: 14 }}>✕</button>
+                  <Button variant="ghost" size="icon" className="h-6 w-6 min-h-0"
+                    onClick={e => { e.stopPropagation(); removeRecipient(i); }} aria-label="Remove recipient">
+                    <Icon name="x" size={13} />
+                  </Button>
                 )}
               </div>
             ))}
-            <button onClick={addRecipient}
-              style={{ width: '100%', padding: '8px', borderRadius: 8, border: '1.5px dashed var(--border)', background: 'transparent', color: 'var(--ink3)', cursor: 'pointer', fontSize: 12.5, marginTop: 4 }}>
-              + Add Recipient
-            </button>
+            <Button variant="outline" size="sm" onClick={addRecipient} style={{ width: '100%', marginTop: 4, borderStyle: 'dashed' }}>
+              <Icon name="plus" size={13} /> Add Recipient
+            </Button>
           </div>
 
           {/* Active recipient form */}
           <div style={{ padding: '0 12px 16px' }}>
+            <EntityPicker
+              label="Tag a person (optional)"
+              placeholder="Search staff to tag as this recipient…"
+              value={recipients[activeRecipient]?.user_id
+                ? { id: recipients[activeRecipient].user_id!, label: recipients[activeRecipient].name || 'Tagged person', sublabel: recipients[activeRecipient].email }
+                : null}
+              onChange={item => {
+                if (!item) {
+                  setRecipients(prev => prev.map((r, i) => i === activeRecipient ? { ...r, user_id: null } : r));
+                  return;
+                }
+                const full = staffCacheRef.current.get(item.id);
+                setRecipients(prev => prev.map((r, i) => i === activeRecipient ? {
+                  ...r, user_id: item.id,
+                  name: full?.name ?? item.label,
+                  email: full?.email ?? r.email,
+                  phone: full?.phone ?? r.phone,
+                } : r));
+              }}
+              search={searchStaff}
+              hint="Tagging a real colleague auto-fills their details and adds an in-app notification alongside email/SMS. Leave blank for an external signer."
+            />
             {['name', 'email', 'phone', 'role_label'].map(key => (
               <input key={key}
                 value={(recipients[activeRecipient] as any)?.[key] ?? ''}
@@ -450,23 +528,52 @@ export function SignEditor() {
           )}
           <input ref={fileInputRef} type="file" accept=".pdf,.png,.jpg,.jpeg,.docx" style={{ display: 'none' }} onChange={handleFile} />
 
-          {/* A4 page canvas */}
+          {/* Page navigation — real multi-page PDFs (a delivery order, a
+              multi-page contract) can now actually be paged through; fields
+              already carried a `page` property, it just had nowhere to go
+              before since page 1 was the only page ever rendered. */}
+          {isPdf && pdfDoc && pdfNumPages > 1 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#1f2937', borderRadius: 20, padding: '5px 14px', flexShrink: 0 }}>
+              <button onClick={() => setCurrentPdfPage(p => Math.max(1, p - 1))} disabled={currentPdfPage <= 1}
+                style={{ background: 'none', border: 'none', cursor: currentPdfPage <= 1 ? 'default' : 'pointer', opacity: currentPdfPage <= 1 ? 0.4 : 1, display: 'flex', padding: 2 }}>
+                <Icon name="chevronLeft" size={15} color="#d1d5db" />
+              </button>
+              <span style={{ fontSize: 12.5, color: '#f3f4f6', fontWeight: 600 }}>Page {currentPdfPage} / {pdfNumPages}</span>
+              <button onClick={() => setCurrentPdfPage(p => Math.min(pdfNumPages, p + 1))} disabled={currentPdfPage >= pdfNumPages}
+                style={{ background: 'none', border: 'none', cursor: currentPdfPage >= pdfNumPages ? 'default' : 'pointer', opacity: currentPdfPage >= pdfNumPages ? 0.4 : 1, display: 'flex', padding: 2 }}>
+                <Icon name="chevronRight" size={15} color="#d1d5db" />
+              </button>
+              {fields.some(f => f.page !== currentPdfPage) && (
+                <span style={{ fontSize: 11, color: '#9ca3af', borderLeft: '1px solid #4b5563', paddingLeft: 10 }}>
+                  {fields.filter(f => f.page !== currentPdfPage).length} field(s) on other pages
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Page canvas — sized to the real document page's own
+              proportions (see naturalPageSize above), not a fixed A4 guess */}
           <div ref={pageRef} className="sign-page-canvas-wrap"
             style={{ width: pageW, height: pageH, cursor: placingType ? 'crosshair' : 'default' }}
             onClick={handlePageClick}
             onDragOver={e => e.preventDefault()}
             onDrop={handleDrop}>
 
-            {/* Document background — this used to always render <img src=
-                {documentData}>, even for a PDF upload (the dropzone's own
-                label promises "PDF, DOCX, PNG, JPG"): a PDF data URL isn't
-                image data, so the canvas just showed a broken-image icon
-                for the one file type most real documents in this platform
-                actually are. */}
-            {previewSrc ? (
-              fileName?.toLowerCase().endsWith('.pdf')
-                ? <iframe src={previewSrc} title={fileName} style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} />
-                : <img src={previewSrc} alt="document" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
+            {/* Document background. A real <canvas> render for a PDF (not
+                an <iframe> — a separate browsing context that silently
+                swallowed every drag-and-drop attempt over the one file
+                type most real documents on this platform actually are),
+                a plain <img> for an image upload, a placeholder otherwise. */}
+            {isPdf ? (
+              pdfLoading || !pdfDoc ? (
+                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontSize: 13 }}>
+                  {pdfError ? "Couldn't load this PDF" : 'Loading document…'}
+                </div>
+              ) : (
+                <PdfPageCanvas doc={pdfDoc} pageNumber={currentPdfPage} scale={pdfRenderScale} style={{ display: 'block' }} />
+              )
+            ) : previewSrc ? (
+              <img src={previewSrc} alt="document" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
             ) : (
               <div style={{ width: '100%', height: '100%', background: '#fff', display: 'flex', flexDirection: 'column', padding: '5% 8%', boxSizing: 'border-box', gap: 8 }}>
                 {/* Simulated document lines */}
@@ -480,8 +587,9 @@ export function SignEditor() {
               </div>
             )}
 
-            {/* Placed fields */}
-            {fields.map(field => (
+            {/* Placed fields — only this page's; a field is stored with a
+                real page number now, not a permanent page: 1. */}
+            {fields.filter(f => (f.page || 1) === currentPdfPage).map(field => (
               <div key={field.id}
                 className={`sign-field-overlay`}
                 draggable
@@ -516,7 +624,7 @@ export function SignEditor() {
           </div>
 
           {placingType && (
-            <div style={{ background: 'var(--sign-blue)', color: '#fff', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 500 }}>
+            <div style={{ background: 'var(--sign-blue)', color: '#fff', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 500, flexShrink: 0 }}>
               Click anywhere on the page to place the <strong>{placingType}</strong> field
             </div>
           )}
@@ -533,13 +641,15 @@ export function SignEditor() {
               </div>
               <div>
                 <label style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>Assigned To</label>
-                <select value={selectedFieldData.recipient_index}
-                  onChange={e => setFields(prev => prev.map(f => f.id === selectedField ? { ...f, recipient_index: Number(e.target.value) } : f))}
-                  style={{ width: '100%', padding: '7px 10px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--bg)', fontSize: 13 }}>
-                  {recipients.map((r, i) => (
-                    <option key={i} value={i}>{r.name || `Recipient ${i + 1}`}</option>
-                  ))}
-                </select>
+                <Select value={String(selectedFieldData.recipient_index)}
+                  onValueChange={v => setFields(prev => prev.map(f => f.id === selectedField ? { ...f, recipient_index: Number(v) } : f))}>
+                  <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {recipients.map((r, i) => (
+                      <SelectItem key={i} value={String(i)}>{r.name || `Recipient ${i + 1}`}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <label style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>Placeholder Text</label>
@@ -553,10 +663,10 @@ export function SignEditor() {
                   onChange={e => setFields(prev => prev.map(f => f.id === selectedField ? { ...f, required: e.target.checked } : f))} />
                 <span style={{ fontSize: 13 }}>Required field</span>
               </label>
-              <button onClick={() => removeField(selectedFieldData.id)}
-                style={{ padding: '8px 14px', borderRadius: 7, border: '1px solid var(--sign-red)', background: 'var(--sign-red-l)', color: 'var(--sign-red)', cursor: 'pointer', fontSize: 13, fontWeight: 500 }}>
-                🗑 Remove Field
-              </button>
+              <Button variant="outline" size="sm" onClick={() => removeField(selectedFieldData.id)}
+                style={{ borderColor: 'var(--sign-red)', background: 'var(--sign-red-l)', color: 'var(--sign-red)' }}>
+                <Icon name="trash" size={13} /> Remove Field
+              </Button>
             </div>
           ) : (
             <div style={{ padding: '32px 16px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>
@@ -571,7 +681,7 @@ export function SignEditor() {
               <div style={{ padding: '0 12px 16px', display: 'flex', flexDirection: 'column', gap: 4 }}>
                 {fields.map((f, i) => (
                   <div key={f.id}
-                    onClick={() => setSelectedField(f.id)}
+                    onClick={() => { setSelectedField(f.id); setCurrentPdfPage(f.page || 1); }}
                     style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', borderRadius: 7, border: '1px solid var(--border)', cursor: 'pointer', background: selectedField === f.id ? 'var(--sign-blue-l)' : 'transparent', borderColor: selectedField === f.id ? 'var(--sign-blue)' : 'var(--border)' }}>
                     <div style={{ width: 8, height: 8, borderRadius: '50%', background: RECIPIENT_COLORS[f.recipient_index % RECIPIENT_COLORS.length], flexShrink: 0 }} />
                     <span style={{ fontSize: 12, flex: 1 }}>{FIELD_TYPES.find(ft => ft.type === f.field_type)?.label}</span>

@@ -38,6 +38,12 @@ const envSchema = z.object({
   // throw away the point of having two.
   JWT_EXPIRES_IN: z.string().default('1h'),
   JWT_REFRESH_EXPIRES_IN: z.string().default('30d'),
+  // Protects the platform's self-signed PDF-signing certificate at rest
+  // (apps/api/uploads/platform/ — see pdf-signing-identity.service.ts).
+  // The private key itself, not this password, is what actually produces
+  // the signature; this only guards the P12 file if it were copied off
+  // the server, same reasoning as every other secret in this file.
+  SIGN_CERT_PASSWORD: z.string().default('change-this-in-production-hudumika-sign'),
   // Session-cookie migration (security checklist #9). 'lax' is correct when
   // the frontend and API share a registrable domain (e.g. app.hudumika.co /
   // api.hudumika.co) — the expected production topology. Override to 'none'
@@ -139,6 +145,8 @@ const PUBLISHED_DEFAULTS: [key: string, value: string, why: string][] = [
    'the BYPASSRLS platform role would be reachable with a published password — it can read and write across every tenant'],
   ['ONSITE_SECRETS_KEY', '6f6e73697465646576656c6f706d656e746b65796e6f74666f7270726f6475637469'.slice(0, 64),
    'every Onsite environment variable, CI token and cloud credential could be decrypted from this repository'],
+  ['SIGN_CERT_PASSWORD', 'change-this-in-production-hudumika-sign',
+   'the platform PDF-signing private key file would be readable by anyone holding this repository and a copy of apps/api/uploads/platform/'],
 ];
 
 if (env.APP_ENV === 'production') {

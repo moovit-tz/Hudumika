@@ -13,7 +13,10 @@ import { apiFetch } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { usePageSEO } from '../hooks/usePageSEO.js';
 
-const ADMIN_ROLES = new Set(['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE']);
+// Wallet administration is "the finance manager acts as admin" — deliberately
+// excludes MANAGER, which is now the department-approval actor (configured
+// per-wallet on the wallet detail page), not a wallet administrator.
+const FINANCE_ROLES = new Set(['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'FINANCE']);
 
 interface Wallet {
   id: string;
@@ -28,7 +31,7 @@ interface Wallet {
 export function PettiWallets() {
   usePageSEO('Petty Cash Wallets', 'Deposit funds, then request, approve and disburse petty cash — every disbursement lands in FinOps’s own Expenses view automatically.');
   const { user } = useAuth();
-  const canManage = !!user && ADMIN_ROLES.has(user.role);
+  const canManage = !!user && FINANCE_ROLES.has(user.role);
 
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [loading, setLoading] = useState(true);

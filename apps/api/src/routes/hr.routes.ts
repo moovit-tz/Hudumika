@@ -2143,6 +2143,11 @@ export async function hrRoutes(fastify: FastifyInstance) {
 
   fastify.get('/staff', async (req) => {
     const user = req.user;
+    // Optional ?search= — used by EntityPicker-driven people-pickers (e.g.
+    // Sign's "tag a person" recipient picker) so a large staff list doesn't
+    // have to ship in full just to search it; existing callers that omit
+    // the param keep getting the full tenant list unchanged.
+    const { search } = req.query as { search?: string };
     return withTenant(user.tenant_id, async (trx) => {
       const today = new Date().toISOString().split('T')[0];
       const [users, onLeaveRows] = await Promise.all([
@@ -2153,6 +2158,10 @@ export async function hrRoutes(fastify: FastifyInstance) {
           .select(['id', 'name', 'email', 'phone', 'role', 'active', 'created_at',
                    'last_login_at', 'avatar_url'])
           .where('tenant_id', '=', user.tenant_id)
+          .$if(!!search?.trim(), qb => qb.where(eb => eb.or([
+            eb('name', 'ilike', `%${search!.trim()}%`),
+            eb('email', 'ilike', `%${search!.trim()}%`),
+          ])))
           .orderBy('name')
           .execute(),
         trx.selectFrom('hr_leaves')
@@ -2500,6 +2509,19 @@ export async function hrRoutes(fastify: FastifyInstance) {
       .select(['id', 'name', 'type', 'status', 'storage_key', 'created_at', 'updated_at'])
       .where('tenant_id', '=', req.user.tenant_id)
       .where('user_id', '=', id)
+      .orderBy('created_at', 'desc')
+      .execute());
+
+  // Read-only view of a person's saved signature(s)/stamp(s) (sign_stamps,
+  // migration 277) — self always allowed via the shared mayViewStaffRecord
+  // check above, a manager/admin sees a colleague's the same way they see
+  // any other staff-record tab. Writing is always self-only, by construction
+  // (POST/DELETE /v1/sign/stamps/mine key off the caller's own JWT, not a
+  // URL param), so there's no write route here.
+  staffRecordRoute('/signature', async (trx, req, id) =>
+    trx.selectFrom('sign_stamps').selectAll()
+      .where('tenant_id', '=', req.user.tenant_id)
+      .where('owner_type', '=', 'user').where('owner_user_id', '=', id)
       .orderBy('created_at', 'desc')
       .execute());
 

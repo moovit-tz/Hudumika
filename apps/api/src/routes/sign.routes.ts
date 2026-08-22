@@ -138,7 +138,7 @@ export async function signRoutes(fastify: FastifyInstance) {
       order_mode?: string;
       expires_at?: string;
       require_otp?: boolean;
-      recipients: Array<{ name: string; email: string; phone?: string; role_label?: string; sign_order?: number }>;
+      recipients: Array<{ name: string; email: string; phone?: string; user_id?: string; role_label?: string; sign_order?: number }>;
       fields?: Array<{ recipient_index: number; field_type: string; page: number; x: number; y: number; width: number; height: number; required?: boolean; placeholder?: string }>;
     };
 
@@ -171,6 +171,7 @@ export async function signRoutes(fastify: FastifyInstance) {
           name: r.name,
           email: r.email,
           phone: r.phone?.trim() || null,
+          user_id: r.user_id ?? null,
           role_label: r.role_label ?? null,
           sign_order: r.sign_order ?? i + 1,
         }))
@@ -233,7 +234,7 @@ export async function signRoutes(fastify: FastifyInstance) {
     const body = req.body as Partial<{
       title: string; message: string; order_mode: string; expires_at: string;
       file_name: string; document_data: string; file_id: string; require_otp: boolean;
-      recipients: Array<{ id?: string; name: string; email: string; phone?: string; role_label?: string; sign_order?: number }>;
+      recipients: Array<{ id?: string; name: string; email: string; phone?: string; user_id?: string; role_label?: string; sign_order?: number }>;
       fields: Array<{ recipient_index: number; field_type: string; page: number; x: number; y: number; width: number; height: number; required?: boolean; placeholder?: string }>;
     }>;
 
@@ -284,6 +285,7 @@ export async function signRoutes(fastify: FastifyInstance) {
             name: r.name,
             email: r.email,
             phone: r.phone?.trim() || null,
+            user_id: r.user_id ?? null,
             role_label: r.role_label ?? null,
             sign_order: r.sign_order ?? i + 1,
           }))
@@ -509,7 +511,7 @@ export async function signRoutes(fastify: FastifyInstance) {
           });
           await trx.updateTable('sign_envelopes').set({ status: 'sent', sent_at: new Date() }).where('id', '=', envelope.id).execute();
           await logEvent(trx, envelope.id, tid, 'sent', { actorName: userName(req), actorEmail: userEmail(req), note: 'Sent to 1 recipient(s)' });
-          await notifyRecipients(tid, { title: tmpl.name, message: null }, [recipientRow], 'invite');
+          await notifyRecipients(tid, { id: envelope.id, title: tmpl.name, message: null }, [recipientRow], 'invite');
 
           results.push({ email: row.email, ok: true, envelope_id: envelope.id });
         } catch (err) {

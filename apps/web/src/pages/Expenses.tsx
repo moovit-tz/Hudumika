@@ -42,6 +42,7 @@ export interface ExpenseListItem {
   vehicle_id: string | null;
   vehicle_label: string | null;
   editable: boolean;
+  retirement_status: string;
 }
 
 export interface ExpenseDetail {
@@ -61,7 +62,18 @@ export interface ExpenseDetail {
   efd_verified: boolean | null;
   efd_verified_at: string | null;
   efd_error: string | null;
+  retirement_status: string;
+  retired_by: string | null;
+  retired_at: string | null;
+  retirement_note: string | null;
 }
+
+const RETIREMENT_LABEL: Record<string, { label: string; color: string }> = {
+  pending: { label: 'Retirement pending', color: 'var(--gold)' },
+  retired: { label: 'Retired', color: 'var(--green)' },
+  short: { label: 'Retired — short', color: 'var(--red)' },
+  written_off: { label: 'Written off', color: 'var(--ink3)' },
+};
 
 function fmt(n: number) {
   return 'TZS ' + n.toLocaleString();
@@ -79,6 +91,9 @@ function ExpenseDetailPanel({ expense, onClose, onChanged, shipments, customers,
   const supplier = suppliers.find(s => s.id === expense.supplier_id);
   const [efdChecking, setEfdChecking] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [uploadingReceipt, setUploadingReceipt] = useState(false);
+  const [retiring, setRetiring] = useState(false);
+  const [retireNote, setRetireNote] = useState(expense.retirement_note || '');
 
   async function verifyEfdReceipt() {
     if (!expense.reference?.trim() || efdChecking) return;
@@ -105,6 +120,34 @@ function ExpenseDetailPanel({ expense, onClose, onChanged, shipments, customers,
     } finally {
       setEfdChecking(false);
     }
+  }
+
+  function handleReceiptFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      if (typeof ev.target?.result !== 'string') return;
+      setUploadingReceipt(true);
+      try {
+        await apiFetch(`/v1/finance/expenses/${expense.id}`, { method: 'PATCH', body: JSON.stringify({ attachment_data: ev.target!.result }) });
+        onChanged();
+      } catch (err: any) { showAlert(err.message || 'Failed to upload receipt'); }
+      finally { setUploadingReceipt(false); }
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async function markRetired(status: 'retired' | 'short' | 'written_off') {
+    setRetiring(true);
+    try {
+      await apiFetch(`/v1/finance/expenses/${expense.id}/retire`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status, note: retireNote.trim() || undefined }),
+      });
+      onChanged();
+    } catch (err: any) { showAlert(err.message || 'Failed to update retirement status'); }
+    finally { setRetiring(false); }
   }
 
   async function handleDelete() {
@@ -211,6 +254,58 @@ function ExpenseDetailPanel({ expense, onClose, onChanged, shipments, customers,
             {expense.note || <span style={{ color: 'var(--ink3)', fontStyle: 'italic' }}>No additional notes provided.</span>}
           </div>
         </div>
+
+        {expense.retirement_status !== 'not_required' && (
+          <div style={{ marginBottom: 24, border: '1.5px solid var(--border)', borderRadius: 9, padding: 16, background: 'var(--bg)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Petty Cash Retirement</div>
+              <span style={{ fontSize: 11.5, fontWeight: 700, color: RETIREMENT_LABEL[expense.retirement_status]?.color || 'var(--ink3)' }}>
+                {RETIREMENT_LABEL[expense.retirement_status]?.label || expense.retirement_status}
+              </span>
+            </div>
+            {expense.retirement_status === 'pending' ? (
+              <>
+                <div style={{ fontSize: 12, color: 'var(--ink2)', marginBottom: 10 }}>
+                  Cash was disbursed for this advance — attach the receipt and record how it was retired.
+                </div>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 10, border: '1.5px dashed var(--border)', borderRadius: 8, cursor: uploadingReceipt ? 'wait' : 'pointer', background: 'var(--white)', marginBottom: 10 }}>
+                  {expense.attachment_data
+                    ? <img src={expense.attachment_data} alt="Receipt" style={{ width: 32, height: 32, objectFit: 'cover', borderRadius: 4, flexShrink: 0 }} />
+                    : <Icon name="paperclip" size={16} color="var(--ink3)" />}
+                  <span style={{ fontSize: 12, fontWeight: 600, color: expense.attachment_data ? 'var(--teal)' : 'var(--ink3)' }}>
+                    {uploadingReceipt ? 'Uploading…' : expense.attachment_data ? 'Receipt attached — click to replace' : 'Attach receipt image'}
+                  </span>
+                  <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleReceiptFile} disabled={uploadingReceipt} />
+                </label>
+                <textarea
+                  value={retireNote}
+                  onChange={e => setRetireNote(e.target.value)}
+                  placeholder="Note (e.g. shortfall reason, receipts count)"
+                  rows={2}
+                  style={{ width: '100%', boxSizing: 'border-box', fontSize: 12.5, fontFamily: 'var(--font)', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 'var(--r)', resize: 'vertical', marginBottom: 10, background: 'var(--white)', color: 'var(--ink)' }}
+                />
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <button type="button" disabled={retiring} onClick={() => markRetired('retired')}
+                    style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 12, fontWeight: 700, cursor: retiring ? 'wait' : 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+                    Mark retired
+                  </button>
+                  <button type="button" disabled={retiring} onClick={() => markRetired('short')}
+                    style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 700, cursor: retiring ? 'wait' : 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+                    Mark short
+                  </button>
+                  <button type="button" disabled={retiring} onClick={() => markRetired('written_off')}
+                    style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 700, cursor: retiring ? 'wait' : 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+                    Write off
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div style={{ fontSize: 12, color: 'var(--ink2)' }}>
+                {expense.retired_at ? `${expense.retired_at.split('T')[0]} — ` : ''}{expense.retirement_note || 'No note.'}
+              </div>
+            )}
+          </div>
+        )}
 
         <div>
           <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 8 }}>Receipt Attachment</div>
@@ -481,7 +576,12 @@ export const Expenses: React.FC = () => {
 
                 {/* Description */}
                 <div style={{ flex: 2 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{e.name}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{e.name}</span>
+                    {e.retirement_status === 'pending' && (
+                      <span title="Petty cash retirement pending" style={{ fontSize: 10, fontWeight: 700, color: 'var(--gold)', background: 'var(--gold-l)', padding: '1px 6px', borderRadius: 4 }}>Retire</span>
+                    )}
+                  </div>
                   {isSplit && <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>{e.date.split('T')[0]}</div>}
                   {e.vehicle_label && !isSplit && <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>{e.vehicle_label}</div>}
                 </div>

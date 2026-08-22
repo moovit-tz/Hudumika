@@ -18,6 +18,11 @@ export interface SignRecipient {
   name: string;
   email: string;
   phone: string | null;
+  // Set when this recipient was tagged to a real internal platform user
+  // (via EntityPicker in SignEditor) rather than typed in as a freeform
+  // external signer — enables an in-app bell notification alongside
+  // email/SMS/WhatsApp, since there's a real user_id to notify.
+  user_id: string | null;
   role_label: string | null;
   sign_order: number;
   status: SignRecipientStatus;
@@ -101,6 +106,7 @@ export interface SignTemplateRecipientDef {
   name: string;
   email: string;
   phone: string | null;
+  user_id: string | null;
   role_label: string | null;
   sign_order: number;
 }

@@ -2,7 +2,7 @@ import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { requireRole } from '../middleware/rbac.js';
-import { PettiService, PETTI_CATEGORIES, PETTI_ADMIN_ROLES } from '../services/petti.service.js';
+import { PettiService, PETTI_CATEGORIES, PETTI_FINANCE_ROLES } from '../services/petti.service.js';
 
 const createWalletSchema = z.object({
   name: z.string().trim().min(1).max(200),
@@ -29,12 +29,38 @@ const withdrawalRequestSchema = z.object({
 
 const rejectSchema = z.object({ reason: z.string().max(2000).optional() });
 
+const walletApproverSchema = z.object({ approver_user_id: z.string().uuid().nullable() });
+const walletApproverBackupSchema = z.object({ backup_user_id: z.string().uuid().nullable() });
+const walletWorkflowConfigSchema = z.object({
+  default_workflow_id: z.string().uuid().nullable().optional(),
+  category_overrides: z.record(z.string(), z.string()).optional(),
+});
+
+const workflowCreateSchema = z.object({
+  name: z.string().trim().min(1).max(200),
+  description: z.string().max(2000).optional(),
+  requires_department_approval: z.boolean(),
+});
+const workflowUpdateSchema = z.object({
+  name: z.string().trim().min(1).max(200).optional(),
+  description: z.string().max(2000).nullable().optional(),
+  requires_department_approval: z.boolean().optional(),
+});
+
 /** Maps a thrown service error to the right HTTP status — "not found" is a
- *  404, every other thrown Error here is a validated business-rule refusal
- *  (insufficient balance, wrong state transition, etc.), a 400. */
+ *  404, a recognized authorization refusal (wrong person/role for this
+ *  approval/backup/disburse step) is a 403, every other thrown Error here is
+ *  a validated business-rule refusal (insufficient balance, wrong state
+ *  transition, etc.), a 400. Matched on distinctive substrings from
+ *  petti.service.ts's own error messages, not a broad prefix — a wrong-state
+ *  message like "Cannot approve a request in 'approved' status" is a 400,
+ *  not a permission error, even though it also contains the word "approve". */
+const AUTHZ_ERROR_PATTERN = /own withdrawal request|designated (department )?approver|department approver configured|straight to finance|only finance can release/i;
 function sendServiceError(reply: any, e: any) {
   const message = e?.message || 'Request failed';
-  const status = /not found/i.test(message) ? 404 : 400;
+  const status = /not found/i.test(message) ? 404
+    : AUTHZ_ERROR_PATTERN.test(message) ? 403
+    : 400;
   return reply.status(status).send({ error: message });
 }
 
@@ -56,7 +82,7 @@ export async function pettiRoutes(fastify: FastifyInstance) {
     return result;
   });
 
-  fastify.post('/wallets', { preHandler: requireRole(...PETTI_ADMIN_ROLES) }, async (request, reply) => {
+  fastify.post('/wallets', { preHandler: requireRole(...PETTI_FINANCE_ROLES) }, async (request, reply) => {
     const user = request.user;
     const body = createWalletSchema.parse(request.body);
     try {
@@ -72,7 +98,7 @@ export async function pettiRoutes(fastify: FastifyInstance) {
     }
   });
 
-  fastify.patch('/wallets/:id/status', { preHandler: requireRole(...PETTI_ADMIN_ROLES) }, async (request, reply) => {
+  fastify.patch('/wallets/:id/status', { preHandler: requireRole(...PETTI_FINANCE_ROLES) }, async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
     const body = walletStatusSchema.parse(request.body);
@@ -83,8 +109,90 @@ export async function pettiRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // Assigning the primary department approver is wallet setup — finance/admin only.
+  fastify.patch('/wallets/:id/approver', { preHandler: requireRole(...PETTI_FINANCE_ROLES) }, async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    const body = walletApproverSchema.parse(request.body);
+    try {
+      return await PettiService.setWalletApprover(user.tenant_id, id, body.approver_user_id);
+    } catch (e: any) {
+      return sendServiceError(reply, e);
+    }
+  });
+
+  // Self-service: the wallet's own designated approver can name their own
+  // stand-in for while they're away — no route-level role gate, the service
+  // checks "is this caller the wallet's approver, or a finance admin".
+  fastify.patch('/wallets/:id/approver-backup', async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    const body = walletApproverBackupSchema.parse(request.body);
+    try {
+      return await PettiService.setWalletApproverBackup(user.tenant_id, { id: user.sub, role: user.role }, id, body.backup_user_id);
+    } catch (e: any) {
+      return sendServiceError(reply, e);
+    }
+  });
+
+  fastify.patch('/wallets/:id/workflow', { preHandler: requireRole(...PETTI_FINANCE_ROLES) }, async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    const body = walletWorkflowConfigSchema.parse(request.body);
+    try {
+      return await PettiService.setWalletWorkflowConfig(user.tenant_id, id, {
+        defaultWorkflowId: body.default_workflow_id, categoryOverrides: body.category_overrides,
+      });
+    } catch (e: any) {
+      return sendServiceError(reply, e);
+    }
+  });
+
+  // ── Workflows ──────────────────────────────────────────────────────────
+  fastify.get('/workflows', async (request) => {
+    const user = request.user;
+    return { data: await PettiService.listWorkflows(user.tenant_id, user.sub) };
+  });
+
+  fastify.post('/workflows', { preHandler: requireRole(...PETTI_FINANCE_ROLES) }, async (request, reply) => {
+    const user = request.user;
+    const body = workflowCreateSchema.parse(request.body);
+    try {
+      const workflow = await PettiService.createWorkflow(user.tenant_id, user.sub, {
+        name: body.name, description: body.description, requiresDepartmentApproval: body.requires_department_approval,
+      });
+      return reply.status(201).send(workflow);
+    } catch (e: any) {
+      return sendServiceError(reply, e);
+    }
+  });
+
+  fastify.patch('/workflows/:id', { preHandler: requireRole(...PETTI_FINANCE_ROLES) }, async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    const body = workflowUpdateSchema.parse(request.body);
+    try {
+      return await PettiService.updateWorkflow(user.tenant_id, id, {
+        name: body.name, description: body.description, requiresDepartmentApproval: body.requires_department_approval,
+      });
+    } catch (e: any) {
+      return sendServiceError(reply, e);
+    }
+  });
+
+  fastify.delete('/workflows/:id', { preHandler: requireRole(...PETTI_FINANCE_ROLES) }, async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    try {
+      await PettiService.deleteWorkflow(user.tenant_id, id);
+      return reply.status(204).send();
+    } catch (e: any) {
+      return sendServiceError(reply, e);
+    }
+  });
+
   // ── Deposits ───────────────────────────────────────────────────────────
-  fastify.post('/wallets/:id/deposits', { preHandler: requireRole(...PETTI_ADMIN_ROLES) }, async (request, reply) => {
+  fastify.post('/wallets/:id/deposits', { preHandler: requireRole(...PETTI_FINANCE_ROLES) }, async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
     const body = depositSchema.parse(request.body);
@@ -102,8 +210,10 @@ export async function pettiRoutes(fastify: FastifyInstance) {
 
   // ── Withdrawal requests ────────────────────────────────────────────────
   // Requesting is deliberately open to any tenant user with Petti access —
-  // "the team can withdraw for petty cash" — not just PETTI_ADMIN_ROLES.
-  // Approve/reject/disburse below are the actual control point.
+  // "the team can withdraw for petty cash" — not just PETTI_FINANCE_ROLES.
+  // Approve/reject/disburse below check per-request authorization inside the
+  // service (the resolved workflow's approver is a specific person, not a
+  // platform role), so no requireRole preHandler gates them at the route.
   fastify.post('/wallets/:id/withdrawals', async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
@@ -124,32 +234,32 @@ export async function pettiRoutes(fastify: FastifyInstance) {
     return { data: await PettiService.listWithdrawalRequests(user.tenant_id, { walletId: wallet_id, status }) };
   });
 
-  fastify.post('/withdrawals/:id/approve', { preHandler: requireRole(...PETTI_ADMIN_ROLES) }, async (request, reply) => {
+  fastify.post('/withdrawals/:id/approve', async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
     try {
-      return await PettiService.approveWithdrawal(user.tenant_id, user.sub, id);
+      return await PettiService.approveWithdrawal(user.tenant_id, { id: user.sub, role: user.role }, id);
     } catch (e: any) {
       return sendServiceError(reply, e);
     }
   });
 
-  fastify.post('/withdrawals/:id/reject', { preHandler: requireRole(...PETTI_ADMIN_ROLES) }, async (request, reply) => {
+  fastify.post('/withdrawals/:id/reject', async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
     const body = rejectSchema.parse(request.body ?? {});
     try {
-      return await PettiService.rejectWithdrawal(user.tenant_id, user.sub, id, body.reason);
+      return await PettiService.rejectWithdrawal(user.tenant_id, { id: user.sub, role: user.role }, id, body.reason);
     } catch (e: any) {
       return sendServiceError(reply, e);
     }
   });
 
-  fastify.post('/withdrawals/:id/disburse', { preHandler: requireRole(...PETTI_ADMIN_ROLES) }, async (request, reply) => {
+  fastify.post('/withdrawals/:id/disburse', async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
     try {
-      return await PettiService.disburseWithdrawal(user.tenant_id, user.sub, id);
+      return await PettiService.disburseWithdrawal(user.tenant_id, { id: user.sub, role: user.role }, id);
     } catch (e: any) {
       return sendServiceError(reply, e);
     }

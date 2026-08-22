@@ -13,15 +13,32 @@
 // existing one. When there is no real PDF to draw onto (an image source,
 // or no document at all), a fresh single-page PDF is built instead so the
 // signature/audit content still has somewhere real to live.
+//
+// After the visual content (signature images, audit page) is drawn, the
+// document is also given a real cryptographic signature — a PKCS#7/CMS
+// signature dictionary per the PDF spec's own digital-signature mechanism,
+// the same thing a real PDF viewer (Adobe Reader, Chrome/Edge's built-in
+// viewer) reads to show "This document is digitally signed" and validate
+// it hasn't changed since. This is a genuinely different mechanism from
+// the visual signature images above — those are just pixels; this is what
+// makes the file cryptographically verifiable by any standard PDF tool,
+// not only inside Hudumika's own UI. See pdf-signing-identity.service.ts
+// for the platform's own signing certificate.
 
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFImage } from 'pdf-lib';
+import { pdflibAddPlaceholder } from '@signpdf/placeholder-pdf-lib';
+import { P12Signer } from '@signpdf/signer-p12';
+import { SUBFILTER_ETSI_CADES_DETACHED } from '@signpdf/utils';
 import { dbPlatform } from '../db/client.js';
 import { MinioIntegration } from '../integrations/minio.js';
+import { getSigningP12 } from './pdf-signing-identity.service.js';
+import { env } from '../config/env.js';
 
 const PAGE_W = 595.28; // A4 in points
 const PAGE_H = 841.89;
 
 interface SourceEnvelope {
+  id: string;
   title: string;
   tenant_id: string;
   file_id: string | null;
@@ -111,10 +128,64 @@ export async function buildSignedPdf(
     doc = await buildFallbackDoc(envelope, null);
   }
 
-  await drawFields(doc, recipients, fields);
+  await drawFields(doc, envelope, recipients, fields);
   await drawAuditTrail(doc, envelope, events);
 
-  return Buffer.from(await doc.save());
+  const unsigned = Buffer.from(await doc.save());
+  try {
+    return await applyDigitalSignature(unsigned, envelope, recipients);
+  } catch (err) {
+    // The visual document (signatures + audit trail) is real and complete
+    // either way — a real cryptographic signature is a genuine additional
+    // guarantee, not something the rest of the feature depends on, so a
+    // failure here returns the honest unsigned-but-complete PDF rather
+    // than losing the whole completion.
+    console.error('[Sign PDF] Digital signature failed, returning the document unsigned:', (err as Error).message);
+    return unsigned;
+  }
+}
+
+/** Adds a real PKCS#7 signature dictionary — reserves a placeholder in the
+ *  PDF's own structure, then computes and embeds the actual signature over
+ *  the final bytes. `name` is the platform's own certifying identity, the
+ *  same shape DocuSign's own certificate shows "DocuSign, Inc." rather than
+ *  the human signer — the human signers and their signature images are
+ *  already on the page and in the audit trail; this attests the platform
+ *  itself certified the file and that it hasn't changed since. */
+async function applyDigitalSignature(
+  pdfBytes: Buffer,
+  envelope: SourceEnvelope,
+  recipients: SourceRecipient[],
+): Promise<Buffer> {
+  const withPlaceholder = await PDFDocument.load(pdfBytes);
+  pdflibAddPlaceholder({
+    pdfDoc: withPlaceholder,
+    reason: envelope.verification_code
+      ? `Certified by Hudumika eSign — verification code ${envelope.verification_code}`
+      : 'Certified by Hudumika eSign',
+    contactInfo: 'support@hudumika.com',
+    name: 'Hudumika eSign',
+    location: recipients.map(r => r.name).join(', ') || envelope.title,
+    signingTime: envelope.completed_at ?? new Date(),
+    // PAdES (ISO 32000-2) rather than the classic Adobe.PPKLite/PKCS7
+    // subfilter — the modern standard, and what current PDF viewers
+    // (including Chromium's PDFium) look for first when deciding whether
+    // to show native signature-validation UI.
+    subFilter: SUBFILTER_ETSI_CADES_DETACHED,
+  });
+  const placeholderBytes = Buffer.from(await withPlaceholder.save({ useObjectStreams: false }));
+
+  const p12 = await getSigningP12();
+  const signer = new P12Signer(p12, { passphrase: env.SIGN_CERT_PASSWORD });
+  // Dynamic import, same ESM/CJS interop category as node-forge elsewhere in
+  // this codebase (see tra.service.ts) — @signpdf/signpdf's compiled output
+  // is `exports.default = new SignPdf()`, a real instance confirmed by
+  // reading dist/signpdf.js directly, but TS's own resolved type for this
+  // import doesn't narrow to it (typed as the whole module namespace
+  // instead), so the fallback below is a real runtime need, not a stray cast.
+  const signpdfModule = await import('@signpdf/signpdf') as unknown as { default: { sign(pdf: Buffer, signer: P12Signer): Promise<Buffer> } };
+  const signpdf = signpdfModule.default;
+  return signpdf.sign(placeholderBytes, signer);
 }
 
 async function buildFallbackDoc(envelope: SourceEnvelope, imageBytes: Buffer | null): Promise<PDFDocument> {
@@ -141,13 +212,26 @@ async function buildFallbackDoc(envelope: SourceEnvelope, imageBytes: Buffer | n
  *  signature image for signature/initials/stamp fields (the same image
  *  reused across every field belonging to that recipient, matching how
  *  sign_recipients.signature_data is captured once per signer, not once
- *  per field), the filled value for text/date, a mark for a checked box. */
-async function drawFields(doc: PDFDocument, recipients: SourceRecipient[], fields: SourceField[]): Promise<void> {
+ *  per field), the filled value for text/date, a mark for a checked box.
+ *
+ *  Signature/initials fields also get a small "Signed by: {name} / {id}"
+ *  caption drawn just below the image — the same visual convention
+ *  DocuSign's own signature blocks use (see the reference screenshot:
+ *  "DocuSigned by:" + a truncated envelope UUID under the signature). The
+ *  envelope's own id (not the human-facing verification_code, which is
+ *  already prominent elsewhere on the stamp/audit page) is what gets
+ *  truncated, matching DocuSign's own choice of an internal document
+ *  identifier rather than a display code. Drawn just outside the field's
+ *  own box, not inside it — the box is user-sized to fit exactly the
+ *  signature image, and DocuSign's real fields reserve extra room for this
+ *  caption the same way; a fixed field size here has nowhere to add it. */
+async function drawFields(doc: PDFDocument, envelope: SourceEnvelope, recipients: SourceRecipient[], fields: SourceField[]): Promise<void> {
   const recipientById = new Map(recipients.map(r => [r.id, r]));
   const pngCache = new Map<string, PDFImage>();
   const pages = doc.getPages();
   let font: PDFFont | null = null;
   let boldFont: PDFFont | null = null;
+  const shortId = envelope.id.replace(/-/g, '').toUpperCase().slice(0, 16);
 
   for (const field of fields) {
     const page = pages[Math.max(0, (field.page || 1) - 1)] ?? pages[0];
@@ -182,6 +266,16 @@ async function drawFields(doc: PDFDocument, recipients: SourceRecipient[], field
           const scale = Math.min(boxW / png.width, boxH / png.height);
           const w = png.width * scale, h = png.height * scale;
           page.drawImage(png, { x: boxX + (boxW - w) / 2, y: boxY + (boxH - h) / 2, width: w, height: h });
+
+          if (field.field_type !== 'stamp') {
+            font ??= await doc.embedFont(StandardFonts.Helvetica);
+            const captionSize = 5.5;
+            const caption = `Signed by: ${recipient.name} · ${shortId}`;
+            page.drawText(caption, {
+              x: boxX, y: Math.max(2, boxY - captionSize - 2),
+              size: captionSize, font, color: rgb(0.45, 0.45, 0.45),
+            });
+          }
         }
       } catch (err) {
         console.error('[Sign PDF] Failed to embed a signature image:', (err as Error).message);

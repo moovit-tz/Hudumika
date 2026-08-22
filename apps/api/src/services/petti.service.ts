@@ -1,3 +1,4 @@
+import type { UserRole } from '@hudumika/types';
 import { withTenant } from '../db/client.js';
 import { GLService } from './gl.service.js';
 
@@ -61,11 +62,39 @@ function getPaymentGatewayAdapter(method: 'manual' | 'gateway', provider?: strin
 }
 
 // ── Roles ──────────────────────────────────────────────────────────────────
-// Approval/disbursement is a finance-control action — narrower than the
-// general finance WRITE_ROLES set (financeExpenses.routes.ts) because it
-// deliberately excludes SALES: a sales officer can request petty cash but
-// should not be the one approving/paying it out.
-export const PETTI_ADMIN_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE'] as const;
+// Wallet administration (create/close a wallet, record deposits, configure
+// workflows and approvers) is "the finance manager acts as admin" — the same
+// set that gets to release funds, deliberately narrower than the old flat
+// PETTI_ADMIN_ROLES (which used to lump MANAGER in here too). A department
+// manager administers *their own approval step*, not the wallet itself.
+export const PETTI_FINANCE_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'FINANCE'] as const;
+// Platform/tenant admins can always act on an approve/reject/disburse step as
+// a safety valve, same as they can override most things elsewhere — this is
+// not "department manager" or "finance" access, just an escape hatch so a
+// misconfigured wallet (no approver set) never fully blocks money movement.
+const PETTI_OVERRIDE_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'] as const;
+
+export interface PettiActor { id: string; role: UserRole; }
+
+// A workflow's only real behavioural knob today: does this request need a
+// department-manager approval step before Finance can release it, or does it
+// go straight to Finance? Kept as a named, persisted, tenant-editable row
+// (petti_workflows) rather than a bare boolean on the wallet, because the
+// product ask is explicitly "multiple workflows depending on the nature of
+// employees and their expenses" — a set of things an admin can list, name
+// and pick between, not just a checkbox.
+const SYSTEM_WORKFLOWS = [
+  {
+    name: 'Department approval + finance release',
+    description: "A department manager (the wallet's designated approver) reviews the request first; Finance then releases the funds.",
+    requiresDepartmentApproval: true,
+  },
+  {
+    name: 'Finance only',
+    description: 'Finance reviews and releases the request directly — no separate department approval step.',
+    requiresDepartmentApproval: false,
+  },
+] as const;
 
 export class PettiService {
   static async listWallets(tenantId: string) {
@@ -116,6 +145,206 @@ export class PettiService {
     if (!result) return null;
     const balance = await PettiService.getWalletBalance(tenantId, result.wallet.gl_account_id);
     return { ...result, wallet: { ...result.wallet, balance } };
+  }
+
+  // ── Workflows ─────────────────────────────────────────────────────────
+  /** Idempotent — inserts the two built-in system workflows for a tenant if
+   *  they don't already exist (ON CONFLICT on the tenant_id+name unique
+   *  index). Called lazily wherever a workflow might need to be resolved,
+   *  same self-healing "ensure on read" pattern default-workflow.service.ts
+   *  established for ClearOS, rather than requiring a separate bootstrap step. */
+  static async ensureSystemWorkflows(tenantId: string, userId?: string | null) {
+    return withTenant(tenantId, async (trx) => {
+      for (const wf of SYSTEM_WORKFLOWS) {
+        await trx.insertInto('petti_workflows').values({
+          tenant_id: tenantId,
+          name: wf.name,
+          description: wf.description,
+          requires_department_approval: wf.requiresDepartmentApproval,
+          is_system: true,
+          created_by: userId || null,
+        }).onConflict((oc) => oc.columns(['tenant_id', 'name']).doNothing()).execute();
+      }
+    });
+  }
+
+  static async listWorkflows(tenantId: string, userId?: string | null) {
+    await PettiService.ensureSystemWorkflows(tenantId, userId);
+    return withTenant(tenantId, (trx) =>
+      trx.selectFrom('petti_workflows').selectAll()
+        .where('tenant_id', '=', tenantId)
+        .orderBy('is_system', 'desc').orderBy('name', 'asc')
+        .execute()
+    );
+  }
+
+  static async createWorkflow(tenantId: string, userId: string, data: { name: string; description?: string; requiresDepartmentApproval: boolean }) {
+    const name = data.name.trim();
+    if (!name) throw new Error('Workflow name is required.');
+    try {
+      return await withTenant(tenantId, (trx) =>
+        trx.insertInto('petti_workflows').values({
+          tenant_id: tenantId,
+          name,
+          description: data.description || null,
+          requires_department_approval: data.requiresDepartmentApproval,
+          is_system: false,
+          created_by: userId,
+        }).returningAll().executeTakeFirstOrThrow()
+      );
+    } catch (e: any) {
+      if (/duplicate key/i.test(e?.message || '')) throw new Error(`A workflow named "${name}" already exists.`);
+      throw e;
+    }
+  }
+
+  static async updateWorkflow(tenantId: string, workflowId: string, patch: { name?: string; description?: string | null; requiresDepartmentApproval?: boolean }) {
+    const set: Record<string, unknown> = { updated_at: new Date() };
+    if (patch.name !== undefined) {
+      const name = patch.name.trim();
+      if (!name) throw new Error('Workflow name is required.');
+      set.name = name;
+    }
+    if (patch.description !== undefined) set.description = patch.description || null;
+    if (patch.requiresDepartmentApproval !== undefined) set.requires_department_approval = patch.requiresDepartmentApproval;
+
+    const row = await withTenant(tenantId, (trx) =>
+      trx.updateTable('petti_workflows').set(set as any)
+        .where('id', '=', workflowId).where('tenant_id', '=', tenantId)
+        .returningAll().executeTakeFirst()
+    );
+    if (!row) throw new Error('Workflow not found.');
+    return row;
+  }
+
+  static async deleteWorkflow(tenantId: string, workflowId: string) {
+    const row = await withTenant(tenantId, (trx) =>
+      trx.selectFrom('petti_workflows').select(['id', 'is_system'])
+        .where('id', '=', workflowId).where('tenant_id', '=', tenantId).executeTakeFirst()
+    );
+    if (!row) throw new Error('Workflow not found.');
+    if (row.is_system) throw new Error('The built-in system workflows cannot be deleted — create a new one for a different process instead.');
+    await withTenant(tenantId, (trx) => trx.deleteFrom('petti_workflows').where('id', '=', workflowId).execute());
+  }
+
+  /** Resolves which workflow governs a request: the wallet's per-category
+   *  override, else the wallet's default, else the tenant's system default
+   *  (department approval required) — the same precedence the user asked
+   *  for ("wallet default, category can override"). Falls back to the
+   *  system default rather than throwing so a wallet nobody has configured
+   *  yet still behaves (safely, on the stricter of the two options). */
+  static async resolveWorkflow(tenantId: string, userId: string | null | undefined, wallet: { default_workflow_id: string | null; category_workflow_overrides: unknown }, category: string) {
+    const overrides = typeof wallet.category_workflow_overrides === 'string'
+      ? JSON.parse(wallet.category_workflow_overrides || '{}')
+      : (wallet.category_workflow_overrides as Record<string, string> | null) || {};
+    const targetId: string | null = overrides[category] || wallet.default_workflow_id || null;
+
+    if (targetId) {
+      const wf = await withTenant(tenantId, (trx) =>
+        trx.selectFrom('petti_workflows').selectAll()
+          .where('id', '=', targetId).where('tenant_id', '=', tenantId).executeTakeFirst()
+      );
+      if (wf) return wf;
+    }
+
+    await PettiService.ensureSystemWorkflows(tenantId, userId);
+    const fallback = await withTenant(tenantId, (trx) =>
+      trx.selectFrom('petti_workflows').selectAll()
+        .where('tenant_id', '=', tenantId).where('is_system', '=', true).where('requires_department_approval', '=', true)
+        .executeTakeFirst()
+    );
+    if (!fallback) throw new Error('No workflow could be resolved for this wallet.');
+    return fallback;
+  }
+
+  /** Assigning the primary department approver is a wallet-setup action
+   *  (finance/admin only). Clears any previously-named backup — a new
+   *  approver should name their own stand-in, not inherit the last one's. */
+  static async setWalletApprover(tenantId: string, walletId: string, approverUserId: string | null) {
+    const row = await withTenant(tenantId, (trx) =>
+      trx.updateTable('petti_wallets')
+        .set({ approver_user_id: approverUserId, approver_backup_user_id: null })
+        .where('id', '=', walletId).where('tenant_id', '=', tenantId)
+        .returningAll().executeTakeFirst()
+    );
+    if (!row) throw new Error('Wallet not found.');
+    return row;
+  }
+
+  /** Self-service: the wallet's own designated approver can name who covers
+   *  for them while absent, without needing a finance admin to intervene —
+   *  finance/admin roles can still set it directly as an override. */
+  static async setWalletApproverBackup(tenantId: string, actor: PettiActor, walletId: string, backupUserId: string | null) {
+    const wallet = await withTenant(tenantId, (trx) =>
+      trx.selectFrom('petti_wallets').select(['id', 'approver_user_id'])
+        .where('id', '=', walletId).where('tenant_id', '=', tenantId).executeTakeFirst()
+    );
+    if (!wallet) throw new Error('Wallet not found.');
+    const isSelf = wallet.approver_user_id === actor.id;
+    const isOverride = (PETTI_FINANCE_ROLES as readonly string[]).includes(actor.role);
+    if (!isSelf && !isOverride) throw new Error("Only this wallet's designated approver (or a finance admin) can set a backup approver.");
+
+    return withTenant(tenantId, (trx) =>
+      trx.updateTable('petti_wallets').set({ approver_backup_user_id: backupUserId })
+        .where('id', '=', walletId).where('tenant_id', '=', tenantId)
+        .returningAll().executeTakeFirstOrThrow()
+    );
+  }
+
+  static async setWalletWorkflowConfig(tenantId: string, walletId: string, data: { defaultWorkflowId?: string | null; categoryOverrides?: Record<string, string> }) {
+    const set: Record<string, unknown> = {};
+    if (data.defaultWorkflowId !== undefined) set.default_workflow_id = data.defaultWorkflowId;
+    if (data.categoryOverrides !== undefined) set.category_workflow_overrides = JSON.stringify(data.categoryOverrides);
+    if (Object.keys(set).length === 0) throw new Error('Nothing to update.');
+
+    const row = await withTenant(tenantId, (trx) =>
+      trx.updateTable('petti_wallets').set(set as any)
+        .where('id', '=', walletId).where('tenant_id', '=', tenantId)
+        .returningAll().executeTakeFirst()
+    );
+    if (!row) throw new Error('Wallet not found.');
+    return row;
+  }
+
+  /** Only this wallet's designated approver/backup (or an override role) may
+   *  act on the department-approval step; only Finance may act when the
+   *  resolved workflow skips that step. Not a route-level requireRole check
+   *  — the approver is a specific person, not a platform role, so the check
+   *  needs to look up the wallet/workflow, not just the caller's JWT role. */
+  private static async assertCanActOnApprovalStep(tenantId: string, actor: PettiActor, req: { wallet_id: string; workflow_id: string | null }) {
+    if ((PETTI_OVERRIDE_ROLES as readonly string[]).includes(actor.role)) return;
+
+    const wallet = await withTenant(tenantId, (trx) =>
+      trx.selectFrom('petti_wallets').select(['approver_user_id', 'approver_backup_user_id'])
+        .where('id', '=', req.wallet_id).where('tenant_id', '=', tenantId).executeTakeFirstOrThrow()
+    );
+    const workflow = req.workflow_id
+      ? await withTenant(tenantId, (trx) =>
+          trx.selectFrom('petti_workflows').select(['requires_department_approval'])
+            .where('id', '=', req.workflow_id as string).where('tenant_id', '=', tenantId).executeTakeFirst()
+        )
+      : null;
+    // Legacy requests submitted before workflows existed have no workflow_id
+    // stamped — keep the original two-step behaviour for those.
+    const requiresDept = workflow ? workflow.requires_department_approval : true;
+
+    if (requiresDept) {
+      const designated = [wallet.approver_user_id, wallet.approver_backup_user_id].filter((v): v is string => !!v);
+      if (designated.length > 0) {
+        if (!designated.includes(actor.id)) {
+          throw new Error("Only this wallet's designated department approver (or their backup) can approve or reject this request.");
+        }
+        return;
+      }
+      // Not configured yet — fall back to the old coarse role check so an
+      // un-configured wallet never fully blocks approval.
+      if (actor.role === 'MANAGER' || (PETTI_FINANCE_ROLES as readonly string[]).includes(actor.role)) return;
+      throw new Error('This wallet has no department approver configured yet — ask a finance admin to set one, or have a Manager or Finance user approve.');
+    }
+
+    if (!(PETTI_FINANCE_ROLES as readonly string[]).includes(actor.role)) {
+      throw new Error("This wallet's workflow sends requests straight to Finance — only a Finance user can approve or reject this request.");
+    }
   }
 
   /** Auto-provisions a dedicated GL asset account for the wallet, using a
@@ -226,21 +455,30 @@ export class PettiService {
     const category = (data.category && (PETTI_CATEGORIES as readonly string[]).includes(data.category))
       ? data.category : 'MISCELLANEOUS';
 
-    return withTenant(tenantId, async (trx) => {
-      const wallet = await trx.selectFrom('petti_wallets').select(['id', 'status'])
-        .where('id', '=', data.walletId).where('tenant_id', '=', tenantId).executeTakeFirst();
-      if (!wallet) throw new Error('Wallet not found.');
-      if (wallet.status !== 'active') throw new Error('This wallet is closed and cannot accept withdrawal requests.');
+    // Two separate withTenant calls, not one wallet fetch nested inside the
+    // insert's transaction — resolveWorkflow opens its own withTenant calls
+    // internally, and a still-open outer transaction wouldn't be visible to
+    // those (each withTenant is a genuinely separate transaction).
+    const wallet = await withTenant(tenantId, (trx) =>
+      trx.selectFrom('petti_wallets').selectAll()
+        .where('id', '=', data.walletId).where('tenant_id', '=', tenantId).executeTakeFirst()
+    );
+    if (!wallet) throw new Error('Wallet not found.');
+    if (wallet.status !== 'active') throw new Error('This wallet is closed and cannot accept withdrawal requests.');
 
-      return trx.insertInto('petti_withdrawal_requests').values({
+    const workflow = await PettiService.resolveWorkflow(tenantId, userId, wallet, category);
+
+    return withTenant(tenantId, (trx) =>
+      trx.insertInto('petti_withdrawal_requests').values({
         tenant_id: tenantId,
         wallet_id: data.walletId,
         amount: data.amount,
         category,
         purpose,
         requested_by: userId,
-      }).returningAll().executeTakeFirstOrThrow();
-    });
+        workflow_id: workflow.id,
+      }).returningAll().executeTakeFirstOrThrow()
+    );
   }
 
   static async listWithdrawalRequests(tenantId: string, filters: { walletId?: string; status?: string } = {}) {
@@ -252,33 +490,39 @@ export class PettiService {
     });
   }
 
-  static async approveWithdrawal(tenantId: string, userId: string, requestId: string) {
-    return withTenant(tenantId, async (trx) => {
-      const req = await trx.selectFrom('petti_withdrawal_requests').select(['id', 'status', 'requested_by'])
-        .where('id', '=', requestId).where('tenant_id', '=', tenantId).executeTakeFirst();
-      if (!req) throw new Error('Withdrawal request not found.');
-      if (req.status !== 'pending') throw new Error(`Cannot approve a request in '${req.status}' status.`);
-      if (req.requested_by === userId) throw new Error('The requester cannot approve their own withdrawal request.');
+  static async approveWithdrawal(tenantId: string, actor: PettiActor, requestId: string) {
+    const req = await withTenant(tenantId, (trx) =>
+      trx.selectFrom('petti_withdrawal_requests').select(['id', 'status', 'requested_by', 'wallet_id', 'workflow_id'])
+        .where('id', '=', requestId).where('tenant_id', '=', tenantId).executeTakeFirst()
+    );
+    if (!req) throw new Error('Withdrawal request not found.');
+    if (req.status !== 'pending') throw new Error(`Cannot approve a request in '${req.status}' status.`);
+    if (req.requested_by === actor.id) throw new Error('The requester cannot approve their own withdrawal request.');
+    await PettiService.assertCanActOnApprovalStep(tenantId, actor, req);
 
-      return trx.updateTable('petti_withdrawal_requests')
-        .set({ status: 'approved', approved_by: userId, approved_at: new Date() })
+    return withTenant(tenantId, (trx) =>
+      trx.updateTable('petti_withdrawal_requests')
+        .set({ status: 'approved', approved_by: actor.id, approved_at: new Date() })
         .where('id', '=', requestId)
-        .returningAll().executeTakeFirstOrThrow();
-    });
+        .returningAll().executeTakeFirstOrThrow()
+    );
   }
 
-  static async rejectWithdrawal(tenantId: string, userId: string, requestId: string, reason?: string) {
-    return withTenant(tenantId, async (trx) => {
-      const req = await trx.selectFrom('petti_withdrawal_requests').select(['id', 'status'])
-        .where('id', '=', requestId).where('tenant_id', '=', tenantId).executeTakeFirst();
-      if (!req) throw new Error('Withdrawal request not found.');
-      if (req.status !== 'pending') throw new Error(`Cannot reject a request in '${req.status}' status.`);
+  static async rejectWithdrawal(tenantId: string, actor: PettiActor, requestId: string, reason?: string) {
+    const req = await withTenant(tenantId, (trx) =>
+      trx.selectFrom('petti_withdrawal_requests').select(['id', 'status', 'wallet_id', 'workflow_id'])
+        .where('id', '=', requestId).where('tenant_id', '=', tenantId).executeTakeFirst()
+    );
+    if (!req) throw new Error('Withdrawal request not found.');
+    if (req.status !== 'pending') throw new Error(`Cannot reject a request in '${req.status}' status.`);
+    await PettiService.assertCanActOnApprovalStep(tenantId, actor, req);
 
-      return trx.updateTable('petti_withdrawal_requests')
-        .set({ status: 'rejected', approved_by: userId, approved_at: new Date(), rejection_reason: reason || null })
+    return withTenant(tenantId, (trx) =>
+      trx.updateTable('petti_withdrawal_requests')
+        .set({ status: 'rejected', approved_by: actor.id, approved_at: new Date(), rejection_reason: reason || null })
         .where('id', '=', requestId)
-        .returningAll().executeTakeFirstOrThrow();
-    });
+        .returningAll().executeTakeFirstOrThrow()
+    );
   }
 
   /**
@@ -294,7 +538,11 @@ export class PettiService {
    * financeExpenses.routes.ts uses for ordinary expenses) would leave the
    * wallet's derived balance silently wrong.
    */
-  static async disburseWithdrawal(tenantId: string, userId: string, requestId: string) {
+  static async disburseWithdrawal(tenantId: string, actor: PettiActor, requestId: string) {
+    if (!(PETTI_FINANCE_ROLES as readonly string[]).includes(actor.role)) {
+      throw new Error('Only Finance can release petty cash funds for an approved request.');
+    }
+    const userId = actor.id;
     const req = await withTenant(tenantId, (trx) =>
       trx.selectFrom('petti_withdrawal_requests').selectAll()
         .where('id', '=', requestId).where('tenant_id', '=', tenantId).executeTakeFirst()
@@ -326,6 +574,11 @@ export class PettiService {
       reference: `Petti/${wallet.name}`,
       note: req.purpose,
       is_revenue: false,
+      // A petty-cash disbursement is a cash advance, not a paid-in-full
+      // expense — it starts life needing to be retired (receipts submitted,
+      // any shortfall accounted for). See financeExpenses.routes.ts's
+      // /expenses/:id/retire.
+      retirement_status: 'pending',
       created_by: userId,
     }).returningAll().executeTakeFirstOrThrow());
 

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { apiFetch, apiDownload } from '../../lib/api.js';
 import type { SignEnvelope, SignRecipient } from '@hudumika/types';
 import { Icon } from '../../components/Icon.js';
+import { Button } from '../../components/ui/button.js';
 import './Sign.css';
 
 type EnvelopeWithRecipients = SignEnvelope & { recipients: SignRecipient[] };
@@ -115,12 +116,9 @@ export function SignInbox({ view }: { view: ViewKey }) {
           onChange={e => setSearch(e.target.value)}
           style={{ flex: 1, padding: '8px 14px', borderRadius: 8, border: '1.5px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 14, outline: 'none' }}
         />
-        <button
-          onClick={() => navigate('/sign/editor')}
-          style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 18px', borderRadius: 8, background: 'var(--teal)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 13.5, fontWeight: 600 }}
-        >
-          + New Envelope
-        </button>
+        <Button variant="default" onClick={() => navigate('/sign/editor')}>
+          <Icon name="plus" size={14} /> New Envelope
+        </Button>
       </div>
 
       {/* List */}
@@ -141,10 +139,9 @@ export function SignInbox({ view }: { view: ViewKey }) {
               {view === 'inbox' ? 'When someone sends you a document to sign, it will appear here.' : 'Create a new envelope to get started.'}
             </div>
             {view !== 'inbox' && (
-              <button onClick={() => navigate('/sign/editor')}
-                style={{ marginTop: 8, padding: '10px 22px', borderRadius: 8, background: 'var(--teal)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 600 }}>
-                + Create Envelope
-              </button>
+              <Button variant="default" onClick={() => navigate('/sign/editor')} style={{ marginTop: 8 }}>
+                <Icon name="plus" size={14} /> Create Envelope
+              </Button>
             )}
           </div>
         ) : (
@@ -206,7 +203,9 @@ export function SignEnvelopeDetail() {
     <div style={{ height: '100%', overflowY: 'auto', padding: '28px 32px', fontFamily: 'var(--font)' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, marginBottom: 28 }}>
-        <button onClick={() => navigate('/sign')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 20 }}>←</button>
+        <Button variant="ghost" size="icon" onClick={() => navigate('/sign')} aria-label="Back to Sign">
+          <Icon name="arrowLeft" size={16} />
+        </Button>
         <div style={{ flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6 }}>
             <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--ink)', margin: 0 }}>{env.title}</h1>
@@ -219,26 +218,17 @@ export function SignEnvelopeDetail() {
         <div style={{ display: 'flex', gap: 8 }}>
           {env.status === 'draft' && (
             <>
-              <button onClick={() => navigate(`/sign/editor/${env.id}`)}
-                style={{ padding: '8px 16px', borderRadius: 8, border: '1.5px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', cursor: 'pointer', fontSize: 13, fontWeight: 500 }}>
-                Edit
-              </button>
-              <button onClick={handleSend}
-                style={{ padding: '8px 18px', borderRadius: 8, background: 'var(--teal)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
-                Send for Signing
-              </button>
+              <Button variant="outline" size="sm" onClick={() => navigate(`/sign/editor/${env.id}`)}>Edit</Button>
+              <Button variant="default" size="sm" onClick={handleSend}>Send for Signing</Button>
             </>
           )}
           {env.status === 'sent' && (
             <>
-              <button onClick={handleRemind}
-                style={{ padding: '8px 16px', borderRadius: 8, border: '1.5px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', cursor: 'pointer', fontSize: 13 }}>
-                Remind
-              </button>
-              <button onClick={handleVoid}
-                style={{ padding: '8px 16px', borderRadius: 8, border: '1.5px solid var(--sign-red)', background: 'var(--sign-red-l)', color: 'var(--sign-red)', cursor: 'pointer', fontSize: 13 }}>
+              <Button variant="outline" size="sm" onClick={handleRemind}>Remind</Button>
+              <Button variant="outline" size="sm" onClick={handleVoid}
+                style={{ borderColor: 'var(--sign-red)', background: 'var(--sign-red-l)', color: 'var(--sign-red)' }}>
                 Void
-              </button>
+              </Button>
             </>
           )}
         </div>
@@ -276,16 +266,22 @@ export function SignEnvelopeDetail() {
             )}
           </div>
           <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, flexShrink: 0 }}>
+            {/* --sign-green isn't run through the contrast-floor math
+                --primary/--primary-foreground get (CLAUDE.md: that floor
+                only exists for --primary today) — #fff here matches the
+                rest of the platform's current, honest, un-floored state
+                for semantic colors, not a fixed pairing pretending to be. */}
             {env.stamped_file_url && (
-              <button onClick={() => apiDownload(`/v1/sign/envelopes/${env.id}/download`, `${env.title} — signed.pdf`)}
-                style={{ padding: '6px 14px', borderRadius: 6, border: '1px solid var(--sign-green)', background: 'var(--sign-green)', color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5 }}>
+              <Button variant="default" size="sm"
+                onClick={() => apiDownload(`/v1/sign/envelopes/${env.id}/download`, `${env.title} — signed.pdf`)}
+                style={{ background: 'var(--sign-green)', color: '#fff' }}>
                 <Icon name="download" size={12} /> Download PDF
-              </button>
+              </Button>
             )}
-            <button onClick={() => navigator.clipboard?.writeText(env.verification_code ?? '')}
-              style={{ padding: '6px 14px', borderRadius: 6, border: '1px solid var(--sign-green)', background: 'transparent', color: 'var(--sign-green)', cursor: 'pointer', fontSize: 12 }}>
+            <Button variant="outline" size="sm" onClick={() => navigator.clipboard?.writeText(env.verification_code ?? '')}
+              style={{ borderColor: 'var(--sign-green)', color: 'var(--sign-green)' }}>
               Copy Code
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -303,16 +299,15 @@ export function SignEnvelopeDetail() {
                 {r.role_label && <span style={{ fontSize: 11, color: 'var(--ink3)', background: 'var(--bg)', padding: '2px 8px', borderRadius: 99 }}>{r.role_label}</span>}
                 <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
                   {(r.status === 'pending' || r.status === 'viewed') && (
-                    <button onClick={() => window.open(`/sign/public/${r.token}`, '_blank', 'noopener')}
+                    <Button variant="outline" size="xs" onClick={() => window.open(`/sign/public/${r.token}`, '_blank', 'noopener')}
                       title="Open this recipient's real signing link right now, on this device — for someone signing in person"
-                      style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid var(--sign-blue)', background: 'transparent', color: 'var(--sign-blue)', cursor: 'pointer', fontSize: 11, display: 'flex', alignItems: 'center', gap: 4 }}>
+                      style={{ borderColor: 'var(--sign-blue)', color: 'var(--sign-blue)' }}>
                       <Icon name="edit" size={11} /> Sign In Person
-                    </button>
+                    </Button>
                   )}
-                  <button onClick={() => navigator.clipboard?.writeText(`${window.location.origin}/sign/public/${r.token}`)}
-                    style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid var(--border)', background: 'transparent', color: 'var(--ink3)', cursor: 'pointer', fontSize: 11 }}>
+                  <Button variant="outline" size="xs" onClick={() => navigator.clipboard?.writeText(`${window.location.origin}/sign/public/${r.token}`)}>
                     Copy Link
-                  </button>
+                  </Button>
                 </div>
               </div>
             ))}

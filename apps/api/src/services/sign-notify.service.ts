@@ -9,6 +9,8 @@ import type { Kysely, Transaction } from 'kysely';
 import { type Database } from '../db/client.js';
 import { MailService } from './mail.service.js';
 import { WhatsAppIntegration } from '../integrations/whatsapp.js';
+import { SmsIntegration } from '../integrations/sms.js';
+import { NotificationService } from './notification.service.js';
 import { resolvePublicBaseUrl } from '../routes/landed-cost-share.routes.js';
 
 export type Db = Kysely<Database> | Transaction<Database>;
@@ -126,18 +128,32 @@ function signingWhatsAppText(envelope: { title: string }, recipientName: string,
   return `${intro}\nSign here: ${signingUrl}`;
 }
 
+function signingSmsText(envelope: { title: string }, recipientName: string, signingUrl: string, kind: 'invite' | 'reminder') {
+  // Kept short and plain — no markdown, no line breaks — matching how the
+  // rest of the platform's own SMS sends already read (SmsIntegration has
+  // no rich-text concept, unlike WhatsApp/email).
+  const intro = kind === 'invite'
+    ? `${recipientName}, please review and sign "${envelope.title}".`
+    : `${recipientName}, reminder — "${envelope.title}" still needs your signature.`;
+  return `${intro} ${signingUrl}`;
+}
+
 /** Emails each given recipient their own real signing link, and also sends
- *  it over WhatsApp when a phone number is on file — the same dual-channel
- *  pattern shipment-report.service.ts already established (email + a
- *  WhatsApp message carrying the link, not the document itself). Both are
- *  best-effort per recipient and per channel — a failed send on either one
- *  doesn't stop the other channel, the other recipients, or the request
+ *  it over WhatsApp and SMS when a phone number is on file — the same
+ *  dual-channel pattern shipment-report.service.ts already established,
+ *  now a triple channel. When a recipient is tagged to a real internal
+ *  platform user (sign_recipients.user_id, set via SignEditor's "Tag a
+ *  person" picker), also fires a real in-app bell notification — the one
+ *  channel that only makes sense for someone who actually has a Hudumika
+ *  account, unlike email/SMS/WhatsApp which work for any external signer.
+ *  Every channel is best-effort per recipient — a failed send on any one
+ *  of them doesn't stop the others, the other recipients, or the request
  *  that triggered this (matches this codebase's standing pattern for a
  *  notification riding on a real business action, e.g. CloudSync). */
 export async function notifyRecipients(
   tid: string,
-  envelope: { title: string; message: string | null },
-  recipients: Array<{ name: string; email: string; token: string; phone?: string | null }>,
+  envelope: { id: string; title: string; message: string | null },
+  recipients: Array<{ name: string; email: string; token: string; phone?: string | null; user_id?: string | null }>,
   kind: 'invite' | 'reminder',
 ) {
   const { url: baseUrl } = resolvePublicBaseUrl();
@@ -151,6 +167,20 @@ export async function notifyRecipients(
     if (r.phone) {
       await WhatsAppIntegration.sendMessage(r.phone, signingWhatsAppText(envelope, r.name, signingUrl, kind)).catch(err => {
         console.error(`[Sign] Failed to WhatsApp ${kind} to ${r.phone}:`, err.message);
+      });
+      await SmsIntegration.sendSms(tid, r.phone, signingSmsText(envelope, r.name, signingUrl, kind)).catch(err => {
+        console.error(`[Sign] Failed to SMS ${kind} to ${r.phone}:`, err.message);
+      });
+    }
+
+    if (r.user_id) {
+      const title = kind === 'invite' ? `Signature requested: ${envelope.title}` : `Reminder: ${envelope.title} still needs your signature`;
+      await NotificationService.createNotification({
+        tenantId: tid, userId: r.user_id, app: 'sign', type: 'task',
+        title, message: envelope.message ?? undefined, link: `/sign/public/${r.token}`,
+        entityType: 'sign_envelope', entityId: envelope.id, entityLabel: envelope.title,
+      }).catch(err => {
+        console.error(`[Sign] Failed to create in-app notification for user ${r.user_id}:`, err.message);
       });
     }
   }

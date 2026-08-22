@@ -73,6 +73,19 @@ const expensePatchSchema = z.object({
   efd_error: z.string().nullable().optional(),
 });
 
+// pending: a cash advance (e.g. Petti petty cash) that's gone out but has no
+// proof of spend attached yet. retired: fully accounted for. short: receipts
+// don't cover the full amount (the gap is noted, not auto-recovered — no
+// payroll deduction wired up). written_off: the gap is being absorbed as a
+// loss rather than chased. not_required is the default for an ordinary
+// typed-in expense; this endpoint only ever moves a row off it once, when
+// Petti stamps it 'pending' at disbursement time — see petti.service.ts.
+const RETIRE_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'FINANCE'] as const;
+const retireSchema = z.object({
+  status: z.enum(['retired', 'short', 'written_off']),
+  note: z.string().max(2000).nullable().optional(),
+});
+
 type FinanceExpenseSource = 'finance' | 'fleet_vehicle' | 'fleet_fuel' | 'fleet_maintenance';
 
 // Expense category → GL expense account (see gl.service.ts STANDARD_COA).
@@ -130,6 +143,7 @@ interface FinanceExpenseListItem {
   vehicle_id: string | null;
   vehicle_label: string | null;
   editable: boolean;
+  retirement_status: string;
 }
 
 export async function financeExpensesRoutes(fastify: FastifyInstance) {
@@ -149,7 +163,7 @@ export async function financeExpensesRoutes(fastify: FastifyInstance) {
     return withTenant(user.tenant_id, async (trx) => {
       const [financeRows, vehicleExpenseRows, fuelRows, maintenanceRows] = await Promise.all([
         trx.selectFrom('finance_expenses')
-          .select(['id', 'name', 'amount', 'expense_date', 'category', 'is_revenue', 'shipment_id', 'customer_id', 'supplier_id'])
+          .select(['id', 'name', 'amount', 'expense_date', 'category', 'is_revenue', 'shipment_id', 'customer_id', 'supplier_id', 'retirement_status'])
           .where('tenant_id', '=', user.tenant_id)
           .orderBy('expense_date', 'desc')
           .execute(),
@@ -181,25 +195,25 @@ export async function financeExpensesRoutes(fastify: FastifyInstance) {
           id: r.id, source: 'finance', name: r.name, amount: Number(r.amount),
           date: new Date(r.expense_date).toISOString(), category: r.category, is_revenue: r.is_revenue,
           shipment_id: r.shipment_id, customer_id: r.customer_id, supplier_id: r.supplier_id,
-          vehicle_id: null, vehicle_label: null, editable: true,
+          vehicle_id: null, vehicle_label: null, editable: true, retirement_status: r.retirement_status,
         })),
         ...vehicleExpenseRows.map((r): FinanceExpenseListItem => ({
           id: r.id, source: 'fleet_vehicle', name: r.description || r.category, amount: Number(r.amount),
           date: new Date(r.expense_date).toISOString(), category: r.category, is_revenue: false,
           shipment_id: null, customer_id: null, supplier_id: null,
-          vehicle_id: r.vehicle_id, vehicle_label: vehicleLabel(r.vehicle_name, r.vehicle_plate), editable: false,
+          vehicle_id: r.vehicle_id, vehicle_label: vehicleLabel(r.vehicle_name, r.vehicle_plate), editable: false, retirement_status: 'not_required',
         })),
         ...fuelRows.map((r): FinanceExpenseListItem => ({
           id: r.id, source: 'fleet_fuel', name: `Fuel — ${r.station || 'Unknown station'}`, amount: Number(r.cost ?? 0),
           date: new Date(r.logged_at).toISOString(), category: 'FUEL', is_revenue: false,
           shipment_id: null, customer_id: null, supplier_id: null,
-          vehicle_id: r.vehicle_id, vehicle_label: vehicleLabel(r.vehicle_name, r.vehicle_plate), editable: false,
+          vehicle_id: r.vehicle_id, vehicle_label: vehicleLabel(r.vehicle_name, r.vehicle_plate), editable: false, retirement_status: 'not_required',
         })),
         ...maintenanceRows.map((r): FinanceExpenseListItem => ({
           id: r.id, source: 'fleet_maintenance', name: r.service_type, amount: Number(r.cost ?? 0),
           date: new Date(r.service_date).toISOString(), category: 'MAINTENANCE', is_revenue: false,
           shipment_id: null, customer_id: null, supplier_id: null,
-          vehicle_id: r.vehicle_id, vehicle_label: vehicleLabel(r.vehicle_name, r.vehicle_plate), editable: false,
+          vehicle_id: r.vehicle_id, vehicle_label: vehicleLabel(r.vehicle_name, r.vehicle_plate), editable: false, retirement_status: 'not_required',
         })),
       ].sort((a, b) => b.date.localeCompare(a.date));
 
@@ -297,6 +311,43 @@ export async function financeExpensesRoutes(fastify: FastifyInstance) {
       mirrorExpenseAttachment(user.tenant_id, row).catch(e => request.log.warn({ err: e.message }, '[Cloud] expense attachment mirror failed'));
     }
     return row;
+  });
+
+  /**
+   * PATCH /v1/finance/expenses/:id/retire
+   * Marks a cash advance (currently only ever a Petti petty-cash
+   * disbursement) as accounted for — receipts submitted and reconciled.
+   * Attach the receipt itself first via PATCH /expenses/:id { attachment_data }
+   * (the same field/endpoint an ordinary expense's receipt already uses;
+   * Petti-sourced rows start with no attachment, so there's no collision
+   * with an original receipt). Refuses on a row that was never a cash
+   * advance, or one already retired — retiring is a one-way step.
+   */
+  fastify.patch('/expenses/:id/retire', { preHandler: requireRole(...RETIRE_ROLES) }, async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    const body = retireSchema.parse(request.body);
+
+    const existing = await withTenant(user.tenant_id, (trx) =>
+      trx.selectFrom('finance_expenses').select(['id', 'retirement_status'])
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst()
+    );
+    if (!existing) return reply.status(404).send({ error: 'Expense not found' });
+    if (existing.retirement_status === 'not_required') {
+      return reply.status(400).send({ error: 'This expense is not a cash advance — there is nothing to retire.' });
+    }
+    if (existing.retirement_status !== 'pending') {
+      return reply.status(400).send({ error: `This expense is already '${existing.retirement_status}'.` });
+    }
+
+    return withTenant(user.tenant_id, (trx) =>
+      trx.updateTable('finance_expenses').set({
+        retirement_status: body.status,
+        retired_by: user.sub,
+        retired_at: new Date(),
+        retirement_note: body.note || null,
+      }).where('id', '=', id).where('tenant_id', '=', user.tenant_id).returningAll().executeTakeFirstOrThrow()
+    );
   });
 
   /**

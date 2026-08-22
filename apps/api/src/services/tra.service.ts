@@ -147,8 +147,14 @@ async function loadPrivateKeyFromPfx(
   pfxPassword: string,
 ): Promise<crypto.KeyObject | null> {
   try {
-    // Dynamically import node-forge to avoid ESM/CJS issues
-    const forge = await import('node-forge');
+    // Dynamically import node-forge to avoid ESM/CJS issues. Under this
+    // project's module resolution the dynamic import resolves to
+    // `{ default: <the real forge object> }`, not the forge object spread
+    // onto the namespace directly — `.pki`/`.asn1`/`.pkcs12` are all
+    // `undefined` without `.default` (confirmed live; this call was silently
+    // broken — every TRA PFX load threw before ever reaching a real
+    // signature). See pdf-signing-identity.service.ts for the same fix.
+    const { default: forge } = await import('node-forge');
     const pfxDer = fs.readFileSync(pfxPath);
     const pfxAsn1 = forge.asn1.fromDer(pfxDer.toString('binary'));
     const pfxObj = forge.pkcs12.pkcs12FromAsn1(pfxAsn1, pfxPassword);

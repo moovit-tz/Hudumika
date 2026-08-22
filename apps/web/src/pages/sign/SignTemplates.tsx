@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../../lib/api.js';
 import type { SignTemplate } from '@hudumika/types';
 import { Icon } from '../../components/Icon.js';
+import { Button } from '../../components/ui/button.js';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog.js';
 import './Sign.css';
 
 interface BulkSendResult { email: string; ok: boolean; envelope_id?: string; error?: string }
@@ -43,13 +45,14 @@ function BulkSendModal({ template, onClose }: { template: SignTemplate; onClose:
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div onClick={e => e.stopPropagation()}
-        style={{ background: 'var(--card-bg)', borderRadius: 14, padding: 24, width: '100%', maxWidth: 560, maxHeight: '85vh', overflowY: 'auto', boxShadow: 'var(--sign-shadow-lg)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-          <Icon name="send" size={18} style={{ color: 'var(--teal)' }} />
-          <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: 'var(--ink)' }}>Bulk send — {template.name}</h3>
-        </div>
+    <Dialog open onOpenChange={o => !o && onClose()}>
+      <DialogContent className="sm:max-w-140 max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Icon name="send" size={18} style={{ color: 'var(--teal)' }} />
+            Bulk send — {template.name}
+          </DialogTitle>
+        </DialogHeader>
 
         {!results ? (
           <>
@@ -68,13 +71,10 @@ function BulkSendModal({ template, onClose }: { template: SignTemplate; onClose:
             </div>
             {error && <div style={{ fontSize: 12.5, color: 'var(--sign-red)', marginTop: 8 }}>{error}</div>}
             <div style={{ display: 'flex', gap: 10, marginTop: 18 }}>
-              <button onClick={onClose} style={{ flex: 1, padding: '9px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--ink)', cursor: 'pointer', fontSize: 13 }}>
-                Cancel
-              </button>
-              <button onClick={handleSend} disabled={!validRows.length || sending}
-                style={{ flex: 2, padding: '9px', borderRadius: 8, background: validRows.length ? 'var(--teal)' : 'var(--border)', color: '#fff', border: 'none', cursor: validRows.length ? 'pointer' : 'default', fontSize: 13.5, fontWeight: 600 }}>
+              <Button variant="outline" onClick={onClose} style={{ flex: 1 }}>Cancel</Button>
+              <Button variant="default" onClick={handleSend} disabled={!validRows.length || sending} style={{ flex: 2 }}>
                 {sending ? 'Sending…' : `Send to ${validRows.length || 0} recipient(s)`}
-              </button>
+              </Button>
             </div>
           </>
         ) : (
@@ -91,13 +91,11 @@ function BulkSendModal({ template, onClose }: { template: SignTemplate; onClose:
                 </div>
               ))}
             </div>
-            <button onClick={onClose} style={{ width: '100%', marginTop: 16, padding: '10px', borderRadius: 8, background: 'var(--teal)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 13.5, fontWeight: 600 }}>
-              Done
-            </button>
+            <Button variant="default" onClick={onClose} style={{ width: '100%', marginTop: 16 }}>Done</Button>
           </>
         )}
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -121,10 +119,9 @@ export function SignTemplates() {
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 24px', borderBottom: '1px solid var(--border)', background: 'var(--card-bg)' }}>
         <h2 style={{ fontSize: 17, fontWeight: 700, color: 'var(--ink)', margin: 0 }}>Templates</h2>
-        <button onClick={() => navigate('/sign/editor')}
-          style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 7, padding: '9px 18px', borderRadius: 8, background: 'var(--teal)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 13.5, fontWeight: 600 }}>
-          + New Envelope from Scratch
-        </button>
+        <Button variant="default" onClick={() => navigate('/sign/editor')} style={{ marginLeft: 'auto' }}>
+          <Icon name="plus" size={14} /> New Envelope from Scratch
+        </Button>
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
@@ -156,19 +153,17 @@ export function SignTemplates() {
                   <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Icon name="fileText" size={11} /> {(t.fields as unknown[]).length ?? 0} field(s)</span>
                 </div>
                 <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-                  <button onClick={() => navigate(`/sign/editor?template=${t.id}`)}
-                    style={{ flex: 2, padding: '8px', borderRadius: 7, background: 'var(--teal)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
+                  <Button variant="default" size="sm" onClick={() => navigate(`/sign/editor?template=${t.id}`)} style={{ flex: 2 }}>
                     Use Template
-                  </button>
-                  <button onClick={() => setBulkSendTarget(t)}
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => setBulkSendTarget(t)}
                     title="Send this template to a list of recipients — one envelope each"
-                    style={{ flex: 1, padding: '8px', borderRadius: 7, border: '1px solid var(--sign-blue)', background: 'transparent', color: 'var(--sign-blue)', cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+                    style={{ flex: 1, borderColor: 'var(--sign-blue)', color: 'var(--sign-blue)' }}>
                     <Icon name="send" size={12} /> Bulk
-                  </button>
-                  <button onClick={() => deleteTemplate(t.id)}
-                    style={{ padding: '8px 10px', borderRadius: 7, border: '1px solid var(--border)', background: 'transparent', color: 'var(--ink3)', cursor: 'pointer', fontSize: 13 }}>
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => deleteTemplate(t.id)}>
                     Delete
-                  </button>
+                  </Button>
                 </div>
               </div>
             ))}

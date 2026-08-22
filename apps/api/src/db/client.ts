@@ -1200,6 +1200,10 @@ export interface FinanceExpensesTable {
   efd_verified: boolean | null;
   efd_verified_at: Date | null;
   efd_error: string | null;
+  retirement_status: Generated<string>; // not_required | pending | retired | short | written_off
+  retired_by: string | null;
+  retired_at: Date | null;
+  retirement_note: string | null;
   created_by: string | null;
   created_at: Generated<Date>;
 }
@@ -3298,6 +3302,7 @@ export interface SignRecipientsTable {
   name: string;
   email: string;
   phone: string | null;
+  user_id: string | null;
   role_label: string | null;
   sign_order: Generated<number>;
   status: Generated<string>; // sign_recipient_status enum
@@ -3369,6 +3374,18 @@ export interface SignVerificationsTable {
   ip_address: string | null;
   user_agent: string | null;
   result: string;
+}
+
+export interface SignStampsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  owner_type: string; // 'tenant' | 'user'
+  owner_user_id: string | null;
+  image_data: string;
+  label: string | null;
+  created_by: string;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
 }
 
 export interface Database {
@@ -3604,6 +3621,7 @@ export interface Database {
   shipment_report_shares: ShipmentReportSharesTable;
   transit_route_rates: TransitRouteRatesTable;
   petti_wallets: PettiWalletsTable;
+  petti_workflows: PettiWorkflowsTable;
   petti_deposits: PettiDepositsTable;
   petti_withdrawal_requests: PettiWithdrawalRequestsTable;
   accounting_sync_logs: AccountingSyncLogsTable;
@@ -3782,6 +3800,7 @@ export interface Database {
   sign_events: SignEventsTable;
   sign_templates: SignTemplatesTable;
   sign_verifications: SignVerificationsTable;
+  sign_stamps: SignStampsTable;
 }
 
 // ── TRA VFD Integration ──────────────────────────────────────────────────────
@@ -4458,8 +4477,24 @@ export interface PettiWalletsTable {
   gl_account_id: string;
   currency: Generated<string>;
   status: Generated<string>;
+  default_workflow_id: string | null;
+  category_workflow_overrides: Generated<string>; // JSONB: { [category]: workflowId }
+  approver_user_id: string | null;
+  approver_backup_user_id: string | null;
   created_by: string | null;
   created_at: Generated<Date>;
+}
+
+export interface PettiWorkflowsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  name: string;
+  description: string | null;
+  requires_department_approval: Generated<boolean>;
+  is_system: Generated<boolean>;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
 }
 
 export interface PettiDepositsTable {
@@ -4494,6 +4529,7 @@ export interface PettiWithdrawalRequestsTable {
   disbursed_at: Date | null;
   finance_expense_id: string | null;
   journal_entry_id: string | null;
+  workflow_id: string | null;
 }
 
 export interface ReferenceCountriesTable {
