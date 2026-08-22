@@ -185,18 +185,65 @@ export interface NotesTable {
   title: Generated<string>;
   content: Generated<string>;
   color: Generated<string>;
-  is_pinned: Generated<boolean>;
-  is_archived: Generated<boolean>;
   is_trashed: Generated<boolean>;
   checklist: any; // JSONB: ChecklistItem[]
   images: string[]; // native text[] — pg driver auto-parses to a native array
   drawing: string | null;
   reminder_at: Date | null;
+  /** Set once notes-reminder.job.ts has actually notified reminder_at —
+   *  the guard that lets a short-interval job poll for due reminders
+   *  without re-notifying the same one every pass (282_notes_enterprise.sql). */
+  reminder_notified_at: Date | null;
   label_ids: string[]; // native uuid[]
   subject_type: string | null;
   subject_id: string | null;
+  /** 'team' (default, tenant-wide — the original and only behaviour before
+   *  282_notes_enterprise.sql) | 'private' (creator only) | 'shared'
+   *  (creator + note_shares). */
+  visibility: Generated<string>;
+  updated_by: string | null;
+  trashed_at: Date | null;
+  /** Exempts a note from notes-purge.job.ts's 30-day trash sweep — for
+   *  compliance content that must not disappear on a timer. */
+  legal_hold: Generated<boolean>;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
+}
+
+/** Per-(note,user) pin/archive — a personal view preference, not a shared
+ *  property of the note (282_notes_enterprise.sql; see its header for why
+ *  this replaced notes.is_pinned/is_archived). */
+export interface NoteUserStateTable {
+  note_id: string;
+  tenant_id: string;
+  user_id: string;
+  is_pinned: Generated<boolean>;
+  is_archived: Generated<boolean>;
+  updated_at: Generated<Date>;
+}
+
+/** A note's real per-note ACL — only meaningful when notes.visibility = 'shared'
+ *  (282_notes_enterprise.sql). */
+export interface NoteSharesTable {
+  id: Generated<string>;
+  note_id: string;
+  tenant_id: string;
+  user_id: string;
+  permission: Generated<string>; // 'view' | 'edit'
+  created_at: Generated<Date>;
+}
+
+/** A snapshot written before every content change to a note — the audit
+ *  trail this app never had (282_notes_enterprise.sql). */
+export interface NoteRevisionsTable {
+  id: Generated<string>;
+  note_id: string;
+  tenant_id: string;
+  changed_by: string | null;
+  title: Generated<string>;
+  content: Generated<string>;
+  checklist: any; // JSONB: ChecklistItem[]
+  changed_at: Generated<Date>;
 }
 
 export interface CustomersTable {
@@ -2869,6 +2916,9 @@ export interface TasksTable {
   // the way in, so there's no local-vs-UTC day-shift risk (see date-picker.tsx's
   // parseDateOnly/toDateOnlyString for the same concern on the frontend).
   due: DateOnlyNull;
+  // Optional companion to `due` — plain 'HH:MM:SS' in and out, same
+  // never-touches-JS-Date reasoning as `due` itself.
+  due_time: string | null;
   starred: Generated<boolean>;
   someday: Generated<boolean>;
   status: Generated<string>;
@@ -2877,16 +2927,45 @@ export interface TasksTable {
   completed_at: ColumnType<Date | null, string | null, string | null>;
   deleted_at: ColumnType<Date | null, string | null, string | null>;
   sort_order: Generated<number>;
+  // A colleague tagged via EntityPicker (migration 283) — not resolved from
+  // any org-chart, which this platform doesn't reliably have (see
+  // migration 276_petti_workflows.sql). Null = unassigned; the owner
+  // (user_id) always retains full control regardless of who it's assigned to.
+  assignee_id: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
 
 export interface TaskSubtasksTable {
   id: string;
+  /** Backfilled from the parent task in 285_tasks_calendar_rls.sql — every
+   *  other RLS'd table in this platform has its own tenant_id column. */
+  tenant_id: string;
   task_id: string;
   title: string;
   completed: Generated<boolean>;
   sort_order: Generated<number>;
+}
+
+export interface TodoCommentsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  task_id: string;
+  author_id: string;
+  content: string;
+  mentions: Array<{ user_id: string; name: string }>; // JSONB
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface TaskListSharesTable {
+  id: string;
+  tenant_id: string;
+  list_id: string;
+  user_id: string;
+  role: string; // 'viewer' | 'editor'
+  shared_by: string;
+  created_at: Generated<Date>;
 }
 
 export interface CalendarEventsTable {
@@ -2901,8 +2980,99 @@ export interface CalendarEventsTable {
   description: string | null;
   location: string | null;
   category: Generated<string>;
-  guests: string[]; // JSONB
+  /** [{userId, email, name, status: 'pending'|'accepted'|'declined'}] —
+   *  reshaped from a plain string[] of emails in 286_calendar_v2.sql. */
+  guests: any; // JSONB
+  all_day: Generated<boolean>;
+  /** Overrides the category color when set (286_calendar_v2.sql). */
+  color: string | null;
+  /** {freq, interval, byWeekday?, until?, count?} or null — see
+   *  services/calendar-recurrence.service.ts for the expansion logic. */
+  recurrence: any; // JSONB
+  reminder_offsets: number[]; // native int[]
+  /** IANA zone name, e.g. 'Africa/Dar_es_Salaam' — set only when the event
+   *  was created/edited with an explicit timezone rather than the browser's
+   *  own (287_calendar_v3.sql). */
+  timezone: string | null;
+  /** Set when this event is a booking made through one of this user's own
+   *  booking_pages (287_calendar_v3.sql). */
+  booking_page_id: string | null;
+  /** 'google' | 'outlook' | null — set when this event is a read-only
+   *  mirror pulled in by calendar-external-sync.job.ts (287_calendar_v3.sql).
+   *  external_id is that provider's own event id, used to upsert rather
+   *  than duplicate on every sync pass. */
+  external_source: string | null;
+  external_id: string | null;
   created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+/** A public scheduling link (287_calendar_v3.sql) — booking creates a real
+ *  calendar_events row (booking_page_id set, the booker as a guest with
+ *  userId null) rather than a separate bookings table. */
+export interface BookingPagesTable {
+  id: string;
+  tenant_id: string;
+  user_id: string;
+  slug: string;
+  title: string;
+  description: string | null;
+  duration_minutes: Generated<number>;
+  buffer_minutes: Generated<number>;
+  working_days: number[]; // native int[], 0=Sun..6=Sat
+  working_start_time: Generated<string>;
+  working_end_time: Generated<string>;
+  timezone: Generated<string>;
+  booking_window_days: Generated<number>;
+  active: Generated<boolean>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+/** One user's connection to an external calendar provider
+ *  (287_calendar_v3.sql) — the OAuth app registration itself
+ *  (client_id/client_secret) lives on tenant_settings.settings.calendarSync,
+ *  same split as mail-oauth's own email client_id/secret. */
+export interface CalendarSyncConnectionsTable {
+  id: string;
+  tenant_id: string;
+  user_id: string;
+  provider: string; // 'google' | 'outlook'
+  access_token: string | null;  // encrypted (onsite-secrets.service.ts's encryptSecret)
+  refresh_token: string | null; // encrypted
+  token_expires_at: ColumnType<Date, string, string> | null;
+  status: Generated<string>; // 'disconnected' | 'authorized' | 'error'
+  last_synced_at: ColumnType<Date, string, string> | null;
+  last_error: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+/** A single-occurrence exception to a recurring event — skip it, or
+ *  override its time/title/description/location (286_calendar_v2.sql). */
+export interface CalendarEventOverridesTable {
+  id: string;
+  tenant_id: string;
+  event_id: string;
+  occurrence_date: DateOnly;
+  is_cancelled: Generated<boolean>;
+  title: string | null;
+  start_at: ColumnType<Date, string, string> | null;
+  end_at: ColumnType<Date, string, string> | null;
+  description: string | null;
+  location: string | null;
+  created_at: Generated<Date>;
+}
+
+/** Guards the reminder job against re-notifying the same occurrence twice
+ *  (286_calendar_v2.sql) — see notes-reminder.job.ts for the equivalent on
+ *  a non-recurring record. */
+export interface CalendarEventReminderSendsTable {
+  event_id: string;
+  occurrence_start: ColumnType<Date, string, string>;
+  offset_minutes: number;
+  tenant_id: string;
+  sent_at: Generated<Date>;
 }
 
 export interface UserAppSettingsTable {
@@ -3467,6 +3637,9 @@ export interface Database {
   crm_search_history: CrmSearchHistoryTable;
   notes: NotesTable;
   note_labels: NoteLabelsTable;
+  note_user_state: NoteUserStateTable;
+  note_shares: NoteSharesTable;
+  note_revisions: NoteRevisionsTable;
   shipment_cases: ShipmentCasesTable;
   stage_history: StageHistoryTable;
   workflows: WorkflowsTable;
@@ -3647,7 +3820,13 @@ export interface Database {
   task_lists: TaskListsTable;
   tasks: TasksTable;
   task_subtasks: TaskSubtasksTable;
+  todo_comments: TodoCommentsTable;
+  task_list_shares: TaskListSharesTable;
   calendar_events: CalendarEventsTable;
+  calendar_event_overrides: CalendarEventOverridesTable;
+  calendar_event_reminder_sends: CalendarEventReminderSendsTable;
+  booking_pages: BookingPagesTable;
+  calendar_sync_connections: CalendarSyncConnectionsTable;
   user_app_settings: UserAppSettingsTable;
   // AWB / BL Tracking
   tracking_snapshots: TrackingSnapshotsTable;

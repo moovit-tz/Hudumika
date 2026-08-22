@@ -15,18 +15,46 @@
   overflow: hidden;
 }
 
-/* ── LEFT PANEL ── */
+/* ── LEFT PANEL ──
+   Fills the whole width alone (proportional, like EmailApp.tsx's em-list) —
+   only becomes a fixed, draggable column once a notification is open
+   (.bnc-left--has-detail), so an empty right pane never permanently claims
+   half the screen. */
 .bnc-left {
   display: flex;
   flex-direction: column;
-  width: 360px;
-  min-width: 280px;
-  max-width: 400px;
-  flex-shrink: 0;
+  flex: 1;
+  min-width: 0;
   border-right: 1px solid var(--border);
   background: var(--white);
   height: 100%;
   overflow: hidden;
+}
+.bnc-left--has-detail {
+  flex: 0 0 var(--bnc-list-w, 50%);
+  min-width: 260px;
+  max-width: calc(100% - 320px);
+}
+
+/* ── Drag resizer — same mechanic as EmailApp.tsx's em-resizer ── */
+.bnc-resizer {
+  width: 6px;
+  flex-shrink: 0;
+  cursor: col-resize;
+  position: relative;
+  z-index: 2;
+  border-radius: 3px;
+  transition: background 0.15s;
+}
+.bnc-resizer::after {
+  content: '';
+  position: absolute;
+  inset: 0 -3px;
+}
+.bnc-resizer:hover,
+.bnc-resizer:active {
+  background: var(--teal);
+  opacity: 0.5;
 }
 
 /* Header area */
@@ -457,46 +485,6 @@
 .bnc-right::-webkit-scrollbar-track { background: transparent; }
 .bnc-right::-webkit-scrollbar-thumb { background: var(--border); border-radius: 6px; }
 
-/* Detail empty state */
-.bnc-detail-empty {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  text-align: center;
-  padding: 40px;
-  min-height: 300px;
-}
-
-.bnc-detail-empty-ico {
-  width: 72px;
-  height: 72px;
-  border-radius: 50%;
-  background: var(--white);
-  border: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--border2);
-  margin-bottom: 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-}
-
-.bnc-detail-empty-label {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--navy);
-  font-family: var(--font);
-}
-
-.bnc-detail-empty-sub {
-  font-size: 13px;
-  color: var(--ink3);
-  max-width: 280px;
-}
-
 /* Detail panel */
 .bnc-detail {
   flex: 1;
@@ -697,18 +685,19 @@
   background: var(--card-bg);
 }
 
-/* ── Responsive ── */
+/* ── Responsive ──
+   Below 768px the list and detail panes never split — BlissNotifications.tsx
+   only mounts one at a time (mirrors EmailApp.tsx's isMobile swap), so each
+   gets the full height/width instead of being squeezed into a stacked half. */
 @media (max-width: 768px) {
   .bnc-root { flex-direction: column; }
   .bnc-left {
     width: 100%;
     max-width: 100%;
-    height: auto;
-    max-height: 50vh;
+    height: 100%;
     border-right: none;
-    border-bottom: 1px solid var(--border);
   }
-  .bnc-right { flex: 1; min-height: 300px; }
+  .bnc-right { flex: 1; height: 100%; }
   .bnc-detail { padding: 16px; }
 }
 

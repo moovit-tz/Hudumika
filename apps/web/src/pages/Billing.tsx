@@ -1647,8 +1647,14 @@ export const Billing: React.FC = () => {
     const params = new URLSearchParams(location.search);
     const invoiceId = params.get('id');
     if (!invoiceId || !invoices.length) return;
-    if (invoices.some(i => i.id === invoiceId)) {
-      setSelectedId(invoiceId);
+    // A deep link may carry either the display id (invoice_number, what
+    // this page's own rows are keyed by) or the real database UUID
+    // (_dbId) — a note's subject_id (NotesApp.tsx's "Related to" link)
+    // always stores the real UUID, never the display number, so matching
+    // on i.id alone silently failed for any invoice linked from a note.
+    const match = invoices.find(i => i.id === invoiceId || i._dbId === invoiceId);
+    if (match) {
+      setSelectedId(match.id);
       setMode('view');
     }
   }, [location.search, invoices]);

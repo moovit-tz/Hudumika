@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import { apiFetch } from '../lib/api.js';
+import { apiFetch, withRetry } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import { fetchPeople, type Person } from '../lib/identity.js';
 import type { IconName } from '../components/Icon.js';
@@ -24,6 +24,18 @@ export interface ChecklistItem {
   completed: boolean;
 }
 
+export type NoteVisibility = 'team' | 'private' | 'shared';
+export interface NoteShareEntry { userId: string; permission: 'view' | 'edit'; }
+
+export interface NoteRevision {
+  id: string;
+  changedBy: string | null;
+  title: string;
+  content: string;
+  checklist: ChecklistItem[];
+  changedAt: string;
+}
+
 export interface NoteItem {
   id: string;
   title: string;
@@ -31,6 +43,8 @@ export interface NoteItem {
   pinned: boolean;
   archived: boolean;
   trashed: boolean;
+  trashedAt?: string | null;
+  legalHold: boolean;
   color: KeepColor;
   labels: string[]; // label IDs
   checklist: ChecklistItem[];
@@ -40,9 +54,20 @@ export interface NoteItem {
   /** Optional link to a record in another app (e.g. subjectType:'shipment') — see 265_notes_app.sql. */
   subjectType?: string | null;
   subjectId?: string | null;
+  /** 'team' (default — visible/editable tenant-wide, the only behaviour
+   *  before 282_notes_enterprise.sql) | 'private' (creator only) | 'shared'
+   *  (creator + `shares`, each with their own view/edit permission). */
+  visibility: NoteVisibility;
+  shares: NoteShareEntry[];
+  /** Whether the *current* user can edit this note — false for a
+   *  view-only collaborator on a shared note. The UI disables editing
+   *  rather than letting a write fail server-side. */
+  canEdit: boolean;
+  isOwner: boolean;
   /** Null for notes copied in by 266_notes_migrate_existing.sql — no real
    *  author existed for those source fields, so it's left honest rather than guessed. */
   createdBy?: string | null;
+  updatedBy?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -100,6 +125,8 @@ function fromApiNote(r: any): NoteItem {
     pinned: r.isPinned,
     archived: r.isArchived,
     trashed: r.isTrashed,
+    trashedAt: r.trashedAt ?? null,
+    legalHold: r.legalHold ?? false,
     color: r.color,
     labels: r.labelIds ?? [],
     checklist: r.checklist ?? [],
@@ -108,19 +135,25 @@ function fromApiNote(r: any): NoteItem {
     reminder: r.reminderAt ?? null,
     subjectType: r.subjectType ?? null,
     subjectId: r.subjectId ?? null,
+    visibility: r.visibility ?? 'team',
+    shares: r.shares ?? [],
+    canEdit: r.canEdit ?? true,
+    isOwner: r.isOwner ?? false,
     createdBy: r.createdBy ?? null,
+    updatedBy: r.updatedBy ?? null,
     createdAt: r.createdAt,
     updatedAt: r.updatedAt,
   };
 }
 
-function toApiInput(patch: Partial<NoteItem>): Record<string, unknown> {
+/** Content-only fields — everything the generic PATCH /v1/notes/:id
+ *  accepts. Pin/archive deliberately excluded: they're personal state with
+ *  their own endpoints (setPinned/setArchived below), not a content edit. */
+function toApiInput(patch: Partial<NoteItem> & { expectedUpdatedAt?: string }): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   if (patch.title !== undefined) out.title = patch.title;
   if (patch.content !== undefined) out.content = patch.content;
   if (patch.color !== undefined) out.color = patch.color;
-  if (patch.pinned !== undefined) out.isPinned = patch.pinned;
-  if (patch.archived !== undefined) out.isArchived = patch.archived;
   if (patch.checklist !== undefined) out.checklist = patch.checklist;
   if (patch.images !== undefined) out.images = patch.images;
   if (patch.drawing !== undefined) out.drawing = patch.drawing;
@@ -128,6 +161,10 @@ function toApiInput(patch: Partial<NoteItem>): Record<string, unknown> {
   if (patch.labels !== undefined) out.labelIds = patch.labels;
   if (patch.subjectType !== undefined) out.subjectType = patch.subjectType;
   if (patch.subjectId !== undefined) out.subjectId = patch.subjectId;
+  if (patch.visibility !== undefined) out.visibility = patch.visibility;
+  if (patch.shares !== undefined) out.shares = patch.shares;
+  if (patch.legalHold !== undefined) out.legalHold = patch.legalHold;
+  if (patch.expectedUpdatedAt !== undefined) out.expectedUpdatedAt = patch.expectedUpdatedAt;
   return out;
 }
 
@@ -140,6 +177,11 @@ let viewMode: 'grid' | 'list' = 'grid';
 let searchQuery = '';
 let loaded = false;
 let loading = false;
+// True once the server reports at least one more note past the current
+// page — drives the "Load more" control. Replaces what used to be a single
+// 1000-note fetch with no way to reach anything past it.
+let hasMoreNotes = false;
+let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
 const listeners = new Set<() => void>();
 function notify() { listeners.forEach(fn => fn()); }
@@ -149,25 +191,32 @@ export function subscribeNotes(listener: () => void) {
   return () => listeners.delete(listener);
 }
 
-/** Fetches notes + labels once per session; safe to call from every mount
- *  (NotesApp calls it on mount) since it no-ops once already loaded/loading. */
-export function loadNotes(force = false) {
-  if (loading || (loaded && !force)) return;
+/** One real page fetch — GET /v1/notes now does the search/visibility
+ *  filtering and pagination at the database, not a client-side substring
+ *  scan over whatever the first fetch happened to load. `append` drives
+ *  "Load more" (keeps what's already shown); a fresh search or reload
+ *  always replaces the list from offset 0. */
+async function fetchNotesPage(opts: { search: string; offset: number; append: boolean }): Promise<void> {
   loading = true;
-  Promise.all([
-    apiFetch('/v1/notes').catch(() => []),
-    apiFetch('/v1/notes/labels').catch(() => []),
-  ]).then(async ([notes, labels]: [any[], any[]]) => {
-    notesStore = (Array.isArray(notes) ? notes : []).map(fromApiNote);
-    labelsStore = Array.isArray(labels) ? labels : [];
+  notify();
+  try {
+    const params = new URLSearchParams();
+    if (opts.search) params.set('search', opts.search);
+    if (opts.offset) params.set('offset', String(opts.offset));
+    const data = await withRetry(() => apiFetch(`/v1/notes?${params.toString()}`));
+    const page: NoteItem[] = Array.isArray(data?.notes) ? data.notes.map(fromApiNote) : [];
+    notesStore = opts.append ? [...notesStore, ...page] : page;
+    hasMoreNotes = !!data?.hasMore;
     loaded = true;
     notify();
 
     // Real creator identities, for the "who wrote this" indicator on each
-    // card — batched to one request rather than one per note. Migrated
-    // legacy notes have a null createdBy and are simply skipped; there is
-    // no author to fetch for those, and none is invented.
-    const authorIds = Array.from(new Set(notesStore.map(n => n.createdBy).filter((id): id is string => !!id)));
+    // card — batched to one request rather than one per note, and only for
+    // the page just fetched (already-resolved people from earlier pages
+    // stay cached). Migrated legacy notes have a null createdBy and are
+    // simply skipped; there is no author to fetch for those, and none is
+    // invented.
+    const authorIds = Array.from(new Set(page.map(n => n.createdBy).filter((id): id is string => !!id)));
     const missing = authorIds.filter(id => !peopleStore[id]);
     if (missing.length > 0) {
       const people = await fetchPeople({ ids: missing });
@@ -176,16 +225,45 @@ export function loadNotes(force = false) {
       peopleStore = next;
       notify();
     }
-  }).catch(() => {
+  } catch {
     showAlert('Could not load notes. Check your connection and try again.', { variant: 'error' });
-  }).finally(() => {
+  } finally {
     loading = false;
     notify();
-  });
+  }
+}
+
+/** Fetches the first page + labels once per session; safe to call from
+ *  every mount (NotesApp/NotesShell both call it) since it no-ops once
+ *  already loaded/loading. */
+export function loadNotes(force = false) {
+  if (loading || (loaded && !force)) return;
+  fetchNotesPage({ search: searchQuery, offset: 0, append: false });
+  if (labelsStore.length === 0) {
+    apiFetch('/v1/notes/labels').then((labels: any) => {
+      labelsStore = Array.isArray(labels) ? labels : [];
+      notify();
+    }).catch(() => {});
+  }
+}
+
+/** Fetches the next page (same search term as whatever's currently
+ *  loaded) and appends it — the "Load more" button's action. */
+export async function loadMoreNotes(): Promise<void> {
+  if (loading || !hasMoreNotes) return;
+  await fetchNotesPage({ search: searchQuery, offset: notesStore.length, append: true });
 }
 
 export function useNotesLoaded(): boolean {
   return useSyncExternalStore(subscribeNotes, () => loaded);
+}
+
+export function useNotesLoading(): boolean {
+  return useSyncExternalStore(subscribeNotes, () => loading);
+}
+
+export function useHasMoreNotes(): boolean {
+  return useSyncExternalStore(subscribeNotes, () => hasMoreNotes);
 }
 
 // React Hooks
@@ -224,9 +302,18 @@ export function setNotesViewMode(mode: 'grid' | 'list') {
   notify();
 }
 
+/** Debounced (300ms), server-side search — replaces what used to be a pure
+ *  client-side substring filter over whatever the first fetch happened to
+ *  load, which silently missed anything past that page. Every keystroke
+ *  still updates the input instantly (notify() below); only the actual
+ *  refetch is debounced. */
 export function setNotesSearchQuery(query: string) {
   searchQuery = query;
   notify();
+  if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+  searchDebounceTimer = setTimeout(() => {
+    fetchNotesPage({ search: query, offset: 0, append: false });
+  }, 300);
 }
 
 /** Errors surface via showAlert rather than being swallowed — a note that
@@ -238,7 +325,7 @@ async function reportFailure(action: string, err: any) {
 
 export async function addNote(input: Partial<NoteItem>): Promise<NoteItem | null> {
   try {
-    const created = await apiFetch('/v1/notes', { method: 'POST', body: JSON.stringify(toApiInput(input)) });
+    const created = await withRetry(() => apiFetch('/v1/notes', { method: 'POST', body: JSON.stringify(toApiInput(input)) }));
     const note = fromApiNote(created);
     notesStore = [note, ...notesStore];
     notify();
@@ -249,31 +336,68 @@ export async function addNote(input: Partial<NoteItem>): Promise<NoteItem | null
   }
 }
 
-export async function updateNote(id: string, patch: Partial<NoteItem>) {
+/** Returns whether the save actually succeeded — callers that show their
+ *  own inline "Saving…/Saved" status (the note editor's debounced
+ *  autosave) key off this instead of guessing from side effects; the alert
+ *  on failure still fires here too, since not every caller renders its own
+ *  status (e.g. a checkbox toggle from the note list). */
+export async function updateNote(id: string, patch: Partial<NoteItem>): Promise<boolean> {
   const prev = notesStore;
   // Optimistic local update for a responsive editor, corrected against the
   // real response (or rolled back entirely) once the request settles.
   notesStore = notesStore.map(n => n.id === id ? { ...n, ...patch, updatedAt: new Date().toISOString() } : n);
   notify();
   try {
-    const updated = await apiFetch(`/v1/notes/${id}`, { method: 'PATCH', body: JSON.stringify(toApiInput(patch)) });
+    const updated = await withRetry(() => apiFetch(`/v1/notes/${id}`, { method: 'PATCH', body: JSON.stringify(toApiInput(patch)) }));
+    notesStore = notesStore.map(n => n.id === id ? fromApiNote(updated) : n);
+    notify();
+    return true;
+  } catch (err: any) {
+    notesStore = prev;
+    notify();
+    await reportFailure('Saving the note', err);
+    return false;
+  }
+}
+
+// Pin/archive are personal view state (note_user_state), not a note edit —
+// their own endpoints, separate from updateNote's generic content PATCH.
+// One person pinning a note used to pin it for the entire tenant; this is
+// what fixed that (282_notes_enterprise.sql).
+export async function togglePinNote(id: string) {
+  const note = notesStore.find(n => n.id === id);
+  if (!note) return;
+  const pinned = !note.pinned;
+  const prev = notesStore;
+  notesStore = notesStore.map(n => n.id === id ? { ...n, pinned } : n);
+  notify();
+  try {
+    const updated = await withRetry(() => apiFetch(`/v1/notes/${id}/pin`, { method: 'PATCH', body: JSON.stringify({ pinned }) }));
     notesStore = notesStore.map(n => n.id === id ? fromApiNote(updated) : n);
     notify();
   } catch (err: any) {
     notesStore = prev;
     notify();
-    await reportFailure('Saving the note', err);
+    await reportFailure('Pinning the note', err);
   }
-}
-
-export async function togglePinNote(id: string) {
-  const note = notesStore.find(n => n.id === id);
-  if (note) await updateNote(id, { pinned: !note.pinned });
 }
 
 export async function toggleArchiveNote(id: string) {
   const note = notesStore.find(n => n.id === id);
-  if (note) await updateNote(id, { archived: !note.archived, pinned: false });
+  if (!note) return;
+  const archived = !note.archived;
+  const prev = notesStore;
+  notesStore = notesStore.map(n => n.id === id ? { ...n, archived } : n);
+  notify();
+  try {
+    const updated = await withRetry(() => apiFetch(`/v1/notes/${id}/archive`, { method: 'PATCH', body: JSON.stringify({ archived }) }));
+    notesStore = notesStore.map(n => n.id === id ? fromApiNote(updated) : n);
+    notify();
+  } catch (err: any) {
+    notesStore = prev;
+    notify();
+    await reportFailure('Archiving the note', err);
+  }
 }
 
 export async function trashNote(id: string) {
@@ -281,7 +405,7 @@ export async function trashNote(id: string) {
   notesStore = notesStore.map(n => n.id === id ? { ...n, trashed: true, pinned: false } : n);
   notify();
   try {
-    await apiFetch(`/v1/notes/${id}/trash`, { method: 'PATCH' });
+    await withRetry(() => apiFetch(`/v1/notes/${id}/trash`, { method: 'PATCH' }));
   } catch (err: any) {
     notesStore = prev;
     notify();
@@ -294,7 +418,7 @@ export async function restoreNote(id: string) {
   notesStore = notesStore.map(n => n.id === id ? { ...n, trashed: false } : n);
   notify();
   try {
-    await apiFetch(`/v1/notes/${id}/restore`, { method: 'PATCH' });
+    await withRetry(() => apiFetch(`/v1/notes/${id}/restore`, { method: 'PATCH' }));
   } catch (err: any) {
     notesStore = prev;
     notify();
@@ -307,7 +431,7 @@ export async function permanentlyDeleteNote(id: string) {
   notesStore = notesStore.filter(n => n.id !== id);
   notify();
   try {
-    await apiFetch(`/v1/notes/${id}`, { method: 'DELETE' });
+    await withRetry(() => apiFetch(`/v1/notes/${id}`, { method: 'DELETE' }));
   } catch (err: any) {
     notesStore = prev;
     notify();
@@ -320,7 +444,7 @@ export async function emptyTrash() {
   notesStore = notesStore.filter(n => !n.trashed);
   notify();
   try {
-    await apiFetch('/v1/notes/empty-trash', { method: 'POST' });
+    await withRetry(() => apiFetch('/v1/notes/empty-trash', { method: 'POST' }));
   } catch (err: any) {
     notesStore = prev;
     notify();
@@ -333,7 +457,7 @@ export async function addLabel(name: string): Promise<NoteLabel | null> {
   const existing = labelsStore.find(l => l.name.toLowerCase() === trimmed.toLowerCase());
   if (existing) return existing;
   try {
-    const created = await apiFetch('/v1/notes/labels', { method: 'POST', body: JSON.stringify({ name: trimmed }) });
+    const created = await withRetry(() => apiFetch('/v1/notes/labels', { method: 'POST', body: JSON.stringify({ name: trimmed }) }));
     labelsStore = [...labelsStore, created];
     notify();
     return created;
@@ -348,7 +472,7 @@ export async function updateLabel(id: string, name: string) {
   labelsStore = labelsStore.map(l => l.id === id ? { ...l, name: name.trim() } : l);
   notify();
   try {
-    await apiFetch(`/v1/notes/labels/${id}`, { method: 'PATCH', body: JSON.stringify({ name: name.trim() }) });
+    await withRetry(() => apiFetch(`/v1/notes/labels/${id}`, { method: 'PATCH', body: JSON.stringify({ name: name.trim() }) }));
   } catch (err: any) {
     labelsStore = prev;
     notify();
@@ -363,12 +487,57 @@ export async function deleteLabel(id: string) {
   notesStore = notesStore.map(n => ({ ...n, labels: n.labels.filter(lblId => lblId !== id) }));
   notify();
   try {
-    await apiFetch(`/v1/notes/labels/${id}`, { method: 'DELETE' });
+    await withRetry(() => apiFetch(`/v1/notes/labels/${id}`, { method: 'DELETE' }));
   } catch (err: any) {
     labelsStore = prevLabels;
     notesStore = prevNotes;
     notify();
     await reportFailure('Deleting the label', err);
+  }
+}
+
+// ── Version history ──
+// Every content edit snapshots the version it replaces (notes.service.ts's
+// updateNote) — this app never had any audit trail before
+// 282_notes_enterprise.sql; now "who changed what, when" is answerable, and
+// an old version can be restored rather than lost for good.
+export async function fetchNoteRevisions(id: string): Promise<NoteRevision[]> {
+  try {
+    return await withRetry(() => apiFetch(`/v1/notes/${id}/revisions`));
+  } catch (err: any) {
+    await reportFailure('Loading version history', err);
+    return [];
+  }
+}
+
+/** Restoring an old version is concurrency-guarded (expectedUpdatedAt) —
+ *  the one place in this app where silently clobbering someone else's
+ *  newer edit actually matters. A 409 means someone changed the note after
+ *  this revision list was loaded; the caller should reload and try again
+ *  rather than force it through. Returns the resulting note either way
+ *  (server's real current state on conflict) so a caller can refresh
+ *  whatever local copy it's holding without a second round trip. */
+export async function restoreNoteRevision(id: string, revisionId: string, expectedUpdatedAt: string): Promise<{ ok: boolean; conflict: boolean; note: NoteItem | null }> {
+  try {
+    const updated = await withRetry(() => apiFetch(`/v1/notes/${id}/revisions/${revisionId}/restore`, {
+      method: 'POST',
+      body: JSON.stringify({ expectedUpdatedAt }),
+    }));
+    const note = fromApiNote(updated);
+    notesStore = notesStore.map(n => n.id === id ? note : n);
+    notify();
+    return { ok: true, conflict: false, note };
+  } catch (err: any) {
+    const isConflict = err?.status === 409;
+    if (isConflict && err?.body?.current) {
+      const note = fromApiNote(err.body.current);
+      notesStore = notesStore.map(n => n.id === id ? note : n);
+      notify();
+      showAlert('This note changed since you opened its history. Showing the latest version — try restoring again.', { variant: 'error' });
+      return { ok: false, conflict: true, note };
+    }
+    await reportFailure('Restoring that version', err);
+    return { ok: false, conflict: false, note: null };
   }
 }
 
@@ -391,7 +560,7 @@ let cachedDriveId: string | null = null;
 
 async function resolveNotesDriveId(): Promise<string> {
   if (cachedDriveId) return cachedDriveId;
-  const drives = await apiFetch('/v1/drives');
+  const drives = await withRetry(() => apiFetch('/v1/drives'));
   if (!Array.isArray(drives) || drives.length === 0) throw new Error('No drive available');
   const driveId: string = drives[0].id;
   cachedDriveId = driveId;
@@ -412,10 +581,10 @@ export async function uploadNoteImage(file: File): Promise<string> {
     const driveId = await resolveNotesDriveId();
     const form = new FormData();
     form.append('file', file);
-    const uploaded = await apiFetch(`/v1/files/upload?drive_id=${driveId}&entity_type=note`, {
+    const uploaded = await withRetry(() => apiFetch(`/v1/files/upload?drive_id=${driveId}&entity_type=note`, {
       method: 'POST',
       body: form,
-    });
+    }));
     return `drive:${uploaded.id}`;
   } catch {
     return readFileAsDataUrl(file);

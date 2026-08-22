@@ -90,6 +90,79 @@ export async function createDgDeclaration(tenantId: string, userId: string, inpu
   );
 }
 
+export interface UpdateDgDeclarationInput {
+  transportMode?: 'AIR' | 'SEA' | 'ROAD';
+  unNumber?: string;
+  packagingType?: string | null;
+  numberOfPackages?: number | null;
+  netQuantity?: number | null;
+  quantityUnit?: string | null;
+  shipperName?: string;
+  shipperAddress?: string | null;
+  consigneeName?: string;
+  consigneeAddress?: string | null;
+  emergencyContact?: string | null;
+  additionalHandlingInfo?: string | null;
+}
+
+/** Edits a declaration's own fields — draft only. Once issued it's a real
+ *  document (mirrored to the shipment's Cloud folder, migration 252's own
+ *  reasoning), the same "a signed thing doesn't get silently rewritten"
+ *  boundary this codebase already applies elsewhere (Sign envelopes, Tasks
+ *  ownership). Re-resolves the reference row when unNumber changes so
+ *  class/packing-group/etc. stay in sync with the platform's UN list rather
+ *  than going stale against the originally-picked entry. */
+export async function updateDgDeclaration(tenantId: string, id: string, input: UpdateDgDeclarationInput) {
+  return withTenant(tenantId, async (trx) => {
+    const existing = await trx.selectFrom('dg_declarations').selectAll()
+      .where('tenant_id', '=', tenantId).where('id', '=', id).executeTakeFirst();
+    if (!existing) throw new Error('Declaration not found');
+    if (existing.status !== 'draft') throw new Error('This declaration has already been issued and can no longer be edited.');
+
+    const updates: Record<string, unknown> = { updated_at: new Date() };
+    if (input.unNumber !== undefined) {
+      const ref = await trx.selectFrom('dangerous_goods_reference').selectAll()
+        .where('un_number', '=', input.unNumber.trim().toUpperCase()).executeTakeFirst();
+      if (!ref) throw new Error(`${input.unNumber} is not in the reference list. This platform ships a real but partial UN Dangerous Goods List — check the actual entry against the full IMDG/IATA DGR and add it to dangerous_goods_reference before declaring it.`);
+      updates.reference_id = ref.id;
+      updates.un_number = ref.un_number;
+      updates.proper_shipping_name = ref.proper_shipping_name;
+      updates.class_or_division = ref.class_or_division;
+      updates.subsidiary_risk = ref.subsidiary_risk;
+      updates.packing_group = ref.packing_group;
+      updates.air_transport_restriction = ref.air_transport_restriction;
+    }
+    if (input.transportMode !== undefined) updates.transport_mode = input.transportMode;
+    if (input.packagingType !== undefined) updates.packaging_type = input.packagingType;
+    if (input.numberOfPackages !== undefined) updates.number_of_packages = input.numberOfPackages;
+    if (input.netQuantity !== undefined) updates.net_quantity = input.netQuantity;
+    if (input.quantityUnit !== undefined) updates.quantity_unit = input.quantityUnit;
+    if (input.shipperName !== undefined) updates.shipper_name = input.shipperName;
+    if (input.shipperAddress !== undefined) updates.shipper_address = input.shipperAddress;
+    if (input.consigneeName !== undefined) updates.consignee_name = input.consigneeName;
+    if (input.consigneeAddress !== undefined) updates.consignee_address = input.consigneeAddress;
+    if (input.emergencyContact !== undefined) updates.emergency_contact = input.emergencyContact;
+    if (input.additionalHandlingInfo !== undefined) updates.additional_handling_info = input.additionalHandlingInfo;
+
+    return trx.updateTable('dg_declarations').set(updates)
+      .where('tenant_id', '=', tenantId).where('id', '=', id)
+      .returningAll().executeTakeFirstOrThrow();
+  });
+}
+
+/** Removes a draft declaration — e.g. a shipment switched back from
+ *  "Dangerous goods" to "General cargo" on its Cargo Details step. Refuses
+ *  on an issued one for the same reason updateDgDeclaration does. */
+export async function deleteDgDeclaration(tenantId: string, id: string): Promise<void> {
+  return withTenant(tenantId, async (trx) => {
+    const existing = await trx.selectFrom('dg_declarations').select(['status'])
+      .where('tenant_id', '=', tenantId).where('id', '=', id).executeTakeFirst();
+    if (!existing) return;
+    if (existing.status !== 'draft') throw new Error('This declaration has already been issued and cannot be removed — it is a real filed document.');
+    await trx.deleteFrom('dg_declarations').where('tenant_id', '=', tenantId).where('id', '=', id).execute();
+  });
+}
+
 export async function listDgDeclarations(
   tenantId: string,
   filter?: { subjectType?: 'shipment' | 'seal_lot' | 'adhoc'; subjectId?: string }

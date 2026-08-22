@@ -79,16 +79,26 @@ const workflowSwitchSchema = z.object({
   step_id: z.string().optional(),
 });
 const shipmentPatchSchema = z.object({
-  bl_number: z.string().max(100).optional(),
-  awb_number: z.string().max(100).optional(),
-  tansad_number: z.string().max(100).optional(),
-  vessel: z.string().max(200).optional(),
-  goods_desc: z.string().max(2000).optional(),
-  hs_code: z.string().max(50).optional(),
-  origin_port: z.string().max(200).optional(),
-  port_of_loading: z.string().max(200).optional(),
-  dest_port: z.string().max(200).optional(),
-  port_of_discharge: z.string().max(200).optional(),
+  // Every field below used to be `.optional()` alone — accepting omission
+  // but not an explicit null — while the rest of this same schema already
+  // used `.nullable().optional()`. ShipmentEdit.tsx's handleSave sends
+  // `field || null` uniformly across every field with no exceptions, so
+  // any shipment with one of these genuinely blank (a common case — not
+  // every shipment has an AWB, a TANSAD number yet, etc.) failed this
+  // schema's validation on ANY save, even one that never touched that
+  // field. Found live while wiring dangerous-goods capture into this same
+  // save flow — a real, pre-existing defect, not something that change
+  // introduced.
+  bl_number: z.string().max(100).nullable().optional(),
+  awb_number: z.string().max(100).nullable().optional(),
+  tansad_number: z.string().max(100).nullable().optional(),
+  vessel: z.string().max(200).nullable().optional(),
+  goods_desc: z.string().max(2000).nullable().optional(),
+  hs_code: z.string().max(50).nullable().optional(),
+  origin_port: z.string().max(200).nullable().optional(),
+  port_of_loading: z.string().max(200).nullable().optional(),
+  dest_port: z.string().max(200).nullable().optional(),
+  port_of_discharge: z.string().max(200).nullable().optional(),
   eta: z.string().nullable().optional(),
   free_time_end: z.string().nullable().optional(),
   sla_deadline: z.string().nullable().optional(),

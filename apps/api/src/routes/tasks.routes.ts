@@ -1,6 +1,14 @@
 import type { FastifyInstance } from 'fastify';
+import type { Transaction, Selectable } from 'kysely';
 import { z } from 'zod';
-import { withTenant } from '../db/client.js';
+import { withTenant, type Database, type TasksTable } from '../db/client.js';
+import { NotificationService } from '../services/notification.service.js';
+import { MailService } from '../services/mail.service.js';
+import { emitDomainEvent } from '../services/domain-events.service.js';
+import * as CalendarEvents from '../services/calendar-events.service.js';
+import { EventNotFoundError, EventValidationError } from '../services/calendar-events.service.js';
+import * as BookingPages from '../services/booking-pages.service.js';
+import { SlugTakenError, BookingPageNotFoundError } from '../services/booking-pages.service.js';
 
 // Tasks + Calendar backend. Both are personal (per-user), not tenant-shared —
 // every query is scoped by (tenant_id, user_id) so each staff member only
@@ -35,15 +43,18 @@ const taskCreateSchema = z.object({
   listId: uuidSchema,
   notes: z.string().max(10000).optional(),
   due: z.string().optional(),
+  dueTime: z.string().max(8).optional(),
   starred: z.boolean().optional(),
   someday: z.boolean().optional(),
   status: z.enum(TASK_STATUSES).optional(),
   tags: z.array(z.string()).optional(),
+  assigneeId: uuidSchema.optional(),
 });
 const taskPatchSchema = z.object({
   title: z.string().trim().min(1).max(500).optional(),
   notes: z.string().max(10000).nullable().optional(),
   due: z.string().nullable().optional(),
+  dueTime: z.string().max(8).nullable().optional(),
   starred: z.boolean().optional(),
   someday: z.boolean().optional(),
   status: z.enum(TASK_STATUSES).optional(),
@@ -52,6 +63,18 @@ const taskPatchSchema = z.object({
   sortOrder: z.number().int().optional(),
   listId: uuidSchema.optional(),
   deletedAt: z.string().nullable().optional(),
+  // Null explicitly unassigns; omitted (undefined) leaves it untouched —
+  // zod keeps that distinction, which the owner-only permission check below
+  // relies on.
+  assigneeId: uuidSchema.nullable().optional(),
+});
+const commentCreateSchema = z.object({
+  content: z.string().trim().min(1).max(5000),
+  mentions: z.array(z.object({ user_id: uuidSchema, name: z.string() })).optional(),
+});
+const listShareSchema = z.object({
+  userId: uuidSchema,
+  role: z.enum(['viewer', 'editor']),
 });
 const subtaskCreateSchema = z.object({
   id: uuidSchema,
@@ -61,6 +84,19 @@ const subtaskPatchSchema = z.object({
   title: z.string().trim().min(1).max(500).optional(),
   completed: z.boolean().optional(),
 });
+const guestSchema = z.object({
+  userId: uuidSchema.nullable().optional(),
+  email: z.string().max(320),
+  name: z.string().max(200).nullable().optional(),
+  status: z.enum(['pending', 'accepted', 'declined']).optional(),
+});
+const recurrenceSchema = z.object({
+  freq: z.enum(['daily', 'weekly', 'monthly', 'yearly']),
+  interval: z.number().int().min(1).max(365),
+  byWeekday: z.array(z.number().int().min(0).max(6)).optional(),
+  until: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  count: z.number().int().min(1).max(1000).optional(),
+});
 const eventCreateSchema = z.object({
   id: uuidSchema,
   title: z.string().trim().min(1).max(500),
@@ -69,7 +105,12 @@ const eventCreateSchema = z.object({
   description: z.string().max(10000).optional(),
   location: z.string().max(500).optional(),
   category: z.enum(EVENT_CATEGORIES).optional(),
-  guests: z.array(z.string()).optional(),
+  guests: z.array(guestSchema).optional(),
+  allDay: z.boolean().optional(),
+  color: z.string().max(30).nullable().optional(),
+  recurrence: recurrenceSchema.nullable().optional(),
+  reminderOffsets: z.array(z.number().int().min(0).max(43200)).max(5).optional(), // cap at 30 days lead time, at most 5 reminders
+  timezone: z.string().max(100).nullable().optional(), // IANA name, e.g. 'Africa/Dar_es_Salaam' — display label only, see calendar-events.service.ts
 });
 const eventPatchSchema = z.object({
   title: z.string().trim().min(1).max(500).optional(),
@@ -78,13 +119,94 @@ const eventPatchSchema = z.object({
   description: z.string().max(10000).nullable().optional(),
   location: z.string().max(500).nullable().optional(),
   category: z.enum(EVENT_CATEGORIES).optional(),
-  guests: z.array(z.string()).optional(),
+  guests: z.array(guestSchema).optional(),
+  allDay: z.boolean().optional(),
+  color: z.string().max(30).nullable().optional(),
+  recurrence: recurrenceSchema.nullable().optional(),
+  reminderOffsets: z.array(z.number().int().min(0).max(43200)).max(5).optional(),
+  timezone: z.string().max(100).nullable().optional(),
+  // Which occurrence this edit applies to — omitted/'all' means the whole
+  // series (or the only occurrence, for a non-recurring event).
+  scope: z.enum(['all', 'this']).optional(),
+  occurrenceDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
 });
 const appSettingsPatchSchema = z.object({
   calendarDefaultView: z.enum(CALENDAR_VIEWS).optional(),
   weekStartsMonday: z.boolean().optional(),
   tasksDefaultView: z.string().max(50).optional(),
 });
+
+/** Logs the assignment change and, for a real new assignee who isn't the
+ *  person making the change (self-assignment needs no ping), notifies them
+ *  in-app and by email — the same NotificationService + MailService pairing
+ *  sign-stamps.routes.ts's stamp-request flow already uses. */
+async function handleAssigneeChange(
+  trx: Transaction<Database>,
+  user: { sub: string; tenant_id: string; name?: string },
+  task: { id: string; title: string },
+  newAssigneeId: string | null,
+): Promise<void> {
+  await emitDomainEvent(trx, user.tenant_id, {
+    type: newAssigneeId ? 'todo.assigned' : 'todo.unassigned',
+    sourceApp: 'tasks', entityType: 'task', entityId: task.id,
+    payload: { title: task.title }, actorId: user.sub,
+  });
+  if (!newAssigneeId || newAssigneeId === user.sub) return;
+
+  const assignee = await trx.selectFrom('users').select(['name', 'email'])
+    .where('id', '=', newAssigneeId).executeTakeFirst();
+  if (!assignee) return;
+
+  const actorName = user.name ?? 'Someone';
+  const title = `${actorName} assigned you a task`;
+  await NotificationService.createNotification({
+    tenantId: user.tenant_id, userId: newAssigneeId, app: 'tasks', type: 'task',
+    title, message: task.title, link: '/tasks?view=assigned', entityType: 'task', entityId: task.id,
+  }).catch(err => console.error('[Tasks] Failed to notify assignee:', err.message));
+  await MailService.sendNow(user.tenant_id, {
+    to: assignee.email, subject: title,
+    bodyHtml: `<p>Hi ${assignee.name},</p><p>${actorName} assigned you a task: <strong>${task.title}</strong></p>`,
+    sourceApp: 'tasks',
+  }).catch(err => console.error('[Tasks] Failed to email assignee:', err.message));
+}
+
+type TaskAccessLevel = 'owner' | 'assignee' | 'editor' | 'viewer';
+
+/** Resolves what access (if any) a user has to one task — checked in this
+ *  order: owner (full control) > assignee (migration 283, can do the work)
+ *  > shared-list editor (migration 284, same as assignee) > shared-list
+ *  viewer (read-only) > none. Centralizes the visibility rule every
+ *  single-task route needs now that it spans two collaboration mechanisms
+ *  instead of one, so they can't drift out of sync with each other. */
+async function resolveTaskAccess(
+  trx: Transaction<Database>, tenantId: string, userId: string, taskId: string,
+): Promise<{ task: Selectable<TasksTable>; access: TaskAccessLevel } | null> {
+  const task = await trx.selectFrom('tasks').selectAll()
+    .where('id', '=', taskId).where('tenant_id', '=', tenantId).executeTakeFirst();
+  if (!task) return null;
+  if (task.user_id === userId) return { task, access: 'owner' };
+  // Owning the LIST a task lives on grants full authority over that task
+  // too, even one someone else created (an editor you shared the list
+  // with) — a list owner not being able to see/manage their own list's
+  // contents would be a real, confusing gap, the same way a Drive folder
+  // owner can manage files others added to it.
+  const list = await trx.selectFrom('task_lists').select('user_id')
+    .where('id', '=', task.list_id).executeTakeFirst();
+  if (list?.user_id === userId) return { task, access: 'owner' };
+  if (task.assignee_id === userId) return { task, access: 'assignee' };
+  const share = await trx.selectFrom('task_list_shares').select('role')
+    .where('list_id', '=', task.list_id).where('user_id', '=', userId).where('tenant_id', '=', tenantId)
+    .executeTakeFirst();
+  if (share) return { task, access: share.role === 'editor' ? 'editor' : 'viewer' };
+  return null;
+}
+
+/** Whether this access level can do the work (status/notes/due/tags/etc.) —
+ *  everything short of reassigning, moving list, Someday, or deleting,
+ *  which stay owner-only. 'viewer' can read but never write. */
+function canWorkOn(access: TaskAccessLevel): boolean {
+  return access === 'owner' || access === 'assignee' || access === 'editor';
+}
 
 export async function tasksRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
@@ -94,17 +216,108 @@ export async function tasksRoutes(fastify: FastifyInstance) {
   fastify.get('/lists', async (request) => {
     const user = request.user;
     return withTenant(user.tenant_id, async (trx) => {
-      let rows = await trx.selectFrom('task_lists').selectAll()
+      let ownRows = await trx.selectFrom('task_lists').selectAll()
         .where('tenant_id', '=', user.tenant_id).where('user_id', '=', user.sub)
         .orderBy('sort_order', 'asc').execute();
-      if (rows.length === 0) {
+      if (ownRows.length === 0) {
         const inbox = await trx.insertInto('task_lists').values({
           id: crypto.randomUUID(), tenant_id: user.tenant_id, user_id: user.sub,
           name: 'Inbox', color: '#64748b', sort_order: 0,
         }).returningAll().executeTakeFirstOrThrow();
-        rows = [inbox];
+        ownRows = [inbox];
       }
+      // Lists a colleague shared with me (migration 284) — not mine to
+      // reorder/rename/delete, so returned with role + the real owner's
+      // name rather than merged indistinguishably into my own list.
+      const sharedRows = await trx.selectFrom('task_list_shares')
+        .innerJoin('task_lists', 'task_lists.id', 'task_list_shares.list_id')
+        .innerJoin('users as owner_user', 'owner_user.id', 'task_lists.user_id')
+        .where('task_list_shares.tenant_id', '=', user.tenant_id).where('task_list_shares.user_id', '=', user.sub)
+        .select([
+          'task_lists.id', 'task_lists.tenant_id', 'task_lists.user_id', 'task_lists.name', 'task_lists.color',
+          'task_lists.sort_order', 'task_lists.created_at',
+          'task_list_shares.role', 'owner_user.name as owner_name',
+        ])
+        .execute();
+      const data = [
+        ...ownRows.map(r => ({ ...r, shared: false, role: 'owner' as const, owner_name: null })),
+        ...sharedRows.map(r => ({ ...r, shared: true })),
+      ];
+      return { data };
+    });
+  });
+
+  // ── List sharing ───────────────────────────────────────────────────────
+
+  fastify.get<{ Params: { id: string } }>('/lists/:id/shares', async (request, reply) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const list = await trx.selectFrom('task_lists').select('id')
+        .where('id', '=', request.params.id).where('user_id', '=', user.sub).executeTakeFirst();
+      if (!list) return reply.status(404).send({ error: 'List not found' });
+      const rows = await trx.selectFrom('task_list_shares')
+        .innerJoin('users', 'users.id', 'task_list_shares.user_id')
+        .select(['task_list_shares.id', 'task_list_shares.user_id', 'task_list_shares.role',
+                 'task_list_shares.created_at', 'users.name', 'users.email'])
+        .where('task_list_shares.list_id', '=', request.params.id)
+        .orderBy('task_list_shares.created_at', 'asc').execute();
       return { data: rows };
+    });
+  });
+
+  fastify.put<{ Params: { id: string } }>('/lists/:id/shares', async (request, reply) => {
+    const user = request.user;
+    const body = listShareSchema.parse(request.body);
+    if (body.userId === user.sub) return reply.status(400).send({ error: 'You already own this list' });
+    return withTenant(user.tenant_id, async (trx) => {
+      const list = await trx.selectFrom('task_lists').selectAll()
+        .where('id', '=', request.params.id).where('user_id', '=', user.sub).executeTakeFirst();
+      if (!list) return reply.status(404).send({ error: 'List not found' });
+
+      const existing = await trx.selectFrom('task_list_shares').select('id')
+        .where('list_id', '=', request.params.id).where('user_id', '=', body.userId).executeTakeFirst();
+      const row = existing
+        ? await trx.updateTable('task_list_shares').set({ role: body.role })
+            .where('id', '=', existing.id).returningAll().executeTakeFirstOrThrow()
+        : await trx.insertInto('task_list_shares').values({
+            id: crypto.randomUUID(), tenant_id: user.tenant_id, list_id: request.params.id,
+            user_id: body.userId, role: body.role, shared_by: user.sub,
+          }).returningAll().executeTakeFirstOrThrow();
+
+      // Only notify on a genuinely new share, not a role change on an
+      // existing one — repeatedly pinging someone every time their access
+      // level is adjusted would train people to ignore the notification.
+      if (!existing) {
+        const recipient = await trx.selectFrom('users').select(['name', 'email']).where('id', '=', body.userId).executeTakeFirst();
+        if (recipient) {
+          const actorName = (user as { name?: string }).name ?? 'Someone';
+          const title = `${actorName} shared a list with you: "${list.name}"`;
+          await NotificationService.createNotification({
+            tenantId: user.tenant_id, userId: body.userId, app: 'tasks', type: 'info',
+            title, message: `You can now ${body.role === 'editor' ? 'view and work on' : 'view'} tasks on this list.`,
+            link: '/tasks',
+          }).catch(err => console.error('[Tasks] Failed to notify on list share:', err.message));
+          await MailService.sendNow(user.tenant_id, {
+            to: recipient.email, subject: title,
+            bodyHtml: `<p>Hi ${recipient.name},</p><p>${actorName} shared their "${list.name}" task list with you (${body.role} access).</p>`,
+            sourceApp: 'tasks',
+          }).catch(err => console.error('[Tasks] Failed to email on list share:', err.message));
+        }
+      }
+      return { data: row };
+    });
+  });
+
+  fastify.delete<{ Params: { id: string; userId: string } }>('/lists/:id/shares/:userId', async (request, reply) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const list = await trx.selectFrom('task_lists').select('id')
+        .where('id', '=', request.params.id).where('user_id', '=', user.sub).executeTakeFirst();
+      if (!list) return reply.status(404).send({ error: 'List not found' });
+      await trx.deleteFrom('task_list_shares')
+        .where('list_id', '=', request.params.id).where('user_id', '=', request.params.userId).execute();
+      reply.status(204);
+      return null;
     });
   });
 
@@ -161,13 +374,49 @@ export async function tasksRoutes(fastify: FastifyInstance) {
   fastify.get('/items', async (request) => {
     const user = request.user;
     return withTenant(user.tenant_id, async (trx) => {
+      const sharedListRows = await trx.selectFrom('task_list_shares').select(['list_id', 'role'])
+        .where('tenant_id', '=', user.tenant_id).where('user_id', '=', user.sub).execute();
+      const sharedRoleByListId = new Map(sharedListRows.map(r => [r.list_id, r.role]));
+      const sharedListIds = [...sharedRoleByListId.keys()];
+
+      // Visible to: the task's owner, its assignee (migration 283), anyone
+      // who owns the LIST it's filed on (even a task someone else created —
+      // a list owner has full authority over their own list's contents,
+      // same as a Drive folder owner over files others added to it), or
+      // anyone the list has been shared with (migration 284). task_lists/
+      // users are LEFT JOINed (not just the task owner's own) so a viewer
+      // who owns neither still gets a real list name/color and assignee
+      // display name to render, not just ids.
       const [taskRows, subtaskRows] = await Promise.all([
-        trx.selectFrom('tasks').selectAll()
-          .where('tenant_id', '=', user.tenant_id).where('user_id', '=', user.sub)
-          .orderBy('sort_order', 'asc').execute(),
+        trx.selectFrom('tasks')
+          .leftJoin('users as owner_user', 'owner_user.id', 'tasks.user_id')
+          .leftJoin('users as assignee_user', 'assignee_user.id', 'tasks.assignee_id')
+          .leftJoin('task_lists', 'task_lists.id', 'tasks.list_id')
+          .where('tasks.tenant_id', '=', user.tenant_id)
+          .where(eb => {
+            const conds = [eb('tasks.user_id', '=', user.sub), eb('tasks.assignee_id', '=', user.sub), eb('task_lists.user_id', '=', user.sub)];
+            if (sharedListIds.length) conds.push(eb('tasks.list_id', 'in', sharedListIds));
+            return eb.or(conds);
+          })
+          .select([
+            'tasks.id', 'tasks.tenant_id', 'tasks.user_id', 'tasks.list_id', 'tasks.title', 'tasks.notes',
+            'tasks.due', 'tasks.due_time', 'tasks.starred', 'tasks.someday', 'tasks.status', 'tasks.tags',
+            'tasks.completed', 'tasks.completed_at', 'tasks.deleted_at', 'tasks.sort_order',
+            'tasks.assignee_id', 'tasks.created_at', 'tasks.updated_at',
+            'owner_user.name as owner_name',
+            'assignee_user.name as assignee_name', 'assignee_user.avatar_url as assignee_avatar_url',
+            'task_lists.name as list_name', 'task_lists.color as list_color', 'task_lists.user_id as list_owner_id',
+          ])
+          .orderBy('tasks.sort_order', 'asc').execute(),
         trx.selectFrom('task_subtasks')
           .innerJoin('tasks', 'tasks.id', 'task_subtasks.task_id')
-          .where('tasks.tenant_id', '=', user.tenant_id).where('tasks.user_id', '=', user.sub)
+          .leftJoin('task_lists', 'task_lists.id', 'tasks.list_id')
+          .where('tasks.tenant_id', '=', user.tenant_id)
+          .where(eb => {
+            const conds = [eb('tasks.user_id', '=', user.sub), eb('tasks.assignee_id', '=', user.sub), eb('task_lists.user_id', '=', user.sub)];
+            if (sharedListIds.length) conds.push(eb('tasks.list_id', 'in', sharedListIds));
+            return eb.or(conds);
+          })
           .selectAll('task_subtasks')
           .orderBy('task_subtasks.sort_order', 'asc').execute(),
       ]);
@@ -176,7 +425,13 @@ export async function tasksRoutes(fastify: FastifyInstance) {
         if (!subsByTask.has(s.task_id)) subsByTask.set(s.task_id, []);
         subsByTask.get(s.task_id)!.push(s);
       }
-      const data = taskRows.map(t => ({ ...t, subtasks: subsByTask.get(t.id) || [] }));
+      const data = taskRows.map(t => {
+        const isOwner = t.user_id === user.sub || t.list_owner_id === user.sub;
+        const isAssignee = !isOwner && t.assignee_id === user.sub;
+        const sharedRole = sharedRoleByListId.get(t.list_id);
+        const access: TaskAccessLevel = isOwner ? 'owner' : isAssignee ? 'assignee' : sharedRole === 'editor' ? 'editor' : 'viewer';
+        return { ...t, subtasks: subsByTask.get(t.id) || [], is_owner: isOwner, access };
+      });
       return { data };
     });
   });
@@ -185,17 +440,35 @@ export async function tasksRoutes(fastify: FastifyInstance) {
     const user = request.user;
     const body = taskCreateSchema.parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
+      const list = await trx.selectFrom('task_lists').select(['id', 'user_id'])
+        .where('id', '=', body.listId).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!list) return reply.status(404).send({ error: 'List not found' });
+      if (list.user_id !== user.sub) {
+        // Adding a task to someone else's list only works if it's been
+        // shared with editor access — the creator still owns the task
+        // itself (list sharing gives you a workspace, not ownership of
+        // what you add to it); a viewer can look but not add.
+        const share = await trx.selectFrom('task_list_shares').select('role')
+          .where('list_id', '=', body.listId).where('user_id', '=', user.sub).executeTakeFirst();
+        if (!share || share.role !== 'editor') {
+          return reply.status(403).send({ error: 'You do not have permission to add tasks to this list' });
+        }
+      }
+
       const siblingCount = await trx.selectFrom('tasks').select(({ fn }) => fn.countAll<number>().as('count'))
-        .where('list_id', '=', body.listId).where('user_id', '=', user.sub).where('deleted_at', 'is', null).executeTakeFirst();
+        .where('list_id', '=', body.listId).where('deleted_at', 'is', null).executeTakeFirst();
       const row = await trx.insertInto('tasks').values({
         id: body.id, tenant_id: user.tenant_id, user_id: user.sub, list_id: body.listId,
         title: body.title.trim(), notes: body.notes || null, due: body.due || null,
+        due_time: body.dueTime || null,
         starred: body.starred ?? false, someday: body.someday ?? false, status: body.status || 'none',
         tags: JSON.stringify(body.tags ?? []) as unknown as string[],
+        assignee_id: body.assigneeId || null,
         sort_order: Number(siblingCount?.count ?? 0),
       }).returningAll().executeTakeFirstOrThrow();
+      if (body.assigneeId) await handleAssigneeChange(trx, user, row, body.assigneeId);
       reply.status(201);
-      return { data: { ...row, subtasks: [] } };
+      return { data: { ...row, subtasks: [], is_owner: true, access: 'owner' as const } };
     });
   });
 
@@ -203,10 +476,29 @@ export async function tasksRoutes(fastify: FastifyInstance) {
     const user = request.user;
     const body = taskPatchSchema.parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
+      const resolved = await resolveTaskAccess(trx, user.tenant_id, user.sub, request.params.id);
+      if (!resolved) return reply.status(404).send({ error: 'Task not found' });
+      const { task: existing, access } = resolved;
+      const isOwner = access === 'owner';
+      if (!canWorkOn(access)) return reply.status(403).send({ error: 'You only have view access to this task' });
+
+      // Reassigning, moving list, Someday, and delete/restore are
+      // organizational calls about whose task this is and where it lives —
+      // owner-only. An assignee or shared-list editor gets everything
+      // needed to actually do the work: title, notes, due date/time,
+      // status, tags, starring.
+      if (!isOwner && (
+        body.listId !== undefined || body.someday !== undefined ||
+        body.deletedAt !== undefined || body.assigneeId !== undefined
+      )) {
+        return reply.status(403).send({ error: 'Only the task owner can reassign, move, or delete this task' });
+      }
+
       const updates: Record<string, unknown> = { updated_at: new Date() };
       if (body.title !== undefined) updates.title = body.title.trim();
       if (body.notes !== undefined) updates.notes = body.notes;
       if (body.due !== undefined) updates.due = body.due || null;
+      if (body.dueTime !== undefined) updates.due_time = body.dueTime || null;
       if (body.starred !== undefined) updates.starred = body.starred;
       if (body.someday !== undefined) updates.someday = body.someday;
       if (body.status !== undefined) updates.status = body.status;
@@ -218,12 +510,23 @@ export async function tasksRoutes(fastify: FastifyInstance) {
         updates.completed_at = body.completed ? new Date() : null;
       }
       if (body.deletedAt !== undefined) updates.deleted_at = body.deletedAt || null;
+      if (body.assigneeId !== undefined) updates.assignee_id = body.assigneeId;
 
       const row = await trx.updateTable('tasks').set(updates)
-        .where('id', '=', request.params.id).where('user_id', '=', user.sub)
-        .returningAll().executeTakeFirst();
-      if (!row) return reply.status(404).send({ error: 'Task not found' });
-      return { data: row };
+        .where('id', '=', request.params.id)
+        .returningAll().executeTakeFirstOrThrow();
+
+      if (body.assigneeId !== undefined && body.assigneeId !== existing.assignee_id) {
+        await handleAssigneeChange(trx, user, row, body.assigneeId);
+      }
+      if (body.completed === true && !existing.completed) {
+        await emitDomainEvent(trx, user.tenant_id, {
+          type: 'todo.completed', sourceApp: 'tasks', entityType: 'task', entityId: row.id,
+          payload: { title: row.title }, actorId: user.sub,
+        });
+      }
+
+      return { data: { ...row, is_owner: isOwner, access } };
     });
   });
 
@@ -231,11 +534,16 @@ export async function tasksRoutes(fastify: FastifyInstance) {
     const user = request.user;
     const permanent = (request.query as any).permanent === 'true';
     return withTenant(user.tenant_id, async (trx) => {
+      const resolved = await resolveTaskAccess(trx, user.tenant_id, user.sub, request.params.id);
+      if (!resolved) { reply.status(204); return null; }
+      if (resolved.access !== 'owner') {
+        return reply.status(403).send({ error: 'Only the task owner or list owner can delete this task' });
+      }
       if (permanent) {
-        await trx.deleteFrom('tasks').where('id', '=', request.params.id).where('user_id', '=', user.sub).execute();
+        await trx.deleteFrom('tasks').where('id', '=', request.params.id).execute();
       } else {
         await trx.updateTable('tasks').set({ deleted_at: new Date().toISOString() })
-          .where('id', '=', request.params.id).where('user_id', '=', user.sub).execute();
+          .where('id', '=', request.params.id).execute();
       }
       reply.status(204);
       return null;
@@ -248,10 +556,10 @@ export async function tasksRoutes(fastify: FastifyInstance) {
     const user = request.user;
     const body = subtaskCreateSchema.parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
-      const parent = await trx.selectFrom('tasks').select('id').where('id', '=', request.params.id).where('user_id', '=', user.sub).executeTakeFirst();
-      if (!parent) return reply.status(404).send({ error: 'Task not found' });
+      const resolved = await resolveTaskAccess(trx, user.tenant_id, user.sub, request.params.id);
+      if (!resolved || !canWorkOn(resolved.access)) return reply.status(404).send({ error: 'Task not found' });
       const row = await trx.insertInto('task_subtasks').values({
-        id: body.id, task_id: request.params.id, title: body.title.trim(),
+        id: body.id, tenant_id: user.tenant_id, task_id: request.params.id, title: body.title.trim(),
       }).returningAll().executeTakeFirstOrThrow();
       reply.status(201);
       return { data: row };
@@ -262,6 +570,8 @@ export async function tasksRoutes(fastify: FastifyInstance) {
     const user = request.user;
     const body = subtaskPatchSchema.parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
+      const resolved = await resolveTaskAccess(trx, user.tenant_id, user.sub, request.params.id);
+      if (!resolved || !canWorkOn(resolved.access)) return reply.status(404).send({ error: 'Task not found' });
       const updates: Record<string, unknown> = {};
       if (body.title !== undefined) updates.title = body.title.trim();
       if (body.completed !== undefined) updates.completed = body.completed;
@@ -273,91 +583,277 @@ export async function tasksRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.delete<{ Params: { id: string; subId: string } }>('/items/:id/subtasks/:subId', async (request) => {
-    return withTenant(request.user.tenant_id, async (trx) => {
+  fastify.delete<{ Params: { id: string; subId: string } }>('/items/:id/subtasks/:subId', async (request, reply) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      // Previously deleted with no ownership/tenant check at all beyond a
+      // valid session — a real gap, closed here as part of the same
+      // visibility rework rather than left for later since it's the exact
+      // same lookup this route now needs anyway.
+      const resolved = await resolveTaskAccess(trx, user.tenant_id, user.sub, request.params.id);
+      if (!resolved || !canWorkOn(resolved.access)) return reply.status(404).send({ error: 'Task not found' });
       await trx.deleteFrom('task_subtasks').where('id', '=', request.params.subId).where('task_id', '=', request.params.id).execute();
       return { success: true };
     });
   });
 
-  // ── Calendar events ────────────────────────────────────────────────────
+  // ── Comments ───────────────────────────────────────────────────────────
 
-  fastify.get('/events', async (request) => {
+  fastify.get<{ Params: { id: string } }>('/items/:id/comments', async (request, reply) => {
     const user = request.user;
     return withTenant(user.tenant_id, async (trx) => {
-      const rows = await trx.selectFrom('calendar_events').selectAll()
-        .where('tenant_id', '=', user.tenant_id).where('user_id', '=', user.sub)
-        .orderBy('start_at', 'asc').execute();
-
-      const hrHolidays = await trx.selectFrom('hr_holidays')
-        .selectAll()
-        .where('tenant_id', '=', user.tenant_id)
-        .execute();
-
-      const holidayEvents = hrHolidays.map(h => {
-        const dateStr = (h.date as any) instanceof Date ? (h.date as any).toISOString().slice(0, 10) : String(h.date).slice(0, 10);
-        return {
-          id: h.id,
-          tenant_id: h.tenant_id,
-          user_id: user.sub,
-          title: `🌴 ${h.name}`,
-          start_at: `${dateStr}T00:00:00.000Z`,
-          end_at: `${dateStr}T23:59:59.999Z`,
-          description: `${h.type} Holiday`,
-          location: null,
-          category: 'holiday',
-          guests: '[]',
-          created_at: h.created_at,
-          updated_at: h.created_at,
-        };
-      });
-
-      const allEvents = [...rows, ...holidayEvents].sort((a, b) => new Date(a.start_at).getTime() - new Date(b.start_at).getTime());
-      
-      return { data: allEvents };
+      // Reading is allowed at any access level including 'viewer' —
+      // seeing a task you were given visibility into means seeing its
+      // whole discussion, not just its fields.
+      const resolved = await resolveTaskAccess(trx, user.tenant_id, user.sub, request.params.id);
+      if (!resolved) return reply.status(404).send({ error: 'Task not found' });
+      const rows = await trx.selectFrom('todo_comments')
+        .innerJoin('users', 'users.id', 'todo_comments.author_id')
+        .select([
+          'todo_comments.id', 'todo_comments.content', 'todo_comments.mentions', 'todo_comments.created_at',
+          'todo_comments.author_id', 'users.name as author_name',
+        ])
+        .where('todo_comments.task_id', '=', request.params.id)
+        .orderBy('todo_comments.created_at', 'asc').execute();
+      return { data: rows };
     });
   });
 
-  fastify.post('/events', async (request, reply) => {
+  fastify.post<{ Params: { id: string } }>('/items/:id/comments', async (request, reply) => {
     const user = request.user;
-    const body = eventCreateSchema.parse(request.body);
+    const body = commentCreateSchema.parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
-      const row = await trx.insertInto('calendar_events').values({
-        id: body.id, tenant_id: user.tenant_id, user_id: user.sub, title: body.title.trim(),
-        start_at: body.start, end_at: body.end,
-        description: body.description || null, location: body.location || null,
-        category: body.category || 'work', guests: JSON.stringify(body.guests ?? []) as unknown as string[],
+      const resolved = await resolveTaskAccess(trx, user.tenant_id, user.sub, request.params.id);
+      if (!resolved || !canWorkOn(resolved.access)) return reply.status(404).send({ error: 'Task not found' });
+      const task = resolved.task;
+
+      const row = await trx.insertInto('todo_comments').values({
+        id: crypto.randomUUID(), tenant_id: user.tenant_id, task_id: request.params.id,
+        author_id: user.sub, content: body.content.trim(),
+        mentions: JSON.stringify(body.mentions ?? []) as unknown as { user_id: string; name: string }[],
       }).returningAll().executeTakeFirstOrThrow();
+
+      await emitDomainEvent(trx, user.tenant_id, {
+        type: 'todo.commented', sourceApp: 'tasks', entityType: 'task', entityId: task.id,
+        payload: { preview: body.content.trim().slice(0, 140) }, actorId: user.sub,
+      });
+
+      // The other party on this task (owner and/or assignee, whichever
+      // isn't the commenter) plus anyone @mentioned — same "the person on
+      // the other end should know" reasoning assignment already follows.
+      const notifyIds = new Set<string>((body.mentions ?? []).map(m => m.user_id));
+      if (task.user_id !== user.sub) notifyIds.add(task.user_id);
+      if (task.assignee_id && task.assignee_id !== user.sub) notifyIds.add(task.assignee_id);
+      notifyIds.delete(user.sub);
+
+      const actorName = (user as { name?: string }).name ?? 'Someone';
+      for (const uid of notifyIds) {
+        const recipient = await trx.selectFrom('users').select(['name', 'email']).where('id', '=', uid).executeTakeFirst();
+        if (!recipient) continue;
+        const title = `${actorName} commented on "${task.title}"`;
+        await NotificationService.createNotification({
+          tenantId: user.tenant_id, userId: uid, app: 'tasks', type: 'mention',
+          title, message: body.content.trim(), link: '/tasks?view=assigned', entityType: 'task', entityId: task.id,
+        }).catch(err => console.error('[Tasks] Failed to notify on comment:', err.message));
+        await MailService.sendNow(user.tenant_id, {
+          to: recipient.email, subject: title,
+          bodyHtml: `<p>Hi ${recipient.name},</p><p>${actorName} commented on <strong>${task.title}</strong>:</p><p>${body.content.trim()}</p>`,
+          sourceApp: 'tasks',
+        }).catch(err => console.error('[Tasks] Failed to email on comment:', err.message));
+      }
+
       reply.status(201);
       return { data: row };
     });
   });
 
-  fastify.patch<{ Params: { id: string } }>('/events/:id', async (request, reply) => {
+  fastify.delete<{ Params: { id: string; commentId: string } }>('/items/:id/comments/:commentId', async (request, reply) => {
     const user = request.user;
-    const body = eventPatchSchema.parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
-      const updates: Record<string, unknown> = {};
-      if (body.title !== undefined) updates.title = body.title.trim();
-      if (body.start !== undefined) updates.start_at = body.start;
-      if (body.end !== undefined) updates.end_at = body.end;
-      if (body.description !== undefined) updates.description = body.description;
-      if (body.location !== undefined) updates.location = body.location;
-      if (body.category !== undefined) updates.category = body.category;
-      if (body.guests !== undefined) updates.guests = JSON.stringify(body.guests);
-      const row = await trx.updateTable('calendar_events').set(updates)
-        .where('id', '=', request.params.id).where('user_id', '=', user.sub)
-        .returningAll().executeTakeFirst();
-      if (!row) return reply.status(404).send({ error: 'Event not found' });
-      return { data: row };
+      const comment = await trx.selectFrom('todo_comments').select(['id', 'author_id'])
+        .where('id', '=', request.params.commentId).where('task_id', '=', request.params.id)
+        .where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!comment) return reply.status(404).send({ error: 'Comment not found' });
+      const task = await trx.selectFrom('tasks').select(['user_id']).where('id', '=', request.params.id).executeTakeFirst();
+      if (comment.author_id !== user.sub && task?.user_id !== user.sub) {
+        return reply.status(403).send({ error: 'Only the comment author or task owner can delete this comment' });
+      }
+      await trx.deleteFrom('todo_comments').where('id', '=', request.params.commentId).execute();
+      reply.status(204);
+      return null;
     });
   });
 
+  // ── Calendar events ────────────────────────────────────────────────────
+  // Recurrence is expanded server-side (calendar-events.service.ts) — every
+  // row GET /events returns is one rendered occurrence, not one master row,
+  // so the frontend never needs its own copy of the recurrence math.
+
+  /** Defaults to a 1-year-back/2-years-forward window when the caller
+   *  doesn't specify one — generous enough for month/week/day/agenda
+   *  navigation without unbounded expansion of a no-end-date series. */
+  function parseEventRange(query: any): { from: Date; to: Date } {
+    const from = query.from ? new Date(query.from) : new Date(Date.now() - 365 * 86400000);
+    const to = query.to ? new Date(query.to) : new Date(Date.now() + 2 * 365 * 86400000);
+    return { from, to };
+  }
+
+  fastify.get('/events', async (request) => {
+    const user = request.user;
+    const q = request.query as any;
+    const range = parseEventRange(q);
+    const data = await CalendarEvents.listEvents(user.tenant_id, user.sub, range, q.search);
+    return { data };
+  });
+
+  // "Meet with…" — busy/free blocks only for any colleague in the same
+  // tenant, never event content. See getFreeBusy's own comment for why
+  // that's safe to leave ungated beyond "same tenant".
+  fastify.get('/events/freebusy', async (request, reply) => {
+    const user = request.user;
+    const q = request.query as { userIds?: string; from?: string; to?: string };
+    const userIds = (q.userIds ?? '').split(',').map(s => s.trim()).filter(Boolean);
+    if (userIds.length === 0) return reply.status(400).send({ error: 'userIds is required (comma-separated).' });
+    if (userIds.length > 20) return reply.status(400).send({ error: 'Too many people at once (max 20).' });
+    if (!userIds.every(id => uuidSchema.safeParse(id).success)) return reply.status(400).send({ error: 'userIds must be valid UUIDs.' });
+    const range = parseEventRange(q);
+    const data = await CalendarEvents.getFreeBusy(user.tenant_id, userIds, range);
+    return { data };
+  });
+
+  fastify.post('/events', async (request, reply) => {
+    const user = request.user;
+    const body = eventCreateSchema.parse(request.body);
+    try {
+      const row = await CalendarEvents.createEvent(user.tenant_id, user.sub, user.name ?? 'Someone', body.id, {
+        title: body.title, start: body.start, end: body.end, description: body.description, location: body.location,
+        category: body.category, guests: body.guests as CalendarEvents.Guest[] | undefined, allDay: body.allDay,
+        color: body.color, recurrence: body.recurrence, reminderOffsets: body.reminderOffsets, timezone: body.timezone,
+      });
+      reply.status(201);
+      return { data: row };
+    } catch (err: any) {
+      if (err instanceof EventValidationError) return reply.status(400).send({ error: err.message });
+      throw err;
+    }
+  });
+
+  fastify.patch<{ Params: { id: string } }>('/events/:id', async (request, reply) => {
+    const user = request.user;
+    const body = eventPatchSchema.parse(request.body);
+    try {
+      const result = await CalendarEvents.updateEvent(
+        user.tenant_id, user.sub, user.name ?? 'Someone', request.params.id,
+        {
+          title: body.title, start: body.start, end: body.end, description: body.description, location: body.location,
+          category: body.category, guests: body.guests as CalendarEvents.Guest[] | undefined, allDay: body.allDay,
+          color: body.color, recurrence: body.recurrence, reminderOffsets: body.reminderOffsets, timezone: body.timezone,
+        },
+        body.scope ?? 'all', body.occurrenceDate,
+      );
+      return { data: result };
+    } catch (err: any) {
+      if (err instanceof EventNotFoundError) return reply.status(404).send({ error: 'Event not found' });
+      if (err instanceof EventValidationError) return reply.status(400).send({ error: err.message });
+      throw err;
+    }
+  });
+
   fastify.delete<{ Params: { id: string } }>('/events/:id', async (request) => {
-    return withTenant(request.user.tenant_id, async (trx) => {
-      await trx.deleteFrom('calendar_events').where('id', '=', request.params.id).where('user_id', '=', request.user.sub).execute();
-      return { success: true };
-    });
+    const user = request.user;
+    const q = request.query as { scope?: 'all' | 'this'; occurrenceDate?: string };
+    await CalendarEvents.deleteEvent(user.tenant_id, user.sub, request.params.id, q.scope ?? 'all', q.occurrenceDate);
+    return { success: true };
+  });
+
+  // ── ICS export/import ──────────────────────────────────────────────────
+
+  fastify.get('/events/export.ics', async (request, reply) => {
+    const user = request.user;
+    const q = request.query as any;
+    const range = parseEventRange(q);
+    const ics = await CalendarEvents.exportICS(user.tenant_id, user.sub, range);
+    reply.header('Content-Type', 'text/calendar; charset=utf-8');
+    reply.header('Content-Disposition', 'attachment; filename="calendar.ics"');
+    return ics;
+  });
+
+  fastify.post('/events/import.ics', async (request, reply) => {
+    const user = request.user;
+    const body = z.object({ ics: z.string().min(1).max(2_000_000) }).parse(request.body);
+    const result = await CalendarEvents.importICS(user.tenant_id, user.sub, body.ics);
+    reply.status(201);
+    return { data: result };
+  });
+
+  // ── Booking pages (Calendly-style scheduling links) ─────────────────────
+  // Authenticated management only — the public /book/:slug flow lives in
+  // booking.routes.ts (bookingPublicRoutes), unauthenticated by design.
+
+  const bookingPageCreateSchema = z.object({
+    id: uuidSchema,
+    slug: z.string().trim().min(1).max(60).optional(),
+    title: z.string().trim().min(1).max(200).optional(),
+    description: z.string().trim().max(2000).nullable().optional(),
+    durationMinutes: z.number().int().min(5).max(480).optional(),
+    bufferMinutes: z.number().int().min(0).max(120).optional(),
+    workingDays: z.array(z.number().int().min(0).max(6)).optional(),
+    workingStartTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+    workingEndTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+    timezone: z.string().min(1).max(100).optional(),
+    bookingWindowDays: z.number().int().min(1).max(365).optional(),
+    active: z.boolean().optional(),
+  });
+  const bookingPageSchema = z.object({
+    slug: z.string().trim().min(1).max(60).optional(),
+    title: z.string().trim().min(1).max(200).optional(),
+    description: z.string().trim().max(2000).nullable().optional(),
+    durationMinutes: z.number().int().min(5).max(480).optional(),
+    bufferMinutes: z.number().int().min(0).max(120).optional(),
+    workingDays: z.array(z.number().int().min(0).max(6)).optional(),
+    workingStartTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+    workingEndTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+    timezone: z.string().min(1).max(100).optional(),
+    bookingWindowDays: z.number().int().min(1).max(365).optional(),
+    active: z.boolean().optional(),
+  });
+
+  fastify.get('/booking-pages', async (request) => {
+    const user = request.user;
+    const data = await BookingPages.listBookingPages(user.tenant_id, user.sub);
+    return { data };
+  });
+
+  fastify.post('/booking-pages', async (request, reply) => {
+    const user = request.user;
+    const body = bookingPageCreateSchema.parse(request.body);
+    try {
+      const row = await BookingPages.createBookingPage(user.tenant_id, user.sub, user.name ?? 'Someone', body.id, body);
+      reply.status(201);
+      return { data: row };
+    } catch (err) {
+      if (err instanceof SlugTakenError) return reply.status(409).send({ error: err.message });
+      throw err;
+    }
+  });
+
+  fastify.patch<{ Params: { id: string } }>('/booking-pages/:id', async (request, reply) => {
+    const user = request.user;
+    const body = bookingPageSchema.parse(request.body);
+    try {
+      const row = await BookingPages.updateBookingPage(user.tenant_id, user.sub, request.params.id, body);
+      return { data: row };
+    } catch (err) {
+      if (err instanceof SlugTakenError) return reply.status(409).send({ error: err.message });
+      if (err instanceof BookingPageNotFoundError) return reply.status(404).send({ error: 'Booking page not found' });
+      throw err;
+    }
+  });
+
+  fastify.delete<{ Params: { id: string } }>('/booking-pages/:id', async (request) => {
+    const user = request.user;
+    await BookingPages.deleteBookingPage(user.tenant_id, user.sub, request.params.id);
+    return { success: true };
   });
 
   // ── Settings ───────────────────────────────────────────────────────────

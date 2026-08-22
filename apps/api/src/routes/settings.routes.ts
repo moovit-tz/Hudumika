@@ -37,6 +37,12 @@ const SECRET_FIELDS_BY_KEY: Record<string, readonly string[]> = {
   email: ['pass', 'outlookClientSecret', 'gmailClientSecret'],
   ticketImap: ['pass'],
   'int-google': ['rcSecret', 'oauthSecret'],
+  // Google/Outlook Calendar sync app registration (calendar-sync.routes.ts)
+  // — same split as settings.email above: the OAuth app's client_id/secret
+  // are tenant-level config here; the per-user access/refresh tokens that
+  // come out of actually authorizing it live in calendar_sync_connections
+  // instead (personal data, not tenant config), never touching this blob.
+  calendarSync: ['googleClientSecret', 'outlookClientSecret'],
 };
 /** OAuth tokens under settings.email — never sent to the browser at all
  *  (not even masked); only mail-oauth.routes.ts's callback ever writes

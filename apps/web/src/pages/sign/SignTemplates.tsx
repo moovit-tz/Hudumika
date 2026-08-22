@@ -118,51 +118,61 @@ export function SignTemplates() {
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 24px', borderBottom: '1px solid var(--border)', background: 'var(--card-bg)' }}>
-        <h2 style={{ fontSize: 17, fontWeight: 700, color: 'var(--ink)', margin: 0 }}>Templates</h2>
-        <Button variant="default" onClick={() => navigate('/sign/editor')} style={{ marginLeft: 'auto' }}>
+        <div>
+          <h2 style={{ fontSize: 17, fontWeight: 700, color: 'var(--ink)', margin: 0, letterSpacing: '-0.01em' }}>Templates</h2>
+          <p style={{ fontSize: 12.5, color: 'var(--ink3)', margin: '2px 0 0' }}>Reusable document layouts for 1-click envelope creation &amp; bulk sending.</p>
+        </div>
+        <Button variant="default" onClick={() => navigate('/sign/editor')} style={{ marginLeft: 'auto', background: 'var(--teal)', color: '#fff', fontWeight: 600 }}>
           <Icon name="plus" size={14} /> New Envelope from Scratch
         </Button>
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
         {loading ? (
-          <div style={{ color: 'var(--ink3)', textAlign: 'center', marginTop: 48 }}>Loading templates…</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} style={{ height: 140, borderRadius: 12, background: 'var(--border)', opacity: 0.4, animation: 'pulse 1.4s ease-in-out infinite' }} />
+            ))}
+          </div>
         ) : templates.length === 0 ? (
-          <div style={{ textAlign: 'center', marginTop: 64, color: 'var(--ink3)' }}>
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
-              <Icon name="clipboardList" size={48} style={{ opacity: 0.25 }} />
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: 300, textAlign: 'center', color: 'var(--ink3)', padding: 32 }}>
+            <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
+              <Icon name="layers" size={24} style={{ color: 'var(--ink3)', opacity: 0.6 }} />
             </div>
-            <div style={{ fontSize: 18, fontWeight: 600, color: 'var(--ink)', marginBottom: 8 }}>No templates yet</div>
-            <div style={{ fontSize: 14, maxWidth: 320, margin: '0 auto 20px' }}>
-              Save an envelope layout as a template to reuse it quickly for future documents.
+            <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>No templates yet</div>
+            <div style={{ fontSize: 13, maxWidth: 340, lineHeight: 1.5, marginBottom: 20 }}>
+              Save an envelope layout as a template to reuse field placements and recipients quickly for future documents.
             </div>
+            <Button variant="default" onClick={() => navigate('/sign/editor')} style={{ background: 'var(--teal)', color: '#fff', fontWeight: 600 }}>
+              <Icon name="plus" size={14} /> Create New Template
+            </Button>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
             {templates.map(t => (
-              <div key={t.id} style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 12, padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div key={t.id} className="sign-envelope-card" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                  <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--teal-l)', color: 'var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Icon name="clipboard" size={18} /></div>
+                  <div style={{ width: 42, height: 42, borderRadius: 10, background: 'var(--teal-l)', color: 'var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Icon name="layers" size={18} /></div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</div>
-                    {t.description && <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>{t.description}</div>}
+                    <div style={{ fontWeight: 700, fontSize: 14.5, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</div>
+                    {t.description && <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.description}</div>}
                   </div>
                 </div>
-                <div style={{ fontSize: 12, color: 'var(--ink3)', display: 'flex', gap: 12 }}>
+                <div style={{ fontSize: 12, color: 'var(--ink3)', display: 'flex', gap: 14, background: 'var(--bg)', padding: '6px 10px', borderRadius: 6, border: '1px solid var(--border)' }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Icon name="user" size={11} /> {(t.recipients as unknown[]).length ?? 0} recipient(s)</span>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Icon name="fileText" size={11} /> {(t.fields as unknown[]).length ?? 0} field(s)</span>
                 </div>
-                <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-                  <Button variant="default" size="sm" onClick={() => navigate(`/sign/editor?template=${t.id}`)} style={{ flex: 2 }}>
+                <div style={{ display: 'flex', gap: 8, marginTop: 2 }}>
+                  <Button variant="default" size="sm" onClick={() => navigate(`/sign/editor?template=${t.id}`)} style={{ flex: 2, background: 'var(--teal)', color: '#fff', fontWeight: 600 }}>
                     Use Template
                   </Button>
                   <Button variant="outline" size="sm" onClick={() => setBulkSendTarget(t)}
                     title="Send this template to a list of recipients — one envelope each"
-                    style={{ flex: 1, borderColor: 'var(--sign-blue)', color: 'var(--sign-blue)' }}>
+                    style={{ flex: 1, borderColor: 'var(--teal)', color: 'var(--teal)' }}>
                     <Icon name="send" size={12} /> Bulk
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => deleteTemplate(t.id)}>
-                    Delete
+                  <Button variant="outline" size="sm" onClick={() => deleteTemplate(t.id)} style={{ color: 'var(--sign-red)' }}>
+                    <Icon name="trash" size={12} />
                   </Button>
                 </div>
               </div>

@@ -89,6 +89,7 @@ import { HuduBIShell } from './shells/HuduBIShell.js';
 import { SignShell } from './shells/SignShell.js';
 import { SignPublicPage } from './pages/sign/SignPublicPage.js';
 import { SignVerifyPage } from './pages/sign/SignVerifyPage.js';
+import { BookingPublicPage } from './pages/BookingPublicPage.js';
 import { AppHeader }    from './components/AppHeader.js';
 import { WorkspaceHome } from './pages/WorkspaceHome.js';
 
@@ -320,6 +321,8 @@ const AppContentBody: React.FC = () => {
       <Route path="/sign/public/:token"  element={<SignPublicPage />} />
       <Route path="/sign/verify/:code"   element={<SignVerifyPage />} />
       <Route path="/sign/verify"         element={<SignVerifyPage />} />
+      {/* Calendly-style booking pages — anyone with the link can book, no account needed */}
+      <Route path="/book/:slug"          element={<BookingPublicPage />} />
       <Route path="*"                     element={<Login />} />
     </Routes>
   );
@@ -345,6 +348,7 @@ const AppContentBody: React.FC = () => {
           <Route path="/agency-directory" element={<AgencyDirectory />} />
           <Route path="/site/:tenantSlug"           element={<OneSitePublic />} />
           <Route path="/site/:tenantSlug/:pageSlug" element={<OneSitePublic />} />
+          <Route path="/book/:slug"                 element={<BookingPublicPage />} />
           <Route path="/subscription" element={<Navigate to="/workspace/billing" replace />} />
 
           {/* Full-viewport apps — no page-layout (manage their own height/overflow) */}

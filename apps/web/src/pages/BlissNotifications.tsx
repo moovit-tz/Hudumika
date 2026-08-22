@@ -32,6 +32,51 @@ export function BlissNotifications() {
   const [selected, setSelected]       = useState<any | null>(null);
   const [search, setSearch]           = useState("");
 
+  // ── Proportional list/detail split — same mechanic as EmailApp.tsx: the
+  // list fills the full width until something is selected, then becomes a
+  // draggable column with the detail pane filling the rest. Defaults to an
+  // even 50/50 split (CSS `flex-basis: 50%`, no JS measurement needed) and
+  // only switches to a fixed pixel width once the user actually drags —
+  // measured off the real rendered width, so the drag starts from wherever
+  // the split currently sits rather than jumping to a hardcoded number.
+  const [listWidth, setListWidth] = useState<number | null>(null);
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const leftRef = useRef<HTMLDivElement>(null);
+  const isDragging = useRef(false);
+  const dragStartX = useRef(0);
+  const dragStartW = useRef(0);
+
+  useEffect(() => { if (!selected) setListWidth(null); }, [selected]);
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  function startDrag(e: React.MouseEvent) {
+    isDragging.current = true;
+    dragStartX.current = e.clientX;
+    dragStartW.current = leftRef.current?.getBoundingClientRect().width ?? 360;
+    e.preventDefault();
+
+    const onMove = (ev: MouseEvent) => {
+      if (!isDragging.current) return;
+      const dx = ev.clientX - dragStartX.current;
+      const rootWidth = rootRef.current?.getBoundingClientRect().width ?? 1200;
+      const maxW = Math.max(260, rootWidth - 320); // leave the detail pane at least 320px
+      setListWidth(Math.max(260, Math.min(dragStartW.current + dx, maxW)));
+    };
+    const onUp = () => {
+      isDragging.current = false;
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  }
+
   const load = useCallback(async (currentOffset: number, currentTab: FilterTab) => {
     setLoading(true);
     try {
@@ -77,9 +122,17 @@ export function BlissNotifications() {
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   return (
-    <div className="bnc-root">
-      {/* LEFT PANEL */}
-      <div className="bnc-left">
+    <div className="bnc-root" ref={rootRef}>
+      {/* LEFT PANEL — full width alone; a draggable, 50/50-by-default column
+          once a notification is open (mirrors EmailApp.tsx's em-list /
+          em-list--has-detail). On mobile it's replaced entirely by the
+          detail pane rather than squeezed into a stacked half-height split. */}
+      {(!isMobile || !selected) && (
+      <div
+        ref={leftRef}
+        className={`bnc-left${selected ? " bnc-left--has-detail" : ""}`}
+        style={selected && listWidth != null ? ({ "--bnc-list-w": `${listWidth}px` } as React.CSSProperties) : undefined}
+      >
         <div className="bnc-left-hdr">
           <div className="bnc-left-hdr-top">
             <div className="bnc-title-block">
@@ -93,7 +146,7 @@ export function BlissNotifications() {
                 </button>
               )}
               <button type="button" className="bnc-icon-btn" title="Refresh" onClick={() => load(offset, tab)}>
-                <Icon name="refreshCw" size={15} />
+                <Icon name="refresh" size={15} />
               </button>
             </div>
           </div>
@@ -150,19 +203,19 @@ export function BlissNotifications() {
           </div>
         )}
       </div>
+      )}
 
-      {/* RIGHT PANEL */}
-      <div className="bnc-right">
-        {selected ? (
+      {/* Draggable resizer — only between the panes, only on desktop widths
+          (mirrors EmailApp.tsx's em-resizer; mobile swaps panes instead). */}
+      {selected && !isMobile && <div className="bnc-resizer" onMouseDown={startDrag} />}
+
+      {/* RIGHT PANEL — doesn't render at all with nothing selected, so the
+          list gets the full width instead of it going to an empty state. */}
+      {selected && (
+        <div className="bnc-right">
           <NotifDetail n={selected} onClose={() => setSelected(null)} />
-        ) : (
-          <div className="bnc-detail-empty">
-            <div className="bnc-detail-empty-ico"><Icon name="mail" size={36} /></div>
-            <span className="bnc-detail-empty-label">Select a notification</span>
-            <span className="bnc-detail-empty-sub">Click any item on the left to view its full details here</span>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -275,3 +328,4 @@ function NotifDetail({ n, onClose }: { n: any; onClose: () => void }) {
     </div>
   );
 }
+

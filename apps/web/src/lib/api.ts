@@ -86,7 +86,14 @@ async function refreshAccessToken(): Promise<boolean> {
 async function throwForErrorResponse(response: Response): Promise<never> {
   if (response.status === 401) handleUnauthorized();
   const err = await response.json().catch(() => ({}));
-  throw new Error(err.message || err.error || err.detail || `Request failed with status ${response.status}`);
+  const thrown = new Error(err.message || err.error || err.detail || `Request failed with status ${response.status}`);
+  // The rest of the error body (e.g. notes.routes.ts's 409 { code:
+  // 'NOTE_CONFLICT', current }) used to be discarded — only .message
+  // survived. Attached rather than thrown separately so every existing
+  // caller (which only ever reads .message) keeps working unchanged.
+  (thrown as Error & { status?: number; body?: unknown }).status = response.status;
+  (thrown as Error & { status?: number; body?: unknown }).body = err;
+  throw thrown;
 }
 
 /**
@@ -146,6 +153,30 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
   // "Unexpected end of JSON input" on it, so return null for an empty response.
   if (response.status === 204) return null;
   return response.json();
+}
+
+/**
+ * Retries `fn` a few times with exponential backoff, but only for failures
+ * a retry can plausibly fix: a raw network failure (fetch's own TypeError,
+ * no `.status` at all — offline, DNS hiccup, or a dev server mid-restart
+ * under `tsx watch`, which is what motivated this) or a 5xx from the
+ * server. A 4xx thrown by throwForErrorResponse (it attaches `.status`) is
+ * never retried — the request was rejected on its merits (validation,
+ * permission, a 409 conflict), not because it didn't arrive, and resending
+ * it unchanged would either fail identically or, for a conflict, be
+ * actively wrong.
+ */
+export async function withRetry<T>(fn: () => Promise<T>, attempts = 3, baseDelayMs = 500): Promise<T> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      const status = (err as { status?: number } | undefined)?.status;
+      const retriable = status === undefined || status >= 500;
+      if (!retriable || attempt === attempts - 1) throw err;
+      await new Promise(resolve => setTimeout(resolve, baseDelayMs * 2 ** attempt));
+    }
+  }
 }
 
 /**

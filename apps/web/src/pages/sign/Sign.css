@@ -40,6 +40,7 @@
   font-weight: 600;
   letter-spacing: 0.02em;
   white-space: nowrap;
+  transition: all 0.15s ease;
 }
 .sign-badge-draft    { background: var(--border); color: var(--ink2); }
 .sign-badge-sent     { background: var(--blue-l); color: var(--blue); }
@@ -51,33 +52,41 @@
 .sign-badge-viewed   { background: var(--blue-l); color: var(--blue); }
 .sign-badge-signed   { background: var(--sign-green-l); color: var(--sign-green); }
 
-/* ── Envelope card (inbox/sent list) ──────────────────────────────────────── */
+/* ── Envelope card (inbox/sent grid view) ──────────────────────────────────────── */
 .sign-envelope-card {
   background: var(--card-bg);
   border: 1px solid var(--border);
-  border-radius: var(--sign-card-r);
+  border-radius: 12px;
   padding: 18px 20px;
   display: flex;
   gap: 16px;
   align-items: flex-start;
   cursor: pointer;
-  transition: box-shadow 0.18s, border-color 0.18s;
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.18s ease;
+  position: relative;
+  overflow: hidden;
 }
 .sign-envelope-card:hover {
-  box-shadow: var(--sign-shadow);
-  border-color: var(--sign-blue);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+  border-color: var(--teal);
 }
 .sign-envelope-icon {
   width: 44px;
   height: 44px;
-  border-radius: 10px;
-  background: var(--sign-blue-l);
+  border-radius: 12px;
+  background: var(--teal-l);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  color: var(--sign-blue);
+  color: var(--teal);
   font-size: 20px;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+.sign-envelope-card:hover .sign-envelope-icon {
+  transform: scale(1.05);
+  background: var(--teal-m, rgba(13, 148, 136, 0.15));
 }
 .sign-envelope-meta {
   flex: 1;
@@ -85,16 +94,17 @@
 }
 .sign-envelope-title {
   font-size: 14.5px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--ink);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  letter-spacing: -0.01em;
 }
 .sign-envelope-sub {
   font-size: 12.5px;
   color: var(--ink3);
-  margin-top: 3px;
+  margin-top: 5px;
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -126,60 +136,70 @@
 .sign-view-toggle {
   display: flex;
   border: 1px solid var(--border);
-  border-radius: var(--r-sm);
+  border-radius: 8px;
   overflow: hidden;
   flex-shrink: 0;
+  background: var(--bg);
+  padding: 2px;
+  gap: 2px;
 }
 .sign-view-toggle-btn {
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 0 10px;
-  min-height: var(--ctl-h, 36px);
+  height: 30px;
   border: none;
-  background: var(--card-bg);
+  border-radius: 6px;
+  background: transparent;
   color: var(--ink3);
   cursor: pointer;
+  transition: all 0.15s ease;
+}
+.sign-view-toggle-btn:hover {
+  color: var(--ink);
 }
 .sign-view-toggle-btn--on {
-  background: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
+  background: var(--white);
+  color: var(--teal);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
 /* ── Envelope containers ──────────────────────────────────────────────────── */
 .sign-envelope-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
   align-content: start;
 }
 .sign-envelope-list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 /* ── Envelope row (compact list view) ─────────────────────────────────────── */
 .sign-envelope-row {
   background: var(--card-bg);
   border: 1px solid var(--border);
-  border-radius: var(--r-sm);
-  padding: 8px 14px;
+  border-radius: 8px;
+  padding: 10px 16px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   cursor: pointer;
-  transition: box-shadow 0.15s, border-color 0.15s;
+  transition: all 0.15s ease;
 }
 .sign-envelope-row:hover {
-  box-shadow: var(--sign-shadow);
-  border-color: var(--sign-blue);
+  border-color: var(--teal);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  background: var(--bg);
 }
 .sign-envelope-row-icon {
-  width: 26px;
-  height: 26px;
-  border-radius: 6px;
-  background: var(--sign-blue-l);
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: var(--teal-l);
   display: flex;
   align-items: center;
   justify-content: center;

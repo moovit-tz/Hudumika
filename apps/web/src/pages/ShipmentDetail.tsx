@@ -2207,6 +2207,18 @@ function OverviewTab({ job, isMobile, isLive, onRefresh }: { job: ClearanceJob; 
             </div>
           </Card>
 
+          {/* Dangerous goods — captured on the Cargo Details edit step
+              (ShipmentEdit.tsx), alongside the Normal/Dangerous goods
+              choice; this card is the read/issue/print surface for
+              whatever was saved there. Only ever rendered when the
+              shipment is actually tagged, so an ordinary shipment's
+              Overview stays exactly as it was. */}
+          {job.hasDangerousGoods && (
+            <Card title="Dangerous Goods">
+              <DangerousGoodsPanel shipmentId={job.id} />
+            </Card>
+          )}
+
           {/* Contact Details — Ship From (our company) / Ship To (customer) */}
           <Card title="Contact Details">
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'minmax(0, 1fr) minmax(0, 1fr)', gap: 20 }}>
@@ -5220,10 +5232,10 @@ export function ShipmentDetail() {
               {!isMock && <span style={{ fontSize: 10.5, padding: '2px 7px', background: 'var(--green-l)', color: 'var(--green)', borderRadius: 4, fontWeight: 700 }}>LIVE</span>}
               {isOverdue && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 12, fontWeight: 700, color: 'var(--red)' }}><Icon name="alertTriangle" size={11} /> Overdue</span>}
               {job.hasDangerousGoods && (
-                <a href="#dg-panel" title="Carries a dangerous-goods declaration — jump to it"
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10.5, padding: '2px 7px', background: 'var(--gold-l)', color: 'var(--gold)', borderRadius: 4, fontWeight: 700, textDecoration: 'none' }}>
+                <button type="button" onClick={() => setTab('overview')} title="Carries a dangerous-goods declaration — see the Overview tab"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10.5, padding: '2px 7px', background: 'var(--gold-l)', color: 'var(--gold)', borderRadius: 4, fontWeight: 700, border: 'none', cursor: 'pointer' }}>
                   <Icon name="alertTriangle" size={11} color="var(--gold)" /> DG
-                </a>
+                </button>
               )}
 
               {!isMobile && <div style={{ width: 1, height: 18, background: 'var(--border)', margin: '0 4px' }} />}
@@ -5278,11 +5290,6 @@ export function ShipmentDetail() {
               worklist elsewhere (see ExaminationsQueue.tsx). Renders nothing
               when this shipment has no examinations. */}
           {isStaff && <ExaminationsQueue shipmentId={job.id} />}
-          {/* Dangerous goods follow the same clearing flow as any other
-              shipment, with an extra layer of paperwork — declared, issued
-              and printed right here rather than on a separate worklist page
-              (DangerousGoodsPage.tsx has been removed). */}
-          {isStaff && <DangerousGoodsPanel shipmentId={job.id} customerId={job.customerId} customerName={job.customer} />}
         </div>
         <div style={{ height: isMobile ? 8 : 10 }} />
 

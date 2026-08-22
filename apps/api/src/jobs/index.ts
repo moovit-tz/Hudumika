@@ -25,6 +25,9 @@ import { runSignExpiryJob } from './sign-expiry.job.js';
 import { runSignReminderJob } from './sign-reminder.job.js';
 import { runSignAnchorConfirmJob } from './sign-anchor-confirm.job.js';
 import { runSignAnchorStampJob } from './sign-anchor-stamp.job.js';
+import { runNotesReminderJob } from './notes-reminder.job.js';
+import { runNotesPurgeJob } from './notes-purge.job.js';
+import { runCalendarReminderJob } from './calendar-reminder.job.js';
 
 let redisConnection: Redis | null = null;
 let riskQueue: Queue | null = null;
@@ -187,6 +190,12 @@ function startBullMQ(): void {
           await runSignAnchorConfirmJob();
         } else if (job.name === 'sign-anchor-stamp') {
           await runSignAnchorStampJob();
+        } else if (job.name === 'notes-reminder') {
+          await runNotesReminderJob();
+        } else if (job.name === 'notes-purge') {
+          await runNotesPurgeJob();
+        } else if (job.name === 'calendar-reminder') {
+          await runCalendarReminderJob();
         }
       },
       { connection: redisConnection as any }
@@ -349,6 +358,24 @@ function startBullMQ(): void {
       repeat: { every: 15 * 60 * 1000 } // Every 15 minutes — submit the OpenTimestamps calendar attestation for newly-completed envelopes
     }).catch(console.error);
 
+    // Notes reminders are set to the minute (a datetime-local picker), so a
+    // daily/hourly cadence would defeat the point of setting one — 5 minutes
+    // is the resolution, not the notify rate (reminder_notified_at guards
+    // against re-firing on every pass).
+    reminderQueue.add('notes-reminder', {}, {
+      repeat: { every: 5 * 60 * 1000 } // Every 5 minutes
+    }).catch(console.error);
+
+    reminderQueue.add('notes-purge', {}, {
+      repeat: { pattern: '30 2 * * *' } // Daily at 2:30 AM — permanently delete Notes Trash items past 30 days (unless on legal hold)
+    }).catch(console.error);
+
+    // Calendar reminders can be set as low as a few minutes before an
+    // event — same 5-minute resolution reasoning as notes-reminder.
+    reminderQueue.add('calendar-reminder', {}, {
+      repeat: { every: 5 * 60 * 1000 } // Every 5 minutes
+    }).catch(console.error);
+
     gpswoxQueue.add('sync', {}, {
       repeat: { every: 2 * 60 * 1000 } // Every 2 minutes — GPSWOX device position/alert sync
     }).catch(console.error);
@@ -407,12 +434,26 @@ function startIntervalFallback(): void {
   runSignExpiryJob().catch(console.error);
   runSignReminderJob().catch(console.error);
   runSignAnchorStampJob().catch(console.error);
+  runNotesReminderJob().catch(console.error);
+  runCalendarReminderJob().catch(console.error);
 
   // Set interval timers
   fallbackTimer = setInterval(() => {
     runRiskScanJob().catch(console.error);
     runSupportRulesJob().catch(console.error);
   }, 10 * 60 * 1000); // Poll every 10 minutes in fallback mode
+
+  // Notes reminders — every 5 minutes, same reasoning as the BullMQ
+  // schedule above: set-to-the-minute reminders need finer resolution than
+  // the daily/10-minute fallback groups.
+  setInterval(() => {
+    runNotesReminderJob().catch(console.error);
+  }, 5 * 60 * 1000);
+
+  // Calendar reminders — same 5-minute resolution reasoning.
+  setInterval(() => {
+    runCalendarReminderJob().catch(console.error);
+  }, 5 * 60 * 1000);
 
   // Daily jobs: status + comply renewals — once every 24 hours.
   // The missing-document reminder belongs here, not on the ten-minute timer
@@ -436,6 +477,7 @@ function startIntervalFallback(): void {
     runDailyShipmentReportJob().catch(console.error);
     runSignExpiryJob().catch(console.error);
     runSignReminderJob().catch(console.error);
+    runNotesPurgeJob().catch(console.error);
   }, 24 * 60 * 60 * 1000);
 
   // GPSWOX device sync — every 2 minutes, its own timer since it's far more

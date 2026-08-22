@@ -211,43 +211,53 @@ export function SignPublicPage() {
   );
 
   if (step === 'done') return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: `linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, ${accent} 100%)`, fontFamily: 'var(--font)', padding: 32 }}>
-      <div style={{ background: 'var(--card-bg)', borderRadius: 20, padding: 40, maxWidth: 520, width: '100%', boxShadow: 'var(--elev-lg)' }}>
-        <div style={{ textAlign: 'center', marginBottom: 28 }}>
-          <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--sign-green-l)', border: '2px solid var(--sign-green)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-            <Icon name="checkCircle" size={32} style={{ color: 'var(--sign-green)' }} />
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg)', fontFamily: 'var(--font)' }}>
+      {/* Public Branded Header */}
+      <header style={{ background: '#fff', borderBottom: '1px solid var(--border)', height: 60, display: 'flex', alignItems: 'center', padding: '0 24px', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 16, color: 'var(--ink)' }}>
+          <div style={{ width: 32, height: 32, borderRadius: 6, background: accent, display: 'flex', alignItems: 'center', justifyContent: 'center', color: accentFg }}>
+            <Icon name="edit" size={16} />
           </div>
-          <h1 style={{ fontSize: 24, fontWeight: 800, margin: '0 0 8px', color: 'var(--ink)' }}>Document Signed!</h1>
-          <p style={{ color: 'var(--ink3)', fontSize: 14, margin: 0 }}>Your signature has been securely recorded and legally timestamped.</p>
+          <span>Hudumika eSign</span>
         </div>
+      </header>
 
-        {stamp && (
-          <div style={{ background: 'var(--sign-green-l)', border: '2px solid var(--sign-green)', borderRadius: 12, padding: 20, marginBottom: 20 }}>
-            <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--sign-green)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}><Icon name="lock" size={11} /> Hudumika eSign Stamp</div>
-            <div style={{ fontFamily: 'Courier New, monospace', fontSize: 18, fontWeight: 700, color: 'var(--sign-green)', letterSpacing: '0.1em', marginBottom: 10 }}>{stamp.verification_code}</div>
-            <div style={{ fontSize: 12.5, color: 'var(--ink2)', marginBottom: 4 }}>Document: <strong>{stamp.title}</strong></div>
-            <div style={{ fontSize: 12.5, color: 'var(--ink2)', marginBottom: 10 }}>Completed: <strong>{new Date(stamp.completed_at).toLocaleString()}</strong></div>
-            {stamp.signers.map((s, i) => (
-              <div key={i} style={{ fontSize: 12, color: 'var(--ink2)', display: 'flex', gap: 6, alignItems: 'center', marginBottom: 4 }}>
-                <Icon name="checkCircle" size={12} style={{ color: 'var(--sign-green)', flexShrink: 0 }} />
-                <span><strong>{s.name}</strong> · {s.email}</span>
-                {s.signed_at && <span style={{ marginLeft: 'auto', color: 'var(--ink3)' }}>{new Date(s.signed_at).toLocaleString()}</span>}
-              </div>
-            ))}
-            <div style={{ marginTop: 12, padding: '8px 12px', background: 'var(--sign-green-l)', borderRadius: 7, fontSize: 11.5, color: 'var(--sign-green)' }}>
-              Verify this document at: <strong>{stamp.verify_url}</strong>
+      {/* Main Content Area */}
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 24px' }}>
+        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, padding: '32px', maxWidth: 520, width: '100%', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+          <div style={{ textAlign: 'center', marginBottom: 24 }}>
+            <div style={{ width: 48, height: 48, borderRadius: '50%', background: '#ecfdf5', border: '1px solid #10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+              <Icon name="checkCircle" size={24} style={{ color: '#10b981' }} />
             </div>
+            <h1 style={{ fontSize: 20, fontWeight: 700, margin: '0 0 6px', color: '#111827' }}>Document Signed</h1>
+            <p style={{ color: '#6b7280', fontSize: 13, margin: 0 }}>Your signature has been securely recorded and legally timestamped.</p>
           </div>
-        )}
 
-        <a href={`${BASE_URL}/v1/sign/public/${token}/download`} download
-          style={{ display: 'block', textAlign: 'center', width: '100%', padding: '12px', borderRadius: 10, background: 'var(--sign-green-l)', color: 'var(--sign-green)', border: '1.5px solid var(--sign-green)', cursor: 'pointer', fontSize: 14, fontWeight: 700, textDecoration: 'none', marginBottom: 10, boxSizing: 'border-box' }}>
-          Download your signed copy
-        </a>
-        <Button variant="default" onClick={() => window.close()}
-          style={{ width: '100%', background: accent, color: accentFg }}>
-          Close Window
-        </Button>
+          {stamp && (
+            <div style={{ background: '#ecfdf5', border: '1px solid rgba(16,185,129,0.2)', borderRadius: 6, padding: 16, marginBottom: 20 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#10b981', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}><Icon name="lock" size={11} /> Verification Stamp</div>
+              <div style={{ fontFamily: 'monospace', fontSize: 15, fontWeight: 700, color: '#10b981', letterSpacing: '0.08em', marginBottom: 10 }}>{stamp.verification_code}</div>
+              <div style={{ fontSize: 12.5, color: '#374151', marginBottom: 4 }}>Document: <strong>{stamp.title}</strong></div>
+              <div style={{ fontSize: 12.5, color: '#374151', marginBottom: 10 }}>Completed: <strong>{new Date(stamp.completed_at).toLocaleString()}</strong></div>
+              {stamp.signers.map((s, i) => (
+                <div key={i} style={{ fontSize: 12, color: '#374151', display: 'flex', gap: 6, alignItems: 'center', marginBottom: 4 }}>
+                  <Icon name="checkCircle" size={12} style={{ color: '#10b981', flexShrink: 0 }} />
+                  <span><strong>{s.name}</strong> ({s.email})</span>
+                  {s.signed_at && <span style={{ marginLeft: 'auto', color: '#6b7280' }}>{new Date(s.signed_at).toLocaleDateString()}</span>}
+                </div>
+              ))}
+            </div>
+          )}
+
+          <a href={`${BASE_URL}/v1/sign/public/${token}/download`} download
+            style={{ display: 'block', textAlign: 'center', width: '100%', padding: '10px 16px', borderRadius: 6, background: 'var(--teal)', color: '#fff', fontSize: 13.5, fontWeight: 600, textDecoration: 'none', marginBottom: 12, boxSizing: 'border-box' }}>
+            Download Signed PDF
+          </a>
+          <Button variant="outline" onClick={() => window.close()}
+            style={{ width: '100%', height: 38, fontSize: 13, fontWeight: 600 }}>
+            Close Window
+          </Button>
+        </div>
       </div>
     </div>
   );

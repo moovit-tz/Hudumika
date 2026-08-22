@@ -395,30 +395,38 @@ export function SignEditor() {
   const selectedFieldData = fields.find(f => f.id === selectedField);
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', fontFamily: 'var(--font)' }}>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', fontFamily: 'var(--font)', background: 'var(--bg)' }}>
       {/* Top bar */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 20px', borderBottom: '1px solid var(--border)', background: 'var(--card-bg)', flexShrink: 0 }}>
-        <Button variant="ghost" size="icon" onClick={() => navigate('/sign')} aria-label="Back to Sign">
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 20px', borderBottom: '1px solid var(--border)', background: 'var(--card-bg)', flexShrink: 0, boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
+        <Button variant="ghost" size="icon" onClick={() => navigate('/sign')} aria-label="Back to Sign" style={{ color: 'var(--ink2)' }}>
           <Icon name="arrowLeft" size={16} />
         </Button>
-        <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Envelope title…"
-          style={{ flex: 1, fontSize: 16, fontWeight: 600, border: 'none', background: 'transparent', color: 'var(--ink)', outline: 'none' }} />
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10 }}>
+          <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Envelope title…"
+            style={{ flex: 1, fontSize: 15, fontWeight: 700, border: 'none', background: 'transparent', color: 'var(--ink)', outline: 'none', letterSpacing: '-0.01em' }} />
+          {fileName && (
+            <span style={{ fontSize: 12, color: 'var(--ink3)', background: 'var(--bg)', border: '1px solid var(--border)', padding: '2px 8px', borderRadius: 6, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <Icon name="paperclip" size={11} /> {fileName}
+            </span>
+          )}
+        </div>
         <Select value={orderMode} onValueChange={v => setOrderMode(v as 'sequential' | 'parallel')}>
-          <SelectTrigger className="w-45"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-45" style={{ height: 32, fontSize: 12.5 }}><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="sequential">Sequential signing</SelectItem>
             <SelectItem value="parallel">Parallel signing</SelectItem>
           </SelectContent>
         </Select>
         <label title="Each recipient must have a phone number on file — they'll get a text code before they can sign"
-          style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: 'var(--ink2)', cursor: 'pointer', whiteSpace: 'nowrap' }}>
-          <input type="checkbox" checked={requireOtp} onChange={e => setRequireOtp(e.target.checked)} />
-          Require SMS verification
+          style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--ink2)', cursor: 'pointer', whiteSpace: 'nowrap', userSelect: 'none' }}>
+          <input type="checkbox" checked={requireOtp} onChange={e => setRequireOtp(e.target.checked)} style={{ accentColor: 'var(--teal)' }} />
+          SMS OTP verification
         </label>
-        <Button variant="outline" size="sm" onClick={handleSaveAsTemplate}>Save as Template</Button>
-        <Button variant="outline" size="sm" onClick={handleSave} disabled={saving}>{saving ? 'Saving…' : 'Save Draft'}</Button>
-        <Button variant="default" size="sm" onClick={handleSend} disabled={sending}>
-          {sending ? 'Sending…' : 'Send'} <Icon name="send" size={14} />
+        <div style={{ height: 16, width: 1, background: 'var(--border)' }} />
+        <Button variant="outline" size="sm" onClick={handleSaveAsTemplate} style={{ height: 32, fontSize: 12.5 }}>Save as Template</Button>
+        <Button variant="outline" size="sm" onClick={handleSave} disabled={saving} style={{ height: 32, fontSize: 12.5 }}>{saving ? 'Saving…' : 'Save Draft'}</Button>
+        <Button variant="default" size="sm" onClick={handleSend} disabled={sending} style={{ height: 32, fontSize: 12.5, background: 'var(--teal)', color: '#fff', fontWeight: 600 }}>
+          {sending ? 'Sending…' : 'Send Envelope'} <Icon name="send" size={13} style={{ marginLeft: 2 }} />
         </Button>
       </div>
 

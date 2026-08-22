@@ -116,6 +116,26 @@ export async function activityRoutes(fastify: FastifyInstance) {
     const limit = Math.min(Math.max(Number(request.query.limit) || 50, 1), 200);
 
     return withTenant(user.tenant_id, async (trx) => {
+      // 'task' (personal Tasks app, migrations 283/284) is unlike every
+      // other entry in READABLE_ENTITIES — a shipment or invoice is
+      // visible tenant-wide to relevant staff already, but a task is
+      // private to its owner, assignee, and anyone its list has been
+      // shared with. The whitelist above stops entity-type probing; it
+      // doesn't stop one tenant user reading another's private task
+      // activity by guessing/enumerating a UUID, so that specific entity
+      // type gets its own ownership check here rather than a blanket
+      // tenant-wide read.
+      if (entityType === 'task') {
+        const task = await trx.selectFrom('tasks').select(['user_id', 'assignee_id', 'list_id'])
+          .where('id', '=', entityId).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+        const hasAccess = task && (
+          task.user_id === user.sub || task.assignee_id === user.sub ||
+          !!(await trx.selectFrom('task_list_shares').select('id')
+            .where('list_id', '=', task.list_id).where('user_id', '=', user.sub).executeTakeFirst())
+        );
+        if (!hasAccess) return reply.status(404).send({ error: 'Task not found' });
+      }
+
       const rows = await trx
         .selectFrom('domain_events as e')
         .leftJoin('users as u', 'u.id', 'e.actor_id')

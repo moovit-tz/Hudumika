@@ -8,6 +8,8 @@ import { useIsMobile } from '../hooks/useIsMobile.js';
 import './CreateShipmentPage.css';
 import { Combobox } from '../components/ui/combobox.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { EntityPicker, type PickerItem } from '../components/EntityPicker.js';
 import { showConfirm } from '../lib/confirm.js';
 
 interface RawShipment {
@@ -30,7 +32,38 @@ interface RawShipment {
   gross_weight_kg: string | number | null;
   cif_value_usd: string | number | null;
   internal_notes: string | null;
+  customer_id: string | null;
+  customer_name: string | null;
 }
+
+interface DgReferenceEntry {
+  un_number: string;
+  proper_shipping_name: string;
+  class_or_division: string;
+  subsidiary_risk: string | null;
+  packing_group: string | null;
+  air_transport_restriction: string | null;
+}
+
+interface DgDeclaration {
+  id: string;
+  status: 'draft' | 'issued';
+  transport_mode: 'AIR' | 'SEA' | 'ROAD';
+  un_number: string;
+  packaging_type: string | null;
+  number_of_packages: number | null;
+  net_quantity: number | string | null;
+  quantity_unit: string | null;
+  shipper_name: string;
+  shipper_address: string | null;
+  emergency_contact: string | null;
+}
+
+const emptyDgForm = {
+  transportMode: 'SEA' as 'AIR' | 'SEA' | 'ROAD',
+  packagingType: '', numberOfPackages: '', netQuantity: '', quantityUnit: 'kg',
+  shipperName: '', shipperAddress: '', emergencyContact: '',
+};
 
 function toDateInput(v: string | null): string {
   if (!v) return '';
@@ -52,7 +85,20 @@ export const ShipmentEdit: React.FC = () => {
   const [error, setError] = useState('');
   const [officers, setOfficers] = useState<any[]>([]);
   const [form, setForm] = useState<Record<string, string>>({});
-  
+  const [customer, setCustomer] = useState<{ id: string | null; name: string | null }>({ id: null, name: null });
+
+  // Nature of Goods — captured right here on Cargo Details rather than a
+  // separate placement on the shipment page (that inline panel is gone;
+  // the Overview tab now only ever *displays* what's saved here). At most
+  // one declaration per shipment, matching CreateShipmentPage's own
+  // creation-time version of this same choice.
+  const [natureOfGoods, setNatureOfGoods] = useState<'general' | 'dangerous'>('general');
+  const [dgForm, setDgForm] = useState(emptyDgForm);
+  const [selectedDg, setSelectedDg] = useState<PickerItem | null>(null);
+  const [selectedDgEntry, setSelectedDgEntry] = useState<DgReferenceEntry | null>(null);
+  const [existingDg, setExistingDg] = useState<DgDeclaration | null>(null);
+  const [dgError, setDgError] = useState<string | null>(null);
+
   const [currentStep, setCurrentStep] = useState(1);
 
   const steps = [
@@ -67,7 +113,35 @@ export const ShipmentEdit: React.FC = () => {
     Promise.all([
       apiFetch(`/v1/shipments/${id}`),
       apiFetch('/v1/hr/staff').catch(() => ({ data: [] })),
-    ]).then(([shipment, staff]: [RawShipment, any]) => {
+      apiFetch(`/v1/dangerous-goods/declarations?subject_type=shipment&subject_id=${id}`).catch(() => []),
+    ]).then(([shipment, staff, dgRows]: [RawShipment, any, DgDeclaration[]]) => {
+      setCustomer({ id: shipment.customer_id ?? null, name: shipment.customer_name ?? null });
+
+      const dg = Array.isArray(dgRows) && dgRows.length > 0 ? dgRows[0] : null;
+      setExistingDg(dg);
+      if (dg) {
+        setNatureOfGoods('dangerous');
+        setDgForm({
+          transportMode: dg.transport_mode,
+          packagingType: dg.packaging_type || '',
+          numberOfPackages: dg.number_of_packages != null ? String(dg.number_of_packages) : '',
+          netQuantity: dg.net_quantity != null ? String(dg.net_quantity) : '',
+          quantityUnit: dg.quantity_unit || 'kg',
+          shipperName: dg.shipper_name || '',
+          shipperAddress: dg.shipper_address || '',
+          emergencyContact: dg.emergency_contact || '',
+        });
+        // Resolve the reference row so the picker shows the real name/class,
+        // not just the bare UN number this declaration stored.
+        apiFetch(`/v1/dangerous-goods/reference?q=${encodeURIComponent(dg.un_number)}`)
+          .then((res: DgReferenceEntry[]) => {
+            const entry = res.find(e => e.un_number === dg.un_number) ?? null;
+            setSelectedDgEntry(entry);
+            setSelectedDg({ id: dg.un_number, label: entry ? `${entry.un_number} — ${entry.proper_shipping_name}` : dg.un_number });
+          })
+          .catch(() => {});
+      }
+
       setForm({
         goods_desc: shipment.goods_desc || '',
         hs_code: shipment.hs_code || '',
@@ -95,11 +169,79 @@ export const ShipmentEdit: React.FC = () => {
   const set = (key: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
     setForm(f => ({ ...f, [key]: e.target.value }));
 
+  const searchDg = async (q: string): Promise<PickerItem[]> => {
+    if (!q.trim()) return [];
+    const res: DgReferenceEntry[] = await apiFetch(`/v1/dangerous-goods/reference?q=${encodeURIComponent(q)}`);
+    return res.map(e => ({ id: e.un_number, label: `${e.un_number} — ${e.proper_shipping_name}`, sublabel: `Class ${e.class_or_division}${e.packing_group ? ` · PG ${e.packing_group}` : ''}` }));
+  };
+
+  const onPickDg = async (item: PickerItem | null) => {
+    setSelectedDg(item);
+    if (!item) { setSelectedDgEntry(null); return; }
+    const res: DgReferenceEntry[] = await apiFetch(`/v1/dangerous-goods/reference?q=${encodeURIComponent(item.id)}`);
+    setSelectedDgEntry(res.find(e => e.un_number === item.id) ?? null);
+  };
+
+  /** Creates, edits, or removes the shipment's linked dg_declarations row
+   *  to match the Cargo Details step's own Nature of Goods choice — never
+   *  touched at all once a declaration has been issued (a real filed
+   *  document; the backend refuses that edit too, this is just the honest
+   *  UI reflection of the same rule). */
+  async function reconcileDangerousGoods(): Promise<string | null> {
+    if (!id) return null;
+    if (existingDg?.status === 'issued') return null;
+
+    if (natureOfGoods === 'general') {
+      if (existingDg) {
+        await apiFetch(`/v1/dangerous-goods/declarations/${existingDg.id}`, { method: 'DELETE' }).catch(() => {});
+      }
+      return null;
+    }
+
+    if (!selectedDgEntry) return 'Choose a UN number for the dangerous goods declaration.';
+    if (!dgForm.shipperName.trim()) return 'Shipper name is required for the dangerous goods declaration.';
+
+    const payload = {
+      transportMode: dgForm.transportMode,
+      unNumber: selectedDgEntry.un_number,
+      packagingType: dgForm.packagingType.trim() || undefined,
+      numberOfPackages: dgForm.numberOfPackages ? parseInt(dgForm.numberOfPackages, 10) : undefined,
+      netQuantity: dgForm.netQuantity ? parseFloat(dgForm.netQuantity) : undefined,
+      quantityUnit: dgForm.quantityUnit.trim() || undefined,
+      shipperName: dgForm.shipperName.trim(),
+      shipperAddress: dgForm.shipperAddress.trim() || undefined,
+      emergencyContact: dgForm.emergencyContact.trim() || undefined,
+    };
+
+    if (existingDg) {
+      await apiFetch(`/v1/dangerous-goods/declarations/${existingDg.id}`, { method: 'PATCH', body: JSON.stringify(payload) });
+    } else {
+      await apiFetch('/v1/dangerous-goods/declarations', {
+        method: 'POST',
+        body: JSON.stringify({
+          ...payload,
+          subjectType: 'shipment',
+          subjectId: id,
+          consigneeName: customer.name || 'Unknown',
+        }),
+      });
+    }
+    return null;
+  }
+
   async function handleSave() {
     if (!id) return;
     setSaving(true);
     setError('');
+    setDgError(null);
     try {
+      const dgIssue = await reconcileDangerousGoods();
+      if (dgIssue) {
+        setDgError(dgIssue);
+        setCurrentStep(1);
+        setSaving(false);
+        return;
+      }
       await apiFetch(`/v1/shipments/${id}`, {
         method: 'PATCH',
         body: JSON.stringify({
@@ -223,6 +365,116 @@ export const ShipmentEdit: React.FC = () => {
                   <label style={lblStyle}>HS Code</label>
                   <input style={inpStyle} value={form.hs_code || ''} onChange={set('hs_code')} placeholder="e.g. 2523.29.00" />
                 </div>
+
+                <div style={fldStyle}>
+                  <label style={lblStyle}>Nature of Goods</label>
+                  <Select
+                    value={natureOfGoods}
+                    onValueChange={v => setNatureOfGoods(v as 'general' | 'dangerous')}
+                    disabled={existingDg?.status === 'issued'}
+                  >
+                    <SelectTrigger className="input-field" style={{ width: '100%' }}><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="general">General cargo</SelectItem>
+                      <SelectItem value="dangerous">Dangerous goods</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* An issued declaration is a real filed document (mirrored
+                    to the shipment's own Cloud folder) — it stays visible
+                    here but locked; view or re-print it from the Overview
+                    tab, which is now the only place it renders. */}
+                {existingDg?.status === 'issued' && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 14px', background: 'var(--green-l)', border: '1px solid var(--green)', borderRadius: 10, fontSize: 12.5, color: 'var(--ink)' }}>
+                    <Icon name="checkCircle" size={15} color="var(--green)" />
+                    A dangerous goods declaration for this shipment has already been issued and can no longer be edited here — view or print it from the Overview tab.
+                  </div>
+                )}
+
+                {natureOfGoods === 'dangerous' && existingDg?.status !== 'issued' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: 18, background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 12 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <Icon name="alertTriangle" size={16} color="var(--gold)" />
+                      <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Dangerous goods — extra requirements</span>
+                    </div>
+                    {dgError && <div style={{ fontSize: 12, color: 'var(--red)' }}>{dgError}</div>}
+
+                    <div style={{ display: 'flex', gap: '16px' }}>
+                      <div style={{ flex: 1 }}>
+                        <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 600, color: 'var(--ink2)', marginBottom: '4px' }}>Transport mode</label>
+                        <Select value={dgForm.transportMode} onValueChange={v => setDgForm(p => ({ ...p, transportMode: v as any }))}>
+                          <SelectTrigger className="input-field" style={{ width: '100%' }}><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="SEA">Sea</SelectItem>
+                            <SelectItem value="AIR">Air</SelectItem>
+                            <SelectItem value="ROAD">Road</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div style={{ flex: 2 }}>
+                        <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 600, color: 'var(--ink2)', marginBottom: '4px' }}>UN number / goods *</label>
+                        <EntityPicker value={selectedDg} onChange={onPickDg} search={searchDg} placeholder="Search UN number or name…" />
+                      </div>
+                    </div>
+
+                    {selectedDgEntry && (
+                      <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', padding: '10px 14px', borderRadius: 9, background: 'var(--white)', fontSize: 12.5 }}>
+                        <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{selectedDgEntry.un_number}</span>
+                        <span style={{ color: 'var(--ink)' }}>{selectedDgEntry.proper_shipping_name}</span>
+                        <span style={{ color: 'var(--ink3)' }}>
+                          Class {selectedDgEntry.class_or_division}
+                          {selectedDgEntry.subsidiary_risk ? ` (sub. ${selectedDgEntry.subsidiary_risk})` : ''}
+                          {selectedDgEntry.packing_group ? ` · PG ${selectedDgEntry.packing_group}` : ''}
+                        </span>
+                        {dgForm.transportMode === 'AIR' && selectedDgEntry.air_transport_restriction && (
+                          <span style={{
+                            fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 20,
+                            background: selectedDgEntry.air_transport_restriction === 'FORBIDDEN' ? 'var(--red-l)' : 'var(--gold-l)',
+                            color: selectedDgEntry.air_transport_restriction === 'FORBIDDEN' ? 'var(--red)' : 'var(--gold)',
+                          }}>
+                            {selectedDgEntry.air_transport_restriction.replace(/_/g, ' ')}
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    <div style={{ display: 'flex', gap: '16px' }}>
+                      <div style={{ flex: 1 }}>
+                        <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 600, color: 'var(--ink2)', marginBottom: '4px' }}>Packaging type</label>
+                        <input type="text" className="input-field" style={{ width: '100%' }} value={dgForm.packagingType} onChange={e => setDgForm(p => ({ ...p, packagingType: e.target.value }))} placeholder="e.g. Fibreboard box" />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 600, color: 'var(--ink2)', marginBottom: '4px' }}>No. of packages</label>
+                        <input type="text" className="input-field" style={{ width: '100%' }} value={dgForm.numberOfPackages} onChange={e => setDgForm(p => ({ ...p, numberOfPackages: e.target.value.replace(/[^0-9]/g, '') }))} />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 600, color: 'var(--ink2)', marginBottom: '4px' }}>Net quantity</label>
+                        <input type="text" className="input-field" style={{ width: '100%' }} value={dgForm.netQuantity} onChange={e => setDgForm(p => ({ ...p, netQuantity: e.target.value.replace(/[^0-9.]/g, '') }))} />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 600, color: 'var(--ink2)', marginBottom: '4px' }}>Unit</label>
+                        <input type="text" className="input-field" style={{ width: '100%' }} value={dgForm.quantityUnit} onChange={e => setDgForm(p => ({ ...p, quantityUnit: e.target.value }))} />
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '16px' }}>
+                      <div style={{ flex: 1 }}>
+                        <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 600, color: 'var(--ink2)', marginBottom: '4px' }}>Shipper name *</label>
+                        <input type="text" className="input-field" style={{ width: '100%' }} value={dgForm.shipperName} onChange={e => setDgForm(p => ({ ...p, shipperName: e.target.value }))} />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 600, color: 'var(--ink2)', marginBottom: '4px' }}>Shipper address</label>
+                        <input type="text" className="input-field" style={{ width: '100%' }} value={dgForm.shipperAddress} onChange={e => setDgForm(p => ({ ...p, shipperAddress: e.target.value }))} />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 600, color: 'var(--ink2)', marginBottom: '4px' }}>Emergency contact</label>
+                      <input type="text" className="input-field" style={{ width: '100%' }} value={dgForm.emergencyContact} onChange={e => setDgForm(p => ({ ...p, emergencyContact: e.target.value }))} placeholder="name + 24h phone" />
+                    </div>
+                  </div>
+                )}
               </>
             )}
 

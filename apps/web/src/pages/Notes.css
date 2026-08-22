@@ -243,6 +243,7 @@
 
 .note-card:hover .note-card-actions {
   opacity: 1;
+  pointer-events: auto;
 }
 
 .note-card-pin {
@@ -341,6 +342,15 @@
   align-items: center;
   justify-content: space-between;
   opacity: 0;
+  /* Grid rows stretch every card to the tallest sibling's height, so a
+     short note's actions bar can end up sitting well inside the card body
+     rather than pinned to the visible bottom edge. Without pointer-events:
+     none, that invisible (opacity: 0) bar silently intercepts clicks meant
+     for the card underneath it — clicking a short note next to a long one
+     in the same row could hit a hidden Archive/Delete/Duplicate button
+     instead of opening the note. Found via real click-through testing, not
+     hypothetical. */
+  pointer-events: none;
   transition: opacity 0.15s ease;
   margin-top: 6px;
   padding-top: 6px;
@@ -422,11 +432,22 @@
   border-radius: 16px;
   width: 90%;
   max-width: 720px;
+  max-height: 88vh;
+  overflow-y: auto;
   padding: 20px;
   display: flex;
   flex-direction: column;
   gap: 16px;
   box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+}
+
+/* ── Share/visibility + version history panels, appended below the note
+   editor's toolbar rather than absolutely positioned — both can grow
+   (a long collaborator list, many revisions) and .notes-drawing-card
+   already scrolls as a whole once it exceeds the viewport. ── */
+.notes-share-panel {
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
 }
 
 .notes-drawing-canvas {

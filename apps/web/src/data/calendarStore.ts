@@ -24,21 +24,83 @@ function reportSyncFailure(err: any) {
 // background — the row id is always generated client-side (crypto.randomUUID())
 // so there's never an id-reconciliation step after the server responds.
 
+export interface CalendarGuest {
+  userId: string | null;
+  email: string;
+  name: string | null;
+  status: 'pending' | 'accepted' | 'declined';
+}
+
+export interface RecurrenceRule {
+  freq: 'daily' | 'weekly' | 'monthly' | 'yearly';
+  interval: number;
+  byWeekday?: number[]; // 0=Sun..6=Sat, weekly only
+  until?: string; // YYYY-MM-DD, inclusive
+  count?: number;
+}
+
+export interface GuestPermissions {
+  modifyEvent: boolean;
+  inviteOthers: boolean;
+  seeGuestList: boolean;
+}
+
+export interface MeetingSettings {
+  hostManagement: boolean;
+  shareScreen: boolean;
+  sendReactions: boolean;
+  continuousChat: boolean;
+  letSendMessages: boolean;
+  organizerName?: string;
+}
+
 export interface CalendarEvent {
   id: string;
+  /** Which occurrence this is, as YYYY-MM-DD — for a non-recurring event
+   *  this is just its own date; for a recurring one, every rendered
+   *  occurrence shares `id` but has its own occurrenceDate. Pass both back
+   *  to updateEvent/deleteEvent with scope 'this' to edit just this
+   *  occurrence rather than the whole series. */
+  occurrenceDate: string;
+  isOverridden: boolean;
+  isRecurring: boolean;
   title: string;
   start: string; // YYYY-MM-DDTHH:MM, local wall-clock (not UTC)
   end: string;   // YYYY-MM-DDTHH:MM, local wall-clock
   description?: string;
   location?: string;
-  category: 'work' | 'personal' | 'customs' | 'todo';
-  guests?: string[];
+  category: 'work' | 'personal' | 'customs' | 'todo' | 'holiday';
+  guests: CalendarGuest[];
+  allDay: boolean;
+  color?: string | null;
+  recurrence?: RecurrenceRule | null;
+  reminderOffsets: number[];
+  timezone?: string;
+  meetingUrl?: string;
+  meetingSettings?: MeetingSettings;
+  guestPermissions?: GuestPermissions;
+  visibility?: 'default' | 'public' | 'private';
+  busyStatus?: 'busy' | 'free';
 }
 
 export interface TaskList {
   id: string;
   name: string;
   color: string;
+  // A list a colleague shared with me (migration 284) — not mine to
+  // rename/reorder/delete or manage sharing on; role governs whether I can
+  // add/edit tasks on it ('editor') or only look ('viewer').
+  shared?: boolean;
+  role?: 'owner' | 'viewer' | 'editor';
+  ownerName?: string;
+}
+
+export interface ListShare {
+  id: string;
+  userId: string;
+  name: string;
+  email: string;
+  role: 'viewer' | 'editor';
 }
 
 export interface Subtask {
@@ -55,6 +117,7 @@ export interface Todo {
   listId: string;
   notes?: string;
   due?: string;          // YYYY-MM-DD
+  dueTime?: string;       // HH:MM:SS, optional companion to `due`
   starred?: boolean;
   someday?: boolean;
   status: TaskStatus;
@@ -65,6 +128,32 @@ export interface Todo {
   deletedAt?: string;
   order: number;
   createdAt: string;
+  // Collaboration (migration 283) — a task assigned to a colleague is
+  // visible in both the owner's and the assignee's own /v1/tasks/items
+  // response; isOwner distinguishes which side of that this viewer is on,
+  // since only the owner can reassign/move/delete.
+  assigneeId?: string;
+  assigneeName?: string;
+  assigneeAvatarUrl?: string;
+  ownerName?: string;
+  isOwner: boolean;
+  // Denormalized so an assignee who doesn't own the list this landed on
+  // still gets a real name/color to render, not just an id.
+  listName?: string;
+  listColor?: string;
+  // 'viewer' (via a shared list, migration 284) is read-only — every other
+  // level can at least do the work. isOwner above still governs the
+  // narrower "can reassign/move/delete" boundary within that.
+  access?: 'owner' | 'assignee' | 'editor' | 'viewer';
+}
+
+export interface TodoComment {
+  id: string;
+  content: string;
+  mentions: { user_id: string; name: string }[];
+  createdAt: string;
+  authorId: string;
+  authorName: string;
 }
 
 /** Task-like record from another app (e.g. a ClearOS shipment task assigned to you) — read-only here, opens the source app to edit. */
@@ -121,21 +210,59 @@ function emit() {
 function fromApiTodo(row: any): Todo {
   return {
     id: row.id, title: row.title, listId: row.list_id, notes: row.notes || undefined,
-    due: row.due || undefined, starred: !!row.starred, someday: !!row.someday,
+    due: row.due || undefined, dueTime: row.due_time || undefined, starred: !!row.starred, someday: !!row.someday,
     status: row.status, tags: row.tags || [],
     subtasks: (row.subtasks || []).map((s: any) => ({ id: s.id, title: s.title, completed: !!s.completed })),
     completed: !!row.completed, completedAt: row.completed_at || undefined, deletedAt: row.deleted_at || undefined,
     order: row.sort_order ?? 0, createdAt: row.created_at,
+    assigneeId: row.assignee_id || undefined, assigneeName: row.assignee_name || undefined,
+    assigneeAvatarUrl: row.assignee_avatar_url || undefined, ownerName: row.owner_name || undefined,
+    isOwner: row.is_owner !== false,
+    listName: row.list_name || undefined, listColor: row.list_color || undefined,
+    access: row.access || (row.is_owner !== false ? 'owner' : undefined),
   };
 }
 function fromApiList(row: any): TaskList {
-  return { id: row.id, name: row.name, color: row.color };
+  return {
+    id: row.id, name: row.name, color: row.color,
+    shared: !!row.shared, role: row.role || 'owner', ownerName: row.owner_name || undefined,
+  };
 }
+function fromApiShare(row: any): ListShare {
+  return { id: row.id, userId: row.user_id, name: row.name, email: row.email, role: row.role };
+}
+
+// ── List sharing ──
+export async function fetchListShares(listId: string): Promise<ListShare[]> {
+  const res = await apiFetch(`/v1/tasks/lists/${listId}/shares`);
+  return (res.data || []).map(fromApiShare);
+}
+export async function shareListWith(listId: string, userId: string, role: 'viewer' | 'editor'): Promise<ListShare> {
+  const res = await apiFetch(`/v1/tasks/lists/${listId}/shares`, {
+    method: 'PUT', body: JSON.stringify({ userId, role }),
+  });
+  return fromApiShare(res.data);
+}
+export async function unshareList(listId: string, userId: string): Promise<void> {
+  await apiFetch(`/v1/tasks/lists/${listId}/shares/${userId}`, { method: 'DELETE' });
+}
+// Handles two response shapes: GET /events returns one occurrence-mapped
+// object per rendered card (occurrenceDate/isOverridden/is_recurring all
+// present); POST/PATCH /events/:id return the raw master row instead (no
+// occurrence wrapper — there's exactly one row to return either way). The
+// fallbacks below derive the same fields from start_at/recurrence so both
+// shapes normalize to the same CalendarEvent either way.
 function fromApiEvent(row: any): CalendarEvent {
   return {
-    id: row.id, title: row.title, start: utcISOToLocal(row.start_at), end: utcISOToLocal(row.end_at),
+    id: row.id,
+    occurrenceDate: row.occurrenceDate || String(row.start_at || '').slice(0, 10),
+    isOverridden: !!row.isOverridden,
+    isRecurring: row.is_recurring !== undefined ? !!row.is_recurring : !!row.recurrence,
+    title: row.title, start: utcISOToLocal(row.start_at), end: utcISOToLocal(row.end_at),
     description: row.description || undefined, location: row.location || undefined,
-    category: row.category, guests: row.guests || [],
+    category: row.category, guests: Array.isArray(row.guests) ? row.guests : [],
+    allDay: !!row.all_day, color: row.color || null, recurrence: row.recurrence || null,
+    reminderOffsets: Array.isArray(row.reminder_offsets) ? row.reminder_offsets : [],
   };
 }
 
@@ -178,33 +305,117 @@ export function resetTasksCache(): void {
 // ── Store APIs — Events ──
 export function useEvents() { return useSyncExternalStore(subscribe, () => events); }
 
-export function addEvent(event: Omit<CalendarEvent, 'id'>) {
-  const newEvent: CalendarEvent = { ...event, id: newId() };
+/** Re-fetches the full event list from the server, replacing local state.
+ *  Needed after any change to a recurring event's own pattern (its
+ *  occurrence dates shift, so the locally-cached per-occurrence rows can't
+ *  be patched in place) — see updateEvent's own comment for when this
+ *  fires. A transient failure here just leaves the calendar showing
+ *  whatever it already had, rather than blanking it. */
+export async function reloadEvents(): Promise<void> {
+  try {
+    const res = await apiFetch('/v1/tasks/events');
+    events = (res.data || []).map(fromApiEvent);
+    emit();
+  } catch { /* keep showing whatever's already cached */ }
+}
+
+type NewEventInput = Omit<CalendarEvent, 'id' | 'occurrenceDate' | 'isOverridden' | 'isRecurring' | 'guests' | 'allDay' | 'reminderOffsets'>
+  & { guests?: CalendarGuest[]; allDay?: boolean; reminderOffsets?: number[] };
+
+export function addEvent(event: NewEventInput) {
+  const id = newId();
+  const newEvent: CalendarEvent = {
+    ...event, id, occurrenceDate: event.start.slice(0, 10), isOverridden: false, isRecurring: !!event.recurrence,
+    guests: event.guests ?? [], allDay: event.allDay ?? false, reminderOffsets: event.reminderOffsets ?? [],
+  };
   events = [...events, newEvent];
   emit();
   apiFetch('/v1/tasks/events', {
     method: 'POST',
     body: JSON.stringify({
-      id: newEvent.id, title: newEvent.title, start: localToUTCISO(newEvent.start), end: localToUTCISO(newEvent.end),
+      id, title: newEvent.title, start: localToUTCISO(newEvent.start), end: localToUTCISO(newEvent.end),
       description: newEvent.description, location: newEvent.location, category: newEvent.category, guests: newEvent.guests,
+      allDay: newEvent.allDay, color: newEvent.color, recurrence: newEvent.recurrence, reminderOffsets: newEvent.reminderOffsets,
     }),
-  }).catch(reportSyncFailure);
+  }).then(() => { if (newEvent.recurrence) reloadEvents(); }) // a recurring series needs its full occurrence set, not just the one optimistic row
+    .catch(err => { events = events.filter(e => e.id !== id); emit(); reportSyncFailure(err); });
   return newEvent;
 }
 
-export function updateEvent(id: string, patch: Partial<CalendarEvent>) {
-  events = events.map(e => e.id === id ? { ...e, ...patch } : e);
+/** `opts.scope: 'this'` (with `opts.occurrenceDate`) edits just one
+ *  occurrence of a recurring event via a server-side override, leaving the
+ *  series and every other occurrence untouched — the master row is never
+ *  patched. Default ('all') edits the whole series, same as a plain event.
+ *
+ *  A whole-series edit that touches the recurrence rule itself, or the
+ *  start/end of an event that's already recurring, can change which
+ *  occurrence dates exist at all — the locally-cached per-occurrence rows
+ *  can't be trusted to still be correct after that, so those two cases
+ *  reload from the server instead of patching in place. Every other edit
+ *  (title/description/location/color/... on a non-recurring event, or a
+ *  'this'-scoped override) is applied straight to local state — it's exact,
+ *  no reload needed. */
+export function updateEvent(id: string, patch: Partial<CalendarEvent>, opts?: { scope?: 'all' | 'this'; occurrenceDate?: string }) {
+  const scope = opts?.scope ?? 'all';
+  const occurrenceDate = opts?.occurrenceDate;
+  const prev = events;
+  const wasRecurring = prev.find(e => e.id === id)?.isRecurring ?? false;
+  const needsReload = scope === 'all' && (wasRecurring || patch.recurrence !== undefined) && (patch.start !== undefined || patch.end !== undefined || patch.recurrence !== undefined);
+
+  events = events.map(e => {
+    if (e.id !== id) return e;
+    if (scope === 'this' && e.occurrenceDate !== occurrenceDate) return e;
+    return { ...e, ...patch, isOverridden: scope === 'this' ? true : e.isOverridden };
+  });
   emit();
-  const body: Record<string, unknown> = { ...patch };
-  if (patch.start) body.start = localToUTCISO(patch.start);
-  if (patch.end) body.end = localToUTCISO(patch.end);
-  apiFetch(`/v1/tasks/events/${id}`, { method: 'PATCH', body: JSON.stringify(body) }).catch(reportSyncFailure);
+
+  const body: Record<string, unknown> = { scope };
+  if (scope === 'this' && occurrenceDate) body.occurrenceDate = occurrenceDate;
+  if (patch.title !== undefined) body.title = patch.title;
+  if (patch.start !== undefined) body.start = localToUTCISO(patch.start);
+  if (patch.end !== undefined) body.end = localToUTCISO(patch.end);
+  if (patch.description !== undefined) body.description = patch.description;
+  if (patch.location !== undefined) body.location = patch.location;
+  if (patch.category !== undefined) body.category = patch.category;
+  if (patch.guests !== undefined) body.guests = patch.guests;
+  if (patch.allDay !== undefined) body.allDay = patch.allDay;
+  if (patch.color !== undefined) body.color = patch.color;
+  if (patch.recurrence !== undefined) body.recurrence = patch.recurrence;
+  if (patch.reminderOffsets !== undefined) body.reminderOffsets = patch.reminderOffsets;
+
+  apiFetch(`/v1/tasks/events/${id}`, { method: 'PATCH', body: JSON.stringify(body) })
+    .then(() => { if (needsReload) reloadEvents(); })
+    .catch(err => { events = prev; emit(); reportSyncFailure(err); });
 }
 
-export function deleteEvent(id: string) {
-  events = events.filter(e => e.id !== id);
+/** `scope: 'this'` cancels one occurrence of a recurring event via a
+ *  server-side override; `'all'` (default) deletes the whole series/event.
+ *  Both are exact local operations — filtering out the matching row(s) is
+ *  always correct, no reload needed. */
+export function deleteEvent(id: string, opts?: { scope?: 'all' | 'this'; occurrenceDate?: string }) {
+  const scope = opts?.scope ?? 'all';
+  const occurrenceDate = opts?.occurrenceDate;
+  const prev = events;
+  events = (scope === 'this' && occurrenceDate)
+    ? events.filter(e => !(e.id === id && e.occurrenceDate === occurrenceDate))
+    : events.filter(e => e.id !== id);
   emit();
-  apiFetch(`/v1/tasks/events/${id}`, { method: 'DELETE' }).catch(reportSyncFailure);
+  const qs = (scope === 'this' && occurrenceDate) ? `?scope=this&occurrenceDate=${occurrenceDate}` : '';
+  apiFetch(`/v1/tasks/events/${id}${qs}`, { method: 'DELETE' })
+    .catch(err => { events = prev; emit(); reportSyncFailure(err); });
+}
+
+// ── ICS export/import ──────────────────────────────────────────────────
+export async function exportCalendarICS(): Promise<void> {
+  const { apiDownload } = await import('../lib/api.js');
+  await apiDownload('/v1/tasks/events/export.ics', 'calendar.ics');
+}
+
+export async function importCalendarICS(file: File): Promise<{ imported: number; skipped: number }> {
+  const text = await file.text();
+  const res = await apiFetch('/v1/tasks/events/import.ics', { method: 'POST', body: JSON.stringify({ ics: text }) });
+  await reloadEvents();
+  return res.data;
 }
 
 // ── Store APIs — Lists ──
@@ -244,9 +455,10 @@ export function addTodo(input: Partial<Omit<Todo, 'id' | 'createdAt'>> & { title
   const siblingCount = todos.filter(t => t.listId === listId && !t.deletedAt).length;
   const newTodo: Todo = {
     id: newId(), title: input.title, listId,
-    notes: input.notes, due: input.due, starred: input.starred ?? false, someday: input.someday ?? false,
+    notes: input.notes, due: input.due, dueTime: input.dueTime, starred: input.starred ?? false, someday: input.someday ?? false,
     status: input.status ?? 'none', tags: input.tags ?? [], subtasks: input.subtasks ?? [],
     completed: input.completed ?? false, order: siblingCount, createdAt: new Date().toISOString().slice(0, 10),
+    assigneeId: input.assigneeId, assigneeName: input.assigneeName, isOwner: true,
   };
   todos = [...todos, newTodo];
   emit();
@@ -254,16 +466,28 @@ export function addTodo(input: Partial<Omit<Todo, 'id' | 'createdAt'>> & { title
     method: 'POST',
     body: JSON.stringify({
       id: newTodo.id, title: newTodo.title, listId: newTodo.listId, notes: newTodo.notes, due: newTodo.due,
-      starred: newTodo.starred, someday: newTodo.someday, status: newTodo.status, tags: newTodo.tags,
+      dueTime: newTodo.dueTime, starred: newTodo.starred, someday: newTodo.someday, status: newTodo.status,
+      tags: newTodo.tags, assigneeId: newTodo.assigneeId,
     }),
   }).catch(reportSyncFailure);
   return newTodo;
 }
 
-export function updateTodo(id: string, patch: Partial<Todo>) {
+// assigneeId is widened to allow an explicit `null` (unassign) — Partial<Todo>
+// alone can't express "clear this field" for an optional string, only
+// "leave it untouched" (undefined), which is exactly the bug the pre-existing
+// due-date clear path has (its `due: value || undefined` collapses "cleared"
+// and "untouched" into the same undefined, so a cleared due date never
+// actually persists — not fixed here, out of scope, but not repeated for
+// this new field either).
+export function updateTodo(id: string, patch: Partial<Omit<Todo, 'assigneeId'>> & { assigneeId?: string | null }) {
   todos = todos.map(t => {
     if (t.id !== id) return t;
-    const next = { ...t, ...patch };
+    const next: Todo = { ...t, ...patch, assigneeId: t.assigneeId };
+    if (patch.assigneeId !== undefined) {
+      next.assigneeId = patch.assigneeId ?? undefined;
+      next.assigneeName = patch.assigneeId ? patch.assigneeName ?? t.assigneeName : undefined;
+    }
     if (patch.completed !== undefined) next.completedAt = patch.completed ? new Date().toISOString() : undefined;
     return next;
   });
@@ -272,6 +496,7 @@ export function updateTodo(id: string, patch: Partial<Todo>) {
   if (patch.title !== undefined) body.title = patch.title;
   if (patch.notes !== undefined) body.notes = patch.notes;
   if (patch.due !== undefined) body.due = patch.due || null;
+  if (patch.dueTime !== undefined) body.dueTime = patch.dueTime || null;
   if (patch.starred !== undefined) body.starred = patch.starred;
   if (patch.someday !== undefined) body.someday = patch.someday;
   if (patch.status !== undefined) body.status = patch.status;
@@ -279,7 +504,33 @@ export function updateTodo(id: string, patch: Partial<Todo>) {
   if (patch.completed !== undefined) body.completed = patch.completed;
   if (patch.listId !== undefined) body.listId = patch.listId;
   if (patch.order !== undefined) body.sortOrder = patch.order;
+  if (patch.assigneeId !== undefined) body.assigneeId = patch.assigneeId || null;
   apiFetch(`/v1/tasks/items/${id}`, { method: 'PATCH', body: JSON.stringify(body) }).catch(reportSyncFailure);
+}
+
+// ── Comments — loaded on demand per task (not part of the reactive todos
+// store), the same pattern PreviewPanel.tsx uses for a file's comments. ──
+function fromApiComment(row: any): TodoComment {
+  return {
+    id: row.id, content: row.content, mentions: row.mentions || [],
+    createdAt: row.created_at, authorId: row.author_id, authorName: row.author_name,
+  };
+}
+
+export async function fetchTodoComments(taskId: string): Promise<TodoComment[]> {
+  const res = await apiFetch(`/v1/tasks/items/${taskId}/comments`);
+  return (res.data || []).map(fromApiComment);
+}
+
+export async function postTodoComment(taskId: string, content: string, mentions: { user_id: string; name: string }[]): Promise<TodoComment> {
+  const res = await apiFetch(`/v1/tasks/items/${taskId}/comments`, {
+    method: 'POST', body: JSON.stringify({ content, mentions }),
+  });
+  return fromApiComment(res.data);
+}
+
+export async function deleteTodoComment(taskId: string, commentId: string): Promise<void> {
+  await apiFetch(`/v1/tasks/items/${taskId}/comments/${commentId}`, { method: 'DELETE' });
 }
 
 export function reorderTodo(id: string, targetOrder: number) {
@@ -357,7 +608,7 @@ export function updateAppSettings(patch: Partial<AppSettings>) {
 
 // ── Active Tasks view — shared between TasksShell's sidebar and TasksApp's
 // main panel, which live in separate parts of the component tree. ──
-export type TaskViewId = 'inbox' | 'today' | 'upcoming' | 'anytime' | 'someday' | 'trash' | `list:${string}`;
+export type TaskViewId = 'inbox' | 'today' | 'upcoming' | 'anytime' | 'someday' | 'assigned' | 'trash' | `list:${string}`;
 
 let activeTaskView: TaskViewId = 'today';
 const viewListeners = new Set<() => void>();
@@ -372,4 +623,107 @@ export function useActiveTaskView(): TaskViewId {
 export function setActiveTaskView(v: TaskViewId) {
   activeTaskView = v;
   viewListeners.forEach(fn => fn());
+}
+
+// ── Calendar's currently-displayed date — shared between CalendarShell's
+// sidebar mini month-picker and CalendarApp's main grid, which live in
+// separate parts of the component tree (same reasoning as activeTaskView
+// above). Whichever one navigates, both re-render in step. ──
+let currentCalendarDate: Date = new Date();
+const calendarDateListeners = new Set<() => void>();
+
+export function useCurrentCalendarDate(): Date {
+  return useSyncExternalStore(
+    fn => { calendarDateListeners.add(fn); return () => calendarDateListeners.delete(fn); },
+    () => currentCalendarDate,
+  );
+}
+
+export function setCurrentCalendarDate(d: Date) {
+  currentCalendarDate = d;
+  calendarDateListeners.forEach(fn => fn());
+}
+
+// ── Free/busy ("Meet with…") — a one-off fetch, not part of the reactive
+// store (the set of people being checked changes per-panel-session, nothing
+// else in the app needs to react to it). Returns wall-clock local times to
+// match how CalendarEvent.start/end are already represented. ──
+export interface BusyBlock { start: string; end: string; }
+
+// The set of colleagues currently being checked for availability — shared
+// between CalendarShell's sidebar search panel and CalendarApp's grid
+// overlay (same cross-component-tree reasoning as currentCalendarDate).
+export interface MeetWithPerson { userId: string; name: string; email?: string; avatarUrl?: string }
+export const MEET_WITH_COLORS = ['#dc2626', '#2563eb', '#7c3aed', '#d97706', '#db2777', '#0891b2', '#65a30d', '#0d7a6b'];
+let meetWithPeople: MeetWithPerson[] = [];
+const meetWithListeners = new Set<() => void>();
+
+export function useMeetWithPeople(): MeetWithPerson[] {
+  return useSyncExternalStore(
+    fn => { meetWithListeners.add(fn); return () => meetWithListeners.delete(fn); },
+    () => meetWithPeople,
+  );
+}
+export function addMeetWithPerson(p: MeetWithPerson) {
+  if (meetWithPeople.some(x => x.userId === p.userId)) return;
+  meetWithPeople = [...meetWithPeople, p];
+  meetWithListeners.forEach(fn => fn());
+}
+export function removeMeetWithPerson(userId: string) {
+  meetWithPeople = meetWithPeople.filter(p => p.userId !== userId);
+  meetWithListeners.forEach(fn => fn());
+}
+export function clearMeetWithPeople() {
+  meetWithPeople = [];
+  meetWithListeners.forEach(fn => fn());
+}
+
+export async function fetchFreeBusy(userIds: string[], range: { from: Date; to: Date }): Promise<Record<string, BusyBlock[]>> {
+  const qs = new URLSearchParams({ userIds: userIds.join(','), from: range.from.toISOString(), to: range.to.toISOString() });
+  const res = await apiFetch(`/v1/tasks/events/freebusy?${qs.toString()}`);
+  const out: Record<string, BusyBlock[]> = {};
+  for (const [userId, blocks] of Object.entries<any[]>(res.data || {})) {
+    out[userId] = blocks.map(b => ({ start: utcISOToLocal(b.start), end: utcISOToLocal(b.end) }));
+  }
+  return out;
+}
+
+// ── Booking pages (Calendly-style scheduling links) — managed from a
+// dedicated settings panel, so plain fetch wrappers (matching
+// fetchListShares/shareListWith above) rather than a reactive store. ──
+export interface BookingPage {
+  id: string; slug: string; title: string; description: string | null;
+  durationMinutes: number; bufferMinutes: number; workingDays: number[];
+  workingStartTime: string; workingEndTime: string; timezone: string;
+  bookingWindowDays: number; active: boolean; createdAt: string;
+}
+
+function fromApiBookingPage(row: any): BookingPage {
+  return {
+    id: row.id, slug: row.slug, title: row.title, description: row.description ?? null,
+    durationMinutes: row.durationMinutes, bufferMinutes: row.bufferMinutes, workingDays: row.workingDays,
+    workingStartTime: row.workingStartTime, workingEndTime: row.workingEndTime, timezone: row.timezone,
+    bookingWindowDays: row.bookingWindowDays, active: row.active, createdAt: row.createdAt,
+  };
+}
+
+export type BookingPageInput = Partial<Omit<BookingPage, 'id' | 'createdAt'>>;
+
+export async function fetchBookingPages(): Promise<BookingPage[]> {
+  const res = await apiFetch('/v1/tasks/booking-pages');
+  return (res.data || []).map(fromApiBookingPage);
+}
+
+export async function createBookingPage(input: BookingPageInput): Promise<BookingPage> {
+  const res = await apiFetch('/v1/tasks/booking-pages', { method: 'POST', body: JSON.stringify({ id: newId(), ...input }) });
+  return fromApiBookingPage(res.data);
+}
+
+export async function updateBookingPage(id: string, input: BookingPageInput): Promise<BookingPage> {
+  const res = await apiFetch(`/v1/tasks/booking-pages/${id}`, { method: 'PATCH', body: JSON.stringify(input) });
+  return fromApiBookingPage(res.data);
+}
+
+export async function deleteBookingPage(id: string): Promise<void> {
+  await apiFetch(`/v1/tasks/booking-pages/${id}`, { method: 'DELETE' });
 }

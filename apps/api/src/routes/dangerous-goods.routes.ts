@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { requireEntitlement } from '../middleware/entitlement.js';
 import {
   searchDgReference, createDgDeclaration, listDgDeclarations, getDgDeclaration,
-  issueDgDeclaration, renderDgDeclarationPdf,
+  issueDgDeclaration, renderDgDeclarationPdf, updateDgDeclaration, deleteDgDeclaration,
 } from '../services/dangerous-goods.service.js';
 import { withTenant } from '../db/client.js';
 import { CloudSync } from '../services/cloud-sync.service.js';
@@ -23,6 +23,21 @@ const createSchema = z.object({
   consigneeAddress: z.string().trim().optional(),
   emergencyContact: z.string().trim().optional(),
   additionalHandlingInfo: z.string().trim().optional(),
+});
+
+const updateSchema = z.object({
+  transportMode: z.enum(['AIR', 'SEA', 'ROAD']).optional(),
+  unNumber: z.string().trim().min(1).optional(),
+  packagingType: z.string().trim().nullable().optional(),
+  numberOfPackages: z.number().int().positive().nullable().optional(),
+  netQuantity: z.number().positive().nullable().optional(),
+  quantityUnit: z.string().trim().nullable().optional(),
+  shipperName: z.string().trim().min(1).optional(),
+  shipperAddress: z.string().trim().nullable().optional(),
+  consigneeName: z.string().trim().min(1).optional(),
+  consigneeAddress: z.string().trim().nullable().optional(),
+  emergencyContact: z.string().trim().nullable().optional(),
+  additionalHandlingInfo: z.string().trim().nullable().optional(),
 });
 
 export async function dangerousGoodsRoutes(fastify: FastifyInstance) {
@@ -66,6 +81,27 @@ export async function dangerousGoodsRoutes(fastify: FastifyInstance) {
           subjectId: input.subjectId ?? null,
         })
       );
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message });
+    }
+  });
+
+  fastify.patch('/declarations/:id', async (request: any, reply) => {
+    const { id } = request.params as { id: string };
+    const input = updateSchema.parse(request.body);
+    try {
+      return await updateDgDeclaration(request.user.tenant_id, id, input);
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message });
+    }
+  });
+
+  fastify.delete('/declarations/:id', async (request: any, reply) => {
+    const { id } = request.params as { id: string };
+    try {
+      await deleteDgDeclaration(request.user.tenant_id, id);
+      reply.status(204);
+      return null;
     } catch (err: any) {
       return reply.status(400).send({ error: err.message });
     }
