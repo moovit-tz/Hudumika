@@ -44,8 +44,22 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
     setThemeMode(document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light');
   }
 
+  const [collapsed, setCollapsed] = useState(() => localStorage.getItem('gws_right_sidebar_collapsed') === 'true');
+
+  useEffect(() => {
+    function handleToggle() {
+      setCollapsed(prev => {
+        const next = !prev;
+        localStorage.setItem('gws_right_sidebar_collapsed', String(next));
+        return next;
+      });
+    }
+    window.addEventListener('gws-sidebar:toggle', handleToggle);
+    return () => window.removeEventListener('gws-sidebar:toggle', handleToggle);
+  }, []);
+
   return (
-    <div className="gws-right-sidebar-root">
+    <div className={`gws-right-sidebar-root ${collapsed ? 'collapsed' : ''}`} style={{ display: collapsed && !activePanel ? 'none' : 'flex' }}>
       {/* ── 320px Companion Side Drawer ── */}
       {activePanel && (
         <div className="gws-drawer">
@@ -258,6 +272,16 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
       <div className="gws-rail">
         {/* Top Action Items */}
         <div className="gws-rail-top">
+          {/* Collapse/Hide Rail Button */}
+          <button
+            className="gws-rail-btn"
+            onClick={() => window.dispatchEvent(new CustomEvent('gws-sidebar:toggle'))}
+            title="Collapse companion panel"
+            style={{ marginBottom: 4 }}
+          >
+            <Icon name="chevronRight" size={17} />
+          </button>
+
           {/* 1. Tasks / Keep */}
           <button
             className={`gws-rail-btn ${activePanel === 'tasks' ? 'active' : ''}`}

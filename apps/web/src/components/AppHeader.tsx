@@ -109,11 +109,19 @@ export function AppHeader({
   const [nowTick, setNowTick] = useState(() => Date.now());
   useEffect(() => {
     if (!isCheckedIn) return;
-    const interval = setInterval(() => {
-      setNowTick(Date.now());
-    }, 1000);
-    return () => clearInterval(interval);
+    const timer = setInterval(() => setNowTick(Date.now()), 1000);
+    return () => clearInterval(timer);
   }, [isCheckedIn]);
+
+  const [rightSidebarCollapsed, setRightSidebarCollapsed] = useState(() => localStorage.getItem('gws_right_sidebar_collapsed') === 'true');
+
+  useEffect(() => {
+    function handleToggle() {
+      setRightSidebarCollapsed(localStorage.getItem('gws_right_sidebar_collapsed') === 'true');
+    }
+    window.addEventListener('gws-sidebar:toggle', handleToggle);
+    return () => window.removeEventListener('gws-sidebar:toggle', handleToggle);
+  }, []);
 
   const clockStats = useMemo(() => {
     if (!isCheckedIn || !currentEntry?.started_at) {

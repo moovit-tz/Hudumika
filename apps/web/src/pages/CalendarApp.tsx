@@ -10,7 +10,10 @@ import {
   useMeetWithPeople, fetchFreeBusy, BusyBlock, MEET_WITH_COLORS,
   fetchBookingPages, createBookingPage, updateBookingPage as updateBookingPageApi, deleteBookingPage as deleteBookingPageApi,
   BookingPage, BookingPageInput,
+  fetchCalendarSyncConnections, getCalendarSyncAuthorizeUrl, disconnectCalendarSync, CalendarSyncConnection,
+  fetchCalendarSyncCredentials, saveCalendarSyncCredentials,
 } from '../data/calendarStore.js';
+import { useAuth } from '../hooks/useAuth.js';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '../components/ui/dropdown-menu.js';
 import { Switch } from '../components/ui/switch.js';
 import { Popover, PopoverAnchor, PopoverContent } from '../components/ui/popover.js';
@@ -157,6 +160,22 @@ export const CalendarApp: React.FC = () => {
   const [icsImporting, setIcsImporting]         = useState(false);
   const icsFileInputRef = useRef<HTMLInputElement>(null);
   const [bookingPagesOpen, setBookingPagesOpen] = useState(false);
+  const [calendarSyncOpen, setCalendarSyncOpen] = useState(false);
+
+  // Landed back here from calendar-sync.routes.ts's OAuth callback
+  // (?calendarSync=success|error&provider=...&msg=...) — surface the
+  // result and reopen the panel the connect button was clicked from,
+  // rather than leaving the query string sitting in the address bar.
+  useEffect(() => {
+    const qs = new URLSearchParams(window.location.search);
+    const result = qs.get('calendarSync');
+    if (!result) return;
+    const provider = qs.get('provider') === 'outlook' ? 'Outlook' : 'Google';
+    if (result === 'success') showAlert(`${provider} Calendar connected — your events will start syncing in.`, { variant: 'success' });
+    else showAlert(qs.get('msg') || `Couldn't connect ${provider} Calendar.`);
+    setCalendarSyncOpen(true);
+    window.history.replaceState(null, '', window.location.pathname);
+  }, []);
   const [dragCreate, setDragCreate] = useState<{ dateStr: string; startHour: number; endHour: number } | null>(null);
   const dragCreateActive = useRef(false);
   const [resizeState, setResizeState] = useState<{ id: string; occurrenceDate: string; isRecurring: boolean; origEndMs: number; previewEndMs: number } | null>(null);
@@ -469,86 +488,136 @@ export const CalendarApp: React.FC = () => {
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg)', fontFamily: 'var(--font)' }}>
-      {/* ── Top Toolbar ─────────────────────────────────────── */}
+      {/* ── Top Toolbar (Google Calendar Inspired) ─────────────────────────────────────── */}
       <div style={{
-        minHeight: 60, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 12, flexWrap: isMobile ? 'wrap' : 'nowrap',
-        padding: isMobile ? '10px 12px' : '0 24px', background: 'var(--white)', borderBottom: '1px solid var(--border)', zIndex: 2,
+        height: 64, minHeight: 64, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16,
+        padding: isMobile ? '10px 12px' : '0 20px', background: 'var(--white)', borderBottom: '1px solid var(--border)', zIndex: 2, boxSizing: 'border-box'
       }}>
-        <div style={{ display: 'flex', gap: 4 }}>
-          <button style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 8, display: 'flex' }} onClick={handlePrev}><Icon name="chevronLeft"  size={18} /></button>
-          <button onClick={handleToday} style={{ border: '1px solid var(--border)', background: 'var(--white)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 16px', fontSize: 13, fontWeight: 500, cursor: 'pointer', margin: '0 8px', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Today</button>
-          <button style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 8, display: 'flex' }} onClick={handleNext}><Icon name="chevronRight" size={18} /></button>
+        {/* Left Section: Today, Prev/Next, Month/Year label */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button
+            onClick={handleToday}
+            style={{
+              border: '1px solid var(--border)', background: 'var(--white)', borderRadius: 6,
+              padding: '7px 18px', fontSize: 14, fontWeight: 500, cursor: 'pointer',
+              color: 'var(--ink)', transition: 'background 0.15s ease', display: 'flex', alignItems: 'center'
+            }}
+          >
+            Today
+          </button>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <button
+              onClick={handlePrev}
+              title="Previous"
+              style={{
+                width: 36, height: 36, borderRadius: '50%', border: 'none', background: 'transparent',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: 'var(--ink2)', transition: 'background 0.15s ease'
+              }}
+            >
+              <Icon name="chevronLeft" size={18} />
+            </button>
+
+            <button
+              onClick={handleNext}
+              title="Next"
+              style={{
+                width: 36, height: 36, borderRadius: '50%', border: 'none', background: 'transparent',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: 'var(--ink2)', transition: 'background 0.15s ease'
+              }}
+            >
+              <Icon name="chevronRight" size={18} />
+            </button>
+          </div>
+
+          <span style={{ fontSize: isMobile ? 16 : 22, fontWeight: 500, color: 'var(--ink)', marginLeft: 8, letterSpacing: '-0.01em' }}>
+            {label}
+          </span>
         </div>
 
-        <span style={{ fontSize: isMobile ? 15 : 18, fontWeight: 500, color: 'var(--ink)', marginLeft: isMobile ? 0 : 16, order: isMobile ? 3 : 0, width: isMobile ? '100%' : 'auto' }}>{label}</span>
-
-        {!isMobile && <div style={{ flex: 1 }} />}
-
+        {/* Middle Section: Search & Category Chips */}
         {!isMobile && (
-          <div style={{ position: 'relative', width: 200 }}>
-            <Icon name="search" size={14} color="var(--ink3)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Search events"
-              style={{
-                width: '100%', boxSizing: 'border-box', padding: '7px 10px 7px 30px', borderRadius: 'var(--r)',
-                border: '1px solid var(--border)', fontSize: 13, background: 'var(--bg)', color: 'var(--ink)',
-              }}
-            />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, flex: 1, maxWidth: 600, justifyContent: 'center' }}>
+            <div style={{ position: 'relative', width: 260 }}>
+              <Icon name="search" size={16} color="var(--ink3)" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="Search events"
+                style={{
+                  width: '100%', boxSizing: 'border-box', height: 38, padding: '0 12px 0 36px', borderRadius: 8,
+                  border: '1px solid var(--border)', fontSize: 13.5, background: 'var(--bg)', color: 'var(--ink)', outline: 'none'
+                }}
+              />
+            </div>
+
+            {/* Category Filter Chips */}
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'nowrap' }}>
+              {(Object.keys(CATEGORY_MAP) as Category[]).map(cat => {
+                const on = activeCategories[cat];
+                return (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setActiveCategories(prev => ({ ...prev, [cat]: !prev[cat] }))}
+                    title={on ? `Hide ${CATEGORY_MAP[cat].label}` : `Show ${CATEGORY_MAP[cat].label}`}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 6,
+                      border: on ? `1px solid ${CATEGORY_MAP[cat].color}` : '1px solid var(--border)',
+                      background: on ? 'var(--white)' : 'transparent',
+                      cursor: 'pointer', padding: '4px 10px', borderRadius: 14, fontSize: 12, fontWeight: 500,
+                      color: on ? 'var(--ink)' : 'var(--ink3)', opacity: on ? 1 : 0.6, whiteSpace: 'nowrap', transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: CATEGORY_MAP[cat].color, flexShrink: 0 }} />
+                    {CATEGORY_MAP[cat].label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
 
-        {/* Category filter — toggling was already fully wired (filteredEvents),
-            it just had no control to actually drive it. */}
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center', order: isMobile ? 4 : 0, width: isMobile ? '100%' : 'auto', flexWrap: 'wrap' }}>
-          {(Object.keys(CATEGORY_MAP) as Category[]).map(cat => {
-            const on = activeCategories[cat];
-            return (
+        {/* Right Section: Google View Switcher & Settings */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {/* Segmented View Switcher */}
+          <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden', height: 36, background: 'var(--white)' }}>
+            {(['month','week','day','agenda'] as const).map((m, idx, arr) => (
               <button
-                key={cat}
-                type="button"
-                onClick={() => setActiveCategories(prev => ({ ...prev, [cat]: !prev[cat] }))}
-                title={on ? `Hide ${CATEGORY_MAP[cat].label}` : `Show ${CATEGORY_MAP[cat].label}`}
+                key={m}
+                onClick={() => setViewMode(m)}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: 5, border: 'none', background: 'none',
-                  cursor: 'pointer', padding: 'var(--ds-btn-py-xs) 6px', borderRadius: 'var(--r)', fontSize: 12, fontWeight: 600,
-                  color: on ? 'var(--ink2)' : 'var(--ink3)', opacity: on ? 1 : 0.5, whiteSpace: 'nowrap', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}
+                  padding: isMobile ? '0 10px' : '0 16px', border: 'none',
+                  borderRight: idx < arr.length - 1 ? '1px solid var(--border)' : 'none',
+                  cursor: 'pointer', fontSize: 13.5, fontWeight: viewMode === m ? 600 : 500, whiteSpace: 'nowrap',
+                  background: viewMode === m ? 'var(--teal-l, rgba(13,148,136,0.12))' : 'transparent',
+                  color:      viewMode === m ? 'var(--teal, #0d9488)' : 'var(--ink2)',
+                  transition: 'background 0.15s ease, color 0.15s ease'
+                }}
               >
-                <span style={{ width: 9, height: 9, borderRadius: '50%', background: CATEGORY_MAP[cat].color, flexShrink: 0 }} />
-                {!isMobile && CATEGORY_MAP[cat].label}
+                {isMobile ? m.charAt(0).toUpperCase() : m.charAt(0).toUpperCase() + m.slice(1)}
               </button>
-            );
-          })}
-        </div>
+            ))}
+          </div>
 
-        {/* View switcher */}
-        <div style={{ display: 'flex', background: 'var(--bg)', borderRadius: 8, padding: 4, marginLeft: isMobile ? 'auto' : 0, overflowX: 'auto' }}>
-          {(['month','week','day','agenda'] as const).map(m => (
-            <button
-              key={m}
-              onClick={() => setViewMode(m)}
-              style={{
-                padding: isMobile ? '6px 10px' : '6px 16px', border: 'none', borderRadius: 'var(--r)',
-                cursor: 'pointer', fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap',
-                background: viewMode === m ? 'var(--white)' : 'transparent',
-                color:      viewMode === m ? 'var(--ink)'   : 'var(--ink2)',
-                boxShadow:  viewMode === m ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-              }}
-            >
-              {isMobile ? m.charAt(0).toUpperCase() : m.charAt(0).toUpperCase() + m.slice(1)}
-            </button>
-          ))}
-        </div>
-
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button type="button" title="Calendar settings" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 8, display: 'flex', marginLeft: 4 }}>
-              <Icon name="settings" size={17} color="var(--ink3)" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="p-3 w-64">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                title="Calendar settings"
+                style={{
+                  width: 36, height: 36, borderRadius: '50%', background: 'transparent',
+                  border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: 'var(--ink2)', transition: 'background 0.15s ease'
+                }}
+              >
+                <Icon name="settings" size={18} />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="p-3 w-64">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12, paddingBottom: 12, borderBottom: '1px solid var(--border)' }}>
               <div>
                 <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Week starts Monday</div>
@@ -583,6 +652,16 @@ export const CalendarApp: React.FC = () => {
                 onMouseLeave={e => e.currentTarget.style.background = 'none'}
               >
                 <Icon name="link" size={15} color="var(--ink3)" /> Booking pages…
+              </button>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild onSelect={() => setCalendarSyncOpen(true)}>
+              <button
+                type="button"
+                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 6px', border: 'none', background: 'none', cursor: 'pointer', borderRadius: 6, fontSize: 13, color: 'var(--ink)', fontWeight: 500 }}
+                onMouseEnter={e => e.currentTarget.style.background = 'var(--bg)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'none'}
+              >
+                <Icon name="globe" size={15} color="var(--ink3)" /> Google/Outlook sync…
               </button>
             </DropdownMenuItem>
             <input
@@ -1278,6 +1357,7 @@ export const CalendarApp: React.FC = () => {
       )}
 
       {bookingPagesOpen && <BookingPagesPanel isMobile={isMobile} onClose={() => setBookingPagesOpen(false)} />}
+      {calendarSyncOpen && <CalendarSyncPanel isMobile={isMobile} onClose={() => setCalendarSyncOpen(false)} />}
 
       {/* Popover */}
       {popover && (() => {
@@ -1771,6 +1851,162 @@ const BookingPagesPanel: React.FC<{ isMobile: boolean; onClose: () => void }> = 
                 {saving ? 'Saving…' : 'Save'}
               </button>
             </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const PROVIDER_META: Record<'google' | 'outlook', { label: string }> = {
+  google: { label: 'Google Calendar' },
+  outlook: { label: 'Outlook Calendar' },
+};
+
+/* ── Google/Outlook sync — connect/disconnect (any user) + app-credential
+   config (tenant admins only). Same modal-overlay presentation as the other
+   settings panels in this file; inert end-to-end until an admin saves real
+   OAuth credentials (calendar-sync.routes.ts 400s /authorize until then). ── */
+const CalendarSyncPanel: React.FC<{ isMobile: boolean; onClose: () => void }> = ({ isMobile, onClose }) => {
+  const { user } = useAuth();
+  const isAdmin = !!user && ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'].includes(user.role);
+  const [connections, setConnections] = useState<CalendarSyncConnection[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [connecting, setConnecting] = useState<string | null>(null);
+  const [configOpen, setConfigOpen] = useState(false);
+  const [creds, setCreds] = useState<Record<string, string>>({});
+  const [credsLoaded, setCredsLoaded] = useState(false);
+  const [savingCreds, setSavingCreds] = useState(false);
+
+  function load() {
+    setLoading(true);
+    fetchCalendarSyncConnections().then(setConnections).catch(() => {}).finally(() => setLoading(false));
+  }
+  useEffect(load, []);
+
+  function statusFor(provider: 'google' | 'outlook'): CalendarSyncConnection | undefined {
+    return connections.find(c => c.provider === provider);
+  }
+
+  async function handleConnect(provider: 'google' | 'outlook') {
+    setConnecting(provider);
+    try {
+      const url = await getCalendarSyncAuthorizeUrl(provider);
+      window.location.href = url;
+    } catch (err: any) {
+      showAlert(err?.message || `Could not start ${PROVIDER_META[provider].label} sign-in.`);
+      setConnecting(null);
+    }
+  }
+  async function handleDisconnect(provider: 'google' | 'outlook') {
+    if (!window.confirm(`Disconnect ${PROVIDER_META[provider].label}? Events already imported stay on your calendar, but new ones will stop coming in.`)) return;
+    try {
+      await disconnectCalendarSync(provider);
+      load();
+    } catch (err: any) {
+      showAlert(err?.message || 'Could not disconnect.');
+    }
+  }
+
+  function openConfig() {
+    if (!credsLoaded) {
+      fetchCalendarSyncCredentials().then(c => { setCreds(c); setCredsLoaded(true); }).catch(() => setCredsLoaded(true));
+    }
+    setConfigOpen(o => !o);
+  }
+  async function handleSaveCreds() {
+    setSavingCreds(true);
+    try {
+      await saveCalendarSyncCredentials(creds);
+      showAlert('Saved. Anyone in this workspace can now connect their calendar.', { variant: 'success' });
+    } catch (err: any) {
+      showAlert(err?.message || 'Could not save credentials.');
+    } finally {
+      setSavingCreds(false);
+    }
+  }
+
+  const inputStyle: React.CSSProperties = { padding: '9px 11px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, width: '100%', boxSizing: 'border-box' };
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,.4)' }} onClick={onClose}>
+      <div style={{ background: 'var(--white)', borderRadius: 16, width: 'min(520px, 94vw)', maxHeight: '88vh', overflowY: 'auto', padding: isMobile ? 18 : 24, boxShadow: 'var(--elev-lg)' }} onClick={e => e.stopPropagation()}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+          <h2 style={{ fontSize: 18, fontWeight: 600 }}>Google/Outlook sync</h2>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', color: 'var(--ink3)' }}><Icon name="x" size={18} /></button>
+        </div>
+        <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 18 }}>
+          One-way import — events on your Google or Outlook calendar show up here. Nothing is ever written back.
+        </div>
+
+        {loading ? (
+          <div style={{ fontSize: 13, color: 'var(--ink3)', padding: '12px 0' }}>Loading…</div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {(['google', 'outlook'] as const).map(provider => {
+              const conn = statusFor(provider);
+              const status = conn?.status ?? 'disconnected';
+              return (
+                <div key={provider} style={{ border: '1px solid var(--border)', borderRadius: 10, padding: 14, display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Icon name="calendar" size={17} color="var(--ink3)" />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>{PROVIDER_META[provider].label}</div>
+                    <div style={{ fontSize: 12, color: status === 'authorized' ? 'var(--green)' : status === 'error' ? 'var(--red)' : 'var(--ink3)' }}>
+                      {status === 'authorized' && `Connected${conn?.lastSyncedAt ? ` · last synced ${new Date(conn.lastSyncedAt).toLocaleString()}` : ' · syncing soon'}`}
+                      {status === 'error' && (conn?.lastError || 'Connection error — try reconnecting')}
+                      {status === 'disconnected' && 'Not connected'}
+                    </div>
+                  </div>
+                  {status === 'authorized' ? (
+                    <Button variant="outline" size="sm" onClick={() => handleDisconnect(provider)}>Disconnect</Button>
+                  ) : (
+                    <Button size="sm" onClick={() => handleConnect(provider)} disabled={connecting === provider}>
+                      {connecting === provider ? 'Redirecting…' : 'Connect'}
+                    </Button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {isAdmin && (
+          <div style={{ marginTop: 18, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
+            <button
+              type="button" onClick={openConfig}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', fontSize: 12.5, fontWeight: 700, color: 'var(--ink2)', padding: 0 }}
+            >
+              <Icon name={configOpen ? 'chevronUp' : 'chevronDown'} size={13} color="var(--ink4)" />
+              App credentials (admin)
+            </button>
+            {configOpen && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 12 }}>
+                <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>
+                  Create an OAuth app in Google Cloud Console / Azure AD with redirect URI ending in <code>/v1/tasks/calendar-sync/{'{provider}'}/callback</code>, then paste its Client ID/Secret here. One app registration covers everyone in this workspace — each person still connects their own account above.
+                </div>
+                <label>
+                  <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 4 }}>Google Client ID</div>
+                  <input value={creds.googleClientId ?? ''} onChange={e => setCreds(c => ({ ...c, googleClientId: e.target.value }))} style={inputStyle} />
+                </label>
+                <label>
+                  <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 4 }}>Google Client Secret</div>
+                  <input type="password" value={creds.googleClientSecret ?? ''} onChange={e => setCreds(c => ({ ...c, googleClientSecret: e.target.value }))} style={inputStyle} />
+                </label>
+                <label>
+                  <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 4 }}>Outlook (Azure AD) Application ID</div>
+                  <input value={creds.outlookClientId ?? ''} onChange={e => setCreds(c => ({ ...c, outlookClientId: e.target.value }))} style={inputStyle} />
+                </label>
+                <label>
+                  <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 4 }}>Outlook Client Secret</div>
+                  <input type="password" value={creds.outlookClientSecret ?? ''} onChange={e => setCreds(c => ({ ...c, outlookClientSecret: e.target.value }))} style={inputStyle} />
+                </label>
+                <Button size="sm" onClick={handleSaveCreds} disabled={savingCreds} style={{ alignSelf: 'flex-end' }}>
+                  {savingCreds ? 'Saving…' : 'Save credentials'}
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </div>

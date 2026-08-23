@@ -263,6 +263,7 @@ function fromApiEvent(row: any): CalendarEvent {
     category: row.category, guests: Array.isArray(row.guests) ? row.guests : [],
     allDay: !!row.all_day, color: row.color || null, recurrence: row.recurrence || null,
     reminderOffsets: Array.isArray(row.reminder_offsets) ? row.reminder_offsets : [],
+    timezone: row.timezone || undefined,
   };
 }
 
@@ -336,6 +337,7 @@ export function addEvent(event: NewEventInput) {
       id, title: newEvent.title, start: localToUTCISO(newEvent.start), end: localToUTCISO(newEvent.end),
       description: newEvent.description, location: newEvent.location, category: newEvent.category, guests: newEvent.guests,
       allDay: newEvent.allDay, color: newEvent.color, recurrence: newEvent.recurrence, reminderOffsets: newEvent.reminderOffsets,
+      timezone: newEvent.timezone,
     }),
   }).then(() => { if (newEvent.recurrence) reloadEvents(); }) // a recurring series needs its full occurrence set, not just the one optimistic row
     .catch(err => { events = events.filter(e => e.id !== id); emit(); reportSyncFailure(err); });
@@ -382,6 +384,7 @@ export function updateEvent(id: string, patch: Partial<CalendarEvent>, opts?: { 
   if (patch.color !== undefined) body.color = patch.color;
   if (patch.recurrence !== undefined) body.recurrence = patch.recurrence;
   if (patch.reminderOffsets !== undefined) body.reminderOffsets = patch.reminderOffsets;
+  if (patch.timezone !== undefined) body.timezone = patch.timezone;
 
   apiFetch(`/v1/tasks/events/${id}`, { method: 'PATCH', body: JSON.stringify(body) })
     .then(() => { if (needsReload) reloadEvents(); })
@@ -726,4 +729,45 @@ export async function updateBookingPage(id: string, input: BookingPageInput): Pr
 
 export async function deleteBookingPage(id: string): Promise<void> {
   await apiFetch(`/v1/tasks/booking-pages/${id}`, { method: 'DELETE' });
+}
+
+// ── Google/Outlook Calendar sync (calendar-sync.routes.ts) — plain fetch
+// wrappers, same reasoning as booking pages above: managed from a settings
+// panel, not something the reactive event store needs to react to. ──
+export interface CalendarSyncConnection {
+  provider: 'google' | 'outlook';
+  status: 'disconnected' | 'authorized' | 'error';
+  lastSyncedAt: string | null;
+  lastError: string | null;
+}
+
+export async function fetchCalendarSyncConnections(): Promise<CalendarSyncConnection[]> {
+  const res = await apiFetch('/v1/tasks/calendar-sync/connections');
+  return res.data || [];
+}
+
+/** Returns the provider's consent URL — caller does `window.location.href = url`
+ *  itself (this can't navigate the browser directly; see calendar-sync.routes.ts's
+ *  own comment on why /authorize returns JSON instead of redirecting). */
+export async function getCalendarSyncAuthorizeUrl(provider: 'google' | 'outlook'): Promise<string> {
+  const res = await apiFetch(`/v1/tasks/calendar-sync/${provider}/authorize`);
+  return res.url;
+}
+
+export async function disconnectCalendarSync(provider: 'google' | 'outlook'): Promise<void> {
+  await apiFetch(`/v1/tasks/calendar-sync/${provider}/disconnect`, { method: 'POST' });
+}
+
+/** Tenant-admin-only: the OAuth app registration itself (Client ID/Secret),
+ *  via the generic settings endpoint — settings.routes.ts's
+ *  SECRET_FIELDS_BY_KEY already masks/encrypts googleClientSecret and
+ *  outlookClientSecret under this same 'calendarSync' key, so this needs no
+ *  dedicated route of its own. */
+export async function saveCalendarSyncCredentials(patch: Record<string, string>): Promise<void> {
+  await apiFetch('/v1/settings', { method: 'PATCH', body: JSON.stringify({ calendarSync: patch }) });
+}
+
+export async function fetchCalendarSyncCredentials(): Promise<Record<string, string>> {
+  const res = await apiFetch('/v1/settings');
+  return res.settings?.calendarSync ?? {};
 }

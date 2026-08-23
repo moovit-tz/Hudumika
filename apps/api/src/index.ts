@@ -462,6 +462,7 @@ async function main() {
     await server.register(signRoutes, { prefix: '/v1/sign' });
     await server.register(signPublicRoutes, { prefix: '/v1/sign' });
     await server.register(bookingPublicRoutes, { prefix: '/v1/booking-public' });
+    await server.register(calendarSyncRoutes, { prefix: '/v1/tasks/calendar-sync' });
     await server.register(signStampsRoutes, { prefix: '/v1/sign' });
 
 

@@ -28,6 +28,7 @@ import { runSignAnchorStampJob } from './sign-anchor-stamp.job.js';
 import { runNotesReminderJob } from './notes-reminder.job.js';
 import { runNotesPurgeJob } from './notes-purge.job.js';
 import { runCalendarReminderJob } from './calendar-reminder.job.js';
+import { runCalendarExternalSyncJob } from './calendar-external-sync.job.js';
 
 let redisConnection: Redis | null = null;
 let riskQueue: Queue | null = null;
@@ -196,6 +197,8 @@ function startBullMQ(): void {
           await runNotesPurgeJob();
         } else if (job.name === 'calendar-reminder') {
           await runCalendarReminderJob();
+        } else if (job.name === 'calendar-external-sync') {
+          await runCalendarExternalSyncJob();
         }
       },
       { connection: redisConnection as any }
@@ -376,6 +379,14 @@ function startBullMQ(): void {
       repeat: { every: 5 * 60 * 1000 } // Every 5 minutes
     }).catch(console.error);
 
+    // External Google/Outlook calendar pull — a genuine no-op until a tenant
+    // connects one (calendar-sync.routes.ts); 15 min is plenty for "see my
+    // Google events on my Hudumika calendar", not the sub-minute cadence
+    // reminders need.
+    reminderQueue.add('calendar-external-sync', {}, {
+      repeat: { every: 15 * 60 * 1000 } // Every 15 minutes
+    }).catch(console.error);
+
     gpswoxQueue.add('sync', {}, {
       repeat: { every: 2 * 60 * 1000 } // Every 2 minutes — GPSWOX device position/alert sync
     }).catch(console.error);
@@ -436,6 +447,7 @@ function startIntervalFallback(): void {
   runSignAnchorStampJob().catch(console.error);
   runNotesReminderJob().catch(console.error);
   runCalendarReminderJob().catch(console.error);
+  runCalendarExternalSyncJob().catch(console.error);
 
   // Set interval timers
   fallbackTimer = setInterval(() => {
@@ -454,6 +466,12 @@ function startIntervalFallback(): void {
   setInterval(() => {
     runCalendarReminderJob().catch(console.error);
   }, 5 * 60 * 1000);
+
+  // External Google/Outlook calendar pull — see the BullMQ registration
+  // above for why 15 minutes.
+  setInterval(() => {
+    runCalendarExternalSyncJob().catch(console.error);
+  }, 15 * 60 * 1000);
 
   // Daily jobs: status + comply renewals — once every 24 hours.
   // The missing-document reminder belongs here, not on the ten-minute timer
