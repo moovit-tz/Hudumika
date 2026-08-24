@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { useAuth } from '../hooks/useAuth.js';
@@ -32,11 +33,15 @@ interface Transaction { id:string; txRef:string; companyId:string; plan:PlanId; 
 /* ══════════════════════════════════════════════════
    CONFIG
 ══════════════════════════════════════════════════ */
+// Which plan a company is on isn't a status (unlike active/trial/suspended
+// below) — it doesn't need its own hue per tier. One neutral treatment for
+// every plan badge reads as "just information," not a rainbow of unrelated
+// categories.
 const PLAN_CFG: Record<PlanId,{label:string;color:string;bg:string}> = {
-  starter:    { label:'HuduStarter',    color:'var(--blue)', bg:'var(--blue-l)'  },
-  growth:     { label:'HuduPlus',       color:'var(--purple)', bg:'var(--purple-l)'  },
-  scale:      { label:'Legacy Scale',   color:'var(--blue)', bg:'var(--blue-l)'  },
-  enterprise: { label:'Hudu Advanced',   color:'var(--teal)', bg:'var(--teal-l)'  },
+  starter:    { label:'HuduStarter',    color:'var(--ink2)', bg:'var(--bg)'  },
+  growth:     { label:'HuduPlus',       color:'var(--ink2)', bg:'var(--bg)'  },
+  scale:      { label:'Legacy Scale',   color:'var(--ink2)', bg:'var(--bg)'  },
+  enterprise: { label:'Hudu Advanced',   color:'var(--ink2)', bg:'var(--bg)'  },
 };
 const CO_CFG: Record<CoStatus,{label:string;color:string;bg:string}> = {
   active:    { label:'Active',    color:'var(--green)', bg:'var(--green-l)' },
@@ -105,11 +110,14 @@ const SUBSCRIPTIONS: Subscription[] = [
 
 
 
+// The icon shape (building/user/$/gear) already says which category an
+// entry belongs to — a different hue per category on top of that was pure
+// decoration, not information. One neutral treatment throughout.
 const ACT_CFG: Record<ActivityType,{color:string;bg:string;icon:string}> = {
-  company: { color:'var(--blue)', bg:'var(--blue-l)', icon:'building'   },
-  user:    { color:'var(--purple)', bg:'var(--purple-l)', icon:'user'        },
-  billing: { color:'var(--teal)', bg:'var(--teal-l)', icon:'dollarSign'  },
-  system:  { color:'var(--gold)', bg:'var(--gold-l)', icon:'settings'    },
+  company: { color:'var(--ink2)', bg:'var(--bg)', icon:'building'   },
+  user:    { color:'var(--ink2)', bg:'var(--bg)', icon:'user'        },
+  billing: { color:'var(--ink2)', bg:'var(--bg)', icon:'dollarSign'  },
+  system:  { color:'var(--ink2)', bg:'var(--bg)', icon:'settings'    },
 };
 
 // The MOCK_ACTIVITY sample array lived here: twelve invented superadmin
@@ -122,8 +130,11 @@ const ACT_CFG: Record<ActivityType,{color:string;bg:string;icon:string}> = {
 ══════════════════════════════════════════════════ */
 function fmtCurrency(n: number) { return '$' + n.toLocaleString('en-US', { minimumFractionDigits:2, maximumFractionDigits:2 }); }
 function fmtDate(d: string) { return new Date(d).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }); }
-const AV_COLORS = ['#0d7a6b','#0550ae','#6e40c9','#059669','#9a6700','#cf222e','#d05c30','#0e7490'];
-function avColor(n: string) { return AV_COLORS[((n ?? '?').charCodeAt(0)) % AV_COLORS.length]; }
+// A per-company hashed rainbow (8 unrelated hues keyed off the first letter
+// of the name) used to color every avatar in this app — nothing to do with
+// the company itself, just decoration. One consistent brand-accent tone
+// reads as a considered product, not a random-color-per-row template.
+function avColor(_n: string) { return 'var(--teal)'; }
 function coByID(id: string) { return COMPANIES.find(c=>c.id===id)!; }
 
 /* ── Status badge ── */
@@ -132,11 +143,17 @@ function Badge({ cfg }: { cfg:{label:string;color:string;bg:string} }) {
 }
 
 /* ── Company avatar ── */
+// One consistent brand-tint treatment for every company, using the derived
+// tint token (--teal-l) rather than a per-company hue — matches the "never
+// hand-roll color-mix()/string-concat a tint" rule elsewhere in this
+// codebase (appending an alpha suffix onto a var() string, e.g.
+// `${color}22`, produces invalid CSS the moment color is a CSS variable
+// rather than a raw hex literal, which is exactly what silently broke the
+// tint here before).
 function CoAv({ co, size=34 }: { co:Company|undefined; size?:number }) {
-  const color = co?.color ?? '#64748b';
   const initials = co ? co.name.split(' ').slice(0,2).map(w=>w[0]).join('') : '?';
   return (
-    <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:size, height:size, borderRadius: 9, background:`${color}22`, color, fontSize:size*0.35, fontWeight:800, flexShrink:0, letterSpacing:'-0.03em' }}>
+    <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:size, height:size, borderRadius: 9, background:'var(--teal-l)', color:'var(--teal)', fontSize:size*0.35, fontWeight:800, flexShrink:0, letterSpacing:'-0.03em' }}>
       {initials}
     </span>
   );
@@ -324,18 +341,6 @@ function StatCard({ label, value, color }: { label:string; value:number|string; 
 /* ══════════════════════════════════════════════════
    DASHBOARD VIEW
 ══════════════════════════════════════════════════ */
-const SPARK = {
-  companies:   [42,45,48,52,55,53,58,61,64,68,65,70],
-  active:      [38,40,42,44,40,38,41,43,45,44,42,40],
-  subscribers: [120,125,130,128,135,140,138,145,150,148,155,160],
-  earnings:    [12000,13500,11800,14200,13000,12500,11000,13800,14500,12800,11500,13200],
-};
-const PLAN_DIST = [
-  { label:'Starter',      pct:25, color:'var(--blue)' },
-  { label:'Professional', pct:37, color:'var(--purple)' },
-  { label:'Enterprise',   pct:38, color:'var(--teal)' },
-];
-const EXPIRING = SUBSCRIPTIONS.filter(s=>s.status==='active').slice(0,4);
 
 export function DashboardView() {
   const isMobile = useIsMobile();
@@ -369,9 +374,9 @@ export function DashboardView() {
 
       {/* KPI row */}
       <div style={{ display:'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(4,1fr)', gap:16, marginBottom:24 }}>
-        <KPICard title="Total Companies"    value={String(kpis.totalCompanies)}       icon="building"   color="var(--blue)"   spark={spark.companies}   emptyHint={noHistory} />
-        <KPICard title="Active Companies"   value={String(kpis.activeCompanies)}      icon="check"      color="var(--green)"  spark={spark.active}      emptyHint={noHistory} />
-        <KPICard title="Total Subscribers"  value={`${kpis.totalSubscribers} users`}  icon="users"      color="var(--purple)" spark={spark.subscribers} emptyHint={noHistory} />
+        <KPICard title="Total Companies"    value={String(kpis.totalCompanies)}       icon="building"   color="var(--teal)"   spark={spark.companies}   emptyHint={noHistory} />
+        <KPICard title="Active Companies"   value={String(kpis.activeCompanies)}      icon="check"      color="var(--teal)"  spark={spark.active}      emptyHint={noHistory} />
+        <KPICard title="Total Subscribers"  value={`${kpis.totalSubscribers} users`}  icon="users"      color="var(--teal)" spark={spark.subscribers} emptyHint={noHistory} />
         {/* Money received, not a list-price run-rate — the run-rate estimate is
             the smaller figure and was previously the one shown as "earnings". */}
         <KPICard title="Revenue Collected"  value={fmtCurrency(kpis.collectedRevenue ?? 0)} icon="dollarSign" color="var(--teal)" spark={spark.earnings}
@@ -405,7 +410,7 @@ export function DashboardView() {
               {(stats.companyGrowth ?? []).reduce((s: number, m: any) => s + m.value, 0)} in 6 months
             </span>
           </div>
-          <BarChart data={stats.companyGrowth ?? []} color="var(--blue)" />
+          <BarChart data={stats.companyGrowth ?? []} color="var(--teal)" />
         </div>
 
         {/* Plans donut */}
@@ -476,27 +481,30 @@ interface ApiTenant { id:string; name:string; slug:string; plan:string; active:b
 interface CoForm { name:string; email:string; phone:string; plan:PlanId; owner:string; country:string; }
 const CO_FORM_DEFAULT: CoForm = { name:'', email:'', phone:'', plan:'starter', owner:'', country:'Tanzania' };
 
-const TENANT_APPS: { id: string; name: string; color: string }[] = [
-  { id: 'clearos',   name: 'ClearOS',  color: 'var(--gold)' },
-  { id: 'finops',    name: 'FinOps',   color: 'var(--blue)' },
-  { id: 'nexushr',     name: 'NexusHR',  color: 'var(--teal)' },
-  { id: 'bliss',     name: 'Bliss',    color: 'var(--purple)' },
-  { id: 'complyos',  name: 'ComplyOS', color: 'var(--green)' },
-  { id: 'crm',       name: 'CRM',      color: 'var(--green)' },
-  { id: 'cloud',     name: 'Cloud',    color: 'var(--blue)' },
-  { id: 'email',     name: 'Email',    color: 'var(--blue)' },
-  { id: 'contacts',  name: 'Contacts', color: 'var(--blue)' },
-  { id: 'ai',        name: 'AI',       color: 'var(--purple)' },
-  { id: 'store',     name: 'Store',    color: 'var(--purple)' },
-  { id: 'oneid',     name: 'Ondi',     color: 'var(--blue)' },
-  { id: 'tracking',  name: 'Tracking', color: 'var(--blue)' },
-  { id: 'workspace', name: 'Admin',    color: 'var(--ink3)' },
-  { id: 'demurrage',     name: 'Demurrage',    color: 'var(--red)' },
-  { id: 'cargotracker',  name: 'CargoTracker', color: 'var(--purple)' },
-  { id: 'petti',         name: 'Petti',        color: 'var(--green)' },
-  { id: 'notes',         name: 'Notes',        color: 'var(--gold)' },
-  { id: 'sign',          name: 'eSign',        color: 'var(--blue)' },
-  { id: 'sms',           name: 'SMS',          color: 'var(--red)' },
+// Each row already has a real checkbox + name — a different dot colour per
+// app added nothing but visual noise, since the checkbox state (not colour)
+// is what carries the actual information here.
+const TENANT_APPS: { id: string; name: string }[] = [
+  { id: 'clearos',   name: 'ClearOS' },
+  { id: 'finops',    name: 'FinOps' },
+  { id: 'nexushr',     name: 'NexusHR' },
+  { id: 'bliss',     name: 'Bliss' },
+  { id: 'complyos',  name: 'ComplyOS' },
+  { id: 'crm',       name: 'CRM' },
+  { id: 'cloud',     name: 'Cloud' },
+  { id: 'email',     name: 'Email' },
+  { id: 'contacts',  name: 'Contacts' },
+  { id: 'ai',        name: 'AI' },
+  { id: 'store',     name: 'Store' },
+  { id: 'oneid',     name: 'Ondi' },
+  { id: 'tracking',  name: 'Tracking' },
+  { id: 'workspace', name: 'Admin' },
+  { id: 'demurrage',     name: 'Demurrage' },
+  { id: 'cargotracker',  name: 'CargoTracker' },
+  { id: 'petti',         name: 'Petti' },
+  { id: 'notes',         name: 'Notes' },
+  { id: 'sign',          name: 'eSign' },
+  { id: 'sms',           name: 'SMS' },
 ];
 
 interface TenantCustomer {
@@ -558,7 +566,7 @@ export function CompaniesView() {
         created: t.created_at?.slice(0,10) ?? new Date().toISOString().slice(0,10),
         owner:   mock?.owner  ?? 'Admin',
         country: mock?.country ?? 'Tanzania',
-        color:   t.primary_color ?? mock?.color ?? avColor(t.name),
+        color:   t.primary_color ?? avColor(t.name),
       } satisfies Company;
     });
   }, [tenants, apiError]);
@@ -753,7 +761,7 @@ export function CompaniesView() {
                     <Icon name="eye" size={11} color="var(--teal)" />
                     {impersonating === co.id ? 'Switching…' : 'Login As'}
                   </button>
-                  <ActBtn icon="users" color="var(--blue)" title="View customers" onClick={()=>openCustomers(co)} />
+                  <ActBtn icon="users" title="View customers" onClick={()=>openCustomers(co)} />
                   <ActBtn icon="edit" color="var(--teal)" title="Edit company" onClick={()=>openEdit(co)} />
                   <ActBtn icon="trash" color="var(--red)" title="Delete company" onClick={()=>deleteCompany(co.id)} />
                 </div>
@@ -836,7 +844,6 @@ export function CompaniesView() {
                     <label key={app.id} style={{ display:'flex', alignItems:'center', gap:7, fontSize:12.5, color:'var(--ink)', cursor:'pointer', padding:'3px 0' }}>
                       <input type="checkbox" checked={enabled}
                         onChange={e => setEditEnabledApps(p => ({ ...p, [app.id]: e.target.checked }))} />
-                      <span style={{ width:7, height:7, borderRadius:'50%', background: app.color, flexShrink:0 }} />
                       {app.name}
                     </label>
                   );
@@ -1151,7 +1158,12 @@ export function PackagesView() {
       monthlyItemLimit: pkg.monthly_item_limit,
       storageLimitGb: pkg.storage_limit_bytes != null ? Math.round(pkg.storage_limit_bytes / 1073741824) : null,
       active: 0,
-      color: pkg.color,
+      // A package with no color set (onsite-standalone, agency-managed) used
+      // to fall through to `${pkg.color}18` → "null18" and an unset Icon
+      // color, which is exactly how one plan card ended up a different,
+      // unintended colour from the other three. Same real brand accent every
+      // other package already uses, not a fresh arbitrary pick.
+      color: pkg.color || '#e8461a',
       popular: pkg.popular,
       features: pkg.features,
     };
@@ -1325,7 +1337,7 @@ export function PackagesView() {
                     body: JSON.stringify({
                       code, name: newPkg.name.trim(),
                       monthly_price: newPkg.monthly, annual_price: newPkg.annual, max_users: newPkg.maxUsers,
-                      features: ['Custom features'], color: 'var(--purple)', popular: false, sort_order: 99,
+                      features: ['Custom features'], color: 'var(--teal)', popular: false, sort_order: 99,
                     }),
                   });
                   reload();
@@ -1417,7 +1429,7 @@ export function DomainsView() {
         <StatCard label="Total Domains"  value={stats.total}     color="var(--teal)"   />
         <StatCard label="Verified"       value={stats.verified}  color="var(--green)"  />
         {/* Counts certificates actually seen, not domains someone ticked. */}
-        <StatCard label="Serving TLS"    value={stats.ssl}       color="var(--purple)" />
+        <StatCard label="Serving TLS"    value={stats.ssl}       color="var(--green)" />
         <StatCard label="Never checked"  value={stats.unchecked} color="var(--gold)"   />
       </div>
 
@@ -1705,14 +1717,14 @@ export function FinanceView() {
       <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:16, marginBottom:24 }}>
         <KPICard title="Revenue Collected"      value={fmtCurrency(collected)} icon="dollarSign" color="var(--teal)"
                  spark={trend.map((d: any) => d.value)} emptyHint={noHistory} />
-        <KPICard title="Payments Received"      value={String(paidCount)}      icon="receipt"    color="var(--green)"
+        <KPICard title="Payments Received"      value={String(paidCount)}      icon="receipt"    color="var(--teal)"
                  hint={`${tx?.totals?.allCount ?? 0} transactions in total`} />
         {/* Named an estimate on the card, because it is one: list price for
             every active tenant, whether or not they have ever paid. */}
-        <KPICard title="Run Rate (list price)"  value={fmtCurrency(runRate)}   icon="trendingUp" color="var(--purple)"
+        <KPICard title="Run Rate (list price)"  value={fmtCurrency(runRate)}   icon="trendingUp" color="var(--teal)"
                  hint="estimate — active tenants at list price" />
         <KPICard title="Paying Companies"       value={String(new Set((tx?.data ?? []).filter((t: any) => t.status === 'completed').map((t: any) => t.companyId)).size)}
-                 icon="building" color="var(--gold)" hint={`of ${stats?.kpis?.activeCompanies ?? 0} active`} />
+                 icon="building" color="var(--teal)" hint={`of ${stats?.kpis?.activeCompanies ?? 0} active`} />
       </div>
 
       <div style={{ display:'grid', gridTemplateColumns:'1fr 360px', gap:20 }}>
@@ -1894,8 +1906,6 @@ export function SettingsView() {
   const [saved, setSaved] = useState<string|null>(null);
   const [maintenance, setMaintenance] = useState(false);
   const [smtp, setSmtp] = useState({ host:'smtp.mailgun.org', port:'587', user:'no-reply@clearos.io', pass:'', from:'Hudumika Platform <no-reply@clearos.io>', tls:true });
-  const [storage, setStorage] = useState({ starter:'10', growth:'50', scale:'250', enterprise:'Unlimited', perUserGB:'2' });
-  const [features, setFeatures] = useState({ crm:true, hrm:true, finance:true, api:true, whitelabel:false, customDomain:true, aiCopilot:true, twoFactor:false });
   const [security, setSecurity] = useState({ minPasswordLength:'8', sessionTimeoutHours:'8', maxLoginAttempts:'5', lockoutMinutes:'15', twoFaPolicy:'optional' as 'off'|'optional'|'required', ipAllowlist:'' });
   const [api, setApi] = useState({ rateLimit:'120', corsOrigins:'*', webhookSecret:'whs_live_••••••••••••••••', keyRotationDays:'90' });
   const [showWebhookSecret, setShowWebhookSecret] = useState(false);
@@ -1905,6 +1915,8 @@ export function SettingsView() {
   const [smtpTested, setSmtpTested] = useState(false);
   const [testingOcr, setTestingOcr] = useState(false);
   const [ocrTested, setOcrTested] = useState(false);
+  const [jobs, setJobs] = useState<{ connected: boolean; jobs: { name: string; schedule: string; fallbackOnly?: boolean }[] }>({ connected: false, jobs: [] });
+  const [serverInfo, setServerInfo] = useState<Record<string, string | number> | null>(null);
 
   useEffect(() => {
     apiFetch('/v1/superadmin/settings')
@@ -1912,8 +1924,6 @@ export function SettingsView() {
         const s = res.settings || {};
         if (s.maintenance !== undefined) setMaintenance(s.maintenance);
         if (s.smtp) setSmtp(prev => ({ ...prev, ...s.smtp }));
-        if (s.storage) setStorage(prev => ({ ...prev, ...s.storage }));
-        if (s.features) setFeatures(prev => ({ ...prev, ...s.features }));
         if (s.security) setSecurity(prev => ({ ...prev, ...s.security }));
         if (s.api) setApi(prev => ({ ...prev, ...s.api }));
         if (s.ocr) setOcr(prev => ({ ...prev, ...s.ocr }));
@@ -1922,14 +1932,14 @@ export function SettingsView() {
       .catch(() => {
         setLoading(false);
       });
+    apiFetch('/v1/superadmin/jobs').then(setJobs).catch(() => {});
+    apiFetch('/v1/superadmin/server-info').then(setServerInfo).catch(() => {});
   }, []);
 
   async function save(section: string) {
     const payload = {
       maintenance,
       smtp,
-      storage,
-      features,
       security,
       api,
       ocr
@@ -1956,8 +1966,6 @@ export function SettingsView() {
         body: JSON.stringify({
           maintenance: next,
           smtp,
-          storage,
-          features,
           security,
           api
         })
@@ -2063,6 +2071,10 @@ export function SettingsView() {
 
       {/* ── Security & Sessions ── */}
       <SectionCard title="Security & Sessions" sub="Password policy, session management, and access controls" section="security">
+        <div style={{ display:'flex', alignItems:'center', gap:8, fontSize:12, color:'var(--gold)', background:'var(--gold-l)', border:'1px solid var(--gold)', borderRadius:8, padding:'8px 12px', marginBottom:16 }}>
+          <Icon name="alertTriangle" size={13} />
+          Saved here, but not yet enforced anywhere — no login-time check reads these values yet.
+        </div>
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))', gap:16 }}>
           <Field label="Minimum Password Length" hint="Characters required for all user passwords">
             <input title="Min password length" type="number" min={6} max={32} value={security.minPasswordLength}
@@ -2154,6 +2166,10 @@ export function SettingsView() {
 
       {/* ── API & Webhooks ── */}
       <SectionCard title="API & Webhooks" sub="Rate limiting, CORS, and webhook security for platform APIs" section="api">
+        <div style={{ display:'flex', alignItems:'center', gap:8, fontSize:12, color:'var(--gold)', background:'var(--gold-l)', border:'1px solid var(--gold)', borderRadius:8, padding:'8px 12px', marginBottom:16 }}>
+          <Icon name="alertTriangle" size={13} />
+          Saved here, but not yet enforced anywhere — no request path reads these values yet.
+        </div>
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))', gap:16 }}>
           <Field label="API Rate Limit" hint="Maximum requests per minute per API key">
             <input title="Rate limit" type="number" min={10} max={10000} value={api.rateLimit}
@@ -2183,50 +2199,32 @@ export function SettingsView() {
         </div>
       </SectionCard>
 
-      {/* ── Storage Quotas ── */}
-      <SectionCard title="Storage Quotas" sub="Maximum storage allocated per subscription plan and per user" section="storage">
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(160px,1fr))', gap:14 }}>
-          {(['starter','growth','scale','enterprise'] as const).map(plan => (
-            <Field key={plan} label={`${PLAN_CFG[plan].label} (GB)`}>
-              <input title={`${PLAN_CFG[plan].label} quota`} type={plan === 'enterprise' ? 'text' : 'number'} min={1} value={(storage as any)[plan]}
-                onChange={e => setStorage(p=>({...p,[plan]:e.target.value}))} className="input-field" style={{ width:'100%' }} />
-            </Field>
-          ))}
-          <Field label="Per-User Add-on (GB)" hint="Extra GB per user seat above the base plan">
-            <input title="Per-user storage" type="number" min={0} value={storage.perUserGB}
-              onChange={e => setStorage(p=>({...p,perUserGB:e.target.value}))} className="input-field" style={{ width:'100%' }} />
-          </Field>
+      {/* ── Modules & Plan Features ── */}
+      {/* This used to be two separate panels (Feature Flags, Storage Quotas)
+          whose toggles/fields saved to a settings key nothing ever read —
+          real writes, but a dead end. App Status and Packages already own
+          this for real (app_status/package_features/package_app_quotas,
+          actually enforced), so this card points there instead of running a
+          second, disconnected copy of the same controls. */}
+      <SectionCard title="Modules & Plan Features" sub="Per-app availability and per-plan feature/storage grants" section="modules-pointer" readOnly>
+        <div style={{ fontSize:13, color:'var(--ink2)', lineHeight:1.6, marginBottom:16 }}>
+          Enabling or disabling an app platform-wide (or per tenant), and what each subscription plan includes — feature grants, storage limits, monthly item caps — are configured on their own real, enforced pages rather than duplicated here.
         </div>
-      </SectionCard>
-
-      {/* ── Feature Flags ── */}
-      <SectionCard title="Feature Flags" sub="Enable or disable platform modules globally across all tenants" section="features">
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))', gap:10 }}>
-          {([
-            ['crm','CRM & Leads','Customer relationship and sales pipeline module'],
-            ['hrm','HRM Module','Human resources, payroll, and shift management'],
-            ['finance','Finance Suite','Accounts, invoicing, and expense tracking'],
-            ['api','API Access','Programmatic access via REST API and webhooks'],
-            ['whitelabel','White-label Mode','Hide Hudumika branding for reseller tenants'],
-            ['customDomain','Custom Domains','Allow tenants to use their own domain name'],
-            ['aiCopilot','AI Copilot','Generative AI assistant across all apps'],
-            ['twoFactor','2FA Enforcement','Force all accounts to enroll in 2-factor auth'],
-          ] as [keyof typeof features, string, string][]).map(([key, label, desc]) => (
-            <div key={key} style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:16, padding:'12px 14px', border:'1px solid var(--border)', borderRadius:9 }}>
-              <div>
-                <div style={{ fontSize:13, fontWeight:600, color:'var(--ink)' }}>{label}</div>
-                <div style={{ fontSize:11.5, color:'var(--ink3)', marginTop:2 }}>{desc}</div>
-              </div>
-              <SAToggle value={features[key]} onChange={v => setFeatures(p=>({...p,[key]:v}))} label={label} />
-            </div>
-          ))}
+        <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
+          <Link to="/admin/app-status" className="btn btn-outline btn-sm" style={{ gap:6 }}>
+            <Icon name="shield" size={13} /> Open App Status
+          </Link>
+          <Link to="/admin/packages" className="btn btn-outline btn-sm" style={{ gap:6 }}>
+            <Icon name="package" size={13} /> Open Packages
+          </Link>
         </div>
       </SectionCard>
 
       {/* ── Cron Jobs ── */}
-      <SectionCard title="Cron Jobs" sub="Platform-level scheduled tasks — configure via cron endpoint or process manager" section="cron">
-        <div className="sa-cron-url">
-          Endpoint: <span className="sa-cron-url-link">{window.location.origin}/api/cron/run?key=CRON_SECRET_KEY</span>
+      <SectionCard title="Cron Jobs" sub="Every background job actually registered by this server — name and schedule, read live" section="cron" readOnly>
+        <div style={{ display:'flex', alignItems:'center', gap:8, fontSize:12, color: jobs.connected ? 'var(--green)' : 'var(--gold)', background: jobs.connected ? 'var(--green-l)' : 'var(--gold-l)', border: `1px solid ${jobs.connected ? 'var(--green)' : 'var(--gold)'}`, borderRadius:8, padding:'8px 12px', marginBottom:16 }}>
+          <Icon name={jobs.connected ? 'checkCircle' : 'alertTriangle'} size={13} />
+          {jobs.connected ? 'BullMQ (Redis) connected — schedules below are persistent and distributed.' : 'Redis unavailable — running on an in-process interval fallback (no persisted run history).'}
         </div>
         <div className="rtbl-wrap">
           <table className="rtbl">
@@ -2234,68 +2232,54 @@ export function SettingsView() {
               <tr className="sa-cron-hdr-row">
                 <th className="sa-cron-th">Job</th>
                 <th className="sa-cron-th">Schedule</th>
-                <th className="sa-cron-th">Last Run</th>
-                <th className="sa-cron-th">Duration</th>
                 <th className="sa-cron-th--center">Status</th>
               </tr>
             </thead>
             <tbody>
-              {([
-                { name:'Overdue Invoice Reminders',  schedule:'Daily 09:00',       last:'2026-06-30 09:00', dur:'1.2s',  active:true  },
-                { name:'Auto-Renew Subscriptions',   schedule:'Daily 00:00',       last:'2026-06-30 00:00', dur:'0.8s',  active:true  },
-                { name:'Sync Exchange Rates',         schedule:'Every 6 hours',     last:'2026-06-30 06:00', dur:'2.1s',  active:true  },
-                { name:'Demurrage Alerts',            schedule:'Daily 07:00',       last:'2026-06-30 07:00', dur:'3.4s',  active:true  },
-                { name:'SLA Breach Notifications',   schedule:'Every 2 hours',     last:'2026-06-30 08:00', dur:'1.7s',  active:true  },
-                { name:'Database Backup',             schedule:'Daily 03:00',       last:'2026-06-30 03:00', dur:'42s',   active:true  },
-                { name:'Clear Temp Files',            schedule:'Sundays 02:00',     last:'2026-06-29 02:00', dur:'5.1s',  active:true  },
-                { name:'Generate Weekly Reports',     schedule:'Mondays 08:00',     last:'2026-06-23 08:00', dur:'18s',   active:false },
-                { name:'Tenant Usage Aggregation',   schedule:'Daily 01:00',       last:'2026-06-30 01:00', dur:'6.3s',  active:true  },
-                { name:'Expire Trial Accounts',       schedule:'Daily 23:59',       last:'2026-06-30 23:59', dur:'0.4s',  active:true  },
-              ] as const).map((j, i) => (
-                <tr key={i} className="sa-cron-row">
-                  <td className="sa-cron-td">{j.name}</td>
-                  <td className="sa-cron-td--sched">{j.schedule}</td>
-                  <td className="sa-cron-td--time">{j.last}</td>
-                  <td className="sa-cron-td--time">{j.dur}</td>
-                  <td className="sa-cron-td--status">
-                    <span className={`sa-cron-badge sa-cron-badge--${j.active ? 'active' : 'inactive'}`}>
-                      {j.active ? 'active' : 'paused'}
-                    </span>
-                  </td>
-                </tr>
-              ))}
+              {jobs.jobs.map((j, i) => {
+                const runs = !j.fallbackOnly || !jobs.connected;
+                return (
+                  <tr key={i} className="sa-cron-row">
+                    <td className="sa-cron-td">{j.name}</td>
+                    <td className="sa-cron-td--sched">{j.schedule}</td>
+                    <td className="sa-cron-td--status">
+                      <span className={`sa-cron-badge sa-cron-badge--${runs ? 'active' : 'inactive'}`} title={j.fallbackOnly ? 'Only scheduled by the interval fallback — no BullMQ repeat registration exists for this job yet.' : undefined}>
+                        {runs ? 'scheduled' : 'not scheduled'}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+              {jobs.jobs.length === 0 && (
+                <tr><td colSpan={3} style={{ padding: 24, textAlign: 'center', color: 'var(--ink3)' }}>Loading…</td></tr>
+              )}
             </tbody>
           </table>
         </div>
       </SectionCard>
 
       {/* ── System & Server Info ── */}
-      <SectionCard title="System & Server Info" sub="Read-only platform infrastructure and runtime details" section="server" readOnly>
+      <SectionCard title="System & Server Info" sub="Read-only platform infrastructure and runtime details, read live from the running process" section="server" readOnly>
         <div className="sa-server-grid">
-          {([
-            ['Application','Hudumika ClearOS v2.1.0'],
-            ['Node.js Runtime','v20.18.0 LTS'],
-            ['Environment','Production'],
-            ['Database','PostgreSQL 16.2'],
-            ['Cache Layer','Redis 7.2.4'],
-            ['Platform','Linux x64 (Ubuntu 22.04)'],
-            ['Storage','262 GB free / 500 GB'],
-            ['Memory','768 MB used / 2 GB'],
-            ['CPU','4 vCPUs @ 2.4 GHz'],
-            ['Active Connections','847'],
-            ['Server Timezone','UTC+0'],
-            ['Last Deployment','2026-06-10 08:32 UTC'],
-            ['Uptime','20d 14h 22m'],
-            ['License','Commercial — Active'],
-          ] as const).map(([label, value]) => {
-            const mono = ['Node.js Runtime','Database','Cache Layer','Memory','CPU','Server Timezone','Last Deployment','Uptime','Active Connections'].includes(label);
-            return (
-              <div key={label}>
-                <div className="sa-server-label">{label}</div>
-                <div className={`sa-server-value${mono ? ' sa-server-value--mono' : ''}`}>{value}</div>
-              </div>
-            );
-          })}
+          {serverInfo ? ([
+            ['Node.js Runtime', String(serverInfo.nodeVersion)],
+            ['Environment', String(serverInfo.environment)],
+            ['Database', String(serverInfo.database)],
+            ['Job Scheduling', String(serverInfo.jobScheduling)],
+            ['Platform', String(serverInfo.platform)],
+            ['CPU', `${serverInfo.cpuCount} × ${serverInfo.cpuModel}`],
+            ['System Memory', `${serverInfo.freeMemoryMb} MB free / ${serverInfo.totalMemoryMb} MB`],
+            ['Process Heap', `${serverInfo.heapUsedMb} MB used / ${serverInfo.heapTotalMb} MB`],
+            ['Server Timezone', String(serverInfo.timezone)],
+            ['App Uptime', String(serverInfo.appUptime)],
+          ] as const).map(([label, value]) => (
+            <div key={label}>
+              <div className="sa-server-label">{label}</div>
+              <div className="sa-server-value sa-server-value--mono">{value}</div>
+            </div>
+          )) : (
+            <div style={{ padding: 24, textAlign: 'center', color: 'var(--ink3)' }}>Loading…</div>
+          )}
         </div>
       </SectionCard>
     </div>

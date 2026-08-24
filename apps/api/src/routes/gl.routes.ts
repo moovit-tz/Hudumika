@@ -181,6 +181,21 @@ export async function glRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // Recharges a recoverable, already-posted demurrage charge onto a real
+  // invoice line — the piece cost-posting.service.ts's own header comment
+  // flagged as not yet built (the receivable was recognised in the GL, but
+  // nothing ever added it to a customer's actual invoice).
+  fastify.post('/post-costs/demurrage/:containerId/recharge', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE') }, async (request: any, reply) => {
+    const { containerId } = request.params as { containerId: string };
+    const { invoice_id } = z.object({ invoice_id: z.string().uuid() }).parse(request.body);
+    try {
+      const result = await CostPostingService.rechargeDemurrage(request.user.tenant_id, containerId, invoice_id);
+      return { success: true, ...result };
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message });
+    }
+  });
+
   // Journal Entries
   fastify.post('/journal-entries', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request: any, reply) => {
     try {
@@ -196,13 +211,29 @@ export async function glRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // A manually-posted entry previously had no way to be undone through the
+  // API at all — this posts the mirror-image reversal and marks the
+  // original VOIDED, same reversal-not-deletion shape invoices/bills
+  // already use when voiding their own postings.
+  fastify.post('/journal-entries/:id/void', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'FINANCE') }, async (request: any, reply) => {
+    const { id } = request.params as { id: string };
+    const { reason } = z.object({ reason: z.string().trim().min(1).max(500) }).parse(request.body);
+    try {
+      const tenantId = request.user.tenant_id;
+      const reversalId = await GLService.voidEntry(tenantId, id, request.user.sub, reason);
+      return { success: true, reversal_id: reversalId };
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message });
+    }
+  });
+
   fastify.get('/journal-entries', async (request: any, reply) => {
     try {
       const tenantId = request.user.tenant_id;
       const result = await withTenant(tenantId, async (trx) => {
         const entries = await trx
           .selectFrom('journal_entries')
-          .select(['id', 'entry_number', 'entry_date', 'reference', 'description', 'status', 'source_module', 'source_id', 'created_by', 'posted_at'])
+          .select(['id', 'entry_number', 'entry_date', 'reference', 'description', 'status', 'source_module', 'source_id', 'created_by', 'posted_at', 'voided_at', 'void_reason'])
           .where('tenant_id', '=', tenantId)
           .orderBy('entry_date', 'desc')
           .orderBy('entry_number', 'desc')

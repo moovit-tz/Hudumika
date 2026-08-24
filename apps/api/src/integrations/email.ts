@@ -1,7 +1,23 @@
 import { env } from '../config/env.js';
 import nodemailer from 'nodemailer';
-import { withTenant } from '../db/client.js';
+import { dbPlatform, withTenant } from '../db/client.js';
 import { encryptSecret, decryptSecret } from '../services/onsite-secrets.service.js';
+
+const GLOBAL_TENANT_ID = '00000000-0000-0000-0000-000000000000';
+
+/** The platform-level SMTP config a SuperAdmin saves at Platform Settings ▸
+ *  Email/SMTP (superadmin.routes.ts) — the real source for this system-
+ *  default fallback, checked before env.SMTP_* so a SuperAdmin's saved
+ *  credentials actually take effect instead of silently being unread. */
+async function getPlatformSmtpConfig(): Promise<{ host: string; port?: string | number; user: string; pass: string; tls?: boolean; from?: string } | null> {
+  const row = await dbPlatform.selectFrom('tenant_settings').select('settings')
+    .where('tenant_id', '=', GLOBAL_TENANT_ID).executeTakeFirst();
+  if (!row) return null;
+  const settings = typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings;
+  const smtp = settings?.smtp;
+  if (!smtp?.host || !smtp?.pass) return null;
+  return { ...smtp, pass: decryptIfEncrypted(smtp.pass) };
+}
 
 /**
  * Builds a plain SMTP nodemailer transporter from a host/port/user/pass/enc
@@ -146,30 +162,45 @@ export class EmailIntegration {
         }
       } else {
         // --- Mail Protocol (System Default / Fallback) ---
-        // If the system default is not set or is still the placeholder, we simulate delivery in development
-        const isPlaceholder = env.SMTP_USER === 'your-email@domain.com' || env.SMTP_PASS === 'your-app-password';
-        
-        if (isPlaceholder && env.APP_ENV !== 'production') {
-          console.log(`📧 [Simulated Email] To: ${input.to} | Subject: ${input.subject}`);
-          // Flagged for the same reason as the WhatsApp simulation: nothing
-          // downstream should record this as delivered.
-          return { success: true, simulated: true, messageId: `sim_${Math.random().toString(36).substring(7)}` };
+        // A SuperAdmin's saved Platform Settings ▸ Email/SMTP config (real,
+        // encrypted at rest) is the real system default; env.SMTP_* is only
+        // a fallback for environments where nothing has been saved yet.
+        const platformSmtp = await getPlatformSmtpConfig();
+
+        if (platformSmtp) {
+          transporter = buildSmtpTransporter({
+            host: platformSmtp.host, port: platformSmtp.port, user: platformSmtp.user,
+            pass: platformSmtp.pass, enc: platformSmtp.tls ? 'tls' : undefined,
+          });
+          const fromMatch = /^(.*?)\s*<(.+)>$/.exec(platformSmtp.from || '');
+          fromName = fromMatch ? fromMatch[1].replace(/^"|"$/g, '') : 'Hudumika Platform';
+          fromAddress = fromMatch ? fromMatch[2] : platformSmtp.user;
+        } else {
+          // If the system default is not set or is still the placeholder, we simulate delivery in development
+          const isPlaceholder = env.SMTP_USER === 'your-email@domain.com' || env.SMTP_PASS === 'your-app-password';
+
+          if (isPlaceholder && env.APP_ENV !== 'production') {
+            console.log(`📧 [Simulated Email] To: ${input.to} | Subject: ${input.subject}`);
+            // Flagged for the same reason as the WhatsApp simulation: nothing
+            // downstream should record this as delivered.
+            return { success: true, simulated: true, messageId: `sim_${Math.random().toString(36).substring(7)}` };
+          }
+
+          // Use the system's pre-configured global SMTP mailer
+          transporter = nodemailer.createTransport({
+            host: env.SMTP_HOST,
+            port: env.SMTP_PORT,
+            secure: env.SMTP_PORT === 465,
+            auth: {
+              user: env.SMTP_USER,
+              pass: env.SMTP_PASS,
+            },
+            tls: { rejectUnauthorized: false }
+          });
+
+          fromName = 'Hudumika Notification';
+          fromAddress = env.SMTP_USER;
         }
-
-        // Use the system's pre-configured global SMTP mailer
-        transporter = nodemailer.createTransport({
-          host: env.SMTP_HOST,
-          port: env.SMTP_PORT,
-          secure: env.SMTP_PORT === 465,
-          auth: {
-            user: env.SMTP_USER,
-            pass: env.SMTP_PASS,
-          },
-          tls: { rejectUnauthorized: false }
-        });
-
-        fromName = 'Hudumika Notification';
-        fromAddress = env.SMTP_USER;
       }
 
       // 3. Send the email

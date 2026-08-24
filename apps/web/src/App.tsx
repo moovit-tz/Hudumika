@@ -14,6 +14,7 @@ import { WorkspaceProvider } from './contexts/WorkspaceContext.js';
 import { Icon, type IconName } from './components/Icon.js';
 import { SkeletonPage } from './components/ui/skeleton.js';
 import { Login }           from './pages/Login.js';
+import { MaintenancePage } from './pages/MaintenancePage.js';
 import { OnboardingWizard } from './pages/onboarding/OnboardingWizard.js';
 import { ForgotPassword }  from './pages/ForgotPassword.js';
 import { ResetPassword }   from './pages/ResetPassword.js';
@@ -302,6 +303,7 @@ const AppContentBody: React.FC = () => {
 
   if (!user) return (
     <Routes>
+      <Route path="/maintenance"          element={<MaintenancePage />} />
       <Route path="/signup"               element={<OnboardingWizard />} />
       <Route path="/auth/register"        element={<Navigate to="/signup" replace />} />
       <Route path="/auth/forgot-password" element={<ForgotPassword />} />
@@ -342,6 +344,7 @@ const AppContentBody: React.FC = () => {
           <Route path="/" element={<HubPage />} />
 
           {/* Public legal pages — self-contained layout */}
+          <Route path="/maintenance"    element={<MaintenancePage />} />
           <Route path="/terms"          element={<TermsOfService />} />
           <Route path="/privacy"        element={<PrivacyPolicy />} />
           <Route path="/support-ticket" element={<SupportTicket />} />

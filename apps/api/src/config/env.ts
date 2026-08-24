@@ -106,6 +106,21 @@ const envSchema = z.object({
   OPS_BOARD_URL: z.string().url().default('http://localhost:5173'),
   
   AIS_API_KEY: z.string().optional(),
+
+  /**
+   * QuickBooks/Xero OAuth app credentials. Unlike mail-oauth (where each
+   * tenant registers their own Microsoft/Google app to send-as their own
+   * domain), an accounting sync is Hudumika asking for access to a
+   * tenant's company — one app registered once with Intuit/Xero, shared
+   * across every tenant, exactly how QBO/Xero App Store integrations work.
+   * Optional: unset until a real Intuit/Xero developer app exists: the
+   * Connect button then reports the integration as not yet configured
+   * instead of attempting an OAuth flow with no client id.
+   */
+  QUICKBOOKS_CLIENT_ID: z.string().optional(),
+  QUICKBOOKS_CLIENT_SECRET: z.string().optional(),
+  XERO_CLIENT_ID: z.string().optional(),
+  XERO_CLIENT_SECRET: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

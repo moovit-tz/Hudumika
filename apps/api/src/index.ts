@@ -59,6 +59,7 @@ import { activityMonitorRoutes } from './routes/activity-monitor.routes.js';
 import { orgChartRoutes }   from './routes/org-chart.routes.js';
 import { permissionsRoutes } from './routes/permissions.routes.js';
 import { invoiceRoutes }  from './routes/invoices.routes.js';
+import { creditNoteRoutes } from './routes/credit-notes.routes.js';
 import { paymentRoutes }  from './routes/payments.routes.js';
 import { chatRoutes } from './routes/chat.routes.js';
 import { productRoutes }  from './routes/products.routes.js';
@@ -85,6 +86,7 @@ import { glRoutes } from './routes/gl.routes.js';
 import { purchaseOrderRoutes } from './routes/purchase-orders.routes.js';
 import { supplierRoutes } from './routes/suppliers.routes.js';
 import { accountingIntegrationRoutes } from './routes/accounting-integration.routes.js';
+import { accountingOAuthRoutes } from './routes/accounting-oauth.routes.js';
 import { nexusHRRoutes } from './routes/nexushr.routes.js';
 import { contactsRoutes } from './routes/contacts.routes.js';
 import { contactsSyncRoutes } from './routes/contacts-sync.routes.js';
@@ -160,6 +162,7 @@ import { signStampsRoutes } from './routes/sign-stamps.routes.js';
 import { bookingPublicRoutes } from './routes/booking.routes.js';
 import { calendarSyncRoutes } from './routes/calendar-sync.routes.js';
 import { smsRoutes, smsWebhookRoutes } from './routes/sms.routes.js';
+import { setupGuideRoutes } from './routes/setup-guide.routes.js';
 
 const server = fastify({
   logger: {
@@ -374,6 +377,7 @@ async function main() {
     await server.register(orgChartRoutes,   { prefix: '/v1/org-chart' });
     await server.register(permissionsRoutes, { prefix: '/v1/permissions' });
     await server.register(invoiceRoutes,  { prefix: '/v1/invoices' });
+    await server.register(creditNoteRoutes, { prefix: '/v1/credit-notes' });
     await server.register(paymentRoutes,  { prefix: '/v1/payments' });
     await server.register(chatRoutes, { prefix: '/v1/chat' });
     await server.register(productRoutes,  { prefix: '/v1/products' });
@@ -401,6 +405,7 @@ async function main() {
     await server.register(purchaseOrderRoutes, { prefix: '/v1/purchase-orders' });
     await server.register(supplierRoutes, { prefix: '/v1/suppliers' });
     await server.register(accountingIntegrationRoutes, { prefix: '/v1/accounting-integrations' });
+    await server.register(accountingOAuthRoutes, { prefix: '/v1/accounting-integrations' });
     await server.register(nexusHRRoutes, { prefix: '/v1/hr' });
     await server.register(contactsRoutes, { prefix: '/v1/contacts' });
     await server.register(contactsSyncRoutes, { prefix: '/v1/contacts' });
@@ -467,6 +472,7 @@ async function main() {
     await server.register(signStampsRoutes, { prefix: '/v1/sign' });
     await server.register(smsRoutes, { prefix: '/v1/sms' });
     await server.register(smsWebhookRoutes, { prefix: '/v1/sms/webhook' });
+    await server.register(setupGuideRoutes, { prefix: '/v1/setup-guide' });
 
 
     // Health check

@@ -1,0 +1,470 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hudumika Workspace — Onboarding</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Cormorant+Garamond:ital,wght@1,600;1,700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#0e1f3d;
+    --teal:#0d7a6b;
+    --teal-l:#e6f5f2;
+    --teal-m:#bfe4dd;
+    --ink:#1f1f1f;
+    --ink2:#444746;
+    --ink3:#5f6368;
+    --border:#e2e8f0;
+    --bg:#f6f8fa;
+    --card:#ffffff;
+    --red:#dc2626;
+    --blue:#2563eb;
+    --gold:#d97706;
+    --green:#059669;
+    --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --serif: 'Cormorant Garamond', Georgia, serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:var(--font);
+    color:var(--ink);
+    background:var(--bg);
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* ── Hero ─────────────────────────────────────────── */
+  .hero{
+    background:linear-gradient(135deg,var(--navy) 0%, var(--teal) 130%);
+    color:#fff;
+    padding:72px 24px 96px;
+    text-align:center;
+    position:relative;
+    overflow:hidden;
+  }
+  .hero::after{
+    content:'';
+    position:absolute; inset:0;
+    background:
+      radial-gradient(circle at 15% 20%, rgba(255,255,255,0.08), transparent 40%),
+      radial-gradient(circle at 85% 80%, rgba(255,255,255,0.06), transparent 45%);
+    pointer-events:none;
+  }
+  .brand-row{
+    display:flex; align-items:center; justify-content:center; gap:10px;
+    margin-bottom:36px; position:relative;
+  }
+  .brand-grid{
+    display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr;
+    gap:2px; width:22px; height:22px;
+  }
+  .brand-sq{ border-radius:2px; }
+  .brand-sq.r{ background:#ef4444; } .brand-sq.b{ background:#3b82f6; }
+  .brand-sq.y{ background:#f59e0b; } .brand-sq.g{ background:#10b981; }
+  .brand-name{ font-size:18px; font-weight:600; letter-spacing:0.2px; }
+  .hero h1{
+    font-size:44px; font-weight:300; line-height:1.15; margin:0 0 16px;
+    letter-spacing:-0.5px; position:relative;
+  }
+  .hero h1 em{
+    font-family:var(--serif); font-style:italic; font-weight:700;
+    color:#7ee8d6;
+  }
+  .hero p{
+    font-size:16.5px; color:rgba(255,255,255,0.78); max-width:560px;
+    margin:0 auto; line-height:1.6; position:relative;
+  }
+  .hero .pill{
+    display:inline-flex; align-items:center; gap:8px;
+    background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.2);
+    padding:6px 14px; border-radius:100px; font-size:12.5px; font-weight:600;
+    letter-spacing:0.04em; text-transform:uppercase; margin-bottom:22px;
+    position:relative;
+  }
+  .pill-dot{ width:6px; height:6px; border-radius:50%; background:#7ee8d6; }
+
+  /* ── Layout ───────────────────────────────────────── */
+  .wrap{ max-width:860px; margin:0 auto; padding:0 24px; }
+  .flow{
+    margin-top:-56px;
+    position:relative;
+    padding-bottom:40px;
+  }
+
+  /* ── Step card ────────────────────────────────────── */
+  .step{
+    display:grid; grid-template-columns:56px 1fr; gap:24px;
+    position:relative;
+  }
+  .step-rail{
+    display:flex; flex-direction:column; align-items:center;
+  }
+  .node{
+    width:56px; height:56px; border-radius:50%;
+    background:var(--card); border:2px solid var(--teal);
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--serif); font-style:italic; font-weight:700; font-size:22px;
+    color:var(--teal);
+    box-shadow:0 6px 20px rgba(13,122,107,0.18);
+    flex-shrink:0; z-index:2;
+  }
+  .node.final{ background:var(--teal); color:#fff; }
+  .rail-line{
+    width:2px; flex:1;
+    background:repeating-linear-gradient(to bottom, var(--teal-m) 0 6px, transparent 6px 12px);
+    margin:6px 0;
+  }
+  .step:last-child .rail-line{ display:none; }
+
+  .card{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:26px 28px 28px;
+    margin-bottom:34px;
+    box-shadow:0 1px 3px rgba(16,24,40,0.04), 0 8px 24px rgba(16,24,40,0.05);
+  }
+  .card-eyebrow{
+    font-size:10.5px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase;
+    color:var(--teal); margin-bottom:6px;
+  }
+  .card h2{
+    font-size:21px; font-weight:600; margin:0 0 8px; color:var(--ink);
+    display:flex; align-items:center; gap:10px;
+  }
+  .card h2 em{ font-family:var(--serif); font-style:italic; font-weight:700; color:var(--teal); }
+  .card > p.desc{
+    font-size:14px; color:var(--ink2); line-height:1.65; margin:0 0 18px;
+  }
+
+  /* ── Field mock ───────────────────────────────────── */
+  .field-mock{
+    background:var(--bg); border:1px solid var(--border); border-radius:10px;
+    padding:16px 18px; display:flex; flex-direction:column; gap:12px;
+  }
+  .fm-label{ font-size:10.5px; font-weight:700; color:var(--ink3); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:5px; }
+  .fm-input{
+    background:#fff; border:1px solid var(--border); border-radius:8px;
+    padding:9px 12px; font-size:13px; color:var(--ink2); display:flex; align-items:center; justify-content:space-between; gap:8px;
+  }
+  .fm-row{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .fm-ok{ color:var(--green); font-size:12px; font-weight:600; display:flex; align-items:center; gap:4px; white-space:nowrap; }
+  .fm-tag{
+    font-size:10.5px; font-weight:700; padding:2px 8px; border-radius:100px;
+    background:var(--teal-l); color:var(--teal);
+  }
+
+  /* strength meter */
+  .strength-bars{ display:flex; gap:4px; margin-top:2px; }
+  .strength-bars span{ flex:1; height:4px; border-radius:2px; background:var(--border); }
+  .strength-bars span.on{ background:var(--green); }
+
+  /* ── Pricing mini cards ───────────────────────────── */
+  .pricing-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:4px; }
+  .price-card{
+    border:1px solid var(--border); border-radius:12px; padding:16px 14px;
+    position:relative; background:var(--bg);
+  }
+  .price-card.pro{
+    border-color:var(--teal); background:var(--teal-l);
+  }
+  .price-badge{
+    position:absolute; top:-9px; left:14px; background:var(--teal); color:#fff;
+    font-size:9.5px; font-weight:700; padding:3px 9px; border-radius:100px; letter-spacing:0.02em;
+  }
+  .price-name{ font-size:13px; font-weight:700; margin-bottom:6px; }
+  .price-amt{ font-size:20px; font-weight:700; color:var(--ink); margin-bottom:2px; }
+  .price-amt span{ font-size:11px; font-weight:500; color:var(--ink3); }
+  .price-feat{ font-size:11.5px; color:var(--ink3); margin-top:8px; line-height:1.6; }
+  .billing-toggle{
+    display:inline-flex; background:var(--bg); border:1px solid var(--border);
+    border-radius:100px; padding:3px; font-size:12px; font-weight:600; margin-bottom:14px;
+  }
+  .billing-toggle span{ padding:6px 14px; border-radius:100px; color:var(--ink3); }
+  .billing-toggle span.active{ background:var(--teal); color:#fff; }
+  .save-tag{ color:var(--green); font-weight:700; font-size:10px; margin-left:4px; }
+
+  /* ── Payment tabs ─────────────────────────────────── */
+  .tabs{ display:flex; gap:8px; margin-bottom:14px; }
+  .tab{
+    padding:7px 16px; border-radius:100px; font-size:12.5px; font-weight:600;
+    border:1px solid var(--border); color:var(--ink3);
+  }
+  .tab.active{ background:var(--navy); color:#fff; border-color:var(--navy); }
+  .provider-chips{ display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+  .chip{
+    font-size:11.5px; font-weight:600; padding:5px 12px; border-radius:100px;
+    background:#fff; border:1px solid var(--border); color:var(--ink2);
+  }
+
+  /* ── Review list ──────────────────────────────────── */
+  .review{
+    background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:6px 18px;
+  }
+  .review-row{
+    display:flex; justify-content:space-between; padding:11px 0; font-size:13px;
+    border-bottom:1px solid var(--border);
+  }
+  .review-row:last-child{ border-bottom:none; }
+  .review-row .k{ color:var(--ink3); font-weight:600; }
+  .review-row .v{ color:var(--ink); font-weight:600; text-align:right; }
+
+  /* ── Success card ─────────────────────────────────── */
+  .success-card{
+    background:linear-gradient(160deg,var(--navy), var(--teal));
+    color:#fff; text-align:center; padding:40px 28px 34px;
+  }
+  .success-icon{
+    width:64px; height:64px; border-radius:50%; background:rgba(255,255,255,0.14);
+    display:flex; align-items:center; justify-content:center; margin:0 auto 18px;
+    font-size:30px;
+  }
+  .success-card h2{ color:#fff; justify-content:center; }
+  .success-card .domain{
+    font-size:13.5px; color:#7ee8d6; font-weight:600; margin-bottom:22px;
+  }
+  .checklist{ list-style:none; padding:0; margin:0 auto; max-width:280px; text-align:left; }
+  .checklist li{
+    display:flex; align-items:center; gap:10px; font-size:13px; padding:8px 0;
+    color:rgba(255,255,255,0.55);
+  }
+  .checklist li.done{ color:#fff; }
+  .checklist li .dot{
+    width:16px; height:16px; border-radius:50%; border:1.5px solid rgba(255,255,255,0.4);
+    flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:10px;
+  }
+  .checklist li.done .dot{ background:#7ee8d6; border-color:#7ee8d6; color:var(--navy); font-weight:700; }
+
+  /* ── Behind the scenes ────────────────────────────── */
+  .behind{
+    background:#fff; border:1px dashed var(--teal-m); border-radius:14px;
+    padding:22px 24px; margin:8px 0 60px; font-size:13px; color:var(--ink2); line-height:1.7;
+  }
+  .behind .k-eyebrow{ font-size:10.5px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:var(--teal); margin-bottom:8px; }
+  .behind code{
+    background:var(--teal-l); color:var(--teal); padding:2px 7px; border-radius:5px;
+    font-size:12px; font-family:'SF Mono', Consolas, monospace;
+  }
+
+  footer{
+    text-align:center; padding:0 24px 48px; font-size:12px; color:var(--ink3);
+  }
+
+  @media (max-width:560px){
+    .hero h1{ font-size:32px; }
+    .step{ grid-template-columns:44px 1fr; gap:16px; }
+    .node{ width:44px; height:44px; font-size:17px; }
+    .pricing-grid{ grid-template-columns:1fr; }
+    .fm-row{ grid-template-columns:1fr; }
+    .card{ padding:20px; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="hero">
+    <div class="brand-row">
+      <div class="brand-grid">
+        <div class="brand-sq r"></div><div class="brand-sq b"></div>
+        <div class="brand-sq y"></div><div class="brand-sq g"></div>
+      </div>
+      <span class="brand-name">Hudumika</span>
+    </div>
+    <div class="pill"><span class="pill-dot"></span> Onboarding wizard</div>
+    <h1>From sign‑up to sign‑in,<br>in six <em>steps</em>.</h1>
+    <p>How a brand‑new tenant gets provisioned on Hudumika Workspace — the exact flow a company walks through the first time it arrives, end to end.</p>
+  </div>
+
+  <div class="wrap">
+    <div class="flow">
+
+      <!-- Step 1 — Account -->
+      <div class="step">
+        <div class="step-rail"><div class="node">1</div><div class="rail-line"></div></div>
+        <div class="card">
+          <div class="card-eyebrow">Step 1 of 6</div>
+          <h2>Create your <em>account</em></h2>
+          <p class="desc">The person setting things up registers themselves first — they'll become the workspace's first admin. Email availability is checked live as they type, and a password‑strength meter reacts to length, casing and symbols.</p>
+          <div class="field-mock">
+            <div>
+              <div class="fm-label">Full name</div>
+              <div class="fm-input">John Mwangi</div>
+            </div>
+            <div>
+              <div class="fm-label">Work email</div>
+              <div class="fm-input">you@company.com <span class="fm-ok">✓ available</span></div>
+            </div>
+            <div>
+              <div class="fm-label">Password</div>
+              <div class="fm-input">••••••••••</div>
+              <div class="strength-bars"><span class="on"></span><span class="on"></span><span></span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2 — Company -->
+      <div class="step">
+        <div class="step-rail"><div class="node">2</div><div class="rail-line"></div></div>
+        <div class="card">
+          <div class="card-eyebrow">Step 2 of 6</div>
+          <h2>Tell us about your <em>company</em></h2>
+          <p class="desc">Company name, industry and country — this becomes the tenant record everything else in the platform (branding, currency defaults, customs jurisdiction) is scoped to.</p>
+          <div class="field-mock">
+            <div class="fm-row">
+              <div>
+                <div class="fm-label">Company name</div>
+                <div class="fm-input">Aleka Logistics Ltd</div>
+              </div>
+              <div>
+                <div class="fm-label">Industry</div>
+                <div class="fm-input">Freight &amp; Customs</div>
+              </div>
+            </div>
+            <div>
+              <div class="fm-label">Country</div>
+              <div class="fm-input">Tanzania</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3 — Package -->
+      <div class="step">
+        <div class="step-rail"><div class="node">3</div><div class="rail-line"></div></div>
+        <div class="card">
+          <div class="card-eyebrow">Step 3 of 6</div>
+          <h2>Choose a <em>plan</em></h2>
+          <p class="desc">A three‑tier pricing grid with a monthly/annual toggle, a full feature‑comparison matrix, and an FAQ accordion — priced per seat, in step with how the platform is actually sold.</p>
+          <div class="billing-toggle"><span class="active">Monthly</span><span>Annually <span class="save-tag">Save 30%</span></span></div>
+          <div class="pricing-grid">
+            <div class="price-card">
+              <div class="price-name">HuduStarter</div>
+              <div class="price-amt">$6<span>/user/mo</span></div>
+              <div class="price-feat">Up to 300 users<br>100 shipments/mo<br>10 GB vault</div>
+            </div>
+            <div class="price-card pro">
+              <div class="price-badge">Most popular</div>
+              <div class="price-name">HuduPlus</div>
+              <div class="price-amt">$18<span>/user/mo</span></div>
+              <div class="price-feat">Up to 300 users<br>500 shipments/mo<br>50 GB vault + Demurrage Radar</div>
+            </div>
+            <div class="price-card">
+              <div class="price-name">Hudu Advanced</div>
+              <div class="price-amt">Custom</div>
+              <div class="price-feat">Unlimited users<br>Unlimited shipments<br>Unlimited storage</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 4 — Domain -->
+      <div class="step">
+        <div class="step-rail"><div class="node">4</div><div class="rail-line"></div></div>
+        <div class="card">
+          <div class="card-eyebrow">Step 4 of 6</div>
+          <h2>Claim your <em>address</em></h2>
+          <p class="desc">A subdomain is auto‑suggested from the company name and checked for availability as the user edits it — this becomes the door to their workspace from now on.</p>
+          <div class="field-mock">
+            <div>
+              <div class="fm-label">Workspace address</div>
+              <div class="fm-input">aleka-logistics <span class="fm-tag">.hudumika.app</span></div>
+              <div class="fm-ok" style="margin-top:8px;">✓ aleka-logistics.hudumika.app is available</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 5 — Payment -->
+      <div class="step">
+        <div class="step-rail"><div class="node">5</div><div class="rail-line"></div></div>
+        <div class="card">
+          <div class="card-eyebrow">Step 5 of 6</div>
+          <h2>Set up <em>billing</em></h2>
+          <p class="desc">Card or mobile money — built for how East African businesses actually pay. Card numbers are Luhn‑validated client‑side before the demo checkout ever submits.</p>
+          <div class="tabs"><span class="tab active">Card</span><span class="tab">Mobile Money</span></div>
+          <div class="field-mock">
+            <div>
+              <div class="fm-label">Card number</div>
+              <div class="fm-input">4242 4242 4242 4242</div>
+            </div>
+            <div class="fm-row">
+              <div>
+                <div class="fm-label">Expiry</div>
+                <div class="fm-input">MM/YY</div>
+              </div>
+              <div>
+                <div class="fm-label">CVC</div>
+                <div class="fm-input">123</div>
+              </div>
+            </div>
+          </div>
+          <div class="provider-chips">
+            <span class="chip">M‑Pesa</span><span class="chip">Tigo Pesa</span>
+            <span class="chip">Airtel Money</span><span class="chip">HaloPesa</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 6 — Configuration -->
+      <div class="step">
+        <div class="step-rail"><div class="node">6</div><div class="rail-line"></div></div>
+        <div class="card">
+          <div class="card-eyebrow">Step 6 of 6</div>
+          <h2>Configure &amp; <em>review</em></h2>
+          <p class="desc">Timezone, currency and headquarters city, then a full summary of everything entered so far — the last checkpoint before the workspace is actually created.</p>
+          <div class="field-mock" style="margin-bottom:14px;">
+            <div class="fm-row">
+              <div>
+                <div class="fm-label">Timezone</div>
+                <div class="fm-input">Africa/Dar_es_Salaam</div>
+              </div>
+              <div>
+                <div class="fm-label">Currency</div>
+                <div class="fm-input">TZS</div>
+              </div>
+            </div>
+          </div>
+          <div class="review">
+            <div class="review-row"><span class="k">Account</span><span class="v">John Mwangi · you@company.com</span></div>
+            <div class="review-row"><span class="k">Company</span><span class="v">Aleka Logistics Ltd</span></div>
+            <div class="review-row"><span class="k">Plan</span><span class="v">HuduPlus — $18/mo</span></div>
+            <div class="review-row"><span class="k">Workspace</span><span class="v">aleka-logistics.hudumika.app</span></div>
+            <div class="review-row"><span class="k">Payment</span><span class="v">•••• 4242</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Final — Success -->
+      <div class="step">
+        <div class="step-rail"><div class="node final">✓</div></div>
+        <div class="card success-card">
+          <div class="success-icon">✓</div>
+          <h2>Your workspace is <em style="color:#7ee8d6;">ready</em></h2>
+          <div class="domain">aleka-logistics.hudumika.app</div>
+          <ul class="checklist">
+            <li class="done"><span class="dot">✓</span> Provisioning your workspace</li>
+            <li class="done"><span class="dot">✓</span> Setting up your admin account</li>
+            <li class="done"><span class="dot">✓</span> Applying your plan</li>
+            <li><span class="dot"></span> Almost there</li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="behind">
+      <div class="k-eyebrow">Behind the scenes</div>
+      All six steps are gathered client‑side into a single draft, then submitted in one call —
+      <code>POST /v1/onboarding/complete</code> — which creates the tenant, the owner's account, the plan
+      assignment and the payment record together. On success, the new admin is logged straight in and
+      lands inside their own workspace — no separate confirmation email or second login step.
+    </div>
+  </div>
+
+  <footer>Hudumika Workspace — onboarding flow reference</footer>
+
+</body>
+</html>

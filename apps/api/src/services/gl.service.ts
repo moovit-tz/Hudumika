@@ -39,6 +39,13 @@ const STANDARD_COA: { code: string; name: string; type: 'ASSET' | 'LIABILITY' | 
   { code: '2100', name: 'Accrued Liabilities', type: 'LIABILITY', subtype: 'CURRENT_LIABILITY', normalBalance: 'CREDIT' },
   { code: '2200', name: 'VAT Output (Payable)', type: 'LIABILITY', subtype: 'CURRENT_LIABILITY', normalBalance: 'CREDIT' },
   { code: '2300', name: 'Withholding Tax Payable', type: 'LIABILITY', subtype: 'CURRENT_LIABILITY', normalBalance: 'CREDIT' },
+  // Payroll's own liability accounts — kept separate from 2300 (WHT on
+  // supplier payments, a different tax) and from each other, since PAYE and
+  // statutory contributions (NSSF/NHIF/WCF/etc — payroll aggregates every
+  // employee-side scheme into one figure) are remitted separately.
+  // Backfilled to existing tenants by migration 294.
+  { code: '2110', name: 'PAYE Payable', type: 'LIABILITY', subtype: 'CURRENT_LIABILITY', normalBalance: 'CREDIT' },
+  { code: '2120', name: 'Statutory Contributions Payable', type: 'LIABILITY', subtype: 'CURRENT_LIABILITY', normalBalance: 'CREDIT' },
   { code: '2500', name: 'Long-term Loans', type: 'LIABILITY', subtype: 'LONG_TERM_LIABILITY', normalBalance: 'CREDIT' },
   { code: '3000', name: 'Share Capital', type: 'EQUITY', subtype: 'EQUITY', normalBalance: 'CREDIT' },
   { code: '3100', name: 'Retained Earnings', type: 'EQUITY', subtype: 'RETAINED_EARNINGS', normalBalance: 'CREDIT' },
@@ -52,6 +59,10 @@ const STANDARD_COA: { code: string; name: string; type: 'ASSET' | 'LIABILITY' | 
   { code: '5002', name: 'Transport Costs', type: 'EXPENSE', subtype: 'COST_OF_SERVICES', normalBalance: 'DEBIT' },
   { code: '5003', name: 'Storage & Demurrage', type: 'EXPENSE', subtype: 'COST_OF_SERVICES', normalBalance: 'DEBIT' },
   { code: '5100', name: 'Salaries & Wages', type: 'EXPENSE', subtype: 'OPERATING_EXPENSE', normalBalance: 'DEBIT' },
+  // Employer-side cost of employing people (contributions matched/paid on
+  // top of gross pay), kept out of 5100 for the same "spelled out, not
+  // blended" reason payroll.routes.ts's own totals breakdown gives.
+  { code: '5110', name: 'Employer Payroll Contributions', type: 'EXPENSE', subtype: 'OPERATING_EXPENSE', normalBalance: 'DEBIT' },
   { code: '5101', name: 'Office Rent', type: 'EXPENSE', subtype: 'OPERATING_EXPENSE', normalBalance: 'DEBIT' },
   { code: '5102', name: 'Utilities', type: 'EXPENSE', subtype: 'OPERATING_EXPENSE', normalBalance: 'DEBIT' },
   { code: '5200', name: 'Bank Charges', type: 'EXPENSE', subtype: 'FINANCE_COST', normalBalance: 'DEBIT' },
@@ -182,6 +193,52 @@ export class GLService {
       const ids = entries.map(e => e.id);
       await trx.deleteFrom('journal_lines').where('journal_entry_id', 'in', ids).execute();
       await trx.deleteFrom('journal_entries').where('id', 'in', ids).execute();
+    });
+  }
+
+  /**
+   * Void a single, specific journal entry by posting its mirror image
+   * (debits/credits swapped) and marking the original VOIDED — same
+   * reversal-not-deletion shape as vat-period.service.ts's
+   * reverseDocumentJournals, generalized to any entry by id rather than
+   * scoped to one (sourceModule, sourceId) pair. This is what
+   * POST /journal-entries/:id/void uses: a manually-posted entry had no way
+   * to be undone through the API at all before this existed.
+   */
+  static async voidEntry(tenantId: string, entryId: string, actorId: string | null, reason: string): Promise<string> {
+    return withTenant(tenantId, async (trx) => {
+      const entry = await trx.selectFrom('journal_entries')
+        .select(['id', 'entry_number', 'reference', 'description', 'source_module', 'source_id', 'voided_at'])
+        .where('tenant_id', '=', tenantId).where('id', '=', entryId).executeTakeFirst();
+      if (!entry) throw new Error('Journal entry not found');
+      if (entry.voided_at) throw new Error('This entry has already been voided');
+
+      const lines = await trx.selectFrom('journal_lines as jl')
+        .innerJoin('chart_of_accounts as a', 'a.id', 'jl.account_id')
+        .select(['a.code', 'jl.debit', 'jl.credit', 'jl.description'])
+        .where('jl.journal_entry_id', '=', entry.id)
+        .execute();
+
+      const reversalId = await this.post(tenantId, {
+        entryDate: new Date().toISOString().slice(0, 10),
+        description: `Reversal of ${entry.description ?? entry.entry_number}`,
+        reference: entry.reference ?? entry.entry_number,
+        sourceModule: (entry.source_module as PostingRequest['sourceModule']) ?? 'MANUAL',
+        sourceId: entry.source_id ?? undefined,
+        createdBy: actorId ?? undefined,
+        lines: lines.map(l => ({
+          accountCode: l.code,
+          debit: Number(l.credit) || 0,
+          credit: Number(l.debit) || 0,
+          description: `Reversal: ${l.description ?? ''}`.trim(),
+        })),
+      });
+
+      await trx.updateTable('journal_entries')
+        .set({ voided_at: new Date(), voided_by: actorId, void_reason: reason, status: 'VOIDED', updated_at: new Date() })
+        .where('id', '=', entry.id).execute();
+
+      return reversalId;
     });
   }
 

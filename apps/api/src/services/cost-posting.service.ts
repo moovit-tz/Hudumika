@@ -147,4 +147,55 @@ export class CostPostingService {
       return result;
     });
   }
+
+  /**
+   * The recharge itself — the piece the header comment above used to flag
+   * as not yet built. Adds a real line for this container's demurrage
+   * charge onto a chosen invoice and sets recharged_invoice_id (migration
+   * 175, previously dead — nothing ever set or read it) so the same
+   * charge can't be recharged twice. Does not re-post to the GL: the
+   * receivable was already recognised when postDemurrage ran (DR 1100),
+   * so this is the document-side half, not a new ledger entry.
+   */
+  static async rechargeDemurrage(tenantId: string, containerId: string, invoiceId: string): Promise<{ invoiceId: string; amount: number }> {
+    return withTenant(tenantId, async (trx) => {
+      const container = await trx.selectFrom('container_tracking').selectAll()
+        .where('tenant_id', '=', tenantId).where('id', '=', containerId).executeTakeFirst();
+      if (!container) throw new Error('Container not found');
+      if (container.liable_party === 'COMPANY') {
+        throw new Error('This charge is absorbed by the company (our delay) and cannot be recharged to a customer.');
+      }
+      if (container.recharged_invoice_id) {
+        throw new Error('This charge has already been recharged to an invoice.');
+      }
+      const amount = Number(container.demurrage_cost ?? 0);
+      if (amount <= 0) throw new Error('This container has no demurrage charge to recharge.');
+
+      const posted = await trx.selectFrom('journal_entries').select('id')
+        .where('tenant_id', '=', tenantId).where('source_module', '=', 'EXPENSE')
+        .where('source_id', '=', containerId).where('status', '<>', 'VOIDED').executeTakeFirst();
+      if (!posted) throw new Error('This demurrage charge has not been posted to the ledger yet — post it first.');
+
+      const invoice = await trx.selectFrom('sales_invoices').select('id')
+        .where('tenant_id', '=', tenantId).where('id', '=', invoiceId).executeTakeFirst();
+      if (!invoice) throw new Error('Invoice not found');
+      const existingLines = await trx.selectFrom('sales_invoice_lines').select('id').where('invoice_id', '=', invoiceId).execute();
+
+      await trx.insertInto('sales_invoice_lines').values({
+        invoice_id: invoiceId,
+        name: `Demurrage recharge — container ${container.container_number}`,
+        unit: 'PER BIL',
+        rate: amount,
+        qty: 1,
+        tax_pct: 0,
+        line_group: 'other',
+        currency: container.demurrage_currency,
+        sort_order: existingLines.length,
+      }).execute();
+
+      await trx.updateTable('container_tracking').set({ recharged_invoice_id: invoiceId }).where('id', '=', containerId).execute();
+
+      return { invoiceId, amount };
+    });
+  }
 }

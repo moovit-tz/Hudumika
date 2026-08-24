@@ -203,71 +203,21 @@ export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack
         </button>
 
         {showMatrix && (
-          <table className="ob-matrix-table">
-            <thead>
-              <tr>
-                <th>Features</th>
-                <th>HuduStarter ($6/user)</th>
-                <th>HuduPlus ($18/user)</th>
-                <th>Hudu Advanced (Custom)</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td colSpan={4} className="ob-matrix-cat">Users &amp; Workspaces</td>
-              </tr>
-              <tr>
-                <td>Team Members &amp; Staff</td>
-                <td>Up to 300</td>
-                <td>Up to 300</td>
-                <td>Unlimited</td>
-              </tr>
-              <tr>
-                <td>Role-Based Access (RBAC)</td>
-                <td>Basic</td>
-                <td>Advanced</td>
-                <td>Custom Roles</td>
-              </tr>
-
-              <tr>
-                <td colSpan={4} className="ob-matrix-cat">Operations &amp; Logistics</td>
-              </tr>
-              <tr>
-                <td>Monthly Shipment Cases</td>
-                <td>100 / mo</td>
-                <td>500 / mo</td>
-                <td>Unlimited</td>
-              </tr>
-              <tr>
-                <td>Customs Declaration &amp; TANCIS</td>
-                <td><Icon name="check" size={14} color="#059669" /></td>
-                <td><Icon name="check" size={14} color="#059669" /></td>
-                <td><Icon name="check" size={14} color="#059669" /></td>
-              </tr>
-              <tr>
-                <td>Demurrage &amp; Storage Risk Radar</td>
-                <td>—</td>
-                <td><Icon name="check" size={14} color="#059669" /></td>
-                <td><Icon name="check" size={14} color="#059669" /></td>
-              </tr>
-
-              <tr>
-                <td colSpan={4} className="ob-matrix-cat">Storage &amp; Compliance</td>
-              </tr>
-              <tr>
-                <td>Cloud Document Vault</td>
-                <td>10 GB</td>
-                <td>50 GB</td>
-                <td>Unlimited</td>
-              </tr>
-              <tr>
-                <td>OCR &amp; Document AI Extraction</td>
-                <td><Icon name="check" size={14} color="#059669" /></td>
-                <td><Icon name="check" size={14} color="#059669" /></td>
-                <td><Icon name="check" size={14} color="#059669" /></td>
-              </tr>
-            </tbody>
-          </table>
+          <div className="ob-matrix-grid">
+            {packages.map(pkg => (
+              <div key={pkg.code} className="ob-matrix-col">
+                <div className="ob-matrix-col-name">{pkg.name}</div>
+                <ul className="ob-pkg-feature-list">
+                  {pkg.features.map(feature => (
+                    <li key={feature} className="ob-pkg-feature-item">
+                      <span className="ob-pkg-feature-icon">✓</span>
+                      <span>{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
         )}
       </div>
 

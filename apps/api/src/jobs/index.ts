@@ -30,6 +30,57 @@ import { runNotesPurgeJob } from './notes-purge.job.js';
 import { runCalendarReminderJob } from './calendar-reminder.job.js';
 import { runCalendarExternalSyncJob } from './calendar-external-sync.job.js';
 import { runSmsOutboxJob } from './sms-outbox.job.js';
+import { runRecurringDocumentsJob } from './recurring-documents.job.js';
+
+/**
+ * Real registry of every background job this file actually schedules —
+ * name + the real repeat config below it (not the invented "last run"/
+ * "duration" rows Platform Settings ▸ Cron Jobs used to hardcode). Read by
+ * superadmin.routes.ts's GET /jobs. isJobSchedulingConnected() reports
+ * whether BullMQ/Redis is live right now; when it isn't, every job below
+ * still runs via the setInterval fallback in startIntervalFallback() —
+ * except the four Onsite monitors flagged below, which today are wired
+ * into the fallback path only and have no BullMQ repeat registration of
+ * their own (a real gap in this file, not something this registry should
+ * paper over by claiming otherwise).
+ */
+export const JOB_REGISTRY: { name: string; schedule: string; fallbackOnly?: boolean }[] = [
+  { name: 'Risk Scans', schedule: 'Every 15 minutes' },
+  { name: 'SLA Escalation & Status Automation', schedule: 'Every 15 minutes' },
+  { name: 'Missing Document Reminders', schedule: 'Every 24 hours' },
+  { name: 'Daily Status Automation', schedule: 'Daily at 08:00' },
+  { name: 'Stale Check-in Sweep', schedule: 'Hourly, 5 past' },
+  { name: 'Compliance Renewal Reminders', schedule: 'Daily at 08:00' },
+  { name: 'Workflow Learning', schedule: 'Daily at 04:00' },
+  { name: 'Compliance Expiry Reminders', schedule: 'Daily at 08:00' },
+  { name: 'Cloud Trash Expiry', schedule: 'Daily at 02:00' },
+  { name: 'Onsite Config Backup', schedule: 'Daily at 03:00' },
+  { name: 'TRA Z-Report Submission', schedule: 'Daily at 00:05' },
+  { name: 'Sanctions List Sync (OFAC/UN)', schedule: 'Daily at 05:00' },
+  { name: 'Daily Shipment Report', schedule: 'Daily at 21:00 EAT' },
+  { name: 'Recurring Bills & Invoices Generation', schedule: 'Daily at 06:00' },
+  { name: 'Sign Envelope Expiry Sweep', schedule: 'Daily at 06:00' },
+  { name: 'Sign Reminder', schedule: 'Daily at 09:00' },
+  { name: 'Sign Anchor Confirmation', schedule: 'Every hour' },
+  { name: 'Sign Anchor Stamp (OpenTimestamps)', schedule: 'Every 15 minutes' },
+  { name: 'Notes Reminders', schedule: 'Every 5 minutes' },
+  { name: 'Notes Trash Purge', schedule: 'Daily at 02:30' },
+  { name: 'Calendar Reminders', schedule: 'Every 5 minutes' },
+  { name: 'Calendar External Sync', schedule: 'Every 15 minutes' },
+  { name: 'GPSWOX Fleet Sync', schedule: 'Every 2 minutes' },
+  { name: 'Workflow Auto-Comms', schedule: 'Every 2 minutes' },
+  { name: 'SEAL Ledger Anchor (Bitcoin)', schedule: 'Daily' },
+  { name: 'SEAL Anchor Confirmation Sweep', schedule: 'Every hour' },
+  { name: 'Declaration Ledger Anchor (Bitcoin)', schedule: 'Daily' },
+  { name: 'Declaration Anchor Confirmation Sweep', schedule: 'Every hour' },
+  { name: 'Mail Outbox Sweep', schedule: 'Every 1 minute' },
+  { name: 'SMS Outbox Sweep', schedule: 'Every 1 minute' },
+  { name: 'IMAP Ticket Ingest', schedule: 'Every 3 minutes' },
+  { name: 'Onsite Deployment Sync', schedule: 'Every 1 minute', fallbackOnly: true },
+  { name: 'Onsite Uptime Monitors', schedule: 'Every 1 minute', fallbackOnly: true },
+  { name: 'Onsite Server Reachability', schedule: 'Every 1 minute', fallbackOnly: true },
+  { name: 'Onsite SSL Certificate Sweep', schedule: 'Every 6 hours', fallbackOnly: true },
+];
 
 let redisConnection: Redis | null = null;
 let riskQueue: Queue | null = null;
@@ -45,6 +96,13 @@ let smsOutboxQueue: Queue | null = null;
 /**
  * Initializes BullMQ or falls back to in-memory intervals if Redis is not running
  */
+/** Whether BullMQ/Redis is actually connected right now — the real signal
+ *  for "is scheduling backed by persistent, distributed queues" vs. the
+ *  setInterval fallback (superadmin.routes.ts's GET /jobs). */
+export function isJobSchedulingConnected(): boolean {
+  return !!redisConnection;
+}
+
 export async function bootstrapJobs(): Promise<void> {
   console.log('🔄 Bootstrapping background jobs...');
 
@@ -186,6 +244,8 @@ function startBullMQ(): void {
           await runSanctionsSyncJob();
         } else if (job.name === 'daily-shipment-report') {
           await runDailyShipmentReportJob();
+        } else if (job.name === 'recurring-documents') {
+          await runRecurringDocumentsJob();
         } else if (job.name === 'sign-expiry') {
           await runSignExpiryJob();
         } else if (job.name === 'sign-reminder') {
@@ -361,6 +421,10 @@ function startBullMQ(): void {
       repeat: { pattern: '0 21 * * *', tz: 'Africa/Dar_es_Salaam' } // Daily at 21:00 EAT
     }).catch(console.error);
 
+    reminderQueue.add('recurring-documents', {}, {
+      repeat: { pattern: '0 6 * * *' } // Daily at 6:00 AM — generate bills/invoices whose next_due has arrived
+    }).catch(console.error);
+
     reminderQueue.add('sign-expiry', {}, {
       repeat: { pattern: '0 6 * * *' } // Daily at 6:00 AM — flip 'sent' envelopes past expires_at to 'expired'
     }).catch(console.error);
@@ -469,6 +533,7 @@ function startIntervalFallback(): void {
   runNotesReminderJob().catch(console.error);
   runCalendarReminderJob().catch(console.error);
   runCalendarExternalSyncJob().catch(console.error);
+  runRecurringDocumentsJob().catch(console.error);
 
   // Set interval timers
   fallbackTimer = setInterval(() => {
@@ -517,6 +582,7 @@ function startIntervalFallback(): void {
     runSignExpiryJob().catch(console.error);
     runSignReminderJob().catch(console.error);
     runNotesPurgeJob().catch(console.error);
+    runRecurringDocumentsJob().catch(console.error);
   }, 24 * 60 * 60 * 1000);
 
   // GPSWOX device sync — every 2 minutes, its own timer since it's far more

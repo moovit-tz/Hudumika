@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { WorkspaceApp } from './WorkspaceApp.js';
 import { AppSidebar } from '../components/AppSidebar.js';
 import { AppHeader } from '../components/AppHeader.js';
+import { GoogleWorkspaceRightSidebar } from '../components/GoogleWorkspaceRightSidebar.js';
 import { PageLayout } from '../components/PageLayout.js';
 import { FileBrowser } from '../pages/cloud/FileBrowser.js';
 import { CloudHome } from '../pages/cloud/CloudHome.js';
@@ -48,6 +49,7 @@ export function CloudShell() {
               </Routes>
             </div>
           </div>
+          <GoogleWorkspaceRightSidebar />
         </div>
       </WorkspaceApp>
     </CloudProvider>

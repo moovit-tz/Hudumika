@@ -4,6 +4,7 @@ import '../pages/Contacts.css';
 import { WorkspaceApp } from './WorkspaceApp.js';
 import { AppSidebar } from '../components/AppSidebar.js';
 import { AppHeader } from '../components/AppHeader.js';
+import { GoogleWorkspaceRightSidebar } from '../components/GoogleWorkspaceRightSidebar.js';
 import { PageLayout } from '../components/PageLayout.js';
 import { Contacts } from '../pages/Contacts.js';
 import { ContactsGoogleCallback } from '../pages/ContactsGoogleCallback.js';
@@ -422,6 +423,7 @@ export function ContactsShell() {
               </Routes>
             </div>
           </div>
+          <GoogleWorkspaceRightSidebar />
         </div>
       </WorkspaceApp>
     </ContactsProvider>

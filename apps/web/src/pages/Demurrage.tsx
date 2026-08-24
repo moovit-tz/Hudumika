@@ -38,6 +38,8 @@ interface ContainerTrack {
   demurrage_cost: number;
   demurrage_currency: string;
   status: string;
+  liable_party: 'CUSTOMER' | 'COMPANY';
+  recharged_invoice_id: string | null;
 }
 
 interface Summary {
@@ -92,6 +94,43 @@ export const Demurrage: React.FC = () => {
   // Mark returned modal
   const [returnModal, setReturnModal] = useState<string | null>(null);
   const [returnDate, setReturnDate] = useState('');
+
+  // Recharge-to-invoice modal
+  const [rechargeContainer, setRechargeContainer] = useState<ContainerTrack | null>(null);
+  const [invoiceOptions, setInvoiceOptions] = useState<{ value: string; label: string }[]>([]);
+  const [rechargeInvoiceId, setRechargeInvoiceId] = useState('');
+  const [rechargeSaving, setRechargeSaving] = useState(false);
+
+  const openRecharge = async (c: ContainerTrack) => {
+    setRechargeContainer(c);
+    setRechargeInvoiceId('');
+    try {
+      const res = await apiFetch('/v1/invoices');
+      const list = Array.isArray(res) ? res : (res.invoices ?? res.data ?? []);
+      setInvoiceOptions(
+        list.filter((inv: any) => inv.status !== 'Void')
+          .map((inv: any) => ({ value: inv.id, label: `${inv.invoice_number} — ${inv.client_name || 'No customer'}` }))
+      );
+    } catch {
+      setInvoiceOptions([]);
+    }
+  };
+
+  const submitRecharge = async () => {
+    if (!rechargeContainer || !rechargeInvoiceId) return;
+    setRechargeSaving(true);
+    try {
+      await apiFetch(`/v1/finance/post-costs/demurrage/${rechargeContainer.id}/recharge`, {
+        method: 'POST', body: JSON.stringify({ invoice_id: rechargeInvoiceId }),
+      });
+      setRechargeContainer(null);
+      await fetchData();
+    } catch (err) {
+      showAlert(err instanceof Error ? err.message : 'Could not recharge this container.');
+    } finally {
+      setRechargeSaving(false);
+    }
+  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -398,12 +437,27 @@ export const Demurrage: React.FC = () => {
                         </td>
                         <td style={{ padding: '10px 14px', fontWeight: 700, color: c.demurrage_cost > 0 ? 'var(--red)' : 'var(--green)' }}>
                           {formatCurrency(c.demurrage_cost, c.demurrage_currency)}
+                          {c.demurrage_cost > 0 && c.liable_party === 'COMPANY' && (
+                            <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--ink3)', marginTop: 2 }}>Absorbed</div>
+                          )}
+                          {c.demurrage_cost > 0 && c.liable_party !== 'COMPANY' && c.recharged_invoice_id && (
+                            <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--green)', marginTop: 2 }}>Recharged</div>
+                          )}
                         </td>
                         <td style={{ padding: '10px 14px' }}>
                           <StatusBadge status={c.status} />
                         </td>
                         <td style={{ padding: '10px 14px' }}>
                           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                            {c.demurrage_cost > 0 && c.liable_party !== 'COMPANY' && !c.recharged_invoice_id && (
+                              <button
+                                type="button"
+                                onClick={() => openRecharge(c)}
+                                style={{ display: 'flex', alignItems: 'center', gap: 4, padding: 'var(--ds-btn-py-xs) 10px', fontSize: 11, fontWeight: 700, color: 'var(--gold)', background: 'var(--gold-l)', border: '1px solid var(--gold-l)', borderRadius: 'var(--r)', cursor: 'pointer', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}
+                              >
+                                <Icon name="receipt" size={11} /> Recharge
+                              </button>
+                            )}
                             {c.status === 'ACTIVE' && (
                               <button
                                 type="button"
@@ -601,6 +655,40 @@ export const Demurrage: React.FC = () => {
           <DialogFooter>
             <button type="button" className="btn btn-secondary" onClick={() => setReturnModal(null)}>Cancel</button>
             <button type="button" className="btn btn-primary" onClick={handleMarkReturned}>Confirm Return</button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Recharge to Invoice Modal */}
+      <Dialog open={!!rechargeContainer} onOpenChange={open => { if (!open) setRechargeContainer(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FeaturedIcon variant="warning" size="sm" shape="circle"><Icon name="receipt" size={15} /></FeaturedIcon>
+              Recharge Demurrage
+            </DialogTitle>
+          </DialogHeader>
+          {rechargeContainer && (
+            <div>
+              <div style={{ fontSize: 13, color: 'var(--ink2)', marginBottom: 14 }}>
+                Adds <strong>{formatCurrency(rechargeContainer.demurrage_cost, rechargeContainer.demurrage_currency)}</strong> for container <strong style={{ fontFamily: 'var(--mono)' }}>{rechargeContainer.container_number}</strong> as a line on the selected invoice.
+              </div>
+              <label style={{ display: 'block', ...label, marginBottom: 6 }}>Invoice</label>
+              <Combobox
+                options={invoiceOptions}
+                value={rechargeInvoiceId}
+                onChange={setRechargeInvoiceId}
+                placeholder="Select an invoice…"
+                searchPlaceholder="Search invoices…"
+                emptyText="No invoices found."
+              />
+            </div>
+          )}
+          <DialogFooter>
+            <button type="button" className="btn btn-secondary" onClick={() => setRechargeContainer(null)}>Cancel</button>
+            <button type="button" className="btn btn-primary" disabled={!rechargeInvoiceId || rechargeSaving} onClick={submitRecharge}>
+              {rechargeSaving ? 'Recharging…' : 'Recharge'}
+            </button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -1,5 +1,6 @@
 import { Routes, Route } from 'react-router-dom';
 import { WorkspaceApp } from './WorkspaceApp.js';
+import { GoogleWorkspaceRightSidebar } from '../components/GoogleWorkspaceRightSidebar.js';
 import { AppSidebar } from '../components/AppSidebar.js';
 import type { SidebarSection } from '../components/AppSidebar.js';
 import { AppHeader } from '../components/AppHeader.js';
@@ -36,6 +37,7 @@ export function CMSShell() {
             </Routes>
           </div>
         </div>
+        <GoogleWorkspaceRightSidebar />
       </div>
     </WorkspaceApp>
   );

@@ -7,6 +7,8 @@ import { LauncherAppSvg as AppIcon, LAUNCHER_APPS } from '../components/Launcher
 import { Icon } from '../components/Icon.js';
 import { SingleSelectFilter } from '../components/ui/filter-dropdown.js';
 import { SkeletonPage } from '../components/ui/skeleton.js';
+import { SetupGuideWidget } from '../components/SetupGuideWidget.js';
+import { MGMT_ROLES } from '../lib/permissions.js';
 import './WorkspaceHome.css';
 
 interface HudumikaApp {
@@ -184,6 +186,7 @@ export function WorkspaceHome({ externalSearch }: WorkspaceHomeProps) {
   };
 
   const isSuperAdmin = (user as { role?: string } | null)?.role === 'SUPER_ADMIN';
+  const isManager = MGMT_ROLES.includes(((user as { role?: string } | null)?.role ?? '') as typeof MGMT_ROLES[number]);
   const enabledApps = useEnabledApps();
   const q = (externalSearch ?? '').toLowerCase();
 
@@ -252,6 +255,9 @@ export function WorkspaceHome({ externalSearch }: WorkspaceHomeProps) {
 
         {/* ── Main Content Area ── */}
         <div className="wh-new-container">
+
+          {/* ── Section: Getting Started (hides itself once fully set up) ── */}
+          {isManager && <SetupGuideWidget />}
 
           {/* ── Section: Recently Viewed (5 Cards Grid) ── */}
           {recentlyViewedApps.length > 0 && (

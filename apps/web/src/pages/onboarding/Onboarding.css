@@ -299,40 +299,31 @@
   gap: 6px;
   margin: 0 auto 16px auto;
 }
-.ob-matrix-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 12.5px;
+/* One column per real package (packages.features from the live /v1/packages
+   catalog) rather than a hand-aligned row matrix — the four tiers' feature
+   lists aren't the same shape, so forcing them into aligned rows would mean
+   guessing which features "correspond" across tiers. */
+.ob-matrix-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
   margin-top: 12px;
+}
+.ob-matrix-col {
   border: 1px solid var(--lp-row-border, #e2e8f0);
-  border-radius: 8px;
-  overflow: hidden;
+  border-radius: 10px;
+  padding: 14px 16px;
 }
-.ob-matrix-table th {
-  background: var(--lp-row-border, #f8fafc);
-  padding: 10px 14px;
-  font-weight: 700;
-  text-align: center;
-  color: var(--lp-ink, #1f1f1f);
-  border-bottom: 1px solid var(--lp-row-border, #e2e8f0);
-}
-.ob-matrix-table th:first-child { text-align: left; }
-.ob-matrix-table td {
-  padding: 9px 14px;
-  border-bottom: 1px solid var(--lp-row-border, #f1f5f9);
-  text-align: center;
-  color: var(--lp-ink2, #444746);
-}
-.ob-matrix-table td:first-child { text-align: left; font-weight: 500; }
-.ob-matrix-cat {
-  background: var(--lp-row-border, #f8fafc);
+.ob-matrix-col-name {
   font-weight: 800;
-  font-size: 11.5px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--lp-ink3, #5f6368);
-  padding: 8px 14px !important;
+  font-size: 13px;
+  color: var(--lp-ink, #1f1f1f);
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--lp-row-border, #f1f5f9);
 }
+.ob-matrix-col .ob-pkg-feature-list { display: flex; flex-direction: column; gap: 8px; }
+.ob-matrix-col .ob-pkg-feature-item { font-size: 12px; align-items: flex-start; }
 
 /* ── FAQ Section ── */
 .ob-faq-wrap {

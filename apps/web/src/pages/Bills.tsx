@@ -182,14 +182,6 @@ function calcTotals(lines: BillLine[]) {
 function isOverdue(b: Bill) { return (b.status === 'POSTED' || b.status === 'PARTIAL') && new Date(b.due_date) < new Date(); }
 function daysOverdue(due: string) { return Math.floor((Date.now() - new Date(due).getTime()) / 86400000); }
 function newKey() { return Math.random().toString(36).slice(2, 9); }
-function advanceDate(d: string, freq: RecurFreq) {
-  const dt = new Date(d);
-  if (freq === 'WEEKLY')    dt.setDate(dt.getDate() + 7);
-  if (freq === 'MONTHLY')   dt.setMonth(dt.getMonth() + 1);
-  if (freq === 'QUARTERLY') dt.setMonth(dt.getMonth() + 3);
-  if (freq === 'ANNUAL')    dt.setFullYear(dt.getFullYear() + 1);
-  return dt.toISOString().split('T')[0];
-}
 
 // ── StatusBadge ────────────────────────────────────────────────────────────────
 
@@ -614,6 +606,11 @@ function DetailView({ bill, payments, supplierMap, onBack, onEdit, onPay, onPost
   const [efdChecking, setEfdChecking] = useState(false);
   const [efdError, setEfdError] = useState<string | null>(null);
 
+  const [activity, setActivity] = useState<{ id: string; action: string; detail: string | null; actor_name: string | null; created_at: string }[]>([]);
+  useEffect(() => {
+    apiFetch(`/v1/bills/${bill.id}/activity`).then((r: any) => setActivity(r?.data ?? [])).catch(() => setActivity([]));
+  }, [bill.id]);
+
   async function runVerify() {
     if (!efdInput.trim() || efdChecking) return;
     setEfdChecking(true);
@@ -717,6 +714,23 @@ function DetailView({ bill, payments, supplierMap, onBack, onEdit, onPay, onPost
             )}
           </div>
           {bill.notes && <div style={{ marginTop:18, padding:'13px 15px', background:'var(--bg)', borderRadius:9, fontSize:13, color:'var(--ink2)', lineHeight:1.6 }}><strong style={{ color:'var(--ink)' }}>Notes:</strong> {bill.notes}</div>}
+
+          {/* Activity Log */}
+          <div style={{ marginTop:24 }}>
+            <div style={{ fontSize:12, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:12 }}>Activity</div>
+            <div className="inv-tab-list">
+              {activity.length === 0 && <div className="inv-tab-empty">No activity recorded yet.</div>}
+              {activity.map(e => (
+                <div key={e.id} className="inv-audit-item">
+                  <Icon name="activity" size={13} color="var(--teal)" />
+                  <div className="inv-audit-body">
+                    <span className="inv-audit-action">{e.action.replace(/_/g, ' ')}{e.detail ? `: ${e.detail}` : ''}</span>
+                    <span className="inv-audit-ts">{e.actor_name ? `${e.actor_name} · ` : ''}{new Date(e.created_at).toLocaleString('en-GB')}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* Right sidebar */}
@@ -1043,18 +1057,11 @@ export const Bills: React.FC = () => {
   }
 
   function handleGenerate(r: RecurringBill) {
-    const dueDate = advanceDate(r.next_due, r.frequency === 'MONTHLY' ? 'MONTHLY' : r.frequency).split('T')[0];
-    const payload = {
-      supplier_id: r.supplier_id, supplier_name: r.supplier_name,
-      bill_date: r.next_due, due_date: dueDate, status: 'POSTED', currency: r.currency,
-      recurring_id: r.id, notes: `Generated from recurring template "${r.name}".`,
-      items: [{ description: `${r.name} — ${fmtDate(r.next_due)}`, category: r.category, qty: 1, unit_price: r.amount, tax_rate: r.tax_rate, tax_code_id: r.tax_code_id ?? null, sort_order: 0 }],
-    };
-    apiFetch('/v1/bills', { method: 'POST', body: JSON.stringify(payload) })
-      .then(() => apiFetch(`/v1/bills/recurring/${r.id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ next_due: advanceDate(r.next_due, r.frequency), bills_generated: r.bills_generated + 1, total_spend: r.total_spend + r.amount * (1 + r.tax_rate / 100) }),
-      }))
+    // Real, server-side generation (recurring-documents.service.ts) — the
+    // same function the daily cron job calls, just targeted at one
+    // template. Previously this button built the bill and PATCHed the
+    // template's counters entirely client-side.
+    apiFetch(`/v1/bills/recurring/${r.id}/generate`, { method: 'POST' })
       .then(() => Promise.all([apiFetch('/v1/bills'), apiFetch('/v1/bills/recurring')]))
       .then(([billsRes, recurRes]: any) => {
         if (Array.isArray(billsRes)) setBills(billsRes.map(mapApiBill));

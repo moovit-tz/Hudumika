@@ -1028,6 +1028,12 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
   const [activity, setActivity]   = useState<InvAuditEntry[]>([]);
 
   const dbId = inv._dbId;
+  const navigate = useNavigate();
+  function handleIssueCreditNote() {
+    if (!dbId) return;
+    const qs = new URLSearchParams({ invoice_id: dbId, client_name: inv.client || '' });
+    navigate(`/finance/credit-notes/new?${qs.toString()}`);
+  }
 
   function loadNotes()     { if (dbId) apiFetch(`/v1/invoices/${dbId}/notes`).then((r: any) => setNotes(r?.data ?? [])).catch(() => {}); }
   function loadTasks()     { if (dbId) apiFetch(`/v1/invoices/${dbId}/tasks`).then((r: any) => setTasks(r?.data ?? [])).catch(() => {}); }
@@ -1268,6 +1274,8 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
                   bar above, with no other effect. Add Reminder earns its
                   keep by also pre-opening the new-reminder form. */}
               <MoreItem icon="bell"        label="Add Reminder"  onClick={() => { setShowMore(false); setTab('reminders'); setShowRemForm(true); }} />
+              <div className="billing-more-sep" />
+              <MoreItem icon="rotateCcw" label="Issue Credit Note" onClick={() => { setShowMore(false); handleIssueCreditNote(); }} />
               <div className="billing-more-sep" />
               <MoreItem icon="trash" label="Delete Invoice" onClick={() => { setShowMore(false); onDelete(); }} danger />
             </div>
@@ -1849,6 +1857,9 @@ export const Billing: React.FC = () => {
             <button type="button" className="btn btn-primary btn-sm" onClick={() => { setSelectedId(null); setMode('create'); }}>
               <Icon name="plus" size={13} color="#fff" /> Create Invoice
             </button>
+            <Link to="/finance/invoices/recurring" className="btn btn-secondary btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}>
+              <Icon name="refresh" size={13} /> Recurring
+            </Link>
             <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowBatchPayment(true)} disabled={outstandingInvoices.length === 0} title={outstandingInvoices.length === 0 ? 'No outstanding invoices' : undefined}>
               <Icon name="creditCard" size={13} /> Batch Payments
             </button>

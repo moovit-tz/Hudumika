@@ -7,6 +7,11 @@ import { GLService } from '../services/gl.service.js';
 import { DefaultWorkflowService } from '../services/default-workflow.service.js';
 import { PlatformAdminService } from '../services/platform-admin.service.js';
 import { CloudSync } from '../services/cloud-sync.service.js';
+import { buildSmtpTransporter } from '../integrations/email.js';
+import { encryptSecret, decryptSecret, MASKED_VALUE } from '../services/onsite-secrets.service.js';
+import { JOB_REGISTRY, isJobSchedulingConnected } from '../jobs/index.js';
+import { env } from '../config/env.js';
+import os from 'node:os';
 
 const GLOBAL_TENANT_ID = '00000000-0000-0000-0000-000000000000';
 
@@ -37,6 +42,14 @@ const tenantAppsPatchSchema = z.object({
 // the settings row if body weren't a real object.
 const platformSettingsSchema = z.record(z.string(), z.any());
 const ocrTestSchema = z.object({ geminiApiKey: z.string().trim().min(1) });
+const smtpTestSchema = z.object({
+  host: z.string().trim().min(1),
+  port: z.union([z.string(), z.number()]).optional(),
+  user: z.string().trim().min(1),
+  pass: z.string().min(1),
+  tls: z.boolean().optional(),
+  from: z.string().max(320).optional(),
+});
 
 export async function superAdminRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
@@ -76,11 +89,17 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
       if (t.active) totalEarnings += priceByCode[t.plan] ?? 0;
     });
 
+    // Four CSS-variable references, not four unrelated hardcoded hues — a
+    // graduated set of the app's own single brand accent (--teal and its
+    // tint/shade tokens) plus one neutral, rather than a rainbow of cyan/
+    // teal/blue/purple with no connection to the platform's real palette.
+    // These resolve live in the browser (inline SVG), so the donut still
+    // follows whatever accent a SuperAdmin preset sets for this app.
     const PLAN_META: Record<string, { label: string; color: string }> = {
-      starter: { label: 'Starter', color: '#0891b2' },
-      growth: { label: 'Growth', color: '#0d7a6b' },
-      scale: { label: 'Scale', color: '#2563eb' },
-      enterprise: { label: 'Enterprise', color: '#6e40c9' },
+      starter: { label: 'Starter', color: 'var(--ink3)' },
+      growth: { label: 'Growth', color: 'var(--teal-m)' },
+      scale: { label: 'Scale', color: 'var(--teal-d)' },
+      enterprise: { label: 'Enterprise', color: 'var(--teal)' },
     };
     const planCounts: Record<string, number> = { starter: 0, growth: 0, scale: 0, enterprise: 0 };
     tenants.forEach(t => {
@@ -481,8 +500,13 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
       .selectAll()
       .where('tenant_id', '=', GLOBAL_TENANT_ID)
       .executeTakeFirst();
-    
+
     const settings = row ? (typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings) : {};
+    // The SMTP password is encrypted at rest — never send the ciphertext to
+    // the browser. A masked sentinel round-trips through POST /settings as
+    // "leave this unchanged" (see below), matching settings.routes.ts's own
+    // SECRET_FIELDS_BY_KEY convention for tenant-level secrets.
+    if (settings.smtp?.pass) settings.smtp = { ...settings.smtp, pass: MASKED_VALUE };
     return { settings };
   });
 
@@ -490,9 +514,19 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
   fastify.post('/settings', async (request, reply) => {
     const body = platformSettingsSchema.parse(request.body);
     const existing = await dbPlatform.selectFrom('tenant_settings')
-      .select('id')
+      .select(['id', 'settings'])
       .where('tenant_id', '=', GLOBAL_TENANT_ID)
       .executeTakeFirst();
+    const existingSettings = existing ? (typeof existing.settings === 'string' ? JSON.parse(existing.settings) : existing.settings) : {};
+
+    // A still-masked password means "unchanged" — keep the real encrypted
+    // value already stored (the top-level `||` merge below replaces the
+    // whole `smtp` key, so this has to be restored explicitly rather than
+    // just dropped). A genuinely new password is encrypted once, here.
+    if (body.smtp && typeof body.smtp === 'object') {
+      if (body.smtp.pass === MASKED_VALUE) body.smtp = { ...body.smtp, pass: existingSettings?.smtp?.pass };
+      else if (body.smtp.pass) body.smtp = { ...body.smtp, pass: encryptSecret(body.smtp.pass) };
+    }
 
     if (existing) {
       // Shallow-merge into the existing JSONB blob so unrelated sections (branding, feature
@@ -514,6 +548,7 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
       .where('tenant_id', '=', GLOBAL_TENANT_ID)
       .executeTakeFirst();
     const settings = row ? (typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings) : body;
+    if (settings.smtp?.pass) settings.smtp = { ...settings.smtp, pass: MASKED_VALUE };
 
     await PlatformAdminService.recordActivity({
       ...actor(request), category: 'system',
@@ -526,9 +561,51 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
     return { settings };
   });
 
-  // 8. POST /v1/superadmin/smtp-test
+  // 8. POST /v1/superadmin/smtp-test — verify SMTP and send a real test
+  // message, same buildSmtpTransporter + verify() + send pattern
+  // settings.routes.ts's own real POST /v1/settings/email/test already
+  // uses for tenant-level SMTP, mirrored here for the platform-level config.
   fastify.post('/smtp-test', async (request, reply) => {
-    return { success: true, message: 'SMTP Test connection successful.' };
+    const user = request.user;
+    const body = smtpTestSchema.parse(request.body);
+    if (body.pass === MASKED_VALUE) {
+      return reply.status(400).send({ error: 'Re-enter the password to test — the saved value is masked here for display, not sent back to the browser.' });
+    }
+    if (!user.email) return reply.status(400).send({ error: 'Your account has no email address to send the test message to.' });
+
+    const fromMatch = /^(.*?)\s*<(.+)>$/.exec(body.from || '');
+    const fromName = fromMatch ? fromMatch[1].replace(/^"|"$/g, '') : 'Hudumika Platform';
+    const fromEmail = fromMatch ? fromMatch[2] : body.user;
+    const enc = body.tls ? 'tls' : undefined;
+    const smtpPort = Number(body.port) || 587;
+    const transport = buildSmtpTransporter({ host: body.host, port: body.port, user: body.user, pass: body.pass, enc });
+
+    try {
+      await transport.verify();
+      await transport.sendMail({
+        from: `"${fromName}" <${fromEmail}>`,
+        to: user.email,
+        subject: 'Hudumika — Platform SMTP Connection Verified',
+        html: `<div style="font-family:system-ui,sans-serif;padding:32px;max-width:480px;border:1px solid #e5e7eb;border-radius:12px">
+          <h2 style="color:#0b7264;margin:0 0 12px;font-size:20px">SMTP Connection Verified ✓</h2>
+          <p style="color:#374151;line-height:1.6">The platform's outgoing email settings are working correctly.<br>Outgoing mail server: <strong>${body.host}:${smtpPort}</strong></p>
+          <p style="color:#6b7280;font-size:12px;margin-top:24px;border-top:1px solid #e5e7eb;padding-top:12px">Sent from Hudumika at ${new Date().toLocaleString()}</p>
+        </div>`,
+      });
+      return { success: true, message: 'SMTP test connection successful — check your inbox.' };
+    } catch (e: any) {
+      const msg: string = e.message || '';
+      let friendly = msg;
+      if (msg.includes('ECONNREFUSED')) friendly = `Connection refused on ${body.host}:${smtpPort}. Check host and port.`;
+      else if (msg.includes('ETIMEDOUT') || msg.includes('ESOCKET')) friendly = `Connection timed out to ${body.host}. Check hostname and firewall.`;
+      else if (msg.includes('ENOTFOUND')) friendly = `Host not found: "${body.host}". Check the SMTP hostname.`;
+      else if (msg.includes('535') || msg.includes('EAUTH') || msg.includes('Invalid login') || msg.includes('Username and Password'))
+        friendly = `Authentication failed. For Gmail/Yahoo use an App Password — not your account password.`;
+      else if (msg.includes('530') || msg.includes('Must issue a STARTTLS'))
+        friendly = `Server requires TLS. Enable TLS above.`;
+      fastify.log.error('Platform SMTP test failed: %s', msg);
+      return reply.status(400).send({ error: friendly });
+    }
   });
 
   // 8b. POST /v1/superadmin/ocr-test — verify a Gemini API key actually works
@@ -546,6 +623,47 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
     } catch (err: any) {
       return reply.status(400).send({ error: err.message || 'Gemini connection failed' });
     }
+  });
+
+  // 8c. GET /v1/superadmin/jobs — the real registered background-job
+  // schedule, read straight from jobs/index.js's own repeat configs rather
+  // than a hardcoded table of invented names/last-run times.
+  fastify.get('/jobs', async (request, reply) => {
+    return { connected: isJobSchedulingConnected(), jobs: JOB_REGISTRY };
+  });
+
+  // 8d. GET /v1/superadmin/server-info — real, live runtime/infra stats.
+  // Deliberately omits anything not genuinely obtainable (active connection
+  // count, disk free space, a licence string) rather than inventing a number.
+  fastify.get('/server-info', async (request, reply) => {
+    let dbVersion = 'unavailable';
+    try {
+      const row = await sql<{ version: string }>`SELECT version()`.execute(dbPlatform);
+      dbVersion = row.rows[0]?.version?.split(',')[0] ?? 'unavailable';
+    } catch { /* left as 'unavailable' */ }
+
+    const mem = process.memoryUsage();
+    const cpus = os.cpus();
+    const uptimeSeconds = Math.floor(process.uptime());
+    const days = Math.floor(uptimeSeconds / 86400);
+    const hours = Math.floor((uptimeSeconds % 86400) / 3600);
+    const minutes = Math.floor((uptimeSeconds % 3600) / 60);
+
+    return {
+      nodeVersion: process.version,
+      platform: `${os.type()} ${os.release()} (${os.arch()})`,
+      environment: env.APP_ENV,
+      database: dbVersion,
+      jobScheduling: isJobSchedulingConnected() ? 'BullMQ (Redis) connected' : 'Interval fallback (Redis unavailable)',
+      appUptime: `${days}d ${hours}h ${minutes}m`,
+      heapUsedMb: Math.round(mem.heapUsed / 1048576),
+      heapTotalMb: Math.round(mem.heapTotal / 1048576),
+      cpuCount: cpus.length,
+      cpuModel: cpus[0]?.model ?? 'unknown',
+      totalMemoryMb: Math.round(os.totalmem() / 1048576),
+      freeMemoryMb: Math.round(os.freemem() / 1048576),
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    };
   });
 
   // 9. GET /v1/superadmin/app-status — per-app maintenance kill switch state

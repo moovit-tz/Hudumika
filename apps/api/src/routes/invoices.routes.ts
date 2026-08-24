@@ -40,6 +40,21 @@ const invoiceCreateSchema = z.object({
   currency: z.string().max(10).optional(),
   version: z.number().int().positive().optional(),
 });
+const recurringInvoiceSchema = z.object({
+  name: z.string().max(300).optional(),
+  customer_id: z.string().uuid().optional(),
+  client_name: z.string().max(300).optional(),
+  frequency: z.enum(['WEEKLY', 'MONTHLY', 'QUARTERLY', 'ANNUAL']).optional(),
+  currency: z.string().max(10).optional(),
+  amount: z.number().min(0).optional(),
+  tax_rate: z.number().min(0).max(100).optional(),
+  tax_code_id: z.string().uuid().nullable().optional(),
+  description: z.string().max(2000).optional(),
+  payment_terms: z.string().max(100).optional(),
+  next_due: z.string().optional(),
+  end_date: z.string().nullable().optional(),
+  state: z.enum(['ACTIVE', 'PAUSED', 'ENDED']).optional(),
+});
 const invoiceNoteSchema = z.object({ content: z.string().trim().min(1).max(5000) });
 const invoiceTaskCreateSchema = z.object({
   description: z.string().trim().min(1).max(500),
@@ -65,6 +80,7 @@ import { requireRole } from '../middleware/rbac.js';
 import { sql, type SqlBool } from 'kysely';
 import { GLService } from '../services/gl.service.js';
 import { AccountingIntegrationService } from '../services/accounting-integration.service.js';
+import { generateDueInvoices } from '../services/recurring-documents.service.js';
 import { TRAService } from '../services/tra.service.js';
 import { getNextDocNumber } from '../lib/doc-numbering.js';
 import { toDateParam } from '../utils/dates.js';
@@ -242,6 +258,109 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
       }
       return { total_invoices, total_received, status_counts };
     });
+  });
+
+  // ── Recurring Invoices ───────────────────────────────────────────────────
+  // The AR counterpart to bills.routes.ts's recurring_bills — must be
+  // registered before GET /:id so 'recurring' isn't read as an invoice id.
+
+  fastify.get('/recurring', async (request) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      return trx.selectFrom('recurring_invoices').selectAll()
+        .where('tenant_id', '=', user.tenant_id).orderBy('created_at', 'desc').execute();
+    });
+  });
+
+  fastify.post('/recurring', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request, reply) => {
+    const user = request.user;
+    const body = recurringInvoiceSchema.parse(request.body);
+    return withTenant(user.tenant_id, async (trx) => {
+      let taxRate = body.tax_rate ?? 0;
+      if (body.tax_code_id) {
+        try {
+          const code = await resolveTaxCode(trx, user.tenant_id, body.tax_code_id, 'SALES');
+          taxRate = Number(code.rate);
+        } catch (e) {
+          if (isTaxCodeUserError(e)) return reply.status(400).send({ error: e.message });
+          throw e;
+        }
+      }
+      const rec = await trx.insertInto('recurring_invoices').values({
+        tenant_id: user.tenant_id,
+        name: body.name || null,
+        customer_id: body.customer_id || null,
+        client_name: body.client_name || null,
+        frequency: body.frequency || 'MONTHLY',
+        currency: body.currency || 'TZS',
+        amount: body.amount ?? 0,
+        tax_rate: taxRate,
+        tax_code_id: body.tax_code_id || null,
+        description: body.description || null,
+        payment_terms: body.payment_terms || null,
+        next_due: body.next_due || null,
+        end_date: body.end_date || null,
+        state: body.state || 'ACTIVE',
+        invoices_generated: 0,
+        total_billed: 0,
+      }).returningAll().executeTakeFirstOrThrow();
+      return reply.status(201).send(rec);
+    });
+  });
+
+  fastify.patch('/recurring/:id', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    const body = recurringInvoiceSchema.parse(request.body);
+    return withTenant(user.tenant_id, async (trx) => {
+      const existing = await trx.selectFrom('recurring_invoices').select('id').where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!existing) return reply.status(404).send({ error: 'Recurring invoice not found' });
+      const updates: any = { updated_at: new Date() };
+      const fields = ['name', 'customer_id', 'client_name', 'frequency', 'currency', 'amount', 'description', 'payment_terms', 'next_due', 'end_date', 'state'];
+      const b = body as Record<string, unknown>;
+      for (const f of fields) if (b[f] !== undefined) updates[f] = b[f];
+      if (body.tax_code_id !== undefined || body.tax_rate !== undefined) {
+        if (body.tax_code_id) {
+          try {
+            const code = await resolveTaxCode(trx, user.tenant_id, body.tax_code_id, 'SALES');
+            updates.tax_rate = Number(code.rate);
+            updates.tax_code_id = body.tax_code_id;
+          } catch (e) {
+            if (isTaxCodeUserError(e)) return reply.status(400).send({ error: e.message });
+            throw e;
+          }
+        } else {
+          updates.tax_rate = body.tax_rate ?? 0;
+          updates.tax_code_id = null;
+        }
+      }
+      const rec = await trx.updateTable('recurring_invoices').set(updates).where('id', '=', id).where('tenant_id', '=', user.tenant_id).returningAll().executeTakeFirstOrThrow();
+      return rec;
+    });
+  });
+
+  fastify.delete('/recurring/:id', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'FINANCE') }, async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    return withTenant(user.tenant_id, async (trx) => {
+      const existing = await trx.selectFrom('recurring_invoices').select('id').where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!existing) return reply.status(404).send({ error: 'Recurring invoice not found' });
+      await trx.deleteFrom('recurring_invoices').where('id', '=', id).execute();
+      return { success: true };
+    });
+  });
+
+  fastify.post('/recurring/:id/generate', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    const result = await generateDueInvoices(user.tenant_id, new Date().toISOString().slice(0, 10), id);
+    if (result.generated.length === 0 && result.skipped.length > 0) {
+      return reply.status(409).send({ error: result.skipped[0].reason });
+    }
+    if (result.generated.length === 0) {
+      return reply.status(404).send({ error: 'Recurring invoice not found' });
+    }
+    return { success: true, ...result.generated[0] };
   });
 
   // GET /v1/invoices

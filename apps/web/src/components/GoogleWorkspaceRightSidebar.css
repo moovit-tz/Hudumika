@@ -13,6 +13,7 @@
 
 /* ── 56px Vertical Rail ── */
 .gws-rail {
+  position: relative;
   width: 56px;
   min-width: 56px;
   height: 100%;
@@ -21,16 +22,69 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  padding: 16px 0;
+  justify-content: flex-start;
   box-sizing: border-box;
   box-shadow: -1px 0 0 rgba(0,0,0,0.04);
   transition: background 0.2s ease, border-color 0.2s ease;
 }
 
 [data-theme="dark"] .gws-rail {
-  background: #0f172a;
+  background: var(--white);
   border-left-color: rgba(255,255,255,0.08);
+}
+
+/* Continues AppHeader's own 57px/border-bottom line across the rail column,
+   so the divider reads as one line spanning the full page width instead of
+   stopping at the main content's right edge. Matches AppSidebar's own
+   .app-sb-brand band exactly. */
+.gws-rail-header {
+  width: 100%;
+  height: 57px;
+  min-height: 57px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.09);
+  flex-shrink: 0;
+}
+
+[data-theme="dark"] .gws-rail-header {
+  border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+
+/* Collapse / expand toggle — floats on the rail's left edge, mirroring
+   AppSidebar's .app-sb-toggle (which floats on its own right edge). */
+.gws-rail-toggle {
+  position: absolute;
+  top: 21px;
+  left: -11px;
+  width: 22px;
+  height: 22px;
+  border: 1px solid rgba(0, 0, 0, 0.16);
+  border-radius: 50%;
+  background: var(--white);
+  box-shadow: var(--elev);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink);
+  transition: background 0.12s, box-shadow 0.12s, transform 0.12s;
+  z-index: 20;
+  flex-shrink: 0;
+}
+
+.gws-rail-toggle:hover {
+  background: var(--bg);
+  box-shadow: var(--elev);
+  transform: scale(1.08);
+}
+
+[data-theme="dark"] .gws-rail-toggle {
+  background: var(--white);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] .gws-rail-toggle:hover {
+  background: rgba(255,255,255,0.06);
 }
 
 .gws-rail-top {
@@ -39,6 +93,8 @@
   align-items: center;
   gap: 18px;
   width: 100%;
+  /* Starts just below .gws-rail-header's line, not immediately flush against it. */
+  margin-top: 14px;
 }
 
 .gws-rail-bottom {
@@ -47,6 +103,8 @@
   align-items: center;
   gap: 14px;
   width: 100%;
+  margin-top: auto;
+  padding-bottom: 16px;
 }
 
 /* Rail Icon Action Item */
@@ -155,7 +213,7 @@
 }
 
 [data-theme="dark"] .gws-drawer {
-  background: #111218;
+  background: var(--white);
   border-left-color: rgba(255,255,255,0.08);
 }
 
@@ -176,7 +234,7 @@
 }
 
 [data-theme="dark"] .gws-drawer-header {
-  background: #181920;
+  background: var(--white);
 }
 
 .gws-drawer-title {
@@ -188,7 +246,16 @@
   color: var(--ink, #0f172a);
 }
 
-.gws-drawer-close {
+/* Search / open-in-app / close — matches the Google Keep companion card's
+   own header action row. */
+.gws-drawer-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.gws-drawer-action {
   width: 28px;
   height: 28px;
   border-radius: 6px;
@@ -199,10 +266,58 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  text-decoration: none;
 }
 
-.gws-drawer-close:hover {
+.gws-drawer-action:hover {
   background: var(--bg);
+  color: var(--ink);
+}
+
+.gws-drawer-action.active {
+  background: var(--teal-l);
+  color: var(--teal);
+}
+
+.gws-drawer-search-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--card-bg, #ffffff);
+  flex-shrink: 0;
+}
+
+[data-theme="dark"] .gws-drawer-search-row {
+  background: var(--white);
+}
+
+.gws-drawer-search-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.gws-drawer-search-input::placeholder {
+  color: var(--ink3);
+}
+
+.gws-drawer-search-clear {
+  border: none;
+  background: transparent;
+  color: var(--ink3);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+}
+
+.gws-drawer-search-clear:hover {
   color: var(--ink);
 }
 

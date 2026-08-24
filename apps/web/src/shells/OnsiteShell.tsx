@@ -1,6 +1,7 @@
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { WorkspaceApp } from './WorkspaceApp.js';
+import { GoogleWorkspaceRightSidebar } from '../components/GoogleWorkspaceRightSidebar.js';
 import { AppSidebar, type SidebarSection } from '../components/AppSidebar.js';
 import { AppHeader } from '../components/AppHeader.js';
 import { PageLayout } from '../components/PageLayout.js';
@@ -124,6 +125,7 @@ export function OnsiteShell() {
             </Routes>
           </div>
         </div>
+        <GoogleWorkspaceRightSidebar />
       </div>
     </WorkspaceApp>
   );

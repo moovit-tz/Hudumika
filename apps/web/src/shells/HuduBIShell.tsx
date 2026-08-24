@@ -1,6 +1,7 @@
 import React from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { WorkspaceApp } from './WorkspaceApp.js';
+import { GoogleWorkspaceRightSidebar } from '../components/GoogleWorkspaceRightSidebar.js';
 import { AppSidebar } from '../components/AppSidebar.js';
 import type { SidebarSection } from '../components/AppSidebar.js';
 import { AppHeader } from '../components/AppHeader.js';
@@ -119,6 +120,7 @@ export function HuduBIShell() {
             </Routes>
           </div>
         </div>
+        <GoogleWorkspaceRightSidebar />
       </div>
     </WorkspaceApp>
   );

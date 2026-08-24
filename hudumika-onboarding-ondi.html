@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hudumika Onboarding — via Ondi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Cormorant+Garamond:ital,wght@1,600;1,700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#0e1f3d;
+    --teal:#0d7a6b;
+    --teal-l:#e6f5f2;
+    --teal-m:#bfe4dd;
+    --blue:#2563eb;
+    --blue-l:#eaf1fe;
+    --blue-m:#c3d9fb;
+    --ink:#1f1f1f;
+    --ink2:#444746;
+    --ink3:#5f6368;
+    --border:#e2e8f0;
+    --bg:#f6f8fa;
+    --card:#ffffff;
+    --green:#059669;
+    --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --serif: 'Cormorant Garamond', Georgia, serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; font-family:var(--font); color:var(--ink); background:var(--bg);
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* ── Hero ─────────────────────────────────────────── */
+  .hero{
+    background:linear-gradient(135deg,var(--navy) 0%, var(--teal) 130%);
+    color:#fff; padding:72px 24px 88px; text-align:center; position:relative; overflow:hidden;
+  }
+  .hero::after{
+    content:''; position:absolute; inset:0;
+    background:
+      radial-gradient(circle at 15% 20%, rgba(255,255,255,0.08), transparent 40%),
+      radial-gradient(circle at 85% 80%, rgba(255,255,255,0.06), transparent 45%);
+    pointer-events:none;
+  }
+  .brand-row{ display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:34px; position:relative; }
+  .brand-grid{ display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; gap:2px; width:22px; height:22px; }
+  .brand-sq{ border-radius:2px; }
+  .brand-sq.r{ background:#ef4444; } .brand-sq.b{ background:#3b82f6; }
+  .brand-sq.y{ background:#f59e0b; } .brand-sq.g{ background:#10b981; }
+  .brand-name{ font-size:18px; font-weight:600; }
+  .brand-x{ font-size:15px; color:rgba(255,255,255,0.4); font-weight:300; }
+  .ondi-mark{
+    font-family:var(--serif); font-style:italic; font-weight:700; font-size:19px; color:#7ee8d6;
+  }
+  .hero .pill{
+    display:inline-flex; align-items:center; gap:8px; background:rgba(255,255,255,0.12);
+    border:1px solid rgba(255,255,255,0.2); padding:6px 14px; border-radius:100px;
+    font-size:12.5px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase;
+    margin-bottom:22px; position:relative;
+  }
+  .pill-dot{ width:6px; height:6px; border-radius:50%; background:#7ee8d6; }
+  .hero h1{ font-size:42px; font-weight:300; line-height:1.16; margin:0 0 16px; letter-spacing:-0.5px; position:relative; }
+  .hero h1 em{ font-family:var(--serif); font-style:italic; font-weight:700; color:#7ee8d6; }
+  .hero p{ font-size:16px; color:rgba(255,255,255,0.78); max-width:580px; margin:0 auto; line-height:1.6; position:relative; }
+
+  .wrap{ max-width:960px; margin:0 auto; padding:0 24px; }
+
+  /* ── Shared identity step ────────────────────────── */
+  .identity{
+    margin-top:-52px; position:relative; z-index:3;
+    background:var(--card); border:1px solid var(--border); border-radius:18px;
+    padding:30px 32px 32px; box-shadow:0 1px 3px rgba(16,24,40,0.04), 0 12px 32px rgba(16,24,40,0.08);
+  }
+  .identity-eyebrow{
+    font-size:10.5px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase;
+    color:var(--teal); margin-bottom:6px; display:flex; align-items:center; gap:8px;
+  }
+  .ondi-badge{
+    display:inline-flex; align-items:center; gap:5px; background:var(--navy); color:#fff;
+    font-family:var(--serif); font-style:italic; font-weight:700; font-size:12px;
+    padding:2px 10px 3px; border-radius:100px;
+  }
+  .identity h2{ font-size:22px; font-weight:600; margin:0 0 8px; }
+  .identity h2 em{ font-family:var(--serif); font-style:italic; font-weight:700; color:var(--teal); }
+  .identity > p.desc{ font-size:14px; color:var(--ink2); line-height:1.65; margin:0 0 20px; max-width:640px; }
+
+  .sso-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:16px; }
+  .sso-tile{
+    border:1px solid var(--border); border-radius:10px; padding:13px 8px; text-align:center;
+    font-size:12.5px; font-weight:600; color:var(--ink2); background:var(--bg);
+  }
+  .sso-tile .g{ font-size:16px; display:block; margin-bottom:6px; }
+  .divider{ display:flex; align-items:center; gap:10px; color:var(--ink3); font-size:11.5px; font-weight:600; margin:16px 0; text-transform:uppercase; letter-spacing:0.04em; }
+  .divider::before, .divider::after{ content:''; flex:1; height:1px; background:var(--border); }
+
+  .field-mock{ background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:16px 18px; display:flex; flex-direction:column; gap:12px; }
+  .fm-label{ font-size:10.5px; font-weight:700; color:var(--ink3); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:5px; }
+  .fm-input{ background:#fff; border:1px solid var(--border); border-radius:8px; padding:9px 12px; font-size:13px; color:var(--ink2); display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .fm-row{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .fm-ok{ color:var(--green); font-size:12px; font-weight:600; display:flex; align-items:center; gap:4px; white-space:nowrap; }
+
+  .identity-note{
+    margin-top:18px; font-size:12.5px; color:var(--ink3); background:var(--teal-l);
+    border-radius:10px; padding:11px 14px; line-height:1.55;
+  }
+  .identity-note b{ color:var(--teal); }
+
+  /* ── Fork ─────────────────────────────────────────── */
+  .fork-label{
+    text-align:center; margin:44px 0 22px; position:relative;
+  }
+  .fork-label span{
+    background:var(--bg); padding:0 14px; font-size:12px; font-weight:700; color:var(--ink3);
+    text-transform:uppercase; letter-spacing:0.08em; position:relative; z-index:2;
+  }
+  .fork-label::before{
+    content:''; position:absolute; left:0; right:0; top:50%; height:1px; background:var(--border);
+  }
+  .fork-connector{
+    width:2px; height:26px; background:repeating-linear-gradient(to bottom, var(--teal-m) 0 6px, transparent 6px 12px);
+    margin:0 auto;
+  }
+
+  .tracks{ display:grid; grid-template-columns:1fr 1fr; gap:28px; align-items:start; }
+  .track-head{
+    display:flex; align-items:center; gap:10px; margin-bottom:16px;
+  }
+  .track-icon{
+    width:34px; height:34px; border-radius:10px; display:flex; align-items:center; justify-content:center;
+    font-size:16px; flex-shrink:0;
+  }
+  .track.enterprise .track-icon{ background:var(--teal-l); color:var(--teal); }
+  .track.personal .track-icon{ background:var(--blue-l); color:var(--blue); }
+  .track-head h3{ margin:0; font-size:16.5px; font-weight:700; }
+  .track-head p{ margin:2px 0 0; font-size:12px; color:var(--ink3); }
+
+  .tstep{ display:grid; grid-template-columns:30px 1fr; gap:14px; }
+  .tstep-rail{ display:flex; flex-direction:column; align-items:center; }
+  .tnode{
+    width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    font-size:12.5px; font-weight:700; flex-shrink:0; z-index:2; background:#fff;
+  }
+  .track.enterprise .tnode{ border:2px solid var(--teal); color:var(--teal); }
+  .track.personal .tnode{ border:2px solid var(--blue); color:var(--blue); }
+  .trail-line{ width:2px; flex:1; margin:4px 0; }
+  .track.enterprise .trail-line{ background:repeating-linear-gradient(to bottom, var(--teal-m) 0 5px, transparent 5px 10px); }
+  .track.personal .trail-line{ background:repeating-linear-gradient(to bottom, var(--blue-m) 0 5px, transparent 5px 10px); }
+  .tstep:last-child .trail-line{ display:none; }
+
+  .tcard{
+    background:var(--card); border:1px solid var(--border); border-radius:14px;
+    padding:16px 18px 18px; margin-bottom:20px; font-size:13px;
+  }
+  .tcard h4{ margin:0 0 5px; font-size:13.5px; font-weight:700; }
+  .tcard p{ margin:0 0 10px; font-size:12px; color:var(--ink2); line-height:1.55; }
+  .tcard .mini-field{
+    background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:8px 11px;
+    font-size:12px; color:var(--ink2); margin-top:4px;
+  }
+  .tcard .mini-row{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .chips-mini{ display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
+  .chip-mini{ font-size:10.5px; font-weight:600; padding:3px 9px; border-radius:100px; background:var(--bg); border:1px solid var(--border); color:var(--ink3); }
+  .plan-mini{ display:flex; gap:6px; margin-top:6px; }
+  .plan-mini span{ flex:1; text-align:center; font-size:10.5px; font-weight:700; padding:6px 4px; border-radius:8px; background:var(--bg); border:1px solid var(--border); color:var(--ink3); }
+  .plan-mini span.on{ background:var(--teal); color:#fff; border-color:var(--teal); }
+
+  /* ── Converge / success ───────────────────────────── */
+  .converge{
+    width:2px; height:30px; margin:0 auto;
+    background:repeating-linear-gradient(to bottom, var(--border) 0 5px, transparent 5px 10px);
+  }
+  .success-card{
+    background:linear-gradient(160deg,var(--navy), var(--teal)); color:#fff; text-align:center;
+    padding:38px 28px 32px; border-radius:16px; margin-bottom:36px;
+  }
+  .success-icon{ width:60px; height:60px; border-radius:50%; background:rgba(255,255,255,0.14); display:flex; align-items:center; justify-content:center; margin:0 auto 16px; font-size:26px; }
+  .success-card h2{ color:#fff; margin:0 0 6px; font-size:22px; font-weight:600; }
+  .success-card h2 em{ font-family:var(--serif); font-style:italic; font-weight:700; color:#7ee8d6; }
+  .success-card .sub{ font-size:13px; color:rgba(255,255,255,0.75); max-width:480px; margin:0 auto; line-height:1.6; }
+  .apps-row{ display:flex; justify-content:center; gap:8px; margin-top:20px; flex-wrap:wrap; }
+  .app-dot{
+    font-size:10.5px; font-weight:700; padding:5px 12px; border-radius:100px;
+    background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.2); color:#fff;
+  }
+
+  /* ── Behind the scenes ────────────────────────────── */
+  .behind{
+    background:#fff; border:1px dashed var(--teal-m); border-radius:14px;
+    padding:22px 24px; margin:8px 0 60px; font-size:13px; color:var(--ink2); line-height:1.7;
+  }
+  .behind .k-eyebrow{ font-size:10.5px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:var(--teal); margin-bottom:8px; }
+  .behind code{ background:var(--teal-l); color:var(--teal); padding:2px 7px; border-radius:5px; font-size:12px; font-family:'SF Mono', Consolas, monospace; }
+  .behind ul{ margin:10px 0 0; padding-left:18px; }
+  .behind li{ margin-bottom:6px; }
+
+  footer{ text-align:center; padding:0 24px 48px; font-size:12px; color:var(--ink3); }
+
+  @media (max-width:720px){
+    .tracks{ grid-template-columns:1fr; }
+    .sso-grid{ grid-template-columns:repeat(2,1fr); }
+    .hero h1{ font-size:30px; }
+    .identity{ padding:22px; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="hero">
+    <div class="brand-row">
+      <div class="brand-grid">
+        <div class="brand-sq r"></div><div class="brand-sq b"></div>
+        <div class="brand-sq y"></div><div class="brand-sq g"></div>
+      </div>
+      <span class="brand-name">Hudumika</span>
+      <span class="brand-x">×</span>
+      <span class="ondi-mark">Ondi</span>
+    </div>
+    <div class="pill"><span class="pill-dot"></span> Identity‑first onboarding</div>
+    <h1>One identity.<br>Every <em>workspace</em>.</h1>
+    <p>Account creation is no longer owned by each workspace — it's owned by Ondi, Hudumika's identity provider. Everyone starts the same way, whether they're bringing a whole company or just themselves.</p>
+  </div>
+
+  <div class="wrap">
+
+    <!-- Shared identity step, owned by Ondi -->
+    <div class="identity">
+      <div class="identity-eyebrow">Step 1 — for everyone <span class="ondi-badge">Ondi</span></div>
+      <h2>Create your <em>identity</em></h2>
+      <p class="desc">This is the only account‑creation step that exists anymore. Ondi issues one identity, reusable across every Hudumika app and any workspace that later grants it access — federated sign‑in included, not just email and a password.</p>
+
+      <div class="sso-grid">
+        <div class="sso-tile"><span class="g">G</span>Google</div>
+        <div class="sso-tile"><span class="g">⊞</span>Microsoft</div>
+        <div class="sso-tile"><span class="g">◆</span>Okta / SAML</div>
+        <div class="sso-tile"><span class="g">✉</span>Email + password</div>
+      </div>
+
+      <div class="divider">or continue with email</div>
+
+      <div class="field-mock">
+        <div class="fm-row">
+          <div>
+            <div class="fm-label">Full name</div>
+            <div class="fm-input">John Mwangi</div>
+          </div>
+          <div>
+            <div class="fm-label">Email</div>
+            <div class="fm-input">john@aleka.co.tz <span class="fm-ok">✓</span></div>
+          </div>
+        </div>
+        <div>
+          <div class="fm-label">Password</div>
+          <div class="fm-input">••••••••••</div>
+        </div>
+      </div>
+
+      <div class="identity-note">
+        <b>Nothing below belongs to this step.</b> No company name, no plan, no domain — Ondi only ever asks
+        "who is this person," never "what are they setting up." That question comes next, and it's the only
+        thing that forks.
+      </div>
+    </div>
+
+    <div class="fork-connector"></div>
+    <div class="fork-label"><span>Ondi already knows who you are — now, what are you here for?</span></div>
+
+    <!-- The fork -->
+    <div class="tracks">
+
+      <!-- Enterprise track -->
+      <div class="track enterprise">
+        <div class="track-head">
+          <div class="track-icon">🏢</div>
+          <div>
+            <h3>For my business</h3>
+            <p>Provisions a workspace &amp; invites a team</p>
+          </div>
+        </div>
+
+        <div class="tstep">
+          <div class="tstep-rail"><div class="tnode">1</div><div class="trail-line"></div></div>
+          <div class="tcard">
+            <h4>Company details</h4>
+            <p>Name, industry, country — Ondi's identity is now linked to a new workspace as its first admin.</p>
+            <div class="mini-field">Aleka Logistics Ltd · Freight &amp; Customs · Tanzania</div>
+          </div>
+        </div>
+
+        <div class="tstep">
+          <div class="tstep-rail"><div class="tnode">2</div><div class="trail-line"></div></div>
+          <div class="tcard">
+            <h4>Choose a plan</h4>
+            <p>Seat‑based pricing, billed to the workspace, not the identity.</p>
+            <div class="plan-mini"><span>Starter</span><span class="on">Plus</span><span>Advanced</span></div>
+          </div>
+        </div>
+
+        <div class="tstep">
+          <div class="tstep-rail"><div class="tnode">3</div><div class="trail-line"></div></div>
+          <div class="tcard">
+            <h4>Workspace address</h4>
+            <p>The door your whole team will use.</p>
+            <div class="mini-field">aleka-logistics.hudumika.app</div>
+          </div>
+        </div>
+
+        <div class="tstep">
+          <div class="tstep-rail"><div class="tnode">4</div><div class="trail-line"></div></div>
+          <div class="tcard">
+            <h4>Invite your team</h4>
+            <p>Each teammate creates their own Ondi identity (or signs in with one they already have) — you're granting access, not creating their account for them.</p>
+            <div class="chips-mini"><span class="chip-mini">amina@aleka.co.tz</span><span class="chip-mini">+ add another</span></div>
+          </div>
+        </div>
+
+        <div class="tstep">
+          <div class="tstep-rail"><div class="tnode">5</div></div>
+          <div class="tcard">
+            <h4>Review &amp; launch</h4>
+            <p>One summary, one confirmation — the workspace and every invite go out together.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Personal track -->
+      <div class="track personal">
+        <div class="track-head">
+          <div class="track-icon">👤</div>
+          <div>
+            <h3>Just for me</h3>
+            <p>No company, no team, no plan to choose</p>
+          </div>
+        </div>
+
+        <div class="tstep">
+          <div class="tstep-rail"><div class="tnode">1</div><div class="trail-line"></div></div>
+          <div class="tcard">
+            <h4>Name your space</h4>
+            <p>A personal workspace tied only to your Ondi identity — nothing to invite anyone into.</p>
+            <div class="mini-field">John's workspace</div>
+          </div>
+        </div>
+
+        <div class="tstep">
+          <div class="tstep-rail"><div class="tnode">2</div></div>
+          <div class="tcard">
+            <h4>Set your basics</h4>
+            <p>Timezone and currency — then you're in. Upgradeable to a business workspace later without a second identity.</p>
+            <div class="mini-row">
+              <div class="mini-field">Africa/Dar_es_Salaam</div>
+              <div class="mini-field">TZS</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="converge"></div>
+
+    <!-- Shared success -->
+    <div class="success-card">
+      <div class="success-icon">✓</div>
+      <h2>You're <em>in</em>.</h2>
+      <p class="sub">One Ondi identity, signed in once — carrying straight into whichever workspace you just set up, and every other one you're ever granted access to.</p>
+      <div class="apps-row">
+        <span class="app-dot">ClearOS</span><span class="app-dot">FinOps</span><span class="app-dot">NexusHR</span>
+        <span class="app-dot">Calendar</span><span class="app-dot">Drive</span><span class="app-dot">+ more</span>
+      </div>
+    </div>
+
+    <div class="behind">
+      <div class="k-eyebrow">What changes, architecturally</div>
+      Account creation moves out of each workspace's own onboarding and becomes a single call into Ondi.
+      Everything downstream is just a grant on top of an identity that already exists:
+      <ul>
+        <li><b>Enterprise signup</b> = create identity (if new) → create workspace → grant that identity the <code>ADMIN</code> role on it.</li>
+        <li><b>Team invite</b> = grant an existing or new identity a role on an existing workspace — never a second password.</li>
+        <li><b>Personal signup</b> = create identity → no workspace grant required at all, or a lightweight workspace‑of‑one.</li>
+        <li><b>Login</b> happens once, at Ondi — every workspace after that is a switch, not a sign‑in.</li>
+      </ul>
+    </div>
+
+  </div>
+
+  <footer>Hudumika Workspace — onboarding, redesigned around Ondi as identity provider</footer>
+
+</body>
+</html>

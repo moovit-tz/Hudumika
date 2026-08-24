@@ -19,6 +19,7 @@ import { requireRole } from '../middleware/rbac.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
 import { overtimeAmount } from '../services/attendance.service.js';
 import { MailService } from '../services/mail.service.js';
+import { GLService } from '../services/gl.service.js';
 import {
   computePayslip, summariseRun,
   type TaxBand, type ContributionScheme, type PayslipResult, type Residency,
@@ -473,6 +474,66 @@ export async function payrollRoutes(fastify: FastifyInstance) {
 
       return trx.updateTable('payroll_runs').set({
         status: 'APPROVED', approved_by: user.sub, approved_at: new Date(), updated_at: new Date(),
+      } as any).where('id', '=', id).where('tenant_id', '=', user.tenant_id)
+        .returningAll().executeTakeFirstOrThrow();
+    });
+  });
+
+  // Marks an approved run as actually paid and posts it to the GL —
+  // previously PAID was a modeled status nothing ever transitioned a run
+  // into, so a payroll run never appeared in the P&L, trial balance, or
+  // cash flow no matter how many times it was run and approved.
+  //
+  // Three separate figures, not one blended "payroll expense" line, for the
+  // same reason summariseRun() keeps them apart: income tax and employee
+  // contributions are the employer's to forward, not to bear, and the
+  // employer's own matched contributions are a real cost of employing
+  // people on top of gross pay.
+  fastify.post('/runs/:id/mark-paid', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'FINANCE') }, async (req, reply) => {
+    const user = req.user;
+    const { id } = req.params as { id: string };
+    return withTenant(user.tenant_id, async (trx) => {
+      const run = await trx.selectFrom('payroll_runs').selectAll()
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!run) return reply.status(404).send({ error: 'Payroll run not found' });
+      if (run.status === 'PAID') return reply.status(409).send({ error: 'This run is already marked paid' });
+      if (run.status !== 'APPROVED') {
+        return reply.status(409).send({ error: `A ${run.status.toLowerCase()} run cannot be marked paid — approve it first` });
+      }
+
+      const slips = await trx.selectFrom('payroll_payslips')
+        .select(['gross_pay', 'income_tax', 'employee_contributions', 'employer_contributions', 'other_deductions', 'net_pay'])
+        .where('tenant_id', '=', user.tenant_id).where('run_id', '=', id).execute();
+      if (slips.length === 0) return reply.status(409).send({ error: 'This run has no payslips to post' });
+
+      const sum = (f: (s: typeof slips[number]) => number) => slips.reduce((t, s) => t + f(s), 0);
+      const grossPay = sum(s => Number(s.gross_pay));
+      const employerContrib = sum(s => Number(s.employer_contributions));
+      const payeTotal = sum(s => Number(s.income_tax));
+      const statutoryTotal = sum(s => Number(s.employee_contributions)) + employerContrib;
+      const otherDeductionsTotal = sum(s => Number(s.other_deductions));
+      const netPayTotal = sum(s => Number(s.net_pay));
+
+      const lines = [
+        { accountCode: '5100', debit: grossPay, credit: 0, description: 'Gross wages' },
+        { accountCode: '5110', debit: employerContrib, credit: 0, description: 'Employer contributions' },
+        { accountCode: '2110', debit: 0, credit: payeTotal, description: 'PAYE withheld' },
+        { accountCode: '2120', debit: 0, credit: statutoryTotal, description: 'Statutory contributions (employee + employer)' },
+        { accountCode: '2100', debit: 0, credit: otherDeductionsTotal, description: 'Other payroll deductions' },
+        { accountCode: '1010', debit: 0, credit: netPayTotal, description: 'Net pay disbursed' },
+      ].filter(l => l.debit > 0 || l.credit > 0);
+
+      await GLService.post(user.tenant_id, {
+        entryDate: new Date().toISOString().slice(0, 10),
+        description: `Payroll run ${run.name} — ${run.period_month}/${run.period_year}`,
+        sourceModule: 'PAYROLL',
+        sourceId: run.id,
+        createdBy: user.sub,
+        lines,
+      });
+
+      return trx.updateTable('payroll_runs').set({
+        status: 'PAID', updated_at: new Date(),
       } as any).where('id', '=', id).where('tenant_id', '=', user.tenant_id)
         .returningAll().executeTakeFirstOrThrow();
     });

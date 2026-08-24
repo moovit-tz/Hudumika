@@ -12,23 +12,11 @@ const XeroLogo = () => (
     <path d="M13 13l14 14M27 13L13 27" stroke="white" strokeWidth="3.5" strokeLinecap="round"/>
   </svg>
 );
-const SageLogo = () => (
-  <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
-    <rect width="40" height="40" rx="9" fill="#00b050"/>
-    <path d="M12 21.5l7 7 11-14" stroke="white" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-);
 const QuickBooksLogo = () => (
   <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
     <rect width="40" height="40" rx="9" fill="#2ca01c"/>
     <circle cx="20" cy="20" r="9" stroke="white" strokeWidth="2.5" fill="none"/>
     <path d="M18 15v10m-2-5h4a2 2 0 000-4h-4" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-);
-const TallyLogo = () => (
-  <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
-    <rect width="40" height="40" rx="9" fill="#ff6f00"/>
-    <path d="M12 17h16M20 17v11" stroke="white" strokeWidth="4" strokeLinecap="round"/>
   </svg>
 );
 
@@ -49,6 +37,8 @@ const MARKETPLACE: MarketplaceItem[] = [
   { id: 'wave',        name: 'Wave Accounting',  category: 'Accounting',     color: '#1e3a5f', bg: 'rgba(30,58,95,0.1)',    initials: 'W',  desc: 'Free accounting software for small businesses. Sync invoices and expenses.',            tags: ['accounting', 'free', 'invoices'] },
   { id: 'freshbooks',  name: 'FreshBooks',       category: 'Accounting',     color: '#1d9bf0', bg: 'rgba(29,155,240,0.1)',  initials: 'FB', desc: 'Cloud accounting with time tracking, invoicing and expense management.',              tags: ['accounting', 'invoices', 'time'] },
   { id: 'zoho',        name: 'Zoho Books',       category: 'Accounting',     color: '#e4430d', bg: 'rgba(228,67,13,0.1)',   initials: 'ZB', desc: 'End-to-end accounting with GST/VAT, inventory and banking integration.',              tags: ['accounting', 'inventory', 'tax'] },
+  { id: 'sage',        name: 'Sage',             category: 'Accounting',     color: '#00b050', bg: 'rgba(0,176,80,0.1)',    initials: 'SG', desc: 'Sync financial transactions with Sage Business Cloud.',                              tags: ['accounting', 'sage'] },
+  { id: 'tally',       name: 'Tally Prime',      category: 'Accounting',     color: '#ff6f00', bg: 'rgba(255,111,0,0.1)',   initials: 'TP', desc: 'Export journal vouchers and bills to Tally Prime Gateway.',                          tags: ['accounting', 'tally', 'india'] },
   { id: 'netsuite',    name: 'Oracle NetSuite',  category: 'ERP',            color: '#c74300', bg: 'rgba(199,67,0,0.1)',    initials: 'NS', desc: 'Enterprise ERP with advanced financial management and global compliance.',            tags: ['erp', 'enterprise', 'compliance'] },
   { id: 'myob',        name: 'MYOB',             category: 'Accounting',     color: '#0d3349', bg: 'rgba(13,51,73,0.1)',    initials: 'MY', desc: 'Business management software popular in Australia and New Zealand.',                   tags: ['accounting', 'payroll', 'au'] },
   { id: 'odoo',        name: 'Odoo',             category: 'ERP',            color: '#714b67', bg: 'rgba(113,75,103,0.1)',  initials: 'OD', desc: 'Open-source ERP covering accounting, inventory, sales and HR.',                      tags: ['erp', 'open-source', 'inventory'] },
@@ -62,26 +52,19 @@ const MARKETPLACE: MarketplaceItem[] = [
 
 const PROVIDER_BRANDS: Record<string, { name: string; color: string; bg: string; Logo: React.FC; desc: string }> = {
   XERO:       { name: 'Xero',       color: '#13b5ea', bg: 'rgba(19,181,234,0.08)',  Logo: XeroLogo,       desc: 'Sync invoices, bills, and payments with Xero Accounting.' },
-  SAGE:       { name: 'Sage',       color: '#00b050', bg: 'rgba(0,176,80,0.08)',    Logo: SageLogo,       desc: 'Sync financial transactions with Sage Business Cloud.' },
-  QUICKBOOKS: { name: 'QuickBooks', color: '#2ca01c', bg: 'rgba(44,160,28,0.08)',   Logo: QuickBooksLogo, desc: 'Sync accounts and sales receipts with QuickBooks Online.' },
-  TALLY:      { name: 'Tally',      color: '#ff6f00', bg: 'rgba(255,111,0,0.08)',   Logo: TallyLogo,      desc: 'Export journal vouchers and bills to Tally Prime Gateway.' },
+  QUICKBOOKS: { name: 'QuickBooks', color: '#2ca01c', bg: 'rgba(44,160,28,0.08)',   Logo: QuickBooksLogo, desc: 'Sync invoices, bills, and payments with QuickBooks Online.' },
 };
 
 export function AccountingIntegrations() {
   const [integrations, setIntegrations] = useState<any[]>([]);
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [savingProvider, setSavingProvider] = useState<string | null>(null);
+  const [connectingProvider, setConnectingProvider] = useState<string | null>(null);
+  const [testingProvider, setTestingProvider] = useState<string | null>(null);
   const [syncingProvider, setSyncingProvider] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabId>('connected');
   const [marketplaceSearch, setMarketplaceSearch] = useState('');
   const [installingId, setInstallingId] = useState<string | null>(null);
-
-  const [activeConfigProvider, setActiveConfigProvider] = useState<string | null>(null);
-  const [clientId, setClientId] = useState('');
-  const [clientSecret, setClientSecret] = useState('');
-  const [orgId, setOrgId] = useState('');
-  const [baseUrl, setBaseUrl] = useState('');
 
   const loadData = async () => {
     try {
@@ -97,33 +80,29 @@ export function AccountingIntegrations() {
 
   useEffect(() => { loadData(); }, []);
 
-  const handleConnectClick = (provider: any) => {
-    setActiveConfigProvider(provider.provider);
-    setClientId(provider.config?.client_id || '');
-    setClientSecret('••••••••••••••••');
-    setOrgId(provider.config?.organization_id || '');
-    setBaseUrl(provider.config?.base_url || '');
-  };
+  // The OAuth callback redirects the browser straight back here with
+  // ?oauth=success|error&provider=...&msg=... — surface it once, then
+  // clean the query string so a refresh doesn't re-show it.
+  useEffect(() => {
+    const qs = new URLSearchParams(window.location.search);
+    const oauth = qs.get('oauth');
+    if (!oauth) return;
+    const provider = PROVIDER_BRANDS[(qs.get('provider') || '').toUpperCase()]?.name || qs.get('provider') || 'Provider';
+    if (oauth === 'success') showAlert(`${provider} connected successfully.`);
+    else showAlert(qs.get('msg') || `Connecting ${provider} failed.`);
+    qs.delete('oauth'); qs.delete('provider'); qs.delete('msg');
+    const rest = qs.toString();
+    window.history.replaceState({}, '', window.location.pathname + (rest ? `?${rest}` : ''));
+  }, []);
 
-  const handleSaveConfig = async () => {
-    if (!activeConfigProvider) return;
-    setSavingProvider(activeConfigProvider);
+  const handleConnect = async (provider: string) => {
+    setConnectingProvider(provider);
     try {
-      await apiFetch(`/v1/accounting-integrations/${activeConfigProvider}/connect`, {
-        method: 'POST',
-        body: JSON.stringify({
-          client_id: clientId,
-          client_secret: clientSecret === '••••••••••••••••' ? undefined : clientSecret,
-          organization_id: orgId,
-          base_url: baseUrl,
-        }),
-      });
-      setActiveConfigProvider(null);
-      await loadData();
+      const { url } = await apiFetch(`/v1/accounting-integrations/${provider}/authorize`);
+      window.location.href = url;
     } catch (err) {
-      showAlert(err instanceof Error ? err.message : 'Connection failed');
-    } finally {
-      setSavingProvider(null);
+      showAlert(err instanceof Error ? err.message : 'Could not start the connection.');
+      setConnectingProvider(null);
     }
   };
 
@@ -137,12 +116,25 @@ export function AccountingIntegrations() {
     }
   };
 
+  const handleTestConnection = async (providerName: string) => {
+    setTestingProvider(providerName);
+    try {
+      await apiFetch(`/v1/accounting-integrations/${providerName}/test-connection`, { method: 'POST' });
+      await loadData();
+      showAlert(`Connection to ${PROVIDER_BRANDS[providerName]?.name || providerName} is working.`);
+    } catch (err) {
+      showAlert(err instanceof Error ? err.message : 'Test connection failed');
+    } finally {
+      setTestingProvider(null);
+    }
+  };
+
   const handleSyncNow = async (providerName: string) => {
     setSyncingProvider(providerName);
     try {
-      await apiFetch(`/v1/accounting-integrations/${providerName}/sync`, { method: 'POST' });
+      const result = await apiFetch(`/v1/accounting-integrations/${providerName}/sync`, { method: 'POST' });
       await loadData();
-      showAlert(`Chart of Accounts synced successfully from ${providerName}!`);
+      showAlert(`Pulled ${result.accounts?.length ?? 0} accounts from ${PROVIDER_BRANDS[providerName]?.name || providerName}'s real chart of accounts.`);
     } catch (err) {
       showAlert(err instanceof Error ? err.message : 'Sync failed');
     } finally {
@@ -185,7 +177,7 @@ export function AccountingIntegrations() {
         crumbs={['Finance', 'Integrations']}
         titlePlain="Accounting"
         titleEm="integrations"
-        subtitle="Connect the ledger to Xero, QuickBooks or Zoho and keep them in step."
+        subtitle="Connect the ledger to Xero or QuickBooks and keep them in step."
       />
 
       {/* Tabs */}
@@ -212,6 +204,7 @@ export function AccountingIntegrations() {
                 const brand = PROVIDER_BRANDS[p.provider];
                 if (!brand) return null;
                 const isConnected = p.status === 'CONNECTED';
+                const isError = p.status === 'ERROR';
                 const { Logo } = brand;
                 return (
                   <div key={p.provider} style={{ border: `1.5px solid ${isConnected ? brand.color + '4d' : 'var(--border)'}`, borderRadius: 12, background: 'var(--white)', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: isConnected ? `0 2px 12px ${brand.color}18` : 'none' }}>
@@ -220,8 +213,8 @@ export function AccountingIntegrations() {
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                           <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--ink)' }}>{brand.name}</span>
-                          <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 10, background: isConnected ? '#ecfdf5' : '#fee2e2', color: isConnected ? '#047857' : '#b91c1c', fontWeight: 700 }}>
-                            {isConnected ? 'Connected' : 'Disconnected'}
+                          <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 10, background: isConnected ? '#ecfdf5' : isError ? '#fef3c7' : '#fee2e2', color: isConnected ? '#047857' : isError ? '#92400e' : '#b91c1c', fontWeight: 700 }}>
+                            {isConnected ? 'Connected' : isError ? 'Needs reconnect' : 'Disconnected'}
                           </span>
                         </div>
                         <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginTop: 5, lineHeight: 1.45 }}>{brand.desc}</div>
@@ -230,21 +223,32 @@ export function AccountingIntegrations() {
                             Last synced: <strong>{new Date(p.last_sync_at).toLocaleString()}</strong>
                           </div>
                         )}
+                        {p.last_error && (
+                          <div style={{ fontSize: 11, color: 'var(--red)', marginTop: 6 }}>{p.last_error}</div>
+                        )}
+                        {!p.configured && !isConnected && (
+                          <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 8, fontStyle: 'italic' }}>
+                            Not yet configured on this platform — no {brand.name} app credentials are set.
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div style={{ padding: '12px 18px', background: 'var(--bg)', borderTop: '1px solid var(--border)', display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
                       {isConnected ? (
                         <>
+                          <button type="button" className="btn btn-secondary btn-sm" disabled={testingProvider === p.provider} onClick={() => handleTestConnection(p.provider)}>
+                            {testingProvider === p.provider ? 'Testing…' : 'Test'}
+                          </button>
                           <button type="button" className="btn btn-secondary btn-sm" disabled={syncingProvider === p.provider} onClick={() => handleSyncNow(p.provider)}>
-                            {syncingProvider === p.provider ? 'Syncing…' : 'Sync CoA'}
+                            {syncingProvider === p.provider ? 'Syncing…' : 'Pull Chart of Accounts'}
                           </button>
                           <button type="button" style={{ fontSize: 13, color: 'var(--red)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }} onClick={() => handleDisconnect(p.provider)}>
                             Disconnect
                           </button>
                         </>
                       ) : (
-                        <button type="button" className="btn btn-primary btn-sm" onClick={() => handleConnectClick(p)}>
-                          Configure
+                        <button type="button" className="btn btn-primary btn-sm" disabled={!p.configured || connectingProvider === p.provider} onClick={() => handleConnect(p.provider)}>
+                          {connectingProvider === p.provider ? 'Connecting…' : `Connect ${brand.name}`}
                         </button>
                       )}
                     </div>
@@ -252,59 +256,6 @@ export function AccountingIntegrations() {
                 );
               })}
             </div>
-
-            {/* Connection config panel */}
-            {activeConfigProvider && (() => {
-              const brand = PROVIDER_BRANDS[activeConfigProvider];
-              const isOauth = activeConfigProvider === 'XERO' || activeConfigProvider === 'QUICKBOOKS';
-              return (
-                <div style={{ padding: '20px 22px', background: 'var(--bg)', borderRadius: 10, border: '1px solid var(--border)', marginBottom: 28 }}>
-                  <h4 style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--ink)', margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ flexShrink: 0 }}>{React.createElement(brand.Logo)}</div>
-                    Configure {brand.name} Connection
-                  </h4>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 16px', marginBottom: 18 }}>
-                    {isOauth ? (
-                      <>
-                        <div>
-                          <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.4px' }}>Client ID</label>
-                          <input className="input-field" value={clientId} onChange={e => setClientId(e.target.value)} />
-                        </div>
-                        <div>
-                          <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.4px' }}>Client Secret</label>
-                          <input className="input-field" type="password" value={clientSecret} onChange={e => setClientSecret(e.target.value)} />
-                        </div>
-                        <div>
-                          <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.4px' }}>Organization ID (optional)</label>
-                          <input className="input-field" value={orgId} onChange={e => setOrgId(e.target.value)} />
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <div>
-                          <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.4px' }}>API Gateway URL</label>
-                          <input className="input-field" value={baseUrl} onChange={e => setBaseUrl(e.target.value)} placeholder="e.g. http://localhost:9000" />
-                        </div>
-                        <div>
-                          <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.4px' }}>Access Token / API Key</label>
-                          <input className="input-field" type="password" value={clientSecret} onChange={e => setClientSecret(e.target.value)} />
-                        </div>
-                        <div>
-                          <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.4px' }}>Company / Organization ID</label>
-                          <input className="input-field" value={orgId} onChange={e => setOrgId(e.target.value)} />
-                        </div>
-                      </>
-                    )}
-                  </div>
-                  <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-                    <button type="button" className="btn btn-secondary btn-sm" onClick={() => setActiveConfigProvider(null)}>Cancel</button>
-                    <button type="button" className="btn btn-primary btn-sm" disabled={savingProvider === activeConfigProvider} onClick={handleSaveConfig}>
-                      {savingProvider === activeConfigProvider ? 'Connecting…' : 'Save & Connect'}
-                    </button>
-                  </div>
-                </div>
-              );
-            })()}
 
             {/* Sync logs */}
             <div className="card">

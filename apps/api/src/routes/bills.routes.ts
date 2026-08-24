@@ -49,6 +49,7 @@ import { requireRole } from '../middleware/rbac.js';
 import { GLService } from '../services/gl.service.js';
 import { emitDomainEvent } from '../services/domain-events.service.js';
 import { AccountingIntegrationService } from '../services/accounting-integration.service.js';
+import { generateDueBills } from '../services/recurring-documents.service.js';
 import { TRAService } from '../services/tra.service.js';
 import { isTaxCodeUserError, resolveLineTax, resolveTaxCode, splitInputTax } from '../services/tax-code.service.js';
 import {
@@ -299,6 +300,23 @@ export async function billRoutes(fastify: FastifyInstance) {
     });
   });
 
+  // POST /v1/bills/recurring/:id/generate — real server-side generation,
+  // replacing the logic that used to live only in Bills.tsx's own
+  // handleGenerate() (build a payload, POST /v1/bills, PATCH the counters).
+  // Same function the daily cron job calls, just scoped to one template.
+  fastify.post('/recurring/:id/generate', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    const result = await generateDueBills(user.tenant_id, new Date().toISOString().slice(0, 10), id);
+    if (result.generated.length === 0 && result.skipped.length > 0) {
+      return reply.status(409).send({ error: result.skipped[0].reason });
+    }
+    if (result.generated.length === 0) {
+      return reply.status(404).send({ error: 'Recurring bill not found' });
+    }
+    return { success: true, ...result.generated[0] };
+  });
+
   // DELETE /v1/bills/recurring/:id
   fastify.delete('/recurring/:id', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'FINANCE') }, async (request, reply) => {
     const user = request.user;
@@ -420,6 +438,11 @@ export async function billRoutes(fastify: FastifyInstance) {
         AccountingIntegrationService.syncBill(user.tenant_id, bill.id).catch(console.error);
       }
 
+      await trx.insertInto('bill_activity_log').values({
+        tenant_id: user.tenant_id, bill_id: bill.id, actor_id: user.sub, actor_name: user.name || user.email,
+        action: 'created', detail: `Bill ${bill.bill_number} created as ${bill.status}`, created_at: new Date(),
+      }).execute();
+
       return reply.status(201).send(bill);
     });
   });
@@ -538,6 +561,11 @@ export async function billRoutes(fastify: FastifyInstance) {
         AccountingIntegrationService.syncBill(user.tenant_id, bill.id).catch(console.error);
       }
 
+      await trx.insertInto('bill_activity_log').values({
+        tenant_id: user.tenant_id, bill_id: id, actor_id: user.sub, actor_name: user.name || user.email,
+        action: 'updated', detail: `Bill ${bill.bill_number} updated`, created_at: new Date(),
+      }).execute();
+
       return bill;
     });
   });
@@ -573,6 +601,11 @@ export async function billRoutes(fastify: FastifyInstance) {
       await trx.updateTable('supplier_bills')
         .set({ status: 'VOID', updated_at: new Date() } as any)
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id).execute();
+
+      await trx.insertInto('bill_activity_log').values({
+        tenant_id: user.tenant_id, bill_id: id, actor_id: user.sub, actor_name: user.name || user.email,
+        action: 'voided', detail: `Voided: ${String(reason).trim()}`, created_at: new Date(),
+      }).execute();
 
       return { success: true, journals_reversed: reversed };
     });
@@ -672,6 +705,11 @@ export async function billRoutes(fastify: FastifyInstance) {
       // Trigger accounting integration payment sync in background
       AccountingIntegrationService.syncPayment(user.tenant_id, id, 'BILL').catch(console.error);
 
+      await trx.insertInto('bill_activity_log').values({
+        tenant_id: user.tenant_id, bill_id: id, actor_id: user.sub, actor_name: user.name || user.email,
+        action: 'payment_recorded', detail: `Payment of ${amount} ${currency || bill.currency || 'USD'} recorded`, created_at: new Date(),
+      }).execute();
+
       return { success: true, paid_amount: totalPaid, status: newStatus };
     });
   });
@@ -705,5 +743,16 @@ export async function billRoutes(fastify: FastifyInstance) {
         ? '✅ Receipt verified with TRA'
         : '⚠️ Receipt not found or could not be verified. Please check the number and try again.',
     };
+  });
+
+  // GET /v1/bills/:id/activity — same shape as invoices' own activity log.
+  fastify.get('/:id/activity', async (request) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    return withTenant(user.tenant_id, async (trx) => {
+      const log = await trx.selectFrom('bill_activity_log').selectAll()
+        .where('bill_id', '=', id).where('tenant_id', '=', user.tenant_id).orderBy('created_at', 'desc').execute();
+      return { data: log };
+    });
   });
 }

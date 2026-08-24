@@ -2659,6 +2659,50 @@ export interface InvoiceActivityLogTable {
   created_at: Generated<Date>;
 }
 
+export interface BillActivityLogTable {
+  id: Generated<string>;
+  tenant_id: string;
+  bill_id: string;
+  actor_id: string | null;
+  actor_name: string | null;
+  action: string;
+  detail: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface CreditNotesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  credit_note_number: string;
+  original_invoice_id: string | null;
+  customer_id: string | null;
+  client_name: string | null;
+  client_address: Generated<unknown>;
+  currency: Generated<string>;
+  exchange_rate: Generated<number>;
+  credit_date: DateOnlyNull;
+  reason: string | null;
+  status: Generated<'DRAFT' | 'POSTED' | 'VOID'>;
+  notes: string | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface CreditNoteLinesTable {
+  id: Generated<string>;
+  credit_note_id: string;
+  name: string;
+  unit: Generated<string>;
+  rate: Generated<number>;
+  qty: Generated<number>;
+  tax_pct: Generated<number>;
+  tax_code_id: string | null;
+  line_group: Generated<string>;
+  currency: Generated<string>;
+  sort_order: Generated<number>;
+}
+
 export interface ProductsTable {
   id: string;
   tenant_id: string;
@@ -2780,6 +2824,28 @@ export interface BillPaymentsTable {
   note: string | null;
   created_by: string | null;
   created_at: Generated<Date>;
+}
+
+export interface RecurringInvoicesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  name: string | null;
+  customer_id: string | null;
+  client_name: string | null;
+  frequency: Generated<string>;
+  currency: Generated<string>;
+  amount: Generated<number>;
+  tax_rate: Generated<number>;
+  tax_code_id: string | null;
+  description: string | null;
+  payment_terms: string | null;
+  next_due: DateOnlyNull;
+  end_date: DateOnlyNull;
+  state: Generated<string>;
+  invoices_generated: Generated<number>;
+  total_billed: Generated<number>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
 }
 
 export interface RecurringBillsTable {
@@ -3883,6 +3949,9 @@ export interface Database {
   invoice_tasks: InvoiceTasksTable;
   invoice_reminders: InvoiceRemindersTable;
   invoice_activity_log: InvoiceActivityLogTable;
+  credit_notes: CreditNotesTable;
+  credit_note_lines: CreditNoteLinesTable;
+  bill_activity_log: BillActivityLogTable;
   tax_codes: TaxCodesTable;
   // Statutory payroll. Tenant-scoped like everything else here — every query
   // still needs its own explicit tenant_id filter.
@@ -3918,6 +3987,7 @@ export interface Database {
   supplier_bill_lines: SupplierBillLinesTable;
   bill_payments: BillPaymentsTable;
   recurring_bills: RecurringBillsTable;
+  recurring_invoices: RecurringInvoicesTable;
   // Tenant Settings
   tenant_settings: TenantSettingsTable;
   report_definitions: ReportDefinitionsTable;
@@ -3977,6 +4047,7 @@ export interface Database {
   petti_transfers: PettiTransfersTable;
   petti_flags: PettiFlagsTable;
   accounting_sync_logs: AccountingSyncLogsTable;
+  accounting_integration_entity_map: AccountingIntegrationEntityMapTable;
   user_totp: UserTotpTable;
   workflow_studio_apps: WorkflowStudioAppsTable;
   workflow_studio_runs: WorkflowStudioRunsTable;
@@ -5325,6 +5396,13 @@ export interface AccountingIntegrationsTable {
   status: Generated<'CONNECTED' | 'DISCONNECTED' | 'ERROR'>;
   config: Generated<Record<string, any>>;
   last_sync_at: Date | null;
+  /** Encrypted (encryptSecret), same convention as mail-oauth's tenant_settings tokens. */
+  access_token_enc: string | null;
+  refresh_token_enc: string | null;
+  token_expires_at: Date | null;
+  /** QuickBooks calls this realmId, Xero calls it tenantId — stored generically. */
+  provider_org_id: string | null;
+  last_error: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -5333,12 +5411,22 @@ export interface AccountingSyncLogsTable {
   id: Generated<string>;
   tenant_id: string;
   provider: string;
-  entity_type: 'COA' | 'INVOICE' | 'BILL' | 'PAYMENT';
+  entity_type: 'COA' | 'INVOICE' | 'BILL' | 'PAYMENT' | 'TEST_CONNECTION';
   entity_id: string;
   external_id: string | null;
   status: 'SUCCESS' | 'FAILED';
   error_message: string | null;
   synced_at: Generated<Date>;
+}
+
+export interface AccountingIntegrationEntityMapTable {
+  id: Generated<string>;
+  tenant_id: string;
+  provider: string;
+  local_type: 'customer' | 'supplier';
+  local_id: string;
+  external_id: string;
+  created_at: Generated<Date>;
 }
 
 export interface EmailMessagesTable {

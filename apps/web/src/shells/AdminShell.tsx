@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import '../pages/Workspace.css';
 import { WorkspaceApp } from './WorkspaceApp.js';
+import { GoogleWorkspaceRightSidebar } from '../components/GoogleWorkspaceRightSidebar.js';
 import { AppSidebar } from '../components/AppSidebar.js';
 import type { SidebarSection, SidebarNavItem } from '../components/AppSidebar.js';
 import { AppHeader } from '../components/AppHeader.js';
@@ -77,6 +78,7 @@ export function AdminShell() {
           </Routes>
           </div>
         </div>
+        <GoogleWorkspaceRightSidebar />
       </div>
     </WorkspaceApp>
   );

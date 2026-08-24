@@ -83,9 +83,22 @@ async function refreshAccessToken(): Promise<boolean> {
   return refreshInFlight;
 }
 
+/** The whole platform is down for maintenance (Platform Settings ▸
+ *  Maintenance Mode, enforced in middleware/auth.ts's authenticate()) —
+ *  bounce to a real maintenance page instead of letting every call site
+ *  surface its own generic fetch-failed error. Mirrors handleUnauthorized's
+ *  redirect shape below. */
+function handlePlatformMaintenance() {
+  const path = window.location.pathname;
+  if (!path.startsWith('/maintenance') && !path.startsWith('/login')) {
+    window.location.href = '/maintenance';
+  }
+}
+
 async function throwForErrorResponse(response: Response): Promise<never> {
   if (response.status === 401) handleUnauthorized();
   const err = await response.json().catch(() => ({}));
+  if (response.status === 503 && err.code === 'PLATFORM_MAINTENANCE') handlePlatformMaintenance();
   const thrown = new Error(err.message || err.error || err.detail || `Request failed with status ${response.status}`);
   // The rest of the error body (e.g. notes.routes.ts's 409 { code:
   // 'NOTE_CONFLICT', current }) used to be discarded — only .message

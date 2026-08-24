@@ -67,6 +67,29 @@ export function hashApiKey(rawKey: string): string {
   return createHash('sha256').update(rawKey).digest('hex');
 }
 
+const GLOBAL_TENANT_ID = '00000000-0000-0000-0000-000000000000';
+
+/** Blocks the request with 503 when Platform Settings ▸ Maintenance Mode is
+ *  on — the same app_status/SUPER_ADMIN-bypass shape entitlement.ts's
+ *  checkEntitlement() already applies per-app (line ~68-74), generalized to
+ *  the whole platform. Lives here, not a separate global hook, because this
+ *  is the one preHandler every protected route already runs (see
+ *  enforceUsageGate below for the established precedent) — and because
+ *  /v1/auth/* routes never call authenticate() at all (there's no token yet
+ *  at login), they're naturally exempt without any route-prefix allowlist. */
+async function enforceMaintenanceGate(request: FastifyRequest, reply: FastifyReply): Promise<boolean> {
+  if (request.user.role === 'SUPER_ADMIN') return false;
+  const row = await dbPlatform.selectFrom('tenant_settings').select('settings')
+    .where('tenant_id', '=', GLOBAL_TENANT_ID).executeTakeFirst();
+  if (!row) return false;
+  const settings = typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings;
+  if (settings?.maintenance === true) {
+    reply.status(503).send({ error: 'Hudumika is temporarily down for maintenance. Please check back shortly.', code: 'PLATFORM_MAINTENANCE' });
+    return true;
+  }
+  return false;
+}
+
 /** Blocks the request with 402 if this tenant is over its plan's monthly item cap.
  *  Only applies to POST requests on metered routes — see isMeteredPath(). */
 async function enforceUsageGate(request: FastifyRequest, reply: FastifyReply): Promise<boolean> {
@@ -138,6 +161,7 @@ export const authPlugin = fp(async (fastify: FastifyInstance) => {
       request.apiKeyScopes = row.scopes;
 
       dbPlatform.updateTable('api_keys').set({ last_used_at: new Date() }).where('id', '=', row.id).execute().catch(() => {});
+      if (await enforceMaintenanceGate(request, reply)) return;
       if (await enforceUsageGate(request, reply)) return;
       return;
     }
@@ -184,6 +208,7 @@ export const authPlugin = fp(async (fastify: FastifyInstance) => {
       }
     }
 
+    if (await enforceMaintenanceGate(request, reply)) return;
     await enforceUsageGate(request, reply);
   });
 });

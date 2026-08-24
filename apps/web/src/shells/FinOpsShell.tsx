@@ -2,6 +2,7 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import '../pages/FinOps.css';
 import { WorkspaceApp } from './WorkspaceApp.js';
+import { GoogleWorkspaceRightSidebar } from '../components/GoogleWorkspaceRightSidebar.js';
 import { AppSidebar } from '../components/AppSidebar.js';
 import type { SidebarSection } from '../components/AppSidebar.js';
 import { AppHeader } from '../components/AppHeader.js';
@@ -43,6 +44,7 @@ function buildNav(t: TFunction): SidebarSection[] {
         { label: t('finance.nav.taxCodes'),         icon: 'percent',    path: '/finance/tax-codes'                    },
         { label: t('finance.nav.vatPeriods'),       icon: 'lock',       path: '/finance/vat-periods'                  },
         { label: t('finance.nav.chartOfAccounts'),  icon: 'list',       path: '/finance/accounts/chart-of-accounts'   },
+        { label: 'Journal Entries',                 icon: 'bookOpen',   path: '/finance/accounts/journal-entries'     },
         { label: t('finance.nav.ledger'),           icon: 'fileText',   path: '/finance/accounts/ledger'              },
         { label: t('finance.nav.trialBalance'),     icon: 'barChart',   path: '/finance/accounts/trial-balance'       },
         { label: t('finance.nav.balanceSheet'),     icon: 'layers',     path: '/finance/accounts/balance-sheet'       },
@@ -101,8 +103,10 @@ import { FinanceTaxReport }            from '../pages/FinanceTaxReport.js';
 import { FinanceCashFlow }             from '../pages/FinanceCashFlow.js';
 import { AccountsQuery }               from '../pages/AccountsQuery.js';
 import { ChartOfAccounts }            from '../pages/ChartOfAccounts.js';
+import { JournalEntries }             from '../pages/JournalEntries.js';
 import { DeliveryDocumentsPage }       from '../pages/DeliveryDocumentsPage.js';
 import { AccountingIntegrations }      from '../pages/AccountingIntegrations.js';
+import { RecurringInvoices }           from '../pages/RecurringInvoices.js';
 
 export function FinOpsShell() {
   const { t } = useLocale();
@@ -121,6 +125,7 @@ export function FinOpsShell() {
           <Route index element={<RequireRoles roles={FIN_ROLES}><FinanceDashboard /></RequireRoles>} />
           {/* Receivables */}
           <Route path="invoices"       element={<RequireRoles roles={FIN_ROLES}><Billing /></RequireRoles>} />
+          <Route path="invoices/recurring" element={<RequireRoles roles={FIN_ROLES}><RecurringInvoices /></RequireRoles>} />
           <Route path="quotations"     element={<RequireRoles roles={FIN_ROLES}><Quotations /></RequireRoles>} />
           <Route path="delivery-documents" element={<RequireRoles roles={FIN_ROLES}><DeliveryDocumentsPage /></RequireRoles>} />
           <Route path="delivery-notes" element={<Navigate to="/finance/delivery-documents" replace />} />
@@ -141,6 +146,7 @@ export function FinOpsShell() {
           <Route path="accounts">
             <Route index                  element={<RequireRoles roles={FIN_ROLES}><AccountsQuery /></RequireRoles>} />
             <Route path="chart-of-accounts" element={<RequireRoles roles={FIN_ROLES}><ChartOfAccounts /></RequireRoles>} />
+            <Route path="journal-entries" element={<RequireRoles roles={FIN_ROLES}><JournalEntries /></RequireRoles>} />
             <Route path="ledger"          element={<RequireRoles roles={FIN_ROLES}><FinanceLedger /></RequireRoles>} />
             <Route path="trial-balance"   element={<RequireRoles roles={FIN_ROLES}><FinanceTrialBalance /></RequireRoles>} />
             <Route path="balance-sheet"   element={<RequireRoles roles={FIN_ROLES}><FinanceBalanceSheet /></RequireRoles>} />
@@ -170,6 +176,7 @@ export function FinOpsShell() {
       </Routes>
           </div>
         </div>
+        <GoogleWorkspaceRightSidebar />
       </div>
     </WorkspaceApp>
   );
