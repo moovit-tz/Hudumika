@@ -3048,6 +3048,120 @@ export interface CalendarSyncConnectionsTable {
   updated_at: Generated<Date>;
 }
 
+// ── SMS app (288_sms_app.sql) ──────────────────────────────────────────
+export interface SmsGroupsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  name: string;
+  description: string | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface SmsGroupMembersTable {
+  id: Generated<string>;
+  tenant_id: string;
+  group_id: string;
+  phone: string;
+  name: string | null;
+  contact_id: string | null;
+  contact_source: string | null; // 'contact' | 'lead' | 'customer' | 'user' | null
+  created_at: Generated<Date>;
+}
+
+export interface SmsTemplatesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  name: string;
+  body: string;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface SmsCampaignsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  name: string;
+  body: string;
+  template_id: string | null;
+  group_id: string | null;
+  status: Generated<string>; // 'draft' | 'scheduled' | 'sending' | 'sent' | 'failed' | 'cancelled'
+  scheduled_at: ColumnType<Date, string, string> | null;
+  sent_at: ColumnType<Date, string, string> | null;
+  total_recipients: Generated<number>;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface SmsMessagesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  user_id: string | null;
+  to_number: string;
+  body: string;
+  status: Generated<string>; // 'queued' | 'sent' | 'delivered' | 'failed' | 'undelivered'
+  provider: string | null;
+  provider_message_id: string | null;
+  error: string | null;
+  segments: Generated<number>;
+  source_app: string;
+  campaign_id: string | null;
+  template_id: string | null;
+  contact_name: string | null;
+  attempts: Generated<number>;
+  sent_at: ColumnType<Date, string, string> | null;
+  delivered_at: ColumnType<Date, string, string> | null;
+  created_at: Generated<Date>;
+}
+
+// ── SMS gateways, sender IDs, opt-outs, inbound (289_sms_gateways_and_compliance.sql) ──
+export interface SmsGatewaysTable {
+  id: Generated<string>;
+  tenant_id: string;
+  provider: string; // 'africas_talking' | 'twilio' | 'nexmo' | 'bongolive'
+  label: string;
+  credentials: string; // encrypted JSON blob (encryptJson/decryptJson)
+  sender_id: string | null;
+  priority: Generated<number>;
+  active: Generated<boolean>;
+  last_used_at: ColumnType<Date, string, string> | null;
+  last_error: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface SmsSenderIdsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  gateway_id: string;
+  sender_id: string;
+  label: string | null;
+  is_default: Generated<boolean>;
+  created_at: Generated<Date>;
+}
+
+export interface SmsOptOutsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  phone: string;
+  reason: Generated<string>; // 'stop_keyword' | 'manual'
+  note: string | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface SmsInboundMessagesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  gateway_id: string | null;
+  from_number: string;
+  body: string;
+  matched_keyword: string | null;
+  created_at: Generated<Date>;
+}
+
 /** A single-occurrence exception to a recurring event — skip it, or
  *  override its time/title/description/location (286_calendar_v2.sql). */
 export interface CalendarEventOverridesTable {
@@ -3827,6 +3941,15 @@ export interface Database {
   calendar_event_reminder_sends: CalendarEventReminderSendsTable;
   booking_pages: BookingPagesTable;
   calendar_sync_connections: CalendarSyncConnectionsTable;
+  sms_groups: SmsGroupsTable;
+  sms_group_members: SmsGroupMembersTable;
+  sms_templates: SmsTemplatesTable;
+  sms_campaigns: SmsCampaignsTable;
+  sms_messages: SmsMessagesTable;
+  sms_gateways: SmsGatewaysTable;
+  sms_sender_ids: SmsSenderIdsTable;
+  sms_opt_outs: SmsOptOutsTable;
+  sms_inbound_messages: SmsInboundMessagesTable;
   user_app_settings: UserAppSettingsTable;
   // AWB / BL Tracking
   tracking_snapshots: TrackingSnapshotsTable;
@@ -3851,6 +3974,8 @@ export interface Database {
   petti_workflows: PettiWorkflowsTable;
   petti_deposits: PettiDepositsTable;
   petti_withdrawal_requests: PettiWithdrawalRequestsTable;
+  petti_transfers: PettiTransfersTable;
+  petti_flags: PettiFlagsTable;
   accounting_sync_logs: AccountingSyncLogsTable;
   user_totp: UserTotpTable;
   workflow_studio_apps: WorkflowStudioAppsTable;
@@ -4759,6 +4884,35 @@ export interface PettiWithdrawalRequestsTable {
   finance_expense_id: string | null;
   journal_entry_id: string | null;
   workflow_id: string | null;
+  payee_name: string | null;
+  on_behalf_of_user_id: string | null;
+}
+
+export interface PettiTransfersTable {
+  id: Generated<string>;
+  tenant_id: string;
+  from_wallet_id: string;
+  to_wallet_id: string;
+  amount: number;
+  note: string | null;
+  journal_entry_id: string | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface PettiFlagsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  subject_type: string;
+  subject_id: string;
+  wallet_id: string;
+  reason: string;
+  status: Generated<string>;
+  raised_by: string;
+  resolved_by: string | null;
+  resolved_at: Date | null;
+  resolution_note: string | null;
+  created_at: Generated<Date>;
 }
 
 export interface ReferenceCountriesTable {

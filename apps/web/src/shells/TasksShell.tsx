@@ -16,6 +16,7 @@ import {
   inboxListId, TaskViewId,
   fetchListShares, shareListWith, unshareList, ListShare,
 } from '../data/calendarStore.js';
+import { GoogleWorkspaceRightSidebar } from '../components/GoogleWorkspaceRightSidebar.js';
 
 async function searchColleagues(q: string): Promise<PickerItem[]> {
   const rows = await apiFetch(`/v1/hr/staff?search=${encodeURIComponent(q)}`).catch(() => []);
@@ -261,6 +262,7 @@ export function TasksShell() {
             </Routes>
           </div>
         </div>
+        <GoogleWorkspaceRightSidebar />
       </div>
     </WorkspaceApp>
   );

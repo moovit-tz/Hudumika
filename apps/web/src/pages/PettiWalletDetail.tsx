@@ -9,7 +9,7 @@ import { Input } from '../components/ui/input.js';
 import { Textarea } from '../components/ui/textarea.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Combobox, type ComboboxOption } from '../components/ui/combobox.js';
-import { apiFetch } from '../lib/api.js';
+import { apiFetch, apiViewBlob } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { showAlert } from '../lib/alert.js';
 
@@ -43,10 +43,13 @@ interface Wallet {
   approver_backup_user_id: string | null;
 }
 interface Deposit { id: string; amount: string | number; method: string; reference: string | null; note: string | null; created_at: string; }
+interface Transfer { id: string; from_wallet_id: string; to_wallet_id: string; amount: string | number; note: string | null; created_at: string; }
+interface Flag { id: string; subject_type: 'deposit' | 'withdrawal'; subject_id: string; reason: string; status: 'open' | 'resolved'; raised_by: string; resolved_by: string | null; resolution_note: string | null; created_at: string; }
+interface WalletSummary { id: string; name: string; currency: string; status: 'active' | 'closed'; }
 interface Withdrawal {
   id: string; amount: string | number; category: string; purpose: string; status: string;
   requested_by: string; requested_at: string; approved_at: string | null; disbursed_at: string | null; rejection_reason: string | null;
-  workflow_id: string | null;
+  workflow_id: string | null; payee_name: string | null; on_behalf_of_user_id: string | null;
 }
 interface PettiWorkflow { id: string; name: string; description: string | null; requires_department_approval: boolean; is_system: boolean; }
 interface StaffMember { id: string; name: string; role: string; }
@@ -65,20 +68,30 @@ export function PettiWalletDetail() {
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [deposits, setDeposits] = useState<Deposit[]>([]);
   const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]);
+  const [transfers, setTransfers] = useState<Transfer[]>([]);
+  const [flags, setFlags] = useState<Flag[]>([]);
+  const [allWallets, setAllWallets] = useState<WalletSummary[]>([]);
   const [workflows, setWorkflows] = useState<PettiWorkflow[]>([]);
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [showDeposit, setShowDeposit] = useState(false);
   const [showRequest, setShowRequest] = useState(false);
+  const [showTransfer, setShowTransfer] = useState(false);
   const [showWorkflowSettings, setShowWorkflowSettings] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const [depositForm, setDepositForm] = useState({ amount: '', method: 'manual' as 'manual' | 'gateway', reference: '', note: '' });
-  const [requestForm, setRequestForm] = useState({ amount: '', category: 'MISCELLANEOUS', purpose: '' });
+  const [requestForm, setRequestForm] = useState({ amount: '', category: 'MISCELLANEOUS', purpose: '', payeeName: '', onBehalfOfUserId: '' });
+  const [transferForm, setTransferForm] = useState({ toWalletId: '', amount: '', note: '' });
   const [overrideDraft, setOverrideDraft] = useState<{ category: string; workflowId: string }>({ category: '', workflowId: '' });
+
+  const transferTargetOptions: ComboboxOption[] = useMemo(
+    () => allWallets.filter(w => w.id !== id && w.status === 'active' && w.currency === wallet?.currency).map(w => ({ value: w.id, label: w.name, sublabel: w.currency })),
+    [allWallets, id, wallet?.currency]
+  );
 
   const workflowsById = useMemo(() => Object.fromEntries(workflows.map(w => [w.id, w])), [workflows]);
   const staffById = useMemo(() => Object.fromEntries(staff.map(s => [s.id, s])), [staff]);
@@ -90,8 +103,12 @@ export function PettiWalletDetail() {
   const load = useCallback(() => {
     if (!id) return;
     setLoading(true);
-    apiFetch(`/v1/petti/wallets/${id}`)
-      .then(res => { setWallet(res.wallet); setDeposits(res.deposits || []); setWithdrawals(res.withdrawals || []); })
+    Promise.all([
+      apiFetch(`/v1/petti/wallets/${id}`),
+      apiFetch(`/v1/petti/transfers?wallet_id=${id}`).then(res => res.data || []).catch(() => []),
+      apiFetch(`/v1/petti/flags?wallet_id=${id}`).then(res => res.data || []).catch(() => []),
+    ])
+      .then(([res, xfers, flgs]) => { setWallet(res.wallet); setDeposits(res.deposits || []); setWithdrawals(res.withdrawals || []); setTransfers(xfers); setFlags(flgs); })
       .catch(() => setWallet(null))
       .finally(() => setLoading(false));
   }, [id]);
@@ -100,6 +117,7 @@ export function PettiWalletDetail() {
   useEffect(() => {
     apiFetch('/v1/petti/workflows').then(res => setWorkflows(res.data || [])).catch(() => setWorkflows([]));
     apiFetch('/v1/oneid/users').then(setStaff).catch(() => setStaff([]));
+    apiFetch('/v1/petti/wallets').then(res => setAllWallets(res.data || [])).catch(() => setAllWallets([]));
   }, []);
 
   const isApprover = !!user && wallet?.approver_user_id === user.id;
@@ -156,13 +174,55 @@ export function PettiWalletDetail() {
     try {
       await apiFetch(`/v1/petti/wallets/${id}/withdrawals`, {
         method: 'POST',
-        body: JSON.stringify({ amount, category: requestForm.category, purpose: requestForm.purpose.trim() }),
+        body: JSON.stringify({
+          amount, category: requestForm.category, purpose: requestForm.purpose.trim(),
+          payee_name: requestForm.payeeName.trim() || undefined,
+          on_behalf_of_user_id: requestForm.onBehalfOfUserId || undefined,
+        }),
       });
-      setRequestForm({ amount: '', category: 'MISCELLANEOUS', purpose: '' });
+      setRequestForm({ amount: '', category: 'MISCELLANEOUS', purpose: '', payeeName: '', onBehalfOfUserId: '' });
       setShowRequest(false);
       load();
     } catch (err: any) { setError(err.message || 'Failed to submit withdrawal request'); }
     finally { setSaving(false); }
+  }
+
+  async function saveTransfer() {
+    const amount = parseFloat(transferForm.amount);
+    if (!(amount > 0)) { setError('Enter a valid amount.'); return; }
+    if (!transferForm.toWalletId) { setError('Pick a destination wallet.'); return; }
+    setSaving(true); setError(null);
+    try {
+      await apiFetch('/v1/petti/transfers', {
+        method: 'POST',
+        body: JSON.stringify({ from_wallet_id: id, to_wallet_id: transferForm.toWalletId, amount, note: transferForm.note.trim() || undefined }),
+      });
+      setTransferForm({ toWalletId: '', amount: '', note: '' });
+      setShowTransfer(false);
+      load();
+    } catch (err: any) { setError(err.message || 'Failed to transfer funds'); }
+    finally { setSaving(false); }
+  }
+
+  function openVoucher(requestId: string) {
+    apiViewBlob(`/v1/petti/withdrawals/${requestId}/voucher.pdf`).catch(() => showAlert('Could not open the voucher.', { variant: 'error' }));
+  }
+
+  async function raiseFlag(subjectType: 'deposit' | 'withdrawal', subjectId: string) {
+    const reason = window.prompt('What looks wrong with this transaction?');
+    if (!reason || !reason.trim()) return;
+    try {
+      await apiFetch('/v1/petti/flags', { method: 'POST', body: JSON.stringify({ subject_type: subjectType, subject_id: subjectId, reason: reason.trim() }) });
+      load();
+    } catch (err: any) { showAlert(err.message || 'Failed to raise flag', { variant: 'error' }); }
+  }
+
+  async function resolveFlag(flagId: string) {
+    const note = window.prompt('Resolution note (optional):') || undefined;
+    try {
+      await apiFetch(`/v1/petti/flags/${flagId}/resolve`, { method: 'PATCH', body: JSON.stringify({ resolution_note: note }) });
+      load();
+    } catch (err: any) { showAlert(err.message || 'Failed to resolve flag', { variant: 'error' }); }
   }
 
   async function approve(w: Withdrawal) {
@@ -250,6 +310,7 @@ export function PettiWalletDetail() {
         subtitle={wallet?.description || undefined}
         actions={
           <div style={{ display: 'flex', gap: 8 }}>
+            {canAdminister && wallet?.status === 'active' && transferTargetOptions.length > 0 && <Button variant="outline" onClick={() => setShowTransfer(s => !s)}><Icon name="arrowRight" size={14} /> Transfer</Button>}
             {canAdminister && wallet?.status === 'active' && <Button variant="outline" onClick={() => setShowDeposit(s => !s)}><Icon name="arrowDown" size={14} /> Deposit</Button>}
             {wallet?.status === 'active' && <Button onClick={() => setShowRequest(s => !s)}><Icon name="plus" size={14} /> Request withdrawal</Button>}
           </div>
@@ -263,6 +324,9 @@ export function PettiWalletDetail() {
             <div style={{ fontSize: 22, fontWeight: 700, fontFamily: 'var(--mono)', color: wallet.balance < 0 ? 'var(--red)' : 'var(--ink)' }}>{wallet.balance.toLocaleString()} {wallet.currency}</div>
           </div>
           <Badge variant={wallet.status === 'active' ? 'success' : 'gray'}>{wallet.status}</Badge>
+          {flags.some(f => f.status === 'open') && (
+            <Badge variant="warning"><Icon name="flag" size={11} /> {flags.filter(f => f.status === 'open').length} open flag{flags.filter(f => f.status === 'open').length === 1 ? '' : 's'}</Badge>
+          )}
           {wallet.approver_user_id && (
             <div style={{ fontSize: 12.5, color: 'var(--ink2)' }}>
               Department approver: <strong>{staffById[wallet.approver_user_id]?.name || '—'}</strong>
@@ -309,6 +373,30 @@ export function PettiWalletDetail() {
         </SectionCard>
       )}
 
+      {showTransfer && (
+        <SectionCard title="Transfer to another wallet" collapsible={false}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 16 }}>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>To wallet *</label>
+              <Combobox options={transferTargetOptions} value={transferForm.toWalletId} onChange={v => setTransferForm(p => ({ ...p, toWalletId: v }))} placeholder="Select wallet" searchPlaceholder="Search wallets…" />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Amount *</label>
+              <Input type="number" min="0" value={transferForm.amount} onChange={e => setTransferForm(p => ({ ...p, amount: e.target.value }))} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Note</label>
+              <Input value={transferForm.note} onChange={e => setTransferForm(p => ({ ...p, note: e.target.value }))} placeholder="Reason for transfer" />
+            </div>
+          </div>
+          {error && <div style={{ color: 'var(--red)', fontSize: 12.5, marginBottom: 12 }}>{error}</div>}
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Button disabled={saving} onClick={saveTransfer}>{saving ? 'Transferring…' : 'Transfer funds'}</Button>
+            <Button variant="outline" onClick={() => { setShowTransfer(false); setError(null); }}>Cancel</Button>
+          </div>
+        </SectionCard>
+      )}
+
       {showRequest && (
         <SectionCard title="Request a withdrawal" collapsible={false}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 16 }}>
@@ -327,6 +415,16 @@ export function PettiWalletDetail() {
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Purpose *</label>
               <Textarea value={requestForm.purpose} onChange={e => setRequestForm(p => ({ ...p, purpose: e.target.value }))} placeholder="What this cash is for" rows={2} />
             </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Paid to</label>
+              <Input value={requestForm.payeeName} onChange={e => setRequestForm(p => ({ ...p, payeeName: e.target.value }))} placeholder="Vendor, driver, supplier…" />
+            </div>
+            {canAdminister && (
+              <div style={{ gridColumn: 'span 2' }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>On behalf of</label>
+                <Combobox options={staffOptions} value={requestForm.onBehalfOfUserId} onChange={v => setRequestForm(p => ({ ...p, onBehalfOfUserId: v }))} placeholder="Requesting for yourself" searchPlaceholder="Search staff…" />
+              </div>
+            )}
           </div>
           {error && <div style={{ color: 'var(--red)', fontSize: 12.5, marginBottom: 12 }}>{error}</div>}
           <div style={{ display: 'flex', gap: 8 }}>
@@ -422,21 +520,34 @@ export function PettiWalletDetail() {
             <tbody>
               {withdrawals.map(w => (
                 <tr key={w.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                  <td style={{ padding: '12px 16px', fontSize: 13, color: 'var(--ink)' }}>{w.purpose}{w.status === 'rejected' && w.rejection_reason ? <div style={{ fontSize: 11.5, color: 'var(--red)', marginTop: 2 }}>Reason: {w.rejection_reason}</div> : null}</td>
+                  <td style={{ padding: '12px 16px', fontSize: 13, color: 'var(--ink)' }}>
+                    {w.purpose}
+                    {w.payee_name && <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>Paid to {w.payee_name}</div>}
+                    {w.on_behalf_of_user_id && <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>On behalf of {staffById[w.on_behalf_of_user_id]?.name || '—'}</div>}
+                    {w.status === 'rejected' && w.rejection_reason ? <div style={{ fontSize: 11.5, color: 'var(--red)', marginTop: 2 }}>Reason: {w.rejection_reason}</div> : null}
+                  </td>
                   <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)' }}>{CATEGORY_LABELS[w.category] || w.category}</td>
                   <td style={{ padding: '12px 16px', fontSize: 13, fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--ink)' }}>{Number(w.amount).toLocaleString()} {wallet?.currency}</td>
                   <td style={{ padding: '12px 16px', fontSize: 12, color: 'var(--ink3)' }}>{fmtDate(w.requested_at)}</td>
                   <td style={{ padding: '12px 16px' }}><Badge variant={STATUS_VARIANT[w.status] || 'gray'}>{stepLabel(w)}</Badge></td>
                   <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                    {w.status === 'pending' && canActOnApproval(w) && (
-                      <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                        <Button size="sm" variant="outline" disabled={busyId === w.id} onClick={() => reject(w)}>Reject</Button>
-                        <Button size="sm" disabled={busyId === w.id} onClick={() => approve(w)}>Approve</Button>
-                      </div>
-                    )}
-                    {w.status === 'approved' && canDisburse && (
-                      <Button size="sm" disabled={busyId === w.id} onClick={() => disburse(w)}>Disburse</Button>
-                    )}
+                    <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', alignItems: 'center' }}>
+                      {w.status === 'pending' && canActOnApproval(w) && (
+                        <>
+                          <Button size="sm" variant="outline" disabled={busyId === w.id} onClick={() => reject(w)}>Reject</Button>
+                          <Button size="sm" disabled={busyId === w.id} onClick={() => approve(w)}>Approve</Button>
+                        </>
+                      )}
+                      {w.status === 'approved' && canDisburse && (
+                        <Button size="sm" disabled={busyId === w.id} onClick={() => disburse(w)}>Disburse</Button>
+                      )}
+                      <button type="button" onClick={() => openVoucher(w.id)} title="Print voucher" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', color: 'var(--ink3)' }}>
+                        <Icon name="fileText" size={13} />
+                      </button>
+                      <button type="button" onClick={() => raiseFlag('withdrawal', w.id)} title="Flag this transaction" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', color: 'var(--ink3)' }}>
+                        <Icon name="flag" size={13} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -454,7 +565,7 @@ export function PettiWalletDetail() {
           <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>No deposits recorded yet.</div>
         ) : (
           <div className="rtbl-wrap"><table className="rtbl" style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead><tr>{['Amount', 'Method', 'Reference', 'Note', 'Date'].map(h => (
+            <thead><tr>{['Amount', 'Method', 'Reference', 'Note', 'Date', ''].map(h => (
               <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', background: 'var(--bg)', borderBottom: '1px solid var(--border)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
             ))}</tr></thead>
             <tbody>
@@ -465,6 +576,78 @@ export function PettiWalletDetail() {
                   <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)' }}>{d.reference || '—'}</td>
                   <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)' }}>{d.note || '—'}</td>
                   <td style={{ padding: '12px 16px', fontSize: 12, color: 'var(--ink3)' }}>{fmtDate(d.created_at)}</td>
+                  <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                    <button type="button" onClick={() => raiseFlag('deposit', d.id)} title="Flag this transaction" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'inline-flex', color: 'var(--ink3)' }}>
+                      <Icon name="flag" size={13} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table></div>
+        )}
+      </SectionCard>
+
+      <div style={{ height: 16 }} />
+
+      <SectionCard title="Transfers" padded={false} collapsible={false}>
+        {loading ? (
+          <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>Loading…</div>
+        ) : transfers.length === 0 ? (
+          <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>No transfers yet.</div>
+        ) : (
+          <div className="rtbl-wrap"><table className="rtbl" style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead><tr>{['Direction', 'Wallet', 'Amount', 'Note', 'Date'].map(h => (
+              <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', background: 'var(--bg)', borderBottom: '1px solid var(--border)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
+            ))}</tr></thead>
+            <tbody>
+              {transfers.map(t => {
+                const outgoing = t.from_wallet_id === id;
+                const otherWalletId = outgoing ? t.to_wallet_id : t.from_wallet_id;
+                const otherWalletName = allWallets.find(w => w.id === otherWalletId)?.name || '—';
+                return (
+                  <tr key={t.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                    <td style={{ padding: '12px 16px' }}><Badge variant={outgoing ? 'gray' : 'success'}>{outgoing ? 'Sent' : 'Received'}</Badge></td>
+                    <td style={{ padding: '12px 16px', fontSize: 13, color: 'var(--ink)' }}>{outgoing ? `To ${otherWalletName}` : `From ${otherWalletName}`}</td>
+                    <td style={{ padding: '12px 16px', fontSize: 13, fontFamily: 'var(--mono)', fontWeight: 700, color: outgoing ? 'var(--red)' : 'var(--green)' }}>{outgoing ? '-' : '+'}{Number(t.amount).toLocaleString()} {wallet?.currency}</td>
+                    <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)' }}>{t.note || '—'}</td>
+                    <td style={{ padding: '12px 16px', fontSize: 12, color: 'var(--ink3)' }}>{fmtDate(t.created_at)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table></div>
+        )}
+      </SectionCard>
+
+      <div style={{ height: 16 }} />
+
+      <SectionCard title="Flags" padded={false} collapsible={false}>
+        {loading ? (
+          <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>Loading…</div>
+        ) : flags.length === 0 ? (
+          <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>No flags raised on this wallet.</div>
+        ) : (
+          <div className="rtbl-wrap"><table className="rtbl" style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead><tr>{['Reason', 'On', 'Raised by', 'Status', 'Date', ''].map(h => (
+              <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', background: 'var(--bg)', borderBottom: '1px solid var(--border)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
+            ))}</tr></thead>
+            <tbody>
+              {flags.map(f => (
+                <tr key={f.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                  <td style={{ padding: '12px 16px', fontSize: 13, color: 'var(--ink)' }}>
+                    {f.reason}
+                    {f.resolution_note && <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>Resolution: {f.resolution_note}</div>}
+                  </td>
+                  <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)', textTransform: 'capitalize' }}>{f.subject_type}</td>
+                  <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)' }}>{staffById[f.raised_by]?.name || '—'}</td>
+                  <td style={{ padding: '12px 16px' }}><Badge variant={f.status === 'open' ? 'warning' : 'success'}>{f.status}</Badge></td>
+                  <td style={{ padding: '12px 16px', fontSize: 12, color: 'var(--ink3)' }}>{fmtDate(f.created_at)}</td>
+                  <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                    {f.status === 'open' && canAdminister && (
+                      <Button size="sm" variant="outline" onClick={() => resolveFlag(f.id)}>Resolve</Button>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>

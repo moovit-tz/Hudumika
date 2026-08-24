@@ -159,6 +159,7 @@ import { signRoutes, signPublicRoutes } from './routes/sign.routes.js';
 import { signStampsRoutes } from './routes/sign-stamps.routes.js';
 import { bookingPublicRoutes } from './routes/booking.routes.js';
 import { calendarSyncRoutes } from './routes/calendar-sync.routes.js';
+import { smsRoutes, smsWebhookRoutes } from './routes/sms.routes.js';
 
 const server = fastify({
   logger: {
@@ -464,6 +465,8 @@ async function main() {
     await server.register(bookingPublicRoutes, { prefix: '/v1/booking-public' });
     await server.register(calendarSyncRoutes, { prefix: '/v1/tasks/calendar-sync' });
     await server.register(signStampsRoutes, { prefix: '/v1/sign' });
+    await server.register(smsRoutes, { prefix: '/v1/sms' });
+    await server.register(smsWebhookRoutes, { prefix: '/v1/sms/webhook' });
 
 
     // Health check

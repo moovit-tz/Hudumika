@@ -45,6 +45,7 @@ const SLOGANS: Partial<Record<AppId, string>> = {
   studio:       'Workflow builder and clearance automations',
   hudubi:       'Data layer & executive AI analytics engine',
   petti:        'Tenant petty-cash wallet, deposits & withdrawal approvals',
+  sms:          'Bulk & transactional SMS — quick send, groups, templates & campaigns',
 };
 
 /** Last-resort name for an app id added to ALL_APP_IDS but not yet to

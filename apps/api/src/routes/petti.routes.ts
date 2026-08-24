@@ -25,9 +25,25 @@ const withdrawalRequestSchema = z.object({
   amount: z.number().positive(),
   category: z.enum(PETTI_CATEGORIES).optional(),
   purpose: z.string().trim().min(1).max(2000),
+  payee_name: z.string().trim().max(200).optional(),
+  on_behalf_of_user_id: z.string().uuid().optional(),
 });
 
 const rejectSchema = z.object({ reason: z.string().max(2000).optional() });
+
+const flagSchema = z.object({
+  subject_type: z.enum(['deposit', 'withdrawal']),
+  subject_id: z.string().uuid(),
+  reason: z.string().trim().min(1).max(2000),
+});
+const resolveFlagSchema = z.object({ resolution_note: z.string().max(2000).optional() });
+
+const transferSchema = z.object({
+  from_wallet_id: z.string().uuid(),
+  to_wallet_id: z.string().uuid(),
+  amount: z.number().positive(),
+  note: z.string().max(2000).optional(),
+});
 
 const walletApproverSchema = z.object({ approver_user_id: z.string().uuid().nullable() });
 const walletApproverBackupSchema = z.object({ backup_user_id: z.string().uuid().nullable() });
@@ -55,7 +71,7 @@ const workflowUpdateSchema = z.object({
  *  petti.service.ts's own error messages, not a broad prefix — a wrong-state
  *  message like "Cannot approve a request in 'approved' status" is a 400,
  *  not a permission error, even though it also contains the word "approve". */
-const AUTHZ_ERROR_PATTERN = /own withdrawal request|designated (department )?approver|department approver configured|straight to finance|only finance can release/i;
+const AUTHZ_ERROR_PATTERN = /own withdrawal request|designated (department )?approver|department approver configured|straight to finance|only finance can/i;
 function sendServiceError(reply: any, e: any) {
   const message = e?.message || 'Request failed';
   const status = /not found/i.test(message) ? 404
@@ -208,6 +224,76 @@ export async function pettiRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // ── Activity / audit log ─────────────────────────────────────────────────
+  fastify.get('/activity', async (request) => {
+    const user = request.user;
+    const q = request.query as { wallet_id?: string; actor_id?: string; from?: string; to?: string; limit?: string; offset?: string };
+    const { rows, total } = await PettiService.listActivity(user.tenant_id, {
+      walletId: q.wallet_id, actorId: q.actor_id, from: q.from, to: q.to,
+    }, { limit: q.limit ? Number(q.limit) : undefined, offset: q.offset ? Number(q.offset) : undefined });
+    return { data: rows, total };
+  });
+
+  // ── Spend report ─────────────────────────────────────────────────────────
+  fastify.get('/reports/spend', async (request) => {
+    const user = request.user;
+    const { from, to } = request.query as { from?: string; to?: string };
+    return PettiService.getSpendReport(user.tenant_id, { from, to });
+  });
+
+  // ── Flags ────────────────────────────────────────────────────────────────
+  // Raising is open to any tenant user with Petti access, same reasoning as
+  // requesting a withdrawal — resolving is what's gated.
+  fastify.post('/flags', async (request, reply) => {
+    const user = request.user;
+    const body = flagSchema.parse(request.body);
+    try {
+      const flag = await PettiService.raiseFlag(user.tenant_id, user.sub, {
+        subjectType: body.subject_type, subjectId: body.subject_id, reason: body.reason,
+      });
+      return reply.status(201).send(flag);
+    } catch (e: any) {
+      return sendServiceError(reply, e);
+    }
+  });
+
+  fastify.get('/flags', async (request) => {
+    const user = request.user;
+    const { wallet_id, status } = request.query as { wallet_id?: string; status?: string };
+    return { data: await PettiService.listFlags(user.tenant_id, { walletId: wallet_id, status }) };
+  });
+
+  fastify.patch('/flags/:id/resolve', { preHandler: requireRole(...PETTI_FINANCE_ROLES) }, async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    const body = resolveFlagSchema.parse(request.body ?? {});
+    try {
+      return await PettiService.resolveFlag(user.tenant_id, user.sub, id, body.resolution_note);
+    } catch (e: any) {
+      return sendServiceError(reply, e);
+    }
+  });
+
+  // ── Transfers (wallet-to-wallet) ────────────────────────────────────────
+  fastify.post('/transfers', { preHandler: requireRole(...PETTI_FINANCE_ROLES) }, async (request, reply) => {
+    const user = request.user;
+    const body = transferSchema.parse(request.body);
+    try {
+      const transfer = await PettiService.transferBetweenWallets(user.tenant_id, user.sub, {
+        fromWalletId: body.from_wallet_id, toWalletId: body.to_wallet_id, amount: body.amount, note: body.note,
+      });
+      return reply.status(201).send(transfer);
+    } catch (e: any) {
+      return sendServiceError(reply, e);
+    }
+  });
+
+  fastify.get('/transfers', async (request) => {
+    const user = request.user;
+    const { wallet_id } = request.query as { wallet_id?: string };
+    return { data: await PettiService.listTransfers(user.tenant_id, { walletId: wallet_id }) };
+  });
+
   // ── Withdrawal requests ────────────────────────────────────────────────
   // Requesting is deliberately open to any tenant user with Petti access —
   // "the team can withdraw for petty cash" — not just PETTI_FINANCE_ROLES.
@@ -219,8 +305,9 @@ export async function pettiRoutes(fastify: FastifyInstance) {
     const { id } = request.params as { id: string };
     const body = withdrawalRequestSchema.parse(request.body);
     try {
-      const req = await PettiService.requestWithdrawal(user.tenant_id, user.sub, {
+      const req = await PettiService.requestWithdrawal(user.tenant_id, { id: user.sub, role: user.role }, {
         walletId: id, amount: body.amount, category: body.category, purpose: body.purpose,
+        payeeName: body.payee_name, onBehalfOfUserId: body.on_behalf_of_user_id,
       });
       return reply.status(201).send(req);
     } catch (e: any) {
@@ -232,6 +319,27 @@ export async function pettiRoutes(fastify: FastifyInstance) {
     const user = request.user;
     const { wallet_id, status } = request.query as { wallet_id?: string; status?: string };
     return { data: await PettiService.listWithdrawalRequests(user.tenant_id, { walletId: wallet_id, status }) };
+  });
+
+  // ── Deposits (cross-wallet) ─────────────────────────────────────────────
+  fastify.get('/deposits', async (request) => {
+    const user = request.user;
+    const { wallet_id, from, to } = request.query as { wallet_id?: string; from?: string; to?: string };
+    return { data: await PettiService.listDeposits(user.tenant_id, { walletId: wallet_id, from, to }) };
+  });
+
+  // ── Unified transaction ledger ──────────────────────────────────────────
+  fastify.get('/transactions', async (request) => {
+    const user = request.user;
+    const q = request.query as {
+      wallet_id?: string; type?: 'deposit' | 'withdrawal' | 'transfer'; status?: string; category?: string;
+      from?: string; to?: string; search?: string; limit?: string; offset?: string;
+    };
+    const { rows, total } = await PettiService.listTransactions(user.tenant_id, {
+      walletId: q.wallet_id, type: q.type, status: q.status, category: q.category,
+      from: q.from, to: q.to, search: q.search,
+    }, { limit: q.limit ? Number(q.limit) : undefined, offset: q.offset ? Number(q.offset) : undefined });
+    return { data: rows, total };
   });
 
   fastify.post('/withdrawals/:id/approve', async (request, reply) => {
@@ -262,6 +370,19 @@ export async function pettiRoutes(fastify: FastifyInstance) {
       return await PettiService.disburseWithdrawal(user.tenant_id, { id: user.sub, role: user.role }, id);
     } catch (e: any) {
       return sendServiceError(reply, e);
+    }
+  });
+
+  fastify.get('/withdrawals/:id/voucher.pdf', async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    try {
+      const pdf = await PettiService.renderWithdrawalVoucherPdf(user.tenant_id, id);
+      reply.header('Content-Type', 'application/pdf');
+      reply.header('Content-Disposition', `inline; filename="petty-cash-voucher-${id}.pdf"`);
+      return reply.send(pdf);
+    } catch (e: any) {
+      return reply.status(404).send({ error: e.message });
     }
   });
 }

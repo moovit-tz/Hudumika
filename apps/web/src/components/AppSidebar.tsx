@@ -72,6 +72,7 @@ const APP_ICONS: Record<AppId, IconName> = {
   petti:     'wallet',
   notes:     'fileText',
   sign:      'stamp',
+  sms:       'messageSquare',
 };
 
 const APP_SUBTITLES: Partial<Record<AppId, string>> = {
@@ -89,6 +90,7 @@ const APP_SUBTITLES: Partial<Record<AppId, string>> = {
   admin:     'Super Admin Console',
   email:     'Hudumika Mail',
   crm:       'Customers & Leads',
+  sms:       'Bulk & Transactional SMS',
   contacts:  'Contact Manager',
   store:     'Add-ons & Plugins',
   cargotracker:  'Cargo Tracking & Demurrage',

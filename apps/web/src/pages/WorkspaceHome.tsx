@@ -52,6 +52,7 @@ const APP_META: Record<string, Pick<HudumikaApp, 'desc' | 'category' | 'status' 
   hudubi:       { desc: 'Data layer, executive BI analytics, board KPIs & predictive intelligence', category: 'Analytics', status: 'Live', userCount: 18, dataSize: '85 GB', appServicesCount: 6, tags: ['BI', 'Executive', 'AI Analytics', 'Board KPIs'] },
   petti:        { desc: 'Tenant petty-cash wallets — deposits, request/approve/disburse withdrawals', category: 'Finance', status: 'Beta', userCount: 0, dataSize: '0 GB', appServicesCount: 1, tags: ['Wallet', 'Petty Cash', 'Approvals'] },
   sign:         { desc: 'Secure electronic document signatures, approvals & audit-chained events', category: 'Productivity', status: 'Beta', userCount: 0, dataSize: '0 GB', appServicesCount: 1, tags: ['eSign', 'Signatures', 'Stamping', 'Approvals'] },
+  sms:          { desc: 'Bulk & transactional SMS — quick send, groups, templates, scheduled campaigns', category: 'Communication', status: 'Beta', userCount: 0, dataSize: '0 GB', appServicesCount: 1, tags: ['SMS', 'Campaigns', 'Templates', 'Gateways'] },
 };
 
 const apps: HudumikaApp[] = [

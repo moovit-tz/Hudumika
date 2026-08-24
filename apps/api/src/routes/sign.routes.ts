@@ -113,8 +113,13 @@ export async function signRoutes(fastify: FastifyInstance) {
           .where('email', '=', userEmail(req))
           .where('status', 'in', ['pending', 'viewed'])
           .execute();
-        const ids = myEnvelopes.map(r => r.envelope_id);
-        q = q.where('id', 'in', ids.length ? ids : ['__none__']);
+        const inboxIds = myEnvelopes.map(r => r.envelope_id);
+        // 'id' is a real UUID column — a non-UUID sentinel like '__none__'
+        // fails Postgres's own type validation before the IN comparison
+        // ever runs (22P02), 500ing for the ordinary case of an inbox with
+        // nothing pending, rather than just returning no rows.
+        if (inboxIds.length === 0) return reply.send([]);
+        q = q.where('id', 'in', inboxIds);
       }
       if (status) q = q.where('status', '=', status as any);
 

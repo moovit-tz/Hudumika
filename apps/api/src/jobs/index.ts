@@ -29,6 +29,7 @@ import { runNotesReminderJob } from './notes-reminder.job.js';
 import { runNotesPurgeJob } from './notes-purge.job.js';
 import { runCalendarReminderJob } from './calendar-reminder.job.js';
 import { runCalendarExternalSyncJob } from './calendar-external-sync.job.js';
+import { runSmsOutboxJob } from './sms-outbox.job.js';
 
 let redisConnection: Redis | null = null;
 let riskQueue: Queue | null = null;
@@ -39,6 +40,7 @@ let sealAnchorQueue: Queue | null = null;
 let declarationAnchorQueue: Queue | null = null;
 let mailOutboxQueue: Queue | null = null;
 let imapTicketQueue: Queue | null = null;
+let smsOutboxQueue: Queue | null = null;
 
 /**
  * Initializes BullMQ or falls back to in-memory intervals if Redis is not running
@@ -142,6 +144,7 @@ function startBullMQ(): void {
     declarationAnchorQueue = track(new Queue('declaration-ledger-anchor', { connection: redisConnection as any }));
     mailOutboxQueue = track(new Queue('mail-outbox', { connection: redisConnection as any }));
     imapTicketQueue = track(new Queue('imap-ticket-ingest', { connection: redisConnection as any }));
+    smsOutboxQueue = track(new Queue('sms-outbox', { connection: redisConnection as any }));
 
     // Worker for risk scans
     track(new Worker(
@@ -265,6 +268,19 @@ function startBullMQ(): void {
       async (job) => {
         if (job.name === 'sweep') {
           await runMailOutboxJob();
+        }
+      },
+      { connection: redisConnection as any }
+    ));
+
+    // Worker for the SMS outbox sweep — same 1-min "needs to go out
+    // promptly" reasoning as mail-outbox above, its own queue for the same
+    // reason.
+    track(new Worker(
+      'sms-outbox',
+      async (job) => {
+        if (job.name === 'sweep') {
+          await runSmsOutboxJob();
         }
       },
       { connection: redisConnection as any }
@@ -415,6 +431,10 @@ function startBullMQ(): void {
       repeat: { every: 60 * 1000 } // Every 1 minute — mail needs to go out promptly, not on a daily cadence
     }).catch(console.error);
 
+    smsOutboxQueue.add('sweep', {}, {
+      repeat: { every: 60 * 1000 } // Every 1 minute — same reasoning as mail-outbox above
+    }).catch(console.error);
+
     imapTicketQueue.add('sweep', {}, {
       repeat: { every: 3 * 60 * 1000 } // Every 3 minutes — inbound support replies via email
     }).catch(console.error);
@@ -442,6 +462,7 @@ function startIntervalFallback(): void {
   runGpswoxSyncJob().catch(console.error);
   runWorkflowCommQueueJob().catch(console.error);
   runMailOutboxJob().catch(console.error);
+  runSmsOutboxJob().catch(console.error);
   runSignExpiryJob().catch(console.error);
   runSignReminderJob().catch(console.error);
   runSignAnchorStampJob().catch(console.error);
@@ -596,6 +617,11 @@ function startIntervalFallback(): void {
   // irreversible actions.
   setInterval(() => {
     runMailOutboxJob().catch(console.error);
+  }, 60 * 1000);
+
+  // SMS outbox sweep — same 1-minute cadence and re-run-is-safe reasoning as mail outbox above.
+  setInterval(() => {
+    runSmsOutboxJob().catch(console.error);
   }, 60 * 1000);
 
   // IMAP-to-ticket ingest — every 3 minutes. Safe on startup too: a message

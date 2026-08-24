@@ -24,6 +24,7 @@ import {
 } from './ui/dropdown-menu.js';
 import { Popover, PopoverAnchor, PopoverContent } from './ui/popover.js';
 import { toggleThemeWithAnimation } from '../lib/theme.js';
+import { isRightSidebarCollapsed, toggleRightSidebar, RIGHT_SIDEBAR_TOGGLE_EVENT } from '../lib/rightSidebarState.js';
 import './AppHeader.css';
 
 // ── Helpers ───────────────────────────────────────────────────
@@ -113,14 +114,14 @@ export function AppHeader({
     return () => clearInterval(timer);
   }, [isCheckedIn]);
 
-  const [rightSidebarCollapsed, setRightSidebarCollapsed] = useState(() => localStorage.getItem('gws_right_sidebar_collapsed') === 'true');
+  const [rightSidebarCollapsed, setRightSidebarCollapsed] = useState(isRightSidebarCollapsed);
 
   useEffect(() => {
-    function handleToggle() {
-      setRightSidebarCollapsed(localStorage.getItem('gws_right_sidebar_collapsed') === 'true');
+    function handleToggle(e: Event) {
+      setRightSidebarCollapsed((e as CustomEvent<boolean>).detail);
     }
-    window.addEventListener('gws-sidebar:toggle', handleToggle);
-    return () => window.removeEventListener('gws-sidebar:toggle', handleToggle);
+    window.addEventListener(RIGHT_SIDEBAR_TOGGLE_EVENT, handleToggle);
+    return () => window.removeEventListener(RIGHT_SIDEBAR_TOGGLE_EVENT, handleToggle);
   }, []);
 
   const clockStats = useMemo(() => {
@@ -688,56 +689,6 @@ export function AppHeader({
               >
                 <Icon name={filterControl.open ? 'chevronUp' : 'chevronDown'} size={17} />
               </button>
-            )}
-
-            {/* Notifications */}
-            {/* Plain fixed-position panel pinned to the header's top-right
-                corner — same technique as AppLauncher.tsx's `.app-lnch-panel`
-                (position: fixed; top/right), not Radix's trigger-relative
-                Popper positioning. The bell isn't the header's rightmost icon
-                (theme/language/launcher/avatar sit after it), so aligning to
-                the bell itself always leaves a gap to the true right edge;
-                anchoring to the viewport corner like the launcher does avoids
-                that entirely. */}
-            <button
-              type="button"
-              className={`app-header-icon-btn${notifOpen ? ' app-header-icon-btn--open' : ''}`}
-              onClick={() => setNotifOpen(o => !o)}
-              title={t('header.notifications')}
-            >
-              <Icon name="bell" size={17} />
-              {unreadCount > 0 && (
-                <span className="app-header-badge">
-                  {unreadCount > 99 ? '99+' : unreadCount}
-                </span>
-              )}
-            </button>
-            {/* Portalled for the same reason as the app launcher: this header
-                is `position: relative; z-index: 10`, so any z-index declared on
-                a descendant only orders it *within* the header. The panel's own
-                z-index never competed with the page at all — the sticky
-                `.cust-header` company row in the ClearOS list is z-index 10 too
-                and comes later in the DOM, so it painted its risk badges over
-                the open notification panel. Out at document.body the panel's
-                z-index means what it says. */}
-            {createPortal(
-              <>
-                {notifOpen && (
-                  <div className="app-header-notif-backdrop" onClick={() => setNotifOpen(false)} />
-                )}
-                <div className={`app-header-notif-panel${notifOpen ? ' app-header-notif-panel--open' : ''}`}>
-                  <NotificationCentre
-                    onClose={() => setNotifOpen(false)}
-                    notifs={notifs}
-                    unreadCount={unreadCount}
-                    totalCount={totalCount}
-                    onMarkRead={handleMarkRead}
-                    onMarkAllRead={handleMarkAllRead}
-                    onReload={loadNotifs}
-                  />
-                </div>
-              </>,
-              document.body,
             )}
 
             {/* Theme toggle */}

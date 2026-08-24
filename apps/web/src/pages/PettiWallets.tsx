@@ -8,7 +8,6 @@ import { Button } from '../components/ui/button.js';
 import { Input } from '../components/ui/input.js';
 import { Textarea } from '../components/ui/textarea.js';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog.js';
-import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { apiFetch } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { usePageSEO } from '../hooks/usePageSEO.js';
@@ -61,8 +60,6 @@ export function PettiWallets() {
     finally { setSaving(false); }
   }
 
-  const totalBalance = wallets.filter(w => w.status === 'active').reduce((s, w) => s + w.balance, 0);
-
   return (
     <div style={{ flex: 1, overflowY: 'auto' }}>
       <PageHeader
@@ -72,18 +69,6 @@ export function PettiWallets() {
         subtitle="Deposit funds, then request, approve and disburse petty cash — every disbursement lands in FinOps's own Expenses view automatically."
         actions={canManage ? <Button onClick={() => setShowForm(s => !s)}><Icon name="plus" size={14} /> New wallet</Button> : undefined}
       />
-
-      {!loading && wallets.length > 0 && (
-        <div style={{ display: 'flex', gap: 16, marginBottom: 20 }}>
-          <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
-            <FeaturedIcon variant="brand" size="md" shape="circle"><Icon name="wallet" size={18} /></FeaturedIcon>
-            <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Total across active wallets</div>
-              <div style={{ fontSize: 20, fontWeight: 700, fontFamily: 'var(--mono)', color: 'var(--ink)' }}>{totalBalance.toLocaleString()} TZS</div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {showForm && (
         <SectionCard title="New wallet" collapsible={false}>

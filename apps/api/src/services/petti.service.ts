@@ -1,4 +1,5 @@
 import type { UserRole } from '@hudumika/types';
+import PDFDocument from 'pdfkit';
 import { withTenant } from '../db/client.js';
 import { GLService } from './gl.service.js';
 import { getActiveGateway, type ActiveGateway } from '../lib/payment-gateway.js';
@@ -14,6 +15,12 @@ export const PETTI_CATEGORIES = [
   'STAFF_WELFARE', 'REPAIRS_MAINTENANCE', 'POSTAGE_COURIER', 'MISCELLANEOUS',
 ] as const;
 export type PettiCategory = typeof PETTI_CATEGORIES[number];
+
+const PETTI_CATEGORY_LABEL: Record<string, string> = {
+  OFFICE_SUPPLIES: 'Office supplies', TRANSPORT: 'Transport', MEALS_ENTERTAINMENT: 'Meals & entertainment',
+  UTILITIES: 'Utilities', STAFF_WELFARE: 'Staff welfare', REPAIRS_MAINTENANCE: 'Repairs & maintenance',
+  POSTAGE_COURIER: 'Postage & courier', MISCELLANEOUS: 'Miscellaneous',
+};
 
 // Category → GL expense account (see gl.service.ts STANDARD_COA). Only maps
 // the categories that have a real dedicated account already; everything else
@@ -89,6 +96,15 @@ export const PETTI_FINANCE_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'FIN
 const PETTI_OVERRIDE_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'] as const;
 
 export interface PettiActor { id: string; role: UserRole; }
+
+export interface PettiActivityEvent { id: string; action: string; walletId: string; amount: number; actorId: string | null; at: string; }
+
+export interface PettiSpendBucket { total: number; count: number; }
+export interface PettiCurrencySpendReport {
+  currency: string; total: number; count: number;
+  byCategory: (PettiSpendBucket & { category: string })[];
+  byWallet: (PettiSpendBucket & { walletId: string; walletName: string })[];
+}
 
 // A workflow's only real behavioural knob today: does this request need a
 // department-manager approval step before Finance can release it, or does it
@@ -441,8 +457,8 @@ export class PettiService {
       sourceId: wallet.id,
       createdBy: userId,
       lines: [
-        { accountCode: walletAccount.code, debit: data.amount, credit: 0, description: `Deposit to ${wallet.name}` },
-        { accountCode: BANK_ACCOUNT, debit: 0, credit: data.amount, description: `To ${wallet.name}` },
+        { accountCode: walletAccount.code, debit: data.amount, credit: 0, description: `Deposit to ${wallet.name}`, currency: wallet.currency },
+        { accountCode: BANK_ACCOUNT, debit: 0, credit: data.amount, description: `To ${wallet.name}`, currency: wallet.currency },
       ],
     });
 
@@ -460,14 +476,340 @@ export class PettiService {
     }).returningAll().executeTakeFirstOrThrow());
   }
 
-  static async requestWithdrawal(tenantId: string, userId: string, data: {
+  /** Moves funds between two of a tenant's own wallets — one balanced
+   *  journal entry (Dr destination wallet account / Cr source wallet
+   *  account), same single-entry shape recordDeposit already uses. Never
+   *  touches Bank Account 1010 or an expense account: the cash never leaves
+   *  tenant custody, it just moves which wallet is custodian. Restricted to
+   *  same-currency pairs for now — crediting N out of a USD wallet and
+   *  debiting N into a TZS wallet would silently misstate value transferred
+   *  by the exchange rate; cross-currency transfer is a later feature, not a
+   *  silent bug. */
+  static async transferBetweenWallets(tenantId: string, userId: string, data: {
+    fromWalletId: string; toWalletId: string; amount: number; note?: string;
+  }) {
+    if (!(data.amount > 0)) throw new Error('Transfer amount must be positive.');
+    if (data.fromWalletId === data.toWalletId) throw new Error('Source and destination wallets must be different.');
+
+    const [fromWallet, toWallet] = await Promise.all([
+      withTenant(tenantId, (trx) => trx.selectFrom('petti_wallets').selectAll().where('id', '=', data.fromWalletId).where('tenant_id', '=', tenantId).executeTakeFirst()),
+      withTenant(tenantId, (trx) => trx.selectFrom('petti_wallets').selectAll().where('id', '=', data.toWalletId).where('tenant_id', '=', tenantId).executeTakeFirst()),
+    ]);
+    if (!fromWallet) throw new Error('Source wallet not found.');
+    if (!toWallet) throw new Error('Destination wallet not found.');
+    if (fromWallet.status !== 'active') throw new Error(`"${fromWallet.name}" is closed and cannot send a transfer.`);
+    if (toWallet.status !== 'active') throw new Error(`"${toWallet.name}" is closed and cannot receive a transfer.`);
+    if (fromWallet.currency !== toWallet.currency) {
+      throw new Error(`Cannot transfer between wallets in different currencies (${fromWallet.currency} → ${toWallet.currency}) yet.`);
+    }
+
+    const balance = await PettiService.getWalletBalance(tenantId, fromWallet.gl_account_id);
+    if (balance < data.amount) {
+      throw new Error(`Insufficient balance: "${fromWallet.name}" has ${balance.toLocaleString()} ${fromWallet.currency}, but this transfer is for ${data.amount.toLocaleString()} ${fromWallet.currency}.`);
+    }
+
+    const [fromAccount, toAccount] = await Promise.all([
+      withTenant(tenantId, (trx) => trx.selectFrom('chart_of_accounts').select('code').where('id', '=', fromWallet.gl_account_id).executeTakeFirstOrThrow()),
+      withTenant(tenantId, (trx) => trx.selectFrom('chart_of_accounts').select('code').where('id', '=', toWallet.gl_account_id).executeTakeFirstOrThrow()),
+    ]);
+
+    const journalEntryId = await GLService.post(tenantId, {
+      entryDate: new Date().toISOString(),
+      description: `Petti transfer: ${fromWallet.name} → ${toWallet.name}${data.note ? ` (${data.note})` : ''}`,
+      sourceModule: 'MANUAL',
+      sourceId: fromWallet.id,
+      createdBy: userId,
+      lines: [
+        { accountCode: toAccount.code, debit: data.amount, credit: 0, description: `Transfer from ${fromWallet.name}`, currency: fromWallet.currency },
+        { accountCode: fromAccount.code, debit: 0, credit: data.amount, description: `Transfer to ${toWallet.name}`, currency: fromWallet.currency },
+      ],
+    });
+
+    return withTenant(tenantId, (trx) => trx.insertInto('petti_transfers').values({
+      tenant_id: tenantId,
+      from_wallet_id: fromWallet.id,
+      to_wallet_id: toWallet.id,
+      amount: data.amount,
+      note: data.note || null,
+      journal_entry_id: journalEntryId,
+      created_by: userId,
+    }).returningAll().executeTakeFirstOrThrow());
+  }
+
+  static async listTransfers(tenantId: string, filters: { walletId?: string } = {}) {
+    return withTenant(tenantId, async (trx) => {
+      let q = trx.selectFrom('petti_transfers').selectAll().where('tenant_id', '=', tenantId);
+      if (filters.walletId) q = q.where((eb) => eb.or([eb('from_wallet_id', '=', filters.walletId!), eb('to_wallet_id', '=', filters.walletId!)]));
+      return q.orderBy('created_at', 'desc').execute();
+    });
+  }
+
+  /**
+   * The unified ledger: deposits + withdrawal requests + transfers, merged
+   * into one chronological, filterable, paginated feed via a Kysely
+   * unionAll. Each leg is normalized to the same output shape before
+   * unioning — deposits and transfers have no 'category'/'status' of their
+   * own, so those columns are literal NULLs (deposits) or a fixed literal
+   * ('completed' for transfers, which have no pending/approved states).
+   * Transfers match a wallet filter on EITHER from_wallet_id or
+   * to_wallet_id (so a transfer shows up from both the sending and
+   * receiving wallet's own view) but are never duplicated in the
+   * unfiltered, all-wallets view, since each transfer is still exactly one
+   * row here, not two.
+   */
+  static async listTransactions(tenantId: string, filters: {
+    walletId?: string; type?: 'deposit' | 'withdrawal' | 'transfer'; status?: string; category?: string;
+    from?: string; to?: string; search?: string;
+  } = {}, pagination: { limit?: number; offset?: number } = {}) {
+    const limit = Math.min(pagination.limit ?? 50, 200);
+    const offset = pagination.offset ?? 0;
+
+    return withTenant(tenantId, async (trx) => {
+      // Every leg is explicitly widened ($castTo) to one shared column-type
+      // set (type/status/category/description/actor_id: string | null),
+      // since unionAll requires an exact type match across legs and the raw
+      // source columns differ in nullability (e.g. withdrawal_requests.purpose
+      // is NOT NULL, deposits.reference is nullable) — a real SQL UNION ALL
+      // doesn't care, but Kysely's type system does.
+      let deposits = trx.selectFrom('petti_deposits')
+        .select(({ ref, val }) => [
+          'id', val<string | null>('deposit').as('type'), 'wallet_id', 'amount',
+          val<string | null>(null).as('status'), val<string | null>(null).as('category'),
+          ref('reference').$castTo<string | null>().as('description'),
+          ref('recorded_by').$castTo<string | null>().as('actor_id'),
+          ref('created_at').as('occurred_at'),
+        ])
+        .where('tenant_id', '=', tenantId);
+
+      let withdrawals = trx.selectFrom('petti_withdrawal_requests')
+        .select(({ ref, val }) => [
+          'id', val<string | null>('withdrawal').as('type'), 'wallet_id', 'amount',
+          ref('status').$castTo<string | null>().as('status'),
+          ref('category').$castTo<string | null>().as('category'),
+          ref('purpose').$castTo<string | null>().as('description'),
+          ref('requested_by').$castTo<string | null>().as('actor_id'),
+          ref('requested_at').as('occurred_at'),
+        ])
+        .where('tenant_id', '=', tenantId);
+
+      let transfersQ = trx.selectFrom('petti_transfers')
+        .select(({ ref, val }) => [
+          'id', val<string | null>('transfer').as('type'), ref('from_wallet_id').as('wallet_id'), 'amount',
+          val<string | null>('completed').as('status'), val<string | null>(null).as('category'),
+          ref('note').$castTo<string | null>().as('description'),
+          ref('created_by').$castTo<string | null>().as('actor_id'),
+          ref('created_at').as('occurred_at'),
+        ])
+        .where('tenant_id', '=', tenantId);
+
+      if (filters.walletId) {
+        deposits = deposits.where('wallet_id', '=', filters.walletId);
+        withdrawals = withdrawals.where('wallet_id', '=', filters.walletId);
+        transfersQ = transfersQ.where((eb) => eb.or([eb('from_wallet_id', '=', filters.walletId!), eb('to_wallet_id', '=', filters.walletId!)]));
+      }
+      if (filters.category) withdrawals = withdrawals.where('category', '=', filters.category);
+      if (filters.status) withdrawals = withdrawals.where('status', '=', filters.status);
+      if (filters.search) {
+        deposits = deposits.where((eb) => eb.or([eb('reference', 'ilike', `%${filters.search}%`), eb('note', 'ilike', `%${filters.search}%`)]));
+        withdrawals = withdrawals.where('purpose', 'ilike', `%${filters.search}%`);
+        transfersQ = transfersQ.where('note', 'ilike', `%${filters.search}%`);
+      }
+      if (filters.from) {
+        deposits = deposits.where('created_at', '>=', new Date(filters.from));
+        withdrawals = withdrawals.where('requested_at', '>=', new Date(filters.from));
+        transfersQ = transfersQ.where('created_at', '>=', new Date(filters.from));
+      }
+      if (filters.to) {
+        deposits = deposits.where('created_at', '<=', new Date(filters.to));
+        withdrawals = withdrawals.where('requested_at', '<=', new Date(filters.to));
+        transfersQ = transfersQ.where('created_at', '<=', new Date(filters.to));
+      }
+
+      // A type filter just picks which leg(s) to union — cheaper and
+      // simpler than unioning all three and filtering afterward.
+      const combined =
+        filters.type === 'deposit' ? deposits
+        : filters.type === 'withdrawal' ? withdrawals
+        : filters.type === 'transfer' ? transfersQ
+        : deposits.unionAll(withdrawals).unionAll(transfersQ);
+
+      const rows = await trx.selectFrom(combined.as('t')).selectAll()
+        .orderBy('occurred_at', 'desc').limit(limit).offset(offset).execute();
+
+      // total count for pagination — same filtered union, just counted
+      const countRow = await trx.selectFrom(combined.as('t')).select(trx.fn.countAll().as('n')).executeTakeFirst();
+
+      return { rows, total: Number(countRow?.n ?? 0) };
+    });
+  }
+
+  /**
+   * The activity/audit feed — one row per real state transition, not per
+   * transaction (a withdrawal can produce up to 3 rows: requested, then
+   * approved/rejected, then disbursed). Deliberately built from the
+   * timestamp+actor columns petti_deposits/petti_withdrawal_requests already
+   * carry rather than a new audit-log table — every fact needed already
+   * exists, and a parallel log risks drifting from it, the same reasoning
+   * this file already applies to deriving wallet balance from journal_lines
+   * instead of caching it. Since one source row can fan out to several
+   * activity rows, this expands in application code rather than SQL —
+   * pagination applies to the expanded, sorted event list.
+   */
+  static async listActivity(tenantId: string, filters: { walletId?: string; actorId?: string; from?: string; to?: string } = {}, pagination: { limit?: number; offset?: number } = {}) {
+    const limit = Math.min(pagination.limit ?? 50, 200);
+    const offset = pagination.offset ?? 0;
+
+    const [deposits, withdrawals] = await Promise.all([
+      PettiService.listDeposits(tenantId, { walletId: filters.walletId, from: filters.from, to: filters.to }),
+      PettiService.listWithdrawalRequests(tenantId, { walletId: filters.walletId }),
+    ]);
+
+    const events: PettiActivityEvent[] = [];
+    for (const d of deposits) {
+      events.push({ id: `dep-${d.id}-recorded`, action: 'deposit_recorded', walletId: d.wallet_id, amount: Number(d.amount), actorId: d.recorded_by, at: d.created_at as unknown as string });
+    }
+    for (const w of withdrawals) {
+      events.push({ id: `wd-${w.id}-requested`, action: 'withdrawal_requested', walletId: w.wallet_id, amount: Number(w.amount), actorId: w.requested_by, at: w.requested_at as unknown as string });
+      if (w.approved_at && (w.status === 'approved' || w.status === 'disbursed')) {
+        events.push({ id: `wd-${w.id}-approved`, action: 'withdrawal_approved', walletId: w.wallet_id, amount: Number(w.amount), actorId: w.approved_by, at: w.approved_at as unknown as string });
+      } else if (w.approved_at && w.status === 'rejected') {
+        events.push({ id: `wd-${w.id}-rejected`, action: 'withdrawal_rejected', walletId: w.wallet_id, amount: Number(w.amount), actorId: w.approved_by, at: w.approved_at as unknown as string });
+      }
+      if (w.disbursed_at && w.status === 'disbursed') {
+        events.push({ id: `wd-${w.id}-disbursed`, action: 'withdrawal_disbursed', walletId: w.wallet_id, amount: Number(w.amount), actorId: w.disbursed_by, at: w.disbursed_at as unknown as string });
+      }
+    }
+
+    let filtered = events;
+    if (filters.actorId) filtered = filtered.filter(e => e.actorId === filters.actorId);
+    if (filters.from) filtered = filtered.filter(e => new Date(e.at) >= new Date(filters.from!));
+    if (filters.to) filtered = filtered.filter(e => new Date(e.at) <= new Date(filters.to!));
+
+    filtered.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
+    return { rows: filtered.slice(offset, offset + limit), total: filtered.length };
+  }
+
+  /** Any authenticated staff member can flag a specific deposit or
+   *  withdrawal after the fact — same "raising is open, resolving is
+   *  gated" shape as requestWithdrawal itself. Verifies the subject really
+   *  belongs to this tenant (and derives its wallet_id) rather than trusting
+   *  a client-supplied wallet_id, since a flag is otherwise not tenant-
+   *  checkable on its own (subject_id alone doesn't carry tenant scope). */
+  static async raiseFlag(tenantId: string, userId: string, data: { subjectType: 'deposit' | 'withdrawal'; subjectId: string; reason: string }) {
+    const reason = data.reason?.trim();
+    if (!reason) throw new Error('A reason is required to raise a flag.');
+
+    const walletId = await withTenant(tenantId, async (trx) => {
+      if (data.subjectType === 'deposit') {
+        const row = await trx.selectFrom('petti_deposits').select('wallet_id').where('id', '=', data.subjectId).where('tenant_id', '=', tenantId).executeTakeFirst();
+        return row?.wallet_id ?? null;
+      }
+      const row = await trx.selectFrom('petti_withdrawal_requests').select('wallet_id').where('id', '=', data.subjectId).where('tenant_id', '=', tenantId).executeTakeFirst();
+      return row?.wallet_id ?? null;
+    });
+    if (!walletId) throw new Error(`${data.subjectType === 'deposit' ? 'Deposit' : 'Withdrawal request'} not found.`);
+
+    return withTenant(tenantId, (trx) => trx.insertInto('petti_flags').values({
+      tenant_id: tenantId,
+      subject_type: data.subjectType,
+      subject_id: data.subjectId,
+      wallet_id: walletId,
+      reason,
+      raised_by: userId,
+    }).returningAll().executeTakeFirstOrThrow());
+  }
+
+  static async listFlags(tenantId: string, filters: { walletId?: string; status?: string } = {}) {
+    return withTenant(tenantId, async (trx) => {
+      let q = trx.selectFrom('petti_flags').selectAll().where('tenant_id', '=', tenantId);
+      if (filters.walletId) q = q.where('wallet_id', '=', filters.walletId);
+      if (filters.status) q = q.where('status', '=', filters.status);
+      return q.orderBy('created_at', 'desc').execute();
+    });
+  }
+
+  static async resolveFlag(tenantId: string, userId: string, flagId: string, resolutionNote?: string) {
+    const row = await withTenant(tenantId, (trx) =>
+      trx.updateTable('petti_flags')
+        .set({ status: 'resolved', resolved_by: userId, resolved_at: new Date(), resolution_note: resolutionNote || null })
+        .where('id', '=', flagId).where('tenant_id', '=', tenantId).where('status', '=', 'open')
+        .returningAll().executeTakeFirst()
+    );
+    if (!row) throw new Error('Flag not found, or it has already been resolved.');
+    return row;
+  }
+
+  /** Disbursed-spend breakdown for a date range — by category and by
+   *  wallet, grouped by currency (one report block per currency actually
+   *  present) rather than one blended total — the same reasoning the
+   *  dashboard's per-currency balance cards already apply: summing
+   *  differently-denominated wallets into a single number would silently
+   *  misstate spend the moment a tenant has more than one wallet currency.
+   *  Deliberately scoped to disbursed withdrawals only (real cash that
+   *  actually left a wallet), not pending/approved requests, which aren't
+   *  real spend yet. */
+  static async getSpendReport(tenantId: string, filters: { from?: string; to?: string } = {}) {
+    return withTenant(tenantId, async (trx) => {
+      let q = trx.selectFrom('petti_withdrawal_requests')
+        .innerJoin('petti_wallets', 'petti_wallets.id', 'petti_withdrawal_requests.wallet_id')
+        .select([
+          'petti_withdrawal_requests.category as category',
+          'petti_withdrawal_requests.wallet_id as wallet_id',
+          'petti_wallets.name as wallet_name',
+          'petti_wallets.currency as currency',
+          'petti_withdrawal_requests.amount as amount',
+        ])
+        .where('petti_withdrawal_requests.tenant_id', '=', tenantId)
+        .where('petti_withdrawal_requests.status', '=', 'disbursed');
+      if (filters.from) q = q.where('petti_withdrawal_requests.disbursed_at', '>=', new Date(filters.from));
+      if (filters.to) q = q.where('petti_withdrawal_requests.disbursed_at', '<=', new Date(filters.to));
+      const rows = await q.execute();
+
+      const byCurrency = new Map<string, {
+        total: number; count: number;
+        byCategory: Map<string, PettiSpendBucket & { category: string }>;
+        byWallet: Map<string, PettiSpendBucket & { walletId: string; walletName: string }>;
+      }>();
+
+      for (const r of rows) {
+        const amount = Number(r.amount);
+        const c = byCurrency.get(r.currency) ?? { total: 0, count: 0, byCategory: new Map(), byWallet: new Map() };
+        c.total += amount; c.count += 1;
+
+        const cat = c.byCategory.get(r.category) ?? { category: r.category, total: 0, count: 0 };
+        cat.total += amount; cat.count += 1;
+        c.byCategory.set(r.category, cat);
+
+        const w = c.byWallet.get(r.wallet_id) ?? { walletId: r.wallet_id, walletName: r.wallet_name, total: 0, count: 0 };
+        w.total += amount; w.count += 1;
+        c.byWallet.set(r.wallet_id, w);
+
+        byCurrency.set(r.currency, c);
+      }
+
+      const currencies: PettiCurrencySpendReport[] = Array.from(byCurrency.entries()).map(([currency, c]) => ({
+        currency, total: c.total, count: c.count,
+        byCategory: Array.from(c.byCategory.values()).sort((a, b) => b.total - a.total),
+        byWallet: Array.from(c.byWallet.values()).sort((a, b) => b.total - a.total),
+      }));
+
+      return { currencies };
+    });
+  }
+
+  static async requestWithdrawal(tenantId: string, actor: PettiActor, data: {
     walletId: string; amount: number; category?: string; purpose: string;
+    payeeName?: string; onBehalfOfUserId?: string;
   }) {
     if (!(data.amount > 0)) throw new Error('Withdrawal amount must be positive.');
     const purpose = data.purpose?.trim();
     if (!purpose) throw new Error('A purpose is required for every withdrawal request.');
     const category = (data.category && (PETTI_CATEGORIES as readonly string[]).includes(data.category))
       ? data.category : 'MISCELLANEOUS';
+    if (data.onBehalfOfUserId && !(PETTI_FINANCE_ROLES as readonly string[]).includes(actor.role)) {
+      throw new Error('Only Finance can submit a withdrawal request on behalf of someone else.');
+    }
+    const userId = actor.id;
 
     // Two separate withTenant calls, not one wallet fetch nested inside the
     // insert's transaction — resolveWorkflow opens its own withTenant calls
@@ -491,6 +833,8 @@ export class PettiService {
         purpose,
         requested_by: userId,
         workflow_id: workflow.id,
+        payee_name: data.payeeName?.trim() || null,
+        on_behalf_of_user_id: data.onBehalfOfUserId || null,
       }).returningAll().executeTakeFirstOrThrow()
     );
   }
@@ -501,6 +845,20 @@ export class PettiService {
       if (filters.walletId) q = q.where('wallet_id', '=', filters.walletId);
       if (filters.status) q = q.where('status', '=', filters.status);
       return q.orderBy('requested_at', 'desc').execute();
+    });
+  }
+
+  /** Cross-wallet deposit list — mirrors listWithdrawalRequests's filter
+   *  shape. getWallet() already returns a per-wallet deposit list (capped at
+   *  50), but nothing lets a dashboard/ledger/report see deposits across
+   *  every wallet at once; this is that. */
+  static async listDeposits(tenantId: string, filters: { walletId?: string; from?: string; to?: string } = {}) {
+    return withTenant(tenantId, async (trx) => {
+      let q = trx.selectFrom('petti_deposits').selectAll().where('tenant_id', '=', tenantId);
+      if (filters.walletId) q = q.where('wallet_id', '=', filters.walletId);
+      if (filters.from) q = q.where('created_at', '>=', new Date(filters.from));
+      if (filters.to) q = q.where('created_at', '<=', new Date(filters.to));
+      return q.orderBy('created_at', 'desc').execute();
     });
   }
 
@@ -605,8 +963,8 @@ export class PettiService {
         sourceId: expenseRow.id,
         createdBy: userId,
         lines: [
-          { accountCode: expenseAccountCode, debit: amount, credit: 0, description: req.purpose },
-          { accountCode: walletAccount.code, debit: 0, credit: amount, description: `From ${wallet.name}` },
+          { accountCode: expenseAccountCode, debit: amount, credit: 0, description: req.purpose, currency: wallet.currency },
+          { accountCode: walletAccount.code, debit: 0, credit: amount, description: `From ${wallet.name}`, currency: wallet.currency },
         ],
       });
     } catch (e) {
@@ -623,5 +981,72 @@ export class PettiService {
         journal_entry_id: journalEntryId,
       }).where('id', '=', requestId).returningAll().executeTakeFirstOrThrow()
     );
+  }
+
+  /** A simple, printable petty-cash voucher for one withdrawal request — the
+   *  full trail (requested/approved/disbursed, who and when), following the
+   *  same direct-pdfkit pattern dangerous-goods.service.ts's
+   *  renderDgDeclarationPdf already uses, rather than a shared template
+   *  helper (each PDF-generating service in this codebase owns its own
+   *  renderer). */
+  static async renderWithdrawalVoucherPdf(tenantId: string, requestId: string): Promise<Buffer> {
+    const req = await withTenant(tenantId, (trx) =>
+      trx.selectFrom('petti_withdrawal_requests').selectAll()
+        .where('id', '=', requestId).where('tenant_id', '=', tenantId).executeTakeFirst()
+    );
+    if (!req) throw new Error('Withdrawal request not found.');
+
+    const wallet = await withTenant(tenantId, (trx) =>
+      trx.selectFrom('petti_wallets').select(['name', 'currency']).where('id', '=', req.wallet_id).executeTakeFirstOrThrow()
+    );
+
+    const actorIds = [req.requested_by, req.approved_by, req.disbursed_by, req.on_behalf_of_user_id].filter((v): v is string => !!v);
+    const actors = actorIds.length > 0
+      ? await withTenant(tenantId, (trx) => trx.selectFrom('users').select(['id', 'name']).where('id', 'in', actorIds).execute())
+      : [];
+    const nameOf = (userId: string | null) => actorIds.length > 0 ? (actors.find(a => a.id === userId)?.name ?? '—') : '—';
+
+    return new Promise((resolve, reject) => {
+      const doc = new PDFDocument({ size: 'A5', margin: 36 });
+      const chunks: Buffer[] = [];
+      doc.on('data', (c) => chunks.push(c));
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.on('error', reject);
+
+      doc.fontSize(13).font('Helvetica-Bold').text('PETTY CASH VOUCHER', { align: 'center' });
+      doc.fontSize(8).font('Helvetica').fillColor('#555').text(wallet.name, { align: 'center' });
+      doc.fillColor('#000').moveDown(1);
+
+      const row = (label: string, value: string) => {
+        doc.font('Helvetica-Bold').fontSize(9).text(label, { continued: true }).font('Helvetica').text(`  ${value || '—'}`);
+        doc.moveDown(0.35);
+      };
+
+      row('Purpose:', req.purpose);
+      row('Category:', PETTI_CATEGORY_LABEL[req.category] || req.category);
+      row('Amount:', `${Number(req.amount).toLocaleString()} ${wallet.currency}`);
+      if (req.payee_name) row('Paid to:', req.payee_name);
+      row('Status:', req.status.toUpperCase());
+      doc.moveDown(0.5);
+
+      doc.font('Helvetica-Bold').fontSize(10).text('Trail');
+      doc.moveDown(0.3);
+      row('Requested by:', `${nameOf(req.requested_by)}${req.on_behalf_of_user_id ? ` (on behalf of ${nameOf(req.on_behalf_of_user_id)})` : ''}`);
+      row('Requested at:', new Date(req.requested_at).toLocaleString('en-GB'));
+      if (req.approved_at) {
+        row(req.status === 'rejected' ? 'Rejected by:' : 'Approved by:', nameOf(req.approved_by));
+        row(req.status === 'rejected' ? 'Rejected at:' : 'Approved at:', new Date(req.approved_at).toLocaleString('en-GB'));
+      }
+      if (req.rejection_reason) row('Rejection reason:', req.rejection_reason);
+      if (req.disbursed_at) {
+        row('Disbursed by:', nameOf(req.disbursed_by));
+        row('Disbursed at:', new Date(req.disbursed_at).toLocaleString('en-GB'));
+      }
+
+      doc.moveDown(1.2);
+      doc.fontSize(8).fillColor('#888').text(`Voucher generated ${new Date().toLocaleString('en-GB')} · Ref: ${req.id}`, { align: 'center' });
+
+      doc.end();
+    });
   }
 }

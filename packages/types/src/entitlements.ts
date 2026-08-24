@@ -63,6 +63,14 @@ export const ALL_FEATURE_KEYS = [
   // tenant regardless of plan since they shipped.
   'petti',
   'notes',
+  // 'sign' shipped with real package_features/app_status rows and a backend
+  // requireEntitlement('sign') gate (sign.routes.ts) but was never added
+  // here — same drift as petti/notes above. Without a key here, GET
+  // /v1/entitlements never reports features.sign, so RequireAppEnabled
+  // (appId='sign') always passes regardless of plan — the frontend gate is
+  // silently a no-op even though the backend genuinely enforces it.
+  'sign',
+  'sms',
 ] as const;
 
 /** Feature keys correspond 1:1 with the appId strings the API gates on. */

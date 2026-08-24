@@ -6,6 +6,7 @@ import { AppHeader } from '../components/AppHeader.js';
 import { EmailApp } from '../pages/EmailApp.js';
 import { EmailTemplates } from '../pages/EmailTemplates.js';
 import { Icon } from '../components/Icon.js';
+import { GoogleWorkspaceRightSidebar } from '../components/GoogleWorkspaceRightSidebar.js';
 
 const NAV: SidebarSection[] = [
   {
@@ -67,6 +68,7 @@ export function EmailShell() {
             </Routes>
           </div>
         </div>
+        <GoogleWorkspaceRightSidebar />
       </div>
     </WorkspaceApp>
   );

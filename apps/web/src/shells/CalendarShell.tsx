@@ -230,6 +230,57 @@ function TodoSidebarContent({ collapsed }: { collapsed: boolean }) {
 
       <MiniMonthPicker />
       <MeetWithPanel />
+
+      <div style={{ height: 1, background: 'var(--border)', margin: '8px 12px 12px' }} />
+
+      {/* Google Calendar Sidelinks: My Calendars Section */}
+      <div style={{ padding: '0 12px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--ink)', fontSize: 13, fontWeight: 700 }}>
+          <span>My calendars</span>
+          <Icon name="chevronDown" size={14} color="var(--ink3)" />
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
+          {[
+            { label: 'Personal (Primary)', color: '#0d9488' },
+            { label: 'Work Sync', color: '#3b82f6' },
+            { label: 'Client / Social', color: '#10b981' },
+            { label: 'Customs Deadline', color: '#f97316' },
+            { label: 'Scheduled Todo', color: '#8b5cf6' },
+            { label: 'Holidays', color: '#059669' },
+          ].map((item, idx) => (
+            <label key={idx} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: 'var(--ink2)', cursor: 'pointer', padding: '3px 0' }}>
+              <input type="checkbox" defaultChecked style={{ accentColor: item.color, width: 14, height: 14, cursor: 'pointer' }} />
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: item.color, flexShrink: 0 }} />
+              <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }}>{item.label}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ height: 1, background: 'var(--border)', margin: '4px 12px 12px' }} />
+
+      {/* Google Calendar Sidelinks: Other Calendars Section */}
+      <div style={{ padding: '0 12px 16px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--ink)', fontSize: 13, fontWeight: 700 }}>
+          <span>Other calendars</span>
+          <button type="button" title="Add other calendar" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, display: 'flex', color: 'var(--ink3)' }}>
+            <Icon name="plus" size={14} />
+          </button>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
+          {[
+            { label: 'Holidays in Tanzania', color: '#16a34a' },
+            { label: 'Colleague Schedules', color: '#0284c7' },
+          ].map((item, idx) => (
+            <label key={idx} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: 'var(--ink2)', cursor: 'pointer', padding: '3px 0' }}>
+              <input type="checkbox" defaultChecked style={{ accentColor: item.color, width: 14, height: 14, cursor: 'pointer' }} />
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: item.color, flexShrink: 0 }} />
+              <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }}>{item.label}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+
       <div style={{ height: 1, background: 'var(--border)', margin: '4px 12px 16px' }} />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20, padding: '0 12px 24px' }}>
       {lists.map(list => {

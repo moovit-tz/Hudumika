@@ -1603,54 +1603,32 @@ const OpenAISection: React.FC = () => {
 };
 
 // -- section: SMS ------------------------------------------------------------
-const SMSSection: React.FC = () => {
-  const [provider, setProvider] = useState('africas_talking');
-  const [f, set] = useSettingsFields('int-sms', { atUser: '', atKey: '', atSender: '', twilioSid: '', twilioToken: '', twilioFrom: '' });
-  const { s, save } = useContext(SettingsCtx);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const hydratedExtra = useRef(false);
-
-  useEffect(() => {
-    if (hydratedExtra.current) return;
-    if (s['int-sms']) { setProvider(s['int-sms'].provider ?? 'africas_talking'); hydratedExtra.current = true; }
-  }, [s]);
-
-  async function handleSave() { setSaving(true); try { await save('int-sms', { provider, ...f }); setSaved(true); setTimeout(() => setSaved(false), 2000); } catch {} finally { setSaving(false); } }
-  return (
-    <>
-      <Card title="SMS Provider">
-        <Field label="Provider">
-          <Select value={provider} onValueChange={setProvider}>
-            <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="africas_talking">Africa's Talking</SelectItem>
-              <SelectItem value="twilio">Twilio</SelectItem>
-              <SelectItem value="nexmo">Vonage / Nexmo</SelectItem>
-              <SelectItem value="bongolive">BongoLive (Tanzania)</SelectItem>
-              <SelectItem value="none">Disabled</SelectItem>
-            </SelectContent>
-          </Select>
-        </Field>
-      </Card>
-      {provider === 'africas_talking' && (
-        <Card title="Africa's Talking">
-          <Field label="Username"><input className="input-field" value={f.atUser} onChange={e => set('atUser', e.target.value)} /></Field>
-          <Field label="API Key"><input className="input-field" type="password" value={f.atKey} onChange={e => set('atKey', e.target.value)} /></Field>
-          <Field label="Sender ID" hint="Short code or alphanumeric sender"><input className="input-field" value={f.atSender} onChange={e => set('atSender', e.target.value)} /></Field>
-        </Card>
-      )}
-      {provider === 'twilio' && (
-        <Card title="Twilio">
-          <Field label="Account SID"><input className="input-field" value={f.twilioSid} onChange={e => set('twilioSid', e.target.value)} /></Field>
-          <Field label="Auth Token"><input className="input-field" type="password" value={f.twilioToken} onChange={e => set('twilioToken', e.target.value)} /></Field>
-          <Field label="From Number"><input className="input-field" placeholder="+1234567890" value={f.twilioFrom} onChange={e => set('twilioFrom', e.target.value)} /></Field>
-        </Card>
-      )}
-      <SaveRow saving={saving} saved={saved} onSave={handleSave} />
-    </>
-  );
-};
+// Used to save a single provider's credentials straight to tenant_settings
+// (in plaintext — 'int-sms' was never registered in SECRET_FIELDS_BY_KEY).
+// The SMS app now owns gateway config for real: multiple gateways with
+// priority fallback, named sender IDs, encrypted credentials, and a live
+// test-send — one control here just points at it, same pattern as Finance
+// setup's own ElsewhereSection above.
+const SMSSection: React.FC = () => (
+  <Card title="SMS" desc="Gateways, sender IDs, opt-outs and campaigns are managed in the SMS app.">
+    <div className="s-elsewhere">
+      <Link to="/sms/gateways" className="s-elsewhere-row">
+        <div>
+          <div className="s-elsewhere-label">SMS gateways</div>
+          <div className="s-elsewhere-desc">Africa's Talking, Twilio and other providers — credentials, sender IDs, priority order and a live test-send.</div>
+        </div>
+        <Icon name="chevronRight" size={16} color="var(--ink3)" />
+      </Link>
+      <Link to="/sms/opt-outs" className="s-elsewhere-row">
+        <div>
+          <div className="s-elsewhere-label">Opt-outs & blacklist</div>
+          <div className="s-elsewhere-desc">Numbers that must never be sent to, whether self-opted-out via a STOP reply or manually blocked.</div>
+        </div>
+        <Icon name="chevronRight" size={16} color="var(--ink3)" />
+      </Link>
+    </div>
+  </Card>
+);
 
 // -- section: TRA VFD (Tax Fiscalization) ------------------------------------
 const TRASection: React.FC = () => {

@@ -12,6 +12,7 @@ import { PageLayout } from '../components/PageLayout.js';
 import { SignInbox, SignEnvelopeDetail } from '../pages/sign/SignInbox.js';
 import { SignEditor } from '../pages/sign/SignEditor.js';
 import { SignTemplates } from '../pages/sign/SignTemplates.js';
+import { GoogleWorkspaceRightSidebar } from '../components/GoogleWorkspaceRightSidebar.js';
 
 const SIGN_NAV: SidebarSection[] = [
   {
@@ -69,6 +70,7 @@ export function SignShell() {
             </Routes>
           </div>
         </div>
+        <GoogleWorkspaceRightSidebar />
       </div>
     </WorkspaceApp>
   );

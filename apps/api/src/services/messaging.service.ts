@@ -1,6 +1,6 @@
 import { WhatsAppIntegration } from '../integrations/whatsapp.js';
 import { MailService } from './mail.service.js';
-import { SmsIntegration } from '../integrations/sms.js';
+import { SmsService } from './sms.service.js';
 import { withTenant } from '../db/client.js';
 import type { MessageChannel, MessageDirection } from '@hudumika/types';
 
@@ -35,8 +35,11 @@ export class MessagingService {
         externalRef = res.outboxId;
       }
     } else if (channel === 'SMS' && customerPhone) {
-      const res = await SmsIntegration.sendSms(tenantId, customerPhone, content);
-      if (res.success && res.messageId) externalRef = res.messageId;
+      // Routed through SmsService (not SmsIntegration directly) so this also
+      // lands in sms_messages — a support-ticket SMS reply now shows up in
+      // the SMS app's own unified Reports view, not just here.
+      const res = await SmsService.sendNow(tenantId, authorId, { to: customerPhone, body: content, sourceApp: 'bliss' });
+      if (res.success) externalRef = res.id;
     }
 
     // Save outbound message to DB

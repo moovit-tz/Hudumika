@@ -22,6 +22,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { showAlert } from '../lib/alert.js';
 import { fetchPeople, type Person } from '../lib/identity.js';
+import './CalendarApp.css';
 
 type ViewMode = 'month' | 'week' | 'day' | 'agenda';
 
@@ -488,195 +489,195 @@ export const CalendarApp: React.FC = () => {
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg)', fontFamily: 'var(--font)' }}>
-      {/* ── Top Toolbar (Google Calendar Inspired) ─────────────────────────────────────── */}
-      <div style={{
-        height: 64, minHeight: 64, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16,
-        padding: isMobile ? '10px 12px' : '0 20px', background: 'var(--white)', borderBottom: '1px solid var(--border)', zIndex: 2, boxSizing: 'border-box'
-      }}>
+      {/* ── Top Toolbar (Device Responsive & Google Calendar Styled) ─────────────────────────────────────── */}
+      <div className="cal-topbar-root">
         {/* Left Section: Today, Prev/Next, Month/Year label */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <button
-            onClick={handleToday}
-            style={{
-              border: '1px solid var(--border)', background: 'var(--white)', borderRadius: 6,
-              padding: '7px 18px', fontSize: 14, fontWeight: 500, cursor: 'pointer',
-              color: 'var(--ink)', transition: 'background 0.15s ease', display: 'flex', alignItems: 'center'
-            }}
-          >
+        <div className="cal-topbar-left">
+          <button onClick={handleToday} className="cal-topbar-today-btn">
             Today
           </button>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <button
-              onClick={handlePrev}
-              title="Previous"
-              style={{
-                width: 36, height: 36, borderRadius: '50%', border: 'none', background: 'transparent',
-                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: 'var(--ink2)', transition: 'background 0.15s ease'
-              }}
-            >
+          <div className="cal-topbar-nav-group">
+            <button onClick={handlePrev} title="Previous" className="cal-topbar-nav-btn">
               <Icon name="chevronLeft" size={18} />
             </button>
 
-            <button
-              onClick={handleNext}
-              title="Next"
-              style={{
-                width: 36, height: 36, borderRadius: '50%', border: 'none', background: 'transparent',
-                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: 'var(--ink2)', transition: 'background 0.15s ease'
-              }}
-            >
+            <button onClick={handleNext} title="Next" className="cal-topbar-nav-btn">
               <Icon name="chevronRight" size={18} />
             </button>
           </div>
 
-          <span style={{ fontSize: isMobile ? 16 : 22, fontWeight: 500, color: 'var(--ink)', marginLeft: 8, letterSpacing: '-0.01em' }}>
+          <span className="cal-topbar-title">
             {label}
           </span>
         </div>
 
-        {/* Middle Section: Search & Category Chips */}
-        {!isMobile && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16, flex: 1, maxWidth: 600, justifyContent: 'center' }}>
-            <div style={{ position: 'relative', width: 260 }}>
-              <Icon name="search" size={16} color="var(--ink3)" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                placeholder="Search events"
-                style={{
-                  width: '100%', boxSizing: 'border-box', height: 38, padding: '0 12px 0 36px', borderRadius: 8,
-                  border: '1px solid var(--border)', fontSize: 13.5, background: 'var(--bg)', color: 'var(--ink)', outline: 'none'
-                }}
-              />
-            </div>
-
-            {/* Category Filter Chips */}
-            <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'nowrap' }}>
-              {(Object.keys(CATEGORY_MAP) as Category[]).map(cat => {
-                const on = activeCategories[cat];
-                return (
-                  <button
-                    key={cat}
-                    type="button"
-                    onClick={() => setActiveCategories(prev => ({ ...prev, [cat]: !prev[cat] }))}
-                    title={on ? `Hide ${CATEGORY_MAP[cat].label}` : `Show ${CATEGORY_MAP[cat].label}`}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 6,
-                      border: on ? `1px solid ${CATEGORY_MAP[cat].color}` : '1px solid var(--border)',
-                      background: on ? 'var(--white)' : 'transparent',
-                      cursor: 'pointer', padding: '4px 10px', borderRadius: 14, fontSize: 12, fontWeight: 500,
-                      color: on ? 'var(--ink)' : 'var(--ink3)', opacity: on ? 1 : 0.6, whiteSpace: 'nowrap', transition: 'all 0.15s ease'
-                    }}
-                  >
-                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: CATEGORY_MAP[cat].color, flexShrink: 0 }} />
-                    {CATEGORY_MAP[cat].label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Right Section: Google View Switcher & Settings */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {/* Segmented View Switcher */}
-          <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden', height: 36, background: 'var(--white)' }}>
-            {(['month','week','day','agenda'] as const).map((m, idx, arr) => (
-              <button
-                key={m}
-                onClick={() => setViewMode(m)}
-                style={{
-                  padding: isMobile ? '0 10px' : '0 16px', border: 'none',
-                  borderRight: idx < arr.length - 1 ? '1px solid var(--border)' : 'none',
-                  cursor: 'pointer', fontSize: 13.5, fontWeight: viewMode === m ? 600 : 500, whiteSpace: 'nowrap',
-                  background: viewMode === m ? 'var(--teal-l, rgba(13,148,136,0.12))' : 'transparent',
-                  color:      viewMode === m ? 'var(--teal, #0d9488)' : 'var(--ink2)',
-                  transition: 'background 0.15s ease, color 0.15s ease'
-                }}
-              >
-                {isMobile ? m.charAt(0).toUpperCase() : m.charAt(0).toUpperCase() + m.slice(1)}
-              </button>
-            ))}
+        {/* Middle Section: Responsive Search & Category Filter Chips */}
+        <div className="cal-topbar-center">
+          <div className="cal-topbar-search-box">
+            <Icon name="search" size={15} color="var(--ink3)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
+            <input
+              type="text"
+              className="cal-topbar-search-input"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Search events"
+            />
           </div>
 
+
+        </div>
+
+        {/* Right Section: Google Calendar Exact Top Layer Controls (Image 3) */}
+        <div className="cal-topbar-right">
+          {/* 1. Help & Support */}
+          <button
+            type="button"
+            className="cal-topbar-nav-btn"
+            title="Support & Keyboard Shortcuts"
+            onClick={() => showAlert('Google Calendar Help & Shortcuts: Press D (Day), W (Week), M (Month), A (Schedule)')}
+          >
+            <Icon name="helpCircle" size={18} />
+          </button>
+
+          {/* 2. Calendar Settings */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
+                className="cal-topbar-nav-btn"
                 title="Calendar settings"
-                style={{
-                  width: 36, height: 36, borderRadius: '50%', background: 'transparent',
-                  border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: 'var(--ink2)', transition: 'background 0.15s ease'
-                }}
               >
                 <Icon name="settings" size={18} />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="p-3 w-64">
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12, paddingBottom: 12, borderBottom: '1px solid var(--border)' }}>
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Week starts Monday</div>
-                <div style={{ fontSize: 11, color: 'var(--ink3)' }}>Applies to the week view</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12, paddingBottom: 12, borderBottom: '1px solid var(--border)' }}>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Week starts Monday</div>
+                  <div style={{ fontSize: 11, color: 'var(--ink3)' }}>Applies to the week view</div>
+                </div>
+                <Switch checked={appSettings.weekStartsMonday} onCheckedChange={v => updateAppSettings({ weekStartsMonday: v })} />
               </div>
-              <Switch checked={appSettings.weekStartsMonday} onCheckedChange={v => updateAppSettings({ weekStartsMonday: v })} />
-            </div>
-            <button
-              type="button"
-              onClick={handleExportICS}
-              style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 6px', border: 'none', background: 'none', cursor: 'pointer', borderRadius: 6, fontSize: 13, color: 'var(--ink)', fontWeight: 500 }}
-              onMouseEnter={e => e.currentTarget.style.background = 'var(--bg)'}
-              onMouseLeave={e => e.currentTarget.style.background = 'none'}
-            >
-              <Icon name="download" size={15} color="var(--ink3)" /> Export calendar (.ics)
-            </button>
-            <button
-              type="button"
-              onClick={() => icsFileInputRef.current?.click()}
-              disabled={icsImporting}
-              style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 6px', border: 'none', background: 'none', cursor: icsImporting ? 'default' : 'pointer', borderRadius: 6, fontSize: 13, color: 'var(--ink)', fontWeight: 500, opacity: icsImporting ? 0.6 : 1 }}
-              onMouseEnter={e => e.currentTarget.style.background = 'var(--bg)'}
-              onMouseLeave={e => e.currentTarget.style.background = 'none'}
-            >
-              <Icon name="upload" size={15} color="var(--ink3)" /> {icsImporting ? 'Importing…' : 'Import calendar (.ics)'}
-            </button>
-            <DropdownMenuItem asChild onSelect={() => setBookingPagesOpen(true)}>
               <button
                 type="button"
+                onClick={handleExportICS}
                 style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 6px', border: 'none', background: 'none', cursor: 'pointer', borderRadius: 6, fontSize: 13, color: 'var(--ink)', fontWeight: 500 }}
                 onMouseEnter={e => e.currentTarget.style.background = 'var(--bg)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'none'}
               >
-                <Icon name="link" size={15} color="var(--ink3)" /> Booking pages…
+                <Icon name="download" size={15} color="var(--ink3)" /> Export calendar (.ics)
               </button>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild onSelect={() => setCalendarSyncOpen(true)}>
               <button
                 type="button"
-                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 6px', border: 'none', background: 'none', cursor: 'pointer', borderRadius: 6, fontSize: 13, color: 'var(--ink)', fontWeight: 500 }}
+                onClick={() => icsFileInputRef.current?.click()}
+                disabled={icsImporting}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 6px', border: 'none', background: 'none', cursor: icsImporting ? 'default' : 'pointer', borderRadius: 6, fontSize: 13, color: 'var(--ink)', fontWeight: 500, opacity: icsImporting ? 0.6 : 1 }}
                 onMouseEnter={e => e.currentTarget.style.background = 'var(--bg)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'none'}
               >
-                <Icon name="globe" size={15} color="var(--ink3)" /> Google/Outlook sync…
+                <Icon name="upload" size={15} color="var(--ink3)" /> {icsImporting ? 'Importing…' : 'Import calendar (.ics)'}
               </button>
-            </DropdownMenuItem>
-            <input
-              ref={icsFileInputRef}
-              type="file"
-              accept=".ics,text/calendar"
-              style={{ display: 'none' }}
-              onChange={e => {
-                const file = e.target.files?.[0];
-                if (file) handleImportICSFile(file);
-                e.target.value = '';
+              <DropdownMenuItem asChild onSelect={() => setBookingPagesOpen(true)}>
+                <button
+                  type="button"
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 6px', border: 'none', background: 'none', cursor: 'pointer', borderRadius: 6, fontSize: 13, color: 'var(--ink)', fontWeight: 500 }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--bg)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                >
+                  <Icon name="link" size={15} color="var(--ink3)" /> Booking pages…
+                </button>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild onSelect={() => setCalendarSyncOpen(true)}>
+                <button
+                  type="button"
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 6px', border: 'none', background: 'none', cursor: 'pointer', borderRadius: 6, fontSize: 13, color: 'var(--ink)', fontWeight: 500 }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--bg)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                >
+                  <Icon name="globe" size={15} color="var(--ink3)" /> Google/Outlook sync…
+                </button>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* 3. Google Calendar Top-Down Dropdown View Switcher (Image 3) */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="cal-topbar-view-dropdown-btn"
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px',
+                  border: '1px solid var(--border)', borderRadius: 6, background: 'var(--white)',
+                  fontSize: 13.5, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer',
+                  transition: 'background 0.15s ease'
+                }}
+              >
+                <span>{viewMode.charAt(0).toUpperCase() + viewMode.slice(1)}</span>
+                <Icon name="chevronDown" size={14} color="var(--ink3)" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52 p-1">
+              <DropdownMenuItem onClick={() => setViewMode('day')} style={{ display: 'flex', justifyContent: 'space-between', cursor: 'pointer' }}>
+                <span>Day</span> <span style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 600 }}>D</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setViewMode('week')} style={{ display: 'flex', justifyContent: 'space-between', cursor: 'pointer' }}>
+                <span>Week</span> <span style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 600 }}>W</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setViewMode('month')} style={{ display: 'flex', justifyContent: 'space-between', cursor: 'pointer' }}>
+                <span>Month</span> <span style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 600 }}>M</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setViewMode('agenda')} style={{ display: 'flex', justifyContent: 'space-between', cursor: 'pointer' }}>
+                <span>Schedule / Agenda</span> <span style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 600 }}>A</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* 4. Dual View Switcher Pill: Calendar vs Tasks (Image 3) */}
+          <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 20, overflow: 'hidden', background: 'var(--white)', padding: 2 }}>
+            <button
+              type="button"
+              onClick={() => setViewMode('month')}
+              title="Calendar View"
+              style={{
+                padding: '4px 10px', borderRadius: 16, border: 'none', cursor: 'pointer',
+                background: viewMode !== 'agenda' ? 'var(--teal-l)' : 'transparent',
+                color: viewMode !== 'agenda' ? 'var(--teal)' : 'var(--ink3)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center'
               }}
-            />
-          </DropdownMenuContent>
-        </DropdownMenu>
+            >
+              <Icon name="calendar" size={16} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('agenda')}
+              title="Tasks & Schedule View"
+              style={{
+                padding: '4px 10px', borderRadius: 16, border: 'none', cursor: 'pointer',
+                background: viewMode === 'agenda' ? 'var(--teal-l)' : 'transparent',
+                color: viewMode === 'agenda' ? 'var(--teal)' : 'var(--ink3)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center'
+              }}
+            >
+              <Icon name="tasks" size={16} />
+            </button>
+          </div>
+
+
+
+          <input
+            ref={icsFileInputRef}
+            type="file"
+            accept=".ics,text/calendar"
+            style={{ display: 'none' }}
+            onChange={e => {
+              const file = e.target.files?.[0];
+              if (file) handleImportICSFile(file);
+              e.target.value = '';
+            }}
+          />
+        </div>
       </div>
 
       {/* ── Body ────────────────────────────────────────────── */}

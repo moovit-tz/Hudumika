@@ -36,12 +36,13 @@ export type AppId =
   | 'petti'        // Tenant petty-cash wallet — deposits, request/approve/disburse withdrawals
   | 'notes'        // Google Keep style notes app — free app
   | 'sign'         // eSign — DocuSign/Google eSign style electronic signature platform
+  | 'sms'          // Bulk/transactional SMS — quick send, groups, templates, campaigns
   | 'lens';        // Internal developer record — SuperAdmin only, never customer-facing
 
 export const ALL_APP_IDS: AppId[] = [
   'clearos', 'finops', 'complyos', 'bliss',
   'nexushr', 'onesite', 'onsite', 'oneid', 'tracking', 'cloud', 'ai', 'workspace', 'admin', 'email', 'crm', 'contacts', 'store',
-  'calendar', 'tasks', 'notes', 'sign',
+  'calendar', 'tasks', 'notes', 'sign', 'sms',
   'demurrage', 'cargotracker', 'seal', 'inventory', 'studio', 'hudubi', 'petti',
   // Internal tooling. Present so the app shell and design system can resolve it
   // like any other app; the launcher filters it out for non-SuperAdmins and

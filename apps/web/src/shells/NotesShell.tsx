@@ -7,6 +7,7 @@ import { NotesApp } from '../pages/NotesApp.js';
 import { NotesLabelsPage } from '../pages/NotesLabelsPage.js';
 import { PageLayout } from '../components/PageLayout.js';
 import { useNotes, useNoteLabels, loadNotes, useNotesSearchQuery, setNotesSearchQuery, categoryMeta } from '../data/notesStore.js';
+import { GoogleWorkspaceRightSidebar } from '../components/GoogleWorkspaceRightSidebar.js';
 
 /** `/notes/label/:labelId` — reads the id straight from the route rather
  *  than an internal-only filter state, same as every other app's sidebar. */
@@ -113,6 +114,7 @@ export function NotesShell() {
             </Routes>
           </div>
         </div>
+        <GoogleWorkspaceRightSidebar />
       </div>
     </WorkspaceApp>
   );

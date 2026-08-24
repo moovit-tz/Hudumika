@@ -6,6 +6,8 @@ import { PersonAvatar } from './PersonAvatar.js';
 import { Switch } from './ui/switch.js';
 import { Button } from './ui/button.js';
 import { showAlert } from '../lib/alert.js';
+import { apiFetch } from '../lib/api.js';
+import { isRightSidebarCollapsed, toggleRightSidebar, RIGHT_SIDEBAR_TOGGLE_EVENT } from '../lib/rightSidebarState.js';
 import './GoogleWorkspaceRightSidebar.css';
 
 export type CompanionPanelId = 'tasks' | 'calendar' | 'esign' | 'chat' | 'notifications' | 'analytics' | 'notes' | 'starred' | 'settings' | null;
@@ -28,6 +30,44 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
     localStorage.setItem('hudumika_quick_note', scratchNote);
   }, [scratchNote]);
 
+  // ── eSign envelopes awaiting my signature — real, /v1/sign/envelopes ──
+  const [envelopes, setEnvelopes] = useState<{ id: string; title: string; status: string }[]>([]);
+  useEffect(() => {
+    apiFetch('/v1/sign/envelopes?view=inbox')
+      .then(rows => setEnvelopes(Array.isArray(rows) ? rows : []))
+      .catch(() => {});
+  }, []);
+
+  // ── Notifications — real, /v1/notifications ──
+  const [notifs, setNotifs] = useState<any[]>([]);
+  const [unreadNotifCount, setUnreadNotifCount] = useState(0);
+  useEffect(() => {
+    apiFetch('/v1/notifications')
+      .then(res => {
+        setNotifs(Array.isArray(res?.notifications) ? res.notifications : []);
+        setUnreadNotifCount(typeof res?.unread_count === 'number' ? res.unread_count : 0);
+      })
+      .catch(() => {});
+  }, []);
+  async function markAllNotificationsRead() {
+    try {
+      await apiFetch('/v1/notifications/read-all', { method: 'PATCH' });
+      setNotifs(prev => prev.map(n => ({ ...n, read: true })));
+      setUnreadNotifCount(0);
+    } catch (err: any) {
+      showAlert(err?.message || 'Could not mark notifications as read.');
+    }
+  }
+
+  // ── Team chat — real, /v1/chat/channels (same backend EmailRightToolMenu uses) ──
+  const [channels, setChannels] = useState<{ id: string; name: string; unread: number; last_message: string | null; last_message_at: string | null }[]>([]);
+  useEffect(() => {
+    apiFetch('/v1/chat/channels')
+      .then(res => setChannels(Array.isArray(res?.data) ? res.data : []))
+      .catch(() => {});
+  }, []);
+  const totalUnreadChats = channels.reduce((sum, c) => sum + (c.unread || 0), 0);
+
   function togglePanel(id: CompanionPanelId) {
     setActivePanel(prev => prev === id ? null : id);
   }
@@ -44,22 +84,31 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
     setThemeMode(document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light');
   }
 
-  const [collapsed, setCollapsed] = useState(() => localStorage.getItem('gws_right_sidebar_collapsed') === 'true');
+  const [collapsed, setCollapsed] = useState(isRightSidebarCollapsed);
 
   useEffect(() => {
-    function handleToggle() {
-      setCollapsed(prev => {
-        const next = !prev;
-        localStorage.setItem('gws_right_sidebar_collapsed', String(next));
-        return next;
-      });
+    function handleToggle(e: Event) {
+      setCollapsed((e as CustomEvent<boolean>).detail);
     }
-    window.addEventListener('gws-sidebar:toggle', handleToggle);
-    return () => window.removeEventListener('gws-sidebar:toggle', handleToggle);
+    window.addEventListener(RIGHT_SIDEBAR_TOGGLE_EVENT, handleToggle);
+    return () => window.removeEventListener(RIGHT_SIDEBAR_TOGGLE_EVENT, handleToggle);
   }, []);
 
+  if (collapsed && !activePanel) {
+    return (
+      <button
+        type="button"
+        className="gws-floating-expand-btn"
+        onClick={toggleRightSidebar}
+        title="Show side panel"
+      >
+        <Icon name="chevronLeft" size={17} />
+      </button>
+    );
+  }
+
   return (
-    <div className={`gws-right-sidebar-root ${collapsed ? 'collapsed' : ''}`} style={{ display: collapsed && !activePanel ? 'none' : 'flex' }}>
+    <div className={`gws-right-sidebar-root ${collapsed ? 'collapsed' : ''}`}>
       {/* ── 320px Companion Side Drawer ── */}
       {activePanel && (
         <div className="gws-drawer">
@@ -141,57 +190,76 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
               </div>
             )}
 
-            {/* ESIGN PANEL */}
+            {/* ESIGN PANEL — real, /v1/sign/envelopes?view=inbox */}
             {activePanel === 'esign' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', letterSpacing: '0.04em' }}>12 Envelope Requests</div>
+                <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', letterSpacing: '0.04em' }}>
+                  {envelopes.length} Envelope Request{envelopes.length === 1 ? '' : 's'}
+                </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {['MOU Agreement - Port Operations.pdf', 'Customs Declaration #8921.pdf', 'Carrier Transit Authorization.pdf'].map((doc, i) => (
-                    <div key={i} style={{ padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  {envelopes.map(env => (
+                    <a key={env.id} href="/sign" style={{ padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', textDecoration: 'none' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
                         <Icon name="fileText" size={16} style={{ color: 'var(--teal)' }} />
-                        <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{doc}</span>
+                        <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{env.title}</span>
                       </div>
-                      <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: 'var(--teal-l)', color: 'var(--teal)' }}>
-                        Pending
+                      <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: 'var(--teal-l)', color: 'var(--teal)', textTransform: 'capitalize' }}>
+                        {env.status}
                       </span>
-                    </div>
+                    </a>
                   ))}
+                  {envelopes.length === 0 && (
+                    <div style={{ fontSize: 12.5, color: 'var(--ink3)', textAlign: 'center', padding: '24px 0' }}>Nothing waiting on your signature.</div>
+                  )}
                 </div>
               </div>
             )}
 
-            {/* CHAT PANEL */}
+            {/* CHAT PANEL — real, /v1/chat/channels (same backend EmailRightToolMenu uses) */}
             {activePanel === 'chat' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', letterSpacing: '0.04em' }}>Team Activity &amp; Discussions</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  <div style={{ padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', display: 'flex', gap: 10 }}>
-                    <PersonAvatar userId="1" name="Robert Ndekeye" size={24} />
-                    <div>
-                      <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)' }}>Robert Ndekeye</div>
-                      <div style={{ fontSize: 12, color: 'var(--ink2)', marginTop: 2 }}>"Updated the shipping tariff schedule for Q3."</div>
-                      <div style={{ fontSize: 10.5, color: 'var(--ink3)', marginTop: 4 }}>12 mins ago</div>
-                    </div>
-                  </div>
+                  {channels.map(c => (
+                    <a key={c.id} href="/chat" style={{ padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', display: 'flex', gap: 10, textDecoration: 'none' }}>
+                      <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'rgba(124,58,237,0.12)', color: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <Icon name="messageSquare" size={13} />
+                      </div>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</span>
+                          {c.unread > 0 && <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--teal)', flexShrink: 0 }}>{c.unread}</span>}
+                        </div>
+                        <div style={{ fontSize: 12, color: 'var(--ink2)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.last_message || 'No messages yet'}</div>
+                      </div>
+                    </a>
+                  ))}
+                  {channels.length === 0 && (
+                    <div style={{ fontSize: 12.5, color: 'var(--ink3)', textAlign: 'center', padding: '24px 0' }}>No conversations yet.</div>
+                  )}
                 </div>
               </div>
             )}
 
-            {/* NOTIFICATIONS PANEL */}
+            {/* NOTIFICATIONS PANEL — real, /v1/notifications */}
             {activePanel === 'notifications' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', letterSpacing: '0.04em' }}>36 Notifications</span>
-                  <button type="button" onClick={() => showAlert('All notifications marked as read')} style={{ fontSize: 11.5, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>Mark read</button>
+                  <span style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', letterSpacing: '0.04em' }}>{notifs.length} Notifications</span>
+                  {unreadNotifCount > 0 && (
+                    <button type="button" onClick={markAllNotificationsRead} style={{ fontSize: 11.5, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>Mark read</button>
+                  )}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {['New declaration approved', 'Container #TZ-9921 arrived at ICD', 'Invoice #INV-2026 paid'].map((note, i) => (
-                    <div key={i} style={{ padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--teal)', marginTop: 4, flexShrink: 0 }} />
-                      <div style={{ fontSize: 12.5, color: 'var(--ink)', fontWeight: 500 }}>{note}</div>
+                  {notifs.map(n => (
+                    <div key={n.id} style={{ padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                      {!n.read && <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--teal)', marginTop: 4, flexShrink: 0 }} />}
+                      <div style={{ fontSize: 12.5, color: 'var(--ink)', fontWeight: n.read ? 500 : 700 }}>{n.title}</div>
                     </div>
                   ))}
+                  {notifs.length === 0 && (
+                    <div style={{ fontSize: 12.5, color: 'var(--ink3)', textAlign: 'center', padding: '24px 0' }}>No notifications.</div>
+                  )}
                 </div>
               </div>
             )}
@@ -272,16 +340,6 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
       <div className="gws-rail">
         {/* Top Action Items */}
         <div className="gws-rail-top">
-          {/* Collapse/Hide Rail Button */}
-          <button
-            className="gws-rail-btn"
-            onClick={() => window.dispatchEvent(new CustomEvent('gws-sidebar:toggle'))}
-            title="Collapse companion panel"
-            style={{ marginBottom: 4 }}
-          >
-            <Icon name="chevronRight" size={17} />
-          </button>
-
           {/* 1. Tasks / Keep */}
           <button
             className={`gws-rail-btn ${activePanel === 'tasks' ? 'active' : ''}`}
@@ -289,7 +347,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
             title="Tasks / Keep"
           >
             <Icon name="tasks" size={19} />
-            <span className="gws-badge gws-badge-teal">1</span>
+            {activeTodos.length > 0 && <span className="gws-badge gws-badge-teal">{activeTodos.length}</span>}
           </button>
 
           {/* 2. Calendar */}
@@ -308,7 +366,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
             title="eSign Documents / Mail"
           >
             <Icon name="mail" size={19} />
-            <span className="gws-badge gws-badge-blue">12</span>
+            {envelopes.length > 0 && <span className="gws-badge gws-badge-blue">{envelopes.length}</span>}
           </button>
 
           {/* 4. Chat / Comments */}
@@ -318,6 +376,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
             title="Team Discussions & Chat"
           >
             <Icon name="messageSquare" size={19} />
+            {totalUnreadChats > 0 && <span className="gws-badge gws-badge-blue">{totalUnreadChats}</span>}
           </button>
 
           {/* 5. Notifications */}
@@ -327,7 +386,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
             title="Notifications"
           >
             <Icon name="bell" size={19} />
-            <span className="gws-badge gws-badge-red">36</span>
+            {unreadNotifCount > 0 && <span className="gws-badge gws-badge-red">{unreadNotifCount}</span>}
           </button>
 
           {/* 6. Analytics / HuduBI */}
@@ -369,6 +428,16 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
             title="Quick Settings"
           >
             <Icon name="settings" size={19} />
+          </button>
+
+          {/* Bottom Right Collapse / Expand Side Panel Button (Google Calendar Style) */}
+          <button
+            className="gws-rail-btn"
+            onClick={toggleRightSidebar}
+            title={collapsed ? "Show side panel" : "Hide side panel"}
+            style={{ marginTop: 4 }}
+          >
+            <Icon name={collapsed ? "chevronLeft" : "chevronRight"} size={17} />
           </button>
         </div>
       </div>

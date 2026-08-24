@@ -5,6 +5,7 @@ import { NOTIFICATION_MATRIX } from '../config/notification-matrix.js';
 import { formatTemplate } from '../lib/template.js';
 import { WhatsAppIntegration } from '../integrations/whatsapp.js';
 import { MailService } from './mail.service.js';
+import { SmsService } from './sms.service.js';
 import type { NotificationTrigger, MessageChannel } from '@hudumika/types';
 import { env } from '../config/env.js';
 
@@ -225,6 +226,20 @@ export class NotificationService {
       // mail-outbox.job.ts will retry on its own next poll — sendNowTemplated
       // isn't "no retry," it's "also try once immediately."
       deliveryStatus = !result.success ? 'FAILED' : result.simulated ? 'SIMULATED' : 'SENT';
+    } else if (channel === 'SMS' && target.phone) {
+      // Same kill-switch shape as EMAIL above (default OFF, requires an
+      // explicit true) rather than WHATSAPP's default-on — unlike WhatsApp,
+      // an SMS costs real money per send, so a tenant must opt in before
+      // any NOTIFICATION_MATRIX rule can start billing them for shipment
+      // events. No matrix rule lists 'SMS' in its channels today (this is
+      // infrastructure, not yet an active send path) — see notification-
+      // matrix.ts if that should change for a specific trigger.
+      const settingsRow = await trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', tenantId).executeTakeFirst();
+      const tenantSettings = settingsRow ? (typeof settingsRow.settings === 'string' ? JSON.parse(settingsRow.settings) : settingsRow.settings) : {};
+      if (tenantSettings?.notifications?.sms !== true) return;
+
+      const result = await SmsService.sendNow(tenantId, target.userId ?? null, { to: target.phone, body: bodyContent, sourceApp: 'notification' });
+      deliveryStatus = result.success ? 'SENT' : 'FAILED';
     } else if (channel === 'IN_APP') {
       deliveryStatus = 'SENT';
     } else {
@@ -249,7 +264,7 @@ export class NotificationService {
         customer_id: target.customerId || null,
         trigger_type: trigger,
         channel,
-        recipient: channel === 'WHATSAPP' ? (target.phone || '') : (target.email || 'IN_APP'),
+        recipient: (channel === 'WHATSAPP' || channel === 'SMS') ? (target.phone || '') : (target.email || 'IN_APP'),
         title: cfg?.title ?? String(trigger).replace(/_/g, ' '),
         content: bodyContent,
         message: isInApp ? bodyContent : null,

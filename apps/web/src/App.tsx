@@ -79,6 +79,7 @@ import { OneIdShell }    from './shells/OneIdShell.js';
 import { TrackingShell } from './shells/TrackingShell.js';
 import { CargoTrackerShell } from './shells/CargoTrackerShell.js';
 import { PettiShell } from './shells/PettiShell.js';
+import { SmsShell } from './shells/SmsShell.js';
 import { CalendarShell } from './shells/CalendarShell.js';
 import { TasksShell }    from './shells/TasksShell.js';
 import { NotesShell }    from './shells/NotesShell.js';
@@ -393,6 +394,7 @@ const AppContentBody: React.FC = () => {
           <Route path="/onsite/*"    element={<OnsiteShell />} />
           <Route path="/hudubi/*"    element={<HuduBIShell />} />
           <Route path="/petti/*"     element={<PettiShell />} />
+          <Route path="/sms/*"       element={<SmsShell />} />
 
           {/* Legacy redirects for old routes */}
           <Route path="/billing"         element={<Navigate to="/finance/invoices"        replace />} />

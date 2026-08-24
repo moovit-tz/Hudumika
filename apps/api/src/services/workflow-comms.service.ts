@@ -3,6 +3,7 @@ import { formatTemplate } from '../lib/template.js';
 import { MailService } from './mail.service.js';
 import { WhatsAppIntegration } from '../integrations/whatsapp.js';
 import { NotificationService } from './notification.service.js';
+import { SmsService } from './sms.service.js';
 import { attachCommOutcomes, settleQueuedComm, type CommOutcome } from './workflow-runs.service.js';
 import type { AutoComm } from '@hudumika/types';
 
@@ -230,11 +231,15 @@ export async function sendOneComm(tenantId: string, shipmentId: string, comm: Au
       return { success: true };
     }
     case 'sms': {
-      // No SMS provider integration exists anywhere in this codebase today
-      // (confirmed — messaging.service.ts mocks SMS the same honest way for
-      // support tickets). Logged, not fabricated as sent.
-      console.log(`[WorkflowComms][SMS mock] shipment ${shipmentId}: ${body}`);
-      return { success: false, error: 'SMS not integrated — logged only' };
+      if (!toPhone) return { success: false, error: 'No phone number available for recipient' };
+      // Real send via SmsService (integrations/sms.ts's Africa's Talking/
+      // Twilio wiring) — this comment used to claim no SMS integration
+      // existed anywhere in the codebase, which stopped being true once
+      // messaging.service.ts and sign.routes.ts started sending real SMS.
+      // Also lands a row in sms_messages, so a workflow's SMS steps show up
+      // in the SMS app's own unified Reports view, not just here.
+      const result = await SmsService.sendNow(tenantId, null, { to: toPhone, body, sourceApp: 'studio' });
+      return { success: result.success, error: result.error };
     }
     default:
       return { success: false, error: `Unknown channel: ${comm.channel}` };

@@ -1,0 +1,226 @@
+/* ════════════════════════════════════════════════════════════════
+   Calendar Top Toolbar — 100% Device Responsive Design
+   ════════════════════════════════════════════════════════════════ */
+
+.cal-topbar-root {
+  min-height: 60px;
+  background: var(--white);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 16px;
+  box-sizing: border-box;
+  z-index: 2;
+}
+
+.cal-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.cal-topbar-today-btn {
+  border: 1px solid var(--border);
+  background: var(--white);
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+  color: var(--ink);
+  transition: background 0.15s ease;
+  white-space: nowrap;
+}
+
+.cal-topbar-today-btn:hover {
+  background: var(--bg);
+}
+
+.cal-topbar-nav-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.cal-topbar-nav-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink2);
+  transition: background 0.15s ease;
+}
+
+.cal-topbar-nav-btn:hover {
+  background: var(--bg);
+}
+
+.cal-topbar-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-left: 4px;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.cal-topbar-center {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+  justify-content: center;
+}
+
+.cal-topbar-search-box {
+  position: relative;
+  width: 200px;
+  min-width: 140px;
+  flex-shrink: 1;
+}
+
+.cal-topbar-search-input {
+  width: 100%;
+  box-sizing: border-box;
+  height: 36px;
+  padding: 0 10px 0 34px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  font-size: 13px;
+  background: var(--bg);
+  color: var(--ink);
+  outline: none;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.cal-topbar-search-input:focus {
+  background: var(--white);
+  border-color: var(--teal);
+}
+
+.cal-topbar-chips-wrapper {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  overflow-x: auto;
+  max-width: 100%;
+  padding-bottom: 2px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.cal-topbar-chips-wrapper::-webkit-scrollbar {
+  display: none;
+}
+
+.cal-topbar-chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid var(--border);
+  background: transparent;
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: 14px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink3);
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.cal-topbar-chip.active {
+  background: var(--white);
+  color: var(--ink);
+  opacity: 1;
+}
+
+.cal-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.cal-topbar-view-switcher {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  height: 34px;
+  background: var(--white);
+}
+
+.cal-topbar-view-btn {
+  padding: 0 14px;
+  border: none;
+  border-right: 1px solid var(--border);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  background: transparent;
+  color: var(--ink2);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.cal-topbar-view-btn:last-child {
+  border-right: none;
+}
+
+.cal-topbar-view-btn.active {
+  background: var(--teal-l, rgba(13,148,136,0.12));
+  color: var(--teal, #0d9488);
+  font-weight: 600;
+}
+
+/* Responsive Media Queries */
+@media (max-width: 1200px) {
+  .cal-topbar-search-box {
+    width: 160px;
+  }
+}
+
+@media (max-width: 992px) {
+  .cal-topbar-title {
+    font-size: 17px;
+  }
+  .cal-topbar-search-box {
+    width: 140px;
+  }
+  .cal-topbar-chip-text {
+    display: none;
+  }
+  .cal-topbar-chip {
+    padding: 6px;
+    border-radius: 50%;
+  }
+}
+
+@media (max-width: 768px) {
+  .cal-topbar-root {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 12px;
+  }
+  .cal-topbar-center {
+    order: 3;
+    width: 100%;
+    max-width: 100%;
+    justify-content: space-between;
+  }
+  .cal-topbar-search-box {
+    flex: 1;
+    width: 100%;
+  }
+}
