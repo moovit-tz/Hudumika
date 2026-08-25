@@ -32,6 +32,7 @@ import { runCalendarReminderJob } from './calendar-reminder.job.js';
 import { runCalendarExternalSyncJob } from './calendar-external-sync.job.js';
 import { runSmsOutboxJob } from './sms-outbox.job.js';
 import { runRecurringDocumentsJob } from './recurring-documents.job.js';
+import { runTaskRecurrenceJob } from './task-recurrence.job.js';
 import { runFixedAssetDepreciationJob } from './fixed-asset-depreciation.job.js';
 import { runFxRateSyncJob } from './fx-rate-sync.job.js';
 
@@ -62,6 +63,7 @@ export const JOB_REGISTRY: { name: string; schedule: string; fallbackOnly?: bool
   { name: 'Sanctions List Sync (OFAC/UN)', schedule: 'Daily at 05:00' },
   { name: 'Daily Shipment Report', schedule: 'Daily at 21:00 EAT' },
   { name: 'Recurring Bills & Invoices Generation', schedule: 'Daily at 06:00' },
+  { name: 'Task Recurrence', schedule: 'Daily at 06:00' },
   { name: 'Fixed Asset Depreciation', schedule: 'Monthly, 1st at 02:00' },
   { name: 'FX Rate Sync', schedule: 'Daily at 05:30' },
   { name: 'Sign Envelope Expiry Sweep', schedule: 'Daily at 06:00' },
@@ -251,6 +253,8 @@ function startBullMQ(): void {
           await runDailyShipmentReportJob();
         } else if (job.name === 'recurring-documents') {
           await runRecurringDocumentsJob();
+        } else if (job.name === 'task-recurrence') {
+          await runTaskRecurrenceJob();
         } else if (job.name === 'fixed-asset-depreciation') {
           await runFixedAssetDepreciationJob();
         } else if (job.name === 'fx-rate-sync') {
@@ -440,6 +444,10 @@ function startBullMQ(): void {
       repeat: { pattern: '0 6 * * *' } // Daily at 6:00 AM — generate bills/invoices whose next_due has arrived
     }).catch(console.error);
 
+    reminderQueue.add('task-recurrence', {}, {
+      repeat: { pattern: '0 6 * * *' } // Daily at 6:00 AM — same slot as recurring-documents, same "next_due has arrived" shape
+    }).catch(console.error);
+
     reminderQueue.add('fixed-asset-depreciation', {}, {
       repeat: { pattern: '0 2 1 * *' } // Monthly, 1st at 2:00 AM
     }).catch(console.error);
@@ -559,6 +567,7 @@ function startIntervalFallback(): void {
   runCalendarReminderJob().catch(console.error);
   runCalendarExternalSyncJob().catch(console.error);
   runRecurringDocumentsJob().catch(console.error);
+  runTaskRecurrenceJob().catch(console.error);
   runFixedAssetDepreciationJob().catch(console.error);
   runFxRateSyncJob().catch(console.error);
 
@@ -615,6 +624,7 @@ function startIntervalFallback(): void {
     runSignReminderJob().catch(console.error);
     runNotesPurgeJob().catch(console.error);
     runRecurringDocumentsJob().catch(console.error);
+    runTaskRecurrenceJob().catch(console.error);
     // Idempotent per (asset_id, period_date), so a daily fallback check is
     // safe — it just no-ops after the month's entry is already posted,
     // same reasoning as every other monthly-in-spirit job that lacks real

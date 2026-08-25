@@ -2202,6 +2202,10 @@ export interface SalesInvoicesTable {
   invoice_number: string;
   shipment_ref: string | null;
   customer_id: string | null;
+  // Real typed FK (M15, migration 326) — an invoice-to-project link is
+  // always the same target, unlike tasks' polymorphic subject_type/
+  // subject_id (which varies by type), so a plain FK is simpler and correct.
+  project_id: string | null;
   client_name: string | null;
   client_address: string;
   bl_number: string | null;
@@ -2933,6 +2937,10 @@ export interface RecurringInvoicesTable {
   tenant_id: string;
   name: string | null;
   customer_id: string | null;
+  // Retainer billing (M16, migration 327) — a recurring invoice scoped to
+  // a project, e.g. a monthly retainer. Null for every recurring invoice
+  // that isn't project-tied, which is most of them.
+  project_id: string | null;
   client_name: string | null;
   frequency: Generated<string>;
   currency: Generated<string>;
@@ -3090,6 +3098,12 @@ export interface TasksTable {
   // Real start date (migration 321) — needed for a Gantt bar to have a real
   // span instead of a single due-date point.
   start_date: DateOnlyNull;
+  // Recurring tasks (M18, migration 328) — set together: a rule means this
+  // task is the recurrence anchor, next_due is when the daily job next
+  // clones it. Null on every plain, non-recurring task (almost all of them)
+  // and on every clone the job itself creates.
+  recurrence_rule: Record<string, unknown> | null; // JSONB — {freq:'daily'|'weekly'|'monthly', interval:number}
+  recurrence_next_due: DateOnlyNull;
   starred: Generated<boolean>;
   someday: Generated<boolean>;
   status: Generated<string>;
@@ -3163,6 +3177,10 @@ export interface ProjectsTable {
   currency: Generated<string>;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
+  // Fixed-rate double-billing guard (M15, migration 326) — a flat-rate
+  // project has no per-row source to stamp like the hourly path's
+  // task_time_entries.invoice_id, so this timestamp is the guard instead.
+  invoiced_at: ColumnType<Date | null, string | null, string | null>;
 }
 
 export interface ProjectMembersTable {
@@ -3190,6 +3208,45 @@ export interface TaskDependenciesTable {
   tenant_id: string;
   task_id: string;
   depends_on_task_id: string;
+  created_at: Generated<Date>;
+}
+
+export interface ProjectDiscussionsTable {
+  id: string;
+  tenant_id: string;
+  project_id: string;
+  author_id: string;
+  content: string;
+  mentions: Array<{ user_id: string; name: string }>; // JSONB
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface ProjectPinsTable {
+  id: string;
+  tenant_id: string;
+  project_id: string;
+  user_id: string;
+  created_at: Generated<Date>;
+}
+
+export interface StoreInstalledAppsTable {
+  id: string;
+  tenant_id: string;
+  app_id: string;
+  installed_by: string | null;
+  installed_at: Generated<Date>;
+}
+
+export interface ProjectTemplatesTable {
+  id: string;
+  tenant_id: string;
+  name: string;
+  description: string | null;
+  color: string | null;
+  billing_type: string | null;
+  snapshot: Record<string, unknown>; // JSONB — { milestones: [...], tasks: [...] }
+  created_by: string;
   created_at: Generated<Date>;
 }
 
@@ -3274,6 +3331,9 @@ export interface TaskTimeEntriesTable {
   ended_at: ColumnType<Date | null, string | null, string | null>;
   duration_minutes: number | null;
   created_at: Generated<Date>;
+  // Real-billing double-billing guard (M15, migration 326) — stamped when
+  // this entry is invoiced, mirroring vehicle_expenses.invoice_id.
+  invoice_id: string | null;
 }
 
 export interface TaskSubtasksTable {
@@ -3681,6 +3741,9 @@ export interface SupportTicketsTable {
   /** Which app this ticket originated from, e.g. 'onsite' — null for every
    *  other channel. See migration 248_support_tickets_source_app.sql. */
   source_app: string | null;
+  // Real project link (M13, migration 324) — nullable, a ticket doesn't
+  // have to be about any particular project.
+  project_id: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -4303,6 +4366,10 @@ export interface Database {
   contracts: ContractsTable;
   contract_renewals: ContractRenewalsTable;
   project_activity_log: ProjectActivityLogTable;
+  project_templates: ProjectTemplatesTable;
+  project_pins: ProjectPinsTable;
+  store_installed_apps: StoreInstalledAppsTable;
+  project_discussions: ProjectDiscussionsTable;
   contract_comments: ContractCommentsTable;
   task_collaborators: TaskCollaboratorsTable;
   task_activity_log: TaskActivityLogTable;

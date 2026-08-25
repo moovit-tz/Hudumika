@@ -19,6 +19,7 @@ import { EntityPicker, type PickerItem } from '../components/EntityPicker.js';
 import { MentionInput, type MentionUser } from '../components/MentionInput.js';
 import { apiFetch } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.js';
+import { useEntitlements } from '../hooks/useEntitlements.js';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog.js';
 import { Button } from '../components/ui/button.js';
 
@@ -787,6 +788,7 @@ function TaskRow({ todo, list, expanded, onToggleExpand, newSubtaskTitle, setNew
   trashed: boolean;
 }) {
   const { user } = useAuth();
+  const entitlements = useEntitlements();
   const statusMeta = STATUS_META[todo.status];
   const priorityMeta = PRIORITY_META[todo.priority || 'medium'];
   const doneSubtasks = todo.subtasks.filter(s => s.completed).length;
@@ -973,6 +975,33 @@ function TaskRow({ todo, list, expanded, onToggleExpand, newSubtaskTitle, setNew
               onOpenChange={setReminderOpen}
               triggerStyle={{ background: 'none', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer', color: 'var(--ink3)', padding: '4px 8px', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, height: 32, boxSizing: 'border-box' }}
             />
+
+            {entitlements?.features.projects && (
+              <>
+                <select
+                  value={todo.recurrenceRule?.freq || 'none'}
+                  disabled={trashed || readOnly}
+                  onChange={e => updateTodo(todo.id, { recurrenceRule: e.target.value === 'none' ? null : { freq: e.target.value as 'daily' | 'weekly' | 'monthly', interval: todo.recurrenceRule?.interval || 1 } })}
+                  style={{ padding: '4px 8px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12, background: 'var(--white)' }}
+                >
+                  <option value="none">Doesn't repeat</option>
+                  <option value="daily">Repeats daily</option>
+                  <option value="weekly">Repeats weekly</option>
+                  <option value="monthly">Repeats monthly</option>
+                </select>
+                {todo.recurrenceRule && (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--ink3)' }}>
+                    every
+                    <input
+                      type="number" min={1} max={365} value={todo.recurrenceRule.interval}
+                      disabled={trashed || readOnly}
+                      onChange={e => updateTodo(todo.id, { recurrenceRule: { ...todo.recurrenceRule!, interval: Math.max(1, Number(e.target.value) || 1) } })}
+                      style={{ width: 44, padding: '3px 5px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12 }}
+                    />
+                  </span>
+                )}
+              </>
+            )}
           </div>
 
           {!trashed && (

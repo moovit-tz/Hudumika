@@ -1,7 +1,8 @@
 import { FastifyPluginAsync } from 'fastify';
+import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { sql } from 'kysely';
-import { dbPlatform } from '../db/client.js';
+import { dbPlatform, withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -26,6 +27,42 @@ export const storeRoutes: FastifyPluginAsync = async (app) => {
       ORDER BY created_at DESC
     `.execute(dbPlatform);
     return result.rows;
+  });
+
+  // GET /v1/store/installed -> which marketplace app ids this TENANT has
+  // installed. Tenant-scoped (withTenant), unlike the catalog above which is
+  // the same for everyone — install status previously lived in localStorage
+  // only, invisible to every other staff member on the same tenant.
+  app.get('/installed', async (request, reply) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const rows = await trx.selectFrom('store_installed_apps').select('app_id').where('tenant_id', '=', user.tenant_id).execute();
+      return rows.map(r => r.app_id);
+    });
+  });
+
+  // POST /v1/store/installed { app_id } -> mark an app installed for this tenant
+  app.post('/installed', async (request, reply) => {
+    const user = request.user;
+    const { app_id } = z.object({ app_id: z.string() }).parse(request.body);
+    return withTenant(user.tenant_id, async (trx) => {
+      await trx.insertInto('store_installed_apps').values({
+        id: randomUUID(), tenant_id: user.tenant_id, app_id, installed_by: UUID_RE.test(user.sub) ? user.sub : null,
+      }).onConflict(oc => oc.columns(['tenant_id', 'app_id']).doNothing()).execute();
+      reply.status(204);
+      return null;
+    });
+  });
+
+  // DELETE /v1/store/installed/:appId -> uninstall for this tenant
+  app.delete('/installed/:appId', async (request, reply) => {
+    const user = request.user;
+    const { appId } = request.params as { appId: string };
+    return withTenant(user.tenant_id, async (trx) => {
+      await trx.deleteFrom('store_installed_apps').where('tenant_id', '=', user.tenant_id).where('app_id', '=', appId).execute();
+      reply.status(204);
+      return null;
+    });
   });
 
   // GET /v1/store/admin/apps (Admin) -> returns all apps including pending.

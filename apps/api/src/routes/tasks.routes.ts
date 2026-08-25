@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import type { Transaction, Selectable } from 'kysely';
+import { sql, type Transaction, type Selectable } from 'kysely';
 import { z } from 'zod';
 import { withTenant, type Database, type TasksTable } from '../db/client.js';
 import { NotificationService } from '../services/notification.service.js';
@@ -10,7 +10,7 @@ import { EventNotFoundError, EventValidationError } from '../services/calendar-e
 import * as BookingPages from '../services/booking-pages.service.js';
 import { SlugTakenError, BookingPageNotFoundError } from '../services/booking-pages.service.js';
 import { resolveProjectAccess, canEditProject } from './task-projects.routes.js';
-import { requireEntitlement } from '../middleware/entitlement.js';
+import { requireEntitlement, tenantHasEntitlement } from '../middleware/entitlement.js';
 
 // Tasks + Calendar backend. Both are personal (per-user), not tenant-shared —
 // every query is scoped by (tenant_id, user_id) so each staff member only
@@ -28,6 +28,11 @@ const uuidSchema = z.string().uuid();
 const TASK_STATUSES = ['none', 'in_progress', 'in_review', 'waiting', 'completed'] as const;
 const TASK_PRIORITIES = ['low', 'medium', 'high', 'urgent'] as const;
 const EVENT_CATEGORIES = ['work', 'personal', 'customs', 'todo'] as const;
+const RECURRENCE_FREQS = ['daily', 'weekly', 'monthly'] as const;
+const recurrenceRuleSchema = z.object({
+  freq: z.enum(RECURRENCE_FREQS),
+  interval: z.number().int().min(1).max(365),
+});
 const CALENDAR_VIEWS = ['month', 'week', 'day', 'agenda'] as const;
 
 const listCreateSchema = z.object({
@@ -64,6 +69,7 @@ const taskCreateSchema = z.object({
   hourlyRate: z.number().min(0).max(1000000).nullable().optional(),
   subjectType: z.string().max(50).nullable().optional(),
   subjectId: uuidSchema.nullable().optional(),
+  recurrenceRule: recurrenceRuleSchema.nullable().optional(),
 });
 const taskPatchSchema = z.object({
   title: z.string().trim().min(1).max(500).optional(),
@@ -92,6 +98,7 @@ const taskPatchSchema = z.object({
   hourlyRate: z.number().min(0).max(1000000).nullable().optional(),
   subjectType: z.string().max(50).nullable().optional(),
   subjectId: uuidSchema.nullable().optional(),
+  recurrenceRule: recurrenceRuleSchema.nullable().optional(),
 });
 const collaboratorAddSchema = z.object({
   userId: uuidSchema,
@@ -498,7 +505,7 @@ export async function tasksRoutes(fastify: FastifyInstance) {
           })
           .select([
             'tasks.id', 'tasks.tenant_id', 'tasks.user_id', 'tasks.list_id', 'tasks.title', 'tasks.notes',
-            'tasks.due', 'tasks.due_time', 'tasks.start_date', 'tasks.starred', 'tasks.someday', 'tasks.status', 'tasks.priority', 'tasks.tags',
+            'tasks.due', 'tasks.due_time', 'tasks.start_date', 'tasks.recurrence_rule', 'tasks.recurrence_next_due', 'tasks.starred', 'tasks.someday', 'tasks.status', 'tasks.priority', 'tasks.tags',
             'tasks.completed', 'tasks.completed_at', 'tasks.deleted_at', 'tasks.sort_order',
             'tasks.assignee_id', 'tasks.created_at', 'tasks.updated_at',
             'tasks.project_id', 'tasks.milestone_id', 'tasks.is_private', 'tasks.is_billable', 'tasks.hourly_rate',
@@ -591,6 +598,14 @@ export async function tasksRoutes(fastify: FastifyInstance) {
   fastify.post('/items', async (request, reply) => {
     const user = request.user;
     const body = taskCreateSchema.parse(request.body);
+    // Recurring tasks (M18) are a Projects/HuduPlus-tier capability layered
+    // onto the shared `tasks` table, same as dependencies/collaborators/
+    // activity above — those get a route-level requireEntitlement hook,
+    // but recurrenceRule is a field on this general, ungated create route,
+    // so the check has to be inline rather than on the whole route.
+    if (body.recurrenceRule && !(await tenantHasEntitlement(user.tenant_id, 'projects'))) {
+      return reply.status(403).send({ error: 'Your current plan does not include this feature.', code: 'PLAN_UPGRADE_REQUIRED' });
+    }
     return withTenant(user.tenant_id, async (trx) => {
       const list = await trx.selectFrom('task_lists').select(['id', 'user_id'])
         .where('id', '=', body.listId).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
@@ -629,6 +644,8 @@ export async function tasksRoutes(fastify: FastifyInstance) {
         is_billable: body.isBillable ?? false, hourly_rate: body.hourlyRate != null ? String(body.hourlyRate) : null,
         subject_type: body.subjectType || null, subject_id: body.subjectId || null,
         sort_order: Number(siblingCount?.count ?? 0),
+        recurrence_rule: body.recurrenceRule ? JSON.stringify(body.recurrenceRule) as unknown as Record<string, unknown> : null,
+        recurrence_next_due: body.recurrenceRule ? (body.due || new Date().toISOString().slice(0, 10)) : null,
       }).returningAll().executeTakeFirstOrThrow();
       await trx.insertInto('task_activity_log').values({
         id: crypto.randomUUID(), tenant_id: user.tenant_id, task_id: row.id, actor_id: user.sub,
@@ -643,6 +660,12 @@ export async function tasksRoutes(fastify: FastifyInstance) {
   fastify.patch<{ Params: { id: string } }>('/items/:id', async (request, reply) => {
     const user = request.user;
     const body = taskPatchSchema.parse(request.body);
+    // Same inline gate as POST /items above — only enforced when actually
+    // turning recurrence on; clearing it (recurrenceRule: null) needs no
+    // entitlement, same as removing any other Projects-tier field.
+    if (body.recurrenceRule && !(await tenantHasEntitlement(user.tenant_id, 'projects'))) {
+      return reply.status(403).send({ error: 'Your current plan does not include this feature.', code: 'PLAN_UPGRADE_REQUIRED' });
+    }
     return withTenant(user.tenant_id, async (trx) => {
       const resolved = await resolveTaskAccess(trx, user.tenant_id, user.sub, request.params.id);
       if (!resolved) return reply.status(404).send({ error: 'Task not found' });
@@ -668,6 +691,29 @@ export async function tasksRoutes(fastify: FastifyInstance) {
         if (!canEditProject(projectAccess.access)) return reply.status(403).send({ error: 'You only have view access to this project' });
       }
 
+      // Dependency hard-block — a task cannot be marked complete while it
+      // still depends on an incomplete one. Real enforcement (M4 originally
+      // shipped this as visualization-only); checked here, in the one place
+      // every completion path funnels through, not duplicated per-caller.
+      const completingNow = (body.completed === true && !existing.completed)
+        || (body.status === 'completed' && existing.status !== 'completed');
+      if (completingNow) {
+        const openBlockers = await trx.selectFrom('task_dependencies')
+          .innerJoin('tasks as blocker', 'blocker.id', 'task_dependencies.depends_on_task_id')
+          .where('task_dependencies.task_id', '=', request.params.id)
+          .where('task_dependencies.tenant_id', '=', user.tenant_id)
+          .where('blocker.completed', '=', false)
+          .select(['blocker.title'])
+          .execute();
+        if (openBlockers.length > 0) {
+          const names = openBlockers.map(b => `"${b.title}"`).join(', ');
+          return reply.status(400).send({
+            error: `Can't complete this task — it's still blocked by ${openBlockers.length} open dependenc${openBlockers.length === 1 ? 'y' : 'ies'}: ${names}`,
+            code: 'BLOCKED_BY_DEPENDENCY',
+          });
+        }
+      }
+
       const updates: Record<string, unknown> = { updated_at: new Date() };
       if (body.title !== undefined) updates.title = body.title.trim();
       if (body.notes !== undefined) updates.notes = body.notes;
@@ -687,6 +733,15 @@ export async function tasksRoutes(fastify: FastifyInstance) {
       }
       if (body.deletedAt !== undefined) updates.deleted_at = body.deletedAt || null;
       if (body.assigneeId !== undefined) updates.assignee_id = body.assigneeId;
+      if (body.recurrenceRule !== undefined) {
+        updates.recurrence_rule = body.recurrenceRule ? JSON.stringify(body.recurrenceRule) : null;
+        // Turning recurrence on seeds next_due from the task's own due date
+        // (falling back to today); turning it off clears next_due too, so a
+        // toggled-off task can't be picked up by a stale value later.
+        updates.recurrence_next_due = body.recurrenceRule
+          ? (body.due ?? existing.due ?? new Date().toISOString().slice(0, 10))
+          : null;
+      }
       if (body.projectId !== undefined) updates.project_id = body.projectId;
       if (body.milestoneId !== undefined) updates.milestone_id = body.milestoneId;
       if (body.isPrivate !== undefined) updates.is_private = body.isPrivate;
@@ -1086,10 +1141,26 @@ export async function tasksRoutes(fastify: FastifyInstance) {
       const target = await trx.selectFrom('tasks').select('id')
         .where('id', '=', body.dependsOnTaskId).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!target) return reply.status(404).send({ error: 'Task not found' });
-      const reverse = await trx.selectFrom('task_dependencies').select('id')
-        .where('task_id', '=', body.dependsOnTaskId).where('depends_on_task_id', '=', request.params.id)
-        .where('tenant_id', '=', user.tenant_id).executeTakeFirst();
-      if (reverse) return reply.status(400).send({ error: 'That task already depends on this one — would create a cycle' });
+      // Full N-node cycle detection (not just the direct 2-node reversal
+      // this originally shipped with) — a recursive CTE walks every task
+      // the proposed blocker (dependsOnTaskId) already transitively depends
+      // on; if this task shows up anywhere in that chain, adding the new
+      // edge would close a loop (A→B→C→A), which would hang the Gantt's
+      // connector rendering and make "blocked by" meaningless.
+      const cycleCheck = await sql<{ reached: string }>`
+        WITH RECURSIVE chain AS (
+          SELECT depends_on_task_id AS reached FROM task_dependencies
+          WHERE task_id = ${body.dependsOnTaskId} AND tenant_id = ${user.tenant_id}
+          UNION
+          SELECT td.depends_on_task_id FROM task_dependencies td
+          INNER JOIN chain c ON td.task_id = c.reached
+          WHERE td.tenant_id = ${user.tenant_id}
+        )
+        SELECT reached FROM chain WHERE reached = ${request.params.id} LIMIT 1
+      `.execute(trx);
+      if (cycleCheck.rows.length > 0) {
+        return reply.status(400).send({ error: 'That would create a dependency cycle' });
+      }
       const row = await trx.insertInto('task_dependencies').values({
         id: crypto.randomUUID(), tenant_id: user.tenant_id, task_id: request.params.id,
         depends_on_task_id: body.dependsOnTaskId,

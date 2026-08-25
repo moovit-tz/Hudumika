@@ -43,6 +43,7 @@ const invoiceCreateSchema = z.object({
 const recurringInvoiceSchema = z.object({
   name: z.string().max(300).optional(),
   customer_id: z.string().uuid().optional(),
+  project_id: z.string().uuid().nullable().optional(),
   client_name: z.string().max(300).optional(),
   frequency: z.enum(['WEEKLY', 'MONTHLY', 'QUARTERLY', 'ANNUAL']).optional(),
   currency: z.string().max(10).optional(),
@@ -290,6 +291,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
         tenant_id: user.tenant_id,
         name: body.name || null,
         customer_id: body.customer_id || null,
+        project_id: body.project_id || null,
         client_name: body.client_name || null,
         frequency: body.frequency || 'MONTHLY',
         currency: body.currency || 'TZS',

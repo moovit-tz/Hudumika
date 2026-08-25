@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import { Button } from '../components/ui/button.js';
 import { Badge } from '../components/ui/badge.js';
@@ -155,7 +155,10 @@ export const ContractDetail: React.FC = () => {
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             {(() => {
               const meta = contract.sign_envelope_id ? (SIGN_STATUS_META[contract.envelope_status || 'draft'] || SIGN_STATUS_META.draft) : { label: 'Not Sent', variant: 'gray' as const };
-              return <Badge variant={meta.variant}>{meta.label}</Badge>;
+              const badge = <Badge variant={meta.variant}>{meta.label}</Badge>;
+              return contract.sign_envelope_id
+                ? <Link to={`/sign/envelope/${contract.sign_envelope_id}`} style={{ textDecoration: 'none' }} title="Open in eSign">{badge}</Link>
+                : badge;
             })()}
             {!contract.sign_envelope_id && (
               <Button size="sm" onClick={sendForSignature} disabled={sending || !contract.customer_email}

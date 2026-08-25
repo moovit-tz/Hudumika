@@ -225,25 +225,25 @@ function ExpenseDetailPanel({ expense, onClose, onChanged, shipments, customers,
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 4 }}>Linked Shipment (Job)</div>
             {job ? (
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: 'var(--navy)', background: '#f1f5f9', padding: '4px 8px', borderRadius: 6 }}>
+              <Link to={`/clearos/clearance/${job.id}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: 'var(--navy)', background: '#f1f5f9', padding: '4px 8px', borderRadius: 6, textDecoration: 'none' }}>
                 <Icon name="package" size={12} /> {job.bl_number || job.ref_number}
-              </div>
+              </Link>
             ) : <div style={{ fontSize: 13, color: 'var(--ink3)' }}>—</div>}
           </div>
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 4 }}>Linked Client</div>
             {client ? (
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: 'var(--green)', background: 'var(--green-l)', padding: '4px 8px', borderRadius: 6 }}>
+              <Link to={`/crm/customers?id=${client.id}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: 'var(--green)', background: 'var(--green-l)', padding: '4px 8px', borderRadius: 6, textDecoration: 'none' }}>
                 <Icon name="building" size={12} /> {client.name}
-              </div>
+              </Link>
             ) : <div style={{ fontSize: 13, color: 'var(--ink3)' }}>—</div>}
           </div>
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 4 }}>Paid To Supplier</div>
             {supplier ? (
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: '#9a6700', background: '#fff8e1', padding: '4px 8px', borderRadius: 6 }}>
+              <Link to={`/finance/vendors?id=${supplier.id}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: '#9a6700', background: '#fff8e1', padding: '4px 8px', borderRadius: 6, textDecoration: 'none' }}>
                 <Icon name="warehouse" size={12} /> {supplier.name}
-              </div>
+              </Link>
             ) : <div style={{ fontSize: 13, color: 'var(--ink3)' }}>—</div>}
           </div>
         </div>

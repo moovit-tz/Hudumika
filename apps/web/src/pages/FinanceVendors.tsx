@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import { FormPage } from '../components/FormPage.js';
 import { useCurrency } from '../hooks/useCurrency.js';
@@ -359,6 +360,8 @@ function VendorForm({ vendor, onSave, onClose }: {
 export function FinanceVendors() {
   const { fmt } = useCurrency();
   const isMobile = useIsMobile();
+  const [searchParams] = useSearchParams();
+  const deepLinkId = searchParams.get('id');
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [bills, setBills] = useState<any[]>([]);
   const [purchaseOrders, setPurchaseOrders] = useState<any[]>([]);
@@ -400,6 +403,15 @@ export function FinanceVendors() {
   }
 
   useEffect(() => { loadVendors(); }, []);
+
+  // Deep-link straight to a vendor's detail panel — same ?id= pattern
+  // Customers.tsx already supports, now used for the "Paid To Supplier"
+  // link on FinOps Expenses (Expenses.tsx).
+  useEffect(() => {
+    if (!deepLinkId || !vendors.length || selected) return;
+    const match = vendors.find(v => v.id === deepLinkId);
+    if (match) setSelected(match);
+  }, [deepLinkId, vendors]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* fin:new-doc listener */
   useEffect(() => {

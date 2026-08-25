@@ -139,7 +139,7 @@ export async function listEvents(tenantId: string, userId: string, range: { from
         if (d.getTime() < range.from.getTime() || d.getTime() > range.to.getTime()) return null;
         return {
           id: h.id, occurrenceDate: dateStr, isOverridden: false,
-          title: `🌴 ${h.name}`, start_at: `${dateStr}T00:00:00.000Z`, end_at: `${dateStr}T23:59:59.999Z`,
+          title: h.name, start_at: `${dateStr}T00:00:00.000Z`, end_at: `${dateStr}T23:59:59.999Z`,
           description: `${h.type} Holiday`, location: null, category: 'holiday', guests: [],
           all_day: true, color: null, recurrence: null, is_recurring: false, reminder_offsets: [],
           tenant_id: h.tenant_id, user_id: userId, created_at: h.created_at, updated_at: h.created_at,

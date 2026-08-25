@@ -152,6 +152,8 @@ export interface Todo {
   subjectType?: string | null;
   subjectId?: string | null;
   blockedByOpenCount?: number;
+  recurrenceRule?: { freq: 'daily' | 'weekly' | 'monthly'; interval: number } | null;
+  recurrenceNextDue?: string | null;
 }
 
 export interface TodoComment {
@@ -233,6 +235,7 @@ function fromApiTodo(row: any): Todo {
     isBillable: !!row.is_billable, hourlyRate: row.hourly_rate != null ? Number(row.hourly_rate) : null,
     subjectType: row.subject_type || null, subjectId: row.subject_id || null,
     blockedByOpenCount: row.blocked_by_open_count || 0,
+    recurrenceRule: row.recurrence_rule || null, recurrenceNextDue: row.recurrence_next_due || null,
   };
 }
 function fromApiList(row: any): TaskList {
@@ -514,6 +517,7 @@ export function updateTodo(id: string, patch: Partial<Omit<Todo, 'assigneeId'>> 
   if (patch.notes !== undefined) body.notes = patch.notes;
   if (patch.due !== undefined) body.due = patch.due || null;
   if (patch.start !== undefined) body.startDate = patch.start || null;
+  if (patch.recurrenceRule !== undefined) body.recurrenceRule = patch.recurrenceRule || null;
   if (patch.dueTime !== undefined) body.dueTime = patch.dueTime || null;
   if (patch.reminder !== undefined) body.reminderAt = patch.reminder || null;
   if (patch.starred !== undefined) body.starred = patch.starred;

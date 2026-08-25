@@ -17,7 +17,7 @@ import { EntityPicker, type PickerItem } from './EntityPicker.js';
 import './NotificationCentre.css';
 import './GoogleWorkspaceRightSidebar.css';
 
-export type CompanionPanelId = 'tasks' | 'calendar' | 'esign' | 'chat' | 'notifications' | 'analytics' | 'notes' | 'sms' | 'email' | 'contacts' | 'ai' | 'settings' | null;
+export type CompanionPanelId = 'tasks' | 'calendar' | 'esign' | 'chat' | 'notifications' | 'analytics' | 'notes' | 'sms' | 'email' | 'contacts' | 'ai' | 'clearos' | 'finops' | 'petti' | 'nexushr' | 'seal' | 'cargotracker' | 'cloud' | 'complyos' | 'store' | 'settings' | null;
 
 interface RailApp {
   id: Exclude<CompanionPanelId, null | 'settings'>;
@@ -44,6 +44,15 @@ const RAIL_APPS: RailApp[] = [
   { id: 'ai', label: 'AI Assistant', icon: 'sparkle', color: 'var(--teal)', entitlementKey: 'ai' },
   { id: 'calendar', label: 'Calendar', icon: 'calendar', color: '#1a73e8' },
   { id: 'analytics', label: 'Analytics', icon: 'barChart', color: '#ea580c' },
+  { id: 'clearos', label: 'ClearOS', icon: 'ship', color: '#f97316', entitlementKey: 'clearos' },
+  { id: 'finops', label: 'FinOps', icon: 'bankNote', color: '#059669', entitlementKey: 'finops' },
+  { id: 'petti', label: 'Petti', icon: 'wallet', color: '#0d9488', entitlementKey: 'petti' },
+  { id: 'nexushr', label: 'NexusHR', icon: 'users', color: '#db2777', entitlementKey: 'nexushr' },
+  { id: 'seal', label: 'SEAL', icon: 'warehouse', color: '#7c3aed', entitlementKey: 'seal' },
+  { id: 'cargotracker', label: 'CargoTracker', icon: 'truck', color: '#0284c7', entitlementKey: 'cargotracker' },
+  { id: 'cloud', label: 'Cloud', icon: 'folder', color: '#2563eb', entitlementKey: 'cloud' },
+  { id: 'complyos', label: 'ComplyOS', icon: 'shield', color: '#b45309', entitlementKey: 'complyos' },
+  { id: 'store', label: 'Store', icon: 'shoppingCart', color: '#7c3aed', entitlementKey: 'store' },
 ];
 
 // 'ai' isn't in the default pinned list — it has its own dedicated button
@@ -54,7 +63,7 @@ const DEFAULT_PINNED: CompanionPanelId[] = ['notes', 'tasks', 'sms', 'email', 'c
 // Panels whose drawer shows a filterable list — the search button only
 // appears for these, rather than on a scratchpad or a static toggle grid
 // where "search" wouldn't do anything real.
-const SEARCHABLE_PANELS = new Set<CompanionPanelId>(['tasks', 'calendar', 'esign', 'chat', 'notifications', 'sms', 'email', 'contacts']);
+const SEARCHABLE_PANELS = new Set<CompanionPanelId>(['tasks', 'calendar', 'esign', 'chat', 'notifications', 'sms', 'email', 'contacts', 'clearos', 'finops', 'petti', 'nexushr', 'seal', 'cargotracker', 'cloud', 'complyos', 'store']);
 
 // Real full-page route for panels that have one — drives the "open in app"
 // button. Panels without a dedicated page (settings) are omitted rather than
@@ -65,6 +74,9 @@ const PANEL_ROUTES: Partial<Record<Exclude<CompanionPanelId, null>, string>> = {
   notes: '/notes', tasks: '/tasks', calendar: '/calendar', esign: '/sign',
   chat: '/chat', sms: '/sms', email: '/email', contacts: '/contacts', ai: '/ai', analytics: '/hudubi',
   notifications: '/bliss/notifications',
+  clearos: '/shipments', finops: '/finance/invoices', petti: '/petti/wallets',
+  nexushr: '/nexushr', seal: '/seal/consignments', cargotracker: '/cargotracker/bookings',
+  cloud: '/cloud', complyos: '/complyos/obligations', store: '/store',
 };
 const PINNED_KEY = 'hudumika_companion_rail_apps';
 
@@ -440,6 +452,202 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
     }
   }
 
+  // ── ClearOS — real, /v1/shipments. No inline create composer — a shipment
+  // needs customs-relevant fields (customer, mode, ports) a rail form
+  // shouldn't dumb down, so this links out to the real intake page instead,
+  // same call the eSign panel makes for "+ New envelope". ──
+  const clearosEnabled = isAppEnabled('clearos', enabledApps);
+  const [shipments, setShipments] = useState<{ id: string; bl_number: string | null; ref_number: string | null; goods_desc: string | null; status: string; type: string | null }[]>([]);
+  function loadShipments() {
+    if (!clearosEnabled) return;
+    apiFetch('/v1/shipments')
+      .then((res: any) => setShipments((Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []).slice(0, 6)))
+      .catch(() => {});
+  }
+  useEffect(() => { loadShipments(); }, [clearosEnabled]);
+
+  // ── FinOps — real, /v1/invoices (GET) + POST for a minimal quick invoice
+  // (client name + a single line item) — the full form has line items, tax
+  // codes, shipment linking etc. that belong on the real Billing page. ──
+  const finopsEnabled = isAppEnabled('finops', enabledApps);
+  const [invoices, setInvoices] = useState<{ id: string; invoice_number: string; client_name: string | null; status: string; items: { rate?: number; qty?: number }[] }[]>([]);
+  function loadInvoices() {
+    if (!finopsEnabled) return;
+    apiFetch('/v1/invoices')
+      .then((res: any) => setInvoices((Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []).slice(0, 6)))
+      .catch(() => {});
+  }
+  useEffect(() => { loadInvoices(); }, [finopsEnabled]);
+
+  const [invoiceComposerOpen, setInvoiceComposerOpen] = useState(false);
+  const [invoiceClientName, setInvoiceClientName] = useState('');
+  const [invoiceAmount, setInvoiceAmount] = useState('');
+  const [invoiceDesc, setInvoiceDesc] = useState('');
+  const [invoiceSaving, setInvoiceSaving] = useState(false);
+  async function handleCreateInvoice(e: React.FormEvent) {
+    e.preventDefault();
+    if (!invoiceClientName.trim() || !invoiceAmount || Number(invoiceAmount) <= 0 || invoiceSaving) return;
+    setInvoiceSaving(true);
+    try {
+      await apiFetch('/v1/invoices', {
+        method: 'POST',
+        body: JSON.stringify({
+          client_name: invoiceClientName.trim(),
+          items: [{ name: invoiceDesc.trim() || 'Services rendered', rate: Number(invoiceAmount), qty: 1 }],
+        }),
+      });
+      setInvoiceClientName(''); setInvoiceAmount(''); setInvoiceDesc(''); setInvoiceComposerOpen(false);
+      loadInvoices();
+    } catch (err: any) {
+      showAlert(err?.message || 'Could not create invoice.');
+    } finally {
+      setInvoiceSaving(false);
+    }
+  }
+
+  // ── Petti — real, /v1/petti/wallets (GET) + /v1/petti/wallets/:id/deposits
+  // (POST) for a quick manual top-up against the first wallet. ──
+  const pettiEnabled = isAppEnabled('petti', enabledApps);
+  const [pettiWallets, setPettiWallets] = useState<{ id: string; name: string; currency: string; balance: number }[]>([]);
+  function loadPettiWallets() {
+    if (!pettiEnabled) return;
+    apiFetch('/v1/petti/wallets')
+      .then((res: any) => setPettiWallets(Array.isArray(res?.data) ? res.data : []))
+      .catch(() => {});
+  }
+  useEffect(() => { loadPettiWallets(); }, [pettiEnabled]);
+
+  const [depositComposerOpen, setDepositComposerOpen] = useState(false);
+  const [depositWalletId, setDepositWalletId] = useState('');
+  const [depositAmount, setDepositAmount] = useState('');
+  const [depositSaving, setDepositSaving] = useState(false);
+  useEffect(() => {
+    if (pettiWallets.length > 0 && !depositWalletId) setDepositWalletId(pettiWallets[0].id);
+  }, [pettiWallets]); // eslint-disable-line react-hooks/exhaustive-deps
+  async function handleQuickDeposit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!depositWalletId || !depositAmount || Number(depositAmount) <= 0 || depositSaving) return;
+    setDepositSaving(true);
+    try {
+      await apiFetch(`/v1/petti/wallets/${depositWalletId}/deposits`, {
+        method: 'POST',
+        body: JSON.stringify({ amount: Number(depositAmount), method: 'manual' }),
+      });
+      setDepositAmount(''); setDepositComposerOpen(false);
+      loadPettiWallets();
+    } catch (err: any) {
+      showAlert(err?.message || 'Could not record deposit.');
+    } finally {
+      setDepositSaving(false);
+    }
+  }
+
+  // ── NexusHR — real, /v1/hr/staff (GET). Quick-create sends a real invite
+  // (/v1/hr/invitations, email+role) — this app doesn't insert a staff row
+  // directly, a person joins via that same invite everywhere else too. ──
+  const nexushrEnabled = isAppEnabled('nexushr', enabledApps);
+  const [staffList, setStaffList] = useState<{ id: string; name: string; email: string; role: string; active: boolean }[]>([]);
+  function loadStaff() {
+    if (!nexushrEnabled) return;
+    apiFetch('/v1/hr/staff')
+      .then((res: any) => setStaffList((Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []).slice(0, 8)))
+      .catch(() => {});
+  }
+  useEffect(() => { loadStaff(); }, [nexushrEnabled]);
+
+  const [inviteComposerOpen, setInviteComposerOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState('OFFICER');
+  const [inviteSaving, setInviteSaving] = useState(false);
+  async function handleSendInvite(e: React.FormEvent) {
+    e.preventDefault();
+    if (!inviteEmail.trim() || inviteSaving) return;
+    setInviteSaving(true);
+    try {
+      await apiFetch('/v1/hr/invitations', { method: 'POST', body: JSON.stringify({ email: inviteEmail.trim(), role: inviteRole }) });
+      setInviteEmail(''); setInviteComposerOpen(false);
+    } catch (err: any) {
+      showAlert(err?.message || 'Could not send invitation.');
+    } finally {
+      setInviteSaving(false);
+    }
+  }
+
+  // ── SEAL — real, /v1/seal/consignments (GET). No inline create — a
+  // consignment needs a compartment + owner picker (same reasoning as
+  // ClearOS above), so this links out to the real intake page instead. ──
+  const sealEnabled = isAppEnabled('seal', enabledApps);
+  const [consignments, setConsignments] = useState<{ id: string; owner_name?: string; transport_doc_number: string | null; status: string; goods_description: string | null }[]>([]);
+  function loadConsignments() {
+    if (!sealEnabled) return;
+    apiFetch('/v1/seal/consignments')
+      .then((res: any) => setConsignments((Array.isArray(res) ? res : res?.data || []).slice(0, 6)))
+      .catch(() => {});
+  }
+  useEffect(() => { loadConsignments(); }, [sealEnabled]);
+
+  // ── CargoTracker — real, /v1/freight-booking/bookings (GET only — booking
+  // requests originate elsewhere; this app quotes/confirms them, it doesn't
+  // create new ones, so there's no quick-create composer here). ──
+  const cargotrackerEnabled = isAppEnabled('cargotracker', enabledApps);
+  const [bookings, setBookings] = useState<{ id: string; booking_number: string; customer_name: string | null; origin_port: string; destination_port: string; status: string }[]>([]);
+  function loadBookings() {
+    if (!cargotrackerEnabled) return;
+    apiFetch('/v1/freight-booking/bookings')
+      .then((res: any) => setBookings((Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []).slice(0, 6)))
+      .catch(() => {});
+  }
+  useEffect(() => { loadBookings(); }, [cargotrackerEnabled]);
+
+  // ── Cloud/Drive — real, /v1/drives (to find the default drive) then
+  // /v1/files?drive_id=... for its recent files. No inline upload — file
+  // upload here is a real multipart request, a different shape from every
+  // other composer in this file, so it links out to the real Drive UI. ──
+  const cloudEnabled = isAppEnabled('cloud', enabledApps);
+  const [driveFiles, setDriveFiles] = useState<{ id: string; name: string; type: string; size: number | null; owner_name: string }[]>([]);
+  function loadDriveFiles() {
+    if (!cloudEnabled) return;
+    apiFetch('/v1/drives')
+      .then((res: any) => {
+        const drives = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
+        const driveId = drives[0]?.id;
+        if (!driveId) return [];
+        return apiFetch(`/v1/files?drive_id=${driveId}`);
+      })
+      .then((res: any) => {
+        const rows = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
+        setDriveFiles(rows.filter((f: any) => f.type !== 'folder').slice(0, 8));
+      })
+      .catch(() => {});
+  }
+  useEffect(() => { loadDriveFiles(); }, [cloudEnabled]);
+
+  // ── ComplyOS — real, /v1/comply/obligations. No inline create — an
+  // obligation is picked from a licence/agency catalog, not typed freehand,
+  // same reasoning as ClearOS/SEAL above. ──
+  const complyosEnabled = isAppEnabled('complyos', enabledApps);
+  const [obligations, setObligations] = useState<{ id: string; name: string; status: string; due_date: string | null; customer_name: string | null }[]>([]);
+  function loadObligations() {
+    if (!complyosEnabled) return;
+    apiFetch('/v1/comply/obligations')
+      .then((res: any) => setObligations((Array.isArray(res) ? res : res?.data || []).slice(0, 8)))
+      .catch(() => {});
+  }
+  useEffect(() => { loadObligations(); }, [complyosEnabled]);
+
+  // ── Store — real, /v1/store/apps catalog. Installing an add-on is a
+  // bigger decision (permissions consent) than a rail quick-action, so this
+  // is a browse-only view — no install button here. ──
+  const storeEnabled = isAppEnabled('store', enabledApps);
+  const [storeApps, setStoreApps] = useState<{ id: string; name: string; category: string; shortDesc: string; rating: number }[]>([]);
+  function loadStoreApps() {
+    if (!storeEnabled) return;
+    apiFetch('/v1/store/apps')
+      .then((res: any) => setStoreApps((Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []).slice(0, 8)))
+      .catch(() => {});
+  }
+  useEffect(() => { loadStoreApps(); }, [storeEnabled]);
+
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const searchTerm = searchOpen ? searchQuery.trim().toLowerCase() : '';
@@ -535,6 +743,15 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
               {activePanel === 'email' && <><Icon name="mail" size={17} style={{ color: '#ea4335' }} /> Email</>}
               {activePanel === 'contacts' && <><Icon name="contact" size={17} style={{ color: '#2563eb' }} /> Contacts</>}
               {activePanel === 'ai' && <><Icon name="sparkle" size={17} style={{ color: 'var(--teal)' }} /> AI Assistant</>}
+              {activePanel === 'clearos' && <><Icon name="ship" size={17} style={{ color: '#f97316' }} /> ClearOS</>}
+              {activePanel === 'finops' && <><Icon name="bankNote" size={17} style={{ color: '#059669' }} /> FinOps</>}
+              {activePanel === 'petti' && <><Icon name="wallet" size={17} style={{ color: '#0d9488' }} /> Petti</>}
+              {activePanel === 'nexushr' && <><Icon name="users" size={17} style={{ color: '#db2777' }} /> NexusHR</>}
+              {activePanel === 'seal' && <><Icon name="warehouse" size={17} style={{ color: '#7c3aed' }} /> SEAL</>}
+              {activePanel === 'cargotracker' && <><Icon name="truck" size={17} style={{ color: '#0284c7' }} /> CargoTracker</>}
+              {activePanel === 'cloud' && <><Icon name="folder" size={17} style={{ color: '#2563eb' }} /> Cloud</>}
+              {activePanel === 'complyos' && <><Icon name="shield" size={17} style={{ color: '#b45309' }} /> ComplyOS</>}
+              {activePanel === 'store' && <><Icon name="shoppingCart" size={17} style={{ color: '#7c3aed' }} /> Store</>}
               {activePanel === 'settings' && <><Icon name="settings" size={17} style={{ color: 'var(--ink2)' }} /> Quick Settings</>}
             </div>
             <div className="gws-drawer-actions">
@@ -977,6 +1194,267 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                   ))}
                   {contacts.length === 0 && (
                     <div style={{ fontSize: 12.5, color: 'var(--ink3)', textAlign: 'center', padding: '24px 0' }}>No contacts yet.</div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* CLEAROS PANEL — real, /v1/shipments */}
+            {activePanel === 'clearos' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <a href="/clearos/ops/new" style={composerToggleStyle}>
+                  <Icon name="plus" size={14} /> New shipment
+                </a>
+                <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', letterSpacing: '0.04em' }}>Recent Shipments</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {shipments.filter(s => matches(s.bl_number, s.ref_number, s.goods_desc)).map(s => (
+                    <a key={s.id} href={`/clearos/clearance/${s.id}`} style={{ padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 4, textDecoration: 'none' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                        <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.bl_number || s.ref_number || 'Shipment'}</span>
+                        <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: 'var(--teal-l)', color: 'var(--teal)', textTransform: 'capitalize', flexShrink: 0 }}>{s.status}</span>
+                      </div>
+                      <div style={{ fontSize: 12, color: 'var(--ink2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.goods_desc || s.type || ''}</div>
+                    </a>
+                  ))}
+                  {shipments.length === 0 && (
+                    <div style={{ fontSize: 12.5, color: 'var(--ink3)', textAlign: 'center', padding: '24px 0' }}>No shipments yet.</div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* FINOPS PANEL — real, /v1/invoices */}
+            {activePanel === 'finops' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {invoiceComposerOpen ? (
+                  <form onSubmit={handleCreateInvoice} style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)' }}>
+                    <input autoFocus value={invoiceClientName} onChange={e => setInvoiceClientName(e.target.value)} placeholder="Client name" style={composerInputStyle} />
+                    <input value={invoiceDesc} onChange={e => setInvoiceDesc(e.target.value)} placeholder="Description" style={composerInputStyle} />
+                    <input type="number" min="1" step="any" value={invoiceAmount} onChange={e => setInvoiceAmount(e.target.value)} placeholder="Amount" style={composerInputStyle} />
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <Button type="submit" size="xs" disabled={invoiceSaving} style={{ background: 'var(--teal)', color: '#fff', flex: 1 }}>{invoiceSaving ? 'Creating…' : 'Create invoice'}</Button>
+                      <Button type="button" size="xs" variant="outline" onClick={() => setInvoiceComposerOpen(false)}>Cancel</Button>
+                    </div>
+                  </form>
+                ) : (
+                  <button type="button" onClick={() => setInvoiceComposerOpen(true)} style={composerToggleStyle}>
+                    <Icon name="plus" size={14} /> Quick invoice
+                  </button>
+                )}
+                <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', letterSpacing: '0.04em' }}>Recent Invoices</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {invoices.filter(inv => matches(inv.invoice_number, inv.client_name)).map(inv => {
+                    const total = (inv.items || []).reduce((sum, it) => sum + (Number(it.rate) || 0) * (Number(it.qty) || 1), 0);
+                    return (
+                      <a key={inv.id} href={`/finance/invoices?id=${inv.id}`} style={{ padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 4, textDecoration: 'none' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                          <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{inv.client_name || inv.invoice_number}</span>
+                          <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: 'var(--teal-l)', color: 'var(--teal)', textTransform: 'capitalize', flexShrink: 0 }}>{inv.status}</span>
+                        </div>
+                        <div style={{ fontSize: 12, color: 'var(--ink2)', fontFamily: 'var(--mono)' }}>{total.toLocaleString()}</div>
+                      </a>
+                    );
+                  })}
+                  {invoices.length === 0 && (
+                    <div style={{ fontSize: 12.5, color: 'var(--ink3)', textAlign: 'center', padding: '24px 0' }}>No invoices yet.</div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* PETTI PANEL — real, /v1/petti/wallets + quick manual deposit */}
+            {activePanel === 'petti' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {depositComposerOpen ? (
+                  <form onSubmit={handleQuickDeposit} style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)' }}>
+                    <select value={depositWalletId} onChange={e => setDepositWalletId(e.target.value)} style={{ ...composerInputStyle }}>
+                      {pettiWallets.map(w => <option key={w.id} value={w.id}>{w.name} ({w.currency})</option>)}
+                    </select>
+                    <input type="number" min="1" step="any" autoFocus value={depositAmount} onChange={e => setDepositAmount(e.target.value)} placeholder="Amount" style={composerInputStyle} />
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <Button type="submit" size="xs" disabled={depositSaving} style={{ background: 'var(--teal)', color: '#fff', flex: 1 }}>{depositSaving ? 'Depositing…' : 'Deposit'}</Button>
+                      <Button type="button" size="xs" variant="outline" onClick={() => setDepositComposerOpen(false)}>Cancel</Button>
+                    </div>
+                  </form>
+                ) : (
+                  <button type="button" onClick={() => setDepositComposerOpen(true)} style={composerToggleStyle}>
+                    <Icon name="plus" size={14} /> Quick deposit
+                  </button>
+                )}
+                <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', letterSpacing: '0.04em' }}>Wallets</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {pettiWallets.filter(w => matches(w.name)).map(w => (
+                    <a key={w.id} href={`/petti/wallets/${w.id}`} style={{ padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', textDecoration: 'none' }}>
+                      <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{w.name}</span>
+                      <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--teal)', fontFamily: 'var(--mono)', flexShrink: 0 }}>{w.balance.toLocaleString()} {w.currency}</span>
+                    </a>
+                  ))}
+                  {pettiWallets.length === 0 && (
+                    <div style={{ fontSize: 12.5, color: 'var(--ink3)', textAlign: 'center', padding: '24px 0' }}>No wallets yet.</div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* NEXUSHR PANEL — real, /v1/hr/staff + /v1/hr/invitations */}
+            {activePanel === 'nexushr' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {inviteComposerOpen ? (
+                  <form onSubmit={handleSendInvite} style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)' }}>
+                    <input autoFocus type="email" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} placeholder="Email to invite" style={composerInputStyle} />
+                    <select value={inviteRole} onChange={e => setInviteRole(e.target.value)} style={composerInputStyle}>
+                      <option value="OFFICER">Officer</option>
+                      <option value="MANAGER">Manager</option>
+                      <option value="FINANCE">Finance</option>
+                      <option value="ADMIN">Admin</option>
+                    </select>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <Button type="submit" size="xs" disabled={inviteSaving} style={{ background: 'var(--teal)', color: '#fff', flex: 1 }}>{inviteSaving ? 'Sending…' : 'Send invite'}</Button>
+                      <Button type="button" size="xs" variant="outline" onClick={() => setInviteComposerOpen(false)}>Cancel</Button>
+                    </div>
+                  </form>
+                ) : (
+                  <button type="button" onClick={() => setInviteComposerOpen(true)} style={composerToggleStyle}>
+                    <Icon name="plus" size={14} /> Invite staff
+                  </button>
+                )}
+                <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', letterSpacing: '0.04em' }}>Staff ({staffList.length})</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {staffList.filter(s => matches(s.name, s.email, s.role)).map(s => (
+                    <a key={s.id} href={`/nexushr/staff/${s.id}`} style={{ padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
+                      <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'rgba(219,39,119,0.12)', color: '#db2777', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 12, fontWeight: 700 }}>
+                        {s.name?.[0]?.toUpperCase() ?? '?'}
+                      </div>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.name}</div>
+                        <div style={{ fontSize: 11.5, color: 'var(--ink3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.role}</div>
+                      </div>
+                      {!s.active && <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', flexShrink: 0 }}>Inactive</span>}
+                    </a>
+                  ))}
+                  {staffList.length === 0 && (
+                    <div style={{ fontSize: 12.5, color: 'var(--ink3)', textAlign: 'center', padding: '24px 0' }}>No staff yet.</div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* SEAL PANEL — real, /v1/seal/consignments */}
+            {activePanel === 'seal' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <a href="/seal/consignments" style={composerToggleStyle}>
+                  <Icon name="plus" size={14} /> New consignment
+                </a>
+                <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', letterSpacing: '0.04em' }}>Recent Consignments</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {consignments.filter(c => matches(c.owner_name, c.transport_doc_number, c.goods_description)).map(c => (
+                    <a key={c.id} href={`/seal/consignments/${c.id}`} style={{ padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 4, textDecoration: 'none' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                        <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.owner_name || c.transport_doc_number || 'Consignment'}</span>
+                        <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: 'var(--teal-l)', color: 'var(--teal)', textTransform: 'capitalize', flexShrink: 0 }}>{c.status?.replace(/_/g, ' ').toLowerCase()}</span>
+                      </div>
+                      <div style={{ fontSize: 12, color: 'var(--ink2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.goods_description || ''}</div>
+                    </a>
+                  ))}
+                  {consignments.length === 0 && (
+                    <div style={{ fontSize: 12.5, color: 'var(--ink3)', textAlign: 'center', padding: '24px 0' }}>No consignments yet.</div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* CARGOTRACKER PANEL — real, /v1/freight-booking/bookings (GET);
+                create lives on its own page (CreateFreightBookingPage, needs
+                a customer picker) so this links out rather than duplicating
+                that form inline, same reasoning as ClearOS/SEAL above. */}
+            {activePanel === 'cargotracker' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <a href="/cargotracker/bookings/new" style={composerToggleStyle}>
+                  <Icon name="plus" size={14} /> New booking
+                </a>
+                <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', letterSpacing: '0.04em' }}>Recent Bookings</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {bookings.filter(b => matches(b.booking_number, b.customer_name, b.origin_port, b.destination_port)).map(b => (
+                    <a key={b.id} href="/cargotracker/bookings" style={{ padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 4, textDecoration: 'none' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                        <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.booking_number}</span>
+                        <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: 'var(--teal-l)', color: 'var(--teal)', flexShrink: 0 }}>{b.status?.replace(/_/g, ' ')}</span>
+                      </div>
+                      <div style={{ fontSize: 12, color: 'var(--ink2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.customer_name || ''} · {b.origin_port} → {b.destination_port}</div>
+                    </a>
+                  ))}
+                  {bookings.length === 0 && (
+                    <div style={{ fontSize: 12.5, color: 'var(--ink3)', textAlign: 'center', padding: '24px 0' }}>No bookings yet.</div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* CLOUD PANEL — real, /v1/drives + /v1/files */}
+            {activePanel === 'cloud' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <a href="/cloud" style={composerToggleStyle}>
+                  <Icon name="plus" size={14} /> Upload file
+                </a>
+                <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', letterSpacing: '0.04em' }}>Recent Files</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {driveFiles.filter(f => matches(f.name, f.owner_name)).map(f => (
+                    <a key={f.id} href="/cloud" style={{ padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
+                      <Icon name="fileText" size={16} style={{ color: '#2563eb', flexShrink: 0 }} />
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</div>
+                        <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{f.owner_name}</div>
+                      </div>
+                    </a>
+                  ))}
+                  {driveFiles.length === 0 && (
+                    <div style={{ fontSize: 12.5, color: 'var(--ink3)', textAlign: 'center', padding: '24px 0' }}>No files yet.</div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* COMPLYOS PANEL — real, /v1/comply/obligations */}
+            {activePanel === 'complyos' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <a href="/complyos/obligations" style={composerToggleStyle}>
+                  <Icon name="plus" size={14} /> New obligation
+                </a>
+                <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', letterSpacing: '0.04em' }}>Obligations</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {obligations.filter(o => matches(o.name, o.customer_name)).map(o => (
+                    <a key={o.id} href="/complyos/obligations" style={{ padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 4, textDecoration: 'none' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                        <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.name}</span>
+                        <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: 'var(--teal-l)', color: 'var(--teal)', textTransform: 'capitalize', flexShrink: 0 }}>{o.status}</span>
+                      </div>
+                      {o.due_date && <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>Due {new Date(o.due_date).toLocaleDateString()}</div>}
+                    </a>
+                  ))}
+                  {obligations.length === 0 && (
+                    <div style={{ fontSize: 12.5, color: 'var(--ink3)', textAlign: 'center', padding: '24px 0' }}>No obligations tracked yet.</div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* STORE PANEL — real, /v1/store/apps (browse-only — installing is a
+                bigger, permissions-consent decision than a rail quick-action) */}
+            {activePanel === 'store' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', letterSpacing: '0.04em' }}>Marketplace</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {storeApps.filter(a => matches(a.name, a.category, a.shortDesc)).map(a => (
+                    <a key={a.id} href="/store" style={{ padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 4, textDecoration: 'none' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                        <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.name}</span>
+                        <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', flexShrink: 0 }}>★ {a.rating}</span>
+                      </div>
+                      <div style={{ fontSize: 12, color: 'var(--ink2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.shortDesc}</div>
+                    </a>
+                  ))}
+                  {storeApps.length === 0 && (
+                    <div style={{ fontSize: 12.5, color: 'var(--ink3)', textAlign: 'center', padding: '24px 0' }}>Nothing in the marketplace yet.</div>
                   )}
                 </div>
               </div>

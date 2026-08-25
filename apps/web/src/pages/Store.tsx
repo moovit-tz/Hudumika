@@ -125,9 +125,8 @@ export const Store: React.FC = () => {
   const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
-    const saved = localStorage.getItem('hudumika_installed_addons');
-    if (saved) { try { setInstalledApps(JSON.parse(saved)); } catch { /* ignore */ } }
-    
+    apiFetch('/v1/store/installed').then(ids => setInstalledApps(Array.isArray(ids) ? ids : [])).catch(() => {});
+
     apiFetch('/v1/store/apps').then(data => {
       setApps(data);
       setAppsLoading(false);
@@ -138,11 +137,6 @@ export const Store: React.FC = () => {
   }, []);
 
   useEffect(() => { setSelectedApp(null); }, [activeCategory]);
-
-  function saveInstalled(list: string[]) {
-    setInstalledApps(list);
-    localStorage.setItem('hudumika_installed_addons', JSON.stringify(list));
-  }
 
   function triggerToast(msg: string) {
     setToast(msg);
@@ -160,21 +154,32 @@ export const Store: React.FC = () => {
     }),
   [activeCategory, searchQuery, apps]);
 
-  function handleInstallClick(app: AddonApp) {
+  async function handleInstallClick(app: AddonApp) {
     if (installedApps.includes(app.id)) {
-      saveInstalled(installedApps.filter(id => id !== app.id));
-      triggerToast(`Uninstalled ${app.name} successfully.`);
-      if (selectedApp?.id === app.id) setSelectedApp(null);
+      try {
+        await apiFetch(`/v1/store/installed/${app.id}`, { method: 'DELETE' });
+        setInstalledApps(prev => prev.filter(id => id !== app.id));
+        triggerToast(`Uninstalled ${app.name} successfully.`);
+        if (selectedApp?.id === app.id) setSelectedApp(null);
+      } catch (err: any) {
+        triggerToast(err?.message || `Could not uninstall ${app.name}.`);
+      }
     } else {
       setShowConsent(true);
     }
   }
 
-  function confirmInstall() {
+  async function confirmInstall() {
     if (!selectedApp) return;
-    saveInstalled([...installedApps, selectedApp.id]);
-    setShowConsent(false);
-    triggerToast(`Installed ${selectedApp.name} successfully! Integration is now active.`);
+    try {
+      await apiFetch('/v1/store/installed', { method: 'POST', body: JSON.stringify({ app_id: selectedApp.id }) });
+      setInstalledApps(prev => [...prev, selectedApp.id]);
+      setShowConsent(false);
+      triggerToast(`Installed ${selectedApp.name} successfully! Integration is now active.`);
+    } catch (err: any) {
+      setShowConsent(false);
+      triggerToast(err?.message || `Could not install ${selectedApp.name}.`);
+    }
   }
 
   const sectionTitle = activeCategory === 'all'

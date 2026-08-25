@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import { Button } from '../components/ui/button.js';
 import { Badge } from '../components/ui/badge.js';
@@ -6,11 +7,14 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { EntityPicker, type PickerItem } from '../components/EntityPicker.js';
 import { apiFetch, apiDownload } from '../lib/api.js';
+import { showAlert } from '../lib/alert.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { useTodos, addTodo, updateTodo, deleteTodo, Todo, TaskStatus, TaskPriority } from '../data/calendarStore.js';
 import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { useAuth } from '../hooks/useAuth.js';
 import { FileUploader } from '../components/ui/file-uploader.js';
+import { MentionInput, type MentionUser } from '../components/MentionInput.js';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuCheckboxItem } from '../components/ui/dropdown-menu.js';
 
 // Standalone Projects app (HuduPlus+, entitlement key 'projects' — migration
 // 313) — Projects/Milestones are real, tenant-shared entities (migration
@@ -27,6 +31,7 @@ interface ProjectSummary {
   customer_id: string | null; customer_name: string | null; billing_type: string; total_rate: string | null; currency: string;
   created_at: string;
   member_count: number; task_count: number; task_done_count: number;
+  is_pinned: boolean;
 }
 interface ProjectDetail extends ProjectSummary {
   days_total: number | null; days_left: number | null;
@@ -46,6 +51,18 @@ interface ProjectFileRow {
   shared: { name: string; role: string; principal_type: string | null; principal_id: string | null }[];
 }
 interface ProjectActivityEntry { id: string; action: string; detail: Record<string, any>; created_at: string; actor_name: string; task_title: string | null }
+interface DiscussionRow { id: string; content: string; mentions: { user_id: string; name: string }[]; created_at: string; author_id: string; author_name: string }
+interface ProjectTicketRow { id: string; ref_number: string; subject: string; status: string; priority: string; category: string; created_at: string; resolved_at: string | null }
+interface ProjectInvoiceRow { id: string; invoice_number: string; status: string; currency: string; received: string; bill_date: string | null; due_date: string | null; created_at: string; total: number }
+const INVOICE_STATUS_META: Record<string, { label: string; variant: 'gray' | 'brand' | 'warning' | 'success' | 'error' }> = {
+  Draft: { label: 'Draft', variant: 'gray' }, Unpaid: { label: 'Unpaid', variant: 'brand' },
+  Paid: { label: 'Paid', variant: 'success' }, Overdue: { label: 'Overdue', variant: 'error' },
+  Partial: { label: 'Partial', variant: 'warning' }, Credited: { label: 'Credited', variant: 'gray' },
+};
+const TICKET_STATUS_META: Record<string, { label: string; variant: 'gray' | 'brand' | 'warning' | 'success' | 'error' }> = {
+  OPEN: { label: 'Open', variant: 'brand' }, IN_PROGRESS: { label: 'In Progress', variant: 'warning' },
+  RESOLVED: { label: 'Resolved', variant: 'success' }, CLOSED: { label: 'Closed', variant: 'gray' },
+};
 
 function describeProjectActivity(a: ProjectActivityEntry): string {
   if (a.task_title) {
@@ -107,10 +124,24 @@ const STATUS_BAR_COLOR: Record<TaskStatus, string> = {
   none: 'var(--ink4)', in_progress: 'var(--teal)', in_review: 'var(--gold)', waiting: 'var(--blue)', completed: 'var(--green)',
 };
 function dayDiff(a: Date, b: Date): number { return Math.round((b.getTime() - a.getTime()) / 86400000); }
+// "View project as customer" (M14) — a client-side, read-only preview mode,
+// deliberately NOT the existing SUPER_ADMIN-gated impersonate-customer
+// session swap (wrong security model for a project owner previewing their
+// own project). Timesheets/Activity/Discussions/Tickets/Members are
+// internal-only and hidden; Files is filtered to visible_to_customer rows
+// and Overview drops rate/billing figures — handled inline where rendered.
+const CUSTOMER_VISIBLE_TABS = new Set(['overview', 'board', 'gantt', 'files', 'milestones']);
 
 async function searchColleagues(q: string): Promise<PickerItem[]> {
   const rows = await apiFetch(`/v1/hr/staff?search=${encodeURIComponent(q)}`).catch(() => []);
   return (rows || []).map((u: any) => ({ id: u.id, label: u.name, sublabel: u.email }));
+}
+async function fetchColleaguesForMentions(): Promise<MentionUser[]> {
+  const rows = await apiFetch('/v1/hr/staff').catch(() => []);
+  return (rows || []).map((u: any) => ({ id: u.id, name: u.name, role: u.role }));
+}
+function initials(name: string): string {
+  return name.split(' ').filter(Boolean).slice(0, 2).map(p => p[0]).join('').toUpperCase();
 }
 
 function ProgressBar({ done, total, color }: { done: number; total: number; color: string }) {
@@ -155,13 +186,17 @@ export const ProjectsApp: React.FC = () => {
   const [projects, setProjects] = useState<ProjectSummary[] | null>(null);
   const [listStatusFilter, setListStatusFilter] = useState<string>('all');
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [tab, setTab] = useState<'overview' | 'board' | 'gantt' | 'timesheets' | 'files' | 'activity' | 'milestones' | 'members'>('overview');
+  const [tab, setTab] = useState<'overview' | 'board' | 'gantt' | 'timesheets' | 'files' | 'discussions' | 'tickets' | 'sales' | 'activity' | 'milestones' | 'members'>('overview');
   const [detail, setDetail] = useState<ProjectDetail | null>(null);
   const [members, setMembers] = useState<ProjectMember[] | null>(null);
   const [milestones, setMilestones] = useState<MilestoneRow[] | null>(null);
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState('');
   const [newColor, setNewColor] = useState('#0d7a6b');
+  const [templates, setTemplates] = useState<{ id: string; name: string; description: string | null }[] | null>(null);
+  const [newTemplateId, setNewTemplateId] = useState('__none__');
+  const [savingTemplate, setSavingTemplate] = useState(false);
+  const [templateName, setTemplateName] = useState('');
   const [quickAddTitle, setQuickAddTitle] = useState('');
   const [detailTaskId, setDetailTaskId] = useState<string | null>(null);
   const { user } = useAuth();
@@ -182,6 +217,24 @@ export const ProjectsApp: React.FC = () => {
   const [ganttEdges, setGanttEdges] = useState<{ task_id: string; depends_on_task_id: string }[] | null>(null);
   const [ganttZoom, setGanttZoom] = useState<'weeks' | 'months'>('weeks');
   const [ganttMilestoneFilter, setGanttMilestoneFilter] = useState<string>('all');
+  const [workload, setWorkload] = useState<{ user_id: string; name: string; avatar_url: string | null; logged_minutes: number }[] | null>(null);
+  const [discussions, setDiscussions] = useState<DiscussionRow[] | null>(null);
+  const [discussionColleagues, setDiscussionColleagues] = useState<MentionUser[]>([]);
+  const [discussionDraft, setDiscussionDraft] = useState('');
+  const [discussionMentions, setDiscussionMentions] = useState<{ user_id: string; name: string }[]>([]);
+  const [postingDiscussion, setPostingDiscussion] = useState(false);
+  const [projectTickets, setProjectTickets] = useState<ProjectTicketRow[] | null>(null);
+  const [linkableTickets, setLinkableTickets] = useState<{ id: string; ref: string; subject: string; project_id: string | null }[]>([]);
+  const [linkTicketId, setLinkTicketId] = useState('__none__');
+  const [creatingTicket, setCreatingTicket] = useState(false);
+  const [ticketSubject, setTicketSubject] = useState('');
+  const [projectInvoices, setProjectInvoices] = useState<ProjectInvoiceRow[] | null>(null);
+  const [viewAsCustomer, setViewAsCustomer] = useState(false);
+  const [invoicing, setInvoicing] = useState(false);
+  const [retainer, setRetainer] = useState<{ id: string; amount: number; currency: string; frequency: string; state: string; next_due: string | null } | null | undefined>(undefined);
+  const [settingUpRetainer, setSettingUpRetainer] = useState(false);
+  const [retainerAmount, setRetainerAmount] = useState('');
+  const [retainerFrequency, setRetainerFrequency] = useState('MONTHLY');
 
   const loadProjects = useCallback(() => {
     apiFetch('/v1/tasks/projects').then(res => setProjects(res.data || [])).catch(() => setProjects([]));
@@ -196,8 +249,15 @@ export const ProjectsApp: React.FC = () => {
   }, [projects]);
   const filteredProjects = useMemo(() => {
     if (!projects) return null;
-    return listStatusFilter === 'all' ? projects : projects.filter(p => p.status === listStatusFilter);
+    const rows = listStatusFilter === 'all' ? projects : projects.filter(p => p.status === listStatusFilter);
+    return [...rows].sort((a, b) => (b.is_pinned ? 1 : 0) - (a.is_pinned ? 1 : 0));
   }, [projects, listStatusFilter]);
+
+  async function togglePin(p: ProjectSummary, e: React.MouseEvent) {
+    e.stopPropagation();
+    setProjects(prev => (prev || []).map(x => x.id === p.id ? { ...x, is_pinned: !p.is_pinned } : x));
+    await apiFetch(`/v1/tasks/projects/${p.id}/pin`, { method: p.is_pinned ? 'DELETE' : 'POST' }).catch(() => loadProjects());
+  }
 
   const loadDetail = useCallback((id: string) => {
     apiFetch(`/v1/tasks/projects/${id}`).then(res => setDetail(res.data || null)).catch(() => setDetail(null));
@@ -205,7 +265,12 @@ export const ProjectsApp: React.FC = () => {
     apiFetch(`/v1/tasks/projects/${id}/milestones`).then(res => setMilestones(res.data || [])).catch(() => setMilestones([]));
   }, []);
   useEffect(() => {
-    if (selectedId) { setDetail(null); setMembers(null); setMilestones(null); setTab('overview'); setTimesheets(null); setTimesheetTotals(null); setProjectFiles(null); setProjectActivity(null); loadDetail(selectedId); }
+    if (selectedId) {
+      setDetail(null); setMembers(null); setMilestones(null); setTab('overview'); setTimesheets(null); setTimesheetTotals(null);
+      setProjectFiles(null); setProjectActivity(null); setWorkload(null); setDiscussions(null); setProjectTickets(null); setProjectInvoices(null); setRetainer(undefined);
+      loadDetail(selectedId);
+      apiFetch(`/v1/tasks/projects/${selectedId}/retainer`).then(res => setRetainer(res.data || null)).catch(() => setRetainer(null));
+    }
   }, [selectedId, loadDetail]);
 
   const loadTimesheets = useCallback(() => {
@@ -233,8 +298,76 @@ export const ProjectsApp: React.FC = () => {
   useEffect(() => { if (tab === 'activity') loadActivity(); }, [tab, loadActivity]);
 
   useEffect(() => {
+    if (viewAsCustomer && !CUSTOMER_VISIBLE_TABS.has(tab)) setTab('overview');
+  }, [viewAsCustomer, tab]);
+
+  useEffect(() => {
     if (tab === 'gantt' && selectedId) {
       apiFetch(`/v1/tasks/projects/${selectedId}/dependencies`).then(res => setGanttEdges(res.data || [])).catch(() => setGanttEdges([]));
+    }
+  }, [tab, selectedId]);
+
+  useEffect(() => {
+    if (tab === 'members' && selectedId) {
+      apiFetch(`/v1/tasks/projects/${selectedId}/workload`).then(res => setWorkload(res.data || [])).catch(() => setWorkload([]));
+    }
+  }, [tab, selectedId]);
+
+  useEffect(() => {
+    if (tab === 'discussions' && selectedId) {
+      apiFetch(`/v1/tasks/projects/${selectedId}/discussions`).then(res => setDiscussions(res.data || [])).catch(() => setDiscussions([]));
+      if (discussionColleagues.length === 0) fetchColleaguesForMentions().then(setDiscussionColleagues).catch(() => {});
+    }
+  }, [tab, selectedId]);
+
+  async function postDiscussion() {
+    if (!selectedId || !discussionDraft.trim() || postingDiscussion) return;
+    setPostingDiscussion(true);
+    try {
+      const res = await apiFetch(`/v1/tasks/projects/${selectedId}/discussions`, {
+        method: 'POST', body: JSON.stringify({ content: discussionDraft.trim(), mentions: discussionMentions }),
+      });
+      setDiscussions(prev => [...(prev || []), res.data]);
+      setDiscussionDraft(''); setDiscussionMentions([]);
+    } catch { /* apiFetch already surfaces errors globally */ }
+    finally { setPostingDiscussion(false); }
+  }
+  async function removeDiscussion(id: string) {
+    setDiscussions(prev => (prev || []).filter(d => d.id !== id));
+    await apiFetch(`/v1/tasks/projects/${selectedId}/discussions/${id}`, { method: 'DELETE' }).catch(() => {});
+  }
+
+  const loadTickets = useCallback(() => {
+    if (!selectedId) return;
+    apiFetch(`/v1/tasks/projects/${selectedId}/tickets`).then(res => setProjectTickets(res.data || [])).catch(() => setProjectTickets([]));
+  }, [selectedId]);
+  useEffect(() => {
+    if (tab === 'tickets' && selectedId) {
+      loadTickets();
+      if (selected?.customer_id) {
+        apiFetch(`/v1/support/tickets?customer_id=${selected.customer_id}`).then(res => setLinkableTickets(Array.isArray(res) ? res : (res.data || []))).catch(() => setLinkableTickets([]));
+      }
+    }
+  }, [tab, selectedId, selected?.customer_id]);
+
+  async function linkTicket() {
+    if (!selectedId || linkTicketId === '__none__') return;
+    await apiFetch(`/v1/tasks/projects/${selectedId}/tickets/link`, { method: 'POST', body: JSON.stringify({ ticketId: linkTicketId }) }).catch(() => {});
+    setLinkTicketId('__none__');
+    loadTickets();
+  }
+  async function createProjectTicket() {
+    if (!selectedId || !ticketSubject.trim()) return;
+    try {
+      await apiFetch(`/v1/tasks/projects/${selectedId}/tickets`, { method: 'POST', body: JSON.stringify({ subject: ticketSubject.trim(), category: 'General' }) });
+      setTicketSubject(''); setCreatingTicket(false);
+      loadTickets();
+    } catch { /* apiFetch already surfaces errors globally */ }
+  }
+
+  useEffect(() => {
+    if (tab === 'sales' && selectedId) {
+      apiFetch(`/v1/tasks/projects/${selectedId}/invoices`).then(res => setProjectInvoices(res.data || [])).catch(() => setProjectInvoices([]));
     }
   }, [tab, selectedId]);
 
@@ -265,6 +398,15 @@ export const ProjectsApp: React.FC = () => {
   }
 
   const projectTasks = useMemo(() => selectedId ? allTodos.filter(t => t.projectId === selectedId && !t.deletedAt) : [], [allTodos, selectedId]);
+  const memberWorkload = useMemo(() => {
+    const loggedByUser = new Map((workload || []).map(w => [w.user_id, w.logged_minutes]));
+    return (members || []).map(m => ({
+      ...m,
+      openTaskCount: projectTasks.filter(t => t.assigneeId === m.user_id && !t.completed && t.status !== 'completed').length,
+      loggedMinutes: loggedByUser.get(m.user_id) || 0,
+    }));
+  }, [members, projectTasks, workload]);
+  const maxWorkloadMinutes = Math.max(1, ...memberWorkload.map(m => m.loggedMinutes));
   const detailTask = detailTaskId ? projectTasks.find(t => t.id === detailTaskId) || null : null;
 
   const taskStatusCounts = useMemo(() => {
@@ -312,7 +454,15 @@ export const ProjectsApp: React.FC = () => {
     setSelectedTaskIds(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
   }
   function bulkMarkComplete() {
-    for (const id of selectedTaskIds) updateTodo(id, { status: 'completed', completed: true });
+    let blocked = 0;
+    for (const id of selectedTaskIds) {
+      const t = projectTasks.find(x => x.id === id);
+      if (t && (t.blockedByOpenCount || 0) > 0) { blocked++; continue; }
+      updateTodo(id, { status: 'completed', completed: true });
+    }
+    if (blocked > 0) {
+      showAlert(`${blocked} task${blocked === 1 ? ' was' : 's were'} skipped — still blocked by an open dependency.`, { variant: 'error' });
+    }
     setSelectedTaskIds(new Set());
     loadProjects();
   }
@@ -436,10 +586,58 @@ export const ProjectsApp: React.FC = () => {
     if (!newName.trim()) return;
     const id = crypto.randomUUID();
     try {
-      await apiFetch('/v1/tasks/projects', { method: 'POST', body: JSON.stringify({ id, name: newName.trim(), color: newColor }) });
-      setNewName(''); setCreating(false);
+      await apiFetch('/v1/tasks/projects', { method: 'POST', body: JSON.stringify({ id, name: newName.trim(), color: newColor, templateId: newTemplateId !== '__none__' ? newTemplateId : undefined }) });
+      setNewName(''); setCreating(false); setNewTemplateId('__none__');
       loadProjects();
       setSelectedId(id);
+    } catch { /* apiFetch already surfaces errors globally */ }
+  }
+
+  async function invoiceProject() {
+    if (!selectedId || invoicing) return;
+    setInvoicing(true);
+    try {
+      await apiFetch(`/v1/tasks/projects/${selectedId}/invoice`, { method: 'POST' });
+      loadDetail(selectedId);
+    } catch { /* apiFetch already surfaces errors globally, e.g. "no customer" or "already invoiced" */ }
+    finally { setInvoicing(false); }
+  }
+
+  async function setUpRetainer() {
+    if (!selectedId || !selected?.customer_id || !retainerAmount.trim()) return;
+    const res = await apiFetch('/v1/invoices/recurring', {
+      method: 'POST', body: JSON.stringify({
+        name: `${selected.name} — Retainer`, customer_id: selected.customer_id, project_id: selectedId,
+        frequency: retainerFrequency, amount: Number(retainerAmount), currency: selected.currency,
+      }),
+    }).catch(() => null);
+    if (res) { setRetainer(res); setSettingUpRetainer(false); setRetainerAmount(''); }
+  }
+
+  async function copyProject() {
+    if (!selectedId) return;
+    const res = await apiFetch(`/v1/tasks/projects/${selectedId}/copy`, { method: 'POST' }).catch(() => null);
+    if (res?.data) { loadProjects(); setSelectedId(res.data.id); }
+  }
+  async function deleteProjectAction() {
+    if (!selectedId || !selected) return;
+    if (!window.confirm(`Delete "${selected.name}"? This cannot be undone. Tasks filed under it will keep their tags but lose the project link.`)) return;
+    await apiFetch(`/v1/tasks/projects/${selectedId}`, { method: 'DELETE' }).catch(() => {});
+    setSelectedId(null);
+    loadProjects();
+  }
+  function exportProjectData() {
+    exportTasksCSV();
+  }
+
+  async function saveAsTemplate() {
+    if (!selectedId || !templateName.trim()) return;
+    try {
+      await apiFetch(`/v1/tasks/projects/${selectedId}/save-as-template`, {
+        method: 'POST', body: JSON.stringify({ id: crypto.randomUUID(), name: templateName.trim() }),
+      });
+      setSavingTemplate(false);
+      setTemplates(null);
     } catch { /* apiFetch already surfaces errors globally */ }
   }
 
@@ -453,6 +651,19 @@ export const ProjectsApp: React.FC = () => {
   }
 
   function moveTask(taskId: string, status: TaskStatus) {
+    // Dependency hard-block (real enforcement — the backend PATCH is the
+    // actual source of truth and rejects this too) — checked client-side
+    // first using the already-loaded blockedByOpenCount so a blocked
+    // completion never even flashes as "done" before the server's 400
+    // arrives; every other completion path (TaskDetailDrawer, TasksApp,
+    // bulk actions) still relies on the real backend check.
+    if (status === 'completed') {
+      const t = projectTasks.find(x => x.id === taskId);
+      if (t && (t.blockedByOpenCount || 0) > 0) {
+        showAlert(`Can't complete this task — it's still blocked by ${t.blockedByOpenCount} open dependenc${t.blockedByOpenCount === 1 ? 'y' : 'ies'}.`, { variant: 'error' });
+        return;
+      }
+    }
     updateTodo(taskId, status === 'completed' ? { status, completed: true } : { status, completed: false });
     loadProjects();
   }
@@ -499,7 +710,7 @@ export const ProjectsApp: React.FC = () => {
             <h1 style={{ fontSize: isMobile ? 22 : 26, fontWeight: 800, color: 'var(--ink)', margin: 0, letterSpacing: '-0.02em' }}>Projects</h1>
             <p style={{ fontSize: 13, color: 'var(--ink3)', margin: '4px 0 0 0' }}>Shared, multi-person projects with milestones and a kanban board.</p>
           </div>
-          <Button size="sm" onClick={() => setCreating(true)} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Button size="sm" onClick={() => { setCreating(true); if (!templates) apiFetch('/v1/tasks/projects/templates').then(res => setTemplates(res.data || [])).catch(() => setTemplates([])); }} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <Icon name="plus" size={15} /> New project
           </Button>
         </div>
@@ -526,8 +737,17 @@ export const ProjectsApp: React.FC = () => {
               style={{ flex: 1, minWidth: 200, padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 14, background: 'var(--white)', color: 'var(--ink)' }}
             />
             <input type="color" value={newColor} onChange={e => setNewColor(e.target.value)} title="Project color" style={{ width: 36, height: 36, border: 'none', borderRadius: 8, cursor: 'pointer', background: 'none' }} />
+            {templates && templates.length > 0 && (
+              <Select value={newTemplateId} onValueChange={setNewTemplateId}>
+                <SelectTrigger className="h-9 text-xs" style={{ width: 180 }}><SelectValue placeholder="Start from template…" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Blank project</SelectItem>
+                  {templates.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            )}
             <Button size="sm" onClick={createProject} disabled={!newName.trim()}>Create</Button>
-            <Button size="sm" variant="outline" onClick={() => { setCreating(false); setNewName(''); }}>Cancel</Button>
+            <Button size="sm" variant="outline" onClick={() => { setCreating(false); setNewName(''); setNewTemplateId('__none__'); }}>Cancel</Button>
           </div>
         )}
 
@@ -553,6 +773,9 @@ export const ProjectsApp: React.FC = () => {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <span style={{ width: 10, height: 10, borderRadius: '50%', background: p.color, flexShrink: 0 }} />
                       <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
+                      <span onClick={e => togglePin(p, e)} title={p.is_pinned ? 'Unpin' : 'Pin'} style={{ display: 'flex', cursor: 'pointer', color: p.is_pinned ? 'var(--gold)' : 'var(--ink4)' }}>
+                        <Icon name="bookmark" size={14} duotone={p.is_pinned} />
+                      </span>
                       <Badge variant={statusMeta.variant}>{statusMeta.label}</Badge>
                     </div>
                     {(p.ref || p.customer_name) && (
@@ -601,12 +824,69 @@ export const ProjectsApp: React.FC = () => {
               {Object.entries(PROJECT_STATUS_META).map(([k, m]) => <SelectItem key={k} value={k}>{m.label}</SelectItem>)}
             </SelectContent>
           </Select>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="sm" variant="outline" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <Icon name="moreHorizontal" size={14} /> More
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={e => togglePin(selected, e as unknown as React.MouseEvent)}>
+                <Icon name="bookmark" size={13} /> {selected.is_pinned ? 'Unpin project' : 'Pin project'}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={copyProject}>
+                <Icon name="copy" size={13} /> Copy project
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => { setTemplateName(selected.name); setSavingTemplate(true); }}>
+                <Icon name="save" size={13} /> Save as template
+              </DropdownMenuItem>
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  <Icon name="flag" size={13} /> Mark as…
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                  {Object.entries(PROJECT_STATUS_META).map(([k, m]) => (
+                    <DropdownMenuItem key={k} onClick={() => patchProject({ status: k })}>{m.label}</DropdownMenuItem>
+                  ))}
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+              <DropdownMenuItem onClick={exportProjectData}>
+                <Icon name="download" size={13} /> Export project data
+              </DropdownMenuItem>
+              <DropdownMenuCheckboxItem checked={viewAsCustomer} onCheckedChange={setViewAsCustomer}>
+                View project as customer
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={deleteProjectAction} style={{ color: 'var(--red)' }}>
+                <Icon name="trash" size={13} /> Delete project
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
+        {viewAsCustomer && (
+          <div style={{ marginTop: 10, padding: '8px 12px', background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 8, fontSize: 12.5, color: 'var(--ink2)', display: 'flex', alignItems: 'center', gap: 8, maxWidth: 480 }}>
+            <Icon name="eye" size={14} color="var(--gold)" />
+            Previewing as your customer would see it — internal tabs hidden, only files marked "Visible to customer" shown, no rates or billing figures. This is a read-only local preview, not a real customer session.
+          </div>
+        )}
         {selected.ref && <div style={{ fontSize: 11.5, color: 'var(--ink4)', marginTop: 2 }}>{selected.ref}</div>}
         {selected.description && <p style={{ fontSize: 13, color: 'var(--ink3)', margin: '6px 0 0' }}>{selected.description}</p>}
+        {savingTemplate && (
+          <div style={{ marginTop: 14, padding: 14, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 10, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', maxWidth: 480 }}>
+            <input
+              autoFocus value={templateName} onChange={e => setTemplateName(e.target.value)}
+              placeholder="Template name…"
+              style={{ flex: 1, minWidth: 180, padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, background: 'var(--white)', color: 'var(--ink)' }}
+            />
+            <Button size="sm" onClick={saveAsTemplate} disabled={!templateName.trim()}>Save</Button>
+            <Button size="sm" variant="outline" onClick={() => setSavingTemplate(false)}>Cancel</Button>
+          </div>
+        )}
 
         <div style={{ display: 'flex', gap: 4, marginTop: 18, borderBottom: '1px solid var(--border)' }}>
-          {(['overview', 'board', 'gantt', 'timesheets', 'files', 'activity', 'milestones', 'members'] as const).map(t => (
+          {(['overview', 'board', 'gantt', 'timesheets', 'files', 'discussions', 'tickets', 'sales', 'activity', 'milestones', 'members'] as const)
+            .filter(t => !viewAsCustomer || CUSTOMER_VISIBLE_TABS.has(t))
+            .map(t => (
             <button
               key={t} type="button" onClick={() => setTab(t)}
               style={{
@@ -614,7 +894,7 @@ export const ProjectsApp: React.FC = () => {
                 color: tab === t ? 'var(--teal)' : 'var(--ink3)', fontWeight: tab === t ? 700 : 500, fontSize: 13.5, cursor: 'pointer', textTransform: 'capitalize',
               }}
             >
-              {t === 'overview' ? 'Overview' : t === 'board' ? `Tasks${projectTasks.length ? ` (${projectTasks.length})` : ''}` : t === 'gantt' ? 'Gantt' : t === 'timesheets' ? 'Timesheets' : t === 'files' ? `Files${projectFiles ? ` (${projectFiles.length})` : ''}` : t === 'activity' ? 'Activity' : t === 'milestones' ? `Milestones${milestones ? ` (${milestones.length})` : ''}` : `Members${members ? ` (${members.length})` : ''}`}
+              {t === 'overview' ? 'Overview' : t === 'board' ? `Tasks${projectTasks.length ? ` (${projectTasks.length})` : ''}` : t === 'gantt' ? 'Gantt' : t === 'timesheets' ? 'Timesheets' : t === 'files' ? `Files${projectFiles ? ` (${projectFiles.length})` : ''}` : t === 'discussions' ? `Discussions${discussions ? ` (${discussions.length})` : ''}` : t === 'tickets' ? `Tickets${projectTickets ? ` (${projectTickets.length})` : ''}` : t === 'sales' ? `Sales${projectInvoices ? ` (${projectInvoices.length})` : ''}` : t === 'activity' ? 'Activity' : t === 'milestones' ? `Milestones${milestones ? ` (${milestones.length})` : ''}` : `Members${members ? ` (${members.length})` : ''}`}
             </button>
           ))}
         </div>
@@ -631,8 +911,8 @@ export const ProjectsApp: React.FC = () => {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 16px', fontSize: 13 }}>
                   <OverviewField label="Project #" value={detail.ref || '—'} />
                   <OverviewField label="Customer" value={detail.customer_name || '—'} />
-                  <OverviewField label="Billing Type" value={detail.billing_type === 'hourly' ? 'Hourly Rate' : 'Fixed Rate'} />
-                  <OverviewField label="Total Rate" value={detail.total_rate ? `${detail.currency} ${Number(detail.total_rate).toLocaleString()}` : '—'} />
+                  {!viewAsCustomer && <OverviewField label="Billing Type" value={detail.billing_type === 'hourly' ? 'Hourly Rate' : 'Fixed Rate'} />}
+                  {!viewAsCustomer && <OverviewField label="Total Rate" value={detail.total_rate ? `${detail.currency} ${Number(detail.total_rate).toLocaleString()}` : '—'} />}
                   <OverviewField label="Status" value={statusMeta.label} />
                   <OverviewField label="Date Created" value={detail.created_at.slice(0, 10)} />
                   <OverviewField label="Start Date" value={detail.start_date || '—'} />
@@ -662,17 +942,63 @@ export const ProjectsApp: React.FC = () => {
                   </div>
                 </div>
 
-                <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
-                  <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
-                    <Icon name="fileText" size={13} /> Expenses
+                {!viewAsCustomer && (
+                  <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                      <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <Icon name="fileText" size={13} /> Expenses
+                      </div>
+                      {!!detail.expenses.unbilled && (
+                        <Button size="sm" onClick={invoiceProject} disabled={invoicing} style={{ height: 26, fontSize: 11.5 }}>
+                          {invoicing ? 'Invoicing…' : 'Invoice Project'}
+                        </Button>
+                      )}
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+                      <ExpenseStat label="Total" value={detail.expenses.total} color="var(--ink)" currency={detail.currency} />
+                      <ExpenseStat label="Billable" value={detail.expenses.billable} color="var(--blue)" currency={detail.currency} />
+                      <ExpenseStat label="Billed" value={detail.expenses.billed} color="var(--green)" currency={detail.currency} />
+                      <ExpenseStat label="Unbilled" value={detail.expenses.unbilled} color="var(--red)" currency={detail.currency} />
+                    </div>
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
-                    <ExpenseStat label="Total" value={detail.expenses.total} color="var(--ink)" currency={detail.currency} />
-                    <ExpenseStat label="Billable" value={detail.expenses.billable} color="var(--blue)" currency={detail.currency} />
-                    <ExpenseStat label="Billed" value={detail.expenses.billed} color="var(--green)" currency={detail.currency} />
-                    <ExpenseStat label="Unbilled" value={detail.expenses.unbilled} color="var(--red)" currency={detail.currency} />
+                )}
+
+                {!viewAsCustomer && selected.customer_id && retainer !== undefined && (
+                  <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+                      <Icon name="refresh" size={13} /> Retainer
+                    </div>
+                    {retainer ? (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div>
+                          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>{retainer.currency} {Number(retainer.amount).toLocaleString()}</div>
+                          <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2, textTransform: 'capitalize' }}>{retainer.frequency.toLowerCase()} · {retainer.state.toLowerCase()}{retainer.next_due ? ` · next ${retainer.next_due}` : ''}</div>
+                        </div>
+                        <Badge variant={retainer.state === 'ACTIVE' ? 'success' : 'gray'}>{retainer.state}</Badge>
+                      </div>
+                    ) : settingUpRetainer ? (
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                        <input
+                          autoFocus type="number" min={0} step={1} value={retainerAmount} onChange={e => setRetainerAmount(e.target.value)}
+                          placeholder="Amount…" style={{ width: 110, padding: '6px 8px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12.5 }}
+                        />
+                        <Select value={retainerFrequency} onValueChange={setRetainerFrequency}>
+                          <SelectTrigger className="h-8 text-xs" style={{ width: 110 }}><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="WEEKLY">Weekly</SelectItem>
+                            <SelectItem value="MONTHLY">Monthly</SelectItem>
+                            <SelectItem value="QUARTERLY">Quarterly</SelectItem>
+                            <SelectItem value="ANNUAL">Annual</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Button size="sm" onClick={setUpRetainer} disabled={!retainerAmount.trim()}>Save</Button>
+                        <Button size="sm" variant="outline" onClick={() => setSettingUpRetainer(false)}>Cancel</Button>
+                      </div>
+                    ) : (
+                      <Button size="sm" variant="outline" onClick={() => setSettingUpRetainer(true)}>Set up retainer</Button>
+                    )}
                   </div>
-                </div>
+                )}
 
                 <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
                   <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>Total Logged Hours — This Week</div>
@@ -1117,40 +1443,43 @@ export const ProjectsApp: React.FC = () => {
           </>
         )}
 
-        {tab === 'files' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <FileUploader onUpload={uploadProjectFiles} multiple />
-            {uploadingFiles && <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>Uploading…</div>}
-            {projectFiles === null ? (
-              <div style={{ color: 'var(--ink3)', fontSize: 13 }}>Loading…</div>
-            ) : projectFiles.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--ink3)', fontSize: 14 }}>No files yet.</div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {projectFiles.map(f => {
-                  const isVisible = !!selected.customer_id && f.shared.some(s => s.principal_type === 'customer' && s.principal_id === selected.customer_id);
-                  return (
-                    <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 8 }}>
-                      <Icon name="fileText" size={14} color="var(--ink3)" />
-                      <span style={{ flex: 1, fontSize: 13, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</span>
-                      <span style={{ fontSize: 11, color: 'var(--ink4)' }}>{f.size ? `${(f.size / 1024).toFixed(0)} KB` : ''}</span>
-                      {selected.customer_id && (
-                        <label title="Share this file with the project's customer via the real Drive sharing mechanism" style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11.5, color: 'var(--ink3)', cursor: 'pointer' }}>
-                          <input type="checkbox" checked={isVisible} onChange={e => toggleFileVisibleToCustomer(f, e.target.checked)} />
-                          Visible to customer
-                        </label>
-                      )}
-                      <button type="button" onClick={() => apiDownload(`/v1/files/${f.id}/download`, f.name)} title="Download"
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink4)', display: 'flex', padding: 2 }}>
-                        <Icon name="download" size={14} />
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
+        {tab === 'files' && (() => {
+          const visibleFiles = (projectFiles || []).filter(f => !viewAsCustomer || (selected.customer_id && f.shared.some(s => s.principal_type === 'customer' && s.principal_id === selected.customer_id)));
+          return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {!viewAsCustomer && <FileUploader onUpload={uploadProjectFiles} multiple />}
+              {uploadingFiles && <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>Uploading…</div>}
+              {projectFiles === null ? (
+                <div style={{ color: 'var(--ink3)', fontSize: 13 }}>Loading…</div>
+              ) : visibleFiles.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--ink3)', fontSize: 14 }}>{viewAsCustomer ? 'No files have been shared with the customer yet.' : 'No files yet.'}</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {visibleFiles.map(f => {
+                    const isVisible = !!selected.customer_id && f.shared.some(s => s.principal_type === 'customer' && s.principal_id === selected.customer_id);
+                    return (
+                      <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 8 }}>
+                        <Icon name="fileText" size={14} color="var(--ink3)" />
+                        <span style={{ flex: 1, fontSize: 13, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</span>
+                        <span style={{ fontSize: 11, color: 'var(--ink4)' }}>{f.size ? `${(f.size / 1024).toFixed(0)} KB` : ''}</span>
+                        {!viewAsCustomer && selected.customer_id && (
+                          <label title="Share this file with the project's customer via the real Drive sharing mechanism" style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11.5, color: 'var(--ink3)', cursor: 'pointer' }}>
+                            <input type="checkbox" checked={isVisible} onChange={e => toggleFileVisibleToCustomer(f, e.target.checked)} />
+                            Visible to customer
+                          </label>
+                        )}
+                        <button type="button" onClick={() => apiDownload(`/v1/files/${f.id}/download`, f.name)} title="Download"
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink4)', display: 'flex', padding: 2 }}>
+                          <Icon name="download" size={14} />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {tab === 'activity' && (
           <div style={{ maxWidth: 640, display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -1176,6 +1505,135 @@ export const ProjectsApp: React.FC = () => {
           </div>
         )}
 
+        {tab === 'discussions' && (
+          <div style={{ maxWidth: 640, display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {discussions === null ? (
+              <div style={{ color: 'var(--ink3)', fontSize: 13 }}>Loading…</div>
+            ) : discussions.length === 0 ? (
+              <div style={{ color: 'var(--ink3)', fontSize: 13 }}>No discussion yet — start the conversation below.</div>
+            ) : (
+              discussions.map(d => (
+                <div key={d.id} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                  <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'var(--teal-l)', color: 'var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10.5, fontWeight: 700, flexShrink: 0 }}>
+                    {initials(d.author_name)}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                      <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)' }}>{d.author_name}</span>
+                      <span style={{ fontSize: 10.5, color: 'var(--ink3)' }}>{new Date(d.created_at).toLocaleString()}</span>
+                    </div>
+                    <div style={{ fontSize: 13, color: 'var(--ink)', whiteSpace: 'pre-wrap' }}>{d.content}</div>
+                  </div>
+                  {d.author_id === user?.id && (
+                    <button type="button" onClick={() => removeDiscussion(d.id)} title="Delete" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink4)', padding: 2, flexShrink: 0 }}>
+                      <Icon name="x" size={11} />
+                    </button>
+                  )}
+                </div>
+              ))
+            )}
+            <MentionInput
+              value={discussionDraft}
+              onChange={(v, m) => { setDiscussionDraft(v); setDiscussionMentions(m); }}
+              users={discussionColleagues}
+              placeholder="Post to the team… type @ to mention someone"
+              disabled={postingDiscussion}
+              onSubmit={postDiscussion}
+            />
+          </div>
+        )}
+
+        {tab === 'tickets' && (
+          <div style={{ maxWidth: 640, display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {selected.customer_id ? (
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                <Select value={linkTicketId} onValueChange={setLinkTicketId}>
+                  <SelectTrigger className="h-8 text-xs" style={{ width: 260 }}><SelectValue placeholder="Link an existing ticket…" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Select a ticket…</SelectItem>
+                    {linkableTickets.filter(t => t.project_id !== selectedId).map(t => <SelectItem key={t.id} value={t.id}>{t.ref} — {t.subject}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <Button size="sm" variant="outline" onClick={linkTicket} disabled={linkTicketId === '__none__'}>Link</Button>
+                <Button size="sm" onClick={() => setCreatingTicket(true)} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <Icon name="plus" size={13} /> New ticket
+                </Button>
+              </div>
+            ) : (
+              <div style={{ fontSize: 12.5, color: 'var(--ink4)' }}>Set a customer on this project to link or create tickets.</div>
+            )}
+            {creatingTicket && (
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                <input
+                  autoFocus value={ticketSubject} onChange={e => setTicketSubject(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') createProjectTicket(); if (e.key === 'Escape') setCreatingTicket(false); }}
+                  placeholder="Ticket subject…"
+                  style={{ flex: 1, minWidth: 220, padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, background: 'var(--white)', color: 'var(--ink)' }}
+                />
+                <Button size="sm" onClick={createProjectTicket} disabled={!ticketSubject.trim()}>Create</Button>
+                <Button size="sm" variant="outline" onClick={() => setCreatingTicket(false)}>Cancel</Button>
+              </div>
+            )}
+            {projectTickets === null ? (
+              <div style={{ color: 'var(--ink3)', fontSize: 13 }}>Loading…</div>
+            ) : projectTickets.length === 0 ? (
+              <div style={{ color: 'var(--ink3)', fontSize: 13 }}>No tickets linked to this project yet.</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {projectTickets.map(t => {
+                  const meta = TICKET_STATUS_META[t.status] || TICKET_STATUS_META.OPEN;
+                  return (
+                    <Link key={t.id} to="/support/tickets" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 8, textDecoration: 'none' }}>
+                      <span style={{ fontSize: 11, color: 'var(--ink4)', width: 70, flexShrink: 0 }}>{t.ref_number}</span>
+                      <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{t.subject}</span>
+                      <span style={{ fontSize: 11, color: 'var(--ink3)' }}>{t.category}</span>
+                      <Badge variant={meta.variant}>{meta.label}</Badge>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {tab === 'sales' && (
+          <div style={{ maxWidth: 640 }}>
+            {projectInvoices === null ? (
+              <div style={{ color: 'var(--ink3)', fontSize: 13 }}>Loading…</div>
+            ) : projectInvoices.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--ink3)', fontSize: 14 }}>No invoices yet — use "Invoice Project" on the Overview tab.</div>
+            ) : (
+              <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid var(--border)', textAlign: 'left' }}>
+                      {['Invoice #', 'Date', 'Due', 'Total', 'Status'].map(h => (
+                        <th key={h} style={{ padding: '10px 12px', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {projectInvoices.map(inv => {
+                      const meta = INVOICE_STATUS_META[inv.status] || INVOICE_STATUS_META.Draft;
+                      return (
+                        <tr key={inv.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                          <td style={{ padding: '9px 12px' }}>
+                            <Link to="/finance/invoices" style={{ fontWeight: 600, color: 'var(--ink)', textDecoration: 'none' }}>{inv.invoice_number}</Link>
+                          </td>
+                          <td style={{ padding: '9px 12px', color: 'var(--ink2)' }}>{inv.bill_date || '—'}</td>
+                          <td style={{ padding: '9px 12px', color: 'var(--ink2)' }}>{inv.due_date || '—'}</td>
+                          <td style={{ padding: '9px 12px', color: 'var(--ink)', fontWeight: 600 }}>{inv.currency} {inv.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                          <td style={{ padding: '9px 12px' }}><Badge variant={meta.variant}>{meta.label}</Badge></td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
         {tab === 'milestones' && (
           <MilestonesTab
             milestones={milestones}
@@ -1186,25 +1644,46 @@ export const ProjectsApp: React.FC = () => {
         )}
 
         {tab === 'members' && (
-          <div style={{ maxWidth: 480, display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <EntityPicker value={null} onChange={v => v && addMember(v)} search={searchColleagues} placeholder="Add a colleague to this project…" />
-            {members === null ? (
-              <div style={{ color: 'var(--ink3)', fontSize: 13 }}>Loading…</div>
-            ) : members.length === 0 ? (
-              <div style={{ color: 'var(--ink3)', fontSize: 13 }}>No members yet.</div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {members.map(m => (
-                  <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 8 }}>
-                    <span style={{ flex: 1, fontSize: 13.5, color: 'var(--ink)' }}>{m.name}</span>
-                    <span style={{ fontSize: 11, color: 'var(--ink3)', textTransform: 'capitalize' }}>{m.role}</span>
-                    {m.role !== 'owner' && (
-                      <button type="button" onClick={() => removeMember(m.user_id)} title="Remove" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink4)', display: 'flex', padding: 2 }}>
-                        <Icon name="x" size={13} />
-                      </button>
-                    )}
-                  </div>
-                ))}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 640 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <EntityPicker value={null} onChange={v => v && addMember(v)} search={searchColleagues} placeholder="Add a colleague to this project…" />
+              {members === null ? (
+                <div style={{ color: 'var(--ink3)', fontSize: 13 }}>Loading…</div>
+              ) : members.length === 0 ? (
+                <div style={{ color: 'var(--ink3)', fontSize: 13 }}>No members yet.</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {members.map(m => (
+                    <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 8 }}>
+                      <span style={{ flex: 1, fontSize: 13.5, color: 'var(--ink)' }}>{m.name}</span>
+                      <span style={{ fontSize: 11, color: 'var(--ink3)', textTransform: 'capitalize' }}>{m.role}</span>
+                      {m.role !== 'owner' && (
+                        <button type="button" onClick={() => removeMember(m.user_id)} title="Remove" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink4)', display: 'flex', padding: 2 }}>
+                          <Icon name="x" size={13} />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {memberWorkload.length > 0 && (
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Workload</div>
+                <div style={{ fontSize: 11.5, color: 'var(--ink4)', marginBottom: 12 }}>Open tasks and logged hours per member on this project.</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {memberWorkload.map(m => (
+                    <div key={m.user_id} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <span style={{ width: 120, flexShrink: 0, fontSize: 12.5, color: 'var(--ink2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</span>
+                      <span style={{ width: 70, flexShrink: 0, fontSize: 11, color: 'var(--ink3)' }}>{m.openTaskCount} open</span>
+                      <div style={{ flex: 1, height: 10, borderRadius: 5, background: 'var(--bg)', overflow: 'hidden' }}>
+                        <div style={{ width: `${Math.round((m.loggedMinutes / maxWorkloadMinutes) * 100)}%`, height: '100%', background: 'var(--teal)', borderRadius: 5, transition: 'width 0.2s' }} />
+                      </div>
+                      <span style={{ width: 60, flexShrink: 0, fontSize: 11.5, fontWeight: 600, color: 'var(--ink)', textAlign: 'right' }}>{formatHM(m.loggedMinutes)}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -1354,7 +1833,13 @@ function TaskDetailDrawer({ task, milestones, otherTasks, onClose, onDelete }: {
         />
         <div>
           <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', marginBottom: 4 }}>Status</div>
-          <Select value={task.status} onValueChange={v => updateTodo(task.id, { status: v as TaskStatus, completed: v === 'completed' })}>
+          <Select value={task.status} onValueChange={v => {
+            if (v === 'completed' && (task.blockedByOpenCount || 0) > 0) {
+              showAlert(`Can't complete this task — it's still blocked by ${task.blockedByOpenCount} open dependenc${task.blockedByOpenCount === 1 ? 'y' : 'ies'}.`, { variant: 'error' });
+              return;
+            }
+            updateTodo(task.id, { status: v as TaskStatus, completed: v === 'completed' });
+          }}>
             <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
               {KANBAN_COLUMNS.map(c => <SelectItem key={c.status} value={c.status}>{c.title}</SelectItem>)}
@@ -1433,6 +1918,35 @@ function TaskDetailDrawer({ task, milestones, otherTasks, onClose, onDelete }: {
           <input type="checkbox" checked={!!task.isPrivate} onChange={e => updateTodo(task.id, { isPrivate: e.target.checked })} />
           Private task (hidden from other project members)
         </label>
+
+        <div>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--ink2)', cursor: 'pointer', marginBottom: task.recurrenceRule ? 8 : 0 }}>
+            <input
+              type="checkbox" checked={!!task.recurrenceRule}
+              onChange={e => updateTodo(task.id, { recurrenceRule: e.target.checked ? { freq: 'weekly', interval: 1 } : null })}
+            />
+            Repeats
+          </label>
+          {task.recurrenceRule && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: 'var(--ink2)' }}>
+              Every
+              <input
+                type="number" min={1} max={365} value={task.recurrenceRule.interval}
+                onChange={e => updateTodo(task.id, { recurrenceRule: { ...task.recurrenceRule!, interval: Math.max(1, Number(e.target.value) || 1) } })}
+                style={{ width: 50, padding: '4px 6px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12.5 }}
+              />
+              <Select value={task.recurrenceRule.freq} onValueChange={v => updateTodo(task.id, { recurrenceRule: { ...task.recurrenceRule!, freq: v as 'daily' | 'weekly' | 'monthly' } })}>
+                <SelectTrigger className="h-7 text-xs" style={{ width: 100 }}><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="daily">day(s)</SelectItem>
+                  <SelectItem value="weekly">week(s)</SelectItem>
+                  <SelectItem value="monthly">month(s)</SelectItem>
+                </SelectContent>
+              </Select>
+              {task.recurrenceNextDue && <span style={{ color: 'var(--ink4)' }}>· next {task.recurrenceNextDue}</span>}
+            </div>
+          )}
+        </div>
 
         <div>
           <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', marginBottom: 6 }}>Collaborators</div>
