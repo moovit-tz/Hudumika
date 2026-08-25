@@ -15,10 +15,12 @@ import { SkeletonPage } from '../components/ui/skeleton.js';
 interface StockLevel {
   itemId: string; locationId: string; batchNo: string | null; expiryDate: string | null; qtyOnHand: number;
   itemName?: string; itemSku?: string; baseUom?: string; locationCode?: string; warehouseName?: string;
+  avgCost?: number; value?: number;
 }
 interface Movement {
   id: string; occurredAt: string; movementType: string; qtyDelta: number; enteredQty: number; enteredUom: string;
   batchNo: string | null; reference: string | null; fromLocationCode?: string; toLocationCode?: string;
+  unitCost?: number | null; totalCost?: number | null;
 }
 interface Item { id: string; sku: string; name: string; baseUom: string; isBatchTracked: boolean; }
 interface Location { id: string; code: string; name: string; warehouseName?: string; }
@@ -51,6 +53,7 @@ export function InventoryStock() {
   const [batchNo, setBatchNo] = useState('');
   const [expiryDate, setExpiryDate] = useState<Date | undefined>(undefined);
   const [reference, setReference] = useState('');
+  const [unitCost, setUnitCost] = useState('');
 
   const selectedItem = items.find(i => i.id === itemId);
 
@@ -101,10 +104,11 @@ export function InventoryStock() {
           batchNo: batchNo.trim() || null,
           expiryDate: expiryDate ? toDateOnlyString(expiryDate) : null,
           reference: reference.trim() || null,
+          unitCost: movementType === 'receipt' && unitCost ? Number(unitCost) : null,
         }),
       });
       setItemId(''); setFromLocationId(''); setToLocationId(''); setEnteredQty(''); setEnteredUom('');
-      setBatchNo(''); setExpiryDate(undefined); setReference(''); setShowNew(false);
+      setBatchNo(''); setExpiryDate(undefined); setReference(''); setUnitCost(''); setShowNew(false);
       reload();
     } catch (err: any) {
       showAlert(err.message || 'Failed to record this movement.');
@@ -184,6 +188,13 @@ export function InventoryStock() {
               </Select>
             </div>
 
+            {movementType === 'receipt' && (
+              <div className="inv-field-row">
+                <label className="inv-field-label">Unit Cost (optional)</label>
+                <Input type="number" step="any" min="0" value={unitCost} onChange={e => setUnitCost(e.target.value)} placeholder="0.00" />
+              </div>
+            )}
+
             {selectedItem?.isBatchTracked && (
               <>
                 <div className="inv-field-row">
@@ -215,7 +226,7 @@ export function InventoryStock() {
             <div className="inv-empty">No stock on hand yet.</div>
           ) : (
             <table className="inv-table">
-              <thead><tr><th>Item</th><th>Location</th><th>Batch</th><th>Expiry</th><th>Qty On Hand</th><th></th></tr></thead>
+              <thead><tr><th>Item</th><th>Location</th><th>Batch</th><th>Expiry</th><th>Qty On Hand</th><th>Value</th><th></th></tr></thead>
               <tbody>
                 {levels.map(l => {
                   const key = `${l.itemId}:${l.locationId}:${l.batchNo ?? ''}`;
@@ -231,11 +242,12 @@ export function InventoryStock() {
                         <td>{l.batchNo ? <Badge variant="info">{l.batchNo}</Badge> : <span style={{ color: 'var(--ink3)' }}>—</span>}</td>
                         <td>{l.expiryDate ? new Date(l.expiryDate).toLocaleDateString() : '—'}</td>
                         <td className="inv-mono" style={{ fontWeight: 700 }}>{l.qtyOnHand} {l.baseUom}</td>
+                        <td className="inv-mono" style={{ color: 'var(--ink3)' }}>{l.value != null ? l.value.toLocaleString('en-US', { maximumFractionDigits: 2 }) : '—'}</td>
                         <td><Icon name={isOpen ? 'chevronUp' : 'chevronDown'} size={14} /></td>
                       </tr>
                       {isOpen && (
                         <tr>
-                          <td colSpan={6} style={{ background: 'var(--bg)', padding: 16 }}>
+                          <td colSpan={7} style={{ background: 'var(--bg)', padding: 16 }}>
                             <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 8 }}>Recent Movements</div>
                             {movements.length === 0 ? (
                               <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>No movements recorded.</div>
@@ -248,6 +260,8 @@ export function InventoryStock() {
                                     {m.toLocationCode && <> to {m.toLocationCode}</>}
                                     <span style={{ color: 'var(--ink3)' }}> · {new Date(m.occurredAt).toLocaleString()}</span>
                                     {m.reference && <span style={{ color: 'var(--ink3)' }}> · ref {m.reference}</span>}
+                                    {m.unitCost != null && <span style={{ color: 'var(--teal)' }}> · cost {m.unitCost}/unit</span>}
+                                    {m.totalCost != null && <span style={{ color: 'var(--gold)' }}> · COGS {m.totalCost}</span>}
                                   </div>
                                 ))}
                               </div>

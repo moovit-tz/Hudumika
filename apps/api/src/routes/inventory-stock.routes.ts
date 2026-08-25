@@ -17,6 +17,7 @@ const movementCreateSchema = z.object({
   expiryDate: z.string().nullable().optional(),
   reasonCode: z.string().nullable().optional(),
   reference: z.string().nullable().optional(),
+  unitCost: z.number().min(0).nullable().optional(),
 });
 
 // Inventory Control Phase 2 — the core stock ledger. Every quantity change
@@ -25,11 +26,14 @@ const movementCreateSchema = z.object({
 // projection and movement history.
 
 function mapStockLevel(row: any) {
+  const avgCost = row.avg_cost != null ? Number(row.avg_cost) : 0;
+  const qtyOnHand = Number(row.qty_on_hand);
   return {
     itemId: row.item_id, locationId: row.location_id, batchNo: row.batch_no || null,
-    expiryDate: row.expiry_date, qtyOnHand: Number(row.qty_on_hand),
+    expiryDate: row.expiry_date, qtyOnHand,
     itemName: row.item_name ?? undefined, itemSku: row.item_sku ?? undefined, baseUom: row.base_uom ?? undefined,
     locationCode: row.location_code ?? undefined, warehouseName: row.warehouse_name ?? undefined,
+    avgCost, value: Math.round(qtyOnHand * avgCost * 100) / 100,
   };
 }
 
@@ -40,6 +44,8 @@ function mapMovement(row: any) {
     qtyDelta: Number(row.qty_delta), enteredQty: Number(row.entered_qty), enteredUom: row.entered_uom,
     batchNo: row.batch_no || null, expiryDate: row.expiry_date,
     reasonCode: row.reason_code, reference: row.reference,
+    unitCost: row.unit_cost != null ? Number(row.unit_cost) : null,
+    totalCost: row.total_cost != null ? Number(row.total_cost) : null,
     itemName: row.item_name ?? undefined,
     fromLocationCode: row.from_location_code ?? undefined, toLocationCode: row.to_location_code ?? undefined,
   };
@@ -186,7 +192,7 @@ export async function inventoryStockRoutes(fastify: FastifyInstance) {
             'inventory_stock_levels.item_id', 'inventory_stock_levels.location_id', 'inventory_stock_levels.batch_no',
             'inventory_stock_levels.expiry_date', 'inventory_stock_levels.qty_on_hand',
             'inventory_items.name as item_name', 'inventory_items.sku as item_sku', 'inventory_items.base_uom',
-            'inventory_locations.code as location_code', 'inventory_warehouses.name as warehouse_name',
+            'inventory_items.avg_cost', 'inventory_locations.code as location_code', 'inventory_warehouses.name as warehouse_name',
           ])
           .where('inventory_stock_levels.tenant_id', '=', request.user.tenant_id)
           .where('inventory_stock_levels.qty_on_hand', '!=', '0')
@@ -215,7 +221,8 @@ export async function inventoryStockRoutes(fastify: FastifyInstance) {
             'inventory_movements.item_id', 'inventory_movements.from_location_id', 'inventory_movements.to_location_id',
             'inventory_movements.qty_delta', 'inventory_movements.entered_qty', 'inventory_movements.entered_uom',
             'inventory_movements.batch_no', 'inventory_movements.expiry_date', 'inventory_movements.reason_code',
-            'inventory_movements.reference', 'inventory_items.name as item_name',
+            'inventory_movements.reference', 'inventory_movements.unit_cost', 'inventory_movements.total_cost',
+            'inventory_items.name as item_name',
             'from_loc.code as from_location_code', 'to_loc.code as to_location_code',
           ])
           .where('inventory_movements.tenant_id', '=', request.user.tenant_id)
@@ -246,6 +253,7 @@ export async function inventoryStockRoutes(fastify: FastifyInstance) {
           expiryDate: b.expiryDate ?? null,
           reasonCode: b.reasonCode ?? null,
           reference: b.reference ?? null,
+          unitCost: b.unitCost ?? null,
         })
       );
       return mapMovement(movement);

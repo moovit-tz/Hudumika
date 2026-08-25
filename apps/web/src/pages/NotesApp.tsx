@@ -4,6 +4,7 @@ import { Icon } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { Popover, PopoverAnchor, PopoverContent } from '../components/ui/popover.js';
 import { Button } from '../components/ui/button.js';
+import { ReminderPicker } from '../components/ReminderPicker.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { EntityPicker, type PickerItem } from '../components/EntityPicker.js';
 import { showAlert } from '../lib/alert.js';
@@ -1289,62 +1290,6 @@ const CategoryPicker: React.FC<{
             />
           </div>
         )}
-      </PopoverContent>
-    </Popover>
-  );
-};
-
-/* ── Reminder picker — a real datetime the user chooses, via the shared
-   Popover primitive rather than a hand-rolled absolutely-positioned div. ── */
-const ReminderPicker: React.FC<{
-  value: string | null;
-  onChange: (v: string | null) => void;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}> = ({ value, onChange, open, onOpenChange }) => {
-  const [draft, setDraft] = useState(() => (value ? value.slice(0, 16) : ''));
-
-  useEffect(() => { if (open) setDraft(value ? value.slice(0, 16) : ''); }, [open, value]);
-
-  return (
-    <Popover open={open} onOpenChange={onOpenChange}>
-      <PopoverAnchor asChild>
-        <button
-          type="button"
-          className={`notes-icon-btn${value ? ' active' : ''}`}
-          title={value ? 'Change reminder' : 'Add reminder'}
-          onClick={() => onOpenChange(!open)}
-        >
-          <Icon name="clock" size={17} />
-        </button>
-      </PopoverAnchor>
-      <PopoverContent align="start" className="w-64 p-3">
-        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 8 }}>
-          Remind me
-        </div>
-        <input
-          type="datetime-local"
-          className="input-field"
-          style={{ width: '100%', boxSizing: 'border-box' }}
-          value={draft}
-          onChange={e => setDraft(e.target.value)}
-        />
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginTop: 10 }}>
-          {value ? (
-            <Button size="xs" variant="ghost" onClick={() => { onChange(null); onOpenChange(false); }}>Remove</Button>
-          ) : <span />}
-          <Button
-            size="xs"
-            disabled={!draft}
-            onClick={() => {
-              if (!draft) return;
-              onChange(new Date(draft).toISOString());
-              onOpenChange(false);
-            }}
-          >
-            Save
-          </Button>
-        </div>
       </PopoverContent>
     </Popover>
   );

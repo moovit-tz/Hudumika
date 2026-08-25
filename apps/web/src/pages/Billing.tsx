@@ -678,6 +678,14 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
   const [dest, setDest]           = useState(draft?.dest ?? initial?.destination ?? '');
   const [mode, setMode]           = useState<Invoice['mode']>((draft?.mode as Invoice['mode']) ?? initial?.mode ?? 'SEA');
   const [exRate, setExRate]       = useState(draft?.exRate ?? String(initial?.exchangeRate ?? 2650));
+  // Never auto-applied — a fetched rate only fills the field when the user
+  // clicks "Use this", same provenance rule editable duty/VAT/FX overrides
+  // already follow elsewhere: a typed figure must never look system-sourced,
+  // and a system-sourced one must stay visibly distinct until accepted.
+  const [todayFxRate, setTodayFxRate] = useState<{ rate: number; date: string } | null>(null);
+  useEffect(() => {
+    apiFetch('/v1/fx-rates/latest?base=USD&quote=TZS').then(setTodayFxRate).catch(() => setTodayFxRate(null));
+  }, []);
   const [terms, setTerms]         = useState(draft?.terms ?? initial?.terms ?? 'Payment due within 14 days. All 3rd party charges are estimates and subject to actuals.');
 
   const [customer, setCustomer] = useState<PickerItem | null>(
@@ -830,7 +838,18 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
           <FormField label="Sale Agent" value={agent} onChange={setAgent} placeholder="Agent name" />
           <FormField label="Invoice Date" value={billDate} onChange={setBillDate} placeholder="DD-MM-YYYY" />
           <FormField label="Due Date (optional)" value={dueDate} onChange={setDueDate} placeholder="DD-MM-YYYY" />
-          <FormField label="Exchange Rate (TZS/USD)" value={exRate} onChange={setExRate} placeholder="2650" mono />
+          <div>
+            <FormField label="Exchange Rate (TZS/USD)" value={exRate} onChange={setExRate} placeholder="2650" mono />
+            {todayFxRate && (
+              <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                Today's rate: <span style={{ fontFamily: 'var(--mono)', color: 'var(--ink2)' }}>{todayFxRate.rate.toLocaleString()}</span>
+                <button type="button" onClick={() => setExRate(String(todayFxRate.rate))}
+                  style={{ background: 'none', border: 'none', color: 'var(--teal)', cursor: 'pointer', fontWeight: 700, fontSize: 11, padding: 0 }}>
+                  Use this
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Bill To */}
@@ -1275,7 +1294,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
                   keep by also pre-opening the new-reminder form. */}
               <MoreItem icon="bell"        label="Add Reminder"  onClick={() => { setShowMore(false); setTab('reminders'); setShowRemForm(true); }} />
               <div className="billing-more-sep" />
-              <MoreItem icon="rotateCcw" label="Issue Credit Note" onClick={() => { setShowMore(false); handleIssueCreditNote(); }} />
+              <MoreItem icon="minusCircle" label="Issue Credit Note" onClick={() => { setShowMore(false); handleIssueCreditNote(); }} />
               <div className="billing-more-sep" />
               <MoreItem icon="trash" label="Delete Invoice" onClick={() => { setShowMore(false); onDelete(); }} danger />
             </div>

@@ -1,6 +1,10 @@
 import { sql } from 'kysely';
 import type { Transaction } from 'kysely';
 import type { Database } from '../db/client.js';
+import { GLService } from './gl.service.js';
+
+const COGS_ACCOUNT = '5010';
+const INVENTORY_ASSET_ACCOUNT = '1300';
 
 // Inventory Control's stock ledger — mirrors SealService.recordMovement's
 // discipline (ledger insert + projection update, always in the same
@@ -36,6 +40,9 @@ export interface RecordMovementInput {
   expiryDate?: string | null;
   reasonCode?: string | null;
   reference?: string | null;
+  /** Only meaningful on a 'receipt' — omit to leave the item's
+   *  weighted-average cost unchanged (e.g. a transfer or correction). */
+  unitCost?: number | null;
 }
 
 export class InventoryService {
@@ -51,7 +58,7 @@ export class InventoryService {
   }
 
   static async recordMovement(trx: Transaction<Database>, tenantId: string, input: RecordMovementInput) {
-    const item = await trx.selectFrom('inventory_items').select(['id', 'base_uom', 'is_batch_tracked'])
+    const item = await trx.selectFrom('inventory_items').select(['id', 'base_uom', 'is_batch_tracked', 'avg_cost'])
       .where('id', '=', input.itemId).executeTakeFirst();
     if (!item) throw new InvalidMovement(`Item not found: ${input.itemId}`);
 
@@ -94,8 +101,33 @@ export class InventoryService {
         throw new InvalidMovement(`Unknown movement type: ${input.movementType}`);
     }
 
+    // Weighted-average costing — recomputed on 'receipt' (a new average
+    // blending what's already on hand with what's arriving), read
+    // unchanged on 'issue' (COGS = qty x the average as it stood at that
+    // moment, not recomputed later). Nothing else moves the average: a
+    // transfer/adjust/count_correction changes location or quantity, not
+    // what was paid for it.
+    let unitCost: number | null = null;
+    let totalCost: number | null = null;
+    let newAvgCost: number | null = null;
+    if (input.movementType === 'receipt' && input.unitCost != null && input.unitCost >= 0) {
+      unitCost = input.unitCost;
+      const onHandRow = await trx.selectFrom('inventory_stock_levels')
+        .select(({ fn }) => fn.coalesce(fn.sum<string>('qty_on_hand'), sql.lit('0')).as('total'))
+        .where('item_id', '=', input.itemId).executeTakeFirst();
+      const currentQty = Number(onHandRow?.total ?? 0);
+      const currentAvg = Number(item.avg_cost);
+      const newTotalQty = currentQty + baseQty;
+      newAvgCost = newTotalQty > 0 ? (currentQty * currentAvg + baseQty * unitCost) / newTotalQty : unitCost;
+      newAvgCost = Math.round(newAvgCost * 10000) / 10000;
+    } else if (input.movementType === 'issue') {
+      totalCost = Math.round(baseQty * Number(item.avg_cost) * 100) / 100;
+    }
+
     const movement = await trx.insertInto('inventory_movements').values({
       tenant_id: tenantId,
+      unit_cost: unitCost,
+      total_cost: totalCost,
       actor_id: input.actorId,
       actor_type: input.actorType ?? 'user',
       movement_type: input.movementType,
@@ -130,6 +162,32 @@ export class InventoryService {
       await applyDelta(toLocationId, qtyDelta);
     } else if (fromLocationId) {
       await applyDelta(fromLocationId, qtyDelta);
+    }
+
+    if (newAvgCost != null) {
+      await trx.updateTable('inventory_items').set({ avg_cost: newAvgCost, updated_at: new Date() }).where('id', '=', input.itemId).execute();
+    } else if (totalCost != null && totalCost > 0) {
+      // COGS at the average cost as it stood the moment stock left —
+      // same idempotency non-issue as cost-posting.service.ts's demurrage
+      // posting: each movement posts exactly once, at creation, never re-run.
+      await GLService.post(tenantId, {
+        entryDate: new Date().toISOString().slice(0, 10),
+        description: `COGS: issue of ${baseQty} ${item.base_uom}`,
+        // inventory_movements.id is a BIGSERIAL, not a UUID —
+        // journal_entries.source_id is UUID-typed, so the movement's own id
+        // can't be passed there directly (confirmed live: posting failed
+        // with "invalid input syntax for type uuid"). No idempotency check
+        // currently needs to look this posting back up by source_id (unlike
+        // demurrage/payroll), so it's left unset rather than forcing a
+        // mismatched type in.
+        reference: String(movement.id),
+        sourceModule: 'EXPENSE',
+        createdBy: input.actorId ?? undefined,
+        lines: [
+          { accountCode: COGS_ACCOUNT, debit: totalCost, credit: 0, description: 'Cost of goods sold' },
+          { accountCode: INVENTORY_ASSET_ACCOUNT, debit: 0, credit: totalCost, description: 'Inventory reduced' },
+        ],
+      });
     }
 
     return movement;

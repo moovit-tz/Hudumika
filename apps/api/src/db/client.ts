@@ -2703,6 +2703,108 @@ export interface CreditNoteLinesTable {
   sort_order: Generated<number>;
 }
 
+export interface FixedAssetsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  name: string;
+  category: Generated<string>;
+  asset_account_code: Generated<string>;
+  acquisition_date: string;
+  cost: number;
+  salvage_value: Generated<number>;
+  useful_life_months: number;
+  depreciation_method: Generated<'STRAIGHT_LINE'>;
+  status: Generated<'ACTIVE' | 'DISPOSED'>;
+  disposed_at: DateOnlyNull;
+  disposal_proceeds: number | null;
+  notes: string | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface FixedAssetDepreciationEntriesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  asset_id: string;
+  period_date: string;
+  amount: number;
+  journal_entry_id: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface BudgetsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  name: string;
+  fiscal_year: number;
+  entity_id: string | null;
+  notes: string | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface BudgetLinesTable {
+  id: Generated<string>;
+  budget_id: string;
+  account_code: string;
+  period_month: number;
+  amount: Generated<number>;
+}
+
+export interface BankStatementsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  account_code: Generated<string>;
+  bank_name: string | null;
+  statement_date_from: string;
+  statement_date_to: string;
+  opening_balance: Generated<number>;
+  closing_balance: Generated<number>;
+  imported_by: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface BankStatementLinesTable {
+  id: Generated<string>;
+  bank_statement_id: string;
+  txn_date: string;
+  description: string | null;
+  amount: number;
+  matched_journal_line_id: string | null;
+  matched_at: Date | null;
+  matched_by: string | null;
+}
+
+export interface FxRatesTable {
+  id: Generated<string>;
+  rate_date: string;
+  base_currency: string;
+  quote_currency: string;
+  rate: number;
+  source: string | null;
+  fetched_at: Generated<Date>;
+}
+
+export interface GlPeriodsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  name: string;
+  period_type: Generated<'MONTH' | 'YEAR'>;
+  period_start: string;
+  period_end: string;
+  status: Generated<'open' | 'closed'>;
+  trial_balance_snapshot: Generated<unknown>;
+  closing_entry_id: string | null;
+  closed_at: Date | null;
+  closed_by: string | null;
+  reopened_at: Date | null;
+  reopened_by: string | null;
+  reopen_reason: string | null;
+  created_at: Generated<Date>;
+}
+
 export interface ProductsTable {
   id: string;
   tenant_id: string;
@@ -2998,6 +3100,11 @@ export interface TasksTable {
   // migration 276_petti_workflows.sql). Null = unassigned; the owner
   // (user_id) always retains full control regardless of who it's assigned to.
   assignee_id: string | null;
+  // Real reminder — mirrors notes' reminder_at/reminder_notified_at pair
+  // (265_notes_app.sql/282_notes_enterprise.sql) exactly; see
+  // jobs/task-reminder.job.ts for the fire-once-then-guard logic.
+  reminder_at: ColumnType<Date | null, string | null, string | null>;
+  reminder_notified_at: ColumnType<Date | null, string | null, string | null>;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -3544,6 +3651,10 @@ export interface InventoryItemsTable {
   reorder_point: string | null;
   reorder_qty: string | null;
   active: Generated<boolean>;
+  /** Running weighted-average cost, per item (not per location/batch) —
+   *  recomputed on every 'receipt' movement, read (unchanged) by 'issue'
+   *  movements to post COGS. */
+  avg_cost: Generated<number>;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -3573,6 +3684,11 @@ export interface InventoryMovementsTable {
   expiry_date: DateOnlyNull;
   reason_code: string | null;
   reference: string | null;
+  /** Only meaningful on a 'receipt' — the price paid for this batch. */
+  unit_cost: number | null;
+  /** Only meaningful on an 'issue' — qty * the item's avg_cost at the
+   *  moment this movement posted (COGS), not recomputed later. */
+  total_cost: number | null;
   created_at: Generated<Date>;
 }
 
@@ -3951,6 +4067,14 @@ export interface Database {
   invoice_activity_log: InvoiceActivityLogTable;
   credit_notes: CreditNotesTable;
   credit_note_lines: CreditNoteLinesTable;
+  fixed_assets: FixedAssetsTable;
+  fixed_asset_depreciation_entries: FixedAssetDepreciationEntriesTable;
+  budgets: BudgetsTable;
+  budget_lines: BudgetLinesTable;
+  bank_statements: BankStatementsTable;
+  bank_statement_lines: BankStatementLinesTable;
+  fx_rates: FxRatesTable;
+  gl_periods: GlPeriodsTable;
   bill_activity_log: BillActivityLogTable;
   tax_codes: TaxCodesTable;
   // Statutory payroll. Tenant-scoped like everything else here — every query

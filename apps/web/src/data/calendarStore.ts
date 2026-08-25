@@ -110,6 +110,7 @@ export interface Subtask {
 }
 
 export type TaskStatus = 'none' | 'in_progress' | 'in_review' | 'waiting' | 'completed';
+export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
 
 export interface Todo {
   id: string;
@@ -118,9 +119,13 @@ export interface Todo {
   notes?: string;
   due?: string;          // YYYY-MM-DD
   dueTime?: string;       // HH:MM:SS, optional companion to `due`
+  reminder?: string | null; // ISO datetime — a real reminder_at, delivered by task-reminder.job.ts
   starred?: boolean;
   someday?: boolean;
   status: TaskStatus;
+  priority?: TaskPriority;
+  timeLoggedMinutes?: number;
+  timerStartedAt?: string | null;
   tags: string[];
   subtasks: Subtask[];
   completed: boolean;
@@ -128,22 +133,13 @@ export interface Todo {
   deletedAt?: string;
   order: number;
   createdAt: string;
-  // Collaboration (migration 283) — a task assigned to a colleague is
-  // visible in both the owner's and the assignee's own /v1/tasks/items
-  // response; isOwner distinguishes which side of that this viewer is on,
-  // since only the owner can reassign/move/delete.
   assigneeId?: string;
   assigneeName?: string;
   assigneeAvatarUrl?: string;
   ownerName?: string;
   isOwner: boolean;
-  // Denormalized so an assignee who doesn't own the list this landed on
-  // still gets a real name/color to render, not just an id.
   listName?: string;
   listColor?: string;
-  // 'viewer' (via a shared list, migration 284) is read-only — every other
-  // level can at least do the work. isOwner above still governs the
-  // narrower "can reassign/move/delete" boundary within that.
   access?: 'owner' | 'assignee' | 'editor' | 'viewer';
 }
 
@@ -210,7 +206,7 @@ function emit() {
 function fromApiTodo(row: any): Todo {
   return {
     id: row.id, title: row.title, listId: row.list_id, notes: row.notes || undefined,
-    due: row.due || undefined, dueTime: row.due_time || undefined, starred: !!row.starred, someday: !!row.someday,
+    due: row.due || undefined, dueTime: row.due_time || undefined, reminder: row.reminder_at || null, starred: !!row.starred, someday: !!row.someday,
     status: row.status, tags: row.tags || [],
     subtasks: (row.subtasks || []).map((s: any) => ({ id: s.id, title: s.title, completed: !!s.completed })),
     completed: !!row.completed, completedAt: row.completed_at || undefined, deletedAt: row.deleted_at || undefined,
@@ -458,8 +454,10 @@ export function addTodo(input: Partial<Omit<Todo, 'id' | 'createdAt'>> & { title
   const siblingCount = todos.filter(t => t.listId === listId && !t.deletedAt).length;
   const newTodo: Todo = {
     id: newId(), title: input.title, listId,
-    notes: input.notes, due: input.due, dueTime: input.dueTime, starred: input.starred ?? false, someday: input.someday ?? false,
-    status: input.status ?? 'none', tags: input.tags ?? [], subtasks: input.subtasks ?? [],
+    notes: input.notes, due: input.due, dueTime: input.dueTime, reminder: input.reminder ?? null, starred: input.starred ?? false, someday: input.someday ?? false,
+    status: input.status ?? 'none', priority: input.priority ?? 'medium',
+    timeLoggedMinutes: input.timeLoggedMinutes ?? 0, timerStartedAt: input.timerStartedAt ?? null,
+    tags: input.tags ?? [], subtasks: input.subtasks ?? [],
     completed: input.completed ?? false, order: siblingCount, createdAt: new Date().toISOString().slice(0, 10),
     assigneeId: input.assigneeId, assigneeName: input.assigneeName, isOwner: true,
   };
@@ -469,20 +467,13 @@ export function addTodo(input: Partial<Omit<Todo, 'id' | 'createdAt'>> & { title
     method: 'POST',
     body: JSON.stringify({
       id: newTodo.id, title: newTodo.title, listId: newTodo.listId, notes: newTodo.notes, due: newTodo.due,
-      dueTime: newTodo.dueTime, starred: newTodo.starred, someday: newTodo.someday, status: newTodo.status,
-      tags: newTodo.tags, assigneeId: newTodo.assigneeId,
+      dueTime: newTodo.dueTime, reminderAt: newTodo.reminder, starred: newTodo.starred, someday: newTodo.someday, status: newTodo.status,
+      priority: newTodo.priority, tags: newTodo.tags, assigneeId: newTodo.assigneeId,
     }),
   }).catch(reportSyncFailure);
   return newTodo;
 }
 
-// assigneeId is widened to allow an explicit `null` (unassign) — Partial<Todo>
-// alone can't express "clear this field" for an optional string, only
-// "leave it untouched" (undefined), which is exactly the bug the pre-existing
-// due-date clear path has (its `due: value || undefined` collapses "cleared"
-// and "untouched" into the same undefined, so a cleared due date never
-// actually persists — not fixed here, out of scope, but not repeated for
-// this new field either).
 export function updateTodo(id: string, patch: Partial<Omit<Todo, 'assigneeId'>> & { assigneeId?: string | null }) {
   todos = todos.map(t => {
     if (t.id !== id) return t;
@@ -500,9 +491,13 @@ export function updateTodo(id: string, patch: Partial<Omit<Todo, 'assigneeId'>> 
   if (patch.notes !== undefined) body.notes = patch.notes;
   if (patch.due !== undefined) body.due = patch.due || null;
   if (patch.dueTime !== undefined) body.dueTime = patch.dueTime || null;
+  if (patch.reminder !== undefined) body.reminderAt = patch.reminder || null;
   if (patch.starred !== undefined) body.starred = patch.starred;
   if (patch.someday !== undefined) body.someday = patch.someday;
   if (patch.status !== undefined) body.status = patch.status;
+  if (patch.priority !== undefined) body.priority = patch.priority;
+  if (patch.timeLoggedMinutes !== undefined) body.timeLoggedMinutes = patch.timeLoggedMinutes;
+  if (patch.timerStartedAt !== undefined) body.timerStartedAt = patch.timerStartedAt;
   if (patch.tags !== undefined) body.tags = patch.tags;
   if (patch.completed !== undefined) body.completed = patch.completed;
   if (patch.listId !== undefined) body.listId = patch.listId;

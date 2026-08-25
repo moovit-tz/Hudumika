@@ -74,6 +74,7 @@ function mapItem(row: any) {
     reorderPoint: row.reorder_point != null ? Number(row.reorder_point) : null,
     reorderQty: row.reorder_qty != null ? Number(row.reorder_qty) : null,
     active: row.active, createdAt: row.created_at,
+    avgCost: row.avg_cost != null ? Number(row.avg_cost) : 0,
     productName: row.product_name ?? undefined,
   };
 }
@@ -182,7 +183,7 @@ export async function inventoryCatalogRoutes(fastify: FastifyInstance) {
             'inventory_items.id', 'inventory_items.sku', 'inventory_items.name', 'inventory_items.product_id',
             'inventory_items.base_uom', 'inventory_items.item_type', 'inventory_items.is_batch_tracked',
             'inventory_items.reorder_point', 'inventory_items.reorder_qty', 'inventory_items.active',
-            'inventory_items.created_at', 'products.name as product_name',
+            'inventory_items.avg_cost', 'inventory_items.created_at', 'products.name as product_name',
           ])
           .where('inventory_items.tenant_id', '=', request.user.tenant_id)
           .where('inventory_items.active', '=', true)

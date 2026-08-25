@@ -8,6 +8,7 @@ import { CloudSync } from '../services/cloud-sync.service.js';
 import { screenSubject } from '../services/sanctions.service.js';
 import { MailService } from '../services/mail.service.js';
 import { WhatsAppIntegration } from '../integrations/whatsapp.js';
+import { renderCustomerStatementPdf } from '../services/customer-statement-pdf.service.js';
 import type { CreateCustomerInput, CustomerAnalytics } from '@hudumika/types';
 import { parse } from 'csv-parse/sync';
 
@@ -661,5 +662,24 @@ export async function customerRoutes(fastify: FastifyInstance) {
 
       return { success: true, partner: created };
     });
+  });
+
+  // GET /v1/customers/:id/statement/pdf?from=&to= — real running-balance
+  // statement across invoices, payments and credit notes. Same
+  // headers/try-catch-404 shape as invoices.routes.ts's own PDF route.
+  fastify.get('/:id/statement/pdf', async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    const { from, to } = request.query as { from?: string; to?: string };
+    const toDate = to || new Date().toISOString().slice(0, 10);
+    const fromDate = from || new Date(new Date(toDate).getFullYear(), new Date(toDate).getMonth() - 1, 1).toISOString().slice(0, 10);
+    try {
+      const pdf = await renderCustomerStatementPdf(user.tenant_id, id, fromDate, toDate);
+      reply.header('Content-Type', 'application/pdf');
+      reply.header('Content-Disposition', `inline; filename="statement.pdf"`);
+      return reply.send(pdf);
+    } catch (err) {
+      return reply.status(404).send({ error: (err as Error).message });
+    }
   });
 }

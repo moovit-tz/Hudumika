@@ -1,11 +1,10 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState, useMemo } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import './studio.css';
 import { apiFetch } from '../../lib/api.js';
-import { Icon } from '../../components/Icon.js';
+import { Icon, type IconName } from '../../components/Icon.js';
 import { Badge } from '../../components/ui/badge.js';
 import { FeaturedIcon } from '../../components/ui/featured-icon.js';
-import { PageHeader } from '../../components/PageHeader.js';
 import { Button } from '../../components/ui/button.js';
 
 interface Stats {
@@ -14,23 +13,30 @@ interface Stats {
   byApp: { app: string; name: string; color: string; workflows: number }[];
   catalogue: { triggers: number; actions: number; templates: number };
 }
+
 interface RunRow {
-  id: string; workflow_id: string; workflow_name: string | null; status: string;
-  trigger_source: string; duration_ms: number; error_message: string | null;
-  domain_event_id: string | null; created_at: string;
+  id: string;
+  workflow_id: string;
+  workflow_name: string | null;
+  status: string;
+  trigger_source: string;
+  duration_ms: number;
+  error_message: string | null;
+  domain_event_id: string | null;
+  created_at: string;
 }
 
 const VARIANT: Record<string, 'success' | 'warning' | 'error' | 'info' | 'gray'> = {
-  SUCCESS: 'success', SIMULATED: 'info', PARTIAL: 'warning', FAILED: 'error', RUNNING: 'gray',
+  SUCCESS: 'success',
+  SIMULATED: 'info',
+  PARTIAL: 'warning',
+  FAILED: 'error',
+  RUNNING: 'gray',
 };
 
 /**
- * Studio's overview.
- *
- * Every number is counted from this tenant's rows by GET /stats. There is no
- * success-rate percentage, no throughput sparkline and no "vs last week" delta,
- * because nothing in this platform computes them — and a plausible-looking
- * figure on an automation console is one somebody acts on.
+ * Studio's overview dashboard redesign.
+ * Preserves exact backend API bindings (GET /v1/workflow-studio/stats and GET /v1/workflow-studio/runs).
  */
 export function StudioDashboard() {
   const navigate = useNavigate();
@@ -38,6 +44,7 @@ export function StudioDashboard() {
   const [runs, setRuns] = useState<RunRow[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+  const [runFilter, setRunFilter] = useState<'all' | 'SUCCESS' | 'SIMULATED' | 'FAILED'>('all');
 
   useEffect(() => {
     let alive = true;
@@ -45,178 +52,423 @@ export function StudioDashboard() {
       try {
         const [s, r] = await Promise.all([
           apiFetch('/v1/workflow-studio/stats'),
-          apiFetch('/v1/workflow-studio/runs?limit=12'),
+          apiFetch('/v1/workflow-studio/runs?limit=16'),
         ]);
         if (!alive) return;
-        setStats(s.data); setRuns(r.data ?? []);
-      } catch (e: any) { if (alive) setError(e?.message ?? 'Could not load Studio stats.'); }
-      finally { if (alive) setLoading(false); }
+        setStats(s.data);
+        setRuns(r.data ?? []);
+      } catch (e: any) {
+        if (alive) setError(e?.message ?? 'Could not load Studio stats.');
+      } finally {
+        if (alive) setLoading(false);
+      }
     })();
     return () => { alive = false; };
   }, []);
 
-  if (loading) return <div style={{ padding: 30, color: 'var(--ink3)' }}>Loading…</div>;
-  if (error) return <div style={{ padding: 30, color: 'var(--red)' }}>{error}</div>;
-  if (!stats) return null;
+  const filteredRuns = useMemo(() => {
+    if (runFilter === 'all') return runs;
+    return runs.filter(r => r.status === runFilter);
+  }, [runs, runFilter]);
 
-  const tile = (label: string, value: number | string, tone: 'brand' | 'success' | 'gray' | 'error' | 'info', icon: string, hint?: string) => (
-    <div className="studio-tile">
-      <div style={{ display: 'flex', gap: 11, alignItems: 'center' }}>
-        <FeaturedIcon variant={tone} size="sm"><Icon name={icon as any} size={15} /></FeaturedIcon>
-        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.4px', textTransform: 'uppercase', color: 'var(--ink3)' }}>{label}</div>
+  if (loading) {
+    return (
+      <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)', fontSize: 14 }}>
+        <div style={{ display: 'inline-block', marginBottom: 12 }}>
+          <Icon name="sparkle" size={24} style={{ animation: 'spin 2s linear infinite', color: 'var(--teal)' }} />
+        </div>
+        <div>Loading Workflow Studio Dashboard…</div>
       </div>
-      <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--ink)', marginTop: 9 }}>{value}</div>
-      {hint && <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>{hint}</div>}
-    </div>
-  );
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{ padding: 30, color: 'var(--red)', background: 'rgba(239,68,68,0.08)', borderRadius: 12, border: '1px solid var(--border)' }}>
+        <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>Failed to load Studio</div>
+        <div style={{ fontSize: 13 }}>{error}</div>
+      </div>
+    );
+  }
+
+  if (!stats) return null;
 
   const statuses = Object.entries(stats.runs.byStatusLast30d).sort((a, b) => b[1] - a[1]);
 
   return (
-    <div style={{ maxWidth: 1320 }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
-        <PageHeader
-          crumbs={['Studio', 'Studio']}
-          titlePlain="Workflow"
-          titleEm="studio"
-          subtitle="One place for every automation on the platform — what fires it, what it does, and what really happened."
-        />
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          <Button type="button" variant="outline" size="sm" onClick={() => navigate('/studio/catalog')}>
-            <Icon name="layers" size={14} />
-            <span>Browse Catalog</span>
-          </Button>
-          <Button type="button" size="sm" onClick={() => navigate('/studio/new')}>
-            <Icon name="plus" size={14} />
-            <span>Create Automation</span>
-          </Button>
+    <div style={{ maxWidth: 1360, margin: '0 auto', paddingBottom: 32 }}>
+
+      {/* ── Studio Premium Hero Command Banner ────────────────────────── */}
+      <div style={{
+        background: 'linear-gradient(135deg, #0e1f3d 0%, #1e1b4b 45%, #0d7a6b 100%)',
+        borderRadius: 16,
+        padding: '28px 32px',
+        color: '#ffffff',
+        marginBottom: 24,
+        boxShadow: '0 10px 30px rgba(14,31,61,0.2)',
+        position: 'relative',
+        overflow: 'hidden'
+      }}>
+        {/* Subtle decorative glass background circles */}
+        <div style={{
+          position: 'absolute', top: -40, right: -40, width: 260, height: 260,
+          borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%)', pointerEvents: 'none'
+        }} />
+        <div style={{
+          position: 'absolute', bottom: -50, left: '30%', width: 200, height: 200,
+          borderRadius: '50%', background: 'radial-gradient(circle, rgba(13,122,107,0.2) 0%, transparent 70%)', pointerEvents: 'none'
+        }} />
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 20, position: 'relative', zIndex: 1 }}>
+          <div style={{ maxWidth: 680 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+              <div style={{
+                width: 32, height: 32, borderRadius: 8, background: 'rgba(255,255,255,0.15)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)'
+              }}>
+                <Icon name="sparkle" size={18} color="#ffffff" />
+              </div>
+              <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.85)' }}>
+                Workflow Studio Engine
+              </span>
+            </div>
+            <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, letterSpacing: '-0.02em', color: '#ffffff' }}>
+              Automation &amp; Event Command Center
+            </h1>
+            <p style={{ margin: '6px 0 0 0', fontSize: 13.5, color: 'rgba(255,255,255,0.8)', lineHeight: 1.5 }}>
+              One central canvas for every automation across your workspace — configure triggers, multi-step actions, and live execution monitors.
+            </p>
+          </div>
+
+          {/* Header Action Buttons */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('/studio/catalog')}
+              style={{
+                background: 'rgba(255,255,255,0.12)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.25)',
+                backdropFilter: 'blur(4px)', fontWeight: 600
+              }}
+            >
+              <Icon name="layers" size={14} /> Browse Catalog
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('/studio/templates')}
+              style={{
+                background: 'rgba(255,255,255,0.12)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.25)',
+                backdropFilter: 'blur(4px)', fontWeight: 600
+              }}
+            >
+              <Icon name="copy" size={14} /> Templates ({stats.catalogue.templates})
+            </Button>
+
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => navigate('/studio/new')}
+              style={{
+                background: '#ffffff', color: 'var(--navy)', border: 'none',
+                fontWeight: 700, boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+              }}
+            >
+              <Icon name="plus" size={14} /> + Create Automation
+            </Button>
+          </div>
         </div>
       </div>
 
-      <div className="studio-tiles">
-        {tile('Workflows', stats.workflows.total, 'brand', 'zap', `${stats.workflows.draft} draft`)}
-        {tile('Active', stats.workflows.active, 'success', 'play', stats.workflows.active === 0 ? 'nothing running yet' : 'reacting to events')}
-        {tile('Runs recorded', stats.runs.total, 'info', 'clock', `${stats.runs.last30d} in the last 30 days`)}
-        {tile('Cannot run', stats.workflows.unrunnable, stats.workflows.unrunnable > 0 ? 'error' : 'gray', 'alertCircle', 'trigger not registered')}
+      {/* ── 4 KPI Stat Metric Cards Row ───────────────────────────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16, marginBottom: 24 }}>
+        
+        {/* Workflows Total Card */}
+        <div className="studio-card-interactive" style={{
+          background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 14,
+          padding: '20px 22px', boxShadow: '0 2px 6px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Workflows</span>
+            <FeaturedIcon variant="brand" size="sm"><Icon name="gitBranch" size={15} /></FeaturedIcon>
+          </div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em', lineHeight: 1 }}>
+            {stats.workflows.total}
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontWeight: 700, color: 'var(--teal)' }}>{stats.workflows.active} active</span>
+            <span>•</span>
+            <span>{stats.workflows.draft} draft</span>
+          </div>
+        </div>
+
+        {/* Active Automations Card */}
+        <div className="studio-card-interactive" style={{
+          background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 14,
+          padding: '20px 22px', boxShadow: '0 2px 6px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Active Engines</span>
+            <FeaturedIcon variant="success" size="sm"><Icon name="play" size={15} /></FeaturedIcon>
+          </div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--green)', letterSpacing: '-0.02em', lineHeight: 1 }}>
+            {stats.workflows.active}
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 8 }}>
+            {stats.workflows.active === 0 ? 'Nothing running yet' : 'Reacting to live system events'}
+          </div>
+        </div>
+
+        {/* Total Runs Card */}
+        <div className="studio-card-interactive" style={{
+          background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 14,
+          padding: '20px 22px', boxShadow: '0 2px 6px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Total Executions</span>
+            <FeaturedIcon variant="info" size="sm"><Icon name="clock" size={15} /></FeaturedIcon>
+          </div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em', lineHeight: 1 }}>
+            {stats.runs.total}
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 8 }}>
+            <span style={{ fontWeight: 700, color: 'var(--blue)' }}>{stats.runs.last30d}</span> in the last 30 days
+          </div>
+        </div>
+
+        {/* Building Blocks / Unrunnable Status */}
+        <div className="studio-card-interactive" style={{
+          background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 14,
+          padding: '20px 22px', boxShadow: '0 2px 6px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Catalog Blocks</span>
+            <FeaturedIcon variant="gray" size="sm"><Icon name="layers" size={15} /></FeaturedIcon>
+          </div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--purple)', letterSpacing: '-0.02em', lineHeight: 1 }}>
+            {stats.catalogue.triggers + stats.catalogue.actions}
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span>{stats.catalogue.triggers} Triggers</span>
+            <span>•</span>
+            <span>{stats.catalogue.actions} Actions</span>
+          </div>
+        </div>
+
       </div>
 
+      {/* ── Active Draft Mode Warning Banner ──────────────────────────── */}
       {stats.workflows.active === 0 && stats.workflows.total > 0 && (
-        <div style={{ padding: '11px 14px', borderRadius: 10, background: 'var(--blue-l)', border: '1px solid var(--blue-l)', fontSize: 12.5, color: 'var(--ink2)', marginBottom: 16, display: 'flex', gap: 9 }}>
-          <Icon name="info" size={15} color="var(--blue)" style={{ flexShrink: 0, marginTop: 1 }} />
-          <span>
-            No workflow is active. The ones that replace built-in behaviour stay in <strong>Draft</strong> on purpose — the existing code keeps doing the work
-            until you switch one on, and then exactly one of the two runs.
-          </span>
+        <div style={{
+          padding: '14px 18px', borderRadius: 12, background: 'var(--blue-l)', border: '1px solid var(--blue-m)',
+          fontSize: 13, color: 'var(--ink2)', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 12,
+          boxShadow: '0 2px 6px rgba(37,99,235,0.05)'
+        }}>
+          <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(37,99,235,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Icon name="info" size={16} color="var(--blue)" />
+          </div>
+          <div style={{ flex: 1, lineHeight: 1.45 }}>
+            <strong>No workflow is active yet.</strong> Workflows that replace built-in behavior stay in <strong>Draft</strong> state on purpose — existing fallback logic keeps running until you toggle one to active.
+          </div>
+          <Button type="button" size="sm" variant="outline" onClick={() => navigate('/studio/workflows')}>
+            Manage Workflows →
+          </Button>
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.35fr) minmax(0,1fr)', gap: 14, alignItems: 'start' }} className="studio-dash-grid">
-        {/* Recent runs */}
-        <div style={{ border: '1px solid var(--border)', borderRadius: 12, background: 'var(--card-bg, var(--white))', overflow: 'hidden' }}>
-          <div className="studio-panel-head">
-            <span className="studio-panel-title">Recent runs</span>
-            <button type="button" className="studio-icon-btn" onClick={() => navigate('/studio/runs')}>View all <Icon name="arrowRight" size={12} /></button>
-          </div>
-          {runs.length === 0 ? (
-            <div style={{ padding: 26, textAlign: 'center', color: 'var(--ink3)', fontSize: 12.5 }}>
-              Nothing has run yet. Open a workflow and use <strong>Dry run</strong> to try one safely.
+      {/* ── Main Studio Grid ─────────────────────────────────────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr)', gap: 20, alignItems: 'start' }} className="studio-dash-grid">
+        
+        {/* ── LEFT COLUMN: Recent Execution Runs ─────────────────────── */}
+        <div style={{ border: '1px solid var(--border)', borderRadius: 14, background: 'var(--white)', overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Icon name="clock" size={17} color="var(--teal)" />
+              <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--navy)' }}>Recent Execution Runs</span>
             </div>
-          ) : runs.map(r => (
-            <div key={r.id} className="studio-step" style={{ gridTemplateColumns: '92px 1fr auto', cursor: 'pointer' }}
-                 onClick={() => navigate(`/studio/w/${r.workflow_id}`)}>
-              <Badge variant={VARIANT[r.status] ?? 'gray'}>{r.status}</Badge>
-              <span>
-                <span style={{ color: 'var(--ink)' }}>{r.workflow_name ?? 'Deleted workflow'}</span>
-                <span className="studio-run-mono" style={{ display: 'block', marginTop: 2 }}>{r.trigger_source}</span>
-                {r.error_message && <span style={{ display: 'block', color: 'var(--red)', fontSize: 11.5, marginTop: 2 }}>{r.error_message}</span>}
-              </span>
-              <span className="studio-run-mono">{r.duration_ms}ms · {new Date(r.created_at).toLocaleTimeString()}</span>
-            </div>
-          ))}
-        </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {/* Run outcomes */}
-          <div style={{ border: '1px solid var(--border)', borderRadius: 12, background: 'var(--card-bg, var(--white))' }}>
-            <div className="studio-panel-head"><span className="studio-panel-title">Outcomes · last 30 days</span></div>
-            <div style={{ padding: 14 }}>
-              {statuses.length === 0 ? (
-                <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>No runs in this period.</div>
-              ) : statuses.map(([status, n]) => {
-                const pct = Math.round((n / stats.runs.last30d) * 100);
-                return (
-                  <div key={status} style={{ marginBottom: 10 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
-                      <Badge variant={VARIANT[status] ?? 'gray'}>{status}</Badge>
-                      <span style={{ color: 'var(--ink2)' }}>{n} · {pct}%</span>
+            {/* Filter buttons */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              {(['all', 'SUCCESS', 'SIMULATED', 'FAILED'] as const).map(st => (
+                <button
+                  key={st}
+                  type="button"
+                  onClick={() => setRunFilter(st)}
+                  style={{
+                    fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 6, border: 'none', cursor: 'pointer',
+                    background: runFilter === st ? 'var(--teal-l)' : 'transparent',
+                    color: runFilter === st ? 'var(--teal)' : 'var(--ink3)'
+                  }}
+                >
+                  {st === 'all' ? 'All' : st}
+                </button>
+              ))}
+
+              <button
+                type="button"
+                onClick={() => navigate('/studio/runs')}
+                style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, marginLeft: 4 }}
+              >
+                View all <Icon name="arrowRight" size={13} />
+              </button>
+            </div>
+          </div>
+
+          {/* Runs List */}
+          <div>
+            {filteredRuns.length === 0 ? (
+              <div style={{ padding: 36, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>
+                Nothing has run under this filter. Open a workflow and use <strong>Dry run</strong> to test one safely.
+              </div>
+            ) : (
+              filteredRuns.map((r, idx) => (
+                <div
+                  key={r.id}
+                  onClick={() => navigate(`/studio/w/${r.workflow_id}`)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 14, padding: '12px 20px',
+                    borderBottom: idx < filteredRuns.length - 1 ? '1px solid var(--border)' : 'none',
+                    cursor: 'pointer', transition: 'background 0.12s ease'
+                  }}
+                  onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--bg)'}
+                  onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
+                >
+                  <Badge variant={VARIANT[r.status] ?? 'gray'} style={{ minWidth: 76, textAlign: 'center' }}>
+                    {r.status}
+                  </Badge>
+
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {r.workflow_name ?? 'Deleted workflow'}
                     </div>
-                    <div style={{ height: 6, borderRadius: 99, background: 'var(--border)' }}>
-                      <div style={{ height: '100%', width: `${pct}%`, borderRadius: 99, background: status === 'FAILED' ? 'var(--red)' : status === 'SIMULATED' ? 'var(--blue)' : status === 'PARTIAL' ? 'var(--gold)' : 'var(--green)' }} />
+                    <div style={{ fontSize: 11.5, fontFamily: 'var(--mono)', color: 'var(--ink3)', marginTop: 2 }}>
+                      Trigger: {r.trigger_source}
+                    </div>
+                    {r.error_message && (
+                      <div style={{ fontSize: 11.5, color: 'var(--red)', marginTop: 2, fontWeight: 600 }}>
+                        {r.error_message}
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                    <div style={{ fontSize: 11.5, fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--ink)' }}>
+                      {r.duration_ms}ms
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>
+                      {new Date(r.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
                     </div>
                   </div>
-                );
-              })}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* ── RIGHT COLUMN: Outcomes, App Distribution & Clearance ───── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          
+          {/* 1. Run Outcomes Distribution */}
+          <div style={{ border: '1px solid var(--border)', borderRadius: 14, background: 'var(--white)', overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+            <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Icon name="barChart2" size={16} color="var(--purple)" />
+              <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--navy)' }}>Outcomes • Last 30 Days</span>
+            </div>
+            <div style={{ padding: '16px 20px' }}>
+              {statuses.length === 0 ? (
+                <div style={{ fontSize: 13, color: 'var(--ink3)', textAlign: 'center', padding: '12px 0' }}>No execution runs recorded in this period.</div>
+              ) : (
+                statuses.map(([status, n]) => {
+                  const pct = Math.round((n / stats.runs.last30d) * 100);
+                  const barColor = status === 'FAILED' ? 'var(--red)' : status === 'SIMULATED' ? 'var(--blue)' : status === 'PARTIAL' ? 'var(--gold)' : 'var(--green)';
+                  return (
+                    <div key={status} style={{ marginBottom: 12 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12.5, marginBottom: 5 }}>
+                        <Badge variant={VARIANT[status] ?? 'gray'}>{status}</Badge>
+                        <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{n} runs <span style={{ color: 'var(--ink3)', fontWeight: 400 }}>({pct}%)</span></span>
+                      </div>
+                      <div style={{ height: 7, borderRadius: 4, background: 'var(--border)', overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${pct}%`, borderRadius: 4, background: barColor, transition: 'width 0.5s ease' }} />
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
 
-          {/* Per app */}
-          <div style={{ border: '1px solid var(--border)', borderRadius: 12, background: 'var(--card-bg, var(--white))' }}>
-            <div className="studio-panel-head"><span className="studio-panel-title">By app</span></div>
-            <div style={{ padding: 8 }}>
+          {/* 2. Automations By App */}
+          <div style={{ border: '1px solid var(--border)', borderRadius: 14, background: 'var(--white)', overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+            <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Icon name="grid" size={16} color="var(--blue)" />
+              <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--navy)' }}>Automations By Workspace App</span>
+            </div>
+            <div style={{ padding: '12px 14px' }}>
               {stats.byApp.map(a => (
-                <div key={a.app} className="studio-run-row"
-                     onClick={() => navigate(a.app === '__unregistered__' ? '/studio/workflows' : `/studio/workflows?app=${a.app}`)}>
-                  <span style={{ width: 8, height: 8, borderRadius: 99, background: a.color, flexShrink: 0 }} />
-                  <span style={{ color: 'var(--ink)' }}>{a.name}</span>
-                  <span style={{ marginLeft: 'auto', color: 'var(--ink3)' }}>{a.workflows}</span>
+                <div
+                  key={a.app}
+                  onClick={() => navigate(a.app === '__unregistered__' ? '/studio/workflows' : `/studio/workflows?app=${a.app}`)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 8,
+                    fontSize: 13, cursor: 'pointer', transition: 'background 0.12s'
+                  }}
+                  onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--bg)'}
+                  onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
+                >
+                  <span style={{ width: 9, height: 9, borderRadius: '50%', background: a.color, flexShrink: 0 }} />
+                  <span style={{ color: 'var(--ink)', fontWeight: 600 }}>{a.name}</span>
+                  <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 700, color: 'var(--ink3)' }}>{a.workflows}</span>
+                  <Icon name="chevronRight" size={14} color="var(--ink3)" />
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Catalogue */}
-          <div style={{ border: '1px solid var(--border)', borderRadius: 12, background: 'var(--card-bg, var(--white))' }}>
-            <div className="studio-panel-head"><span className="studio-panel-title">Building blocks</span></div>
-            <div style={{ padding: 8 }}>
-              <div className="studio-run-row" onClick={() => navigate('/studio/catalog')}>
-                <Icon name="zap" size={14} color="var(--green)" /><span>Triggers</span>
-                <span style={{ marginLeft: 'auto', color: 'var(--ink3)' }}>{stats.catalogue.triggers}</span>
+          {/* 3. Clearance Stage Workflows */}
+          <div style={{ border: '1px solid var(--border)', borderRadius: 14, background: 'var(--white)', overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+            <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Icon name="layers" size={16} color="var(--teal)" />
+                <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--navy)' }}>Clearance Stage Workflows</span>
               </div>
-              <div className="studio-run-row" onClick={() => navigate('/studio/catalog')}>
-                <Icon name="play" size={14} color="var(--teal)" /><span>Actions</span>
-                <span style={{ marginLeft: 'auto', color: 'var(--ink3)' }}>{stats.catalogue.actions}</span>
+            </div>
+            <div style={{ padding: '14px 18px', fontSize: 12, color: 'var(--ink3)', lineHeight: 1.5 }}>
+              Defines the shipment clearance stages and step release criteria. Live consignments advance through these flows.
+            </div>
+            <div style={{ padding: '0 12px 12px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div
+                onClick={() => navigate('/studio/clearance')}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 8,
+                  fontSize: 13, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer', background: 'var(--bg)'
+                }}
+              >
+                <Icon name="layers" size={15} color="var(--teal)" />
+                <span>All Clearance Workflows</span>
+                <Icon name="arrowRight" size={14} color="var(--ink3)" style={{ marginLeft: 'auto' }} />
               </div>
-              <div className="studio-run-row" onClick={() => navigate('/studio/templates')}>
-                <Icon name="copy" size={14} color="var(--purple)" /><span>Templates</span>
-                <span style={{ marginLeft: 'auto', color: 'var(--ink3)' }}>{stats.catalogue.templates}</span>
+
+              <div
+                onClick={() => navigate('/studio/clearance/new')}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 8,
+                  fontSize: 13, fontWeight: 600, color: 'var(--teal)', cursor: 'pointer', background: 'var(--teal-l)'
+                }}
+              >
+                <Icon name="plus" size={15} color="var(--teal)" />
+                <span>Design New Clearance Flow</span>
+                <Icon name="arrowRight" size={14} color="var(--teal)" style={{ marginLeft: 'auto' }} />
               </div>
             </div>
           </div>
 
-          {/* Clearance workflows — the other kind of thing this app builds.
-              Kept in its own panel and named for what it is: these define the
-              stages a shipment moves through, not automations that fire on an
-              event, and conflating the two would be a costly misunderstanding
-              for whoever edits one thinking it is the other. */}
-          <div style={{ border: '1px solid var(--border)', borderRadius: 12, background: 'var(--card-bg, var(--white))' }}>
-            <div className="studio-panel-head"><span className="studio-panel-title">Clearance workflows</span></div>
-            <div style={{ padding: '10px 12px 6px', fontSize: 11.5, color: 'var(--ink3)', lineHeight: 1.55 }}>
-              The stages a shipment moves through, and the conditions for leaving each one.
-              Live consignments sit on these steps.
-            </div>
-            <div style={{ padding: 8 }}>
-              <div className="studio-run-row" onClick={() => navigate('/studio/clearance')}>
-                <Icon name="layers" size={14} color="var(--teal)" /><span>All clearance workflows</span>
-                <Icon name="arrowRight" size={12} color="var(--ink3)" style={{ marginLeft: 'auto' }} />
-              </div>
-              <div className="studio-run-row" onClick={() => navigate('/studio/clearance/new')}>
-                <Icon name="plus" size={14} color="var(--green)" /><span>Design a new one</span>
-                <Icon name="arrowRight" size={12} color="var(--ink3)" style={{ marginLeft: 'auto' }} />
-              </div>
-            </div>
-          </div>
         </div>
+
       </div>
+
     </div>
   );
 }

@@ -58,11 +58,17 @@ const STANDARD_COA: { code: string; name: string; type: 'ASSET' | 'LIABILITY' | 
   { code: '5001', name: 'Freight Costs', type: 'EXPENSE', subtype: 'COST_OF_SERVICES', normalBalance: 'DEBIT' },
   { code: '5002', name: 'Transport Costs', type: 'EXPENSE', subtype: 'COST_OF_SERVICES', normalBalance: 'DEBIT' },
   { code: '5003', name: 'Storage & Demurrage', type: 'EXPENSE', subtype: 'COST_OF_SERVICES', normalBalance: 'DEBIT' },
+  // Posts against 1300 Inventory (already seeded, unused until this) on
+  // every 'issue' movement, at the item's running weighted-average cost.
+  { code: '5010', name: 'Cost of Goods Sold', type: 'EXPENSE', subtype: 'COST_OF_SERVICES', normalBalance: 'DEBIT' },
   { code: '5100', name: 'Salaries & Wages', type: 'EXPENSE', subtype: 'OPERATING_EXPENSE', normalBalance: 'DEBIT' },
   // Employer-side cost of employing people (contributions matched/paid on
   // top of gross pay), kept out of 5100 for the same "spelled out, not
   // blended" reason payroll.routes.ts's own totals breakdown gives.
   { code: '5110', name: 'Employer Payroll Contributions', type: 'EXPENSE', subtype: 'OPERATING_EXPENSE', normalBalance: 'DEBIT' },
+  // Posts against 1501/1502 (asset cost, already seeded) and 1503
+  // (Accumulated Depreciation, already seeded but unused until this).
+  { code: '5111', name: 'Depreciation Expense', type: 'EXPENSE', subtype: 'OPERATING_EXPENSE', normalBalance: 'DEBIT' },
   { code: '5101', name: 'Office Rent', type: 'EXPENSE', subtype: 'OPERATING_EXPENSE', normalBalance: 'DEBIT' },
   { code: '5102', name: 'Utilities', type: 'EXPENSE', subtype: 'OPERATING_EXPENSE', normalBalance: 'DEBIT' },
   { code: '5200', name: 'Bank Charges', type: 'EXPENSE', subtype: 'FINANCE_COST', normalBalance: 'DEBIT' },
@@ -111,6 +117,22 @@ export class GLService {
         throw new Error(`Journal entry does not balance: DR ${totalDebit} ≠ CR ${totalCredit}`);
       }
 
+      // 1.5. A closed GL period blocks every posting path in one place —
+      // deliberately here, not replicated per-route the way vat_periods'
+      // assertPeriodOpen() is called from each of invoices/bills
+      // individually. This is the one chokepoint every module in the
+      // platform already posts through, so a single check here covers all
+      // of them for free. closeGlPeriod() posts its own closing entry
+      // *before* marking the period closed, so it never trips this itself.
+      const entryDateOnly = req.entryDate.slice(0, 10);
+      const closedPeriod = await trx.selectFrom('gl_periods').select(['id', 'name'])
+        .where('tenant_id', '=', tenantId).where('status', '=', 'closed')
+        .where('period_start', '<=', entryDateOnly).where('period_end', '>=', entryDateOnly)
+        .executeTakeFirst();
+      if (closedPeriod) {
+        throw new Error(`The period "${closedPeriod.name}" is closed — this date falls inside it. Reopen the period before posting here.`);
+      }
+
       // 2. Resolve account IDs from codes
       const codes = req.lines.map(l => l.accountCode);
       const accounts = await trx
@@ -123,15 +145,27 @@ export class GLService {
       const codeToId = Object.fromEntries(accounts.map(a => [a.code, a.id]));
 
       // 3. Generate entry number (JE-YYYY-NNNN)
+      //
+      // MAX-of-existing-suffixes, not COUNT(*) — a count undercounts once any
+      // row in the sequence has ever been deleted (reverseBySource() hard-
+      // deletes; a voided credit note, or any edited-and-reposted document,
+      // does exactly that), so COUNT+1 can recompute a number that still
+      // exists further up the sequence and collide on the unique constraint.
+      // Confirmed live: deleting JE-2026-0006 while 0001-0005 and 0007
+      // remained left COUNT=6, so the next post tried to reuse 0007 and
+      // failed. A gap in the sequence is fine and expected; a duplicate is not.
       const year = new Date(req.entryDate).getFullYear();
-      const countResult = await trx
+      const existing = await trx
         .selectFrom('journal_entries')
-        .select(trx.fn.count('id').as('n'))
+        .select('entry_number')
         .where('tenant_id', '=', tenantId)
         .where('entry_number', 'like', `JE-${year}-%`)
-        .executeTakeFirst();
-      
-      const seq = String(Number(countResult?.n ?? 0) + 1).padStart(4, '0');
+        .execute();
+      const maxSeq = existing.reduce((max, row) => {
+        const n = Number(row.entry_number.slice(`JE-${year}-`.length));
+        return Number.isFinite(n) && n > max ? n : max;
+      }, 0);
+      const seq = String(maxSeq + 1).padStart(4, '0');
       const entryNumber = `JE-${year}-${seq}`;
 
       // 4. Insert header

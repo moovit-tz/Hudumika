@@ -23,6 +23,7 @@ function buildNav(t: TFunction): SidebarSection[] {
       title: t('finance.nav.receivables'),
       items: [
         { label: t('finance.nav.invoices'),      icon: 'receipt',   path: '/finance/invoices'       },
+        { label: 'Credit Notes',                 icon: 'minusCircle', path: '/finance/credit-notes' },
         { label: t('finance.nav.quotations'),    icon: 'fileText',  path: '/finance/quotations'     },
         { label: t('finance.nav.deliveryNotes'), icon: 'package',   path: '/finance/delivery-documents' },
       ],
@@ -52,6 +53,10 @@ function buildNav(t: TFunction): SidebarSection[] {
         { label: t('finance.nav.agedReceivables'),  icon: 'clock',      path: '/finance/accounts/aged-receivables'    },
         { label: t('finance.nav.agedPayables'),     icon: 'clock',      path: '/finance/accounts/aged-payables'       },
         { label: 'Multi-Entity',                    icon: 'building',   path: '/finance/accounts/multi-entity'        },
+        { label: 'Fixed Assets',                    icon: 'package',    path: '/finance/accounts/fixed-assets'        },
+        { label: 'Budgets',                         icon: 'target',      path: '/finance/accounts/budgets'             },
+        { label: 'Bank Reconciliation',              icon: 'building',    path: '/finance/accounts/bank-reconciliation' },
+        { label: 'Period Close',                     icon: 'lock',        path: '/finance/accounts/gl-periods'          },
       ],
     },
     {
@@ -107,6 +112,11 @@ import { JournalEntries }             from '../pages/JournalEntries.js';
 import { DeliveryDocumentsPage }       from '../pages/DeliveryDocumentsPage.js';
 import { AccountingIntegrations }      from '../pages/AccountingIntegrations.js';
 import { RecurringInvoices }           from '../pages/RecurringInvoices.js';
+import { CreditNotes }                 from '../pages/CreditNotes.js';
+import { FixedAssets }                 from '../pages/FixedAssets.js';
+import { Budgets }                     from '../pages/Budgets.js';
+import { BankReconciliation }          from '../pages/BankReconciliation.js';
+import { GlPeriods }                   from '../pages/GlPeriods.js';
 
 export function FinOpsShell() {
   const { t } = useLocale();
@@ -126,6 +136,8 @@ export function FinOpsShell() {
           {/* Receivables */}
           <Route path="invoices"       element={<RequireRoles roles={FIN_ROLES}><Billing /></RequireRoles>} />
           <Route path="invoices/recurring" element={<RequireRoles roles={FIN_ROLES}><RecurringInvoices /></RequireRoles>} />
+          <Route path="credit-notes"     element={<RequireRoles roles={FIN_ROLES}><CreditNotes /></RequireRoles>} />
+          <Route path="credit-notes/new" element={<RequireRoles roles={FIN_ROLES}><CreditNotes /></RequireRoles>} />
           <Route path="quotations"     element={<RequireRoles roles={FIN_ROLES}><Quotations /></RequireRoles>} />
           <Route path="delivery-documents" element={<RequireRoles roles={FIN_ROLES}><DeliveryDocumentsPage /></RequireRoles>} />
           <Route path="delivery-notes" element={<Navigate to="/finance/delivery-documents" replace />} />
@@ -154,6 +166,10 @@ export function FinOpsShell() {
             <Route path="aged-receivables"element={<RequireRoles roles={FIN_ROLES}><FinanceAgedReceivables /></RequireRoles>} />
             <Route path="aged-payables"   element={<RequireRoles roles={FIN_ROLES}><FinanceAgedPayables /></RequireRoles>} />
             <Route path="multi-entity"    element={<RequireRoles roles={FIN_ROLES}><MultiEntityAccounting /></RequireRoles>} />
+            <Route path="fixed-assets"    element={<RequireRoles roles={FIN_ROLES}><FixedAssets /></RequireRoles>} />
+            <Route path="budgets"         element={<RequireRoles roles={FIN_ROLES}><Budgets /></RequireRoles>} />
+            <Route path="bank-reconciliation" element={<RequireRoles roles={FIN_ROLES}><BankReconciliation /></RequireRoles>} />
+            <Route path="gl-periods"      element={<RequireRoles roles={FIN_ROLES}><GlPeriods /></RequireRoles>} />
           </Route>
 
           {/* Reports */}

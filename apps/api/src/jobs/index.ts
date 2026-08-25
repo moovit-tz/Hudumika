@@ -26,11 +26,14 @@ import { runSignReminderJob } from './sign-reminder.job.js';
 import { runSignAnchorConfirmJob } from './sign-anchor-confirm.job.js';
 import { runSignAnchorStampJob } from './sign-anchor-stamp.job.js';
 import { runNotesReminderJob } from './notes-reminder.job.js';
+import { runTaskReminderJob } from './task-reminder.job.js';
 import { runNotesPurgeJob } from './notes-purge.job.js';
 import { runCalendarReminderJob } from './calendar-reminder.job.js';
 import { runCalendarExternalSyncJob } from './calendar-external-sync.job.js';
 import { runSmsOutboxJob } from './sms-outbox.job.js';
 import { runRecurringDocumentsJob } from './recurring-documents.job.js';
+import { runFixedAssetDepreciationJob } from './fixed-asset-depreciation.job.js';
+import { runFxRateSyncJob } from './fx-rate-sync.job.js';
 
 /**
  * Real registry of every background job this file actually schedules —
@@ -59,6 +62,8 @@ export const JOB_REGISTRY: { name: string; schedule: string; fallbackOnly?: bool
   { name: 'Sanctions List Sync (OFAC/UN)', schedule: 'Daily at 05:00' },
   { name: 'Daily Shipment Report', schedule: 'Daily at 21:00 EAT' },
   { name: 'Recurring Bills & Invoices Generation', schedule: 'Daily at 06:00' },
+  { name: 'Fixed Asset Depreciation', schedule: 'Monthly, 1st at 02:00' },
+  { name: 'FX Rate Sync', schedule: 'Daily at 05:30' },
   { name: 'Sign Envelope Expiry Sweep', schedule: 'Daily at 06:00' },
   { name: 'Sign Reminder', schedule: 'Daily at 09:00' },
   { name: 'Sign Anchor Confirmation', schedule: 'Every hour' },
@@ -246,6 +251,10 @@ function startBullMQ(): void {
           await runDailyShipmentReportJob();
         } else if (job.name === 'recurring-documents') {
           await runRecurringDocumentsJob();
+        } else if (job.name === 'fixed-asset-depreciation') {
+          await runFixedAssetDepreciationJob();
+        } else if (job.name === 'fx-rate-sync') {
+          await runFxRateSyncJob();
         } else if (job.name === 'sign-expiry') {
           await runSignExpiryJob();
         } else if (job.name === 'sign-reminder') {
@@ -256,6 +265,8 @@ function startBullMQ(): void {
           await runSignAnchorStampJob();
         } else if (job.name === 'notes-reminder') {
           await runNotesReminderJob();
+        } else if (job.name === 'task-reminder') {
+          await runTaskReminderJob();
         } else if (job.name === 'notes-purge') {
           await runNotesPurgeJob();
         } else if (job.name === 'calendar-reminder') {
@@ -413,6 +424,10 @@ function startBullMQ(): void {
       repeat: { pattern: '0 5 * * *' } // Daily at 5:00 AM — refresh the shared OFAC SDN + UN Consolidated lists
     }).catch(console.error);
 
+    reminderQueue.add('fx-rate-sync', {}, {
+      repeat: { pattern: '30 5 * * *' } // Daily at 5:30 AM
+    }).catch(console.error);
+
     // Daily shipment-report automation — the one job in this file that's
     // pinned to a specific real-world timezone rather than server-local
     // time: EAT is the operational timezone this feature is for, and no
@@ -423,6 +438,10 @@ function startBullMQ(): void {
 
     reminderQueue.add('recurring-documents', {}, {
       repeat: { pattern: '0 6 * * *' } // Daily at 6:00 AM — generate bills/invoices whose next_due has arrived
+    }).catch(console.error);
+
+    reminderQueue.add('fixed-asset-depreciation', {}, {
+      repeat: { pattern: '0 2 1 * *' } // Monthly, 1st at 2:00 AM
     }).catch(console.error);
 
     reminderQueue.add('sign-expiry', {}, {
@@ -446,6 +465,11 @@ function startBullMQ(): void {
     // is the resolution, not the notify rate (reminder_notified_at guards
     // against re-firing on every pass).
     reminderQueue.add('notes-reminder', {}, {
+      repeat: { every: 5 * 60 * 1000 } // Every 5 minutes
+    }).catch(console.error);
+
+    // Task reminders — same set-to-the-minute reasoning as notes-reminder.
+    reminderQueue.add('task-reminder', {}, {
       repeat: { every: 5 * 60 * 1000 } // Every 5 minutes
     }).catch(console.error);
 
@@ -531,9 +555,12 @@ function startIntervalFallback(): void {
   runSignReminderJob().catch(console.error);
   runSignAnchorStampJob().catch(console.error);
   runNotesReminderJob().catch(console.error);
+  runTaskReminderJob().catch(console.error);
   runCalendarReminderJob().catch(console.error);
   runCalendarExternalSyncJob().catch(console.error);
   runRecurringDocumentsJob().catch(console.error);
+  runFixedAssetDepreciationJob().catch(console.error);
+  runFxRateSyncJob().catch(console.error);
 
   // Set interval timers
   fallbackTimer = setInterval(() => {
@@ -546,6 +573,11 @@ function startIntervalFallback(): void {
   // the daily/10-minute fallback groups.
   setInterval(() => {
     runNotesReminderJob().catch(console.error);
+  }, 5 * 60 * 1000);
+
+  // Task reminders — same 5-minute resolution reasoning.
+  setInterval(() => {
+    runTaskReminderJob().catch(console.error);
   }, 5 * 60 * 1000);
 
   // Calendar reminders — same 5-minute resolution reasoning.
@@ -583,6 +615,12 @@ function startIntervalFallback(): void {
     runSignReminderJob().catch(console.error);
     runNotesPurgeJob().catch(console.error);
     runRecurringDocumentsJob().catch(console.error);
+    // Idempotent per (asset_id, period_date), so a daily fallback check is
+    // safe — it just no-ops after the month's entry is already posted,
+    // same reasoning as every other monthly-in-spirit job that lacks real
+    // cron scheduling in standalone dev.
+    runFixedAssetDepreciationJob().catch(console.error);
+    runFxRateSyncJob().catch(console.error);
   }, 24 * 60 * 60 * 1000);
 
   // GPSWOX device sync — every 2 minutes, its own timer since it's far more

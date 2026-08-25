@@ -49,6 +49,7 @@ const taskCreateSchema = z.object({
   status: z.enum(TASK_STATUSES).optional(),
   tags: z.array(z.string()).optional(),
   assigneeId: uuidSchema.optional(),
+  reminderAt: z.string().nullable().optional(),
 });
 const taskPatchSchema = z.object({
   title: z.string().trim().min(1).max(500).optional(),
@@ -57,6 +58,7 @@ const taskPatchSchema = z.object({
   dueTime: z.string().max(8).nullable().optional(),
   starred: z.boolean().optional(),
   someday: z.boolean().optional(),
+  reminderAt: z.string().nullable().optional(),
   status: z.enum(TASK_STATUSES).optional(),
   tags: z.array(z.string()).optional(),
   completed: z.boolean().optional(),
@@ -464,6 +466,7 @@ export async function tasksRoutes(fastify: FastifyInstance) {
         starred: body.starred ?? false, someday: body.someday ?? false, status: body.status || 'none',
         tags: JSON.stringify(body.tags ?? []) as unknown as string[],
         assignee_id: body.assigneeId || null,
+        reminder_at: body.reminderAt || null,
         sort_order: Number(siblingCount?.count ?? 0),
       }).returningAll().executeTakeFirstOrThrow();
       if (body.assigneeId) await handleAssigneeChange(trx, user, row, body.assigneeId);
@@ -511,6 +514,13 @@ export async function tasksRoutes(fastify: FastifyInstance) {
       }
       if (body.deletedAt !== undefined) updates.deleted_at = body.deletedAt || null;
       if (body.assigneeId !== undefined) updates.assignee_id = body.assigneeId;
+      if (body.reminderAt !== undefined) {
+        updates.reminder_at = body.reminderAt || null;
+        // Changing (or clearing) the reminder re-arms it — same reasoning as
+        // notes.service.ts: otherwise pushing a fired reminder later would
+        // never fire again, since it was already marked notified.
+        updates.reminder_notified_at = null;
+      }
 
       const row = await trx.updateTable('tasks').set(updates)
         .where('id', '=', request.params.id)

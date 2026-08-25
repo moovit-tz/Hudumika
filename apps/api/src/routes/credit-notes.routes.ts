@@ -49,7 +49,22 @@ export async function creditNoteRoutes(fastify: FastifyInstance) {
       let q = trx.selectFrom('credit_notes').selectAll().where('tenant_id', '=', user.tenant_id);
       if (customer_id) q = q.where('customer_id', '=', customer_id);
       if (original_invoice_id) q = q.where('original_invoice_id', '=', original_invoice_id);
-      return q.orderBy('created_at', 'desc').execute();
+      const rows = await q.orderBy('created_at', 'desc').execute();
+
+      // Same "batch-fetch lines, attach to each row" shape as GET /v1/invoices
+      // — the frontend needs each credit note's total (its line items) for
+      // the customer statement's running balance.
+      const ids = rows.map(r => r.id);
+      const lines = ids.length > 0
+        ? await trx.selectFrom('credit_note_lines').selectAll().where('credit_note_id', 'in', ids).orderBy('sort_order', 'asc').execute()
+        : [];
+      const linesByNote = new Map<string, typeof lines>();
+      for (const l of lines) {
+        const arr = linesByNote.get(l.credit_note_id) ?? [];
+        arr.push(l);
+        linesByNote.set(l.credit_note_id, arr);
+      }
+      return rows.map(r => ({ ...r, items: linesByNote.get(r.id) ?? [] }));
     });
   });
 

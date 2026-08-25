@@ -9,12 +9,16 @@ import { apiFetch } from '../lib/api.js';
 import { isRightSidebarCollapsed, toggleRightSidebar, RIGHT_SIDEBAR_TOGGLE_EVENT } from '../lib/rightSidebarState.js';
 import { useEnabledApps, isAppEnabled } from '../hooks/useEnabledApps.js';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuLabel, DropdownMenuSeparator } from './ui/dropdown-menu.js';
+import { LauncherAppSvg } from './LauncherApps.js';
+import { NotificationListItem } from './NotificationListItem.js';
+import { ReminderPicker } from './ReminderPicker.js';
+import './NotificationCentre.css';
 import './GoogleWorkspaceRightSidebar.css';
 
-export type CompanionPanelId = 'tasks' | 'calendar' | 'esign' | 'chat' | 'notifications' | 'analytics' | 'notes' | 'sms' | 'contacts' | 'ai' | 'starred' | 'settings' | null;
+export type CompanionPanelId = 'tasks' | 'calendar' | 'esign' | 'chat' | 'notifications' | 'analytics' | 'notes' | 'sms' | 'contacts' | 'ai' | 'settings' | null;
 
 interface RailApp {
-  id: Exclude<CompanionPanelId, null | 'starred' | 'settings'>;
+  id: Exclude<CompanionPanelId, null | 'settings'>;
   label: string;
   icon: IconName;
   color: string;
@@ -37,7 +41,10 @@ const RAIL_APPS: RailApp[] = [
   { id: 'analytics', label: 'Analytics', icon: 'barChart', color: '#ea580c' },
 ];
 
-const DEFAULT_PINNED: CompanionPanelId[] = ['notes', 'tasks', 'sms', 'chat', 'notifications', 'esign', 'contacts', 'ai'];
+// 'ai' isn't in the default pinned list — it has its own dedicated button
+// (below the pinned-app list) with the real Hudumika AI brand glyph, so
+// pinning it here too would just duplicate the same trigger.
+const DEFAULT_PINNED: CompanionPanelId[] = ['notes', 'tasks', 'sms', 'chat', 'notifications', 'esign', 'contacts'];
 
 // Panels whose drawer shows a filterable list — the search button only
 // appears for these, rather than on a scratchpad or a static toggle grid
@@ -45,12 +52,14 @@ const DEFAULT_PINNED: CompanionPanelId[] = ['notes', 'tasks', 'sms', 'chat', 'no
 const SEARCHABLE_PANELS = new Set<CompanionPanelId>(['tasks', 'calendar', 'esign', 'chat', 'notifications', 'sms', 'contacts']);
 
 // Real full-page route for panels that have one — drives the "open in app"
-// button. Panels without a dedicated page (notifications, analytics,
-// starred, settings, ai has its own but is listed explicitly) are omitted
-// rather than linking somewhere fake.
+// button. Panels without a dedicated page (settings) are omitted rather than
+// linking somewhere fake. notifications → the same notification centre
+// AppHeader's own bell dropdown links out to (NotificationCentre.tsx's
+// footer), not a page built just for this drawer.
 const PANEL_ROUTES: Partial<Record<Exclude<CompanionPanelId, null>, string>> = {
   notes: '/notes', tasks: '/tasks', calendar: '/calendar', esign: '/sign',
   chat: '/chat', sms: '/sms', contacts: '/contacts', ai: '/ai', analytics: '/hudubi',
+  notifications: '/bliss/notifications',
 };
 const PINNED_KEY = 'hudumika_companion_rail_apps';
 
@@ -66,6 +75,7 @@ function loadPinned(): CompanionPanelId[] {
 export const GoogleWorkspaceRightSidebar: React.FC = () => {
   const [activePanel, setActivePanel] = useState<CompanionPanelId>(null);
   const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [openReminderTodoId, setOpenReminderTodoId] = useState<string | null>(null);
   const [scratchNote, setScratchNote] = useState(() => localStorage.getItem('hudumika_quick_note') || '');
   const [pinnedIds, setPinnedIds] = useState<CompanionPanelId[]>(loadPinned);
 
@@ -118,8 +128,14 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
       showAlert(err?.message || 'Could not mark notifications as read.');
     }
   }
+  // Same shape as AppHeader's own handleMarkRead — one row read, on click.
+  function markNotificationRead(id: string) {
+    setNotifs(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+    setUnreadNotifCount(prev => Math.max(0, prev - 1));
+    apiFetch(`/v1/notifications/${id}/read`, { method: 'PATCH' }).catch(() => {});
+  }
 
-  // ── Team chat — real, /v1/chat/channels (same backend EmailRightToolMenu uses) ──
+  // ── Team chat — real, /v1/chat/channels ──
   const [channels, setChannels] = useState<{ id: string; name: string; unread: number; last_message: string | null; last_message_at: string | null }[]>([]);
   useEffect(() => {
     apiFetch('/v1/chat/channels')
@@ -242,7 +258,6 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
               {activePanel === 'sms' && <><Icon name="smartphone" size={17} style={{ color: '#dc2626' }} /> SMS</>}
               {activePanel === 'contacts' && <><Icon name="contact" size={17} style={{ color: '#2563eb' }} /> Contacts</>}
               {activePanel === 'ai' && <><Icon name="sparkle" size={17} style={{ color: 'var(--teal)' }} /> AI Assistant</>}
-              {activePanel === 'starred' && <><Icon name="star" size={17} style={{ color: '#0d9488' }} /> Starred Shortcuts</>}
               {activePanel === 'settings' && <><Icon name="settings" size={17} style={{ color: 'var(--ink2)' }} /> Quick Settings</>}
             </div>
             <div className="gws-drawer-actions">
@@ -312,6 +327,13 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                       <span style={{ flex: 1, fontSize: 13, color: todo.completed ? 'var(--ink3)' : 'var(--ink)', textDecoration: todo.completed ? 'line-through' : 'none' }}>
                         {todo.title}
                       </span>
+                      <ReminderPicker
+                        value={todo.reminder ?? null}
+                        onChange={v => updateTodo(todo.id, { reminder: v })}
+                        open={openReminderTodoId === todo.id}
+                        onOpenChange={o => setOpenReminderTodoId(o ? todo.id : null)}
+                        triggerStyle={{ background: 'none', border: 'none', cursor: 'pointer', color: todo.reminder ? 'var(--teal)' : 'var(--ink4)', display: 'flex', padding: 2 }}
+                      />
                       <button type="button" onClick={() => deleteTodo(todo.id)} style={{ background: 'none', border: 'none', color: 'var(--ink4)', cursor: 'pointer', display: 'flex', padding: 2 }}>
                         <Icon name="trash" size={13} />
                       </button>
@@ -369,7 +391,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
               </div>
             )}
 
-            {/* CHAT PANEL — real, /v1/chat/channels (same backend EmailRightToolMenu uses) */}
+            {/* CHAT PANEL — real, /v1/chat/channels */}
             {activePanel === 'chat' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', letterSpacing: '0.04em' }}>Team Activity &amp; Discussions</div>
@@ -395,26 +417,27 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
               </div>
             )}
 
-            {/* NOTIFICATIONS PANEL — real, /v1/notifications */}
+            {/* NOTIFICATIONS PANEL — real, /v1/notifications, same row component
+                and mark-read/deep-link behavior as AppHeader's own bell dropdown */}
             {activePanel === 'notifications' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, margin: '0 -16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px' }}>
                   <span style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', letterSpacing: '0.04em' }}>{notifs.length} Notifications</span>
                   {unreadNotifCount > 0 && (
-                    <button type="button" onClick={markAllNotificationsRead} style={{ fontSize: 11.5, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>Mark read</button>
+                    <button type="button" onClick={markAllNotificationsRead} style={{ fontSize: 11.5, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>Mark all read</button>
                   )}
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div>
                   {notifs.filter(n => matches(n.title)).map(n => (
-                    <div key={n.id} style={{ padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                      {!n.read && <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--teal)', marginTop: 4, flexShrink: 0 }} />}
-                      <div style={{ fontSize: 12.5, color: 'var(--ink)', fontWeight: n.read ? 500 : 700 }}>{n.title}</div>
-                    </div>
+                    <NotificationListItem key={n.id} n={n} onMarkRead={markNotificationRead} onNavigate={() => setActivePanel(null)} />
                   ))}
                   {notifs.length === 0 && (
-                    <div style={{ fontSize: 12.5, color: 'var(--ink3)', textAlign: 'center', padding: '24px 0' }}>No notifications.</div>
+                    <div style={{ fontSize: 12.5, color: 'var(--ink3)', textAlign: 'center', padding: '24px 16px' }}>No notifications.</div>
                   )}
                 </div>
+                <a href="/bliss/notifications" style={{ textAlign: 'center', padding: '10px 16px 0', margin: '0 16px', borderTop: '1px solid var(--border)', fontSize: 12.5, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none' }}>
+                  View all in Notification Centre
+                </a>
               </div>
             )}
 
@@ -540,23 +563,6 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
               </div>
             )}
 
-            {/* STARRED / STUDIO PANEL */}
-            {activePanel === 'starred' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', letterSpacing: '0.04em' }}>Quick Launchers</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <a href="/studio" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', textDecoration: 'none', color: 'var(--ink)', fontSize: 13, fontWeight: 600 }}>
-                    <Icon name="sparkle" size={16} style={{ color: 'var(--teal)' }} /> Workflow Studio
-                  </a>
-                  <a href="/sign" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', textDecoration: 'none', color: 'var(--ink)', fontSize: 13, fontWeight: 600 }}>
-                    <Icon name="fileText" size={16} style={{ color: '#0284c7' }} /> eSign Dashboard
-                  </a>
-                  <a href="/calendar" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', textDecoration: 'none', color: 'var(--ink)', fontSize: 13, fontWeight: 600 }}>
-                    <Icon name="calendar" size={16} style={{ color: '#1a73e8' }} /> Calendar App
-                  </a>
-                </div>
-              </div>
-            )}
 
             {/* SETTINGS PANEL */}
             {activePanel === 'settings' && (
@@ -616,13 +622,14 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
 
         {/* Bottom Action Items */}
         <div className="gws-rail-bottom">
-          {/* Starred / Add-ons Teal Button */}
+          {/* AI Assistant — the Hudumika AI brand glyph, colored with this
+              app's own accent (var(--teal)), same as the launcher tile. */}
           <button
-            className="gws-starred-btn"
-            onClick={() => togglePanel('starred')}
-            title="Starred Apps & Add-ons"
+            className="gws-ai-btn"
+            onClick={() => togglePanel('ai')}
+            title="AI Assistant"
           >
-            <Icon name="star" size={18} />
+            <LauncherAppSvg id="ai" color="var(--teal)" size={40} />
           </button>
 
           {/* Add / remove which apps show in this rail — same idea as Google's own "+" add-ons picker */}

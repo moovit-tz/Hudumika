@@ -26,7 +26,12 @@ import {
 } from '../services/payroll.service.js';
 
 /** Roles that may see the whole payroll rather than only their own payslip. */
-const PAYROLL_ROLES = ['SUPER_ADMIN', 'ADMIN', 'FINANCE'] as const;
+// TENANT_ADMIN is @deprecated on UserRole but "treated as ADMIN" per its own
+// doc comment (packages/types/src/user.ts) — requireRole() does a plain
+// string match with no alias resolution, so it has to be listed explicitly
+// wherever 'ADMIN' is, or a tenant admin whose role is still literally
+// 'TENANT_ADMIN' gets a real 403 on every payroll endpoint.
+const PAYROLL_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'FINANCE'] as const;
 const canSeeAll = (role: string) => (PAYROLL_ROLES as readonly string[]).includes(role);
 
 const num = (v: unknown): number => Number(v ?? 0);
@@ -108,7 +113,7 @@ export async function payrollRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.patch('/settings/schemes/:id', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN') }, async (req, reply) => {
+  fastify.patch('/settings/schemes/:id', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
     const user = req.user;
     const { id } = req.params as { id: string };
     const b = req.body as any;
@@ -452,7 +457,7 @@ export async function payrollRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/runs/:id/approve', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'FINANCE') }, async (req, reply) => {
+  fastify.post('/runs/:id/approve', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'FINANCE') }, async (req, reply) => {
     const user = req.user;
     const { id } = req.params as { id: string };
     return withTenant(user.tenant_id, async (trx) => {
@@ -489,7 +494,7 @@ export async function payrollRoutes(fastify: FastifyInstance) {
   // contributions are the employer's to forward, not to bear, and the
   // employer's own matched contributions are a real cost of employing
   // people on top of gross pay.
-  fastify.post('/runs/:id/mark-paid', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'FINANCE') }, async (req, reply) => {
+  fastify.post('/runs/:id/mark-paid', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'FINANCE') }, async (req, reply) => {
     const user = req.user;
     const { id } = req.params as { id: string };
     return withTenant(user.tenant_id, async (trx) => {
@@ -543,7 +548,7 @@ export async function payrollRoutes(fastify: FastifyInstance) {
   // tenant's own SMTP config (Workspace ▸ Settings ▸ Email); the count reflects
   // what was actually accepted for sending, and a payslip with no email is
   // reported skipped rather than silently dropped.
-  fastify.post('/runs/:id/distribute', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'FINANCE') }, async (req, reply) => {
+  fastify.post('/runs/:id/distribute', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'FINANCE') }, async (req, reply) => {
     const user = req.user;
     const { id } = req.params as { id: string };
     return withTenant(user.tenant_id, async (trx) => {
@@ -581,7 +586,7 @@ export async function payrollRoutes(fastify: FastifyInstance) {
 
   // Bank payment file: a CSV of net pay + each employee's bank / mobile-money
   // details for an approved run, ready to hand to the bank for a bulk transfer.
-  fastify.get('/runs/:id/bank-file', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'FINANCE') }, async (req, reply) => {
+  fastify.get('/runs/:id/bank-file', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'FINANCE') }, async (req, reply) => {
     const user = req.user;
     const { id } = req.params as { id: string };
     return withTenant(user.tenant_id, async (trx) => {

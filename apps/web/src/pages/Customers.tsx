@@ -29,7 +29,7 @@ import { getCompany } from '../data/companyStore.js';
    one invoice's line groups. */
 function openStatementPrintWindow(
   customer: { name: string },
-  transactions: { type: 'invoice' | 'payment'; date: string; ref: string; amount: number; debit: boolean; balance: number }[],
+  transactions: { type: 'invoice' | 'payment' | 'credit note'; date: string; ref: string; amount: number; debit: boolean; balance: number }[],
   totals: { totalInvoiced: number; totalPaid: number; outstanding: number },
 ) {
   const co = getCompany();
@@ -332,6 +332,7 @@ export const Customers: React.FC = () => {
   /* Finance data */
   const [custInvoices, setCustInvoices] = useState<any[]>([]);
   const [custPayments, setCustPayments] = useState<any[]>([]);
+  const [custCreditNotes, setCustCreditNotes] = useState<any[]>([]);
   const [finLoading, setFinLoading]     = useState(false);
 
   /* Supply chain */
@@ -430,12 +431,14 @@ export const Customers: React.FC = () => {
   const loadFinance = useCallback(async (customerId: string) => {
     setFinLoading(true);
     try {
-      const [inv, pay] = await Promise.all([
+      const [inv, pay, cn] = await Promise.all([
         apiFetch(`/v1/invoices?customer_id=${customerId}`).catch(() => []),
         apiFetch(`/v1/payments?customer_id=${customerId}`).catch(() => []),
+        apiFetch(`/v1/credit-notes?customer_id=${customerId}`).catch(() => []),
       ]);
       setCustInvoices(Array.isArray(inv) ? inv : (inv?.data ?? []));
       setCustPayments(Array.isArray(pay) ? pay : (pay?.data ?? []));
+      setCustCreditNotes(Array.isArray(cn) ? cn : (cn?.data ?? []));
     } catch { /* empty */ } finally { setFinLoading(false); }
   }, []);
 
@@ -1519,7 +1522,9 @@ export const Customers: React.FC = () => {
 
       const totalInvoiced = custInvoices.reduce((s: number, i: any) => s + invoiceTotals(mapApiInvoice(i)).grandTotalTZS, 0);
       const totalPaid     = custPayments.reduce((s: number, p: any) => s + (parseFloat(p.amount ?? 0)), 0);
-      const outstanding   = totalInvoiced - totalPaid;
+      const totalCredited = custCreditNotes.filter((c: any) => c.status === 'POSTED')
+        .reduce((s: number, c: any) => s + (c.items ?? []).reduce((ls: number, l: any) => ls + Number(l.qty) * Number(l.rate) * (1 + Number(l.tax_pct) / 100), 0), 0);
+      const outstanding   = totalInvoiced - totalPaid - totalCredited;
 
       const INV_STATUS: Record<string, { bg: string; color: string }> = {
         paid:     { bg: 'var(--green-l)', color: 'var(--green)' },
@@ -1633,9 +1638,11 @@ export const Customers: React.FC = () => {
             // balance at that point — then displayed newest-first, matching
             // every other list on this tab, with the balance already baked
             // into each row rather than recomputed for the reversed order.
+            const creditNoteTotal = (cn: any) => (cn.items ?? []).reduce((s: number, l: any) => s + Number(l.qty) * Number(l.rate) * (1 + Number(l.tax_pct) / 100), 0);
             const chronological = [
               ...custInvoices.map((i: any) => ({ type: 'invoice' as const, date: i.bill_date, ref: i.invoice_number || `INV-${i.id?.slice(-5)}`, amount: invoiceTotals(mapApiInvoice(i)).grandTotalTZS, debit: true })),
               ...custPayments.map((p: any) => ({ type: 'payment' as const, date: p.payment_date, ref: p.invoice_number || `PAY-${p.id?.slice(-5)}`, amount: parseFloat(p.amount ?? 0), debit: false })),
+              ...custCreditNotes.filter((c: any) => c.status === 'POSTED').map((c: any) => ({ type: 'credit note' as const, date: c.credit_date, ref: c.credit_note_number, amount: creditNoteTotal(c), debit: false })),
             ].sort((a, b) => new Date(a.date || 0).getTime() - new Date(b.date || 0).getTime());
             let bal = 0;
             const withBalance = chronological.map(tx => { bal += tx.debit ? tx.amount : -tx.amount; return { ...tx, balance: bal }; });
@@ -1645,11 +1652,17 @@ export const Customers: React.FC = () => {
             <div style={{ padding: '24px 28px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
                 <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>Statement of Account</div>
-                <button type="button" className="btn btn-secondary btn-sm"
-                  disabled={transactions.length === 0}
-                  onClick={() => selected && openStatementPrintWindow(selected, transactions, { totalInvoiced, totalPaid, outstanding })}>
-                  <Icon name="printer" size={13} /> Print Statement
-                </button>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button type="button" className="btn btn-secondary btn-sm"
+                    disabled={transactions.length === 0}
+                    onClick={() => selected && openStatementPrintWindow(selected, transactions, { totalInvoiced, totalPaid, outstanding })}>
+                    <Icon name="printer" size={13} /> Print Statement
+                  </button>
+                  <button type="button" className="btn btn-primary btn-sm"
+                    onClick={() => selected && apiDownload(`/v1/customers/${selected.id}/statement/pdf`, `statement-${selected.name}.pdf`).catch((err: any) => showAlert(err.message || 'Download failed'))}>
+                    <Icon name="download" size={13} /> Download PDF
+                  </button>
+                </div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 24 }}>
                 {[
@@ -1715,15 +1728,44 @@ export const Customers: React.FC = () => {
             )
           )}
 
-          {/* Proposals & Credit Notes — placeholder */}
-          {(financeTab === 'proposals' || financeTab === 'credit-notes') && (
+          {/* Proposals — placeholder (no proposal-tracking feature exists yet) */}
+          {financeTab === 'proposals' && (
             <div style={{ padding: '32px 28px' }}>
-              <EmptyState
-                icon={financeTab === 'proposals' ? 'clipboard' : 'arrowLeft'}
-                title={financeTab === 'proposals' ? 'No proposals' : 'No credit notes'}
-                sub={financeTab === 'proposals' ? 'Quotations sent as proposals will appear here' : 'Issued credit notes will appear here'}
-              />
+              <EmptyState icon="clipboard" title="No proposals" sub="Quotations sent as proposals will appear here" />
             </div>
+          )}
+
+          {/* Credit Notes — real data (credit-notes.routes.ts) */}
+          {financeTab === 'credit-notes' && (
+            custCreditNotes.length === 0 ? (
+              <div style={{ padding: '32px 28px' }}>
+                <EmptyState icon="minusCircle" title="No credit notes" sub="Issued credit notes will appear here" />
+              </div>
+            ) : (
+              <div>
+                <div style={{ display: 'flex', padding: '12px 28px', background: 'var(--bg)', borderBottom: '1px solid var(--border)', fontSize: 11.5, fontWeight: 600, color: 'var(--ink3)' }}>
+                  <div style={{ flex: 1 }}>Number</div>
+                  <div style={{ flex: 1 }}>Date</div>
+                  <div style={{ flex: 2 }}>Reason</div>
+                  <div style={{ flex: 1, textAlign: 'right' }}>Amount</div>
+                  <div style={{ flex: 1, textAlign: 'right' }}>Status</div>
+                </div>
+                {custCreditNotes.map((c: any) => {
+                  const total = (c.items ?? []).reduce((s: number, l: any) => s + Number(l.qty) * Number(l.rate) * (1 + Number(l.tax_pct) / 100), 0);
+                  return (
+                    <div key={c.id} style={{ display: 'flex', alignItems: 'center', padding: '14px 28px', borderBottom: '1px solid var(--border)', background: 'var(--white)' }}>
+                      <div style={{ flex: 1, fontFamily: 'var(--mono)', fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{c.credit_note_number}</div>
+                      <div style={{ flex: 1, fontSize: 12, color: 'var(--ink2)' }}>{c.credit_date ? new Date(c.credit_date).toLocaleDateString('en-GB') : '—'}</div>
+                      <div style={{ flex: 2, fontSize: 12.5, color: 'var(--ink2)' }}>{c.reason || '—'}</div>
+                      <div style={{ flex: 1, fontFamily: 'var(--mono)', fontSize: 14, fontWeight: 700, color: 'var(--red)', textAlign: 'right' }}>-{total.toLocaleString()}</div>
+                      <div style={{ flex: 1, textAlign: 'right' }}>
+                        <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 9, background: c.status === 'VOID' ? 'var(--red-l)' : 'var(--green-l)', color: c.status === 'VOID' ? 'var(--red)' : 'var(--green)' }}>{c.status}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )
           )}
         </div>
       );

@@ -4,7 +4,6 @@ import { Icon } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
 import { MobileNavContext } from '../shells/WorkspaceApp.js';
 import { showAlert } from '../lib/alert.js';
-import { EmailRightToolMenu } from '../components/EmailRightToolMenu.js';
 import './EmailApp.css';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -617,15 +616,6 @@ export const EmailApp: React.FC = () => {
         ) : null}
 
       </div>{/* /em-body */}
-
-      {/* Area 5: Katalyst-style Right Tool Menu Rail & Expandable Drawers */}
-      {!isMobile && (
-        <EmailRightToolMenu
-          selectedEmail={selectedEmail}
-          onOpenEmail={id => setSelectedId(id)}
-          emails={emails}
-        />
-      )}
 
       {/* Compose modal */}
       {composeOpen && (

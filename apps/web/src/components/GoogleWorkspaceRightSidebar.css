@@ -11,6 +11,16 @@
   user-select: none;
 }
 
+/* Same breakpoint AppSidebar.css hides the left nav at — a 56px rail plus a
+   320px drawer has no room on a real mobile viewport; a future mobile-only
+   overlay (matching AppSidebar's own portal pattern) is a separate feature,
+   not something to leave half-broken in the meantime. */
+@media (max-width: 767px) {
+  .gws-right-sidebar-root {
+    display: none;
+  }
+}
+
 /* ── 56px Vertical Rail ── */
 .gws-rail {
   position: relative;
@@ -18,19 +28,21 @@
   min-width: 56px;
   height: 100%;
   background: var(--card-bg, #ffffff);
-  border-left: 1px solid var(--border);
+  /* Matches .app-sidebar's own border-right exactly (AppSidebar.css) — same
+     edge treatment on both sides, a plain hairline border with no added
+     box-shadow. */
+  border-left: 1px solid rgba(0, 0, 0, 0.09);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
   box-sizing: border-box;
-  box-shadow: -1px 0 0 rgba(0,0,0,0.04);
   transition: background 0.2s ease, border-color 0.2s ease;
 }
 
 [data-theme="dark"] .gws-rail {
   background: var(--white);
-  border-left-color: rgba(255,255,255,0.08);
+  border-left: none;
 }
 
 /* Continues AppHeader's own 57px/border-bottom line across the rail column,
@@ -168,24 +180,27 @@
 .gws-badge-red { background: #ef4444; }
 
 /* Teal Starred Button at bottom of rail */
-.gws-starred-btn {
+/* The colored rounded-square tile itself comes from LauncherAppSvg (id="ai")
+   — same brand glyph and per-app accent color as the app launcher grid.
+   This wrapper only adds the elevated, clickable feel around it. */
+.gws-ai-btn {
   width: 40px;
   height: 40px;
   border-radius: 12px;
   border: none;
-  background: linear-gradient(135deg, #0d9488 0%, #0891b2 100%);
-  color: #ffffff;
+  background: none;
+  padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(13, 148, 136, 0.35);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--teal) 35%, transparent);
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-.gws-starred-btn:hover {
+.gws-ai-btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.45);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--teal) 45%, transparent);
 }
 
 .gws-divider {
@@ -203,10 +218,11 @@
   width: 320px;
   height: 100%;
   background: var(--white, #ffffff);
-  border-left: 1px solid var(--border);
+  /* Same edge treatment as .app-sidebar's border-right — a plain hairline,
+     no separate drop-shadow. */
+  border-left: 1px solid rgba(0, 0, 0, 0.09);
   display: flex;
   flex-direction: column;
-  box-shadow: -4px 0 16px rgba(0,0,0,0.06);
   z-index: 10;
   box-sizing: border-box;
   animation: gwsDrawerSlideIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
@@ -214,7 +230,7 @@
 
 [data-theme="dark"] .gws-drawer {
   background: var(--white);
-  border-left-color: rgba(255,255,255,0.08);
+  border-left: none;
 }
 
 @keyframes gwsDrawerSlideIn {
