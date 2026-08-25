@@ -15,6 +15,7 @@ import {
   useActiveTaskView, setActiveTaskView,
   inboxListId, TaskViewId,
   fetchListShares, shareListWith, unshareList, ListShare,
+  useLinkedTasks,
 } from '../data/calendarStore.js';
 import { GoogleWorkspaceRightSidebar } from '../components/GoogleWorkspaceRightSidebar.js';
 
@@ -116,6 +117,7 @@ const SMART_VIEWS: { id: TaskViewId; label: string; icon: 'list' | 'star' | 'cal
 function TasksSidebarContent({ collapsed }: { collapsed: boolean }) {
   const todos = useTodos();
   const lists = useLists();
+  const linked = useLinkedTasks();
   const view = useActiveTaskView();
   const [addingList, setAddingList] = useState(false);
   const [newListName, setNewListName] = useState('');
@@ -170,6 +172,51 @@ function TasksSidebarContent({ collapsed }: { collapsed: boolean }) {
           </button>
         );
       })}
+
+      {linked.length > 0 && (() => {
+        const bySource = new Map<string, number>();
+        for (const l of linked) bySource.set(l.sourceApp, (bySource.get(l.sourceApp) || 0) + 1);
+        return (
+          <>
+            <div style={{ margin: '18px 10px 6px' }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>From other apps</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setActiveTaskView('linked')}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 10, padding: 'var(--ds-btn-py) 10px', borderRadius: 'var(--r)',
+                border: 'none', cursor: 'pointer', textAlign: 'left', width: '100%',
+                background: view === 'linked' ? 'var(--teal-l)' : 'transparent',
+                color: view === 'linked' ? 'var(--teal)' : 'var(--ink2)',
+                fontWeight: view === 'linked' ? 700 : 500, fontSize: 14, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }}
+            >
+              <Icon name="externalLink" size={15} color={view === 'linked' ? 'var(--teal)' : 'var(--ink3)'} />
+              <span style={{ flex: 1 }}>All</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: view === 'linked' ? 'var(--teal)' : 'var(--ink3)', background: view === 'linked' ? 'rgba(255,255,255,0.5)' : 'var(--bg)', padding: '1px 7px', borderRadius: 10 }}>{linked.length}</span>
+            </button>
+            {[...bySource.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([sourceApp, count]) => {
+              const isActive = view === `linked:${sourceApp}`;
+              return (
+                <button
+                  key={sourceApp}
+                  type="button"
+                  onClick={() => setActiveTaskView(`linked:${sourceApp}` as TaskViewId)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 10, padding: 'var(--ds-btn-py) 10px var(--ds-btn-py) 25px', borderRadius: 'var(--r)',
+                    border: 'none', cursor: 'pointer', textAlign: 'left', width: '100%',
+                    background: isActive ? 'var(--teal-l)' : 'transparent',
+                    color: isActive ? 'var(--teal)' : 'var(--ink2)',
+                    fontWeight: isActive ? 700 : 500, fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }}
+                >
+                  <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sourceApp}</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: isActive ? 'var(--teal)' : 'var(--ink3)' }}>{count}</span>
+                </button>
+              );
+            })}
+          </>
+        );
+      })()}
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '18px 10px 6px' }}>
         <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Lists</span>

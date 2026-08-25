@@ -93,6 +93,7 @@ export async function chatRoutes(fastify: FastifyInstance) {
           name: c.type === 'dm' && other ? other.name : c.name,
           description: c.description,
           member_ids: memberIds,
+          created_by: c.created_by,
           other_user_id: otherId ?? null,
           other_user_role: other?.role ?? null,
           unread: unreadCounts.get(c.id) ?? 0,
@@ -102,6 +103,60 @@ export async function chatRoutes(fastify: FastifyInstance) {
       }).sort((a, b) => new Date(b.last_message_at ?? 0).getTime() - new Date(a.last_message_at ?? 0).getTime());
 
       return { data };
+    });
+  });
+
+  // GET /v1/chat/channels/browse — every #channel and group in the tenant
+  // the user is NOT already a member of, so they can discover and join one
+  // instead of only ever being able to create a brand-new one. DMs are
+  // excluded — they're inherently a private pair, there's nothing to browse.
+  fastify.get('/channels/browse', async (request) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const myMemberships = await trx.selectFrom('chat_channel_members').select('channel_id')
+        .where('user_id', '=', user.sub).execute();
+      const myChannelIds = myMemberships.map((m) => m.channel_id);
+
+      let q = trx.selectFrom('chat_channels').selectAll()
+        .where('tenant_id', '=', user.tenant_id).where('type', 'in', ['channel', 'group']);
+      if (myChannelIds.length > 0) q = q.where('id', 'not in', myChannelIds);
+      const channels = await q.orderBy('name', 'asc').execute();
+      if (channels.length === 0) return { data: [] };
+
+      const channelIds = channels.map((c) => c.id);
+      const memberCounts = await trx.selectFrom('chat_channel_members')
+        .select('channel_id')
+        .select(eb => eb.fn.countAll<string>().as('count'))
+        .where('channel_id', 'in', channelIds).groupBy('channel_id').execute();
+      const countMap = new Map(memberCounts.map((m) => [m.channel_id, Number(m.count)]));
+
+      return {
+        data: channels.map((c) => ({
+          id: c.id, type: c.type, name: c.name, description: c.description,
+          member_count: countMap.get(c.id) ?? 0,
+        })),
+      };
+    });
+  });
+
+  // POST /v1/chat/channels/:id/join — add yourself to a #channel or group
+  // you found via the browse list above. DMs can't be joined this way (the
+  // channelCreateSchema/DM branch is the only way one gets a second member).
+  fastify.post('/channels/:id/join', async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    return withTenant(user.tenant_id, async (trx) => {
+      const channel = await trx.selectFrom('chat_channels').selectAll()
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!channel) return reply.status(404).send({ error: 'Channel not found' });
+      if (channel.type === 'dm') return reply.status(400).send({ error: 'A direct message cannot be joined.' });
+
+      const already = await trx.selectFrom('chat_channel_members').select('user_id')
+        .where('channel_id', '=', id).where('user_id', '=', user.sub).executeTakeFirst();
+      if (!already) {
+        await trx.insertInto('chat_channel_members').values({ channel_id: id, user_id: user.sub }).execute();
+      }
+      return channel;
     });
   });
 
@@ -247,6 +302,37 @@ export async function chatRoutes(fastify: FastifyInstance) {
       await trx.updateTable('chat_channel_members').set({ last_read_at: new Date() })
         .where('channel_id', '=', id).where('user_id', '=', user.sub).execute();
       return { ok: true };
+    });
+  });
+
+  // DELETE /v1/chat/channels/:id — leave a channel/group, or (if you created
+  // it) delete it outright for everyone. A DM never fully deletes — leaving
+  // only removes your own membership row (chat_channel_members' PK is
+  // channel_id+user_id, so this is exact), which drops it from your list
+  // while the other party keeps the channel and its history untouched.
+  fastify.delete('/channels/:id', async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    return withTenant(user.tenant_id, async (trx) => {
+      const channel = await trx.selectFrom('chat_channels').selectAll()
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!channel) return reply.status(404).send({ error: 'Channel not found' });
+
+      const member = await trx.selectFrom('chat_channel_members').select('user_id')
+        .where('channel_id', '=', id).where('user_id', '=', user.sub).executeTakeFirst();
+      if (!member) return reply.status(403).send({ error: 'Not a member of this channel' });
+
+      // chat_messages/chat_channel_members/chat_message_reactions all carry
+      // ON DELETE CASCADE back to chat_channels (074_chat.sql) — a hard
+      // delete here needs no explicit child cleanup.
+      const canDelete = channel.type !== 'dm' && channel.created_by === user.sub;
+      if (canDelete) {
+        await trx.deleteFrom('chat_channels').where('id', '=', id).where('tenant_id', '=', user.tenant_id).execute();
+        return { deleted: true };
+      }
+
+      await trx.deleteFrom('chat_channel_members').where('channel_id', '=', id).where('user_id', '=', user.sub).execute();
+      return { left: true };
     });
   });
 

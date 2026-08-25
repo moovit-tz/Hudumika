@@ -83,6 +83,7 @@ import { PettiShell } from './shells/PettiShell.js';
 import { SmsShell } from './shells/SmsShell.js';
 import { CalendarShell } from './shells/CalendarShell.js';
 import { TasksShell }    from './shells/TasksShell.js';
+import { ProjectsShell } from './shells/ProjectsShell.js';
 import { NotesShell }    from './shells/NotesShell.js';
 import { CMSShell }      from './shells/CMSShell.js';
 import { StudioShell } from './shells/StudioShell.js';
@@ -463,6 +464,7 @@ const AppContentBody: React.FC = () => {
           {/* ── App shells (prefix-based routes) that use WorkspaceApp ── */}
           <Route path="/calendar/*"       element={<CalendarShell />} />
           <Route path="/tasks/*"          element={<TasksShell />} />
+          <Route path="/projects/*"       element={<ProjectsShell />} />
           <Route path="/notes/*"          element={<NotesShell />} />
           <Route path="/sign/*"           element={<SignShell />} />
 

@@ -3,7 +3,7 @@ import { Icon, type IconName } from '../components/Icon.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import {
   useTodos, useLists, addTodo, updateTodo, deleteTodo, restoreTodo, purgeTodo, reorderTodo,
-  addSubtask, updateSubtask, deleteSubtask,
+  addSubtask, updateSubtask, deleteSubtask, startTaskTimer, stopTaskTimer, cloneTask,
   useActiveTaskView, setActiveTaskView, useEvents, useLinkedTasks, inboxListId,
   fetchTodoComments, postTodoComment, deleteTodoComment,
   Todo, TaskStatus, TaskPriority, TodoComment,
@@ -85,11 +85,9 @@ export const TasksApp: React.FC = () => {
 
   const [displayMode, setDisplayMode] = useState<'list' | 'kanban'>('list');
   const [filterStatus, setFilterStatus] = useState<string>('all');
-  const [filterPriority, setFilterPriority] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [createModalOpen, setCreateModalOpen] = useState(false);
 
-  const [newTitle, setNewTitle] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showCompleted, setShowCompleted] = useState(false);
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
@@ -114,11 +112,10 @@ export const TasksApp: React.FC = () => {
     return active;
   }, [view, allTodos, active, currentListId]);
 
-  /* Advanced Filter Toolbar Applying Status, Priority & Search */
+  /* Filter Toolbar Applying Status (from the KPI cards) & Search */
   const filteredRows = useMemo(() => {
     return baseRows.filter(t => {
       if (filterStatus !== 'all' && t.status !== filterStatus) return false;
-      if (filterPriority !== 'all' && (t.priority || 'medium') !== filterPriority) return false;
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim();
         const matchTitle = t.title.toLowerCase().includes(q);
@@ -128,7 +125,7 @@ export const TasksApp: React.FC = () => {
       }
       return true;
     });
-  }, [baseRows, filterStatus, filterPriority, searchQuery]);
+  }, [baseRows, filterStatus, searchQuery]);
 
   const incomplete = useMemo(() => {
     return [...filteredRows.filter(t => !t.completed)].sort((a, b) => (a.due || '9999').localeCompare(b.due || '9999') || a.order - b.order);
@@ -136,10 +133,12 @@ export const TasksApp: React.FC = () => {
 
   const completed = useMemo(() => filteredRows.filter(t => t.completed), [filteredRows]);
 
-  const linkedShown = view === 'inbox' ? linked
-    : view === 'today' ? linked.filter(l => l.due === todayStr() || (l.due && l.due < todayStr()))
-    : view === 'upcoming' ? linked.filter(l => !!l.due)
-    : [];
+  // Sidebar "From other apps" section (TasksShell.tsx) — a real filterable
+  // view of the same linked-tasks data, independent of the inline panel
+  // above (which only ever shows in 3 of 7 smart views).
+  const isLinkedView = view === 'linked' || view.startsWith('linked:');
+  const linkedViewSourceApp = view.startsWith('linked:') ? view.slice(7) : null;
+  const linkedFullList = linkedViewSourceApp ? linked.filter(l => l.sourceApp === linkedViewSourceApp) : linked;
 
   /* Perfex Stat Metrics Counts */
   const counts = useMemo(() => {
@@ -151,15 +150,6 @@ export const TasksApp: React.FC = () => {
     const complete = active.filter(t => t.completed || t.status === 'completed').length;
     return { total, notStarted, inProgress, inReview, waiting, complete };
   }, [active]);
-
-  function handleAddQuick() {
-    if (!newTitle.trim()) return;
-    const patch: Partial<Todo> & { title: string } = { title: newTitle.trim(), listId: currentListId || inboxListId() };
-    if (view === 'today') patch.due = todayStr();
-    if (view === 'someday') patch.someday = true;
-    addTodo(patch);
-    setNewTitle('');
-  }
 
   function toggleExpand(id: string) { setExpandedId(prev => prev === id ? null : id); setNewSubtaskTitle(''); }
   function handleRowDragStart(e: React.DragEvent, id: string) {
@@ -199,6 +189,34 @@ export const TasksApp: React.FC = () => {
   }
 
   const canAdd = view !== 'trash';
+
+  if (isLinkedView) {
+    return (
+      <div style={{ flex: 1, display: 'flex', overflow: 'hidden', background: 'var(--bg)', fontFamily: 'var(--font)' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
+          <div style={{ padding: isMobile ? '16px 16px 0' : '24px 32px 0' }}>
+            <h1 style={{ fontSize: isMobile ? 22 : 26, fontWeight: 800, color: 'var(--ink)', margin: 0, letterSpacing: '-0.02em' }}>
+              {linkedViewSourceApp ? `${linkedViewSourceApp} tasks` : 'From other apps'}
+            </h1>
+            <p style={{ fontSize: 13, color: 'var(--ink3)', margin: '4px 0 0 0' }}>
+              {linkedFullList.length} open task{linkedFullList.length === 1 ? '' : 's'} assigned to you{linkedViewSourceApp ? ` in ${linkedViewSourceApp}` : ' across other apps'}. Opens the source app to edit — read-only here.
+            </p>
+          </div>
+          <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? 16 : 32 }}>
+            {linkedFullList.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--ink3)', fontSize: 14 }}>
+                Nothing here right now.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 640 }}>
+                {linkedFullList.map(l => <LinkedTaskRow key={l.id} task={l} />)}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ flex: 1, display: 'flex', overflow: 'hidden', background: 'var(--bg)', fontFamily: 'var(--font)' }}>
@@ -246,6 +264,17 @@ export const TasksApp: React.FC = () => {
               </button>
             </div>
 
+            <div style={{ position: 'relative', width: isMobile ? 160 : 220 }}>
+              <Icon name="search" size={14} color="var(--ink3)" style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)' }} />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="Search tasks…"
+                style={{ width: '100%', boxSizing: 'border-box', padding: '6px 10px 6px 30px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12.5, background: 'var(--white)', color: 'var(--ink)' }}
+              />
+            </div>
+
             <Button size="sm" variant="outline" onClick={exportCSV} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <Icon name="download" size={14} /> Export CSV
             </Button>
@@ -262,7 +291,7 @@ export const TasksApp: React.FC = () => {
         <div style={{ padding: isMobile ? '12px 16px' : '16px 32px 8px 32px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(5, 1fr)', gap: 12 }}>
             
-            <button type="button" onClick={() => setFilterStatus('none')} style={{
+            <button type="button" onClick={() => setFilterStatus(prev => prev === 'none' ? 'all' : 'none')} style={{
               background: 'var(--white)', border: `1px solid ${filterStatus === 'none' ? 'var(--teal)' : 'var(--border)'}`,
               borderRadius: 10, padding: '10px 14px', textAlign: 'left', cursor: 'pointer', transition: 'all 0.15s'
             }}>
@@ -270,7 +299,7 @@ export const TasksApp: React.FC = () => {
               <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)', marginTop: 2 }}>{counts.notStarted}</div>
             </button>
 
-            <button type="button" onClick={() => setFilterStatus('in_progress')} style={{
+            <button type="button" onClick={() => setFilterStatus(prev => prev === 'in_progress' ? 'all' : 'in_progress')} style={{
               background: 'var(--white)', border: `1px solid ${filterStatus === 'in_progress' ? 'var(--teal)' : 'var(--border)'}`,
               borderRadius: 10, padding: '10px 14px', textAlign: 'left', cursor: 'pointer', transition: 'all 0.15s'
             }}>
@@ -278,7 +307,7 @@ export const TasksApp: React.FC = () => {
               <div style={{ fontSize: 18, fontWeight: 800, color: '#2563eb', marginTop: 2 }}>{counts.inProgress}</div>
             </button>
 
-            <button type="button" onClick={() => setFilterStatus('in_review')} style={{
+            <button type="button" onClick={() => setFilterStatus(prev => prev === 'in_review' ? 'all' : 'in_review')} style={{
               background: 'var(--white)', border: `1px solid ${filterStatus === 'in_review' ? 'var(--teal)' : 'var(--border)'}`,
               borderRadius: 10, padding: '10px 14px', textAlign: 'left', cursor: 'pointer', transition: 'all 0.15s'
             }}>
@@ -286,7 +315,7 @@ export const TasksApp: React.FC = () => {
               <div style={{ fontSize: 18, fontWeight: 800, color: '#d97706', marginTop: 2 }}>{counts.inReview}</div>
             </button>
 
-            <button type="button" onClick={() => setFilterStatus('waiting')} style={{
+            <button type="button" onClick={() => setFilterStatus(prev => prev === 'waiting' ? 'all' : 'waiting')} style={{
               background: 'var(--white)', border: `1px solid ${filterStatus === 'waiting' ? 'var(--teal)' : 'var(--border)'}`,
               borderRadius: 10, padding: '10px 14px', textAlign: 'left', cursor: 'pointer', transition: 'all 0.15s'
             }}>
@@ -294,7 +323,7 @@ export const TasksApp: React.FC = () => {
               <div style={{ fontSize: 18, fontWeight: 800, color: '#7c3aed', marginTop: 2 }}>{counts.waiting}</div>
             </button>
 
-            <button type="button" onClick={() => setFilterStatus('completed')} style={{
+            <button type="button" onClick={() => setFilterStatus(prev => prev === 'completed' ? 'all' : 'completed')} style={{
               background: 'var(--white)', border: `1px solid ${filterStatus === 'completed' ? 'var(--teal)' : 'var(--border)'}`,
               borderRadius: 10, padding: '10px 14px', textAlign: 'left', cursor: 'pointer', transition: 'all 0.15s'
             }}>
@@ -305,89 +334,15 @@ export const TasksApp: React.FC = () => {
           </div>
         </div>
 
-        {/* ── Advanced Filter & Search Toolbar ── */}
-        <div style={{ padding: isMobile ? '8px 16px' : '8px 32px 16px 32px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          
-          <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
-            <Icon name="search" size={15} color="var(--ink3)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Search task title, notes, tags…"
-              style={{ width: '100%', boxSizing: 'border-box', padding: '7px 12px 7px 32px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, background: 'var(--white)', color: 'var(--ink)' }}
-            />
-          </div>
-
-          <select
-            value={filterStatus}
-            onChange={e => setFilterStatus(e.target.value)}
-            style={{ padding: '7px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12.5, background: 'var(--white)', color: 'var(--ink)', fontWeight: 600 }}
-          >
-            <option value="all">All Statuses</option>
-            <option value="none">Not Started</option>
-            <option value="in_progress">In Progress</option>
-            <option value="in_review">Testing / Review</option>
-            <option value="waiting">Awaiting Feedback</option>
-            <option value="completed">Completed</option>
-          </select>
-
-          <select
-            value={filterPriority}
-            onChange={e => setFilterPriority(e.target.value)}
-            style={{ padding: '7px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12.5, background: 'var(--white)', color: 'var(--ink)', fontWeight: 600 }}
-          >
-            <option value="all">All Priorities</option>
-            <option value="low">Low Priority</option>
-            <option value="medium">Medium Priority</option>
-            <option value="high">High Priority</option>
-            <option value="urgent">Urgent Priority</option>
-          </select>
-
-          {(filterStatus !== 'all' || filterPriority !== 'all' || searchQuery) && (
-            <button
-              type="button"
-              onClick={() => { setFilterStatus('all'); setFilterPriority('all'); setSearchQuery(''); }}
-              style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer' }}
-            >
-              Reset Filters
-            </button>
-          )}
-        </div>
-
         {/* ── Main View Content Area ── */}
         <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '0 16px 24px' : '0 32px 32px' }}>
-
-          {/* QUICK ADD ROW (when in List Mode) */}
-          {canAdd && displayMode === 'list' && (
-            <div style={{ display: 'flex', gap: 10, marginBottom: 20, background: 'var(--white)', padding: 10, borderRadius: 12, border: '1px solid var(--border)', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
-              <button type="button" onClick={handleAddQuick} title="Add task"
-                style={{ width: 30, height: 30, borderRadius: '50%', border: 'none', background: 'var(--teal-l)', color: 'var(--teal)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Icon name="plus" size={16} />
-              </button>
-              <input
-                value={newTitle}
-                onChange={e => setNewTitle(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleAddQuick()}
-                placeholder={currentListId ? `Add task to ${listMap[currentListId]?.name || 'list'}…` : 'Add quick task… (press Enter)'}
-                style={{ flex: 1, border: 'none', outline: 'none', fontSize: 14, background: 'transparent', color: 'var(--ink)' }}
-              />
-            </div>
-          )}
-
-          {linkedShown.length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>From other apps</div>
-              {linkedShown.map(l => <LinkedTaskRow key={l.id} task={l} />)}
-            </div>
-          )}
 
           {/* KANBAN BOARD VIEW */}
           {displayMode === 'kanban' ? (
             <TasksKanbanBoard todos={filteredRows} listMap={listMap} onTaskClick={id => toggleExpand(id)} />
           ) : (
             /* LIST VIEW */
-            filteredRows.length === 0 && linkedShown.length === 0 ? (
+            filteredRows.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--ink3)', fontSize: 14 }}>
                 {view === 'trash' ? 'Trash is empty.' : 'No tasks match current filter options.'}
               </div>
@@ -579,17 +534,9 @@ function TaskTimerWidget({ todo }: { todo: Todo }) {
   function toggleTimer(e: React.MouseEvent) {
     e.stopPropagation();
     if (isTimerActive) {
-      // Stop timer & compute logged minutes
-      const now = new Date();
-      const start = new Date(todo.timerStartedAt!).getTime();
-      const diffMins = Math.max(1, Math.round((now.getTime() - start) / 60000));
-      updateTodo(todo.id, {
-        timerStartedAt: null,
-        timeLoggedMinutes: (todo.timeLoggedMinutes || 0) + diffMins
-      });
+      stopTaskTimer(todo.id);
     } else {
-      // Start timer
-      updateTodo(todo.id, { timerStartedAt: new Date().toISOString() });
+      startTaskTimer(todo.id);
     }
   }
 
@@ -980,6 +927,9 @@ function TaskRow({ todo, list, expanded, onToggleExpand, newSubtaskTitle, setNew
                   <Icon name="clock" size={13} className="text-muted-foreground" /> {todo.someday ? 'Remove from Someday' : 'Move to Someday'}
                 </DropdownMenuItem>
               )}
+              <DropdownMenuItem onClick={() => cloneTask(todo.id)}>
+                <Icon name="copy" size={13} className="text-muted-foreground" /> Clone
+              </DropdownMenuItem>
               {todo.isOwner && (
                 <DropdownMenuItem onClick={() => deleteTodo(todo.id)} className="text-destructive">
                   <Icon name="trash" size={13} /> Delete

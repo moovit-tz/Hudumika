@@ -42,14 +42,14 @@ interface Wallet {
   approver_user_id: string | null;
   approver_backup_user_id: string | null;
 }
-interface Deposit { id: string; amount: string | number; method: string; reference: string | null; note: string | null; created_at: string; }
-interface Transfer { id: string; from_wallet_id: string; to_wallet_id: string; amount: string | number; note: string | null; created_at: string; }
+interface Deposit { id: string; amount: string | number; method: string; reference: string | null; note: string | null; created_at: string; ref: string | null; }
+interface Transfer { id: string; from_wallet_id: string; to_wallet_id: string; amount: string | number; note: string | null; created_at: string; ref: string | null; }
 interface Flag { id: string; subject_type: 'deposit' | 'withdrawal'; subject_id: string; reason: string; status: 'open' | 'resolved'; raised_by: string; resolved_by: string | null; resolution_note: string | null; created_at: string; }
 interface WalletSummary { id: string; name: string; currency: string; status: 'active' | 'closed'; }
 interface Withdrawal {
   id: string; amount: string | number; category: string; purpose: string; status: string;
   requested_by: string; requested_at: string; approved_at: string | null; disbursed_at: string | null; rejection_reason: string | null;
-  workflow_id: string | null; payee_name: string | null; on_behalf_of_user_id: string | null;
+  workflow_id: string | null; payee_name: string | null; on_behalf_of_user_id: string | null; ref: string | null;
 }
 interface PettiWorkflow { id: string; name: string; description: string | null; requires_department_approval: boolean; is_system: boolean; }
 interface StaffMember { id: string; name: string; role: string; }
@@ -514,12 +514,13 @@ export function PettiWalletDetail() {
           <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>No withdrawal requests yet.</div>
         ) : (
           <div className="rtbl-wrap"><table className="rtbl" style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead><tr>{['Purpose', 'Category', 'Amount', 'Requested', 'Step', ''].map(h => (
+            <thead><tr>{['Ref', 'Purpose', 'Category', 'Amount', 'Requested', 'Step', ''].map(h => (
               <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', background: 'var(--bg)', borderBottom: '1px solid var(--border)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
             ))}</tr></thead>
             <tbody>
               {withdrawals.map(w => (
                 <tr key={w.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                  <td style={{ padding: '12px 16px', fontSize: 12, fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--ink2)' }}>{w.ref || '—'}</td>
                   <td style={{ padding: '12px 16px', fontSize: 13, color: 'var(--ink)' }}>
                     {w.purpose}
                     {w.payee_name && <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>Paid to {w.payee_name}</div>}
@@ -565,12 +566,13 @@ export function PettiWalletDetail() {
           <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>No deposits recorded yet.</div>
         ) : (
           <div className="rtbl-wrap"><table className="rtbl" style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead><tr>{['Amount', 'Method', 'Reference', 'Note', 'Date', ''].map(h => (
+            <thead><tr>{['Ref', 'Amount', 'Method', 'Reference', 'Note', 'Date', ''].map(h => (
               <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', background: 'var(--bg)', borderBottom: '1px solid var(--border)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
             ))}</tr></thead>
             <tbody>
               {deposits.map(d => (
                 <tr key={d.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                  <td style={{ padding: '12px 16px', fontSize: 12, fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--ink2)' }}>{d.ref || '—'}</td>
                   <td style={{ padding: '12px 16px', fontSize: 13, fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--green)' }}>+{Number(d.amount).toLocaleString()} {wallet?.currency}</td>
                   <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)', textTransform: 'capitalize' }}>{d.method}</td>
                   <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)' }}>{d.reference || '—'}</td>
@@ -597,7 +599,7 @@ export function PettiWalletDetail() {
           <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>No transfers yet.</div>
         ) : (
           <div className="rtbl-wrap"><table className="rtbl" style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead><tr>{['Direction', 'Wallet', 'Amount', 'Note', 'Date'].map(h => (
+            <thead><tr>{['Ref', 'Direction', 'Wallet', 'Amount', 'Note', 'Date'].map(h => (
               <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', background: 'var(--bg)', borderBottom: '1px solid var(--border)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
             ))}</tr></thead>
             <tbody>
@@ -607,6 +609,7 @@ export function PettiWalletDetail() {
                 const otherWalletName = allWallets.find(w => w.id === otherWalletId)?.name || '—';
                 return (
                   <tr key={t.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                    <td style={{ padding: '12px 16px', fontSize: 12, fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--ink2)' }}>{t.ref || '—'}</td>
                     <td style={{ padding: '12px 16px' }}><Badge variant={outgoing ? 'gray' : 'success'}>{outgoing ? 'Sent' : 'Received'}</Badge></td>
                     <td style={{ padding: '12px 16px', fontSize: 13, color: 'var(--ink)' }}>{outgoing ? `To ${otherWalletName}` : `From ${otherWalletName}`}</td>
                     <td style={{ padding: '12px 16px', fontSize: 13, fontFamily: 'var(--mono)', fontWeight: 700, color: outgoing ? 'var(--red)' : 'var(--green)' }}>{outgoing ? '-' : '+'}{Number(t.amount).toLocaleString()} {wallet?.currency}</td>

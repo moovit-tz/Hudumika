@@ -3467,7 +3467,7 @@ export function HrmDashboard() {
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em', color: '#ffffff' }}>
-                  Welcome back, {user?.name || 'Admin'}! 👋
+                  Welcome back, {user?.name || 'Admin'}!
                 </h1>
                 <span style={{
                   fontSize: 10.5, fontWeight: 700, padding: '3px 10px', borderRadius: 12,
@@ -3494,7 +3494,7 @@ export function HrmDashboard() {
 
             <Link to="/nexushr/employees" style={{
               display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 8,
-              background: '#ffffff', color: 'var(--navy)', border: 'none',
+              background: '#ffffff', color: '#0e1f3d', border: 'none',
               fontSize: 13, fontWeight: 700, textDecoration: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.12)'
             }}>
               <Icon name="userPlus" size={15} /> + Add Staff

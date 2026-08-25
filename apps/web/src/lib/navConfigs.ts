@@ -246,6 +246,8 @@ export const NAV_CONFIGS: Record<AppId, NavCategory[]> = {
   // shells that outgrew this map.
   studio: [],
   notes: [],
+  // Projects builds its own sidebar in ProjectsShell.tsx.
+  projects: [],
   clearos:   clearosNav,
   finops:    [],
   nexushr:     onepiNav,

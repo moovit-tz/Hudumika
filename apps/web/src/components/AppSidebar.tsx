@@ -73,6 +73,7 @@ const APP_ICONS: Record<AppId, IconName> = {
   notes:     'fileText',
   sign:      'stamp',
   sms:       'messageSquare',
+  projects:  'briefcase',
 };
 
 const APP_SUBTITLES: Partial<Record<AppId, string>> = {

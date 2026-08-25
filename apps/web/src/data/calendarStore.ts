@@ -118,6 +118,7 @@ export interface Todo {
   listId: string;
   notes?: string;
   due?: string;          // YYYY-MM-DD
+  start?: string;        // YYYY-MM-DD — real start date (migration 321), for a Gantt bar's span
   dueTime?: string;       // HH:MM:SS, optional companion to `due`
   reminder?: string | null; // ISO datetime — a real reminder_at, delivered by task-reminder.job.ts
   starred?: boolean;
@@ -141,6 +142,16 @@ export interface Todo {
   listName?: string;
   listColor?: string;
   access?: 'owner' | 'assignee' | 'editor' | 'viewer';
+  // Set when a task belongs to the standalone Projects app rather than a
+  // personal to-do list — migrations 308/310/311.
+  projectId?: string | null;
+  milestoneId?: string | null;
+  isPrivate?: boolean;
+  isBillable?: boolean;
+  hourlyRate?: number | null;
+  subjectType?: string | null;
+  subjectId?: string | null;
+  blockedByOpenCount?: number;
 }
 
 export interface TodoComment {
@@ -206,8 +217,10 @@ function emit() {
 function fromApiTodo(row: any): Todo {
   return {
     id: row.id, title: row.title, listId: row.list_id, notes: row.notes || undefined,
-    due: row.due || undefined, dueTime: row.due_time || undefined, reminder: row.reminder_at || null, starred: !!row.starred, someday: !!row.someday,
-    status: row.status, tags: row.tags || [],
+    due: row.due || undefined, start: row.start_date || undefined, dueTime: row.due_time || undefined, reminder: row.reminder_at || null, starred: !!row.starred, someday: !!row.someday,
+    status: row.status, priority: row.priority || 'medium',
+    timeLoggedMinutes: row.time_logged_minutes ?? 0, timerStartedAt: row.timer_started_at || null,
+    tags: row.tags || [],
     subtasks: (row.subtasks || []).map((s: any) => ({ id: s.id, title: s.title, completed: !!s.completed })),
     completed: !!row.completed, completedAt: row.completed_at || undefined, deletedAt: row.deleted_at || undefined,
     order: row.sort_order ?? 0, createdAt: row.created_at,
@@ -216,6 +229,10 @@ function fromApiTodo(row: any): Todo {
     isOwner: row.is_owner !== false,
     listName: row.list_name || undefined, listColor: row.list_color || undefined,
     access: row.access || (row.is_owner !== false ? 'owner' : undefined),
+    projectId: row.project_id || null, milestoneId: row.milestone_id || null, isPrivate: !!row.is_private,
+    isBillable: !!row.is_billable, hourlyRate: row.hourly_rate != null ? Number(row.hourly_rate) : null,
+    subjectType: row.subject_type || null, subjectId: row.subject_id || null,
+    blockedByOpenCount: row.blocked_by_open_count || 0,
   };
 }
 function fromApiList(row: any): TaskList {
@@ -454,21 +471,27 @@ export function addTodo(input: Partial<Omit<Todo, 'id' | 'createdAt'>> & { title
   const siblingCount = todos.filter(t => t.listId === listId && !t.deletedAt).length;
   const newTodo: Todo = {
     id: newId(), title: input.title, listId,
-    notes: input.notes, due: input.due, dueTime: input.dueTime, reminder: input.reminder ?? null, starred: input.starred ?? false, someday: input.someday ?? false,
+    notes: input.notes, due: input.due, start: input.start, dueTime: input.dueTime, reminder: input.reminder ?? null, starred: input.starred ?? false, someday: input.someday ?? false,
     status: input.status ?? 'none', priority: input.priority ?? 'medium',
     timeLoggedMinutes: input.timeLoggedMinutes ?? 0, timerStartedAt: input.timerStartedAt ?? null,
     tags: input.tags ?? [], subtasks: input.subtasks ?? [],
     completed: input.completed ?? false, order: siblingCount, createdAt: new Date().toISOString().slice(0, 10),
     assigneeId: input.assigneeId, assigneeName: input.assigneeName, isOwner: true,
+    projectId: input.projectId ?? null, milestoneId: input.milestoneId ?? null, isPrivate: input.isPrivate ?? false,
+    isBillable: input.isBillable ?? false, hourlyRate: input.hourlyRate ?? null,
+    subjectType: input.subjectType ?? null, subjectId: input.subjectId ?? null,
   };
   todos = [...todos, newTodo];
   emit();
   apiFetch('/v1/tasks/items', {
     method: 'POST',
     body: JSON.stringify({
-      id: newTodo.id, title: newTodo.title, listId: newTodo.listId, notes: newTodo.notes, due: newTodo.due,
+      id: newTodo.id, title: newTodo.title, listId: newTodo.listId, notes: newTodo.notes, due: newTodo.due, startDate: newTodo.start,
       dueTime: newTodo.dueTime, reminderAt: newTodo.reminder, starred: newTodo.starred, someday: newTodo.someday, status: newTodo.status,
       priority: newTodo.priority, tags: newTodo.tags, assigneeId: newTodo.assigneeId,
+      projectId: newTodo.projectId, milestoneId: newTodo.milestoneId, isPrivate: newTodo.isPrivate,
+      isBillable: newTodo.isBillable, hourlyRate: newTodo.hourlyRate,
+      subjectType: newTodo.subjectType, subjectId: newTodo.subjectId,
     }),
   }).catch(reportSyncFailure);
   return newTodo;
@@ -490,20 +513,76 @@ export function updateTodo(id: string, patch: Partial<Omit<Todo, 'assigneeId'>> 
   if (patch.title !== undefined) body.title = patch.title;
   if (patch.notes !== undefined) body.notes = patch.notes;
   if (patch.due !== undefined) body.due = patch.due || null;
+  if (patch.start !== undefined) body.startDate = patch.start || null;
   if (patch.dueTime !== undefined) body.dueTime = patch.dueTime || null;
   if (patch.reminder !== undefined) body.reminderAt = patch.reminder || null;
   if (patch.starred !== undefined) body.starred = patch.starred;
   if (patch.someday !== undefined) body.someday = patch.someday;
   if (patch.status !== undefined) body.status = patch.status;
   if (patch.priority !== undefined) body.priority = patch.priority;
-  if (patch.timeLoggedMinutes !== undefined) body.timeLoggedMinutes = patch.timeLoggedMinutes;
-  if (patch.timerStartedAt !== undefined) body.timerStartedAt = patch.timerStartedAt;
   if (patch.tags !== undefined) body.tags = patch.tags;
   if (patch.completed !== undefined) body.completed = patch.completed;
   if (patch.listId !== undefined) body.listId = patch.listId;
   if (patch.order !== undefined) body.sortOrder = patch.order;
   if (patch.assigneeId !== undefined) body.assigneeId = patch.assigneeId || null;
+  if (patch.projectId !== undefined) body.projectId = patch.projectId || null;
+  if (patch.milestoneId !== undefined) body.milestoneId = patch.milestoneId || null;
+  if (patch.isPrivate !== undefined) body.isPrivate = patch.isPrivate;
+  if (patch.isBillable !== undefined) body.isBillable = patch.isBillable;
+  if (patch.hourlyRate !== undefined) body.hourlyRate = patch.hourlyRate;
+  if (patch.subjectType !== undefined) body.subjectType = patch.subjectType || null;
+  if (patch.subjectId !== undefined) body.subjectId = patch.subjectId || null;
   apiFetch(`/v1/tasks/items/${id}`, { method: 'PATCH', body: JSON.stringify(body) }).catch(reportSyncFailure);
+}
+
+/** Starts a real, persisted timer (migration 307) — replaces the old
+ *  client-only `timerStartedAt` state that reset on every reload. */
+export async function startTaskTimer(id: string): Promise<void> {
+  const startedAt = new Date().toISOString();
+  todos = todos.map(t => t.id === id ? { ...t, timerStartedAt: startedAt } : t);
+  emit();
+  try {
+    await apiFetch(`/v1/tasks/items/${id}/timer/start`, { method: 'POST' });
+  } catch (err) {
+    todos = todos.map(t => t.id === id ? { ...t, timerStartedAt: null } : t);
+    emit();
+    reportSyncFailure(err);
+  }
+}
+
+/** Stops the running timer and folds the elapsed time into the task's
+ *  persisted total — the server, not the client clock, computes duration. */
+export async function stopTaskTimer(id: string): Promise<void> {
+  try {
+    const res = await apiFetch(`/v1/tasks/items/${id}/timer/stop`, { method: 'POST' });
+    const totalMinutes = res.data?.task_total_minutes ?? undefined;
+    todos = todos.map(t => t.id === id ? {
+      ...t, timerStartedAt: null,
+      timeLoggedMinutes: totalMinutes !== undefined ? totalMinutes : t.timeLoggedMinutes,
+    } : t);
+    emit();
+  } catch (err) {
+    reportSyncFailure(err);
+  }
+}
+
+/** Duplicates a task (title/notes/schedule/tags/priority/checklist) as a
+ *  new, unassigned, not-started task — server-side, so the copy has its own
+ *  real id and checklist rows rather than a client-side JSON clone. */
+export async function cloneTask(id: string): Promise<Todo | null> {
+  const newTodoId = newId();
+  try {
+    const res = await apiFetch(`/v1/tasks/items/${id}/clone`, {
+      method: 'POST', body: JSON.stringify({ id: newTodoId }),
+    });
+    const cloned = fromApiTodo(res.data);
+    todos = [...todos, cloned];
+    emit();
+    return cloned;
+  } catch (err) {
+    reportSyncFailure(err);
+    return null;
+  }
 }
 
 // ── Comments — loaded on demand per task (not part of the reactive todos
@@ -606,7 +685,11 @@ export function updateAppSettings(patch: Partial<AppSettings>) {
 
 // ── Active Tasks view — shared between TasksShell's sidebar and TasksApp's
 // main panel, which live in separate parts of the component tree. ──
-export type TaskViewId = 'inbox' | 'today' | 'upcoming' | 'anytime' | 'someday' | 'assigned' | 'trash' | `list:${string}`;
+// 'linked' shows every cross-app task; `linked:${sourceApp}` filters to one
+// source app (e.g. 'linked:ClearOS') — the sidebar's "From other apps"
+// section, independent of the smart-view-only restriction the inline panel
+// still has (see linkedShown in TasksApp.tsx).
+export type TaskViewId = 'inbox' | 'today' | 'upcoming' | 'anytime' | 'someday' | 'assigned' | 'trash' | 'linked' | `list:${string}` | `linked:${string}`;
 
 let activeTaskView: TaskViewId = 'today';
 const viewListeners = new Set<() => void>();

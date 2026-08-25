@@ -527,7 +527,7 @@ export async function settingsRoutes(fastify: FastifyInstance) {
           }
 
           /**
-           * M-Pesa (Vodacom Tanzania, OpenAPI) — a real session request.
+           * Vodacom M-Pesa (Tanzania, OpenAPI) — a real session request.
            *
            * The portal issues an API key and an RSA public key; the key is
            * RSA-encrypted with it to form the bearer token, and getSession
@@ -536,8 +536,19 @@ export async function settingsRoutes(fastify: FastifyInstance) {
            * public key or a wrong API key fails at Vodacom, not locally.
            *
            * Read-only — getSession moves no money.
+           *
+           * This case used to be keyed 'mpesa', but GATEWAYS' `id: 'mpesa'`
+           * entry (Settings.tsx) is Safaricom's Daraja API and collects
+           * consumerKey/consumerSecret/shortcode/passkey — different provider,
+           * different fields entirely. This logic only ever matched the
+           * apiKey/publicKey/serviceId fields GATEWAYS defines under
+           * `id: 'vodacom'`, so a tenant configuring 'mpesa' was silently
+           * testing against the wrong endpoint with fields that don't exist
+           * on that form, and 'vodacom' fell through to the "not available"
+           * default despite this case existing for exactly its shape. Daraja
+           * has no real case yet — falls to the default below, honestly.
            */
-          case 'mpesa': {
+          case 'vodacom': {
             if (!v.apiKey || !v.publicKey) {
               return reply.status(400).send({ ok: false, message: 'API key and public key are required — both come from the M-Pesa developer portal.' });
             }

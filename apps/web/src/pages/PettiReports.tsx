@@ -2,9 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { DateRangePicker } from '../components/ui/date-picker.js';
+import { Button } from '../components/ui/button.js';
+import { Icon } from '../components/Icon.js';
 import { exportCsv, ExportButton, StatTile, DataTable, ClickableBarChart, type ColumnDef } from '../components/AnalyticsKit.js';
 import { apiFetch } from '../lib/api.js';
 import type { DateRange } from 'react-day-picker';
+import './Petti.css';
 
 const CATEGORY_LABELS: Record<string, string> = {
   OFFICE_SUPPLIES: 'Office supplies', TRANSPORT: 'Transport', MEALS_ENTERTAINMENT: 'Meals & entertainment',
@@ -101,6 +104,64 @@ export function PettiReports() {
       .finally(() => setLoading(false));
   }, [range]);
 
+  function printFinancialReport() {
+    const printWin = window.open('', '_blank');
+    if (!printWin) return;
+    printWin.document.write(`
+      <html>
+        <head>
+          <title>ClearOS Petty Cash Financial Report</title>
+          <style>
+            body { font-family: system-ui, sans-serif; padding: 40px; color: #161A1E; }
+            .header { display: flex; justify-content: space-between; border-bottom: 2px solid #0d7a6b; padding-bottom: 16px; margin-bottom: 24px; }
+            .brand { font-size: 22px; font-weight: 800; color: #0d7a6b; }
+            .hero-card { background: #0e1f3d; color: #fff; padding: 24px; border-radius: 12px; margin-bottom: 24px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+            th, td { border-bottom: 1px solid #e2e8f0; padding: 10px; text-align: left; font-size: 13px; }
+            th { font-size: 11px; text-transform: uppercase; color: #64748b; background: #f8fafc; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div>
+              <div class="brand">HUDUMIKA · PETTI OPERATIONS</div>
+              <div style="font-size: 12px; color: #64748b;">Financial Spend & Liquidity Report</div>
+            </div>
+            <div style="text-align: right; font-size: 12px;">
+              <strong>Date:</strong> ${new Date().toLocaleDateString()}<br/>
+              <strong>Period:</strong> ${range?.from ? range.from.toLocaleDateString() : 'All Time'} - ${range?.to ? range.to.toLocaleDateString() : 'Present'}
+            </div>
+          </div>
+
+          ${currencies.map(c => `
+            <div class="hero-card">
+              <div style="font-size: 11px; text-transform: uppercase; color: rgba(255,255,255,0.7);">Total ${c.currency} Spend</div>
+              <div style="font-size: 32px; font-weight: 900; margin-top: 4px;">${c.total.toLocaleString()} ${c.currency}</div>
+              <div style="font-size: 13px; color: rgba(255,255,255,0.8); margin-top: 4px;">${c.count} Disbursements Executed</div>
+            </div>
+
+            <h3>Spend Breakdown By Category (${c.currency})</h3>
+            <table>
+              <thead><tr><th>Category</th><th>Disbursements</th><th>Total Spent</th></tr></thead>
+              <tbody>
+                ${c.byCategory.map(cat => `
+                  <tr>
+                    <td>${CATEGORY_LABELS[cat.category] || cat.category}</td>
+                    <td>${cat.count}</td>
+                    <td><strong>${cat.total.toLocaleString()} ${c.currency}</strong></td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          `).join('')}
+
+          <script>window.print();</script>
+        </body>
+      </html>
+    `);
+    printWin.document.close();
+  }
+
   return (
     <div style={{ flex: 1, overflowY: 'auto' }}>
       <PageHeader
@@ -108,6 +169,11 @@ export function PettiReports() {
         titlePlain="Spend"
         titleEm="report"
         subtitle="Where petty cash actually went — by category and by wallet, for real disbursements."
+        actions={
+          <Button variant="outline" size="sm" onClick={printFinancialReport}>
+            <Icon name="printer" size={14} /> Print Report PDF
+          </Button>
+        }
       />
 
       <div style={{ marginBottom: 20 }}>

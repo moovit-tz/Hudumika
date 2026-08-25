@@ -150,6 +150,8 @@ import { apiKeysRoutes } from './routes/api-keys.routes.js';
 import { storeRoutes } from './routes/store.routes.js';
 import { searchRoutes } from './routes/search.routes.js';
 import { tasksRoutes } from './routes/tasks.routes.js';
+import { taskProjectsRoutes } from './routes/task-projects.routes.js';
+import { contractsRoutes } from './routes/contracts.routes.js';
 import securityRoutes from './routes/security.routes.js';
 import billingRoutes from './routes/billing.routes.js';
 import platformSupportRoutes from './routes/platform-support.routes.js';
@@ -463,6 +465,8 @@ async function main() {
     await server.register(storeRoutes, { prefix: '/v1/store' });
     await server.register(searchRoutes, { prefix: '/v1/search' });
     await server.register(tasksRoutes, { prefix: '/v1/tasks' });
+    await server.register(taskProjectsRoutes, { prefix: '/v1/tasks/projects' });
+    await server.register(contractsRoutes, { prefix: '/v1/contracts' });
     await server.register(securityRoutes, { prefix: '/v1/security' });
     await server.register(billingRoutes, { prefix: '/v1/billing' });
     await server.register(platformSupportRoutes, { prefix: '/v1/platform-support' });

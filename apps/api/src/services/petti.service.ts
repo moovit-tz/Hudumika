@@ -1,8 +1,30 @@
 import type { UserRole } from '@hudumika/types';
 import PDFDocument from 'pdfkit';
-import { withTenant } from '../db/client.js';
+import { randomUUID } from 'node:crypto';
+import * as nodeCrypto from 'node:crypto';
+import { sql, type Transaction } from 'kysely';
+import { withTenant, type Database } from '../db/client.js';
 import { GLService } from './gl.service.js';
 import { getActiveGateway, type ActiveGateway } from '../lib/payment-gateway.js';
+
+const PETTI_REF_PREFIX: Record<string, string> = { wallet: 'PW', deposit: 'DEP', withdrawal: 'WD', transfer: 'TRF' };
+
+/** Next human-readable reference for a tenant+type — DEP-0001, WD-0001,
+ *  TRF-0001, PW-0001 — as one atomic upsert-and-increment, not
+ *  count(*)+1 (petti_wallets' own PW-#### numbering used to be exactly
+ *  that, and the same pattern already caused a real production bug
+ *  elsewhere in this codebase once a row was deleted — see 318's own
+ *  migration comment). Must run inside the same transaction as the insert
+ *  it's numbering, so a rolled-back insert doesn't leave a burned number. */
+async function nextPettiRef(trx: Transaction<Database>, tenantId: string, type: 'wallet' | 'deposit' | 'withdrawal' | 'transfer'): Promise<string> {
+  const row = await sql<{ seq: number }>`
+    INSERT INTO petti_counters (tenant_id, counter_type, next_seq) VALUES (${tenantId}, ${type}, 2)
+    ON CONFLICT (tenant_id, counter_type) DO UPDATE SET next_seq = petti_counters.next_seq + 1
+    RETURNING next_seq - 1 AS seq
+  `.execute(trx);
+  const seq = row.rows[0].seq;
+  return `${PETTI_REF_PREFIX[type]}-${String(seq).padStart(4, '0')}`;
+}
 
 // Petty-cash withdrawal categories. Deliberately its own small vocabulary
 // rather than reusing financeExpenses.routes.ts's EXPENSE_CATEGORIES
@@ -48,7 +70,7 @@ const BANK_ACCOUNT = '1010'; // Bank Account (TZS) — see STANDARD_COA
 // request happened to send.
 export interface PaymentGatewayAdapter {
   provider: string;
-  confirmDeposit(input: { amount: number; reference?: string; gatewayTxRef?: string }): Promise<{ confirmed: true; providerRef?: string }>;
+  confirmDeposit(input: { amount: number; reference?: string; gatewayTxRef?: string; payerMsisdn?: string }): Promise<{ confirmed: true; providerRef?: string }>;
 }
 
 class ManualDepositAdapter implements PaymentGatewayAdapter {
@@ -77,9 +99,178 @@ class StubGatewayAdapter implements PaymentGatewayAdapter {
   }
 }
 
+/** Tanzanian MSISDN → the bare-digits "2557XXXXXXXX" / "2556XXXXXXXX" shape
+ *  every TZ mobile-money API on this page expects — accepts the three ways a
+ *  human actually types a number (07..., +2557..., 2557...) so the deposit
+ *  form doesn't need its own format-policing on top of the provider's. */
+function normalizeTzMsisdn(raw: string): string {
+  const digits = raw.replace(/\D/g, '');
+  if (digits.startsWith('255') && digits.length === 12) return digits;
+  if (digits.startsWith('0') && digits.length === 10) return '255' + digits.slice(1);
+  if (digits.length === 9) return '255' + digits;
+  throw new Error(`"${raw}" doesn't look like a Tanzanian phone number (expected e.g. 0712345678 or 255712345678).`);
+}
+
+/**
+ * Vodacom M-Pesa (Tanzania, OpenAPI) — a real C2B Single Stage charge.
+ *
+ * Same RSA-encrypted-bearer session handshake as settings.routes.ts's
+ * `POST /payment-gateways/vodacom/test` (that endpoint only opens a session
+ * to prove the credentials work; this reuses the identical handshake and
+ * then actually places the charge). Config fields come from Settings ▸
+ * Finance ▸ Payment Gateways' `vodacom` card: apiKey, publicKey, serviceId
+ * (the merchant's Vodacom-issued service/shortcode).
+ *
+ * Not yet verified against a real Vodacom sandbox account — no live
+ * credentials were available while building this. The request/response
+ * shape matches Vodacom's published OpenAPI C2B Single Stage spec and reuses
+ * the session handshake already proven live in settings.routes.ts, but the
+ * charge call itself needs a real merchant sandbox run before this is
+ * trusted for production traffic. Tracked in Lens.
+ *
+ * KNOWN SIMPLIFICATION: a C2B Single Stage response of INS-0 means Vodacom
+ * *accepted the request*, not that the customer has approved the USSD/PIN
+ * prompt yet — this adapter treats that acceptance as final confirmation
+ * and recordDeposit() posts to the GL immediately. A real go-live wants a
+ * webhook/callback receiver that only confirms the deposit once Vodacom's
+ * own result callback arrives, so a declined or timed-out prompt can't leave
+ * a deposit posted that never actually landed. No such receiver exists yet.
+ * Tracked in Lens.
+ */
+class VodacomMpesaAdapter implements PaymentGatewayAdapter {
+  provider = 'vodacom';
+  constructor(private gateway: ActiveGateway) {}
+
+  private async getSessionId(): Promise<string> {
+    const { apiKey, publicKey } = this.gateway.config;
+    if (!apiKey || !publicKey) throw new Error('Vodacom M-Pesa is configured without an API key or public key — check Settings → Finance → Payment Gateways.');
+    let bearer: string;
+    try {
+      const pem = `-----BEGIN PUBLIC KEY-----\n${String(publicKey).replace(/\s+/g, '').replace(/(.{64})/g, '$1\n')}\n-----END PUBLIC KEY-----\n`;
+      bearer = nodeCrypto.publicEncrypt({ key: pem, padding: nodeCrypto.constants.RSA_PKCS1_PADDING }, Buffer.from(String(apiKey))).toString('base64');
+    } catch {
+      throw new Error('Vodacom M-Pesa\'s stored public key could not be read. Re-enter it at Settings → Finance → Payment Gateways.');
+    }
+    const host = this.gateway.sandbox
+      ? 'https://openapi.m-pesa.com/sandbox/ipg/v2/vodacomTZN/getSession/'
+      : 'https://openapi.m-pesa.com/openapi/ipg/v2/vodacomTZN/getSession/';
+    const res = await fetch(host, { headers: { Authorization: `Bearer ${bearer}`, Origin: '*', 'Content-Type': 'application/json' } });
+    const body: any = await res.json().catch(() => ({}));
+    if (!res.ok || !body?.output_SessionID) {
+      throw new Error(`Vodacom M-Pesa refused to open a session${body?.output_ResponseDesc ? `: ${body.output_ResponseDesc}` : '.'}`);
+    }
+    return body.output_SessionID;
+  }
+
+  async confirmDeposit(input: { amount: number; reference?: string; payerMsisdn?: string }): Promise<{ confirmed: true; providerRef?: string }> {
+    if (!input.payerMsisdn) throw new Error('A payer phone number is required to push a Vodacom M-Pesa payment request.');
+    const { serviceId } = this.gateway.config;
+    if (!serviceId) throw new Error('Vodacom M-Pesa is configured without a Service ID — check Settings → Finance → Payment Gateways.');
+    const msisdn = normalizeTzMsisdn(input.payerMsisdn);
+    const sessionId = await this.getSessionId();
+    const conversationId = randomUUID().replace(/-/g, '').slice(0, 20);
+    const host = this.gateway.sandbox
+      ? 'https://openapi.m-pesa.com/sandbox/ipg/v2/vodacomTZN/c2bPayment/singleStage/'
+      : 'https://openapi.m-pesa.com/openapi/ipg/v2/vodacomTZN/c2bPayment/singleStage/';
+    const res = await fetch(host, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${sessionId}`, Origin: '*', 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        input_Amount: String(input.amount),
+        input_Country: 'TZN',
+        input_Currency: 'TZS',
+        input_CustomerMSISDN: msisdn,
+        input_ServiceProviderCode: serviceId,
+        input_ThirdPartyConversationID: conversationId,
+        input_TransactionReference: input.reference || conversationId,
+        input_PurchasedItemsDesc: 'Petty cash wallet deposit',
+      }),
+    });
+    const body: any = await res.json().catch(() => ({}));
+    if (!res.ok || body?.output_ResponseCode !== 'INS-0') {
+      throw new Error(`Vodacom M-Pesa declined the charge${body?.output_ResponseDesc ? `: ${body.output_ResponseDesc}` : '.'}`);
+    }
+    return { confirmed: true, providerRef: body.output_TransactionID };
+  }
+}
+
+/**
+ * Airtel Money (Africa Collections API) — a real "Request to Pay" charge.
+ *
+ * Same OAuth2 client-credentials handshake as settings.routes.ts's
+ * `POST /payment-gateways/airtel/test`. Config fields come from Settings ▸
+ * Finance ▸ Payment Gateways' `airtel` card: clientId, clientSecret,
+ * country, currency. The charge itself pushes a USSD approval prompt to the
+ * payer's phone and returns immediately with a pending transaction id —
+ * Airtel Money is asynchronous, so `confirmed: true` here means "the request
+ * was accepted," not "the customer has already approved it."
+ *
+ * Not yet verified against a real Airtel sandbox account — no live
+ * credentials were available while building this. The request/response
+ * shape matches Airtel's published Collections API spec and reuses the
+ * OAuth handshake already proven live in settings.routes.ts, but needs a
+ * real merchant sandbox run before this is trusted for production traffic.
+ * Tracked in Lens.
+ *
+ * KNOWN SIMPLIFICATION: same caveat as VodacomMpesaAdapter — a successful
+ * `status.success` here means Airtel accepted the push, not that the
+ * customer has approved it. recordDeposit() posts to the GL on acceptance,
+ * not on actual settlement. A real go-live wants a webhook/callback
+ * receiver for Airtel's async transaction result before this is trusted.
+ * Tracked in Lens.
+ */
+class AirtelMoneyAdapter implements PaymentGatewayAdapter {
+  provider = 'airtel';
+  constructor(private gateway: ActiveGateway) {}
+
+  private async getAccessToken(): Promise<string> {
+    const { clientId, clientSecret } = this.gateway.config;
+    if (!clientId || !clientSecret) throw new Error('Airtel Money is configured without a client ID or client secret — check Settings → Finance → Payment Gateways.');
+    const res = await fetch('https://openapi.airtel.africa/auth/oauth2/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: '*/*' },
+      body: JSON.stringify({ client_id: clientId, client_secret: clientSecret, grant_type: 'client_credentials' }),
+    });
+    const body: any = await res.json().catch(() => ({}));
+    if (!res.ok || !body?.access_token) {
+      throw new Error(`Airtel Money rejected these credentials${body?.error_description ? `: ${body.error_description}` : '.'}`);
+    }
+    return body.access_token;
+  }
+
+  async confirmDeposit(input: { amount: number; reference?: string; payerMsisdn?: string }): Promise<{ confirmed: true; providerRef?: string }> {
+    if (!input.payerMsisdn) throw new Error('A payer phone number is required to push an Airtel Money payment request.');
+    const country = this.gateway.config.country || 'TZ';
+    const currency = this.gateway.config.currency || 'TZS';
+    const msisdn = normalizeTzMsisdn(input.payerMsisdn).replace(/^255/, '');
+    const token = await this.getAccessToken();
+    const txId = randomUUID();
+    const res = await fetch('https://openapi.airtel.africa/merchant/v1/payments/', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', Accept: '*/*',
+        'X-Country': country, 'X-Currency': currency,
+      },
+      body: JSON.stringify({
+        reference: input.reference || 'Petti wallet deposit',
+        subscriber: { country, currency, msisdn },
+        transaction: { amount: input.amount, country, currency, id: txId },
+      }),
+    });
+    const body: any = await res.json().catch(() => ({}));
+    if (!res.ok || body?.status?.success !== true) {
+      throw new Error(`Airtel Money declined the charge${body?.status?.message ? `: ${body.status.message}` : '.'}`);
+    }
+    return { confirmed: true, providerRef: body?.data?.transaction?.id || txId };
+  }
+}
+
 async function getPaymentGatewayAdapter(tenantId: string, method: 'manual' | 'gateway'): Promise<PaymentGatewayAdapter> {
   if (method === 'manual') return new ManualDepositAdapter();
-  return new StubGatewayAdapter(await getActiveGateway(tenantId));
+  const configured = await getActiveGateway(tenantId);
+  if (configured?.id === 'vodacom') return new VodacomMpesaAdapter(configured);
+  if (configured?.id === 'airtel') return new AirtelMoneyAdapter(configured);
+  return new StubGatewayAdapter(configured);
 }
 
 // ── Roles ──────────────────────────────────────────────────────────────────
@@ -97,7 +288,7 @@ const PETTI_OVERRIDE_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'] as const;
 
 export interface PettiActor { id: string; role: UserRole; }
 
-export interface PettiActivityEvent { id: string; action: string; walletId: string; amount: number; actorId: string | null; at: string; }
+export interface PettiActivityEvent { id: string; action: string; walletId: string; amount: number; actorId: string | null; at: string; ref: string | null; }
 
 export interface PettiSpendBucket { total: number; count: number; }
 export interface PettiCurrencySpendReport {
@@ -387,13 +578,7 @@ export class PettiService {
     if (!name) throw new Error('Wallet name is required.');
 
     return withTenant(tenantId, async (trx) => {
-      const countResult = await trx.selectFrom('petti_wallets')
-        .select(trx.fn.count('id').as('n')).where('tenant_id', '=', tenantId).executeTakeFirst();
-      let seq = Number(countResult?.n ?? 0) + 1;
-      let code = `PW-${String(seq).padStart(4, '0')}`;
-      const collision = await trx.selectFrom('chart_of_accounts').select('id')
-        .where('tenant_id', '=', tenantId).where('code', '=', code).executeTakeFirst();
-      if (collision) { seq += 1; code = `PW-${String(seq).padStart(4, '0')}`; }
+      const code = await nextPettiRef(trx, tenantId, 'wallet');
 
       const account = await trx.insertInto('chart_of_accounts').values({
         tenant_id: tenantId,
@@ -416,6 +601,32 @@ export class PettiService {
     });
   }
 
+  /** Renames a wallet / edits its description. Currency is deliberately not
+   *  editable here — it's baked into every past deposit/withdrawal/transfer
+   *  amount and the wallet's derived balance math; changing it after the
+   *  fact would silently mismatch old records against a new currency label,
+   *  not actually convert anything. */
+  static async updateWallet(tenantId: string, walletId: string, data: { name?: string; description?: string | null }) {
+    const name = data.name?.trim();
+    if (data.name !== undefined && !name) throw new Error('Wallet name is required.');
+
+    return withTenant(tenantId, async (trx) => {
+      const wallet = await trx.selectFrom('petti_wallets').selectAll()
+        .where('id', '=', walletId).where('tenant_id', '=', tenantId).executeTakeFirst();
+      if (!wallet) throw new Error('Wallet not found.');
+
+      if (name && name !== wallet.name) {
+        await trx.updateTable('chart_of_accounts').set({ name: `Petty Cash Wallet — ${name}` })
+          .where('id', '=', wallet.gl_account_id).execute();
+      }
+
+      return trx.updateTable('petti_wallets').set({
+        ...(name !== undefined ? { name } : {}),
+        ...(data.description !== undefined ? { description: data.description || null } : {}),
+      }).where('id', '=', walletId).where('tenant_id', '=', tenantId).returningAll().executeTakeFirstOrThrow();
+    });
+  }
+
   static async setWalletStatus(tenantId: string, walletId: string, status: 'active' | 'closed') {
     const row = await withTenant(tenantId, (trx) =>
       trx.updateTable('petti_wallets').set({ status })
@@ -430,7 +641,7 @@ export class PettiService {
    *  method:'manual' is the only path that works today — see getPaymentGatewayAdapter. */
   static async recordDeposit(tenantId: string, userId: string, data: {
     walletId: string; amount: number; method?: 'manual' | 'gateway';
-    gatewayProvider?: string; gatewayTxRef?: string; reference?: string; note?: string;
+    gatewayProvider?: string; gatewayTxRef?: string; reference?: string; note?: string; payerMsisdn?: string;
   }) {
     if (!(data.amount > 0)) throw new Error('Deposit amount must be positive.');
     const method = data.method || 'manual';
@@ -443,7 +654,7 @@ export class PettiService {
     if (wallet.status !== 'active') throw new Error('This wallet is closed and cannot accept deposits.');
 
     const adapter = await getPaymentGatewayAdapter(tenantId, method);
-    const confirmation = await adapter.confirmDeposit({ amount: data.amount, reference: data.reference, gatewayTxRef: data.gatewayTxRef });
+    const confirmation = await adapter.confirmDeposit({ amount: data.amount, reference: data.reference, gatewayTxRef: data.gatewayTxRef, payerMsisdn: data.payerMsisdn });
 
     const walletAccount = await withTenant(tenantId, (trx) =>
       trx.selectFrom('chart_of_accounts').select('code').where('id', '=', wallet.gl_account_id).executeTakeFirstOrThrow()
@@ -462,18 +673,22 @@ export class PettiService {
       ],
     });
 
-    return withTenant(tenantId, (trx) => trx.insertInto('petti_deposits').values({
-      tenant_id: tenantId,
-      wallet_id: wallet.id,
-      amount: data.amount,
-      method,
-      gateway_provider: data.gatewayProvider || null,
-      gateway_tx_ref: data.gatewayTxRef || confirmation.providerRef || null,
-      reference: data.reference || null,
-      note: data.note || null,
-      journal_entry_id: journalEntryId,
-      recorded_by: userId,
-    }).returningAll().executeTakeFirstOrThrow());
+    return withTenant(tenantId, async (trx) => {
+      const ref = await nextPettiRef(trx, tenantId, 'deposit');
+      return trx.insertInto('petti_deposits').values({
+        tenant_id: tenantId,
+        wallet_id: wallet.id,
+        amount: data.amount,
+        method,
+        gateway_provider: data.gatewayProvider || null,
+        gateway_tx_ref: data.gatewayTxRef || confirmation.providerRef || null,
+        reference: data.reference || null,
+        ref,
+        note: data.note || null,
+        journal_entry_id: journalEntryId,
+        recorded_by: userId,
+      }).returningAll().executeTakeFirstOrThrow();
+    });
   }
 
   /** Moves funds between two of a tenant's own wallets — one balanced
@@ -525,15 +740,19 @@ export class PettiService {
       ],
     });
 
-    return withTenant(tenantId, (trx) => trx.insertInto('petti_transfers').values({
-      tenant_id: tenantId,
-      from_wallet_id: fromWallet.id,
-      to_wallet_id: toWallet.id,
-      amount: data.amount,
-      note: data.note || null,
-      journal_entry_id: journalEntryId,
-      created_by: userId,
-    }).returningAll().executeTakeFirstOrThrow());
+    return withTenant(tenantId, async (trx) => {
+      const ref = await nextPettiRef(trx, tenantId, 'transfer');
+      return trx.insertInto('petti_transfers').values({
+        tenant_id: tenantId,
+        from_wallet_id: fromWallet.id,
+        to_wallet_id: toWallet.id,
+        amount: data.amount,
+        note: data.note || null,
+        journal_entry_id: journalEntryId,
+        created_by: userId,
+        ref,
+      }).returningAll().executeTakeFirstOrThrow();
+    });
   }
 
   static async listTransfers(tenantId: string, filters: { walletId?: string } = {}) {
@@ -578,6 +797,7 @@ export class PettiService {
           ref('reference').$castTo<string | null>().as('description'),
           ref('recorded_by').$castTo<string | null>().as('actor_id'),
           ref('created_at').as('occurred_at'),
+          ref('ref').$castTo<string | null>().as('ref'),
         ])
         .where('tenant_id', '=', tenantId);
 
@@ -589,6 +809,7 @@ export class PettiService {
           ref('purpose').$castTo<string | null>().as('description'),
           ref('requested_by').$castTo<string | null>().as('actor_id'),
           ref('requested_at').as('occurred_at'),
+          ref('ref').$castTo<string | null>().as('ref'),
         ])
         .where('tenant_id', '=', tenantId);
 
@@ -599,6 +820,7 @@ export class PettiService {
           ref('note').$castTo<string | null>().as('description'),
           ref('created_by').$castTo<string | null>().as('actor_id'),
           ref('created_at').as('occurred_at'),
+          ref('ref').$castTo<string | null>().as('ref'),
         ])
         .where('tenant_id', '=', tenantId);
 
@@ -666,17 +888,17 @@ export class PettiService {
 
     const events: PettiActivityEvent[] = [];
     for (const d of deposits) {
-      events.push({ id: `dep-${d.id}-recorded`, action: 'deposit_recorded', walletId: d.wallet_id, amount: Number(d.amount), actorId: d.recorded_by, at: d.created_at as unknown as string });
+      events.push({ id: `dep-${d.id}-recorded`, action: 'deposit_recorded', walletId: d.wallet_id, amount: Number(d.amount), actorId: d.recorded_by, at: d.created_at as unknown as string, ref: d.ref });
     }
     for (const w of withdrawals) {
-      events.push({ id: `wd-${w.id}-requested`, action: 'withdrawal_requested', walletId: w.wallet_id, amount: Number(w.amount), actorId: w.requested_by, at: w.requested_at as unknown as string });
+      events.push({ id: `wd-${w.id}-requested`, action: 'withdrawal_requested', walletId: w.wallet_id, amount: Number(w.amount), actorId: w.requested_by, at: w.requested_at as unknown as string, ref: w.ref });
       if (w.approved_at && (w.status === 'approved' || w.status === 'disbursed')) {
-        events.push({ id: `wd-${w.id}-approved`, action: 'withdrawal_approved', walletId: w.wallet_id, amount: Number(w.amount), actorId: w.approved_by, at: w.approved_at as unknown as string });
+        events.push({ id: `wd-${w.id}-approved`, action: 'withdrawal_approved', walletId: w.wallet_id, amount: Number(w.amount), actorId: w.approved_by, at: w.approved_at as unknown as string, ref: w.ref });
       } else if (w.approved_at && w.status === 'rejected') {
-        events.push({ id: `wd-${w.id}-rejected`, action: 'withdrawal_rejected', walletId: w.wallet_id, amount: Number(w.amount), actorId: w.approved_by, at: w.approved_at as unknown as string });
+        events.push({ id: `wd-${w.id}-rejected`, action: 'withdrawal_rejected', walletId: w.wallet_id, amount: Number(w.amount), actorId: w.approved_by, at: w.approved_at as unknown as string, ref: w.ref });
       }
       if (w.disbursed_at && w.status === 'disbursed') {
-        events.push({ id: `wd-${w.id}-disbursed`, action: 'withdrawal_disbursed', walletId: w.wallet_id, amount: Number(w.amount), actorId: w.disbursed_by, at: w.disbursed_at as unknown as string });
+        events.push({ id: `wd-${w.id}-disbursed`, action: 'withdrawal_disbursed', walletId: w.wallet_id, amount: Number(w.amount), actorId: w.disbursed_by, at: w.disbursed_at as unknown as string, ref: w.ref });
       }
     }
 
@@ -824,8 +1046,9 @@ export class PettiService {
 
     const workflow = await PettiService.resolveWorkflow(tenantId, userId, wallet, category);
 
-    return withTenant(tenantId, (trx) =>
-      trx.insertInto('petti_withdrawal_requests').values({
+    return withTenant(tenantId, async (trx) => {
+      const ref = await nextPettiRef(trx, tenantId, 'withdrawal');
+      return trx.insertInto('petti_withdrawal_requests').values({
         tenant_id: tenantId,
         wallet_id: data.walletId,
         amount: data.amount,
@@ -835,8 +1058,9 @@ export class PettiService {
         workflow_id: workflow.id,
         payee_name: data.payeeName?.trim() || null,
         on_behalf_of_user_id: data.onBehalfOfUserId || null,
-      }).returningAll().executeTakeFirstOrThrow()
-    );
+        ref,
+      }).returningAll().executeTakeFirstOrThrow();
+    });
   }
 
   static async listWithdrawalRequests(tenantId: string, filters: { walletId?: string; status?: string } = {}) {
@@ -1014,6 +1238,7 @@ export class PettiService {
       doc.on('error', reject);
 
       doc.fontSize(13).font('Helvetica-Bold').text('PETTY CASH VOUCHER', { align: 'center' });
+      doc.fontSize(9).font('Helvetica-Bold').fillColor('#0d7a6b').text(req.ref || req.id, { align: 'center' });
       doc.fontSize(8).font('Helvetica').fillColor('#555').text(wallet.name, { align: 'center' });
       doc.fillColor('#000').moveDown(1);
 
@@ -1044,7 +1269,7 @@ export class PettiService {
       }
 
       doc.moveDown(1.2);
-      doc.fontSize(8).fillColor('#888').text(`Voucher generated ${new Date().toLocaleString('en-GB')} · Ref: ${req.id}`, { align: 'center' });
+      doc.fontSize(8).fillColor('#888').text(`Voucher generated ${new Date().toLocaleString('en-GB')}`, { align: 'center' });
 
       doc.end();
     });

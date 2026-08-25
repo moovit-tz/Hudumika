@@ -10,6 +10,11 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { SingleSelectFilter } from '../components/ui/filter-dropdown.js';
 import { Switch } from '../components/ui/switch.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog.js';
+import { Checkbox } from '../components/ui/checkbox.js';
+import { Input } from '../components/ui/input.js';
+import { Button } from '../components/ui/button.js';
+import { LAUNCHER_APPS } from '../components/LauncherApps.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import { PageHeader } from '../components/PageHeader.js';
@@ -994,6 +999,25 @@ const ALL_FEATURE_KEYS = [
   'demurrage', 'cargotracker', 'petti', 'notes', 'sign', 'sms',
 ];
 
+// Same id → display-name map every app launcher tile and sidebar already
+// reads (LauncherApps.tsx) — reused here instead of a second, hand-guessed
+// label set that would drift from it (e.g. 'oneid' is branded "Ondi", not
+// "OneID"; a naive capitalize() would get that wrong).
+const APP_NAME_BY_ID: Record<string, string> = Object.fromEntries(LAUNCHER_APPS.map(a => [a.id, a.name]));
+function humanize(s: string): string {
+  return s.split(/[-_]/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+}
+/** A dotted key ('tracking.cargo-loading') is a sub-feature of its prefix
+ *  ('tracking') — ALL_FEATURE_KEYS already lists each parent immediately
+ *  before its children, so rendering in array order and indenting whichever
+ *  rows have a parent groups them correctly with no tree-building needed. */
+function featureLabel(key: string): { parent: string | null; label: string } {
+  const dot = key.indexOf('.');
+  if (dot === -1) return { parent: null, label: APP_NAME_BY_ID[key] || humanize(key) };
+  const parentKey = key.slice(0, dot);
+  return { parent: APP_NAME_BY_ID[parentKey] || humanize(parentKey), label: humanize(key.slice(dot + 1)) };
+}
+
 /** Real, wired editor for which entitlement feature keys a package grants — PATCHes
  *  /v1/superadmin/packages/:code/features (backed by the package_features table), distinct
  *  from the still-local-only price/maxUsers/display-features fields in the parent modal. */
@@ -1034,24 +1058,38 @@ function FeatureGatesEditor({ packageCode }: { packageCode: string }) {
   }
 
   return (
-    <div style={{ marginBottom:16, paddingTop:14, borderTop:'1px solid var(--border)' }}>
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
-        <label style={{ fontSize:12, fontWeight:600, color:'var(--ink2)' }}>Feature Gates ({packageCode})</label>
-        <button type="button" onClick={save} disabled={loading || saving} className="btn btn-secondary btn-sm" style={{ fontSize:11 }}>
+    <div style={{ marginBottom:20, paddingTop:16, borderTop:'1px solid var(--border)' }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
+        <div style={{ fontSize:13, fontWeight:700, color:'var(--ink)' }}>Feature Gates</div>
+        <Button type="button" size="sm" variant="secondary" onClick={save} disabled={loading || saving}>
           {saved ? 'Saved' : saving ? 'Saving…' : 'Save Gates'}
-        </button>
+        </Button>
       </div>
       {loading ? (
-        <div style={{ fontSize:12, color:'var(--ink3)' }}>Loading…</div>
+        <div style={{ fontSize:12, color:'var(--ink3)', padding:'10px 0' }}>Loading…</div>
       ) : (
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(2,1fr)', gap:6, maxHeight:180, overflowY:'auto' }}>
-          {ALL_FEATURE_KEYS.map(key => (
-            <label key={key} style={{ display:'flex', alignItems:'center', gap:6, fontSize:12, color:'var(--ink2)', cursor:'pointer' }}>
-              <input type="checkbox" checked={features.includes(key)} onChange={() => toggleKey(key)} />
-              {key}
-            </label>
-          ))}
-        </div>
+        <DataTable headers={['Feature', 'Enabled']}>
+          {ALL_FEATURE_KEYS.map(key => {
+            const { parent, label } = featureLabel(key);
+            return (
+              <TR key={key} onClick={() => toggleKey(key)}>
+                <TD>
+                  {parent ? (
+                    <span style={{ display:'inline-flex', alignItems:'baseline', gap:6, paddingLeft:18, fontSize:12.5, color:'var(--ink2)' }}>
+                      <span style={{ color:'var(--ink4)' }}>–</span> {label}
+                      <span style={{ fontSize:10.5, color:'var(--ink4)' }}>({parent})</span>
+                    </span>
+                  ) : (
+                    <span style={{ fontWeight:600 }}>{label}</span>
+                  )}
+                </TD>
+                <TD right>
+                  <Checkbox checked={features.includes(key)} onCheckedChange={() => toggleKey(key)} onClick={e => e.stopPropagation()} />
+                </TD>
+              </TR>
+            );
+          })}
+        </DataTable>
       )}
     </div>
   );
@@ -1108,29 +1146,43 @@ function AppQuotasEditor({ packageCode }: { packageCode: string }) {
   }
 
   return (
-    <div style={{ marginBottom:16, paddingTop:14, borderTop:'1px solid var(--border)' }}>
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
-        <label style={{ fontSize:12, fontWeight:600, color:'var(--ink2)' }}>Per-app monthly quotas ({packageCode})</label>
-        <button type="button" onClick={save} disabled={loading || saving} className="btn btn-secondary btn-sm" style={{ fontSize:11 }}>
+    <div style={{ marginBottom:20, paddingTop:16, borderTop:'1px solid var(--border)' }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
+        <div style={{ fontSize:13, fontWeight:700, color:'var(--ink)' }}>Per-app monthly quotas</div>
+        <Button type="button" size="sm" variant="secondary" onClick={save} disabled={loading || saving}>
           {saved ? 'Saved' : saving ? 'Saving…' : 'Save Quotas'}
-        </button>
+        </Button>
       </div>
       {loading ? (
-        <div style={{ fontSize:12, color:'var(--ink3)' }}>Loading…</div>
+        <div style={{ fontSize:12, color:'var(--ink3)', padding:'10px 0' }}>Loading…</div>
       ) : (
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(2,1fr)', gap:6, maxHeight:220, overflowY:'auto' }}>
-          {ALL_FEATURE_KEYS.map(key => (
-            <label key={key} style={{ display:'flex', alignItems:'center', gap:6, fontSize:11.5, color:'var(--ink2)' }}>
-              <span style={{ flex:1 }}>{key}</span>
-              <input
-                type="number" min={0} placeholder="∞"
-                value={quotas[key] ?? ''}
-                onChange={e => setLimit(key, e.target.value)}
-                className="input-field" style={{ width:70, padding:'4px 6px', fontSize:11.5 }}
-              />
-            </label>
-          ))}
-        </div>
+        <DataTable headers={['App', 'Monthly limit']}>
+          {ALL_FEATURE_KEYS.map(key => {
+            const { parent, label } = featureLabel(key);
+            return (
+              <TR key={key}>
+                <TD>
+                  {parent ? (
+                    <span style={{ display:'inline-flex', alignItems:'baseline', gap:6, paddingLeft:18, fontSize:12.5, color:'var(--ink2)' }}>
+                      <span style={{ color:'var(--ink4)' }}>–</span> {label}
+                      <span style={{ fontSize:10.5, color:'var(--ink4)' }}>({parent})</span>
+                    </span>
+                  ) : (
+                    <span style={{ fontWeight:600 }}>{label}</span>
+                  )}
+                </TD>
+                <TD right>
+                  <Input
+                    type="number" min={0} placeholder="∞"
+                    value={quotas[key] ?? ''}
+                    onChange={e => setLimit(key, e.target.value)}
+                    style={{ width:90, textAlign:'right', display:'inline-flex' }}
+                  />
+                </TD>
+              </TR>
+            );
+          })}
+        </DataTable>
       )}
     </div>
   );
@@ -1239,118 +1291,124 @@ export function PackagesView() {
         ))}
       </div>
 
-      {/* Edit modal */}
-      {editing && (
-        <div className="modal-overlay" onClick={()=>setEditing(null)}>
-          <div className="card" style={{ width:460, padding:28 }} onClick={e=>e.stopPropagation()}>
-            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20 }}>
-              <span style={{ fontSize:16, fontWeight:700, color:'var(--ink)' }}>Edit Package — {editing.name}</span>
-              <button onClick={()=>setEditing(null)} className="dp-close"><Icon name="close" size={16} /></button>
-            </div>
-            {[
-              { label:'Monthly Price ($)',  key:'monthly', type:'number' },
-              { label:'Annual Price ($)',   key:'annual',  type:'number' },
-              { label:'Max Users (0 = unlimited)', key:'maxUsers', type:'number' },
-              { label:'Monthly item limit, all apps (0 = unlimited)', key:'monthlyItemLimit', type:'number' },
-              { label:'Storage limit, GB (0 = unlimited)', key:'storageLimitGb', type:'number' },
-            ].map(f=>(
-              <div key={f.key} style={{ marginBottom:14 }}>
-                <label style={{ fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:5 }}>{f.label}</label>
-                <input type={f.type} value={(editing as any)[f.key] ?? 0} onChange={e=>setEditing(p=>p?({...p,[f.key]:Number(e.target.value)}):p)} className="input-field" style={{ width:'100%' }} />
+      {/* Edit modal — one scrollable dialog body (not two nested mini-scroll
+          boxes), sticky title + footer, so Save/Deactivate are always
+          reachable regardless of how tall the feature/quota tables get. */}
+      <Dialog open={!!editing} onOpenChange={o => { if (!o) setEditing(null); }}>
+        <DialogContent className="sm:max-w-xl max-h-[85vh] overflow-y-auto">
+          {editing && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Edit Package — {editing.name}</DialogTitle>
+              </DialogHeader>
+
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
+                {[
+                  { label:'Monthly Price ($)',  key:'monthly', hint:undefined },
+                  { label:'Annual Price ($)',   key:'annual',  hint:undefined },
+                  { label:'Max Users', key:'maxUsers', hint:'0 = unlimited' },
+                  { label:'Monthly item limit, all apps', key:'monthlyItemLimit', hint:'0 = unlimited' },
+                  { label:'Storage limit, GB', key:'storageLimitGb', hint:'0 = unlimited' },
+                ].map(f=>(
+                  <div key={f.key}>
+                    <label style={{ fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:5 }}>
+                      {f.label}{f.hint && <span style={{ fontWeight:400, color:'var(--ink3)' }}> ({f.hint})</span>}
+                    </label>
+                    <Input type="number" value={(editing as any)[f.key] ?? 0} onChange={e=>setEditing(p=>p?({...p,[f.key]:Number(e.target.value)}):p)} />
+                  </div>
+                ))}
               </div>
-            ))}
-            <FeatureGatesEditor packageCode={editing.code} />
-            <AppQuotasEditor packageCode={editing.code} />
-            <div style={{ display:'flex', gap:10, justifyContent:'space-between', marginTop:4 }}>
-              <button
-                onClick={async () => {
-                  if (!(await showConfirm(`Deactivate the ${editing.name} package? It will stop appearing to new signups.`, { variant: 'warning', confirmLabel: 'Deactivate' }))) return;
-                  try {
-                    await apiFetch(`/v1/packages/${editing.code}`, { method: 'DELETE' });
-                    setPackages(p => p.filter(pk => pk.id !== editing.id));
-                    setEditing(null);
-                  } catch (err: any) {
-                    showAlert(`Failed to deactivate: ${err?.message ?? 'Unknown error'}`);
-                  }
-                }}
-                className="btn btn-sm"
-                style={{ color: 'var(--red)', border: '1px solid var(--border)', background: 'var(--white)' }}
-              >
-                Deactivate
-              </button>
-              <div style={{ display:'flex', gap:10 }}>
-                <button onClick={()=>setEditing(null)} className="btn btn-secondary btn-sm">Cancel</button>
-                <button
+
+              <FeatureGatesEditor packageCode={editing.code} />
+              <AppQuotasEditor packageCode={editing.code} />
+
+              <DialogFooter className="sm:justify-between">
+                <Button
+                  type="button" variant="destructive" size="sm"
                   onClick={async () => {
+                    if (!(await showConfirm(`Deactivate the ${editing.name} package? It will stop appearing to new signups.`, { variant: 'warning', confirmLabel: 'Deactivate' }))) return;
                     try {
-                      const updated = await apiFetch(`/v1/packages/${editing.code}`, {
-                        method: 'PATCH',
-                        body: JSON.stringify({
-                          monthly_price: editing.monthly, annual_price: editing.annual, max_users: editing.maxUsers,
-                          monthly_item_limit: editing.monthlyItemLimit ? editing.monthlyItemLimit : null,
-                          storage_limit_bytes: editing.storageLimitGb ? editing.storageLimitGb * 1073741824 : null,
-                        }),
-                      });
-                      setPackages(p => p.map(pk => pk.id === editing.id ? mapFromApi(updated) : pk));
+                      await apiFetch(`/v1/packages/${editing.code}`, { method: 'DELETE' });
+                      setPackages(p => p.filter(pk => pk.id !== editing.id));
                       setEditing(null);
                     } catch (err: any) {
-                      showAlert(`Failed to save: ${err?.message ?? 'Unknown error'}`);
+                      showAlert(`Failed to deactivate: ${err?.message ?? 'Unknown error'}`);
                     }
                   }}
-                  className="btn btn-primary btn-sm"
                 >
-                  Save Changes
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+                  Deactivate
+                </Button>
+                <div style={{ display:'flex', gap:8 }}>
+                  <Button type="button" variant="outline" size="sm" onClick={()=>setEditing(null)}>Cancel</Button>
+                  <Button
+                    type="button" size="sm"
+                    onClick={async () => {
+                      try {
+                        const updated = await apiFetch(`/v1/packages/${editing.code}`, {
+                          method: 'PATCH',
+                          body: JSON.stringify({
+                            monthly_price: editing.monthly, annual_price: editing.annual, max_users: editing.maxUsers,
+                            monthly_item_limit: editing.monthlyItemLimit ? editing.monthlyItemLimit : null,
+                            storage_limit_bytes: editing.storageLimitGb ? editing.storageLimitGb * 1073741824 : null,
+                          }),
+                        });
+                        setPackages(p => p.map(pk => pk.id === editing.id ? mapFromApi(updated) : pk));
+                        setEditing(null);
+                      } catch (err: any) {
+                        showAlert(`Failed to save: ${err?.message ?? 'Unknown error'}`);
+                      }
+                    }}
+                  >
+                    Save Changes
+                  </Button>
+                </div>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Add modal */}
-      {showAdd && (
-        <div className="modal-overlay" onClick={()=>setShowAdd(false)}>
-          <div className="card" style={{ width:400, padding:28 }} onClick={e=>e.stopPropagation()}>
-            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20 }}>
-              <span style={{ fontSize:16, fontWeight:700, color:'var(--ink)' }}>New Package</span>
-              <button onClick={()=>setShowAdd(false)} className="dp-close"><Icon name="close" size={16} /></button>
+      <Dialog open={showAdd} onOpenChange={setShowAdd}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>New Package</DialogTitle>
+          </DialogHeader>
+          {[
+            { label:'Package Name *', key:'name',     type:'text' },
+            { label:'Monthly Price ($)', key:'monthly', type:'number' },
+            { label:'Annual Price ($)',  key:'annual',  type:'number' },
+            { label:'Max Users',         key:'maxUsers',type:'number' },
+          ].map(f=>(
+            <div key={f.key}>
+              <label style={{ fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:5 }}>{f.label}</label>
+              <Input type={f.type} value={(newPkg as any)[f.key]} onChange={e=>setNewPkg(p=>({...p,[f.key]:f.type==='number'?Number(e.target.value):e.target.value}))} placeholder={f.key==='name'?'Enterprise Plus':undefined} />
             </div>
-            {[
-              { label:'Package Name *', key:'name',     type:'text' },
-              { label:'Monthly Price ($)', key:'monthly', type:'number' },
-              { label:'Annual Price ($)',  key:'annual',  type:'number' },
-              { label:'Max Users',         key:'maxUsers',type:'number' },
-            ].map(f=>(
-              <div key={f.key} style={{ marginBottom:14 }}>
-                <label style={{ fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:5 }}>{f.label}</label>
-                <input type={f.type} value={(newPkg as any)[f.key]} onChange={e=>setNewPkg(p=>({...p,[f.key]:f.type==='number'?Number(e.target.value):e.target.value}))} className="input-field" style={{ width:'100%' }} placeholder={f.key==='name'?'Enterprise Plus':undefined} />
-              </div>
-            ))}
-            <div style={{ display:'flex', gap:10, justifyContent:'flex-end', marginTop:4 }}>
-              <button onClick={()=>setShowAdd(false)} className="btn btn-secondary btn-sm">Cancel</button>
-              <button onClick={async ()=>{
-                if (!newPkg.name.trim()) return;
-                const code = newPkg.name.trim().toLowerCase().replace(/\s+/g,'-');
-                try {
-                  await apiFetch('/v1/packages', {
-                    method: 'POST',
-                    body: JSON.stringify({
-                      code, name: newPkg.name.trim(),
-                      monthly_price: newPkg.monthly, annual_price: newPkg.annual, max_users: newPkg.maxUsers,
-                      features: ['Custom features'], color: 'var(--teal)', popular: false, sort_order: 99,
-                    }),
-                  });
-                  reload();
-                  setNewPkg({name:'',monthly:0,annual:0,maxUsers:10});
-                  setShowAdd(false);
-                } catch (err: any) {
-                  showAlert(`Failed to create package: ${err?.message ?? 'Unknown error'}`);
-                }
-              }} className="btn btn-primary btn-sm" disabled={!newPkg.name.trim()}>Create Package</button>
-            </div>
-          </div>
-        </div>
-      )}
+          ))}
+          <DialogFooter>
+            <Button type="button" variant="outline" size="sm" onClick={()=>setShowAdd(false)}>Cancel</Button>
+            <Button type="button" size="sm" disabled={!newPkg.name.trim()} onClick={async ()=>{
+              if (!newPkg.name.trim()) return;
+              const code = newPkg.name.trim().toLowerCase().replace(/\s+/g,'-');
+              try {
+                await apiFetch('/v1/packages', {
+                  method: 'POST',
+                  body: JSON.stringify({
+                    code, name: newPkg.name.trim(),
+                    monthly_price: newPkg.monthly, annual_price: newPkg.annual, max_users: newPkg.maxUsers,
+                    features: ['Custom features'], color: 'var(--teal)', popular: false, sort_order: 99,
+                  }),
+                });
+                reload();
+                setNewPkg({name:'',monthly:0,annual:0,maxUsers:10});
+                setShowAdd(false);
+              } catch (err: any) {
+                showAlert(`Failed to create package: ${err?.message ?? 'Unknown error'}`);
+              }
+            }}>Create Package</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

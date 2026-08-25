@@ -3,6 +3,16 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { requireRole } from '../middleware/rbac.js';
 import { PettiService, PETTI_CATEGORIES, PETTI_FINANCE_ROLES } from '../services/petti.service.js';
+import { getActiveGateway } from '../lib/payment-gateway.js';
+
+// Gateway ids petti.service.ts's getPaymentGatewayAdapter actually knows how
+// to place a live charge with (VodacomMpesaAdapter/AirtelMoneyAdapter) —
+// every other configured gateway still 400s on method:'gateway' via
+// StubGatewayAdapter. Keep in sync with that dispatch.
+const CHARGE_CAPABLE_GATEWAYS: Record<string, string> = {
+  vodacom: 'Vodacom M-Pesa (TZ)',
+  airtel: 'Airtel Money',
+};
 
 const createWalletSchema = z.object({
   name: z.string().trim().min(1).max(200),
@@ -11,6 +21,10 @@ const createWalletSchema = z.object({
 });
 
 const walletStatusSchema = z.object({ status: z.enum(['active', 'closed']) });
+const walletUpdateSchema = z.object({
+  name: z.string().trim().min(1).max(200).optional(),
+  description: z.string().max(2000).nullable().optional(),
+});
 
 const depositSchema = z.object({
   amount: z.number().positive(),
@@ -19,6 +33,10 @@ const depositSchema = z.object({
   gateway_tx_ref: z.string().max(200).optional(),
   reference: z.string().max(200).optional(),
   note: z.string().max(2000).optional(),
+  // Required by recordDeposit only when method:'gateway' resolves to a
+  // provider that actually places a live charge (Vodacom/Airtel today) — a
+  // real mobile-money "request to pay" has nowhere else to send the prompt.
+  payer_msisdn: z.string().max(20).optional(),
 });
 
 const withdrawalRequestSchema = z.object({
@@ -110,6 +128,17 @@ export async function pettiRoutes(fastify: FastifyInstance) {
       if (/duplicate key/i.test(e?.message || '')) {
         return reply.status(409).send({ error: `A wallet named "${body.name}" already exists.` });
       }
+      return sendServiceError(reply, e);
+    }
+  });
+
+  fastify.patch('/wallets/:id', { preHandler: requireRole(...PETTI_FINANCE_ROLES) }, async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    const body = walletUpdateSchema.parse(request.body);
+    try {
+      return await PettiService.updateWallet(user.tenant_id, id, body);
+    } catch (e: any) {
       return sendServiceError(reply, e);
     }
   });
@@ -207,6 +236,24 @@ export async function pettiRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // ── Gateway status ───────────────────────────────────────────────────────
+  // The real, single source of truth for "what will method:'gateway' do
+  // right now" — read by the deposit forms (so the dropdown never offers a
+  // provider that will just throw) and by the Gateways page (so it shows
+  // this tenant's actual Settings config instead of a fabricated list).
+  fastify.get('/gateway-status', async (request) => {
+    const user = request.user;
+    const active = await getActiveGateway(user.tenant_id);
+    if (!active) return { configured: false, provider: null, label: null, sandbox: false, chargeSupported: false };
+    return {
+      configured: true,
+      provider: active.id,
+      label: CHARGE_CAPABLE_GATEWAYS[active.id] ?? active.id,
+      sandbox: active.sandbox,
+      chargeSupported: active.id in CHARGE_CAPABLE_GATEWAYS,
+    };
+  });
+
   // ── Deposits ───────────────────────────────────────────────────────────
   fastify.post('/wallets/:id/deposits', { preHandler: requireRole(...PETTI_FINANCE_ROLES) }, async (request, reply) => {
     const user = request.user;
@@ -216,7 +263,7 @@ export async function pettiRoutes(fastify: FastifyInstance) {
       const deposit = await PettiService.recordDeposit(user.tenant_id, user.sub, {
         walletId: id, amount: body.amount, method: body.method,
         gatewayProvider: body.gateway_provider, gatewayTxRef: body.gateway_tx_ref,
-        reference: body.reference, note: body.note,
+        reference: body.reference, note: body.note, payerMsisdn: body.payer_msisdn,
       });
       return reply.status(201).send(deposit);
     } catch (e: any) {

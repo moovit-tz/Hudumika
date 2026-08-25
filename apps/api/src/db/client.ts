@@ -3087,6 +3087,9 @@ export interface TasksTable {
   // Optional companion to `due` — plain 'HH:MM:SS' in and out, same
   // never-touches-JS-Date reasoning as `due` itself.
   due_time: string | null;
+  // Real start date (migration 321) — needed for a Gantt bar to have a real
+  // span instead of a single due-date point.
+  start_date: DateOnlyNull;
   starred: Generated<boolean>;
   someday: Generated<boolean>;
   status: Generated<string>;
@@ -3105,8 +3108,172 @@ export interface TasksTable {
   // jobs/task-reminder.job.ts for the fire-once-then-guard logic.
   reminder_at: ColumnType<Date | null, string | null, string | null>;
   reminder_notified_at: ColumnType<Date | null, string | null, string | null>;
+  // 'low' | 'medium' | 'high' | 'urgent' (migration 307) — was displayed in
+  // the UI (badges/filters/Kanban columns) long before it had a real column;
+  // see TaskTimeEntriesTable below for the timer's identical history.
+  priority: Generated<string>;
+  // Projects/Milestones (migration 308, tasks.advanced-gated) — null on
+  // every plain personal task, exactly as before this migration.
+  project_id: string | null;
+  milestone_id: string | null;
+  is_private: Generated<boolean>;
+  // Billable/hourly rate (migration 310, tasks.advanced).
+  is_billable: Generated<boolean>;
+  hourly_rate: string | null; // NUMERIC — pg returns as string
+  // "Related To" polymorphic link (migration 311, tasks.advanced) — same
+  // subject_type/subject_id convention as notes.subject_type etc.
+  subject_type: string | null;
+  subject_id: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
+}
+
+/** Real activity feed (migration 310, tasks.advanced) — distinct from
+ *  todo_comments; the old "Comments & Activity" tab only ever rendered
+ *  comments despite the label. */
+export interface TaskActivityLogTable {
+  id: string;
+  tenant_id: string;
+  task_id: string;
+  actor_id: string;
+  action: string;
+  detail: Record<string, unknown>; // JSONB
+  created_at: Generated<Date>;
+}
+
+/** A shared, tenant-wide project (migration 308) — unlike task_lists (a
+ *  personal, single-owner grouping), this is a real multi-person container
+ *  with its own roster (ProjectMembersTable) and milestones. Part of the
+ *  standalone Projects app's 'projects' (HuduPlus+) entitlement. */
+export interface ProjectsTable {
+  id: string;
+  tenant_id: string;
+  name: string;
+  description: string | null;
+  color: Generated<string>;
+  status: Generated<string>; // 'not_started' | 'in_progress' | 'on_hold' | 'cancelled' | 'finished' (migration 314)
+  owner_id: string;
+  start_date: DateOnlyNull;
+  target_date: DateOnlyNull;
+  // Enterprise fields (migration 314).
+  ref: string | null; // e.g. 'PRJ-0001', via getNextDocNumber
+  customer_id: string | null;
+  billing_type: Generated<string>; // 'fixed' | 'hourly'
+  total_rate: string | null; // NUMERIC — pg returns as string
+  currency: Generated<string>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface ProjectMembersTable {
+  id: string;
+  tenant_id: string;
+  project_id: string;
+  user_id: string;
+  role: Generated<string>; // 'owner' | 'member' | 'viewer'
+  added_at: Generated<Date>;
+}
+
+/** Multi-person roster on top of the single `tasks.assignee_id` (migration
+ *  309, tasks.advanced) — the plural Assignees/Followers pickers. */
+export interface TaskCollaboratorsTable {
+  id: string;
+  tenant_id: string;
+  task_id: string;
+  user_id: string;
+  kind: string; // 'assignee' | 'follower'
+  added_at: Generated<Date>;
+}
+
+export interface TaskDependenciesTable {
+  id: string;
+  tenant_id: string;
+  task_id: string;
+  depends_on_task_id: string;
+  created_at: Generated<Date>;
+}
+
+export interface ProjectActivityLogTable {
+  id: string;
+  tenant_id: string;
+  project_id: string;
+  actor_id: string;
+  action: string;
+  detail: Record<string, unknown>; // JSONB
+  created_at: Generated<Date>;
+}
+
+export interface MilestonesTable {
+  id: string;
+  tenant_id: string;
+  project_id: string;
+  name: string;
+  description: string | null;
+  due_date: DateOnlyNull;
+  status: Generated<string>; // 'upcoming' | 'in_progress' | 'completed'
+  sort_order: Generated<number>;
+  created_at: Generated<Date>;
+}
+
+/** Real Contracts (migration 316) — a hardcoded-sample version existed once
+ *  (073_contracts.sql), was dropped for having no real backend at all
+ *  (075_drop_contracts.sql), and was rebuilt here for real, this time with
+ *  a real PDF and (once wired) real e-signature via sign_envelopes. */
+export interface ContractsTable {
+  id: string;
+  tenant_id: string;
+  ref: string | null;
+  customer_id: string;
+  project_id: string | null;
+  subject: string;
+  value: string | null; // NUMERIC — pg returns as string
+  currency: Generated<string>;
+  type: string | null;
+  start_date: DateOnlyNull;
+  end_date: DateOnlyNull;
+  description: string | null;
+  content: string | null; // the actual contract body/terms text (migration 317)
+  status: Generated<string>; // 'active' | 'void'
+  sign_envelope_id: string | null;
+  owner_id: string;
+  deleted_at: ColumnType<Date | null, string | null, string | null>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface ContractRenewalsTable {
+  id: string;
+  tenant_id: string;
+  contract_id: string;
+  actor_id: string;
+  previous_end_date: DateOnlyNull;
+  new_end_date: DateOnlyNull;
+  note: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface ContractCommentsTable {
+  id: string;
+  tenant_id: string;
+  contract_id: string;
+  author_id: string;
+  content: string;
+  created_at: Generated<Date>;
+}
+
+/** Real start/stop time entries (migration 307) — TaskTimerWidget in
+ *  TasksApp.tsx already rendered a stopwatch off client-only state that
+ *  reset on every reload; this is what actually persists it. At most one
+ *  open (ended_at null) row per task, enforced by a partial unique index. */
+export interface TaskTimeEntriesTable {
+  id: string;
+  tenant_id: string;
+  task_id: string;
+  user_id: string;
+  started_at: ColumnType<Date, string, string>;
+  ended_at: ColumnType<Date | null, string | null, string | null>;
+  duration_minutes: number | null;
+  created_at: Generated<Date>;
 }
 
 export interface TaskSubtasksTable {
@@ -4128,6 +4295,17 @@ export interface Database {
   task_lists: TaskListsTable;
   tasks: TasksTable;
   task_subtasks: TaskSubtasksTable;
+  task_time_entries: TaskTimeEntriesTable;
+  task_dependencies: TaskDependenciesTable;
+  projects: ProjectsTable;
+  project_members: ProjectMembersTable;
+  milestones: MilestonesTable;
+  contracts: ContractsTable;
+  contract_renewals: ContractRenewalsTable;
+  project_activity_log: ProjectActivityLogTable;
+  contract_comments: ContractCommentsTable;
+  task_collaborators: TaskCollaboratorsTable;
+  task_activity_log: TaskActivityLogTable;
   todo_comments: TodoCommentsTable;
   task_list_shares: TaskListSharesTable;
   calendar_events: CalendarEventsTable;
@@ -4170,6 +4348,7 @@ export interface Database {
   petti_withdrawal_requests: PettiWithdrawalRequestsTable;
   petti_transfers: PettiTransfersTable;
   petti_flags: PettiFlagsTable;
+  petti_counters: PettiCountersTable;
   accounting_sync_logs: AccountingSyncLogsTable;
   accounting_integration_entity_map: AccountingIntegrationEntityMapTable;
   user_totp: UserTotpTable;
@@ -5055,6 +5234,7 @@ export interface PettiDepositsTable {
   gateway_provider: string | null;
   gateway_tx_ref: string | null;
   reference: string | null;
+  ref: string | null;
   note: string | null;
   journal_entry_id: string | null;
   recorded_by: string | null;
@@ -5081,6 +5261,7 @@ export interface PettiWithdrawalRequestsTable {
   workflow_id: string | null;
   payee_name: string | null;
   on_behalf_of_user_id: string | null;
+  ref: string | null;
 }
 
 export interface PettiTransfersTable {
@@ -5093,6 +5274,13 @@ export interface PettiTransfersTable {
   journal_entry_id: string | null;
   created_by: string | null;
   created_at: Generated<Date>;
+  ref: string | null;
+}
+
+export interface PettiCountersTable {
+  tenant_id: string;
+  counter_type: string;
+  next_seq: Generated<number>;
 }
 
 export interface PettiFlagsTable {
@@ -5664,7 +5852,7 @@ export interface SubscriptionInvoicesTable {
 
 export interface InvoiceSequencesTable {
   tenant_id: string;
-  doc_type: 'invoice' | 'quotation' | 'purchase_order';
+  doc_type: 'invoice' | 'quotation' | 'purchase_order' | 'project' | 'contract';
   prefix: Generated<string>;
   pad_length: Generated<number>;
   next_number: Generated<number>;

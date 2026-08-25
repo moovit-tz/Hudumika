@@ -1,21 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { Icon, type IconName } from './Icon.js';
-import { useTodos, addTodo, updateTodo, deleteTodo, useEvents, useCurrentCalendarDate, setCurrentCalendarDate, useAppSettings, updateAppSettings } from '../data/calendarStore.js';
+import { useTodos, addTodo, updateTodo, deleteTodo, useEvents, addEvent, useCurrentCalendarDate, setCurrentCalendarDate, useAppSettings, updateAppSettings } from '../data/calendarStore.js';
 import { PersonAvatar } from './PersonAvatar.js';
 import { Switch } from './ui/switch.js';
 import { Button } from './ui/button.js';
 import { showAlert } from '../lib/alert.js';
+import { showConfirm } from '../lib/confirm.js';
 import { apiFetch } from '../lib/api.js';
+import { useAuth } from '../hooks/useAuth.js';
 import { isRightSidebarCollapsed, toggleRightSidebar, RIGHT_SIDEBAR_TOGGLE_EVENT } from '../lib/rightSidebarState.js';
 import { useEnabledApps, isAppEnabled } from '../hooks/useEnabledApps.js';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuLabel, DropdownMenuSeparator } from './ui/dropdown-menu.js';
-import { LauncherAppSvg } from './LauncherApps.js';
 import { NotificationListItem } from './NotificationListItem.js';
 import { ReminderPicker } from './ReminderPicker.js';
+import { EntityPicker, type PickerItem } from './EntityPicker.js';
 import './NotificationCentre.css';
 import './GoogleWorkspaceRightSidebar.css';
 
-export type CompanionPanelId = 'tasks' | 'calendar' | 'esign' | 'chat' | 'notifications' | 'analytics' | 'notes' | 'sms' | 'contacts' | 'ai' | 'settings' | null;
+export type CompanionPanelId = 'tasks' | 'calendar' | 'esign' | 'chat' | 'notifications' | 'analytics' | 'notes' | 'sms' | 'email' | 'contacts' | 'ai' | 'settings' | null;
 
 interface RailApp {
   id: Exclude<CompanionPanelId, null | 'settings'>;
@@ -32,9 +34,12 @@ const RAIL_APPS: RailApp[] = [
   { id: 'notes', label: 'Notes', icon: 'fileText', color: '#16a34a' },
   { id: 'tasks', label: 'Tasks', icon: 'tasks', color: '#0d9488' },
   { id: 'sms', label: 'SMS', icon: 'smartphone', color: '#dc2626', entitlementKey: 'sms' },
+  { id: 'email', label: 'Email', icon: 'mail', color: '#ea4335', entitlementKey: 'email' },
   { id: 'chat', label: 'Teams & Discussions', icon: 'messageSquare', color: '#7c3aed' },
   { id: 'notifications', label: 'Notifications', icon: 'bell', color: '#ef4444' },
-  { id: 'esign', label: 'eSign', icon: 'mail', color: '#0284c7', entitlementKey: 'sign' },
+  // 'stamp' matches AppSidebar's own nav icon for this app (not 'mail' —
+  // that glyph is now Email's, above).
+  { id: 'esign', label: 'eSign', icon: 'stamp', color: '#0284c7', entitlementKey: 'sign' },
   { id: 'contacts', label: 'Contacts', icon: 'contact', color: '#2563eb', entitlementKey: 'contacts' },
   { id: 'ai', label: 'AI Assistant', icon: 'sparkle', color: 'var(--teal)', entitlementKey: 'ai' },
   { id: 'calendar', label: 'Calendar', icon: 'calendar', color: '#1a73e8' },
@@ -44,12 +49,12 @@ const RAIL_APPS: RailApp[] = [
 // 'ai' isn't in the default pinned list — it has its own dedicated button
 // (below the pinned-app list) with the real Hudumika AI brand glyph, so
 // pinning it here too would just duplicate the same trigger.
-const DEFAULT_PINNED: CompanionPanelId[] = ['notes', 'tasks', 'sms', 'chat', 'notifications', 'esign', 'contacts'];
+const DEFAULT_PINNED: CompanionPanelId[] = ['notes', 'tasks', 'sms', 'email', 'chat', 'notifications', 'esign', 'contacts'];
 
 // Panels whose drawer shows a filterable list — the search button only
 // appears for these, rather than on a scratchpad or a static toggle grid
 // where "search" wouldn't do anything real.
-const SEARCHABLE_PANELS = new Set<CompanionPanelId>(['tasks', 'calendar', 'esign', 'chat', 'notifications', 'sms', 'contacts']);
+const SEARCHABLE_PANELS = new Set<CompanionPanelId>(['tasks', 'calendar', 'esign', 'chat', 'notifications', 'sms', 'email', 'contacts']);
 
 // Real full-page route for panels that have one — drives the "open in app"
 // button. Panels without a dedicated page (settings) are omitted rather than
@@ -58,10 +63,23 @@ const SEARCHABLE_PANELS = new Set<CompanionPanelId>(['tasks', 'calendar', 'esign
 // footer), not a page built just for this drawer.
 const PANEL_ROUTES: Partial<Record<Exclude<CompanionPanelId, null>, string>> = {
   notes: '/notes', tasks: '/tasks', calendar: '/calendar', esign: '/sign',
-  chat: '/chat', sms: '/sms', contacts: '/contacts', ai: '/ai', analytics: '/hudubi',
+  chat: '/chat', sms: '/sms', email: '/email', contacts: '/contacts', ai: '/ai', analytics: '/hudubi',
   notifications: '/bliss/notifications',
 };
 const PINNED_KEY = 'hudumika_companion_rail_apps';
+
+// Shared look for every panel's inline "quick create" composer — one input
+// style and one collapsed-state toggle button, reused by Calendar/Notes/
+// SMS/Email/Contacts/Chat rather than each panel inventing its own.
+const composerInputStyle: React.CSSProperties = {
+  width: '100%', boxSizing: 'border-box', padding: '8px 12px', border: '1px solid var(--border)',
+  borderRadius: 8, fontSize: 13, background: 'var(--bg)', color: 'var(--ink)',
+};
+const composerToggleStyle: React.CSSProperties = {
+  display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 8,
+  border: '1px dashed var(--border2)', background: 'none', color: 'var(--ink2)',
+  fontSize: 12.5, fontWeight: 600, cursor: 'pointer', textDecoration: 'none',
+};
 
 function loadPinned(): CompanionPanelId[] {
   try {
@@ -76,7 +94,6 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
   const [activePanel, setActivePanel] = useState<CompanionPanelId>(null);
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [openReminderTodoId, setOpenReminderTodoId] = useState<string | null>(null);
-  const [scratchNote, setScratchNote] = useState(() => localStorage.getItem('hudumika_quick_note') || '');
   const [pinnedIds, setPinnedIds] = useState<CompanionPanelId[]>(loadPinned);
 
   const todos = useTodos();
@@ -84,13 +101,9 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
   const appSettings = useAppSettings();
   const currentDate = useCurrentCalendarDate();
   const enabledApps = useEnabledApps();
+  const { user } = useAuth();
 
   const activeTodos = todos.filter(t => !t.completed && !t.deletedAt);
-
-  // Sync quick note to localStorage
-  useEffect(() => {
-    localStorage.setItem('hudumika_quick_note', scratchNote);
-  }, [scratchNote]);
 
   useEffect(() => {
     localStorage.setItem(PINNED_KEY, JSON.stringify(pinnedIds));
@@ -98,6 +111,58 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
 
   function togglePinned(id: CompanionPanelId) {
     setPinnedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  }
+
+  // ── Notes — real, /v1/notes ──
+  const [notesList, setNotesList] = useState<{ id: string; title: string; content: string; updatedAt: string; isTrashed: boolean; isArchived: boolean }[]>([]);
+  const [noteComposerText, setNoteComposerText] = useState('');
+  const [noteSaving, setNoteSaving] = useState(false);
+  function loadNotes() {
+    apiFetch('/v1/notes?limit=8')
+      .then(res => setNotesList(Array.isArray(res?.notes) ? res.notes : []))
+      .catch(() => {});
+  }
+  useEffect(() => { loadNotes(); }, []);
+  async function handleCreateNote(e: React.FormEvent) {
+    e.preventDefault();
+    const text = noteComposerText.trim();
+    if (!text || noteSaving) return;
+    setNoteSaving(true);
+    try {
+      await apiFetch('/v1/notes', { method: 'POST', body: JSON.stringify({ content: text }) });
+      setNoteComposerText('');
+      loadNotes();
+    } catch (err: any) {
+      showAlert(err?.message || 'Could not save note.');
+    } finally {
+      setNoteSaving(false);
+    }
+  }
+  function handleDeleteNote(id: string) {
+    setNotesList(prev => prev.filter(n => n.id !== id));
+    apiFetch(`/v1/notes/${id}/trash`, { method: 'PATCH' }).catch(() => {});
+  }
+
+  // ── Calendar — quick "+ New event" composer, real via addEvent() (POST /v1/tasks/events) ──
+  const [eventComposerOpen, setEventComposerOpen] = useState(false);
+  const [newEventTitle, setNewEventTitle] = useState('');
+  const [newEventDate, setNewEventDate] = useState('');
+  const [newEventTime, setNewEventTime] = useState('');
+  const [newEventRemind, setNewEventRemind] = useState(true);
+  function handleCreateEvent(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newEventTitle.trim() || !newEventDate) return;
+    const start = `${newEventDate}T${newEventTime || '09:00'}`;
+    const startDate = new Date(start);
+    const end = new Date(startDate.getTime() + 30 * 60000);
+    addEvent({
+      title: newEventTitle.trim(),
+      start,
+      end: end.toISOString().slice(0, 16),
+      category: 'work',
+      reminderOffsets: newEventRemind ? [10] : [],
+    });
+    setNewEventTitle(''); setNewEventDate(''); setNewEventTime(''); setEventComposerOpen(false);
   }
 
   // ── eSign envelopes awaiting my signature — real, /v1/sign/envelopes ──
@@ -135,34 +200,216 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
     apiFetch(`/v1/notifications/${id}/read`, { method: 'PATCH' }).catch(() => {});
   }
 
-  // ── Team chat — real, /v1/chat/channels ──
-  const [channels, setChannels] = useState<{ id: string; name: string; unread: number; last_message: string | null; last_message_at: string | null }[]>([]);
-  useEffect(() => {
+  // ── Team chat — real, /v1/chat/channels. Channel rows expand inline into a
+  // real reply thread (GET/POST .../messages) — there is no message edit or
+  // delete anywhere in this app yet (not even the full Chat page), so this
+  // panel doesn't fabricate those actions either. Leaving/deleting the
+  // conversation itself is real (DELETE /v1/chat/channels/:id), same as the
+  // full Chat page's own kebab menu. ──
+  const [channels, setChannels] = useState<{ id: string; type: 'channel' | 'dm' | 'group'; name: string; created_by: string; unread: number; last_message: string | null; last_message_at: string | null }[]>([]);
+  function loadChannels() {
     apiFetch('/v1/chat/channels')
       .then(res => setChannels(Array.isArray(res?.data) ? res.data : []))
       .catch(() => {});
-  }, []);
+  }
+  useEffect(() => { loadChannels(); }, []);
   const totalUnreadChats = channels.reduce((sum, c) => sum + (c.unread || 0), 0);
+
+  const [newChannelOpen, setNewChannelOpen] = useState(false);
+  const [newChannelName, setNewChannelName] = useState('');
+  async function handleCreateChannel(e: React.FormEvent) {
+    e.preventDefault();
+    const name = newChannelName.trim();
+    if (!name) return;
+    try {
+      await apiFetch('/v1/chat/channels', { method: 'POST', body: JSON.stringify({ type: 'channel', name }) });
+      setNewChannelName(''); setNewChannelOpen(false);
+      loadChannels();
+    } catch (err: any) {
+      showAlert(err?.message || 'Could not start the chat.');
+    }
+  }
+
+  const [openThreadChannelId, setOpenThreadChannelId] = useState<string | null>(null);
+  const [threadMessages, setThreadMessages] = useState<{ id: string; author_name: string; content: string; created_at: string }[]>([]);
+  const [threadReply, setThreadReply] = useState('');
+  function openThread(channelId: string) {
+    setOpenThreadChannelId(prev => prev === channelId ? null : channelId);
+    setThreadReply('');
+    if (channelId !== openThreadChannelId) {
+      apiFetch(`/v1/chat/channels/${channelId}/messages`)
+        .then(res => setThreadMessages(Array.isArray(res?.data) ? res.data.slice(-8) : []))
+        .catch(() => setThreadMessages([]));
+      apiFetch(`/v1/chat/channels/${channelId}/read`, { method: 'PATCH' }).catch(() => {});
+      setChannels(prev => prev.map(c => c.id === channelId ? { ...c, unread: 0 } : c));
+    }
+  }
+  async function handleSendReply(e: React.FormEvent) {
+    e.preventDefault();
+    const content = threadReply.trim();
+    if (!content || !openThreadChannelId) return;
+    setThreadReply('');
+    try {
+      const msg = await apiFetch(`/v1/chat/channels/${openThreadChannelId}/messages`, { method: 'POST', body: JSON.stringify({ content }) });
+      setThreadMessages(prev => [...prev, msg]);
+      loadChannels();
+    } catch (err: any) {
+      showAlert(err?.message || 'Could not send reply.');
+    }
+  }
+  async function handleLeaveOrDeleteChannel(e: React.MouseEvent, ch: typeof channels[number]) {
+    e.preventDefault();
+    e.stopPropagation();
+    const isOwner = ch.type !== 'dm' && ch.created_by === user?.id;
+    const message = ch.type === 'dm'
+      ? `Remove your conversation with ${ch.name}? It stays in their inbox — this only clears it from yours.`
+      : isOwner
+        ? `Delete #${ch.name} for everyone? Every message in it is gone for good.`
+        : `Leave ${ch.name}? You can be re-added by another member later.`;
+    const ok = await showConfirm(message, { title: isOwner && ch.type !== 'dm' ? 'Delete channel' : 'Leave conversation', confirmLabel: isOwner && ch.type !== 'dm' ? 'Delete' : 'Leave' });
+    if (!ok) return;
+    try {
+      await apiFetch(`/v1/chat/channels/${ch.id}`, { method: 'DELETE' });
+      setChannels(prev => prev.filter(c => c.id !== ch.id));
+      if (openThreadChannelId === ch.id) setOpenThreadChannelId(null);
+      setBrowseChannels(null);
+    } catch (err: any) {
+      showAlert(err?.message || 'Could not leave this conversation.');
+    }
+  }
+
+  // Channels/groups in this tenant the user hasn't joined yet — shown behind
+  // a "Browse" toggle so "Start a chat" isn't the only way in (that always
+  // creates something new; this joins something that already exists).
+  const [browseOpen, setBrowseOpen] = useState(false);
+  const [browseChannels, setBrowseChannels] = useState<{ id: string; type: 'channel' | 'group'; name: string; member_count: number }[] | null>(null);
+  const [browseLoading, setBrowseLoading] = useState(false);
+  const [joiningChannelId, setJoiningChannelId] = useState<string | null>(null);
+  function toggleBrowse() {
+    setBrowseOpen(o => {
+      const next = !o;
+      if (next && browseChannels === null) {
+        setBrowseLoading(true);
+        apiFetch('/v1/chat/channels/browse')
+          .then(res => setBrowseChannels(Array.isArray(res?.data) ? res.data : []))
+          .catch(() => setBrowseChannels([]))
+          .finally(() => setBrowseLoading(false));
+      }
+      return next;
+    });
+  }
+  async function handleJoinChannel(ch: { id: string }) {
+    setJoiningChannelId(ch.id);
+    try {
+      await apiFetch(`/v1/chat/channels/${ch.id}/join`, { method: 'POST' });
+      setBrowseChannels(prev => (prev ?? []).filter(c => c.id !== ch.id));
+      loadChannels();
+    } catch (err: any) {
+      showAlert(err?.message || 'Could not join this conversation.');
+    } finally {
+      setJoiningChannelId(null);
+    }
+  }
 
   // ── SMS — real, /v1/sms/messages (only fetched if the app is entitled) ──
   const smsEnabled = isAppEnabled('sms', enabledApps);
   const [smsMessages, setSmsMessages] = useState<{ id: string; to_number: string; contact_name: string | null; body: string; status: string; created_at: string }[]>([]);
-  useEffect(() => {
+  function loadSmsMessages() {
     if (!smsEnabled) return;
     apiFetch('/v1/sms/messages?limit=6')
       .then(res => setSmsMessages(Array.isArray(res?.data) ? res.data : []))
       .catch(() => {});
-  }, [smsEnabled]);
+  }
+  useEffect(() => { loadSmsMessages(); }, [smsEnabled]);
+
+  const [smsComposerOpen, setSmsComposerOpen] = useState(false);
+  // Picker's id doubles as the phone number itself — there's nothing else to
+  // key it by once a hand-typed number (no contact record) is in play.
+  const [smsToItem, setSmsToItem] = useState<PickerItem | null>(null);
+  const [smsBody, setSmsBody] = useState('');
+  const [smsSending, setSmsSending] = useState(false);
+  const SMS_SOURCE_LABEL: Record<string, string> = { contact: 'Contact', lead: 'Lead', customer: 'Customer', user: 'Staff' };
+  async function searchSmsRecipients(query: string): Promise<PickerItem[]> {
+    if (query.trim().length < 2) return [];
+    const res = await apiFetch(`/v1/sms/recipients/search?q=${encodeURIComponent(query.trim())}`);
+    const rows: { id: string; name: string; phone: string; source: string }[] = Array.isArray(res?.data) ? res.data : [];
+    return rows.map(r => ({ id: r.phone, label: r.name, sublabel: `${r.phone} · ${SMS_SOURCE_LABEL[r.source] || r.source}` }));
+  }
+  async function handleSendSms(e: React.FormEvent) {
+    e.preventDefault();
+    const to = smsToItem?.id.trim();
+    if (!to || !smsBody.trim() || smsSending) return;
+    setSmsSending(true);
+    try {
+      await apiFetch('/v1/sms/send', { method: 'POST', body: JSON.stringify({ to: [to], body: smsBody.trim() }) });
+      setSmsToItem(null); setSmsBody(''); setSmsComposerOpen(false);
+      loadSmsMessages();
+    } catch (err: any) {
+      showAlert(err?.message || 'Could not send SMS.');
+    } finally {
+      setSmsSending(false);
+    }
+  }
 
   // ── Contacts — real, /v1/contacts (only fetched if the app is entitled) ──
   const contactsEnabled = isAppEnabled('contacts', enabledApps);
   const [contacts, setContacts] = useState<{ id: string; first_name: string; last_name: string | null; email: string | null; company: string | null }[]>([]);
-  useEffect(() => {
+  function loadContacts() {
     if (!contactsEnabled) return;
     apiFetch('/v1/contacts')
       .then(rows => setContacts(Array.isArray(rows) ? rows.slice(0, 8) : []))
       .catch(() => {});
-  }, [contactsEnabled]);
+  }
+  useEffect(() => { loadContacts(); }, [contactsEnabled]);
+
+  const [contactComposerOpen, setContactComposerOpen] = useState(false);
+  const [newContactName, setNewContactName] = useState('');
+  const [newContactPhone, setNewContactPhone] = useState('');
+  const [contactSaving, setContactSaving] = useState(false);
+  async function handleCreateContact(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newContactName.trim() || contactSaving) return;
+    setContactSaving(true);
+    try {
+      await apiFetch('/v1/contacts', { method: 'POST', body: JSON.stringify({ first_name: newContactName.trim(), phone: newContactPhone.trim() || undefined }) });
+      setNewContactName(''); setNewContactPhone(''); setContactComposerOpen(false);
+      loadContacts();
+    } catch (err: any) {
+      showAlert(err?.message || 'Could not add contact.');
+    } finally {
+      setContactSaving(false);
+    }
+  }
+
+  // ── Email — real, /v1/emails?folder=inbox (only fetched if the app is entitled) ──
+  const emailEnabled = isAppEnabled('email', enabledApps);
+  const [inboxEmails, setInboxEmails] = useState<{ id: string; from: { name: string; email: string }; subject: string; snippet: string; read: boolean; date: string }[]>([]);
+  function loadInboxEmails() {
+    if (!emailEnabled) return;
+    apiFetch('/v1/emails?folder=inbox')
+      .then(rows => setInboxEmails(Array.isArray(rows) ? rows.slice(0, 6) : []))
+      .catch(() => {});
+  }
+  useEffect(() => { loadInboxEmails(); }, [emailEnabled]);
+
+  const [emailComposerOpen, setEmailComposerOpen] = useState(false);
+  const [emailTo, setEmailTo] = useState('');
+  const [emailSubject, setEmailSubject] = useState('');
+  const [emailBody, setEmailBody] = useState('');
+  const [emailSending, setEmailSending] = useState(false);
+  async function handleSendEmail(e: React.FormEvent) {
+    e.preventDefault();
+    if (!emailTo.trim() || !emailSubject.trim() || !emailBody.trim() || emailSending) return;
+    setEmailSending(true);
+    try {
+      await apiFetch('/v1/email/send', { method: 'POST', body: JSON.stringify({ to: emailTo.trim(), subject: emailSubject.trim(), body: emailBody.trim() }) });
+      setEmailTo(''); setEmailSubject(''); setEmailBody(''); setEmailComposerOpen(false);
+    } catch (err: any) {
+      showAlert(err?.message || 'Could not send email.');
+    } finally {
+      setEmailSending(false);
+    }
+  }
 
   // ── AI Assistant — real, /v1/ai/chat (agentic chat, tenant memory + tools) ──
   const [aiMessages, setAiMessages] = useState<{ role: 'user' | 'assistant'; content: string }[]>([]);
@@ -228,6 +475,10 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
     if (id === 'esign' && envelopes.length > 0) return { count: envelopes.length, color: 'blue' };
     if (id === 'chat' && totalUnreadChats > 0) return { count: totalUnreadChats, color: 'blue' };
     if (id === 'notifications' && unreadNotifCount > 0) return { count: unreadNotifCount, color: 'red' };
+    if (id === 'email') {
+      const unread = inboxEmails.filter(m => !m.read).length;
+      if (unread > 0) return { count: unread, color: 'red' };
+    }
     return null;
   }
 
@@ -236,26 +487,52 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
   // that would only ever render an empty/permission-denied panel.
   const availableApps = RAIL_APPS.filter(app => !app.entitlementKey || isAppEnabled(app.entitlementKey, enabledApps));
 
-  // The rail shows every pinned, available app — except whichever one is
-  // currently open, since its content already fills the drawer.
-  const railApps = availableApps.filter(app => pinnedIds.includes(app.id) && app.id !== activePanel);
+  // The rail shows every pinned, available app, including whichever one is
+  // currently open — it used to drop out of this list the moment its drawer
+  // opened, which meant there was nothing left on the rail to click to close
+  // it again, and every icon below it jumped up to fill the gap. It now stays
+  // put and just picks up '.active' (className below) instead.
+  const railApps = availableApps.filter(app => pinnedIds.includes(app.id));
+
+  // The drawer un-mounts a beat after activePanel clears, so it can play a
+  // real close transition instead of just vanishing — renderedPanel is what
+  // actually stays in the DOM (and what the drawer's own content reads,
+  // shadowing activePanel by that same name inside the block below) while
+  // `closing` drives the reverse of .gws-drawer's own open keyframes.
+  const [renderedPanel, setRenderedPanel] = useState<CompanionPanelId>(null);
+  const [closing, setClosing] = useState(false);
+  useEffect(() => {
+    if (activePanel) {
+      setRenderedPanel(activePanel);
+      setClosing(false);
+      return;
+    }
+    if (renderedPanel) {
+      setClosing(true);
+      const t = setTimeout(() => { setRenderedPanel(null); setClosing(false); }, 180);
+      return () => clearTimeout(t);
+    }
+  }, [activePanel]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="gws-right-sidebar-root">
       {/* ── 320px Companion Side Drawer ── */}
-      {activePanel && (
-        <div className="gws-drawer">
+      {renderedPanel && (
+        <div className={`gws-drawer${closing ? ' gws-drawer-closing' : ''}`}>
+        {(() => { const activePanel = renderedPanel; return (
+        <>
           {/* Header */}
           <div className="gws-drawer-header">
             <div className="gws-drawer-title">
               {activePanel === 'tasks' && <><Icon name="tasks" size={17} style={{ color: '#0d9488' }} /> Tasks</>}
               {activePanel === 'calendar' && <><Icon name="calendar" size={17} style={{ color: '#1a73e8' }} /> Schedule Agenda</>}
-              {activePanel === 'esign' && <><Icon name="fileText" size={17} style={{ color: '#0284c7' }} /> eSign</>}
+              {activePanel === 'esign' && <><Icon name="stamp" size={17} style={{ color: '#0284c7' }} /> eSign</>}
               {activePanel === 'chat' && <><Icon name="messageSquare" size={17} style={{ color: '#7c3aed' }} /> Team Chat &amp; Mentions</>}
               {activePanel === 'notifications' && <><Icon name="bell" size={17} style={{ color: '#ef4444' }} /> Notifications</>}
               {activePanel === 'analytics' && <><Icon name="barChart" size={17} style={{ color: '#ea580c' }} /> Workspace Stats</>}
-              {activePanel === 'notes' && <><Icon name="fileText" size={17} style={{ color: '#16a34a' }} /> Quick Notepad</>}
+              {activePanel === 'notes' && <><Icon name="fileText" size={17} style={{ color: '#16a34a' }} /> Notes</>}
               {activePanel === 'sms' && <><Icon name="smartphone" size={17} style={{ color: '#dc2626' }} /> SMS</>}
+              {activePanel === 'email' && <><Icon name="mail" size={17} style={{ color: '#ea4335' }} /> Email</>}
               {activePanel === 'contacts' && <><Icon name="contact" size={17} style={{ color: '#2563eb' }} /> Contacts</>}
               {activePanel === 'ai' && <><Icon name="sparkle" size={17} style={{ color: 'var(--teal)' }} /> AI Assistant</>}
               {activePanel === 'settings' && <><Icon name="settings" size={17} style={{ color: 'var(--ink2)' }} /> Quick Settings</>}
@@ -346,9 +623,30 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
               </div>
             )}
 
-            {/* CALENDAR PANEL */}
+            {/* CALENDAR PANEL — real, addEvent() posts to /v1/tasks/events */}
             {activePanel === 'calendar' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {eventComposerOpen ? (
+                  <form onSubmit={handleCreateEvent} style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)' }}>
+                    <input autoFocus value={newEventTitle} onChange={e => setNewEventTitle(e.target.value)} placeholder="Event title" style={composerInputStyle} />
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <input type="date" required value={newEventDate} onChange={e => setNewEventDate(e.target.value)} style={{ ...composerInputStyle, flex: 1 }} />
+                      <input type="time" value={newEventTime} onChange={e => setNewEventTime(e.target.value)} style={{ ...composerInputStyle, flex: 1 }} />
+                    </div>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--ink2)', cursor: 'pointer' }}>
+                      <input type="checkbox" checked={newEventRemind} onChange={e => setNewEventRemind(e.target.checked)} />
+                      <Icon name="bell" size={12} /> Remind me 10 min before
+                    </label>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <Button type="submit" size="xs" style={{ background: 'var(--teal)', color: '#fff', flex: 1 }}>Create event</Button>
+                      <Button type="button" size="xs" variant="outline" onClick={() => setEventComposerOpen(false)}>Cancel</Button>
+                    </div>
+                  </form>
+                ) : (
+                  <button type="button" onClick={() => setEventComposerOpen(true)} style={composerToggleStyle}>
+                    <Icon name="plus" size={14} /> New event
+                  </button>
+                )}
                 <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', letterSpacing: '0.04em' }}>Upcoming Events</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {events.filter(ev => matches(ev.title)).slice(0, 6).map(ev => (
@@ -369,14 +667,17 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
             {/* ESIGN PANEL — real, /v1/sign/envelopes?view=inbox */}
             {activePanel === 'esign' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <a href="/sign/editor" style={composerToggleStyle}>
+                  <Icon name="plus" size={14} /> New envelope
+                </a>
                 <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', letterSpacing: '0.04em' }}>
                   {envelopes.length} Envelope Request{envelopes.length === 1 ? '' : 's'}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {envelopes.filter(env => matches(env.title)).map(env => (
-                    <a key={env.id} href="/sign" style={{ padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', textDecoration: 'none' }}>
+                    <a key={env.id} href={`/sign/envelope/${env.id}`} style={{ padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', textDecoration: 'none' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
-                        <Icon name="fileText" size={16} style={{ color: 'var(--teal)' }} />
+                        <Icon name="stamp" size={16} style={{ color: 'var(--teal)' }} />
                         <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{env.title}</span>
                       </div>
                       <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: 'var(--teal-l)', color: 'var(--teal)', textTransform: 'capitalize' }}>
@@ -391,25 +692,95 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
               </div>
             )}
 
-            {/* CHAT PANEL — real, /v1/chat/channels */}
+            {/* CHAT PANEL — real, /v1/chat/channels. Each row expands inline
+                into a real reply thread (GET/POST .../messages). Editing or
+                deleting a message isn't offered — no route for either exists
+                anywhere in the Chat API today, not just in this panel. */}
             {activePanel === 'chat' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {newChannelOpen ? (
+                  <form onSubmit={handleCreateChannel} style={{ display: 'flex', gap: 8, padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)' }}>
+                    <input autoFocus value={newChannelName} onChange={e => setNewChannelName(e.target.value)} placeholder="Chat / channel name" style={{ ...composerInputStyle, flex: 1 }} />
+                    <Button type="submit" size="xs" style={{ background: 'var(--teal)', color: '#fff' }}>Start</Button>
+                  </form>
+                ) : (
+                  <button type="button" onClick={() => setNewChannelOpen(true)} style={composerToggleStyle}>
+                    <Icon name="plus" size={14} /> Start a chat
+                  </button>
+                )}
+
+                <button type="button" onClick={toggleBrowse} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 12, fontWeight: 600, padding: '2px 2px' }}>
+                  <Icon name={browseOpen ? 'chevronDown' : 'chevronRight'} size={12} /> Browse channels &amp; groups
+                </button>
+                {browseOpen && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {browseLoading && <div style={{ fontSize: 12, color: 'var(--ink3)', padding: '4px 2px' }}>Loading…</div>}
+                    {!browseLoading && (browseChannels?.length ?? 0) === 0 && (
+                      <div style={{ fontSize: 12, color: 'var(--ink3)', padding: '4px 2px' }}>You've already joined everything here.</div>
+                    )}
+                    {!browseLoading && browseChannels?.map(bc => (
+                      <div key={bc.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)' }}>
+                        {bc.type === 'channel'
+                          ? <span style={{ color: 'var(--ink3)', fontSize: 13, width: 14, textAlign: 'center', flexShrink: 0, fontWeight: 800 }}>#</span>
+                          : <Icon name="messageSquare" size={12} style={{ color: 'var(--ink3)' }} />}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{bc.name}</div>
+                          <div style={{ fontSize: 10.5, color: 'var(--ink3)' }}>{bc.member_count} member{bc.member_count === 1 ? '' : 's'}</div>
+                        </div>
+                        <button type="button" onClick={() => handleJoinChannel(bc)} disabled={joiningChannelId === bc.id}
+                          style={{ flexShrink: 0, padding: '3px 10px', borderRadius: 6, border: '1px solid var(--teal-m)', background: 'var(--teal-l)', color: 'var(--teal)', fontSize: 11, fontWeight: 700, cursor: joiningChannelId === bc.id ? 'default' : 'pointer' }}>
+                          {joiningChannelId === bc.id ? '…' : 'Join'}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', letterSpacing: '0.04em' }}>Team Activity &amp; Discussions</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {channels.filter(c => matches(c.name, c.last_message)).map(c => (
-                    <a key={c.id} href="/chat" style={{ padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', display: 'flex', gap: 10, textDecoration: 'none' }}>
-                      <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'rgba(124,58,237,0.12)', color: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <Icon name="messageSquare" size={13} />
-                      </div>
-                      <div style={{ minWidth: 0, flex: 1 }}>
-                        <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</span>
-                          {c.unread > 0 && <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--teal)', flexShrink: 0 }}>{c.unread}</span>}
+                  {channels.filter(c => matches(c.name, c.last_message)).map(c => {
+                    const isOpen = openThreadChannelId === c.id;
+                    return (
+                      <div key={c.id} data-channel-id={c.id} style={{ borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', overflow: 'hidden' }}>
+                        <div style={{ display: 'flex', alignItems: 'stretch' }}>
+                          <button type="button" onClick={() => openThread(c.id)} style={{ flex: 1, minWidth: 0, padding: 10, display: 'flex', gap: 10, background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
+                            <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'rgba(124,58,237,0.12)', color: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                              <Icon name="messageSquare" size={13} />
+                            </div>
+                            <div style={{ minWidth: 0, flex: 1 }}>
+                              <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</span>
+                                {c.unread > 0 && <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--teal)', flexShrink: 0 }}>{c.unread}</span>}
+                              </div>
+                              <div style={{ fontSize: 12, color: 'var(--ink2)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.last_message || 'No messages yet'}</div>
+                            </div>
+                          </button>
+                          <button type="button" onClick={e => handleLeaveOrDeleteChannel(e, c)} title={c.type === 'dm' ? 'Remove conversation' : 'Leave / delete channel'} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink4)', display: 'flex', alignItems: 'center', padding: '0 10px', flexShrink: 0 }}>
+                            <Icon name="moreVertical" size={14} />
+                          </button>
                         </div>
-                        <div style={{ fontSize: 12, color: 'var(--ink2)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.last_message || 'No messages yet'}</div>
+                        {isOpen && (
+                          <div style={{ borderTop: '1px solid var(--border)', padding: 10, display: 'flex', flexDirection: 'column', gap: 8, background: 'var(--bg)' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 160, overflowY: 'auto' }}>
+                              {threadMessages.map(m => (
+                                <div key={m.id} style={{ fontSize: 12, lineHeight: 1.4 }}>
+                                  <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{m.author_name}: </span>
+                                  <span style={{ color: 'var(--ink2)' }}>{m.content}</span>
+                                </div>
+                              ))}
+                              {threadMessages.length === 0 && (
+                                <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>No messages yet — say hello.</div>
+                              )}
+                            </div>
+                            <form onSubmit={handleSendReply} style={{ display: 'flex', gap: 6 }}>
+                              <input autoFocus value={threadReply} onChange={e => setThreadReply(e.target.value)} placeholder="Reply…" style={{ ...composerInputStyle, flex: 1, padding: '6px 10px' }} />
+                              <Button type="submit" size="xs" disabled={!threadReply.trim()} style={{ background: 'var(--teal)', color: '#fff' }}>Reply</Button>
+                            </form>
+                          </div>
+                        )}
                       </div>
-                    </a>
-                  ))}
+                    );
+                  })}
                   {channels.length === 0 && (
                     <div style={{ fontSize: 12.5, color: 'var(--ink3)', textAlign: 'center', padding: '24px 0' }}>No conversations yet.</div>
                   )}
@@ -458,23 +829,67 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
               </div>
             )}
 
-            {/* NOTES PANEL */}
+            {/* NOTES PANEL — real, /v1/notes */}
             {activePanel === 'notes' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, height: '100%' }}>
-                <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', letterSpacing: '0.04em' }}>Instant Scratchpad</div>
-                <textarea
-                  value={scratchNote}
-                  onChange={e => setScratchNote(e.target.value)}
-                  placeholder="Type quick notes here... automatically saved"
-                  rows={12}
-                  style={{ width: '100%', boxSizing: 'border-box', padding: 12, borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', fontSize: 13, color: 'var(--ink)', resize: 'vertical' }}
-                />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <form onSubmit={handleCreateNote} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <textarea
+                    value={noteComposerText}
+                    onChange={e => setNoteComposerText(e.target.value)}
+                    placeholder="Take a note…"
+                    rows={3}
+                    style={{ width: '100%', boxSizing: 'border-box', padding: 10, borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', fontSize: 13, color: 'var(--ink)', resize: 'vertical' }}
+                  />
+                  {noteComposerText.trim() && (
+                    <Button type="submit" size="xs" disabled={noteSaving} style={{ background: 'var(--teal)', color: '#fff', alignSelf: 'flex-end' }}>
+                      {noteSaving ? 'Saving…' : 'Save note'}
+                    </Button>
+                  )}
+                </form>
+                <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', letterSpacing: '0.04em' }}>Recent Notes</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {notesList.filter(n => !n.isTrashed && !n.isArchived).filter(n => matches(n.title, n.content)).map(n => (
+                    <a key={n.id} href="/notes" style={{ padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'flex-start', gap: 8, textDecoration: 'none' }}>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        {n.title && <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{n.title}</div>}
+                        <div style={{ fontSize: 12, color: 'var(--ink2)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{n.content || 'Empty note'}</div>
+                      </div>
+                      <button type="button" onClick={e => { e.preventDefault(); handleDeleteNote(n.id); }} style={{ background: 'none', border: 'none', color: 'var(--ink4)', cursor: 'pointer', display: 'flex', padding: 2, flexShrink: 0 }}>
+                        <Icon name="trash" size={13} />
+                      </button>
+                    </a>
+                  ))}
+                  {notesList.filter(n => !n.isTrashed && !n.isArchived).length === 0 && (
+                    <div style={{ fontSize: 12.5, color: 'var(--ink3)', textAlign: 'center', padding: '24px 0' }}>No notes yet. Take one above!</div>
+                  )}
+                </div>
               </div>
             )}
 
-            {/* SMS PANEL — real, /v1/sms/messages */}
+            {/* SMS PANEL — real, /v1/sms/messages + /v1/sms/send */}
             {activePanel === 'sms' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {smsComposerOpen ? (
+                  <form onSubmit={handleSendSms} style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)' }}>
+                    <EntityPicker
+                      value={smsToItem}
+                      onChange={setSmsToItem}
+                      search={searchSmsRecipients}
+                      onCreate={async q => ({ id: q.trim(), label: q.trim(), sublabel: 'Send to this number' })}
+                      createLabel={q => `Send to "${q}"`}
+                      placeholder="Search contacts or type a number"
+                    />
+                    <textarea value={smsBody} onChange={e => setSmsBody(e.target.value)} placeholder="Message" rows={2} style={{ ...composerInputStyle, resize: 'vertical' }} />
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <Button type="submit" size="xs" disabled={smsSending} style={{ background: 'var(--teal)', color: '#fff', flex: 1 }}>{smsSending ? 'Sending…' : 'Send'}</Button>
+                      <Button type="button" size="xs" variant="outline" onClick={() => setSmsComposerOpen(false)}>Cancel</Button>
+                    </div>
+                  </form>
+                ) : (
+                  <button type="button" onClick={() => setSmsComposerOpen(true)} style={composerToggleStyle}>
+                    <Icon name="plus" size={14} /> Quick send
+                  </button>
+                )}
                 <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', letterSpacing: '0.04em' }}>Recent Messages</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {smsMessages.filter(m => matches(m.contact_name, m.to_number, m.body)).map(m => (
@@ -490,13 +905,63 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                     <div style={{ fontSize: 12.5, color: 'var(--ink3)', textAlign: 'center', padding: '24px 0' }}>No messages sent yet.</div>
                   )}
                 </div>
-                <a href="/sms/compose" style={{ textAlign: 'center', padding: '8px 12px', borderRadius: 8, background: 'var(--teal)', color: '#fff', fontSize: 12.5, fontWeight: 700, textDecoration: 'none' }}>Quick send</a>
+              </div>
+            )}
+
+            {/* EMAIL PANEL — real, /v1/emails?folder=inbox + /v1/emails/send */}
+            {activePanel === 'email' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {emailComposerOpen ? (
+                  <form onSubmit={handleSendEmail} style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)' }}>
+                    <input autoFocus type="email" value={emailTo} onChange={e => setEmailTo(e.target.value)} placeholder="To" style={composerInputStyle} />
+                    <input value={emailSubject} onChange={e => setEmailSubject(e.target.value)} placeholder="Subject" style={composerInputStyle} />
+                    <textarea value={emailBody} onChange={e => setEmailBody(e.target.value)} placeholder="Write your message…" rows={4} style={{ ...composerInputStyle, resize: 'vertical' }} />
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <Button type="submit" size="xs" disabled={emailSending} style={{ background: 'var(--teal)', color: '#fff', flex: 1 }}>{emailSending ? 'Sending…' : 'Send'}</Button>
+                      <Button type="button" size="xs" variant="outline" onClick={() => setEmailComposerOpen(false)}>Cancel</Button>
+                    </div>
+                  </form>
+                ) : (
+                  <button type="button" onClick={() => setEmailComposerOpen(true)} style={composerToggleStyle}>
+                    <Icon name="plus" size={14} /> Compose
+                  </button>
+                )}
+                <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', letterSpacing: '0.04em' }}>Inbox</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {inboxEmails.filter(m => matches(m.from?.name, m.subject, m.snippet)).map(m => (
+                    <a key={m.id} href="/email" style={{ padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 3, textDecoration: 'none' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                        <span style={{ fontSize: 12.5, fontWeight: m.read ? 600 : 800, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.from?.name}</span>
+                        {!m.read && <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#ea4335', flexShrink: 0, marginTop: 3 }} />}
+                      </div>
+                      <div style={{ fontSize: 12, fontWeight: m.read ? 400 : 700, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.subject}</div>
+                      <div style={{ fontSize: 11.5, color: 'var(--ink3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.snippet}</div>
+                    </a>
+                  ))}
+                  {inboxEmails.length === 0 && (
+                    <div style={{ fontSize: 12.5, color: 'var(--ink3)', textAlign: 'center', padding: '24px 0' }}>No emails yet.</div>
+                  )}
+                </div>
               </div>
             )}
 
             {/* CONTACTS PANEL — real, /v1/contacts */}
             {activePanel === 'contacts' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {contactComposerOpen ? (
+                  <form onSubmit={handleCreateContact} style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)' }}>
+                    <input autoFocus value={newContactName} onChange={e => setNewContactName(e.target.value)} placeholder="Name" style={composerInputStyle} />
+                    <input value={newContactPhone} onChange={e => setNewContactPhone(e.target.value)} placeholder="Phone (optional)" style={composerInputStyle} />
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <Button type="submit" size="xs" disabled={contactSaving} style={{ background: 'var(--teal)', color: '#fff', flex: 1 }}>{contactSaving ? 'Saving…' : 'Add contact'}</Button>
+                      <Button type="button" size="xs" variant="outline" onClick={() => setContactComposerOpen(false)}>Cancel</Button>
+                    </div>
+                  </form>
+                ) : (
+                  <button type="button" onClick={() => setContactComposerOpen(true)} style={composerToggleStyle}>
+                    <Icon name="plus" size={14} /> Add contact
+                  </button>
+                )}
                 <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', letterSpacing: '0.04em' }}>Contacts ({contacts.length})</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {contacts.filter(c => matches(c.first_name, c.last_name, c.email, c.company)).map(c => (
@@ -577,6 +1042,8 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
               </div>
             )}
           </div>
+        </>
+        ); })()}
         </div>
       )}
 
@@ -605,12 +1072,14 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
             {/* Every pinned, entitled app — except whichever one is currently open */}
             {railApps.map(app => {
               const badge = badgeFor(app.id);
+              const isActive = activePanel === app.id;
               return (
                 <button
                   key={app.id}
-                  className="gws-rail-btn"
+                  className={`gws-rail-btn${isActive ? ' active' : ''}`}
                   onClick={() => togglePanel(app.id)}
                   title={app.label}
+                  aria-pressed={isActive}
                 >
                   <Icon name={app.icon} size={19} />
                   {badge && <span className={`gws-badge gws-badge-${badge.color}`}>{badge.count}</span>}
@@ -622,14 +1091,20 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
 
         {/* Bottom Action Items */}
         <div className="gws-rail-bottom">
-          {/* AI Assistant — the Hudumika AI brand glyph, colored with this
-              app's own accent (var(--teal)), same as the launcher tile. */}
+          {/* AI Assistant — a flat sparkle glyph on this app's own accent
+              (var(--teal)), matching the icon already used for "AI" in the
+              drawer header/AI Digest buttons rather than the launcher grid's
+              separate multi-point glyph (LAUNCHER_SVG_ICONS.ai), which is
+              shared platform-wide and not this button's to redraw. */}
           <button
-            className="gws-ai-btn"
+            className={`gws-ai-btn${activePanel === 'ai' ? ' active' : ''}`}
             onClick={() => togglePanel('ai')}
             title="AI Assistant"
+            aria-pressed={activePanel === 'ai'}
           >
-            <LauncherAppSvg id="ai" color="var(--teal)" size={40} />
+            <div className="gws-ai-btn-tile">
+              <Icon name="sparkle" size={19} color="#fff" />
+            </div>
           </button>
 
           {/* Add / remove which apps show in this rail — same idea as Google's own "+" add-ons picker */}

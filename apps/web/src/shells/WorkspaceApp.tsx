@@ -54,6 +54,7 @@ export const APP_LABELS: Record<AppId, string> = {
   notes:         'Notes',
   sign:          'eSign',
   sms:           'SMS',
+  projects:      'Projects',
 };
 
 // Every app defaults to the single brand accent (matches --teal in index.css)
@@ -77,7 +78,7 @@ export const APP_COLORS: Record<AppId, string> = {
   sign: '#1a56db',
   demurrage: DEFAULT_APP_COLOR, cargotracker: DEFAULT_APP_COLOR, seal: DEFAULT_APP_COLOR,
   inventory: DEFAULT_APP_COLOR, hudubi: DEFAULT_APP_COLOR, petti: DEFAULT_APP_COLOR,
-  sms: DEFAULT_APP_COLOR,
+  sms: DEFAULT_APP_COLOR, projects: DEFAULT_APP_COLOR,
 };
 
 /**
@@ -115,7 +116,7 @@ export const APP_PALETTE_SLOT: Record<AppId, number> = {
   bliss: 6, email: 6, crm: 6, contacts: 6, sms: 6,
   // 7 — platform, identity & tooling
   admin: 7, oneid: 7, onesite: 7, onsite: 7, workspace: 7,
-  studio: 7, ai: 7, calendar: 7, tasks: 7, cloud: 7, hudubi: 7,
+  studio: 7, ai: 7, calendar: 7, tasks: 7, cloud: 7, hudubi: 7, projects: 7,
   sign: 2,  // compliance & legal slot — signatures belong here
 };
 

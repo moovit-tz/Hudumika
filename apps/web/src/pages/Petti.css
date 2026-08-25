@@ -1,0 +1,125 @@
+/* ── Petti Cash & Financial Operations Design System & Responsive Layout ── */
+
+.petti-container {
+  max-width: 1360px;
+  margin: 0 auto;
+  padding-bottom: 32px;
+}
+
+.petti-hero-banner {
+  background: linear-gradient(135deg, #0e1f3d 0%, #1e1b4b 45%, #0d7a6b 100%);
+  border-radius: 16px;
+  padding: 28px 32px;
+  color: #ffffff;
+  margin-bottom: 24px;
+  box-shadow: 0 10px 30px rgba(14, 31, 61, 0.18);
+  position: relative;
+  overflow: hidden;
+}
+
+.petti-hero-glow {
+  position: absolute;
+  top: -40px; right: -40px;
+  width: 260px; height: 260px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.petti-hero-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 20px;
+  position: relative;
+  z-index: 1;
+}
+
+.petti-hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.petti-card-interactive {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px 22px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.petti-card-interactive:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  border-color: var(--teal-m, var(--teal));
+}
+
+.petti-grid-2col {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.petti-grid-3col {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.petti-grid-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.petti-gateway-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+/* ── Mobile & Responsive Breakpoints ── */
+
+@media (max-width: 1024px) {
+  .petti-grid-2col {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .petti-hero-banner {
+    padding: 20px !important;
+    border-radius: 12px !important;
+  }
+
+  .petti-hero-content {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+
+  .petti-hero-actions {
+    width: 100% !important;
+    justify-content: flex-start !important;
+  }
+
+  .petti-grid-3col, .petti-grid-form {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  .petti-gateway-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .petti-gateway-grid {
+    grid-template-columns: 1fr !important;
+  }
+}

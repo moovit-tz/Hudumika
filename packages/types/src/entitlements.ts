@@ -51,6 +51,15 @@ export const ALL_FEATURE_KEYS = [
   'bliss',
   'calendar',
   'tasks',
+  // Standalone Projects app (migration 313) — Projects/Milestones/
+  // Contracts/Gantt/Timesheets/etc, HuduPlus+ gated. Originally shipped as
+  // a Tasks-mode toggle under 'tasks.advanced' (migration 306); renamed
+  // here once Projects became its own app rather than a Tasks sub-feature.
+  // Without a key here, GET /v1/entitlements never reports
+  // features['projects'] and the launcher/entitlement gate can't tell a
+  // HuduStarter tenant apart from HuduPlus+ — the exact drift this file's
+  // own history already documents happening three times before.
+  'projects',
   'store',
   'onesite',
   'hudubi',

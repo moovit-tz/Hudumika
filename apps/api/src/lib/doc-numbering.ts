@@ -1,12 +1,14 @@
 import type { Transaction } from 'kysely';
 import type { Database } from '../db/client.js';
 
-export type DocType = 'invoice' | 'quotation' | 'purchase_order';
+export type DocType = 'invoice' | 'quotation' | 'purchase_order' | 'project' | 'contract';
 
 const DEFAULTS: Record<DocType, { prefix: string; pad: number }> = {
   invoice: { prefix: 'INV-', pad: 4 },
   quotation: { prefix: 'QT-', pad: 4 },
   purchase_order: { prefix: 'PO-', pad: 4 },
+  project: { prefix: 'PRJ-', pad: 4 },
+  contract: { prefix: 'CTR-', pad: 4 },
 };
 
 /**

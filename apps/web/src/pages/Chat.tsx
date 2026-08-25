@@ -4,6 +4,8 @@ import { useAuth } from '../hooks/useAuth.js';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { showAlert } from '../lib/alert.js';
+import { showConfirm } from '../lib/confirm.js';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '../components/ui/dropdown-menu.js';
 
 // ─── Types (match apps/api/src/routes/chat.routes.ts) ─────────────────────────
 
@@ -13,6 +15,7 @@ interface ApiChannel {
   name: string;
   description: string | null;
   member_ids: string[];
+  created_by: string;
   other_user_id: string | null;
   other_user_role: string | null;
   unread: number;
@@ -31,6 +34,7 @@ interface ApiMessage {
 }
 
 interface StaffOpt { id: string; name: string; role: string; }
+interface BrowseChannel { id: string; type: 'channel' | 'group'; name: string; description: string | null; member_count: number; }
 
 const PALETTE = ['#e8461a', '#0569e3', '#059669', '#9a6700', '#8250df', '#cf222e', '#0a7e6a'];
 function abg(name: string) { let h = 0; for (let i = 0; i < (name ?? '').length; i++) h = (name ?? '').charCodeAt(i) + ((h << 5) - h); return PALETTE[Math.abs(h) % PALETTE.length]; }
@@ -57,10 +61,11 @@ function Av({ name, size = 32 }: { name: string; size?: number }) {
   );
 }
 
-function CRow({ ch, active, onClick }: { ch: ApiChannel; active: boolean; onClick: () => void }) {
+function CRow({ ch, active, onClick, currentUserId, onLeaveOrDelete }: { ch: ApiChannel; active: boolean; onClick: () => void; currentUserId?: string; onLeaveOrDelete: (ch: ApiChannel) => void }) {
+  const isOwner = ch.type !== 'dm' && ch.created_by === currentUserId;
   return (
-    <button type="button" onClick={onClick} style={{
-      display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: 'var(--ds-btn-py-sm) 10px',
+    <div role="button" tabIndex={0} data-channel-id={ch.id} onClick={onClick} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') onClick(); }} style={{
+      display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: 'var(--ds-btn-py-sm) 6px var(--ds-btn-py-sm) 10px',
       border: 'none', borderRadius: 'var(--r)', cursor: 'pointer', textAlign: 'left',
       background: active ? 'rgba(232,70,26,0.10)' : 'transparent',
       color: active ? 'var(--teal)' : ch.unread > 0 ? 'var(--ink)' : 'var(--ink2)',
@@ -77,7 +82,20 @@ function CRow({ ch, active, onClick }: { ch: ApiChannel; active: boolean; onClic
       )}
       <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ch.name}</span>
       {ch.unread > 0 && <span style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', borderRadius: 9, fontSize: 10, fontWeight: 700, padding: '1px 6px', flexShrink: 0 }}>{ch.unread > 99 ? '99+' : ch.unread}</span>}
-    </button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button type="button" onClick={e => e.stopPropagation()} title="More" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 3, borderRadius: 'var(--r-sm)', color: 'var(--ink4)', display: 'flex', flexShrink: 0 }}>
+            <Icon name="moreVertical" size={13} />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" onClick={e => e.stopPropagation()}>
+          <DropdownMenuItem onClick={() => onLeaveOrDelete(ch)} className="text-red-600 focus:text-red-600">
+            <Icon name={isOwner ? 'trash' : 'logOut'} size={13} style={{ marginRight: 6 }} />
+            {ch.type === 'dm' ? 'Remove conversation' : isOwner ? 'Delete channel' : 'Leave channel'}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
   );
 }
 
@@ -100,6 +118,10 @@ export const Chat: React.FC = () => {
   const [loadingChannels, setLoadingChannels] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [sending, setSending] = useState(false);
+  const [browseList, setBrowseList] = useState<BrowseChannel[] | null>(null);
+  const [browseOpen, setBrowseOpen] = useState({ ch: false, grp: false });
+  const [browseLoading, setBrowseLoading] = useState(false);
+  const [joiningId, setJoiningId] = useState<string | null>(null);
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -208,6 +230,61 @@ export const Chat: React.FC = () => {
     } catch (err: any) { showAlert(err.message || 'Failed to create'); }
   }
 
+  async function leaveOrDeleteChannel(ch: ApiChannel) {
+    const isOwner = ch.type !== 'dm' && ch.created_by === user?.id;
+    const message = ch.type === 'dm'
+      ? `Remove your conversation with ${ch.name}? It stays in their inbox — this only clears it from yours.`
+      : isOwner
+        ? `Delete #${ch.name} for everyone? Every message in it is gone for good.`
+        : `Leave ${ch.name}? You can be re-added by another member later.`;
+    const ok = await showConfirm(message, { title: isOwner && ch.type !== 'dm' ? 'Delete channel' : 'Leave conversation', confirmLabel: isOwner && ch.type !== 'dm' ? 'Delete' : 'Leave' });
+    if (!ok) return;
+    try {
+      await apiFetch(`/v1/chat/channels/${ch.id}`, { method: 'DELETE' });
+      setChannels(p => p.filter(c => c.id !== ch.id));
+      if (activeId === ch.id) { setActiveId(null); setMessages([]); }
+      // Leaving (not deleting) makes the channel joinable again — invalidate
+      // the cached browse list so reopening it reflects that.
+      setBrowseList(null);
+    } catch (err: any) {
+      showAlert(err.message || 'Could not leave this conversation.');
+    }
+  }
+
+  async function loadBrowseList() {
+    setBrowseLoading(true);
+    try {
+      const res = await apiFetch('/v1/chat/channels/browse');
+      setBrowseList(res.data ?? []);
+    } catch {
+      setBrowseList([]);
+    } finally {
+      setBrowseLoading(false);
+    }
+  }
+
+  function toggleBrowse(sk: 'ch' | 'grp') {
+    setBrowseOpen(p => {
+      const next = { ...p, [sk]: !p[sk] };
+      if (next[sk] && browseList === null) loadBrowseList();
+      return next;
+    });
+  }
+
+  async function joinChannel(ch: BrowseChannel) {
+    setJoiningId(ch.id);
+    try {
+      await apiFetch(`/v1/chat/channels/${ch.id}/join`, { method: 'POST' });
+      setBrowseList(p => (p ?? []).filter(c => c.id !== ch.id));
+      await loadChannels(false);
+      setActiveId(ch.id);
+    } catch (err: any) {
+      showAlert(err.message || 'Could not join this conversation.');
+    } finally {
+      setJoiningId(null);
+    }
+  }
+
   async function startDm(otherId: string) {
     try {
       const channel: ApiChannel = await apiFetch('/v1/chat/channels', { method: 'POST', body: JSON.stringify({ type: 'dm', member_ids: [otherId] }) });
@@ -224,6 +301,43 @@ export const Chat: React.FC = () => {
         {label}
         {count > 0 && <span style={{ marginLeft: 'auto', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', borderRadius: 9, fontSize: 9, fontWeight: 700, padding: '1px 5px' }}>{count}</span>}
       </button>
+    );
+  }
+
+  function BrowseSection({ type, label }: { type: 'channel' | 'group'; label: string }) {
+    const sk = type === 'channel' ? 'ch' : 'grp';
+    const open = browseOpen[sk];
+    const items = (browseList ?? []).filter(c => c.type === type);
+    return (
+      <>
+        <button type="button" onClick={() => toggleBrowse(sk)} style={{ display: 'flex', alignItems: 'center', gap: 7, width: '100%', padding: 'var(--ds-btn-py-xs) 10px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 12, fontFamily: 'var(--font)', borderRadius: 'var(--r)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
+          <Icon name={open ? 'chevronDown' : 'chevronRight'} size={11} />
+          Browse all {label}
+        </button>
+        {open && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2, paddingLeft: 6, marginBottom: 4 }}>
+            {browseLoading && <div style={{ padding: '6px 10px', fontSize: 11.5, color: 'var(--ink3)' }}>Loading…</div>}
+            {!browseLoading && items.length === 0 && (
+              <div style={{ padding: '6px 10px', fontSize: 11.5, color: 'var(--ink3)' }}>You've already joined every {type} here.</div>
+            )}
+            {!browseLoading && items.map(c => (
+              <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 10px', borderRadius: 'var(--r)' }}>
+                {type === 'channel'
+                  ? <span style={{ color: 'var(--ink3)', fontSize: 13, width: 14, textAlign: 'center', flexShrink: 0, fontWeight: 800 }}>#</span>
+                  : <Icon name="users" size={12} color="var(--ink3)" />}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</div>
+                  <div style={{ fontSize: 10.5, color: 'var(--ink3)' }}>{c.member_count} member{c.member_count === 1 ? '' : 's'}</div>
+                </div>
+                <button type="button" onClick={() => joinChannel(c)} disabled={joiningId === c.id}
+                  style={{ flexShrink: 0, padding: '3px 10px', borderRadius: 'var(--r-sm)', border: '1px solid var(--teal-m)', background: 'var(--teal-l)', color: 'var(--teal)', fontSize: 11, fontWeight: 700, cursor: joiningId === c.id ? 'default' : 'pointer', fontFamily: 'var(--font)' }}>
+                  {joiningId === c.id ? '…' : 'Join'}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </>
     );
   }
 
@@ -283,22 +397,24 @@ export const Chat: React.FC = () => {
           {loadingChannels && <div style={{ padding: '20px 10px', textAlign: 'center', fontSize: 12, color: 'var(--ink3)' }}>Loading…</div>}
 
           <SecHdr label="Channels" sk="ch" count={chList.reduce((s, c) => s + c.unread, 0)} />
-          {openSecs.ch && chList.map(ch => <CRow key={ch.id} ch={ch} active={activeId === ch.id} onClick={() => setActiveId(ch.id)} />)}
+          {openSecs.ch && chList.map(ch => <CRow key={ch.id} ch={ch} active={activeId === ch.id} onClick={() => setActiveId(ch.id)} currentUserId={user?.id} onLeaveOrDelete={leaveOrDeleteChannel} />)}
           <button type="button" onClick={() => setCreating('channel')} style={{ display: 'flex', alignItems: 'center', gap: 7, width: '100%', padding: 'var(--ds-btn-py-xs) 10px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 12, fontFamily: 'var(--font)', borderRadius: 'var(--r)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
             <Icon name="plus" size={12} /> Add a channel
           </button>
+          <BrowseSection type="channel" label="channels" />
 
           <SecHdr label="Direct Messages" sk="dm" count={dmList.reduce((s, c) => s + c.unread, 0)} />
-          {openSecs.dm && dmList.map(ch => <CRow key={ch.id} ch={ch} active={activeId === ch.id} onClick={() => setActiveId(ch.id)} />)}
+          {openSecs.dm && dmList.map(ch => <CRow key={ch.id} ch={ch} active={activeId === ch.id} onClick={() => setActiveId(ch.id)} currentUserId={user?.id} onLeaveOrDelete={leaveOrDeleteChannel} />)}
           <button type="button" onClick={() => setCreating('dm')} style={{ display: 'flex', alignItems: 'center', gap: 7, width: '100%', padding: 'var(--ds-btn-py-xs) 10px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 12, fontFamily: 'var(--font)', borderRadius: 'var(--r)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
             <Icon name="plus" size={12} /> New direct message
           </button>
 
           <SecHdr label="Groups" sk="grp" count={grpList.reduce((s, c) => s + c.unread, 0)} />
-          {openSecs.grp && grpList.map(ch => <CRow key={ch.id} ch={ch} active={activeId === ch.id} onClick={() => setActiveId(ch.id)} />)}
+          {openSecs.grp && grpList.map(ch => <CRow key={ch.id} ch={ch} active={activeId === ch.id} onClick={() => setActiveId(ch.id)} currentUserId={user?.id} onLeaveOrDelete={leaveOrDeleteChannel} />)}
           <button type="button" onClick={() => setCreating('group')} style={{ display: 'flex', alignItems: 'center', gap: 7, width: '100%', padding: 'var(--ds-btn-py-xs) 10px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 12, fontFamily: 'var(--font)', borderRadius: 'var(--r)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
             <Icon name="plus" size={12} /> Create a group
           </button>
+          <BrowseSection type="group" label="groups" />
         </div>
 
         {/* Me */}

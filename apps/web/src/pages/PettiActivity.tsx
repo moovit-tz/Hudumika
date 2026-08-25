@@ -10,7 +10,7 @@ import type { DateRange } from 'react-day-picker';
 
 interface Wallet { id: string; name: string; currency: string; }
 interface StaffMember { id: string; name: string; }
-interface ActivityRow { id: string; action: string; walletId: string; amount: number; actorId: string | null; at: string; }
+interface ActivityRow { id: string; action: string; walletId: string; amount: number; actorId: string | null; at: string; ref: string | null; }
 
 const ACTION_LABEL: Record<string, string> = {
   deposit_recorded: 'Deposit recorded', withdrawal_requested: 'Withdrawal requested',
@@ -87,12 +87,13 @@ export function PettiActivity() {
         ) : (
           <>
             <div className="rtbl-wrap"><table className="rtbl" style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead><tr>{['Date & time', 'Action', 'Wallet', 'Amount', 'By'].map(h => (
+              <thead><tr>{['Ref', 'Date & time', 'Action', 'Wallet', 'Amount', 'By'].map(h => (
                 <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', background: 'var(--bg)', borderBottom: '1px solid var(--border)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
               ))}</tr></thead>
               <tbody>
                 {rows.map(r => (
                   <tr key={r.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                    <td style={{ padding: '12px 16px', fontSize: 12, fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--ink2)' }}>{r.ref || '—'}</td>
                     <td style={{ padding: '12px 16px', fontSize: 12, color: 'var(--ink3)' }}>{fmtDateTime(r.at)}</td>
                     <td style={{ padding: '12px 16px' }}><Badge variant={ACTION_VARIANT[r.action] || 'gray'}>{ACTION_LABEL[r.action] || r.action}</Badge></td>
                     <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink)' }}>{walletsById[r.walletId]?.name || '—'}</td>

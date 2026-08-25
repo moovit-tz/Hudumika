@@ -180,9 +180,6 @@
 .gws-badge-red { background: #ef4444; }
 
 /* Teal Starred Button at bottom of rail */
-/* The colored rounded-square tile itself comes from LauncherAppSvg (id="ai")
-   — same brand glyph and per-app accent color as the app launcher grid.
-   This wrapper only adds the elevated, clickable feel around it. */
 .gws-ai-btn {
   width: 40px;
   height: 40px;
@@ -201,6 +198,29 @@
 .gws-ai-btn:hover {
   transform: translateY(-1px);
   box-shadow: 0 4px 12px color-mix(in srgb, var(--teal) 45%, transparent);
+}
+
+/* Open state — the same lift as hover, held, plus a visible ring so the
+   button still reads as "this is the open panel" once the pointer moves
+   away (hover alone stops the instant you click something inside the drawer). */
+.gws-ai-btn.active {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--teal) 45%, transparent), 0 0 0 2px color-mix(in srgb, var(--teal) 55%, transparent);
+}
+
+/* The colored rounded-square tile — same per-app accent (var(--teal)) and
+   corner ratio as the app launcher grid's own tiles, but drawing this
+   button's own flat sparkle glyph rather than sharing the launcher grid's
+   LAUNCHER_SVG_ICONS.ai path (that one's used platform-wide; redrawing it
+   here would mean either forking it or changing it everywhere at once). */
+.gws-ai-btn-tile {
+  width: 100%;
+  height: 100%;
+  border-radius: 11px;
+  background: var(--teal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .gws-divider {
@@ -236,6 +256,21 @@
 @keyframes gwsDrawerSlideIn {
   from { opacity: 0; transform: translateX(20px); }
   to { opacity: 1; transform: translateX(0); }
+}
+
+/* Reverse of the entrance — applied for the ~180ms the drawer stays mounted
+   after activePanel clears (see the renderedPanel/closing state in the
+   component), so closing a panel plays a real exit instead of the content
+   just vanishing mid-frame. Duration is shorter than the 220ms entrance:
+   closing should feel snappier than opening, the same asymmetry every
+   Radix overlay in this app already uses. */
+.gws-drawer.gws-drawer-closing {
+  animation: gwsDrawerSlideOut 0.18s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+@keyframes gwsDrawerSlideOut {
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0; transform: translateX(20px); }
 }
 
 .gws-drawer-header {

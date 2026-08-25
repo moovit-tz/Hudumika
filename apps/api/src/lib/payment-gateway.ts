@@ -16,6 +16,12 @@ import { withTenant } from '../db/client.js';
 export interface ActiveGateway {
   id: string;
   sandbox: boolean;
+  /** The raw per-gateway fields submitted on the Settings form (clientId,
+   *  clientSecret, apiKey, publicKey, ...) — whatever that provider's
+   *  `configFields`/test-connection case expects. Needed by anything that
+   *  wants to actually *use* the gateway (place a charge), not just report
+   *  that one is configured. */
+  config: Record<string, string>;
 }
 
 /** The first gateway this tenant has switched on in Settings, if any — the
@@ -33,7 +39,10 @@ export async function getActiveGateway(tenantId: string): Promise<ActiveGateway 
     for (const key of Object.keys(settings || {})) {
       if (!key.startsWith('gw-')) continue;
       const gw = settings[key];
-      if (gw && gw.enabled) return { id: key.slice(3), sandbox: !!gw.sandbox };
+      if (gw && gw.enabled) {
+        const { enabled, sandbox, ...config } = gw;
+        return { id: key.slice(3), sandbox: !!sandbox, config };
+      }
     }
     return null;
   });

@@ -9,6 +9,8 @@ import * as CalendarEvents from '../services/calendar-events.service.js';
 import { EventNotFoundError, EventValidationError } from '../services/calendar-events.service.js';
 import * as BookingPages from '../services/booking-pages.service.js';
 import { SlugTakenError, BookingPageNotFoundError } from '../services/booking-pages.service.js';
+import { resolveProjectAccess, canEditProject } from './task-projects.routes.js';
+import { requireEntitlement } from '../middleware/entitlement.js';
 
 // Tasks + Calendar backend. Both are personal (per-user), not tenant-shared —
 // every query is scoped by (tenant_id, user_id) so each staff member only
@@ -24,6 +26,7 @@ const DEFAULT_LIST_COLOR = '#0d7a6b';
 const uuidSchema = z.string().uuid();
 // Real values — calendarStore.ts's own TaskStatus / category / calendarDefaultView types.
 const TASK_STATUSES = ['none', 'in_progress', 'in_review', 'waiting', 'completed'] as const;
+const TASK_PRIORITIES = ['low', 'medium', 'high', 'urgent'] as const;
 const EVENT_CATEGORIES = ['work', 'personal', 'customs', 'todo'] as const;
 const CALENDAR_VIEWS = ['month', 'week', 'day', 'agenda'] as const;
 
@@ -44,22 +47,35 @@ const taskCreateSchema = z.object({
   notes: z.string().max(10000).optional(),
   due: z.string().optional(),
   dueTime: z.string().max(8).optional(),
+  startDate: z.string().optional(),
   starred: z.boolean().optional(),
   someday: z.boolean().optional(),
   status: z.enum(TASK_STATUSES).optional(),
+  priority: z.enum(TASK_PRIORITIES).optional(),
   tags: z.array(z.string()).optional(),
   assigneeId: uuidSchema.optional(),
   reminderAt: z.string().nullable().optional(),
+  // tasks.advanced (migration 308) — validated here regardless of tier
+  // (cheap), actual enforcement is resolveProjectAccess-gated on write below.
+  projectId: uuidSchema.nullable().optional(),
+  milestoneId: uuidSchema.nullable().optional(),
+  isPrivate: z.boolean().optional(),
+  isBillable: z.boolean().optional(),
+  hourlyRate: z.number().min(0).max(1000000).nullable().optional(),
+  subjectType: z.string().max(50).nullable().optional(),
+  subjectId: uuidSchema.nullable().optional(),
 });
 const taskPatchSchema = z.object({
   title: z.string().trim().min(1).max(500).optional(),
   notes: z.string().max(10000).nullable().optional(),
   due: z.string().nullable().optional(),
   dueTime: z.string().max(8).nullable().optional(),
+  startDate: z.string().nullable().optional(),
   starred: z.boolean().optional(),
   someday: z.boolean().optional(),
   reminderAt: z.string().nullable().optional(),
   status: z.enum(TASK_STATUSES).optional(),
+  priority: z.enum(TASK_PRIORITIES).optional(),
   tags: z.array(z.string()).optional(),
   completed: z.boolean().optional(),
   sortOrder: z.number().int().optional(),
@@ -69,6 +85,20 @@ const taskPatchSchema = z.object({
   // zod keeps that distinction, which the owner-only permission check below
   // relies on.
   assigneeId: uuidSchema.nullable().optional(),
+  projectId: uuidSchema.nullable().optional(),
+  milestoneId: uuidSchema.nullable().optional(),
+  isPrivate: z.boolean().optional(),
+  isBillable: z.boolean().optional(),
+  hourlyRate: z.number().min(0).max(1000000).nullable().optional(),
+  subjectType: z.string().max(50).nullable().optional(),
+  subjectId: uuidSchema.nullable().optional(),
+});
+const collaboratorAddSchema = z.object({
+  userId: uuidSchema,
+  kind: z.enum(['assignee', 'follower']),
+});
+const dependencyAddSchema = z.object({
+  dependsOnTaskId: uuidSchema,
 });
 const commentCreateSchema = z.object({
   content: z.string().trim().min(1).max(5000),
@@ -172,6 +202,34 @@ async function handleAssigneeChange(
   }).catch(err => console.error('[Tasks] Failed to email assignee:', err.message));
 }
 
+/** Same notify-the-other-person shape as handleAssigneeChange, for the
+ *  plural task_collaborators roster (migration 309, tasks.advanced) — a
+ *  co-assignee or follower added to a task they didn't add themselves to. */
+async function notifyCollaboratorAdded(
+  trx: Transaction<Database>,
+  user: { sub: string; tenant_id: string; name?: string },
+  task: { id: string; title: string },
+  collaboratorUserId: string,
+  kind: 'assignee' | 'follower',
+): Promise<void> {
+  if (collaboratorUserId === user.sub) return;
+  const recipient = await trx.selectFrom('users').select(['name', 'email'])
+    .where('id', '=', collaboratorUserId).executeTakeFirst();
+  if (!recipient) return;
+  const actorName = user.name ?? 'Someone';
+  const verb = kind === 'assignee' ? 'assigned you to' : 'added you as a follower on';
+  const title = `${actorName} ${verb} a task`;
+  await NotificationService.createNotification({
+    tenantId: user.tenant_id, userId: collaboratorUserId, app: 'tasks', type: 'task',
+    title, message: task.title, link: '/tasks?view=assigned', entityType: 'task', entityId: task.id,
+  }).catch(err => console.error('[Tasks] Failed to notify collaborator:', err.message));
+  await MailService.sendNow(user.tenant_id, {
+    to: recipient.email, subject: title,
+    bodyHtml: `<p>Hi ${recipient.name},</p><p>${actorName} ${verb}: <strong>${task.title}</strong></p>`,
+    sourceApp: 'tasks',
+  }).catch(err => console.error('[Tasks] Failed to email collaborator:', err.message));
+}
+
 type TaskAccessLevel = 'owner' | 'assignee' | 'editor' | 'viewer';
 
 /** Resolves what access (if any) a user has to one task — checked in this
@@ -200,6 +258,26 @@ async function resolveTaskAccess(
     .where('list_id', '=', task.list_id).where('user_id', '=', userId).where('tenant_id', '=', tenantId)
     .executeTakeFirst();
   if (share) return { task, access: share.role === 'editor' ? 'editor' : 'viewer' };
+  // Plural collaborator roster (migration 309, tasks.advanced) — being
+  // named a co-assignee or follower must actually grant visibility, or
+  // adding someone here would silently do nothing (they still couldn't see
+  // the task at all). A co-assignee can work on it like the single
+  // assignee_id; a follower gets read access, same as a shared-list viewer.
+  const collab = await trx.selectFrom('task_collaborators').select('kind')
+    .where('task_id', '=', taskId).where('user_id', '=', userId).where('tenant_id', '=', tenantId)
+    .executeTakeFirst();
+  if (collab) return { task, access: collab.kind === 'assignee' ? 'assignee' : 'viewer' };
+  // Project-member access (migration 308, tasks.advanced) — a task filed
+  // under a shared project is visible/workable by that project's members
+  // too, same shape as a shared list's editor/viewer split, UNLESS the task
+  // is marked is_private (then only owner/assignee, already checked above,
+  // can see it — the "Private Task" toggle even within a shared project).
+  if (task.project_id && !task.is_private) {
+    const membership = await trx.selectFrom('project_members').select('role')
+      .where('project_id', '=', task.project_id).where('user_id', '=', userId).where('tenant_id', '=', tenantId)
+      .executeTakeFirst();
+    if (membership) return { task, access: membership.role === 'viewer' ? 'viewer' : 'editor' };
+  }
   return null;
 }
 
@@ -380,6 +458,22 @@ export async function tasksRoutes(fastify: FastifyInstance) {
         .where('tenant_id', '=', user.tenant_id).where('user_id', '=', user.sub).execute();
       const sharedRoleByListId = new Map(sharedListRows.map(r => [r.list_id, r.role]));
       const sharedListIds = [...sharedRoleByListId.keys()];
+      // Projects (migration 308, tasks.advanced) a HuduPlus+ user belongs to
+      // — grants visibility into that project's non-private tasks the same
+      // way sharedListIds does for shared lists. Empty for every tenant that
+      // hasn't touched Projects yet, so this is a no-op until M8's frontend
+      // actually creates any.
+      const memberProjectRows = await trx.selectFrom('project_members').select(['project_id', 'role'])
+        .where('tenant_id', '=', user.tenant_id).where('user_id', '=', user.sub).execute();
+      const memberRoleByProjectId = new Map(memberProjectRows.map(r => [r.project_id, r.role]));
+      const memberProjectIds = [...memberRoleByProjectId.keys()];
+      // Plural collaborator roster (migration 309, tasks.advanced) — a task
+      // this user was added to as a co-assignee/follower but doesn't own,
+      // isn't the single assignee_id on, and has no list/project access to.
+      const collabRows = await trx.selectFrom('task_collaborators').select(['task_id', 'kind'])
+        .where('tenant_id', '=', user.tenant_id).where('user_id', '=', user.sub).execute();
+      const collabKindByTaskId = new Map(collabRows.map(r => [r.task_id, r.kind]));
+      const collabTaskIds = [...collabKindByTaskId.keys()];
 
       // Visible to: the task's owner, its assignee (migration 283), anyone
       // who owns the LIST it's filed on (even a task someone else created —
@@ -389,7 +483,7 @@ export async function tasksRoutes(fastify: FastifyInstance) {
       // users are LEFT JOINed (not just the task owner's own) so a viewer
       // who owns neither still gets a real list name/color and assignee
       // display name to render, not just ids.
-      const [taskRows, subtaskRows] = await Promise.all([
+      const [taskRows, subtaskRows, timeEntryRows] = await Promise.all([
         trx.selectFrom('tasks')
           .leftJoin('users as owner_user', 'owner_user.id', 'tasks.user_id')
           .leftJoin('users as assignee_user', 'assignee_user.id', 'tasks.assignee_id')
@@ -398,13 +492,17 @@ export async function tasksRoutes(fastify: FastifyInstance) {
           .where(eb => {
             const conds = [eb('tasks.user_id', '=', user.sub), eb('tasks.assignee_id', '=', user.sub), eb('task_lists.user_id', '=', user.sub)];
             if (sharedListIds.length) conds.push(eb('tasks.list_id', 'in', sharedListIds));
+            if (memberProjectIds.length) conds.push(eb.and([eb('tasks.project_id', 'in', memberProjectIds), eb('tasks.is_private', '=', false)]));
+            if (collabTaskIds.length) conds.push(eb('tasks.id', 'in', collabTaskIds));
             return eb.or(conds);
           })
           .select([
             'tasks.id', 'tasks.tenant_id', 'tasks.user_id', 'tasks.list_id', 'tasks.title', 'tasks.notes',
-            'tasks.due', 'tasks.due_time', 'tasks.starred', 'tasks.someday', 'tasks.status', 'tasks.tags',
+            'tasks.due', 'tasks.due_time', 'tasks.start_date', 'tasks.starred', 'tasks.someday', 'tasks.status', 'tasks.priority', 'tasks.tags',
             'tasks.completed', 'tasks.completed_at', 'tasks.deleted_at', 'tasks.sort_order',
             'tasks.assignee_id', 'tasks.created_at', 'tasks.updated_at',
+            'tasks.project_id', 'tasks.milestone_id', 'tasks.is_private', 'tasks.is_billable', 'tasks.hourly_rate',
+            'tasks.subject_type', 'tasks.subject_id',
             'owner_user.name as owner_name',
             'assignee_user.name as assignee_name', 'assignee_user.avatar_url as assignee_avatar_url',
             'task_lists.name as list_name', 'task_lists.color as list_color', 'task_lists.user_id as list_owner_id',
@@ -417,22 +515,74 @@ export async function tasksRoutes(fastify: FastifyInstance) {
           .where(eb => {
             const conds = [eb('tasks.user_id', '=', user.sub), eb('tasks.assignee_id', '=', user.sub), eb('task_lists.user_id', '=', user.sub)];
             if (sharedListIds.length) conds.push(eb('tasks.list_id', 'in', sharedListIds));
+            if (memberProjectIds.length) conds.push(eb.and([eb('tasks.project_id', 'in', memberProjectIds), eb('tasks.is_private', '=', false)]));
+            if (collabTaskIds.length) conds.push(eb('tasks.id', 'in', collabTaskIds));
             return eb.or(conds);
           })
           .selectAll('task_subtasks')
           .orderBy('task_subtasks.sort_order', 'asc').execute(),
+        trx.selectFrom('task_time_entries')
+          .innerJoin('tasks', 'tasks.id', 'task_time_entries.task_id')
+          .leftJoin('task_lists', 'task_lists.id', 'tasks.list_id')
+          .where('tasks.tenant_id', '=', user.tenant_id)
+          .where(eb => {
+            const conds = [eb('tasks.user_id', '=', user.sub), eb('tasks.assignee_id', '=', user.sub), eb('task_lists.user_id', '=', user.sub)];
+            if (sharedListIds.length) conds.push(eb('tasks.list_id', 'in', sharedListIds));
+            if (memberProjectIds.length) conds.push(eb.and([eb('tasks.project_id', 'in', memberProjectIds), eb('tasks.is_private', '=', false)]));
+            if (collabTaskIds.length) conds.push(eb('tasks.id', 'in', collabTaskIds));
+            return eb.or(conds);
+          })
+          .select(['task_time_entries.task_id', 'task_time_entries.user_id', 'task_time_entries.started_at', 'task_time_entries.ended_at', 'task_time_entries.duration_minutes'])
+          .execute(),
       ]);
       const subsByTask = new Map<string, typeof subtaskRows>();
       for (const s of subtaskRows) {
         if (!subsByTask.has(s.task_id)) subsByTask.set(s.task_id, []);
         subsByTask.get(s.task_id)!.push(s);
       }
+      // Task dependencies (migration 319) are visualization-only for v1 — a
+      // small "blocked by N open task(s)" count on the card/row, not an
+      // enforcement. Only counts unfinished blockers so a task with every
+      // dependency already completed shows clean.
+      const blockedByOpenCount = new Map<string, number>();
+      if (taskRows.length) {
+        const depRows = await trx.selectFrom('task_dependencies')
+          .innerJoin('tasks as blocker', 'blocker.id', 'task_dependencies.depends_on_task_id')
+          .where('task_dependencies.tenant_id', '=', user.tenant_id)
+          .where('task_dependencies.task_id', 'in', taskRows.map(t => t.id))
+          .where('blocker.completed', '=', false)
+          .select(['task_dependencies.task_id'])
+          .execute();
+        for (const d of depRows) blockedByOpenCount.set(d.task_id, (blockedByOpenCount.get(d.task_id) || 0) + 1);
+      }
+      // Total logged minutes = every closed entry, from anyone (a shared
+      // task's time is a team total); the current user's own open entry (if
+      // any) is surfaced separately so the frontend timer can resume across
+      // a reload instead of losing its start time — see M2's fix for the
+      // old client-only timerStartedAt, which never persisted at all.
+      const loggedMinutesByTask = new Map<string, number>();
+      const openTimerStartByTask = new Map<string, Date>();
+      for (const e of timeEntryRows) {
+        if (e.ended_at) {
+          loggedMinutesByTask.set(e.task_id, (loggedMinutesByTask.get(e.task_id) || 0) + (e.duration_minutes || 0));
+        } else if (e.user_id === user.sub) {
+          openTimerStartByTask.set(e.task_id, e.started_at);
+        }
+      }
       const data = taskRows.map(t => {
         const isOwner = t.user_id === user.sub || t.list_owner_id === user.sub;
-        const isAssignee = !isOwner && t.assignee_id === user.sub;
+        const isAssignee = !isOwner && (t.assignee_id === user.sub || collabKindByTaskId.get(t.id) === 'assignee');
         const sharedRole = sharedRoleByListId.get(t.list_id);
-        const access: TaskAccessLevel = isOwner ? 'owner' : isAssignee ? 'assignee' : sharedRole === 'editor' ? 'editor' : 'viewer';
-        return { ...t, subtasks: subsByTask.get(t.id) || [], is_owner: isOwner, access };
+        const projectRole = t.project_id ? memberRoleByProjectId.get(t.project_id) : undefined;
+        const access: TaskAccessLevel = isOwner ? 'owner' : isAssignee ? 'assignee'
+          : sharedRole === 'editor' || (projectRole && projectRole !== 'viewer') ? 'editor'
+          : 'viewer';
+        return {
+          ...t, subtasks: subsByTask.get(t.id) || [], is_owner: isOwner, access,
+          time_logged_minutes: loggedMinutesByTask.get(t.id) || 0,
+          timer_started_at: openTimerStartByTask.get(t.id) || null,
+          blocked_by_open_count: blockedByOpenCount.get(t.id) || 0,
+        };
       });
       return { data };
     });
@@ -457,18 +607,33 @@ export async function tasksRoutes(fastify: FastifyInstance) {
         }
       }
 
+      if (body.projectId) {
+        const projectAccess = await resolveProjectAccess(trx, user.tenant_id, user.sub, user.role, body.projectId);
+        if (!projectAccess) return reply.status(404).send({ error: 'Project not found' });
+        if (!canEditProject(projectAccess.access)) return reply.status(403).send({ error: 'You only have view access to this project' });
+      }
+
       const siblingCount = await trx.selectFrom('tasks').select(({ fn }) => fn.countAll<number>().as('count'))
         .where('list_id', '=', body.listId).where('deleted_at', 'is', null).executeTakeFirst();
       const row = await trx.insertInto('tasks').values({
         id: body.id, tenant_id: user.tenant_id, user_id: user.sub, list_id: body.listId,
         title: body.title.trim(), notes: body.notes || null, due: body.due || null,
-        due_time: body.dueTime || null,
+        due_time: body.dueTime || null, start_date: body.startDate || null,
         starred: body.starred ?? false, someday: body.someday ?? false, status: body.status || 'none',
+        priority: body.priority || 'medium',
         tags: JSON.stringify(body.tags ?? []) as unknown as string[],
         assignee_id: body.assigneeId || null,
         reminder_at: body.reminderAt || null,
+        project_id: body.projectId || null, milestone_id: body.milestoneId || null,
+        is_private: body.isPrivate ?? false,
+        is_billable: body.isBillable ?? false, hourly_rate: body.hourlyRate != null ? String(body.hourlyRate) : null,
+        subject_type: body.subjectType || null, subject_id: body.subjectId || null,
         sort_order: Number(siblingCount?.count ?? 0),
       }).returningAll().executeTakeFirstOrThrow();
+      await trx.insertInto('task_activity_log').values({
+        id: crypto.randomUUID(), tenant_id: user.tenant_id, task_id: row.id, actor_id: user.sub,
+        action: 'created', detail: JSON.stringify({ title: row.title }) as unknown as Record<string, unknown>,
+      }).execute();
       if (body.assigneeId) await handleAssigneeChange(trx, user, row, body.assigneeId);
       reply.status(201);
       return { data: { ...row, subtasks: [], is_owner: true, access: 'owner' as const } };
@@ -492,9 +657,15 @@ export async function tasksRoutes(fastify: FastifyInstance) {
       // status, tags, starring.
       if (!isOwner && (
         body.listId !== undefined || body.someday !== undefined ||
-        body.deletedAt !== undefined || body.assigneeId !== undefined
+        body.deletedAt !== undefined || body.assigneeId !== undefined ||
+        body.projectId !== undefined || body.milestoneId !== undefined || body.isPrivate !== undefined
       )) {
         return reply.status(403).send({ error: 'Only the task owner can reassign, move, or delete this task' });
+      }
+      if (body.projectId) {
+        const projectAccess = await resolveProjectAccess(trx, user.tenant_id, user.sub, user.role, body.projectId);
+        if (!projectAccess) return reply.status(404).send({ error: 'Project not found' });
+        if (!canEditProject(projectAccess.access)) return reply.status(403).send({ error: 'You only have view access to this project' });
       }
 
       const updates: Record<string, unknown> = { updated_at: new Date() };
@@ -502,9 +673,11 @@ export async function tasksRoutes(fastify: FastifyInstance) {
       if (body.notes !== undefined) updates.notes = body.notes;
       if (body.due !== undefined) updates.due = body.due || null;
       if (body.dueTime !== undefined) updates.due_time = body.dueTime || null;
+      if (body.startDate !== undefined) updates.start_date = body.startDate || null;
       if (body.starred !== undefined) updates.starred = body.starred;
       if (body.someday !== undefined) updates.someday = body.someday;
       if (body.status !== undefined) updates.status = body.status;
+      if (body.priority !== undefined) updates.priority = body.priority;
       if (body.tags !== undefined) updates.tags = JSON.stringify(body.tags);
       if (body.listId !== undefined) updates.list_id = body.listId;
       if (body.sortOrder !== undefined) updates.sort_order = body.sortOrder;
@@ -514,6 +687,13 @@ export async function tasksRoutes(fastify: FastifyInstance) {
       }
       if (body.deletedAt !== undefined) updates.deleted_at = body.deletedAt || null;
       if (body.assigneeId !== undefined) updates.assignee_id = body.assigneeId;
+      if (body.projectId !== undefined) updates.project_id = body.projectId;
+      if (body.milestoneId !== undefined) updates.milestone_id = body.milestoneId;
+      if (body.isPrivate !== undefined) updates.is_private = body.isPrivate;
+      if (body.isBillable !== undefined) updates.is_billable = body.isBillable;
+      if (body.hourlyRate !== undefined) updates.hourly_rate = body.hourlyRate != null ? String(body.hourlyRate) : null;
+      if (body.subjectType !== undefined) updates.subject_type = body.subjectType;
+      if (body.subjectId !== undefined) updates.subject_id = body.subjectId;
       if (body.reminderAt !== undefined) {
         updates.reminder_at = body.reminderAt || null;
         // Changing (or clearing) the reminder re-arms it — same reasoning as
@@ -534,6 +714,33 @@ export async function tasksRoutes(fastify: FastifyInstance) {
           type: 'todo.completed', sourceApp: 'tasks', entityType: 'task', entityId: row.id,
           payload: { title: row.title }, actorId: user.sub,
         });
+      }
+
+      // Real activity feed (migration 310, tasks.advanced) — only the
+      // changes worth showing in a timeline, not every field PATCH (a due
+      // date tweak or a notes edit doesn't need its own row the way a
+      // status/priority/assignment/project move does).
+      const activityEntries: { action: string; detail: Record<string, unknown> }[] = [];
+      if (body.status !== undefined && body.status !== existing.status) {
+        activityEntries.push({ action: 'status_changed', detail: { from: existing.status, to: body.status } });
+      }
+      if (body.priority !== undefined && body.priority !== existing.priority) {
+        activityEntries.push({ action: 'priority_changed', detail: { from: existing.priority, to: body.priority } });
+      }
+      if (body.assigneeId !== undefined && body.assigneeId !== existing.assignee_id) {
+        activityEntries.push({ action: 'assigned', detail: { assigneeId: body.assigneeId } });
+      }
+      if (body.completed === true && !existing.completed) {
+        activityEntries.push({ action: 'completed', detail: {} });
+      }
+      if (body.projectId !== undefined && body.projectId !== existing.project_id) {
+        activityEntries.push({ action: 'moved_project', detail: { projectId: body.projectId } });
+      }
+      if (activityEntries.length) {
+        await trx.insertInto('task_activity_log').values(activityEntries.map(e => ({
+          id: crypto.randomUUID(), tenant_id: user.tenant_id, task_id: row.id, actor_id: user.sub,
+          action: e.action, detail: JSON.stringify(e.detail) as unknown as Record<string, unknown>,
+        }))).execute();
       }
 
       return { data: { ...row, is_owner: isOwner, access } };
@@ -557,6 +764,94 @@ export async function tasksRoutes(fastify: FastifyInstance) {
       }
       reply.status(204);
       return null;
+    });
+  });
+
+  const cloneTaskSchema = z.object({ id: uuidSchema });
+
+  fastify.post<{ Params: { id: string } }>('/items/:id/clone', async (request, reply) => {
+    const user = request.user;
+    const body = cloneTaskSchema.parse(request.body);
+    return withTenant(user.tenant_id, async (trx) => {
+      const resolved = await resolveTaskAccess(trx, user.tenant_id, user.sub, request.params.id);
+      if (!resolved) return reply.status(404).send({ error: 'Task not found' });
+      const src = resolved.task;
+      // A clone is a fresh copy of the work itself — title/notes/schedule/
+      // tags/priority/checklist carry over, but not who it's assigned to,
+      // whether it's done, or its reminder (avoid double-pinging someone for
+      // a task that didn't really just get created for them).
+      const siblingCount = await trx.selectFrom('tasks').select(({ fn }) => fn.countAll<number>().as('count'))
+        .where('list_id', '=', src.list_id).where('deleted_at', 'is', null).executeTakeFirst();
+      const row = await trx.insertInto('tasks').values({
+        id: body.id, tenant_id: user.tenant_id, user_id: user.sub, list_id: src.list_id,
+        title: `${src.title} (copy)`, notes: src.notes, due: src.due, due_time: src.due_time,
+        starred: false, someday: src.someday, status: 'none', priority: src.priority,
+        // Must be JSON.stringify'd, not passed as a native array — pg
+        // serializes an unstringified JS array param using Postgres ARRAY
+        // literal syntax ('{}' for empty), which is valid JSON for an
+        // *object*, not an array; the column would silently end up holding
+        // {} instead of [] otherwise (caught live, not hypothetical).
+        tags: JSON.stringify(src.tags ?? []) as unknown as string[],
+        sort_order: Number(siblingCount?.count ?? 0),
+      }).returningAll().executeTakeFirstOrThrow();
+
+      const subtasks = await trx.selectFrom('task_subtasks').selectAll()
+        .where('task_id', '=', src.id).orderBy('sort_order', 'asc').execute();
+      let clonedSubtasks: typeof subtasks = [];
+      if (subtasks.length) {
+        clonedSubtasks = await trx.insertInto('task_subtasks')
+          .values(subtasks.map(s => ({
+            id: crypto.randomUUID(), tenant_id: user.tenant_id, task_id: row.id,
+            title: s.title, completed: false, sort_order: s.sort_order,
+          })))
+          .returningAll().execute();
+      }
+
+      reply.status(201);
+      return { data: { ...row, subtasks: clonedSubtasks, is_owner: true, access: 'owner' as const, time_logged_minutes: 0, timer_started_at: null } };
+    });
+  });
+
+  // ── Time tracking ──────────────────────────────────────────────────────
+  // Real start/stop persistence (migration 307) for the timer widget, which
+  // previously ran on client-only state that reset every reload.
+
+  fastify.post<{ Params: { id: string } }>('/items/:id/timer/start', async (request, reply) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const resolved = await resolveTaskAccess(trx, user.tenant_id, user.sub, request.params.id);
+      if (!resolved || !canWorkOn(resolved.access)) return reply.status(404).send({ error: 'Task not found' });
+      const existingOpen = await trx.selectFrom('task_time_entries').select('id')
+        .where('task_id', '=', request.params.id).where('user_id', '=', user.sub).where('ended_at', 'is', null)
+        .executeTakeFirst();
+      if (existingOpen) return reply.status(409).send({ error: 'Timer already running for this task' });
+      const row = await trx.insertInto('task_time_entries').values({
+        id: crypto.randomUUID(), tenant_id: user.tenant_id, task_id: request.params.id,
+        user_id: user.sub, started_at: new Date().toISOString(),
+      }).returningAll().executeTakeFirstOrThrow();
+      return { data: row };
+    });
+  });
+
+  fastify.post<{ Params: { id: string } }>('/items/:id/timer/stop', async (request, reply) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const resolved = await resolveTaskAccess(trx, user.tenant_id, user.sub, request.params.id);
+      if (!resolved || !canWorkOn(resolved.access)) return reply.status(404).send({ error: 'Task not found' });
+      const open = await trx.selectFrom('task_time_entries').selectAll()
+        .where('task_id', '=', request.params.id).where('user_id', '=', user.sub).where('ended_at', 'is', null)
+        .executeTakeFirst();
+      if (!open) return reply.status(404).send({ error: 'No timer running for this task' });
+      const endedAt = new Date();
+      const durationMinutes = Math.max(1, Math.round((endedAt.getTime() - new Date(open.started_at).getTime()) / 60000));
+      const row = await trx.updateTable('task_time_entries')
+        .set({ ended_at: endedAt.toISOString(), duration_minutes: durationMinutes })
+        .where('id', '=', open.id).returningAll().executeTakeFirstOrThrow();
+      const totalRow = await trx.selectFrom('task_time_entries')
+        .select(({ fn }) => fn.sum<number>('duration_minutes').as('total'))
+        .where('task_id', '=', request.params.id).where('ended_at', 'is not', null)
+        .executeTakeFirst();
+      return { data: { ...row, task_total_minutes: Number(totalRow?.total ?? 0) } };
     });
   });
 
@@ -647,6 +942,10 @@ export async function tasksRoutes(fastify: FastifyInstance) {
         type: 'todo.commented', sourceApp: 'tasks', entityType: 'task', entityId: task.id,
         payload: { preview: body.content.trim().slice(0, 140) }, actorId: user.sub,
       });
+      await trx.insertInto('task_activity_log').values({
+        id: crypto.randomUUID(), tenant_id: user.tenant_id, task_id: task.id, actor_id: user.sub,
+        action: 'commented', detail: JSON.stringify({ preview: body.content.trim().slice(0, 140) }) as unknown as Record<string, unknown>,
+      }).execute();
 
       // The other party on this task (owner and/or assignee, whichever
       // isn't the commenter) plus anyone @mentioned — same "the person on
@@ -691,6 +990,144 @@ export async function tasksRoutes(fastify: FastifyInstance) {
       await trx.deleteFrom('todo_comments').where('id', '=', request.params.commentId).execute();
       reply.status(204);
       return null;
+    });
+  });
+
+  // ── Collaborators ('projects' entitlement, formerly tasks.advanced) ────
+  // Plural Assignees/Followers on top of the single tasks.assignee_id —
+  // migration 309.
+
+  fastify.get<{ Params: { id: string } }>('/items/:id/collaborators', { preHandler: requireEntitlement('projects') }, async (request, reply) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const resolved = await resolveTaskAccess(trx, user.tenant_id, user.sub, request.params.id);
+      if (!resolved) return reply.status(404).send({ error: 'Task not found' });
+      const rows = await trx.selectFrom('task_collaborators')
+        .innerJoin('users', 'users.id', 'task_collaborators.user_id')
+        .where('task_collaborators.task_id', '=', request.params.id)
+        .select(['task_collaborators.id', 'task_collaborators.user_id', 'task_collaborators.kind', 'task_collaborators.added_at',
+          'users.name', 'users.email', 'users.avatar_url'])
+        .orderBy('task_collaborators.added_at', 'asc').execute();
+      return { data: rows };
+    });
+  });
+
+  fastify.post<{ Params: { id: string } }>('/items/:id/collaborators', { preHandler: requireEntitlement('projects') }, async (request, reply) => {
+    const user = request.user;
+    const body = collaboratorAddSchema.parse(request.body);
+    return withTenant(user.tenant_id, async (trx) => {
+      const resolved = await resolveTaskAccess(trx, user.tenant_id, user.sub, request.params.id);
+      if (!resolved || !canWorkOn(resolved.access)) return reply.status(404).send({ error: 'Task not found' });
+      const target = await trx.selectFrom('users').select('id')
+        .where('id', '=', body.userId).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!target) return reply.status(404).send({ error: 'User not found' });
+      const row = await trx.insertInto('task_collaborators').values({
+        id: crypto.randomUUID(), tenant_id: user.tenant_id, task_id: request.params.id,
+        user_id: body.userId, kind: body.kind,
+      })
+      .onConflict(oc => oc.columns(['task_id', 'user_id', 'kind']).doNothing())
+      .returningAll().executeTakeFirst();
+      if (row) await notifyCollaboratorAdded(trx, user, resolved.task, body.userId, body.kind);
+      reply.status(201);
+      return { data: row };
+    });
+  });
+
+  fastify.delete<{ Params: { id: string; collabId: string } }>('/items/:id/collaborators/:collabId', { preHandler: requireEntitlement('projects') }, async (request, reply) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const resolved = await resolveTaskAccess(trx, user.tenant_id, user.sub, request.params.id);
+      if (!resolved) return reply.status(404).send({ error: 'Task not found' });
+      const collab = await trx.selectFrom('task_collaborators').select('user_id')
+        .where('id', '=', request.params.collabId).where('task_id', '=', request.params.id).executeTakeFirst();
+      if (!collab) { reply.status(204); return null; }
+      // Removing someone else needs work access; anyone can remove themselves
+      // (unfollow / step back from a task they were added to).
+      if (collab.user_id !== user.sub && !canWorkOn(resolved.access)) {
+        return reply.status(403).send({ error: 'You do not have permission to remove this collaborator' });
+      }
+      await trx.deleteFrom('task_collaborators').where('id', '=', request.params.collabId).execute();
+      reply.status(204);
+      return null;
+    });
+  });
+
+  // ── Dependencies (migration 319, 'projects' entitlement) — visualization
+  // only for v1: a dependency does not block completing the blocking task.
+
+  fastify.get<{ Params: { id: string } }>('/items/:id/dependencies', { preHandler: requireEntitlement('projects') }, async (request, reply) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const resolved = await resolveTaskAccess(trx, user.tenant_id, user.sub, request.params.id);
+      if (!resolved) return reply.status(404).send({ error: 'Task not found' });
+      const [blockedBy, blocks] = await Promise.all([
+        trx.selectFrom('task_dependencies')
+          .innerJoin('tasks', 'tasks.id', 'task_dependencies.depends_on_task_id')
+          .where('task_dependencies.task_id', '=', request.params.id).where('task_dependencies.tenant_id', '=', user.tenant_id)
+          .select(['task_dependencies.id', 'tasks.id as task_id', 'tasks.title', 'tasks.status', 'tasks.completed', 'tasks.due'])
+          .execute(),
+        trx.selectFrom('task_dependencies')
+          .innerJoin('tasks', 'tasks.id', 'task_dependencies.task_id')
+          .where('task_dependencies.depends_on_task_id', '=', request.params.id).where('task_dependencies.tenant_id', '=', user.tenant_id)
+          .select(['task_dependencies.id', 'tasks.id as task_id', 'tasks.title', 'tasks.status', 'tasks.completed', 'tasks.due'])
+          .execute(),
+      ]);
+      return { data: { blockedBy, blocks } };
+    });
+  });
+
+  fastify.post<{ Params: { id: string } }>('/items/:id/dependencies', { preHandler: requireEntitlement('projects') }, async (request, reply) => {
+    const user = request.user;
+    const body = dependencyAddSchema.parse(request.body);
+    return withTenant(user.tenant_id, async (trx) => {
+      const resolved = await resolveTaskAccess(trx, user.tenant_id, user.sub, request.params.id);
+      if (!resolved || !canWorkOn(resolved.access)) return reply.status(404).send({ error: 'Task not found' });
+      if (body.dependsOnTaskId === request.params.id) return reply.status(400).send({ error: 'A task cannot depend on itself' });
+      const target = await trx.selectFrom('tasks').select('id')
+        .where('id', '=', body.dependsOnTaskId).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!target) return reply.status(404).send({ error: 'Task not found' });
+      const reverse = await trx.selectFrom('task_dependencies').select('id')
+        .where('task_id', '=', body.dependsOnTaskId).where('depends_on_task_id', '=', request.params.id)
+        .where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (reverse) return reply.status(400).send({ error: 'That task already depends on this one — would create a cycle' });
+      const row = await trx.insertInto('task_dependencies').values({
+        id: crypto.randomUUID(), tenant_id: user.tenant_id, task_id: request.params.id,
+        depends_on_task_id: body.dependsOnTaskId,
+      })
+      .onConflict(oc => oc.columns(['task_id', 'depends_on_task_id']).doNothing())
+      .returningAll().executeTakeFirst();
+      reply.status(201);
+      return { data: row };
+    });
+  });
+
+  fastify.delete<{ Params: { id: string; depId: string } }>('/items/:id/dependencies/:depId', { preHandler: requireEntitlement('projects') }, async (request, reply) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const resolved = await resolveTaskAccess(trx, user.tenant_id, user.sub, request.params.id);
+      if (!resolved || !canWorkOn(resolved.access)) return reply.status(404).send({ error: 'Task not found' });
+      await trx.deleteFrom('task_dependencies')
+        .where('id', '=', request.params.depId).where('task_id', '=', request.params.id).where('tenant_id', '=', user.tenant_id)
+        .execute();
+      reply.status(204);
+      return null;
+    });
+  });
+
+  // ── Activity log ('projects' entitlement, formerly tasks.advanced) ─────
+
+  fastify.get<{ Params: { id: string } }>('/items/:id/activity', { preHandler: requireEntitlement('projects') }, async (request, reply) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const resolved = await resolveTaskAccess(trx, user.tenant_id, user.sub, request.params.id);
+      if (!resolved) return reply.status(404).send({ error: 'Task not found' });
+      const rows = await trx.selectFrom('task_activity_log')
+        .innerJoin('users', 'users.id', 'task_activity_log.actor_id')
+        .where('task_activity_log.task_id', '=', request.params.id)
+        .select(['task_activity_log.id', 'task_activity_log.action', 'task_activity_log.detail',
+          'task_activity_log.created_at', 'task_activity_log.actor_id', 'users.name as actor_name'])
+        .orderBy('task_activity_log.created_at', 'desc').execute();
+      return { data: rows };
     });
   });
 
