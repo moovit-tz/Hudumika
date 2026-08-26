@@ -6,6 +6,7 @@ import { Icon } from '../components/Icon.js';
 import { EntityPicker, PickerItem } from '../components/EntityPicker.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
+import { PageHeader } from '../components/PageHeader.js';
 import { useTaxCodes } from '../data/taxCodeData.js';
 
 // ─── constants ────────────────────────────────────────────────────────────────
@@ -104,7 +105,7 @@ function Toast({ msg, kind, onClose }: { msg: string; kind: 'success' | 'error';
 function ConfirmDialog({ msg, onConfirm, onCancel }: { msg: string; onConfirm: () => void; onCancel: () => void }) {
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}>
-      <div style={{ background: 'var(--white)', borderRadius: 12, padding: 28, width: 380, boxShadow: 'var(--elev-lg)' }}>
+      <div style={{ background: 'var(--white)', borderRadius: 12, padding: 28, width: 380, maxWidth: '92vw', boxSizing: 'border-box', boxShadow: 'var(--elev-lg)' }}>
         <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 10 }}>Confirm</div>
         <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 22 }}>{msg}</div>
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
@@ -146,7 +147,7 @@ function StatusModal({
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}>
-      <div style={{ background: 'var(--white)', borderRadius: 12, padding: 28, width: 380 }}>
+      <div style={{ background: 'var(--white)', borderRadius: 12, padding: 28, width: 380, maxWidth: '92vw', boxSizing: 'border-box' }}>
         <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 14 }}>Change Status</div>
         <div style={{ marginBottom: 14 }}>
           <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>New Status</label>
@@ -187,6 +188,7 @@ function DetailPanel({
 }) {
   const [quote, setQuote] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const isMobile = useIsMobile();
 
   const load = useCallback(() => {
     setLoading(true);
@@ -255,7 +257,7 @@ function DetailPanel({
           </div>
 
           {/* Info grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 20px', marginBottom: 20 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '10px 20px', marginBottom: 20 }}>
             {[
               ['Customer', quote.customer_name || '—'],
               ['Shipment Type', quote.shipment_type || '—'],
@@ -364,6 +366,7 @@ function QuoteModal({
   onSaved: () => void;
 }) {
   const isEdit = Boolean(editQuote);
+  const isMobile = useIsMobile();
   // Sales-side treatments only; a purchase-only code has no meaning on a quote.
   const taxCodes = useTaxCodes().filter(c => c.appliesTo !== 'PURCHASE');
 
@@ -493,7 +496,7 @@ function QuoteModal({
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1500 }}>
-      <div style={{ background: 'var(--white)', borderRadius: 12, width: 720, maxHeight: '92vh', overflowY: 'auto', boxShadow: 'var(--elev-lg)' }}>
+      <div style={{ background: 'var(--white)', borderRadius: 12, width: 720, maxWidth: '95vw', maxHeight: '92vh', overflowY: 'auto', boxShadow: 'var(--elev-lg)', boxSizing: 'border-box' }}>
         {/* Modal header */}
         <div style={{ padding: '16px 22px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, background: 'var(--white)', zIndex: 2 }}>
           <div style={{ fontWeight: 700, fontSize: 15 }}>{isEdit ? 'Edit Quotation' : 'New Quotation'}</div>
@@ -510,7 +513,7 @@ function QuoteModal({
           </div>
 
           {/* Row 2: Customer + Shipment Type */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 14, marginBottom: 16 }}>
             <div>
               <label style={labelStyle}>Customer *</label>
               <EntityPicker
@@ -533,7 +536,7 @@ function QuoteModal({
           </div>
 
           {/* Row 3: Currency + Valid From + Valid Until */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 14, marginBottom: 16 }}>
             <div>
               <label style={labelStyle}>Currency</label>
               <Select value={form.currency} onValueChange={v => setField('currency', v)}>
@@ -554,7 +557,7 @@ function QuoteModal({
           </div>
 
           {/* Row 4: Ports & Cities */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 14, marginBottom: 16 }}>
             <div>
               <label style={labelStyle}>Origin Port</label>
               <input value={form.origin_port} onChange={e => setField('origin_port', e.target.value)} style={inputStyle} placeholder="e.g. Mombasa" />
@@ -766,14 +769,18 @@ export const Sales: React.FC = () => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
       {/* Header */}
-      <div style={{ padding: isMobile ? '12px 16px' : '14px 20px', borderBottom: '1px solid var(--border)', background: 'var(--white)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div>
-          <div style={{ fontSize: 16, fontWeight: 700 }}>Sales Pipeline</div>
-          <div style={{ fontSize: 12, color: 'var(--ink3)' }}>Track quotations from draft to conversion</div>
-        </div>
-        <button type="button" className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }} onClick={openCreate}>
-          <Icon name="plus" size={15} /> New Quotation
-        </button>
+      <div style={{ padding: isMobile ? '12px 16px' : '14px 20px', borderBottom: '1px solid var(--border)', background: 'var(--white)', flexShrink: 0 }}>
+        <PageHeader
+          crumbs={['CRM', 'Sales pipeline']}
+          titlePlain="Sales"
+          titleEm="pipeline"
+          subtitle="Track quotations from draft to conversion."
+          actions={
+            <button type="button" className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }} onClick={openCreate}>
+              <Icon name="plus" size={15} /> New Quotation
+            </button>
+          }
+        />
       </div>
 
       {/* KPI row */}

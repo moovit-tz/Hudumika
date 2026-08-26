@@ -93,7 +93,7 @@ export function HrAssets() {
         subtitle="Company equipment and who is currently holding it."
         actions={
           <button type="button" className={adding ? 'btn btn-secondary btn-sm' : 'btn btn-primary btn-sm'} onClick={() => setAdding(a => !a)}>
-            <Icon name={adding ? 'x' : 'plus'} size={13} color={adding ? 'var(--ink2)' : '#fff'} /> {adding ? 'Cancel' : 'Add Asset'}
+            <Icon name={adding ? 'x' : 'plus'} size={13} color={adding ? 'var(--ink2)' : 'hsl(var(--primary-foreground))'} /> {adding ? 'Cancel' : 'Add Asset'}
           </button>
         }
       />

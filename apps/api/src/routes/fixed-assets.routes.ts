@@ -4,6 +4,7 @@ import { withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
 import { disposeFixedAsset } from '../services/fixed-assets.service.js';
+import { GLService } from '../services/gl.service.js';
 
 const createSchema = z.object({
   name: z.string().trim().min(1).max(300),
@@ -14,6 +15,10 @@ const createSchema = z.object({
   salvage_value: z.number().min(0).optional(),
   useful_life_months: z.number().int().positive(),
   notes: z.string().max(2000).optional(),
+  // M5 of the corporate-tax build-out — acquisition now posts to the GL;
+  // this decides which side of the entry funds it. Paid outright vs bought
+  // on credit are genuinely different facts, not a cosmetic choice.
+  funded_by: z.enum(['CASH', 'AP']).default('CASH'),
 });
 
 export async function fixedAssetRoutes(fastify: FastifyInstance) {
@@ -41,18 +46,37 @@ export async function fixedAssetRoutes(fastify: FastifyInstance) {
     const user = request.user;
     const body = createSchema.parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
+      const assetAccountCode = body.asset_account_code || '1501';
       const asset = await trx.insertInto('fixed_assets').values({
         tenant_id: user.tenant_id,
         name: body.name,
         category: body.category || 'OTHER',
-        asset_account_code: body.asset_account_code || '1501',
+        asset_account_code: assetAccountCode,
         acquisition_date: body.acquisition_date,
         cost: body.cost,
         salvage_value: body.salvage_value ?? 0,
         useful_life_months: body.useful_life_months,
         created_by: user.sub,
       }).returningAll().executeTakeFirstOrThrow();
-      return reply.status(201).send(asset);
+
+      // Acquisition posting (M5) — debit the asset account for its cost,
+      // credit cash or AP depending on how it was funded. Without this the
+      // asset account never carries a real debit, so a later disposal
+      // (which does post) drives it net-credit, and the balance sheet is
+      // wrong the whole time an asset is held.
+      const journalEntryId = await GLService.post(user.tenant_id, {
+        entryDate: asset.acquisition_date,
+        description: `Fixed asset acquired: ${asset.name}`,
+        sourceModule: 'MANUAL', sourceId: asset.id, createdBy: user.sub,
+        lines: [
+          { accountCode: assetAccountCode, debit: Number(asset.cost), credit: 0, description: `Acquisition: ${asset.name}` },
+          { accountCode: body.funded_by === 'AP' ? '2000' : '1010', debit: 0, credit: Number(asset.cost), description: `Acquisition: ${asset.name}` },
+        ],
+      });
+      const updated = await trx.updateTable('fixed_assets').set({ acquisition_journal_entry_id: journalEntryId })
+        .where('id', '=', asset.id).returningAll().executeTakeFirstOrThrow();
+
+      return reply.status(201).send(updated);
     });
   });
 
@@ -107,11 +131,24 @@ export async function fixedAssetRoutes(fastify: FastifyInstance) {
   fastify.delete('/:id', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'FINANCE') }, async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
+    const existing = await withTenant(user.tenant_id, (trx) =>
+      trx.selectFrom('fixed_assets').select(['id', 'acquisition_journal_entry_id']).where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst()
+    );
+    if (!existing) return reply.status(404).send({ error: 'Fixed asset not found' });
+    const posted = await withTenant(user.tenant_id, (trx) =>
+      trx.selectFrom('fixed_asset_depreciation_entries').select('id').where('asset_id', '=', id).executeTakeFirst()
+    );
+    if (posted) return reply.status(409).send({ error: 'This asset already has depreciation posted — dispose it instead of deleting it.' });
+
+    // The acquisition posting (M5) must be reversed, not left dangling — a
+    // deleted asset with no offsetting entry would sit on the balance
+    // sheet forever with nothing behind it. Safe to reverse unconditionally
+    // here: the depreciation guard above already proves no other entry
+    // (depreciation or disposal) shares this asset's sourceId yet.
+    if (existing.acquisition_journal_entry_id) {
+      await GLService.reverseBySource(user.tenant_id, 'MANUAL', id, user.sub, 'Fixed asset deleted before any depreciation was posted');
+    }
     return withTenant(user.tenant_id, async (trx) => {
-      const existing = await trx.selectFrom('fixed_assets').select('id').where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
-      if (!existing) return reply.status(404).send({ error: 'Fixed asset not found' });
-      const posted = await trx.selectFrom('fixed_asset_depreciation_entries').select('id').where('asset_id', '=', id).executeTakeFirst();
-      if (posted) return reply.status(409).send({ error: 'This asset already has depreciation posted — dispose it instead of deleting it.' });
       const r = await trx.deleteFrom('fixed_assets').where('id', '=', id).execute();
       return { success: true, deleted: Number(r[0]?.numDeletedRows ?? 0) };
     });

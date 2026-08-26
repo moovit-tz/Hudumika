@@ -326,7 +326,7 @@ export function ComplyWorkflows() {
                       <div key={step.key} className={`wf-tl-row${done ? ' wf-tl-row--done' : ''}${active ? ' wf-tl-row--active' : ''}`}>
                         <div className="wf-tl-node">
                           {done
-                            ? <Icon name="check" size={11} color="#fff" />
+                            ? <Icon name="check" size={11} />
                             : <span className="wf-tl-num">{idx + 1}</span>
                           }
                         </div>

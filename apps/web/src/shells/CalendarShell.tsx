@@ -87,8 +87,8 @@ function MiniMonthPicker() {
               style={{
                 width: '100%', aspectRatio: '1', border: 'none', borderRadius: '50%', cursor: 'pointer',
                 fontSize: 11, fontWeight: isToday ? 700 : 500, position: 'relative',
-                background: isSel ? 'var(--teal)' : 'transparent',
-                color: isSel ? '#fff' : isToday ? 'var(--teal)' : 'var(--ink2)',
+                background: isSel ? 'hsl(var(--primary))' : 'transparent',
+                color: isSel ? 'hsl(var(--primary-foreground))' : isToday ? 'var(--teal)' : 'var(--ink2)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}
               onMouseEnter={e => { if (!isSel) e.currentTarget.style.background = 'var(--bg)'; }}

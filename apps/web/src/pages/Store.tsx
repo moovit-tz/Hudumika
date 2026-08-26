@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
+import { PageHeader } from '../components/PageHeader.js';
 import './Store.css';
 
 interface AddonApp {
@@ -216,6 +217,13 @@ export const Store: React.FC = () => {
 
         {/* Body */}
         <div className="store-body">
+          <PageHeader
+            crumbs={['Store']}
+            titlePlain="App"
+            titleEm="marketplace"
+            subtitle="Extend Hudumika with verified integrations, tools and add-ons."
+          />
+
           {/* Hero banner */}
           {activeCategory === 'all' && !searchQuery && (
             <div className="store-hero">

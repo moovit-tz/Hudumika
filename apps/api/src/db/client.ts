@@ -274,6 +274,9 @@ export interface CustomersTable {
   active: Generated<boolean>;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
+  // Soft-delete tombstone (migration 338) — set by DELETE /v1/customers/:id,
+  // filtered out of GET / and GET /partners; a lookup by id is untouched.
+  deleted_at: Date | null;
   // BRELA-derived company profile fields (migration 104) — nullable, only
   // populated for companies imported via ComplyOS's BRELA Search.
   source: Generated<string>;
@@ -1253,6 +1256,13 @@ export interface FinanceExpensesTable {
   retirement_note: string | null;
   created_by: string | null;
   created_at: Generated<Date>;
+  // Expense claims approval (M11, migration 340) — opt-in, off unless
+  // tenant_settings.finance_expenses_require_approval is set.
+  status: Generated<string>; // 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED'
+  submitted_at: Date | null;
+  reviewed_by: string | null;
+  reviewed_at: Date | null;
+  rejection_reason: string | null;
 }
 
 export interface CaseMessagesTable {
@@ -2721,6 +2731,7 @@ export interface FixedAssetsTable {
   status: Generated<'ACTIVE' | 'DISPOSED'>;
   disposed_at: DateOnlyNull;
   disposal_proceeds: number | null;
+  acquisition_journal_entry_id: string | null;
   notes: string | null;
   created_by: string | null;
   created_at: Generated<Date>;
@@ -2883,6 +2894,9 @@ export interface SupplierBillsTable {
   supplier_name: string | null;
   shipment_ref: string | null;
   po_number: string | null;
+  // Real FK, additive alongside po_number (M8, migration 337) — a bill can
+  // still carry a free-text PO reference with no matching record.
+  po_id: string | null;
   bill_date: DateOnlyNull;
   due_date: DateOnlyNull;
   status: Generated<string>;
@@ -2903,6 +2917,15 @@ export interface SupplierBillsTable {
   efd_verified: Generated<boolean> | null;   // Whether verified against TRA portal
   efd_verified_at: Date | null;
   efd_verification_data: Record<string, any> | null; // Raw response from TRA
+  // AP approval workflow (M9, migration 338) — opt-in, off unless
+  // tenant_settings.ap_approval_required is set.
+  approval_workflow_id: string | null;
+  submitted_for_approval_at: Date | null;
+  approved_by: string | null;
+  approved_at: Date | null;
+  rejected_by: string | null;
+  rejected_at: Date | null;
+  rejection_reason: string | null;
 }
 
 export interface SupplierBillLinesTable {
@@ -2915,6 +2938,9 @@ export interface SupplierBillLinesTable {
   tax_rate: Generated<number>;
   /** Decides whether the tax on this line is claimable. NULL = never recorded. */
   tax_code_id: string | null;
+  // Withholding tax classification (M1, migration 331) — NULL means "not yet
+  // classified," matching tax_code_id's own convention, not "not applicable."
+  wht_rate_id: string | null;
   sort_order: Generated<number>;
 }
 
@@ -2928,6 +2954,217 @@ export interface BillPaymentsTable {
   method: string | null;
   reference: string | null;
   note: string | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface WhtRateReferenceTable {
+  id: Generated<string>;
+  jurisdiction: string;
+  category: string;
+  payee_type: string;
+  rate_pct: string; // NUMERIC — pg returns as string
+  as_of: DateOnly;
+  source: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface WhtRatesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  jurisdiction: string;
+  category: string;
+  payee_type: string;
+  rate_pct: string; // NUMERIC — pg returns as string
+  trigger: Generated<string>; // 'PAYMENT' | 'ACCRUAL'
+  effective_from: DateOnly;
+  effective_to: DateOnlyNull;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface WhtDeductionsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  bill_id: string;
+  bill_payment_id: string;
+  supplier_id: string | null;
+  gross_amount: string; // NUMERIC
+  wht_amount: string; // NUMERIC
+  journal_entry_id: string | null;
+  certificate_number: string | null;
+  certificate_issued_at: Date | null;
+  remittance_id: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface WhtRemittancesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  jurisdiction: Generated<string>;
+  period_start: DateOnly;
+  period_end: DateOnly;
+  total_amount: string; // NUMERIC
+  paid_at: Date | null;
+  reference: string | null;
+  status: Generated<string>; // 'PENDING' | 'PAID'
+  journal_entry_id: string | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface CitRateReferenceTable {
+  id: Generated<string>;
+  jurisdiction: string;
+  category: string;
+  rate_pct: string; // NUMERIC
+  duration_years: number | null;
+  as_of: DateOnly;
+  source: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface CitRatesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  jurisdiction: string;
+  category: string;
+  rate_pct: string; // NUMERIC
+  effective_from: DateOnly;
+  effective_to: DateOnlyNull;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface CitAdjustmentsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  period_start: DateOnly;
+  period_end: DateOnly;
+  category: string; // 'DISALLOWED_EXPENSE' | 'FINE_PENALTY' | 'EXEMPT_INCOME' | 'OTHER'
+  description: string;
+  amount: string; // NUMERIC, signed
+  created_by: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface CitReturnsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  period_start: DateOnly;
+  period_end: DateOnly;
+  accounting_profit: string; // NUMERIC
+  book_depreciation: string; // NUMERIC
+  tax_depreciation: string; // NUMERIC
+  adjustments_total: string; // NUMERIC
+  taxable_income: string; // NUMERIC
+  rate_category: string;
+  rate_pct: string; // NUMERIC
+  rate_source: Generated<string>; // 'TENANT' | 'REFERENCE_DEFAULT'
+  is_amt: Generated<boolean>;
+  turnover: string | null; // NUMERIC
+  tax_liability: string; // NUMERIC
+  status: Generated<string>; // 'DRAFT' | 'ACCRUED'
+  journal_entry_id: string | null;
+  computed_by: string | null;
+  computed_at: Generated<Date>;
+  accrued_at: Date | null;
+}
+
+export interface CitInstallmentsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  cit_return_id: string | null;
+  period_start: DateOnly;
+  period_end: DateOnly;
+  due_date: DateOnlyNull;
+  amount: string; // NUMERIC
+  status: Generated<string>; // 'PENDING' | 'PAID'
+  paid_at: Date | null;
+  reference: string | null;
+  journal_entry_id: string | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface DeferredTaxComputationsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  as_of_date: DateOnly;
+  rate_pct: string; // NUMERIC
+  gross_temporary_difference: string; // NUMERIC
+  target_dta_balance: Generated<string>; // NUMERIC
+  target_dtl_balance: Generated<string>; // NUMERIC
+  prior_dta_balance: Generated<string>; // NUMERIC
+  prior_dtl_balance: Generated<string>; // NUMERIC
+  journal_entry_id: string | null;
+  computed_by: string | null;
+  computed_at: Generated<Date>;
+}
+
+export interface CustomerCreditsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  customer_id: string | null;
+  amount: string; // NUMERIC
+  source_invoice_id: string | null;
+  reason: string | null;
+  journal_entry_id: string | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface CustomerCreditApplicationsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  credit_id: string;
+  invoice_id: string;
+  amount: string; // NUMERIC
+  journal_entry_id: string | null;
+  applied_by: string | null;
+  applied_at: Generated<Date>;
+}
+
+export interface ApApprovalWorkflowsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  name: string;
+  min_amount: Generated<string>; // NUMERIC
+  approver_user_id: string;
+  approver_backup_user_id: string | null;
+  active: Generated<boolean>;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface FxRevaluationsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  period_date: DateOnly;
+  subject_type: string; // 'AR_INVOICE' | 'AP_BILL'
+  subject_id: string;
+  currency: string;
+  open_balance_fc: string; // NUMERIC
+  comparison_rate: string; // NUMERIC
+  current_rate: string; // NUMERIC
+  gain_loss: string; // NUMERIC
+  journal_entry_id: string | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface DividendsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  declared_date: DateOnly;
+  amount: string; // NUMERIC
+  description: string | null;
+  status: Generated<string>; // 'DECLARED' | 'PAID'
+  journal_entry_id: string | null;
+  paid_at: DateOnlyNull;
+  paid_journal_entry_id: string | null;
+  reference: string | null;
   created_by: string | null;
   created_at: Generated<Date>;
 }
@@ -4340,6 +4577,21 @@ export interface Database {
   supplier_bills: SupplierBillsTable;
   supplier_bill_lines: SupplierBillLinesTable;
   bill_payments: BillPaymentsTable;
+  wht_rate_reference: WhtRateReferenceTable;
+  wht_rates: WhtRatesTable;
+  wht_deductions: WhtDeductionsTable;
+  wht_remittances: WhtRemittancesTable;
+  cit_rate_reference: CitRateReferenceTable;
+  cit_rates: CitRatesTable;
+  cit_adjustments: CitAdjustmentsTable;
+  cit_returns: CitReturnsTable;
+  cit_installments: CitInstallmentsTable;
+  deferred_tax_computations: DeferredTaxComputationsTable;
+  dividends: DividendsTable;
+  fx_revaluations: FxRevaluationsTable;
+  ap_approval_workflows: ApApprovalWorkflowsTable;
+  customer_credits: CustomerCreditsTable;
+  customer_credit_applications: CustomerCreditApplicationsTable;
   recurring_bills: RecurringBillsTable;
   recurring_invoices: RecurringInvoicesTable;
   // Tenant Settings
@@ -6013,6 +6265,11 @@ export interface JournalEntriesTable {
   voided_by: string | null;
   void_reason: string | null;
   entity_id: string | null;
+  // Real reversal tracking (M0 of the FinOps tax build-out, migration 330)
+  // — set on a reversal entry to the id of the entry it reverses, so
+  // reverseBySource() can tell a reversal apart from a normal source-tagged
+  // entry and never re-reverse its own reversal on a subsequent edit.
+  reverses_entry_id: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }

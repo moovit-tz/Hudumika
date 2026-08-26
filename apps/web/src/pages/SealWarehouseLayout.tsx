@@ -9,6 +9,7 @@ import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import { SealWarehouse3D } from '../components/SealWarehouse3D.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
+import { PageHeader } from '../components/PageHeader.js';
 import './Seal.css';
 
 interface TierLot { id: string; description: string; qtyOnHand: number; uom: string; }
@@ -252,28 +253,32 @@ export function SealWarehouseLayout() {
     <TooltipProvider delayDuration={150}>
       <div className="seal-page" style={{ maxWidth: 1240, margin: '0 auto', paddingBottom: 60 }}>
         {/* Page Header */}
-        <div className="seal-page-hdr">
-          <div>
-            <button type="button" className="btn btn-secondary" onClick={() => navigate('/seal/compartments')} style={{ marginBottom: 12 }}>
-              <Icon name="arrowLeft" size={13} /><span>Back to Compartments</span>
-            </button>
-            <h1 className="seal-page-title">{data.compartment.name} — Warehouse Layout</h1>
-            <p className="seal-page-sub">Interactive 2D Plan and 3D Stack with real dimensional and lot occupancy data.</p>
-          </div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <button type="button" className={viewMode === '2d' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setViewMode('2d')}>
-              <Icon name="grid" size={13} /><span>2D Plan</span>
-            </button>
-            <button type="button" className={viewMode === '3d' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setViewMode('3d')}>
-              <Icon name="package" size={13} /><span>3D View</span>
-            </button>
-            <button type="button" className="btn btn-secondary" onClick={handlePopulateData} disabled={populating}>
-              <Icon name="refresh" size={13} /><span>{populating ? 'Populating…' : 'Populate Real Layout'}</span>
-            </button>
-            <button type="button" className={showAddForm ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setShowAddForm(v => !v)}>
-              <Icon name="plus" size={13} /><span>Add Rack / Floor</span>
-            </button>
-          </div>
+        <div>
+          <button type="button" className="btn btn-secondary" onClick={() => navigate('/seal/compartments')} style={{ marginBottom: 12 }}>
+            <Icon name="arrowLeft" size={13} /><span>Back to Compartments</span>
+          </button>
+          <PageHeader
+            crumbs={['SEAL', 'Compartments']}
+            titlePlain="Warehouse"
+            titleEm="layout"
+            subtitle={<>Interactive 2D plan and 3D stack for <strong>{data.compartment.name}</strong>, with real dimensional and lot occupancy data.</>}
+            actions={
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <button type="button" className={viewMode === '2d' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setViewMode('2d')}>
+                  <Icon name="grid" size={13} /><span>2D Plan</span>
+                </button>
+                <button type="button" className={viewMode === '3d' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setViewMode('3d')}>
+                  <Icon name="package" size={13} /><span>3D View</span>
+                </button>
+                <button type="button" className="btn btn-secondary" onClick={handlePopulateData} disabled={populating}>
+                  <Icon name="refresh" size={13} /><span>{populating ? 'Populating…' : 'Populate Real Layout'}</span>
+                </button>
+                <button type="button" className={showAddForm ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setShowAddForm(v => !v)}>
+                  <Icon name="plus" size={13} /><span>Add Rack / Floor</span>
+                </button>
+              </div>
+            }
+          />
         </div>
 
         {/* Add Rack / Floor Form */}

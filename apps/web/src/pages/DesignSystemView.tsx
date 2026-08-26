@@ -14,6 +14,7 @@ import type { IconName } from '../components/Icon.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { APP_PALETTE_SLOT } from '../shells/WorkspaceApp.js';
 import { APP_REGISTRY } from '../lib/appRegistry.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 const SECTIONS: { id: string; group: 'theming' | 'layout'; label: string; icon: IconName }[] = [
   { id: 'themes',     group: 'theming', label: 'Themes',           icon: 'sparkle' },
@@ -234,16 +235,13 @@ export function DesignSystemView() {
 
   return (
     <div className="ds-root">
-      <div className="ds-header">
-        <div>
-          <h1 className="ds-title">Design System</h1>
-          <p className="ds-sub">
-            Controls the real CSS tokens every app renders from — Bliss, ClearOS, FinOps and the rest.
-            Changes apply live and persist for every tenant.
-          </p>
-        </div>
-        <button type="button" className="btn btn-secondary" onClick={() => resetToDefaults()}>Reset to defaults</button>
-      </div>
+      <PageHeader
+        crumbs={['Admin', 'Design System']}
+        titlePlain="Design"
+        titleEm="system"
+        subtitle="Controls the real CSS tokens every app renders from — Bliss, ClearOS, FinOps and the rest. Changes apply live and persist for every tenant."
+        actions={<button type="button" className="btn btn-secondary" onClick={() => resetToDefaults()}>Reset to defaults</button>}
+      />
 
       <div className="ds-layout">
         <nav className="ds-rail">

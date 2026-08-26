@@ -100,8 +100,8 @@
 }
 
 .onsite-prompt-submit:hover {
-  background: var(--purple);
-  color: #ffffff;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
 }
 
 .onsite-prompt-pills {
@@ -188,7 +188,7 @@
   color: var(--white);
   border: none;
   padding: 0.45rem 1.125rem;
-  border-radius: 9999px;
+  border-radius: var(--r);
   font-weight: 600;
   font-size: 0.8125rem;
   line-height: 1;
@@ -210,11 +210,11 @@
 }
 
 .onsite-btn-purple {
-  background: var(--purple);
-  color: #ffffff;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
   border: none;
   padding: 0.45rem 1.125rem;
-  border-radius: 9999px;
+  border-radius: var(--r);
   font-weight: 600;
   font-size: 0.8125rem;
   line-height: 1;
@@ -240,7 +240,7 @@
   color: var(--ink);
   border: 1px solid var(--border);
   padding: 0.45rem 1.125rem;
-  border-radius: 9999px;
+  border-radius: var(--r);
   font-weight: 600;
   font-size: 0.8125rem;
   line-height: 1;
@@ -276,13 +276,13 @@
   gap: 0.5rem;
   background: var(--bg);
   padding: 0.25rem;
-  border-radius: 9999px;
+  border-radius: var(--r);
   width: fit-content;
 }
 
 .onsite-tab {
   padding: 0.4rem 1rem;
-  border-radius: 9999px;
+  border-radius: var(--r-sm);
   font-size: 0.8125rem;
   font-weight: 600;
   color: var(--ink2);
@@ -664,7 +664,7 @@
 .onsite-select,
 .onsite-textarea {
   padding: 0.55rem 0.875rem;
-  border-radius: 0.5rem;
+  border-radius: var(--r-sm);
   border: 1px solid var(--border);
   background: var(--white);
   color: var(--ink);
@@ -886,7 +886,7 @@
   min-width: 220px;
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 0.625rem;
+  border-radius: var(--r-sm);
   padding: 0.45rem 0.85rem;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
@@ -915,7 +915,7 @@
 
 .onsite-select-sm {
   padding: 0.45rem 0.75rem;
-  border-radius: 0.625rem;
+  border-radius: var(--r-sm);
   border: 1px solid var(--border);
   background: var(--white);
   color: var(--ink);
@@ -1013,7 +1013,7 @@
   gap: 0.35rem !important;
   background: var(--bg);
   padding: 0.25rem;
-  border-radius: 9999px;
+  border-radius: var(--r);
   flex-shrink: 0 !important;
   white-space: nowrap !important;
 }
@@ -1059,7 +1059,7 @@
   min-width: 120px !important;
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 0.625rem;
+  border-radius: var(--r-sm);
   padding: 0.35rem 0.65rem !important;
 }
 

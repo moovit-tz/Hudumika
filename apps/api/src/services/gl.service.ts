@@ -1,5 +1,6 @@
 import { withTenant, type Database } from '../db/client.js';
 import type { Kysely, Transaction } from 'kysely';
+import { sql } from 'kysely';
 import { toDateParam } from '../utils/dates.js';
 import type {
   PostingRequest,
@@ -30,6 +31,9 @@ const STANDARD_COA: { code: string; name: string; type: 'ASSET' | 'LIABILITY' | 
   // balance and made neither reportable. See migration 181.
   { code: '1150', name: 'VAT Input (Recoverable)', type: 'ASSET', subtype: 'CURRENT_ASSET', normalBalance: 'DEBIT' },
   { code: '1200', name: 'Prepaid Expenses', type: 'ASSET', subtype: 'CURRENT_ASSET', normalBalance: 'DEBIT' },
+  // Deferred tax (M3) — fixed-asset timing differences only. Backfilled to
+  // existing tenants by migration 333.
+  { code: '1250', name: 'Deferred Tax Asset', type: 'ASSET', subtype: 'DEFERRED_TAX', normalBalance: 'DEBIT' },
   { code: '1300', name: 'Inventory', type: 'ASSET', subtype: 'CURRENT_ASSET', normalBalance: 'DEBIT' },
   { code: '1500', name: 'Fixed Assets (net)', type: 'ASSET', subtype: 'FIXED_ASSET', normalBalance: 'DEBIT' },
   { code: '1501', name: 'Office Equipment', type: 'ASSET', subtype: 'FIXED_ASSET', parentCode: '1500', normalBalance: 'DEBIT' },
@@ -37,6 +41,10 @@ const STANDARD_COA: { code: string; name: string; type: 'ASSET' | 'LIABILITY' | 
   { code: '1503', name: 'Accumulated Depreciation', type: 'ASSET', subtype: 'FIXED_ASSET', parentCode: '1500', normalBalance: 'CREDIT' },
   { code: '2000', name: 'Accounts Payable', type: 'LIABILITY', subtype: 'CURRENT_LIABILITY', normalBalance: 'CREDIT' },
   { code: '2100', name: 'Accrued Liabilities', type: 'LIABILITY', subtype: 'CURRENT_LIABILITY', normalBalance: 'CREDIT' },
+  // Unapplied customer overpayments (M10) — kept off 2100/2200, its own
+  // liability until applied to a future invoice. Backfilled to existing
+  // tenants by migration 339.
+  { code: '2150', name: 'Customer Credits Payable', type: 'LIABILITY', subtype: 'CURRENT_LIABILITY', normalBalance: 'CREDIT' },
   { code: '2200', name: 'VAT Output (Payable)', type: 'LIABILITY', subtype: 'CURRENT_LIABILITY', normalBalance: 'CREDIT' },
   { code: '2300', name: 'Withholding Tax Payable', type: 'LIABILITY', subtype: 'CURRENT_LIABILITY', normalBalance: 'CREDIT' },
   // Payroll's own liability accounts — kept separate from 2300 (WHT on
@@ -46,7 +54,16 @@ const STANDARD_COA: { code: string; name: string; type: 'ASSET' | 'LIABILITY' | 
   // Backfilled to existing tenants by migration 294.
   { code: '2110', name: 'PAYE Payable', type: 'LIABILITY', subtype: 'CURRENT_LIABILITY', normalBalance: 'CREDIT' },
   { code: '2120', name: 'Statutory Contributions Payable', type: 'LIABILITY', subtype: 'CURRENT_LIABILITY', normalBalance: 'CREDIT' },
+  // Corporate income tax (M2) — kept off 2100/5900 the way WHT/PAYE already
+  // are, and given its own subtype (not OPERATING_EXPENSE) so the P&L can
+  // bucket it onto its own "after tax" line rather than folding into
+  // ordinary operating costs. Backfilled to existing tenants by migration 332.
+  { code: '2400', name: 'Income Tax Payable', type: 'LIABILITY', subtype: 'CURRENT_LIABILITY', normalBalance: 'CREDIT' },
+  { code: '2450', name: 'Deferred Tax Liability', type: 'LIABILITY', subtype: 'DEFERRED_TAX', normalBalance: 'CREDIT' },
   { code: '2500', name: 'Long-term Loans', type: 'LIABILITY', subtype: 'LONG_TERM_LIABILITY', normalBalance: 'CREDIT' },
+  // Dividends (M6) — declared/paid as two distinct events. Backfilled to
+  // existing tenants by migration 335.
+  { code: '2600', name: 'Dividends Payable', type: 'LIABILITY', subtype: 'CURRENT_LIABILITY', normalBalance: 'CREDIT' },
   { code: '3000', name: 'Share Capital', type: 'EQUITY', subtype: 'EQUITY', normalBalance: 'CREDIT' },
   { code: '3100', name: 'Retained Earnings', type: 'EQUITY', subtype: 'RETAINED_EARNINGS', normalBalance: 'CREDIT' },
   { code: '4000', name: 'Freight Revenue', type: 'REVENUE', subtype: 'OPERATING_REVENUE', normalBalance: 'CREDIT' },
@@ -73,10 +90,16 @@ const STANDARD_COA: { code: string; name: string; type: 'ASSET' | 'LIABILITY' | 
   { code: '5102', name: 'Utilities', type: 'EXPENSE', subtype: 'OPERATING_EXPENSE', normalBalance: 'DEBIT' },
   { code: '5200', name: 'Bank Charges', type: 'EXPENSE', subtype: 'FINANCE_COST', normalBalance: 'DEBIT' },
   { code: '5201', name: 'Interest Expense', type: 'EXPENSE', subtype: 'FINANCE_COST', normalBalance: 'DEBIT' },
+  // Period-end FX revaluation (M7) — one net line for both directions
+  // (a loss debits it, a gain credits it), same shape the plan specified.
+  // Backfilled to existing tenants by migration 336.
+  { code: '5202', name: 'Foreign Exchange Gain/(Loss)', type: 'EXPENSE', subtype: 'FINANCE_COST', normalBalance: 'DEBIT' },
   // Catch-all for a directly-recorded expense whose category maps to nothing
   // more specific (e.g. "Miscellaneous"). Without it those expenses would have
   // no GL account to post to. Backfilled to existing tenants by migration 216.
   { code: '5900', name: 'Other Operating Expenses', type: 'EXPENSE', subtype: 'OPERATING_EXPENSE', normalBalance: 'DEBIT' },
+  { code: '5950', name: 'Income Tax Expense', type: 'EXPENSE', subtype: 'TAX_EXPENSE', normalBalance: 'DEBIT' },
+  { code: '5951', name: 'Deferred Tax Expense', type: 'EXPENSE', subtype: 'TAX_EXPENSE', normalBalance: 'DEBIT' },
 ];
 
 export class GLService {
@@ -210,24 +233,36 @@ export class GLService {
   }
 
   /**
-   * Remove every journal entry (and its lines) previously posted for a given
-   * source record, so the caller can re-post the corrected figures without
-   * double-counting. Used when a source document is edited or deleted — e.g.
-   * an expense's amount changes, or it is removed entirely. Scoped to the one
-   * source, so it can never touch another module's entries.
+   * Reverse every journal entry previously posted for a given source record,
+   * so the caller can re-post the corrected figures without double-counting.
+   * Used when a source document is edited or deleted — e.g. an expense's
+   * amount changes, or it is removed entirely. Scoped to the one source, so
+   * it can never touch another module's entries.
+   *
+   * Used to hard-DELETE journal_lines/journal_entries instead of reversing
+   * them — the only place in this codebase that ever did that (every other
+   * undo path, e.g. voidEntry below, posts a mirror-image reversal and marks
+   * the original VOIDED). That silently destroyed the audit trail for
+   * exactly the entries most likely to need correcting, and left a
+   * permanent gap in that tenant's entry-number sequence (see the
+   * MAX-of-suffix comment on post() above — it must stay even after this
+   * fix, since it guards against damage already done, not just future
+   * deletes). Now delegates to voidEntry() per matching, not-yet-voided
+   * entry — same reversal shape as every other undo path.
    */
-  static async reverseBySource(tenantId: string, sourceModule: string, sourceId: string): Promise<void> {
-    return withTenant(tenantId, async (trx) => {
-      const entries = await trx.selectFrom('journal_entries').select('id')
+  static async reverseBySource(tenantId: string, sourceModule: string, sourceId: string, actorId: string | null, reason: string): Promise<void> {
+    const entries = await withTenant(tenantId, trx =>
+      trx.selectFrom('journal_entries').select('id')
         .where('tenant_id', '=', tenantId)
         .where('source_module', '=', sourceModule)
         .where('source_id', '=', sourceId)
-        .execute();
-      if (entries.length === 0) return;
-      const ids = entries.map(e => e.id);
-      await trx.deleteFrom('journal_lines').where('journal_entry_id', 'in', ids).execute();
-      await trx.deleteFrom('journal_entries').where('id', 'in', ids).execute();
-    });
+        .where('voided_at', 'is', null)
+        .where('reverses_entry_id', 'is', null)
+        .execute()
+    );
+    for (const entry of entries) {
+      await this.voidEntry(tenantId, entry.id, actorId, reason);
+    }
   }
 
   /**
@@ -271,6 +306,15 @@ export class GLService {
       await trx.updateTable('journal_entries')
         .set({ voided_at: new Date(), voided_by: actorId, void_reason: reason, status: 'VOIDED', updated_at: new Date() })
         .where('id', '=', entry.id).execute();
+
+      // Tag the reversal so reverseBySource() can tell it apart from a real
+      // source-tagged entry on a future edit of the same document — without
+      // this, the reversal (which carries the same source_module/source_id
+      // as the entry it reverses) would itself get caught and re-reversed
+      // on the next edit, cascading indefinitely.
+      await trx.updateTable('journal_entries')
+        .set({ reverses_entry_id: entry.id })
+        .where('id', '=', reversalId).execute();
 
       return reversalId;
     });
@@ -431,8 +475,8 @@ export class GLService {
   }
 
   /** Profit & loss — revenue and expense movements for a period */
-  /** entityId, when given, restricts to one accounting_entities branch (M8) — omit for the tenant-wide consolidated view, which is every report's existing, unchanged default. */
-  static async profitLoss(tenantId: string, fromStr: string, toStr: string, entityId?: string): Promise<ProfitLossReport> {
+  /** entityId: a real id restricts to one accounting_entities branch (M8); `null` restricts to entries never tagged to any entity; omit (undefined) for the tenant-wide consolidated view, which eliminates intercompany activity (see below) — every report's existing, unchanged default. */
+  static async profitLoss(tenantId: string, fromStr: string, toStr: string, entityId?: string | null): Promise<ProfitLossReport> {
     const from = new Date(fromStr);
     const to = new Date(toStr);
 
@@ -452,7 +496,34 @@ export class GLService {
         .where('journal_entries.tenant_id', '=', tenantId)
         .where('journal_entries.entry_date', '>=', toDateParam(from))
         .where('journal_entries.entry_date', '<=', toDateParam(to));
-      if (entityId) movementsQuery = movementsQuery.where('journal_entries.entity_id', '=', entityId);
+      if (entityId === null) {
+        // Explicitly "unassigned" — entries never tagged to any entity.
+        // Every intercompany leg is entity-tagged by construction, so this
+        // slice can never contain one; no elimination needed here either
+        // way. consolidatedProfitLoss() uses this instead of deriving
+        // "Unassigned" by subtracting entity totals from the consolidated
+        // total, which broke once the consolidated total below started
+        // excluding intercompany activity that per-entity totals correctly
+        // still include.
+        movementsQuery = movementsQuery.where('journal_entries.entity_id', 'is', null);
+      } else if (entityId) {
+        movementsQuery = movementsQuery.where('journal_entries.entity_id', '=', entityId);
+      } else {
+        // Consolidated (no entity filter): postIntercompanyTransaction()
+        // posts two real legs — the selling entity's revenue leg and the
+        // buying entity's expense leg — each correct from that entity's
+        // own book (which is why entityId-scoped calls above don't
+        // exclude them), but not from the tenant's, where trade between
+        // its own entities must eliminate rather than inflate both sides
+        // of consolidated revenue and expenses (M2 of the corporate-tax
+        // build-out; found while wiring CIT to read this total).
+        movementsQuery = movementsQuery.where(sql<boolean>`NOT EXISTS (
+          SELECT 1 FROM intercompany_transactions ic
+          WHERE ic.tenant_id = journal_entries.tenant_id
+            AND ic.status = 'posted'
+            AND (ic.ar_journal_entry_id = journal_entries.id OR ic.ap_journal_entry_id = journal_entries.id)
+        )`);
+      }
       const movements = await movementsQuery.groupBy('journal_lines.account_id').execute();
 
       const movementMap = Object.fromEntries(movements.map(m => [m.account_id, {
@@ -585,6 +656,84 @@ export class GLService {
         opening_balance,
         entries,
         closing_balance: currentBalance
+      };
+    });
+  }
+
+  /**
+   * Statement of Changes in Equity (M6 of the corporate-tax build-out).
+   * Reuses `ledger()` unmodified for each EQUITY-type account's real
+   * opening/closing balance — that math is already correct and shared
+   * with every other report. Movement *attribution* (how much of the
+   * period's change came from net income vs. dividends vs. something
+   * else) runs as a separate targeted query per account, keyed off real
+   * FKs — `gl_periods.closing_entry_id` for the year-end-close sweep,
+   * `dividends.journal_entry_id`/`paid_journal_entry_id` for dividend
+   * postings — never text/description matching. Anything posted to an
+   * equity account outside those two known paths (a manual `GLService.post()`
+   * doesn't prevent that) lands in an explicit "Other equity movements"
+   * bucket rather than being silently folded into net income or dropped.
+   */
+  static async statementOfChangesInEquity(tenantId: string, periodStart: string, periodEnd: string) {
+    return withTenant(tenantId, async (trx) => {
+      const equityAccounts = await trx.selectFrom('chart_of_accounts')
+        .select(['id', 'code', 'name', 'normal_balance'])
+        .where('tenant_id', '=', tenantId).where('type', '=', 'EQUITY')
+        .orderBy('code', 'asc').execute();
+
+      const closingEntries = await trx.selectFrom('gl_periods').select('closing_entry_id')
+        .where('tenant_id', '=', tenantId).where('closing_entry_id', 'is not', null)
+        .where('period_end', '>=', periodStart).where('period_end', '<=', periodEnd).execute();
+      const closingEntryIds = new Set(closingEntries.map(c => c.closing_entry_id).filter((id): id is string => !!id));
+
+      const dividendRows = await trx.selectFrom('dividends').select(['journal_entry_id', 'paid_journal_entry_id'])
+        .where('tenant_id', '=', tenantId).execute();
+      const dividendEntryIds = new Set(
+        dividendRows.flatMap(d => [d.journal_entry_id, d.paid_journal_entry_id]).filter((id): id is string => !!id)
+      );
+
+      const accounts = [];
+      let totalOpening = 0, totalFromNetIncome = 0, totalDividends = 0, totalOther = 0, totalClosing = 0;
+
+      for (const acct of equityAccounts) {
+        const ledger = await GLService.ledger(tenantId, acct.code, periodStart, periodEnd);
+
+        const movementLines = await trx.selectFrom('journal_lines')
+          .innerJoin('journal_entries', 'journal_entries.id', 'journal_lines.journal_entry_id')
+          .select(['journal_lines.journal_entry_id', 'journal_lines.debit', 'journal_lines.credit'])
+          .where('journal_entries.tenant_id', '=', tenantId)
+          .where('journal_lines.account_id', '=', acct.id)
+          .where('journal_entries.entry_date', '>=', toDateParam(new Date(periodStart)))
+          .where('journal_entries.entry_date', '<=', toDateParam(new Date(periodEnd)))
+          .execute();
+
+        let fromNetIncome = 0, dividendMovement = 0, other = 0;
+        for (const l of movementLines) {
+          const net = acct.normal_balance === 'CREDIT' ? Number(l.credit) - Number(l.debit) : Number(l.debit) - Number(l.credit);
+          if (closingEntryIds.has(l.journal_entry_id)) fromNetIncome += net;
+          else if (dividendEntryIds.has(l.journal_entry_id)) dividendMovement += net;
+          else other += net;
+        }
+
+        accounts.push({
+          code: acct.code, name: acct.name,
+          opening: ledger.opening_balance, fromNetIncome, dividends: dividendMovement, other,
+          closing: ledger.closing_balance,
+        });
+        totalOpening += ledger.opening_balance;
+        totalFromNetIncome += fromNetIncome;
+        totalDividends += dividendMovement;
+        totalOther += other;
+        totalClosing += ledger.closing_balance;
+      }
+
+      return {
+        period: { from: periodStart, to: periodEnd },
+        accounts,
+        totals: {
+          opening: totalOpening, fromNetIncome: totalFromNetIncome,
+          dividends: totalDividends, other: totalOther, closing: totalClosing,
+        },
       };
     });
   }
@@ -824,30 +973,22 @@ export class GLService {
    */
   static async consolidatedProfitLoss(tenantId: string, fromStr: string, toStr: string) {
     const entities = await GLService.listEntities(tenantId);
-    const buckets = await Promise.all([
-      GLService.profitLoss(tenantId, fromStr, toStr).then(pl => ({ entityId: null, entityName: 'Unassigned', ...pl })),
-      ...entities.map(e => GLService.profitLoss(tenantId, fromStr, toStr, e.id).then(pl => ({ entityId: e.id, entityName: e.name, ...pl }))),
+    // "Unassigned" used to be derived as consolidated-minus-entities rather
+    // than queried directly — that identity broke once the consolidated
+    // total (below) started excluding intercompany activity that each
+    // entity's own total correctly still includes (M2 of the corporate-tax
+    // build-out): the subtraction would then show a *negative* Unassigned
+    // figure equal to the eliminated intercompany amount, for a tenant with
+    // zero genuinely untagged entries. Queried directly (entityId: null)
+    // instead, so it reads zero when it should.
+    const [consolidated, unassigned, ...perEntity] = await Promise.all([
+      GLService.profitLoss(tenantId, fromStr, toStr),
+      GLService.profitLoss(tenantId, fromStr, toStr, null).then(pl => ({ entityId: null as string | null, entityName: 'Unassigned', totals: pl.totals })),
+      ...entities.map(e => GLService.profitLoss(tenantId, fromStr, toStr, e.id).then(pl => ({ entityId: e.id as string | null, entityName: e.name, totals: pl.totals }))),
     ]);
-    // profitLoss(tenantId,...) with no entityId returns the whole tenant, not
-    // just the unassigned slice — the true "Unassigned" figure is the
-    // consolidated total minus every real entity's own total, computed here
-    // rather than re-querying, since it's the same numbers already fetched.
-    const consolidated = buckets[0];
-    const perEntity = buckets.slice(1);
-    const entityRevenue = perEntity.reduce((s, b) => s + b.totals.revenue, 0);
-    const entityExpenses = perEntity.reduce((s, b) => s + b.totals.expenses, 0);
-    const unassigned = {
-      entityId: null as string | null,
-      entityName: 'Unassigned',
-      totals: {
-        revenue: consolidated.totals.revenue - entityRevenue,
-        expenses: consolidated.totals.expenses - entityExpenses,
-        net: (consolidated.totals.revenue - entityRevenue) - (consolidated.totals.expenses - entityExpenses),
-      },
-    };
     return {
       period: { from: fromStr, to: toStr },
-      entities: [unassigned, ...perEntity.map(b => ({ entityId: b.entityId, entityName: b.entityName, totals: b.totals }))],
+      entities: [unassigned, ...perEntity],
       total: consolidated.totals,
     };
   }

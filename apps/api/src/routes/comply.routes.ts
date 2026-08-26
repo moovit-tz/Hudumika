@@ -23,10 +23,14 @@ const brelaSearchSchema = z.object({
   incNumber: z.string().max(100).optional(),
   companyName: z.string().max(300).optional(),
 });
+// This never performs a live TRA portal login — it has no public API to call
+// — so it only ever needs the TIN. It used to also require a portal
+// username/password from the caller even though neither was read below;
+// that shape asked the frontend to solicit the user's real TRA portal
+// password into a Hudumika-hosted form for a value that was thrown away,
+// which is exactly the input shape a credential-harvesting form would have.
 const traExtractSchema = z.object({
   tin: z.string().trim().min(1),
-  username: z.string().trim().min(1),
-  password: z.string().min(1),
 });
 const tausiImportSchema = z.object({
   image_base64: z.string().optional(),
@@ -555,14 +559,20 @@ export async function complyRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // ── TRA Taxpayer Portal Extraction Agent ──────────────────────────────────────
+  // ── TRA Taxpayer Portal Preview ─────────────────────────────────────────────
+  // TRA has no public API (same constraint documented on /brela-search above),
+  // and this endpoint does not attempt a live scrape/login the way
+  // /brela-search does with its best-effort fetch — it always returns a fixed
+  // demo profile so ComplyOS can preview the shape of a taxpayer compliance
+  // record. `simulated: true` is always set (mirrors the OCR/tausi-import
+  // routes' honest simulated flag) so the frontend never presents this as a
+  // live TRA extraction.
   fastify.post('/tra-extract', async (request: any, reply) => {
     const { tin } = traExtractSchema.parse(request.body);
     try {
-
-      // Simulate a realistic tax profile based on the TIN
       return {
         success: true,
+        simulated: true,
         taxpayer: {
           name: 'KILIMANJARO LOGISTICS & FREIGHT LTD',
           tin: tin,

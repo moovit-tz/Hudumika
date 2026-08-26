@@ -4,6 +4,7 @@ import { withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
 import { GLService } from '../services/gl.service.js';
+import { computeAndSaveDraftCitReturn, accrueCitReturn } from '../services/cit.service.js';
 
 const RETAINED_EARNINGS_ACCOUNT = '3100';
 
@@ -53,6 +54,25 @@ export async function glPeriodRoutes(fastify: FastifyInstance) {
       const period = await trx.selectFrom('gl_periods').selectAll().where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!period) return reply.status(404).send({ error: 'Period not found' });
       if (period.status === 'closed') return reply.status(409).send({ error: 'This period is already closed.' });
+
+      // Corporate income tax (M2) must be accrued before the trial balance
+      // below is pulled, or 5950 Income Tax Expense has no balance yet and
+      // the sweep below closes a pre-tax number into Retained Earnings. If
+      // the tenant already computed and/or accrued this exact period
+      // themselves (via /v1/cit/returns), that work is respected as-is —
+      // this only fills the gap when nothing exists yet, using whatever
+      // rate/adjustments are on record at close time (REFERENCE_DEFAULT
+      // rate if the tenant configured none — visible afterward on the
+      // persisted cit_returns row, never silently assumed).
+      if (period.period_type === 'YEAR') {
+        let citReturn = await trx.selectFrom('cit_returns').select('id').where('tenant_id', '=', user.tenant_id)
+          .where('period_start', '=', period.period_start).where('period_end', '=', period.period_end).executeTakeFirst();
+        if (!citReturn) {
+          const draft = await computeAndSaveDraftCitReturn(user.tenant_id, period.period_start, period.period_end, user.sub);
+          citReturn = { id: draft.id };
+        }
+        await accrueCitReturn(user.tenant_id, citReturn.id, user.sub);
+      }
 
       const tb = await GLService.trialBalance(user.tenant_id, period.period_start, period.period_end);
 

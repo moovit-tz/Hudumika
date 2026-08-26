@@ -10,6 +10,7 @@ import {
 } from '../data/calendarStore.js';
 import { Link } from 'react-router-dom';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { ReminderPicker } from '../components/ReminderPicker.js';
 import { Badge } from '../components/ui/badge.js';
 import {
@@ -281,7 +282,7 @@ export const TasksApp: React.FC = () => {
             </Button>
 
             {canAdd && (
-              <Button size="sm" onClick={() => setCreateModalOpen(true)} style={{ background: 'var(--teal)', color: '#fff', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Button size="sm" onClick={() => setCreateModalOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <Icon name="plus" size={15} /> + New Task
               </Button>
             )}
@@ -614,50 +615,51 @@ function CreateTaskModal({ open, onClose, defaultListId, lists }: {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
               <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Task List</label>
-              <select
-                value={listId} onChange={e => setListId(e.target.value)}
-                style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13 }}
-              >
-                {lists.map((l: any) => (
-                  <option key={l.id} value={l.id}>{l.name}</option>
-                ))}
-              </select>
+              <Select value={listId} onValueChange={setListId}>
+                <SelectTrigger style={{ width: '100%' }}><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {lists.map((l: any) => (
+                    <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div>
               <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Priority</label>
-              <select
-                value={priority} onChange={e => setPriority(e.target.value as TaskPriority)}
-                style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13 }}
-              >
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-                <option value="urgent">Urgent</option>
-              </select>
+              <Select value={priority} onValueChange={v => setPriority(v as TaskPriority)}>
+                <SelectTrigger style={{ width: '100%' }}><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="low">Low</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="high">High</SelectItem>
+                  <SelectItem value="urgent">Urgent</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
               <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Initial Status</label>
-              <select
-                value={status} onChange={e => setStatus(e.target.value as TaskStatus)}
-                style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13 }}
-              >
-                <option value="none">Not Started</option>
-                <option value="in_progress">In Progress</option>
-                <option value="in_review">Testing / Review</option>
-                <option value="waiting">Awaiting Feedback</option>
-              </select>
+              <Select value={status} onValueChange={v => setStatus(v as TaskStatus)}>
+                <SelectTrigger style={{ width: '100%' }}><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Not Started</SelectItem>
+                  <SelectItem value="in_progress">In Progress</SelectItem>
+                  <SelectItem value="in_review">Testing / Review</SelectItem>
+                  <SelectItem value="waiting">Awaiting Feedback</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div>
               <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Due Date</label>
-              <input
-                type="date"
-                value={due} onChange={e => setDue(e.target.value)}
-                style={{ width: '100%', boxSizing: 'border-box', padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13 }}
+              <DatePicker
+                date={parseDateOnly(due)}
+                onChange={d => setDue(toDateOnlyString(d))}
+                placeholder="Select date"
+                triggerClassName="w-full"
               />
             </div>
           </div>
@@ -684,7 +686,7 @@ function CreateTaskModal({ open, onClose, defaultListId, lists }: {
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 10 }}>
             <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button type="submit" style={{ background: 'var(--teal)', color: '#fff' }}>Create Task</Button>
+            <Button type="submit">Create Task</Button>
           </div>
         </form>
       </DialogContent>
@@ -956,17 +958,15 @@ function TaskRow({ todo, list, expanded, onToggleExpand, newSubtaskTitle, setNew
               disabled={trashed || readOnly}
             />
 
-            <select
-              value={todo.priority || 'medium'}
-              disabled={trashed || readOnly}
-              onChange={e => updateTodo(todo.id, { priority: e.target.value as TaskPriority })}
-              style={{ padding: '4px 8px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12, background: 'var(--white)' }}
-            >
-              <option value="low">Low Priority</option>
-              <option value="medium">Medium Priority</option>
-              <option value="high">High Priority</option>
-              <option value="urgent">Urgent Priority</option>
-            </select>
+            <Select value={todo.priority || 'medium'} disabled={trashed || readOnly} onValueChange={v => updateTodo(todo.id, { priority: v as TaskPriority })}>
+              <SelectTrigger style={{ width: 'auto', minHeight: 28, fontSize: 12 }}><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="low">Low Priority</SelectItem>
+                <SelectItem value="medium">Medium Priority</SelectItem>
+                <SelectItem value="high">High Priority</SelectItem>
+                <SelectItem value="urgent">Urgent Priority</SelectItem>
+              </SelectContent>
+            </Select>
 
             <ReminderPicker
               value={todo.reminder ?? null}
@@ -978,17 +978,19 @@ function TaskRow({ todo, list, expanded, onToggleExpand, newSubtaskTitle, setNew
 
             {entitlements?.features.projects && (
               <>
-                <select
+                <Select
                   value={todo.recurrenceRule?.freq || 'none'}
                   disabled={trashed || readOnly}
-                  onChange={e => updateTodo(todo.id, { recurrenceRule: e.target.value === 'none' ? null : { freq: e.target.value as 'daily' | 'weekly' | 'monthly', interval: todo.recurrenceRule?.interval || 1 } })}
-                  style={{ padding: '4px 8px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12, background: 'var(--white)' }}
+                  onValueChange={v => updateTodo(todo.id, { recurrenceRule: v === 'none' ? null : { freq: v as 'daily' | 'weekly' | 'monthly', interval: todo.recurrenceRule?.interval || 1 } })}
                 >
-                  <option value="none">Doesn't repeat</option>
-                  <option value="daily">Repeats daily</option>
-                  <option value="weekly">Repeats weekly</option>
-                  <option value="monthly">Repeats monthly</option>
-                </select>
+                  <SelectTrigger style={{ width: 'auto', minHeight: 28, fontSize: 12 }}><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Doesn't repeat</SelectItem>
+                    <SelectItem value="daily">Repeats daily</SelectItem>
+                    <SelectItem value="weekly">Repeats weekly</SelectItem>
+                    <SelectItem value="monthly">Repeats monthly</SelectItem>
+                  </SelectContent>
+                </Select>
                 {todo.recurrenceRule && (
                   <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--ink3)' }}>
                     every

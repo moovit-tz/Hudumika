@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { PageHeader } from '../../components/PageHeader.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
 import { apiFetch } from '../../lib/api.js';
 import { showAlert } from '../../lib/alert.js';
 import { Icon } from '../../components/Icon.js';
@@ -158,15 +159,14 @@ export function OnsiteAgencyDirectoryProfile() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
               <div className="onsite-form-group">
                 <label>Pricing tier</label>
-                <select
-                  className="onsite-select"
-                  value={form.pricing_tier}
-                  onChange={e => setForm(f => ({ ...f, pricing_tier: e.target.value as AgencyPricingTier }))}
-                >
-                  <option value="budget">Budget-friendly</option>
-                  <option value="standard">Standard</option>
-                  <option value="premium">Premium</option>
-                </select>
+                <Select value={form.pricing_tier} onValueChange={v => setForm(f => ({ ...f, pricing_tier: v as AgencyPricingTier }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="budget">Budget-friendly</SelectItem>
+                    <SelectItem value="standard">Standard</SelectItem>
+                    <SelectItem value="premium">Premium</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="onsite-form-group">
                 <label>Region</label>

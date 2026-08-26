@@ -11,6 +11,7 @@ import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/da
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { EntityPicker, type PickerItem } from '../components/EntityPicker.js';
 import { showConfirm } from '../lib/confirm.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 interface RawShipment {
   id: string;
@@ -340,18 +341,30 @@ export const ShipmentEdit: React.FC = () => {
             </div>
           )}
 
-          <div className="create-shipment-title">
-            {currentStep === 1 && 'Cargo Details'}
-            {currentStep === 2 && 'Transport Details'}
-            {currentStep === 3 && 'Financial Details'}
-            {currentStep === 4 && 'Notes & Assignment'}
-          </div>
-          <div className="create-shipment-subtitle" style={{ marginBottom: 32 }}>
-            {currentStep === 1 && 'Core shipment details — edits save directly to the customs case.'}
-            {currentStep === 2 && 'Port details, vessel, and ETA tracking.'}
-            {currentStep === 3 && 'Weight, CIF value, and invoicing basics.'}
-            {currentStep === 4 && 'Internal remarks and team assignments.'}
-          </div>
+          <PageHeader
+            crumbs={['ClearOS', 'Edit shipment']}
+            titlePlain={
+              currentStep === 1 ? 'Cargo' :
+              currentStep === 2 ? 'Transport' :
+              currentStep === 3 ? 'Financial' :
+              'Notes &'
+            }
+            titleEm={
+              currentStep === 1 ? 'details' :
+              currentStep === 2 ? 'details' :
+              currentStep === 3 ? 'details' :
+              'assignment'
+            }
+            subtitle={
+              <>
+                {form.ref_number && <>Editing <strong>{form.ref_number}</strong> — </>}
+                {currentStep === 1 && 'Core shipment details — edits save directly to the customs case.'}
+                {currentStep === 2 && 'Port details, vessel, and ETA tracking.'}
+                {currentStep === 3 && 'Weight, CIF value, and invoicing basics.'}
+                {currentStep === 4 && 'Internal remarks and team assignments.'}
+              </>
+            }
+          />
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
             {/* STEP 1 */}

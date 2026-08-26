@@ -5,6 +5,8 @@ import { SectionCard } from '../components/SectionCard.js';
 import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
 import { Button } from '../components/ui/button.js';
+import { Combobox } from '../components/ui/combobox.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import { usePageSEO } from '../hooks/usePageSEO.js';
@@ -94,30 +96,28 @@ export function PettiDeposit() {
           <form onSubmit={handleDeposit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Select Target Wallet *</label>
-              <select
-                value={walletId} onChange={e => setWalletId(e.target.value)}
-                style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13.5, background: 'var(--white)', fontWeight: 600 }}
-              >
-                {wallets.map(w => (
-                  <option key={w.id} value={w.id}>{w.name} — Balance: {w.balance.toLocaleString()} {w.currency}</option>
-                ))}
-              </select>
+              <Combobox
+                options={wallets.map(w => ({ value: w.id, label: `${w.name} — Balance: ${w.balance.toLocaleString()} ${w.currency}` }))}
+                value={walletId}
+                onChange={setWalletId}
+                placeholder="Select wallet…"
+              />
             </div>
 
             <div className="petti-grid-form" style={{ marginBottom: 14 }}>
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>How was this money received? *</label>
-                <select
-                  value={method} onChange={e => setMethod(e.target.value as 'manual' | 'gateway')}
-                  style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, background: 'var(--white)', fontWeight: 600 }}
-                >
-                  <option value="manual">Manual — bank transfer, cash, or already confirmed</option>
-                  {gatewayStatus.configured && (
-                    <option value="gateway" disabled={!gatewayStatus.chargeSupported}>
-                      {gatewayStatus.label} {gatewayStatus.chargeSupported ? '— push a payment request' : '(not yet supported for live charges)'}
-                    </option>
-                  )}
-                </select>
+                <Select value={method} onValueChange={v => setMethod(v as 'manual' | 'gateway')}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="manual">Manual — bank transfer, cash, or already confirmed</SelectItem>
+                    {gatewayStatus.configured && (
+                      <SelectItem value="gateway" disabled={!gatewayStatus.chargeSupported}>
+                        {gatewayStatus.label} {gatewayStatus.chargeSupported ? '— push a payment request' : '(not yet supported for live charges)'}
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
                 {!gatewayStatus.configured && (
                   <p style={{ margin: '5px 0 0 0', fontSize: 11, color: 'var(--ink3)' }}>
                     No payment gateway connected — <Link to="/workspace/settings?s=payment-gateways" style={{ color: 'var(--teal)' }}>connect one</Link> to push live requests.

@@ -733,6 +733,14 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
         due_date: body.due_date || null,
         sale_agent: body.sale_agent || null,
         payment_terms: body.payment_terms || null,
+        // Found while wiring FX revaluation (M7) to real invoices: this
+        // insert never set currency at all, so every invoice silently took
+        // the column's DB default ('TZS') no matter what the request body
+        // asked for — the Zod schema accepted `currency`, but nothing read
+        // it here. A genuinely foreign-currency invoice could never exist
+        // through this route; only the separate recurring-invoice path
+        // (line 297) ever set it correctly.
+        currency: body.currency || 'TZS',
         exchange_rate: body.exchange_rate || 1,
         status: body.status || 'Draft',
         received: 0,
@@ -982,6 +990,19 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
       // invented at the point of use. 1 is the only honest default: it means
       // "no conversion", not "guess".
       const grandTotal = invoiceGrandTotal(lines, inv.currency, Number(inv.exchange_rate) || 1);
+
+      // An overpayment used to just vanish into "Paid" — the excess was
+      // never tracked anywhere, so it disappeared from both the balance
+      // sheet and the customer's own running balance (M10). The amount
+      // that actually clears *this* invoice's AR is capped at what was
+      // still outstanding before this payment; anything beyond that
+      // becomes a real customer_credits row against 2150, not a phantom
+      // reduction of AR that was never owed in the first place.
+      const previouslyPaid = totalPaid - Number(amount);
+      const outstandingBefore = Math.max(0, grandTotal - previouslyPaid);
+      const clearAmount = Math.min(Number(amount), outstandingBefore);
+      const excessAmount = Math.round((Number(amount) - clearAmount) * 100) / 100;
+
       let newStatus: string;
       if (totalPaid <= 0) newStatus = 'Unpaid';
       else if (totalPaid >= grandTotal) newStatus = 'Paid';
@@ -989,7 +1010,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
       await trx.updateTable('sales_invoices').set({ received: totalPaid, status: newStatus, updated_at: new Date() }).where('id', '=', id).execute();
 
       // Post payment to GL
-      await GLService.post(user.tenant_id, {
+      const journalEntryId = await GLService.post(user.tenant_id, {
         entryDate: payment_date ? new Date(payment_date).toISOString() : new Date().toISOString(),
         description: `Payment received: ${inv.invoice_number}`,
         reference: inv.invoice_number,
@@ -998,19 +1019,30 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
         createdBy: user.sub,
         lines: [
           { accountCode: '1010', debit: Number(amount), credit: 0, description: 'Cash received' },
-          { accountCode: '1100', debit: 0, credit: Number(amount), description: `Clear AR: ${inv.invoice_number}` },
+          ...(clearAmount > 0.01 ? [{ accountCode: '1100', debit: 0, credit: clearAmount, description: `Clear AR: ${inv.invoice_number}` }] : []),
+          ...(excessAmount > 0.01 ? [{ accountCode: '2150', debit: 0, credit: excessAmount, description: `Overpayment credit: ${inv.invoice_number}` }] : []),
         ],
       });
+
+      if (excessAmount > 0.01) {
+        await trx.insertInto('customer_credits').values({
+          tenant_id: user.tenant_id, customer_id: inv.customer_id ?? null, amount: String(excessAmount),
+          source_invoice_id: inv.id, reason: `Overpayment on ${inv.invoice_number}`,
+          journal_entry_id: journalEntryId, created_by: user.sub,
+        }).execute();
+      }
 
       // Trigger accounting integration payment sync in background
       AccountingIntegrationService.syncPayment(user.tenant_id, id, 'INVOICE').catch(console.error);
 
       await trx.insertInto('invoice_activity_log').values({
         tenant_id: user.tenant_id, invoice_id: id, actor_id: user.sub, actor_name: user.name || user.email,
-        action: 'payment_recorded', detail: `${method || 'Payment'} of ${Number(amount).toLocaleString()} recorded`, created_at: new Date(),
+        action: 'payment_recorded',
+        detail: `${method || 'Payment'} of ${Number(amount).toLocaleString()} recorded${excessAmount > 0.01 ? ` (${excessAmount.toLocaleString()} credited to customer account as overpayment)` : ''}`,
+        created_at: new Date(),
       }).execute();
 
-      return { success: true, received: totalPaid, status: newStatus };
+      return { success: true, received: totalPaid, status: newStatus, credit_issued: excessAmount };
     });
   });
 

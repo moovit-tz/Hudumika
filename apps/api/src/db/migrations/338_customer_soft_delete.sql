@@ -1,0 +1,23 @@
+-- Migration 338: give customers a real soft-delete tombstone.
+--
+-- DELETE /v1/customers/:id used to just set `active = false` — but GET /
+-- (the list Customers.tsx reads) never filtered on `active` at all, so a
+-- "deleted" customer reappeared on the very next page load; it only looked
+-- gone because the frontend removes the row from local state optimistically
+-- after a successful DELETE, without ever re-fetching.
+--
+-- `active` isn't safe to filter the list on either — the same column also
+-- carries the Active/Inactive/Suspended status sync (PATCH /:id's
+-- account_status branch) and a "draft/incomplete BRELA import" flag Sales.tsx's
+-- customer picker checks, so filtering on it would hide every Inactive/
+-- Suspended customer from the list entirely instead of just showing their
+-- status pill. And `is_customer` — the column the list *does* filter on —
+-- can't be flipped by a plain delete either: 199_partner_flag.sql's own
+-- `CHECK (is_customer OR is_partner)` rejects a customer-only row (the
+-- common case) with `is_customer = false`.
+--
+-- A dedicated tombstone column sidesteps all three: it carries no other
+-- meaning, and it's the same soft-delete shape shipment_cases.deleted_at
+-- already uses elsewhere in this schema (see analytics.routes.ts's carbon
+-- endpoint). Nullable and additive — existing rows are unaffected.
+ALTER TABLE customers ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;

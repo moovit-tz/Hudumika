@@ -25,6 +25,7 @@ import type { ShipmentCase, ShipmentType } from '@hudumika/types';
 import { CLEARANCE_STAGES, STAGE_LABELS } from '@hudumika/types';
 import type { ClearanceStage } from '@hudumika/types';
 import { Icon } from '../components/Icon.js';
+import { PageHeader } from '../components/PageHeader.js';
 import {
   DECLARATION_STATUSES, LANES, LANE, STATUS_VARIANT, declMoney,
 } from '../lib/declarationMeta.js';
@@ -725,30 +726,24 @@ export const CommandCenter: React.FC = () => {
       {/* Primary ops column */}
       <div className="cc-main">
 
-        {/* ── Enterprise Page Header ── */}
-        <div className="cc-page-header" style={{ padding: '1.25rem 0 12px 0', borderBottom: expanded ? 'none' : '1px solid var(--border)' }}>
-          <div className="cc-page-header-left">
-            <div className="cc-breadcrumb">
-              <span className="cc-breadcrumb-root">Dashboard</span>
-              <span className="cc-breadcrumb-sep">›</span>
-              <span className="cc-breadcrumb-current">Operations</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <h1 className="cc-page-title" style={{ margin: 0 }}>
-                {isJunior ? 'My Cases' : 'Operations'}
-              </h1>
-              <button 
-                type="button" 
-                onClick={() => setExpanded(!expanded)} 
+        {/* ── Page Header ── */}
+        <PageHeader
+          crumbs={['ClearOS', 'Ops Command']}
+          titlePlain={isJunior ? 'My' : 'Ops'}
+          titleEm={isJunior ? 'cases' : 'command'}
+          subtitle={isJunior ? 'Shipments assigned to you, across every stage.' : 'Every shipment in the pipeline — filter by stage or switch to the board below.'}
+          actions={
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <button
+                type="button"
+                onClick={() => setExpanded(!expanded)}
+                title={expanded ? 'Collapse summary' : 'Expand summary'}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink3)' }}
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   {expanded ? <polyline points="6 9 12 15 18 9"></polyline> : <polyline points="18 15 12 9 6 15"></polyline>}
                 </svg>
               </button>
-            </div>
-          </div>
-          <div className="cc-page-header-right">
               <div className="cc-view-toggle">
                 {(['list', 'board'] as const).map(m => (
                   <button key={m} type="button"
@@ -763,8 +758,6 @@ export const CommandCenter: React.FC = () => {
                 ))}
               </div>
 
-            {/* Primary actions — always fully visible, never scrolled/clipped. */}
-            <div className="cc-page-header-actions">
               {canCreate && (
                 <Button size="sm" style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' }} onClick={() => navigate('/clearos/ops/new')}>
                   <Icon name="plus" size={13} color="currentColor" />
@@ -772,8 +765,8 @@ export const CommandCenter: React.FC = () => {
                 </Button>
               )}
             </div>
-          </div>
-        </div>
+          }
+        />
 
         {/* ── KPI Strip — click a cell to filter the list/board below to that
             metric (toggles off on a second click of the same cell); cells with

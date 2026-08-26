@@ -8,6 +8,7 @@ import { Button } from '../components/ui/button.js';
 import { Input } from '../components/ui/input.js';
 import { Textarea } from '../components/ui/textarea.js';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { apiFetch } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { usePageSEO } from '../hooks/usePageSEO.js';
@@ -177,14 +178,13 @@ export function PettiWallets() {
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)' }}>Currency:</span>
-          <select
-            value={currencyFilter}
-            onChange={e => setCurrencyFilter(e.target.value)}
-            style={{ padding: '6px 10px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12.5, background: 'var(--white)', fontWeight: 600 }}
-          >
-            <option value="ALL">All Currencies</option>
-            {currencies.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
+          <Select value={currencyFilter} onValueChange={setCurrencyFilter}>
+            <SelectTrigger style={{ width: 160 }}><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Currencies</SelectItem>
+              {currencies.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 

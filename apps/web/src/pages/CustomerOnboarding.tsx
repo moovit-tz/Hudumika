@@ -3,6 +3,8 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { PageHeader } from '../components/PageHeader.js';
+import { useIsMobile } from '../hooks/useIsMobile.js';
 
 /**
  * Full customer onboarding — a dedicated page, not a modal, per this
@@ -23,6 +25,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
  */
 export const CustomerOnboarding: React.FC = () => {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [params] = useSearchParams();
   const returnTo = params.get('returnTo') || '';
 
@@ -87,19 +90,19 @@ export const CustomerOnboarding: React.FC = () => {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', background: 'var(--bg)' }}>
 
       {/* Header */}
-      <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', padding: '14px 24px', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+      <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', padding: '14px 24px', flexShrink: 0 }}>
         <Link
           to={backHref()}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer', textDecoration: 'none' }}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer', textDecoration: 'none', marginBottom: 10 }}
         >
           <Icon name="chevronLeft" size={13} /> Back
         </Link>
-        <div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>New Customer</div>
-          <div style={{ fontSize: 12, color: 'var(--ink3)' }}>
-            {returnTo ? "Full details now — you'll return to where you left off once saved." : 'Add a full customer profile to the CRM.'}
-          </div>
-        </div>
+        <PageHeader
+          crumbs={['CRM', 'New customer']}
+          titlePlain="New"
+          titleEm="customer"
+          subtitle={returnTo ? "Full details now — you'll return to where you left off once saved." : 'Add a full customer profile to the CRM.'}
+        />
       </div>
 
       {/* Body */}
@@ -114,8 +117,8 @@ export const CustomerOnboarding: React.FC = () => {
 
           <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '20px 22px' }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 14 }}>Company</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-              <div style={{ gridColumn: '1 / 3' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 14 }}>
+              <div style={{ gridColumn: isMobile ? 'auto' : '1 / 3' }}>
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>Company Name *</label>
                 <input type="text" className="input-field" placeholder="Acme Imports Ltd" required value={name} onChange={e => setName(e.target.value)} autoFocus />
               </div>
@@ -143,7 +146,7 @@ export const CustomerOnboarding: React.FC = () => {
 
           <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '20px 22px' }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 14 }}>Contact</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 14 }}>
               <div>
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>Contact Person</label>
                 <input type="text" className="input-field" placeholder="John Doe" value={contactName} onChange={e => setContactName(e.target.value)} />
@@ -176,8 +179,8 @@ export const CustomerOnboarding: React.FC = () => {
 
           <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '20px 22px' }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 14 }}>Address</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-              <div style={{ gridColumn: '1 / 3' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 14 }}>
+              <div style={{ gridColumn: isMobile ? 'auto' : '1 / 3' }}>
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>Street Address</label>
                 <input type="text" className="input-field" placeholder="14 Harbor Road" value={address} onChange={e => setAddress(e.target.value)} />
               </div>

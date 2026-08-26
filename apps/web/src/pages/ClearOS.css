@@ -236,9 +236,9 @@
 /* ── Larger class-based buttons ─────────────────────────────────── */
 [data-clearos] .btn-primary {
   font-weight: 700;
-  background: var(--cos-gradient-teal);
+  background: hsl(var(--primary));
   border: none;
-  color: white;
+  color: hsl(var(--primary-foreground));
   box-shadow: var(--elev);
   transition: var(--cos-transition);
 }

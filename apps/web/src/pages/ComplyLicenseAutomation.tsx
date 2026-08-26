@@ -46,11 +46,21 @@ export function ComplyLicenseAutomation() {
   const [savingLevies, setSavingLevies] = useState(false);
 
   const logsEndRef = useRef<HTMLDivElement>(null);
-
+  // Only follow the log when it actually grew — not on initial mount (the
+  // terminal is seeded with 2 lines from the start) and not on React 18
+  // StrictMode's dev-only double-invoke of this effect, which a plain
+  // "skip the first run" ref flag doesn't survive (both invocations see the
+  // same `terminalLogs` reference, so the second one would still fire).
+  // Comparing lengths is idempotent under that double-invoke. Without this
+  // guard the page auto-scrolls past the header and the whole left column
+  // on load, most visibly on mobile where the terminal sits ~600px down
+  // the stacked layout.
+  const logsSeenCount = useRef(terminalLogs.length);
   useEffect(() => {
-    if (logsEndRef.current) {
+    if (terminalLogs.length > logsSeenCount.current && logsEndRef.current) {
       logsEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
+    logsSeenCount.current = terminalLogs.length;
   }, [terminalLogs]);
 
   const addLog = (text: string, type: TerminalLog['type'] = 'observe') => {
@@ -302,7 +312,7 @@ export function ComplyLicenseAutomation() {
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
               >
                 <span style={uploading ? { display: 'inline-flex', animation: 'spin 1s linear infinite' } : { display: 'inline-flex' }}>
-                  <Icon name={uploading ? 'refresh' : 'zap'} size={13} color="#fff" />
+                  <Icon name={uploading ? 'refresh' : 'zap'} size={13} />
                 </span>
                 <span>{uploading ? 'Capturing...' : 'Capture & Sync'}</span>
               </button>
@@ -480,7 +490,7 @@ export function ComplyLicenseAutomation() {
 
             {/* Tab 3: Profile */}
             {activeTab === 'profile' && (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+              <div className="comply-grid-2" style={{ marginBottom: 0 }}>
                 <div>
                   <h3 style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', letterSpacing: '0.05em', marginBottom: 12 }}>Council Association</h3>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
@@ -565,7 +575,7 @@ export function ComplyLicenseAutomation() {
                   style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
                 >
                   <span style={uploading ? { display: 'inline-flex', animation: 'spin 1s linear infinite' } : { display: 'inline-flex' }}>
-                    <Icon name={uploading ? 'refresh' : 'zap'} size={13} color="#fff" />
+                    <Icon name={uploading ? 'refresh' : 'zap'} size={13} />
                   </span>
                   <span>{uploading ? 'Capturing...' : 'Capture & Sync'}</span>
                 </button>

@@ -8,6 +8,7 @@ import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '../com
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
+import { PageHeader } from '../components/PageHeader.js';
 import './Seal.css';
 
 interface HeatLocation {
@@ -93,19 +94,23 @@ export function SealZoneHeatGrid() {
   return (
     <TooltipProvider delayDuration={150}>
       <div className="seal-page">
-        <div className="seal-page-hdr">
-          <div>
-            <button type="button" className="btn btn-secondary" onClick={() => navigate('/seal/compartments')} style={{ marginBottom: 12 }}>
-              <Icon name="arrowLeft" size={13} />
-              <span>Back to Compartments</span>
-            </button>
-            <h1 className="seal-page-title">{data.compartment.name} — Zone Heat Grid</h1>
-            <p className="seal-page-sub">Quick flat occupancy overview — lot count per location vs. capacity. For floor levels, vertical stacking, and a 3D view, use Warehouse Layout.</p>
-          </div>
-          <button type="button" className="btn btn-primary" onClick={() => navigate(`/seal/compartments/${data.compartment.id}/layout`)}>
-            <Icon name="warehouse" size={14} />
-            <span>Open Warehouse Layout</span>
+        <div>
+          <button type="button" className="btn btn-secondary" onClick={() => navigate('/seal/compartments')} style={{ marginBottom: 12 }}>
+            <Icon name="arrowLeft" size={13} />
+            <span>Back to Compartments</span>
           </button>
+          <PageHeader
+            crumbs={['SEAL', 'Compartments']}
+            titlePlain="Zone heat"
+            titleEm="grid"
+            subtitle={<>Quick flat occupancy overview for <strong>{data.compartment.name}</strong> — lot count per location vs. capacity. For floor levels, vertical stacking, and a 3D view, use Warehouse Layout.</>}
+            actions={
+              <button type="button" className="btn btn-primary" onClick={() => navigate(`/seal/compartments/${data.compartment.id}/layout`)}>
+                <Icon name="warehouse" size={14} />
+                <span>Open Warehouse Layout</span>
+              </button>
+            }
+          />
         </div>
 
         <div className="seal-kpi-strip">

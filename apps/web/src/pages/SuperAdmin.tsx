@@ -7,6 +7,7 @@ import { apiFetch } from '../lib/api.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import './SuperAdmin.css';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { Combobox } from '../components/ui/combobox.js';
 import { SingleSelectFilter } from '../components/ui/filter-dropdown.js';
 import { Switch } from '../components/ui/switch.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
@@ -1514,10 +1515,12 @@ export function DomainsView() {
           </div>
           <div style={{ flex:'1 1 200px' }}>
             <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', color:'var(--ink3)', marginBottom:4 }}>Company</div>
-            <select title="Company" className="input-field" value={newTenant} onChange={e=>setNewTenant(e.target.value)}>
-              <option value="">Choose a company…</option>
-              {tenants.map((t:any)=><option key={t.id} value={t.id}>{t.name}</option>)}
-            </select>
+            <Combobox
+              options={tenants.map((t:any) => ({ value: t.id, label: t.name }))}
+              value={newTenant}
+              onChange={setNewTenant}
+              placeholder="Choose a company…"
+            />
           </div>
           <button type="button" className="btn btn-primary" disabled={!newHost.trim() || !newTenant || !!busy}
             onClick={()=>act('add', async () => {

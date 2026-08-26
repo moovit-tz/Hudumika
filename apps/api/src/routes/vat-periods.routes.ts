@@ -4,8 +4,9 @@ import { withTenant } from '../db/client.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
 import { requireRole } from '../middleware/rbac.js';
 import { closeVatPeriod, tenantJurisdiction } from '../services/vat-period.service.js';
-import { computeVatReturn } from '../services/vat-return.service.js';
+import { computeVatReturn, type VatReturn } from '../services/vat-return.service.js';
 import { reportingCurrency } from '../services/tax-registration.service.js';
+import { renderVatReturnPdfFromData, renderVatReturnCsvFromData } from '../services/vat-return-pdf.service.js';
 
 const FIN_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'FINANCE'] as const;
 const isDate = (s?: string) => !!s && /^\d{4}-\d{2}-\d{2}$/.test(s);
@@ -68,6 +69,40 @@ export async function vatPeriodRoutes(fastify: FastifyInstance) {
       }
       return { ...row, provisional: false };
     });
+  });
+
+  // GET /v1/vat-periods/:id/export?format=pdf|csv (M4) — a closed period
+  // renders its stored return_snapshot verbatim (same "recomputing a filed
+  // figure must never give a different answer" rule as GET /:id above); an
+  // open period renders the live computed figure.
+  fastify.get('/:id/export', async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    const { format } = request.query as { format?: string };
+    const row = await withTenant(user.tenant_id, (trx) =>
+      trx.selectFrom('vat_periods').selectAll().where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst()
+    );
+    if (!row) return reply.status(404).send({ error: 'Period not found' });
+
+    let ret: VatReturn;
+    if (row.status === 'closed') {
+      ret = (typeof row.return_snapshot === 'string' ? JSON.parse(row.return_snapshot) : row.return_snapshot) as VatReturn;
+    } else {
+      ret = await withTenant(user.tenant_id, async (trx) => {
+        const cur = await reportingCurrency(trx, user.tenant_id);
+        return computeVatReturn(trx, user.tenant_id, String(row.period_start).slice(0, 10), String(row.period_end).slice(0, 10), cur, row.jurisdiction);
+      });
+    }
+
+    if (format === 'csv') {
+      reply.header('Content-Type', 'text/csv; charset=utf-8');
+      reply.header('Content-Disposition', `attachment; filename="vat-return-${id}.csv"`);
+      return renderVatReturnCsvFromData(ret);
+    }
+    const pdf = await renderVatReturnPdfFromData(user.tenant_id, ret);
+    reply.header('Content-Type', 'application/pdf');
+    reply.header('Content-Disposition', `inline; filename="vat-return-${id}.pdf"`);
+    return reply.send(pdf);
   });
 
   // POST /v1/vat-periods

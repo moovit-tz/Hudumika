@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import { FileUploader } from '../components/ui/file-uploader.js';
+import { PageHeader } from '../components/PageHeader.js';
 import { apiFetch } from '../lib/api.js';
+import { useIsMobile } from '../hooks/useIsMobile.js';
 
 const TEMPLATE_COLUMNS = ['company_name', 'email', 'phone', 'country', 'address', 'currency'];
 
@@ -24,6 +26,7 @@ function downloadCsvTemplate() {
 }
 
 export const CustomerBulkUpload: React.FC = () => {
+  const isMobile = useIsMobile();
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [summary, setSummary] = useState<ImportSummary | null>(null);
@@ -49,33 +52,35 @@ export const CustomerBulkUpload: React.FC = () => {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', background: 'var(--bg)' }}>
 
       {/* Header */}
-      <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', padding: '14px 24px', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+      <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', padding: '14px 24px', flexShrink: 0 }}>
         <Link
           to="/customers/overview"
-          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer', textDecoration: 'none' }}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer', textDecoration: 'none', marginBottom: 10 }}
         >
           <Icon name="chevronLeft" size={13} /> Back
         </Link>
-        <div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>Bulk Upload Clients</div>
-          <div style={{ fontSize: 12, color: 'var(--ink3)' }}>Import multiple clients at once using a CSV file</div>
-        </div>
+        <PageHeader crumbs={['CRM', 'Bulk upload']} titlePlain="Bulk" titleEm="upload" subtitle="Import multiple clients at once using a CSV file." />
       </div>
 
       {/* Body */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '32px 24px' }}>
         <div style={{ maxWidth: 680, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-          {/* Template download */}
-          <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{ width: 40, height: 40, borderRadius: 9, background: 'var(--green-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <Icon name="file" size={18} color="var(--green)" />
+          {/* Template download — row on desktop; the icon+copy and the
+              button stack on mobile instead of squeezing into a sliver
+              between a fixed-width icon and a fixed-width button, which used
+              to wrap the description into an unreadably narrow column. */}
+          <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '16px 20px', display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'center', gap: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, width: isMobile ? '100%' : 'auto' }}>
+              <div style={{ width: 40, height: 40, borderRadius: 9, background: 'var(--green-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Icon name="file" size={18} color="var(--green)" />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Download Template</div>
+                <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>Use our template to ensure your data is formatted correctly</div>
+              </div>
             </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Download Template</div>
-              <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>Use our template to ensure your data is formatted correctly</div>
-            </div>
-            <button onClick={downloadCsvTemplate} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+            <button onClick={downloadCsvTemplate} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25, width: isMobile ? '100%' : 'auto', flexShrink: 0 }}>
               <Icon name="download" size={13} /> CSV Template
             </button>
           </div>
@@ -129,27 +134,30 @@ export const CustomerBulkUpload: React.FC = () => {
             <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border)', fontSize: 12, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
               Required Columns
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0 }}>
-              {[
-                ['company_name', 'Company or client name', true],
-                ['email', 'Primary contact email', true],
-                ['phone', 'Phone number', false],
-                ['country', 'Country code (e.g. TZ)', false],
-                ['address', 'Physical address', false],
-                ['currency', 'Billing currency (e.g. TZS)', false],
-              ].map(([col, desc, req], i) => (
-                <div key={col as string} style={{
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 0 }}>
+              {(() => {
+                const cols: [string, string, boolean][] = [
+                  ['company_name', 'Company or client name', true],
+                  ['email', 'Primary contact email', true],
+                  ['phone', 'Phone number', false],
+                  ['country', 'Country code (e.g. TZ)', false],
+                  ['address', 'Physical address', false],
+                  ['currency', 'Billing currency (e.g. TZS)', false],
+                ];
+                return cols.map(([col, desc, req], i) => (
+                <div key={col} style={{
                   padding: '11px 20px',
-                  borderBottom: i < 4 ? '1px solid var(--border)' : 'none',
-                  borderRight: i % 2 === 0 ? '1px solid var(--border)' : 'none',
+                  borderBottom: (isMobile ? i < cols.length - 1 : i < 4) ? '1px solid var(--border)' : 'none',
+                  borderRight: (!isMobile && i % 2 === 0) ? '1px solid var(--border)' : 'none',
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-                    <code style={{ fontSize: 11, fontFamily: 'var(--mono)', color: 'var(--teal)', background: 'var(--teal-l)', padding: '1px 6px', borderRadius: 4 }}>{col as string}</code>
+                    <code style={{ fontSize: 11, fontFamily: 'var(--mono)', color: 'var(--teal)', background: 'var(--teal-l)', padding: '1px 6px', borderRadius: 4 }}>{col}</code>
                     {req && <span style={{ fontSize: 10, color: 'var(--red)', fontWeight: 700 }}>required</span>}
                   </div>
-                  <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{desc as string}</div>
+                  <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{desc}</div>
                 </div>
-              ))}
+                ));
+              })()}
             </div>
           </div>
 

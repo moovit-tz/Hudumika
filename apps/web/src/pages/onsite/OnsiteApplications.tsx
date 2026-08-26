@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { PageHeader } from '../../components/PageHeader.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
 import { showAlert } from '../../lib/alert.js';
 import { showConfirm } from '../../lib/confirm.js';
 import { Link } from 'react-router-dom';
@@ -230,13 +231,16 @@ export function OnsiteApplications() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div className="onsite-form-group">
                   <label>Runtime *</label>
-                  <select className="onsite-select" value={runtime} onChange={(e) => setRuntime(e.target.value)}>
-                    <option value="nodejs">Node.js</option>
-                    <option value="python">Python</option>
-                    <option value="php">PHP</option>
-                    <option value="static">Static HTML / React</option>
-                    <option value="container">Docker Container</option>
-                  </select>
+                  <Select value={runtime} onValueChange={setRuntime}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="nodejs">Node.js</SelectItem>
+                      <SelectItem value="python">Python</SelectItem>
+                      <SelectItem value="php">PHP</SelectItem>
+                      <SelectItem value="static">Static HTML / React</SelectItem>
+                      <SelectItem value="container">Docker Container</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="onsite-form-group">
                   <label>Git Repository URL</label>

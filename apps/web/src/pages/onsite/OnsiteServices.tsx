@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Icon, type IconName } from '../../components/Icon.js';
+import { PageHeader } from '../../components/PageHeader.js';
 import './Onsite.css';
 
 /**
@@ -46,12 +47,12 @@ const PLANNED: Service[] = [
 export function OnsiteServices() {
   return (
     <div className="onsite-page">
-      <div className="onsite-header">
-        <div className="onsite-header-title">
-          <h1>More services</h1>
-          <p>What Onsite can do today, and what is on the way.</p>
-        </div>
-      </div>
+      <PageHeader
+        crumbs={['Onsite', 'Services']}
+        titlePlain="More"
+        titleEm="services"
+        subtitle="What Onsite can do today, and what is on the way."
+      />
 
       <h2 className="onsite-section-label">Available now</h2>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>

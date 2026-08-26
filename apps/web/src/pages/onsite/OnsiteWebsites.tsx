@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../../lib/api.js';
 import { openInAppBrowser } from '../../lib/in-app-browser.js';
 import { showAlert } from '../../lib/alert.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
 import { Combobox } from '../../components/ui/combobox.js';
+import { PageHeader } from '../../components/PageHeader.js';
 import type { OnsiteWebsite, OnsiteDomain } from '@hudumika/types';
 import { Icon } from '../../components/Icon.js';
 import './Onsite.css';
@@ -96,31 +97,22 @@ export function OnsiteWebsites() {
 
   return (
     <div className="onsite-page">
-      {/* Header */}
-      <div className="onsite-header">
-        <div>
-          <div className="onsite-bc" style={{ marginBottom: '0.4rem' }}>
-            <Link to="/onsite" className="onsite-bc-link">Onsite Infrastructure</Link>
-            <span>/</span>
-            <span>Websites</span>
-          </div>
-          <div className="onsite-header-title">
-            <h1>Websites</h1>
-            <p>Manage hosted websites, WordPress installations, and PHP web applications.</p>
-          </div>
-        </div>
-
-        <div className="onsite-header-actions">
-          <button className="onsite-btn-purple" onClick={() => setShowAddModal(true)}>
-            <Icon name="plus" size={16} />
-            <span>Add Website</span>
-          </button>
-          <button className="onsite-btn-outline" onClick={() => navigate('/workspace/billing')}>
-            <Icon name="layoutDashboard" size={15} />
-            <span>Get Plan</span>
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        crumbs={['Onsite', 'Websites']}
+        titlePlain="Hosted"
+        titleEm="websites"
+        subtitle="Manage hosted websites, WordPress installations, and PHP web applications."
+        actions={<div className="onsite-header-actions">
+                    <button className="onsite-btn-purple" onClick={() => setShowAddModal(true)}>
+                      <Icon name="plus" size={16} />
+                      <span>Add Website</span>
+                    </button>
+                    <button className="onsite-btn-outline" onClick={() => navigate('/workspace/billing')}>
+                      <Icon name="layoutDashboard" size={15} />
+                      <span>Get Plan</span>
+                    </button>
+                  </div>}
+      />
 
       {/* Metrics Grid */}
       <div className="onsite-domains-stats">

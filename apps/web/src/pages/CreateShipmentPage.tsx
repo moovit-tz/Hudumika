@@ -11,6 +11,7 @@ import { Popover, PopoverAnchor, PopoverContent } from '../components/ui/popover
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { AiExtractedCard } from '../components/AiExtractedCard.js';
 import { EntityPicker, type PickerItem } from '../components/EntityPicker.js';
+import { PageHeader } from '../components/PageHeader.js';
 import { showAlert } from '../lib/alert.js';
 import { readXlsxSheets } from '../lib/xlsx-read.js';
 import './CreateShipmentPage.css';
@@ -625,18 +626,29 @@ export function CreateShipmentPage() {
         </div>
 
         <div className="create-shipment-content">
-          <div className="create-shipment-title">
-            {currentStep === 1 && 'Scan Document'}
-            {currentStep === 2 && 'Excel Bulk Upload'}
-            {currentStep === 3 && 'Shipment Details'}
-            {currentStep === 4 && 'Confirm & Create'}
-          </div>
-          <div className="create-shipment-subtitle">
-            {currentStep === 1 && 'Drop a Bill of Lading, Commercial Invoice, or Packing List to automatically extract shipment data using AI.'}
-            {currentStep === 2 && 'Alternatively, download the standard Hudumika Excel template, fill it out with bulk container/items data, and upload it here.'}
-            {currentStep === 3 && 'Verify the extracted information. Fill in any missing required fields before proceeding.'}
-            {currentStep === 4 && 'Please review the final details below before creating the shipment record in the system.'}
-          </div>
+          <PageHeader
+            crumbs={['ClearOS', 'New shipment']}
+            titlePlain={
+              currentStep === 1 ? 'Scan' :
+              currentStep === 2 ? 'Excel bulk' :
+              currentStep === 3 ? 'Shipment' :
+              'Confirm &'
+            }
+            titleEm={
+              currentStep === 1 ? 'document' :
+              currentStep === 2 ? 'upload' :
+              currentStep === 3 ? 'details' :
+              'create'
+            }
+            subtitle={
+              <>
+                {currentStep === 1 && 'Drop a Bill of Lading, Commercial Invoice, or Packing List to automatically extract shipment data using AI.'}
+                {currentStep === 2 && 'Alternatively, download the standard Hudumika Excel template, fill it out with bulk container/items data, and upload it here.'}
+                {currentStep === 3 && 'Verify the extracted information. Fill in any missing required fields before proceeding.'}
+                {currentStep === 4 && 'Please review the final details below before creating the shipment record in the system.'}
+              </>
+            }
+          />
 
           <div className="create-shipment-card">
             {/* Step 1: OCR */}

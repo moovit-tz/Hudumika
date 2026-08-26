@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
+import { PageHeader } from '../components/PageHeader.js';
 import './Store.css';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 
@@ -55,7 +56,7 @@ export const StoreDeveloperPortal: React.FC = () => {
 
   if (success) {
     return (
-      <div className="store-main" style={{ padding: '40px', maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
+      <div className="store-main" style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
         <Icon name="checkCircle" size={48} color="var(--green)" style={{ marginBottom: '20px' }} />
         <h2>Submission Successful!</h2>
         <p style={{ color: 'var(--ink3)', marginTop: '10px' }}>Your app has been submitted and is pending review by the Hudumika Admin team. You will be notified once it is approved.</p>
@@ -67,11 +68,13 @@ export const StoreDeveloperPortal: React.FC = () => {
   }
 
   return (
-    <div className="store-main" style={{ padding: '40px' }}>
-      <div className="store-section-header">
-        <h3 className="store-section-title">Developer Portal</h3>
-        <span className="store-section-count">Submit a New App</span>
-      </div>
+    <div className="store-main">
+      <PageHeader
+        crumbs={['Store', 'Developer Portal']}
+        titlePlain="Submit a new"
+        titleEm="app"
+        subtitle="Publish an integration to the Hudumika Store for review by the Admin team."
+      />
 
       <div style={{ background: 'var(--surface)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border)', marginTop: '20px' }}>
         {error && <div style={{ background: 'var(--red-l)', color: 'var(--red)', padding: '12px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #fca5a5' }}>{error}</div>}
@@ -80,11 +83,11 @@ export const StoreDeveloperPortal: React.FC = () => {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>App Name *</label>
-              <input type="text" name="name" required value={formData.name} onChange={handleChange} className="store-search-input" style={{ width: '100%', height: '40px' }} placeholder="e.g., My Awesome App" />
+              <input type="text" name="name" required value={formData.name} onChange={handleChange} className="store-search-input" style={{ width: '100%', minHeight: 'var(--ctl-h)' }} placeholder="e.g., My Awesome App" />
             </div>
             <div>
               <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>Developer / Company Name *</label>
-              <input type="text" name="developer_name" required value={formData.developer_name} onChange={handleChange} className="store-search-input" style={{ width: '100%', height: '40px' }} placeholder="e.g., Acme Corp" />
+              <input type="text" name="developer_name" required value={formData.developer_name} onChange={handleChange} className="store-search-input" style={{ width: '100%', minHeight: 'var(--ctl-h)' }} placeholder="e.g., Acme Corp" />
             </div>
           </div>
 
@@ -92,7 +95,7 @@ export const StoreDeveloperPortal: React.FC = () => {
             <div>
               <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>Category *</label>
               <Select value={formData.category} onValueChange={v => setFormData({ ...formData, category: v })}>
-                <SelectTrigger className="store-search-input" style={{ width: '100%', height: '40px' }}><SelectValue /></SelectTrigger>
+                <SelectTrigger className="store-search-input" style={{ width: '100%', minHeight: 'var(--ctl-h)' }}><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="business">Business Tools</SelectItem>
                   <SelectItem value="productivity">Productivity</SelectItem>
@@ -104,13 +107,13 @@ export const StoreDeveloperPortal: React.FC = () => {
             </div>
             <div>
               <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>App Icon URL</label>
-              <input type="url" name="icon_url" value={formData.icon_url} onChange={handleChange} className="store-search-input" style={{ width: '100%', height: '40px' }} placeholder="https://example.com/icon.png" />
+              <input type="url" name="icon_url" value={formData.icon_url} onChange={handleChange} className="store-search-input" style={{ width: '100%', minHeight: 'var(--ctl-h)' }} placeholder="https://example.com/icon.png" />
             </div>
           </div>
 
           <div style={{ marginBottom: '20px' }}>
             <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>Short Description * (Max 150 chars)</label>
-            <input type="text" name="short_desc" required maxLength={150} value={formData.short_desc} onChange={handleChange} className="store-search-input" style={{ width: '100%', height: '40px' }} placeholder="Briefly describe what your app does" />
+            <input type="text" name="short_desc" required maxLength={150} value={formData.short_desc} onChange={handleChange} className="store-search-input" style={{ width: '100%', minHeight: 'var(--ctl-h)' }} placeholder="Briefly describe what your app does" />
           </div>
 
           <div style={{ marginBottom: '20px' }}>
@@ -131,7 +134,7 @@ export const StoreDeveloperPortal: React.FC = () => {
 
           <div style={{ marginBottom: '30px' }}>
             <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>Webhook URL (Optional)</label>
-            <input type="url" name="webhook_url" value={formData.webhook_url} onChange={handleChange} className="store-search-input" style={{ width: '100%', height: '40px' }} placeholder="https://your-api.com/hudumika/webhook" />
+            <input type="url" name="webhook_url" value={formData.webhook_url} onChange={handleChange} className="store-search-input" style={{ width: '100%', minHeight: 'var(--ctl-h)' }} placeholder="https://your-api.com/hudumika/webhook" />
             <p style={{ fontSize: '12px', color: 'var(--ink3)', marginTop: '4px' }}>We will send event notifications to this URL.</p>
           </div>
 

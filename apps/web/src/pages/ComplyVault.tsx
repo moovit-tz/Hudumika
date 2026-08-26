@@ -70,6 +70,25 @@ export function ComplyVault() {
 
   const visible = filter === 'all' ? certs : certs.filter(c => c.status === filter);
 
+  function handleExportAll() {
+    const rows = [
+      ['Certificate', 'Agency', 'Cert #', 'Issued', 'Expiry', 'Status'],
+      ...visible.map(c => [c.name, c.agency_code, c.cert_number, issuedLabel(c), expiryLabel(c), c.status]),
+    ];
+    const csv = rows.map(r => r.map(cell => `"${String(cell ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `certificate-vault-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function handleDownload(cert: CompCertificate) {
+    if (cert.document_url) window.open(cert.document_url, '_blank', 'noopener');
+  }
+
   async function handleRenew(e: React.MouseEvent, certId: string) {
     e.stopPropagation();
     try {
@@ -125,7 +144,7 @@ export function ComplyVault() {
           <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={refresh} title="Refresh certificates">
             <Icon name="refresh" size={13} />
           </button>
-          <button type="button" className="comply-btn-secondary">
+          <button type="button" className="comply-btn-secondary" onClick={handleExportAll} disabled={visible.length === 0}>
             <Icon name="download" size={13} /> Export All
           </button>
           <button type="button" className="comply-btn-primary" onClick={() => navigate('/complyos/vault/new')}>
@@ -200,7 +219,7 @@ export function ComplyVault() {
                     type="button"
                     title="Download certificate"
                     className="comply-btn-secondary"
-                    onClick={e => e.stopPropagation()}
+                    onClick={e => { e.stopPropagation(); handleDownload(cert); }}
                   >
                     <Icon name="download" size={14} /> Download
                   </button>

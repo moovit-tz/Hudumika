@@ -293,6 +293,7 @@ function HeroStat({ icon, label, value, color, bg, muted }: { icon: IconName; la
 ══════════════════════════════════════════ */
 export const Customers: React.FC = () => {
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
   const [view, setView]           = useState<'list' | 'profile'>('list');
   const [searchParams] = useSearchParams();
   const deepLinkId = searchParams.get('id');
@@ -770,15 +771,19 @@ export const Customers: React.FC = () => {
           titleEm="list"
           subtitle={`${customers.length.toLocaleString()} customers registered in this workspace.`}
           actions={
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <button type="button" onClick={() => exportCSV(filtered)} className="btn btn-secondary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)' }}>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+              <button type="button" onClick={() => exportCSV(filtered)} className="btn btn-secondary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap' }}>
                 <Icon name="download" size={14} strokeWidth={2} /> Export CSV
               </button>
-              <button type="button" className="btn btn-secondary btn-sm" style={{ fontFamily: 'var(--font)' }}>
+              {/* Previously had no onClick at all — a dead button that looked
+                  identical to every other one on this row. CustomerBulkUpload.tsx
+                  (linked from Customer Overview's own "Bulk Upload" button) is
+                  the real CSV-import flow this page never wired itself to. */}
+              <button type="button" onClick={() => navigate('/crm/customers/bulk-upload')} className="btn btn-secondary btn-sm" style={{ fontFamily: 'var(--font)', whiteSpace: 'nowrap' }}>
                 Import
               </button>
-              <button type="button" onClick={() => setShowCreate(true)} className="btn btn-primary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'var(--teal)', fontFamily: 'var(--font)' }}>
-                <Icon name="plus" size={15} strokeWidth={2.5} color="#fff" /> Add Customer
+              <button type="button" onClick={() => setShowCreate(true)} className="btn btn-primary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap' }}>
+                <Icon name="plus" size={15} strokeWidth={2.5} color="hsl(var(--primary-foreground))" /> Add Customer
               </button>
             </div>
           }
@@ -802,7 +807,7 @@ export const Customers: React.FC = () => {
               </SelectContent>
             </Select>
             <button type="button" onClick={handleBulkApply} disabled={!bulkAction || selectedIds.length === 0}
-              style={{ padding: 'var(--ds-btn-py-sm) 14px', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', background: bulkAction && selectedIds.length > 0 ? 'var(--teal)' : 'var(--white)', cursor: bulkAction && selectedIds.length > 0 ? 'pointer' : 'not-allowed', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)', color: bulkAction && selectedIds.length > 0 ? '#fff' : 'var(--ink3)', transition: 'all .15s', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
+              style={{ padding: 'var(--ds-btn-py-sm) 14px', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', background: bulkAction && selectedIds.length > 0 ? 'hsl(var(--primary))' : 'var(--white)', cursor: bulkAction && selectedIds.length > 0 ? 'pointer' : 'not-allowed', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)', color: bulkAction && selectedIds.length > 0 ? 'hsl(var(--primary-foreground))' : 'var(--ink3)', transition: 'all .15s', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
               Apply
             </button>
             {selectedIds.length > 0 && (
@@ -1988,7 +1993,7 @@ export const Customers: React.FC = () => {
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', border: '1px solid var(--border)', borderRadius: 9, background: 'var(--white)', color: 'var(--ink2)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)' }}>
                 <Icon name="link" size={13} /> Link Existing File
               </button>
-              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', border: '1.5px solid var(--teal)', borderRadius: 9, background: fileUploading ? 'var(--ink3)' : 'var(--teal)', borderColor: fileUploading ? 'var(--ink3)' : 'var(--teal)', color: '#fff', fontSize: 12.5, fontWeight: 600, cursor: fileUploading ? 'default' : 'pointer', fontFamily: 'var(--font)' }}>
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', border: '1.5px solid var(--teal)', borderRadius: 9, background: fileUploading ? 'var(--ink3)' : 'hsl(var(--primary))', borderColor: fileUploading ? 'var(--ink3)' : 'var(--teal)', color: fileUploading ? '#fff' : 'hsl(var(--primary-foreground))', fontSize: 12.5, fontWeight: 600, cursor: fileUploading ? 'default' : 'pointer', fontFamily: 'var(--font)' }}>
                 <Icon name="upload" size={13} strokeWidth={2} />
                 {fileUploading ? 'Uploading…' : 'Upload to Drive'}
                 <input type="file" multiple disabled={fileUploading} style={{ display: 'none' }}
@@ -2164,7 +2169,7 @@ export const Customers: React.FC = () => {
                 <Icon name="send" size={13} strokeWidth={1.75} /> WhatsApp
               </button>
               <Link to={`/shipments?customer_id=${sel.id}`}
-                style={{ ...btnS, background: 'var(--teal)', border: 'none', color: '#fff', textDecoration: 'none' }}
+                style={{ ...btnS, background: 'hsl(var(--primary))', border: 'none', color: 'hsl(var(--primary-foreground))', textDecoration: 'none' }}
                 onMouseEnter={e => (e.currentTarget.style.opacity = '0.9')} onMouseLeave={e => (e.currentTarget.style.opacity = '1')}>
                 + New Shipment
               </Link>

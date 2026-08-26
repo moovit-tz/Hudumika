@@ -5,6 +5,7 @@ import { showAlert } from '../lib/alert.js';
 import { useCurrency } from '../hooks/useCurrency.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { Combobox, type ComboboxOption } from '../components/ui/combobox.js';
+import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 
 interface AccountNode {
   id: string; code: string; name: string; type: string;
@@ -148,7 +149,7 @@ export function JournalEntries() {
           <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr 200px', gap: 12, marginBottom: 14 }}>
             <div>
               <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>Date</label>
-              <input type="date" className="input-field" value={entryDate} onChange={e => setEntryDate(e.target.value)} />
+              <DatePicker date={parseDateOnly(entryDate)} onChange={d => setEntryDate(toDateOnlyString(d))} />
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>Description</label>

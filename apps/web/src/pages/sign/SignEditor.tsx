@@ -425,7 +425,7 @@ export function SignEditor() {
         <div style={{ height: 16, width: 1, background: 'var(--border)' }} />
         <Button variant="outline" size="sm" onClick={handleSaveAsTemplate} style={{ height: 32, fontSize: 12.5 }}>Save as Template</Button>
         <Button variant="outline" size="sm" onClick={handleSave} disabled={saving} style={{ height: 32, fontSize: 12.5 }}>{saving ? 'Saving…' : 'Save Draft'}</Button>
-        <Button variant="default" size="sm" onClick={handleSend} disabled={sending} style={{ height: 32, fontSize: 12.5, background: 'var(--teal)', color: '#fff', fontWeight: 600 }}>
+        <Button variant="default" size="sm" onClick={handleSend} disabled={sending} style={{ height: 32, fontSize: 12.5, fontWeight: 600 }}>
           {sending ? 'Sending…' : 'Send Envelope'} <Icon name="send" size={13} style={{ marginLeft: 2 }} />
         </Button>
       </div>
@@ -490,7 +490,7 @@ export function SignEditor() {
                 value={(recipients[activeRecipient] as any)?.[key] ?? ''}
                 onChange={e => setRecipients(prev => prev.map((r, i) => i === activeRecipient ? { ...r, [key]: e.target.value } : r))}
                 placeholder={key === 'role_label' ? 'Role (e.g. Customer)' : key === 'phone' ? 'Phone (optional — WhatsApp delivery)' : key.charAt(0).toUpperCase() + key.slice(1)}
-                style={{ width: '100%', padding: '7px 10px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 12.5, marginTop: 6, boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '7px 10px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 12.5, marginTop: 6, boxSizing: 'border-box' }}
               />
             ))}
           </div>
@@ -519,7 +519,7 @@ export function SignEditor() {
             <textarea value={message} onChange={e => setMessage(e.target.value)}
               placeholder="Add a personal message to signers…"
               rows={3}
-              style={{ width: '100%', padding: '8px 10px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 12.5, resize: 'vertical', boxSizing: 'border-box' }} />
+              style={{ width: '100%', padding: '8px 10px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 12.5, resize: 'vertical', boxSizing: 'border-box' }} />
           </div>
         </div>
 
@@ -632,7 +632,7 @@ export function SignEditor() {
           </div>
 
           {placingType && (
-            <div style={{ background: 'var(--sign-blue)', color: '#fff', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 500, flexShrink: 0 }}>
+            <div style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 500, flexShrink: 0 }}>
               Click anywhere on the page to place the <strong>{placingType}</strong> field
             </div>
           )}
@@ -664,7 +664,7 @@ export function SignEditor() {
                 <input value={selectedFieldData.placeholder ?? ''}
                   onChange={e => setFields(prev => prev.map(f => f.id === selectedField ? { ...f, placeholder: e.target.value } : f))}
                   placeholder="e.g. Sign here"
-                  style={{ width: '100%', padding: '7px 10px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--bg)', fontSize: 13, boxSizing: 'border-box' }} />
+                  style={{ width: '100%', padding: '7px 10px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--bg)', fontSize: 13, boxSizing: 'border-box' }} />
               </div>
               <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
                 <input type="checkbox" checked={selectedFieldData.required}

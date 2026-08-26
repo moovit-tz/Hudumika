@@ -4,6 +4,7 @@ import { apiFetch } from '../lib/api.js';
 import './Escalations.css';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Combobox } from '../components/ui/combobox.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 // -- Types ------------------------------------------------------
 export interface Escalation {
@@ -244,21 +245,21 @@ export const Escalations: React.FC = () => {
       )}
 
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
-        <div>
-          <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--ink)' }}>Escalations</div>
-          <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 2 }}>
-            {isSenior ? 'Cases escalated to you by junior officers' : 'Your escalated cases'}
-          </div>
-        </div>
-        {isJunior && (
-          <button type="button" title="Create new escalation" onClick={() => setShowModal(true)}
-            style={{
-              background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)',
-              padding: 'var(--ds-btn-py) 18px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-            + Escalate Case
-          </button>
-        )}
+      <div style={{ marginBottom: 24 }}>
+        <PageHeader
+          crumbs={['Bliss', 'Escalations']}
+          titlePlain="Case"
+          titleEm="escalations"
+          subtitle={isSenior ? 'Cases escalated to you by junior officers.' : 'Your escalated cases.'}
+          actions={isJunior ? (
+            <button type="button" title="Create new escalation" onClick={() => setShowModal(true)}
+              style={{
+                background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)',
+                padding: 'var(--ds-btn-py) 18px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+              + Escalate Case
+            </button>
+          ) : undefined}
+        />
       </div>
 
       {/* Status stat cards */}

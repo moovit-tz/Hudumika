@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { PageHeader } from '../../components/PageHeader.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
 import { showAlert } from '../../lib/alert.js';
 import { showConfirm } from '../../lib/confirm.js';
 import { useParams, Link } from 'react-router-dom';
@@ -330,16 +331,19 @@ export function OnsiteDNS() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '1rem' }}>
                 <div className="onsite-form-group">
                   <label>Type *</label>
-                  <select className="onsite-select" value={type} onChange={(e) => setType(e.target.value)}>
-                    <option value="A">A</option>
-                    <option value="AAAA">AAAA</option>
-                    <option value="CNAME">CNAME</option>
-                    <option value="MX">MX</option>
-                    <option value="TXT">TXT</option>
-                    <option value="NS">NS</option>
-                    <option value="SRV">SRV</option>
-                    <option value="CAA">CAA</option>
-                  </select>
+                  <Select value={type} onValueChange={setType}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="A">A</SelectItem>
+                      <SelectItem value="AAAA">AAAA</SelectItem>
+                      <SelectItem value="CNAME">CNAME</SelectItem>
+                      <SelectItem value="MX">MX</SelectItem>
+                      <SelectItem value="TXT">TXT</SelectItem>
+                      <SelectItem value="NS">NS</SelectItem>
+                      <SelectItem value="SRV">SRV</SelectItem>
+                      <SelectItem value="CAA">CAA</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="onsite-form-group">
                   <label>Name * (@ for root)</label>

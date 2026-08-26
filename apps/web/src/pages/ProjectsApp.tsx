@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
+import { PageHeader } from '../components/PageHeader.js';
 import { Button } from '../components/ui/button.js';
 import { Badge } from '../components/ui/badge.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
@@ -705,24 +706,26 @@ export const ProjectsApp: React.FC = () => {
   if (!selectedId || !selected) {
     return (
       <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)', fontFamily: 'var(--font)' }}>
-        <div style={{ padding: isMobile ? '16px 16px 0' : '24px 32px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-          <div>
-            <h1 style={{ fontSize: isMobile ? 22 : 26, fontWeight: 800, color: 'var(--ink)', margin: 0, letterSpacing: '-0.02em' }}>Projects</h1>
-            <p style={{ fontSize: 13, color: 'var(--ink3)', margin: '4px 0 0 0' }}>Shared, multi-person projects with milestones and a kanban board.</p>
-          </div>
-          <Button size="sm" onClick={() => { setCreating(true); if (!templates) apiFetch('/v1/tasks/projects/templates').then(res => setTemplates(res.data || [])).catch(() => setTemplates([])); }} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <Icon name="plus" size={15} /> New project
-          </Button>
+        <div style={{ padding: isMobile ? '16px 16px 0' : '24px 32px 0' }}>
+          <PageHeader
+            crumbs={['Projects']}
+            titlePlain="Team"
+            titleEm="projects"
+            subtitle="Shared, multi-person projects with milestones and a kanban board."
+            actions={<Button size="sm" onClick={() => { setCreating(true); if (!templates) apiFetch('/v1/tasks/projects/templates').then(res => setTemplates(res.data || [])).catch(() => setTemplates([])); }} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Icon name="plus" size={15} /> New project
+            </Button>}
+          />
         </div>
 
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', padding: isMobile ? '14px 16px 0' : '18px 32px 0' }}>
           <button type="button" onClick={() => setListStatusFilter('all')}
-            style={{ padding: '6px 12px', borderRadius: 8, border: `1px solid ${listStatusFilter === 'all' ? 'var(--teal)' : 'var(--border)'}`, background: 'var(--white)', cursor: 'pointer', fontSize: 12.5, fontWeight: 700, color: listStatusFilter === 'all' ? 'var(--teal)' : 'var(--ink2)' }}>
+            style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r)', border: `1px solid ${listStatusFilter === 'all' ? 'var(--teal)' : 'var(--border)'}`, background: 'var(--white)', cursor: 'pointer', fontSize: 12.5, fontWeight: 700, color: listStatusFilter === 'all' ? 'var(--teal)' : 'var(--ink2)' }}>
             All ({projects?.length ?? 0})
           </button>
           {Object.entries(PROJECT_STATUS_META).map(([k, m]) => (
             <button key={k} type="button" onClick={() => setListStatusFilter(prev => prev === k ? 'all' : k)}
-              style={{ padding: '6px 12px', borderRadius: 8, border: `1px solid ${listStatusFilter === k ? 'var(--teal)' : 'var(--border)'}`, background: 'var(--white)', cursor: 'pointer', fontSize: 12.5, fontWeight: 700, color: listStatusFilter === k ? 'var(--teal)' : 'var(--ink2)' }}>
+              style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r)', border: `1px solid ${listStatusFilter === k ? 'var(--teal)' : 'var(--border)'}`, background: 'var(--white)', cursor: 'pointer', fontSize: 12.5, fontWeight: 700, color: listStatusFilter === k ? 'var(--teal)' : 'var(--ink2)' }}>
               {listCounts[k] ?? 0} {m.label}
             </button>
           ))}
@@ -734,9 +737,9 @@ export const ProjectsApp: React.FC = () => {
               autoFocus value={newName} onChange={e => setNewName(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') createProject(); if (e.key === 'Escape') setCreating(false); }}
               placeholder="Project name…"
-              style={{ flex: 1, minWidth: 200, padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 14, background: 'var(--white)', color: 'var(--ink)' }}
+              style={{ flex: 1, minWidth: 200, padding: 'var(--ds-input-py, 7px) 10px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 14, background: 'var(--white)', color: 'var(--ink)' }}
             />
-            <input type="color" value={newColor} onChange={e => setNewColor(e.target.value)} title="Project color" style={{ width: 36, height: 36, border: 'none', borderRadius: 8, cursor: 'pointer', background: 'none' }} />
+            <input type="color" value={newColor} onChange={e => setNewColor(e.target.value)} title="Project color" style={{ width: 36, height: 36, border: 'none', borderRadius: 'var(--r-sm)', cursor: 'pointer', background: 'none' }} />
             {templates && templates.length > 0 && (
               <Select value={newTemplateId} onValueChange={setNewTemplateId}>
                 <SelectTrigger className="h-9 text-xs" style={{ width: 180 }}><SelectValue placeholder="Start from template…" /></SelectTrigger>
@@ -814,9 +817,15 @@ export const ProjectsApp: React.FC = () => {
         <button type="button" onClick={() => setSelectedId(null)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 12.5, fontWeight: 600, padding: 0, marginBottom: 10 }}>
           <Icon name="arrowLeft" size={13} /> All projects
         </button>
+        <PageHeader
+          crumbs={['Projects', selected.name]}
+          titlePlain="Project"
+          titleEm="detail"
+          subtitle={selected.customer_name ? `${selected.name} — ${selected.customer_name}` : selected.name}
+        />
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <span style={{ width: 12, height: 12, borderRadius: '50%', background: selected.color, flexShrink: 0 }} />
-          <h1 style={{ fontSize: isMobile ? 20 : 24, fontWeight: 800, color: 'var(--ink)', margin: 0, letterSpacing: '-0.02em' }}>{selected.name}</h1>
+          <span style={{ fontSize: isMobile ? 16 : 18, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.01em' }}>{selected.name}</span>
           {selected.customer_name && <span style={{ fontSize: 14, color: 'var(--ink3)' }}>— {selected.customer_name}</span>}
           <Select value={selected.status} onValueChange={v => patchProject({ status: v })}>
             <SelectTrigger className="h-7 text-xs" style={{ width: 130 }}><SelectValue /></SelectTrigger>
@@ -876,7 +885,7 @@ export const ProjectsApp: React.FC = () => {
             <input
               autoFocus value={templateName} onChange={e => setTemplateName(e.target.value)}
               placeholder="Template name…"
-              style={{ flex: 1, minWidth: 180, padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, background: 'var(--white)', color: 'var(--ink)' }}
+              style={{ flex: 1, minWidth: 180, padding: 'var(--ds-input-py, 7px) 10px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, background: 'var(--white)', color: 'var(--ink)' }}
             />
             <Button size="sm" onClick={saveAsTemplate} disabled={!templateName.trim()}>Save</Button>
             <Button size="sm" variant="outline" onClick={() => setSavingTemplate(false)}>Cancel</Button>
@@ -890,7 +899,7 @@ export const ProjectsApp: React.FC = () => {
             <button
               key={t} type="button" onClick={() => setTab(t)}
               style={{
-                padding: '8px 14px', background: 'none', border: 'none', borderBottom: `2px solid ${tab === t ? 'var(--teal)' : 'transparent'}`,
+                padding: 'var(--ds-btn-py) 14px', background: 'none', border: 'none', borderBottom: `2px solid ${tab === t ? 'var(--teal)' : 'transparent'}`,
                 color: tab === t ? 'var(--teal)' : 'var(--ink3)', fontWeight: tab === t ? 700 : 500, fontSize: 13.5, cursor: 'pointer', textTransform: 'capitalize',
               }}
             >
@@ -980,7 +989,7 @@ export const ProjectsApp: React.FC = () => {
                       <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                         <input
                           autoFocus type="number" min={0} step={1} value={retainerAmount} onChange={e => setRetainerAmount(e.target.value)}
-                          placeholder="Amount…" style={{ width: 110, padding: '6px 8px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12.5 }}
+                          placeholder="Amount…" style={{ width: 110, padding: 'var(--ds-input-py, 7px) 8px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 12.5 }}
                         />
                         <Select value={retainerFrequency} onValueChange={setRetainerFrequency}>
                           <SelectTrigger className="h-8 text-xs" style={{ width: 110 }}><SelectValue /></SelectTrigger>
@@ -1026,7 +1035,7 @@ export const ProjectsApp: React.FC = () => {
                 value={quickAddTitle} onChange={e => setQuickAddTitle(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') quickAddTask(); }}
                 placeholder="Quick-add a task to this project…"
-                style={{ flex: 1, padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13.5, background: 'var(--white)', color: 'var(--ink)' }}
+                style={{ flex: 1, padding: 'var(--ds-input-py, 7px) 10px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13.5, background: 'var(--white)', color: 'var(--ink)' }}
               />
               <Button size="sm" onClick={quickAddTask} disabled={!quickAddTitle.trim()}>Add</Button>
             </div>
@@ -1046,10 +1055,10 @@ export const ProjectsApp: React.FC = () => {
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', marginBottom: 14 }}>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                <div style={{ display: 'flex', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, padding: 2 }}>
+                <div style={{ display: 'flex', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: 2 }}>
                   {(['kanban', 'table', 'milestone'] as const).map(v => (
                     <button key={v} type="button" onClick={() => setBoardView(v)}
-                      style={{ padding: '5px 12px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, background: boardView === v ? 'var(--white)' : 'transparent', color: boardView === v ? 'var(--teal)' : 'var(--ink3)', boxShadow: boardView === v ? 'var(--elev-sm)' : 'none', display: 'flex', alignItems: 'center', gap: 5 }}>
+                      style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r-sm)', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, background: boardView === v ? 'var(--white)' : 'transparent', color: boardView === v ? 'var(--teal)' : 'var(--ink3)', boxShadow: boardView === v ? 'var(--elev-sm)' : 'none', display: 'flex', alignItems: 'center', gap: 5 }}>
                       <Icon name={v === 'kanban' ? 'columns' : v === 'table' ? 'list' : 'flag'} size={13} /> {v === 'kanban' ? 'Board' : v === 'table' ? 'Table' : 'Milestones'}
                     </button>
                   ))}
@@ -1063,7 +1072,7 @@ export const ProjectsApp: React.FC = () => {
                 </Select>
                 <input
                   value={taskSearch} onChange={e => setTaskSearch(e.target.value)} placeholder="Filter tasks…"
-                  style={{ padding: '6px 10px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12.5, width: 160, background: 'var(--white)', color: 'var(--ink)' }}
+                  style={{ padding: 'var(--ds-input-py, 7px) 10px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 12.5, width: 160, background: 'var(--white)', color: 'var(--ink)' }}
                 />
                 {boardView === 'milestone' && (
                   <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--ink2)', cursor: 'pointer' }}>
@@ -1122,7 +1131,7 @@ export const ProjectsApp: React.FC = () => {
                                   {milestone && <span style={{ fontSize: 10, color: 'var(--teal)', fontWeight: 600 }}>{milestone.name}</span>}
                                   {t.due && <span style={{ fontSize: 10, color: 'var(--ink3)' }}>Due {t.due}</span>}
                                   {t.priority && t.priority !== 'medium' && (
-                                    <span style={{ fontSize: 9.5, fontWeight: 700, color: TASK_PRIORITY_META[t.priority].color, background: TASK_PRIORITY_META[t.priority].bg, padding: '1px 6px', borderRadius: 4, textTransform: 'uppercase' }}>{TASK_PRIORITY_META[t.priority].label}</span>
+                                    <span style={{ fontSize: 9.5, fontWeight: 700, color: TASK_PRIORITY_META[t.priority].color, background: TASK_PRIORITY_META[t.priority].bg, padding: 'var(--badge-py-sm) var(--badge-px-sm)', borderRadius: 'var(--badge-radius)', textTransform: 'uppercase' }}>{TASK_PRIORITY_META[t.priority].label}</span>
                                   )}
                                 </div>
                               )}
@@ -1184,7 +1193,7 @@ export const ProjectsApp: React.FC = () => {
                           </td>
                           <td style={{ padding: '9px 12px', color: t.due && t.due < new Date().toISOString().slice(0, 10) && !t.completed ? 'var(--red)' : 'var(--ink2)' }}>{t.due || '—'}</td>
                           <td style={{ padding: '9px 12px' }}>
-                            <span style={{ fontSize: 10.5, fontWeight: 700, color: prioMeta.color, background: prioMeta.bg, padding: '2px 8px', borderRadius: 5, textTransform: 'uppercase' }}>{prioMeta.label}</span>
+                            <span style={{ fontSize: 10.5, fontWeight: 700, color: prioMeta.color, background: prioMeta.bg, padding: 'var(--badge-py-sm) var(--badge-px-sm)', borderRadius: 'var(--badge-radius)', textTransform: 'uppercase' }}>{prioMeta.label}</span>
                           </td>
                           <td style={{ padding: '9px 12px', color: 'var(--ink2)' }}>
                             {t.assigneeName ? (
@@ -1274,10 +1283,10 @@ export const ProjectsApp: React.FC = () => {
                     {(milestones || []).map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
-                <div style={{ display: 'flex', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, padding: 2 }}>
+                <div style={{ display: 'flex', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: 2 }}>
                   {(['weeks', 'months'] as const).map(z => (
                     <button key={z} type="button" onClick={() => setGanttZoom(z)}
-                      style={{ padding: '5px 12px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, textTransform: 'capitalize', background: ganttZoom === z ? 'var(--white)' : 'transparent', color: ganttZoom === z ? 'var(--teal)' : 'var(--ink3)', boxShadow: ganttZoom === z ? 'var(--elev-sm)' : 'none' }}>
+                      style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r-sm)', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, textTransform: 'capitalize', background: ganttZoom === z ? 'var(--white)' : 'transparent', color: ganttZoom === z ? 'var(--teal)' : 'var(--ink3)', boxShadow: ganttZoom === z ? 'var(--elev-sm)' : 'none' }}>
                       {z}
                     </button>
                   ))}
@@ -1568,7 +1577,7 @@ export const ProjectsApp: React.FC = () => {
                   autoFocus value={ticketSubject} onChange={e => setTicketSubject(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') createProjectTicket(); if (e.key === 'Escape') setCreatingTicket(false); }}
                   placeholder="Ticket subject…"
-                  style={{ flex: 1, minWidth: 220, padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, background: 'var(--white)', color: 'var(--ink)' }}
+                  style={{ flex: 1, minWidth: 220, padding: 'var(--ds-input-py, 7px) 10px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, background: 'var(--white)', color: 'var(--ink)' }}
                 />
                 <Button size="sm" onClick={createProjectTicket} disabled={!ticketSubject.trim()}>Create</Button>
                 <Button size="sm" variant="outline" onClick={() => setCreatingTicket(false)}>Cancel</Button>
@@ -1718,7 +1727,7 @@ function MilestonesTab({ milestones, onAdd, onUpdate, onDelete }: {
           value={newName} onChange={e => setNewName(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter' && newName.trim()) { onAdd(newName.trim()); setNewName(''); } }}
           placeholder="New milestone name…"
-          style={{ flex: 1, padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13.5, background: 'var(--white)', color: 'var(--ink)' }}
+          style={{ flex: 1, padding: 'var(--ds-input-py, 7px) 10px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13.5, background: 'var(--white)', color: 'var(--ink)' }}
         />
         <Button size="sm" onClick={() => { if (newName.trim()) { onAdd(newName.trim()); setNewName(''); } }} disabled={!newName.trim()}>Add</Button>
       </div>
@@ -1870,7 +1879,7 @@ function TaskDetailDrawer({ task, milestones, otherTasks, onClose, onDelete }: {
                 type="number" min={0} step={0.5} defaultValue={task.hourlyRate ?? ''}
                 onBlur={e => updateTodo(task.id, { hourlyRate: e.target.value ? Number(e.target.value) : null })}
                 placeholder="0.00"
-                style={{ width: 90, padding: '5px 8px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 13, color: 'var(--ink)' }}
+                style={{ width: 90, padding: 'var(--ds-input-py, 7px) 8px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, color: 'var(--ink)' }}
               />
               <span style={{ fontSize: 12, color: 'var(--ink3)' }}>/ hour</span>
             </div>
@@ -1911,7 +1920,7 @@ function TaskDetailDrawer({ task, milestones, otherTasks, onClose, onDelete }: {
             onBlur={e => updateTodo(task.id, { notes: e.target.value })}
             rows={4}
             placeholder="Add notes…"
-            style={{ width: '100%', padding: 8, border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, color: 'var(--ink)', fontFamily: 'var(--font)', resize: 'vertical', boxSizing: 'border-box' }}
+            style={{ width: '100%', padding: 'var(--ds-input-py, 7px) 8px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, color: 'var(--ink)', fontFamily: 'var(--font)', resize: 'vertical', boxSizing: 'border-box' }}
           />
         </div>
         <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--ink2)', cursor: 'pointer' }}>
@@ -1933,7 +1942,7 @@ function TaskDetailDrawer({ task, milestones, otherTasks, onClose, onDelete }: {
               <input
                 type="number" min={1} max={365} value={task.recurrenceRule.interval}
                 onChange={e => updateTodo(task.id, { recurrenceRule: { ...task.recurrenceRule!, interval: Math.max(1, Number(e.target.value) || 1) } })}
-                style={{ width: 50, padding: '4px 6px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12.5 }}
+                style={{ width: 50, padding: 'var(--ds-btn-py-xs) 6px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 12.5 }}
               />
               <Select value={task.recurrenceRule.freq} onValueChange={v => updateTodo(task.id, { recurrenceRule: { ...task.recurrenceRule!, freq: v as 'daily' | 'weekly' | 'monthly' } })}>
                 <SelectTrigger className="h-7 text-xs" style={{ width: 100 }}><SelectValue /></SelectTrigger>

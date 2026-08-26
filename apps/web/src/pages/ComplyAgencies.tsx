@@ -104,7 +104,7 @@ export function ComplyAgencies() {
               </button>
             </div>
             <div style={{ padding: '20px 24px', flex: 1, display: 'flex', flexDirection: 'column', gap: 20 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+              <div className="comply-grid-2" style={{ gap: 14, marginBottom: 0 }}>
                 {[
                   { label: 'Category', val: selected.category },
                   { label: 'Location', val: selected.location },

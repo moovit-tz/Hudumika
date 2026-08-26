@@ -113,8 +113,8 @@ export const SupportChat: React.FC = () => {
               {messages.map(m => (
                 <div key={m.id} style={{ display: 'flex', justifyContent: m.sender_type === 'agent' ? 'flex-end' : 'flex-start', marginBottom: 12 }}>
                   <div style={{
-                    background: m.sender_type === 'agent' ? 'var(--teal)' : 'var(--white)',
-                    color: m.sender_type === 'agent' ? '#fff' : 'var(--ink)',
+                    background: m.sender_type === 'agent' ? 'hsl(var(--primary))' : 'var(--white)',
+                    color: m.sender_type === 'agent' ? 'hsl(var(--primary-foreground))' : 'var(--ink)',
                     padding: '12px 16px',
                     borderRadius: m.sender_type === 'agent' ? '12px 0 12px 12px' : '0 12px 12px 12px',
                     border: m.sender_type === 'agent' ? 'none' : '1px solid var(--border)',

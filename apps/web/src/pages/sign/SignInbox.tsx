@@ -159,19 +159,6 @@ export function SignInbox({ view }: { view: ViewKey }) {
 
       {/* Toolbar */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingBottom: 16 }}>
-        <div style={{ position: 'relative', flex: 1 }}>
-          <Icon name="search" size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)', pointerEvents: 'none' }} />
-          <input
-            type="search" placeholder="Search envelopes by title…" value={search}
-            onChange={e => setSearch(e.target.value)}
-            style={{ width: '100%', padding: '9px 14px 9px 34px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13.5, outline: 'none', transition: 'border-color 0.15s, box-shadow 0.15s', boxSizing: 'border-box' }}
-          />
-          {search && (
-            <button type="button" onClick={() => setSearch('')} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', padding: 2, display: 'flex', alignItems: 'center' }}>
-              <Icon name="x" size={13} />
-            </button>
-          )}
-        </div>
         <div className="sign-view-toggle">
           {(['list', 'grid'] as const).map(m => (
             <button key={m} type="button" onClick={() => setViewMode(m)} title={m === 'list' ? 'List view' : 'Grid view'}
@@ -180,9 +167,22 @@ export function SignInbox({ view }: { view: ViewKey }) {
             </button>
           ))}
         </div>
-        <Button variant="default" onClick={() => navigate('/sign/editor')} style={{ background: 'var(--teal)', color: '#fff', fontWeight: 600 }}>
+        <Button variant="default" onClick={() => navigate('/sign/editor')} style={{ fontWeight: 600 }}>
           <Icon name="plus" size={14} /> New Envelope
         </Button>
+        <div style={{ position: 'relative', width: '100%', maxWidth: 320, marginLeft: 'auto' }}>
+          <Icon name="search" size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)', pointerEvents: 'none' }} />
+          <input
+            type="search" placeholder="Search envelopes by title…" value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={{ width: '100%', padding: '9px 14px 9px 34px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13.5, outline: 'none', transition: 'border-color 0.15s, box-shadow 0.15s', boxSizing: 'border-box' }}
+          />
+          {search && (
+            <button type="button" onClick={() => setSearch('')} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', padding: 2, display: 'flex', alignItems: 'center' }}>
+              <Icon name="x" size={13} />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* List / grid */}
@@ -206,7 +206,7 @@ export function SignInbox({ view }: { view: ViewKey }) {
               {search ? 'Try adjusting your search terms.' : view === 'inbox' ? 'When someone sends you a document to sign, it will appear here.' : 'Create a new envelope to get started.'}
             </div>
             {view !== 'inbox' && !search && (
-              <Button variant="default" onClick={() => navigate('/sign/editor')} style={{ marginTop: 8, background: 'var(--teal)', color: '#fff' }}>
+              <Button variant="default" onClick={() => navigate('/sign/editor')} style={{ marginTop: 8 }}>
                 <Icon name="plus" size={14} /> Create Envelope
               </Button>
             )}
@@ -263,9 +263,9 @@ export function ShareEnvelopeModal({ env, onClose }: { env: EnvelopeWithRecipien
                 <input
                   readOnly
                   value={verifyUrl}
-                  style={{ flex: 1, padding: '8px 12px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 12.5, fontFamily: 'monospace' }}
+                  style={{ flex: 1, padding: '8px 12px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 12.5, fontFamily: 'monospace' }}
                 />
-                <Button variant="default" size="sm" onClick={() => copy(verifyUrl, 'verify')} style={{ background: 'var(--teal)', color: '#fff', fontWeight: 600, whiteSpace: 'nowrap', borderRadius: 6 }}>
+                <Button variant="default" size="sm" onClick={() => copy(verifyUrl, 'verify')} style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
                   <Icon name={copiedKey === 'verify' ? 'check' : 'copy'} size={13} />
                   {copiedKey === 'verify' ? 'Copied!' : 'Copy Link'}
                 </Button>
@@ -286,9 +286,9 @@ export function ShareEnvelopeModal({ env, onClose }: { env: EnvelopeWithRecipien
                 <input
                   readOnly
                   value={downloadUrl}
-                  style={{ flex: 1, padding: '8px 12px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 12.5, fontFamily: 'monospace' }}
+                  style={{ flex: 1, padding: '8px 12px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 12.5, fontFamily: 'monospace' }}
                 />
-                <Button variant="outline" size="sm" onClick={() => copy(downloadUrl, 'download')} style={{ borderRadius: 6, whiteSpace: 'nowrap' }}>
+                <Button variant="outline" size="sm" onClick={() => copy(downloadUrl, 'download')} style={{ whiteSpace: 'nowrap' }}>
                   <Icon name={copiedKey === 'download' ? 'check' : 'copy'} size={13} />
                   {copiedKey === 'download' ? 'Copied!' : 'Copy PDF Link'}
                 </Button>
@@ -303,10 +303,10 @@ export function ShareEnvelopeModal({ env, onClose }: { env: EnvelopeWithRecipien
                 Verification Code
               </label>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <div style={{ padding: '8px 14px', borderRadius: 6, background: 'var(--bg)', border: '1px solid var(--border)', fontFamily: 'monospace', fontWeight: 700, fontSize: 14, color: 'var(--teal)', letterSpacing: '0.06em', flex: 1 }}>
+                <div style={{ padding: '8px 14px', borderRadius: 'var(--r-sm)', background: 'var(--bg)', border: '1px solid var(--border)', fontFamily: 'monospace', fontWeight: 700, fontSize: 14, color: 'var(--teal)', letterSpacing: '0.06em', flex: 1 }}>
                   {env.verification_code}
                 </div>
-                <Button variant="outline" size="sm" onClick={() => copy(env.verification_code!, 'code')} style={{ borderRadius: 6 }}>
+                <Button variant="outline" size="sm" onClick={() => copy(env.verification_code!, 'code')}>
                   <Icon name={copiedKey === 'code' ? 'check' : 'copy'} size={13} />
                   {copiedKey === 'code' ? 'Copied!' : 'Copy Code'}
                 </Button>
@@ -456,7 +456,7 @@ export function SignEnvelopeDetail() {
             {env.status === 'draft' && (
               <>
                 <Button variant="outline" size="sm" onClick={() => navigate(`/sign/editor/${env.id}`)}>Edit</Button>
-                <Button variant="default" size="sm" onClick={handleSend} style={{ background: 'var(--teal)', color: '#fff' }}>Send for Signing</Button>
+                <Button variant="default" size="sm" onClick={handleSend}>Send for Signing</Button>
               </>
             )}
             {env.status === 'sent' && (

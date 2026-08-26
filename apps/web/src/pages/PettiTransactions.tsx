@@ -368,7 +368,7 @@ export function PettiTransactions() {
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 10 }}>
                 <Button variant="outline" onClick={() => setSelectedTx(null)}>Close</Button>
-                <Button onClick={() => printVoucher(selectedTx)} style={{ background: 'var(--teal)', color: '#fff' }}>
+                <Button onClick={() => printVoucher(selectedTx)}>
                   <Icon name="printer" size={14} /> Print Voucher Receipt
                 </Button>
               </div>

@@ -5,6 +5,7 @@ import { RichTextEditor } from '../components/RichTextEditor.js';
 import type { CmsPage } from '@hudumika/types';
 import { showAlert } from '../lib/alert.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 
 function PageHdr({ title, sub, action }: { title: string; sub: string; action?: React.ReactNode }) {
   return (
@@ -143,15 +144,13 @@ export function AdminCMSPages() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
             <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Editing: {editing.title}</h2>
             <div style={{ display: 'flex', gap: 8 }}>
-              <select
-                value={editing.status}
-                onChange={e => setEditing({ ...editing, status: e.target.value as any })}
-                className="input-field"
-                style={{ width: 120, height: 32 }}
-              >
-                <option value="draft">Draft</option>
-                <option value="published">Published</option>
-              </select>
+              <Select value={editing.status} onValueChange={v => setEditing({ ...editing, status: v as any })}>
+                <SelectTrigger style={{ width: 120, minHeight: 'var(--ctl-h-sm)' }}><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="draft">Draft</SelectItem>
+                  <SelectItem value="published">Published</SelectItem>
+                </SelectContent>
+              </Select>
               <button type="button" className="btn btn-primary btn-sm" disabled={saving} onClick={() => handleSave(editing)}>
                 {saving ? 'Saving…' : 'Save Changes'}
               </button>

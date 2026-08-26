@@ -7,6 +7,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { Combobox } from '../components/ui/combobox.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { BackButton } from '../components/ui/BackButton.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 const CATS: Record<string, string> = {
   PORT_CHARGES: 'Port Charges', CUSTOMS_DUTY: 'Customs Duty', FREIGHT: 'Freight',
@@ -93,7 +94,12 @@ export const FinanceExpenseNew: React.FC = () => {
   return (
     <div style={{ padding: 24 }}>
       <BackButton to="/finance/expenses" label="Expenses" />
-      <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--ink)', marginBottom: 20 }}>Add Expense / Revenue</div>
+      <PageHeader
+        crumbs={['FinOps', 'Expenses', 'New']}
+        titlePlain="New"
+        titleEm="expense"
+        subtitle="Record a cost or revenue line — link it to a shipment or customer if it belongs to one."
+      />
 
       <form onSubmit={submit} style={{ ...cardStyle, display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div style={{ display: 'flex', gap: 14 }}>

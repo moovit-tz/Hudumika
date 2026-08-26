@@ -164,12 +164,15 @@ export function SealExWarehouseEntryDetail() {
                     </div>
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end' }}>
                       <input type="text" className="input-field" style={{ width: 220 }} value={submissionReference} onChange={e => setSubmissionReference(e.target.value)} placeholder="Submission reference (from TANESW)" />
-                      <select className="input-field" style={{ width: 200 }} value={selectivityChannel} onChange={e => setSelectivityChannel(e.target.value as any)}>
-                        <option value="">Selectivity channel…</option>
-                        <option value="GREEN">GREEN — no examination</option>
-                        <option value="YELLOW">YELLOW — document check</option>
-                        <option value="RED">RED — physical exam</option>
-                      </select>
+                      <Select value={selectivityChannel || '__none__'} onValueChange={v => setSelectivityChannel((v === '__none__' ? '' : v) as any)}>
+                        <SelectTrigger style={{ width: 200 }}><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none__">Selectivity channel…</SelectItem>
+                          <SelectItem value="GREEN">GREEN — no examination</SelectItem>
+                          <SelectItem value="YELLOW">YELLOW — document check</SelectItem>
+                          <SelectItem value="RED">RED — physical exam</SelectItem>
+                        </SelectContent>
+                      </Select>
                       <button type="button" className="btn btn-primary" disabled={busy || !submissionReference.trim() || !selectivityChannel} onClick={handleSubmitDeclaration}>{busy ? 'Submitting…' : 'Confirm Submission'}</button>
                       <button type="button" className="btn btn-secondary" onClick={() => setShowSubmit(false)}>Cancel</button>
                     </div>

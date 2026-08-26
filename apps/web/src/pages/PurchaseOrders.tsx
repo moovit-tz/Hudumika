@@ -794,10 +794,10 @@ export const PurchaseOrders: React.FC = () => {
                       top: 4,
                       bottom: 4,
                       padding: '0 12px',
-                      background: 'var(--teal)',
+                      background: 'hsl(var(--primary))',
                       border: 'none',
                       borderRadius: 'var(--r)',
-                      color: '#fff',
+                      color: 'hsl(var(--primary-foreground))',
                       fontSize: 12,
                       fontWeight: 600,
                       cursor: 'pointer'

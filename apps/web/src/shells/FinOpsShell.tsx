@@ -50,6 +50,7 @@ function buildNav(t: TFunction): SidebarSection[] {
         { label: t('finance.nav.trialBalance'),     icon: 'barChart',   path: '/finance/accounts/trial-balance'       },
         { label: t('finance.nav.balanceSheet'),     icon: 'layers',     path: '/finance/accounts/balance-sheet'       },
         { label: t('finance.nav.profitLoss'),       icon: 'trendingUp', path: '/finance/accounts/profit-loss'         },
+        { label: 'Equity Statement',                 icon: 'trendingUp', path: '/finance/accounts/equity-statement'    },
         { label: t('finance.nav.agedReceivables'),  icon: 'clock',      path: '/finance/accounts/aged-receivables'    },
         { label: t('finance.nav.agedPayables'),     icon: 'clock',      path: '/finance/accounts/aged-payables'       },
         { label: 'Multi-Entity',                    icon: 'building',   path: '/finance/accounts/multi-entity'        },
@@ -97,6 +98,7 @@ import { FinanceLedger }          from '../pages/FinanceLedger.js';
 import { FinanceTrialBalance }    from '../pages/FinanceTrialBalance.js';
 import { FinanceBalanceSheet }    from '../pages/FinanceBalanceSheet.js';
 import { FinanceProfitLoss }      from '../pages/FinanceProfitLoss.js';
+import { FinanceEquityStatement } from '../pages/FinanceEquityStatement.js';
 import { FinanceAgedReceivables } from '../pages/FinanceAgedReceivables.js';
 import { FinanceAgedPayables }    from '../pages/FinanceAgedPayables.js';
 import { MultiEntityAccounting }  from '../pages/MultiEntityAccounting.js';
@@ -163,6 +165,7 @@ export function FinOpsShell() {
             <Route path="trial-balance"   element={<RequireRoles roles={FIN_ROLES}><FinanceTrialBalance /></RequireRoles>} />
             <Route path="balance-sheet"   element={<RequireRoles roles={FIN_ROLES}><FinanceBalanceSheet /></RequireRoles>} />
             <Route path="profit-loss"     element={<RequireRoles roles={FIN_ROLES}><FinanceProfitLoss /></RequireRoles>} />
+            <Route path="equity-statement" element={<RequireRoles roles={FIN_ROLES}><FinanceEquityStatement /></RequireRoles>} />
             <Route path="aged-receivables"element={<RequireRoles roles={FIN_ROLES}><FinanceAgedReceivables /></RequireRoles>} />
             <Route path="aged-payables"   element={<RequireRoles roles={FIN_ROLES}><FinanceAgedPayables /></RequireRoles>} />
             <Route path="multi-entity"    element={<RequireRoles roles={FIN_ROLES}><MultiEntityAccounting /></RequireRoles>} />

@@ -22,6 +22,7 @@ import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { Combobox } from '../components/ui/combobox.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { showConfirm } from '../lib/confirm.js';
 import { PageHeader } from '../components/PageHeader.js';
 
@@ -640,20 +641,20 @@ export const OrgChart: React.FC = () => {
         titleEm="chart"
         subtitle="Who reports to whom — drag nodes, connect handles to set reporting lines, or sync staff directory."
         actions={
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'nowrap', whiteSpace: 'nowrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             {dirty && (
-              <span style={{ fontSize: 11, color: 'var(--gold)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4, marginRight: 4 }}>
+              <span style={{ fontSize: 11, color: 'var(--gold)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4, marginRight: 4, whiteSpace: 'nowrap' }}>
                 <Icon name="clock" size={11} color="#f59e0b" /> Auto-saving…
               </span>
             )}
-            <button type="button" className="btn btn-secondary btn-sm" onClick={syncStaff} disabled={saving} title="Import unlinked staff from HR directory">
+            <button type="button" className="btn btn-secondary btn-sm" onClick={syncStaff} disabled={saving} title="Import unlinked staff from HR directory" style={{ whiteSpace: 'nowrap' }}>
               <Icon name="users" size={13} /> Sync Staff
             </button>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={autoLayout} title="Auto-organize graph hierarchy">
+            <button type="button" className="btn btn-secondary btn-sm" onClick={autoLayout} title="Auto-organize graph hierarchy" style={{ whiteSpace: 'nowrap' }}>
               <Icon name="zap" size={13} /> Auto Layout
             </button>
-            <button type="button" className="btn btn-primary btn-sm" onClick={() => { setAddForm({ label: '', job_title: '', department: '', color: '#0891b2', parent_id: '', user_id: '' }); setShowAdd(true); }}>
-              <Icon name="userPlus" size={13} color="#fff" /> Add Node
+            <button type="button" className="btn btn-primary btn-sm" onClick={() => { setAddForm({ label: '', job_title: '', department: '', color: '#0891b2', parent_id: '', user_id: '' }); setShowAdd(true); }} style={{ whiteSpace: 'nowrap' }}>
+              <Icon name="userPlus" size={13} color="hsl(var(--primary-foreground))" /> Add Node
             </button>
           </div>
         }
@@ -672,8 +673,21 @@ export const OrgChart: React.FC = () => {
         </div>
       )}
 
-      {/* ── Canvas + Sidebar ── */}
-      <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+      {/* ── Canvas + Sidebar ──
+          `flex: 1` alone depends on every ancestor up to `.page-layout`
+          resolving a definite height, and `.page-layout` (OnePi.css) only sets
+          `min-height: 100%` — not `height` — so it never counts as definite for
+          a percentage-height descendant, and neither does a flex item whose own
+          size only came from a `min-height` floor rather than a real `height`
+          or `flex-basis`. ReactFlow sets itself to `height: 100%` internally;
+          against an indefinite parent that resolves to 0, so it renders nothing
+          — no canvas, no Controls, no MiniMap, not even the "N Nodes" panel,
+          confirmed via computed style (0px) and React Flow's own "parent
+          container needs a width and a height" console warning. `calc(100vh -
+          …)` is definite regardless of that chain — it resolves against the
+          viewport, not any ancestor — so the diagram always has somewhere real
+          to draw into; `minHeight` is only the floor for very short viewports. */}
+      <div style={{ height: 'calc(100vh - 300px)', minHeight: 480, position: 'relative', overflow: 'hidden' }}>
         <ReactFlow
           nodes={displayedNodes}
           edges={edges}
@@ -717,13 +731,17 @@ export const OrgChart: React.FC = () => {
                 </span>
               </div>
 
-              <select value={filterDept} onChange={e => setFilterDept(e.target.value)}
-                style={{ width: '100%', padding: '6px 8px', fontSize: 12, borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', marginBottom: 8 }}>
-                <option value="">All Departments</option>
-                {Object.keys(DEPT_COLORS).map(d => (
-                  <option key={d} value={d}>{d}</option>
-                ))}
-              </select>
+              <div style={{ marginBottom: 8 }}>
+                <Select value={filterDept || '__all__'} onValueChange={v => setFilterDept(v === '__all__' ? '' : v)}>
+                  <SelectTrigger style={{ minHeight: 30, fontSize: 12 }}><SelectValue placeholder="All Departments" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">All Departments</SelectItem>
+                    {Object.keys(DEPT_COLORS).map(d => (
+                      <SelectItem key={d} value={d}>{d}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                 {Object.entries(DEPT_COLORS).slice(0, 5).map(([dept, color]) => (
@@ -845,8 +863,8 @@ export const OrgChart: React.FC = () => {
                 Cancel
               </button>
               <button type="button" onClick={onAddNode} disabled={saving || !addForm.label.trim()}
-                style={{ flex: 2, padding: '10px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)',
-                  cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#fff', fontFamily: 'var(--font)',
+                style={{ flex: 2, padding: '10px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))',
+                  cursor: 'pointer', fontSize: 13, fontWeight: 700, color: 'hsl(var(--primary-foreground))', fontFamily: 'var(--font)',
                   opacity: !addForm.label.trim() ? 0.5 : 1 }}>
                 {saving ? 'Adding…' : 'Add to Chart'}
               </button>

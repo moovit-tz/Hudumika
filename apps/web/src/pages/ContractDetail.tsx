@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
+import { PageHeader } from '../components/PageHeader.js';
 import { Button } from '../components/ui/button.js';
 import { Badge } from '../components/ui/badge.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
@@ -147,12 +148,12 @@ export const ContractDetail: React.FC = () => {
         <button type="button" onClick={() => navigate('/projects/contracts')} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 12.5, fontWeight: 600, padding: 0, marginBottom: 10 }}>
           <Icon name="arrowLeft" size={13} /> All contracts
         </button>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
-          <div>
-            <h1 style={{ fontSize: isMobile ? 20 : 22, fontWeight: 800, color: 'var(--ink)', margin: 0 }}>{contract.subject}</h1>
-            <div style={{ fontSize: 11.5, color: 'var(--ink4)', marginTop: 2 }}>{contract.ref}</div>
-          </div>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <PageHeader
+          crumbs={['Projects', 'Contracts', contract.subject]}
+          titlePlain="Contract"
+          titleEm="detail"
+          subtitle={contract.ref ? `${contract.subject} — ${contract.ref}` : contract.subject}
+          actions={<div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             {(() => {
               const meta = contract.sign_envelope_id ? (SIGN_STATUS_META[contract.envelope_status || 'draft'] || SIGN_STATUS_META.draft) : { label: 'Not Sent', variant: 'gray' as const };
               const badge = <Badge variant={meta.variant}>{meta.label}</Badge>;
@@ -172,8 +173,8 @@ export const ContractDetail: React.FC = () => {
             <Button size="sm" variant="outline" onClick={() => id && apiDownload(`/v1/contracts/${id}/pdf`, `${contract.ref || 'contract'}.pdf`)}>
               <Icon name="download" size={13} /> Download
             </Button>
-          </div>
-        </div>
+          </div>}
+        />
         {contract.signed_at && (
           <div style={{ fontSize: 11.5, color: 'var(--green)', marginTop: 4 }}>Signed {new Date(contract.signed_at).toLocaleString()}</div>
         )}
@@ -181,7 +182,7 @@ export const ContractDetail: React.FC = () => {
         <div style={{ display: 'flex', gap: 4, marginTop: 18, borderBottom: '1px solid var(--border)' }}>
           {(['info', 'content', 'attachments', 'comments'] as const).map(t => (
             <button key={t} type="button" onClick={() => setTab(t)}
-              style={{ padding: '8px 14px', background: 'none', border: 'none', borderBottom: `2px solid ${tab === t ? 'var(--teal)' : 'transparent'}`, color: tab === t ? 'var(--teal)' : 'var(--ink3)', fontWeight: tab === t ? 700 : 500, fontSize: 13.5, cursor: 'pointer', textTransform: 'capitalize' }}>
+              style={{ padding: 'var(--ds-btn-py) 14px', background: 'none', border: 'none', borderBottom: `2px solid ${tab === t ? 'var(--teal)' : 'transparent'}`, color: tab === t ? 'var(--teal)' : 'var(--ink3)', fontWeight: tab === t ? 700 : 500, fontSize: 13.5, cursor: 'pointer', textTransform: 'capitalize' }}>
               {t === 'info' ? 'Contract Information' : t}
             </button>
           ))}
@@ -205,17 +206,17 @@ export const ContractDetail: React.FC = () => {
             <div>
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', marginBottom: 4 }}>Subject</div>
               <input defaultValue={contract.subject} onBlur={e => e.target.value.trim() && patch({ subject: e.target.value.trim() })}
-                style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13.5, color: 'var(--ink)', boxSizing: 'border-box' }} />
+                style={{ width: '100%', padding: 'var(--ds-input-py, 7px) 10px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13.5, color: 'var(--ink)', boxSizing: 'border-box' }} />
             </div>
             <div>
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', marginBottom: 4 }}>Contract Value ({contract.currency})</div>
               <input type="number" min={0} defaultValue={contract.value ?? ''} onBlur={e => patch({ value: e.target.value ? Number(e.target.value) : null })}
-                style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13.5, color: 'var(--ink)', boxSizing: 'border-box' }} />
+                style={{ width: '100%', padding: 'var(--ds-input-py, 7px) 10px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13.5, color: 'var(--ink)', boxSizing: 'border-box' }} />
             </div>
             <div>
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', marginBottom: 4 }}>Contract Type</div>
               <input list="contract-types" defaultValue={contract.type ?? ''} onBlur={e => patch({ type: e.target.value || null })}
-                style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13.5, color: 'var(--ink)', boxSizing: 'border-box' }} />
+                style={{ width: '100%', padding: 'var(--ds-input-py, 7px) 10px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13.5, color: 'var(--ink)', boxSizing: 'border-box' }} />
               <datalist id="contract-types">{SUGGESTED_TYPES.map(t => <option key={t} value={t} />)}</datalist>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
@@ -231,7 +232,7 @@ export const ContractDetail: React.FC = () => {
             <div>
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', marginBottom: 4 }}>Description</div>
               <textarea defaultValue={contract.description ?? ''} onBlur={e => patch({ description: e.target.value })} rows={5}
-                style={{ width: '100%', padding: 10, border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, color: 'var(--ink)', fontFamily: 'var(--font)', resize: 'vertical', boxSizing: 'border-box' }} />
+                style={{ width: '100%', padding: 'var(--ds-input-py, 7px) 10px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, color: 'var(--ink)', fontFamily: 'var(--font)', resize: 'vertical', boxSizing: 'border-box' }} />
             </div>
 
             <div>
@@ -239,7 +240,7 @@ export const ContractDetail: React.FC = () => {
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10, flexWrap: 'wrap' }}>
                 <DatePicker date={renewDate} onChange={setRenewDate} placeholder="New end date" />
                 <input value={renewNote} onChange={e => setRenewNote(e.target.value)} placeholder="Note (optional)"
-                  style={{ flex: 1, minWidth: 160, padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12.5, color: 'var(--ink)' }} />
+                  style={{ flex: 1, minWidth: 160, padding: 'var(--ds-input-py, 7px) 10px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 12.5, color: 'var(--ink)' }} />
                 <Button size="sm" onClick={submitRenewal} disabled={!renewDate || renewing}>{renewing ? 'Renewing…' : 'Renew'}</Button>
               </div>
               {contract.renewals.length > 0 && (
@@ -264,7 +265,7 @@ export const ContractDetail: React.FC = () => {
               onBlur={e => patch({ content: e.target.value })}
               rows={20}
               placeholder="Contract body / terms…"
-              style={{ width: '100%', padding: 12, border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, color: 'var(--ink)', fontFamily: 'var(--font)', resize: 'vertical', boxSizing: 'border-box', lineHeight: 1.6 }}
+              style={{ width: '100%', padding: 'var(--ds-input-py, 7px) 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, color: 'var(--ink)', fontFamily: 'var(--font)', resize: 'vertical', boxSizing: 'border-box', lineHeight: 1.6 }}
             />
           </div>
         )}
@@ -297,7 +298,7 @@ export const ContractDetail: React.FC = () => {
               <input value={newComment} onChange={e => setNewComment(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') postComment(); }}
                 placeholder="Add a comment…"
-                style={{ flex: 1, padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13.5, color: 'var(--ink)' }} />
+                style={{ flex: 1, padding: 'var(--ds-input-py, 7px) 10px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13.5, color: 'var(--ink)' }} />
               <Button size="sm" onClick={postComment} disabled={!newComment.trim()}>Post</Button>
             </div>
             {comments === null ? (

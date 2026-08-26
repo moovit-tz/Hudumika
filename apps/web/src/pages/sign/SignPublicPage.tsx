@@ -9,6 +9,7 @@ import { Icon } from '../../components/Icon.js';
 import { BASE_URL } from '../../lib/api.js';
 import { Button } from '../../components/ui/button.js';
 import { SignaturePad } from '../../components/SignaturePad.js';
+import { DatePicker, parseDateOnly, toDateOnlyString } from '../../components/ui/date-picker.js';
 import { pickForegroundHsl } from '../../lib/color.js';
 import '../sign/Sign.css';
 
@@ -250,7 +251,7 @@ export function SignPublicPage() {
           )}
 
           <a href={`${BASE_URL}/v1/sign/public/${token}/download`} download
-            style={{ display: 'block', textAlign: 'center', width: '100%', padding: '10px 16px', borderRadius: 6, background: 'var(--teal)', color: '#fff', fontSize: 13.5, fontWeight: 600, textDecoration: 'none', marginBottom: 12, boxSizing: 'border-box' }}>
+            style={{ display: 'block', textAlign: 'center', width: '100%', padding: '10px 16px', borderRadius: 6, background: accent, color: accentFg, fontSize: 13.5, fontWeight: 600, textDecoration: 'none', marginBottom: 12, boxSizing: 'border-box' }}>
             Download Signed PDF
           </a>
           <Button variant="outline" onClick={() => window.close()}
@@ -547,9 +548,12 @@ export function SignPublicPage() {
                     <span style={{ fontSize: 13, color: 'var(--ink)' }}>{field.placeholder ?? 'I agree'}</span>
                   </label>
                 ) : field.field_type === 'date' ? (
-                  <input type="date" value={fieldValues[field.id] ?? ''}
-                    onChange={e => setFieldValues(prev => ({ ...prev, [field.id]: e.target.value }))}
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, boxSizing: 'border-box' }} />
+                  <DatePicker
+                    date={parseDateOnly(fieldValues[field.id])}
+                    onChange={d => setFieldValues(prev => ({ ...prev, [field.id]: toDateOnlyString(d) }))}
+                    placeholder="Select date"
+                    triggerClassName="w-full"
+                  />
                 ) : (
                   <input value={fieldValues[field.id] ?? ''} placeholder={field.placeholder ?? ''}
                     onChange={e => setFieldValues(prev => ({ ...prev, [field.id]: e.target.value }))}

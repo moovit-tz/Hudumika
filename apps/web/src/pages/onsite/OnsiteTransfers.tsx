@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../../lib/api.js';
 import { showAlert } from '../../lib/alert.js';
 import { Icon } from '../../components/Icon.js';
+import { PageHeader } from '../../components/PageHeader.js';
 import './Onsite.css';
 
 export function OnsiteTransfers() {
@@ -41,16 +42,12 @@ export function OnsiteTransfers() {
 
   return (
     <div className="onsite-page">
-      {/* Breadcrumb & Title */}
-      <div style={{ fontSize: '0.8125rem', color: '#71717a', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-        <Link to="/onsite/domains" style={{ color: '#71717a', textDecoration: 'none' }}>Domain portfolio</Link>
-        <span>›</span>
-        <span>Transfer domain</span>
-      </div>
-
-      <div className="onsite-header-title">
-        <h1>Transfers</h1>
-      </div>
+      <PageHeader
+        crumbs={[{ label: 'Onsite', to: '/onsite' }, { label: 'Domain portfolio', to: '/onsite/domains' }, 'Transfer domain']}
+        titlePlain="Domain"
+        titleEm="transfers"
+        subtitle="Transfer a domain you have registered elsewhere or move a domain to another Onsite account."
+      />
 
       {/* Main Transfer Illustration Card (Image 5) */}
       <div className="onsite-transfer-card">

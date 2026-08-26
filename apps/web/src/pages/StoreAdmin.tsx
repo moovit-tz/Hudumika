@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { showAlert } from '../lib/alert.js';
+import { PageHeader } from '../components/PageHeader.js';
 import './Store.css';
 
 export const StoreAdmin: React.FC = () => {
@@ -39,11 +40,13 @@ export const StoreAdmin: React.FC = () => {
   if (loading) return <div style={{ padding: 40 }}>Loading...</div>;
 
   return (
-    <div className="store-main" style={{ padding: '40px' }}>
-      <div className="store-section-header">
-        <h3 className="store-section-title">Store Admin</h3>
-        <span className="store-section-count">Manage App Submissions</span>
-      </div>
+    <div className="store-main">
+      <PageHeader
+        crumbs={['Store', 'Admin']}
+        titlePlain="Store"
+        titleEm="admin"
+        subtitle="Review and manage app submissions to the Hudumika Store."
+      />
 
       <div style={{ background: 'var(--surface)', borderRadius: '12px', border: '1px solid var(--border)', overflow: 'hidden', marginTop: 20 }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>

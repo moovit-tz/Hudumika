@@ -25,6 +25,18 @@ function dateFmt(d: unknown): string {
   const date = d instanceof Date ? d : new Date(String(d));
   return isNaN(date.getTime()) ? '—' : date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
+// A DATE column comes back from the driver as a literal 'YYYY-MM-DD'
+// string, but a TIMESTAMPTZ column (created_at, the fallback whenever a
+// document has no payment_date/credit_date of its own) comes back as a
+// real JS Date — `String(dateObject)` gives "Tue Aug 26 2026 ..." not an
+// ISO date, which silently fails every `date >= fromDate` string
+// comparison below. Found live: a payment with no payment_date vanished
+// from the statement entirely, its date impossible to compare correctly.
+function dateOnly(d: unknown): string {
+  if (!d) return '';
+  const date = d instanceof Date ? d : new Date(String(d));
+  return isNaN(date.getTime()) ? '' : date.toISOString().slice(0, 10);
+}
 
 interface Txn { date: string; kind: 'INVOICE' | 'PAYMENT' | 'CREDIT_NOTE'; label: string; amount: number }
 
@@ -68,16 +80,31 @@ export async function renderCustomerStatementPdf(tenantId: string, customerId: s
     for (const inv of invoices) {
       const invLines = linesByInvoice.get(inv.id) ?? [];
       const total = invoiceGrandTotal(invLines, inv.currency, Number(inv.exchange_rate) || 1);
-      txns.push({ date: String(inv.bill_date ?? inv.created_at).slice(0, 10), kind: 'INVOICE', label: `Invoice ${inv.invoice_number}`, amount: total });
+      txns.push({ date: dateOnly(inv.bill_date ?? inv.created_at), kind: 'INVOICE', label: `Invoice ${inv.invoice_number}`, amount: total });
     }
     for (const p of payments) {
-      txns.push({ date: String(p.payment_date ?? p.created_at).slice(0, 10), kind: 'PAYMENT', label: `Payment received${p.method ? ` (${p.method})` : ''}`, amount: -Number(p.amount) });
+      txns.push({ date: dateOnly(p.payment_date ?? p.created_at), kind: 'PAYMENT', label: `Payment received${p.method ? ` (${p.method})` : ''}`, amount: -Number(p.amount) });
     }
     for (const cn of creditNotes) {
       const cnl = cnLinesByNote.get(cn.id) ?? [];
       const total = invoiceGrandTotal(cnl, cn.currency, Number(cn.exchange_rate) || 1);
-      txns.push({ date: String(cn.credit_date ?? cn.created_at).slice(0, 10), kind: 'CREDIT_NOTE', label: `Credit note ${cn.credit_note_number}`, amount: -total });
+      txns.push({ date: dateOnly(cn.credit_date ?? cn.created_at), kind: 'CREDIT_NOTE', label: `Credit note ${cn.credit_note_number}`, amount: -total });
     }
+
+    // Customer credits (M10) deliberately do NOT get their own statement
+    // line — tried live, found wrong, reverted rather than shipped. A
+    // customer_credits row isn't a second cash event: it's an internal
+    // label on money already inside the "Payment received" line above
+    // (the same GL entry that clears AR also creates the credit, from one
+    // real payment). Adding it as another reduction double-counted that
+    // same cash — a 150,000 payment against 130,000 of invoices should
+    // net to a 20,000 credit balance, and adding a second -50,000 line for
+    // the credit issuance made it show -70,000 instead. The existing
+    // charges-minus-payments math already states the customer's true
+    // position correctly with nothing added; per-invoice visibility into
+    // *which* charge a credit later settled is a real but separate gap
+    // this statement doesn't attempt to close.
+
     txns.sort((a, b) => a.date.localeCompare(b.date));
 
     const opening = txns.filter(t => t.date < fromDate).reduce((s, t) => s + t.amount, 0);

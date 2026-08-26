@@ -20,6 +20,7 @@ import { requireEntitlement } from '../middleware/entitlement.js';
 import { overtimeAmount } from '../services/attendance.service.js';
 import { MailService } from '../services/mail.service.js';
 import { GLService } from '../services/gl.service.js';
+import { renderPayeReturnPdf } from '../services/paye-return-pdf.service.js';
 import {
   computePayslip, summariseRun,
   type TaxBand, type ContributionScheme, type PayslipResult, type Residency,
@@ -582,6 +583,22 @@ export async function payrollRoutes(fastify: FastifyInstance) {
       }
       return { ok: true, total: slips.length, sent, skipped, failures };
     });
+  });
+
+  // PAYE/SDL filing export (M4) — a filing-support PDF laid out from this
+  // run's real payroll_payslips figures, for a human to transcribe into
+  // TRA's own monthly return; not a submission itself.
+  fastify.get('/runs/:id/paye-return/pdf', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'FINANCE') }, async (req, reply) => {
+    const user = req.user;
+    const { id } = req.params as { id: string };
+    try {
+      const pdf = await renderPayeReturnPdf(user.tenant_id, id);
+      reply.header('Content-Type', 'application/pdf');
+      reply.header('Content-Disposition', `inline; filename="paye-return-${id}.pdf"`);
+      return reply.send(pdf);
+    } catch (err: any) {
+      return reply.status(404).send({ error: err.message });
+    }
   });
 
   // Bank payment file: a CSV of net pay + each employee's bank / mobile-money

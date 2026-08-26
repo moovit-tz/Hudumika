@@ -31,7 +31,10 @@ export async function crmSearchRoutes(fastify: FastifyInstance) {
         let customerQuery = trx.selectFrom('customers')
           .select(['id', 'name', 'email', 'phone', 'phone_wa'])
           .where('tenant_id', '=', tenantId)
-          .where('is_customer', '=', true);
+          .where('is_customer', '=', true)
+          // 338_customer_soft_delete.sql — same list-vs-lookup exclusion
+          // customers.routes.ts's own GET / and GET /partners apply.
+          .where('deleted_at', 'is', null);
         if (query) customerQuery = customerQuery.where('name', 'ilike', `%${query}%`);
 
         let leadQuery = trx.selectFrom('leads')

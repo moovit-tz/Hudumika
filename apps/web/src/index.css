@@ -266,6 +266,11 @@
 
   --page-padding: 8px;
   --content-gap:  16px;
+  --space-xs: 6px;
+  --space-sm: 12px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
 
   --dur-fast: 80ms;
   --dur:      150ms;
@@ -3591,7 +3596,13 @@ select.input-field { cursor: pointer; }
   width: 100%;
   max-width: 100% !important;
   margin: 0;
-  padding: 20px 20px 0;
+  /* --space-lg tracks density (SuperAdmin's compact/default/comfortable
+     setting) the same way every control-size token already does — this was
+     a hardcoded 20px, so changing density visibly resized every button and
+     input on the page but left its own outer gutter completely unmoved.
+     --space-lg resolves to 24px at default density, so this is a ~4px
+     increase from the old hardcoded value, not a jarring shrink. */
+  padding: var(--space-lg, 20px) var(--space-lg, 20px) 0;
   box-sizing: border-box;
   background: var(--white);
   border: 1px solid var(--border);

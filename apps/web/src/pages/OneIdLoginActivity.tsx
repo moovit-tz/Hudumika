@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { apiFetch } from '../lib/api.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 interface LoginEvent {
   id: string; ip: string | null; user_agent: string | null;
@@ -15,9 +16,13 @@ export const OneIdLoginActivity: React.FC = () => {
   }, []);
 
   return (
-    <div style={{ padding: 24 }}>
-      <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--ink)', marginBottom: 2 }}>Login Activity</div>
-      <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 20 }}>Recent sign-in attempts across this tenant</div>
+    <div>
+      <PageHeader
+        crumbs={['OneID', 'Login activity']}
+        titlePlain="Login"
+        titleEm="activity"
+        subtitle="Recent sign-in attempts across this tenant."
+      />
 
       <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>

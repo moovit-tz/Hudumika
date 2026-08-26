@@ -5,6 +5,17 @@ import { withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import { GLService } from '../services/gl.service.js';
 import { CloudSync } from '../services/cloud-sync.service.js';
+import type { Transaction } from 'kysely';
+import type { Database } from '../db/client.js';
+
+/** Expense claims approval (M11) — opt-in, off unless
+ * tenant_settings.finance_expenses_require_approval is set. */
+async function expenseApprovalRequired(trx: Transaction<Database>, tenantId: string): Promise<boolean> {
+  const row = await trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', tenantId).executeTakeFirst();
+  if (!row) return false;
+  const settings = typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings;
+  return settings?.finance_expenses_require_approval === true;
+}
 
 /** A shipment expense's receipt used to live only as a base64 blob inline in
  *  Postgres (finance_expenses.attachment_data) — real, but invisible outside
@@ -251,6 +262,7 @@ export async function financeExpensesRoutes(fastify: FastifyInstance) {
     const body = expenseCreateSchema.parse(request.body);
 
     const row = await withTenant(user.tenant_id, async (trx) => {
+      const requiresApproval = await expenseApprovalRequired(trx, user.tenant_id);
       return trx.insertInto('finance_expenses').values({
         tenant_id: user.tenant_id,
         name: body.name,
@@ -266,12 +278,22 @@ export async function financeExpensesRoutes(fastify: FastifyInstance) {
         is_revenue: !!body.is_revenue,
         attachment_data: body.attachment_data || null,
         created_by: user.sub,
+        // Opted-in tenants hold new expenses for review instead of the
+        // default 'APPROVED' every existing (and opted-out) row carries —
+        // that default is what keeps the GL post below correct without a
+        // second code path for the majority who never turned this on.
+        status: requiresApproval ? 'SUBMITTED' : 'APPROVED',
+        submitted_at: requiresApproval ? new Date() : null,
       }).returningAll().executeTakeFirstOrThrow();
     });
-    // Reflect it in the ledger. Best-effort: a GL failure must not lose the
-    // recorded expense, but it is logged, never silently swallowed.
-    try { await postExpenseToGl(user.tenant_id, row, user.sub); }
-    catch (e: any) { request.log.error({ err: e }, '[Finance] expense GL post failed'); }
+    // Reflect it in the ledger — unless it's now waiting for approval, in
+    // which case POST /:id/approve is what posts it. Best-effort: a GL
+    // failure must not lose the recorded expense, but it is logged, never
+    // silently swallowed.
+    if (row.status === 'APPROVED') {
+      try { await postExpenseToGl(user.tenant_id, row, user.sub); }
+      catch (e: any) { request.log.error({ err: e }, '[Finance] expense GL post failed'); }
+    }
     mirrorExpenseAttachment(user.tenant_id, row).catch(e => request.log.warn({ err: e.message }, '[Cloud] expense attachment mirror failed'));
     return reply.status(201).send(row);
   });
@@ -307,16 +329,62 @@ export async function financeExpensesRoutes(fastify: FastifyInstance) {
         .returningAll().executeTakeFirst();
     });
     if (!row) return reply.status(404).send({ error: 'Expense not found' });
-    // Re-post: drop the prior ledger entry and post the corrected figures, so
-    // a changed amount/category/direction never double-counts in P&L.
-    try {
-      await GLService.reverseBySource(user.tenant_id, 'EXPENSE', id);
-      await postExpenseToGl(user.tenant_id, row, user.sub);
-    } catch (e: any) { request.log.error({ err: e }, '[Finance] expense GL re-post failed'); }
+    // Re-post only if this row was ever actually posted (APPROVED) —
+    // editing a SUBMITTED/REJECTED row (M11) has nothing to reverse yet;
+    // reverseBySource on a row with no active entries is a silent no-op,
+    // but calling it anyway would be a lie about what this edit just did.
+    if (row.status === 'APPROVED') {
+      // Re-post: drop the prior ledger entry and post the corrected figures, so
+      // a changed amount/category/direction never double-counts in P&L.
+      try {
+        await GLService.reverseBySource(user.tenant_id, 'EXPENSE', id, user.sub, 'Expense edited — re-posting corrected figures');
+        await postExpenseToGl(user.tenant_id, row, user.sub);
+      } catch (e: any) { request.log.error({ err: e }, '[Finance] expense GL re-post failed'); }
+    }
     if ('attachment_data' in patch || 'shipment_id' in patch) {
       mirrorExpenseAttachment(user.tenant_id, row).catch(e => request.log.warn({ err: e.message }, '[Cloud] expense attachment mirror failed'));
     }
     return row;
+  });
+
+  /**
+   * POST /v1/finance/expenses/:id/approve (M11) — posts to the GL for the
+   * first time. Role-gated, not per-actor like M9's AP workflow: the plan
+   * for this milestone deliberately needs no per-category approver config.
+   */
+  fastify.post('/expenses/:id/approve', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'FINANCE') }, async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    const row = await withTenant(user.tenant_id, (trx) =>
+      trx.selectFrom('finance_expenses').selectAll().where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst()
+    );
+    if (!row) return reply.status(404).send({ error: 'Expense not found' });
+    if (row.status !== 'SUBMITTED') return reply.status(409).send({ error: 'This expense is not pending approval.' });
+
+    try { await postExpenseToGl(user.tenant_id, row, user.sub); }
+    catch (e: any) { request.log.error({ err: e }, '[Finance] expense GL post failed'); }
+
+    return withTenant(user.tenant_id, (trx) =>
+      trx.updateTable('finance_expenses').set({ status: 'APPROVED', reviewed_by: user.sub, reviewed_at: new Date() })
+        .where('id', '=', id).returningAll().executeTakeFirstOrThrow()
+    );
+  });
+
+  /**
+   * POST /v1/finance/expenses/:id/reject (M11) — never posts to the GL.
+   */
+  fastify.post('/expenses/:id/reject', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'FINANCE') }, async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    const { reason } = z.object({ reason: z.string().trim().min(1).max(1000) }).parse(request.body);
+    return withTenant(user.tenant_id, async (trx) => {
+      const row = await trx.selectFrom('finance_expenses').select(['id', 'status']).where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!row) return reply.status(404).send({ error: 'Expense not found' });
+      if (row.status !== 'SUBMITTED') return reply.status(409).send({ error: 'This expense is not pending approval.' });
+      return trx.updateTable('finance_expenses')
+        .set({ status: 'REJECTED', reviewed_by: user.sub, reviewed_at: new Date(), rejection_reason: reason })
+        .where('id', '=', id).returningAll().executeTakeFirstOrThrow();
+    });
   });
 
   /**
@@ -370,7 +438,7 @@ export async function financeExpensesRoutes(fastify: FastifyInstance) {
     });
     if (!deleted) return reply.status(404).send({ error: 'Expense not found' });
     // Remove its ledger entry so the expense leaves P&L along with the record.
-    try { await GLService.reverseBySource(user.tenant_id, 'EXPENSE', id); }
+    try { await GLService.reverseBySource(user.tenant_id, 'EXPENSE', id, user.sub, 'Expense deleted'); }
     catch (e: any) { request.log.error({ err: e }, '[Finance] expense GL reversal failed'); }
     return reply.status(204).send();
   });

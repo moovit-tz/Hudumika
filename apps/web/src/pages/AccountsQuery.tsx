@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 type ReportType = 'receivables' | 'payables' | 'revenue' | 'expenses' | 'summary';
 
@@ -311,6 +312,13 @@ export function AccountsQuery() {
 
       {/* Right panel */}
       <div style={{ flex: 1, overflow: 'auto', padding: '28px 28px 40px' }}>
+        <PageHeader
+          crumbs={['FinOps', 'Accounts query']}
+          titlePlain="Accounts"
+          titleEm="query"
+          subtitle="Build a receivables, payables, revenue, expense, or summary report from live ledger data."
+        />
+
         {/* Error */}
         {error && (
           <div style={{

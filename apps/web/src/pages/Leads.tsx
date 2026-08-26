@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useIsMobile } from '../hooks/useIsMobile.js';
-import { apiFetch } from '../lib/api.js';
+import { apiFetch, apiDownload } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
@@ -288,6 +288,20 @@ export const Leads: React.FC = () => {
   const [addSaving, setAddSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
+  /* Documents — the "Upload File" control used to POST to
+     /v1/leads/:id/documents, a route that has never existed anywhere in the
+     backend (grep apps/api/src/routes confirms it) — every upload attempt
+     404'd, silently, since the catch just showed a generic "Upload failed"
+     alert with no indication the endpoint itself was the problem. Rewired
+     to the same real Drive-backed files API Customers.tsx's own Documents
+     tab already uses (entity_type/entity_id tagging on cloud_files), just
+     without that page's extra "customer folder" auto-resolution — files
+     here are tagged to the lead and dropped in the tenant's default drive. */
+  const [linkedFiles, setLinkedFiles] = useState<any[]>([]);
+  const [filesLoading, setFilesLoading] = useState(false);
+  const [fileUploading, setFileUploading] = useState(false);
+  const [defaultDriveId, setDefaultDriveId] = useState<string | null>(null);
+
   const loadLeads = useCallback(async () => {
     setLoading(true);
     try {
@@ -397,6 +411,55 @@ export const Leads: React.FC = () => {
     } catch (err: any) { showAlert(err.message || 'Failed'); }
   }
 
+  const loadLinkedFiles = useCallback(async (leadId: string) => {
+    setFilesLoading(true);
+    try {
+      const res = await apiFetch(`/v1/files?entity_type=lead&entity_id=${leadId}`).catch(() => []);
+      setLinkedFiles(Array.isArray(res) ? res : []);
+    } catch { /* empty */ } finally { setFilesLoading(false); }
+  }, []);
+
+  useEffect(() => {
+    if (selected && profileTab === 'documents') loadLinkedFiles(selected.id);
+  }, [selected, profileTab, loadLinkedFiles]);
+
+  // The tenant's default drive to upload into, fetched once and cached —
+  // same "resolve lazily, first time it's actually needed" pattern
+  // Customers.tsx uses for the same purpose.
+  const ensureDefaultDrive = useCallback(async () => {
+    if (defaultDriveId) return defaultDriveId;
+    const drives = await apiFetch('/v1/drives').catch(() => []);
+    const id = Array.isArray(drives) && drives.length ? drives[0].id : null;
+    setDefaultDriveId(id);
+    return id;
+  }, [defaultDriveId]);
+
+  async function uploadFilesToDrive(files: File[]) {
+    if (!selected || !files.length) return;
+    setFileUploading(true);
+    try {
+      const driveId = await ensureDefaultDrive();
+      if (!driveId) throw new Error('No Drive available to upload into');
+      for (const f of files) {
+        const fd = new FormData();
+        fd.append('file', f);
+        const qs = new URLSearchParams({ drive_id: driveId, entity_type: 'lead', entity_id: selected.id });
+        await apiFetch(`/v1/files/upload?${qs.toString()}`, { method: 'POST', body: fd });
+      }
+      showAlert(`${files.length} file(s) uploaded`, { variant: 'success' });
+      await loadLinkedFiles(selected.id);
+    } catch (err: any) { showAlert(err.message || 'Upload failed'); } finally { setFileUploading(false); }
+  }
+
+  async function unlinkFile(fileId: string, name: string) {
+    if (!selected) return;
+    if (!(await showConfirm(`Remove "${name}" from this lead? The file stays in Drive.`, { confirmLabel: 'Remove' }))) return;
+    try {
+      await apiFetch(`/v1/files/${fileId}`, { method: 'PATCH', body: JSON.stringify({ entity_type: null, entity_id: null }) });
+      setLinkedFiles(prev => prev.filter(f => f.id !== fileId));
+    } catch (err: any) { showAlert(err.message || 'Failed to remove file'); }
+  }
+
   function openProfile(lead: Lead) {
     setSelected(lead);
     setProfileForm({ ...lead });
@@ -491,7 +554,7 @@ export const Leads: React.FC = () => {
                   onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')} onMouseLeave={e => (e.currentTarget.style.background = 'var(--white)')}>
                   <Icon name="send" size={13} strokeWidth={1.75} /> WhatsApp
                 </button>
-                <button type="button" style={{ ...btnS, background: 'var(--teal)', border: 'none', color: '#fff' }}
+                <button type="button" style={{ ...btnS, background: 'hsl(var(--primary))', border: 'none', color: 'hsl(var(--primary-foreground))' }}
                   onClick={() => openEdit(sel)}
                   onMouseEnter={e => (e.currentTarget.style.opacity = '0.9')} onMouseLeave={e => (e.currentTarget.style.opacity = '1')}>
                   <Icon name="edit" size={13} strokeWidth={1.75} /> Edit Lead
@@ -717,31 +780,60 @@ export const Leads: React.FC = () => {
             </div>
           )}
 
-          {/* Documents */}
+          {/* Documents — real Drive-linked files (entity_type='lead'), not a
+              decorative drop zone. See the upload/loadLinkedFiles/unlinkFile
+              comment above: the upload control used to post to a route that
+              was never implemented on the backend, so every upload here
+              silently 404'd no matter what was picked. */}
           {profileTab === 'documents' && (
             <div style={{ padding: '24px 28px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
                 <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)' }}>Documents</span>
-                <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', border: '1.5px solid var(--teal)', borderRadius: 9, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)' }}>
+                <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', border: '1.5px solid var(--teal)', borderRadius: 9, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 12.5, fontWeight: 600, cursor: fileUploading ? 'default' : 'pointer', fontFamily: 'var(--font)', opacity: fileUploading ? 0.7 : 1 }}>
                   <Icon name="upload" size={13} strokeWidth={2} />
-                  Upload File
-                  <input type="file" multiple style={{ display: 'none' }}
+                  {fileUploading ? 'Uploading…' : 'Upload File'}
+                  <input type="file" multiple disabled={fileUploading} style={{ display: 'none' }}
                     onChange={async e => {
                       const files = Array.from(e.target.files || []);
-                      if (!files.length) return;
-                      const fd = new FormData();
-                      files.forEach(f => fd.append('files', f));
-                      try { await apiFetch(`/v1/leads/${sel.id}/documents`, { method: 'POST', body: fd }); showAlert(`${files.length} file(s) uploaded`); }
-                      catch (err: any) { showAlert(err.message || 'Upload failed'); }
+                      if (files.length) await uploadFilesToDrive(files);
                       e.target.value = '';
                     }} />
                 </label>
               </div>
-              <div style={{ border: '2px dashed var(--border)', borderRadius: 9, padding: '40px 24px', textAlign: 'center', color: 'var(--ink3)', background: 'var(--bg)' }}>
-                <Icon name="upload" size={28} strokeWidth={1.25} />
-                <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink2)', marginTop: 10 }}>Drop files here to upload</div>
-                <div style={{ fontSize: 12, marginTop: 4 }}>Proposals, contracts, any documents for this lead</div>
-              </div>
+
+              {filesLoading ? (
+                <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading…</div>
+              ) : linkedFiles.length > 0 ? (
+                <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', overflow: 'hidden' }}>
+                  {linkedFiles.map((f: any, i: number) => (
+                    <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 18px', borderBottom: i < linkedFiles.length - 1 ? '1px solid var(--bg)' : 'none' }}>
+                      <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <Icon name="file" size={16} color="var(--ink3)" strokeWidth={1.75} />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</div>
+                        <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>
+                          {f.size != null ? `${(f.size / 1024).toFixed(1)} KB · ` : ''}{new Date(f.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        </div>
+                      </div>
+                      <button type="button" onClick={() => apiDownload(`/v1/files/${f.id}/download`, f.name).catch((err: any) => showAlert(err.message || 'Download failed'))}
+                        style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: 'var(--teal)', fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: 'var(--ds-btn-py-xs) 8px', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+                        <Icon name="download" size={13} /> Download
+                      </button>
+                      <button type="button" onClick={() => unlinkFile(f.id, f.name)} title="Remove from this lead (file stays in Drive)"
+                        style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: 'var(--ink3)', fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: 'var(--ds-btn-py-xs) 8px', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+                        <Icon name="x" size={13} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ border: '2px dashed var(--border)', borderRadius: 9, padding: '40px 24px', textAlign: 'center', color: 'var(--ink3)', background: 'var(--bg)' }}>
+                  <Icon name="upload" size={28} strokeWidth={1.25} />
+                  <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink2)', marginTop: 10 }}>No documents yet</div>
+                  <div style={{ fontSize: 12, marginTop: 4 }}>Proposals, contracts, any documents for this lead</div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -848,29 +940,29 @@ export const Leads: React.FC = () => {
         titleEm="pipeline"
         subtitle={`${leads.length} leads · ${active.length} active · ${fmtValue(pipeline)} pipeline value · ${winRate}% win rate`}
         actions={
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <button type="button" onClick={() => exportLeadsCSV(filtered)} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 18px', fontSize: 13, borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <button type="button" onClick={() => exportLeadsCSV(filtered)} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 18px', fontSize: 13, borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25, whiteSpace: 'nowrap' }}>
               <Icon name="download" size={14} strokeWidth={2} /> Export CSV
             </button>
-            <button type="button" onClick={() => { setAddForm({ ...EMPTY_FORM }); setEditingId(null); setShowAdd(true); }} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 22px', fontSize: 14, fontWeight: 700, borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-              <Icon name="plus" size={15} strokeWidth={2.5} color="#fff" /> New Lead
+            <button type="button" onClick={() => { setAddForm({ ...EMPTY_FORM }); setEditingId(null); setShowAdd(true); }} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 22px', fontSize: 14, fontWeight: 700, borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25, whiteSpace: 'nowrap' }}>
+              <Icon name="plus" size={15} strokeWidth={2.5} color="hsl(var(--primary-foreground))" /> New Lead
             </button>
           </div>
         }
       />
 
-      <div style={{ padding: '0 28px 28px' }}>
+      {/* No horizontal padding here — Customers.tsx (this app's reference
+          toolbar/margin implementation) puts its own table card flush
+          against PageHeader's own zero horizontal padding, sharing
+          .page-layout's single page gutter. This div used to add an extra
+          28px on both sides on top of that, indenting the table card
+          relative to the title/breadcrumb above it. */}
+      <div style={{ padding: '0 0 28px' }}>
         {/* ── Table card ── */}
         <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)', overflow: 'hidden' }}>
 
           {/* Toolbar */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px', borderBottom: '1px solid var(--border)', flexWrap: 'wrap' }}>
-            <div style={{ position: 'relative', flex: 1, minWidth: 180, maxWidth: 280 }}>
-              <Icon name="search" size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)', pointerEvents: 'none' } as React.CSSProperties} />
-              <input type="text" placeholder="Search leads…" value={search}
-                onChange={e => { setSearch(e.target.value); setPage(1); }}
-                style={{ width: '100%', padding: '7px 10px 7px 32px', border: '1px solid var(--border)', borderRadius: 9, fontSize: 13, fontFamily: 'var(--font)', background: 'var(--bg)', color: 'var(--ink)', outline: 'none', boxSizing: 'border-box' }} />
-            </div>
             <SingleSelectFilter
               label="Stage" allLabel="All Stages"
               options={STAGES.map(s => ({ value: s, label: STAGE_CFG[s].label }))}
@@ -892,7 +984,16 @@ export const Leads: React.FC = () => {
                 Clear
               </button>
             )}
-            <span style={{ marginLeft: 'auto', fontSize: 12.5, color: 'var(--ink3)', whiteSpace: 'nowrap' }}>{filtered.length} leads</span>
+
+            <div style={{ flex: 1 }} />
+
+            <span style={{ fontSize: 12.5, color: 'var(--ink3)', whiteSpace: 'nowrap' }}>{filtered.length} leads</span>
+            <div style={{ position: 'relative', minWidth: 180, maxWidth: 280 }}>
+              <Icon name="search" size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)', pointerEvents: 'none' } as React.CSSProperties} />
+              <input type="text" placeholder="Search leads…" value={search}
+                onChange={e => { setSearch(e.target.value); setPage(1); }}
+                style={{ width: '100%', padding: '7px 10px 7px 32px', border: '1px solid var(--border)', borderRadius: 9, fontSize: 13, fontFamily: 'var(--font)', background: 'var(--bg)', color: 'var(--ink)', outline: 'none', boxSizing: 'border-box' }} />
+            </div>
           </div>
 
           {/* Stage chips */}
@@ -997,7 +1098,7 @@ export const Leads: React.FC = () => {
                 {getPageNums(pg, totalPages).map((p, i) =>
                   p === '…' ? <span key={i} style={{ padding: '0 6px', color: 'var(--ink3)', fontSize: 13 }}>…</span> :
                   <button key={p} type="button" onClick={() => setPage(Number(p))}
-                    style={{ border: `1px solid ${pg === p ? 'var(--teal)' : 'var(--border)'}`, borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 10px', background: pg === p ? 'var(--teal)' : 'var(--white)', cursor: 'pointer', fontSize: 13, color: pg === p ? '#fff' : 'var(--ink)', minWidth: 32, minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                    style={{ border: `1px solid ${pg === p ? 'var(--teal)' : 'var(--border)'}`, borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 10px', background: pg === p ? 'hsl(var(--primary))' : 'var(--white)', cursor: 'pointer', fontSize: 13, color: pg === p ? 'hsl(var(--primary-foreground))' : 'var(--ink)', minWidth: 32, minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
                     {p}
                   </button>
                 )}

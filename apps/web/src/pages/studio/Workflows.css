@@ -171,7 +171,7 @@
   color:var(--ink3); font-size:14px; line-height:1; font-weight:700;
   font-family:inherit; padding:0;
 }
-.wfb-add-between:hover { border-color:var(--teal,#0d9488); background:var(--teal,#0d9488); color:white; box-shadow: var(--elev); }
+.wfb-add-between:hover { border-color:hsl(var(--primary)); background:hsl(var(--primary)); color:hsl(var(--primary-foreground)); box-shadow: var(--elev); }
 
 /* Append button after terminal nodes */
 .wfb-append-btn {

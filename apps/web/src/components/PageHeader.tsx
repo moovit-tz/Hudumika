@@ -89,7 +89,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
       <h1 className="page-header-title">
         {plain} <em>{em}</em><span className="ph-dot">.</span>
       </h1>
-      {actions && <div style={{ flexShrink: 0, paddingBottom: 6 }}>{actions}</div>}
+      {actions && <div style={{ flexShrink: 0, minWidth: 0, maxWidth: '100%', paddingBottom: 6 }}>{actions}</div>}
     </div>
 
     {/* Subtitle */}

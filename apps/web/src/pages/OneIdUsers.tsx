@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../hooks/useAuth.js';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
+import { PageHeader } from '../components/PageHeader.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 
 interface OneIdUser {
@@ -105,21 +106,21 @@ export const OneIdUsers: React.FC = () => {
   }
 
   return (
-    <div style={{ padding: 24 }}>
+    <div>
       {showInvite && <InviteModal onClose={() => setShowInvite(false)} onInvited={reload} />}
 
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
-        <div>
-          <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--ink)' }}>Users</div>
-          <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 2 }}>Directory, roles, and invitations for this tenant</div>
-        </div>
-        {canManage && (
+      <PageHeader
+        crumbs={['OneID', 'Users']}
+        titlePlain="User"
+        titleEm="directory"
+        subtitle="Directory, roles, and invitations for this tenant."
+        actions={canManage ? (
           <button type="button" onClick={() => setShowInvite(true)}
             style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 16px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
             <Icon name="userPlus" size={15} /> Invite user
           </button>
-        )}
-      </div>
+        ) : undefined}
+      />
 
       <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, overflow: 'hidden', marginBottom: canManage && invites.length > 0 ? 24 : 0 }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>

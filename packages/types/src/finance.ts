@@ -3,11 +3,11 @@
 // ── Chart of Accounts ─────────────────────────────────────────
 export type AccountType = 'ASSET' | 'LIABILITY' | 'EQUITY' | 'REVENUE' | 'EXPENSE';
 export type AccountSubtype =
-  | 'CURRENT_ASSET' | 'FIXED_ASSET' | 'OTHER_ASSET'
+  | 'CURRENT_ASSET' | 'FIXED_ASSET' | 'OTHER_ASSET' | 'DEFERRED_TAX'
   | 'CURRENT_LIABILITY' | 'LONG_TERM_LIABILITY'
   | 'EQUITY' | 'RETAINED_EARNINGS'
   | 'OPERATING_REVENUE' | 'OTHER_REVENUE'
-  | 'COST_OF_SERVICES' | 'OPERATING_EXPENSE' | 'ADMIN_EXPENSE' | 'FINANCE_COST';
+  | 'COST_OF_SERVICES' | 'OPERATING_EXPENSE' | 'ADMIN_EXPENSE' | 'FINANCE_COST' | 'TAX_EXPENSE';
 
 export interface ChartOfAccount {
   id: string;

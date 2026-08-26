@@ -706,6 +706,17 @@ export function applyDesignTokens(tokens: DesignTokens): void {
     '--page-pad-x': `${density.pagePadding}px`,
     '--page-pad-y': `${density.pagePadding}px`,
     '--content-gap': `${density.contentGap}px`,
+    // A graduated whitespace ladder around --content-gap, same
+    // multiplication-factor idiom as the --ds-btn-py-* steps above — for
+    // any "how much space between these two things" decision that isn't
+    // literally the page gutter or the default inter-section gap. Computed
+    // here rather than via calc() inside a Tailwind arbitrary value for the
+    // same reason those button steps are (see the comment below).
+    '--space-xs': `${Math.max(2, Math.round(density.contentGap * 0.4))}px`,
+    '--space-sm': `${Math.max(4, Math.round(density.contentGap * 0.75))}px`,
+    '--space-md': `${density.contentGap}px`,
+    '--space-lg': `${Math.round(density.contentGap * 1.5)}px`,
+    '--space-xl': `${density.contentGap * 2}px`,
     '--ds-btn-py': `${density.btnPy}px`, '--ds-input-py': `${density.inputPy}px`, '--ds-cell-py': `${density.cellPy}px`,
     // The sm/lg button steps are computed here rather than as a calc() inside a
     // Tailwind arbitrary value. `py-[calc(var(--ds-btn-py,9px)*0.6)]` silently

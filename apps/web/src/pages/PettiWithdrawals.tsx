@@ -6,6 +6,7 @@ import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
 import { Button } from '../components/ui/button.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
+import { Combobox } from '../components/ui/combobox.js';
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import { usePageSEO } from '../hooks/usePageSEO.js';
@@ -144,14 +145,12 @@ export function PettiWithdrawals() {
           <form onSubmit={handleWithdrawSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 540 }}>
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Source Wallet *</label>
-              <select
-                value={walletId} onChange={e => setWalletId(e.target.value)}
-                style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, background: 'var(--white)', fontWeight: 600 }}
-              >
-                {wallets.map(w => (
-                  <option key={w.id} value={w.id}>{w.name} ({w.balance.toLocaleString()} {w.currency})</option>
-                ))}
-              </select>
+              <Combobox
+                options={wallets.map(w => ({ value: w.id, label: `${w.name} (${w.balance.toLocaleString()} ${w.currency})` }))}
+                value={walletId}
+                onChange={setWalletId}
+                placeholder="Select wallet…"
+              />
             </div>
 
             <div>

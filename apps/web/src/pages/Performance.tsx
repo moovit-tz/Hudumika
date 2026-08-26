@@ -103,13 +103,13 @@ export function Performance() {
         titleEm="reviews"
         subtitle="Goals people are working towards, and the cycles they are reviewed in."
         actions={
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap' }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             {tab === 'goals'
               ? <button type="button" className="btn btn-primary btn-sm" disabled={people.length === 0} onClick={() => setPane(pane === 'goal' ? 'none' : 'goal')}>
-                  <Icon name="plus" size={13} color="white" /> New Goal
+                  <Icon name="plus" size={13} color="hsl(var(--primary-foreground))" /> New Goal
                 </button>
               : <button type="button" className="btn btn-primary btn-sm" onClick={() => setPane(pane === 'cycle' ? 'none' : 'cycle')}>
-                  <Icon name="plus" size={13} color="white" /> New Cycle
+                  <Icon name="plus" size={13} color="hsl(var(--primary-foreground))" /> New Cycle
                 </button>}
           </div>
         }

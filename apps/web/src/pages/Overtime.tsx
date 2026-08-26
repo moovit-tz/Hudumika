@@ -223,7 +223,7 @@ export function OvertimePage() {
             padding: 'var(--ds-btn-py-sm) 14px', fontSize: 12, fontWeight: 600, border: 'none',
             borderRadius: 'var(--r)', cursor: 'pointer', fontFamily: 'var(--font)',
             minHeight: 'var(--ctl-h-sm)', lineHeight: 1.25,
-            background: filter === v ? 'var(--teal)' : 'var(--bg)', color: filter === v ? '#fff' : 'var(--ink2)',
+            background: filter === v ? 'hsl(var(--primary))' : 'var(--bg)', color: filter === v ? 'hsl(var(--primary-foreground))' : 'var(--ink2)',
           }}>{l}</button>
         ))}
       </div>

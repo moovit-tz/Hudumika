@@ -3,7 +3,9 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { withTenant } from '../db/client.js';
 
-const BILL_STATUS = ['DRAFT', 'POSTED', 'PAID', 'PARTIAL', 'VOID'] as const;
+// PENDING_APPROVAL added for M9 — supplier_bills.status has never carried
+// a DB-level CHECK constraint, so this is a pure app-level addition.
+const BILL_STATUS = ['DRAFT', 'PENDING_APPROVAL', 'POSTED', 'PAID', 'PARTIAL', 'VOID'] as const;
 const recurringBillSchema = z.object({
   name: z.string().max(200).optional(),
   supplier_id: z.string().optional(),
@@ -29,6 +31,7 @@ const billLineSchema = z.object({
   unit_cost: z.number().optional(),
   amount: z.number().optional(),
   tax_code_id: z.string().optional(),
+  wht_rate_id: z.string().optional(),
 }).passthrough(); // buildBillLines does its own detailed validation on each line — this just guards the shape isn't a non-object/non-array.
 const billCreateSchema = z.object({
   items: z.array(billLineSchema).optional(),
@@ -37,6 +40,7 @@ const billCreateSchema = z.object({
   supplier_name: z.string().max(300).optional(),
   shipment_ref: z.string().max(100).optional(),
   po_number: z.string().max(100).optional(),
+  po_id: z.string().uuid().nullable().optional(),
   bill_date: z.string().optional(),
   due_date: z.string().optional(),
   status: z.enum(BILL_STATUS).optional(),
@@ -47,6 +51,8 @@ const billCreateSchema = z.object({
 const efdVerifySchema = z.object({ efd_receipt_number: z.string().trim().min(1) });
 import { requireRole } from '../middleware/rbac.js';
 import { GLService } from '../services/gl.service.js';
+import { computePoMatch } from '../services/po-bill-matching.service.js';
+import { isApApprovalRequired, resolveApprovalWorkflow, canActOnWorkflow } from '../services/ap-approval.service.js';
 import { emitDomainEvent } from '../services/domain-events.service.js';
 import { AccountingIntegrationService } from '../services/accounting-integration.service.js';
 import { generateDueBills } from '../services/recurring-documents.service.js';
@@ -95,6 +101,16 @@ async function buildBillLines(
     }
   }
 
+  // Withholding tax classification (M1) — a line only attracts WHT once
+  // tagged with a real, tenant-owned wht_rates row; a foreign id is silently
+  // dropped rather than trusted, same discipline every cross-tenant FK
+  // reference in this platform gets.
+  const whtRateIds = [...new Set(items.map(it => it?.wht_rate_id).filter(Boolean))] as string[];
+  const validWhtRateIds = whtRateIds.length
+    ? new Set((await trx.selectFrom('wht_rates').select('id')
+        .where('id', 'in', whtRateIds).where('tenant_id', '=', tenantId).execute()).map(r => r.id))
+    : new Set<string>();
+
   let subtotal = 0, tax = 0, recoverable = 0, nonRecoverable = 0;
   // Cost is accumulated per expense account, so a bill mixing freight and
   // insurance no longer lands entirely under port charges.
@@ -125,6 +141,7 @@ async function buildBillLines(
       unit_price: Number(it.unit_price) || 0,
       tax_rate: rate,
       tax_code_id: code ? code.id : null,
+      wht_rate_id: it.wht_rate_id && validWhtRateIds.has(it.wht_rate_id) ? it.wht_rate_id : null,
       sort_order: i,
     };
   });
@@ -158,6 +175,33 @@ const CATEGORY_ACCOUNT: Record<string, string> = {
 
 function accountForCategory(category: string | null | undefined): string {
   return CATEGORY_ACCOUNT[String(category ?? '').toUpperCase()] ?? '5000';
+}
+
+/** Rebuilds the same byAccount/recoverable/nonRecoverable shape
+ * buildBillLines() produces at creation time, but from the *stored* lines
+ * of an already-persisted bill (M9's approve step posts off what was
+ * actually saved, not off a fresh copy of the original request body). */
+async function recomputeBillPosting(trx: Transaction<Database>, tenantId: string, billId: string) {
+  const lines = await trx.selectFrom('supplier_bill_lines').selectAll().where('bill_id', '=', billId).execute();
+  const codeIds = [...new Set(lines.map(l => l.tax_code_id).filter(Boolean))] as string[];
+  const recoverableByCode = new Map<string, boolean>();
+  for (const cid of codeIds) {
+    try {
+      const c = await resolveTaxCode(trx, tenantId, cid, 'PURCHASE');
+      recoverableByCode.set(cid, c.input_tax_recoverable);
+    } catch { /* a code deleted after posting shouldn't block approval; treat as non-recoverable */ }
+  }
+  let recoverable = 0, nonRecoverable = 0;
+  const byAccount = new Map<string, number>();
+  for (const l of lines) {
+    const net = Number(l.qty) * Number(l.unit_price);
+    const lineTax = net * (Number(l.tax_rate) / 100);
+    const split = splitInputTax(lineTax, l.tax_code_id ? { input_tax_recoverable: recoverableByCode.get(l.tax_code_id) ?? false } : null);
+    recoverable += split.recoverable; nonRecoverable += split.nonRecoverable;
+    const acct = accountForCategory(l.category);
+    byAccount.set(acct, (byAccount.get(acct) ?? 0) + net + split.nonRecoverable);
+  }
+  return { recoverable, nonRecoverable, byAccount };
 }
 
 /**
@@ -396,6 +440,17 @@ export async function billRoutes(fastify: FastifyInstance) {
         }
       }
 
+      // AP approval (M9) — opt-in. A bill that would otherwise post
+      // immediately instead lands PENDING_APPROVAL when the flag is on and
+      // its amount qualifies for a real, active workflow; GL posting is
+      // deferred until POST /:id/approve actually approves it.
+      let effectiveStatus = body.status || 'DRAFT';
+      let approvalWorkflowId: string | null = null;
+      if (effectiveStatus === 'POSTED' && total > 0 && await isApApprovalRequired(trx, user.tenant_id)) {
+        const workflow = await resolveApprovalWorkflow(trx, user.tenant_id, total);
+        if (workflow) { effectiveStatus = 'PENDING_APPROVAL'; approvalWorkflowId = workflow.id; }
+      }
+
       const bill = await trx.insertInto('supplier_bills').values({
         tenant_id: user.tenant_id,
         bill_number: billNumber,
@@ -403,9 +458,10 @@ export async function billRoutes(fastify: FastifyInstance) {
         supplier_name: body.supplier_name || null,
         shipment_ref: body.shipment_ref || null,
         po_number: body.po_number || null,
+        po_id: body.po_id || null,
         bill_date: body.bill_date || null,
         due_date: body.due_date || null,
-        status: body.status || 'DRAFT',
+        status: effectiveStatus,
         currency: body.currency || 'USD',
         subtotal,
         tax_amount,
@@ -414,6 +470,8 @@ export async function billRoutes(fastify: FastifyInstance) {
         recurring_id: body.recurring_id || null,
         notes: body.notes || null,
         created_by: user.sub,
+        approval_workflow_id: approvalWorkflowId,
+        submitted_for_approval_at: approvalWorkflowId ? new Date() : null,
       }).returningAll().executeTakeFirstOrThrow();
 
       if (built.lines.length > 0) {
@@ -460,6 +518,89 @@ export async function billRoutes(fastify: FastifyInstance) {
     });
   });
 
+  // GET /v1/bills/:id/po-match (M8) — computed live, never stored; see
+  // po-bill-matching.service.ts's own header for why. Warn, don't block.
+  fastify.get('/:id/po-match', async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    try {
+      return await computePoMatch(user.tenant_id, id);
+    } catch (err: any) {
+      return reply.status(404).send({ error: err.message });
+    }
+  });
+
+  // POST /v1/bills/:id/approve (M9) — authorization checks the resolved
+  // workflow's named approver/backup against request.user.sub, not a role
+  // — genuinely different from every other route in this file.
+  fastify.post('/:id/approve', async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    return withTenant(user.tenant_id, async (trx) => {
+      const bill = await trx.selectFrom('supplier_bills').selectAll().where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!bill) return reply.status(404).send({ error: 'Bill not found' });
+      if (bill.status !== 'PENDING_APPROVAL') return reply.status(409).send({ error: 'This bill is not pending approval.' });
+      if (!bill.approval_workflow_id) return reply.status(409).send({ error: 'This bill has no resolved approval workflow.' });
+
+      const workflow = await trx.selectFrom('ap_approval_workflows').selectAll().where('id', '=', bill.approval_workflow_id).executeTakeFirst();
+      if (!workflow) return reply.status(404).send({ error: 'The approval workflow for this bill no longer exists.' });
+      if (!canActOnWorkflow(workflow, user.sub)) return reply.status(403).send({ error: `Only ${workflow.name}'s named approver or backup may approve this bill.` });
+
+      const { recoverable, nonRecoverable, byAccount } = await recomputeBillPosting(trx, user.tenant_id, id);
+      const total = Number(bill.total);
+      if (total > 0) {
+        await GLService.post(user.tenant_id, {
+          entryDate: bill.bill_date ? new Date(bill.bill_date).toISOString() : new Date().toISOString(),
+          description: `Supplier bill: ${bill.bill_number}`,
+          reference: bill.bill_number, sourceModule: 'AP', sourceId: bill.id, createdBy: user.sub,
+          lines: billJournalLines({ byAccount, recoverable, nonRecoverable, total }),
+        });
+      }
+
+      const updated = await trx.updateTable('supplier_bills')
+        .set({ status: 'POSTED', approved_by: user.sub, approved_at: new Date(), updated_at: new Date() })
+        .where('id', '=', id).returningAll().executeTakeFirstOrThrow();
+
+      AccountingIntegrationService.syncBill(user.tenant_id, id).catch(console.error);
+      await trx.insertInto('bill_activity_log').values({
+        tenant_id: user.tenant_id, bill_id: id, actor_id: user.sub, actor_name: user.name || user.email,
+        action: 'approved', detail: `Bill ${bill.bill_number} approved and posted`, created_at: new Date(),
+      }).execute();
+
+      return updated;
+    });
+  });
+
+  // POST /v1/bills/:id/reject (M9) — same authorization as approve. Returns
+  // the bill to DRAFT so it can be corrected and resubmitted, rather than
+  // introducing a dead-end REJECTED status.
+  fastify.post('/:id/reject', async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    const { reason } = z.object({ reason: z.string().trim().min(1).max(1000) }).parse(request.body);
+    return withTenant(user.tenant_id, async (trx) => {
+      const bill = await trx.selectFrom('supplier_bills').selectAll().where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!bill) return reply.status(404).send({ error: 'Bill not found' });
+      if (bill.status !== 'PENDING_APPROVAL') return reply.status(409).send({ error: 'This bill is not pending approval.' });
+      if (!bill.approval_workflow_id) return reply.status(409).send({ error: 'This bill has no resolved approval workflow.' });
+
+      const workflow = await trx.selectFrom('ap_approval_workflows').selectAll().where('id', '=', bill.approval_workflow_id).executeTakeFirst();
+      if (!workflow) return reply.status(404).send({ error: 'The approval workflow for this bill no longer exists.' });
+      if (!canActOnWorkflow(workflow, user.sub)) return reply.status(403).send({ error: `Only ${workflow.name}'s named approver or backup may reject this bill.` });
+
+      const updated = await trx.updateTable('supplier_bills')
+        .set({ status: 'DRAFT', rejected_by: user.sub, rejected_at: new Date(), rejection_reason: reason, updated_at: new Date() })
+        .where('id', '=', id).returningAll().executeTakeFirstOrThrow();
+
+      await trx.insertInto('bill_activity_log').values({
+        tenant_id: user.tenant_id, bill_id: id, actor_id: user.sub, actor_name: user.name || user.email,
+        action: 'rejected', detail: `Bill ${bill.bill_number} rejected: ${reason}`, created_at: new Date(),
+      }).execute();
+
+      return updated;
+    });
+  });
+
   // PATCH /v1/bills/:id
   fastify.patch('/:id', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request, reply) => {
     const user = request.user;
@@ -480,7 +621,7 @@ export async function billRoutes(fastify: FastifyInstance) {
       }
 
       const updates: any = { updated_at: new Date() };
-      const fields = ['bill_number', 'supplier_id', 'supplier_name', 'shipment_ref', 'po_number', 'bill_date', 'due_date', 'status', 'currency', 'notes', 'recurring_id'];
+      const fields = ['bill_number', 'supplier_id', 'supplier_name', 'shipment_ref', 'po_number', 'po_id', 'bill_date', 'due_date', 'status', 'currency', 'notes', 'recurring_id'];
       const b = body as Record<string, unknown>;
       for (const f of fields) {
         if (b[f] !== undefined) updates[f] = b[f];
@@ -657,7 +798,7 @@ export async function billRoutes(fastify: FastifyInstance) {
       const bill = await trx.selectFrom('supplier_bills').selectAll().where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!bill) return reply.status(404).send({ error: 'Bill not found' });
 
-      await trx.insertInto('bill_payments').values({
+      const payment = await trx.insertInto('bill_payments').values({
         tenant_id: user.tenant_id,
         bill_id: id,
         amount: Number(amount),
@@ -667,7 +808,7 @@ export async function billRoutes(fastify: FastifyInstance) {
         reference: reference || null,
         note: note || null,
         created_by: user.sub,
-      }).execute();
+      }).returning('id').executeTakeFirstOrThrow();
 
       // Money paid out to a supplier — the A/P counterpart of an invoice
       // payment, so cross-app subscribers see cash leaving, not just cash in.
@@ -688,29 +829,66 @@ export async function billRoutes(fastify: FastifyInstance) {
 
       await trx.updateTable('supplier_bills').set({ paid_amount: totalPaid, status: newStatus, updated_at: new Date() }).where('id', '=', id).execute();
 
-      // Post payment to GL
-      await GLService.post(user.tenant_id, {
+      // Withholding tax (M1) — computed live from this bill's WHT-classified
+      // lines (not persisted on the bill header) so an edit to the bill
+      // between payments can never leave a stale figure behind. Deducted
+      // proportionally to how much of the bill this payment represents, and
+      // capped by whatever hasn't already been withheld on a prior
+      // installment — a bill paid in 3 parts withholds its total WHT once
+      // across those 3 parts, not 3 times.
+      let whtAmount = 0;
+      const whtLines = await trx.selectFrom('supplier_bill_lines')
+        .innerJoin('wht_rates', 'wht_rates.id', 'supplier_bill_lines.wht_rate_id')
+        .where('supplier_bill_lines.bill_id', '=', id)
+        .select(['supplier_bill_lines.qty', 'supplier_bill_lines.unit_price', 'wht_rates.rate_pct'])
+        .execute();
+      const billTotalWht = whtLines.reduce((s, l) => s + (Number(l.qty) * Number(l.unit_price)) * (Number(l.rate_pct) / 100), 0);
+      if (billTotalWht > 0.01 && billTotal > 0) {
+        const already = await trx.selectFrom('wht_deductions').select(({ fn }) => fn.sum<string>('wht_amount').as('total'))
+          .where('bill_id', '=', id).executeTakeFirst();
+        const remaining = Math.max(0, billTotalWht - Number(already?.total || 0));
+        whtAmount = Math.min(remaining, Math.round(billTotalWht * (Number(amount) / billTotal) * 100) / 100);
+      }
+
+      // Post payment to GL — 3 lines when WHT applies (net cash paid to the
+      // supplier is less than the AP being cleared, the difference now owed
+      // to the tax authority instead), otherwise the original 2-line entry.
+      const journalEntryId = await GLService.post(user.tenant_id, {
         entryDate: payment_date ? new Date(payment_date).toISOString() : new Date().toISOString(),
         description: `Bill payment: ${bill.bill_number}`,
         reference: bill.bill_number,
         sourceModule: 'AP',
         sourceId: bill.id,
         createdBy: user.sub,
-        lines: [
+        lines: whtAmount > 0.01 ? [
+          { accountCode: '2000', debit: Number(amount), credit: 0, description: 'Clear AP' },
+          { accountCode: '1010', debit: 0, credit: Number(amount) - whtAmount, description: 'Cash paid (net of WHT)' },
+          { accountCode: '2300', debit: 0, credit: whtAmount, description: 'Withholding tax deducted' },
+        ] : [
           { accountCode: '2000', debit: Number(amount), credit: 0, description: 'Clear AP' },
           { accountCode: '1010', debit: 0, credit: Number(amount), description: 'Cash paid' },
         ],
       });
+
+      if (whtAmount > 0.01) {
+        await trx.insertInto('wht_deductions').values({
+          tenant_id: user.tenant_id, bill_id: id, bill_payment_id: payment.id,
+          supplier_id: (bill as any).supplier_id ?? null,
+          gross_amount: String(Number(amount)), wht_amount: String(whtAmount), journal_entry_id: journalEntryId,
+        }).execute();
+      }
 
       // Trigger accounting integration payment sync in background
       AccountingIntegrationService.syncPayment(user.tenant_id, id, 'BILL').catch(console.error);
 
       await trx.insertInto('bill_activity_log').values({
         tenant_id: user.tenant_id, bill_id: id, actor_id: user.sub, actor_name: user.name || user.email,
-        action: 'payment_recorded', detail: `Payment of ${amount} ${currency || bill.currency || 'USD'} recorded`, created_at: new Date(),
+        action: 'payment_recorded',
+        detail: `Payment of ${amount} ${currency || bill.currency || 'USD'} recorded${whtAmount > 0.01 ? ` (${whtAmount} withheld)` : ''}`,
+        created_at: new Date(),
       }).execute();
 
-      return { success: true, paid_amount: totalPaid, status: newStatus };
+      return { success: true, paid_amount: totalPaid, status: newStatus, wht_deducted: whtAmount };
     });
   });
 

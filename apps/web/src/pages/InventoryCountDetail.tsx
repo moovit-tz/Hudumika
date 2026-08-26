@@ -6,6 +6,7 @@ import { Button } from '../components/ui/button.js';
 import { Input } from '../components/ui/input.js';
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
+import { PageHeader } from '../components/PageHeader.js';
 import './Inventory.css';
 
 interface Line {
@@ -81,25 +82,29 @@ export function InventoryCountDetail() {
 
   return (
     <div className="inv-page">
-      <div className="inv-page-hdr">
-        <div>
-          <Button type="button" variant="outline" onClick={() => navigate('/inventory/counts')} style={{ marginBottom: 12 }}>
-            <Icon name="arrowLeft" size={13} /><span>Back to Stock Counts</span>
-          </Button>
-          <h1 className="inv-page-title">{session.warehouseName ?? '—'} — Stock Count</h1>
-          <p className="inv-page-sub">Started {new Date(session.startedAt).toLocaleString()}{session.notes ? ` · ${session.notes}` : ''}</p>
-        </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <Badge variant={STATUS_VARIANT[session.status] ?? 'info'}>{session.status}</Badge>
-          {session.status === 'open' && (
-            <>
-              <Button type="button" variant="outline" onClick={handleCancel} disabled={acting}>Cancel Count</Button>
-              <Button type="button" onClick={handlePost} disabled={acting || uncountedLines > 0}>
-                {acting ? 'Posting…' : 'Post Count'}
-              </Button>
-            </>
-          )}
-        </div>
+      <div>
+        <Button type="button" variant="outline" onClick={() => navigate('/inventory/counts')} style={{ marginBottom: 12 }}>
+          <Icon name="arrowLeft" size={13} /><span>Back to Stock Counts</span>
+        </Button>
+        <PageHeader
+          crumbs={['Inventory', 'Stock Counts', session.warehouseName ?? '—']}
+          titlePlain="Stock"
+          titleEm="count"
+          subtitle={`Started ${new Date(session.startedAt).toLocaleString()}${session.notes ? ` · ${session.notes}` : ''}`}
+          actions={
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <Badge variant={STATUS_VARIANT[session.status] ?? 'info'}>{session.status}</Badge>
+              {session.status === 'open' && (
+                <>
+                  <Button type="button" variant="outline" onClick={handleCancel} disabled={acting}>Cancel Count</Button>
+                  <Button type="button" onClick={handlePost} disabled={acting || uncountedLines > 0}>
+                    {acting ? 'Posting…' : 'Post Count'}
+                  </Button>
+                </>
+              )}
+            </div>
+          }
+        />
       </div>
 
       {session.status === 'open' && uncountedLines > 0 && (

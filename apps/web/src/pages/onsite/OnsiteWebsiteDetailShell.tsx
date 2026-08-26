@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Routes, Route, Link, useLocation, useParams, useNavigate } from 'react-router-dom';
 import { Icon } from '../../components/Icon.js';
+import { PageHeader } from '../../components/PageHeader.js';
+import { Combobox } from '../../components/ui/combobox.js';
 import { apiFetch } from '../../lib/api.js';
 import type { OnsiteWebsite } from '@hudumika/types';
 
@@ -40,8 +42,27 @@ export function OnsiteWebsiteDetailShell() {
 
   const isActive = (path: string) => currentPath === path || currentPath.startsWith(path);
 
+  const SECTION_LABELS: Record<string, string> = {
+    '': 'Dashboard',
+    analytics: 'Analytics',
+    ssl: 'SSL certificate',
+    wordpress: 'WordPress',
+    databases: 'Databases',
+    ssh: 'SSH access',
+  };
+  const subPath = currentPath.startsWith(baseUrl) ? currentPath.slice(baseUrl.length).replace(/^\//, '') : '';
+  const sectionLabel = SECTION_LABELS[subPath] ?? 'Dashboard';
+  const currentSite = websites.find(w => w.id === siteId);
+
   return (
-    <div style={{ display: 'flex', gap: '2rem', minHeight: 'calc(100vh - 120px)' }}>
+    <div>
+      <PageHeader
+        crumbs={['Onsite', 'Websites', currentSite?.name ?? sectionLabel]}
+        titlePlain="Manage"
+        titleEm="website"
+        subtitle={`${sectionLabel}${currentSite ? ` for ${currentSite.name}` : ''}`}
+      />
+      <div style={{ display: 'flex', gap: '2rem', minHeight: 'calc(100vh - 120px)' }}>
       {/* Left Contextual Sidebar for Website Management (Images 1-5) */}
       <div style={{
         width: '260px',
@@ -58,16 +79,12 @@ export function OnsiteWebsiteDetailShell() {
         {/* Website Selector */}
         <div className="onsite-form-group">
           <label style={{ fontSize: '0.75rem', color: 'var(--ink2)', fontWeight: 600 }}>Website name</label>
-          <select
-            className="onsite-select"
+          <Combobox
+            options={websites.map(w => ({ value: w.id, label: w.name }))}
             value={siteId ?? ''}
-            onChange={(e) => navigate(`/onsite/websites/${e.target.value}`)}
-            style={{ fontWeight: 600, fontSize: '0.875rem' }}
-          >
-            {websites.map(w => (
-              <option key={w.id} value={w.id}>{w.name}</option>
-            ))}
-          </select>
+            onChange={(v) => navigate(`/onsite/websites/${v}`)}
+            placeholder="Select website"
+          />
         </div>
 
         {/* Search menu */}
@@ -204,6 +221,7 @@ export function OnsiteWebsiteDetailShell() {
           <Route path="databases" element={<OnsiteWebsiteDatabases />} />
           <Route path="ssh" element={<OnsiteWebsiteSSH />} />
         </Routes>
+      </div>
       </div>
     </div>
   );

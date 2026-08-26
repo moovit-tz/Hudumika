@@ -135,7 +135,7 @@ function PageHeader({ icon, title, sub, children }: { icon?: IconName; title: st
       titlePlain={titleWords.join(' ')}
       titleEm={titleEm.toLowerCase()}
       subtitle={sub}
-      actions={children ? <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap' }}>{children}</div> : undefined}
+      actions={children ? <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>{children}</div> : undefined}
     />
   );
 }
@@ -166,7 +166,7 @@ function Wrap({ children }: { children: React.ReactNode }) {
 function PrimaryBtn({ label, icon, onClick, type = 'button' }: { label: string; icon?: IconName; onClick?: () => void; type?: 'button' | 'submit' }) {
   return (
     <button type={type} className="btn btn-primary" onClick={onClick} style={{ display:'flex', alignItems:'center', gap:6 }}>
-      {icon && <Icon name={icon} size={13} color="#fff" />}
+      {icon && <Icon name={icon} size={13} color="hsl(var(--primary-foreground))" />}
       {label}
     </button>
   );
@@ -291,8 +291,8 @@ export function EmployeesPage() {
         <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 9, overflow: 'hidden' }}>
           {(['list', 'grid'] as const).map(mode => (
             <button key={mode} type="button" title={mode === 'list' ? 'List view' : 'Card grid view'} onClick={() => setViewMode(mode)}
-              style={{ padding: 'var(--ds-btn-py) 11px', border: 'none', cursor: 'pointer', background: viewMode === mode ? 'var(--teal)' : 'var(--white)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .15s', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-              <Icon name={mode === 'list' ? 'list' : 'grid'} size={15} color={viewMode === mode ? '#fff' : 'var(--ink3)'} />
+              style={{ padding: 'var(--ds-btn-py) 11px', border: 'none', cursor: 'pointer', background: viewMode === mode ? 'hsl(var(--primary))' : 'var(--white)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .15s', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+              <Icon name={mode === 'list' ? 'list' : 'grid'} size={15} color={viewMode === mode ? 'hsl(var(--primary-foreground))' : 'var(--ink3)'} />
             </button>
           ))}
         </div>
@@ -511,7 +511,7 @@ export function RolesPage() {
         {dirty && (
           <button type="button" onClick={save} disabled={saving}
             style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 16px', borderRadius:'var(--r)', border:'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight:700, fontSize:13, fontFamily:'var(--font)', cursor:'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-            <Icon name="save" size={14} color="#fff" />{saving ? 'Saving—' : 'Save Changes'}
+            <Icon name="save" size={14} color="hsl(var(--primary-foreground))" />{saving ? 'Saving—' : 'Save Changes'}
           </button>
         )}
       </PageHeader>
@@ -715,7 +715,7 @@ export function PermissionsPage() {
         {dirty && (
           <button type="button" onClick={save} disabled={saving}
             style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 16px', borderRadius:'var(--r)', border:'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight:700, fontSize:13, fontFamily:'var(--font)', cursor:'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-            <Icon name="save" size={14} color="#fff" />{saving ? 'Saving—' : 'Save Changes'}
+            <Icon name="save" size={14} color="hsl(var(--primary-foreground))" />{saving ? 'Saving—' : 'Save Changes'}
           </button>
         )}
       </PageHeader>
@@ -1385,7 +1385,7 @@ function FlagToggle({ label, on, onChange }: { label: string; on: boolean; onCha
     <button type="button" onClick={() => onChange(!on)}
       style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'5px 10px', fontSize:11.5, fontWeight:600, border:'1px solid var(--border)', borderRadius:'var(--r-sm)', cursor:'pointer', fontFamily:'var(--font)',
         background: on ? 'var(--teal-l)' : 'var(--bg)', color: on ? 'var(--teal)' : 'var(--ink3)' }}>
-      <span style={{ width:14, height:14, borderRadius:'50%', display:'inline-flex', alignItems:'center', justifyContent:'center', background: on ? 'var(--teal)' : 'var(--ink3)', color:'#fff' }}>
+      <span style={{ width:14, height:14, borderRadius:'50%', display:'inline-flex', alignItems:'center', justifyContent:'center', background: on ? 'hsl(var(--primary))' : 'var(--ink3)', color: on ? 'hsl(var(--primary-foreground))' : '#fff' }}>
         <Icon name={on ? 'check' : 'x'} size={9} strokeWidth={3} />
       </span>
       {label}
@@ -1702,7 +1702,7 @@ export function LeavesPage() {
           { v: 'types' as const, icon: 'settings' as IconName, label: 'Leave types' },
         ]).map(o => (
           <button key={o.v} type="button" onClick={() => setLeaveView(o.v)}
-            style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py-sm) 14px', fontSize:12.5, fontWeight:600, border:'1px solid var(--border)', borderRadius:'var(--r)', cursor:'pointer', background: leaveView===o.v ? 'var(--teal)' : 'var(--white)', color: leaveView===o.v ? '#fff' : 'var(--ink2)', fontFamily:'var(--font)', minHeight:'var(--ctl-h-sm)', boxSizing:'border-box', lineHeight:1.25 }}>
+            style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py-sm) 14px', fontSize:12.5, fontWeight:600, border:'1px solid var(--border)', borderRadius:'var(--r)', cursor:'pointer', background: leaveView===o.v ? 'hsl(var(--primary))' : 'var(--white)', color: leaveView===o.v ? 'hsl(var(--primary-foreground))' : 'var(--ink2)', fontFamily:'var(--font)', minHeight:'var(--ctl-h-sm)', boxSizing:'border-box', lineHeight:1.25 }}>
             <Icon name={o.icon} size={14} /> {o.label}
           </button>
         ))}
@@ -1766,7 +1766,7 @@ export function LeavesPage() {
       <div style={{ display:'flex', gap:6, marginBottom:16, flexWrap:'wrap' }}>
         {chips.map(c => (
           <button key={c.v||'all'} type="button" onClick={()=>setFilter(c.v)}
-            style={{ padding:'var(--ds-btn-py-sm) 14px', fontSize:12, fontWeight:600, border:'none', borderRadius: 'var(--r)', cursor:'pointer', background:filter===c.v?'var(--teal)':'var(--bg)', color:filter===c.v?'#fff':'var(--ink2)', fontFamily:'var(--font)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
+            style={{ padding:'var(--ds-btn-py-sm) 14px', fontSize:12, fontWeight:600, border:'none', borderRadius: 'var(--r)', cursor:'pointer', background:filter===c.v?'hsl(var(--primary))':'var(--bg)', color:filter===c.v?'hsl(var(--primary-foreground))':'var(--ink2)', fontFamily:'var(--font)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
             {c.l}
           </button>
         ))}
@@ -2334,8 +2334,8 @@ export function ShiftsPage() {
       </PageHeader>
 
       {/* Filters & Controls */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, background: 'var(--white)', padding: '12px 16px', borderRadius: 9, border: '1px solid var(--border)' }}>
-        <div style={{ display: 'flex', gap: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, background: 'var(--white)', padding: '12px 16px', borderRadius: 9, border: '1px solid var(--border)', flexWrap: 'wrap', gap: 12 }}>
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
           <div style={{ width: 180 }}>
             <Combobox
               options={[{ value: '', label: 'All Employees' }, ...employees.map(e => ({ value: e.id, label: e.name }))]}
@@ -2354,8 +2354,8 @@ export function ShiftsPage() {
             <button type="button" className="btn btn-secondary btn-sm" onClick={() => { setFilterEmp(''); setFilterDept(''); }}>Clear</button>
           )}
         </div>
-        
-        <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+
+        <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <button type="button" className="btn btn-secondary btn-sm" style={{ padding: 'var(--ds-btn-py-xs) 8px', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} onClick={() => {
               const d = new Date(startDate);
@@ -2624,8 +2624,8 @@ export function HolidaysPage() {
   return (
     <div style={{ flex:1, overflowY:'auto' }}>
       <PageHeader icon="sun" title="Public Holidays" sub="Public and company-designated holidays" backTo="/nexushr">
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button type="button" className="btn btn-secondary" onClick={handleSync} disabled={syncing}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button type="button" className="btn btn-secondary" onClick={handleSync} disabled={syncing} style={{ whiteSpace: 'nowrap' }}>
             {syncing ? "Syncing..." : "Sync Public Holidays"}
           </button>
           <PrimaryBtn label="Add Holiday" icon="plus" onClick={() => setShowNew(v => !v)} />
@@ -3465,14 +3465,14 @@ export function HrmDashboard() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             <PersonAvatar userId={user?.id || 'admin'} name={user?.name || 'HR Admin'} size={52} />
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                 <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em', color: '#ffffff' }}>
                   Welcome back, {user?.name || 'Admin'}!
                 </h1>
                 <span style={{
                   fontSize: 10.5, fontWeight: 700, padding: '3px 10px', borderRadius: 12,
                   background: 'rgba(255,255,255,0.2)', color: '#ffffff', backdropFilter: 'blur(4px)',
-                  textTransform: 'uppercase', letterSpacing: '0.05em'
+                  textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap'
                 }}>
                   {user?.role || 'NexusHR Admin'}
                 </span>

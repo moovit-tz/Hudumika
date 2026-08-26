@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Icon } from '../components/Icon.js';
+import { PageHeader } from '../components/PageHeader.js';
 import { pushBranding } from '../hooks/useBranding.js';
 
 // Every app defaults to the single brand accent (matches WorkspaceApp.tsx's
@@ -180,10 +181,12 @@ export function BrandingView() {
 
   return (
     <div className="flex flex-col w-full max-w-6xl mx-auto p-6 gap-6">
-      <div className="sa-page-hdr" style={{ marginTop: 20 }}>
-        <h1 className="text-3xl font-bold tracking-tight">Platform Branding</h1>
-        <p className="text-muted-foreground mt-2">Manage the visual identity and nomenclature for your entire workspace.</p>
-      </div>
+      <PageHeader
+        crumbs={['Admin', 'Branding']}
+        titlePlain="Platform"
+        titleEm="branding"
+        subtitle="Manage the visual identity and nomenclature for your entire workspace."
+      />
 
       <Tabs defaultValue="identity" className="w-full">
         <TabsList className="mb-6 h-12 p-1.5 gap-2 bg-muted/60 rounded-xl border border-border">

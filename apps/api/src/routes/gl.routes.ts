@@ -524,26 +524,104 @@ export async function glRoutes(fastify: FastifyInstance) {
       const paymentsVal = Number(apPayments?.total || 0);
       const expensesVal = Number(directExpenses?.total || 0);
 
+      // Investing/Financing were previously hardcoded 0 while cash actually
+      // moved for both (fixed-asset acquisitions/disposals, loan draws/
+      // repayments, share-capital movements) — every one of them posts
+      // sourceModule:'MANUAL', a bucket the AR/AP/EXPENSE split above never
+      // looks at. Classified here by inspecting each cash line's sibling
+      // lines in the same journal entry, not by source_module: a
+      // FIXED_ASSET-subtype sibling (other than the 1503 accumulated-
+      // depreciation contra, which isn't itself the signal that money
+      // moved for an asset) means Investing; a LONG_TERM_LIABILITY or
+      // EQUITY sibling means Financing. This also surfaced a second gap in
+      // the same computation while fixing the first: any other MANUAL/
+      // PAYROLL cash movement (WHT/CIT remittances, deferred-tax
+      // instalments) was *also* silently excluded from Operating — not
+      // just from Investing/Financing — because it was outside the
+      // AR/AP/EXPENSE filter above too. Left uncaught, opening_cash + net
+      // would never actually equal closing_cash once any such movement
+      // existed, which is the one identity a cash flow statement cannot be
+      // wrong about. Bucketed below as "Other Operating Cash Movements".
+      const { investingTotal, financingTotal, otherOperatingTotal, investingItems, financingItems, otherOperatingItems } = await withTenant(tenantId, async (trx) => {
+        const cashAccounts2 = await trx.selectFrom('chart_of_accounts').select('id')
+          .where('tenant_id', '=', tenantId).where('code', 'in', ['1001', '1010', '1011']).execute();
+        const cashAccountIds2 = cashAccounts2.map(a => a.id);
+        if (cashAccountIds2.length === 0) return { investingTotal: 0, financingTotal: 0, otherOperatingTotal: 0, investingItems: [], financingItems: [], otherOperatingItems: [] };
+
+        const otherCashLines = await trx.selectFrom('journal_lines')
+          .innerJoin('journal_entries', 'journal_entries.id', 'journal_lines.journal_entry_id')
+          .select(['journal_lines.journal_entry_id', 'journal_lines.debit', 'journal_lines.credit', 'journal_entries.description'])
+          .where('journal_entries.tenant_id', '=', tenantId)
+          .where('journal_lines.account_id', 'in', cashAccountIds2)
+          .where('journal_entries.source_module', 'not in', ['AR', 'AP', 'EXPENSE'])
+          .where('journal_entries.entry_date', '>=', toDateParam(new Date(from)))
+          .where('journal_entries.entry_date', '<=', toDateParam(new Date(to)))
+          .execute();
+        if (otherCashLines.length === 0) return { investingTotal: 0, financingTotal: 0, otherOperatingTotal: 0, investingItems: [], financingItems: [], otherOperatingItems: [] };
+
+        const entryIds = [...new Set(otherCashLines.map(l => l.journal_entry_id))];
+        const siblingLines = await trx.selectFrom('journal_lines')
+          .innerJoin('chart_of_accounts', 'chart_of_accounts.id', 'journal_lines.account_id')
+          .select(['journal_lines.journal_entry_id', 'chart_of_accounts.code', 'chart_of_accounts.subtype'])
+          .where('journal_lines.journal_entry_id', 'in', entryIds)
+          .execute();
+        const siblingsByEntry = new Map<string, { code: string; subtype: string | null }[]>();
+        for (const s of siblingLines) {
+          const arr = siblingsByEntry.get(s.journal_entry_id) ?? [];
+          arr.push({ code: s.code, subtype: s.subtype });
+          siblingsByEntry.set(s.journal_entry_id, arr);
+        }
+
+        let investingTotal = 0, financingTotal = 0, otherOperatingTotal = 0;
+        const investingItems: { label: string; amount: number }[] = [];
+        const financingItems: { label: string; amount: number }[] = [];
+        const otherOperatingItems: { label: string; amount: number }[] = [];
+        for (const line of otherCashLines) {
+          const siblings = siblingsByEntry.get(line.journal_entry_id) ?? [];
+          const isInvesting = siblings.some(s => s.subtype === 'FIXED_ASSET' && s.code !== '1503');
+          const isFinancing = !isInvesting && siblings.some(s => s.subtype === 'LONG_TERM_LIABILITY' || s.subtype === 'EQUITY');
+          const amount = Number(line.debit) - Number(line.credit);
+          if (isInvesting) { investingTotal += amount; investingItems.push({ label: line.description || 'Investing activity', amount }); }
+          else if (isFinancing) { financingTotal += amount; financingItems.push({ label: line.description || 'Financing activity', amount }); }
+          else { otherOperatingTotal += amount; otherOperatingItems.push({ label: line.description || 'Other operating cash movement', amount }); }
+        }
+        return { investingTotal, financingTotal, otherOperatingTotal, investingItems, financingItems, otherOperatingItems };
+      });
+
       const items = [
         { label: 'Cash Receipts from Customers', amount: receiptsVal, category: 'OPERATING' as const },
         { label: 'Cash Paid to Suppliers', amount: -paymentsVal, category: 'OPERATING' as const },
-        { label: 'Operating Expenses Paid', amount: -expensesVal, category: 'OPERATING' as const }
+        { label: 'Operating Expenses Paid', amount: -expensesVal, category: 'OPERATING' as const },
+        ...otherOperatingItems.map(i => ({ label: i.label, amount: i.amount, category: 'OPERATING' as const })),
+        ...investingItems.map(i => ({ label: i.label, amount: i.amount, category: 'INVESTING' as const })),
+        ...financingItems.map(i => ({ label: i.label, amount: i.amount, category: 'FINANCING' as const })),
       ];
 
-      const netOperating = receiptsVal - paymentsVal - expensesVal;
+      const netOperating = receiptsVal - paymentsVal - expensesVal + otherOperatingTotal;
 
       return {
         period: { from, to },
         items,
         totals: {
           operating: netOperating,
-          investing: 0,
-          financing: 0,
-          net: netOperating
+          investing: investingTotal,
+          financing: financingTotal,
+          net: netOperating + investingTotal + financingTotal
         },
         opening_cash,
         closing_cash
       };
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  // GET /v1/finance/equity-statement (M6) — Statement of Changes in Equity.
+  fastify.get('/equity-statement', async (request: any, reply) => {
+    try {
+      const { from, to } = request.query as { from: string; to: string };
+      if (!from || !to) return reply.status(400).send({ error: 'Missing from or to query parameters' });
+      return await GLService.statementOfChangesInEquity(request.user.tenant_id, from, to);
     } catch (err: any) {
       return reply.status(500).send({ error: err.message });
     }

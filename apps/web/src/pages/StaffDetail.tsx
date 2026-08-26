@@ -3,10 +3,13 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
 import { BackButton } from '../components/ui/BackButton.js';
+import { PageHeader } from '../components/PageHeader.js';
 import { useAuth } from '../hooks/useAuth.js';
+import { useIsMobile } from '../hooks/useIsMobile.js';
 import type { EmpStatus } from '../data/staffData.js';
 import type { UserProfileFields } from '@hudumika/types';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { showAlert } from '../lib/alert.js';
 import { RecordActivity } from '../components/RecordActivity.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
@@ -333,6 +336,7 @@ export const StaffDetail: React.FC = () => {
    * that cannot be saved.
    */
   const canSetPay = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'].includes(authUser?.role ?? '');
+  const isMobile = useIsMobile();
 
   const [staff, setStaff] = useState<StaffData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -714,14 +718,17 @@ export const StaffDetail: React.FC = () => {
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
+      <div style={{ padding: '20px 32px 0 32px' }}>
+        <PageHeader crumbs={['NexusHR', 'Staff']} titlePlain="Staff" titleEm="profile" subtitle={staff.name} />
+      </div>
       {/* Top Header Section */}
       <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)' }}>
         <div style={{ padding: '24px 32px 0 32px' }}>
           <BackButton to="/nexushr/employees" label="Employees" color="var(--blue)" />
         </div>
         {/* Profile Info Row */}
-        <div style={{ padding: '24px 32px 16px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
+        <div style={{ padding: '24px 32px 16px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
+          <div style={{ display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap' }}>
             {/* Every account can have a picture, not only the ones whose owner
                 thought to set one. This also read staff.avatar_url directly,
                 missing the shared cache that keeps one picture consistent
@@ -748,22 +755,22 @@ export const StaffDetail: React.FC = () => {
                       display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0,
                     }}
                   >
-                    <Icon name={photoBusy ? 'clock' : 'camera'} size={11} color="#fff" />
+                    <Icon name={photoBusy ? 'clock' : 'camera'} size={11} color="hsl(var(--primary-foreground))" />
                   </button>
                 </>
               )}
             </div>
             <div>
-              <h1 style={{ margin: '0 0 6px 0', fontSize: 22, fontWeight: 700, color: 'var(--ink)' }}>{staff.name}</h1>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--ink2)' }}>
+              <div style={{ margin: '0 0 6px 0', fontSize: 22, fontWeight: 700, color: 'var(--ink)' }}>{staff.name}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--ink2)', flexWrap: 'wrap' }}>
                 {staff.designation || 'No designation'} &bull; {staff.dept || 'No department'} &bull; <strong style={{ color: 'var(--ink)' }}>{staff.employee_code}</strong>
                 <span style={{ marginLeft: 8, padding: '2px 8px', borderRadius: 12, fontSize: 10, fontWeight: 700, background: ss.bg, color: ss.color }}>{ss.label}</span>
               </div>
             </div>
           </div>
           <div>
-            <button type="button" onClick={startEdit} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, padding: '8px 16px', borderRadius: 8, background: 'var(--teal)', borderColor: 'var(--teal)' }}>
-              <Icon name="edit" size={14} color="#fff" /> Edit
+            <button type="button" onClick={startEdit} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
+              <Icon name="edit" size={14} color="hsl(var(--primary-foreground))" /> Edit
             </button>
           </div>
         </div>
@@ -790,13 +797,13 @@ export const StaffDetail: React.FC = () => {
       {/* Main Content Area */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '24px 32px' }}>
         {tab === 'Profile' && (
-          <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
+          <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 24, alignItems: 'flex-start' }}>
             
             {/* Left Column (Data Cards) */}
             <div style={{ flex: 2, display: 'flex', flexDirection: 'column' }}>
               
               <ProfileCard icon={<Icon name="briefcase" size={14} />} title="Work" filled={workFilled} total={6}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr' }}>
                   <FieldItem label="Employee Code" value={staff.employee_code} />
                   <FieldItem label="Designation" value={staff.designation} />
                   <FieldItem label="Department" value={staff.dept} />
@@ -807,7 +814,7 @@ export const StaffDetail: React.FC = () => {
               </ProfileCard>
 
               <ProfileCard icon={<Icon name="mail" size={14} />} title="Contact" filled={contactFilled} total={5}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr' }}>
                   <FieldItem label="Email" value={staff.email} />
                   <FieldItem label="Phone" value={staff.phone} />
                   <FieldItem label="Address" value={staff.profile?.address} />
@@ -817,7 +824,7 @@ export const StaffDetail: React.FC = () => {
               </ProfileCard>
 
               <ProfileCard icon={<Icon name="user" size={14} />} title="Personal" filled={personalFilled} total={4}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr' }}>
                   <FieldItem label="Date of Birth" value={staff.profile?.date_of_birth} />
                   <FieldItem label="Gender" value={staff.profile?.gender} />
                   <FieldItem label="Language" value={staff.profile?.language || 'English'} />
@@ -828,7 +835,7 @@ export const StaffDetail: React.FC = () => {
               {/* Everything payroll needs to file a return. Blank until somebody
                   enters it — the engine treats missing as missing, not zero. */}
               <ProfileCard icon={<Icon name="shield" size={14} />} title="Statutory identity" filled={statutoryFilled} total={6}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr' }}>
                   <FieldItem label="NIDA / National ID" value={staff.national_id} />
                   <FieldItem label="TIN" value={staff.tax_id} />
                   <FieldItem label="Social security no." value={staff.social_security_no} />
@@ -854,7 +861,7 @@ export const StaffDetail: React.FC = () => {
 
               {canSetPay && (
                 <ProfileCard icon={<Icon name="creditCard" size={14} />} title="Pay & payment" filled={payFilled} total={4}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr' }}>
                     <FieldItem
                       label="Basic salary"
                       value={staff.basic_salary
@@ -1145,7 +1152,6 @@ export const StaffDetail: React.FC = () => {
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
                 className="btn btn-primary btn-sm"
-                style={{ background: 'var(--teal)', borderColor: 'var(--teal)', color: '#fff' }}
               >
                 {uploading ? 'Uploading…' : 'Upload document'}
               </button>
@@ -1304,7 +1310,7 @@ export const StaffDetail: React.FC = () => {
               
               <div>
                 <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 12, borderBottom: '1px solid var(--border)', paddingBottom: 8 }}>Work Information</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Employee Code</label>
                     <input value={editForm.profile.employee_code || ''} onChange={e => updateProfileField('employee_code', e.target.value)} style={inputSt} />
@@ -1330,7 +1336,7 @@ export const StaffDetail: React.FC = () => {
 
               <div>
                 <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 12, borderBottom: '1px solid var(--border)', paddingBottom: 8 }}>Contact Information</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Full Name</label>
                     <input value={editForm.name || ''} onChange={e => setEditForm(p => ({ ...p, name: e.target.value }))} style={inputSt} />
@@ -1356,19 +1362,26 @@ export const StaffDetail: React.FC = () => {
 
               <div>
                 <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 12, borderBottom: '1px solid var(--border)', paddingBottom: 8 }}>Personal Information</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Date of Birth</label>
-                    <input type="date" value={editForm.profile.date_of_birth || ''} onChange={e => updateProfileField('date_of_birth', e.target.value)} style={inputSt} />
+                    <DatePicker
+                      date={parseDateOnly(editForm.profile.date_of_birth)}
+                      onChange={d => updateProfileField('date_of_birth', toDateOnlyString(d))}
+                      placeholder="Select date"
+                    />
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Gender</label>
-                    <select value={editForm.profile.gender || ''} onChange={e => updateProfileField('gender', e.target.value)} style={inputSt}>
-                      <option value="">Select gender...</option>
-                      <option value="Male">Male</option>
-                      <option value="Female">Female</option>
-                      <option value="Other">Other</option>
-                    </select>
+                    <Select value={editForm.profile.gender || NONE} onValueChange={v => updateProfileField('gender', v === NONE ? '' : v)}>
+                      <SelectTrigger><SelectValue placeholder="Select gender..." /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={NONE}>Select gender...</SelectItem>
+                        <SelectItem value="Male">Male</SelectItem>
+                        <SelectItem value="Female">Female</SelectItem>
+                        <SelectItem value="Other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Language</label>
@@ -1387,10 +1400,14 @@ export const StaffDetail: React.FC = () => {
                   What payroll needs to file a return. Leave a field blank rather than
                   inventing a placeholder — the engine treats missing as missing.
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Hire date</label>
-                    <input type="date" value={editForm.hire_date || ''} onChange={e => updateField('hire_date', e.target.value)} style={inputSt} />
+                    <DatePicker
+                      date={parseDateOnly(editForm.hire_date)}
+                      onChange={d => updateField('hire_date', toDateOnlyString(d))}
+                      placeholder="Select date"
+                    />
                     <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4 }}>The leave cycle resets on this anniversary, not on 1 January.</div>
                   </div>
                   <div>
@@ -1440,7 +1457,7 @@ export const StaffDetail: React.FC = () => {
               {canSetPay && (
                 <div>
                   <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 12, borderBottom: '1px solid var(--border)', paddingBottom: 8 }}>Pay &amp; Payment</h3>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
                     <div>
                       <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Basic salary</label>
                       <input
@@ -1525,7 +1542,7 @@ export const StaffDetail: React.FC = () => {
             
             <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: 12, background: 'var(--bg)' }}>
               <button type="button" onClick={() => setIsEditing(false)} className="btn btn-secondary" style={{ padding: '10px 20px', borderRadius: 8 }}>Cancel</button>
-              <button type="button" onClick={handleSave} disabled={saving} className="btn btn-primary" style={{ padding: '10px 20px', borderRadius: 8, background: 'var(--teal)', borderColor: 'var(--teal)', color: '#fff' }}>
+              <button type="button" onClick={handleSave} disabled={saving} className="btn btn-primary">
                 {saving ? 'Saving...' : 'Save Profile'}
               </button>
             </div>

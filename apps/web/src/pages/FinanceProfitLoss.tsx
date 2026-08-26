@@ -48,7 +48,13 @@ function buildCostsProfitRows(revenueTotal: number, expenses: ProfitLossLine[]) 
   const cogs = expenses.filter(e => e.subtype === 'COST_OF_SERVICES');
   const opex = expenses.filter(e => e.subtype === 'OPERATING_EXPENSE' || e.subtype === 'ADMIN_EXPENSE');
   const finance = expenses.filter(e => e.subtype === 'FINANCE_COST');
-  const other = expenses.filter(e => !['COST_OF_SERVICES', 'OPERATING_EXPENSE', 'ADMIN_EXPENSE', 'FINANCE_COST'].includes(e.subtype as string));
+  // Income tax (5950) and deferred tax (5951) — kept out of the "Other
+  // Expenses" catch-all (M5 of the corporate-tax build-out) so the final
+  // line can honestly say "after tax" only for a period where a real tax
+  // figure was actually subtracted, not unconditionally as it did before
+  // M2/M3 gave this bucket anything real to contain.
+  const tax = expenses.filter(e => e.subtype === 'TAX_EXPENSE');
+  const other = expenses.filter(e => !['COST_OF_SERVICES', 'OPERATING_EXPENSE', 'ADMIN_EXPENSE', 'FINANCE_COST', 'TAX_EXPENSE'].includes(e.subtype as string));
 
   const cogsTotal = cogs.reduce((s, e) => s + e.amount, 0);
   const grossProfit = revenueTotal - cogsTotal;
@@ -56,7 +62,9 @@ function buildCostsProfitRows(revenueTotal: number, expenses: ProfitLossLine[]) 
   const operatingProfit = grossProfit - opexTotal;
   const financeTotal = finance.reduce((s, e) => s + e.amount, 0);
   const otherTotal = other.reduce((s, e) => s + e.amount, 0);
-  const netProfit = operatingProfit - financeTotal - otherTotal;
+  const taxTotal = tax.reduce((s, e) => s + e.amount, 0);
+  const netProfitBeforeTax = operatingProfit - financeTotal - otherTotal;
+  const netProfitAfterTax = netProfitBeforeTax - taxTotal;
 
   const rows: PLRow[] = [];
   if (cogs.length) {
@@ -87,8 +95,22 @@ function buildCostsProfitRows(revenueTotal: number, expenses: ProfitLossLine[]) 
     rows.push({ label: 'Total Other Expenses', amount: otherTotal, bold: true });
     rows.push({ label: '', amount: 0, separator: true });
   }
-  rows.push({ label: 'NET PROFIT AFTER TAX', amount: netProfit, bold: true });
-  return { rows, grossProfit, operatingProfit, netProfit };
+  if (taxTotal !== 0) {
+    rows.push({ label: 'Net Profit Before Tax', amount: netProfitBeforeTax, bold: true });
+    rows.push({ label: '', amount: 0, separator: true });
+    rows.push({ label: 'Income Tax', amount: 0, bold: true });
+    tax.forEach(e => rows.push({ label: e.account_name, amount: e.amount, sub: true }));
+    rows.push({ label: 'Total Income Tax', amount: taxTotal, bold: true });
+    rows.push({ label: '', amount: 0, separator: true });
+    rows.push({ label: 'NET PROFIT AFTER TAX', amount: netProfitAfterTax, bold: true });
+  } else {
+    // No tax posted for this period (e.g. a monthly period — deferred tax
+    // only posts at year-end close) — the plain "Net Profit" label is the
+    // honest one; claiming "after tax" here would assert a deduction that
+    // never happened.
+    rows.push({ label: 'NET PROFIT', amount: netProfitAfterTax, bold: true });
+  }
+  return { rows, grossProfit, operatingProfit, netProfit: netProfitAfterTax };
 }
 
 function PLSection({ rows, highlightColor, cur }: { rows: PLRow[]; highlightColor: string; cur: string }) {

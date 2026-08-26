@@ -588,8 +588,8 @@ export const Chat: React.FC = () => {
                     </span>
                   )}
 
-                  <button type="button" onClick={send} disabled={!input.trim() || sending} style={{ background: input.trim() ? 'var(--teal)' : 'var(--border)', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-sm) 14px', cursor: input.trim() ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', gap: 6, color: input.trim() ? '#fff' : 'var(--ink3)', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
-                    <Icon name="send" size={13} color={input.trim() ? '#fff' : 'var(--ink3)'} />
+                  <button type="button" onClick={send} disabled={!input.trim() || sending} style={{ background: input.trim() ? 'hsl(var(--primary))' : 'var(--border)', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-sm) 14px', cursor: input.trim() ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', gap: 6, color: input.trim() ? 'hsl(var(--primary-foreground))' : 'var(--ink3)', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                    <Icon name="send" size={13} color={input.trim() ? 'hsl(var(--primary-foreground))' : 'var(--ink3)'} />
                     {sending ? 'Sending…' : 'Send'}
                   </button>
                 </div>
@@ -639,7 +639,7 @@ export const Chat: React.FC = () => {
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               <button type="button" onClick={() => { setCreating(null); setNewName(''); setNewMemberIds([]); }} style={{ padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--ink2)', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
               <button type="button" onClick={createChannelOrGroup} disabled={!newName.trim() || (creating === 'group' && newMemberIds.length === 0)}
-                style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: newName.trim() ? 'var(--teal)' : 'var(--border)', color: newName.trim() ? '#fff' : 'var(--ink3)', cursor: newName.trim() ? 'pointer' : 'not-allowed', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: newName.trim() ? 'hsl(var(--primary))' : 'var(--border)', color: newName.trim() ? 'hsl(var(--primary-foreground))' : 'var(--ink3)', cursor: newName.trim() ? 'pointer' : 'not-allowed', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
                 {creating === 'channel' ? 'Create Channel' : 'Create Group'}
               </button>
             </div>

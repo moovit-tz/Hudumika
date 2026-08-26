@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { apiFetch } from '../../lib/api.js';
 import { showAlert } from '../../lib/alert.js';
 import { Icon } from '../../components/Icon.js';
+import { PageHeader } from '../../components/PageHeader.js';
 import './Onsite.css';
 
 interface SearchSuggestion {
@@ -57,6 +58,13 @@ export function OnsiteDomainSearch() {
 
   return (
     <div className="onsite-page">
+      <PageHeader
+        crumbs={['Onsite', 'Domain search']}
+        titlePlain="Find a"
+        titleEm="domain"
+        subtitle="Check live availability via RDAP and register a name for your project."
+      />
+
       <div className="onsite-domain-search-hero">
         <h2>Search for a domain name</h2>
 

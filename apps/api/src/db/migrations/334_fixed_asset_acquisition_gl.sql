@@ -1,0 +1,11 @@
+-- Migration 334: M5 of the corporate-tax build-out — fixed-asset
+-- *acquisition* has never posted to the GL (fixed-assets.routes.ts POST /
+-- just inserts the fixed_assets row). Only disposal ever posted, so the
+-- asset account went net-credit after any disposal, and the cash-flow fix
+-- in this same milestone has nothing to detect on the purchase side.
+--
+-- Real FK, not text/reference matching — same "reverses_entry_id, not a
+-- description match" principle 330_journal_reversal_tracking.sql already
+-- established — so a delete of an as-yet-undepreciated asset (the only
+-- case the DELETE route already allows) can reverse the right single entry.
+ALTER TABLE fixed_assets ADD COLUMN IF NOT EXISTS acquisition_journal_entry_id UUID REFERENCES journal_entries(id);

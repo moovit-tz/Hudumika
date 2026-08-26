@@ -1,4 +1,4 @@
-import { requireEntitlement } from '../middleware/entitlement.js';
+import { requireEntitlement, requireAnyEntitlement } from '../middleware/entitlement.js';
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { quotationService } from '../services/quotation.service.js';
 import { isTaxCodeUserError } from '../services/tax-code.service.js';
@@ -16,7 +16,14 @@ const QUOTE_DELETE_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER'];
 
 export async function quotationRoutes(app: FastifyInstance) {
   app.addHook('preHandler', app.authenticate);
-  app.addHook('preHandler', requireEntitlement('clearos'));
+  // Sales.tsx (the only frontend consumer) lives under /crm/sales, gated by
+  // CRM_ROLES with no clearos check at all — a tenant entitled to 'crm' but
+  // not 'clearos' could open the page from its own nav and have every call
+  // here 403 the moment it loaded. requireAnyEntitlement — the same fix
+  // seal-crm-link.routes.ts already uses for lots-for-customer — lets either
+  // entitlement in; the one action that actually creates ClearOS data
+  // (convert-to-shipment, below) still gates on 'clearos' specifically.
+  app.addHook('preHandler', requireAnyEntitlement(['crm', 'clearos']));
 
   app.get('/', async (req: FastifyRequest, reply: FastifyReply) => {
     const user = (req as any).user;
@@ -65,6 +72,12 @@ export async function quotationRoutes(app: FastifyInstance) {
     if (!QUOTE_WRITE_ROLES.includes(user.role)) {
       return reply.code(403).send({ error: 'Insufficient permissions' });
     }
+    // Unlike the rest of this file, converting a quote actually inserts a
+    // real shipment_cases row — a genuine ClearOS write, so it stays behind
+    // 'clearos' specifically even though the module as a whole now also
+    // accepts a plain 'crm' entitlement.
+    await requireEntitlement('clearos')(req, reply);
+    if (reply.sent) return;
     const { id } = req.params as any;
     const result = await quotationService.convertToShipment(user.tenant_id, id, user.id);
     return result;

@@ -4,6 +4,7 @@ import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
 import { apiFetch } from '../lib/api.js';
 import { useCompany } from '../data/companyStore.js';
+import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 
 /**
  * Filing periods.
@@ -178,13 +179,11 @@ export function FinanceVatPeriods() {
       <div style={{ ...card, padding: '12px 14px', marginBottom: 16, display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
         <div>
           <label style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 4 }}>From</label>
-          <input type="date" value={from} onChange={e => setFrom(e.target.value)}
-            style={{ padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', fontSize: 13, fontFamily: 'var(--font)', background: 'var(--white)', color: 'var(--ink)' }} />
+          <DatePicker date={parseDateOnly(from)} onChange={d => setFrom(toDateOnlyString(d))} />
         </div>
         <div>
           <label style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 4 }}>To</label>
-          <input type="date" value={to} onChange={e => setTo(e.target.value)}
-            style={{ padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', fontSize: 13, fontFamily: 'var(--font)', background: 'var(--white)', color: 'var(--ink)' }} />
+          <DatePicker date={parseDateOnly(to)} onChange={d => setTo(toDateOnlyString(d))} />
         </div>
         <button type="button" className="btn btn-primary btn-sm" disabled={busy === 'create'} onClick={create}>
           <Icon name="plus" size={13} color="#fff" /> {busy === 'create' ? 'Creating…' : 'New period'}

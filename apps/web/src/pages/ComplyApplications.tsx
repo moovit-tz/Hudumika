@@ -105,6 +105,24 @@ export function ComplyApplications() {
     }
   }
 
+  // A rejected application is appealed by resubmitting it — this routes back
+  // through the same `status: 'submitted'` path handleSubmit uses, which
+  // re-runs the agency adapter and refreshes agency_ref/submitted_at (see
+  // ComplyService.updateApplication) rather than a separate appeal concept
+  // the backend doesn't model.
+  async function handleAppeal(app: CompApplication) {
+    if (!(await showConfirm(`Resubmit ${app.app_number} as an appeal of its rejection?`, { confirmLabel: 'Start Appeal' }))) return;
+    try {
+      setSubmitting(true);
+      await update(app.id, { status: 'submitted' });
+      setSelected(null);
+    } catch (e: any) {
+      showAlert(e.message);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   function handleDownloadPackage(app: CompApplication) {
     const linkedCert = app.linked_cert_id ? certs.find(c => c.id === app.linked_cert_id) : null;
     if (linkedCert?.document_url) {
@@ -208,7 +226,7 @@ export function ComplyApplications() {
                         View
                       </button>
                       {app.status === 'rejected' && (
-                        <button type="button" className="comply-btn-secondary comply-btn-sm">Appeal</button>
+                        <button type="button" className="comply-btn-secondary comply-btn-sm" disabled={submitting} onClick={() => handleAppeal(app)}>Appeal</button>
                       )}
                     </div>
                   </td>
@@ -276,7 +294,7 @@ export function ComplyApplications() {
                   {timeline(selected).map((t, i) => (
                     <div key={i} className="comply-tl-item">
                       <div className={`comply-tl-dot${t.done ? ' comply-tl-dot--done' : ''}`}>
-                        {t.done && <Icon name="check" size={10} color="#fff" strokeWidth={3} />}
+                        {t.done && <Icon name="check" size={10} strokeWidth={3} />}
                       </div>
                       <div>
                         <div className={`comply-tl-text${t.done ? ' comply-tl-text--done' : ''}`}>{t.step}</div>
@@ -300,8 +318,8 @@ export function ComplyApplications() {
                   </button>
                 )}
                 {selected.status === 'rejected' && (
-                  <button type="button" className="comply-btn-primary">
-                    <Icon name="refresh" size={13} /> Start Appeal
+                  <button type="button" className="comply-btn-primary" disabled={submitting} onClick={() => handleAppeal(selected)}>
+                    <Icon name="refresh" size={13} /> {submitting ? 'Submitting…' : 'Start Appeal'}
                   </button>
                 )}
                 <button type="button" className="comply-btn-secondary" onClick={() => handleDownloadPackage(selected)}>

@@ -352,7 +352,7 @@ export function ComplyLegal() {
                   {selected.agencies_handled.map(a => <span key={a} className="comply-badge comply-badge--review">{a}</span>)}
                 </div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+              <div className="comply-grid-2" style={{ gap: 14, marginBottom: 0 }}>
                 {[
                   { label: 'Rating', val: `${selected.rating} / 5` },
                   { label: 'Reviews', val: `${selected.review_count} clients` },

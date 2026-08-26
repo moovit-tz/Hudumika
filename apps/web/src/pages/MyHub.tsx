@@ -55,7 +55,7 @@ export function MyHubPage() {
         subtitle={`Welcome back${user?.name ? `, ${user.name.split(' ')[0]}` : ''} — your time, leave and pay at a glance.`}
       />
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(300px, 100%), 1fr))', gap: 16 }}>
         {/* Clock-in status + week hours */}
         <div style={card}>
           {cardHead('clock', 'Time this week', active ? 'success' : 'gray')}

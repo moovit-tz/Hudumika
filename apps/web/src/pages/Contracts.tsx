@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
+import { PageHeader } from '../components/PageHeader.js';
 import { Button } from '../components/ui/button.js';
 import { Badge } from '../components/ui/badge.js';
 import { EntityPicker, type PickerItem } from '../components/EntityPicker.js';
@@ -75,8 +76,12 @@ export const Contracts: React.FC = () => {
   return (
     <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)', fontFamily: 'var(--font)' }}>
       <div style={{ padding: isMobile ? '16px 16px 0' : '24px 32px 0' }}>
-        <h1 style={{ fontSize: isMobile ? 22 : 26, fontWeight: 800, color: 'var(--ink)', margin: 0, letterSpacing: '-0.02em' }}>Contracts</h1>
-        <p style={{ fontSize: 13, color: 'var(--ink3)', margin: '4px 0 0' }}>Customer agreements — real e-signature and renewal history.</p>
+        <PageHeader
+          crumbs={['Projects', 'Contracts']}
+          titlePlain="Customer"
+          titleEm="contracts"
+          subtitle="Customer agreements — real e-signature and renewal history."
+        />
       </div>
 
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', padding: isMobile ? '14px 16px 0' : '18px 32px 0' }}>
@@ -88,7 +93,7 @@ export const Contracts: React.FC = () => {
           ['trash', 'Trash', stats.trash, 'gray'],
         ] as const).map(([key, label, count, variant]) => (
           <button key={key} type="button" onClick={() => setShowTrash(key === 'trash')}
-            style={{ padding: '6px 12px', borderRadius: 8, border: `1px solid ${(key === 'trash') === showTrash ? 'var(--teal)' : 'var(--border)'}`, background: 'var(--white)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+            style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r)', border: `1px solid ${(key === 'trash') === showTrash ? 'var(--teal)' : 'var(--border)'}`, background: 'var(--white)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
             <Badge variant={variant}>{count}</Badge>
             <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink2)' }}>{label}</span>
           </button>
@@ -101,7 +106,7 @@ export const Contracts: React.FC = () => {
             <Icon name="plus" size={15} /> New Contract
           </Button>
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search subject or customer…"
-            style={{ padding: '7px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, width: 240, background: 'var(--white)', color: 'var(--ink)' }} />
+            style={{ padding: 'var(--ds-input-py, 7px) 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, width: 240, background: 'var(--white)', color: 'var(--ink)' }} />
         </div>
 
         {creating && (
@@ -113,7 +118,7 @@ export const Contracts: React.FC = () => {
               autoFocus value={newSubject} onChange={e => setNewSubject(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') createContract(); if (e.key === 'Escape') setCreating(false); }}
               placeholder="Subject…"
-              style={{ flex: 2, minWidth: 220, padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 14, background: 'var(--white)', color: 'var(--ink)' }}
+              style={{ flex: 2, minWidth: 220, padding: 'var(--ds-input-py, 7px) 10px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 14, background: 'var(--white)', color: 'var(--ink)' }}
             />
             <Button size="sm" onClick={createContract} disabled={!newSubject.trim() || !newCustomer}>Create</Button>
             <Button size="sm" variant="outline" onClick={() => setCreating(false)}>Cancel</Button>

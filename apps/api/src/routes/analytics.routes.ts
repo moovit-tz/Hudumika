@@ -421,8 +421,17 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
       const activeShipments = shipments.filter(s => s.stage !== 'CLOSED');
       const clearedThisMonth = shipments.filter(s => (s.stage === 'DELIVERY' || s.stage === 'CLOSED') && s.created_at >= monthStart).length;
       const pendingCustoms = shipments.filter(s => STAGE_BUCKET[s.stage] === 'CUSTOMS_HOLD').length;
-      const demurrageRisk = activeShipments.filter(s => s.free_time_end && s.free_time_end <= next48h).length;
-      const slaBreached = activeShipments.filter(s => s.sla_deadline && s.sla_deadline < now).length;
+      // A shipment can be both within 48h of free-time expiry AND past its
+      // SLA deadline at once — summing the two counts (the old behaviour)
+      // double-counted those shipments and could report more "at risk"
+      // shipments than there are active shipments at all (seen live: "99 of
+      // 60"). This is the count of distinct at-risk shipments instead, so it
+      // can never exceed active_shipment_count.
+      const atRiskShipmentIds = new Set(
+        activeShipments
+          .filter(s => (s.free_time_end && s.free_time_end <= next48h) || (s.sla_deadline && s.sla_deadline < now))
+          .map(s => s.id)
+      );
 
       // ── Declarations today / pending ───────────────────────────
       const declarations = await trx.selectFrom('declarations')
@@ -514,7 +523,7 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
         status_cards: {
           on_time_clearance_pct: onTimeRatePct,
           document_compliance_pct: documentCompliancePct,
-          at_risk_shipments: demurrageRisk + slaBreached,
+          at_risk_shipments: atRiskShipmentIds.size,
           active_shipment_count: activeShipments.length,
           freight_revenue_mtd_tzs: Math.round(totalInvoiced),
         },

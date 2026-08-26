@@ -167,7 +167,7 @@ export function Calls() {
 
       {error && <div style={{ fontSize: 12.5, color: 'var(--red)', background: 'var(--red-l)', borderRadius: 8, padding: '8px 12px' }}>{error}</div>}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(320px, 100%), 1fr))', gap: 20 }}>
         {/* Directory + presence */}
         <div style={{ ...card, padding: 20 }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)', marginBottom: 4 }}>Team</div>
@@ -191,8 +191,8 @@ export function Calls() {
                     <Icon name="phone" size={15} color="var(--ink2)" />
                   </button>
                   <button type="button" title="Video call" disabled={!isOnline || callState !== 'idle'} onClick={() => startCall(p, 'VIDEO')}
-                    style={{ width: 32, height: 32, borderRadius: 8, border: 'none', background: isOnline && callState === 'idle' ? 'var(--teal)' : 'var(--bg)', cursor: isOnline && callState === 'idle' ? 'pointer' : 'default', opacity: isOnline && callState === 'idle' ? 1 : 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Icon name="camera" size={15} color={isOnline && callState === 'idle' ? '#fff' : 'var(--ink3)'} />
+                    style={{ width: 32, height: 32, borderRadius: 8, border: 'none', background: isOnline && callState === 'idle' ? 'hsl(var(--primary))' : 'var(--bg)', cursor: isOnline && callState === 'idle' ? 'pointer' : 'default', opacity: isOnline && callState === 'idle' ? 1 : 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Icon name="camera" size={15} color={isOnline && callState === 'idle' ? 'hsl(var(--primary-foreground))' : 'var(--ink3)'} />
                   </button>
                 </div>
               );
@@ -248,7 +248,7 @@ export function Calls() {
             <video ref={remoteVideo} autoPlay playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', background: '#0b0b0f' }} />
             {callState === 'calling' && (
               <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#fff', gap: 10 }}>
-                <div style={{ width: 84, height: 84, borderRadius: '50%', background: 'var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30, fontWeight: 700 }}>{ini(peer.name)}</div>
+                <div style={{ width: 84, height: 84, borderRadius: '50%', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30, fontWeight: 700 }}>{ini(peer.name)}</div>
                 <div style={{ fontSize: 20, fontWeight: 700 }}>{peer.name}</div>
                 <div style={{ fontSize: 13, opacity: 0.7 }}>Ringing…</div>
               </div>

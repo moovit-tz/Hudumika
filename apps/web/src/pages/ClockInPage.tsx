@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { apiFetch, apiDownload } from '../lib/api.js';
 import { Icon, IconName } from '../components/Icon.js';
 import { PageHeader as SharedPageHeader } from '../components/PageHeader.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { useAuth } from '../hooks/useAuth.js';
 
 interface TimesheetApproval {
@@ -509,11 +511,14 @@ export function ClockInPage() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <select value={dateRangeFilter} onChange={e => setDateRangeFilter(e.target.value)} style={{ padding: '6px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, background: 'var(--white)', color: 'var(--ink)', fontFamily: 'var(--font)' }}>
-            <option value="7days">Last 7 days</option>
-            <option value="14days">Last 14 days</option>
-            <option value="month">This Month</option>
-          </select>
+          <Select value={dateRangeFilter} onValueChange={setDateRangeFilter}>
+            <SelectTrigger style={{ minHeight: 32, fontSize: 13, width: 'auto' }}><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="7days">Last 7 days</SelectItem>
+              <SelectItem value="14days">Last 14 days</SelectItem>
+              <SelectItem value="month">This Month</SelectItem>
+            </SelectContent>
+          </Select>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--white)', border: '1px solid var(--border)', padding: '6px 12px', borderRadius: 8, fontSize: 13, color: 'var(--ink2)', fontWeight: 500 }}>
             <Icon name="calendar" size={14} color="var(--ink3)" />
             <span>
@@ -561,7 +566,7 @@ export function ClockInPage() {
       )}
 
       {/* Top 3 Widget Cards Row (Matching Image 1 Design) */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(310px, 1fr))', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(310px, 100%), 1fr))', gap: 16 }}>
         
         {/* Widget 1: Clock-in Control Widget */}
         <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 14, padding: 20, display: 'flex', flexDirection: 'column', gap: 14, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
@@ -811,12 +816,10 @@ export function ClockInPage() {
             <form onSubmit={handleSaveManualEntry} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--navy)', marginBottom: 4, display: 'block' }}>Date</label>
-                <input
-                  type="date"
-                  value={manualDate}
-                  onChange={e => setManualDate(e.target.value)}
-                  required
-                  style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, background: 'var(--white)', color: 'var(--ink)', boxSizing: 'border-box' }}
+                <DatePicker
+                  date={parseDateOnly(manualDate)}
+                  onChange={d => setManualDate(toDateOnlyString(d))}
+                  placeholder="Select date"
                 />
               </div>
 

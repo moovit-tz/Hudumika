@@ -74,7 +74,7 @@ export function ITAdminDashboard() {
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(320px, 100%), 1fr))', gap: 20 }}>
         {/* Users by role */}
         <div style={card}>
           {cardHd('Accounts by role', '/nexushr/roles', 'Manage')}

@@ -186,6 +186,14 @@ export function ComplyBrelaSearch() {
   // its portal sits behind a WAF that blocks most non-browser requests, so
   // 'reference' is the expected outcome in most environments, not a bug.
   const [searchStatus, setSearchStatus] = useState<'idle' | 'live' | 'reference'>('idle');
+  // Set only when the /brela-search request itself failed (network error,
+  // quota block, auth, 500, ...) rather than the portal legitimately
+  // returning no live match. Both cases fall back to the same local
+  // reference cards below (so the user always sees something), but they
+  // are not the same situation — silently relabeling "your request never
+  // reached the server" as "BRELA didn't return live results" would blame
+  // the wrong thing and hide a real, actionable error (e.g. a plan quota).
+  const [searchRequestError, setSearchRequestError] = useState<string | null>(null);
   // Google-results-style layout: the full step-by-step form is only shown
   // up front. Once a search runs, it collapses to a single compact search
   // bar pinned above the results — clicking that bar's criteria chip (or
@@ -232,6 +240,7 @@ export function ComplyBrelaSearch() {
   const runSearch = async () => {
     setSearching(true);
     setFormExpanded(false);
+    setSearchRequestError(null);
 
     try {
       const res = await apiFetch('/v1/comply/brela-search', {
@@ -269,9 +278,12 @@ export function ComplyBrelaSearch() {
         setLiveSearchResults(null);
         setSearchStatus('reference');
       }
-    } catch {
+    } catch (err: any) {
+      // The request itself never completed — distinct from the portal
+      // legitimately returning no live match, handled in the `else` above.
       setLiveSearchResults(null);
       setSearchStatus('reference');
+      setSearchRequestError(err?.message || 'The search request failed.');
     } finally {
       setSearching(false);
     }
@@ -297,6 +309,7 @@ export function ComplyBrelaSearch() {
     setCompanyName('');
     setLiveSearchResults(null);
     setSearchStatus('idle');
+    setSearchRequestError(null);
     setFormExpanded(true);
   };
 
@@ -559,10 +572,16 @@ export function ComplyBrelaSearch() {
               <span><strong>Live from BRELA</strong> — these results were fetched from the BRELA ORS portal just now, not local reference data.</span>
             </div>
           )}
-          {searchStatus === 'reference' && (
+          {searchStatus === 'reference' && !searchRequestError && (
             <div className="comply-note comply-note--warning comply-note--icon">
               <Icon name="alertTriangle" size={15} />
               <span><strong>Showing local reference data</strong> — the BRELA ORS portal didn't return live results for this query (it has no public API and blocks most automated requests). The records below are Hudumika's own reference set, not live BRELA data. Use "Open BRELA ORS Portal" above to search the official site directly.</span>
+            </div>
+          )}
+          {searchStatus === 'reference' && searchRequestError && (
+            <div className="comply-note comply-note--error comply-note--icon">
+              <Icon name="alertTriangle" size={15} />
+              <span><strong>Search request failed</strong> — {searchRequestError} Showing Hudumika's local reference set below instead, not live BRELA data.</span>
             </div>
           )}
           {shareStatus && (

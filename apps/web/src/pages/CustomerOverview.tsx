@@ -163,8 +163,11 @@ export const CustomerOverview: React.FC = () => {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingBottom: 40 }}>
 
-        {/* ── Row 1: KPI cards ── */}
-        <div style={{ display: 'flex', gap: 14 }}>
+        {/* ── Row 1: KPI cards ──
+            Grid, not flex — flex:1 items with minWidth:0 just kept shrinking
+            below a legible width on a narrow viewport instead of wrapping,
+            clipping the 4th card's value/label at 375px. */}
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: 14 }}>
           <KpiCard icon="package" iconBg="#eff6ff" iconColor="var(--blue)" value={String(data.kpis.active_shipments)} label="Active Shipments" />
           <KpiCard icon="checkCircle" iconBg="#ecfdf5" iconColor="var(--green)" value={String(data.kpis.cleared_this_month)} label="Cleared This Month" />
           <KpiCard icon="clock" iconBg="#fffbeb" iconColor="#f59e0b" value={String(data.kpis.pending_customs)} label="Pending Customs" />
@@ -172,7 +175,7 @@ export const CustomerOverview: React.FC = () => {
         </div>
 
         {/* ── Row 2: Status cards ── */}
-        <div style={{ display: 'flex', gap: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: 14 }}>
           <StatusCard label="On-Time Clearance Rate" value={`${data.status_cards.on_time_clearance_pct}%`} pct={data.status_cards.on_time_clearance_pct} color="var(--green)" icon="trendingUp" />
           <StatusCard label="Document Compliance"    value={`${data.status_cards.document_compliance_pct}%`} pct={data.status_cards.document_compliance_pct} color="var(--blue)" icon="file" />
           <StatusCard label="At-Risk Shipments"      value={`${data.status_cards.at_risk_shipments} of ${data.status_cards.active_shipment_count}`} pct={data.status_cards.active_shipment_count > 0 ? Math.round((data.status_cards.at_risk_shipments / data.status_cards.active_shipment_count) * 100) : 0} color="var(--red)" icon="alertTriangle" />
@@ -180,7 +183,7 @@ export const CustomerOverview: React.FC = () => {
         </div>
 
         {/* ── Row 3: Two-column ── */}
-        <div style={{ display: 'flex', gap: 14, flex: 1, minHeight: 320 }}>
+        <div style={{ display: isMobile ? 'flex' : 'grid', flexDirection: 'column', gridTemplateColumns: '1fr 1fr', gap: 14, flex: 1, minHeight: 320 }}>
 
           {/* LEFT */}
           <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -283,8 +286,8 @@ export const CustomerOverview: React.FC = () => {
               <CardHeader title="Quick Actions" />
               <div style={{ padding: 14, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 10 }}>
                 {[
-                  { icon: 'plus',          label: 'New Customer',    path: '/customers'         },
-                  { icon: 'fileText',      label: 'New Declaration', path: '/declarations'      },
+                  { icon: 'plus',          label: 'New Customer',    path: '/crm/customers'     },
+                  { icon: 'fileText',      label: 'New Declaration', path: '/clearos/declarations' },
                   { icon: 'dollarSign',    label: 'Record Payment',  path: '/finance/payments'  },
                   { icon: 'alertTriangle', label: 'View At-Risk',    path: '/shipments'         },
                   { icon: 'file',          label: 'Document Status', path: '/documents'         },

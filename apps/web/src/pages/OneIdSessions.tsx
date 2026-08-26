@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 interface Device {
   id: string; device_label: string | null; device_type: string | null;
@@ -47,9 +48,13 @@ export const OneIdSessions: React.FC = () => {
   }
 
   return (
-    <div style={{ padding: 24, maxWidth: 760 }}>
-      <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--ink)', marginBottom: 2 }}>Sessions &amp; Security</div>
-      <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 20 }}>Session policy and known devices for this tenant</div>
+    <div style={{ maxWidth: 760 }}>
+      <PageHeader
+        crumbs={['OneID', 'Sessions']}
+        titlePlain="Sessions &"
+        titleEm="security"
+        subtitle="Session policy and known devices for this tenant."
+      />
 
       <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: 20, marginBottom: 24 }}>
         <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 16 }}>Session policy</div>

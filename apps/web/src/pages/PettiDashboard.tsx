@@ -9,6 +9,8 @@ import { MetricsRow, type MetricCardProps } from '../components/MetricCard.js';
 import { SkeletonPage } from '../components/ui/skeleton.js';
 import { Button } from '../components/ui/button.js';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog.js';
+import { Combobox } from '../components/ui/combobox.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { apiFetch } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { showAlert } from '../lib/alert.js';
@@ -286,6 +288,13 @@ export function PettiDashboard() {
   return (
     <div style={{ flex: 1, overflowY: 'auto', padding: '0 4px 24px 4px' }}>
 
+      <PageHeader
+        crumbs={['Petti', 'Dashboard']}
+        titlePlain="Petty cash"
+        titleEm="operations"
+        subtitle="Multi-currency wallets, deposits, voucher requests and inter-wallet transfers across your workspace."
+      />
+
       {/* ── PayMoney & DigiKash Command Header Hero Banner ───────────────── */}
       <div style={{
         background: 'linear-gradient(135deg, #0e1f3d 0%, #1e1b4b 45%, #0d7a6b 100%)',
@@ -320,10 +329,7 @@ export function PettiDashboard() {
                 </Badge>
               )}
             </div>
-            <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, letterSpacing: '-0.02em', color: '#ffffff' }}>
-              Petty Cash &amp; Liquidity Operations
-            </h1>
-            <p style={{ margin: '6px 0 0 0', fontSize: 13.5, color: 'rgba(255,255,255,0.8)', lineHeight: 1.5 }}>
+            <p style={{ margin: 0, fontSize: 13.5, color: 'rgba(255,255,255,0.8)', lineHeight: 1.5 }}>
               Manage multi-currency wallets, instant top-ups, voucher approval flows, and DigiKash mobile money/bank disbursement channels.
             </p>
           </div>
@@ -567,14 +573,12 @@ export function PettiDashboard() {
           <form onSubmit={handleDepositSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 10 }}>
             <div>
               <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Select Wallet *</label>
-              <select
-                value={depositWalletId} onChange={e => setDepositWalletId(e.target.value)}
-                style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13 }}
-              >
-                {wallets.map(w => (
-                  <option key={w.id} value={w.id}>{w.name} ({w.balance.toLocaleString()} {w.currency})</option>
-                ))}
-              </select>
+              <Combobox
+                options={wallets.map(w => ({ value: w.id, label: `${w.name} (${w.balance.toLocaleString()} ${w.currency})` }))}
+                value={depositWalletId}
+                onChange={setDepositWalletId}
+                placeholder="Select wallet…"
+              />
             </div>
 
             <div>
@@ -589,17 +593,17 @@ export function PettiDashboard() {
 
             <div>
               <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>How was this money received? *</label>
-              <select
-                value={depositMethod} onChange={e => setDepositMethod(e.target.value as 'manual' | 'gateway')}
-                style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, background: 'var(--white)', fontWeight: 600 }}
-              >
-                <option value="manual">Manual — bank transfer, cash, or already confirmed another way</option>
-                {gatewayStatus.configured && (
-                  <option value="gateway" disabled={!gatewayStatus.chargeSupported}>
-                    {gatewayStatus.label} {gatewayStatus.chargeSupported ? '— push a payment request' : '(not yet supported for live charges)'}
-                  </option>
-                )}
-              </select>
+              <Select value={depositMethod} onValueChange={v => setDepositMethod(v as 'manual' | 'gateway')}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="manual">Manual — bank transfer, cash, or already confirmed another way</SelectItem>
+                  {gatewayStatus.configured && (
+                    <SelectItem value="gateway" disabled={!gatewayStatus.chargeSupported}>
+                      {gatewayStatus.label} {gatewayStatus.chargeSupported ? '— push a payment request' : '(not yet supported for live charges)'}
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
               {!gatewayStatus.configured && (
                 <p style={{ margin: '5px 0 0 0', fontSize: 11, color: 'var(--ink3)' }}>
                   No payment gateway is connected for this workspace yet — <Link to="/workspace/settings?s=payment-gateways" style={{ color: 'var(--teal)' }}>connect one</Link> to push live mobile-money requests instead of recording deposits manually.
@@ -659,14 +663,12 @@ export function PettiDashboard() {
           <form onSubmit={handleRequestSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 10 }}>
             <div>
               <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Select Wallet *</label>
-              <select
-                value={requestWalletId} onChange={e => setRequestWalletId(e.target.value)}
-                style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13 }}
-              >
-                {wallets.map(w => (
-                  <option key={w.id} value={w.id}>{w.name} ({w.balance.toLocaleString()} {w.currency})</option>
-                ))}
-              </select>
+              <Combobox
+                options={wallets.map(w => ({ value: w.id, label: `${w.name} (${w.balance.toLocaleString()} ${w.currency})` }))}
+                value={requestWalletId}
+                onChange={setRequestWalletId}
+                placeholder="Select wallet…"
+              />
             </div>
 
             <div>
@@ -681,14 +683,14 @@ export function PettiDashboard() {
 
             <div>
               <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Expense Category</label>
-              <select
-                value={requestCategory} onChange={e => setRequestCategory(e.target.value)}
-                style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13 }}
-              >
-                {Object.entries(CATEGORY_LABELS).map(([k, label]) => (
-                  <option key={k} value={k}>{label}</option>
-                ))}
-              </select>
+              <Select value={requestCategory} onValueChange={setRequestCategory}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {Object.entries(CATEGORY_LABELS).map(([k, label]) => (
+                    <SelectItem key={k} value={k}>{label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div>
@@ -730,26 +732,22 @@ export function PettiDashboard() {
           <form onSubmit={handleTransferSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 10 }}>
             <div>
               <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>From Wallet *</label>
-              <select
-                value={transferFromId} onChange={e => setTransferFromId(e.target.value)}
-                style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13 }}
-              >
-                {wallets.map(w => (
-                  <option key={w.id} value={w.id}>{w.name} ({w.balance.toLocaleString()} {w.currency})</option>
-                ))}
-              </select>
+              <Combobox
+                options={wallets.map(w => ({ value: w.id, label: `${w.name} (${w.balance.toLocaleString()} ${w.currency})` }))}
+                value={transferFromId}
+                onChange={setTransferFromId}
+                placeholder="Select wallet…"
+              />
             </div>
 
             <div>
               <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>To Wallet *</label>
-              <select
-                value={transferToId} onChange={e => setTransferToId(e.target.value)}
-                style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13 }}
-              >
-                {wallets.map(w => (
-                  <option key={w.id} value={w.id}>{w.name} ({w.balance.toLocaleString()} {w.currency})</option>
-                ))}
-              </select>
+              <Combobox
+                options={wallets.map(w => ({ value: w.id, label: `${w.name} (${w.balance.toLocaleString()} ${w.currency})` }))}
+                value={transferToId}
+                onChange={setTransferToId}
+                placeholder="Select wallet…"
+              />
             </div>
 
             <div>

@@ -9,6 +9,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { Popover, PopoverAnchor, PopoverContent } from '../components/ui/popover.js';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '../components/ui/dropdown-menu.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
+import { PageHeader } from '../components/PageHeader.js';
 import { showAlert } from '../lib/alert.js';
 
 const MODAL_STEPS: { key: 'profile' | 'contact' | 'business' | 'extra'; label: string; icon: IconName }[] = [
@@ -719,6 +720,10 @@ export function Contacts() {
           /* ─── STANDARD CONTACTS LIST / SEARCH / TABLE VIEW ─── */
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
+            <div style={{ padding: '20px 24px 0' }}>
+              <PageHeader crumbs={['Contacts']} titlePlain="All" titleEm="contacts" subtitle="Everyone you've saved, synced, or tagged in one place." />
+            </div>
+
             {/* Filter panel — header section (sort) + body section (labels) */}
             {filterOpen && (
               <div className="cts-filter-panel">
@@ -842,8 +847,8 @@ export function Contacts() {
 
               {/* Standard List Table */}
               {currentView !== 'merge' && (
-                <div style={{ minWidth: 800 }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, textAlign: 'left' }}>
+                <div className="rtbl-wrap">
+                  <table style={{ width: '100%', minWidth: 800, borderCollapse: 'collapse', fontSize: 14, textAlign: 'left' }}>
                     <thead>
                       <tr style={{ color: 'var(--ink2)', borderBottom: '1px solid var(--border)', height: 48 }}>
                         <th style={{ width: 48, paddingLeft: 12 }}>

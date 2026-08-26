@@ -603,8 +603,8 @@
 }
 
 .comply-month-day--today .comply-day-num {
-  background: var(--comply);
-  color: #fff;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
   width: 20px;
   height: 20px;
   border-radius: 50%;
@@ -712,8 +712,8 @@
   align-items: center;
   gap: 7px;
   padding: var(--ds-btn-py) 18px;
-  background: var(--comply);
-  color: #fff;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
   border: none;
   border-radius: 9px;
   font-family: var(--font);
@@ -1123,8 +1123,9 @@
   flex-shrink: 0;
 }
 .comply-tl-dot--done {
-  background: #059669;
-  border-color: #059669;
+  background: hsl(var(--primary));
+  border-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
 }
 .comply-tl-text  { font-size: 13px; color: var(--ink3); font-weight: 400; }
 .comply-tl-text--done { color: var(--ink); font-weight: 600; }
@@ -1330,8 +1331,8 @@
   min-width: 34px;
   border: none;
   border-radius: 50%;
-  background: var(--comply);
-  color: #fff;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
   cursor: pointer;
   transition: var(--comply-transition, all 0.15s ease);
 }
@@ -1953,8 +1954,9 @@
   flex-shrink: 0;
 }
 .wf-tl-row--done .wf-tl-node {
-  background: var(--comply);
-  border-color: var(--comply);
+  background: hsl(var(--primary));
+  border-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
 }
 .wf-tl-row--active .wf-tl-node {
   border-color: var(--comply);

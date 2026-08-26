@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { PageHeader } from '../../components/PageHeader.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
 import { showAlert } from '../../lib/alert.js';
 import { showConfirm } from '../../lib/confirm.js';
 import { apiFetch } from '../../lib/api.js';
@@ -216,13 +217,16 @@ export function OnsiteServers() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div className="onsite-form-group">
                   <label>Provider</label>
-                  <select className="onsite-select" value={provider} onChange={(e) => setProvider(e.target.value)}>
-                    <option value="hetzner">Hetzner</option>
-                    <option value="digitalocean">DigitalOcean</option>
-                    <option value="aws">AWS EC2</option>
-                    <option value="gcp">Google Cloud</option>
-                    <option value="manual">Other / Bare Metal</option>
-                  </select>
+                  <Select value={provider} onValueChange={setProvider}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="hetzner">Hetzner</SelectItem>
+                      <SelectItem value="digitalocean">DigitalOcean</SelectItem>
+                      <SelectItem value="aws">AWS EC2</SelectItem>
+                      <SelectItem value="gcp">Google Cloud</SelectItem>
+                      <SelectItem value="manual">Other / Bare Metal</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="onsite-form-group">
                   <label>Region</label>

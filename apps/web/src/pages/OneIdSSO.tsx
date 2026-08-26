@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
+import { PageHeader } from '../components/PageHeader.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 
 interface SsoProvider {
@@ -103,19 +104,19 @@ export const OneIdSSO: React.FC = () => {
   }
 
   return (
-    <div style={{ padding: 24 }}>
+    <div>
       {showAdd && <AddProviderModal onClose={() => setShowAdd(false)} onAdded={reload} />}
 
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, flexWrap: 'wrap', gap: 12 }}>
-        <div>
-          <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--ink)' }}>SSO &amp; Providers</div>
-          <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 2 }}>Identity provider configuration for this tenant</div>
-        </div>
-        <button type="button" onClick={() => setShowAdd(true)}
+      <PageHeader
+        crumbs={['OneID', 'SSO']}
+        titlePlain="SSO"
+        titleEm="providers"
+        subtitle="Identity provider configuration for this tenant."
+        actions={<button type="button" onClick={() => setShowAdd(true)}
           style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 16px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
           <Icon name="plusCircle" size={15} /> Add provider
-        </button>
-      </div>
+        </button>}
+      />
 
       <div style={{ background: 'var(--gold-l)', border: '1px solid #fde68a', borderRadius: 9, padding: '10px 14px', fontSize: 12, color: '#854d0e', marginBottom: 20, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
         <Icon name="alertTriangle" size={15} />

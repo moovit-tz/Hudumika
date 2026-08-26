@@ -119,8 +119,8 @@
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: var(--sign-blue);
-  color: #fff;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
   font-size: 10px;
   font-weight: 700;
   display: flex;

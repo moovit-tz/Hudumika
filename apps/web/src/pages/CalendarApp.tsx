@@ -19,6 +19,8 @@ import { Switch } from '../components/ui/switch.js';
 import { Popover, PopoverAnchor, PopoverContent } from '../components/ui/popover.js';
 import { Button } from '../components/ui/button.js';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { showAlert } from '../lib/alert.js';
 import { fetchPeople, type Person } from '../lib/identity.js';
@@ -1127,7 +1129,7 @@ export const CalendarApp: React.FC = () => {
                 style={{ flex: 1, fontSize: 20, fontWeight: 600, border: 'none', background: 'transparent', color: 'var(--ink)', outline: 'none' }}
               />
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginLeft: 16 }}>
-                <Button variant="default" onClick={handleSave} style={{ background: 'var(--teal)', color: '#fff', fontWeight: 600, padding: '6px 20px', borderRadius: 6 }}>
+                <Button variant="default" onClick={handleSave} style={{ fontWeight: 600, padding: '6px 20px', borderRadius: 6 }}>
                   Save
                 </Button>
                 {editingEvent && (
@@ -1208,7 +1210,7 @@ export const CalendarApp: React.FC = () => {
                         </Button>
                       </div>
                     ) : (
-                      <Button variant="default" size="xs" onClick={() => setEventMeetingUrl(`https://meet.hudumika.tz/${Math.random().toString(36).slice(2, 9)}`)} style={{ background: 'var(--teal)', color: '#fff' }}>
+                      <Button variant="default" size="xs" onClick={() => setEventMeetingUrl(`https://meet.hudumika.tz/${Math.random().toString(36).slice(2, 9)}`)}>
                         Add Video Call
                       </Button>
                     )}
@@ -1235,15 +1237,14 @@ export const CalendarApp: React.FC = () => {
 
                   {/* Category, Color, Visibility, Availability */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', paddingTop: 10, borderTop: '1px solid var(--border)' }}>
-                    <select
-                      value={eventCategory}
-                      onChange={e => setEventCategory(e.target.value as Category)}
-                      style={{ padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 13, color: 'var(--ink)', background: 'var(--bg)' }}
-                    >
-                      {(Object.keys(CATEGORY_MAP) as Category[]).filter(c => c !== 'holiday').map(c => (
-                        <option key={c} value={c}>{CATEGORY_MAP[c].label}</option>
-                      ))}
-                    </select>
+                    <Select value={eventCategory} onValueChange={v => setEventCategory(v as Category)}>
+                      <SelectTrigger style={{ width: 'auto', minHeight: 32, fontSize: 13 }}><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {(Object.keys(CATEGORY_MAP) as Category[]).filter(c => c !== 'holiday').map(c => (
+                          <SelectItem key={c} value={c}>{CATEGORY_MAP[c].label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
 
                     <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                       {EVENT_COLOR_OPTIONS.map(c => (
@@ -1261,24 +1262,22 @@ export const CalendarApp: React.FC = () => {
                       ))}
                     </div>
 
-                    <select
-                      value={eventBusyStatus}
-                      onChange={e => setEventBusyStatus(e.target.value as 'busy' | 'free')}
-                      style={{ padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 13, color: 'var(--ink)', background: 'var(--bg)' }}
-                    >
-                      <option value="busy">Busy</option>
-                      <option value="free">Free</option>
-                    </select>
+                    <Select value={eventBusyStatus} onValueChange={v => setEventBusyStatus(v as 'busy' | 'free')}>
+                      <SelectTrigger style={{ width: 'auto', minHeight: 32, fontSize: 13 }}><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="busy">Busy</SelectItem>
+                        <SelectItem value="free">Free</SelectItem>
+                      </SelectContent>
+                    </Select>
 
-                    <select
-                      value={eventVisibility}
-                      onChange={e => setEventVisibility(e.target.value as 'default' | 'public' | 'private')}
-                      style={{ padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 13, color: 'var(--ink)', background: 'var(--bg)' }}
-                    >
-                      <option value="default">Default visibility</option>
-                      <option value="public">Public</option>
-                      <option value="private">Private</option>
-                    </select>
+                    <Select value={eventVisibility} onValueChange={v => setEventVisibility(v as 'default' | 'public' | 'private')}>
+                      <SelectTrigger style={{ width: 'auto', minHeight: 32, fontSize: 13 }}><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="default">Default visibility</SelectItem>
+                        <SelectItem value="public">Public</SelectItem>
+                        <SelectItem value="private">Private</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   {/* Description & Rich Text Toolbar */}
@@ -1477,16 +1476,15 @@ const EventRecurrencePicker: React.FC<{ value: RecurrenceRule | null; onChange: 
               onChange={e => setDraft(d => ({ ...d, interval: Math.max(1, parseInt(e.target.value, 10) || 1) }))}
               style={{ width: 52, padding: '5px 6px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12.5 }}
             />
-            <select
-              value={draft.freq}
-              onChange={e => setDraft(d => ({ ...d, freq: e.target.value as RecurrenceRule['freq'] }))}
-              style={{ padding: '5px 6px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12.5, flex: 1 }}
-            >
-              <option value="daily">day(s)</option>
-              <option value="weekly">week(s)</option>
-              <option value="monthly">month(s)</option>
-              <option value="yearly">year(s)</option>
-            </select>
+            <Select value={draft.freq} onValueChange={v => setDraft(d => ({ ...d, freq: v as RecurrenceRule['freq'] }))}>
+              <SelectTrigger style={{ minHeight: 28, fontSize: 12.5, flex: 1 }}><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="daily">day(s)</SelectItem>
+                <SelectItem value="weekly">week(s)</SelectItem>
+                <SelectItem value="monthly">month(s)</SelectItem>
+                <SelectItem value="yearly">year(s)</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {draft.freq === 'weekly' && (
@@ -1517,10 +1515,11 @@ const EventRecurrencePicker: React.FC<{ value: RecurrenceRule | null; onChange: 
                 {mode === 'until' && (
                   <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     On
-                    <input
-                      type="date" value={draft.until ?? ''} onChange={e => setDraft(d => ({ ...d, until: e.target.value }))}
-                      onFocus={() => setEndMode('until')}
-                      style={{ padding: '4px 6px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12 }}
+                    <DatePicker
+                      date={parseDateOnly(draft.until)}
+                      onChange={d => { setDraft(prev => ({ ...prev, until: toDateOnlyString(d) })); setEndMode('until'); }}
+                      placeholder="Select date"
+                      triggerClassName="min-h-7 px-2 py-1 text-xs"
                     />
                   </span>
                 )}
@@ -1821,7 +1820,7 @@ const BookingPagesPanel: React.FC<{ isMobile: boolean; onClose: () => void }> = 
                       style={{
                         width: 34, height: 34, borderRadius: '50%', fontSize: 12, fontWeight: 700, cursor: 'pointer',
                         border: `1px solid ${on ? 'var(--teal)' : 'var(--border)'}`,
-                        background: on ? 'var(--teal)' : 'var(--white)', color: on ? '#fff' : 'var(--ink3)',
+                        background: on ? 'hsl(var(--primary))' : 'var(--white)', color: on ? 'hsl(var(--primary-foreground))' : 'var(--ink3)',
                       }}
                     >
                       {label}
@@ -2038,21 +2037,20 @@ const TimezoneModal: React.FC<{ value: string; onClose: () => void; onSelect: (t
         <p style={{ fontSize: 12.5, color: 'var(--ink3)', margin: '4px 0 12px' }}>
           A repeated event has to start and end in the same time zone.
         </p>
-        <select
-          value={selected}
-          onChange={e => setSelected(e.target.value)}
-          style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 13, background: 'var(--bg)', color: 'var(--ink)' }}
-        >
-          {timezones.map(tz => (
-            <option key={tz} value={tz}>{tz}</option>
-          ))}
-        </select>
+        <Select value={selected} onValueChange={setSelected}>
+          <SelectTrigger style={{ width: '100%', minHeight: 40, fontSize: 13 }}><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {timezones.map(tz => (
+              <SelectItem key={tz} value={tz}>{tz}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
           <Button variant="ghost" size="sm" onClick={() => onSelect(Intl.DateTimeFormat().resolvedOptions().timeZone)}>
             Use current time zone
           </Button>
           <Button variant="outline" size="sm" onClick={onClose}>Cancel</Button>
-          <Button variant="default" size="sm" onClick={() => { onSelect(selected); onClose(); }} style={{ background: 'var(--teal)', color: '#fff' }}>
+          <Button variant="default" size="sm" onClick={() => { onSelect(selected); onClose(); }}>
             OK
           </Button>
         </div>
@@ -2119,7 +2117,7 @@ const MeetingOptionsModal: React.FC<{ meetingUrl: string; settings: MeetingSetti
           <div style={{ fontSize: 11, color: 'var(--ink3)' }}>Any host or organizer can change these settings.</div>
           <div style={{ display: 'flex', gap: 8 }}>
             <Button variant="outline" size="sm" onClick={onClose}>Cancel</Button>
-            <Button variant="default" size="sm" onClick={() => { onSave(draft); onClose(); }} style={{ background: 'var(--teal)', color: '#fff' }}>
+            <Button variant="default" size="sm" onClick={() => { onSave(draft); onClose(); }}>
               Save Options
             </Button>
           </div>

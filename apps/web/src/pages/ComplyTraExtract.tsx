@@ -5,6 +5,7 @@ import { useComplyCertificates, useComplyObligations } from '../hooks/useComply.
 import { apiFetch } from '../lib/api.js';
 import { getHudumikaFooterHtml } from '../lib/watermark.js';
 import { showAlert } from '../lib/alert.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import './ComplyOS.css';
 import { PageHeader } from '../components/PageHeader.js';
 
@@ -20,17 +21,17 @@ export function ComplyTraExtract() {
   const { create: createCert } = useComplyCertificates();
   const { create: createObligation } = useComplyObligations();
 
-  // Form State
+  // Form State — TRA has no public API and this tool does not perform a live
+  // portal login, so it never asks for (or needs) the taxpayer's real portal
+  // password. It only takes the two fields that actually shape the preview.
   const [tin, setTin] = useState('108-449-012');
-  const [username, setUsername] = useState('kilimanjaro_admin');
-  const [password, setPassword] = useState('••••••••••••');
   const [region, setRegion] = useState('Mainland');
 
   // Execution State
-  const [status, setStatus] = useState<'idle' | 'running' | 'otp_required' | 'completed'>('idle');
+  const [status, setStatus] = useState<'idle' | 'running' | 'completed'>('idle');
   const [terminalLogs, setTerminalLogs] = useState<TerminalLog[]>([]);
-  const [otpCode, setOtpCode] = useState('');
   const [resultData, setResultData] = useState<any>(null);
+  const [simulated, setSimulated] = useState(true);
   const [activeTab, setActiveTab] = useState<'profile' | 'obligations' | 'tcc' | 'history'>('profile');
 
   // Saving states
@@ -41,10 +42,16 @@ export function ComplyTraExtract() {
 
   const logsEndRef = useRef<HTMLDivElement>(null);
 
+  // Only follow the log when it actually grew — not on mount, and not on
+  // React 18 StrictMode's dev-only double-invoke of this effect (see the
+  // identical fix in ComplyLicenseAutomation.tsx for why a plain "skip the
+  // first run" flag isn't enough).
+  const logsSeenCount = useRef(terminalLogs.length);
   useEffect(() => {
-    if (logsEndRef.current) {
+    if (terminalLogs.length > logsSeenCount.current && logsEndRef.current) {
       logsEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
+    logsSeenCount.current = terminalLogs.length;
   }, [terminalLogs]);
 
   const addLog = (text: string, type: TerminalLog['type'] = 'info') => {
@@ -52,10 +59,15 @@ export function ComplyTraExtract() {
     setTerminalLogs(prev => [...prev, { id: `${Date.now()}-${Math.random()}`, time: timestamp, type, text }]);
   };
 
+  // TRA's taxpayer portal has no public API, so this does not establish a
+  // live authenticated session — it looks up a sample compliance profile for
+  // the given TIN so you can see the shape of the data before it's real.
+  // Nothing here is a bypass of any real security control; the log lines
+  // below describe what ComplyOS is actually doing, not a fake login.
   const handleStartExtraction = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!tin.trim() || !username.trim() || !password.trim()) {
-      showAlert('Please enter your TIN, username, and password.');
+    if (!tin.trim()) {
+      showAlert('Please enter a TIN.');
       return;
     }
 
@@ -65,50 +77,25 @@ export function ComplyTraExtract() {
     setTccSaved(false);
     setObligationsSaved(false);
 
-    // Initial logs
-    setTimeout(() => addLog('Initializing background browser worker on TRA sandbox...', 'info'), 200);
-    setTimeout(() => addLog(`Configuring HTTP request headers, User-Agent, and routing...`, 'info'), 900);
-    setTimeout(() => addLog(`Connecting to taxpayersportal.tra.go.tz (${region === 'Mainland' ? 'Mainland Gateway' : 'Zanzibar ZRA Gateway'})...`, 'info'), 1700);
-    setTimeout(() => addLog(`Page loaded. Bypassing Cloudflare WAF verification challenge...`, 'success'), 2500);
-    setTimeout(() => addLog(`Submitting credentials for TIN: ${tin}...`, 'info'), 3200);
-    setTimeout(() => {
-      addLog(`MFA Security Challenge: Multi-factor verification code required to proceed.`, 'warn');
-      addLog(`OTP token transmitted via SMS to the taxpayer's registered mobile ending in *283.`, 'warn');
-      setStatus('otp_required');
-    }, 4000);
-  };
-
-  const handleVerifyOtp = async () => {
-    if (!otpCode || otpCode.length < 4) {
-      showAlert('Please enter a valid OTP code.');
-      return;
-    }
-
-    addLog(`Submitted verification code: ${otpCode}`, 'input');
-    setStatus('running');
-
-    setTimeout(() => addLog(`Verifying security token against TRA Identity provider...`, 'info'), 600);
-    setTimeout(() => addLog(`Authentication successful. Authorized session cookies stored.`, 'success'), 1400);
-    setTimeout(() => addLog(`Extracting taxpayer identity, business names, and registration indexes...`, 'info'), 2200);
-    setTimeout(() => addLog(`Extracting registered tax obligations & compliance records...`, 'info'), 3000);
-    setTimeout(() => addLog(`Extracting Tax Compliance Certificate (TCC) validity index...`, 'info'), 3800);
-    setTimeout(() => addLog(`Extracting tax returns history (past 3 assessment years)...`, 'info'), 4500);
+    addLog('Generating a simulated taxpayer preview — TRA has no public API, so this is not a live portal session.', 'info');
+    setTimeout(() => addLog(`Looking up sample profile shape for TIN ${tin} (${region === 'Mainland' ? 'TRA Mainland' : 'ZRA Zanzibar'})...`, 'info'), 500);
+    setTimeout(() => addLog('Building demo taxpayer profile, obligations, TCC and filing history...', 'info'), 1200);
 
     setTimeout(async () => {
       try {
         const res = await apiFetch('/v1/comply/tra-extract', {
           method: 'POST',
-          body: JSON.stringify({ tin, username, password }),
+          body: JSON.stringify({ tin }),
         });
         setResultData(res);
-        addLog(`TRA Data extraction completed successfully!`, 'success');
-        addLog(`Details compiled. Rendering taxpayer profile tabs.`, 'success');
+        setSimulated(res?.simulated !== false);
+        addLog('Preview ready.', 'success');
         setStatus('completed');
       } catch (err: any) {
-        addLog(`Error parsing TRA profile: ${err.message}`, 'error');
+        addLog(`Error building TRA preview: ${err.message}`, 'error');
         setStatus('idle');
       }
-    }, 5300);
+    }, 1900);
   };
 
   const handleImportTcc = async () => {
@@ -123,7 +110,7 @@ export function ComplyTraExtract() {
         issued_date: resultData.tcc.issued_date,
         expiry_date: resultData.tcc.expiry_date,
         metadata: {
-          notes: `Imported automatically from TRA Portal for TIN ${resultData.taxpayer.tin}`,
+          notes: `Imported from the TRA preview tool for TIN ${resultData.taxpayer.tin}${simulated ? ' — SIMULATED demo data, not a live TRA record. Verify before relying on it.' : ''}`,
         }
       });
       setTccSaved(true);
@@ -163,76 +150,55 @@ export function ComplyTraExtract() {
       <PageHeader
         crumbs={['ComplyOS', 'TRA Taxpayer Portal Agent']}
         titlePlain="TRA Taxpayer Portal"
-        titleEm="agent"
-        subtitle="Establish a secure session to extract your profile, active obligations, and Tax Compliance Certificates."
+        titleEm="preview"
+        subtitle="TRA has no public API — this previews the shape of a taxpayer compliance profile by TIN. It never asks for your portal password and does not log in to the live TRA site."
       />
 
-      <div style={{ display: 'grid', gridTemplateColumns: status === 'completed' ? '1fr' : '1fr 1fr', gap: 24, alignItems: 'start' }}>
-        
+      <div className={status === 'completed' ? undefined : 'comply-grid-2'} style={status === 'completed' ? undefined : { alignItems: 'start' }}>
+
         {/* Credentials Form Card */}
         {status !== 'completed' && (
           <div className="comply-card">
             <div className="comply-card-hdr">
-              <h2 className="comply-card-title">Portal Credentials</h2>
+              <h2 className="comply-card-title">Preview Lookup</h2>
             </div>
             <form className="comply-wizard-card" onSubmit={handleStartExtraction} style={{ padding: 24 }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <div>
                   <label className="comply-label" style={{ fontWeight: 600, display: 'block', marginBottom: 6 }}>Tax Authority</label>
-                  <select 
-                    style={{ width: '100%', padding: '10px 14px', border: '1px solid var(--border)', borderRadius: 8 }}
-                    value={region} 
-                    onChange={e => setRegion(e.target.value)}
-                    disabled={status !== 'idle'}
-                  >
-                    <option value="Mainland">Tanzania Revenue Authority (TRA) - Mainland</option>
-                    <option value="Zanzibar">Zanzibar Revenue Authority (ZRA)</option>
-                  </select>
+                  <Select value={region} onValueChange={setRegion} disabled={status !== 'idle'}>
+                    <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Mainland">Tanzania Revenue Authority (TRA) - Mainland</SelectItem>
+                      <SelectItem value="Zanzibar">Zanzibar Revenue Authority (ZRA)</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div>
                   <label className="comply-label" style={{ fontWeight: 600, display: 'block', marginBottom: 6 }}>TIN Number</label>
-                  <input 
-                    type="text" 
-                    placeholder="e.g. 108-449-012" 
-                    value={tin} 
-                    onChange={e => setTin(e.target.value)} 
+                  <input
+                    type="text"
+                    placeholder="e.g. 108-449-012"
+                    value={tin}
+                    onChange={e => setTin(e.target.value)}
                     disabled={status !== 'idle'}
                     style={{ width: '100%', padding: '10px 14px', border: '1px solid var(--border)', borderRadius: 8 }}
                   />
                 </div>
 
-                <div>
-                  <label className="comply-label" style={{ fontWeight: 600, display: 'block', marginBottom: 6 }}>Portal Username</label>
-                  <input 
-                    type="text" 
-                    placeholder="Portal Username" 
-                    value={username} 
-                    onChange={e => setUsername(e.target.value)} 
-                    disabled={status !== 'idle'}
-                    style={{ width: '100%', padding: '10px 14px', border: '1px solid var(--border)', borderRadius: 8 }}
-                  />
-                </div>
-
-                <div>
-                  <label className="comply-label" style={{ fontWeight: 600, display: 'block', marginBottom: 6 }}>Password</label>
-                  <input 
-                    type="password" 
-                    placeholder="Password" 
-                    value={password} 
-                    onChange={e => setPassword(e.target.value)} 
-                    disabled={status !== 'idle'}
-                    style={{ width: '100%', padding: '10px 14px', border: '1px solid var(--border)', borderRadius: 8 }}
-                  />
+                <div className="comply-note comply-note--info" style={{ margin: 0 }}>
+                  <Icon name="info" size={14} />
+                  <span>This tool never asks for your TRA portal username or password — it doesn't perform a live login.</span>
                 </div>
 
                 {status === 'idle' ? (
                   <button type="submit" className="comply-btn-primary" style={{ padding: '12px', borderRadius: 'var(--r)', marginTop: 8 }}>
-                    <Icon name="zap" style={{ marginRight: 8 }} /> Connect & Extract
+                    <Icon name="zap" style={{ marginRight: 8 }} /> Generate Preview
                   </button>
                 ) : (
                   <button type="button" className="comply-btn-secondary" disabled style={{ padding: '12px', borderRadius: 'var(--r)', marginTop: 8 }}>
-                    Connecting...
+                    Generating…
                   </button>
                 )}
               </div>
@@ -244,7 +210,7 @@ export function ComplyTraExtract() {
         {status !== 'completed' && (
           <div className="comply-card" style={{ background: '#0F172A', color: '#38BDF8', border: '1px solid #1E293B', borderRadius: 12 }}>
             <div className="comply-card-hdr" style={{ borderBottom: '1px solid #1E293B', padding: '12px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.05em', color: 'var(--ink3)', fontFamily: 'monospace' }}>AGENT SESSION TERMINAL</span>
+              <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.05em', color: 'var(--ink3)', fontFamily: 'monospace' }}>PREVIEW BUILDER LOG</span>
               <div style={{ display: 'flex', gap: 6 }}>
                 <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#EF4444' }} />
                 <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#F59E0B' }} />
@@ -253,45 +219,21 @@ export function ComplyTraExtract() {
             </div>
             <div style={{ padding: 20, height: 320, overflowY: 'auto', fontFamily: 'monospace', fontSize: 12.5, lineHeight: '1.6', display: 'flex', flexDirection: 'column', gap: 8 }}>
               {terminalLogs.length === 0 ? (
-                <div style={{ color: 'var(--ink2)', fontStyle: 'italic' }}>Terminal awaiting connection...</div>
+                <div style={{ color: 'var(--ink2)', fontStyle: 'italic' }}>Waiting for a TIN to preview...</div>
               ) : (
                 terminalLogs.map(log => (
                   <div key={log.id} style={{ display: 'flex', gap: 10 }}>
                     <span style={{ color: 'var(--ink2)' }}>[{log.time}]</span>
-                    <span style={{ 
-                      color: log.type === 'error' ? '#EF4444' : 
-                             log.type === 'success' ? '#34D399' : 
-                             log.type === 'warn' ? '#FBBF24' : 
-                             log.type === 'input' ? '#F472B6' : '#38BDF8' 
+                    <span style={{
+                      color: log.type === 'error' ? '#EF4444' :
+                             log.type === 'success' ? '#34D399' :
+                             log.type === 'warn' ? '#FBBF24' :
+                             log.type === 'input' ? '#F472B6' : '#38BDF8'
                     }}>
                       {log.type === 'input' ? `> ` : ``}{log.text}
                     </span>
                   </div>
                 ))
-              )}
-              {status === 'otp_required' && (
-                <div style={{ background: '#1E293B', border: '1px solid #334155', borderRadius: 8, padding: 14, marginTop: 12, color: 'var(--white)' }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8, color: '#FBBF24' }}>🔑 Verification Code Needed</div>
-                  <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 12 }}>Enter the OTP code received on taxpayer's registered phone number to authorize secure data pull.</div>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <input 
-                      type="text" 
-                      maxLength={6} 
-                      placeholder="e.g. 123456" 
-                      value={otpCode} 
-                      onChange={e => setOtpCode(e.target.value.replace(/[^0-9]/g, ''))}
-                      style={{ padding: '8px 12px', background: '#0F172A', border: '1px solid #475569', color: '#38BDF8', borderRadius: 6, width: 120, fontFamily: 'monospace', fontSize: 14, letterSpacing: '0.1em' }}
-                    />
-                    <button 
-                      type="button" 
-                      onClick={handleVerifyOtp} 
-                      className="comply-btn-primary" 
-                      style={{ padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', fontSize: 12, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
-                    >
-                      Verify & Proceed
-                    </button>
-                  </div>
-                </div>
               )}
               <div ref={logsEndRef} />
             </div>
@@ -305,19 +247,24 @@ export function ComplyTraExtract() {
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <h2 className="comply-card-title" style={{ fontSize: 18, fontWeight: 900 }}>{resultData.taxpayer.name}</h2>
-                  <span className="comply-badge comply-badge--active" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                    <Icon name="check" style={{ width: 12, height: 12 }} /> Verified TIN Profile
+                  <span className="comply-badge comply-badge--pending" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    <Icon name="alertTriangle" style={{ width: 12, height: 12 }} /> Simulated Preview
                   </span>
                 </div>
-                <p className="comply-page-sub" style={{ margin: '4px 0 0' }}>TIN: {resultData.taxpayer.tin} · Extracted from TRA Portal</p>
+                <p className="comply-page-sub" style={{ margin: '4px 0 0' }}>TIN: {resultData.taxpayer.tin} · Demo data — not a live TRA record</p>
               </div>
               <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={() => setStatus('idle')}>
-                <Icon name="refresh" style={{ marginRight: 6 }} /> Run New Extraction
+                <Icon name="refresh" style={{ marginRight: 6 }} /> New Preview
               </button>
             </div>
 
+            <div className="comply-note comply-note--warning comply-note--icon" style={{ margin: '16px 24px 0' }}>
+              <Icon name="alertTriangle" size={15} />
+              <span><strong>Simulated data.</strong> TRA has no public API for ComplyOS to query, so the profile, obligations, TCC and filing history below are a fixed demo dataset for previewing this feature — not a live extraction for this specific TIN. Verify anything you import against your actual TRA records.</span>
+            </div>
+
             {/* Results Navigation Tabs */}
-            <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', background: 'var(--bg)', padding: '0 24px' }}>
+            <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', background: 'var(--bg)', padding: '0 24px', marginTop: 16 }}>
               {([
                 { key: 'profile', label: 'Taxpayer Profile', icon: 'user' },
                 { key: 'obligations', label: 'Active Obligations', icon: 'clipboardList' },
@@ -350,10 +297,10 @@ export function ComplyTraExtract() {
 
             {/* Tab Body */}
             <div style={{ padding: 24 }}>
-              
+
               {/* Tab 1: Profile */}
               {activeTab === 'profile' && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+                <div className="comply-grid-2" style={{ marginBottom: 0 }}>
                   <div>
                     <h3 style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', letterSpacing: '0.05em', marginBottom: 12 }}>Corporate Identity</h3>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>

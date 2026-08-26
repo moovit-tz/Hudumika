@@ -44,7 +44,13 @@ export function CrmChainPartners() {
     try {
       await apiFetch('/v1/customers/partners', {
         method: 'POST',
-        body: JSON.stringify({ name: name.trim(), contactName: contactName.trim() || null, email: email.trim() || null, phone: phone.trim() || null }),
+        // The backend's zod schema for these three fields is `.optional()`,
+        // not `.nullable()` — it accepts a string or nothing at all, but
+        // rejects an explicit `null`. Sending `null` for a blank field (as
+        // this used to) failed validation with a 400 on every partner
+        // created with any optional field left empty, which is the common
+        // case since only the name is required on this form.
+        body: JSON.stringify({ name: name.trim(), contactName: contactName.trim() || undefined, email: email.trim() || undefined, phone: phone.trim() || undefined }),
       });
       setName(''); setContactName(''); setEmail(''); setPhone('');
       setShowAddForm(false);
@@ -58,26 +64,31 @@ export function CrmChainPartners() {
 
   return (
     <div style={{ padding: '0 0 24px' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <div>
-          <PageHeader
-            crumbs={['CRM', 'Chain Partners']}
-            titlePlain="Logistics & Warehousing Chain"
-            titleEm="partners"
-            subtitle="Registered ICDs, CFS operators, bonded warehouse providers, and logistics partners."
-          />
-        </div>
-        <button
-          type="button"
-          className="btn-primary"
-          style={{ padding: 'var(--ds-btn-py) 18px', fontWeight: 700, borderRadius: 'var(--r)', display: 'inline-flex', alignItems: 'center', gap: 6, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
-          onClick={() => setShowAddForm(v => !v)}
-        >
-          <Icon name="plus" size={14} />
-          <span>Add Chain Partner</span>
-        </button>
-      </div>
+      {/* Header — routed through PageHeader's own `actions` slot (every other
+          CRM page does this) rather than wrapping the whole header block in a
+          hand-rolled flex row. The old layout put the button beside the
+          crumb+title+subtitle as a whole, so it centered against that entire
+          three-line block instead of the title baseline, and on mobile —
+          where PageHeader's own title row wraps but this outer div never
+          did — the button was squeezed into a 3-line stack beside wrapped
+          title text instead of dropping below it. */}
+      <PageHeader
+        crumbs={['CRM', 'Chain Partners']}
+        titlePlain="Logistics & Warehousing Chain"
+        titleEm="partners"
+        subtitle="Registered ICDs, CFS operators, bonded warehouse providers, and logistics partners."
+        actions={
+          <button
+            type="button"
+            className="btn-primary"
+            style={{ padding: 'var(--ds-btn-py) 18px', fontWeight: 700, borderRadius: 'var(--r)', display: 'inline-flex', alignItems: 'center', gap: 6, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25, whiteSpace: 'nowrap' }}
+            onClick={() => setShowAddForm(v => !v)}
+          >
+            <Icon name="plus" size={14} />
+            <span>Add Chain Partner</span>
+          </button>
+        }
+      />
 
       {/* New Partner Collapsible Form */}
       {showAddForm && (
@@ -126,7 +137,13 @@ export function CrmChainPartners() {
             </div>
           </div>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, textAlign: 'left' }}>
+          // Wrapped in the platform's established horizontal-scroll container
+          // (same class Leads.tsx's table already uses) instead of leaving
+          // this table to overflow the card's own `overflow: hidden` — which
+          // would have clipped the Registered column on a narrow viewport
+          // rather than making it reachable by scrolling.
+          <div className="rtbl-wrap">
+          <table style={{ width: '100%', minWidth: 560, borderCollapse: 'collapse', fontSize: 13, textAlign: 'left' }}>
             <thead>
               <tr style={{ background: 'var(--bg)', borderBottom: '1px solid var(--border)', color: 'var(--ink3)', fontSize: 11, textTransform: 'uppercase' }}>
                 <th style={{ padding: '12px 18px' }}>Partner Name</th>
@@ -164,6 +181,7 @@ export function CrmChainPartners() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </div>

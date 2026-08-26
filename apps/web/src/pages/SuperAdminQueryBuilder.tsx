@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
+import { PageHeader } from '../components/PageHeader.js';
 import { Combobox, type ComboboxOption } from '../components/ui/combobox.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Input } from '../components/ui/input.js';
@@ -199,10 +200,12 @@ export function SuperAdminQueryBuilder() {
 
   return (
     <div className="qb-root">
-      <div className="qb-header">
-        <h1 className="qb-title">Query Builder</h1>
-        <p className="qb-sub">Extract data from any allowed table, across all tenants or one at a time — visually, or with raw SQL once unlocked.</p>
-      </div>
+      <PageHeader
+        crumbs={['HuduBI', 'Query Builder']}
+        titlePlain="Query"
+        titleEm="builder"
+        subtitle="Extract data from any allowed table, across all tenants or one at a time — visually, or with raw SQL once unlocked."
+      />
 
       <div className="qb-layout">
         <nav className="qb-rail">

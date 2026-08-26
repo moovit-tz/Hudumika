@@ -67,11 +67,11 @@
 }
 
 .aia-btn-try-ai {
-  background: linear-gradient(135deg, #a855f7, #ec4899);
-  color: white;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
   border: none;
   padding: var(--ds-btn-py) 16px;
-  border-radius: 20px;
+  border-radius: var(--r);
   font-size: var(--text-sm);
   font-weight: 600;
   display: flex;
@@ -376,9 +376,9 @@
   box-shadow: var(--elev-sm);
 }
 .aia-node-status.success {
-  background: #10b981;
-  color: white;
-  border-color: #10b981;
+  background: var(--green-l);
+  color: var(--green);
+  border-color: var(--green);
 }
 .aia-node-status.selected {
   box-shadow: 0 0 0 2px var(--blue);

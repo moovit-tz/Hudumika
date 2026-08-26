@@ -117,6 +117,10 @@ export async function customerRoutes(fastify: FastifyInstance) {
         // partner-only company still showing up as a customer, which is half
         // the bug this was meant to fix.
         .where('customers.is_customer', '=', true)
+        // 338_customer_soft_delete.sql — DELETE /:id sets this instead of
+        // hard-deleting; without excluding it here a "deleted" customer
+        // reappeared on the very next load of this same list.
+        .where('customers.deleted_at', 'is', null)
         .orderBy('customers.name', 'asc')
         .execute();
       return { data: list };
@@ -358,7 +362,25 @@ export async function customerRoutes(fastify: FastifyInstance) {
 
   /**
    * DELETE /v1/customers/:id
-   * Soft-delete (deactivate) a customer
+   * Soft-delete a customer via 338_customer_soft_delete.sql's `deleted_at`.
+   *
+   * Used to only flip `active` to false — but GET / (the list this same
+   * page reads) never filtered on `active` at all, so a "deleted" customer
+   * kept coming back on the very next page load: the row only looked gone
+   * because Customers.tsx removes it from local state optimistically after
+   * a successful DELETE, without ever re-fetching. `active` isn't safe to
+   * filter the list on either — it doubles as the Active/Inactive/Suspended
+   * status sync (PATCH /:id's account_status branch) and as a "draft/
+   * incomplete BRELA import" flag Sales.tsx's customer picker checks, so
+   * filtering on it would have hidden every Inactive/Suspended customer
+   * from the list entirely instead of just showing their status pill.
+   * `is_customer` (what the list *does* filter on) can't be flipped by a
+   * plain delete either — 199_partner_flag.sql's own
+   * `CHECK (is_customer OR is_partner)` rejects that for the common
+   * customer-only row with a 500. `deleted_at` carries no other meaning, so
+   * a delete sets it and every list query below excludes it — a lookup by
+   * id (GET /:id, invoices, shipments, …) is untouched, so a deleted
+   * customer's name still resolves on their historical documents.
    */
   fastify.delete('/:id', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (request, reply) => {
     const user = request.user;
@@ -367,7 +389,7 @@ export async function customerRoutes(fastify: FastifyInstance) {
     return withTenant(user.tenant_id, async (trx) => {
       await trx
         .updateTable('customers')
-        .set({ active: false, updated_at: new Date() })
+        .set({ deleted_at: new Date(), active: false, updated_at: new Date() })
         .where('id', '=', id)
         .where('tenant_id', '=', user.tenant_id)
         .execute();
@@ -578,6 +600,9 @@ export async function customerRoutes(fastify: FastifyInstance) {
         .selectAll()
         .where('tenant_id', '=', user.tenant_id)
         .where('is_partner', '=', true)
+        // Same reasoning as GET / above — a deleted company shouldn't
+        // reappear here either.
+        .where('deleted_at', 'is', null)
         .orderBy('name', 'asc')
         .execute();
 

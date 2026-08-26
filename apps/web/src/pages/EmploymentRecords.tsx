@@ -173,7 +173,7 @@ export function EmploymentRecords() {
           <Icon name="building" size={14} /> Legal entities ({entities.length})
         </Button>
         <Button type="button" disabled={entities.length === 0} onClick={() => setPane(pane === 'employment' ? 'none' : 'employment')}>
-          <Icon name="fileText" size={14} color="white" /> New contract
+          <Icon name="fileText" size={14} color="hsl(var(--primary-foreground))" /> New contract
         </Button>
       </div>
 
@@ -381,7 +381,7 @@ function CompensationPanel({ userId, who, defaultCurrency, defaultFrequency, onC
           <div style={{ fontSize: 11, color: 'var(--ink3)' }}>Each row is what was agreed from a date until the next change.</div>
         </div>
         <Button type="button" size="sm" variant={adding ? 'outline' : 'default'} onClick={() => setAdding(a => !a)}>
-          {adding ? 'Cancel' : <><Icon name="plus" size={13} color="white" /> Record a pay change</>}
+          {adding ? 'Cancel' : <><Icon name="plus" size={13} color="hsl(var(--primary-foreground))" /> Record a pay change</>}
         </Button>
       </div>
 

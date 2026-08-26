@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '../../components/PageHeader.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
 import { showAlert } from '../../lib/alert.js';
 import { showConfirm } from '../../lib/confirm.js';
 import { apiFetch } from '../../lib/api.js';
@@ -226,12 +227,15 @@ export function OnsiteSettings() {
             <form onSubmit={handleConnect} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div className="onsite-form-group">
                 <label>Provider Platform</label>
-                <select className="onsite-select" value={provider} onChange={(e) => setProvider(e.target.value)}>
-                  <option value="github">GitHub</option>
-                  <option value="circleci">CircleCI</option>
-                  <option value="cloudflare">Cloudflare</option>
-                  <option value="digitalocean">DigitalOcean</option>
-                </select>
+                <Select value={provider} onValueChange={setProvider}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="github">GitHub</SelectItem>
+                    <SelectItem value="circleci">CircleCI</SelectItem>
+                    <SelectItem value="cloudflare">Cloudflare</SelectItem>
+                    <SelectItem value="digitalocean">DigitalOcean</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="onsite-form-group">
                 <label>Connection Name / Label *</label>

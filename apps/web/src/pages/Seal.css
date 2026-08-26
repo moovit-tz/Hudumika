@@ -116,12 +116,12 @@
 
 /* ── Form Controls & Container Card Alignment ── */
 .seal-input-control {
-  height: 38px;
+  min-height: var(--ctl-h);
   box-sizing: border-box;
   padding: 0 12px;
   background: var(--white);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--r);
   font-family: var(--font);
   font-size: 13px;
   color: var(--ink);
@@ -207,7 +207,7 @@
   align-items: center;
   gap: 6px;
   padding: var(--ds-btn-py-sm) 12px;
-  border-radius: 7px;
+  border-radius: var(--r-sm);
   font-size: 12px;
   font-weight: 700;
   color: var(--ink2);

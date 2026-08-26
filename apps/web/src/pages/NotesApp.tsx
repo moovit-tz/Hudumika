@@ -4,6 +4,7 @@ import { Icon } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { Popover, PopoverAnchor, PopoverContent } from '../components/ui/popover.js';
 import { Button } from '../components/ui/button.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { ReminderPicker } from '../components/ReminderPicker.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { EntityPicker, type PickerItem } from '../components/EntityPicker.js';
@@ -1543,14 +1544,13 @@ const SharePanel: React.FC<{
                   <div key={s.userId} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     {p ? <PersonAvatar userId={p.id} name={p.name} size={22} /> : <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--bg)' }} />}
                     <span style={{ flex: 1, fontSize: 13, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p?.name ?? s.userId}</span>
-                    <select
-                      value={s.permission}
-                      onChange={e => setPermission(s.userId, e.target.value as 'view' | 'edit')}
-                      style={{ fontSize: 12, borderRadius: 6, border: '1px solid var(--border)', padding: '2px 4px' }}
-                    >
-                      <option value="edit">Can edit</option>
-                      <option value="view">Can view</option>
-                    </select>
+                    <Select value={s.permission} onValueChange={v => setPermission(s.userId, v as 'view' | 'edit')}>
+                      <SelectTrigger style={{ width: 'auto', minHeight: 26, fontSize: 12 }}><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="edit">Can edit</SelectItem>
+                        <SelectItem value="view">Can view</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <button type="button" className="notes-icon-btn" title="Remove" onClick={() => removePerson(s.userId)}>
                       <Icon name="close" size={13} />
                     </button>

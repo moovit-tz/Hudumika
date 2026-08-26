@@ -7,6 +7,7 @@ import type { Customer } from '@hudumika/types';
 import './ComplyOS.css';
 import { showConfirm } from '../lib/confirm.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { DatePicker, toDateOnlyString } from '../components/ui/date-picker.js';
 
 type EditableField = 'name' | 'contact_name' | 'email' | 'phone_wa' | 'tax_id' | 'entity_type' | 'registration_status' | 'registered_address' | 'incorporation_date';
 
@@ -276,15 +277,22 @@ export function ComplyCompanyDirectory() {
                 {EDITABLE_FIELDS.map(f => (
                   <div className="comply-field-row" key={f.key}>
                     <label className="comply-field-label">{f.label}</label>
-                    <input
-                      type={f.type === 'date' ? 'date' : 'text'}
-                      className="input-field"
-                      value={form[f.key] ?? ''}
-                      onChange={e => handleFieldChange(f.key, f.type, e.target.value)}
-                      inputMode={f.type === 'digits9' ? 'numeric' : undefined}
-                      pattern={f.type === 'digits9' ? '[0-9]*' : undefined}
-                      maxLength={f.type === 'digits9' ? 9 : undefined}
-                    />
+                    {f.type === 'date' ? (
+                      <DatePicker
+                        date={form[f.key] ? new Date(form[f.key]) : undefined}
+                        onChange={d => setForm(prev => ({ ...prev, [f.key]: d ? toDateOnlyString(d) : '' }))}
+                      />
+                    ) : (
+                      <input
+                        type="text"
+                        className="input-field"
+                        value={form[f.key] ?? ''}
+                        onChange={e => handleFieldChange(f.key, f.type, e.target.value)}
+                        inputMode={f.type === 'digits9' ? 'numeric' : undefined}
+                        pattern={f.type === 'digits9' ? '[0-9]*' : undefined}
+                        maxLength={f.type === 'digits9' ? 9 : undefined}
+                      />
+                    )}
                   </div>
                 ))}
               </div>

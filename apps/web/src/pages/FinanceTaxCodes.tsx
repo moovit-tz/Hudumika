@@ -5,6 +5,7 @@ import { FormPage, FormPageActions } from '../components/FormPage.js';
 import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { showConfirm } from '../lib/confirm.js';
 import { apiFetch } from '../lib/api.js';
 import {
@@ -239,7 +240,7 @@ function ComponentEditor({ taxCodeId, jurisdiction, zeroKind }: {
               </button>
             ))}
             <button type="button" className="btn btn-primary btn-sm" disabled={saving}
-              style={{ marginLeft: 'auto', background: 'var(--teal)', borderColor: 'var(--teal)', color: '#fff' }}
+              style={{ marginLeft: 'auto' }}
               onClick={persist}>
               {saving ? 'Saving…' : 'Save breakdown'}
             </button>
@@ -431,12 +432,12 @@ function TaxCodeForm({ code, onClose, onSaved }: {
         </F>
 
         <F label="Effective from" hint="Optional. Governs which codes are offered when drafting.">
-          <input style={inp} type="date" value={form.effectiveFrom ?? ''}
-            onChange={e => set('effectiveFrom', e.target.value || null)} />
+          <DatePicker date={parseDateOnly(form.effectiveFrom)}
+            onChange={d => set('effectiveFrom', toDateOnlyString(d) || null)} />
         </F>
         <F label="Effective to">
-          <input style={inp} type="date" value={form.effectiveTo ?? ''}
-            onChange={e => set('effectiveTo', e.target.value || null)} />
+          <DatePicker date={parseDateOnly(form.effectiveTo)}
+            onChange={d => set('effectiveTo', toDateOnlyString(d) || null)} />
         </F>
 
         {/* The reasoning, recorded once. Deciding a treatment means someone

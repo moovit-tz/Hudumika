@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
+import { PageHeader } from '../components/PageHeader.js';
 import { Combobox, type ComboboxOption } from '../components/ui/combobox.js';
 import { DateRangePicker } from '../components/ui/date-picker.js';
 import { Input } from '../components/ui/input.js';
@@ -190,10 +191,12 @@ export function SuperAdminReports() {
 
   return (
     <div className="sar-root">
-      <div className="sar-header">
-        <h1 className="sar-title">Reports</h1>
-        <p className="sar-sub">Cross-tenant metrics per app — combined or scoped to a single tenant, saved for re-use, and exportable.</p>
-      </div>
+      <PageHeader
+        crumbs={['HuduBI', 'Reports']}
+        titlePlain="Cross-tenant"
+        titleEm="reports"
+        subtitle="Cross-tenant metrics per app — combined or scoped to a single tenant, saved for re-use, and exportable."
+      />
 
       <div className="sar-layout">
         <nav className="sar-rail">

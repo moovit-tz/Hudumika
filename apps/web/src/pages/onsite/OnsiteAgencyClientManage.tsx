@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { PageHeader } from '../../components/PageHeader.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
 import { showAlert } from '../../lib/alert.js';
 import { showConfirm } from '../../lib/confirm.js';
 import { apiFetch } from '../../lib/api.js';
@@ -362,9 +363,12 @@ function AddRecordModal({ base, domainId, onClose, onCreated }: { base: string; 
           </div>
           <div className="onsite-form-group">
             <label>Type</label>
-            <select className="onsite-select" value={type} onChange={(e) => setType(e.target.value)}>
-              {['A', 'AAAA', 'CNAME', 'MX', 'TXT', 'NS', 'SRV', 'CAA'].map((t) => <option key={t} value={t}>{t}</option>)}
-            </select>
+            <Select value={type} onValueChange={setType}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {['A', 'AAAA', 'CNAME', 'MX', 'TXT', 'NS', 'SRV', 'CAA'].map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
         </div>
         <div className="onsite-form-group">
@@ -508,9 +512,12 @@ function AddAppModal({ base, onClose, onCreated }: { base: string; onClose: () =
         </div>
         <div className="onsite-form-group">
           <label>Runtime</label>
-          <select className="onsite-select" value={runtime} onChange={(e) => setRuntime(e.target.value)}>
-            {['static', 'nodejs', 'python', 'php', 'ruby', 'go', 'rust', 'container', 'custom'].map((r) => <option key={r} value={r}>{r}</option>)}
-          </select>
+          <Select value={runtime} onValueChange={setRuntime}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {['static', 'nodejs', 'python', 'php', 'ruby', 'go', 'rust', 'container', 'custom'].map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+            </SelectContent>
+          </Select>
         </div>
         <div className="onsite-form-group">
           <label>Repository URL</label>

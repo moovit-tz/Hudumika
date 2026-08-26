@@ -6,6 +6,7 @@ import type { SignTemplate } from '@hudumika/types';
 import { Icon } from '../../components/Icon.js';
 import { Button } from '../../components/ui/button.js';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog.js';
+import { PageHeader } from '../../components/PageHeader.js';
 import './Sign.css';
 
 interface BulkSendResult { email: string; ok: boolean; envelope_id?: string; error?: string }
@@ -117,14 +118,18 @@ export function SignTemplates() {
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 24px', borderBottom: '1px solid var(--border)', background: 'var(--card-bg)' }}>
-        <div>
-          <h2 style={{ fontSize: 17, fontWeight: 700, color: 'var(--ink)', margin: 0, letterSpacing: '-0.01em' }}>Templates</h2>
-          <p style={{ fontSize: 12.5, color: 'var(--ink3)', margin: '2px 0 0' }}>Reusable document layouts for 1-click envelope creation &amp; bulk sending.</p>
-        </div>
-        <Button variant="default" onClick={() => navigate('/sign/editor')} style={{ marginLeft: 'auto', background: 'var(--teal)', color: '#fff', fontWeight: 600 }}>
-          <Icon name="plus" size={14} /> New Envelope from Scratch
-        </Button>
+      <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--border)', background: 'var(--card-bg)' }}>
+        <PageHeader
+          crumbs={['Sign', 'Templates']}
+          titlePlain="Envelope"
+          titleEm="templates"
+          subtitle="Reusable document layouts for 1-click envelope creation & bulk sending."
+          actions={
+            <Button variant="default" onClick={() => navigate('/sign/editor')} style={{ fontWeight: 600 }}>
+              <Icon name="plus" size={14} /> New Envelope from Scratch
+            </Button>
+          }
+        />
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
@@ -143,7 +148,7 @@ export function SignTemplates() {
             <div style={{ fontSize: 13, maxWidth: 340, lineHeight: 1.5, marginBottom: 20 }}>
               Save an envelope layout as a template to reuse field placements and recipients quickly for future documents.
             </div>
-            <Button variant="default" onClick={() => navigate('/sign/editor')} style={{ background: 'var(--teal)', color: '#fff', fontWeight: 600 }}>
+            <Button variant="default" onClick={() => navigate('/sign/editor')} style={{ fontWeight: 600 }}>
               <Icon name="plus" size={14} /> Create New Template
             </Button>
           </div>
@@ -163,7 +168,7 @@ export function SignTemplates() {
                   <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Icon name="fileText" size={11} /> {(t.fields as unknown[]).length ?? 0} field(s)</span>
                 </div>
                 <div style={{ display: 'flex', gap: 8, marginTop: 2 }}>
-                  <Button variant="default" size="sm" onClick={() => navigate(`/sign/editor?template=${t.id}`)} style={{ flex: 2, background: 'var(--teal)', color: '#fff', fontWeight: 600 }}>
+                  <Button variant="default" size="sm" onClick={() => navigate(`/sign/editor?template=${t.id}`)} style={{ flex: 2, fontWeight: 600 }}>
                     Use Template
                   </Button>
                   <Button variant="outline" size="sm" onClick={() => setBulkSendTarget(t)}

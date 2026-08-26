@@ -4,6 +4,7 @@ import { apiFetch } from '../../lib/api.js';
 import { useAuth } from '../../hooks/useAuth.js';
 import type { OnsiteDashboard } from '@hudumika/types';
 import { Icon } from '../../components/Icon.js';
+import { PageHeader } from '../../components/PageHeader.js';
 import './Onsite.css';
 
 export function OnsiteOverview() {
@@ -42,6 +43,13 @@ export function OnsiteOverview() {
 
   return (
     <div className="onsite-page">
+      <PageHeader
+        crumbs={['Onsite', 'Overview']}
+        titlePlain="Infrastructure"
+        titleEm="overview"
+        subtitle="Domains, websites, servers, applications and everything else running your infrastructure."
+      />
+
       {/* Hostinger AI Greeting & Prompt Hero */}
       <div className="onsite-hero-greeting">
         <h2>Hi, {userName}! How can I help you today?</h2>

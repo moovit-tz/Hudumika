@@ -3,6 +3,7 @@ import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
 import { Textarea } from '../components/ui/textarea.js';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '../components/ui/accordion.js';
+import { PageHeader } from '../components/PageHeader.js';
 import { apiFetch } from '../lib/api.js';
 import { showConfirm } from '../lib/confirm.js';
 import type { EmailTemplateView, EmailTemplateCategory } from '@hudumika/types';
@@ -75,10 +76,12 @@ export function EmailTemplates() {
   })).filter(g => g.items.length > 0);
 
   return (
-    <div style={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+      <div style={{ padding: '20px 24px 0' }}>
+        <PageHeader crumbs={['Email', 'Templates']} titlePlain="Email" titleEm="templates" subtitle="Every automated email the platform sends, grouped by category." />
+      </div>
+      <div style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
       <div style={{ width: 340, flexShrink: 0, borderRight: '1px solid var(--border)', overflowY: 'auto', padding: 16 }}>
-        <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Email Templates</div>
-        <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 16 }}>Every automated email the platform sends, grouped by category.</div>
         {loading ? (
           <div style={{ fontSize: 13, color: 'var(--ink3)' }}>Loading…</div>
         ) : (
@@ -167,6 +170,7 @@ export function EmailTemplates() {
             </button>
           </div>
         )}
+      </div>
       </div>
     </div>
   );

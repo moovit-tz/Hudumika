@@ -6,6 +6,7 @@ import { Badge } from '../components/ui/badge.js';
 import { Button } from '../components/ui/button.js';
 import { Input } from '../components/ui/input.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 
@@ -267,11 +268,11 @@ export function MultiEntityAccounting() {
             <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>From</label>
-                <Input type="date" value={plFrom} onChange={e => setPlFrom(e.target.value)} />
+                <DatePicker date={parseDateOnly(plFrom)} onChange={d => setPlFrom(toDateOnlyString(d))} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>To</label>
-                <Input type="date" value={plTo} onChange={e => setPlTo(e.target.value)} />
+                <DatePicker date={parseDateOnly(plTo)} onChange={d => setPlTo(toDateOnlyString(d))} />
               </div>
               <Button onClick={loadConsolidated} disabled={consolidatedLoading}>{consolidatedLoading ? 'Loading…' : 'Refresh'}</Button>
             </div>
