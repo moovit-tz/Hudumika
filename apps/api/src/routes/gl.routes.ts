@@ -6,6 +6,8 @@ import { CostPostingService } from '../services/cost-posting.service.js';
 import { GLService } from '../services/gl.service.js';
 import { withTenant } from '../db/client.js';
 import { toDateParam } from '../utils/dates.js';
+import { computeVatReturn } from '../services/vat-return.service.js';
+import { reportingCurrency } from '../services/tax-registration.service.js';
 
 const ACCOUNT_TYPES = ['ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE'] as const;
 const accountCreateSchema = z.object({
@@ -622,6 +624,129 @@ export async function glRoutes(fastify: FastifyInstance) {
       const { from, to } = request.query as { from: string; to: string };
       if (!from || !to) return reply.status(400).send({ error: 'Missing from or to query parameters' });
       return await GLService.statementOfChangesInEquity(request.user.tenant_id, from, to);
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  /**
+   * GET /v1/finance/dashboard-snapshot — the one real query behind the
+   * FinOps dashboard. Every figure here is read off the same GL/tax tables
+   * the dedicated reports use (GLService.ledger/profitLoss/agedReceivables/
+   * agedPayables, the live-computed open VAT return, the latest CIT/deferred-
+   * tax rows, real approval-queue counts) — nothing here is a separate
+   * fabricated aggregate. A missing account (a brand-new tenant that hasn't
+   * had a document post to a given code yet) resolves to a zero balance via
+   * `safeBalance`, not a 500 — `GLService.ledger()` throws on an unknown
+   * account code, which is the right behavior for a report someone asked for
+   * by name, but wrong for a dashboard that queries a dozen codes hoping to
+   * summarise whichever ones this tenant actually uses.
+   */
+  fastify.get('/dashboard-snapshot', async (request: any, reply) => {
+    try {
+      const tenantId = request.user.tenant_id;
+      const today = new Date();
+      const todayStr = today.toISOString().slice(0, 10);
+      const monthStart = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().slice(0, 10);
+      const yearStart = new Date(today.getFullYear(), 0, 1).toISOString().slice(0, 10);
+
+      const safeBalance = async (code: string): Promise<number> => {
+        try {
+          const r = await GLService.ledger(tenantId, code, yearStart, todayStr);
+          return r.closing_balance;
+        } catch { return 0; }
+      };
+
+      const [
+        cashTZS, cashUSD, cashOnHand,
+        whtPayable, citPayable, deferredTaxAsset, deferredTaxLiability,
+        receivables, payables,
+        monthPl, ytdPl,
+        vatSnapshot,
+        latestCitReturn,
+        latestDeferredTax,
+        pendingBills,
+        pendingExpenses,
+        activeFixedAssets,
+        latestClosedPeriod,
+      ] = await Promise.all([
+        safeBalance('1010'), safeBalance('1011'), safeBalance('1001'),
+        safeBalance('2300'), safeBalance('2400'), safeBalance('1250'), safeBalance('2450'),
+        GLService.agedReceivables(tenantId), GLService.agedPayables(tenantId),
+        GLService.profitLoss(tenantId, monthStart, todayStr),
+        GLService.profitLoss(tenantId, yearStart, todayStr),
+        withTenant(tenantId, async (trx) => {
+          const openPeriod = await trx.selectFrom('vat_periods').selectAll()
+            .where('tenant_id', '=', tenantId).where('status', '=', 'open')
+            .orderBy('period_start', 'desc').executeTakeFirst();
+          if (!openPeriod) return null;
+          try {
+            const cur = await reportingCurrency(trx, tenantId);
+            const live = await computeVatReturn(
+              trx, tenantId,
+              String(openPeriod.period_start).slice(0, 10), String(openPeriod.period_end).slice(0, 10),
+              cur, openPeriod.jurisdiction);
+            return {
+              periodId: openPeriod.id,
+              periodStart: openPeriod.period_start,
+              periodEnd: openPeriod.period_end,
+              netPayable: live.netPayable,
+            };
+          } catch {
+            return { periodId: openPeriod.id, periodStart: openPeriod.period_start, periodEnd: openPeriod.period_end, netPayable: null };
+          }
+        }),
+        withTenant(tenantId, trx => trx.selectFrom('cit_returns').selectAll()
+          .where('tenant_id', '=', tenantId).orderBy('period_end', 'desc').executeTakeFirst()),
+        withTenant(tenantId, trx => trx.selectFrom('deferred_tax_computations').selectAll()
+          .where('tenant_id', '=', tenantId).orderBy('as_of_date', 'desc').executeTakeFirst()),
+        withTenant(tenantId, trx => trx.selectFrom('supplier_bills')
+          .select([trx.fn.count('id').as('n'), trx.fn.sum('total').as('amt')])
+          .where('tenant_id', '=', tenantId).where('status', '=', 'PENDING_APPROVAL').executeTakeFirst()),
+        withTenant(tenantId, trx => trx.selectFrom('finance_expenses')
+          .select([trx.fn.count('id').as('n'), trx.fn.sum('amount').as('amt')])
+          .where('tenant_id', '=', tenantId).where('status', '=', 'SUBMITTED').executeTakeFirst()),
+        withTenant(tenantId, trx => trx.selectFrom('fixed_assets')
+          .select([trx.fn.count('id').as('n'), trx.fn.sum('cost').as('cost')])
+          .where('tenant_id', '=', tenantId).where('status', '=', 'ACTIVE').executeTakeFirst()),
+        withTenant(tenantId, trx => trx.selectFrom('gl_periods').selectAll()
+          .where('tenant_id', '=', tenantId).where('status', '=', 'closed')
+          .orderBy('period_end', 'desc').executeTakeFirst()),
+      ]);
+
+      return {
+        asOf: todayStr,
+        cash: { tzs: cashTZS, usd: cashUSD, onHand: cashOnHand, total: cashTZS + cashOnHand },
+        receivables: { total: receivables.totals.total, overdue: receivables.totals.total - receivables.totals.current, count: receivables.rows.length },
+        payables: { total: payables.totals.total, overdue: payables.totals.total - payables.totals.current, count: payables.rows.length },
+        profitLoss: {
+          month: monthPl.totals,
+          ytd: ytdPl.totals,
+        },
+        tax: {
+          vat: vatSnapshot,
+          wht: { payable: whtPayable },
+          cit: {
+            payable: citPayable,
+            latestReturn: latestCitReturn ? {
+              periodEnd: latestCitReturn.period_end,
+              ratePct: Number(latestCitReturn.rate_pct),
+              taxLiability: Number(latestCitReturn.tax_liability),
+              status: latestCitReturn.status,
+            } : null,
+          },
+          deferredTax: {
+            netLiability: deferredTaxLiability - deferredTaxAsset,
+            asOfDate: latestDeferredTax?.as_of_date ?? null,
+          },
+        },
+        approvals: {
+          billsPendingApproval: { count: Number(pendingBills?.n ?? 0), amount: Number(pendingBills?.amt ?? 0) },
+          expensesPendingApproval: { count: Number(pendingExpenses?.n ?? 0), amount: Number(pendingExpenses?.amt ?? 0) },
+        },
+        fixedAssets: { activeCount: Number(activeFixedAssets?.n ?? 0), totalCost: Number(activeFixedAssets?.cost ?? 0) },
+        glPeriod: latestClosedPeriod ? { name: latestClosedPeriod.name, periodEnd: latestClosedPeriod.period_end, closedAt: latestClosedPeriod.closed_at } : null,
+      };
     } catch (err: any) {
       return reply.status(500).send({ error: err.message });
     }

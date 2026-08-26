@@ -77,16 +77,16 @@ type ContactTab = 'customers' | 'leads';
 
 const FREIGHT_SERVICES: ServiceItem[] = [
   // Sea Freight
-  { id:'sf-fcl20', name:'Sea Freight � 20ft FCL',     category:'FREIGHT',   unit_price:1200, tax_rate:0, unit:'container', description:'Full container load sea freight � 20ft standard container' },
-  { id:'sf-fcl40', name:'Sea Freight � 40ft FCL',     category:'FREIGHT',   unit_price:1800, tax_rate:0, unit:'container', description:'Full container load sea freight � 40ft standard container' },
-  { id:'sf-fcl40h',name:'Sea Freight � 40ft HC',      category:'FREIGHT',   unit_price:2000, tax_rate:0, unit:'container', description:'Full container load sea freight � 40ft high cube container' },
-  { id:'sf-lcl',   name:'Sea Freight � LCL',          category:'FREIGHT',   unit_price:85,   tax_rate:0, unit:'CBM',       description:'Less than container load sea freight (per CBM)' },
+  { id:'sf-fcl20', name:'Sea Freight – 20ft FCL',     category:'FREIGHT',   unit_price:1200, tax_rate:0, unit:'container', description:'Full container load sea freight – 20ft standard container' },
+  { id:'sf-fcl40', name:'Sea Freight – 40ft FCL',     category:'FREIGHT',   unit_price:1800, tax_rate:0, unit:'container', description:'Full container load sea freight – 40ft standard container' },
+  { id:'sf-fcl40h',name:'Sea Freight – 40ft HC',      category:'FREIGHT',   unit_price:2000, tax_rate:0, unit:'container', description:'Full container load sea freight – 40ft high cube container' },
+  { id:'sf-lcl',   name:'Sea Freight – LCL',          category:'FREIGHT',   unit_price:85,   tax_rate:0, unit:'CBM',       description:'Less than container load sea freight (per CBM)' },
   // Air Freight
   { id:'af-kg',    name:'Air Freight',                 category:'FREIGHT',   unit_price:4.5,  tax_rate:0, unit:'kg',        description:'Air freight charge per kilogram (chargeable weight)' },
-  { id:'af-min',   name:'Air Freight � Minimum',      category:'FREIGHT',   unit_price:350,  tax_rate:0, unit:'shipment',  description:'Air freight minimum charge per shipment' },
+  { id:'af-min',   name:'Air Freight – Minimum',      category:'FREIGHT',   unit_price:350,  tax_rate:0, unit:'shipment',  description:'Air freight minimum charge per shipment' },
   // Road
-  { id:'rd-local', name:'Road Transport � Local',     category:'TRANSPORT', unit_price:450,  tax_rate:18, unit:'trip',      description:'Local inland transport and delivery' },
-  { id:'rd-upcnt', name:'Road Transport � Upcountry', category:'TRANSPORT', unit_price:850,  tax_rate:18, unit:'trip',      description:'Upcountry delivery to inland destination' },
+  { id:'rd-local', name:'Road Transport – Local',     category:'TRANSPORT', unit_price:450,  tax_rate:18, unit:'trip',      description:'Local inland transport and delivery' },
+  { id:'rd-upcnt', name:'Road Transport – Upcountry', category:'TRANSPORT', unit_price:850,  tax_rate:18, unit:'trip',      description:'Upcountry delivery to inland destination' },
   // Clearance & Documentation
   { id:'cl-basic', name:'Customs Clearance',          category:'CLEARANCE', unit_price:350,  tax_rate:18, unit:'shipment',  description:'Customs clearance and entry lodgement' },
   { id:'cl-docs',  name:'Documentation Fee',          category:'CLEARANCE', unit_price:75,   tax_rate:18, unit:'set',       description:'Preparation of shipping documentation and certificates' },
@@ -94,7 +94,7 @@ const FREIGHT_SERVICES: ServiceItem[] = [
   { id:'cl-psi',   name:'Pre-Shipment Inspection',    category:'CLEARANCE', unit_price:200,  tax_rate:18, unit:'shipment',  description:'Pre-shipment inspection (PVoC/CoC)' },
   { id:'cl-phy',   name:'Phytosanitary Certificate',  category:'CLEARANCE', unit_price:80,   tax_rate:18, unit:'certificate',description:'Phytosanitary / health certificate processing' },
   // Port Handling
-  { id:'ph-thn',   name:'Port Handling � THC',        category:'HANDLING',  unit_price:250,  tax_rate:0, unit:'container', description:'Terminal handling charges at port of loading/discharge' },
+  { id:'ph-thn',   name:'Port Handling – THC',        category:'HANDLING',  unit_price:250,  tax_rate:0, unit:'container', description:'Terminal handling charges at port of loading/discharge' },
   { id:'ph-scan',  name:'Scanning / X-Ray Fee',       category:'HANDLING',  unit_price:50,   tax_rate:0, unit:'container', description:'Port scanner / X-ray inspection fee' },
   { id:'ph-wgh',   name:'Weighbridge Fee',            category:'HANDLING',  unit_price:30,   tax_rate:18, unit:'truck',     description:'Weighbridge measurement certificate' },
   { id:'ph-fum',   name:'Fumigation',                 category:'HANDLING',  unit_price:150,  tax_rate:18, unit:'container', description:'Fumigation treatment and certificate' },

@@ -1126,11 +1126,18 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  padding: 2px 8px;
+  padding: var(--badge-py, 2px) var(--badge-px, 8px);
   border-radius: var(--badge-radius, 20px);
   font-size: var(--text-xs, 11px);
   font-weight: 600;
   letter-spacing: 0.02em;
+  /* Same "floor, not derived" reasoning as button min-height (see
+     --ctl-h's own comment): two badges with different border/line-height
+     could otherwise render at different heights, and padding alone never
+     tracked density the way every other control size does. */
+  min-height: var(--badge-min-h, 22px);
+  box-sizing: border-box;
+  line-height: 1.25;
 }
 .badge-teal   { background: var(--teal-l);   color: var(--teal); }
 .badge-gold   { background: var(--gold-l);   color: var(--gold); }
@@ -3610,7 +3617,11 @@ select.input-field { cursor: pointer; }
   min-height: 100%;
   display: flex;
   flex-direction: column;
-  row-gap: 32px;
+  /* --space-xl was hardcoded 32px here too — same gap as the padding fix
+     above, just for the space *between* a page's stacked sections rather
+     than its outer edge. Matches --space-xl's own default-density value
+     exactly, so no visual change until density is actually switched. */
+  row-gap: var(--space-xl, 32px);
 }
 /* Light mode: scope --bg to white inside page-layout so page root containers
    that use var(--bg) as their background become white too */

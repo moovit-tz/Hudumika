@@ -5,6 +5,7 @@ import { Icon } from '../components/Icon.js';
 import { showAlert } from '../lib/alert.js';
 import { useCurrency } from '../hooks/useCurrency.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { FormPage, FormPageActions } from '../components/FormPage.js';
 import { EntityPicker, type PickerItem } from '../components/EntityPicker.js';
 
 interface CreditNote {
@@ -71,6 +72,13 @@ export function CreditNotes() {
           items: validLines.map(l => ({ name: l.name.trim(), rate: Number(l.rate), qty: Number(l.qty) || 1, tax_pct: Number(l.tax_pct) || 0 })),
         }),
       });
+      // The list route and this "new" route render the same component
+      // instance (React Router doesn't remount across two sibling routes
+      // with identical element types), so the mount-only `useEffect` above
+      // never re-fires on navigate() below — the list previously stayed on
+      // whatever it fetched before this credit note existed. Refetch here,
+      // before navigating away, so the list is already current when it lands.
+      await load();
       navigate('/finance/credit-notes');
     } catch (err) {
       showAlert(err instanceof Error ? err.message : 'Could not issue this credit note.');
@@ -81,19 +89,13 @@ export function CreditNotes() {
 
   if (isNew) {
     return (
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--white)', fontFamily: 'var(--font)' }}>
-        <PageHeader
-          crumbs={['Finance', 'Credit Notes']}
-          titlePlain="New credit"
-          titleEm="note"
-          subtitle={invoiceId ? 'Reduces the linked invoice’s outstanding balance.' : 'A standalone credit against a customer.'}
-          actions={
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => navigate('/finance/credit-notes')}>
-              <Icon name="x" size={13} /> Cancel
-            </button>
-          }
-        />
-        <div className="card" style={{ padding: 20, maxWidth: 720 }}>
+      <FormPage
+        title="New Credit Note"
+        subtitle={invoiceId ? 'Reduces the linked invoice’s outstanding balance.' : 'A standalone credit against a customer.'}
+        onCancel={() => navigate('/finance/credit-notes')}
+        actions={<FormPageActions onCancel={() => navigate('/finance/credit-notes')} onSave={submit} saving={saving} saveLabel="Issue Credit Note" />}
+      >
+        <div className="card" style={{ padding: 20 }}>
           {invoiceId && <div style={{ marginBottom: 14, padding: '8px 12px', background: 'var(--teal-l)', borderRadius: 8, fontSize: 12.5, color: 'var(--teal)' }}>Linked to invoice <code style={{ fontFamily: 'var(--mono)' }}>{invoiceId}</code></div>}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
             <div>
@@ -125,12 +127,11 @@ export function CreditNotes() {
             <Icon name="plus" size={12} /> Add line
           </button>
 
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 14, borderTop: '1px solid var(--border)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingTop: 14, borderTop: '1px solid var(--border)' }}>
             <div style={{ fontSize: 14, fontWeight: 700 }}>Total: <span style={{ color: 'var(--red)' }}>{fmt(total)}</span></div>
-            <button type="button" className="btn btn-primary btn-sm" disabled={saving} onClick={submit}>{saving ? 'Issuing…' : 'Issue Credit Note'}</button>
           </div>
         </div>
-      </div>
+      </FormPage>
     );
   }
 

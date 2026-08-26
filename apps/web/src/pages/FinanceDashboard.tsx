@@ -7,7 +7,7 @@ import { PageHeader } from '../components/PageHeader.js';
 import { useCurrency } from '../hooks/useCurrency.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { useLocale } from '../hooks/useLocale.js';
-import { mapApiInvoice, invoiceTotals, STATUS_STYLE } from './Billing.js';
+import { mapApiInvoice, invoiceTotals } from './Billing.js';
 import { SkeletonPage } from '../components/ui/skeleton.js';
 
 /* -- Helpers -- */
@@ -52,6 +52,24 @@ function SHdr({ title, action, onAction }: { title: string; action?: string; onA
 const ACTIVITY_COLORS = ['#9333ea', '#f59e0b', 'var(--teal)', 'var(--purple)', '#ec4899', '#4f46e5'];
 const PLAN_COLORS = ['#4f46e5', 'var(--teal)', '#10b981', '#ec4899', 'var(--blue)'];
 
+function fmtDate(d: string | null | undefined): string {
+  if (!d) return '—';
+  const date = new Date(d);
+  return isNaN(date.getTime()) ? '—' : date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+/* -- Compact stat tile, used inside the Tax & Compliance card -- */
+function StatTile({ label, value, sub, tone = 'neutral' }: { label: string; value: string; sub?: string; tone?: 'neutral' | 'warning' | 'good' }) {
+  const color = tone === 'warning' ? 'var(--red)' : tone === 'good' ? 'var(--green)' : 'var(--navy)';
+  return (
+    <div style={{ padding: '12px 14px', background: 'var(--bg)', borderRadius: 8, minWidth: 0 }}>
+      <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>{label}</div>
+      <div style={{ fontSize: 16, fontWeight: 800, color, letterSpacing: '-0.3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</div>
+      {sub && <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 3 }}>{sub}</div>}
+    </div>
+  );
+}
+
 function timeAgo(iso: string): string {
   const diffMs = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diffMs / 60000);
@@ -77,7 +95,7 @@ export const FinanceDashboard: React.FC = () => {
   const [rawInvoices, setRawInvoices] = useState<any[]>([]);
   const [rawBills, setRawBills] = useState<any[]>([]);
   const [rawPayments, setRawPayments] = useState<any[]>([]);
-  const [rawNotifications, setRawNotifications] = useState<any[]>([]);
+  const [snapshot, setSnapshot] = useState<any>(null);
   const [loadingData, setLoadingData] = useState(true);
 
   useEffect(() => {
@@ -85,12 +103,12 @@ export const FinanceDashboard: React.FC = () => {
       apiFetch('/v1/invoices').catch(() => []),
       apiFetch('/v1/bills').catch(() => []),
       apiFetch('/v1/payments').catch(() => []),
-      apiFetch('/v1/notifications').catch(() => ({ notifications: [] })),
-    ]).then(([inv, bl, pay, notif]) => {
+      apiFetch('/v1/finance/dashboard-snapshot').catch(() => null),
+    ]).then(([inv, bl, pay, snap]) => {
       setRawInvoices(Array.isArray(inv) ? inv : []);
       setRawBills(Array.isArray(bl) ? bl : []);
       setRawPayments(Array.isArray(pay) ? pay : []);
-      setRawNotifications(Array.isArray(notif?.notifications) ? notif.notifications : []);
+      setSnapshot(snap);
     }).finally(() => setLoadingData(false));
   }, []);
 
@@ -169,8 +187,6 @@ export const FinanceDashboard: React.FC = () => {
     });
     events.sort((a, b) => b.ts - a.ts);
 
-    const recentInvoices = [...invoices].sort((a, b) => (b.date?.getTime() || 0) - (a.date?.getTime() || 0)).slice(0, 5);
-
     return {
       totalRevenue, monthRevenue, weekRevenue, revenueTrendPct,
       totalWithdraw, monthWithdraw, weekWithdraw,
@@ -178,7 +194,7 @@ export const FinanceDashboard: React.FC = () => {
       outstandingCount: outstanding.length, outstandingAmount,
       invoicesThisMonthCount: invoicesThisMonth.length, invoicesThisMonthAmount,
       invoicedByPeriod,
-      topCustomers, events, recentInvoices,
+      topCustomers, events,
     };
   }, [rawInvoices, rawBills, rawPayments]);
 
@@ -188,7 +204,10 @@ export const FinanceDashboard: React.FC = () => {
   const metricCards = [
     { title: t('finance.totalRevenue'),       value: fmt(derived.totalRevenue, 'TZS'),  trend: derived.revenueTrendPct, sub1Value: fmt(derived.monthRevenue, 'TZS'),  sub2Value: fmt(derived.weekRevenue, 'TZS'), barHighlight: 'var(--purple)' },
     { title: t('finance.totalDisbursements'), value: fmt(derived.totalWithdraw, 'TZS'), sub1Value: fmt(derived.monthWithdraw, 'TZS'), sub2Value: fmt(derived.weekWithdraw, 'TZS'),    barHighlight: 'var(--red)', invertTrend: true },
-    { title: t('finance.balanceInAccount'),   value: fmt(derived.balance, 'TZS'),       sub1Value: fmt(derived.monthBalance, 'TZS'),  sub2Value: fmt(derived.weekBalance, 'TZS'), barHighlight: 'var(--green)' },
+    // Real GL cash balance (account 1010/1001), not the naive
+    // invoiced-minus-billed subtraction the old "Balance in Account" card
+    // used — that number never reflected actual cash received or paid.
+    { title: 'Cash & Bank', icon: 'wallet' as const, value: fmt(snapshot?.cash?.total ?? 0, 'TZS'), sub1Label: 'TZS BANK', sub1Value: fmt(snapshot?.cash?.tzs ?? 0, 'TZS'), sub2Label: snapshot?.cash?.usd ? 'USD BANK' : 'CASH ON HAND', sub2Value: fmt(snapshot?.cash?.usd || snapshot?.cash?.onHand || 0, snapshot?.cash?.usd ? 'USD' : 'TZS'), barHighlight: 'var(--blue)' },
   ];
 
   if (loadingData) return <SkeletonPage variant="dashboard" />;
@@ -347,111 +366,157 @@ export const FinanceDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* -- ROW 3: Notifications + Recent Invoices -- */}
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '360px 1fr', gap: 16 }}>
-
-          {/* Notifications */}
-          <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '18px 20px', boxShadow: 'var(--shadow-sm)' }}>
-            <SHdr title={t('finance.notifications')} action={t('finance.viewAll')} onAction={() => navigate('/bliss/notifications')} />
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-              {rawNotifications.length === 0 ? (
-                <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No notifications yet</div>
-              ) : rawNotifications.slice(0, 6).map((n, i, arr) => (
-                <div key={n.id || i}
-                  onClick={() => {
-                    if (n.id) {
-                      apiFetch(`/v1/notifications/${n.id}/read`, { method: 'PATCH' }).catch(() => {});
-                      setRawNotifications(list => list.map(x => x.id === n.id ? { ...x, read: true } : x));
-                    }
-                    if (n.link) navigate(n.link);
-                  }}
-                  style={{ display: 'flex', gap: 12, paddingBottom: 16, marginBottom: 16, borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none', position: 'relative', cursor: n.link ? 'pointer' : 'default', borderRadius: 6, transition: 'background 0.1s' }}
-                  onMouseEnter={e => { if (n.link) e.currentTarget.style.background = 'var(--bg)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = ''; }}
-                >
-                  {/* Timeline dot — connector is absolutely positioned off the row
-                      (not flex:1 inside the dot column) so it reaches all the way
-                      to the next dot, spanning this row's own paddingBottom/marginBottom
-                      gap instead of collapsing to the dot column's near-zero content height. */}
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0, flexShrink: 0, width: 52 }}>
-                    <div style={{ width: 10, height: 10, borderRadius: '50%', background: n.read ? 'var(--ink3)' : 'var(--teal)', flexShrink: 0, marginTop: 4 }} />
-                  </div>
-                  {i < arr.length - 1 && <div style={{ position: 'absolute', left: 25, top: 14, bottom: -16, width: 1, background: 'var(--border)' }} />}
-
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                      <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)' }}>{n.created_at ? new Date(n.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : ''}</span>
-                      <Icon name="clock" size={11} strokeWidth={1.75} style={{ color: 'var(--ink3)', flexShrink: 0 } as React.CSSProperties} />
-                    </div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 3 }}>{n.title}</div>
-                    <div style={{ fontSize: 12, color: 'var(--ink3)', lineHeight: 1.4 }}>{n.body || n.message || ''}</div>
-                  </div>
+        {/* -- ROW 3: Action Required — only the things someone here actually
+               has to act on (bills/expenses stuck in an approval queue).
+               Rendered only when there's real work waiting, not as a
+               permanent empty slot. -- */}
+        {(snapshot?.approvals?.billsPendingApproval?.count > 0 || snapshot?.approvals?.expensesPendingApproval?.count > 0) && (
+          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
+            {snapshot.approvals.billsPendingApproval.count > 0 && (
+              <div onClick={() => navigate('/finance/bills')} style={{ flex: '1 1 260px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 9, padding: '14px 16px' }}>
+                <Icon name="clock" size={18} strokeWidth={1.75} style={{ color: 'var(--gold)', flexShrink: 0 } as React.CSSProperties} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)' }}>{snapshot.approvals.billsPendingApproval.count} bill{snapshot.approvals.billsPendingApproval.count !== 1 ? 's' : ''} awaiting approval</div>
+                  <div style={{ fontSize: 12, color: 'var(--ink3)' }}>{fmt(snapshot.approvals.billsPendingApproval.amount, 'TZS')} held from posting</div>
                 </div>
-              ))}
+                <Icon name="chevronRight" size={16} style={{ color: 'var(--ink3)' } as React.CSSProperties} />
+              </div>
+            )}
+            {snapshot.approvals.expensesPendingApproval.count > 0 && (
+              <div onClick={() => navigate('/finance/expenses')} style={{ flex: '1 1 260px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 9, padding: '14px 16px' }}>
+                <Icon name="clock" size={18} strokeWidth={1.75} style={{ color: 'var(--gold)', flexShrink: 0 } as React.CSSProperties} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)' }}>{snapshot.approvals.expensesPendingApproval.count} expense claim{snapshot.approvals.expensesPendingApproval.count !== 1 ? 's' : ''} awaiting approval</div>
+                  <div style={{ fontSize: 12, color: 'var(--ink3)' }}>{fmt(snapshot.approvals.expensesPendingApproval.amount, 'TZS')} held from posting</div>
+                </div>
+                <Icon name="chevronRight" size={16} style={{ color: 'var(--ink3)' } as React.CSSProperties} />
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* -- ROW 4: Receivables & Payables + This Month P&L -- */}
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16, marginBottom: 16 }}>
+
+          {/* Receivables & Payables */}
+          <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '18px 20px', boxShadow: 'var(--shadow-sm)' }}>
+            <SHdr title="Receivables & Payables" />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div onClick={() => navigate('/finance/accounts/aged-receivables')} style={{ cursor: 'pointer', padding: '12px 14px', background: 'var(--bg)', borderRadius: 8 }}>
+                <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Outstanding AR</div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--navy)', letterSpacing: '-0.3px' }}>{fmt(snapshot?.receivables?.total ?? 0, 'TZS')}</div>
+                <div style={{ fontSize: 11, color: 'var(--red)', marginTop: 3 }}>{fmt(snapshot?.receivables?.overdue ?? 0, 'TZS')} overdue · {snapshot?.receivables?.count ?? 0} invoices</div>
+              </div>
+              <div onClick={() => navigate('/finance/accounts/aged-payables')} style={{ cursor: 'pointer', padding: '12px 14px', background: 'var(--bg)', borderRadius: 8 }}>
+                <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Outstanding AP</div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--navy)', letterSpacing: '-0.3px' }}>{fmt(snapshot?.payables?.total ?? 0, 'TZS')}</div>
+                <div style={{ fontSize: 11, color: 'var(--red)', marginTop: 3 }}>{fmt(snapshot?.payables?.overdue ?? 0, 'TZS')} overdue · {snapshot?.payables?.count ?? 0} bills</div>
+              </div>
             </div>
           </div>
 
-          {/* Recent Invoices / Transactions */}
+          {/* This Month P&L */}
           <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '18px 20px', boxShadow: 'var(--shadow-sm)' }}>
-            <SHdr title={t('finance.recentInvoices')} action={t('finance.viewAll')} onAction={() => navigate('/finance/invoices')} />
-
-            <div style={{ overflowX: 'auto' }}>
-            {/* Table header */}
-            <div style={{ display: 'grid', gridTemplateColumns: '2.2fr 1.6fr 1fr 1.4fr 1fr 32px', gap: 8, padding: '7px 10px', background: 'var(--bg)', borderRadius: 7, marginBottom: 6, minWidth: 480 }}>
-              {[t('finance.colPlan'), t('finance.colWho'), t('finance.colDate'), t('finance.colAmount'), t('finance.colStatus'), ''].map(h => (
-                <div key={h} style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</div>
-              ))}
+            <SHdr title="This Month — Profit & Loss" action="Full report" onAction={() => navigate('/finance/accounts/profit-loss')} />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+              <StatTile label="Revenue" value={fmt(snapshot?.profitLoss?.month?.revenue ?? 0, 'TZS')} />
+              <StatTile label="Expenses" value={fmt(snapshot?.profitLoss?.month?.expenses ?? 0, 'TZS')} />
+              <StatTile label="Net" value={fmt(snapshot?.profitLoss?.month?.net ?? 0, 'TZS')} tone={(snapshot?.profitLoss?.month?.net ?? 0) >= 0 ? 'good' : 'warning'} />
             </div>
+          </div>
+        </div>
 
-            {/* Rows */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-              {derived.recentInvoices.length === 0 ? (
-                <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No invoices yet</div>
-              ) : derived.recentInvoices.map((row, i) => {
-                const statusStyle = STATUS_STYLE[row.mapped.status] || STATUS_STYLE.Draft;
-                return (
-                <div key={row.mapped.id + i}
-                  onClick={() => navigate(`/finance/invoices?id=${row.mapped.id}`)}
-                  style={{ display: 'grid', gridTemplateColumns: '2.2fr 1.6fr 1fr 1.4fr 1fr 32px', gap: 8, padding: '12px 10px', borderBottom: i < derived.recentInvoices.length - 1 ? '1px solid var(--border)' : 'none', alignItems: 'center', cursor: 'pointer', borderRadius: 6, transition: 'background 0.1s', minWidth: 480 }}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
-                  onMouseLeave={e => (e.currentTarget.style.background = '')}
-                >
-                  {/* Invoice badge + number */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-                    <div style={{ width: 32, height: 32, borderRadius: 9, background: statusStyle.bg, color: statusStyle.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10.5, fontWeight: 800, flexShrink: 0, letterSpacing: '0.03em' }}>
-                      <Icon name="fileText" size={14} />
+        {/* -- ROW 5: Tax & Compliance snapshot — the real numbers behind
+               WHT/CIT/deferred tax have never had a dedicated page anywhere
+               in the app; this is the first place a user can see them at
+               all. Deferred tax is explicitly labelled to its actual scope
+               (fixed-asset timing differences only), not shown as if it
+               were the whole deferred-tax picture. -- */}
+        <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '18px 20px', boxShadow: 'var(--shadow-sm)', marginBottom: 16 }}>
+          <SHdr title="Tax & Compliance" action="VAT periods" onAction={() => navigate('/finance/vat-periods')} />
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: 12 }}>
+            <StatTile
+              label="VAT — open period"
+              value={snapshot?.tax?.vat ? (snapshot.tax.vat.netPayable != null ? fmt(snapshot.tax.vat.netPayable, 'TZS') : 'Unable to compute') : 'No open period'}
+              sub={snapshot?.tax?.vat ? `${fmtDate(snapshot.tax.vat.periodStart)} – ${fmtDate(snapshot.tax.vat.periodEnd)}` : undefined}
+              tone={snapshot?.tax?.vat?.netPayable > 0 ? 'warning' : 'neutral'}
+            />
+            <StatTile
+              label="Withholding Tax Payable"
+              value={fmt(snapshot?.tax?.wht?.payable ?? 0, 'TZS')}
+              sub="Withheld, not yet remitted to TRA"
+              tone={(snapshot?.tax?.wht?.payable ?? 0) > 0 ? 'warning' : 'neutral'}
+            />
+            <StatTile
+              label="Corporate Income Tax Payable"
+              value={fmt(snapshot?.tax?.cit?.payable ?? 0, 'TZS')}
+              sub={snapshot?.tax?.cit?.latestReturn ? `${snapshot.tax.cit.latestReturn.ratePct}% · ${snapshot.tax.cit.latestReturn.status} return to ${fmtDate(snapshot.tax.cit.latestReturn.periodEnd)}` : 'No return computed yet'}
+              tone={(snapshot?.tax?.cit?.payable ?? 0) > 0 ? 'warning' : 'neutral'}
+            />
+            <StatTile
+              label={(snapshot?.tax?.deferredTax?.netLiability ?? 0) >= 0 ? 'Deferred Tax Liability' : 'Deferred Tax Asset'}
+              value={fmt(Math.abs(snapshot?.tax?.deferredTax?.netLiability ?? 0), 'TZS')}
+              sub="Fixed-asset timing differences only, as of most recent compute"
+            />
+          </div>
+        </div>
+
+        {/* -- ROW 6: Top Customers + Fixed Assets / Period Close footer -- */}
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.3fr 1fr', gap: 16 }}>
+
+          {/* Top Customers by Revenue */}
+          <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '18px 20px', boxShadow: 'var(--shadow-sm)' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 4 }}>
+              <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--navy)' }}>Top Customers</div>
+              <button
+                type="button"
+                title="View all customers"
+                onClick={() => navigate('/crm/customers')}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, display: 'flex', flexShrink: 0, marginTop: 2 }}
+              >
+                <Icon name="moreHorizontal" size={16} strokeWidth={1.75} style={{ color: 'var(--ink3)' } as React.CSSProperties} />
+              </button>
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 18 }}>By total invoiced revenue</div>
+
+            {derived.topCustomers.length === 0 ? (
+              <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No invoices yet</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {derived.topCustomers.map(plan => (
+                  <div key={plan.name}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, marginBottom: 2 }}>
+                      <span style={{ color: 'var(--ink2)', fontWeight: 500 }}>{plan.name}</span>
+                      <span style={{ color: 'var(--ink3)', fontWeight: 600 }}>{plan.pct}%</span>
                     </div>
-                    <span style={{ fontSize: 12.5, color: 'var(--ink2)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.mapped.id}</span>
+                    <ProgressBar pct={plan.pct} color={plan.color} />
                   </div>
+                ))}
+              </div>
+            )}
+          </div>
 
-                  {/* Who */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                    <Av name={row.mapped.client || 'Unknown'} size={28} />
-                    <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.mapped.client || 'Unknown'}</span>
-                  </div>
-
-                  {/* Date */}
-                  <div style={{ fontSize: 12, color: 'var(--ink3)' }}>{row.mapped.billDate || '—'}</div>
-
-                  {/* Amount */}
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--mono)' }}>{row.total.toLocaleString()}</div>
-                    <div style={{ fontSize: 10, color: 'var(--ink3)', marginTop: 1 }}>TZS</div>
-                  </div>
-
-                  {/* Status */}
-                  <div>
-                    <span style={{ fontSize: 11.5, fontWeight: 700, color: statusStyle.color }}>{statusStyle.label}</span>
-                  </div>
-
-                  {/* Arrow */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink3)' }}>
-                    <Icon name="chevronRight" size={14} strokeWidth={2} />
-                  </div>
-                </div>
-                );
-              })}
+          {/* Fixed Assets + Period Close */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div onClick={() => navigate('/finance/accounts/fixed-assets')} style={{ cursor: 'pointer', background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '16px 18px', boxShadow: 'var(--shadow-sm)', display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 38, height: 38, borderRadius: 9, background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Icon name="package" size={17} strokeWidth={1.75} style={{ color: 'var(--teal)' } as React.CSSProperties} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)' }}>{snapshot?.fixedAssets?.activeCount ?? 0} active fixed assets</div>
+                <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>{fmt(snapshot?.fixedAssets?.totalCost ?? 0, 'TZS')} total cost</div>
+              </div>
+              <Icon name="chevronRight" size={15} style={{ color: 'var(--ink3)' } as React.CSSProperties} />
             </div>
+            <div onClick={() => navigate('/finance/accounts/gl-periods')} style={{ cursor: 'pointer', background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '16px 18px', boxShadow: 'var(--shadow-sm)', display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 38, height: 38, borderRadius: 9, background: 'var(--blue-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Icon name="lock" size={16} strokeWidth={1.75} style={{ color: 'var(--blue)' } as React.CSSProperties} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)' }}>{snapshot?.glPeriod ? `${snapshot.glPeriod.name} closed` : 'No period closed yet'}</div>
+                <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>{snapshot?.glPeriod ? fmtDate(snapshot.glPeriod.closedAt) : 'Close a period once its books are final'}</div>
+              </div>
+              <Icon name="chevronRight" size={15} style={{ color: 'var(--ink3)' } as React.CSSProperties} />
             </div>
           </div>
         </div>
