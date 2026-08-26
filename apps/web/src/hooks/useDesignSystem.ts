@@ -511,6 +511,54 @@ export const PLATFORM_THEMES: PlatformTheme[] = [
   },
 ];
 
+// ── Design system version ────────────────────────────────────────────────────
+// v1 = today's system exactly as documented: a SuperAdmin-chosen platform
+// theme plus per-app/per-tenant color overrides (getAppColor's cascade in
+// useBranding.ts). v2 = one fixed brand color platform-wide — every app,
+// every tenant, no exceptions — for a SuperAdmin who wants a single uniform
+// identity instead of the "different color per app" system. v3 is reserved
+// for whatever gets designed next; selectable in the switcher so the slot
+// exists, but behaves exactly like v1 until it has a real definition.
+//
+// Deliberately a separate settings key from design-tokens/branding (see
+// platform.routes.ts) rather than a field inside them: flipping the version
+// must never mutate what's actually stored for v1, so switching back to v1
+// is a true restore, not a re-derivation.
+
+export type DesignSystemVersion = 'v1' | 'v2' | 'v3';
+export interface DesignSystemVersionState { version: DesignSystemVersion; v2Color: string }
+
+const DEFAULT_DESIGN_SYSTEM_VERSION: DesignSystemVersionState = { version: 'v1', v2Color: '#141e33' };
+const DSV_LS_KEY = 'hudumika_design_system_version';
+
+export function readDesignSystemVersion(): DesignSystemVersionState {
+  try {
+    const raw = localStorage.getItem(DSV_LS_KEY);
+    if (raw) return { ...DEFAULT_DESIGN_SYSTEM_VERSION, ...JSON.parse(raw) };
+  } catch { /* fallthrough */ }
+  return { ...DEFAULT_DESIGN_SYSTEM_VERSION };
+}
+
+function saveDesignSystemVersionLocal(state: DesignSystemVersionState): void {
+  localStorage.setItem(DSV_LS_KEY, JSON.stringify(state));
+  window.dispatchEvent(new CustomEvent('hudumika-ds-updated'));
+  // useBranding()'s getAppColor() also checks this version (see
+  // useBranding.ts) but only re-renders its callers on
+  // 'hudumika-brand-updated' — firing it here too means AppSidebar,
+  // AppHeader, AppLauncher etc. update live in an already-open session
+  // instead of waiting for the next navigation.
+  window.dispatchEvent(new CustomEvent('hudumika-brand-updated'));
+}
+
+/** Throws on failure — same rule as pushDesignTokens/pushBranding: a
+ *  silently-failed save looks identical to a successful one. */
+export async function pushDesignSystemVersion(state: DesignSystemVersionState): Promise<void> {
+  await apiFetch('/v1/platform/design-system-version', {
+    method: 'PUT',
+    body: JSON.stringify(state),
+  });
+}
+
 // ── Storage ───────────────────────────────────────────────────────────────────
 
 const LS_KEY = 'hudumika_design_tokens';
@@ -606,6 +654,16 @@ function block(vars: Record<string, string | number>): string {
 }
 
 export function applyDesignTokens(tokens: DesignTokens): void {
+  // v2 overrides brand.primary platform-wide, regardless of whichever theme
+  // is actually stored — the stored tokens are left untouched so v1 remains
+  // an exact restore. Only brand.primary is forced; typography/spacing/shape/
+  // elevation stay whatever v1 already had them set to (v2 is a color-only
+  // version, not a reskin).
+  const dsv = readDesignSystemVersion();
+  if (dsv.version === 'v2') {
+    tokens = { ...tokens, brand: { primary: dsv.v2Color } };
+  }
+
   let tag = document.getElementById(STYLE_TAG_ID) as HTMLStyleElement | null;
   if (!tag) {
     tag = document.createElement('style');
@@ -842,23 +900,33 @@ export function applyDesignTokens(tokens: DesignTokens): void {
 
 export function useDesignSystem() {
   const [tokens, setTokens] = useState<DesignTokens>(readDesignTokens);
+  const [designSystemVersion, setDesignSystemVersion] = useState<DesignSystemVersionState>(readDesignSystemVersion);
 
   useEffect(() => {
     applyDesignTokens(tokens);
-  }, [tokens]);
+  }, [tokens, designSystemVersion]);
 
   useEffect(() => {
     const handleUpdate = () => {
       const updated = readDesignTokens();
       setTokens(updated);
+      setDesignSystemVersion(readDesignSystemVersion());
       applyDesignTokens(updated);
     };
     window.addEventListener('hudumika-ds-updated', handleUpdate);
     // Cross-tab sync — same fix as useBranding.ts's native 'storage' listener.
     const storageHandler = (e: StorageEvent) => {
-      if (e.key === LS_KEY) handleUpdate();
+      if (e.key === LS_KEY || e.key === DSV_LS_KEY) handleUpdate();
     };
     window.addEventListener('storage', storageHandler);
+
+    apiFetch('/v1/platform/design-system-version').then((data: any) => {
+      if (!data) return;
+      const merged = { ...DEFAULT_DESIGN_SYSTEM_VERSION, ...data };
+      localStorage.setItem(DSV_LS_KEY, JSON.stringify(merged));
+      setDesignSystemVersion(merged);
+      applyDesignTokens(readDesignTokens());
+    }).catch(() => {});
 
     apiFetch('/v1/platform/design-tokens').then((data: any) => {
       if (!data || Object.keys(data).length === 0) return;
@@ -907,5 +975,12 @@ export function useDesignSystem() {
     await pushDesignTokens(DESIGN_TOKENS_DEFAULTS);
   };
 
-  return { tokens, updateTokens, resetToDefaults };
+  const updateDesignSystemVersion = async (partial: Partial<DesignSystemVersionState>) => {
+    const next: DesignSystemVersionState = { ...designSystemVersion, ...partial };
+    setDesignSystemVersion(next);
+    saveDesignSystemVersionLocal(next);
+    await pushDesignSystemVersion(next);
+  };
+
+  return { tokens, updateTokens, resetToDefaults, designSystemVersion, updateDesignSystemVersion };
 }

@@ -4,12 +4,12 @@
 
 export type SignEnvelopeStatus = 'draft' | 'sent' | 'completed' | 'voided' | 'declined' | 'expired';
 export type SignRecipientStatus = 'pending' | 'viewed' | 'signed' | 'declined';
-export type SignFieldType = 'signature' | 'initials' | 'date' | 'text' | 'checkbox' | 'stamp';
+export type SignFieldType = 'signature' | 'initials' | 'date' | 'text' | 'checkbox' | 'stamp' | 'certification_stamp';
 export type SignOrderMode = 'sequential' | 'parallel';
 export type SignEventType =
   | 'created' | 'updated' | 'sent' | 'reminded' | 'viewed'
   | 'signed' | 'declined' | 'completed' | 'voided' | 'expired'
-  | 'stamped' | 'verified';
+  | 'stamped' | 'verified' | 'amended';
 
 export interface SignRecipient {
   id: string;
@@ -34,6 +34,12 @@ export interface SignRecipient {
   viewed_at: string | null;
   signed_ip: string | null;
   signed_user_agent: string | null;
+  // Certified True Copy (migration 342) — real facts about this recipient
+  // as a licensed advocate/notary/commissioner, not the tenant's own stamp.
+  is_certifier: boolean;
+  certifier_title: string | null;
+  certifier_roll_number: string | null;
+  certifier_firm: string | null;
   created_at: string;
 }
 
@@ -94,12 +100,21 @@ export interface SignEnvelope {
   anchor_status: 'pending' | 'confirmed' | null;
   anchor_block_height: number | null;
   anchor_block_time: string | null;
+  // Versioning (migration 342) — set when this envelope is an amendment of
+  // an earlier completed one (POST /envelopes/:id/amend).
+  previous_version_id: string | null;
+  version_number: number;
   created_at: string;
   updated_at: string;
   // Joined on fetch
   recipients?: SignRecipient[];
   fields?: SignField[];
   events?: SignEvent[];
+  // Joined on fetch (GET /envelopes/:id only) — the version chain, so the
+  // detail page can show "superseded by Version 2" / "amends Version 1"
+  // without a second round trip.
+  previous_version?: { id: string; title: string; version_number: number } | null;
+  next_version?: { id: string; title: string; version_number: number; status: string } | null;
 }
 
 export interface SignTemplateRecipientDef {

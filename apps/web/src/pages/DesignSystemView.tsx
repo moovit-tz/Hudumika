@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  useDesignSystem, DesignTokens, NeutralSet, SemanticSet,
+  useDesignSystem, DesignTokens, NeutralSet, SemanticSet, DesignSystemVersion,
   FONT_IDS, FONT_LABELS, DENSITY_IDS, DENSITY_LABELS, SHADOW_IDS, SHADOW_LABELS,
   SHADOW_PRESETS, generateFromSeed, PLATFORM_THEMES,
 } from '../hooks/useDesignSystem.js';
@@ -84,7 +84,9 @@ function NumberField({ label, value, onChange, suffix, step, min }: { label: str
 }
 
 export function DesignSystemView() {
-  const { tokens, updateTokens, resetToDefaults } = useDesignSystem();
+  const { tokens, updateTokens, resetToDefaults, designSystemVersion, updateDesignSystemVersion } = useDesignSystem();
+  const [v2ColorDraft, setV2ColorDraft] = useState(designSystemVersion.v2Color);
+  React.useEffect(() => setV2ColorDraft(designSystemVersion.v2Color), [designSystemVersion.v2Color]);
   const branding = useBranding();
   const isMobileNow = useIsMobile();
 
@@ -162,6 +164,27 @@ export function DesignSystemView() {
       window.setTimeout(() => setSavedFlash(f => (f === 'theme' ? null : f)), 1400);
     } catch (err: any) {
       setSaveErrors(e => ({ ...e, theme: err?.message || 'Failed to save' }));
+    }
+  }
+
+  async function setVersion(version: DesignSystemVersion) {
+    try {
+      await updateDesignSystemVersion({ version });
+      setSaveErrors(e => ({ ...e, version: undefined }));
+      setSavedFlash('version');
+      window.setTimeout(() => setSavedFlash(f => (f === 'version' ? null : f)), 1400);
+    } catch (err: any) {
+      setSaveErrors(e => ({ ...e, version: err?.message || 'Failed to save' }));
+    }
+  }
+
+  async function commitV2Color() {
+    if (!/^#[0-9a-f]{6}$/i.test(v2ColorDraft)) return;
+    try {
+      await updateDesignSystemVersion({ v2Color: v2ColorDraft });
+      setSaveErrors(e => ({ ...e, version: undefined }));
+    } catch (err: any) {
+      setSaveErrors(e => ({ ...e, version: err?.message || 'Failed to save' }));
     }
   }
 
@@ -277,6 +300,37 @@ export function DesignSystemView() {
               of picking each one separately. You can still fine-tune any value afterward, and it flows
               through to Branding's Accent Color as the default there too.
             </p>
+
+            <div className="ds-field" style={{ marginBottom: 20, paddingBottom: 20, borderBottom: '1px solid var(--border)' }}>
+              <span className="ds-field-label">Design system version</span>
+              <p className="ds-section-hint" style={{ margin: '2px 0 10px' }}>
+                v1 keeps everything below — the theme grid, per-app colors, tenant overrides — exactly as it works today.
+                v2 locks every app and every tenant to one fixed brand color, ignoring the theme/per-app settings entirely.
+                v3 is reserved for a future version and behaves like v1 until one is built.
+              </p>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                {(['v1', 'v2', 'v3'] as DesignSystemVersion[]).map(v => (
+                  <button key={v} type="button"
+                    className={`ds-theme-card${designSystemVersion.version === v ? ' ds-theme-card--active' : ''}`}
+                    style={{ padding: '10px 18px', minHeight: 0 }}
+                    onClick={() => setVersion(v)}>
+                    {designSystemVersion.version === v && <span className="ds-theme-check"><Icon name="check" size={11} /></span>}
+                    <span className="ds-theme-name">{v === 'v1' ? 'v1 — Per-app colors' : v === 'v2' ? 'v2 — Unified brand color' : 'v3 — Reserved'}</span>
+                  </button>
+                ))}
+                {designSystemVersion.version === 'v2' && (
+                  <div className="ds-color-row" style={{ marginLeft: 8 }}>
+                    <input type="color" className="ds-swatch" value={/^#[0-9a-f]{6}$/i.test(v2ColorDraft) ? v2ColorDraft : '#141e33'}
+                      onChange={e => { setV2ColorDraft(e.target.value); updateDesignSystemVersion({ v2Color: e.target.value }); }} />
+                    <input type="text" className="input-field ds-color-text" value={v2ColorDraft}
+                      onChange={e => setV2ColorDraft(e.target.value)} onBlur={commitV2Color} />
+                  </div>
+                )}
+              </div>
+              {saveErrors.version && <p className="ds-error">{saveErrors.version}</p>}
+              {savedFlash === 'version' && <p className="ds-saved">Saved</p>}
+            </div>
+
             <div className="ds-theme-grid">
               {PLATFORM_THEMES.map(theme => {
                 const isActive = activeTheme === theme.id;

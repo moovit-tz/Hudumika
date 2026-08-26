@@ -47,3 +47,26 @@ export async function getActiveGateway(tenantId: string): Promise<ActiveGateway 
     return null;
   });
 }
+
+/** Every `gw-*` key this tenant has ever saved in Settings, enabled or not —
+ *  unlike getActiveGateway() above, which stops at the first enabled one.
+ *  Built for the Gateways catalog view (Petti and, later, anywhere else
+ *  that wants to show "which of our options are actually connected" rather
+ *  than just "which one is live"). Never returns credential values — only
+ *  the fact that a gateway has been configured, and whether it's on. */
+export async function getConfiguredGateways(tenantId: string): Promise<Record<string, { enabled: boolean; sandbox: boolean }>> {
+  return withTenant(tenantId, async (trx) => {
+    const row = await trx.selectFrom('tenant_settings').select('settings')
+      .where('tenant_id', '=', tenantId).executeTakeFirst();
+    if (!row) return {};
+    const settings = typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings;
+    const out: Record<string, { enabled: boolean; sandbox: boolean }> = {};
+    for (const key of Object.keys(settings || {})) {
+      if (!key.startsWith('gw-')) continue;
+      const gw = settings[key];
+      if (!gw) continue;
+      out[key.slice(3)] = { enabled: !!gw.enabled, sandbox: !!gw.sandbox };
+    }
+    return out;
+  });
+}

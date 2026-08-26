@@ -15,6 +15,10 @@ const brandingPatchSchema = z.record(z.string(), z.any());
 const designTokensPatchSchema = z.record(z.string(), z.any());
 const seoPatchSchema = z.record(z.string(), z.any());
 const workspacesPatchSchema = z.array(z.record(z.string(), z.any()));
+const designSystemVersionPatchSchema = z.object({
+  version: z.enum(['v1', 'v2', 'v3']).optional(),
+  v2Color: z.string().optional(),
+});
 
 /**
  * Platform-wide branding — one look per app, set by a SuperAdmin, visible to
@@ -99,6 +103,49 @@ export async function platformRoutes(fastify: FastifyInstance) {
     }
 
     return mergedTokens;
+  });
+
+  // ── Design system version — v1 (today's flexible per-app/per-tenant
+  // theming, unchanged) vs v2 (one fixed brand color platform-wide, no
+  // per-app or per-tenant variation) vs v3 (reserved for a future version,
+  // not yet built). Deliberately its own key rather than folded into
+  // design-tokens: switching versions must never touch — and switching back
+  // to v1 must exactly restore — whatever theme/branding data was already
+  // saved there. Same sentinel-row pattern as branding/design-tokens above.
+  // GET is public: every page (including pre-login) needs to know which
+  // version is active to render the right brand color.
+  fastify.get('/design-system-version', async (request, reply) => {
+    const row = await dbPlatform.selectFrom('tenant_settings')
+      .select('settings')
+      .where('tenant_id', '=', GLOBAL_TENANT_ID)
+      .executeTakeFirst();
+    const settings = row ? (typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings) : {};
+    return settings['design-system-version'] || { version: 'v1', v2Color: '#141e33' };
+  });
+
+  fastify.put('/design-system-version', {
+    preHandler: [fastify.authenticate, requireRole('SUPER_ADMIN')],
+  }, async (request, reply) => {
+    const body = designSystemVersionPatchSchema.parse(request.body);
+
+    const row = await dbPlatform.selectFrom('tenant_settings')
+      .select('settings')
+      .where('tenant_id', '=', GLOBAL_TENANT_ID)
+      .executeTakeFirst();
+    const existing = row ? (typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings) : {};
+    const existingVersion = existing['design-system-version'] || { version: 'v1', v2Color: '#141e33' };
+
+    const merged = { ...existingVersion, ...body };
+    const patch = JSON.stringify({ 'design-system-version': merged });
+
+    const exists = await dbPlatform.selectFrom('tenant_settings').select('id').where('tenant_id', '=', GLOBAL_TENANT_ID).executeTakeFirst();
+    if (exists) {
+      await sql`UPDATE tenant_settings SET settings = settings || ${patch}::jsonb, updated_at = NOW() WHERE tenant_id = ${GLOBAL_TENANT_ID}`.execute(dbPlatform);
+    } else {
+      await dbPlatform.insertInto('tenant_settings').values({ tenant_id: GLOBAL_TENANT_ID, settings: patch }).execute();
+    }
+
+    return merged;
   });
 
   // Same sentinel-row pattern as branding/design-tokens above, stored under a

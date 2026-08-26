@@ -53,6 +53,13 @@ interface SourceRecipient {
   email: string;
   signature_data: string | null;
   user_id?: string | null;
+  // Certified True Copy (migration 342) — real when this recipient is a
+  // licensed advocate/notary/commissioner certifying the document, not the
+  // tenant's own stamp.
+  is_certifier?: boolean;
+  certifier_title?: string | null;
+  certifier_roll_number?: string | null;
+  certifier_firm?: string | null;
 }
 
 interface SourceField {
@@ -135,6 +142,56 @@ export async function drawStampImage(
       x: box.x, y: Math.max(2, box.y - captionSize - 2),
       size: captionSize, font, color: rgb(0.45, 0.45, 0.45),
     });
+  }
+}
+
+/** Draws a "CERTIFIED TRUE COPY" legal block — real text (name, title, roll
+ *  number, firm, date), not an image, since what makes a certified copy
+ *  real is exactly those facts about a specific licensed person, the same
+ *  reason a physical rubber-stamp certification always carries them in
+ *  words rather than just an ink mark. Distinct from drawStampImage's
+ *  tenant/personal stamp, which is a company mark, not a legal attestation
+ *  by a named professional — the two must never look interchangeable, so
+ *  this draws a bordered box with its own heading rather than reusing the
+ *  stamp's plain image-plus-caption shape. */
+async function drawCertificationStamp(
+  doc: PDFDocument, page: PDFPage, box: { x: number; y: number; width: number; height: number },
+  recipient: SourceRecipient, certifiedAt: Date | null,
+): Promise<void> {
+  const bold = await doc.embedFont(StandardFonts.HelveticaBold);
+  const regular = await doc.embedFont(StandardFonts.Helvetica);
+  const pad = 4;
+  const innerW = box.width - pad * 2;
+
+  page.drawRectangle({
+    x: box.x, y: box.y, width: box.width, height: box.height,
+    borderColor: rgb(0.05, 0.3, 0.55), borderWidth: 1.2, color: rgb(0.94, 0.97, 1),
+  });
+
+  const title = recipient.certifier_title?.trim() || 'Advocate';
+  const roll = recipient.certifier_roll_number?.trim();
+  const firm = recipient.certifier_firm?.trim();
+  const dateStr = (certifiedAt ?? new Date()).toISOString().slice(0, 10);
+
+  let cursorY = box.y + box.height - pad - 7;
+  const headingSize = Math.min(9, innerW / 14);
+  page.drawText('CERTIFIED TRUE COPY', { x: box.x + pad, y: cursorY, size: headingSize, font: bold, color: rgb(0.05, 0.3, 0.55) });
+  cursorY -= headingSize + 4;
+
+  const bodySize = Math.max(5.5, Math.min(7, innerW / 24));
+  const lines = [
+    `I certify this to be a true copy of the original.`,
+    recipient.name,
+    roll ? `${title}, Roll No. ${roll}` : title,
+    firm || undefined,
+    `Certified: ${dateStr}`,
+  ].filter((l): l is string => !!l);
+
+  for (const line of lines) {
+    if (cursorY < box.y + pad) break; // ran out of room — never draw outside the box
+    const font = line === recipient.name ? bold : regular;
+    page.drawText(line, { x: box.x + pad, y: cursorY, size: bodySize, font, color: rgb(0.1, 0.12, 0.2), maxWidth: innerW });
+    cursorY -= bodySize + 2.5;
   }
 }
 
@@ -327,7 +384,13 @@ async function drawFields(
 
     const recipient = recipientById.get(field.recipient_id);
 
-    if (field.field_type === 'stamp' && tenantStamp.bytes && tenantStamp.authorizedRecipientIds.has(field.recipient_id)) {
+    if (field.field_type === 'certification_stamp' && recipient) {
+      try {
+        await drawCertificationStamp(doc, page, { x: boxX, y: boxY, width: boxW, height: boxH }, recipient, envelope.completed_at);
+      } catch (err) {
+        console.error('[Sign PDF] Failed to draw the certification stamp:', (err as Error).message);
+      }
+    } else if (field.field_type === 'stamp' && tenantStamp.bytes && tenantStamp.authorizedRecipientIds.has(field.recipient_id)) {
       try {
         await drawStampImage(doc, page, tenantStamp.bytes, { x: boxX, y: boxY, width: boxW, height: boxH });
       } catch (err) {

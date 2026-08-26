@@ -12,6 +12,7 @@ import './Petti.css';
 interface GatewayStatus { configured: boolean; provider: string | null; label: string | null; sandbox: boolean; chargeSupported: boolean }
 interface Deposit { id: string; wallet_id: string; amount: string | number; method: string; gateway_provider: string | null; gateway_tx_ref: string | null; created_at: string; }
 interface Wallet { id: string; name: string; currency: string; }
+interface CatalogEntry { id: string; name: string; region: string; configured: boolean; enabled: boolean; sandbox: boolean; chargeSupported: boolean }
 
 /**
  * "Payment Channels" — real, single-source-of-truth status for the one
@@ -28,6 +29,7 @@ interface Wallet { id: string; name: string; currency: string; }
 export function PettiGateways() {
   usePageSEO('Payment Channels', 'This workspace\'s connected payment gateway, and its recent gateway-channel deposits.');
   const [status, setStatus] = useState<GatewayStatus>({ configured: false, provider: null, label: null, sandbox: false, chargeSupported: false });
+  const [catalog, setCatalog] = useState<CatalogEntry[]>([]);
   const [deposits, setDeposits] = useState<Deposit[]>([]);
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [loading, setLoading] = useState(true);
@@ -36,10 +38,12 @@ export function PettiGateways() {
     setLoading(true);
     Promise.all([
       apiFetch('/v1/petti/gateway-status').catch(() => null),
+      apiFetch('/v1/petti/gateway-catalog').catch(() => []),
       apiFetch('/v1/petti/deposits').then(r => r.data || []).catch(() => []),
       apiFetch('/v1/petti/wallets').then(r => r.data || []).catch(() => []),
-    ]).then(([s, d, w]) => {
+    ]).then(([s, c, d, w]) => {
       if (s) setStatus(s);
+      setCatalog(c || []);
       setDeposits((d as Deposit[]).filter(dep => dep.method === 'gateway'));
       setWallets(w);
     }).finally(() => setLoading(false));
@@ -86,6 +90,33 @@ export function PettiGateways() {
               </p>
             </div>
           </div>
+        )}
+      </SectionCard>
+
+      <div style={{ height: 20 }} />
+
+      <SectionCard title="Available Channels" collapsible={false}>
+        {loading ? (
+          <div style={{ padding: 20, color: 'var(--ink3)', fontSize: 13 }}>Loading…</div>
+        ) : (
+          <>
+          <p style={{ margin: '0 0 14px 0', fontSize: 12.5, color: 'var(--ink3)' }}>
+            Every mobile-money and bank option Settings supports for Petti deposits, and whether this workspace has it configured.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 10 }}>
+            {catalog.map(gw => (
+              <div key={gw.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 9 }}>
+                <FeaturedIcon variant={gw.enabled ? 'success' : gw.configured ? 'warning' : 'gray'} size="sm"><Icon name="creditCard" size={15} /></FeaturedIcon>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{gw.name}</div>
+                  <div style={{ fontSize: 11, color: 'var(--ink3)' }}>
+                    {gw.enabled ? (gw.chargeSupported ? 'Connected · live charges' : 'Connected · manual only') : gw.configured ? 'Configured, not enabled' : 'Not connected'}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          </>
         )}
       </SectionCard>
 

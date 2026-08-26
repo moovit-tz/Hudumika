@@ -364,6 +364,7 @@ export function FinanceVendors() {
   const deepLinkId = searchParams.get('id');
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [bills, setBills] = useState<any[]>([]);
+  const [billPayments, setBillPayments] = useState<any[]>([]);
   const [purchaseOrders, setPurchaseOrders] = useState<any[]>([]);
   const [expenses, setExpenses] = useState<ExpenseListItem[]>([]);
 
@@ -383,10 +384,12 @@ export function FinanceVendors() {
       apiFetch('/v1/suppliers').catch(() => []),
       apiFetch('/v1/bills').catch(() => []),
       apiFetch('/v1/purchase-orders').catch(() => ({ purchase_orders: [] })),
-    ]).then(([suppliers, fetchedBills, posRes]: [any[], any[], any]) => {
+      apiFetch('/v1/bills/payments').catch(() => []),
+    ]).then(([suppliers, fetchedBills, posRes, payments]: [any[], any[], any, any[]]) => {
       const billList = Array.isArray(fetchedBills) ? fetchedBills : [];
       setBills(billList);
       setPurchaseOrders(Array.isArray(posRes?.purchase_orders) ? posRes.purchase_orders : []);
+      setBillPayments(Array.isArray(payments) ? payments : []);
       const balancesById = new Map<string, { balance: number; totalPaid: number }>();
       for (const b of billList) {
         if (!b.supplier_id) continue;
@@ -429,12 +432,36 @@ export function FinanceVendors() {
     return !q || v.name.toLowerCase().includes(q) || v.contactPerson.toLowerCase().includes(q) || v.email.toLowerCase().includes(q);
   }), [vendors, search, filterCat, filterStatus]);
 
-  const stats = useMemo(() => ({
-    total:       vendors.length,
-    active:      vendors.filter(v => v.status === 'active').length,
-    outstanding: vendors.reduce((s, v) => s + v.balance, 0),
-    totalPaid:   vendors.reduce((s, v) => s + v.totalPaid, 0),
-  }), [vendors]);
+  const stats = useMemo(() => {
+    const now = new Date();
+    // Overdue = actually past its due_date and still carrying a balance —
+    // same rule Bills.tsx's own isOverdue() uses — not a guessed share of
+    // the total. "Payable" is simply what's left of outstanding once the
+    // real overdue portion is subtracted, so the two always sum to the
+    // real total rather than two independently-guessed percentages.
+    const overdue = bills.reduce((s, b) => {
+      const balance = Math.max(0, (Number(b.total) || 0) - (Number(b.paid_amount) || 0));
+      const isOverdue = balance > 0 && (b.status === 'POSTED' || b.status === 'PARTIAL') && b.due_date && new Date(b.due_date) < now;
+      return s + (isOverdue ? balance : 0);
+    }, 0);
+    const paidThisMonth = billPayments.reduce((s, p) => {
+      // Raw API field is payment_date (Bills.tsx's mapApiPayment renames it
+      // to `date` for its own state — this reads the unmapped response).
+      const d = p.payment_date ? new Date(p.payment_date) : null;
+      const inThisMonth = d && d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+      return s + (inThisMonth ? (Number(p.amount) || 0) : 0);
+    }, 0);
+    const outstanding = vendors.reduce((s, v) => s + v.balance, 0);
+    return {
+      total:       vendors.length,
+      active:      vendors.filter(v => v.status === 'active').length,
+      outstanding,
+      totalPaid:   vendors.reduce((s, v) => s + v.totalPaid, 0),
+      overdue,
+      payable:     Math.max(0, outstanding - overdue),
+      paidThisMonth,
+    };
+  }, [vendors, bills, billPayments]);
 
   async function handleSave(v: Vendor) {
     const payload = {
@@ -489,14 +516,14 @@ export function FinanceVendors() {
           title: 'Outstanding Balance',
           value: fmt(stats.outstanding),
           invertTrend: true,
-          sub1Label: 'PAYABLE', sub1Value: fmt(Math.round(stats.outstanding * 0.6)),
-          sub2Label: 'OVERDUE', sub2Value: fmt(Math.round(stats.outstanding * 0.4)), barHighlight: 'var(--red)',
+          sub1Label: 'PAYABLE', sub1Value: fmt(stats.payable),
+          sub2Label: 'OVERDUE', sub2Value: fmt(stats.overdue), barHighlight: 'var(--red)',
         },
         {
           title: 'Total Paid',
           value: fmt(stats.totalPaid),
           sub1Label: 'LIFETIME', sub1Value: fmt(stats.totalPaid),
-          sub2Label: 'THIS MONTH', sub2Value: fmt(Math.round(stats.totalPaid * 0.07)), barHighlight: 'var(--green)',
+          sub2Label: 'THIS MONTH', sub2Value: fmt(stats.paidThisMonth), barHighlight: 'var(--green)',
         },
         {
           title: 'Active Rate',

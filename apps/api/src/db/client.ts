@@ -4241,6 +4241,10 @@ export interface SignEnvelopesTable {
   anchor_block_height: number | null;
   anchor_block_time: Date | null;
   anchor_checked_at: Date | null;
+  // Versioning (migration 342) — set when this envelope was created via
+  // POST /envelopes/:id/amend on a completed one that needed correcting.
+  previous_version_id: string | null;
+  version_number: Generated<number>;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -4267,6 +4271,12 @@ export interface SignRecipientsTable {
   otp_code_hash: string | null;
   otp_expires_at: Date | null;
   otp_verified_at: Date | null;
+  // Certified True Copy (migration 342) — real facts about a licensed
+  // advocate/notary/commissioner recipient, not the tenant's own stamp.
+  is_certifier: Generated<boolean>;
+  certifier_title: string | null;
+  certifier_roll_number: string | null;
+  certifier_firm: string | null;
   created_at: Generated<Date>;
 }
 

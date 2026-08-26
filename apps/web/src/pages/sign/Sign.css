@@ -178,23 +178,13 @@
   gap: 8px;
 }
 
-/* ── Envelope row (compact list view) ─────────────────────────────────────── */
-.sign-envelope-row {
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 10px 16px;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-.sign-envelope-row:hover {
-  border-color: var(--teal);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-  background: var(--bg);
-}
+/* ── Envelope row (list view) ─────────────────────────────────────────────
+   A real <table> (.rtbl, index.css) rather than a hand-rolled flex/grid row.
+   A fixed CSS grid (the previous approach here) still leaves every page that
+   wants "these fields start in the same column" to re-solve the same
+   problem — a <table> already guarantees it structurally, is what the rest
+   of the platform's real data lists use (Petti's Gateway Deposits, every
+   SuperAdmin list), and gets sorting/accessibility semantics for free. */
 .sign-envelope-row-icon {
   width: 30px;
   height: 30px;
@@ -204,50 +194,6 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-}
-.sign-envelope-row-title {
-  font-size: 13.5px;
-  font-weight: 600;
-  color: var(--ink);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  flex: 1 1 160px;
-  min-width: 100px;
-}
-.sign-envelope-row-file {
-  font-size: 12px;
-  color: var(--ink3);
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 220px;
-  flex: 0 1 auto;
-}
-.sign-envelope-row-avatars {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-}
-.sign-envelope-row-signed {
-  font-size: 11px;
-  color: var(--ink3);
-  white-space: nowrap;
-}
-.sign-envelope-row-date {
-  font-size: 12px;
-  color: var(--ink3);
-  flex-shrink: 0;
-  width: 80px;
-  text-align: right;
-}
-
-@media (max-width: 640px) {
-  .sign-envelope-row-file, .sign-envelope-row-date { display: none; }
 }
 
 /* ── Page document preview canvas ─────────────────────────────────────────── */

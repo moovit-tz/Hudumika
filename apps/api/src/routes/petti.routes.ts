@@ -3,7 +3,7 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { requireRole } from '../middleware/rbac.js';
 import { PettiService, PETTI_CATEGORIES, PETTI_FINANCE_ROLES } from '../services/petti.service.js';
-import { getActiveGateway } from '../lib/payment-gateway.js';
+import { getActiveGateway, getConfiguredGateways } from '../lib/payment-gateway.js';
 
 // Gateway ids petti.service.ts's getPaymentGatewayAdapter actually knows how
 // to place a live charge with (VodacomMpesaAdapter/AirtelMoneyAdapter) —
@@ -13,6 +13,22 @@ const CHARGE_CAPABLE_GATEWAYS: Record<string, string> = {
   vodacom: 'Vodacom M-Pesa (TZ)',
   airtel: 'Airtel Money',
 };
+
+// The subset of Settings' full GATEWAYS catalog (apps/web/src/pages/
+// Settings.tsx) that's actually relevant to a TZS petty-cash wallet — no
+// Stripe/PayPal/Square here, those exist for card payments elsewhere on the
+// platform. Real names, matched 1:1 against Settings' own `id`s so
+// "configured" status lines up; this list is metadata only (id/name/region),
+// never credentials — those stay exclusively in Settings.
+const PETTI_RELEVANT_GATEWAYS: { id: string; name: string; region: string }[] = [
+  { id: 'mpesa', name: 'M-Pesa (Safaricom)', region: 'Mobile Money' },
+  { id: 'vodacom', name: 'Vodacom M-Pesa (TZ)', region: 'Mobile Money' },
+  { id: 'tigopesa', name: 'Tigo Pesa', region: 'Mobile Money' },
+  { id: 'airtel', name: 'Airtel Money', region: 'Mobile Money' },
+  { id: 'selcom', name: 'Selcom', region: 'Mobile Money' },
+  { id: 'halotel', name: 'Halotel (HaloPesa)', region: 'Mobile Money' },
+  { id: 'bank', name: 'Bank Transfer', region: 'Bank' },
+];
 
 const createWalletSchema = z.object({
   name: z.string().trim().min(1).max(200),
@@ -252,6 +268,22 @@ export async function pettiRoutes(fastify: FastifyInstance) {
       sandbox: active.sandbox,
       chargeSupported: active.id in CHARGE_CAPABLE_GATEWAYS,
     };
+  });
+
+  // The full browsable catalog, not just the one active gateway — restores
+  // the "see all our options" view PettiGateways.tsx used to fake (24
+  // hardcoded providers, none of them real) with real per-tenant status
+  // instead. No credentials in the response, ever — enabled/sandbox only.
+  fastify.get('/gateway-catalog', async (request) => {
+    const user = request.user;
+    const configured = await getConfiguredGateways(user.tenant_id);
+    return PETTI_RELEVANT_GATEWAYS.map(gw => ({
+      ...gw,
+      configured: !!configured[gw.id],
+      enabled: !!configured[gw.id]?.enabled,
+      sandbox: !!configured[gw.id]?.sandbox,
+      chargeSupported: gw.id in CHARGE_CAPABLE_GATEWAYS,
+    }));
   });
 
   // ── Deposits ───────────────────────────────────────────────────────────

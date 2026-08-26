@@ -132,6 +132,11 @@ export function WorkspaceApp({ appId, children, bypassGatePaths }: WorkspaceAppP
   const wrapperRef = useRef<HTMLDivElement>(null);
   const branding = useBranding();
   const [dsRev, setDsRev] = useState(0);
+  // v2's override lives inside branding.getAppColor() itself (useBranding.ts)
+  // so every caller of it — this component's CSS-variable pipeline below,
+  // plus AppSidebar/AppHeader/AppLauncher/WorkspaceHome, which read it
+  // directly as a JS value rather than via CSS — gets the same fixed color
+  // from one place, not a copy of this check at each call site.
   const appColor = branding.getAppColor(appId, APP_COLORS[appId] ?? '#64748b');
   const [isDark, setIsDark] = useState(
     () => document.documentElement.getAttribute('data-theme') === 'dark'

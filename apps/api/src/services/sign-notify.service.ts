@@ -91,7 +91,17 @@ export async function getEnvelopeWithRelations(db: Db, id: string, tid: string) 
     .orderBy('created_at', 'asc')
     .execute();
 
-  return { ...envelope, recipients, fields, events };
+  // Version chain (migration 342) — both directions, so the detail page
+  // can show "Version 2 of X" and, on the original, "superseded by Version
+  // 2" without the frontend making a second round trip for either.
+  const previousVersion = envelope.previous_version_id
+    ? await db.selectFrom('sign_envelopes').select(['id', 'title', 'version_number'])
+        .where('id', '=', envelope.previous_version_id).where('tenant_id', '=', tid).executeTakeFirst()
+    : null;
+  const nextVersion = await db.selectFrom('sign_envelopes').select(['id', 'title', 'version_number', 'status'])
+    .where('previous_version_id', '=', id).where('tenant_id', '=', tid).executeTakeFirst();
+
+  return { ...envelope, recipients, fields, events, previous_version: previousVersion ?? null, next_version: nextVersion ?? null };
 }
 
 /** Which recipients should be notified right now, given the envelope's order

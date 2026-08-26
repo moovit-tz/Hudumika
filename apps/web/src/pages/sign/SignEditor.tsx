@@ -26,12 +26,17 @@ import { PdfPageCanvas } from '../cloud/components/PdfPageCanvas.js';
 import './Sign.css';
 
 const FIELD_TYPES: { type: SignFieldType; label: string; icon: IconName; defaultW: number; defaultH: number }[] = [
-  { type: 'signature', label: 'Signature',   icon: 'edit',      defaultW: 0.28, defaultH: 0.06 },
+  // Signature and stamp bumped up from 0.28x0.06 / 0.16x0.11 — both were
+  // rendering small on the actual signed PDF (sign-pdf.service.ts scales
+  // the drawn image to exactly fill field.width x field.height, so this is
+  // the only lever there is; a placed field has no resize handle, only
+  // drag-to-move, so the default is the field's size for good).
+  { type: 'signature', label: 'Signature',   icon: 'edit',      defaultW: 0.34, defaultH: 0.09 },
   { type: 'initials',  label: 'Initials',    icon: 'edit',      defaultW: 0.12, defaultH: 0.05 },
   { type: 'date',      label: 'Date',        icon: 'calendar',  defaultW: 0.18, defaultH: 0.04 },
   { type: 'text',      label: 'Text Field',  icon: 'fileText',  defaultW: 0.25, defaultH: 0.04 },
   { type: 'checkbox',  label: 'Checkbox',    icon: 'check',     defaultW: 0.04, defaultH: 0.04 },
-  { type: 'stamp',     label: 'Verification Stamp', icon: 'stamp', defaultW: 0.16, defaultH: 0.11 },
+  { type: 'stamp',     label: 'Verification Stamp', icon: 'stamp', defaultW: 0.20, defaultH: 0.14 },
 ];
 
 const RECIPIENT_COLORS = ['#1a56db','#0e9f6e','#d97706','#7c3aed','#db2777','#0891b2'];
@@ -108,18 +113,45 @@ export function SignEditor() {
   const pageRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Full staff records for the "Tag a person" picker below — EntityPicker's
-  // own PickerItem only carries {id, label, sublabel}, not email/phone, so
-  // each search response is cached here (by id) to pull the real email/
-  // phone once a result is actually picked, rather than a second round trip.
-  const staffCacheRef = useRef<Map<string, { name: string; email: string; phone: string | null }>>(new Map());
-  const searchStaff = useCallback(async (q: string): Promise<PickerItem[]> => {
-    const rows = await apiFetch(`/v1/hr/staff?search=${encodeURIComponent(q)}`);
-    return rows.map((u: { id: string; name: string; email: string; phone: string | null }) => {
-      staffCacheRef.current.set(u.id, { name: u.name, email: u.email, phone: u.phone ?? null });
-      return { id: u.id, label: u.name, sublabel: u.email };
+  // The recipient picker below searches CRM customers first, then staff —
+  // whoever this document is actually for is usually a customer, and staff
+  // are the secondary case (an internal reviewer/counter-signer). Only a
+  // staff pick can carry a real `user_id` (sign_recipients.user_id is a real
+  // FK into `users`, migration 276 — a customer's id would violate it), so
+  // each cached entry remembers which source it came from. EntityPicker's
+  // own PickerItem only carries {id, label, sublabel}, not email/phone/
+  // source, so the full record is cached here (by the prefixed id) to pull
+  // it back once a result is actually picked, rather than a second round trip.
+  const recipientCacheRef = useRef<Map<string, { source: 'customer' | 'staff'; name: string; email: string; phone: string | null }>>(new Map());
+  const searchRecipients = useCallback(async (q: string): Promise<PickerItem[]> => {
+    const [customersRes, staffRes] = await Promise.all([
+      apiFetch(`/v1/customers?search=${encodeURIComponent(q)}`).catch(() => []),
+      apiFetch(`/v1/hr/staff?search=${encodeURIComponent(q)}`).catch(() => []),
+    ]);
+    const customers = Array.isArray(customersRes) ? customersRes : (customersRes?.data ?? []);
+    const staff = Array.isArray(staffRes) ? staffRes : [];
+
+    const customerItems: PickerItem[] = customers.slice(0, 15).map((c: { id: string; name: string; contact_name: string | null; email: string | null; phone: string | null; phone_wa: string | null }) => {
+      const name = c.contact_name?.trim() || c.name;
+      const key = `customer:${c.id}`;
+      recipientCacheRef.current.set(key, { source: 'customer', name, email: c.email ?? '', phone: c.phone || c.phone_wa || null });
+      return { id: key, label: name, sublabel: `Customer${c.contact_name?.trim() ? ` · ${c.name}` : ''}` };
     });
+    const staffItems: PickerItem[] = staff.slice(0, 15).map((u: { id: string; name: string; email: string; phone: string | null }) => {
+      const key = `staff:${u.id}`;
+      recipientCacheRef.current.set(key, { source: 'staff', name: u.name, email: u.email, phone: u.phone ?? null });
+      return { id: key, label: u.name, sublabel: `Staff · ${u.email}` };
+    });
+    // CRM first, staff after — matches "query CRM first, then staff".
+    return [...customerItems, ...staffItems];
   }, []);
+
+  // No match in either CRM or staff — accept the typed name as a one-off
+  // external signer instead. Nothing is created in the CRM or staff
+  // directory for this; the "creation" is just accepting the free-text
+  // name so the recipient fields below fill in immediately rather than
+  // making someone retype what they just searched for.
+  const createExternalRecipient = useCallback(async (name: string): Promise<PickerItem> => ({ id: '', label: name }), []);
 
   // ── Load existing envelope ────────────────────────────────────────────────
   useEffect(() => {
@@ -464,26 +496,31 @@ export function SignEditor() {
           {/* Active recipient form */}
           <div style={{ padding: '0 12px 16px' }}>
             <EntityPicker
-              label="Tag a person (optional)"
-              placeholder="Search staff to tag as this recipient…"
-              value={recipients[activeRecipient]?.user_id
-                ? { id: recipients[activeRecipient].user_id!, label: recipients[activeRecipient].name || 'Tagged person', sublabel: recipients[activeRecipient].email }
+              label="Recipient"
+              placeholder="Search customers or staff…"
+              value={recipients[activeRecipient]?.name
+                ? { id: recipients[activeRecipient].user_id ?? '', label: recipients[activeRecipient].name, sublabel: recipients[activeRecipient].email }
                 : null}
               onChange={item => {
                 if (!item) {
-                  setRecipients(prev => prev.map((r, i) => i === activeRecipient ? { ...r, user_id: null } : r));
+                  setRecipients(prev => prev.map((r, i) => i === activeRecipient ? { ...r, user_id: null, name: '', email: '', phone: '' } : r));
                   return;
                 }
-                const full = staffCacheRef.current.get(item.id);
+                const full = recipientCacheRef.current.get(item.id);
                 setRecipients(prev => prev.map((r, i) => i === activeRecipient ? {
-                  ...r, user_id: item.id,
+                  ...r,
+                  // Only a real staff pick gets user_id — sign_recipients.user_id
+                  // is a FK into `users`, and a customer's id isn't one.
+                  user_id: full?.source === 'staff' ? item.id.replace(/^staff:/, '') : null,
                   name: full?.name ?? item.label,
                   email: full?.email ?? r.email,
                   phone: full?.phone ?? r.phone,
                 } : r));
               }}
-              search={searchStaff}
-              hint="Tagging a real colleague auto-fills their details and adds an in-app notification alongside email/SMS. Leave blank for an external signer."
+              search={searchRecipients}
+              onCreate={createExternalRecipient}
+              createLabel={q => `Add "${q}" as an external signer`}
+              hint="Searches customers, then staff. Picking a colleague auto-fills their details and adds an in-app notification alongside email/SMS. No match? Type their name and fill in the fields below."
             />
             {['name', 'email', 'phone', 'role_label'].map(key => (
               <input key={key}

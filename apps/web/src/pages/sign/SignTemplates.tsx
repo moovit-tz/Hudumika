@@ -1,5 +1,5 @@
 // ─── SignTemplates.tsx — Template library page ────────────────────────────────
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../../lib/api.js';
 import type { SignTemplate } from '@hudumika/types';
@@ -7,6 +7,7 @@ import { Icon } from '../../components/Icon.js';
 import { Button } from '../../components/ui/button.js';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog.js';
 import { PageHeader } from '../../components/PageHeader.js';
+import { MetricsRow } from '../../components/MetricCard.js';
 import './Sign.css';
 
 interface BulkSendResult { email: string; ok: boolean; envelope_id?: string; error?: string }
@@ -116,6 +117,29 @@ export function SignTemplates() {
     setTemplates(prev => prev.filter(t => t.id !== id));
   }
 
+  // Every value here is a real count/average over the loaded templates — no
+  // fabricated splits (see FinanceVendors.tsx's fix for what that looked
+  // like and why it's wrong). "Ready" means a template someone could
+  // actually click "Use Template" on right now: it has a source file plus
+  // at least one recipient and one field, not just a name.
+  const stats = useMemo(() => {
+    const totalRecipients = templates.reduce((s, t) => s + (t.recipients?.length ?? 0), 0);
+    const totalFields = templates.reduce((s, t) => s + (t.fields?.length ?? 0), 0);
+    const signatureFields = templates.reduce((s, t) => s + (t.fields?.filter(f => f.field_type === 'signature').length ?? 0), 0);
+    const requiredFields = templates.reduce((s, t) => s + (t.fields?.filter(f => f.required).length ?? 0), 0);
+    const ready = templates.filter(t => !!t.file_id && (t.recipients?.length ?? 0) > 0 && (t.fields?.length ?? 0) > 0).length;
+    return {
+      total: templates.length,
+      withFile: templates.filter(t => !!t.file_id).length,
+      totalRecipients,
+      avgRecipients: templates.length ? (totalRecipients / templates.length).toFixed(1) : '0',
+      totalFields,
+      signatureFields,
+      requiredFields,
+      ready,
+    };
+  }, [templates]);
+
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--border)', background: 'var(--card-bg)' }}>
@@ -133,6 +157,30 @@ export function SignTemplates() {
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
+        {!loading && templates.length > 0 && (
+          <MetricsRow cards={[
+            {
+              title: 'Total Templates', value: String(stats.total),
+              sub1Label: 'WITH FILE', sub1Value: String(stats.withFile),
+              sub2Label: 'NO FILE', sub2Value: String(stats.total - stats.withFile), barHighlight: 'var(--teal)',
+            },
+            {
+              title: 'Total Recipients', value: String(stats.totalRecipients),
+              sub1Label: 'TEMPLATES', sub1Value: String(stats.total),
+              sub2Label: 'AVG/TEMPLATE', sub2Value: stats.avgRecipients, barHighlight: 'var(--blue)',
+            },
+            {
+              title: 'Total Fields', value: String(stats.totalFields),
+              sub1Label: 'SIGNATURE', sub1Value: String(stats.signatureFields),
+              sub2Label: 'REQUIRED', sub2Value: String(stats.requiredFields), barHighlight: 'var(--purple)',
+            },
+            {
+              title: 'Ready To Use', value: `${stats.total ? Math.round((stats.ready / stats.total) * 100) : 0}%`,
+              sub1Label: 'READY', sub1Value: String(stats.ready),
+              sub2Label: 'INCOMPLETE', sub2Value: String(stats.total - stats.ready), barHighlight: 'var(--green)',
+            },
+          ]} />
+        )}
         {loading ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
             {Array.from({ length: 4 }).map((_, i) => (

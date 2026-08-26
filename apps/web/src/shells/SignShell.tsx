@@ -21,8 +21,11 @@ const SIGN_NAV: SidebarSection[] = [
       { label: 'Sent',       path: '/sign/sent',       icon: 'mail' },
       { label: 'Drafts',     path: '/sign/drafts',     icon: 'edit' },
       { label: 'Completed',  path: '/sign/completed',  icon: 'checkCircle' },
+      // Voided and Declined used to share the same xCircle icon — both are
+      // "this didn't happen" outcomes, but for opposite reasons (you pulled
+      // it vs. they refused it), so they need to look different at a glance.
       { label: 'Voided',     path: '/sign/voided',     icon: 'xCircle' },
-      { label: 'Declined',   path: '/sign/declined',   icon: 'xCircle' },
+      { label: 'Declined',   path: '/sign/declined',   icon: 'userMinus' },
       { label: 'Expired',    path: '/sign/expired',    icon: 'clock' },
     ],
   },

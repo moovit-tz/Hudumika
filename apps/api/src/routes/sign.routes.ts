@@ -78,6 +78,15 @@ function userName(req: FastifyRequest): string {
   return (req.user as { name?: string }).name ?? 'Unknown';
 }
 
+function userRole(req: FastifyRequest): string {
+  return (req.user as { role: string }).role;
+}
+
+// Same allow-list shape as sign-stamps.routes.ts's STAMP_SETTINGS_ADMIN_ROLES —
+// whoever can already administer this tenant's eSign settings is who can
+// also see every user's documents, not a separately-configured role list.
+const DOCUMENT_ADMIN_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'];
+
 function userEmail(req: FastifyRequest): string {
   return (req.user as { email?: string }).email ?? '';
 }
@@ -95,14 +104,25 @@ export async function signRoutes(fastify: FastifyInstance) {
     const uid = userId(req);
     const query = req.query as Record<string, string>;
     const status = query.status;
-    const view = query.view; // 'inbox' | 'sent' | 'completed' | 'voided' | 'declined' | 'drafts'
+    const view = query.view; // 'inbox' | 'sent' | 'completed' | 'voided' | 'declined' | 'drafts' | 'all'
+
+    // 'all' is the admin-only, tenant-wide view — every envelope any user
+    // created, not just this request's own. Every other `view` value below
+    // scopes to the requesting user one way or another (created_by, or "I'm
+    // a recipient"); this is deliberately the one exception, so it's gated
+    // here rather than trusted from the query string.
+    if (view === 'all' && !DOCUMENT_ADMIN_ROLES.includes(userRole(req))) {
+      return reply.status(403).send({ error: 'Only a tenant admin can view every user’s documents.' });
+    }
 
     return withTenant(tid, async (trx) => {
       let q = trx.selectFrom('sign_envelopes').selectAll().where('tenant_id', '=', tid);
 
       // Drafts are a personal work-in-progress, same as Sent — scoped to
       // whoever's actually writing them, not shared tenant-wide like a
-      // completed/voided/declined record would be.
+      // completed/voided/declined record would be. 'all' matches neither
+      // branch below, so it skips both — that's the whole point of the
+      // admin view.
       if (view === 'sent' || view === 'drafts') q = q.where('created_by', '=', uid);
       if (view === 'inbox') {
         // Envelopes where the current user is a recipient who hasn't signed yet
@@ -140,7 +160,23 @@ export async function signRoutes(fastify: FastifyInstance) {
         byEnvelope.set(r.envelope_id, arr);
       }
 
-      return reply.send(envelopes.map(e => ({ ...e, recipients: byEnvelope.get(e.id) ?? [] })));
+      // Owner name/email — only worth fetching for the admin 'all' view;
+      // every other view is already scoped to "documents I own or I'm on,"
+      // so the owner is always the viewer themselves and not worth a join.
+      let ownerById = new Map<string, { name: string; email: string }>();
+      if (view === 'all') {
+        const creatorIds = [...new Set(envelopes.map(e => e.created_by))];
+        const creators = creatorIds.length
+          ? await trx.selectFrom('users').select(['id', 'name', 'email']).where('id', 'in', creatorIds).execute()
+          : [];
+        ownerById = new Map(creators.map(c => [c.id, { name: c.name, email: c.email }]));
+      }
+
+      return reply.send(envelopes.map(e => ({
+        ...e,
+        recipients: byEnvelope.get(e.id) ?? [],
+        ...(view === 'all' ? { owner: ownerById.get(e.created_by) ?? null } : {}),
+      })));
     });
   });
 
@@ -157,7 +193,7 @@ export async function signRoutes(fastify: FastifyInstance) {
       order_mode?: string;
       expires_at?: string;
       require_otp?: boolean;
-      recipients: Array<{ name: string; email: string; phone?: string; user_id?: string; role_label?: string; sign_order?: number }>;
+      recipients: Array<{ name: string; email: string; phone?: string; user_id?: string; role_label?: string; sign_order?: number; is_certifier?: boolean; certifier_title?: string; certifier_roll_number?: string; certifier_firm?: string }>;
       fields?: Array<{ recipient_index: number; field_type: string; page: number; x: number; y: number; width: number; height: number; required?: boolean; placeholder?: string }>;
     };
 
@@ -193,6 +229,10 @@ export async function signRoutes(fastify: FastifyInstance) {
           user_id: r.user_id ?? null,
           role_label: r.role_label ?? null,
           sign_order: r.sign_order ?? i + 1,
+          is_certifier: r.is_certifier ?? false,
+          certifier_title: r.certifier_title?.trim() || null,
+          certifier_roll_number: r.certifier_roll_number?.trim() || null,
+          certifier_firm: r.certifier_firm?.trim() || null,
         }))
       ).returningAll().execute();
 
@@ -253,7 +293,7 @@ export async function signRoutes(fastify: FastifyInstance) {
     const body = req.body as Partial<{
       title: string; message: string; order_mode: string; expires_at: string;
       file_name: string; document_data: string; file_id: string; require_otp: boolean;
-      recipients: Array<{ id?: string; name: string; email: string; phone?: string; user_id?: string; role_label?: string; sign_order?: number }>;
+      recipients: Array<{ id?: string; name: string; email: string; phone?: string; user_id?: string; role_label?: string; sign_order?: number; is_certifier?: boolean; certifier_title?: string; certifier_roll_number?: string; certifier_firm?: string }>;
       fields: Array<{ recipient_index: number; field_type: string; page: number; x: number; y: number; width: number; height: number; required?: boolean; placeholder?: string }>;
     }>;
 
@@ -307,6 +347,10 @@ export async function signRoutes(fastify: FastifyInstance) {
             user_id: r.user_id ?? null,
             role_label: r.role_label ?? null,
             sign_order: r.sign_order ?? i + 1,
+            is_certifier: r.is_certifier ?? false,
+            certifier_title: r.certifier_title?.trim() || null,
+            certifier_roll_number: r.certifier_roll_number?.trim() || null,
+            certifier_firm: r.certifier_firm?.trim() || null,
           }))
         ).returningAll().execute();
       }
@@ -334,6 +378,31 @@ export async function signRoutes(fastify: FastifyInstance) {
       await logEvent(trx, req.params.id, tid, 'updated', { actorName: userName(req), actorEmail: userEmail(req) });
       const updated = await getEnvelopeWithRelations(trx, req.params.id, tid);
       return reply.send(updated);
+    });
+  });
+
+  // ── Rename envelope ─────────────────────────────────────────────────────────
+  // Unlike PUT /envelopes/:id (draft-only — it touches recipients/fields on
+  // a document that hasn't gone out yet), a title is just a label: renaming
+  // "Agreement" to "Q3 Vendor Agreement" after it's sent, completed, voided
+  // or declined changes nothing about the document that was actually signed,
+  // so this is deliberately allowed at any status.
+  fastify.patch('/envelopes/:id/title', async (req: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+    const tid = tenantId(req);
+    const { title } = (req.body ?? {}) as { title?: string };
+    if (!title?.trim()) return reply.status(400).send({ error: 'Title cannot be empty' });
+    return withTenant(tid, async (trx) => {
+      const envelope = await trx.selectFrom('sign_envelopes').select('id')
+        .where('id', '=', req.params.id).where('tenant_id', '=', tid).executeTakeFirst();
+      if (!envelope) return reply.status(404).send({ error: 'Envelope not found' });
+      await trx.updateTable('sign_envelopes').set({ title: title.trim() }).where('id', '=', req.params.id).execute();
+      // 'renamed' isn't a real sign_event_type — the enum (migration 267) is
+      // a closed, fixed list and doesn't have it; found live (a 500, caught
+      // before shipping) rather than assumed. 'updated' already covers "the
+      // envelope's own metadata changed" for PUT's title/message/recipient/
+      // field edits, so a rename reuses it — the note carries the specifics.
+      await logEvent(trx, req.params.id, tid, 'updated', { actorName: userName(req), actorEmail: userEmail(req), note: `Renamed to "${title.trim()}"` });
+      return { success: true, title: title.trim() };
     });
   });
 
@@ -423,6 +492,92 @@ export async function signRoutes(fastify: FastifyInstance) {
         actorName: userName(req), actorEmail: userEmail(req), note: body?.reason ?? undefined,
       });
       return reply.send({ ok: true });
+    });
+  });
+
+  // ── Amend a completed envelope (version chain) ──────────────────────────────
+  // A completed envelope's signed PDF is final — PUT already refuses any
+  // status but draft, and this route doesn't touch the original at all. It
+  // instead creates a fresh draft pre-filled with the same document,
+  // recipients and fields, chained back via previous_version_id, so
+  // correcting a signed document loses no paper, no error record and no
+  // audit trail: the original stays exactly as signed, and the correction
+  // is a genuinely new envelope that goes through its own real signing.
+  fastify.post('/envelopes/:id/amend', async (req: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+    const tid = tenantId(req);
+    const uid = userId(req);
+    return withTenant(tid, async (trx) => {
+      const original = await trx.selectFrom('sign_envelopes').selectAll()
+        .where('id', '=', req.params.id).where('tenant_id', '=', tid).executeTakeFirst();
+      if (!original) return reply.status(404).send({ error: 'Envelope not found' });
+      if (original.status !== 'completed') {
+        return reply.status(409).send({ error: 'Only a completed envelope can be amended — a document that hasn’t been signed yet can just be edited directly.' });
+      }
+
+      const originalRecipients = await trx.selectFrom('sign_recipients').selectAll()
+        .where('envelope_id', '=', original.id).orderBy('sign_order', 'asc').execute();
+      const originalFields = await trx.selectFrom('sign_fields').selectAll()
+        .where('envelope_id', '=', original.id).execute();
+
+      const [amended] = await trx.insertInto('sign_envelopes').values({
+        tenant_id: tid,
+        created_by: uid,
+        title: original.title,
+        message: original.message,
+        file_id: original.file_id,
+        file_name: original.file_name,
+        document_data: original.document_data,
+        order_mode: original.order_mode,
+        require_otp: original.require_otp,
+        previous_version_id: original.id,
+        version_number: original.version_number + 1,
+      }).returningAll().execute();
+
+      const newRecipients = originalRecipients.length
+        ? await trx.insertInto('sign_recipients').values(
+            originalRecipients.map(r => ({
+              envelope_id: amended.id,
+              tenant_id: tid,
+              name: r.name,
+              email: r.email,
+              phone: r.phone,
+              user_id: r.user_id,
+              role_label: r.role_label,
+              sign_order: r.sign_order,
+              is_certifier: r.is_certifier,
+              certifier_title: r.certifier_title,
+              certifier_roll_number: r.certifier_roll_number,
+              certifier_firm: r.certifier_firm,
+            }))
+          ).returningAll().execute()
+        : [];
+
+      if (originalFields.length) {
+        const recipientIdMap = new Map(originalRecipients.map((r, i) => [r.id, newRecipients[i]?.id]));
+        await trx.insertInto('sign_fields').values(
+          originalFields
+            .filter(f => recipientIdMap.get(f.recipient_id))
+            .map(f => ({
+              envelope_id: amended.id,
+              tenant_id: tid,
+              recipient_id: recipientIdMap.get(f.recipient_id)!,
+              field_type: f.field_type,
+              page: f.page, x: f.x, y: f.y, width: f.width, height: f.height,
+              required: f.required, placeholder: f.placeholder,
+            }))
+        ).execute();
+      }
+
+      await logEvent(trx, amended.id, tid, 'created', {
+        actorName: userName(req), actorEmail: userEmail(req),
+        note: `Started as an amendment of "${original.title}" (Version ${original.version_number})`,
+      });
+      await logEvent(trx, original.id, tid, 'amended', {
+        actorName: userName(req), actorEmail: userEmail(req),
+        note: `Superseded by Version ${amended.version_number} — this signed document is unchanged and stays on file.`,
+      });
+
+      return reply.status(201).send({ ...amended, recipients: newRecipients });
     });
   });
 
@@ -929,6 +1084,23 @@ export async function signPublicRoutes(fastify: FastifyInstance) {
         status: r.status,
         signed_at: r.signed_at,
       })),
+      // Certified True Copy (migration 342) — the whole point of a public
+      // verification page for a legally certified document is confirming
+      // *who* certified it and their roll number, so this surfaces
+      // separately from the plain signers list above rather than making a
+      // verifier cross-reference role_label text to spot the certifier.
+      certification: (() => {
+        const certifier = recipients.find(r => r.is_certifier);
+        if (!certifier) return null;
+        return {
+          name: certifier.name,
+          title: certifier.certifier_title || 'Advocate',
+          roll_number: certifier.certifier_roll_number,
+          firm: certifier.certifier_firm,
+          certified: certifier.status === 'signed',
+          certified_at: certifier.signed_at,
+        };
+      })(),
     });
   });
 
