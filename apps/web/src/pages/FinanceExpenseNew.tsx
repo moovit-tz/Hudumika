@@ -95,7 +95,7 @@ export const FinanceExpenseNew: React.FC = () => {
     <div style={{ padding: 24 }}>
       <BackButton to="/finance/expenses" label="Expenses" />
       <PageHeader
-        crumbs={['FinOps', 'Expenses', 'New']}
+        crumbs={['Finance', 'Expenses', 'New']}
         titlePlain="New"
         titleEm="expense"
         subtitle="Record a cost or revenue line — link it to a shipment or customer if it belongs to one."

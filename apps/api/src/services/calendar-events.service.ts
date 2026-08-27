@@ -36,6 +36,10 @@ export interface EventInput {
    *  originally stated in. Recurrence expansion stays fixed-UTC-offset
    *  stepping regardless of this field (no DST-aware recurring math). */
   timezone?: string | null;
+  /** A real Jitsi Meet room URL, or null/undefined to leave/clear it. */
+  meetingUrl?: string | null;
+  /** {startWithVideoMuted?, startWithAudioMuted?} applied at join time. */
+  meetingSettings?: { startWithVideoMuted?: boolean; startWithAudioMuted?: boolean } | null;
 }
 
 export class EventNotFoundError extends Error {}
@@ -68,6 +72,8 @@ function mapOccurrence(master: any, occ: { start: Date; end: Date; originalDate:
     is_recurring: !!master.recurrence,
     reminder_offsets: master.reminder_offsets ?? [],
     timezone: master.timezone ?? null,
+    meeting_url: master.meeting_url ?? null,
+    meeting_settings: master.meeting_settings ?? null,
     tenant_id: master.tenant_id,
     user_id: master.user_id,
     created_at: master.created_at,
@@ -211,6 +217,8 @@ export async function createEvent(tenantId: string, userId: string, actorName: s
       all_day: input.allDay ?? false, color: input.color ?? null,
       recurrence: input.recurrence ? JSON.stringify(input.recurrence) as unknown as any : null,
       reminder_offsets: input.reminderOffsets ?? [], timezone: input.timezone ?? null,
+      meeting_url: input.meetingUrl ?? null,
+      meeting_settings: input.meetingSettings ? JSON.stringify(input.meetingSettings) as unknown as any : null,
     }).returningAll().executeTakeFirstOrThrow();
 
     if (input.guests?.length) await notifyGuests(tenantId, actorName, { id: row.id, title: row.title, start_at: new Date(row.start_at).toISOString() }, input.guests);
@@ -262,6 +270,8 @@ export async function updateEvent(
     if (input.recurrence !== undefined) updates.recurrence = input.recurrence ? JSON.stringify(input.recurrence) : null;
     if (input.reminderOffsets !== undefined) updates.reminder_offsets = input.reminderOffsets;
     if (input.timezone !== undefined) updates.timezone = input.timezone;
+    if (input.meetingUrl !== undefined) updates.meeting_url = input.meetingUrl;
+    if (input.meetingSettings !== undefined) updates.meeting_settings = input.meetingSettings ? JSON.stringify(input.meetingSettings) : null;
 
     let newlyInvitedGuests: Guest[] = [];
     if (input.guests !== undefined) {

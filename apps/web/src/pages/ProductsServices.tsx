@@ -810,8 +810,8 @@ export const ProductsServices: React.FC = () => {
 
   const active    = products.filter(p => p.status === 'active').length;
   const inactive  = products.filter(p => p.status === 'inactive').length;
-  const priced    = products.filter(p => p.sale_price > 0);
-  const avgPrice  = priced.length ? priced.reduce((s, p) => s + p.sale_price, 0) / priced.length : 0;
+  const priced    = products.filter(p => Number(p.sale_price) > 0);
+  const avgPrice  = priced.length ? priced.reduce((s, p) => s + Number(p.sale_price), 0) / priced.length : 0;
   const topCat    = CATEGORIES.reduce((best, c) => products.filter(p => p.category === c).length > products.filter(p => p.category === best).length ? c : best, 'FREIGHT');
 
   // -- Render -----------------------------------------------------------------
@@ -850,25 +850,10 @@ export const ProductsServices: React.FC = () => {
 
       <div style={{ padding: isMobile ? '14px 16px' : '24px 32px', flex: 1, overflowY: 'auto' }}>
         <PageHeader
-          crumbs={['Finance', 'Products & Services']}
-          titlePlain="Products &"
-          titleEm="services"
-          subtitle="Set pricing for clearing and freight services here — catalog for invoices."
-          actions={
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap' }}>
-              {!loading && products.length === 0 && (
-                <button type="button" title="Add starter catalog" disabled={loadingStarter} onClick={handleLoadStarterCatalog} className="btn btn-secondary btn-sm">
-                  <Icon name="refresh" size={13} /> {loadingStarter ? 'Adding…' : 'Load Starter Catalog'}
-                </button>
-              )}
-              <button type="button" title="Import from TPA/TASAC tariff reference" onClick={() => setTariffSheetOpen(true)} className="btn btn-secondary btn-sm">
-                <Icon name="layers" size={13} /> Import from Tariff
-              </button>
-              <button type="button" title="Add new service" onClick={() => setEditing('new')} className="btn btn-primary btn-sm">
-                <Icon name="plus" size={13} color="#fff" /> New Service
-              </button>
-            </div>
-          }
+          crumbs={['FINANCE', 'PRODUCTS & SERVICES']}
+          titlePlain="Product "
+          titleEm="catalog"
+          subtitle="Service pricing, billable inventory items and unit rates."
         />
 
         <Sheet open={tariffSheetOpen} onOpenChange={setTariffSheetOpen}>
@@ -913,9 +898,25 @@ export const ProductsServices: React.FC = () => {
         {/* Metrics */}
         <MetricsRow cards={[
           { title: 'Total Services', value: String(products.length), sub1Label: 'ACTIVE', sub1Value: String(active), sub2Label: 'INACTIVE', sub2Value: String(inactive), barHighlight: 'var(--blue)' },
-          { title: 'Active Services', value: String(active), sub1Label: 'WITH PRICE', sub1Value: String(priced.length), sub2Label: 'FREE/DUTY', sub2Value: String(products.filter(p => p.sale_price === 0).length), barHighlight: 'var(--green)' },
-          { title: 'Avg Unit Price', value: avgPrice > 0 ? `$${Math.round(avgPrice)}` : '—', sub1Label: 'CATEGORIES', sub1Value: String(new Set(products.map(p => p.category)).size), sub2Label: 'TOP CAT', sub2Value: products.length ? (CAT_CFG[topCat]?.label ?? '—') : '—', barHighlight: 'var(--gold)' },
+          { title: 'Active Services', value: String(active), sub1Label: 'WITH PRICE', sub1Value: String(priced.length), sub2Label: 'FREE/DUTY', sub2Value: String(products.filter(p => Number(p.sale_price) === 0).length), barHighlight: 'var(--green)' },
+          { title: 'Avg Unit Price', value: avgPrice > 0 ? `$${Math.round(avgPrice)}` : '—', sub1Label: 'PRICED', sub1Value: String(priced.length), sub2Label: 'TOTAL', sub2Value: String(products.length), barHighlight: 'var(--gold)' },
+          { title: 'Categories', value: String(new Set(products.map(p => p.category)).size), sub1Label: 'TOP CATEGORY', sub1Value: products.length ? (CAT_CFG[topCat]?.label ?? '—') : '—', sub2Label: 'ITEMS', sub2Value: String(products.filter(p => p.category === topCat).length), barHighlight: 'var(--purple)' },
         ]} />
+
+        <div style={{ padding: '16px 0', display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+          {!loading && products.length === 0 && (
+            <button type="button" title="Add starter catalog" disabled={loadingStarter} onClick={handleLoadStarterCatalog} className="btn btn-secondary btn-sm">
+              <Icon name="refresh" size={13} /> {loadingStarter ? 'Adding…' : 'Load Starter Catalog'}
+            </button>
+          )}
+          <button type="button" title="Import from TPA/TASAC tariff reference" onClick={() => setTariffSheetOpen(true)} className="btn btn-secondary btn-sm">
+            <Icon name="layers" size={13} /> Import from Tariff
+          </button>
+          <button type="button" title="Add new service" onClick={() => setEditing('new')}
+            style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+            <Icon name="plus" size={14} color="hsl(var(--primary-foreground))" /> New Service
+          </button>
+        </div>
 
         {/* Filters Toolbar Card */}
         <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>

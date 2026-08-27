@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { PageHeader } from '../components/PageHeader.js';
+import { MetricsRow } from '../components/MetricCard.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
@@ -9,6 +10,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
+import { useIsMobile } from '../hooks/useIsMobile.js';
 
 /**
  * Multi-entity accounting (ClearOS/FinOps M8) — a legal-entity/branch
@@ -33,6 +35,7 @@ function todayIso() { return new Date().toISOString().slice(0, 10); }
 function monthStartIso() { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10); }
 
 export function MultiEntityAccounting() {
+  const isMobile = useIsMobile();
   const [tab, setTab] = useState<'entities' | 'intercompany' | 'consolidated'>('entities');
 
   const [entities, setEntities] = useState<Entity[]>([]);
@@ -110,6 +113,20 @@ export function MultiEntityAccounting() {
     finally { setSaving(false); }
   }
 
+  // Transaction amounts are per-row currency (each intercompany transaction
+  // picks its own), so this deliberately never sums them into one blended
+  // figure — that's the same currency-mixing mistake PurchaseOrders.tsx's
+  // metrics card made (summed USD-priced lines as if they were TZS). Counts
+  // and status/currency breakdowns stay real without needing a conversion.
+  const meStats = {
+    total: entities.length,
+    activeCount: entities.filter(e => e.active).length,
+    txnTotal: txns.length,
+    txnPosted: txns.filter(t => t.status === 'posted').length,
+    currencyCount: new Set(entities.map(e => e.currency)).size,
+    countryCount: new Set(entities.map(e => e.country_code).filter(Boolean)).size,
+  };
+
   return (
     <div style={{ flex: 1, overflowY: 'auto' }}>
       <PageHeader
@@ -118,6 +135,29 @@ export function MultiEntityAccounting() {
         titleEm="accounting"
         subtitle="Branches share one chart of accounts, tagged per entity for reporting — additive, so a tenant with no entities keeps its books exactly as before."
       />
+
+      <MetricsRow cards={[
+        {
+          title: 'Total Entities', value: String(meStats.total),
+          sub1Label: 'ACTIVE', sub1Value: String(meStats.activeCount),
+          sub2Label: 'INACTIVE', sub2Value: String(meStats.total - meStats.activeCount), barHighlight: 'var(--teal)',
+        },
+        {
+          title: 'Intercompany Txns', value: String(meStats.txnTotal),
+          sub1Label: 'POSTED', sub1Value: String(meStats.txnPosted),
+          sub2Label: 'DRAFT', sub2Value: String(meStats.txnTotal - meStats.txnPosted), barHighlight: 'var(--blue)',
+        },
+        {
+          title: 'Currencies In Use', value: String(meStats.currencyCount),
+          sub1Label: 'ENTITIES', sub1Value: String(meStats.total),
+          sub2Label: 'COUNTRIES', sub2Value: String(meStats.countryCount), barHighlight: 'var(--purple)',
+        },
+        {
+          title: 'Posting Rate', value: `${meStats.txnTotal ? Math.round((meStats.txnPosted / meStats.txnTotal) * 100) : 0}%`,
+          sub1Label: 'POSTED', sub1Value: String(meStats.txnPosted),
+          sub2Label: 'TOTAL', sub2Value: String(meStats.txnTotal), barHighlight: 'var(--green)',
+        },
+      ]} />
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
         <Button size="sm" variant={tab === 'entities' ? 'default' : 'outline'} onClick={() => setTab('entities')}>Entities</Button>
@@ -132,7 +172,7 @@ export function MultiEntityAccounting() {
           </div>
           {showEntityForm && (
             <SectionCard title="New entity" collapsible={false}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 16 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 16, marginBottom: 16 }}>
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Name *</label>
                   <Input value={entityForm.name} onChange={e => setEntityForm(p => ({ ...p, name: e.target.value }))} placeholder="e.g. Hudumika Kenya Ltd" />
@@ -190,7 +230,7 @@ export function MultiEntityAccounting() {
           {entities.length < 2 && <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>Create at least two entities before posting an intercompany transaction.</div>}
           {showTxnForm && (
             <SectionCard title="New intercompany transaction" collapsible={false}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 16 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 16, marginBottom: 16 }}>
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>From entity (billing) *</label>
                   <Select value={txnForm.fromEntityId} onValueChange={v => setTxnForm(p => ({ ...p, fromEntityId: v }))}>

@@ -4,6 +4,7 @@ import { Icon } from '../components/Icon.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { Badge } from '../components/ui/badge.js';
 
 /* ── SVG brand marks (vector, no 3D) ─────────────────────────────── */
 const XeroLogo = () => (
@@ -213,9 +214,9 @@ export function AccountingIntegrations() {
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                           <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--ink)' }}>{brand.name}</span>
-                          <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 10, background: isConnected ? '#ecfdf5' : isError ? '#fef3c7' : '#fee2e2', color: isConnected ? '#047857' : isError ? '#92400e' : '#b91c1c', fontWeight: 700 }}>
+                          <Badge variant={isConnected ? 'success' : isError ? 'warning' : 'error'}>
                             {isConnected ? 'Connected' : isError ? 'Needs reconnect' : 'Disconnected'}
-                          </span>
+                          </Badge>
                         </div>
                         <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginTop: 5, lineHeight: 1.45 }}>{brand.desc}</div>
                         {p.last_sync_at && (
@@ -289,9 +290,9 @@ export function AccountingIntegrations() {
                           <td style={{ padding: '9px 12px' }}>{l.entity_type}</td>
                           <td style={{ padding: '9px 12px', fontFamily: 'var(--mono)', fontSize: 11.5 }}>{l.external_id || '—'}</td>
                           <td style={{ padding: '9px 12px', textAlign: 'center' }}>
-                            <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 10, background: l.status === 'SUCCESS' ? '#ecfdf5' : '#fee2e2', color: l.status === 'SUCCESS' ? '#047857' : '#b91c1c', fontWeight: 700 }}>{l.status}</span>
+                            <Badge variant={l.status === 'SUCCESS' ? 'success' : 'error'}>{l.status}</Badge>
                           </td>
-                          <td style={{ padding: '9px 12px', color: l.status === 'SUCCESS' ? 'var(--ink3)' : '#dc2626' }}>
+                          <td style={{ padding: '9px 12px', color: l.status === 'SUCCESS' ? 'var(--ink3)' : 'var(--red)' }}>
                             {l.status === 'SUCCESS' ? 'Synchronized successfully' : l.error_message}
                           </td>
                         </tr>

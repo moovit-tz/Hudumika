@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Icon, type IconName } from '../components/Icon.js';
+import { PersonAvatar } from '../components/PersonAvatar.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import {
   useTodos, useLists, addTodo, updateTodo, deleteTodo, restoreTodo, purgeTodo, reorderTodo,
@@ -864,8 +865,8 @@ function TaskRow({ todo, list, expanded, onToggleExpand, newSubtaskTitle, setNew
             {todo.subtasks.length > 0 && <span style={{ fontSize: 11, color: 'var(--ink3)' }}>{doneSubtasks}/{todo.subtasks.length} subtasks</span>}
             {todo.notes && <Icon name="fileText" size={11} color="var(--ink3)" />}
             {todo.assigneeName && (
-              <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 11, color: 'var(--teal)', fontWeight: 600 }}>
-                <Icon name="userCheck" size={11} /> {todo.assigneeName}
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--teal)', fontWeight: 600 }}>
+                <PersonAvatar userId={todo.assigneeId} name={todo.assigneeName} size={14} /> {todo.assigneeName}
               </span>
             )}
             {todo.tags.map(tag => (
@@ -1018,11 +1019,11 @@ function TaskRow({ todo, list, expanded, onToggleExpand, newSubtaskTitle, setNew
               </div>
             ) : isAssignedToMe ? (
               <div style={{ fontSize: 12.5, color: 'var(--ink3)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Icon name="userCheck" size={13} /> Assigned to you by {todo.ownerName ?? 'a colleague'}
+                <PersonAvatar name={todo.ownerName ?? 'a colleague'} size={16} /> Assigned to you by {todo.ownerName ?? 'a colleague'}
               </div>
             ) : todo.assigneeName ? (
               <div style={{ fontSize: 12.5, color: 'var(--ink3)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Icon name="userCheck" size={13} /> Assigned to {todo.assigneeName}
+                <PersonAvatar userId={todo.assigneeId} name={todo.assigneeName} size={16} /> Assigned to {todo.assigneeName}
               </div>
             ) : null
           )}

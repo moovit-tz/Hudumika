@@ -1139,42 +1139,39 @@ export const Bills: React.FC = () => {
       ) : (
         <div style={{ flex:1, overflowY:'auto', padding: 0 }}>
           <PageHeader
-            crumbs={['Finance', 'Bills']}
-            titlePlain="Supplier"
+            crumbs={['FINANCE', 'BILLS']}
+            titlePlain="Supplier "
             titleEm="bills"
             subtitle="Supplier invoices, payment tracking and recurring billing schedules."
-            actions={
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                <div style={{ position: 'relative' }}>
-                  <Icon name="search" size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)' } as React.CSSProperties} />
-                  <input
-                    type="text"
-                    title="Search bills"
-                    placeholder="Search bill # or supplier…"
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
-                    style={{ paddingLeft: 32, paddingRight: 12, paddingTop: 7, paddingBottom: 7, border: '1px solid var(--border)', borderRadius: 9, fontSize: 13, outline: 'none', width: 240, boxSizing: 'border-box' as const, background: 'var(--white)' }}
-                  />
-                </div>
-                <button
-                  type="button"
-                  title="New bill"
-                  onClick={() => { setFormBill(null); setShowBillForm(true); }}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', border: 'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor: 'pointer', fontWeight: 600, fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }}
-                >
-                  <Icon name="plus" size={13} />
-                  New Bill
-                </button>
-              </div>
-            }
           />
 
-          {/* Metrics */}
+          {/* Metrics Row matching reference format */}
           <MetricsRow cards={[
-            { title:'Total Bills', value:String(totalBills), sub1Label:'DRAFT', sub1Value:String(bills.filter(b=>b.status==='DRAFT').length), sub2Label:'PAID', sub2Value:String(bills.filter(b=>b.status==='PAID').length), barHighlight:'var(--blue)' },
-            { title:'Outstanding', value:`$${(outstanding/1000).toFixed(1)}K`, sub1Label:'BILLS', sub1Value:String(unpaidBills.length), sub2Label:'PARTIAL', sub2Value:String(bills.filter(b=>b.status==='PARTIAL').length), barHighlight:'var(--gold)' },
-            { title:'Overdue', value:String(overdueBills.length), sub1Label:'AMOUNT', sub1Value:`$${(overdueAmt/1000).toFixed(1)}K`, sub2Label:'AVG DAYS', sub2Value:overdueBills.length ? String(Math.round(overdueBills.reduce((a,b)=>a+daysOverdue(b.due_date),0)/overdueBills.length)) : '0', barHighlight:'var(--red)' },
+            { title:'TOTAL BILLS', value:String(totalBills), sub1Label:'DRAFT', sub1Value:String(bills.filter(b=>b.status==='DRAFT').length), sub2Label:'PAID', sub2Value:String(bills.filter(b=>b.status==='PAID').length), barHighlight:'var(--teal)' },
+            { title:'OUTSTANDING BALANCE', value:`TZS ${outstanding.toLocaleString()}`, invertTrend:true, sub1Label:'UNPAID BILLS', sub1Value:String(unpaidBills.length), sub2Label:'PARTIAL', sub2Value:String(bills.filter(b=>b.status==='PARTIAL').length), barHighlight:'var(--gold)' },
+            { title:'OVERDUE BILLS', value:String(overdueBills.length), sub1Label:'OVERDUE AMOUNT', sub1Value:`TZS ${overdueAmt.toLocaleString()}`, sub2Label:'AVG DAYS OVERDUE', sub2Value:overdueBills.length ? String(Math.round(overdueBills.reduce((a,b)=>a+daysOverdue(b.due_date),0)/overdueBills.length)) : '0', barHighlight:'var(--red)' },
           ]} />
+
+          {/* Action & Filter Toolbar matching standard arrangement */}
+          <div style={{ padding: '16px 0', display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+            <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
+              <Icon name="search" size={14} color="var(--ink3)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
+              <input
+                type="search"
+                placeholder="Search bill # or supplier…"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                style={{ width: '100%', padding: '8px 10px 8px 32px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, fontFamily: 'var(--font)', background: 'var(--white)', color: 'var(--ink)', outline: 'none', boxSizing: 'border-box' }}
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => { setFormBill(null); setShowBillForm(true); }}
+              style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }}
+            >
+              <Icon name="plus" size={14} color="hsl(var(--primary-foreground))" /> New Bill
+            </button>
+          </div>
 
           {/* Main Tabs */}
           <div style={{ display:'flex', borderBottom:'1px solid var(--border)', marginBottom:18 }}>

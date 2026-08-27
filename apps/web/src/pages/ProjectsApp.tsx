@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
+import { PersonAvatar } from '../components/PersonAvatar.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { Button } from '../components/ui/button.js';
 import { Badge } from '../components/ui/badge.js';
@@ -1198,9 +1199,7 @@ export const ProjectsApp: React.FC = () => {
                           <td style={{ padding: '9px 12px', color: 'var(--ink2)' }}>
                             {t.assigneeName ? (
                               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                                <span style={{ width: 18, height: 18, borderRadius: '50%', background: 'var(--teal-l)', color: 'var(--teal)', fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                  {t.assigneeName.slice(0, 1).toUpperCase()}
-                                </span>
+                                <PersonAvatar userId={t.assigneeId} name={t.assigneeName} size={18} />
                                 {t.assigneeName}
                               </span>
                             ) : '—'}

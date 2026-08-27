@@ -313,7 +313,7 @@ export function AccountsQuery() {
       {/* Right panel */}
       <div style={{ flex: 1, overflow: 'auto', padding: '28px 28px 40px' }}>
         <PageHeader
-          crumbs={['FinOps', 'Accounts query']}
+          crumbs={['Finance', 'Accounts query']}
           titlePlain="Accounts"
           titleEm="query"
           subtitle="Build a receivables, payables, revenue, expense, or summary report from live ledger data."

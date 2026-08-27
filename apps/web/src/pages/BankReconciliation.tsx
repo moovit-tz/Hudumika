@@ -5,6 +5,7 @@ import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import { useCurrency } from '../hooks/useCurrency.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { MetricsRow } from '../components/MetricCard.js';
 import { FileUploader } from '../components/ui/file-uploader.js';
 
 interface Statement {
@@ -86,6 +87,15 @@ export function BankReconciliation() {
 
   if (loading) return <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink3)' }}>Loading bank reconciliation…</div>;
 
+  const brStats = (() => {
+    const reconciledCount = statements.filter(s => s.matched === s.total && s.total > 0).length;
+    const totalLines = statements.reduce((s, st) => s + st.total, 0);
+    const matchedLines = statements.reduce((s, st) => s + st.matched, 0);
+    const totalClosingBalance = statements.reduce((s, st) => s + Number(st.closing_balance), 0);
+    const latest = [...statements].sort((a, b) => b.statement_date_to.localeCompare(a.statement_date_to))[0];
+    return { total: statements.length, reconciledCount, totalLines, matchedLines, totalClosingBalance, latestBalance: latest ? Number(latest.closing_balance) : 0 };
+  })();
+
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--white)', fontFamily: 'var(--font)' }}>
       <PageHeader
@@ -93,12 +103,38 @@ export function BankReconciliation() {
         titlePlain="Bank"
         titleEm="reconciliation"
         subtitle="Import a bank statement and match its lines against what's actually posted to cash."
-        actions={
-          <button type="button" className="btn btn-primary btn-sm" onClick={() => setShowImport(true)}>
-            <Icon name="upload" size={13} /> Import Statement
-          </button>
-        }
       />
+
+      <MetricsRow cards={[
+        {
+          title: 'Total Statements', value: String(brStats.total),
+          sub1Label: 'RECONCILED', sub1Value: String(brStats.reconciledCount),
+          sub2Label: 'PENDING', sub2Value: String(brStats.total - brStats.reconciledCount), barHighlight: 'var(--teal)',
+        },
+        {
+          title: 'Total Lines', value: String(brStats.totalLines),
+          sub1Label: 'MATCHED', sub1Value: String(brStats.matchedLines),
+          sub2Label: 'UNMATCHED', sub2Value: String(brStats.totalLines - brStats.matchedLines), barHighlight: 'var(--blue)',
+        },
+        {
+          title: 'Closing Balance', value: fmt(brStats.totalClosingBalance),
+          sub1Label: 'STATEMENTS', sub1Value: String(brStats.total),
+          sub2Label: 'LATEST', sub2Value: fmt(brStats.latestBalance), barHighlight: 'var(--purple)',
+        },
+        {
+          title: 'Match Rate', value: `${brStats.totalLines ? Math.round((brStats.matchedLines / brStats.totalLines) * 100) : 0}%`,
+          sub1Label: 'MATCHED', sub1Value: String(brStats.matchedLines),
+          sub2Label: 'TOTAL LINES', sub2Value: String(brStats.totalLines), barHighlight: 'var(--green)',
+        },
+      ]} />
+
+      <div style={{ padding: '16px 0', display: 'flex', justifyContent: 'flex-end' }}>
+        <button type="button"
+          onClick={() => setShowImport(true)}
+          style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+          <Icon name="upload" size={14} color="hsl(var(--primary-foreground))" /> Import Statement
+        </button>
+      </div>
 
       <div style={{ display: 'flex', gap: 20, flex: 1, minHeight: 0 }}>
         {/* Statement list */}

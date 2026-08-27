@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader.js';
+import { MetricsRow } from '../components/MetricCard.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
@@ -182,16 +183,41 @@ export function DeliveryDocumentsPage() {
   return (
     <div style={{ flex: 1, overflowY: 'auto' }}>
       <PageHeader
-        crumbs={['FinOps', 'Delivery Documents']}
-        titlePlain="Delivery"
+        crumbs={['FINANCE', 'DELIVERY NOTES']}
+        titlePlain="Delivery "
         titleEm="documents"
-        subtitle="Release orders, delivery orders and delivery notes — one combined document, container list or goods table, real PDF, linked to the shipment they're for."
-        actions={
-          <Button onClick={() => setShowForm(s => !s)}>
-            <Icon name="plus" size={14} /> {showForm ? 'Cancel' : 'New document'}
-          </Button>
-        }
+        subtitle="Release orders, delivery orders and delivery notes — linked to shipments and logistics cases."
       />
+
+      <MetricsRow cards={[
+        {
+          title: 'TOTAL DOCUMENTS', value: String(rows.length),
+          sub1Label: 'RELEASE ORDERS', sub1Value: String(rows.filter(r => r.doc_type === 'RELEASE_ORDER').length),
+          sub2Label: 'DELIVERY DOCS', sub2Value: String(rows.filter(r => r.doc_type !== 'RELEASE_ORDER').length), barHighlight: 'var(--teal)',
+        },
+        {
+          title: 'IN PROGRESS', value: String(rows.filter(r => ['draft', 'issued', 'dispatched'].includes(r.status)).length),
+          sub1Label: 'DRAFT', sub1Value: String(rows.filter(r => r.status === 'draft').length),
+          sub2Label: 'DISPATCHED', sub2Value: String(rows.filter(r => r.status === 'dispatched').length), barHighlight: 'var(--gold)',
+        },
+        {
+          title: 'COMPLETED', value: String(rows.filter(r => ['delivered', 'used'].includes(r.status)).length),
+          sub1Label: 'DELIVERED', sub1Value: String(rows.filter(r => r.status === 'delivered').length),
+          sub2Label: 'USED', sub2Value: String(rows.filter(r => r.status === 'used').length), barHighlight: 'var(--green)',
+        },
+        {
+          title: 'SHIPMENT LINKED', value: `${rows.length ? Math.round((rows.filter(r => r.subject_type === 'shipment').length / rows.length) * 100) : 0}%`,
+          sub1Label: 'LINKED', sub1Value: String(rows.filter(r => r.subject_type === 'shipment').length),
+          sub2Label: 'ADHOC', sub2Value: String(rows.filter(r => r.subject_type === 'adhoc').length), barHighlight: 'var(--blue)',
+        },
+      ]} />
+
+      <div style={{ padding: '16px 0', display: 'flex', justifyContent: 'flex-end' }}>
+        <button type="button" onClick={() => setShowForm(s => !s)}
+          style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+          <Icon name={showForm ? 'x' : 'plus'} size={14} color="hsl(var(--primary-foreground))" /> {showForm ? 'Cancel' : 'New Document'}
+        </button>
+      </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         {shipmentFilter && (

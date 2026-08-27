@@ -4,6 +4,7 @@ import { useTodos, addTodo, updateTodo, deleteTodo, useEvents, addEvent, useCurr
 import { PersonAvatar } from './PersonAvatar.js';
 import { Switch } from './ui/switch.js';
 import { Button } from './ui/button.js';
+import { Tip } from './ui/tooltip.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import { apiFetch } from '../lib/api.js';
@@ -756,22 +757,27 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
             </div>
             <div className="gws-drawer-actions">
               {SEARCHABLE_PANELS.has(activePanel) && (
-                <button
-                  className={`gws-drawer-action ${searchOpen ? 'active' : ''}`}
-                  onClick={() => { setSearchOpen(o => !o); setSearchQuery(''); }}
-                  title="Search"
-                >
-                  <Icon name="search" size={15} />
-                </button>
+                <Tip label="Search">
+                  <button
+                    className={`gws-drawer-action ${searchOpen ? 'active' : ''}`}
+                    onClick={() => { setSearchOpen(o => !o); setSearchQuery(''); }}
+                  >
+                    <Icon name="search" size={15} />
+                  </button>
+                </Tip>
               )}
               {PANEL_ROUTES[activePanel] && (
-                <a className="gws-drawer-action" href={PANEL_ROUTES[activePanel]} target="_blank" rel="noreferrer" title="Open full app">
-                  <Icon name="externalLink" size={15} />
-                </a>
+                <Tip label="Open full app">
+                  <a className="gws-drawer-action" href={PANEL_ROUTES[activePanel]} target="_blank" rel="noreferrer">
+                    <Icon name="externalLink" size={15} />
+                  </a>
+                </Tip>
               )}
-              <button className="gws-drawer-action" onClick={() => setActivePanel(null)} title="Close">
-                <Icon name="x" size={16} />
-              </button>
+              <Tip label="Close">
+                <button className="gws-drawer-action" onClick={() => setActivePanel(null)}>
+                  <Icon name="x" size={16} />
+                </button>
+              </Tip>
             </div>
           </div>
 
@@ -972,9 +978,11 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                               <div style={{ fontSize: 12, color: 'var(--ink2)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.last_message || 'No messages yet'}</div>
                             </div>
                           </button>
-                          <button type="button" onClick={e => handleLeaveOrDeleteChannel(e, c)} title={c.type === 'dm' ? 'Remove conversation' : 'Leave / delete channel'} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink4)', display: 'flex', alignItems: 'center', padding: '0 10px', flexShrink: 0 }}>
-                            <Icon name="moreVertical" size={14} />
-                          </button>
+                          <Tip label={c.type === 'dm' ? 'Remove conversation' : 'Leave / delete channel'}>
+                            <button type="button" onClick={e => handleLeaveOrDeleteChannel(e, c)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink4)', display: 'flex', alignItems: 'center', padding: '0 10px', flexShrink: 0 }}>
+                              <Icon name="moreVertical" size={14} />
+                            </button>
+                          </Tip>
                         </div>
                         {isOpen && (
                           <div style={{ borderTop: '1px solid var(--border)', padding: 10, display: 'flex', flexDirection: 'column', gap: 8, background: 'var(--bg)' }}>
@@ -1533,14 +1541,15 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
 
         {/* Collapse / expand toggle — floats on the left edge, mirroring
             AppSidebar's own .app-sb-toggle on the opposite side. */}
-        <button
-          type="button"
-          className="gws-rail-toggle"
-          onClick={toggleRightSidebar}
-          title={collapsed ? "Show apps" : "Hide apps"}
-        >
-          <Icon name={collapsed ? "chevronLeft" : "chevronRight"} size={11} strokeWidth={2.5} />
-        </button>
+        <Tip label={collapsed ? "Show apps" : "Hide apps"} side="left">
+          <button
+            type="button"
+            className="gws-rail-toggle"
+            onClick={toggleRightSidebar}
+          >
+            <Icon name={collapsed ? "chevronLeft" : "chevronRight"} size={11} strokeWidth={2.5} />
+          </button>
+        </Tip>
 
         {/* The pinned-app list — hidden while collapsed, but the rail itself
             (toggle, star, +, settings) always stays visible, never the whole
@@ -1552,16 +1561,16 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
               const badge = badgeFor(app.id);
               const isActive = activePanel === app.id;
               return (
-                <button
-                  key={app.id}
-                  className={`gws-rail-btn${isActive ? ' active' : ''}`}
-                  onClick={() => togglePanel(app.id)}
-                  title={app.label}
-                  aria-pressed={isActive}
-                >
-                  <Icon name={app.icon} size={19} />
-                  {badge && <span className={`gws-badge gws-badge-${badge.color}`}>{badge.count}</span>}
-                </button>
+                <Tip key={app.id} label={app.label} side="left">
+                  <button
+                    className={`gws-rail-btn${isActive ? ' active' : ''}`}
+                    onClick={() => togglePanel(app.id)}
+                    aria-pressed={isActive}
+                  >
+                    <Icon name={app.icon} size={19} />
+                    {badge && <span className={`gws-badge gws-badge-${badge.color}`}>{badge.count}</span>}
+                  </button>
+                </Tip>
               );
             })}
           </div>
@@ -1574,24 +1583,27 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
               drawer header/AI Digest buttons rather than the launcher grid's
               separate multi-point glyph (LAUNCHER_SVG_ICONS.ai), which is
               shared platform-wide and not this button's to redraw. */}
-          <button
-            className={`gws-ai-btn${activePanel === 'ai' ? ' active' : ''}`}
-            onClick={() => togglePanel('ai')}
-            title="AI Assistant"
-            aria-pressed={activePanel === 'ai'}
-          >
-            <div className="gws-ai-btn-tile">
-              <Icon name="sparkle" size={19} color="#fff" />
-            </div>
-          </button>
+          <Tip label="AI Assistant" side="left">
+            <button
+              className={`gws-ai-btn${activePanel === 'ai' ? ' active' : ''}`}
+              onClick={() => togglePanel('ai')}
+              aria-pressed={activePanel === 'ai'}
+            >
+              <div className="gws-ai-btn-tile">
+                <Icon name="sparkle" size={19} color="#fff" />
+              </div>
+            </button>
+          </Tip>
 
           {/* Add / remove which apps show in this rail — same idea as Google's own "+" add-ons picker */}
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="gws-rail-btn" title="Add apps to this panel">
-                <Icon name="plus" size={19} />
-              </button>
-            </DropdownMenuTrigger>
+            <Tip label="Add apps to this panel" side="left">
+              <DropdownMenuTrigger asChild>
+                <button className="gws-rail-btn">
+                  <Icon name="plus" size={19} />
+                </button>
+              </DropdownMenuTrigger>
+            </Tip>
             <DropdownMenuContent align="end" side="left">
               <DropdownMenuLabel>Show in side panel</DropdownMenuLabel>
               <DropdownMenuSeparator />
@@ -1610,13 +1622,14 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
           <div className="gws-divider" />
 
           {/* Settings */}
-          <button
-            className={`gws-rail-btn ${activePanel === 'settings' ? 'active' : ''}`}
-            onClick={() => togglePanel('settings')}
-            title="Quick Settings"
-          >
-            <Icon name="settings" size={19} />
-          </button>
+          <Tip label="Quick Settings" side="left">
+            <button
+              className={`gws-rail-btn ${activePanel === 'settings' ? 'active' : ''}`}
+              onClick={() => togglePanel('settings')}
+            >
+              <Icon name="settings" size={19} />
+            </button>
+          </Tip>
         </div>
       </div>
     </div>

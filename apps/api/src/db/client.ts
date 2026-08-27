@@ -3640,6 +3640,14 @@ export interface CalendarEventsTable {
    *  than duplicate on every sync pass. */
   external_source: string | null;
   external_id: string | null;
+  /** A real, joinable Jitsi Meet room URL (https://meet.jit.si/<id>), or
+   *  null when no video call was added (343_calendar_video_meeting.sql). */
+  meeting_url: string | null;
+  /** {startWithVideoMuted?, startWithAudioMuted?} — applied as Jitsi's own
+   *  documented URL hash config at join time, never stored in meeting_url
+   *  itself so the shareable room link stays stable regardless of who last
+   *  changed these (343_calendar_video_meeting.sql). */
+  meeting_settings: any; // JSONB
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }

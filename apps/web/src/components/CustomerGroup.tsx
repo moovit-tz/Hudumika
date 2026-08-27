@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import type { CustomerShipmentGroup, ShipmentCase } from '@hudumika/types';
 import { ShipmentRow } from './ShipmentRow.js';
 import { Icon } from './Icon.js';
+import { CompanyAvatar } from './PersonAvatar.js';
 
 interface CustomerGroupProps {
   group: CustomerShipmentGroup;
@@ -43,18 +44,7 @@ export const CustomerGroup: React.FC<CustomerGroupProps> = ({ group, shipmentHre
 
         {/* Customer Avatar — the real CRM logo when the company has one, else
             the derived initials on the brand colour. */}
-        <div
-          className="ch-ava"
-          style={{
-            backgroundColor: group.customer.logo_url ? 'var(--white)' : (group.customer.avatar_color || 'var(--teal)'),
-            overflow: 'hidden',
-            padding: 0,
-          }}
-        >
-          {group.customer.logo_url
-            ? <img src={group.customer.logo_url} alt={group.customer.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            : (group.customer.avatar_initials || '??')}
-        </div>
+        <CompanyAvatar name={group.customer.name} logoUrl={group.customer.logo_url} size={34} shape="circle" />
 
         {/* Customer name → CRM profile, with the CRM category/location under it. */}
         <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>

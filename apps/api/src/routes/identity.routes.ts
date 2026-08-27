@@ -227,11 +227,29 @@ export async function identityRoutes(fastify: FastifyInstance) {
       // initials, and a served placeholder would hide a missing picture.
       if (!stored) return reply.status(404).send({ error: 'No picture set' });
 
-      // A customer's logo_url predates this endpoint and may hold an ordinary
-      // http(s) URL rather than a data URI. Redirect to it instead of calling
-      // it corrupt — the column has one meaning, "the picture", and both
-      // spellings satisfy it.
-      if (!stored.startsWith('data:')) return reply.redirect(stored);
+      // A customer's logo_url (or a contact picked from the stock-photo
+      // presets) predates this endpoint and may hold an ordinary http(s) URL
+      // rather than a data URI — the column has one meaning, "the picture",
+      // and both spellings satisfy it. Proxying the bytes rather than
+      // `reply.redirect(stored)`: a plain <img src> follows a redirect fine,
+      // but PersonAvatar/avatarObjectUrl reads this endpoint via an
+      // authenticated fetch() so it can send the auth header a bare <img>
+      // can't carry — and fetch() enforces CORS on the redirected response,
+      // which most third-party image hosts (e.g. Unsplash) don't grant to an
+      // arbitrary origin. Same-origin bytes sidestep that entirely.
+      if (!stored.startsWith('data:')) {
+        try {
+          const upstream = await fetch(stored);
+          if (!upstream.ok) return reply.status(502).send({ error: 'The stored picture could not be fetched' });
+          const buf = Buffer.from(await upstream.arrayBuffer());
+          return reply
+            .header('Content-Type', upstream.headers.get('content-type') || 'image/jpeg')
+            .header('Cache-Control', 'private, max-age=3600, must-revalidate')
+            .send(buf);
+        } catch {
+          return reply.status(502).send({ error: 'The stored picture could not be fetched' });
+        }
+      }
 
       const decoded = decodeDataUri(stored);
       if (!decoded) return reply.status(422).send({ error: 'The stored picture is not a readable image' });

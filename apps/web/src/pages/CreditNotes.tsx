@@ -5,6 +5,7 @@ import { Icon } from '../components/Icon.js';
 import { showAlert } from '../lib/alert.js';
 import { useCurrency } from '../hooks/useCurrency.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { MetricsRow } from '../components/MetricCard.js';
 import { FormPage, FormPageActions } from '../components/FormPage.js';
 import { EntityPicker, type PickerItem } from '../components/EntityPicker.js';
 
@@ -13,6 +14,13 @@ interface CreditNote {
   customer_id: string | null; client_name: string | null; currency: string;
   credit_date: string | null; reason: string | null; status: 'DRAFT' | 'POSTED' | 'VOID';
   created_at: string;
+  // The list endpoint attaches each note's real credit_note_lines (see
+  // credit-notes.routes.ts) — there's no stored total column on the table
+  // itself, the amount only ever exists as the sum of these lines.
+  items?: { rate: number | string; qty: number | string; tax_pct: number | string }[];
+}
+function creditNoteTotal(cn: CreditNote): number {
+  return (cn.items ?? []).reduce((s, l) => s + (Number(l.rate) || 0) * (Number(l.qty) || 1) * (1 + (Number(l.tax_pct) || 0) / 100), 0);
 }
 interface DraftLine { name: string; rate: string; qty: string; tax_pct: string }
 const emptyLine = (): DraftLine => ({ name: '', rate: '', qty: '1', tax_pct: '0' });
@@ -137,19 +145,61 @@ export function CreditNotes() {
 
   if (loading) return <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink3)' }}>Loading credit notes…</div>;
 
+  const cnStats = (() => {
+    const now = new Date();
+    const draftCount = notes.filter(n => n.status === 'DRAFT').length;
+    const postedCount = notes.filter(n => n.status === 'POSTED').length;
+    const voidCount = notes.filter(n => n.status === 'VOID').length;
+    const linkedCount = notes.filter(n => !!n.original_invoice_id).length;
+    const postedNotes = notes.filter(n => n.status === 'POSTED');
+    const totalCredited = postedNotes.reduce((s, n) => s + creditNoteTotal(n), 0);
+    const creditedThisMonth = postedNotes.reduce((s, n) => {
+      if (!n.credit_date) return s;
+      const d = new Date(n.credit_date);
+      return s + (d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() ? creditNoteTotal(n) : 0);
+    }, 0);
+    return { total: notes.length, draftCount, postedCount, voidCount, linkedCount, totalCredited, creditedThisMonth };
+  })();
+
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--white)', fontFamily: 'var(--font)' }}>
       <PageHeader
-        crumbs={['Finance', 'Credit Notes']}
-        titlePlain="Credit"
+        crumbs={['FINANCE', 'CREDIT NOTES']}
+        titlePlain="Credit "
         titleEm="notes"
-        subtitle="Amounts credited back against invoices."
-        actions={
-          <button type="button" className="btn btn-primary btn-sm" onClick={() => navigate('/finance/credit-notes/new')}>
-            <Icon name="plus" size={13} /> New Credit Note
-          </button>
-        }
+        subtitle="Issue adjustments, customer refunds and invoice balance credits."
       />
+      <MetricsRow cards={[
+        {
+          title: 'TOTAL CREDIT NOTES', value: String(cnStats.total),
+          sub1Label: 'DRAFT', sub1Value: String(cnStats.draftCount),
+          sub2Label: 'POSTED', sub2Value: String(cnStats.postedCount), barHighlight: 'var(--teal)',
+        },
+        {
+          title: 'TOTAL CREDITED', value: fmt(cnStats.totalCredited),
+          invertTrend: true,
+          sub1Label: 'THIS MONTH', sub1Value: fmt(cnStats.creditedThisMonth),
+          sub2Label: 'VOIDED', sub2Value: String(cnStats.voidCount), barHighlight: 'var(--red)',
+        },
+        {
+          title: 'LINKED TO INVOICES', value: String(cnStats.linkedCount),
+          sub1Label: 'LINKED', sub1Value: String(cnStats.linkedCount),
+          sub2Label: 'STANDALONE', sub2Value: String(cnStats.total - cnStats.linkedCount), barHighlight: 'var(--blue)',
+        },
+        {
+          title: 'VOID RATE', value: `${cnStats.total ? Math.round((cnStats.voidCount / cnStats.total) * 100) : 0}%`,
+          sub1Label: 'VOID', sub1Value: String(cnStats.voidCount),
+          sub2Label: 'TOTAL', sub2Value: String(cnStats.total), barHighlight: 'var(--gold)',
+        },
+      ]} />
+
+      <div style={{ padding: '16px 0', display: 'flex', justifyContent: 'flex-end' }}>
+        <button type="button" onClick={() => navigate('/finance/credit-notes/new')}
+          style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+          <Icon name="plus" size={14} color="hsl(var(--primary-foreground))" /> New Credit Note
+        </button>
+      </div>
+
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         <div className="rtbl-wrap">
           <table className="rtbl" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>

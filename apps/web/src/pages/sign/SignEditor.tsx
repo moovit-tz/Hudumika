@@ -11,7 +11,12 @@ import { Icon } from '../../components/Icon.js';
 import type { IconName } from '../../components/Icon.js';
 import { Button } from '../../components/ui/button.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
+import { Popover, PopoverTrigger, PopoverContent } from '../../components/ui/popover.js';
 import { EntityPicker, type PickerItem } from '../../components/EntityPicker.js';
+import { showAlert } from '../../lib/alert.js';
+import { showConfirm } from '../../lib/confirm.js';
+import { showPrompt } from '../../lib/prompt.js';
+import { Tip } from '../../components/ui/tooltip.js';
 // Reused as-is from Cloud's Lightbox, built earlier this session for the
 // exact same underlying problem: an <iframe> showing a PDF via the
 // browser's native viewer is a separate browsing context, and native
@@ -23,6 +28,14 @@ import { EntityPicker, type PickerItem } from '../../components/EntityPicker.js'
 // wrapping div see it like any other element.
 import { usePdfDocument } from '../cloud/lib/usePdfDocument.js';
 import { PdfPageCanvas } from '../cloud/components/PdfPageCanvas.js';
+// Stirling-PDF (github.com/Stirling-Tools/Stirling-PDF, self-hosted, MIT) is
+// this platform's PDF tool — Nutrient's Web SDK (nutrient.io) was tried
+// first and removed: it needed a paid per-account license key just to load
+// at all, where Stirling-PDF needs only a self-hosted container URL, and
+// its own discrete-operation shape (rotate/watermark/redact/OCR/compress,
+// submit-and-get-a-new-file) is what StirlingPdfTools.tsx below is built for.
+import { StirlingPdfTools } from './StirlingPdfTools.js';
+import { useIsMobile } from '../../hooks/useIsMobile.js';
 import './Sign.css';
 
 const FIELD_TYPES: { type: SignFieldType; label: string; icon: IconName; defaultW: number; defaultH: number }[] = [
@@ -37,6 +50,11 @@ const FIELD_TYPES: { type: SignFieldType; label: string; icon: IconName; default
   { type: 'text',      label: 'Text Field',  icon: 'fileText',  defaultW: 0.25, defaultH: 0.04 },
   { type: 'checkbox',  label: 'Checkbox',    icon: 'check',     defaultW: 0.04, defaultH: 0.04 },
   { type: 'stamp',     label: 'Verification Stamp', icon: 'stamp', defaultW: 0.20, defaultH: 0.14 },
+  // Only meaningful assigned to a recipient flagged "Certifying Advocate"
+  // below — draws real text (name, roll number, firm, date), not an image,
+  // since the legal weight is in those facts about a specific licensed
+  // person, not a picture.
+  { type: 'certification_stamp', label: 'Certified True Copy Stamp', icon: 'shield', defaultW: 0.30, defaultH: 0.16 },
 ];
 
 const RECIPIENT_COLORS = ['#1a56db','#0e9f6e','#d97706','#7c3aed','#db2777','#0891b2'];
@@ -56,6 +74,13 @@ interface RecipientInput {
   // Set when tagged to a real internal platform user via EntityPicker
   // rather than typed in freeform — see migration 276_sign_recipient_user_tag.
   user_id?: string | null;
+  // Certified True Copy (migration 342) — this recipient is a licensed
+  // advocate/notary/commissioner certifying the document, not an ordinary
+  // signer. Optional, collapsed by default — most documents never need it.
+  is_certifier?: boolean;
+  certifier_title?: string;
+  certifier_roll_number?: string;
+  certifier_firm?: string;
 }
 
 const A4_ASPECT = 1.414; // height/width ratio of A4
@@ -80,6 +105,7 @@ export function SignEditor() {
   // never sent to the server.
   const [sourceFileId, setSourceFileId] = useState<string | null>(null);
   const [previewSrc, setPreviewSrc] = useState<string | null>(null);
+  const [showPdfTools, setShowPdfTools] = useState(false);
   const isPdf = !!fileName?.toLowerCase().endsWith('.pdf');
   const { doc: pdfDoc, numPages: pdfNumPages, loading: pdfLoading, error: pdfError } = usePdfDocument(isPdf ? previewSrc : null);
   const [currentPdfPage, setCurrentPdfPage] = useState(1);
@@ -106,6 +132,8 @@ export function SignEditor() {
   const [fields, setFields] = useState<PlacedField[]>([]);
   const [activeRecipient, setActiveRecipient] = useState(0);
   const [placingType, setPlacingType] = useState<SignFieldType | null>(null);
+  const isMobile = useIsMobile();
+  const [mobileTab, setMobileTab] = useState<'left' | 'center' | 'right'>('center');
   const [selectedField, setSelectedField] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [sending, setSending] = useState(false);
@@ -169,7 +197,10 @@ export function SignEditor() {
         apiFetchBlob(`/v1/files/${env.file_id}/preview`).then(blob => setPreviewSrc(URL.createObjectURL(blob))).catch(console.error);
       }
       if (env.recipients?.length) {
-        setRecipients(env.recipients.map((r: RecipientInput & { id: string }) => ({ name: r.name, email: r.email, phone: r.phone ?? '', role_label: r.role_label ?? '', sign_order: r.sign_order, user_id: r.user_id ?? null })));
+        setRecipients(env.recipients.map((r: RecipientInput & { id: string }) => ({
+          name: r.name, email: r.email, phone: r.phone ?? '', role_label: r.role_label ?? '', sign_order: r.sign_order, user_id: r.user_id ?? null,
+          is_certifier: r.is_certifier ?? false, certifier_title: r.certifier_title ?? '', certifier_roll_number: r.certifier_roll_number ?? '', certifier_firm: r.certifier_firm ?? '',
+        })));
       }
       if (env.fields?.length) {
         setFields(env.fields.map((f: PlacedField & { id: string; recipient_id: string }) => ({
@@ -240,6 +271,21 @@ export function SignEditor() {
       setPreviewSrc(dataUrl);
     };
     reader.readAsDataURL(file);
+  }
+
+  // The processed PDF coming back from a Stirling-PDF tool run replaces the
+  // working document exactly the same way a fresh local upload does above —
+  // it's a new binary now, no longer in sync with whichever Cloud file (if
+  // any) it started from.
+  function handleEditedDocument(blob: Blob) {
+    setSourceFileId(null);
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const dataUrl = ev.target?.result as string ?? null;
+      setDocumentData(dataUrl);
+      setPreviewSrc(dataUrl);
+    };
+    reader.readAsDataURL(blob);
   }
 
   // ── Drag and Drop handlers ────────────────────────────────────────────────
@@ -313,9 +359,9 @@ export function SignEditor() {
 
   // ── Save as draft ─────────────────────────────────────────────────────────
   async function handleSave() {
-    if (!title.trim()) { alert('Please enter an envelope title'); return; }
+    if (!title.trim()) { showAlert('Please enter an envelope title'); return; }
     if (recipients.some(r => !r.name.trim() || !r.email.trim())) {
-      alert('All recipients must have a name and email'); return;
+      showAlert('All recipients must have a name and email'); return;
     }
     setSaving(true);
     try {
@@ -336,7 +382,7 @@ export function SignEditor() {
         navigate(`/sign/envelope/${env.id}`);
       }
     } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : 'Failed to save');
+      showAlert(e instanceof Error ? e.message : 'Failed to save');
     } finally {
       setSaving(false);
     }
@@ -345,10 +391,10 @@ export function SignEditor() {
   // ── Send directly ─────────────────────────────────────────────────────────
   async function handleSend() {
     if (!title.trim() || recipients.some(r => !r.name.trim() || !r.email.trim())) {
-      alert('Please fill in all required fields before sending'); return;
+      showAlert('Please fill in all required fields before sending'); return;
     }
     if (fields.length === 0) {
-      if (!confirm('No signature fields placed. Send anyway?')) return;
+      if (!(await showConfirm('No signature fields have been placed on the document.', { title: 'Send anyway?', variant: 'warning', confirmLabel: 'Send Anyway' }))) return;
     }
     setSending(true);
     try {
@@ -367,7 +413,7 @@ export function SignEditor() {
       await apiFetch(`/v1/sign/envelopes/${envId}/send`, { method: 'POST' });
       navigate(`/sign/envelope/${envId}`);
     } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : 'Failed to send');
+      showAlert(e instanceof Error ? e.message : 'Failed to send');
     } finally {
       setSending(false);
     }
@@ -375,8 +421,8 @@ export function SignEditor() {
 
   // ── Save current layout as a reusable template ────────────────────────────
   async function handleSaveAsTemplate() {
-    if (!title.trim()) { alert('Please enter an envelope title first'); return; }
-    const name = window.prompt('Template name:', title);
+    if (!title.trim()) { showAlert('Please enter an envelope title first'); return; }
+    const name = await showPrompt('', { title: 'Template name', defaultValue: title, required: true, confirmLabel: 'Save Template' });
     if (!name?.trim()) return;
     try {
       await apiFetch('/v1/sign/templates', {
@@ -389,9 +435,9 @@ export function SignEditor() {
           file_name: fileName,
         }),
       });
-      alert('Template saved — find it under Templates.');
+      showAlert('Template saved — find it under Templates.', { variant: 'success' });
     } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : 'Failed to save template');
+      showAlert(e instanceof Error ? e.message : 'Failed to save template');
     }
   }
 
@@ -409,8 +455,8 @@ export function SignEditor() {
 
   useEffect(() => {
     function measure() {
-      const w = pageRef.current?.parentElement?.clientWidth ?? 600;
-      setPageW(Math.min(w - 48, 800));
+      const w = pageRef.current?.parentElement?.clientWidth ?? (window.innerWidth > 900 ? 600 : window.innerWidth - 32);
+      setPageW(Math.max(280, Math.min(w - 32, 800)));
     }
     measure();
     window.addEventListener('resize', measure);
@@ -428,49 +474,118 @@ export function SignEditor() {
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', fontFamily: 'var(--font)', background: 'var(--bg)' }}>
-      {/* Top bar */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 20px', borderBottom: '1px solid var(--border)', background: 'var(--card-bg)', flexShrink: 0, boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
-        <Button variant="ghost" size="icon" onClick={() => navigate('/sign')} aria-label="Back to Sign" style={{ color: 'var(--ink2)' }}>
-          <Icon name="arrowLeft" size={16} />
-        </Button>
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10 }}>
+      {/* Top control bar with responsive flex wrapping */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, padding: '8px 16px', borderBottom: '1px solid var(--border)', background: 'var(--card-bg)', flexShrink: 0, boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: '1 1 250px' }}>
+          <Button variant="outline" size="sm" onClick={() => navigate('/sign')} style={{ fontWeight: 600, gap: 6, flexShrink: 0 }}>
+            <Icon name="arrowLeft" size={14} /> Back
+          </Button>
           <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Envelope title…"
-            style={{ flex: 1, fontSize: 15, fontWeight: 700, border: 'none', background: 'transparent', color: 'var(--ink)', outline: 'none', letterSpacing: '-0.01em' }} />
-          {fileName && (
-            <span style={{ fontSize: 12, color: 'var(--ink3)', background: 'var(--bg)', border: '1px solid var(--border)', padding: '2px 8px', borderRadius: 6, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-              <Icon name="paperclip" size={11} /> {fileName}
-            </span>
-          )}
+            style={{ flex: 1, minWidth: 120, fontSize: 14.5, fontWeight: 700, border: 'none', background: 'transparent', color: 'var(--ink)', outline: 'none', letterSpacing: '-0.01em', textOverflow: 'ellipsis' }} />
         </div>
-        <Select value={orderMode} onValueChange={v => setOrderMode(v as 'sequential' | 'parallel')}>
-          <SelectTrigger className="w-45" style={{ height: 32, fontSize: 12.5 }}><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="sequential">Sequential signing</SelectItem>
-            <SelectItem value="parallel">Parallel signing</SelectItem>
-          </SelectContent>
-        </Select>
-        <label title="Each recipient must have a phone number on file — they'll get a text code before they can sign"
-          style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--ink2)', cursor: 'pointer', whiteSpace: 'nowrap', userSelect: 'none' }}>
-          <input type="checkbox" checked={requireOtp} onChange={e => setRequireOtp(e.target.checked)} style={{ accentColor: 'var(--teal)' }} />
-          SMS OTP verification
-        </label>
-        <div style={{ height: 16, width: 1, background: 'var(--border)' }} />
-        <Button variant="outline" size="sm" onClick={handleSaveAsTemplate} style={{ height: 32, fontSize: 12.5 }}>Save as Template</Button>
-        <Button variant="outline" size="sm" onClick={handleSave} disabled={saving} style={{ height: 32, fontSize: 12.5 }}>{saving ? 'Saving…' : 'Save Draft'}</Button>
-        <Button variant="default" size="sm" onClick={handleSend} disabled={sending} style={{ height: 32, fontSize: 12.5, fontWeight: 600 }}>
-          {sending ? 'Sending…' : 'Send Envelope'} <Icon name="send" size={13} style={{ marginLeft: 2 }} />
-        </Button>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginLeft: 'auto' }}>
+          <Select value={orderMode} onValueChange={v => setOrderMode(v as 'sequential' | 'parallel')}>
+            <SelectTrigger className="w-40" style={{ height: 32, fontSize: 12 }}><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="sequential">Sequential signing</SelectItem>
+              <SelectItem value="parallel">Parallel signing</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Tip label="Each recipient must have a phone number on file — they'll choose SMS or WhatsApp to receive their code">
+            <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--ink2)', cursor: 'pointer', whiteSpace: 'nowrap', userSelect: 'none' }}>
+              <input type="checkbox" checked={requireOtp} onChange={e => setRequireOtp(e.target.checked)} style={{ accentColor: 'var(--teal)' }} />
+              OTP / WhatsApp
+            </label>
+          </Tip>
+
+          <div style={{ height: 16, width: 1, background: 'var(--border)' }} />
+
+          {isPdf && previewSrc && (
+            <Tip label="Rotate, watermark, redact, OCR, compress">
+              <Button variant="outline" size="sm" onClick={() => setShowPdfTools(true)} style={{ height: 32, fontSize: 12, padding: '0 10px' }}>
+                <Icon name="layers" size={13} /> PDF Tools
+              </Button>
+            </Tip>
+          )}
+
+          {/* Unified Save Dropdown Button */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" style={{ height: 32, fontSize: 12, padding: '0 12px', gap: 5, fontWeight: 600 }}>
+                <Icon name="save" size={13} /> {saving ? 'Saving…' : 'Save'} <Icon name="chevronDown" size={11} style={{ opacity: 0.6 }} />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" style={{ width: 175, padding: 4 }}>
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={saving}
+                style={{ width: '100%', textAlign: 'left', padding: '8px 10px', fontSize: 12.5, fontWeight: 600, borderRadius: 6, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, color: 'var(--ink)' }}
+                onMouseEnter={e => e.currentTarget.style.background = 'var(--bg)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'none'}
+              >
+                <Icon name="fileText" size={14} color="var(--blue)" /> Save Draft
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveAsTemplate}
+                style={{ width: '100%', textAlign: 'left', padding: '8px 10px', fontSize: 12.5, fontWeight: 600, borderRadius: 6, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, color: 'var(--ink)' }}
+                onMouseEnter={e => e.currentTarget.style.background = 'var(--bg)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'none'}
+              >
+                <Icon name="copy" size={14} color="var(--teal)" /> Save as Template
+              </button>
+            </PopoverContent>
+          </Popover>
+
+          <Button variant="default" size="sm" onClick={handleSend} disabled={sending} style={{ height: 32, fontSize: 12, fontWeight: 700, background: '#0e1f3d', color: '#fff', padding: '0 14px' }}>
+            {sending ? 'Sending…' : 'Send'} <Icon name="send" size={13} style={{ marginLeft: 4 }} />
+          </Button>
+        </div>
       </div>
+
+      {/* Mobile Tab Switcher (visible on phones and tablets) */}
+      {isMobile && (
+        <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', background: 'var(--card-bg)', padding: '4px 8px', gap: 4 }}>
+          {[
+            { key: 'left', label: 'Recipients & Fields', icon: 'users' },
+            { key: 'center', label: 'Document Canvas', icon: 'fileText' },
+            { key: 'right', label: 'Field Options', icon: 'settings' },
+          ].map(tab => (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => setMobileTab(tab.key as any)}
+              style={{
+                flex: 1, padding: '6px 8px', borderRadius: 6, fontSize: 11.5, fontWeight: 700, cursor: 'pointer', border: 'none',
+                background: mobileTab === tab.key ? 'var(--teal-l)' : 'transparent',
+                color: mobileTab === tab.key ? 'var(--teal)' : 'var(--ink3)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4
+              }}
+            >
+              <Icon name={tab.icon as any} size={13} /> {tab.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Three-column editor body */}
       <div className="sign-editor-layout" style={{ flex: 1 }}>
 
         {/* LEFT: Field palette + Recipients */}
-        <div className="sign-editor-left">
-          {/* Recipients */}
-          <div className="sign-panel-title">Recipients</div>
+        <div className="sign-editor-left" style={{ display: isMobile && mobileTab !== 'left' ? 'none' : undefined }}>
+          {/* Recipients — signatories and any legal certifier(s) render as
+              two visibly distinct groups, not one flat list. A certifier
+              (Certified True Copy — an advocate/notary attesting the copy,
+              not just another person signing it) is a different kind of
+              party on the document, so it gets its own labeled section
+              rather than being buried among ordinary signers with only a
+              small checkbox in the edit form to tell them apart. */}
+          <div className="sign-panel-title">Signatories</div>
           <div style={{ padding: '0 12px 8px' }}>
-            {recipients.map((r, i) => (
+            {recipients.map((r, i) => ({ r, i })).filter(({ r }) => !r.is_certifier).map(({ r, i }) => (
               <div key={i} className={`sign-recipient-row ${activeRecipient === i ? 'active' : ''}`}
                 onClick={() => setActiveRecipient(i)}>
                 <div className="sign-recipient-color" style={{ background: RECIPIENT_COLORS[i % RECIPIENT_COLORS.length] }} />
@@ -488,6 +603,40 @@ export function SignEditor() {
                 )}
               </div>
             ))}
+          </div>
+
+          {recipients.some(r => r.is_certifier) && (
+            <>
+              <div className="sign-panel-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Icon name="scale" size={12} style={{ color: 'var(--blue)' }} /> Certification
+              </div>
+              <div style={{ padding: '0 12px 8px' }}>
+                {recipients.map((r, i) => ({ r, i })).filter(({ r }) => r.is_certifier).map(({ r, i }) => (
+                  <div key={i} className={`sign-recipient-row ${activeRecipient === i ? 'active' : ''}`}
+                    onClick={() => setActiveRecipient(i)}
+                    style={{ background: 'var(--blue-l)', border: '1px solid var(--blue)' }}>
+                    <div className="sign-recipient-color" style={{ background: RECIPIENT_COLORS[i % RECIPIENT_COLORS.length] }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {r.name || `Recipient ${i + 1}`}
+                      </div>
+                      <div style={{ fontSize: 11, color: 'var(--blue)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {r.certifier_title || 'Advocate'} — Certifying Copy
+                      </div>
+                    </div>
+                    {recipients.length > 1 && (
+                      <Button variant="ghost" size="icon" className="h-6 w-6 min-h-0"
+                        onClick={e => { e.stopPropagation(); removeRecipient(i); }} aria-label="Remove recipient">
+                        <Icon name="x" size={13} />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          <div style={{ padding: '0 12px 8px' }}>
             <Button variant="outline" size="sm" onClick={addRecipient} style={{ width: '100%', marginTop: 4, borderStyle: 'dashed' }}>
               <Icon name="plus" size={13} /> Add Recipient
             </Button>
@@ -530,6 +679,35 @@ export function SignEditor() {
                 style={{ width: '100%', padding: '7px 10px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 12.5, marginTop: 6, boxSizing: 'border-box' }}
               />
             ))}
+
+            {/* Certified True Copy — collapsed behind its own checkbox since
+                most documents never need it; a real legal attestation by a
+                named licensed advocate/notary, not the tenant's own stamp. */}
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--ink2)', cursor: 'pointer', marginTop: 10 }}>
+              <input type="checkbox" checked={!!recipients[activeRecipient]?.is_certifier}
+                onChange={e => setRecipients(prev => prev.map((r, i) => i === activeRecipient ? { ...r, is_certifier: e.target.checked } : r))}
+                style={{ accentColor: 'var(--teal)' }} />
+              This recipient certifies a true copy (advocate / notary)
+            </label>
+            {recipients[activeRecipient]?.is_certifier && (
+              <div style={{ marginTop: 6, padding: 10, borderRadius: 'var(--r-sm)', border: '1px dashed var(--border)', background: 'var(--bg)', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <input value={recipients[activeRecipient]?.certifier_title ?? ''}
+                  onChange={e => setRecipients(prev => prev.map((r, i) => i === activeRecipient ? { ...r, certifier_title: e.target.value } : r))}
+                  placeholder="Title (e.g. Advocate, Commissioner for Oaths)"
+                  style={{ width: '100%', padding: '7px 10px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 12.5, boxSizing: 'border-box' }} />
+                <input value={recipients[activeRecipient]?.certifier_roll_number ?? ''}
+                  onChange={e => setRecipients(prev => prev.map((r, i) => i === activeRecipient ? { ...r, certifier_roll_number: e.target.value } : r))}
+                  placeholder="Practising certificate / roll number"
+                  style={{ width: '100%', padding: '7px 10px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 12.5, boxSizing: 'border-box' }} />
+                <input value={recipients[activeRecipient]?.certifier_firm ?? ''}
+                  onChange={e => setRecipients(prev => prev.map((r, i) => i === activeRecipient ? { ...r, certifier_firm: e.target.value } : r))}
+                  placeholder="Law firm (optional)"
+                  style={{ width: '100%', padding: '7px 10px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 12.5, boxSizing: 'border-box' }} />
+                <p style={{ fontSize: 11, color: 'var(--ink3)', margin: 0, lineHeight: 1.4 }}>
+                  Place a “Certified True Copy Stamp” field (below) and assign it to this recipient — the roll number above is baked into the signed PDF as real text, next to their signature.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Field type palette */}
@@ -561,40 +739,72 @@ export function SignEditor() {
         </div>
 
         {/* CENTER: A4 page preview */}
-        <div className="sign-editor-center">
+        <div className="sign-editor-center" style={{ display: isMobile && mobileTab !== 'center' ? 'none' : undefined }}>
+          {/* Toolbar + canvas share a wrapper with no gap between them, so
+              the dark bar and the white page below it read as one card, not
+              two elements floating apart — .sign-editor-center's own 16px
+              flex gap would otherwise land right between them, same as it
+              correctly does around this whole group's other siblings. */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: fileName ? 0 : 16, width: '100%' }}>
+          {/* Dark document toolbar — filename + type badge + page nav, one
+              bar, same "Studio Control Bar" design as the sender's own
+              envelope detail view (SignInbox.tsx), the public signing page
+              (SignPublicPage.tsx) and the Cloud Lightbox. Used to be a light
+              filename banner with a separate dark pagination pill floating
+              below it with a gap between them — merged into the one
+              consistent bar every other document surface in the app uses. */}
+          {fileName && (
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+              background: '#0f172a', borderRadius: '10px 10px 0 0', padding: '10px 16px',
+              marginBottom: 0, width: pageW, maxWidth: '100%', boxSizing: 'border-box',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                <Icon name="fileText" size={16} style={{ color: '#38bdf8', flexShrink: 0 }} />
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#f8fafc', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{fileName}</span>
+                <span style={{ fontSize: 10, fontWeight: 800, background: '#1e293b', color: '#94a3b8', padding: '2px 6px', borderRadius: 4, textTransform: 'uppercase', flexShrink: 0 }}>
+                  {fileName.split('.').pop() || 'PDF'}
+                </span>
+              </div>
+
+              {/* Page navigation — real multi-page PDFs (a delivery order, a
+                  multi-page contract) can now actually be paged through;
+                  fields already carried a `page` property, it just had
+                  nowhere to go before since page 1 was the only page ever
+                  rendered. */}
+              {isPdf && pdfDoc && pdfNumPages > 1 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#1e293b', borderRadius: 20, padding: '3px 10px', flexShrink: 0 }}>
+                  <button onClick={() => setCurrentPdfPage(p => Math.max(1, p - 1))} disabled={currentPdfPage <= 1}
+                    style={{ background: 'none', border: 'none', cursor: currentPdfPage <= 1 ? 'default' : 'pointer', opacity: currentPdfPage <= 1 ? 0.3 : 1, display: 'flex', padding: 2 }}>
+                    <Icon name="chevronLeft" size={14} color="#f8fafc" />
+                  </button>
+                  <span style={{ fontSize: 12, color: '#f8fafc', fontWeight: 600, whiteSpace: 'nowrap', fontFamily: 'var(--mono)' }}>
+                    {currentPdfPage} / {pdfNumPages}
+                  </span>
+                  <button onClick={() => setCurrentPdfPage(p => Math.min(pdfNumPages, p + 1))} disabled={currentPdfPage >= pdfNumPages}
+                    style={{ background: 'none', border: 'none', cursor: currentPdfPage >= pdfNumPages ? 'default' : 'pointer', opacity: currentPdfPage >= pdfNumPages ? 0.4 : 1, display: 'flex', padding: 2 }}>
+                    <Icon name="chevronRight" size={14} color="#f8fafc" />
+                  </button>
+                  {fields.some(f => f.page !== currentPdfPage) && (
+                    <span style={{ fontSize: 11, color: '#94a3b8', borderLeft: '1px solid #334155', paddingLeft: 8, marginLeft: 2 }}>
+                      {fields.filter(f => f.page !== currentPdfPage).length} elsewhere
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* File upload area */}
           {!previewSrc && (
             <div onClick={() => fileInputRef.current?.click()}
-              style={{ width: pageW, height: Math.round(pageW * 0.3), border: '2px dashed var(--border)', borderRadius: 12, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, cursor: 'pointer', background: 'var(--card-bg)', color: 'var(--ink3)', transition: 'border-color 0.15s' }}>
+              style={{ width: pageW, height: Math.round(pageW * 0.3), border: '2px dashed var(--border)', borderRadius: 12, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, cursor: 'pointer', background: 'var(--card-bg)', color: 'var(--ink3)', transition: 'border-color 0.15s', marginTop: fileName ? 0 : undefined }}>
               <Icon name="file" size={36} style={{ opacity: 0.4 }} />
               <div style={{ fontSize: 14, fontWeight: 600 }}>Upload Document</div>
               <div style={{ fontSize: 12 }}>PDF, DOCX, PNG, JPG</div>
             </div>
           )}
           <input ref={fileInputRef} type="file" accept=".pdf,.png,.jpg,.jpeg,.docx" style={{ display: 'none' }} onChange={handleFile} />
-
-          {/* Page navigation — real multi-page PDFs (a delivery order, a
-              multi-page contract) can now actually be paged through; fields
-              already carried a `page` property, it just had nowhere to go
-              before since page 1 was the only page ever rendered. */}
-          {isPdf && pdfDoc && pdfNumPages > 1 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#1f2937', borderRadius: 20, padding: '5px 14px', flexShrink: 0 }}>
-              <button onClick={() => setCurrentPdfPage(p => Math.max(1, p - 1))} disabled={currentPdfPage <= 1}
-                style={{ background: 'none', border: 'none', cursor: currentPdfPage <= 1 ? 'default' : 'pointer', opacity: currentPdfPage <= 1 ? 0.4 : 1, display: 'flex', padding: 2 }}>
-                <Icon name="chevronLeft" size={15} color="#d1d5db" />
-              </button>
-              <span style={{ fontSize: 12.5, color: '#f3f4f6', fontWeight: 600 }}>Page {currentPdfPage} / {pdfNumPages}</span>
-              <button onClick={() => setCurrentPdfPage(p => Math.min(pdfNumPages, p + 1))} disabled={currentPdfPage >= pdfNumPages}
-                style={{ background: 'none', border: 'none', cursor: currentPdfPage >= pdfNumPages ? 'default' : 'pointer', opacity: currentPdfPage >= pdfNumPages ? 0.4 : 1, display: 'flex', padding: 2 }}>
-                <Icon name="chevronRight" size={15} color="#d1d5db" />
-              </button>
-              {fields.some(f => f.page !== currentPdfPage) && (
-                <span style={{ fontSize: 11, color: '#9ca3af', borderLeft: '1px solid #4b5563', paddingLeft: 10 }}>
-                  {fields.filter(f => f.page !== currentPdfPage).length} field(s) on other pages
-                </span>
-              )}
-            </div>
-          )}
 
           {/* Page canvas — sized to the real document page's own
               proportions (see naturalPageSize above), not a fixed A4 guess */}
@@ -667,6 +877,7 @@ export function SignEditor() {
               </div>
             )}
           </div>
+          </div>
 
           {placingType && (
             <div style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 500, flexShrink: 0 }}>
@@ -676,7 +887,7 @@ export function SignEditor() {
         </div>
 
         {/* RIGHT: Selected field properties */}
-        <div className="sign-editor-right">
+        <div className="sign-editor-right" style={{ display: isMobile && mobileTab !== 'right' ? 'none' : undefined }}>
           <div className="sign-panel-title">Field Properties</div>
           {selectedFieldData ? (
             <div style={{ padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -738,6 +949,15 @@ export function SignEditor() {
           )}
         </div>
       </div>
+
+      {showPdfTools && previewSrc && (
+        <StirlingPdfTools
+          documentSrc={previewSrc}
+          fileName={fileName ?? 'document.pdf'}
+          onExport={blob => { handleEditedDocument(blob); setShowPdfTools(false); }}
+          onClose={() => setShowPdfTools(false)}
+        />
+      )}
     </div>
   );
 }

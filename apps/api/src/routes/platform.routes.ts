@@ -15,6 +15,9 @@ const brandingPatchSchema = z.record(z.string(), z.any());
 const designTokensPatchSchema = z.record(z.string(), z.any());
 const seoPatchSchema = z.record(z.string(), z.any());
 const workspacesPatchSchema = z.array(z.record(z.string(), z.any()));
+const stirlingPdfPatchSchema = z.object({
+  baseUrl: z.string().optional(),
+});
 const designSystemVersionPatchSchema = z.object({
   version: z.enum(['v1', 'v2', 'v3']).optional(),
   v2Color: z.string().optional(),
@@ -137,6 +140,50 @@ export async function platformRoutes(fastify: FastifyInstance) {
 
     const merged = { ...existingVersion, ...body };
     const patch = JSON.stringify({ 'design-system-version': merged });
+
+    const exists = await dbPlatform.selectFrom('tenant_settings').select('id').where('tenant_id', '=', GLOBAL_TENANT_ID).executeTakeFirst();
+    if (exists) {
+      await sql`UPDATE tenant_settings SET settings = settings || ${patch}::jsonb, updated_at = NOW() WHERE tenant_id = ${GLOBAL_TENANT_ID}`.execute(dbPlatform);
+    } else {
+      await dbPlatform.insertInto('tenant_settings').values({ tenant_id: GLOBAL_TENANT_ID, settings: patch }).execute();
+    }
+
+    return merged;
+  });
+
+  // ── Stirling-PDF (self-hosted PDF toolkit, github.com/Stirling-Tools/
+  // Stirling-PDF) base URL — one platform-wide endpoint, not per-tenant.
+  // GET only requires a login, not SUPER_ADMIN: StirlingPdfTools.tsx calls
+  // this for any authenticated user who opens "PDF Tools" in the eSign
+  // editor, to learn whether the feature is configured at all and, if so,
+  // to show the connected endpoint — the same "needed client-side just to
+  // render the panel" reasoning nutrient-license's own GET used to document
+  // before Nutrient was removed in favor of this. Only PUT (actually
+  // changing the endpoint) is SuperAdmin-only. Same sentinel-row pattern as
+  // design-system-version above.
+  fastify.get('/stirling-pdf', { preHandler: fastify.authenticate }, async (request, reply) => {
+    const row = await dbPlatform.selectFrom('tenant_settings')
+      .select('settings')
+      .where('tenant_id', '=', GLOBAL_TENANT_ID)
+      .executeTakeFirst();
+    const settings = row ? (typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings) : {};
+    return settings['stirling-pdf'] || { baseUrl: null };
+  });
+
+  fastify.put('/stirling-pdf', {
+    preHandler: [fastify.authenticate, requireRole('SUPER_ADMIN')],
+  }, async (request, reply) => {
+    const body = stirlingPdfPatchSchema.parse(request.body);
+
+    const row = await dbPlatform.selectFrom('tenant_settings')
+      .select('settings')
+      .where('tenant_id', '=', GLOBAL_TENANT_ID)
+      .executeTakeFirst();
+    const existing = row ? (typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings) : {};
+    const existingConfig = existing['stirling-pdf'] || { baseUrl: null };
+
+    const merged = { ...existingConfig, ...body };
+    const patch = JSON.stringify({ 'stirling-pdf': merged });
 
     const exists = await dbPlatform.selectFrom('tenant_settings').select('id').where('tenant_id', '=', GLOBAL_TENANT_ID).executeTakeFirst();
     if (exists) {

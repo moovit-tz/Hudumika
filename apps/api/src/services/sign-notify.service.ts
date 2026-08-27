@@ -64,9 +64,11 @@ export function buildStampPayload(envelope: { verification_code: string | null; 
 export async function getEnvelopeWithRelations(db: Db, id: string, tid: string) {
   const envelope = await db
     .selectFrom('sign_envelopes')
-    .selectAll()
-    .where('id', '=', id)
-    .where('tenant_id', '=', tid)
+    .leftJoin('users', 'users.id', 'sign_envelopes.created_by')
+    .selectAll('sign_envelopes')
+    .select(['users.name as created_by_name'])
+    .where('sign_envelopes.id', '=', id)
+    .where('sign_envelopes.tenant_id', '=', tid)
     .executeTakeFirst();
 
   if (!envelope) return null;

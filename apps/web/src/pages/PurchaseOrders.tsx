@@ -4,6 +4,7 @@ import { useBranding } from '../hooks/useBranding.js';
 import { useCurrency } from '../hooks/useCurrency.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { MetricsRow } from '../components/MetricCard.js';
 import { FormPage } from '../components/FormPage.js';
 import { apiFetch } from '../lib/api.js';
 import { EntityPicker, PickerItem } from '../components/EntityPicker.js';
@@ -432,6 +433,28 @@ export const PurchaseOrders: React.FC = () => {
     return result;
   }, [pos, appliedSearch, filterStatus, filterVendor, sortField, sortAsc, getPOTotals]);
 
+  // Over the full set, not processedPOs — a status/search filter narrowing
+  // the table shouldn't also make the summary above it lie about the totals.
+  const poStats = useMemo(() => {
+    const draftCount = pos.filter(po => po.status === 'Draft').length;
+    const receivedCount = pos.filter(po => po.status === 'Received').length;
+    let totalValue = 0, receivedValue = 0, outstandingBalance = 0, overdueBalance = 0;
+    for (const po of pos) {
+      const { total } = getPOTotals(po.items);
+      const balance = Math.max(0, total - po.balancePaid);
+      const isOverdue = po.status !== 'Received' && po.status !== 'Cancelled' && new Date(po.dueDate) < REF_DATE;
+      totalValue += total;
+      if (po.status === 'Received') receivedValue += total;
+      outstandingBalance += balance;
+      if (isOverdue) overdueBalance += balance;
+    }
+    return {
+      total: pos.length, draftCount, receivedCount,
+      totalValue, receivedValue, pendingValue: Math.max(0, totalValue - receivedValue),
+      outstandingBalance, overdueBalance, currentBalance: Math.max(0, outstandingBalance - overdueBalance),
+    };
+  }, [pos, getPOTotals]);
+
   // Pagination calculations
   const paginatedPOs = useMemo(() => {
     const startIndex = (currentPage - 1) * rowsPerPage;
@@ -744,16 +767,37 @@ export const PurchaseOrders: React.FC = () => {
         {/* PAGE HEADER — list mode */}
         {viewMode === 'LIST' && (
           <PageHeader
-            crumbs={['Finance', 'Purchase Orders']}
-            titlePlain="Purchase"
+            crumbs={['FINANCE', 'PURCHASE ORDERS']}
+            titlePlain="Purchase "
             titleEm="orders"
             subtitle="Request goods and services, manage approvals and track delivery."
-            actions={
-              <button type="button" className="btn btn-primary" onClick={handleCreateInit}>
-                <Icon name="plus" size={13} /> New Purchase Order
-              </button>
-            }
           />
+        )}
+
+        {viewMode === 'LIST' && (
+          <MetricsRow cards={[
+            {
+              title: 'TOTAL PURCHASE ORDERS', value: String(poStats.total),
+              sub1Label: 'DRAFT', sub1Value: String(poStats.draftCount),
+              sub2Label: 'RECEIVED', sub2Value: String(poStats.receivedCount), barHighlight: 'var(--teal)',
+            },
+            {
+              title: 'TOTAL VALUE', value: fmt(poStats.totalValue, 'USD'),
+              sub1Label: 'RECEIVED', sub1Value: fmt(poStats.receivedValue, 'USD'),
+              sub2Label: 'PENDING', sub2Value: fmt(poStats.pendingValue, 'USD'), barHighlight: 'var(--blue)',
+            },
+            {
+              title: 'OUTSTANDING BALANCE', value: fmt(poStats.outstandingBalance, 'USD'),
+              invertTrend: true,
+              sub1Label: 'CURRENT', sub1Value: fmt(poStats.currentBalance, 'USD'),
+              sub2Label: 'OVERDUE', sub2Value: fmt(poStats.overdueBalance, 'USD'), barHighlight: 'var(--red)',
+            },
+            {
+              title: 'FULFILLMENT RATE', value: `${poStats.total ? Math.round((poStats.receivedCount / poStats.total) * 100) : 0}%`,
+              sub1Label: 'RECEIVED', sub1Value: String(poStats.receivedCount),
+              sub2Label: 'TOTAL', sub2Value: String(poStats.total), barHighlight: 'var(--green)',
+            },
+          ]} />
         )}
 
         {/* VIEW MODE: LIST OF POS */}
@@ -879,6 +923,11 @@ export const PurchaseOrders: React.FC = () => {
                     <Icon name="filter" size={13} />
                     Filters
                     <Icon name={showFiltersPanel ? 'chevronUp' : 'chevronDown'} size={11} />
+                  </button>
+
+                  <button type="button" onClick={handleCreateInit}
+                    style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+                    <Icon name="plus" size={14} color="hsl(var(--primary-foreground))" /> New Purchase Order
                   </button>
                 </div>
               </div>

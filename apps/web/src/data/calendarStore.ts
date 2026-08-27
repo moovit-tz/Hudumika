@@ -45,13 +45,14 @@ export interface GuestPermissions {
   seeGuestList: boolean;
 }
 
+// Only two real, verifiable settings — applied as Jitsi's own documented
+// URL hash config (#config.startWithVideoMuted=true&...) when someone joins.
+// The original mockup had five fabricated toggles (host management,
+// screen-share/reactions/chat permissions) with no real mechanism behind
+// any of them on Jitsi's public instance for anonymous participants.
 export interface MeetingSettings {
-  hostManagement: boolean;
-  shareScreen: boolean;
-  sendReactions: boolean;
-  continuousChat: boolean;
-  letSendMessages: boolean;
-  organizerName?: string;
+  startWithVideoMuted?: boolean;
+  startWithAudioMuted?: boolean;
 }
 
 export interface CalendarEvent {
@@ -76,8 +77,8 @@ export interface CalendarEvent {
   recurrence?: RecurrenceRule | null;
   reminderOffsets: number[];
   timezone?: string;
-  meetingUrl?: string;
-  meetingSettings?: MeetingSettings;
+  meetingUrl?: string | null;
+  meetingSettings?: MeetingSettings | null;
   guestPermissions?: GuestPermissions;
   visibility?: 'default' | 'public' | 'private';
   busyStatus?: 'busy' | 'free';
@@ -280,6 +281,8 @@ function fromApiEvent(row: any): CalendarEvent {
     allDay: !!row.all_day, color: row.color || null, recurrence: row.recurrence || null,
     reminderOffsets: Array.isArray(row.reminder_offsets) ? row.reminder_offsets : [],
     timezone: row.timezone || undefined,
+    meetingUrl: row.meeting_url || undefined,
+    meetingSettings: row.meeting_settings || undefined,
   };
 }
 
@@ -353,7 +356,7 @@ export function addEvent(event: NewEventInput) {
       id, title: newEvent.title, start: localToUTCISO(newEvent.start), end: localToUTCISO(newEvent.end),
       description: newEvent.description, location: newEvent.location, category: newEvent.category, guests: newEvent.guests,
       allDay: newEvent.allDay, color: newEvent.color, recurrence: newEvent.recurrence, reminderOffsets: newEvent.reminderOffsets,
-      timezone: newEvent.timezone,
+      timezone: newEvent.timezone, meetingUrl: newEvent.meetingUrl, meetingSettings: newEvent.meetingSettings,
     }),
   }).then(() => { if (newEvent.recurrence) reloadEvents(); }) // a recurring series needs its full occurrence set, not just the one optimistic row
     .catch(err => { events = events.filter(e => e.id !== id); emit(); reportSyncFailure(err); });
@@ -401,6 +404,8 @@ export function updateEvent(id: string, patch: Partial<CalendarEvent>, opts?: { 
   if (patch.recurrence !== undefined) body.recurrence = patch.recurrence;
   if (patch.reminderOffsets !== undefined) body.reminderOffsets = patch.reminderOffsets;
   if (patch.timezone !== undefined) body.timezone = patch.timezone;
+  if (patch.meetingUrl !== undefined) body.meetingUrl = patch.meetingUrl || null;
+  if (patch.meetingSettings !== undefined) body.meetingSettings = patch.meetingSettings;
 
   apiFetch(`/v1/tasks/events/${id}`, { method: 'PATCH', body: JSON.stringify(body) })
     .then(() => { if (needsReload) reloadEvents(); })

@@ -1192,35 +1192,36 @@ export const Quotations: React.FC = () => {
   return (
     <div style={{ padding: '0 0 24px', flex:1, overflowY:'auto' }}>
       <PageHeader
-        crumbs={['Finance', 'Quotations']}
-        titlePlain="Sales"
+        crumbs={['FINANCE', 'QUOTATIONS']}
+        titlePlain="Sales "
         titleEm="quotations"
         subtitle="Create, manage and convert freight quotations into shipment cases."
       />
 
       <MetricsRow cards={[
-        { title:'Total Quotes', value:String(quotes.length), sub1Label:'DRAFT', sub1Value:String(quotes.filter(q=>q.status==='DRAFT').length), sub2Label:'PENDING', sub2Value:String(quotes.filter(q=>q.status==='PENDING').length), barHighlight:'var(--blue)' },
-        { title:'Converted', value:String(quotes.filter(q=>q.status==='CONVERTED').length), sub1Label:'WIN RATE', sub1Value:quotes.length?`${Math.round(quotes.filter(q=>q.status==='CONVERTED').length/quotes.length*100)}%`:'0%', sub2Label:'APPROVED', sub2Value:String(quotes.filter(q=>q.status==='APPROVED').length), barHighlight:'var(--green)' },
-        { title:'Pipeline Value', value:`$${(quotes.filter(q=>!['REJECTED','EXPIRED'].includes(q.status)).reduce((s,q)=>s+(q.total_amount||0),0)/1000).toFixed(1)}k`, sub1Label:'AVG QUOTE', sub1Value:quotes.length?`$${(quotes.reduce((s,q)=>s+(q.total_amount||0),0)/quotes.length/1000).toFixed(1)}k`:'$0', sub2Label:'PENDING $', sub2Value:`$${(quotes.filter(q=>q.status==='PENDING').reduce((s,q)=>s+(q.total_amount||0),0)/1000).toFixed(1)}k`, barHighlight:'var(--gold)' },
+        { title:'TOTAL QUOTES', value:String(quotes.length), sub1Label:'DRAFT', sub1Value:String(quotes.filter(q=>q.status==='DRAFT').length), sub2Label:'PENDING', sub2Value:String(quotes.filter(q=>q.status==='PENDING').length), barHighlight:'var(--teal)' },
+        { title:'CONVERTED', value:String(quotes.filter(q=>q.status==='CONVERTED').length), sub1Label:'WIN RATE', sub1Value:quotes.length?`${Math.round(quotes.filter(q=>q.status==='CONVERTED').length/quotes.length*100)}%`:'0%', sub2Label:'APPROVED', sub2Value:String(quotes.filter(q=>q.status==='APPROVED').length), barHighlight:'var(--green)' },
+        { title:'PIPELINE VALUE', value:`TZS ${(quotes.filter(q=>!['REJECTED','EXPIRED'].includes(q.status)).reduce((s,q)=>s+(q.total_amount||0),0)).toLocaleString()}`, sub1Label:'AVG QUOTE', sub1Value:`TZS ${quotes.length?Math.round(quotes.reduce((s,q)=>s+(q.total_amount||0),0)/quotes.length).toLocaleString():'0'}`, sub2Label:'PENDING VALUE', sub2Value:`TZS ${quotes.filter(q=>q.status==='PENDING').reduce((s,q)=>s+(q.total_amount||0),0).toLocaleString()}`, barHighlight:'var(--gold)' },
+        { title:'REJECTED / EXPIRED', value:String(quotes.filter(q=>['REJECTED','EXPIRED'].includes(q.status)).length), sub1Label:'REJECTED', sub1Value:String(quotes.filter(q=>q.status==='REJECTED').length), sub2Label:'EXPIRED', sub2Value:String(quotes.filter(q=>q.status==='EXPIRED').length), barHighlight:'var(--red)' },
       ]}/>
 
-      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16, gap:12 }}>
-        <div style={{ display:'flex', gap:4 }}>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16, gap:12, flexWrap: 'wrap' }}>
+        <div style={{ display:'flex', gap:6, flexWrap: 'wrap' }}>
           {STATUS_TABS.map(t=>(
             <button key={t.key} type="button" title={`Filter: ${t.label}`} onClick={()=>setFilter(t.key)}
-              style={{ padding:'var(--ds-btn-py-sm) 14px', fontSize:12, fontWeight:600, border:'none', borderRadius:20, cursor:'pointer', transition:'all 0.12s', background:filter===t.key?'var(--navy)':'var(--bg)', color:filter===t.key?'#fff':'var(--ink2)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
+              style={{ padding:'7px 16px', fontSize:12.5, fontWeight:700, border:'1px solid var(--border)', borderRadius:20, cursor:'pointer', transition:'all 0.15s ease', background:filter===t.key?'hsl(var(--primary))':'var(--white)', color:filter===t.key?'hsl(var(--primary-foreground))':'var(--ink2)', boxShadow:filter===t.key?'0 2px 8px rgba(14,31,61,0.25)':'none' }}>
               {t.label}
               {t.key!=='ALL'&&quotes.filter(q=>q.status===t.key).length>0&&(
-                <span style={{ marginLeft:5, background:filter===t.key?'rgba(255,255,255,0.25)':'var(--border)', borderRadius: 9, padding:'1px 6px', fontSize:10, fontWeight:700 }}>{quotes.filter(q=>q.status===t.key).length}</span>
+                <span style={{ marginLeft:6, background:filter===t.key?'rgba(255,255,255,0.25)':'var(--border)', borderRadius: 10, padding:'1px 6px', fontSize:10, fontWeight:700 }}>{quotes.filter(q=>q.status===t.key).length}</span>
               )}
             </button>
           ))}
         </div>
-        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap: 'wrap' }}>
           <div style={{ position:'relative', minWidth:220 }}>
             <Icon name="search" size={14} style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)', color:'var(--ink3)' } as React.CSSProperties}/>
-            <input type="text" title="Search" placeholder="Search quotes, customers..." value={search} onChange={e=>setSearch(e.target.value)}
-              style={{ width:'100%', paddingLeft:32, paddingRight:12, paddingTop:8, paddingBottom:8, border:'1px solid var(--border)', borderRadius: 9, fontSize:13, outline:'none', background:'var(--white)', boxSizing:'border-box' as const }}/>
+            <input type="search" placeholder="Search quotes, customers..." value={search} onChange={e=>setSearch(e.target.value)}
+              style={{ width:'100%', paddingLeft:32, paddingRight:12, paddingTop:8, paddingBottom:8, border:'1px solid var(--border)', borderRadius: 8, fontSize:13, outline:'none', background:'var(--white)', boxSizing:'border-box' as const }}/>
           </div>
           <button type="button" onClick={exportCsv} style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', borderRadius:'var(--r)', border:'1px solid var(--border)', background:'var(--white)', color:'var(--ink2)', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'var(--font)', whiteSpace:'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
             <Icon name="download" size={13}/> Export CSV

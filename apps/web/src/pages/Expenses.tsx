@@ -390,6 +390,20 @@ export const Expenses: React.FC = () => {
 
   const totalExp = filtered.filter(e => !e.is_revenue).reduce((s, e) => s + e.amount, 0);
   const totalRev = filtered.filter(e => e.is_revenue).reduce((s, e) => s + e.amount, 0);
+  // Real date-scoped sums, not a guessed share of the lifetime total (that
+  // used to be `totalRev * 0.38` / `* 0.09` — see FinanceVendors.tsx's fix
+  // for the same anti-pattern and why it's wrong).
+  const revThisMonth = (() => {
+    const now = new Date();
+    return filtered.filter(e => e.is_revenue).reduce((s, e) => {
+      const d = new Date(e.date);
+      return s + (d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() ? e.amount : 0);
+    }, 0);
+  })();
+  const revThisWeek = (() => {
+    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    return filtered.filter(e => e.is_revenue).reduce((s, e) => s + (new Date(e.date) >= weekAgo ? e.amount : 0), 0);
+  })();
 
   function exportCsv() {
     const rows = [
@@ -466,34 +480,40 @@ export const Expenses: React.FC = () => {
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, background: 'var(--white)' }}>
       <PageHeader
-        crumbs={['Finance', 'Expenses']}
-        titlePlain="Expense"
+        crumbs={['FINANCE', 'EXPENSES']}
+        titlePlain="Expense "
         titleEm="tracking"
         subtitle="Costs and revenue across all shipments and operations — including fleet fuel, maintenance, and vehicle costs."
       />
 
-      {/* KPI row directly below header (matching /finance/vendors) */}
+      {/* KPI row directly below header (matching standard format) */}
       {!isSplit && (
         <MetricsRow cards={[
           {
-            title: 'Total Costs',
+            title: 'TOTAL COSTS',
             value: fmt(totalExp, 'TZS'),
             invertTrend: true,
             sub1Label: 'LINE ITEMS', sub1Value: String(items.filter(e => !e.is_revenue).length),
             sub2Label: 'AVG COST', sub2Value: fmt(items.filter(e => !e.is_revenue).length ? Math.round(totalExp / items.filter(e => !e.is_revenue).length) : 0, 'TZS'), barHighlight: 'var(--red)',
           },
           {
-            title: 'Total Revenue',
+            title: 'TOTAL REVENUE',
             value: fmt(totalRev, 'TZS'),
-            sub1Label: 'THIS MONTH', sub1Value: fmt(Math.round(totalRev * 0.38), 'TZS'),
-            sub2Label: 'THIS WEEK', sub2Value: fmt(Math.round(totalRev * 0.09), 'TZS'), barHighlight: 'var(--green)',
+            sub1Label: 'THIS MONTH', sub1Value: fmt(revThisMonth, 'TZS'),
+            sub2Label: 'THIS WEEK', sub2Value: fmt(revThisWeek, 'TZS'), barHighlight: 'var(--green)',
           },
           {
-            title: 'Net Margin',
+            title: 'NET MARGIN',
             value: fmt(totalRev - totalExp, 'TZS'),
             trend: !totalRev ? 0 : parseFloat(((totalRev - totalExp) / totalRev * 100).toFixed(1)),
             sub1Label: 'MARGIN %', sub1Value: !totalRev ? '—' : `${Math.round(((totalRev - totalExp) / totalRev) * 100)}%`,
-            sub2Label: 'ALL ITEMS', sub2Value: String(items.length), barHighlight: 'var(--purple)',
+            sub2Label: 'ALL ITEMS', sub2Value: String(items.length), barHighlight: 'var(--blue)',
+          },
+          {
+            title: 'PENDING RETIREMENTS',
+            value: String(items.filter(e => e.retirement_status === 'pending').length),
+            sub1Label: 'PETTY CLAIMS', sub1Value: String(items.filter(e => e.retirement_status === 'pending').length),
+            sub2Label: 'RETIRED', sub2Value: String(items.filter(e => e.retirement_status === 'approved').length), barHighlight: 'var(--gold)',
           },
         ]} />
       )}

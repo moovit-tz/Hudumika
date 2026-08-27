@@ -4,6 +4,7 @@ import { useIsMobile } from '../hooks/useIsMobile.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { useCompany } from '../data/companyStore.js';
 import { Icon } from './Icon.js';
+import { PersonAvatar } from './PersonAvatar.js';
 import { getJobs, updateJob, STAGES } from '../pages/clearanceData.js';
 import type { Stage, TimeEntry } from '../pages/clearanceData.js';
 import { useClockIn } from '../contexts/ClockInContext.js';
@@ -418,10 +419,6 @@ const ROLE_LABELS: Record<string, string> = {
   MANAGER: 'Manager', FINANCE: 'Finance', SALES: 'Sales Officer',
   SENIOR: 'Senior Officer', JUNIOR: 'Junior Officer', OFFICER: 'Officer', CUSTOMER: 'Customer',
 };
-function initials(n: string) {
-  return n.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
-}
-
 function relTime(dateStr: string): string {
   const ms = Date.now() - new Date(dateStr).getTime();
   const sec = Math.floor(ms / 1000);
@@ -794,19 +791,7 @@ export const TopBar: React.FC<TopBarProps> = ({ navCollapsed, onToggleNav, onMob
               >
                 {/* Avatar circle */}
                 <div style={{ position: 'relative', flexShrink: 0 }}>
-                  {user?.avatar_url ? (
-                    <img src={user.avatar_url} alt={user.name}
-                      style={{ width: 34, height: 34, borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--border)' }} />
-                  ) : (
-                    <div style={{
-                      width: 34, height: 34, borderRadius: '50%',
-                      background: 'linear-gradient(135deg, var(--teal) 0%, #0550ae 100%)',
-                      color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 12, fontWeight: 800, letterSpacing: '-0.02em',
-                    }}>
-                      {user ? initials(user.name) : '?'}
-                    </div>
-                  )}
+                  <PersonAvatar userId={user?.id} name={user?.name ?? 'User'} size={34} style={{ border: '2px solid var(--border)' }} />
                   <span style={{
                     position: 'absolute', bottom: 1, right: 1,
                     width: 9, height: 9, borderRadius: '50%',
@@ -835,19 +820,7 @@ export const TopBar: React.FC<TopBarProps> = ({ navCollapsed, onToggleNav, onMob
             <DropdownMenuContent align="end" className="w-[280px] p-2 rounded-xl">
               {/* User info header */}
               <div style={{ padding: '12px', display: 'flex', alignItems: 'center', gap: 12 }}>
-                {user?.avatar_url ? (
-                  <img src={user.avatar_url} alt={user.name}
-                    style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '2px solid var(--border)' }} />
-                ) : (
-                  <div style={{
-                    width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
-                    background: 'linear-gradient(135deg, var(--teal) 0%, #0550ae 100%)',
-                    color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 15, fontWeight: 800, letterSpacing: '-0.02em',
-                  }}>
-                    {user ? initials(user.name) : '?'}
-                  </div>
-                )}
+                <PersonAvatar userId={user?.id} name={user?.name ?? 'User'} size={44} style={{ flexShrink: 0, border: '2px solid var(--border)' }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.name}</div>
                   <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.email}</div>

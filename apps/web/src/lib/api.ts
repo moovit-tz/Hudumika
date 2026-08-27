@@ -215,9 +215,13 @@ export async function apiDownload(path: string, filename: string) {
   URL.revokeObjectURL(url);
 }
 
-/** Fetches a binary endpoint with the session cookie attached and returns the raw blob (for callers that need the bytes themselves, e.g. re-encoding to base64). */
-export async function apiFetchBlob(path: string): Promise<Blob> {
-  const response = await doFetch(path);
+/** Fetches a binary endpoint with the session cookie attached and returns the raw blob (for callers that need the bytes themselves, e.g. re-encoding to base64). `options` lets a caller POST a FormData body (e.g. a PDF tool that uploads a file and gets a transformed one back) — defaults to a plain GET for every existing call site. Throws with the server's own error message on a non-OK response rather than silently returning an error body as if it were the binary payload. */
+export async function apiFetchBlob(path: string, options: RequestInit = {}): Promise<Blob> {
+  const response = await doFetch(path, options);
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    throw new Error(body?.error || `Request failed (${response.status})`);
+  }
   return response.blob();
 }
 

@@ -1,21 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Icon } from '../components/Icon.js';
-import type { IconName } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
 import { useCompany } from '../data/companyStore.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { MetricsRow } from '../components/MetricCard.js';
 import { Badge } from '../components/ui/badge.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 
 const YEARS = ['2026', '2025', '2024'];
-
-const SUMMARY_ICONS: { label: string; icon: IconName; color: string; bg: string }[] = [
-  { label: 'Opening Equity',  icon: 'layers',     color: 'var(--ink)',   bg: 'var(--bg)' },
-  { label: 'From Net Income', icon: 'trendingUp', color: 'var(--teal)',  bg: 'var(--teal-l)' },
-  { label: 'Dividends',       icon: 'dollarSign', color: 'var(--red)',   bg: 'var(--red-l)' },
-  { label: 'Closing Equity',  icon: 'checkCircle', color: 'var(--green)', bg: 'var(--green-l)' },
-];
 
 interface EquityAccountRow {
   code: string; name: string; opening: number; fromNetIncome: number; dividends: number; other: number; closing: number;
@@ -108,7 +101,7 @@ export function FinanceEquityStatement() {
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--white)', fontFamily: 'var(--font)' }}>
       <PageHeader
-        crumbs={['Finance', 'Accounts']}
+        crumbs={['Finance', 'Reports']}
         titlePlain="Statement of changes in"
         titleEm="equity"
         subtitle="How Retained Earnings and Share Capital moved this year — net income, dividends, and anything else."
@@ -137,23 +130,28 @@ export function FinanceEquityStatement() {
           </div>
         )}
 
-        {/* Summary */}
-        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-          {SUMMARY_ICONS.map((s, i) => {
-            const value = fmt([totals?.opening ?? 0, totals?.fromNetIncome ?? 0, totals?.dividends ?? 0, totals?.closing ?? 0][i]);
-            return (
-              <div key={s.label} style={{ flex: 1, minWidth: 160, background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
-                <div style={{ width: 42, height: 42, borderRadius: 9, background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Icon name={s.icon} size={18} color={s.color} />
-                </div>
-                <div>
-                  <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em' }}>{value}</div>
-                  <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 1 }}>{s.label}</div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        <MetricsRow cards={[
+          {
+            title: 'Opening Equity', value: fmt(totals?.opening ?? 0), icon: 'layers',
+            sub1Label: 'YEAR', sub1Value: year,
+            sub2Label: 'CLOSING', sub2Value: fmt(totals?.closing ?? 0), barHighlight: 'var(--ink3)',
+          },
+          {
+            title: 'From Net Income', value: fmt(totals?.fromNetIncome ?? 0), icon: 'trendingUp',
+            sub1Label: 'DIVIDENDS', sub1Value: fmt(totals?.dividends ?? 0),
+            sub2Label: 'OTHER', sub2Value: fmt(totals?.other ?? 0), barHighlight: 'var(--teal)',
+          },
+          {
+            title: 'Dividends', value: fmt(totals?.dividends ?? 0), icon: 'dollarSign', invertTrend: true,
+            sub1Label: 'DECLARED', sub1Value: String(dividends.length),
+            sub2Label: 'PAID', sub2Value: String(dividends.filter(d => d.status === 'PAID').length), barHighlight: 'var(--red)',
+          },
+          {
+            title: 'Closing Equity', value: fmt(totals?.closing ?? 0), icon: 'checkCircle',
+            sub1Label: 'OPENING', sub1Value: fmt(totals?.opening ?? 0),
+            sub2Label: 'MOVEMENT', sub2Value: fmt((totals?.closing ?? 0) - (totals?.opening ?? 0)), barHighlight: 'var(--green)',
+          },
+        ]} />
 
         {/* Statement table */}
         <div style={card}>

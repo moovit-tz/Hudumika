@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
-import type { IconName } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
 import { useCompany } from '../data/companyStore.js';
 import type { AgedReport, AgedRow } from '@hudumika/types';
 import { PageHeader } from '../components/PageHeader.js';
+import { MetricsRow } from '../components/MetricCard.js';
 
 export const FinanceAgedReceivables: React.FC = () => {
   const co = useCompany();
@@ -76,7 +76,7 @@ export const FinanceAgedReceivables: React.FC = () => {
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--white)', fontFamily: 'var(--font)' }}>
       <PageHeader
-        crumbs={['Finance', 'Accounts']}
+        crumbs={['Finance', 'Reports']}
         titlePlain="Aged"
         titleEm="receivables"
         subtitle={`Outstanding customer balances by age${asOf ? ` — as of ${asOf}` : ''}`}
@@ -94,25 +94,28 @@ export const FinanceAgedReceivables: React.FC = () => {
       ) : (
       <div style={{ flex: 1, overflowY: 'auto', padding: '0', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-        {/* Summary */}
-        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-          {[
-            { label: 'Total Outstanding',   value: `${cur} ${(totals.total / 1_000_000).toFixed(1)}M`,       color: 'var(--blue)',  bg: 'var(--blue-l)',       icon: 'dollarSign'   },
-            { label: 'Current (not due)',    value: `${cur} ${(totals.current / 1_000_000).toFixed(1)}M`,     color: 'var(--green)', bg: 'var(--green-l)',       icon: 'checkCircle'  },
-            { label: 'Total Overdue',        value: `${cur} ${(overdue / 1_000_000).toFixed(1)}M`,            color: 'var(--red)',   bg: 'var(--red-l)',       icon: 'alertTriangle'},
-            { label: '90+ Days Overdue',     value: `${cur} ${(totals.days_90_plus / 1_000_000).toFixed(1)}M`, color: 'var(--gold)',      bg: 'var(--gold-l)',       icon: 'clock'        },
-          ].map(s => (
-            <div key={s.label} style={{ flex: 1, background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
-              <div style={{ width: 42, height: 42, borderRadius: 9, background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Icon name={s.icon as IconName} size={18} color={s.color} />
-              </div>
-              <div>
-                <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em' }}>{s.value}</div>
-                <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 1 }}>{s.label}</div>
-              </div>
-            </div>
-          ))}
-        </div>
+        <MetricsRow cards={[
+          {
+            title: 'Total Outstanding', value: fmtFull(totals.total), icon: 'dollarSign',
+            sub1Label: 'CURRENT', sub1Value: fmtFull(totals.current),
+            sub2Label: 'OVERDUE', sub2Value: fmtFull(overdue), barHighlight: 'var(--blue)',
+          },
+          {
+            title: 'Current (not due)', value: fmtFull(totals.current), icon: 'checkCircle',
+            sub1Label: 'CUSTOMERS', sub1Value: String(rows.length),
+            sub2Label: 'OF TOTAL', sub2Value: totals.total ? `${Math.round((totals.current / totals.total) * 100)}%` : '0%', barHighlight: 'var(--green)',
+          },
+          {
+            title: 'Total Overdue', value: fmtFull(overdue), icon: 'alertTriangle', invertTrend: true,
+            sub1Label: '1–90 DAYS', sub1Value: fmtFull(totals.days_1_30 + totals.days_31_60 + totals.days_61_90),
+            sub2Label: '90+ DAYS', sub2Value: fmtFull(totals.days_90_plus), barHighlight: 'var(--red)',
+          },
+          {
+            title: '90+ Days Overdue', value: fmtFull(totals.days_90_plus), icon: 'clock', invertTrend: true,
+            sub1Label: 'OF OVERDUE', sub1Value: overdue ? `${Math.round((totals.days_90_plus / overdue) * 100)}%` : '0%',
+            sub2Label: 'OF TOTAL', sub2Value: totals.total ? `${Math.round((totals.days_90_plus / totals.total) * 100)}%` : '0%', barHighlight: 'var(--gold)',
+          },
+        ]} />
 
         {/* Aging bars summary */}
         <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '16px 20px' }}>

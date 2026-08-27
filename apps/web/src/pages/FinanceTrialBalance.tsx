@@ -7,6 +7,7 @@ import type { TrialBalanceReport, AccountType } from '@hudumika/types';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { MetricsRow } from '../components/MetricCard.js';
 
 const TYPE_CFG: Record<AccountType, { label: string; color: string; bg: string }> = {
   ASSET:     { label: 'Assets',      color: '#0891b2', bg: '#ecfeff' },
@@ -126,7 +127,7 @@ export const FinanceTrialBalance: React.FC = () => {
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--white)', fontFamily: 'var(--font)' }}>
       {/* Header */}
       <PageHeader
-        crumbs={['Finance', 'Accounts']}
+        crumbs={['Finance', 'Reports']}
         titlePlain="Trial"
         titleEm="balance"
         subtitle={`${co.name} — verifying debits equal credits.`}
@@ -164,35 +165,31 @@ export const FinanceTrialBalance: React.FC = () => {
         </div>
       </div>
 
-      {/* Summary metric cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(5,1fr)', gap: 12, marginBottom: 20 }}>
-        {TYPE_ORDER.map(t => {
-          const gt = groupTotals[t];
-          const cfg = TYPE_CFG[t];
-          const count = rows.filter(a => a.account_type === t && (a.closing_debit !== 0 || a.closing_credit !== 0)).length;
-          return (
-            // Selection reads as a teal border and label, not an accent bar
-            // and a pastel fill. Same treatment as Chart of Accounts.
-            <div
-              key={t}
-              className="card"
-              aria-pressed={typeFilter === t}
-              style={{
-                padding: '12px 14px', cursor: 'pointer', background: 'var(--white)',
-                borderColor: typeFilter === t ? 'var(--teal)' : undefined,
-                boxShadow: typeFilter === t ? 'inset 0 0 0 1px var(--teal)' : undefined,
-              }}
-              onClick={() => setTypeFilter(typeFilter === t ? 'ALL' : t)}
-            >
-              <div style={{ fontSize: 10, fontWeight: 800, color: typeFilter === t ? 'var(--teal)' : 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>{cfg.label}</div>
-              <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)', fontFamily: 'var(--mono)' }}>
-                {gt.debit > 0 ? `Dr ${(gt.debit/1_000_000).toFixed(1)}M` : `Cr ${(gt.credit/1_000_000).toFixed(1)}M`}
-              </div>
-              <div style={{ fontSize: 10, color: 'var(--ink3)', marginTop: 3 }}>{count} accounts</div>
-            </div>
-          );
-        })}
-      </div>
+      {/* Summary — the Tabs below already provide click-to-filter by type,
+          so these are a plain read-only summary rather than a second,
+          duplicate filter control. */}
+      <MetricsRow cards={[
+        {
+          title: 'Total Debits', value: `${cur} ${totals.debit.toLocaleString()}`, icon: 'trendingUp',
+          sub1Label: 'ACCOUNTS', sub1Value: String(rows.filter(a => a.closing_debit > 0).length),
+          sub2Label: 'PERIOD', sub2Value: period.label, barHighlight: 'var(--blue)',
+        },
+        {
+          title: 'Total Credits', value: `${cur} ${totals.credit.toLocaleString()}`, icon: 'trendingUp', invertTrend: true,
+          sub1Label: 'ACCOUNTS', sub1Value: String(rows.filter(a => a.closing_credit > 0).length),
+          sub2Label: 'PERIOD', sub2Value: period.label, barHighlight: 'var(--purple)',
+        },
+        {
+          title: 'Balance Status', value: balanced ? 'Balanced' : 'Out of Balance', icon: balanced ? 'checkCircle' : 'alertTriangle', invertTrend: !balanced,
+          sub1Label: 'DIFFERENCE', sub1Value: balanced ? 'Nil' : `${cur} ${Math.abs(totals.debit - totals.credit).toLocaleString()}`,
+          sub2Label: 'ACCOUNTS', sub2Value: String(filtered.length), barHighlight: balanced ? 'var(--green)' : 'var(--red)',
+        },
+        {
+          title: 'Active Accounts', value: String(rows.filter(a => a.closing_debit !== 0 || a.closing_credit !== 0).length), icon: 'list',
+          sub1Label: 'TOTAL', sub1Value: String(rows.length),
+          sub2Label: 'SHOWING', sub2Value: String(filtered.length), barHighlight: 'var(--teal)',
+        },
+      ]} />
 
       {/* Filters Toolbar Card: Tabs on Left, Search on Right */}
       <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 20 }}>

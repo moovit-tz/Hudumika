@@ -18,6 +18,7 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { Switch } from '../components/ui/switch.js';
 import { Popover, PopoverAnchor, PopoverContent } from '../components/ui/popover.js';
 import { Button } from '../components/ui/button.js';
+import { Tip } from '../components/ui/tooltip.js';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
@@ -74,6 +75,29 @@ const REMINDER_OFFSET_OPTIONS = [
   { minutes: 1440, label: '1 day before' },
   { minutes: 10080, label: '1 week before' },
 ];
+
+/** A real, joinable Jitsi Meet room (meet.jit.si — free, open-source, no
+ *  API key needed) instead of the old mockup's fake https://meet.hudumika.tz
+ *  string, which pointed nowhere. crypto.randomUUID() (already this
+ *  codebase's own convention for client-generated row ids — see
+ *  calendarStore.ts's own comment) rather than Math.random().toString(36),
+ *  which is both weak (an 8-char slug is brute-forceable) and not what a
+ *  server-verified room id should ever be built from. */
+function newMeetingUrl(): string {
+  return `https://meet.jit.si/Hudumika-${crypto.randomUUID()}`;
+}
+
+/** Jitsi reads join-time preferences from its own documented URL hash
+ *  config (https://meet.jit.si/RoomName#config.startWithVideoMuted=true) —
+ *  real, stable behaviour, not a fabricated setting. Applied at join time
+ *  rather than baked into the stored meetingUrl so the shareable room link
+ *  itself stays a clean, stable identifier. */
+function buildJoinUrl(meetingUrl: string, settings: MeetingSettings): string {
+  const params: string[] = [];
+  if (settings.startWithVideoMuted) params.push('config.startWithVideoMuted=true');
+  if (settings.startWithAudioMuted) params.push('config.startWithAudioMuted=true');
+  return params.length ? `${meetingUrl}#${params.join('&')}` : meetingUrl;
+}
 
 const WEEKDAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
@@ -151,9 +175,7 @@ export const CalendarApp: React.FC = () => {
   const [showTimezoneModal, setShowTimezoneModal] = useState(false);
   const [eventMeetingUrl, setEventMeetingUrl] = useState('');
   const [showMeetingOptionsModal, setShowMeetingOptionsModal] = useState(false);
-  const [eventMeetingSettings, setEventMeetingSettings] = useState<MeetingSettings>({
-    hostManagement: true, shareScreen: true, sendReactions: true, continuousChat: true, letSendMessages: true
-  });
+  const [eventMeetingSettings, setEventMeetingSettings] = useState<MeetingSettings>({});
   const [eventGuestPermissions, setEventGuestPermissions] = useState<GuestPermissions>({
     modifyEvent: false, inviteOthers: true, seeGuestList: true
   });
@@ -359,7 +381,7 @@ export const CalendarApp: React.FC = () => {
     setEventAllDay(false); setEventColorChoice(null); setEventRecurrence(null); setEventReminderOffsets([]);
     setEventTimezone('GMT+03:00 (East Africa Time)');
     setEventMeetingUrl('');
-    setEventMeetingSettings({ hostManagement: true, shareScreen: true, sendReactions: true, continuousChat: true, letSendMessages: true });
+    setEventMeetingSettings({});
     setEventGuestPermissions({ modifyEvent: false, inviteOthers: true, seeGuestList: true });
     setEventVisibility('default');
     setEventBusyStatus('busy');
@@ -389,7 +411,7 @@ export const CalendarApp: React.FC = () => {
     setEventReminderOffsets(ev.reminderOffsets || []);
     setEventTimezone(ev.timezone || 'GMT+03:00 (East Africa Time)');
     setEventMeetingUrl(ev.meetingUrl || '');
-    setEventMeetingSettings(ev.meetingSettings || { hostManagement: true, shareScreen: true, sendReactions: true, continuousChat: true, letSendMessages: true });
+    setEventMeetingSettings(ev.meetingSettings || {});
     setEventGuestPermissions(ev.guestPermissions || { modifyEvent: false, inviteOthers: true, seeGuestList: true });
     setEventVisibility(ev.visibility || 'default');
     setEventBusyStatus(ev.busyStatus || 'busy');
@@ -407,7 +429,7 @@ export const CalendarApp: React.FC = () => {
       guests:      eventGuests,
       allDay: eventAllDay, color: eventColorChoice, recurrence: eventRecurrence, reminderOffsets: eventReminderOffsets,
       timezone: eventTimezone,
-      meetingUrl: eventMeetingUrl || undefined,
+      meetingUrl: eventMeetingUrl || null,
       meetingSettings: eventMeetingSettings,
       guestPermissions: eventGuestPermissions,
       visibility: eventVisibility,
@@ -1199,6 +1221,11 @@ export const CalendarApp: React.FC = () => {
                     </div>
                     {eventMeetingUrl ? (
                       <div style={{ display: 'flex', gap: 6 }}>
+                        <Tip label="Join this video call now">
+                          <Button variant="default" size="xs" onClick={() => window.open(buildJoinUrl(eventMeetingUrl, eventMeetingSettings), '_blank', 'noopener')} style={{ background: 'var(--teal)', color: '#fff' }}>
+                            <Icon name="video" size={12} /> Join
+                          </Button>
+                        </Tip>
                         <Button variant="outline" size="xs" onClick={() => navigator.clipboard?.writeText(eventMeetingUrl)}>
                           <Icon name="copy" size={12} />
                         </Button>
@@ -1210,7 +1237,7 @@ export const CalendarApp: React.FC = () => {
                         </Button>
                       </div>
                     ) : (
-                      <Button variant="default" size="xs" onClick={() => setEventMeetingUrl(`https://meet.hudumika.tz/${Math.random().toString(36).slice(2, 9)}`)}>
+                      <Button variant="default" size="xs" onClick={() => setEventMeetingUrl(newMeetingUrl())}>
                         Add Video Call
                       </Button>
                     )}
@@ -2060,6 +2087,13 @@ const TimezoneModal: React.FC<{ value: string; onClose: () => void; onSelect: (t
 };
 
 /* ── Meeting Options Modal Component ── */
+// Only two real, verifiable options — Jitsi's own documented URL hash
+// config (#config.startWithVideoMuted=true&config.startWithAudioMuted=true),
+// applied at join time via buildJoinUrl. The original five toggles (host
+// management, screen-share/reactions/chat permissions) had no mechanism
+// behind any of them on the public meet.jit.si instance for anonymous
+// participants — dropped rather than left as switches that silently did
+// nothing, which is exactly the mockup problem this replaces.
 const MeetingOptionsModal: React.FC<{ meetingUrl: string; settings: MeetingSettings; onClose: () => void; onSave: (st: MeetingSettings) => void }> = ({ meetingUrl, settings, onClose, onSave }) => {
   const [draft, setDraft] = useState<MeetingSettings>(settings);
 
@@ -2073,48 +2107,29 @@ const MeetingOptionsModal: React.FC<{ meetingUrl: string; settings: MeetingSetti
           </DialogTitle>
         </DialogHeader>
 
-        <div style={{ fontSize: 12, color: 'var(--ink3)', margin: '2px 0 16px', fontFamily: 'monospace' }}>
-          {meetingUrl || 'meet.hudumika.tz/mgt-sync-123'}
+        <div style={{ fontSize: 12, color: 'var(--ink3)', margin: '2px 0 16px', fontFamily: 'monospace', wordBreak: 'break-all' }}>
+          {meetingUrl}
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div style={{ padding: 14, borderRadius: 8, background: 'var(--bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
-              <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)' }}>Host management</div>
-              <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>
-                Lets you restrict what contributors can enable and appoint co-hosts
-              </div>
+              <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>Join with camera off</div>
+              <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 1 }}>You can still turn it on once you're in the call</div>
             </div>
-            <Switch checked={draft.hostManagement} onCheckedChange={v => setDraft(d => ({ ...d, hostManagement: v }))} />
+            <Switch checked={!!draft.startWithVideoMuted} onCheckedChange={v => setDraft(d => ({ ...d, startWithVideoMuted: v }))} />
           </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingLeft: 4 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', letterSpacing: '0.05em' }}>Let contributors</div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: 13, color: 'var(--ink)' }}>Share their screen</span>
-              <Switch checked={draft.shareScreen} onCheckedChange={v => setDraft(d => ({ ...d, shareScreen: v }))} />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+              <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>Join with microphone off</div>
+              <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 1 }}>You can still unmute once you're in the call</div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: 13, color: 'var(--ink)' }}>Send reactions</span>
-              <Switch checked={draft.sendReactions} onCheckedChange={v => setDraft(d => ({ ...d, sendReactions: v }))} />
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingLeft: 4, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
-            <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', letterSpacing: '0.05em' }}>Chat moderation</div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: 13, color: 'var(--ink)' }}>Continuous meeting chat</span>
-              <Switch checked={draft.continuousChat} onCheckedChange={v => setDraft(d => ({ ...d, continuousChat: v }))} />
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: 13, color: 'var(--ink)' }}>Let participants send messages</span>
-              <Switch checked={draft.letSendMessages} onCheckedChange={v => setDraft(d => ({ ...d, letSendMessages: v }))} />
-            </div>
+            <Switch checked={!!draft.startWithAudioMuted} onCheckedChange={v => setDraft(d => ({ ...d, startWithAudioMuted: v }))} />
           </div>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 20, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
-          <div style={{ fontSize: 11, color: 'var(--ink3)' }}>Any host or organizer can change these settings.</div>
+          <div style={{ fontSize: 11, color: 'var(--ink3)' }}>Applies whenever anyone joins from this link.</div>
           <div style={{ display: 'flex', gap: 8 }}>
             <Button variant="outline" size="sm" onClick={onClose}>Cancel</Button>
             <Button variant="default" size="sm" onClick={() => { onSave(draft); onClose(); }}>

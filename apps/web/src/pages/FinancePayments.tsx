@@ -336,42 +336,39 @@ export const FinancePayments: React.FC = () => {
       {/* -- Header -- */}
       <div style={{ padding: 0 }}>
         <PageHeader
-          crumbs={['Finance', 'Payments']}
-          titlePlain="Payment"
-          titleEm="records"
+          crumbs={['FINANCE', 'PAYMENTS']}
+          titlePlain="Payment "
+          titleEm="transactions"
           subtitle="Every payment in and out — customer receipts against invoices and supplier payments against bills."
-          actions={
-            <button type="button" className="btn btn-primary" onClick={() => setShowAdd(true)}>
-              <Icon name="plus" size={13} /> Record Payment
-            </button>
-          }
         />
 
         <MetricsRow cards={[
           {
-            title: 'Money In',
+            title: 'MONEY IN',
             value: fmt(inTotal, 'TZS'),
             sub1Label: 'RECEIPTS', sub1Value: String(inRows.length),
             sub2Label: 'THIS MONTH', sub2Value: String(thisMonth),
             barHighlight: 'var(--green)'
           },
           {
-            title: 'Money Out',
+            title: 'MONEY OUT',
             value: fmt(outTotal, 'TZS'),
             sub1Label: 'PAYMENTS', sub1Value: String(outRows.length),
+            sub2Label: 'OUTBOUND', sub2Value: String(outRows.length),
             barHighlight: 'var(--red)'
           },
           {
-            title: 'Net Position',
+            title: 'NET POSITION',
             value: fmt(netTotal, 'TZS'),
             sub1Label: netTotal >= 0 ? 'SURPLUS' : 'DEFICIT', sub1Value: netTotal >= 0 ? 'IN' : 'OUT',
+            sub2Label: 'STATUS', sub2Value: netTotal >= 0 ? 'NET POSITIVE' : 'NET NEGATIVE',
             barHighlight: netTotal >= 0 ? 'var(--teal)' : 'var(--gold)'
           },
           {
-            title: 'All Movements',
+            title: 'ALL MOVEMENTS',
             value: String(payments.length),
-            sub1Label: 'IN', sub1Value: String(inRows.length),
-            sub2Label: 'OUT', sub2Value: String(outRows.length),
+            sub1Label: 'INBOUND', sub1Value: String(inRows.length),
+            sub2Label: 'OUTBOUND', sub2Value: String(outRows.length),
             barHighlight: 'var(--blue)'
           },
         ]} />
@@ -393,26 +390,35 @@ export const FinancePayments: React.FC = () => {
                 </TabsList>
               </Tabs>
 
-              <div style={{ position: 'relative', width: isMobile ? '100%' : 260 }}>
-                <Icon name="search" size={14} color="var(--ink3)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' } as React.CSSProperties} />
-                <input
-                  type="text"
-                  placeholder="Search payments..."
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px 8px 32px',
-                    border: '1px solid var(--border)',
-                    borderRadius: 'var(--r, 6px)',
-                    fontSize: 13,
-                    fontFamily: 'var(--font)',
-                    background: 'var(--white)',
-                    color: 'var(--ink)',
-                    outline: 'none',
-                    boxSizing: 'border-box'
-                  }}
-                />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <div style={{ position: 'relative', width: isMobile ? '100%' : 240 }}>
+                  <Icon name="search" size={14} color="var(--ink3)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' } as React.CSSProperties} />
+                  <input
+                    type="search"
+                    placeholder="Search payments..."
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px 8px 32px',
+                      border: '1px solid var(--border)',
+                      borderRadius: 8,
+                      fontSize: 13,
+                      fontFamily: 'var(--font)',
+                      background: 'var(--white)',
+                      color: 'var(--ink)',
+                      outline: 'none',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowAdd(true)}
+                  style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }}
+                >
+                  <Icon name="plus" size={14} color="hsl(var(--primary-foreground))" /> Record Payment
+                </button>
               </div>
             </div>
 

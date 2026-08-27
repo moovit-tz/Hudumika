@@ -5,6 +5,7 @@ import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import { useCurrency } from '../hooks/useCurrency.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { MetricsRow } from '../components/MetricCard.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 
@@ -141,6 +142,10 @@ export function FixedAssets() {
   const totalCost = assets.reduce((s, a) => s + Number(a.cost), 0);
   const totalNBV = assets.filter(a => a.status === 'ACTIVE').reduce((s, a) => s + Number(a.net_book_value), 0);
   const totalAccum = assets.reduce((s, a) => s + Number(a.accumulated_depreciation), 0);
+  const activeCount = assets.filter(a => a.status === 'ACTIVE').length;
+  const disposedCount = assets.filter(a => a.status === 'DISPOSED').length;
+  const activeCost = assets.filter(a => a.status === 'ACTIVE').reduce((s, a) => s + Number(a.cost), 0);
+  const disposedCost = assets.filter(a => a.status === 'DISPOSED').reduce((s, a) => s + Number(a.cost), 0);
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--white)', fontFamily: 'var(--font)' }}>
@@ -149,24 +154,38 @@ export function FixedAssets() {
         titlePlain="Fixed"
         titleEm="assets"
         subtitle="Asset register with straight-line depreciation, posted monthly to the ledger."
-        actions={
-          <button type="button" className="btn btn-primary btn-sm" onClick={() => setShowForm(true)}>
-            <Icon name="plus" size={13} /> New Asset
-          </button>
-        }
       />
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 20 }}>
-        {[
-          { label: 'Total Cost', value: fmt(totalCost), color: 'var(--ink)' },
-          { label: 'Accumulated Depreciation', value: fmt(totalAccum), color: 'var(--gold)' },
-          { label: 'Net Book Value (active)', value: fmt(totalNBV), color: 'var(--teal)' },
-        ].map(c => (
-          <div key={c.label} className="card" style={{ padding: '16px 18px' }}>
-            <div style={{ fontSize: 18, fontWeight: 800, color: c.color }}>{c.value}</div>
-            <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 4 }}>{c.label}</div>
-          </div>
-        ))}
+      <MetricsRow cards={[
+        {
+          title: 'Total Assets', value: String(assets.length),
+          sub1Label: 'ACTIVE', sub1Value: String(activeCount),
+          sub2Label: 'DISPOSED', sub2Value: String(disposedCount), barHighlight: 'var(--teal)',
+        },
+        {
+          title: 'Total Cost', value: fmt(totalCost),
+          sub1Label: 'ACTIVE', sub1Value: fmt(activeCost),
+          sub2Label: 'DISPOSED', sub2Value: fmt(disposedCost), barHighlight: 'var(--blue)',
+        },
+        {
+          title: 'Accumulated Depreciation', value: fmt(totalAccum),
+          invertTrend: true,
+          sub1Label: 'OF TOTAL COST', sub1Value: totalCost ? `${Math.round((totalAccum / totalCost) * 100)}%` : '0%',
+          sub2Label: 'ASSETS', sub2Value: String(assets.length), barHighlight: 'var(--gold)',
+        },
+        {
+          title: 'Net Book Value', value: fmt(totalNBV),
+          sub1Label: 'ACTIVE', sub1Value: String(activeCount),
+          sub2Label: 'TOTAL', sub2Value: String(assets.length), barHighlight: 'var(--green)',
+        },
+      ]} />
+
+      <div style={{ padding: '16px 0', display: 'flex', justifyContent: 'flex-end' }}>
+        <button type="button"
+          onClick={() => setShowForm(true)}
+          style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+          <Icon name="plus" size={14} color="hsl(var(--primary-foreground))" /> New Asset
+        </button>
       </div>
 
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>

@@ -347,30 +347,34 @@
   margin-top: 24px;
 }
 
-/* ── Public signing page ──────────────────────────────────────────────────── */
+/* ── Public signing page layout ───────────────────────────────────────────── */
 .sign-public-layout {
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
   background: var(--bg);
-  font-family: var(--sign-font);
-  display: grid;
-  grid-template-rows: 56px 1fr;
+  font-family: var(--font);
+  overflow: hidden;
 }
 .sign-public-header {
+  height: 70px;
   background: var(--card-bg);
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
-  padding: 0 24px;
-  gap: 16px;
+  padding: 0 28px;
+  gap: 20px;
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: 50;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
 }
 .sign-public-body {
   display: grid;
   grid-template-columns: 1fr 380px;
-  height: calc(100vh - 56px);
+  height: calc(100vh - 70px);
   overflow: hidden;
+  position: relative;
 }
 .sign-public-doc-area {
   overflow-y: auto;
@@ -409,28 +413,39 @@
 /* ── Editor layout ─────────────────────────────────────────────────────────── */
 .sign-editor-layout {
   display: grid;
-  grid-template-columns: 280px 1fr 320px;
-  height: 100%;
+  grid-template-columns: 280px minmax(0, 1fr) 300px;
+  flex: 1;
+  min-height: 0;
+  height: calc(100vh - 56px);
   overflow: hidden;
 }
 .sign-editor-left {
   border-right: 1px solid var(--border);
   overflow-y: auto;
+  height: 100%;
+  min-height: 0;
   background: var(--card-bg);
+  box-sizing: border-box;
 }
 .sign-editor-center {
   overflow-y: auto;
+  height: 100%;
+  min-height: 0;
   background: var(--bg);
-  padding: 24px;
+  padding: 24px 20px 60px;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 16px;
+  box-sizing: border-box;
 }
 .sign-editor-right {
   border-left: 1px solid var(--border, #e5e7eb);
   overflow-y: auto;
+  height: 100%;
+  min-height: 0;
   background: var(--card-bg, #fff);
+  box-sizing: border-box;
 }
 .sign-panel-title {
   font-size: 11px;
@@ -492,10 +507,24 @@
   flex-shrink: 0;
 }
 
-/* ── Responsive ─────────────────────────────────────────────────────────────── */
-@media (max-width: 900px) {
+/* ── Responsive breakpoints ─────────────────────────────────────────────────── */
+@media (max-width: 1024px) {
   .sign-public-body { grid-template-columns: 1fr; }
   .sign-public-sidebar { border-left: none; border-top: 1px solid var(--border); height: 320px; }
-  .sign-editor-layout { grid-template-columns: 1fr; }
-  .sign-editor-left, .sign-editor-right { display: none; }
+
+  .sign-editor-layout {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    min-height: calc(100vh - 56px);
+    overflow-y: auto;
+  }
+  .sign-editor-left, .sign-editor-center, .sign-editor-right {
+    height: auto;
+    max-height: none;
+    overflow-y: visible;
+    border-right: none;
+    border-left: none;
+  }
+  .sign-editor-center { padding: 16px 12px 40px; }
 }

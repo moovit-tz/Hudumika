@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Icon } from './Icon.js';
 import { useAuth } from '../hooks/useAuth.js';
-import { nameInitials } from '../lib/identity.js';
+import { PersonAvatar } from './PersonAvatar.js';
 import './ComplyTopbar.css';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -27,7 +27,6 @@ export function ComplyTopbar({ onMenuToggle }: Props) {
   // sitting in the signed-in user's own context.
   const { user } = useAuth();
   const name = user?.name || user?.email?.split('@')[0] || 'there';
-  const initials = nameInitials(name);
 
   return (
     <header className="comply-topbar">
@@ -74,8 +73,8 @@ export function ComplyTopbar({ onMenuToggle }: Props) {
         <button type="button" className="comply-topbar-action-btn" title="Settings">
           <Icon name="settings" size={16} strokeWidth={1.8} />
         </button>
-        <div className="comply-topbar-avatar" title={`Signed in as ${name}`}>
-          {initials}
+        <div title={`Signed in as ${name}`}>
+          <PersonAvatar userId={user?.id} name={name} size={36} />
         </div>
       </div>
 

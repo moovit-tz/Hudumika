@@ -135,7 +135,7 @@ export const FinanceReportsHub: React.FC = () => {
   return (
   <div>
     <PageHeader
-      crumbs={['FinOps', 'Reports']}
+      crumbs={['Finance', 'Reports']}
       titlePlain="Financial"
       titleEm="reports"
       subtitle="Statements from the ledger, activity over a period, and the operational reports that live in other apps."

@@ -35,6 +35,7 @@ import { withTenant, dbPlatform } from '../db/client.js';
 import type { SignTemplate } from '@hudumika/types';
 import { requireEntitlement } from '../middleware/entitlement.js';
 import { SmsIntegration } from '../integrations/sms.js';
+import { WhatsAppIntegration } from '../integrations/whatsapp.js';
 import { MinioIntegration } from '../integrations/minio.js';
 import { buildSignedPdf } from '../services/sign-pdf.service.js';
 import { canApplyTenantStamp } from './sign-stamps.routes.js';
@@ -513,6 +514,19 @@ export async function signRoutes(fastify: FastifyInstance) {
       if (original.status !== 'completed') {
         return reply.status(409).send({ error: 'Only a completed envelope can be amended — a document that hasn’t been signed yet can just be edited directly.' });
       }
+      // The original's own status stays 'completed' forever — amending it
+      // doesn't change that — so the frontend hiding its "Create amended
+      // version" button once a next version exists is only a UI nicety, not
+      // a real guard. Confirmed live: without this check, calling amend
+      // twice created two separate "Version 2" drafts with the identical
+      // version_number, both chained to the same original — the version
+      // chain's whole meaning (one linear history) broke the moment two
+      // siblings could claim the same version number.
+      const existingNextVersion = await trx.selectFrom('sign_envelopes').select('id')
+        .where('previous_version_id', '=', original.id).where('tenant_id', '=', tid).executeTakeFirst();
+      if (existingNextVersion) {
+        return reply.status(409).send({ error: 'This document has already been amended — continue from its existing amended version instead.' });
+      }
 
       const originalRecipients = await trx.selectFrom('sign_recipients').selectAll()
         .where('envelope_id', '=', original.id).orderBy('sign_order', 'asc').execute();
@@ -746,11 +760,17 @@ export async function signPublicRoutes(fastify: FastifyInstance) {
     // "sign in person" tag) gets their own saved signature offered as a
     // one-click fill instead of a blank pad every time — the same
     // sign_stamps rows their NexusHR profile (StaffDetail.tsx's Signature
-    // tab) already manages. An untagged/external recipient has no profile
-    // to pull from and keeps drawing fresh, same as before.
+    // tab) already manages. Explicit tagging via the sender's staff picker
+    // is one way to get user_id set, but a sender who just types a known
+    // colleague's real work email (rather than remembering to use the
+    // picker) shouldn't lose this — falls back to matching the recipient's
+    // own email against a real platform user in this same tenant, so any
+    // genuine Hudumika user gets their saved signature offered regardless
+    // of how the sender happened to add them. An external recipient whose
+    // email matches nobody keeps drawing fresh, same as before.
     let savedSignature: string | null = null;
     // The tenant's actual configured company stamp (Settings ▸ E-Sign) is
-    // only ever handed to a tagged recipient whose role clears the same
+    // only ever handed to a resolved colleague whose role clears the same
     // canApplyTenantStamp gate that governs applying it everywhere else in
     // the app — an anonymous external signer assigned a stamp field (a
     // form-building mistake, not a real use case) never sees the real seal
@@ -758,16 +778,23 @@ export async function signPublicRoutes(fastify: FastifyInstance) {
     // (SignPublicPage's existing generic placeholder) so the document isn't
     // silently missing content.
     let tenantStampImage: string | null = null;
-    if (recipient.user_id) {
+    let resolvedUserId = recipient.user_id;
+    if (!resolvedUserId && recipient.email) {
+      const matchedByEmail = await dbPlatform.selectFrom('users').select('id')
+        .where('tenant_id', '=', envelope.tenant_id).where('email', '=', recipient.email)
+        .executeTakeFirst();
+      resolvedUserId = matchedByEmail?.id ?? null;
+    }
+    if (resolvedUserId) {
       const personal = await dbPlatform.selectFrom('sign_stamps').select('image_data')
         .where('tenant_id', '=', envelope.tenant_id).where('owner_type', '=', 'user')
-        .where('owner_user_id', '=', recipient.user_id)
+        .where('owner_user_id', '=', resolvedUserId)
         .orderBy('created_at', 'desc').executeTakeFirst();
       savedSignature = personal?.image_data ?? null;
 
       if (fields.some(f => f.field_type === 'stamp')) {
         const taggedUser = await dbPlatform.selectFrom('users').select('role')
-          .where('id', '=', recipient.user_id).executeTakeFirst();
+          .where('id', '=', resolvedUserId).executeTakeFirst();
         if (taggedUser && await canApplyTenantStamp(dbPlatform, envelope.tenant_id, taggedUser.role)) {
           const tenantStamp = await dbPlatform.selectFrom('sign_stamps').select('image_data')
             .where('tenant_id', '=', envelope.tenant_id).where('owner_type', '=', 'tenant').executeTakeFirst();
@@ -806,6 +833,14 @@ export async function signPublicRoutes(fastify: FastifyInstance) {
 
   // ── Request an SMS one-time-passcode ───────────────────────────────────────
   fastify.post('/public/:token/request-otp', async (req: FastifyRequest<{ Params: { token: string } }>, reply: FastifyReply) => {
+    // The signer picks how they'd rather receive the code — some numbers
+    // don't reliably get SMS, and a lot of Tanzanian mobile users check
+    // WhatsApp far more often. Defaults to 'sms' so the existing frontend
+    // (or any older cached client) that never sends this field keeps
+    // working exactly as before.
+    const { channel } = (req.body ?? {}) as { channel?: 'sms' | 'whatsapp' };
+    const resolvedChannel = channel === 'whatsapp' ? 'whatsapp' : 'sms';
+
     const recipient = await dbPlatform.selectFrom('sign_recipients').selectAll()
       .where('token', '=', req.params.token).executeTakeFirst();
     if (!recipient) return reply.status(404).send({ error: 'Signing link not found' });
@@ -814,19 +849,23 @@ export async function signPublicRoutes(fastify: FastifyInstance) {
     const envelope = await dbPlatform.selectFrom('sign_envelopes').selectAll()
       .where('id', '=', recipient.envelope_id).executeTakeFirst();
     if (!envelope) return reply.status(404).send({ error: 'Document not found' });
-    if (!envelope.require_otp) return reply.status(400).send({ error: 'This document does not require SMS verification' });
+    if (!envelope.require_otp) return reply.status(400).send({ error: 'This document does not require OTP verification' });
     if (envelope.status !== 'sent') return reply.status(409).send({ error: 'Document is not available for signing' });
 
     // Send before persisting the hash — a code nobody actually received
-    // (SMS not configured, provider error) shouldn't sit in the database
-    // looking like a real pending verification.
+    // (SMS/WhatsApp not configured, provider error) shouldn't sit in the
+    // database looking like a real pending verification.
     const code = Math.floor(100000 + Math.random() * 900000).toString();
-    const result = await SmsIntegration.sendSms(envelope.tenant_id, recipient.phone, `Your Hudumika Sign verification code is ${code}. It expires in 10 minutes.`);
-    // Honest failure, matching SmsIntegration's own convention — a tenant
-    // with no SMS provider configured cannot silently skip the security
-    // check this route exists to enforce.
+    const message = `Your Hudumika Sign verification code is ${code}. It expires in 10 minutes.`;
+    const result = resolvedChannel === 'whatsapp'
+      ? await WhatsAppIntegration.sendMessage(recipient.phone, message)
+      : await SmsIntegration.sendSms(envelope.tenant_id, recipient.phone, message);
+    // Honest failure, matching SmsIntegration's/WhatsAppIntegration's own
+    // convention — a tenant with no provider configured for the chosen
+    // channel cannot silently skip the security check this route exists
+    // to enforce.
     if (!result.success) {
-      return reply.status(502).send({ error: result.error || 'Could not send a verification code — SMS is not configured for this tenant' });
+      return reply.status(502).send({ error: result.error || `Could not send a verification code via ${resolvedChannel === 'whatsapp' ? 'WhatsApp' : 'SMS'}` });
     }
 
     await dbPlatform.updateTable('sign_recipients').set({
@@ -834,7 +873,7 @@ export async function signPublicRoutes(fastify: FastifyInstance) {
       otp_expires_at: new Date(Date.now() + OTP_TTL_MS),
     }).where('id', '=', recipient.id).execute();
 
-    return reply.send({ ok: true, sent_to: recipient.phone.replace(/.(?=.{4})/g, '•') });
+    return reply.send({ ok: true, sent_to: recipient.phone.replace(/.(?=.{4})/g, '•'), channel: resolvedChannel });
   });
 
   // ── Verify an SMS one-time-passcode ─────────────────────────────────────────

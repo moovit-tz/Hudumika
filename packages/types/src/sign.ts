@@ -76,6 +76,10 @@ export interface SignEnvelope {
   id: string;
   tenant_id: string;
   created_by: string;
+  // Joined on fetch (GET /envelopes/:id) — the creator's display name, so
+  // the detail page can show "Sent by" with a real PersonAvatar rather than
+  // a bare user_id nobody can resolve without a second round trip.
+  created_by_name?: string | null;
   title: string;
   message: string | null;
   file_id: string | null;

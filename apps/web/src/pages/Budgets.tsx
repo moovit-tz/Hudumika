@@ -4,6 +4,7 @@ import { Icon } from '../components/Icon.js';
 import { showAlert } from '../lib/alert.js';
 import { useCurrency } from '../hooks/useCurrency.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { MetricsRow } from '../components/MetricCard.js';
 import { Combobox, type ComboboxOption } from '../components/ui/combobox.js';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -122,12 +123,38 @@ export function Budgets() {
         titlePlain="Budget"
         titleEm="planning"
         subtitle="Plan spend and revenue by account and month, then compare against what actually posted."
-        actions={
-          <button type="button" className="btn btn-primary btn-sm" onClick={() => setShowNew(true)}>
-            <Icon name="plus" size={13} /> New Budget
-          </button>
-        }
       />
+
+      <MetricsRow cards={[
+        {
+          title: 'Total Budgets', value: String(budgets.length), icon: 'target',
+          sub1Label: 'THIS YEAR', sub1Value: String(budgets.filter(b => b.fiscal_year === new Date().getFullYear()).length),
+          sub2Label: 'FISCAL YEARS', sub2Value: String(new Set(budgets.map(b => b.fiscal_year)).size), barHighlight: 'var(--teal)',
+        },
+        {
+          title: 'Selected Budget', value: selectedBudget ? selectedBudget.name : '—', icon: 'fileText',
+          sub1Label: 'FISCAL YEAR', sub1Value: selectedBudget ? String(selectedBudget.fiscal_year) : '—',
+          sub2Label: 'ACCOUNTS', sub2Value: String(rows.length), barHighlight: 'var(--blue)',
+        },
+        {
+          title: 'Total Planned', value: fmt(grandTotal), icon: 'dollarSign',
+          sub1Label: 'ACCOUNTS', sub1Value: String(rows.length),
+          sub2Label: 'MONTHLY AVG', sub2Value: fmt(grandTotal / 12), barHighlight: 'var(--green)',
+        },
+        {
+          title: 'Avg Per Account', value: fmt(rows.length ? grandTotal / rows.length : 0), icon: 'barChart2',
+          sub1Label: 'ACCOUNTS', sub1Value: String(rows.length),
+          sub2Label: 'TOTAL', sub2Value: fmt(grandTotal), barHighlight: 'var(--gold)',
+        },
+      ]} />
+
+      <div style={{ padding: '16px 0', display: 'flex', justifyContent: 'flex-end' }}>
+        <button type="button"
+          onClick={() => setShowNew(true)}
+          style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+          <Icon name="plus" size={14} color="hsl(var(--primary-foreground))" /> New Budget
+        </button>
+      </div>
 
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 20, flexWrap: 'wrap' }}>
         {budgets.map(b => (

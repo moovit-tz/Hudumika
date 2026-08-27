@@ -6,6 +6,7 @@ import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import { useCurrency } from '../hooks/useCurrency.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { MetricsRow } from '../components/MetricCard.js';
 import { EntityPicker, type PickerItem } from '../components/EntityPicker.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
@@ -190,6 +191,10 @@ export function RecurringInvoices() {
   if (loading) return <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink3)' }}>Loading recurring invoices…</div>;
 
   const totalMonthly = recurring.filter(r => r.frequency === 'MONTHLY' && r.state === 'ACTIVE').reduce((a, r) => a + r.amount * (1 + r.tax_rate / 100), 0);
+  const activeCount = recurring.filter(r => r.state === 'ACTIVE').length;
+  const pausedCount = recurring.filter(r => r.state === 'PAUSED').length;
+  const invoicesGenerated = recurring.reduce((s, r) => s + r.invoices_generated, 0);
+  const totalBilled = recurring.reduce((s, r) => s + r.total_billed, 0);
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--white)', fontFamily: 'var(--font)' }}>
@@ -198,29 +203,39 @@ export function RecurringInvoices() {
         titlePlain="Recurring"
         titleEm="invoices"
         subtitle="Templates that auto-generate a real invoice on schedule."
-        actions={
-          <div style={{ display: 'flex', gap: 8 }}>
-            <Link to="/finance/invoices" className="btn btn-secondary btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}>
-              <Icon name="arrowLeft" size={13} /> All Invoices
-            </Link>
-            <button type="button" className="btn btn-primary btn-sm" onClick={() => { setEditing(null); setShowForm(true); }}>
-              <Icon name="plus" size={13} /> New Template
-            </button>
-          </div>
-        }
       />
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 20 }}>
-        {[
-          { label: 'Active Recurring', value: String(recurring.filter(r => r.state === 'ACTIVE').length), color: 'var(--teal)', bg: 'var(--teal-l)', icon: 'refresh' as const },
-          { label: 'Monthly Commitment', value: totalMonthly.toLocaleString('en-US', { maximumFractionDigits: 0 }), color: 'var(--blue)', bg: 'var(--blue-l)', icon: 'dollarSign' as const },
-          { label: 'Invoices Generated', value: String(recurring.reduce((a, r) => a + r.invoices_generated, 0)), color: 'var(--green)', bg: 'var(--green-l)', icon: 'receipt' as const },
-        ].map(c => (
-          <div key={c.label} style={{ background: c.bg, borderRadius: 9, padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 9, background: c.color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name={c.icon} size={16} color="#fff" /></div>
-            <div><div style={{ fontWeight: 800, fontSize: 20, color: c.color }}>{c.value}</div><div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 1 }}>{c.label}</div></div>
-          </div>
-        ))}
+      <MetricsRow cards={[
+          {
+            title: 'Total Templates', value: String(recurring.length),
+            sub1Label: 'ACTIVE', sub1Value: String(activeCount),
+            sub2Label: 'PAUSED', sub2Value: String(pausedCount), barHighlight: 'var(--teal)',
+          },
+          {
+            title: 'Monthly Recurring', value: fmt(totalMonthly),
+            sub1Label: 'MONTHLY ACTIVE', sub1Value: String(recurring.filter(r => r.frequency === 'MONTHLY' && r.state === 'ACTIVE').length),
+            sub2Label: 'ALL ACTIVE', sub2Value: String(activeCount), barHighlight: 'var(--blue)',
+          },
+          {
+            title: 'Invoices Generated', value: String(invoicesGenerated),
+            sub1Label: 'TOTAL BILLED', sub1Value: fmt(totalBilled),
+            sub2Label: 'TEMPLATES', sub2Value: String(recurring.length), barHighlight: 'var(--green)',
+          },
+          {
+            title: 'Active Rate', value: `${recurring.length ? Math.round((activeCount / recurring.length) * 100) : 0}%`,
+            sub1Label: 'ACTIVE', sub1Value: String(activeCount),
+            sub2Label: 'TOTAL', sub2Value: String(recurring.length), barHighlight: 'var(--purple)',
+          },
+        ]} />
+
+      <div style={{ padding: '16px 0', display: 'flex', gap: 10, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+        <Link to="/finance/invoices" className="btn btn-secondary btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}>
+          <Icon name="arrowLeft" size={13} /> All Invoices
+        </Link>
+        <button type="button" onClick={() => { setEditing(null); setShowForm(true); }}
+          style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+          <Icon name="plus" size={14} color="hsl(var(--primary-foreground))" /> New Template
+        </button>
       </div>
 
       <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', overflow: 'hidden' }}>

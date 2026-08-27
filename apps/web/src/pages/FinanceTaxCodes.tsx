@@ -574,17 +574,41 @@ export function FinanceTaxCodes() {
   return (
     <div className="page-layout">
       <PageHeader
-        crumbs={['FinOps', 'Settings']}
-        titlePlain="Tax"
-        titleEm="codes"
+        crumbs={['FINANCE', 'TAX CODES']}
+        titlePlain="Tax "
+        titleEm="rates"
         subtitle="How each supply is treated for tax — not just the rate it is charged at."
-        actions={
-          <button type="button" className="btn btn-primary"
-            onClick={() => { setEditing(null); setShowForm(true); }}>
-            <Icon name="plus" size={14} color="#fff" /> New tax code
-          </button>
-        }
       />
+
+      <MetricsRow cards={[
+        {
+          title: 'TOTAL TAX CODES', value: String(codes.length),
+          sub1Label: 'ACTIVE', sub1Value: String(codes.filter(c => c.status === 'active').length),
+          sub2Label: 'DEFAULT', sub2Value: String(codes.filter(c => c.isDefault).length), barHighlight: 'var(--teal)',
+        },
+        {
+          title: 'STANDARD RATE', value: `${codes.find(c => c.kind === 'STANDARD')?.rate ?? 18}%`,
+          sub1Label: 'JURISDICTION', sub1Value: reg?.status?.jurisdiction ?? 'TZ',
+          sub2Label: 'VAT REG', sub2Value: reg?.status?.state === 'registered' ? 'YES' : 'NO', barHighlight: 'var(--blue)',
+        },
+        {
+          title: 'ZERO / EXEMPT', value: String(codes.filter(c => ZERO_RATE_KINDS.includes(c.kind)).length),
+          sub1Label: 'EXEMPT', sub1Value: String(codes.filter(c => c.kind === 'EXEMPT').length),
+          sub2Label: 'ZERO-RATED', sub2Value: String(codes.filter(c => c.kind === 'ZERO_RATED').length), barHighlight: 'var(--gold)',
+        },
+        {
+          title: 'UNCLASSIFIED LINES', value: String(unclassified ?? 0),
+          sub1Label: 'INVOICES', sub1Value: String(usage?.invoice_lines?.unclassified ?? 0),
+          sub2Label: 'PRODUCTS', sub2Value: String(usage?.products?.unclassified ?? 0), barHighlight: 'var(--red)',
+        },
+      ]} />
+
+      <div style={{ padding: '16px 0', display: 'flex', justifyContent: 'flex-end' }}>
+        <button type="button" onClick={() => { setEditing(null); setShowForm(true); }}
+          style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+          <Icon name="plus" size={14} color="hsl(var(--primary-foreground))" /> New Tax Code
+        </button>
+      </div>
 
       {notice && (
         <div style={{
@@ -684,16 +708,6 @@ export function FinanceTaxCodes() {
           )}
         </div>
       )}
-
-      <MetricsRow cards={[
-        { title: 'Tax codes', value: String(codes.length),
-          sub1Label: 'Active', sub1Value: String(codes.filter(c => c.status === 'active').length) },
-        { title: 'Zero-rate treatments', value: String(codes.filter(c => ZERO_RATE_KINDS.includes(c.kind)).length),
-          sub1Label: 'All charge', sub1Value: '0%' },
-        { title: 'Unclassified rows', value: unclassified === null ? '—' : String(unclassified),
-          sub1Label: 'Invoice lines', sub1Value: usage ? String(usage.invoice_lines.unclassified) : '—',
-          sub2Label: 'Bill lines', sub2Value: usage ? String(usage.bill_lines.unclassified) : '—' },
-      ]} />
 
       {/* The honest gap, stated rather than papered over. Everything at 0%
           predating tax codes could not be backfilled: the four 0% treatments

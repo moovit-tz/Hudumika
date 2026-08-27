@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { PageHeader } from '../components/PageHeader.js';
+import { MetricsRow } from '../components/MetricCard.js';
 import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
 import { apiFetch } from '../lib/api.js';
 import { useCompany } from '../data/companyStore.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
+import { showPrompt } from '../lib/prompt.js';
+import { Tip } from '../components/ui/tooltip.js';
 
 /**
  * Filing periods.
@@ -130,9 +133,9 @@ export function FinanceVatPeriods() {
   }
 
   async function reopen(p: Period) {
-    const reason = window.prompt(
-      'Reopening unfreezes documents a return was already filed on.\n\nWhy is this needed?',
-    );
+    const reason = await showPrompt('Reopening unfreezes documents a return was already filed on.', {
+      title: 'Why is this needed?', placeholder: 'e.g. A late credit note needs to post inside this period', required: true, confirmLabel: 'Reopen Period',
+    });
     if (!reason?.trim()) return;
     setBusy(p.id); setNotice(null);
     try {
@@ -152,11 +155,34 @@ export function FinanceVatPeriods() {
   return (
     <div className="page-layout">
       <PageHeader
-        crumbs={['FinOps', 'Tax']}
+        crumbs={['Finance', 'Tax']}
         titlePlain="Filing"
         titleEm="periods"
         subtitle="Closing a period stores the return as filed and freezes the documents behind it."
       />
+
+      <MetricsRow cards={[
+        {
+          title: 'Total Periods', value: String(periods.length), icon: 'calendar',
+          sub1Label: 'OPEN', sub1Value: String(periods.filter(p => p.status === 'open').length),
+          sub2Label: 'FILED', sub2Value: String(periods.filter(p => p.status === 'closed').length), barHighlight: 'var(--teal)',
+        },
+        {
+          title: 'Open Periods', value: String(periods.filter(p => p.status === 'open').length), icon: 'unlock',
+          sub1Label: 'JURISDICTIONS', sub1Value: String(new Set(periods.filter(p => p.status === 'open').map(p => p.jurisdiction)).size),
+          sub2Label: 'TOTAL', sub2Value: String(periods.length), barHighlight: 'var(--gold)',
+        },
+        {
+          title: 'Filed Returns', value: String(periods.filter(p => p.status === 'closed').length), icon: 'lock',
+          sub1Label: 'REOPENED', sub1Value: String(periods.filter(p => p.reopened_at).length),
+          sub2Label: 'TOTAL', sub2Value: String(periods.length), barHighlight: 'var(--green)',
+        },
+        {
+          title: 'Adjustments Posted', value: fmt(periods.reduce((s, p) => s + (Number(p.adjustment_amount) || 0), 0)), icon: 'dollarSign',
+          sub1Label: 'PERIODS', sub1Value: String(periods.filter(p => Number(p.adjustment_amount) > 0).length),
+          sub2Label: 'JURISDICTIONS', sub2Value: String(new Set(periods.map(p => p.jurisdiction)).size), barHighlight: 'var(--blue)',
+        },
+      ]} />
 
       {notice && (
         <div style={{
@@ -186,7 +212,7 @@ export function FinanceVatPeriods() {
           <DatePicker date={parseDateOnly(to)} onChange={d => setTo(toDateOnlyString(d))} />
         </div>
         <button type="button" className="btn btn-primary btn-sm" disabled={busy === 'create'} onClick={create}>
-          <Icon name="plus" size={13} color="#fff" /> {busy === 'create' ? 'Creating…' : 'New period'}
+          <Icon name="plus" size={13} color="hsl(var(--primary-foreground))" /> {busy === 'create' ? 'Creating…' : 'New period'}
         </button>
         <div style={{ fontSize: 11.5, color: 'var(--ink3)', flex: '1 1 240px', minWidth: 200, lineHeight: 1.5 }}>
           Periods cannot overlap within a jurisdiction — a document must belong to exactly one return.
@@ -221,9 +247,11 @@ export function FinanceVatPeriods() {
                     {p.status === 'closed' ? 'Filed' : 'Open'}
                   </Badge>
                   {p.reopened_at && (
-                    <span title={p.reopen_reason ?? ''} style={{ marginLeft: 6 }}>
-                      <Badge variant="warning">Reopened</Badge>
-                    </span>
+                    <Tip label={p.reopen_reason || 'No reason recorded'}>
+                      <span style={{ marginLeft: 6 }}>
+                        <Badge variant="warning">Reopened</Badge>
+                      </span>
+                    </Tip>
                   )}
                 </td>
                 <td style={{ ...td, fontFamily: 'var(--mono)' }}>

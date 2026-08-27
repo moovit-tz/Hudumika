@@ -6,6 +6,7 @@ import { useCurrency } from '../hooks/useCurrency.js';
 import type { ProfitLossReport, ProfitLossLine } from '@hudumika/types';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { MetricsRow } from '../components/MetricCard.js';
 
 interface PLRow { label: string; amount: number; sub?: boolean; bold?: boolean; separator?: boolean }
 
@@ -189,7 +190,7 @@ export const FinanceProfitLoss: React.FC = () => {
 
   const revenueTotal = report?.totals.revenue ?? 0;
   const incomeRows = useMemo(() => buildIncomeRows(report?.revenue ?? [], revenueTotal), [report, revenueTotal]);
-  const { rows: costRows, grossProfit, netProfit } = useMemo(
+  const { rows: costRows, grossProfit, operatingProfit, netProfit } = useMemo(
     () => buildCostsProfitRows(revenueTotal, report?.expenses ?? []),
     [report, revenueTotal]
   );
@@ -220,7 +221,7 @@ export const FinanceProfitLoss: React.FC = () => {
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--white)', fontFamily: 'var(--font)' }}>
       <PageHeader
-        crumbs={['Finance', 'Accounts']}
+        crumbs={['Finance', 'Reports']}
         titlePlain="Profit and"
         titleEm="loss"
         subtitle="Income statement — freight & customs clearing operations."
@@ -246,31 +247,28 @@ export const FinanceProfitLoss: React.FC = () => {
       ) : (
       <div style={{ flex: 1, overflowY: 'auto', padding: '0', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-        {/* KPI summary */}
-        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-          {[
-            { label: 'Total Revenue', value: fmtM(revenueTotal) },
-            { label: 'Gross Profit',  value: fmtM(grossProfit)  },
-            { label: 'Net Profit',    value: fmtM(netProfit)    },
-            { label: 'Gross Margin',  value: `${grossMargin}%`  },
-            { label: 'Net Margin',    value: `${netMargin}%`    },
-          ].map(s => (
-            <div key={s.label} style={{ flex: 1, minWidth: 140, background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '14px 16px' }}>
-              {/* fmtCompact should already have made this short; truncation is
-                  the backstop for a figure that still will not fit, so it
-                  ellipsises inside its own card instead of painting over the
-                  card beside it. Measured at a trillion USD in shillings: a
-                  192px value box was drawing 231px of text with
-                  overflow:visible. title= keeps the full figure reachable. */}
-              <div title={s.value} style={{
-                fontSize: 20, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em',
-                fontVariantNumeric: 'tabular-nums',
-                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-              }}>{s.value}</div>
-              <div style={{ fontSize: 10.5, color: 'var(--ink3)', marginTop: 3, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700 }}>{s.label}</div>
-            </div>
-          ))}
-        </div>
+        <MetricsRow cards={[
+          {
+            title: 'Total Revenue', value: fmtM(revenueTotal), icon: 'dollarSign',
+            sub1Label: 'GROSS PROFIT', sub1Value: fmtM(grossProfit),
+            sub2Label: 'GROSS MARGIN', sub2Value: `${grossMargin}%`, barHighlight: 'var(--teal)',
+          },
+          {
+            title: 'Total Expenses', value: fmtM(report?.totals.expenses ?? 0), icon: 'creditCard', invertTrend: true,
+            sub1Label: 'OPERATING PROFIT', sub1Value: fmtM(operatingProfit),
+            sub2Label: 'GROSS PROFIT', sub2Value: fmtM(grossProfit), barHighlight: 'var(--red)',
+          },
+          {
+            title: 'Net Profit', value: fmtM(netProfit), icon: 'checkCircle',
+            sub1Label: 'NET MARGIN', sub1Value: `${netMargin}%`,
+            sub2Label: 'OPERATING PROFIT', sub2Value: fmtM(operatingProfit), barHighlight: 'var(--green)',
+          },
+          {
+            title: 'Net Margin', value: `${netMargin}%`, icon: 'barChart2',
+            sub1Label: 'GROSS MARGIN', sub1Value: `${grossMargin}%`,
+            sub2Label: 'REVENUE', sub2Value: fmtM(revenueTotal), barHighlight: 'var(--blue)',
+          },
+        ]} />
 
         {/* P&L Statement */}
         <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>

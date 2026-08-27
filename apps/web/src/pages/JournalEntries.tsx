@@ -4,6 +4,7 @@ import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import { useCurrency } from '../hooks/useCurrency.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { MetricsRow } from '../components/MetricCard.js';
 import { Combobox, type ComboboxOption } from '../components/ui/combobox.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 
@@ -129,6 +130,22 @@ export function JournalEntries() {
 
   if (loading) return <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink3)' }}>Loading journal entries…</div>;
 
+  const jeStats = (() => {
+    const now = new Date();
+    const postedCount = entries.filter(e => e.status === 'POSTED').length;
+    const draftCount = entries.filter(e => e.status === 'DRAFT').length;
+    const voidedCount = entries.filter(e => e.status === 'VOIDED').length;
+    const manualCount = entries.filter(e => e.source_module === 'MANUAL').length;
+    const postedEntries = entries.filter(e => e.status === 'POSTED');
+    const lineTotal = (e: JournalEntry) => e.lines.reduce((s, l) => s + (Number(l.debit) || 0), 0);
+    const totalPosted = postedEntries.reduce((s, e) => s + lineTotal(e), 0);
+    const postedThisMonth = postedEntries.reduce((s, e) => {
+      const d = new Date(e.entry_date);
+      return s + (d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() ? lineTotal(e) : 0);
+    }, 0);
+    return { total: entries.length, postedCount, draftCount, voidedCount, manualCount, totalPosted, postedThisMonth };
+  })();
+
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--white)', fontFamily: 'var(--font)' }}>
       <PageHeader
@@ -136,12 +153,36 @@ export function JournalEntries() {
         titlePlain="Journal"
         titleEm="entries"
         subtitle="Every posting to the general ledger — automatic and manual."
-        actions={
-          <button type="button" className="btn btn-primary btn-sm" onClick={() => setShowForm(s => !s)} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <Icon name={showForm ? 'x' : 'plus'} size={13} /> {showForm ? 'Cancel' : 'New entry'}
-          </button>
-        }
       />
+      <MetricsRow cards={[
+        {
+          title: 'Total Entries', value: String(jeStats.total),
+          sub1Label: 'POSTED', sub1Value: String(jeStats.postedCount),
+          sub2Label: 'DRAFT', sub2Value: String(jeStats.draftCount), barHighlight: 'var(--teal)',
+        },
+        {
+          title: 'Total Posted', value: fmt(jeStats.totalPosted),
+          sub1Label: 'THIS MONTH', sub1Value: fmt(jeStats.postedThisMonth),
+          sub2Label: 'VOIDED', sub2Value: String(jeStats.voidedCount), barHighlight: 'var(--green)',
+        },
+        {
+          title: 'Manual Entries', value: String(jeStats.manualCount),
+          sub1Label: 'MANUAL', sub1Value: String(jeStats.manualCount),
+          sub2Label: 'AUTOMATIC', sub2Value: String(jeStats.total - jeStats.manualCount), barHighlight: 'var(--purple)',
+        },
+        {
+          title: 'Posting Rate', value: `${jeStats.total ? Math.round((jeStats.postedCount / jeStats.total) * 100) : 0}%`,
+          sub1Label: 'POSTED', sub1Value: String(jeStats.postedCount),
+          sub2Label: 'TOTAL', sub2Value: String(jeStats.total), barHighlight: 'var(--blue)',
+        },
+      ]} />
+
+      <div style={{ padding: '16px 0', display: 'flex', justifyContent: 'flex-end' }}>
+        <button type="button" onClick={() => setShowForm(s => !s)}
+          style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+          <Icon name={showForm ? 'x' : 'plus'} size={14} color="hsl(var(--primary-foreground))" /> {showForm ? 'Cancel' : 'New entry'}
+        </button>
+      </div>
 
       {showForm && (
         <div className="card" style={{ padding: 20, marginBottom: 20 }}>

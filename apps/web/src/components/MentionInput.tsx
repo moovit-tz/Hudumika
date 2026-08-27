@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { PersonAvatar } from './PersonAvatar.js';
 
 export interface MentionUser {
   id: string;
@@ -19,16 +20,6 @@ interface Props {
   placeholder?: string;
   disabled?: boolean;
   onSubmit?: () => void;
-}
-
-const AV_COLORS = ['#e8461a', '#2563eb', '#059669', '#7c3aed', '#ca8a04', '#0891b2', '#be185d', '#9a3412'];
-function avColor(name: string) {
-  let h = 0;
-  for (const ch of (name ?? '')) h = (h * 31 + ch.charCodeAt(0)) % AV_COLORS.length;
-  return AV_COLORS[Math.abs(h)];
-}
-function avInitials(name: string) {
-  return name.split(' ').slice(0, 2).map(w => w[0] || '').join('').toUpperCase();
 }
 
 export function MentionInput({ value, onChange, users, placeholder, disabled, onSubmit }: Props) {
@@ -186,14 +177,7 @@ export function MentionInput({ value, onChange, users, placeholder, disabled, on
                 cursor: 'pointer',
                 textAlign: 'left', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
             >
-              <div style={{
-                width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
-                background: avColor(u.name), color: '#fff',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 10, fontWeight: 700,
-              }}>
-                {u.avatar_initials || avInitials(u.name)}
-              </div>
+              <PersonAvatar userId={u.id} name={u.name} size={28} />
               <div>
                 <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', lineHeight: 1.2 }}>{u.name}</div>
                 <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{u.role.toLowerCase().replace(/_/g, ' ')}</div>

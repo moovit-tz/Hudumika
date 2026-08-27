@@ -5,8 +5,10 @@ import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import { useCurrency } from '../hooks/useCurrency.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { MetricsRow } from '../components/MetricCard.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
+import { useIsMobile } from '../hooks/useIsMobile.js';
 
 interface Period {
   id: string; name: string; period_type: 'MONTH' | 'YEAR'; period_start: string; period_end: string;
@@ -14,6 +16,7 @@ interface Period {
 }
 
 export function GlPeriods() {
+  const isMobile = useIsMobile();
   const { fmt } = useCurrency();
   const [periods, setPeriods] = useState<Period[]>([]);
   const [loading, setLoading] = useState(true);
@@ -82,12 +85,38 @@ export function GlPeriods() {
         titlePlain="Period"
         titleEm="close"
         subtitle="Lock a period against further posting; a year-end close also zeroes revenue and expense into Retained Earnings."
-        actions={
-          <button type="button" className="btn btn-primary btn-sm" onClick={() => setShowNew(true)}>
-            <Icon name="plus" size={13} /> New Period
-          </button>
-        }
       />
+
+      <MetricsRow cards={[
+        {
+          title: 'Total Periods', value: String(periods.length), icon: 'calendar',
+          sub1Label: 'OPEN', sub1Value: String(periods.filter(p => p.status === 'open').length),
+          sub2Label: 'CLOSED', sub2Value: String(periods.filter(p => p.status === 'closed').length), barHighlight: 'var(--teal)',
+        },
+        {
+          title: 'Open Periods', value: String(periods.filter(p => p.status === 'open').length), icon: 'unlock',
+          sub1Label: 'MONTHS', sub1Value: String(periods.filter(p => p.status === 'open' && p.period_type === 'MONTH').length),
+          sub2Label: 'YEARS', sub2Value: String(periods.filter(p => p.status === 'open' && p.period_type === 'YEAR').length), barHighlight: 'var(--gold)',
+        },
+        {
+          title: 'Closed Periods', value: String(periods.filter(p => p.status === 'closed').length), icon: 'lock',
+          sub1Label: 'MONTHS', sub1Value: String(periods.filter(p => p.status === 'closed' && p.period_type === 'MONTH').length),
+          sub2Label: 'YEARS', sub2Value: String(periods.filter(p => p.status === 'closed' && p.period_type === 'YEAR').length), barHighlight: 'var(--green)',
+        },
+        {
+          title: 'Fiscal Years', value: String(periods.filter(p => p.period_type === 'YEAR').length), icon: 'checkCircle',
+          sub1Label: 'CLOSED', sub1Value: String(periods.filter(p => p.period_type === 'YEAR' && p.status === 'closed').length),
+          sub2Label: 'TOTAL', sub2Value: String(periods.length), barHighlight: 'var(--blue)',
+        },
+      ]} />
+
+      <div style={{ padding: '16px 0', display: 'flex', justifyContent: 'flex-end' }}>
+        <button type="button"
+          onClick={() => setShowNew(true)}
+          style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+          <Icon name="plus" size={14} color="hsl(var(--primary-foreground))" /> New Period
+        </button>
+      </div>
 
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         <div className="rtbl-wrap">
@@ -144,7 +173,7 @@ export function GlPeriods() {
                   <SelectContent><SelectItem value="MONTH">Month (lock only)</SelectItem><SelectItem value="YEAR">Fiscal Year (lock + closing entries)</SelectItem></SelectContent>
                 </Select>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12, marginBottom: 16 }}>
                 <div><label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 }}>Start</label><DatePicker date={parseDateOnly(start)} onChange={d => setStart(toDateOnlyString(d) ?? '')} /></div>
                 <div><label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 }}>End</label><DatePicker date={parseDateOnly(end)} onChange={d => setEnd(toDateOnlyString(d) ?? '')} /></div>
               </div>

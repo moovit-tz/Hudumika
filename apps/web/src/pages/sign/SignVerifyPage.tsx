@@ -25,6 +25,10 @@ interface VerifyResult {
     name: string; email: string; role_label: string | null;
     status: string; signed_at: string | null;
   }>;
+  certification: {
+    name: string; title: string; roll_number: string | null; firm: string | null;
+    certified: boolean; certified_at: string | null;
+  } | null;
 }
 
 function getCodeFromUrl(): string {
@@ -65,13 +69,16 @@ export function SignVerifyPage() {
   return (
     <div className="sign-verify-page" style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', flexDirection: 'column' }}>
       {/* Public Branded Header */}
-      <header style={{ background: '#fff', borderBottom: '1px solid var(--border)', height: 60, display: 'flex', alignItems: 'center', padding: '0 24px', flexShrink: 0 }}>
+      <header style={{ background: '#fff', borderBottom: '1px solid var(--border)', height: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 16, color: 'var(--ink)' }}>
-          <div style={{ width: 32, height: 32, borderRadius: 6, background: 'var(--blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
+          <div style={{ width: 32, height: 32, borderRadius: 6, background: 'var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
             <Icon name="edit" size={16} />
           </div>
           <span>Hudumika eSign</span>
         </div>
+        <Button variant="outline" size="sm" onClick={() => window.history.back()} style={{ fontWeight: 600 }}>
+          <Icon name="arrowLeft" size={14} /> Back
+        </Button>
       </header>
 
       {/* Main Content Area */}
@@ -191,6 +198,31 @@ export function SignVerifyPage() {
                   ))}
                 </div>
               </div>
+
+              {/* Certified True Copy — the whole point of checking this page for
+                  a legally certified document is confirming who certified it
+                  and their roll number, so it gets its own distinct block
+                  rather than blending into the ordinary signers list above. */}
+              {result.certification && (
+                <div style={{ marginBottom: 24, padding: 14, borderRadius: 6, background: '#eff6ff', border: '1px solid #bfdbfe' }}>
+                  <h3 style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#1d4ed8', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Icon name="shield" size={13} /> Certified True Copy
+                  </h3>
+                  <div style={{ fontSize: 13, color: '#111827' }}>
+                    <div style={{ fontWeight: 700 }}>{result.certification.name}</div>
+                    <div style={{ color: '#374151', marginTop: 2 }}>
+                      {result.certification.title}
+                      {result.certification.roll_number ? ` · Roll No. ${result.certification.roll_number}` : ''}
+                    </div>
+                    {result.certification.firm && <div style={{ color: '#374151' }}>{result.certification.firm}</div>}
+                    <div style={{ fontSize: 11.5, color: result.certification.certified ? '#10b981' : '#f59e0b', fontWeight: 600, marginTop: 6 }}>
+                      {result.certification.certified
+                        ? `Certified${result.certification.certified_at ? ` on ${new Date(result.certification.certified_at).toLocaleDateString()}` : ''}`
+                        : 'Certification pending'}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Cryptographic Proof Details */}
               <div style={{ padding: '16px', background: '#f9fafb', borderRadius: 6, border: '1px solid #e5e7eb' }}>

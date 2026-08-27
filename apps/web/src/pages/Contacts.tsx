@@ -3,6 +3,7 @@ import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
 import { AvatarPicker } from '../components/AvatarPicker.js';
+import { PersonAvatar } from '../components/PersonAvatar.js';
 import { useContacts } from '../shells/contacts-context.js';
 import type { Contact, ContactActivityEntry } from '../shells/contacts-context.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
@@ -905,22 +906,7 @@ export function Contacts() {
                               {/* Avatar & Name */}
                               <td style={{ padding: '8px 16px' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                  {contact.avatar_url ? (
-                                    <img
-                                      src={contact.avatar_url}
-                                      alt=""
-                                      style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }}
-                                    />
-                                  ) : (
-                                    <div style={{
-                                      width: 36, height: 36, borderRadius: '50%',
-                                      background: 'var(--cts-accent)', color: '#fff',
-                                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                      fontWeight: 700, fontSize: 13
-                                    }}>
-                                      {monogram(contact.first_name, contact.last_name)}
-                                    </div>
-                                  )}
+                                  <PersonAvatar userId={contact.id} kind="contacts" name={`${contact.first_name} ${contact.last_name || ''}`.trim()} size={36} />
                                   <div>
                                     <span style={{ fontWeight: 500, color: 'var(--ink)' }}>
                                       {contact.first_name} {contact.last_name || ''}
@@ -1060,22 +1046,7 @@ export function Contacts() {
                                 onClick={() => setActiveContact(c)}
                                 style={{ display: 'flex', gap: 12, alignItems: 'center', padding: 12, background: 'var(--bg)', borderRadius: 8, cursor: 'pointer' }}
                               >
-                                {c.avatar_url ? (
-                                  <img
-                                    src={c.avatar_url}
-                                    alt=""
-                                    style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }}
-                                  />
-                                ) : (
-                                  <div style={{
-                                    width: 32, height: 32, borderRadius: '50%',
-                                    background: 'var(--cts-accent)', color: '#fff',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    fontWeight: 700, fontSize: 12
-                                  }}>
-                                    {monogram(c.first_name, c.last_name)}
-                                  </div>
-                                )}
+                                <PersonAvatar userId={c.id} kind="contacts" name={`${c.first_name} ${c.last_name || ''}`.trim()} size={32} />
                                 <div>
                                   <div style={{ fontWeight: 600, fontSize: 13.5 }}>{c.first_name} {c.last_name || ''}</div>
                                   <div style={{ fontSize: 11.5, color: 'var(--ink2)' }}>{c.job_title || ''} {c.company ? `@ ${c.company}` : ''}</div>

@@ -10,7 +10,9 @@ import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
+import { Tip } from '../components/ui/tooltip.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { MetricsRow } from '../components/MetricCard.js';
 
 /** Top-level accounts per page. Matches the rest of the platform's lists
  *  (products, landed-cost history, Bliss notifications). */
@@ -35,11 +37,19 @@ function flattenTree(tree: ChartOfAccount[]): ChartOfAccount[] {
 
 // `plural` is stated rather than derived: the cards and tabs used to append
 // an "s" to the singular, which reads Liabilitys and Equitys.
+// Every color+bg pair now reads the same platform semantic token pair
+// (CLAUDE.md's "soft-tint backgrounds — always use the derived tokens").
+// EQUITY/REVENUE used to pair a hardcoded hex *text* color with the real
+// `var(--purple-l)`/`var(--green-l)` *background* token — the two only
+// looked consistent by coincidence; a SuperAdmin theme/preset switch would
+// move the tint but leave the hardcoded text color behind. ASSET had no
+// token at all (cyan isn't one of this platform's five semantic hues), so
+// it's remapped to --blue, the nearest real one.
 const TYPE_CFG: Record<AccountType, { label: string; plural: string; color: string; bg: string }> = {
-  ASSET:     { label: 'Asset',     plural: 'Assets',      color: '#0891b2', bg: '#ecfeff' },
+  ASSET:     { label: 'Asset',     plural: 'Assets',      color: 'var(--blue)', bg: 'var(--blue-l)' },
   LIABILITY: { label: 'Liability', plural: 'Liabilities', color: 'var(--red)', bg: 'var(--red-l)' },
-  EQUITY:    { label: 'Equity',    plural: 'Equity',      color: '#7c3aed', bg: 'var(--purple-l)' },
-  REVENUE:   { label: 'Revenue',   plural: 'Revenue',     color: '#059669', bg: 'var(--green-l)' },
+  EQUITY:    { label: 'Equity',    plural: 'Equity',      color: 'var(--purple)', bg: 'var(--purple-l)' },
+  REVENUE:   { label: 'Revenue',   plural: 'Revenue',     color: 'var(--green)', bg: 'var(--green-l)' },
   EXPENSE:   { label: 'Expense',   plural: 'Expenses',    color: 'var(--gold)', bg: 'var(--gold-l)' },
 };
 
@@ -71,7 +81,7 @@ function AccountRow({
           padding: '9px 16px',
           paddingLeft: 16 + depth * 20,
           borderBottom: '1px solid var(--border)',
-          background: isSelected ? '#eff6ff' : depth === 0 ? 'var(--bg)' : 'var(--white)',
+          background: isSelected ? 'var(--teal-l)' : depth === 0 ? 'var(--bg)' : 'var(--white)',
           cursor: 'pointer',
           transition: 'background .1s',
         }}
@@ -114,7 +124,7 @@ function AccountRow({
         {/* Normal balance */}
         <span style={{
           fontSize: 11, fontWeight: 600, textAlign: 'center',
-          color: account.normal_balance === 'DEBIT' ? '#0891b2' : '#7c3aed',
+          color: account.normal_balance === 'DEBIT' ? 'var(--blue)' : 'var(--purple)',
         }}>
           {account.normal_balance === 'DEBIT' ? 'Dr' : 'Cr'}
         </span>
@@ -123,8 +133,8 @@ function AccountRow({
         <span style={{ textAlign: 'center' }}>
           <span style={{
             fontSize: 10, fontWeight: 700,
-            color: account.is_active ? '#059669' : '#94a3b8',
-            background: account.is_active ? '#ecfdf5' : '#f1f5f9',
+            color: account.is_active ? 'var(--green)' : 'var(--ink3)',
+            background: account.is_active ? 'var(--green-l)' : 'var(--bg)',
             padding: '2px 7px', borderRadius: 9,
           }}>
             {account.is_active ? 'Active' : 'Inactive'}
@@ -361,63 +371,49 @@ export const ChartOfAccounts: React.FC = () => {
 
       {/* Header */}
       <PageHeader
-        crumbs={['Finance', 'Chart of Accounts']}
-        titlePlain="Chart of"
+        crumbs={['FINANCE', 'CHART OF ACCOUNTS']}
+        titlePlain="Chart of "
         titleEm="accounts"
-        subtitle={`${flat.length} accounts · ${TYPE_ORDER.length} types`}
-        actions={
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={expandAll} title="Expand all">
-              <Icon name="chevronDown" size={13} /> All
-            </button>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={collapseAll} title="Collapse all">
-              <Icon name="chevronUp" size={13} /> Collapse
-            </button>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={exportCsv} title="Export CSV">
-              <Icon name="download" size={13} /> Export CSV
-            </button>
-            <button type="button" className="btn btn-primary btn-sm" onClick={openNewAccountForm} title="New account">
-              <Icon name="plus" size={13} color="#fff" /> New Account
-            </button>
-          </div>
-        }
+        subtitle="General ledger structure, account classifications, and balance tracking."
       />
 
-      {/* Stats cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(5, 1fr)', gap: 12, marginBottom: 20 }}>
-        {TYPE_ORDER.map(t => {
-          const cfg = TYPE_CFG[t];
-          const count = stats[t] ?? 0;
-          return (
-            // Selection is shown by the border and a tinted label, not by a
-            // coloured bar across the top and a pastel fill. Five cards each
-            // wearing their own accent read as decoration competing with the
-            // figures; the number is what the card is for. Same treatment the
-            // Ops KPI cards already carry.
-            <div
-              key={t}
-              className="card"
-              aria-pressed={typeFilter === t}
-              style={{
-                padding: '12px 14px',
-                cursor: 'pointer',
-                background: 'var(--white)',
-                borderColor: typeFilter === t ? 'var(--teal)' : undefined,
-                boxShadow: typeFilter === t ? 'inset 0 0 0 1px var(--teal)' : undefined,
-              }}
-              onClick={() => setTypeFilter(typeFilter === t ? 'ALL' : t)}
-            >
-              <div style={{
-                fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6,
-                color: typeFilter === t ? 'var(--teal)' : 'var(--ink3)',
-              }}>
-                {cfg.plural}
-              </div>
-              <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)' }}>{count}</div>
-              <div style={{ fontSize: 10, color: 'var(--ink3)', marginTop: 2 }}>accounts</div>
-            </div>
-          );
-        })}
+      <MetricsRow cards={[
+        {
+          title: 'TOTAL ACCOUNTS', value: String(flat.length),
+          sub1Label: 'ACTIVE', sub1Value: String(flat.filter(a => a.is_active).length),
+          sub2Label: 'TOP LEVEL', sub2Value: String(coaTree.length), barHighlight: 'var(--teal)',
+        },
+        {
+          title: 'ASSETS', value: String(stats['ASSET'] ?? 0),
+          sub1Label: 'ACCOUNTS', sub1Value: String(stats['ASSET'] ?? 0),
+          sub2Label: 'LIABILITIES', sub2Value: String(stats['LIABILITY'] ?? 0), barHighlight: 'var(--blue)',
+        },
+        {
+          title: 'EQUITY & LIABILITIES', value: String((stats['EQUITY'] ?? 0) + (stats['LIABILITY'] ?? 0)),
+          sub1Label: 'EQUITY', sub1Value: String(stats['EQUITY'] ?? 0),
+          sub2Label: 'LIABILITY', sub2Value: String(stats['LIABILITY'] ?? 0), barHighlight: 'var(--gold)',
+        },
+        {
+          title: 'REVENUE & EXPENSES', value: String((stats['REVENUE'] ?? 0) + (stats['EXPENSE'] ?? 0)),
+          sub1Label: 'REVENUE', sub1Value: String(stats['REVENUE'] ?? 0),
+          sub2Label: 'EXPENSES', sub2Value: String(stats['EXPENSE'] ?? 0), barHighlight: 'var(--green)',
+        },
+      ]} />
+
+      <div style={{ padding: '16px 0', display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+        <button type="button" className="btn btn-secondary btn-sm" onClick={expandAll}>
+          <Icon name="chevronDown" size={13} /> Expand All
+        </button>
+        <button type="button" className="btn btn-secondary btn-sm" onClick={collapseAll}>
+          <Icon name="chevronUp" size={13} /> Collapse All
+        </button>
+        <button type="button" className="btn btn-secondary btn-sm" onClick={exportCsv}>
+          <Icon name="download" size={13} /> Export CSV
+        </button>
+        <button type="button" onClick={openNewAccountForm}
+          style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+          <Icon name="plus" size={14} color="hsl(var(--primary-foreground))" /> New Account
+        </button>
       </div>
 
       {/* Table Card Container */}

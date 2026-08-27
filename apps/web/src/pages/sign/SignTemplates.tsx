@@ -8,6 +8,8 @@ import { Button } from '../../components/ui/button.js';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog.js';
 import { PageHeader } from '../../components/PageHeader.js';
 import { MetricsRow } from '../../components/MetricCard.js';
+import { showConfirm } from '../../lib/confirm.js';
+import { Tip } from '../../components/ui/tooltip.js';
 import './Sign.css';
 
 interface BulkSendResult { email: string; ok: boolean; envelope_id?: string; error?: string }
@@ -112,7 +114,7 @@ export function SignTemplates() {
   }, []);
 
   async function deleteTemplate(id: string) {
-    if (!confirm('Delete this template?')) return;
+    if (!(await showConfirm('This template will no longer be available to start a new envelope from.', { title: 'Delete this template?', confirmLabel: 'Delete' }))) return;
     await apiFetch(`/v1/sign/templates/${id}`, { method: 'DELETE' });
     setTemplates(prev => prev.filter(t => t.id !== id));
   }
@@ -149,9 +151,14 @@ export function SignTemplates() {
           titleEm="templates"
           subtitle="Reusable document layouts for 1-click envelope creation & bulk sending."
           actions={
-            <Button variant="default" onClick={() => navigate('/sign/editor')} style={{ fontWeight: 600 }}>
-              <Icon name="plus" size={14} /> New Envelope from Scratch
-            </Button>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <Button variant="outline" size="sm" onClick={() => navigate('/sign')} style={{ fontWeight: 600 }}>
+                <Icon name="arrowLeft" size={14} /> Back to Inbox
+              </Button>
+              <Button variant="default" onClick={() => navigate('/sign/editor')} style={{ background: '#0e1f3d', color: '#fff', fontWeight: 700 }}>
+                <Icon name="plus" size={14} /> New Envelope from Scratch
+              </Button>
+            </div>
           }
         />
       </div>
@@ -219,14 +226,17 @@ export function SignTemplates() {
                   <Button variant="default" size="sm" onClick={() => navigate(`/sign/editor?template=${t.id}`)} style={{ flex: 2, fontWeight: 600 }}>
                     Use Template
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => setBulkSendTarget(t)}
-                    title="Send this template to a list of recipients — one envelope each"
-                    style={{ flex: 1, borderColor: 'var(--teal)', color: 'var(--teal)' }}>
-                    <Icon name="send" size={12} /> Bulk
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => deleteTemplate(t.id)} style={{ color: 'var(--sign-red)' }}>
-                    <Icon name="trash" size={12} />
-                  </Button>
+                  <Tip label="Send this template to a list of recipients — one envelope each">
+                    <Button variant="outline" size="sm" onClick={() => setBulkSendTarget(t)}
+                      style={{ flex: 1, borderColor: 'var(--teal)', color: 'var(--teal)' }}>
+                      <Icon name="send" size={12} /> Bulk
+                    </Button>
+                  </Tip>
+                  <Tip label="Delete this template">
+                    <Button variant="outline" size="sm" onClick={() => deleteTemplate(t.id)} style={{ color: 'var(--sign-red)' }}>
+                      <Icon name="trash" size={12} />
+                    </Button>
+                  </Tip>
                 </div>
               </div>
             ))}

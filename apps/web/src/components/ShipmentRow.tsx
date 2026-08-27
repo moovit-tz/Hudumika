@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import type { ShipmentCase } from '@hudumika/types';
 import { StatusPill, ProgressSegments } from '@hudumika/ui';
 import { Icon } from './Icon.js';
+import { PersonAvatar } from './PersonAvatar.js';
 import { STAGES, toStage } from '../pages/clearanceData.js';
 
 interface ShipmentRowProps {
@@ -132,27 +133,7 @@ export const ShipmentRow: React.FC<ShipmentRowProps> = ({ shipment, to }) => {
             onMouseEnter={(e) => (e.currentTarget.querySelector('.sro-name') as HTMLElement)?.style.setProperty('text-decoration', 'underline')}
             onMouseLeave={(e) => (e.currentTarget.querySelector('.sro-name') as HTMLElement)?.style.setProperty('text-decoration', 'none')}
           >
-            <div
-              className="sro-ava"
-              style={{
-                width: '24px',
-                height: '24px',
-                borderRadius: '50%',
-                background: shipment.assigned_officer_avatar_url ? 'var(--bg)' : 'var(--navy2)',
-                color: '#fff',
-                fontSize: '9px',
-                fontWeight: 700,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-                overflow: 'hidden',
-              }}
-            >
-              {shipment.assigned_officer_avatar_url
-                ? <img src={shipment.assigned_officer_avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                : getInitials(shipment.assigned_officer_name)}
-            </div>
+            <PersonAvatar userId={shipment.assigned_to} name={shipment.assigned_officer_name || ''} size={24} />
             <div className="sro-name" style={{ fontSize: '11.5px', color: 'var(--ink2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {shipment.assigned_officer_name || 'Unassigned'}
             </div>

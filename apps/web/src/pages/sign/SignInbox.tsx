@@ -1,15 +1,21 @@
 // ─── SignInbox.tsx — Inbox + Sent + Drafts + Completed views ─────────────────
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiFetch, apiFetchBlob, apiDownload, BASE_URL } from '../../lib/api.js';
 import type { SignEnvelope, SignRecipient } from '@hudumika/types';
 import { Icon } from '../../components/Icon.js';
 import { Button } from '../../components/ui/button.js';
 import { Badge } from '../../components/ui/badge.js';
+import { Tip } from '../../components/ui/tooltip.js';
 import { FeaturedIcon } from '../../components/ui/featured-icon.js';
 import { PersonAvatar } from '../../components/PersonAvatar.js';
 import { PageHeader } from '../../components/PageHeader.js';
+import { SectionCard } from '../../components/SectionCard.js';
+import { MetricsRow } from '../../components/MetricCard.js';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog.js';
+import { showAlert } from '../../lib/alert.js';
+import { showConfirm } from '../../lib/confirm.js';
+import { showPrompt } from '../../lib/prompt.js';
 // Same real-canvas PDF render Cloud's Lightbox and the envelope editor both
 // use — this page used to show only a filename chip, with no way to
 // actually see the document without downloading it first.
@@ -180,40 +186,97 @@ export function SignInbox({ view }: { view: ViewKey }) {
   );
   const currentTab = VIEW_TABS.find(t => t.key === view);
 
+  // Compute live metrics for KPI cards row matching standard format
+  const stats = useMemo(() => {
+    const total = envelopes.length;
+    const drafts = envelopes.filter(e => e.status === 'draft').length;
+    const sent = envelopes.filter(e => e.status === 'sent').length;
+    const completed = envelopes.filter(e => e.status === 'completed').length;
+    const pendingSign = envelopes.filter(e => e.recipients?.some(r => r.status === 'pending')).length;
+    const anchored = envelopes.filter(e => e.anchor_status === 'confirmed').length;
+    return { total, drafts, sent, completed, pendingSign, anchored };
+  }, [envelopes]);
+
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <PageHeader
-        crumbs={['eSign']}
+        crumbs={['eSign', (currentTab?.label ?? view).toUpperCase()]}
         titlePlain="eSign"
-        titleEm={(currentTab?.label ?? view).toLowerCase()}
+        titleEm={`${(currentTab?.label ?? view).toLowerCase()}.`}
         subtitle={currentTab?.subtitle ?? 'Send documents for signature, track every recipient, and verify completed envelopes.'}
       />
 
-      {/* Toolbar */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingBottom: 16 }}>
-        <div className="sign-view-toggle">
-          {(['list', 'grid'] as const).map(m => (
-            <button key={m} type="button" onClick={() => setViewMode(m)} title={m === 'list' ? 'List view' : 'Grid view'}
-              className={`sign-view-toggle-btn${viewMode === m ? ' sign-view-toggle-btn--on' : ''}`}>
-              <Icon name={m} size={15} />
-            </button>
-          ))}
+      {/* KPI Metrics Row */}
+      {!loading && envelopes.length > 0 && (
+        <div style={{ marginBottom: 16 }}>
+          <MetricsRow cards={[
+            {
+              title: 'TOTAL ENVELOPES', value: String(stats.total),
+              sub1Label: 'DRAFT', sub1Value: String(stats.drafts),
+              sub2Label: 'SENT', sub2Value: String(stats.sent), barHighlight: 'var(--teal)',
+            },
+            {
+              title: 'PENDING ACTION', value: String(stats.sent + stats.drafts),
+              sub1Label: 'AWAITING SIGNATURE', sub1Value: String(stats.pendingSign),
+              sub2Label: 'OUT FOR SIGNING', sub2Value: String(stats.sent), barHighlight: 'var(--gold)',
+            },
+            {
+              title: 'COMPLETED & VERIFIED', value: String(stats.completed),
+              sub1Label: 'COMPLETED', sub1Value: String(stats.completed),
+              sub2Label: 'BITCOIN ANCHORED', sub2Value: String(stats.anchored), barHighlight: 'var(--green)',
+            },
+          ]} />
         </div>
-        <Button variant="default" onClick={() => navigate('/sign/editor')} style={{ fontWeight: 600 }}>
-          <Icon name="plus" size={14} /> New Envelope
-        </Button>
-        <div style={{ position: 'relative', width: '100%', maxWidth: 320, marginLeft: 'auto' }}>
-          <Icon name="search" size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)', pointerEvents: 'none' }} />
-          <input
-            type="search" placeholder="Search envelopes by title…" value={search}
-            onChange={e => setSearch(e.target.value)}
-            style={{ width: '100%', padding: '9px 14px 9px 34px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13.5, outline: 'none', transition: 'border-color 0.15s, box-shadow 0.15s', boxSizing: 'border-box' }}
-          />
-          {search && (
-            <button type="button" onClick={() => setSearch('')} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', padding: 2, display: 'flex', alignItems: 'center' }}>
-              <Icon name="x" size={13} />
-            </button>
-          )}
+      )}
+
+      {/* Filter Navigation Pills & Action Toolbar matching standard format */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+          {VIEW_TABS.map(tab => {
+            const active = view === tab.key;
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => navigate(tab.key === 'inbox' ? '/sign' : `/sign/${tab.key}`)}
+                style={{
+                  padding: '7px 16px', borderRadius: 20, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', border: '1px solid var(--border)',
+                  background: active ? '#0e1f3d' : 'var(--white)',
+                  color: active ? '#ffffff' : 'var(--ink2)',
+                  boxShadow: active ? '0 2px 8px rgba(14,31,61,0.25)' : 'none',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div className="sign-view-toggle">
+            {(['list', 'grid'] as const).map(m => (
+              <Tip key={m} label={m === 'list' ? 'List view' : 'Grid view'}>
+                <button type="button" onClick={() => setViewMode(m)}
+                  className={`sign-view-toggle-btn${viewMode === m ? ' sign-view-toggle-btn--on' : ''}`}>
+                  <Icon name={m} size={15} />
+                </button>
+              </Tip>
+            ))}
+          </div>
+
+          <div style={{ position: 'relative', width: 240 }}>
+            <Icon name="search" size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)', pointerEvents: 'none' }} />
+            <input
+              type="search" placeholder="Search envelopes..." value={search}
+              onChange={e => setSearch(e.target.value)}
+              style={{ width: '100%', padding: '8px 12px 8px 34px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, outline: 'none', boxSizing: 'border-box' }}
+            />
+          </div>
+
+          <Button variant="default" onClick={() => navigate('/sign/editor')} style={{ background: '#0e1f3d', color: '#fff', fontWeight: 700, padding: '8px 16px' }}>
+            <Icon name="plus" size={14} /> New Envelope
+          </Button>
         </div>
       </div>
 
@@ -453,19 +516,21 @@ export function SignEnvelopeDetail() {
   }, [id, env?.status]);
 
   async function handleSend() {
-    if (!env || !confirm('Send this envelope for signing?')) return;
+    if (!env) return;
+    if (!(await showConfirm('This sends a real signing link to every recipient.', { title: 'Send this envelope for signing?', variant: 'info', confirmLabel: 'Send' }))) return;
     try {
       await apiFetch(`/v1/sign/envelopes/${env.id}/send`, { method: 'POST' });
       const refreshed = await apiFetch(`/v1/sign/envelopes/${env.id}`);
       setEnv(refreshed);
     } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : 'Failed to send');
+      showAlert(e instanceof Error ? e.message : 'Failed to send');
     }
   }
 
   async function handleVoid() {
     if (!env) return;
-    const reason = window.prompt('Reason for voiding (optional):') ?? '';
+    const reason = await showPrompt('This stops the envelope for every recipient — it can’t be un-voided.', { title: 'Reason for voiding (optional)', placeholder: 'e.g. Sent to the wrong recipient', confirmLabel: 'Void Envelope' });
+    if (reason === null) return;
     await apiFetch(`/v1/sign/envelopes/${env.id}`, { method: 'DELETE', body: JSON.stringify({ reason }) });
     navigate('/sign');
   }
@@ -475,9 +540,9 @@ export function SignEnvelopeDetail() {
     try {
       const result = await apiFetch(`/v1/sign/envelopes/${env.id}/remind`, { method: 'POST' });
       const names = (result.reminded ?? []).map((r: { name: string }) => r.name).join(', ');
-      alert(names ? `Reminder emailed to ${names}` : 'Reminder sent');
+      showAlert(names ? `Reminder emailed to ${names}` : 'Reminder sent', { variant: 'success' });
     } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : 'Failed to send reminder');
+      showAlert(e instanceof Error ? e.message : 'Failed to send reminder');
     }
   }
 
@@ -490,22 +555,30 @@ export function SignEnvelopeDetail() {
 
   async function handleRename() {
     if (!env) return;
-    const next = window.prompt('Rename this envelope:', env.title);
-    if (!next?.trim() || next.trim() === env.title) return;
+    const next = await showPrompt('', { title: 'Rename this envelope', defaultValue: env.title, required: true, confirmLabel: 'Rename' });
+    if (next === null || !next.trim() || next.trim() === env.title) return;
     try {
       await apiFetch(`/v1/sign/envelopes/${env.id}/title`, { method: 'PATCH', body: JSON.stringify({ title: next.trim() }) });
       setEnv(prev => prev ? { ...prev, title: next.trim() } : prev);
     } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : 'Failed to rename');
+      showAlert(e instanceof Error ? e.message : 'Failed to rename');
     }
   }
 
-  // ── Document preview (left column) ─────────────────────────────────────────
-  // Before this, the only way to actually see the document was to download
-  // it — the header showed a filename chip and nothing else. A completed
-  // envelope previews the real stamped/signed file; anything else previews
-  // the original upload, the same document_data/file_id shape the editor
-  // already loads a draft from.
+  async function handleAmend() {
+    if (!env) return;
+    const ok = await showConfirm(
+      `This creates a new draft — Version ${env.version_number + 1} — copying the same document, recipients and fields. The signed original stays exactly as it is, on file.`,
+      { title: 'Create an amended version?', variant: 'info', confirmLabel: 'Create Version ' + (env.version_number + 1) });
+    if (!ok) return;
+    try {
+      const amended = await apiFetch(`/v1/sign/envelopes/${env.id}/amend`, { method: 'POST' });
+      navigate(`/sign/editor/${amended.id}`);
+    } catch (e: unknown) {
+      showAlert(e instanceof Error ? e.message : 'Failed to create an amended version');
+    }
+  }
+
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewIsPdf, setPreviewIsPdf] = useState(true);
   const [previewLoading, setPreviewLoading] = useState(true);
@@ -559,22 +632,36 @@ export function SignEnvelopeDetail() {
     return () => { cancelled = true; };
   }, [previewDoc]);
 
-  const previewPaneRef = useRef<HTMLDivElement>(null);
   const [previewW, setPreviewW] = useState(480);
-  useEffect(() => {
-    function measure() {
-      const w = previewPaneRef.current?.clientWidth ?? 480;
-      setPreviewW(Math.max(220, w - 32));
-    }
+  const previewPaneRef = useCallback((node: HTMLDivElement | null) => {
+    if (!node) return;
+    const measure = () => setPreviewW(Math.min(800, Math.max(220, node.clientWidth)));
     measure();
-    window.addEventListener('resize', measure);
-    return () => window.removeEventListener('resize', measure);
+    const ro = new ResizeObserver(measure);
+    ro.observe(node);
+    return () => ro.disconnect();
   }, []);
   const previewH = Math.round(previewW * (previewNaturalSize ? previewNaturalSize.height / previewNaturalSize.width : DETAIL_A4_ASPECT));
   const previewScale = previewNaturalSize ? previewW / previewNaturalSize.width : 1;
 
-  if (loading) return <div style={{ padding: 40, color: 'var(--ink3)', textAlign: 'center' }}>Loading envelope details…</div>;
-  if (!env) return <div style={{ padding: 40, color: 'var(--ink3)', textAlign: 'center' }}>Envelope not found</div>;
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 380, gap: 12, color: 'var(--ink3)' }}>
+        <Icon name="clock" size={32} style={{ opacity: 0.4, animation: 'spin 2s linear infinite' }} />
+        <div style={{ fontSize: 14, fontWeight: 600 }}>Loading envelope details…</div>
+      </div>
+    );
+  }
+
+  if (!env) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 380, gap: 12, color: 'var(--ink3)' }}>
+        <Icon name="xCircle" size={36} style={{ color: 'var(--red)', opacity: 0.8 }} />
+        <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>Envelope Not Found</div>
+        <Button variant="outline" size="sm" onClick={() => navigate('/sign')}>Return to eSign Inbox</Button>
+      </div>
+    );
+  }
 
   return (
     <div style={{ fontFamily: 'var(--font)', display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -583,36 +670,46 @@ export function SignEnvelopeDetail() {
         title={env.title}
         subtitle={env.version_number > 1 ? `Version ${env.version_number}` : undefined}
         actions={
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <Badge variant={envelopeBadgeVariant(env.status)}>{env.status}</Badge>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <Button variant="outline" size="sm" onClick={() => navigate('/sign')} style={{ fontWeight: 600 }}>
+              <Icon name="arrowLeft" size={14} /> Back to Inbox
+            </Button>
+            <Badge variant={envelopeBadgeVariant(env.status)} style={{ textTransform: 'capitalize', padding: '5px 12px', fontSize: 12.5, fontWeight: 700 }}>
+              {env.status}
+            </Badge>
             {env.status === 'completed' ? (
-              // A completed document's signed PDF is final — "Edit" here
-              // can't mean "change this record," it means "start a
-              // corrected Version 2," so it gets its own label and icon
-              // rather than sitting behind the same plain pencil every
-              // other status uses for a simple rename.
               !env.next_version && (
-                <Button variant="ghost" size="icon" onClick={handleAmend} title="This document has an issue — create an amended Version 2" aria-label="Create an amended version">
-                  <Icon name="gitBranch" size={14} />
-                </Button>
+                <Tip label="This document has an issue — create an amended Version 2">
+                  <Button variant="outline" size="sm" onClick={handleAmend} style={{ borderColor: 'var(--teal)', color: 'var(--teal)' }}>
+                    <Icon name="gitBranch" size={14} /> Amend Version
+                  </Button>
+                </Tip>
               )
             ) : (
-              <Button variant="ghost" size="icon" onClick={handleRename} title="Rename this envelope" aria-label="Rename this envelope">
-                <Icon name="edit" size={14} />
-              </Button>
+              <Tip label="Rename this envelope">
+                <Button variant="ghost" size="sm" className="aspect-square px-0" onClick={handleRename} aria-label="Rename this envelope">
+                  <Icon name="edit" size={14} />
+                </Button>
+              </Tip>
             )}
             {env.status === 'draft' && (
               <>
-                <Button variant="outline" size="sm" onClick={() => navigate(`/sign/editor/${env.id}`)}>Edit</Button>
-                <Button variant="default" size="sm" onClick={handleSend}>Send for Signing</Button>
+                <Button variant="outline" size="sm" onClick={() => navigate(`/sign/editor/${env.id}`)}>
+                  <Icon name="edit" size={14} /> Edit Studio
+                </Button>
+                <Button variant="default" size="sm" onClick={handleSend} style={{ background: 'var(--teal)', color: '#fff', fontWeight: 700 }}>
+                  <Icon name="send" size={14} /> Send for Signing
+                </Button>
               </>
             )}
             {env.status === 'sent' && (
               <>
-                <Button variant="outline" size="sm" onClick={handleRemind}>Remind</Button>
+                <Button variant="outline" size="sm" onClick={handleRemind}>
+                  <Icon name="mail" size={14} /> Remind All
+                </Button>
                 <Button variant="outline" size="sm" onClick={handleVoid}
-                  style={{ borderColor: 'var(--sign-red)', background: 'var(--sign-red-l)', color: 'var(--sign-red)' }}>
-                  Void
+                  style={{ borderColor: 'var(--sign-red)', background: 'var(--sign-red-l)', color: 'var(--sign-red)', fontWeight: 600 }}>
+                  <Icon name="xCircle" size={14} /> Void Envelope
                 </Button>
               </>
             )}
@@ -620,229 +717,446 @@ export function SignEnvelopeDetail() {
         }
       />
 
+      {/* Sent by — the creator, so a shared workspace inbox reads as "who
+          actually raised this," not just what and when. */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: 'var(--ink3)' }}>
+        <PersonAvatar userId={env.created_by} name={env.created_by_name ?? ''} size={22} />
+        <span>Sent by <strong style={{ color: 'var(--ink2)' }}>{env.created_by_name ?? 'Unknown'}</strong> · {new Date(env.created_at).toLocaleDateString()}</span>
+      </div>
+
       {/* Version chain banners */}
       {env.previous_version && (
         <div onClick={() => navigate(`/sign/envelope/${env.previous_version!.id}`)}
-          style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, background: 'var(--blue-l)', border: '1px solid var(--blue)', borderRadius: 10, padding: '10px 16px', fontSize: 12.5, color: 'var(--ink)' }}>
-          <Icon name="gitBranch" size={14} style={{ color: 'var(--blue)', flexShrink: 0 } as React.CSSProperties} />
-          This is Version {env.version_number}, amended from <strong>Version {env.previous_version.version_number} — {env.previous_version.title}</strong>
-          <Icon name="chevronRight" size={13} style={{ marginLeft: 'auto', color: 'var(--ink3)' } as React.CSSProperties} />
+          style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, background: 'var(--teal-l)', border: '1px solid var(--teal)', borderRadius: 12, padding: '12px 18px', fontSize: 13, color: 'var(--ink)' }}>
+          <Icon name="gitBranch" size={16} style={{ color: 'var(--teal)', flexShrink: 0 } as React.CSSProperties} />
+          <span>This is Version {env.version_number}, amended from <strong>Version {env.previous_version.version_number} — {env.previous_version.title}</strong></span>
+          <Icon name="chevronRight" size={14} style={{ marginLeft: 'auto', color: 'var(--teal)' } as React.CSSProperties} />
         </div>
       )}
       {env.next_version && (
         <div onClick={() => navigate(`/sign/envelope/${env.next_version!.id}`)}
-          style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 10, padding: '10px 16px', fontSize: 12.5, color: 'var(--ink)' }}>
-          <Icon name="gitBranch" size={14} style={{ color: 'var(--gold)', flexShrink: 0 } as React.CSSProperties} />
-          This signed document is unchanged, but it’s been superseded by <strong>Version {env.next_version.version_number}</strong> ({env.next_version.status})
-          <Icon name="chevronRight" size={13} style={{ marginLeft: 'auto', color: 'var(--ink3)' } as React.CSSProperties} />
+          style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 12, padding: '12px 18px', fontSize: 13, color: 'var(--ink)' }}>
+          <Icon name="gitBranch" size={16} style={{ color: 'var(--gold)', flexShrink: 0 } as React.CSSProperties} />
+          <span>This signed document is unchanged, but it’s been superseded by <strong>Version {env.next_version.version_number}</strong> ({env.next_version.status})</span>
+          <Icon name="chevronRight" size={14} style={{ marginLeft: 'auto', color: 'var(--gold)' } as React.CSSProperties} />
         </div>
       )}
 
-      {/* Document on the left (2/3), everything about it — status, stamp,
-          recipients, audit trail (1/3) — on the right. This used to be one
-          full-width stacked column with no way to actually see the
-          document short of downloading it first. */}
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'minmax(0, 2fr) minmax(300px, 1fr)', gap: 20, alignItems: 'start' }}>
+      {/* Main 2-column workspace layout */}
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'minmax(0, 1.8fr) minmax(320px, 1fr)', gap: 24, alignItems: 'start' }}>
 
-        {/* LEFT: document preview */}
-        <div ref={previewPaneRef} style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 12, padding: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, minWidth: 0, position: isMobile ? 'static' : 'sticky', top: isMobile ? undefined : 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Document</div>
-            {env.file_name && (
-              <span style={{ fontSize: 11.5, color: 'var(--ink3)', display: 'flex', alignItems: 'center', gap: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                <Icon name="paperclip" size={11} /> {env.file_name}
+        {/* LEFT: Premium PDF / Document Preview Studio */}
+        <div style={{
+          background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 16,
+          boxShadow: '0 4px 20px rgba(0,0,0,0.03)', overflow: 'hidden', display: 'flex', flexDirection: 'column', minWidth: 0,
+          position: isMobile ? 'static' : 'sticky', top: isMobile ? undefined : 16
+        }}>
+          {/* Top Dark Slate Studio Control Bar */}
+          <div style={{
+            background: '#0f172a', padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            gap: 12, borderBottom: '1px solid #1e293b'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+              <Icon name="fileText" size={16} style={{ color: '#38bdf8', flexShrink: 0 }} />
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#f8fafc', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {env.file_name || env.title}
               </span>
+              {env.file_name && (
+                <span style={{ fontSize: 10, fontWeight: 800, background: '#1e293b', color: '#94a3b8', padding: '2px 6px', borderRadius: 4, textTransform: 'uppercase' }}>
+                  {env.file_name.split('.').pop() || 'PDF'}
+                </span>
+              )}
+            </div>
+
+            {previewIsPdf && previewNumPages > 1 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#1e293b', borderRadius: 20, padding: '3px 10px', flexShrink: 0 }}>
+                <button onClick={() => setPreviewPage(p => Math.max(1, p - 1))} disabled={previewPage <= 1}
+                  style={{ background: 'none', border: 'none', cursor: previewPage <= 1 ? 'default' : 'pointer', opacity: previewPage <= 1 ? 0.3 : 1, display: 'flex', padding: 2 }}>
+                  <Icon name="chevronLeft" size={14} color="#f8fafc" />
+                </button>
+                <span style={{ fontSize: 12, color: '#f8fafc', fontWeight: 600, whiteSpace: 'nowrap', fontFamily: 'var(--mono)' }}>
+                  {previewPage} / {previewNumPages}
+                </span>
+                <button onClick={() => setPreviewPage(p => Math.min(previewNumPages, p + 1))} disabled={previewPage >= previewNumPages}
+                  style={{ background: 'none', border: 'none', cursor: previewPage >= previewNumPages ? 'default' : 'pointer', opacity: previewPage >= previewNumPages ? 0.4 : 1, display: 'flex', padding: 2 }}>
+                  <Icon name="chevronRight" size={14} color="#f8fafc" />
+                </button>
+              </div>
             )}
           </div>
 
-          {previewIsPdf && previewNumPages > 1 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#1f2937', borderRadius: 20, padding: '5px 14px' }}>
-              <button onClick={() => setPreviewPage(p => Math.max(1, p - 1))} disabled={previewPage <= 1}
-                style={{ background: 'none', border: 'none', cursor: previewPage <= 1 ? 'default' : 'pointer', opacity: previewPage <= 1 ? 0.4 : 1, display: 'flex', padding: 2 }}>
-                <Icon name="chevronLeft" size={15} color="#d1d5db" />
-              </button>
-              <span style={{ fontSize: 12.5, color: '#f3f4f6', fontWeight: 600 }}>Page {previewPage} / {previewNumPages}</span>
-              <button onClick={() => setPreviewPage(p => Math.min(previewNumPages, p + 1))} disabled={previewPage >= previewNumPages}
-                style={{ background: 'none', border: 'none', cursor: previewPage >= previewNumPages ? 'default' : 'pointer', opacity: previewPage >= previewNumPages ? 0.4 : 1, display: 'flex', padding: 2 }}>
-                <Icon name="chevronRight" size={15} color="#d1d5db" />
-              </button>
+          {/* Document Canvas Container */}
+          <div style={{ padding: 20, background: 'var(--bg)', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 480 }}>
+            <div ref={previewPaneRef} style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+              <div style={{
+                width: previewW, height: previewH, maxWidth: '100%', background: '#ffffff', borderRadius: 8,
+                overflow: 'hidden', boxShadow: '0 12px 36px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.06)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, position: 'relative'
+              }}>
+                {previewLoading || (previewIsPdf && !!previewUrl && previewPdfLoading) ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, color: 'var(--ink3)' }}>
+                    <Icon name="clock" size={24} style={{ animation: 'spin 2s linear infinite', color: 'var(--teal)' }} />
+                    <div style={{ fontSize: 13, fontWeight: 600 }}>Loading document canvas…</div>
+                  </div>
+                ) : !previewUrl ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, color: 'var(--ink3)', padding: 24, textAlign: 'center' }}>
+                    <Icon name="fileText" size={32} style={{ opacity: 0.3 }} />
+                    <div style={{ fontSize: 13, fontWeight: 600 }}>No document preview available</div>
+                  </div>
+                ) : previewIsPdf ? (
+                  previewPdfError || !previewDoc ? (
+                    <div style={{ color: 'var(--ink3)', fontSize: 13, fontWeight: 600 }}>Unable to render PDF preview</div>
+                  ) : (
+                    <PdfPageCanvas doc={previewDoc} pageNumber={previewPage} scale={previewScale} style={{ display: 'block' }} />
+                  )
+                ) : (
+                  <img src={previewUrl} alt={env.title} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* RIGHT: Status, Verification Certificate, Recipients, & Audit Trail */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20, minWidth: 0 }}>
+
+          {/* Void / Decline Reason Banner */}
+          {(env.status === 'voided' || env.status === 'declined') && env.void_reason && (
+            <div style={{ background: 'var(--sign-red-l)', border: '1px solid var(--sign-red)', borderRadius: 14, padding: '16px 20px', boxShadow: '0 2px 8px rgba(239,68,68,0.06)' }}>
+              <div style={{ fontSize: 11.5, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--sign-red)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Icon name="xCircle" size={14} /> {env.status === 'declined' ? 'Envelope Declined' : 'Envelope Voided'}
+              </div>
+              <div style={{ fontSize: 13.5, color: 'var(--ink)', lineHeight: 1.5 }}>{env.void_reason}</div>
             </div>
           )}
 
-          <div style={{ width: previewW, height: previewH, maxWidth: '100%', background: '#fff', borderRadius: 8, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            {previewLoading || (previewIsPdf && !!previewUrl && previewPdfLoading) ? (
-              <div style={{ color: 'var(--ink3)', fontSize: 13 }}>Loading document…</div>
-            ) : !previewUrl ? (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, color: 'var(--ink3)', padding: 24, textAlign: 'center' }}>
-                <Icon name="fileText" size={28} style={{ opacity: 0.4 }} />
-                <div style={{ fontSize: 13 }}>No preview available for this document</div>
-              </div>
-            ) : previewIsPdf ? (
-              previewPdfError || !previewDoc ? (
-                <div style={{ color: 'var(--ink3)', fontSize: 13 }}>Couldn’t load this PDF</div>
-              ) : (
-                <PdfPageCanvas doc={previewDoc} pageNumber={previewPage} scale={previewScale} style={{ display: 'block' }} />
-              )
-            ) : (
-              <img src={previewUrl} alt={env.title} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-            )}
-          </div>
-        </div>
-
-        {/* RIGHT: status, stamp, signing links, recipients, audit trail */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20, minWidth: 0 }}>
-
-      {/* Void/decline reason banner */}
-      {(env.status === 'voided' || env.status === 'declined') && env.void_reason && (
-        <div style={{ background: 'var(--sign-red-l)', border: '1px solid var(--sign-red)', borderRadius: 10, padding: '14px 18px' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--sign-red)', marginBottom: 4 }}>
-            {env.status === 'declined' ? 'Declined' : 'Voided'}
-          </div>
-          <div style={{ fontSize: 13.5, color: 'var(--ink)' }}>{env.void_reason}</div>
-        </div>
-      )}
-
-      {/* Verification code stamp (if completed) */}
-      {env.status === 'completed' && env.verification_code && (
-        <div style={{ background: 'var(--sign-green-l)', border: '1px solid var(--sign-green)', borderRadius: 12, padding: '18px 22px', display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap' }}>
-          <FeaturedIcon variant="success" size="md" shape="circle"><Icon name="lock" size={20} /></FeaturedIcon>
-          <div style={{ flex: 1, minWidth: 240 }}>
-            <div style={{ fontSize: 11.5, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--sign-green)', marginBottom: 4 }}>Stamped &amp; Verified</div>
-            <div style={{ fontFamily: 'monospace', fontSize: 18, fontWeight: 800, color: 'var(--sign-green)', letterSpacing: '0.08em' }}>{env.verification_code}</div>
-            <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginTop: 4 }}>
-              Verify at: <a href={`/sign/verify/${env.verification_code}`} target="_blank" rel="noreferrer"
-                style={{ color: 'var(--teal)', fontWeight: 600 }}>/sign/verify/{env.verification_code}</a>
-            </div>
-            {env.anchor_status && (
-              <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 5 }}>
-                <Icon name={env.anchor_status === 'confirmed' ? 'checkCircle' : 'clock'} size={12} style={{ color: env.anchor_status === 'confirmed' ? 'var(--green)' : 'var(--gold)' }} />
-                {env.anchor_status === 'confirmed'
-                  ? `Bitcoin-anchored — confirmed in block #${env.anchor_block_height}`
-                  : 'Bitcoin anchor pending confirmation'}
-              </div>
-            )}
-          </div>
-          <div style={{ display: 'flex', gap: 8, flexShrink: 0, flexWrap: 'wrap' }}>
-            <Button variant="outline" size="sm" onClick={() => setShowShareModal(true)}
-              style={{ borderColor: 'var(--sign-green)', color: 'var(--sign-green)' }}>
-              <Icon name="share" size={13} /> Share Link
-            </Button>
-            {env.stamped_file_url && (
-              <Button variant="default" size="sm"
-                onClick={() => apiDownload(`/v1/sign/envelopes/${env.id}/download`, `${env.title} — signed.pdf`)}
-                style={{ background: 'var(--sign-green)', color: '#fff', fontWeight: 600 }}>
-                <Icon name="download" size={13} /> Download PDF
-              </Button>
-            )}
-            <Button variant="outline" size="sm" onClick={handleCopyCode}
-              style={{ borderColor: 'var(--sign-green)', color: 'var(--sign-green)' }}>
-              <Icon name={copiedCode ? 'check' : 'copy'} size={13} /> {copiedCode ? 'Copied!' : 'Copy Code'}
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* Signing links (if sent status) */}
-      {env.status === 'sent' && env.recipients && (
-        <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 12, padding: 20 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.01em' }}>Recipient Signing Links</div>
-            <Button variant="outline" size="xs" onClick={() => setShowShareModal(true)} style={{ borderColor: 'var(--teal)', color: 'var(--teal)' }}>
-              <Icon name="share" size={12} /> Share Links
-            </Button>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {env.recipients.map(r => (
-              <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 8, background: 'var(--bg)', border: '1px solid var(--border)' }}>
-                <Badge variant={recipientBadgeVariant(r.status)}>{r.status}</Badge>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ fontWeight: 600, fontSize: 13, color: 'var(--ink)' }}>{r.name}</span>
-                  <span style={{ fontSize: 12, color: 'var(--ink3)', marginLeft: 8 }}>{r.email}</span>
+          {/* Stamped & Verified Certificate Card (if Completed) */}
+          {env.status === 'completed' && env.verification_code && (
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(13, 148, 136, 0.12) 100%)',
+              border: '1.5px solid var(--sign-green)', borderRadius: 16, padding: '20px 22px', boxShadow: '0 4px 16px rgba(16, 185, 129, 0.1)',
+              display: 'flex', flexDirection: 'column', gap: 16
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                <FeaturedIcon variant="success" size="md" shape="circle"><Icon name="lock" size={20} /></FeaturedIcon>
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--sign-green)' }}>
+                    Stamped & Legal Verification Certificate
+                  </div>
+                  <div style={{ fontFamily: 'var(--mono)', fontSize: 19, fontWeight: 900, color: 'var(--sign-green)', letterSpacing: '0.06em', marginTop: 2 }}>
+                    {env.verification_code}
+                  </div>
                 </div>
-                {r.role_label && <Badge variant="gray">{r.role_label}</Badge>}
-                <div style={{ display: 'flex', gap: 6 }}>
-                  {(r.status === 'pending' || r.status === 'viewed') && (
-                    <Button variant="outline" size="xs" onClick={() => window.open(`/sign/public/${r.token}`, '_blank', 'noopener')}
-                      title="Open this recipient's signing link right now — for in-person signing"
-                      style={{ borderColor: 'var(--teal)', color: 'var(--teal)' }}>
-                      <Icon name="edit" size={11} /> Sign In Person
-                    </Button>
-                  )}
-                  <Button variant="outline" size="xs" onClick={() => navigator.clipboard?.writeText(`${window.location.origin}/sign/public/${r.token}`)}>
-                    Copy Link
+              </div>
+
+              <div style={{ fontSize: 12, color: 'var(--ink2)', background: 'var(--white)', padding: '10px 12px', borderRadius: 8, border: '1px solid var(--border)' }}>
+                Verification URL: <a href={`/sign/verify/${env.verification_code}`} target="_blank" rel="noreferrer" style={{ color: 'var(--teal)', fontWeight: 700, textDecoration: 'underline' }}>
+                  /sign/verify/{env.verification_code}
+                </a>
+              </div>
+
+              {env.anchor_status && (
+                <div style={{ fontSize: 11.5, color: 'var(--ink2)', display: 'flex', alignItems: 'center', gap: 6, background: 'var(--white)', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)' }}>
+                  <Icon name={env.anchor_status === 'confirmed' ? 'checkCircle' : 'clock'} size={14} style={{ color: env.anchor_status === 'confirmed' ? 'var(--green)' : 'var(--gold)' }} />
+                  <span>
+                    {env.anchor_status === 'confirmed'
+                      ? `Bitcoin-anchored — confirmed in block #${env.anchor_block_height}`
+                      : 'Bitcoin anchor pending blockchain confirmation'}
+                  </span>
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', paddingTop: 4 }}>
+                <Button variant="outline" size="sm" onClick={() => setShowShareModal(true)} style={{ borderColor: 'var(--sign-green)', color: 'var(--sign-green)', fontWeight: 600 }}>
+                  <Icon name="share" size={13} /> Share Link
+                </Button>
+                {env.stamped_file_url && (
+                  <Button variant="default" size="sm" onClick={() => apiDownload(`/v1/sign/envelopes/${env.id}/download`, `${env.title} — signed.pdf`)} style={{ background: 'var(--sign-green)', color: '#fff', fontWeight: 700 }}>
+                    <Icon name="download" size={13} /> Download PDF
                   </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Recipients Section */}
-      <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 12, padding: 20 }}>
-        <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 14, color: 'var(--ink)', letterSpacing: '-0.01em' }}>Recipients</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {env.recipients?.map((r, i) => (
-            <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '10px 14px', borderRadius: 8, background: 'var(--bg)', border: '1px solid var(--border)' }}>
-              <PersonAvatar userId={r.user_id} name={r.name} size={36} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--ink)' }}>{r.name}</div>
-                <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 1 }}>{r.email}{r.role_label ? ` · ${r.role_label}` : ''}</div>
-                {r.status === 'declined' && r.decline_reason && (
-                  <div style={{ fontSize: 11.5, color: 'var(--sign-red)', marginTop: 3 }}>Reason: {r.decline_reason}</div>
                 )}
+                <Button variant="outline" size="sm" onClick={handleCopyCode} style={{ borderColor: 'var(--sign-green)', color: 'var(--sign-green)' }}>
+                  <Icon name={copiedCode ? 'check' : 'copy'} size={13} /> {copiedCode ? 'Copied!' : 'Copy Code'}
+                </Button>
               </div>
-              <Badge variant={recipientBadgeVariant(r.status)}>{r.status}</Badge>
-              {r.signed_at && <span style={{ fontSize: 11.5, color: 'var(--ink3)' }}>{new Date(r.signed_at).toLocaleString()}</span>}
             </div>
-          ))}
-        </div>
-      </div>
+          )}
 
-      {/* Audit Trail Timeline */}
-      {env.events && env.events.length > 0 && (
-        <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 12, padding: 20 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 16, color: 'var(--ink)', letterSpacing: '-0.01em' }}>Audit Trail</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 0, paddingLeft: 6 }}>
-            {env.events.map((ev, i) => {
-              const styleCfg = getAuditEventStyle(ev.event_type);
-              const isLast = i === env.events!.length - 1;
-              return (
-                <div key={ev.id} style={{ display: 'flex', gap: 14, paddingBottom: isLast ? 0 : 20, position: 'relative' }}>
-                  {!isLast && (
-                    <div style={{ position: 'absolute', left: 13, top: 26, bottom: 0, width: 2, background: 'var(--border)' }} />
-                  )}
-                  <div style={{ width: 28, height: 28, borderRadius: '50%', background: styleCfg.bg, color: styleCfg.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, zIndex: 1, border: '2px solid var(--card-bg)' }}>
-                    <Icon name={styleCfg.icon} size={13} />
-                  </div>
-                  <div style={{ flex: 1, paddingTop: 2 }}>
-                    <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>
-                      <strong>{ev.event_type.charAt(0).toUpperCase() + ev.event_type.slice(1)}</strong>
-                      {ev.actor_name ? ` by ${ev.actor_name}` : ''}
+          {/* Recipient Signing Links (when Sent) */}
+          {env.status === 'sent' && env.recipients && (
+            <SectionCard title="Recipient Signing Links" collapsible={false} action={
+              <Button variant="outline" size="xs" onClick={() => setShowShareModal(true)} style={{ borderColor: 'var(--teal)', color: 'var(--teal)', fontWeight: 600 }}>
+                <Icon name="share" size={12} /> Share Links
+              </Button>
+            }>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {env.recipients.map(r => (
+                  // flexWrap, not a single fixed row: without it, a long
+                  // name had nowhere to go but wrap onto a second line
+                  // inside its own flex:1 column while the role badge and
+                  // the two buttons — plain siblings in the same unwrapped
+                  // row — stayed pinned in place, overlapping that second
+                  // line (confirmed live: "Viden Remmigius Clemmence"
+                  // wrapped under a "Superadmin" badge sitting on top of
+                  // it). The name/email column now truncates with an
+                  // ellipsis instead of wrapping its own text, and the
+                  // whole row wraps onto a second line — actions included —
+                  // once it runs out of room, on any width, not just below
+                  // a mobile breakpoint.
+                  <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 10, rowGap: 8, padding: '10px 14px', borderRadius: 10, background: 'var(--bg)', border: '1px solid var(--border)', flexWrap: 'wrap' }}>
+                    <PersonAvatar userId={r.user_id} name={r.name} size={30} />
+                    <Badge variant={recipientBadgeVariant(r.status)}>{r.status}</Badge>
+                    <div style={{ flex: '1 1 140px', minWidth: 0 }}>
+                      <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</div>
+                      <div style={{ fontSize: 11.5, color: 'var(--ink3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.email}</div>
                     </div>
-                    {ev.note && <div style={{ fontSize: 12.5, color: 'var(--ink2)', marginTop: 2 }}>{ev.note}</div>}
-                    <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span>{new Date(ev.created_at).toLocaleString()}</span>
-                      {ev.ip_address && (
-                        <span style={{ background: 'var(--bg)', padding: '1px 6px', borderRadius: 4, border: '1px solid var(--border)', fontSize: 11, fontFamily: 'monospace' }}>
-                          IP: {ev.ip_address}
-                        </span>
+                    {r.role_label && <Badge variant="gray">{r.role_label}</Badge>}
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      {(r.status === 'pending' || r.status === 'viewed') && (
+                        <Tip label="Open this recipient's signing link right now for in-person signing">
+                          <Button variant="outline" size="xs" onClick={() => window.open(`/sign/public/${r.token}`, '_blank', 'noopener')} style={{ borderColor: 'var(--teal)', color: 'var(--teal)' }}>
+                            <Icon name="edit" size={11} /> Sign In Person
+                          </Button>
+                        </Tip>
                       )}
+                      <Button variant="outline" size="xs" onClick={() => { navigator.clipboard?.writeText(`${window.location.origin}/sign/public/${r.token}`); showAlert('Signing link copied'); }}>
+                        Copy Link
+                      </Button>
                     </div>
                   </div>
+                ))}
+              </div>
+            </SectionCard>
+          )}
+
+          {/* Recipients — a legal certifier (Certified True Copy — an
+              advocate/notary attesting the copy, not just another party
+              signing it) gets its own section, separate from ordinary
+              signatories/approvers, rather than being one more row in the
+              same flat list with just a small badge to tell it apart. */}
+          {(() => {
+            const renderRecipientRow = (r: typeof env.recipients[number]) => (
+              // Same overlap risk as the signing-links row above, plus a
+              // taller one: this row's second/third lines (certifier info,
+              // a decline reason) are meant to wrap as real sentences, not
+              // truncate — so the trailing badges/timestamp need their own
+              // wrapping group, or a long reason growing this row taller
+              // pushes past the single-line-height the trailing badges
+              // assumed and overlaps them the same way.
+              <div key={r.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, rowGap: 8, padding: '12px 14px', borderRadius: 10, background: r.is_certifier ? 'var(--blue-l)' : 'var(--bg)', border: `1px solid ${r.is_certifier ? 'var(--blue)' : 'var(--border)'}`, flexWrap: 'wrap' }}>
+                <PersonAvatar userId={r.user_id} name={r.name} size={38} />
+                <div style={{ flex: '1 1 160px', minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</div>
+                  <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.email}{r.role_label ? ` · ${r.role_label}` : ''}</div>
+                  {r.is_certifier && (
+                    <div style={{ fontSize: 11.5, color: 'var(--blue)', fontWeight: 600, marginTop: 2 }}>
+                      {r.certifier_title || 'Advocate'}{r.certifier_roll_number ? ` · Roll No. ${r.certifier_roll_number}` : ''}{r.certifier_firm ? ` · ${r.certifier_firm}` : ''}
+                    </div>
+                  )}
+                  {r.status === 'declined' && r.decline_reason && (
+                    <div style={{ fontSize: 11.5, color: 'var(--sign-red)', marginTop: 2 }}>Reason: {r.decline_reason}</div>
+                  )}
                 </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', flexShrink: 0 }}>
+                  <Badge variant={recipientBadgeVariant(r.status)}>{r.status}</Badge>
+                  {r.signed_at && <span style={{ fontSize: 11, color: 'var(--ink3)', fontFamily: 'var(--mono)' }}>{new Date(r.signed_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>}
+                </div>
+              </div>
+            );
+            const certifiers = env.recipients?.filter(r => r.is_certifier) ?? [];
+            const signatories = env.recipients?.filter(r => !r.is_certifier) ?? [];
+            return (
+              <>
+                {certifiers.length > 0 && (
+                  <SectionCard title="Certification" collapsible={false}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      {certifiers.map(renderRecipientRow)}
+                    </div>
+                  </SectionCard>
+                )}
+                <SectionCard title="Recipients & Approvers" collapsible={false}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    {signatories.map(renderRecipientRow)}
+                  </div>
+                </SectionCard>
+              </>
+            );
+          })()}
+
+          {/* Audit Trail Timeline */}
+          {env.events && env.events.length > 0 && (
+            <SectionCard title="Audit Trail Log" collapsible={false}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 0, paddingLeft: 4 }}>
+                {env.events.map((ev, i) => {
+                  const styleCfg = getAuditEventStyle(ev.event_type);
+                  const isLast = i === env.events!.length - 1;
+                  return (
+                    <div key={ev.id} style={{ display: 'flex', gap: 14, paddingBottom: isLast ? 0 : 20, position: 'relative' }}>
+                      {!isLast && (
+                        <div style={{ position: 'absolute', left: 13, top: 26, bottom: 0, width: 2, background: 'var(--border)' }} />
+                      )}
+                      <div style={{ width: 28, height: 28, borderRadius: '50%', background: styleCfg.bg, color: styleCfg.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, zIndex: 1, border: '2px solid var(--card-bg)' }}>
+                        <Icon name={styleCfg.icon} size={13} />
+                      </div>
+                      <div style={{ flex: 1, paddingTop: 2 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>
+                          {ev.event_type.charAt(0).toUpperCase() + ev.event_type.slice(1)}
+                          {ev.actor_name ? ` by ${ev.actor_name}` : ''}
+                        </div>
+                        {ev.note && <div style={{ fontSize: 12.5, color: 'var(--ink2)', marginTop: 2 }}>{ev.note}</div>}
+                        <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span>{new Date(ev.created_at).toLocaleString()}</span>
+                          {ev.ip_address && (
+                            <span style={{ background: 'var(--white)', padding: '1px 6px', borderRadius: 4, border: '1px solid var(--border)', fontSize: 10.5, fontFamily: 'var(--mono)' }}>
+                              IP: {ev.ip_address}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </SectionCard>
+          )}
 
         </div>
-        {/* end RIGHT column */}
       </div>
-      {/* end document/detail grid */}
 
       {showShareModal && <ShareEnvelopeModal env={env} onClose={() => setShowShareModal(false)} />}
+    </div>
+  );
+}
+
+// ─── SignAllDocuments — tenant-admin view across every user ───────────────────
+// Every other view in this file is scoped to "documents I own or I'm a
+// recipient on" (Inbox/Sent/Drafts/...). A tenant admin currently has no
+// way to find a colleague's document short of already knowing its exact
+// link — GET /envelopes?view=all (role-gated server-side, not just here)
+// is the one query that isn't scoped to the requesting user, and this is
+// its one page.
+type AdminEnvelope = EnvelopeWithRecipients & { owner: { name: string; email: string } | null };
+
+export function SignAllDocuments() {
+  const navigate = useNavigate();
+  const [envelopes, setEnvelopes] = useState<AdminEnvelope[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | AdminEnvelope['status']>('all');
+
+  useEffect(() => {
+    setLoading(true);
+    apiFetch('/v1/sign/envelopes?view=all')
+      .then(setEnvelopes).catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
+
+  const filtered = envelopes.filter(e =>
+    (statusFilter === 'all' || e.status === statusFilter) &&
+    (!search || e.title.toLowerCase().includes(search.toLowerCase()) || e.owner?.name.toLowerCase().includes(search.toLowerCase()))
+  );
+
+  return (
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <PageHeader
+        crumbs={['eSign', 'Admin']}
+        titlePlain="All"
+        titleEm="documents"
+        subtitle="Every envelope in this workspace, regardless of who created it — for oversight and audit, not day-to-day signing."
+      />
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingBottom: 16, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 4, background: 'var(--bg)', borderRadius: 'var(--r)', padding: 3 }}>
+          {(['all', 'draft', 'sent', 'completed', 'voided', 'declined', 'expired'] as const).map(s => (
+            <button key={s} type="button" onClick={() => setStatusFilter(s)}
+              style={{ padding: '6px 12px', border: 'none', borderRadius: 'var(--r-sm)', cursor: 'pointer', fontWeight: 600, fontSize: 12, textTransform: 'capitalize', background: statusFilter === s ? 'var(--white)' : 'transparent', color: statusFilter === s ? 'var(--ink)' : 'var(--ink3)', boxShadow: statusFilter === s ? 'var(--shadow-sm)' : 'none' }}>
+              {s}
+            </button>
+          ))}
+        </div>
+        <div style={{ position: 'relative', width: '100%', maxWidth: 320, marginLeft: 'auto' }}>
+          <Icon name="search" size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)', pointerEvents: 'none' }} />
+          <input
+            type="search" placeholder="Search by title or owner…" value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={{ width: '100%', padding: '9px 14px 9px 34px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13.5, outline: 'none', boxSizing: 'border-box' }}
+          />
+        </div>
+      </div>
+
+      <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 20 }}>
+        {loading ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} style={{ height: 46, borderRadius: 8, background: 'var(--border)', opacity: 0.4, animation: 'pulse 1.4s ease-in-out infinite' }} />
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: 280, gap: 12, color: 'var(--ink3)', textAlign: 'center', padding: 32 }}>
+            <Icon name="users" size={28} style={{ opacity: 0.4 }} />
+            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>{search ? 'No matching documents' : 'No documents yet'}</div>
+          </div>
+        ) : (
+          <div className="rtbl-wrap">
+            <table className="rtbl" style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9 }}>
+              <thead>
+                <tr>
+                  <th>Document</th>
+                  <th>Owner</th>
+                  <th>Status</th>
+                  <th>Recipients</th>
+                  <th style={{ textAlign: 'right' }}>Updated</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map(env => {
+                  const signerCount = env.recipients?.length ?? 0;
+                  const signedCount = env.recipients?.filter(r => r.status === 'signed').length ?? 0;
+                  return (
+                    <tr key={env.id} onClick={() => navigate(`/sign/envelope/${env.id}`)} role="button" tabIndex={0}
+                      onKeyDown={e => e.key === 'Enter' && navigate(`/sign/envelope/${env.id}`)} style={{ cursor: 'pointer' }}>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <div className="sign-envelope-row-icon"><Icon name="fileText" size={14} style={{ color: 'var(--teal)' }} /></div>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{env.title}</div>
+                            {env.file_name && (
+                              <div style={{ fontSize: 11.5, color: 'var(--ink3)', display: 'flex', alignItems: 'center', gap: 3, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                <Icon name="paperclip" size={10} /> {env.file_name}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        {env.owner ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                            <PersonAvatar userId={env.created_by} name={env.owner.name} size={26} />
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{ fontWeight: 600, color: 'var(--ink)', fontSize: 12.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{env.owner.name}</div>
+                              <div style={{ fontSize: 11, color: 'var(--ink3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{env.owner.email}</div>
+                            </div>
+                          </div>
+                        ) : <span style={{ color: 'var(--ink3)' }}>—</span>}
+                      </td>
+                      <td><Badge variant={envelopeBadgeVariant(env.status)}>{env.status}</Badge></td>
+                      <td>
+                        {signerCount > 0 ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <RecipientAvatarStack recipients={env.recipients} size={20} max={4} />
+                            <span style={{ fontSize: 12, color: 'var(--ink3)' }}>{signedCount}/{signerCount} signed</span>
+                          </div>
+                        ) : <span style={{ color: 'var(--ink3)' }}>—</span>}
+                      </td>
+                      <td style={{ textAlign: 'right', color: 'var(--ink3)', fontSize: 12.5, whiteSpace: 'nowrap' }}>{new Date(env.updated_at).toLocaleDateString()}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

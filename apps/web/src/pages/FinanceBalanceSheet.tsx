@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Icon } from '../components/Icon.js';
-import type { IconName } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
 import { useCompany } from '../data/companyStore.js';
 import type { BalanceSheetReport, BalanceSheetLine } from '@hudumika/types';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { MetricsRow } from '../components/MetricCard.js';
 
 interface LineItem { label: string; amount: number; sub?: boolean; bold?: boolean; separator?: boolean }
 
@@ -126,6 +126,11 @@ export const FinanceBalanceSheet: React.FC = () => {
   const totalEquity = report?.totals.equity ?? 0;
   const fmt = (n: number) => `${cur} ${n.toLocaleString()}`;
 
+  const currentAssets = (report?.assets ?? []).filter(l => l.subtype === 'CURRENT_ASSET').reduce((s, l) => s + l.balance, 0);
+  const nonCurrentAssets = totalAssets - currentAssets;
+  const currentLiabilities = (report?.liabilities ?? []).filter(l => l.subtype === 'CURRENT_LIABILITY').reduce((s, l) => s + l.balance, 0);
+  const nonCurrentLiabilities = totalLiabilities - currentLiabilities;
+
   function exportCsv() {
     const rows = [
       ['Section', 'Line', 'Amount'],
@@ -144,7 +149,7 @@ export const FinanceBalanceSheet: React.FC = () => {
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--white)', fontFamily: 'var(--font)' }}>
       <PageHeader
-        crumbs={['Finance', 'Accounts']}
+        crumbs={['Finance', 'Reports']}
         titlePlain="Balance"
         titleEm="sheet"
         subtitle="Statement of financial position — Assets, liabilities and equity."
@@ -165,25 +170,28 @@ export const FinanceBalanceSheet: React.FC = () => {
       ) : (
       <div style={{ flex: 1, overflowY: 'auto', padding: '0', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-        {/* Summary */}
-        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-          {[
-            { label: 'Total Assets',              value: fmt(totalAssets),      color: 'var(--teal)',  bg: 'var(--teal-l)', icon: 'layers'      },
-            { label: 'Total Liabilities',         value: fmt(totalLiabilities), color: 'var(--red)',   bg: 'var(--red-l)',       icon: 'receipt'     },
-            { label: 'Total Equity',              value: fmt(totalEquity),      color: 'var(--green)', bg: 'var(--green-l)',       icon: 'dollarSign'  },
-            { label: 'Debt to Equity Ratio',      value: totalEquity !== 0 ? `${(totalLiabilities / totalEquity).toFixed(2)}x` : '—', color: 'var(--blue)', bg: 'var(--blue-l)', icon: 'barChart2' },
-          ].map(s => (
-            <div key={s.label} style={{ flex: 1, minWidth: 160, background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
-              <div style={{ width: 42, height: 42, borderRadius: 9, background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Icon name={s.icon as IconName} size={18} color={s.color} />
-              </div>
-              <div>
-                <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em' }}>{s.value}</div>
-                <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 1 }}>{s.label}</div>
-              </div>
-            </div>
-          ))}
-        </div>
+        <MetricsRow cards={[
+          {
+            title: 'Total Assets', value: fmt(totalAssets), icon: 'layers',
+            sub1Label: 'CURRENT', sub1Value: fmt(currentAssets),
+            sub2Label: 'NON-CURRENT', sub2Value: fmt(nonCurrentAssets), barHighlight: 'var(--teal)',
+          },
+          {
+            title: 'Total Liabilities', value: fmt(totalLiabilities), icon: 'receipt', invertTrend: true,
+            sub1Label: 'CURRENT', sub1Value: fmt(currentLiabilities),
+            sub2Label: 'NON-CURRENT', sub2Value: fmt(nonCurrentLiabilities), barHighlight: 'var(--red)',
+          },
+          {
+            title: 'Total Equity', value: fmt(totalEquity), icon: 'dollarSign',
+            sub1Label: 'ASSETS', sub1Value: fmt(totalAssets),
+            sub2Label: 'LIABILITIES', sub2Value: fmt(totalLiabilities), barHighlight: 'var(--green)',
+          },
+          {
+            title: 'Debt to Equity Ratio', value: totalEquity !== 0 ? `${(totalLiabilities / totalEquity).toFixed(2)}x` : '—', icon: 'barChart2',
+            sub1Label: 'LIABILITIES', sub1Value: fmt(totalLiabilities),
+            sub2Label: 'EQUITY', sub2Value: fmt(totalEquity), barHighlight: 'var(--blue)',
+          },
+        ]} />
 
         {Math.abs(totalAssets - (totalLiabilities + totalEquity)) > 1 && (
           <div style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 16px', borderRadius:9, background:'var(--red-l)', border:'1px solid #ef444440', fontSize:12, fontWeight:600, color:'var(--red)' }}>

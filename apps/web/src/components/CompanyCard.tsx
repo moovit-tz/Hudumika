@@ -1,4 +1,5 @@
 ﻿import React from 'react';
+import { CompanyAvatar } from './PersonAvatar.js';
 
 interface CompanyCardProps {
   company: any;
@@ -25,6 +26,9 @@ export const CompanyCard: React.FC<CompanyCardProps> = ({ company, onEdit, onDel
       onMouseLeave={e => (e.currentTarget.style.transform = 'translateY(0)')}
     >
       <div>
+        <div style={{ marginBottom: 10 }}>
+          <CompanyAvatar name={company.name} logoUrl={company.logo_url} size={40} shape="square" />
+        </div>
         <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{company.name}</h3>
         <p style={{ margin: '4px 0', fontSize: '0.9rem', opacity: 0.8 }}>
           {company.address}

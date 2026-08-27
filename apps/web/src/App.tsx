@@ -58,6 +58,7 @@ import { DesignSystemProvider } from './components/DesignSystemProvider.js';
 import { SeoAnalyticsProvider } from './components/SeoAnalyticsProvider.js';
 import { AlertHost } from './components/AlertHost.js';
 import { ConfirmHost } from './components/ConfirmHost.js';
+import { PromptHost } from './components/PromptHost.js';
 import { InAppBrowserHost } from './components/InAppBrowserHost.js';
 
 import { ClearOSShell } from './shells/ClearOSShell.js';
@@ -538,6 +539,7 @@ const App: React.FC = () => (
     </BrowserRouter>
     <AlertHost />
     <ConfirmHost />
+    <PromptHost />
     <InAppBrowserHost />
   </>
 );

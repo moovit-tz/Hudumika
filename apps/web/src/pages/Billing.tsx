@@ -16,6 +16,7 @@ import { showConfirm } from '../lib/confirm.js';
 import { showAlert } from '../lib/alert.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { FormPage } from '../components/FormPage.js';
+import { MetricsRow } from '../components/MetricCard.js';
 
 /* ── In-progress invoice draft, preserved across a trip to the full
    customer-onboarding page and back (see InvoiceEditor's createCustomer/
@@ -821,7 +822,7 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
           <button type="button" onClick={onCancel} className="btn btn-secondary">Cancel</button>
           <button type="button" onClick={() => handleSave(true)} className="btn btn-secondary">Save Draft</button>
           <button type="button" onClick={() => handleSave(false)} className="btn btn-primary">
-            <Icon name="send" size={13} color="#fff" /> Save &amp; Send
+            <Icon name="send" size={13} color="hsl(var(--primary-foreground))" /> Save &amp; Send
           </button>
         </>
       }
@@ -1544,7 +1545,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
           ) : (
             <div className="inv-tab-toolbar">
               <button type="button" className="inv-tab-submit" onClick={() => setShowTaskForm(true)}>
-                <Icon name="plus" size={13} color="#fff" /> New Task
+                <Icon name="plus" size={13} color="hsl(var(--primary-foreground))" /> New Task
               </button>
             </div>
           )}
@@ -1582,7 +1583,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
           ) : (
             <div className="inv-tab-toolbar">
               <button type="button" className="inv-tab-submit" onClick={() => setShowRemForm(true)}>
-                <Icon name="plus" size={13} color="#fff" /> New Reminder
+                <Icon name="plus" size={13} color="hsl(var(--primary-foreground))" /> New Reminder
               </button>
             </div>
           )}
@@ -1717,6 +1718,28 @@ export const Billing: React.FC = () => {
     .sort((a, b) => sortAsc ? a.id.localeCompare(b.id) : b.id.localeCompare(a.id));
 
   const outstandingInvoices = invoices.filter(inv => (inv.status === 'Unpaid' || inv.status === 'Partial' || inv.status === 'Overdue') && inv._dbId);
+
+  const invStats = (() => {
+    const draftCount = invoices.filter(i => i.status === 'Draft').length;
+    const paidCount = invoices.filter(i => i.status === 'Paid').length;
+    const overdueInvoices = invoices.filter(i => i.status === 'Overdue');
+    const overdueTotal = overdueInvoices.reduce((s, i) => s + Math.max(0, invoiceTotal(i) - i.received), 0);
+    // Same definition as the table footer below (Math.max(0, invoiceTotal(i)
+    // - i.received) summed with no status filter) — outstandingInvoices
+    // itself stays scoped to Unpaid/Partial/Overdue because that's what
+    // batch-payment eligibility actually means, but this card sits right
+    // above a footer already showing "Outstanding" a different way; the two
+    // numbers on one page have to agree or one of them reads as wrong.
+    const outstandingTotal = invoices.reduce((s, i) => s + Math.max(0, invoiceTotal(i) - i.received), 0);
+    const totalReceived = invoices.reduce((s, i) => s + i.received, 0);
+    const totalBilled = invoices.reduce((s, i) => s + invoiceTotal(i), 0);
+    return {
+      total: invoices.length, draftCount, paidCount,
+      outstandingTotal, overdueTotal, dueSoonTotal: Math.max(0, outstandingTotal - overdueTotal),
+      totalReceived,
+      collectionRate: totalBilled ? Math.round((totalReceived / totalBilled) * 100) : 0,
+    };
+  })();
 
   function toggleBatchSelect(id: string) {
     setBatchSelected(prev => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; });
@@ -1866,66 +1889,91 @@ export const Billing: React.FC = () => {
   return (
     <div className="inv-shell" onClick={() => showFilters && setShowFilters(false)}>
       {mode !== 'create' && mode !== 'edit' && (
+      <>
       <PageHeader
         crumbs={['Finance', 'Invoices']}
         titlePlain="Sales"
         titleEm="invoices"
         subtitle="Every invoice raised, what has been received and what is still due."
-        actions={
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap' }}>
-            <button type="button" className="btn btn-primary btn-sm" onClick={() => { setSelectedId(null); setMode('create'); }}>
-              <Icon name="plus" size={13} color="#fff" /> Create Invoice
-            </button>
-            <Link to="/finance/invoices/recurring" className="btn btn-secondary btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}>
-              <Icon name="refresh" size={13} /> Recurring
-            </Link>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowBatchPayment(true)} disabled={outstandingInvoices.length === 0} title={outstandingInvoices.length === 0 ? 'No outstanding invoices' : undefined}>
-              <Icon name="creditCard" size={13} /> Batch Payments
-            </button>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={exportCsv}>
-              <Icon name="download" size={13} /> Export
-            </button>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => { setSearch(''); setFilterStatus('all'); setFilterMode('all'); setFilterDateFrom(''); setFilterDateTo(''); }} title="Reset filters">
-              <Icon name="refresh" size={13} /> Reset
-            </button>
-            <div style={{ position: 'relative' }}>
-              <button type="button" className={`btn btn-secondary btn-sm${activeFilterCount > 0 ? ' inv-btn--active' : ''}`} onClick={e => { e.stopPropagation(); setShowFilters(v => !v); }}>
-                <Icon name="filter" size={13} color={activeFilterCount > 0 ? 'var(--teal)' : 'var(--ink3)'} /> Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
-              </button>
-              {showFilters && (
-                <div className="inv-filters-popover" style={{ top: 'calc(100% + 6px)', right: 0 }} onClick={e => e.stopPropagation()}>
-                  <div className="inv-filters-field">
-                    <label>Mode</label>
-                    <Select value={filterMode} onValueChange={v => setFilterMode(v as any)}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All modes</SelectItem>
-                        <SelectItem value="SEA">SEA</SelectItem>
-                        <SelectItem value="AIR">AIR</SelectItem>
-                        <SelectItem value="ROAD">ROAD</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="inv-filters-row">
-                    <div className="inv-filters-field">
-                      <label>From</label>
-                      <DatePicker date={parseDateOnly(filterDateFrom)} onChange={d => setFilterDateFrom(toDateOnlyString(d))} />
-                    </div>
-                    <div className="inv-filters-field">
-                      <label>To</label>
-                      <DatePicker date={parseDateOnly(filterDateTo)} onChange={d => setFilterDateTo(toDateOnlyString(d))} />
-                    </div>
-                  </div>
-                  <div className="inv-filters-foot">
-                    <button type="button" className="btn btn-secondary" onClick={() => { setFilterMode('all'); setFilterDateFrom(''); setFilterDateTo(''); }}>Clear</button>
-                    <button type="button" className="btn btn-primary" onClick={() => setShowFilters(false)}>Done</button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        }
       />
+      <MetricsRow cards={[
+        {
+          title: 'Total Invoices', value: String(invStats.total),
+          sub1Label: 'DRAFT', sub1Value: String(invStats.draftCount),
+          sub2Label: 'SENT', sub2Value: String(invStats.total - invStats.draftCount), barHighlight: 'var(--teal)',
+        },
+        {
+          title: 'Outstanding', value: fmt(invStats.outstandingTotal, 'TZS'),
+          invertTrend: true,
+          sub1Label: 'DUE SOON', sub1Value: fmt(invStats.dueSoonTotal, 'TZS'),
+          sub2Label: 'OVERDUE', sub2Value: fmt(invStats.overdueTotal, 'TZS'), barHighlight: 'var(--red)',
+        },
+        {
+          title: 'Total Received', value: fmt(invStats.totalReceived, 'TZS'),
+          sub1Label: 'PAID', sub1Value: String(invStats.paidCount),
+          sub2Label: 'ALL INVOICES', sub2Value: String(invStats.total), barHighlight: 'var(--green)',
+        },
+        {
+          title: 'Collection Rate', value: `${invStats.collectionRate}%`,
+          sub1Label: 'PAID', sub1Value: String(invStats.paidCount),
+          sub2Label: 'TOTAL', sub2Value: String(invStats.total), barHighlight: 'var(--blue)',
+        },
+      ]} />
+
+      <div style={{ padding: '16px 0', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+        <button type="button" className="btn btn-secondary btn-sm" onClick={() => { setSearch(''); setFilterStatus('all'); setFilterMode('all'); setFilterDateFrom(''); setFilterDateTo(''); }} title="Reset filters">
+          <Icon name="refresh" size={13} /> Reset
+        </button>
+        <div style={{ position: 'relative' }}>
+          <button type="button" className={`btn btn-secondary btn-sm${activeFilterCount > 0 ? ' inv-btn--active' : ''}`} onClick={e => { e.stopPropagation(); setShowFilters(v => !v); }}>
+            <Icon name="filter" size={13} color={activeFilterCount > 0 ? 'var(--teal)' : 'var(--ink3)'} /> Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
+          </button>
+          {showFilters && (
+            <div className="inv-filters-popover" style={{ top: 'calc(100% + 6px)', right: 0 }} onClick={e => e.stopPropagation()}>
+              <div className="inv-filters-field">
+                <label>Mode</label>
+                <Select value={filterMode} onValueChange={v => setFilterMode(v as any)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All modes</SelectItem>
+                    <SelectItem value="SEA">SEA</SelectItem>
+                    <SelectItem value="AIR">AIR</SelectItem>
+                    <SelectItem value="ROAD">ROAD</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="inv-filters-row">
+                <div className="inv-filters-field">
+                  <label>From</label>
+                  <DatePicker date={parseDateOnly(filterDateFrom)} onChange={d => setFilterDateFrom(toDateOnlyString(d))} />
+                </div>
+                <div className="inv-filters-field">
+                  <label>To</label>
+                  <DatePicker date={parseDateOnly(filterDateTo)} onChange={d => setFilterDateTo(toDateOnlyString(d))} />
+                </div>
+              </div>
+              <div className="inv-filters-foot">
+                <button type="button" className="btn btn-secondary" onClick={() => { setFilterMode('all'); setFilterDateFrom(''); setFilterDateTo(''); }}>Clear</button>
+                <button type="button" className="btn btn-primary" onClick={() => setShowFilters(false)}>Done</button>
+              </div>
+            </div>
+          )}
+        </div>
+        <button type="button" className="btn btn-secondary btn-sm" onClick={exportCsv}>
+          <Icon name="download" size={13} /> Export
+        </button>
+        <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowBatchPayment(true)} disabled={outstandingInvoices.length === 0} title={outstandingInvoices.length === 0 ? 'No outstanding invoices' : undefined}>
+          <Icon name="creditCard" size={13} /> Batch Payments
+        </button>
+        <Link to="/finance/invoices/recurring" className="btn btn-secondary btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}>
+          <Icon name="refresh" size={13} /> Recurring
+        </Link>
+        <button type="button" onClick={() => { setSelectedId(null); setMode('create'); }}
+          style={{ padding: 'var(--ds-btn-py-sm) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+          <Icon name="plus" size={13} color="hsl(var(--primary-foreground))" /> Create Invoice
+        </button>
+      </div>
+      </>
       )}
 
       {/* While creating or editing, the form takes the whole body — the list
@@ -2020,7 +2068,7 @@ export const Billing: React.FC = () => {
                     <div className="inv-empty-title">No invoices yet</div>
                     <div className="inv-empty-sub">Create your first invoice to start billing customers.</div>
                     <button type="button" className="btn btn-primary" onClick={() => { setSelectedId(null); setMode('create'); }}>
-                      <Icon name="plus" size={14} color="#fff" /> Create New Invoice
+                      <Icon name="plus" size={14} color="hsl(var(--primary-foreground))" /> Create New Invoice
                     </button>
                   </td></tr>
                 )}

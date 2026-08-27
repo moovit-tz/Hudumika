@@ -136,6 +136,16 @@ const recurrenceSchema = z.object({
   until: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   count: z.number().int().min(1).max(1000).optional(),
 });
+// A real Jitsi Meet room (meet.jit.si) — restricted to https and that one
+// host so this can never become an open redirect/arbitrary-link store via
+// the calendar API, the same reasoning any stored external URL needs.
+const meetingUrlSchema = z.string().url().max(300)
+  .refine(u => { try { const p = new URL(u); return p.protocol === 'https:' && p.hostname === 'meet.jit.si'; } catch { return false; } },
+    'Meeting URL must be a real https://meet.jit.si/... room');
+const meetingSettingsSchema = z.object({
+  startWithVideoMuted: z.boolean().optional(),
+  startWithAudioMuted: z.boolean().optional(),
+});
 const eventCreateSchema = z.object({
   id: uuidSchema,
   title: z.string().trim().min(1).max(500),
@@ -150,6 +160,8 @@ const eventCreateSchema = z.object({
   recurrence: recurrenceSchema.nullable().optional(),
   reminderOffsets: z.array(z.number().int().min(0).max(43200)).max(5).optional(), // cap at 30 days lead time, at most 5 reminders
   timezone: z.string().max(100).nullable().optional(), // IANA name, e.g. 'Africa/Dar_es_Salaam' — display label only, see calendar-events.service.ts
+  meetingUrl: meetingUrlSchema.nullable().optional(),
+  meetingSettings: meetingSettingsSchema.nullable().optional(),
 });
 const eventPatchSchema = z.object({
   title: z.string().trim().min(1).max(500).optional(),
@@ -164,6 +176,8 @@ const eventPatchSchema = z.object({
   recurrence: recurrenceSchema.nullable().optional(),
   reminderOffsets: z.array(z.number().int().min(0).max(43200)).max(5).optional(),
   timezone: z.string().max(100).nullable().optional(),
+  meetingUrl: meetingUrlSchema.nullable().optional(),
+  meetingSettings: meetingSettingsSchema.nullable().optional(),
   // Which occurrence this edit applies to — omitted/'all' means the whole
   // series (or the only occurrence, for a non-recurring event).
   scope: z.enum(['all', 'this']).optional(),
@@ -1247,6 +1261,7 @@ export async function tasksRoutes(fastify: FastifyInstance) {
         title: body.title, start: body.start, end: body.end, description: body.description, location: body.location,
         category: body.category, guests: body.guests as CalendarEvents.Guest[] | undefined, allDay: body.allDay,
         color: body.color, recurrence: body.recurrence, reminderOffsets: body.reminderOffsets, timezone: body.timezone,
+        meetingUrl: body.meetingUrl, meetingSettings: body.meetingSettings,
       });
       reply.status(201);
       return { data: row };
@@ -1266,6 +1281,7 @@ export async function tasksRoutes(fastify: FastifyInstance) {
           title: body.title, start: body.start, end: body.end, description: body.description, location: body.location,
           category: body.category, guests: body.guests as CalendarEvents.Guest[] | undefined, allDay: body.allDay,
           color: body.color, recurrence: body.recurrence, reminderOffsets: body.reminderOffsets, timezone: body.timezone,
+          meetingUrl: body.meetingUrl, meetingSettings: body.meetingSettings,
         },
         body.scope ?? 'all', body.occurrenceDate,
       );
