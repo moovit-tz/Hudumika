@@ -69,6 +69,8 @@ const SUBJECTS = {
   contacts:  { table: 'contacts',  image: 'avatar_url' },
   drivers:   { table: 'drivers',   image: 'avatar_url' },
   suppliers: { table: 'suppliers', image: 'avatar_url' },
+  carriers:  { table: 'carriers',  image: 'logo_url'   },
+  candidates: { table: 'hr_candidates', image: 'avatar_url' },
 } as const;
 
 type SubjectKind = keyof typeof SUBJECTS;

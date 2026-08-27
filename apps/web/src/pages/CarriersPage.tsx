@@ -8,6 +8,7 @@ import { Badge } from '../components/ui/badge.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { SingleSelectFilter } from '../components/ui/filter-dropdown.js';
 import { showAlert } from '../lib/alert.js';
+import { PersonAvatar } from '../components/PersonAvatar.js';
 
 interface Carrier {
   id: string;
@@ -273,7 +274,12 @@ export function CarriersPage() {
             <tbody>
               {carriers.map(c => (
                 <tr key={c.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                  <td style={{ padding: '12px 16px', fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>{c.name}</td>
+                  <td style={{ padding: '12px 16px', fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 9 }}>
+                      <PersonAvatar userId={c.id} kind="carriers" name={c.name} size={26} style={{ borderRadius: 6 }} />
+                      {c.name}
+                    </span>
+                  </td>
                   <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)' }}>{MODES.find(m => m.value === c.mode)?.label || c.mode}</td>
                   <td style={{ padding: '12px 16px', fontSize: 12.5, fontFamily: 'var(--mono)', color: 'var(--ink3)' }}>{c.scac_or_iata || '—'}</td>
                   <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)' }}>{c.contact_name || c.contact_email || '—'}</td>

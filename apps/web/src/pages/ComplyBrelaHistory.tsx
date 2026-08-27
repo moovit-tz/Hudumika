@@ -5,6 +5,7 @@ import { useComplyBrelaHistory } from '../hooks/useComply.js';
 import type { CompBrelaSearchHistoryEntry } from '@hudumika/types';
 import './ComplyOS.css';
 import { PageHeader } from '../components/PageHeader.js';
+import { PersonAvatar } from '../components/PersonAvatar.js';
 
 function formatWhen(iso: string): string {
   return new Date(iso).toLocaleString('en-GB', {
@@ -76,7 +77,14 @@ export function ComplyBrelaHistory() {
                     </span>
                   </td>
                   <td className="comply-td-muted">{entry.result_count}</td>
-                  <td className="comply-td-muted">{entry.searched_by_name || '—'}</td>
+                  <td className="comply-td-muted">
+                    {entry.searched_by_name ? (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                        <PersonAvatar userId={entry.searched_by} name={entry.searched_by_name} size={18} />
+                        {entry.searched_by_name}
+                      </span>
+                    ) : '—'}
+                  </td>
                 </tr>
               ))}
             </tbody>

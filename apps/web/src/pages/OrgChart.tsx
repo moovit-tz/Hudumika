@@ -21,6 +21,7 @@ import dagre from 'dagre';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
+import { PersonAvatar } from '../components/PersonAvatar.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { showConfirm } from '../lib/confirm.js';
@@ -113,7 +114,6 @@ function applyDagreLayout(nodes: FlowNode[], edges: FlowEdge[]): FlowNode[] {
 /* ─── Custom org-chart node ──────────────────────────────── */
 function OrgPersonNode({ id, data, selected }: NodeProps<FlowNode>) {
   const d = data;
-  const initials = d.label.split(' ').slice(0, 2).map((w: string) => w[0] ?? '').join('').toUpperCase();
 
   return (
     <div style={{
@@ -138,14 +138,7 @@ function OrgPersonNode({ id, data, selected }: NodeProps<FlowNode>) {
 
       <div style={{ padding: '12px 14px 10px', display: 'flex', alignItems: 'flex-start', gap: 12 }}>
         {/* Avatar */}
-        <div style={{
-          width: 42, height: 42, borderRadius: '50%', flexShrink: 0,
-          background: `${d.color}18`, border: `2px solid ${d.color}44`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 14, fontWeight: 800, color: d.color, letterSpacing: '-0.01em',
-        }}>
-          {initials}
-        </div>
+        <PersonAvatar userId={d.user_id ?? undefined} name={d.label} size={42} style={{ border: `2px solid ${d.color}44`, flexShrink: 0 }} />
 
         {/* Info */}
         <div style={{ flex: 1, minWidth: 0 }}>

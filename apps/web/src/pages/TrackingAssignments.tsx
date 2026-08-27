@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
+import { PersonAvatar } from '../components/PersonAvatar.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { showAlert } from '../lib/alert.js';
 import { PageHeader } from '../components/PageHeader.js';
@@ -143,7 +144,10 @@ export const TrackingAssignments: React.FC = () => {
                       const cIdx = j % colors.length;
                       return (
                         <div key={a.id} style={{ position: 'relative', zIndex: 1, marginLeft: 20 + (j*100), background: colors[cIdx], borderRadius: 6, padding: '8px 12px', minWidth: 200, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                          <div style={{ fontSize: 12, fontWeight: 700, color: textColors[cIdx] }}>{a.driver_name}</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: textColors[cIdx] }}>
+                            <PersonAvatar userId={a.driver_id} kind="drivers" name={a.driver_name} size={18} />
+                            {a.driver_name}
+                          </div>
                           <div style={{ fontSize: 10, color: textColors[cIdx], opacity: 0.8 }}>
                             {new Date(a.start_time).toLocaleDateString()} - {a.end_time ? new Date(a.end_time).toLocaleDateString() : 'Ongoing'}
                           </div>

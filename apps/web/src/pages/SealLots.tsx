@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { PersonAvatar } from '../components/PersonAvatar.js';
 import { apiFetch } from '../lib/api.js';
 import { useSealCompartmentId } from '../hooks/useSealCompartment.js';
 import { CUSTOMS_STATUS_VARIANT, CUSTOMS_STATUS_COLOR_VAR } from '../lib/sealStatus.js';
@@ -11,7 +12,7 @@ import './Seal.css';
 import { PageHeader } from '../components/PageHeader.js';
 
 interface Lot {
-  id: string; description: string; hsCode: string | null; ownerName?: string;
+  id: string; description: string; hsCode: string | null; ownerId?: string; ownerName?: string;
   customsStatus: CustomsStatus; currentLocationCode?: string | null;
   qtyOnHand: number; uom: string; daysRemaining: number | null; expiresOn: string | null;
 }
@@ -96,7 +97,14 @@ export function SealLots() {
                         {lot.hsCode && <div className="seal-mono" style={{ color: 'var(--ink3)', fontSize: 11 }}>HS {lot.hsCode}</div>}
                       </div>
                     </td>
-                    <td>{lot.ownerName ?? '—'}</td>
+                    <td>
+                      {lot.ownerName ? (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                          <PersonAvatar userId={lot.ownerId} kind="customers" name={lot.ownerName} size={22} />
+                          {lot.ownerName}
+                        </span>
+                      ) : '—'}
+                    </td>
                     <td className="seal-mono">{lot.currentLocationCode ?? '—'}</td>
                     <td>{lot.qtyOnHand.toLocaleString()} {lot.uom}</td>
                     <td><Badge variant={CUSTOMS_STATUS_VARIANT[lot.customsStatus]}>{CUSTOMS_STATUS_LABELS[lot.customsStatus]}</Badge></td>

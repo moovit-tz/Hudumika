@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { nameColor as avatarColor, nameInitials as initials } from '../lib/identity.js';
+import { PersonAvatar } from './PersonAvatar.js';
 import { Link } from 'react-router-dom';
 import type { ClearanceStage } from '@hudumika/types';
 import { CLEARANCE_STAGES, STAGE_LABELS } from '@hudumika/types';
@@ -219,7 +219,7 @@ export const DetailPanel: React.FC<DetailPanelProps> = ({ shipmentId, onClose })
             const body   = isMsg
               ? (update.content || update.body)
               : (lastHist.note || STAGE_LABELS[lastHist.stage as ClearanceStage] || lastHist.stage);
-            const bg = avatarColor(name);
+            const actorId = isMsg ? update.author_id : (lastHist.actor_id ?? shipment.assigned_to);
 
             return (
               <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
@@ -227,14 +227,7 @@ export const DetailPanel: React.FC<DetailPanelProps> = ({ shipmentId, onClose })
                   Last Update
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                  <div style={{
-                    width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
-                    background: bg, color: '#fff',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 12, fontWeight: 700,
-                  }}>
-                    {initials(name)}
-                  </div>
+                  <PersonAvatar userId={actorId} name={name} size={34} />
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{name}</div>
                     <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{time}</div>
@@ -262,14 +255,7 @@ export const DetailPanel: React.FC<DetailPanelProps> = ({ shipmentId, onClose })
             {shipment.assigned_officer_name && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
                 <span style={{ fontSize: 12, color: 'var(--ink3)' }}>Assigned:</span>
-                <div style={{
-                  width: 28, height: 28, borderRadius: '50%',
-                  background: avatarColor(shipment.assigned_officer_name),
-                  color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 11, fontWeight: 700, border: '2px solid var(--white)',
-                }}>
-                  {initials(shipment.assigned_officer_name)}
-                </div>
+                <PersonAvatar userId={shipment.assigned_to} name={shipment.assigned_officer_name} size={28} style={{ border: '2px solid var(--white)' }} />
                 <span style={{ fontSize: 12, color: 'var(--ink2)' }}>{shipment.assigned_officer_name}</span>
               </div>
             )}

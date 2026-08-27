@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { showAlert } from '../lib/alert.js';
+import { CompanyAvatar } from '../components/PersonAvatar.js';
 import type { OnsiteAgencyProfile, AgencyPricingTier } from '@hudumika/types';
 import './AgencyDirectory.css';
 
@@ -142,7 +143,10 @@ export function AgencyDirectory() {
                   </div>
                 )}
                 <div className="ad-card-footer">
-                  <span className="ad-card-agency">{p.tenant_name}</span>
+                  <span className="ad-card-agency" style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                    <CompanyAvatar name={p.tenant_name ?? ''} logoUrl={p.tenant_logo_url} size={22} shape="square" />
+                    {p.tenant_name}
+                  </span>
                   <button type="button" className="ad-btn-contact" onClick={() => setActiveInquiry(p)}>
                     <Icon name="send" size={14} />Contact
                   </button>

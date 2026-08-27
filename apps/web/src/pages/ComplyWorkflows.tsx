@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Icon } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { PersonAvatar } from '../components/PersonAvatar.js';
 import { useComplyRenewals } from '../hooks/useComply.js';
 import type { CompRenewal, CompRenewalStatus } from '@hudumika/types';
 import { showAlert } from '../lib/alert.js';
@@ -294,7 +295,14 @@ export function ComplyWorkflows() {
                   </div>
                   <div className="wf-meta-row">
                     <span className="wf-meta-key">Approved by</span>
-                    <span className="wf-meta-val">{selected.approved_by ?? '—'}</span>
+                    <span className="wf-meta-val">
+                      {selected.approved_by ? (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                          <PersonAvatar userId={selected.approved_by} name={selected.approved_by_name ?? ''} size={18} />
+                          {selected.approved_by_name ?? selected.approved_by}
+                        </span>
+                      ) : '—'}
+                    </span>
                   </div>
                   <div className="wf-meta-row">
                     <span className="wf-meta-key">Approved at</span>

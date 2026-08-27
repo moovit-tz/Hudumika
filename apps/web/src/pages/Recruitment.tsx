@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
+import { PersonAvatar } from '../components/PersonAvatar.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 
@@ -9,7 +10,7 @@ interface Opening {
   employment_type: string; status: string; description: string | null;
   openings_count: number; candidate_count?: number; created_by_name?: string | null;
 }
-interface Interview { id: string; scheduled_at: string; mode: string; status: string; interviewer_name: string | null; notes: string | null }
+interface Interview { id: string; scheduled_at: string; mode: string; status: string; interviewer_id: string | null; interviewer_name: string | null; notes: string | null }
 interface Candidate {
   id: string; job_opening_id: string; name: string; email: string | null;
   phone: string | null; stage: string; rating: number | null; source: string | null; notes: string | null;
@@ -245,7 +246,10 @@ export function RecruitmentPage() {
                     {inStage.map(c => (
                       <div key={c.id} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 6, boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
-                          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{c.name}</span>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>
+                            <PersonAvatar userId={c.id} kind="candidates" name={c.name} size={20} />
+                            {c.name}
+                          </span>
                           {stars(c.rating)}
                         </div>
                         {(c.email || c.source) && <div style={{ fontSize: 11.5, color: 'var(--ink3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.email || c.source}</div>}

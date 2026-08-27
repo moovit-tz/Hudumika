@@ -5,11 +5,13 @@ import { Button } from '../components/ui/button.js';
 import { Input } from '../components/ui/input.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { DatePicker, toDateOnlyString } from '../components/ui/date-picker.js';
+import { Combobox } from '../components/ui/combobox.js';
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import { useSealCompartmentId } from '../hooks/useSealCompartment.js';
 import './Seal.css';
 import { PageHeader } from '../components/PageHeader.js';
+import { PersonAvatar } from '../components/PersonAvatar.js';
 
 interface Equipment {
   id: string; compartmentId: string; equipmentType: string; assetTag: string; name: string;
@@ -20,10 +22,12 @@ interface Equipment {
   alert: 'out_of_service' | 'overdue' | 'due_soon' | null;
 }
 interface MaintenanceRecord {
-  id: string; maintenanceType: string; performedAt: string; performedBy: string | null;
+  id: string; maintenanceType: string; performedAt: string;
+  performedByUserId: string | null; performedByName?: string | null;
   description: string | null; cost: number | null; nextDueDate: string | null;
 }
 interface Compartment { id: string; code: string; name: string; }
+interface Staff { id: string; name: string; }
 
 const EQUIPMENT_TYPES = ['forklift', 'pallet_jack', 'reach_truck', 'scanner', 'racking', 'conveyor', 'reefer_unit', 'generator', 'hvac', 'scale', 'other'];
 const STATUS_VARIANT: Record<Equipment['status'], 'success' | 'warning' | 'error' | 'gray'> = {
@@ -36,6 +40,7 @@ const CONDITION_VARIANT: Record<Equipment['condition'], 'success' | 'warning' | 
 export function SealEquipment() {
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [compartments, setCompartments] = useState<Compartment[]>([]);
+  const [staff, setStaff] = useState<Staff[]>([]);
   const [loading, setLoading] = useState(true);
   const [compartmentId] = useSealCompartmentId();
   const [showNew, setShowNew] = useState(false);
@@ -54,6 +59,7 @@ export function SealEquipment() {
   const [logDesc, setLogDesc] = useState('');
   const [logCost, setLogCost] = useState('');
   const [logNextDue, setLogNextDue] = useState<Date | undefined>(undefined);
+  const [logPerformedBy, setLogPerformedBy] = useState('');
 
   function reload() {
     setLoading(true);
@@ -63,6 +69,7 @@ export function SealEquipment() {
   }
   useEffect(() => { reload(); }, [compartmentId]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { apiFetch('/v1/seal/compartments').then(rows => { setCompartments(rows); if (rows.length === 1) setNewCompartmentId(rows[0].id); }); }, []);
+  useEffect(() => { apiFetch('/v1/hr/staff').then((res: any) => setStaff(Array.isArray(res) ? res : res.data || res.staff || [])); }, []);
   useEffect(() => { if (compartmentId) setNewCompartmentId(compartmentId); }, [compartmentId]);
 
   async function handleCreate(e: React.FormEvent) {
@@ -103,10 +110,11 @@ export function SealEquipment() {
         body: JSON.stringify({
           maintenanceType: logType, description: logDesc.trim() || null,
           cost: logCost ? Number(logCost) : null, nextDueDate: logNextDue ? toDateOnlyString(logNextDue) : null,
+          performedByUserId: logPerformedBy || undefined,
           resultingStatus: 'operational',
         }),
       });
-      setLogging(null); setLogDesc(''); setLogCost(''); setLogNextDue(undefined);
+      setLogging(null); setLogDesc(''); setLogCost(''); setLogNextDue(undefined); setLogPerformedBy('');
       reload();
       const rows = await apiFetch(`/v1/seal/equipment/${equipmentId}/maintenance`);
       setRecords(rows);
@@ -229,7 +237,11 @@ export function SealEquipment() {
                                 ) : records.map(r => (
                                   <div key={r.id} style={{ fontSize: 12.5, padding: '8px 10px', background: 'var(--white)', borderRadius: 8, border: '1px solid var(--border)' }}>
                                     <strong>{r.maintenanceType}</strong> — {new Date(r.performedAt).toLocaleDateString()}
-                                    {r.performedBy && <> · {r.performedBy}</>}
+                                    {r.performedByName && (
+                                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginLeft: 6 }}>
+                                        · <PersonAvatar userId={r.performedByUserId ?? undefined} name={r.performedByName} size={16} />{r.performedByName}
+                                      </span>
+                                    )}
                                     {r.cost != null && <> · {r.cost.toLocaleString()}</>}
                                     {r.description && <div style={{ color: 'var(--ink3)', marginTop: 2 }}>{r.description}</div>}
                                   </div>
@@ -252,6 +264,14 @@ export function SealEquipment() {
                                   <div className="seal-field-row" style={{ width: 220 }}>
                                     <label className="seal-field-label">Description</label>
                                     <Input type="text" value={logDesc} onChange={e => setLogDesc(e.target.value)} />
+                                  </div>
+                                  <div className="seal-field-row" style={{ width: 180 }}>
+                                    <label className="seal-field-label">Performed By</label>
+                                    <Combobox
+                                      options={staff.map(s => ({ value: s.id, label: s.name }))}
+                                      value={logPerformedBy} onChange={setLogPerformedBy}
+                                      placeholder="Unspecified" searchPlaceholder="Search staff…" emptyText="No matching staff."
+                                    />
                                   </div>
                                   <div className="seal-field-row" style={{ width: 100 }}>
                                     <label className="seal-field-label">Cost</label>

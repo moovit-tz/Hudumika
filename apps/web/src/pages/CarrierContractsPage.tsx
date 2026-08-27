@@ -9,6 +9,7 @@ import { Combobox } from '../components/ui/combobox.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { apiFetch } from '../lib/api.js';
+import { PersonAvatar } from '../components/PersonAvatar.js';
 
 /**
  * Carrier buy-rate contract storage + rate shopping (ClearOS M7) —
@@ -154,6 +155,7 @@ export function CarrierContractsPage() {
                   {shopResults.map((r, i) => (
                     <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 9, background: i === 0 ? 'var(--teal-l)' : 'var(--bg)', border: i === 0 ? '1px solid var(--teal-m)' : '1px solid var(--border)' }}>
                       {i === 0 && <Badge variant="brand">Cheapest</Badge>}
+                      <PersonAvatar userId={r.carrier_id} kind="carriers" name={r.carrier_name ?? ''} size={22} style={{ borderRadius: 6 }} />
                       <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{r.carrier_name}</span>
                       <span style={{ fontFamily: 'var(--mono)', color: 'var(--ink)', fontWeight: 700 }}>{r.currency} {Number(r.buy_rate).toFixed(2)}</span>
                       {r.transit_days != null && <span style={{ fontSize: 12, color: 'var(--ink3)' }}>{r.transit_days} days transit</span>}
@@ -236,7 +238,12 @@ export function CarrierContractsPage() {
               <tbody>
                 {contracts.map(c => (
                   <tr key={c.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                    <td style={{ padding: '12px 16px', fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>{c.carrier_name || '—'}{c.contract_reference && <div style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 400 }}>{c.contract_reference}</div>}</td>
+                    <td style={{ padding: '12px 16px', fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 9 }}>
+                        <PersonAvatar userId={c.carrier_id} kind="carriers" name={c.carrier_name ?? ''} size={26} style={{ borderRadius: 6 }} />
+                        <span>{c.carrier_name || '—'}{c.contract_reference && <div style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 400 }}>{c.contract_reference}</div>}</span>
+                      </span>
+                    </td>
                     <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)' }}>{MODES.find(m => m.value === c.mode)?.label || c.mode}</td>
                     <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)' }}>{c.origin_port} → {c.destination_port}</td>
                     <td style={{ padding: '12px 16px', fontSize: 12.5, fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--ink)' }}>{c.currency} {Number(c.buy_rate).toFixed(2)}</td>

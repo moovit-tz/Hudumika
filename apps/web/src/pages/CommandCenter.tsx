@@ -25,6 +25,7 @@ import type { ShipmentCase, ShipmentType } from '@hudumika/types';
 import { CLEARANCE_STAGES, STAGE_LABELS } from '@hudumika/types';
 import type { ClearanceStage } from '@hudumika/types';
 import { Icon } from '../components/Icon.js';
+import { PersonAvatar } from '../components/PersonAvatar.js';
 import { PageHeader } from '../components/PageHeader.js';
 import {
   DECLARATION_STATUSES, LANES, LANE, STATUS_VARIANT, declMoney,
@@ -49,13 +50,6 @@ function OfficerMentionInput({
     !q || o.name.toLowerCase().includes(q) || (o.role || '').toLowerCase().includes(q)
   );
 
-  const avatarColor = (name: string) => {
-    const colors = ['#0b7264','#7c3aed','#0891b2','#ea580c','#059669','#dc2626','#d97706'];
-    let h = 0;
-    for (let i = 0; i < (name ?? '').length; i++) h = ((h << 5) - h) + (name ?? '').charCodeAt(i);
-    return colors[Math.abs(h) % colors.length];
-  };
-
   const select = (o: any) => {
     onChange(o.user_id || o.id, o.name);
     setQuery('');
@@ -68,9 +62,6 @@ function OfficerMentionInput({
     setQuery('');
     setTimeout(() => inputRef.current?.focus(), 10);
   };
-
-  const inits = (name: string) =>
-    name.split(' ').slice(0,2).map(w => w[0] || '').join('').toUpperCase();
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -87,9 +78,7 @@ function OfficerMentionInput({
         >
           {value.id ? (
             <>
-              <div style={{ width: 22, height: 22, borderRadius: '50%', background: avatarColor(value.name), color: '#fff', fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                {inits(value.name)}
-              </div>
+              <PersonAvatar userId={value.id} name={value.name} size={22} />
               <span style={{ fontSize: 13, color: 'var(--ink)', flex: 1, fontWeight: 600 }}>{value.name}</span>
               <button type="button" onClick={clear} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 15, padding: '0 2px', lineHeight: 1, flexShrink: 0 }}>×</button>
             </>
@@ -118,9 +107,7 @@ function OfficerMentionInput({
             className="rounded-lg hover:bg-accent hover:text-accent-foreground"
             style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: 'var(--ds-btn-py) 12px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
           >
-            <div style={{ width: 30, height: 30, borderRadius: '50%', background: avatarColor(o.name), color: '#fff', fontSize: 10.5, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              {inits(o.name)}
-            </div>
+            <PersonAvatar userId={o.user_id || o.id} name={o.name} size={30} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{o.name}</div>
               <div style={{ fontSize: 11, color: 'var(--ink3)' }}>
@@ -246,6 +233,7 @@ function KanbanBoard({ groups, refresh, sortBy }: { groups: any[], refresh: () =
     (g.shipments || []).map((s: any) => ({
       ...s,
       _customer: g.customer.name,
+      _customerId: g.customer.id,
       _avatarColor: g.customer.avatar_color || '#0b7264',
     }))
   )].sort((a: any, b: any) => {
@@ -313,8 +301,6 @@ function KanbanBoard({ groups, refresh, sortBy }: { groups: any[], refresh: () =
               {ships.map((ship: any) => {
                 const risks = (ship.active_risk_types || []) as string[];
                 const urgent = risks.some(r => RISK_META[r]?.urgent);
-                const initials = ship._customer
-                  .split(' ').map((w: string) => w[0] || '').join('').slice(0, 2).toUpperCase();
                 const createdDate = new Date(ship.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                 const docCount = ship.document_count ?? 0;
                 const msgCount = ship.message_count ?? 0;
@@ -394,13 +380,7 @@ function KanbanBoard({ groups, refresh, sortBy }: { groups: any[], refresh: () =
                           {msgCount}
                         </span>
                       )}
-                      <div
-                        className="cos-card-avatar"
-                        style={{ background: `linear-gradient(135deg, ${ship._avatarColor} 0%, color-mix(in srgb, ${ship._avatarColor} 100%, black 25%) 100%)` }}
-                        title={ship._customer}
-                      >
-                        {initials}
-                      </div>
+                      <PersonAvatar userId={ship._customerId} kind="customers" name={ship._customer} size={26} title={ship._customer} />
                     </div>
                   </Link>
                 );

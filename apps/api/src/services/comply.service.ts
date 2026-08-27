@@ -466,9 +466,10 @@ export class ComplyService {
       const rows = await trx
         .selectFrom('comply_renewals as r')
         .innerJoin('comply_certificates as c', 'c.id', 'r.cert_id')
+        .leftJoin('users as u', 'u.id', 'r.approved_by')
         .select([
           'r.id', 'r.cert_id', 'c.name as cert_name', 'c.agency_code',
-          'r.status', 'r.trigger', 'r.triggered_at', 'r.approved_by',
+          'r.status', 'r.trigger', 'r.triggered_at', 'r.approved_by', 'u.name as approved_by_name',
           'r.approved_at', 'r.submitted_at', 'r.completed_at', 'r.notes',
         ])
         .where('r.tenant_id', '=', tenantId)
@@ -484,6 +485,7 @@ export class ComplyService {
         trigger:      r.trigger as 'automatic' | 'manual',
         triggered_at: (r.triggered_at as Date).toISOString(),
         approved_by:  r.approved_by,
+        approved_by_name: r.approved_by_name ?? null,
         approved_at:  r.approved_at ? (r.approved_at as Date).toISOString() : null,
         submitted_at: r.submitted_at ? (r.submitted_at as Date).toISOString() : null,
         completed_at: r.completed_at ? (r.completed_at as Date).toISOString() : null,
@@ -521,7 +523,7 @@ export class ComplyService {
         id: row.id, cert_id: row.cert_id, cert_name: cert.name, agency_code: cert.agency_code,
         status: row.status as any, trigger: row.trigger as 'automatic' | 'manual',
         triggered_at: (row.triggered_at as Date).toISOString(),
-        approved_by: null, approved_at: null, submitted_at: null, completed_at: null, notes: null,
+        approved_by: null, approved_by_name: null, approved_at: null, submitted_at: null, completed_at: null, notes: null,
       };
     });
   }

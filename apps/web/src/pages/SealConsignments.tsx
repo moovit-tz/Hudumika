@@ -10,9 +10,10 @@ import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import './Seal.css';
 import { PageHeader } from '../components/PageHeader.js';
+import { PersonAvatar } from '../components/PersonAvatar.js';
 
 interface Consignment {
-  id: string; owner_name?: string; transport_doc_type: string; transport_doc_number: string | null;
+  id: string; owner_id?: string; owner_name?: string; transport_doc_type: string; transport_doc_number: string | null;
   status: string; expected_arrival: string | null; goods_description: string | null;
 }
 interface Compartment { id: string; code: string; name: string; }
@@ -157,7 +158,14 @@ export function SealConsignments() {
                       <div style={{ fontWeight: 700, color: 'var(--ink)' }}>{c.transport_doc_type}</div>
                       {c.transport_doc_number && <div className="seal-mono" style={{ fontSize: 11.5, color: 'var(--ink3)' }}>{c.transport_doc_number}</div>}
                     </td>
-                    <td>{c.owner_name ?? '—'}</td>
+                    <td>
+                      {c.owner_name ? (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                          <PersonAvatar userId={c.owner_id} kind="customers" name={c.owner_name} size={22} />
+                          {c.owner_name}
+                        </span>
+                      ) : '—'}
+                    </td>
                     <td>{c.goods_description ?? '—'}</td>
                     <td>{c.expected_arrival ? new Date(c.expected_arrival).toLocaleDateString() : '—'}</td>
                     <td><Badge variant={STATUS_VARIANT[c.status] ?? 'gray'}>{c.status.replace(/_/g, ' ')}</Badge></td>

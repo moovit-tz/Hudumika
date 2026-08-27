@@ -56,7 +56,7 @@ export async function onsiteAgencyDirectoryPublicRoutes(fastify: FastifyInstance
       SELECT
         p.id, p.tenant_id, p.headline, p.description, p.service_tags,
         p.portfolio_links, p.pricing_tier, p.region, p.languages,
-        p.created_at, t.name AS tenant_name,
+        p.created_at, t.name AS tenant_name, t.logo_url AS tenant_logo_url,
         (
           SELECT count(*)::int FROM agency_managed_tenants amt
           WHERE amt.agency_tenant_id = p.tenant_id AND amt.status = 'active'
@@ -77,7 +77,7 @@ export async function onsiteAgencyDirectoryPublicRoutes(fastify: FastifyInstance
       SELECT
         p.id, p.tenant_id, p.headline, p.description, p.service_tags,
         p.portfolio_links, p.pricing_tier, p.region, p.languages, p.status,
-        p.created_at, t.name AS tenant_name,
+        p.created_at, t.name AS tenant_name, t.logo_url AS tenant_logo_url,
         (
           SELECT count(*)::int FROM agency_managed_tenants amt
           WHERE amt.agency_tenant_id = p.tenant_id AND amt.status = 'active'
@@ -218,7 +218,7 @@ export async function onsiteAgencyDirectoryManageRoutes(fastify: FastifyInstance
         p.id, p.tenant_id, p.headline, p.description, p.service_tags,
         p.portfolio_links, p.pricing_tier, p.region, p.languages, p.status,
         p.profile_views, p.inquiries_count, p.created_at, p.updated_at,
-        t.name AS tenant_name
+        t.name AS tenant_name, t.logo_url AS tenant_logo_url
       FROM onsite_agency_profiles p
       JOIN tenants t ON t.id = p.tenant_id
       ORDER BY p.created_at DESC

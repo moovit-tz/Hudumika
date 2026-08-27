@@ -80,6 +80,7 @@ export interface CompRenewal {
   trigger:      'automatic' | 'manual';
   triggered_at: string;
   approved_by:  string | null;
+  approved_by_name: string | null; // joined from users
   approved_at:  string | null;
   submitted_at: string | null;
   completed_at: string | null;

@@ -7,6 +7,7 @@ import { useAuth } from '../hooks/useAuth.js';
 import { useMediaQuery } from '../hooks/useMediaQuery.js';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
+import { PersonAvatar } from '../components/PersonAvatar.js';
 import { Customer360Sidebar, CustomerContext } from '../components/Customer360Sidebar.js';
 import '../pages/Bliss.css';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
@@ -173,9 +174,6 @@ function sortByPriority(a: Ticket, b: Ticket) {
 }
 
 /* ── Helpers ── */
-const AVATAR_COLORS = ['#0d7a6b','#0550ae','#6e40c9','#059669','#9a6700','#cf222e','#d05c30','#0e7490'];
-const initials    = (n: string) => n.split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase();
-const avatarColor = (n: string) => AVATAR_COLORS[((n ?? '?').charCodeAt(0)) % AVATAR_COLORS.length];
 const relTime = (d: string) => {
   if (!d) return '—';
   const parsed = new Date(d);
@@ -191,15 +189,8 @@ const relTime = (d: string) => {
 };
 
 /* ── Atom components ── */
-function Av({ name, size = 28 }: { name: string; size?: number }) {
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!ref.current) return;
-    ref.current.style.setProperty('--av-size', `${size}px`);
-    ref.current.style.setProperty('--av-bg', avatarColor(name));
-    ref.current.style.setProperty('--av-fs', `${Math.round(size * 0.34)}px`);
-  }, [size, name]);
-  return <div ref={ref} className="spt-av">{initials(name)}</div>;
+function Av({ name, userId, kind, size = 28 }: { name: string; userId?: string; kind?: 'people' | 'customers'; size?: number }) {
+  return <PersonAvatar userId={userId} kind={kind} name={name} size={size} />;
 }
 
 function PBadge({ p }: { p: string }) {
@@ -467,7 +458,7 @@ function ConvList({ tickets, selected, onSelect, onNew, groups, views, onCreateG
                 className={`spt-conv-row${isSel ? ' spt-conv-row--active' : ''}${accentCls}`}
                 onClick={() => onSelect(t)}>
                 <div className="spt-conv-row-av">
-                  <Av name={t.customer} size={34} />
+                  <Av name={t.customer} userId={t.customer_id} kind="customers" size={34} />
                   {t.status === 'OPEN' && <span className="spt-conv-unread-dot" />}
                 </div>
                 <div className="spt-conv-row-body">
@@ -504,7 +495,7 @@ function ConvList({ tickets, selected, onSelect, onNew, groups, views, onCreateG
                 const isSel = selected?.id === t.id;
                 return (
                   <tr key={t.id} className={isSel ? 'spt-tix-row--active' : ''} onClick={() => onSelect(t)}>
-                    <td><Av name={t.customer} size={26} /></td>
+                    <td><Av name={t.customer} userId={t.customer_id} kind="customers" size={26} /></td>
                     <td><SBadge s={t.status} /></td>
                     <td className="spt-tix-td-customer">{t.customer}</td>
                     <td className="spt-tix-td-summary">
@@ -866,7 +857,7 @@ function ThreadPanel({ ticket, onStatusChange, authorName, onClose, onOpenDetail
           <span className="spt-to-label">To:</span>
           <div className="spt-to-chips">
             <span className="spt-to-chip">
-              <Av name={ticket.customer} size={18} />
+              <Av name={ticket.customer} userId={ticket.customer_id} kind="customers" size={18} />
               {ticket.customer}{ticket.customer_phone ? ` (${ticket.customer_phone})` : ''}
               <button type="button" className="spt-to-chip-rm" title="Remove recipient">×</button>
             </span>
@@ -976,7 +967,7 @@ function DetailsPanel({ ticket }: { ticket: Ticket }) {
 
         {/* Contact card */}
         <div className="spt-contact-card">
-          <Av name={ticket.customer} size={40} />
+          <Av name={ticket.customer} userId={ticket.customer_id} kind="customers" size={40} />
           <div className="spt-contact-info">
             <div className="spt-contact-name">{ticket.customer}</div>
             {ticket.customer_email && <div className="spt-contact-meta">{ticket.customer_email}</div>}

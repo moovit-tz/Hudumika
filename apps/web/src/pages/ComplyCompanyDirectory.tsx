@@ -8,6 +8,7 @@ import './ComplyOS.css';
 import { showConfirm } from '../lib/confirm.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { DatePicker, toDateOnlyString } from '../components/ui/date-picker.js';
+import { CompanyAvatar } from '../components/PersonAvatar.js';
 
 type EditableField = 'name' | 'contact_name' | 'email' | 'phone_wa' | 'tax_id' | 'entity_type' | 'registration_status' | 'registered_address' | 'incorporation_date';
 
@@ -196,7 +197,12 @@ export function ComplyCompanyDirectory() {
                 ) : (
                   companies.map(c => (
                     <tr key={c.id} onClick={() => openProfile(c)} style={{ cursor: 'pointer' }}>
-                      <td className="comply-table-name">{c.name}</td>
+                      <td className="comply-table-name">
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                          <CompanyAvatar name={c.name} logoUrl={c.logo_url} size={26} shape="square" />
+                          {c.name}
+                        </span>
+                      </td>
                       <td className="comply-td-mono">{formatDashedDigits9(c.tax_id)}</td>
                       <td style={{ fontSize: 12.5 }}>{c.entity_type || '—'}</td>
                       <td>
@@ -229,7 +235,7 @@ export function ComplyCompanyDirectory() {
           <div className="comply-card-hdr">
             <h3 className="comply-card-title">
               <span className="comply-card-title-row">
-                <Icon name="checkCircle" size={16} color="var(--comply)" /> {selected.name}
+                <CompanyAvatar name={selected.name} logoUrl={selected.logo_url} size={28} shape="square" style={{ marginRight: 4 }} /> {selected.name}
                 <span className={`comply-badge comply-badge--${selected.active ? 'active' : 'pending'} comply-badge-ml`}>
                   {selected.active ? 'In CRM' : 'Draft'}
                 </span>

@@ -5,6 +5,7 @@ import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
+import { PersonAvatar } from '../components/PersonAvatar.js';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '../components/ui/dropdown-menu.js';
 
 // ─── Types (match apps/api/src/routes/chat.routes.ts) ─────────────────────────
@@ -36,9 +37,6 @@ interface ApiMessage {
 interface StaffOpt { id: string; name: string; role: string; }
 interface BrowseChannel { id: string; type: 'channel' | 'group'; name: string; description: string | null; member_count: number; }
 
-const PALETTE = ['#e8461a', '#0569e3', '#059669', '#9a6700', '#8250df', '#cf222e', '#0a7e6a'];
-function abg(name: string) { let h = 0; for (let i = 0; i < (name ?? '').length; i++) h = (name ?? '').charCodeAt(i) + ((h << 5) - h); return PALETTE[Math.abs(h) % PALETTE.length]; }
-function ini(name: string) { return name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase(); }
 function ft(d: Date) { return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }); }
 function fd(d: Date) {
   const n = new Date(), y = new Date(n); y.setDate(n.getDate() - 1);
@@ -49,16 +47,8 @@ function fd(d: Date) {
 function sd(a: Date, b: Date) { return a.toDateString() === b.toDateString(); }
 function grp(a: ApiMessage, b: ApiMessage) { return a.author_id === b.author_id && (new Date(b.created_at).getTime() - new Date(a.created_at).getTime()) < 5 * 60000; }
 
-function Av({ name, size = 32 }: { name: string; size?: number }) {
-  return (
-    <div style={{
-      width: size, height: size, borderRadius: '50%', background: abg(name), flexShrink: 0,
-      display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: Math.round(size * .36),
-      fontWeight: 700, color: '#fff', userSelect: 'none',
-    }}>
-      {ini(name)}
-    </div>
-  );
+function Av({ name, userId, size = 32 }: { name: string; userId?: string | null; size?: number }) {
+  return <PersonAvatar userId={userId ?? undefined} name={name} size={size} />;
 }
 
 function CRow({ ch, active, onClick, currentUserId, onLeaveOrDelete }: { ch: ApiChannel; active: boolean; onClick: () => void; currentUserId?: string; onLeaveOrDelete: (ch: ApiChannel) => void }) {
@@ -72,7 +62,7 @@ function CRow({ ch, active, onClick, currentUserId, onLeaveOrDelete }: { ch: Api
       fontWeight: ch.unread > 0 ? 600 : 400, fontFamily: 'var(--font)', fontSize: 13,
       transition: 'background 0.1s', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
       {ch.type === 'dm' ? (
-        <div style={{ width: 22, height: 22, borderRadius: '50%', background: abg(ch.name), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: '#fff', flexShrink: 0 }}>{ini(ch.name)}</div>
+        <PersonAvatar userId={ch.other_user_id} name={ch.name} size={22} />
       ) : ch.type === 'group' ? (
         <div style={{ width: 22, height: 22, borderRadius: 6, background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <Icon name="users" size={11} color="var(--teal)" />
@@ -419,7 +409,7 @@ export const Chat: React.FC = () => {
 
         {/* Me */}
         <div style={{ padding: '10px 12px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-          <Av name={user?.name || '?'} size={28} />
+          <Av name={user?.name || '?'} userId={user?.id} size={28} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.name}</div>
             <div style={{ fontSize: 10.5, color: 'var(--ink3)', fontWeight: 500 }}>{(user?.role || '').replace(/_/g, ' ')}</div>
@@ -439,7 +429,7 @@ export const Chat: React.FC = () => {
           <>
             {/* Channel header */}
             <div style={{ padding: '0 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12, height: 54, flexShrink: 0, background: 'var(--white)' }}>
-              {activeCh.type === 'dm' ? <Av name={activeCh.name} size={30} />
+              {activeCh.type === 'dm' ? <Av name={activeCh.name} userId={activeCh.other_user_id} size={30} />
                 : activeCh.type === 'group' ? (
                   <div style={{ width: 30, height: 30, borderRadius: 9, background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Icon name="users" size={15} color="var(--teal)" />
@@ -476,7 +466,7 @@ export const Chat: React.FC = () => {
                   </>
                 ) : activeCh.type === 'dm' ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                    <Av name={activeCh.name} size={52} />
+                    <Av name={activeCh.name} userId={activeCh.other_user_id} size={52} />
                     <div>
                       <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)' }}>{activeCh.name}</div>
                       <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>{activeCh.other_user_role || 'Direct message'}</div>
@@ -518,7 +508,7 @@ export const Chat: React.FC = () => {
                     )}
                     <div style={{ display: 'flex', gap: 10, padding: isGrpMsg ? '1px 6px' : '7px 6px 1px', alignItems: 'flex-start', borderRadius: 9 }}>
                       <div style={{ width: 36, flexShrink: 0, paddingTop: isGrpMsg ? 0 : 2 }}>
-                        {!isGrpMsg ? <Av name={msg.author_name} size={34} /> : (
+                        {!isGrpMsg ? <Av name={msg.author_name} userId={msg.author_id} size={34} /> : (
                           <span style={{ fontSize: 10, color: 'var(--ink3)', display: 'block', textAlign: 'right', paddingTop: 3, paddingRight: 2 }}>
                             {ft(ts).replace(/:\d\d /, ' ')}
                           </span>
@@ -627,7 +617,7 @@ export const Chat: React.FC = () => {
                     return (
                       <button type="button" key={s.id} onClick={() => setNewMemberIds(p => on ? p.filter(id => id !== s.id) : [...p, s.id])}
                         style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: 'var(--ds-btn-py) 12px', border: 'none', borderBottom: '1px solid var(--bg)', background: on ? 'var(--teal-l)' : 'transparent', cursor: 'pointer', textAlign: 'left', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-                        <Av name={s.name} size={26} />
+                        <Av name={s.name} userId={s.id} size={26} />
                         <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: on ? 'var(--teal)' : 'var(--ink)' }}>{s.name}</span>
                         {on && <Icon name="check" size={14} color="var(--teal)" />}
                       </button>
@@ -663,7 +653,7 @@ export const Chat: React.FC = () => {
               {staff.map(s => (
                 <button type="button" key={s.id} onClick={() => startDm(s.id)}
                   style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: 'var(--ds-btn-py) 12px', border: 'none', borderBottom: '1px solid var(--bg)', background: 'transparent', cursor: 'pointer', textAlign: 'left', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-                  <Av name={s.name} size={30} />
+                  <Av name={s.name} userId={s.id} size={30} />
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{s.name}</div>
                     <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{s.role}</div>

@@ -47,7 +47,7 @@ export interface Company {
  * partner, a contact, a HuduFreight driver, a supplier — and the same cache,
  * the same invalidation and the same component serve all of them.
  */
-export type SubjectKind = 'people' | 'customers' | 'leads' | 'contacts' | 'drivers' | 'suppliers';
+export type SubjectKind = 'people' | 'customers' | 'leads' | 'contacts' | 'drivers' | 'suppliers' | 'carriers' | 'candidates';
 
 /** `kind:id` -> object URL, or null once we know there is no picture. */
 const avatarCache = new Map<string, Promise<string | null>>();

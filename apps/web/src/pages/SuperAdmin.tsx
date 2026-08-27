@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
+import { PersonAvatar, CompanyAvatar } from '../components/PersonAvatar.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { apiFetch } from '../lib/api.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
@@ -30,7 +31,7 @@ type DomainStatus = 'active' | 'pending' | 'failed';
 type TxStatus = 'completed' | 'pending' | 'failed' | 'refunded';
 type PayMethod = 'card' | 'bank' | 'mpesa' | 'paypal';
 
-interface Company { id:string; name:string; email:string; phone:string; plan:PlanId; users:number; status:CoStatus; domain:string; created:string; owner:string; country:string; color:string; }
+interface Company { id:string; name:string; email:string; phone:string; plan:PlanId; users:number; status:CoStatus; domain:string; created:string; owner:string; country:string; color:string; logoUrl?:string; }
 interface Subscription { id:string; companyId:string; plan:PlanId; start:string; end:string; amount:number; billing:'monthly'|'annual'; status:SubStatus; }
 interface Package { id:string; code:string; name:string; monthly:number; annual:number; maxUsers:number; monthlyItemLimit:number|null; storageLimitGb:number|null; features:string[]; active:number; color:string; popular?:boolean; }
 interface Domain { id:string; domain:string; companyId:string; status:DomainStatus; ssl:boolean; created:string; }
@@ -157,12 +158,7 @@ function Badge({ cfg }: { cfg:{label:string;color:string;bg:string} }) {
 // rather than a raw hex literal, which is exactly what silently broke the
 // tint here before).
 function CoAv({ co, size=34 }: { co:Company|undefined; size?:number }) {
-  const initials = co ? co.name.split(' ').slice(0,2).map(w=>w[0]).join('') : '?';
-  return (
-    <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:size, height:size, borderRadius: 9, background:'var(--teal-l)', color:'var(--teal)', fontSize:size*0.35, fontWeight:800, flexShrink:0, letterSpacing:'-0.03em' }}>
-      {initials}
-    </span>
-  );
+  return <CompanyAvatar name={co?.name ?? '?'} logoUrl={co?.logoUrl} size={size} shape="square" />;
 }
 
 /* ── Sparkline ── */
@@ -573,6 +569,7 @@ export function CompaniesView() {
         owner:   mock?.owner  ?? 'Admin',
         country: mock?.country ?? 'Tanzania',
         color:   t.primary_color ?? avColor(t.name),
+        logoUrl: t.logo_url,
       } satisfies Company;
     });
   }, [tenants, apiError]);
@@ -886,7 +883,12 @@ export function CompaniesView() {
               <DataTable headers={['Customer','Contact','Status','Actions']}>
                 {tenantCustomers.map(cust => (
                   <TR key={cust.id}>
-                    <TD><span style={{ fontWeight:600 }}>{cust.name}</span></TD>
+                    <TD>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                        <PersonAvatar userId={cust.id} kind="customers" name={cust.name} size={24} />
+                        <span style={{ fontWeight:600 }}>{cust.name}</span>
+                      </span>
+                    </TD>
                     <TD>
                       <div style={{ fontSize:12 }}>{cust.email || '—'}</div>
                       <div style={{ fontSize:11, color:'var(--ink3)' }}>{cust.phone || cust.phone_wa || ''}</div>
@@ -1921,6 +1923,7 @@ export function ActivityView() {
               </div>
               <div style={{ flex:1 }}>
                 <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
+                  <PersonAvatar userId={a.actor_user_id ?? undefined} name={a.actor_name} size={18} />
                   <span style={{ fontSize:13, fontWeight:700, color:'var(--ink)' }}>{a.actor_name}</span>
                   <span style={{ fontSize:13, color:'var(--ink2)' }}>{a.action}</span>
                 </div>

@@ -9,10 +9,11 @@ import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import './Seal.css';
 import { PageHeader } from '../components/PageHeader.js';
+import { PersonAvatar } from '../components/PersonAvatar.js';
 
 interface Line { id: string; lotId: string; lotDescription?: string; lotUom?: string; requestedQty: number; pickedQty: number; packed: boolean; }
 interface Order {
-  id: string; reference: string; status: string; ownerName?: string; compartmentName?: string;
+  id: string; reference: string; status: string; customerId?: string; ownerName?: string; compartmentName?: string;
   vehicleId: string | null; carrierNote: string | null; notes: string | null;
   createdAt: string; packedAt: string | null; dispatchedAt: string | null; lines: Line[];
 }
@@ -126,7 +127,10 @@ export function SealFulfillmentDetail() {
             <Icon name="arrowLeft" size={13} /><span>Back to Fulfillment</span>
           </Button>
           <h1 className="seal-page-title">{order.reference}</h1>
-          <p className="seal-page-sub">{order.ownerName ?? '—'} · {order.compartmentName ?? '—'}</p>
+          <p className="seal-page-sub" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <PersonAvatar userId={order.customerId} kind="customers" name={order.ownerName ?? ''} size={18} />
+            {order.ownerName ?? '—'} · {order.compartmentName ?? '—'}
+          </p>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <Badge variant={STATUS_VARIANT[order.status] ?? 'gray'}>{order.status}</Badge>

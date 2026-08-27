@@ -17,15 +17,25 @@ import type { IconName } from '../../components/Icon.js';
 import { Button } from '../../components/ui/button.js';
 import { showAlert } from '../../lib/alert.js';
 import { useAuth } from '../../hooks/useAuth.js';
+import { PdfPageOrganizer } from './PdfPageOrganizer.js';
 
 interface StirlingPdfToolsProps {
   documentSrc: string;
   fileName: string;
-  onExport: (blob: Blob) => void;
+  /** summary/details, when given, become this change's Version History
+   *  entry the next time the envelope is saved — a real, tool-specific
+   *  description (e.g. "Rotated 90°"), not a generic "document edited". */
+  onExport: (blob: Blob, summary?: string, details?: unknown) => void;
   onClose: () => void;
+  /** Renders in-flow to fill its parent (SignEditor.tsx's right-hand panel,
+   *  swapped in for Field Properties while a tool is active) instead of the
+   *  default fixed full-screen overlay. Same component either way — only
+   *  the outer chrome/spacing changes, so the two call sites can't drift. */
+  embedded?: boolean;
 }
 
 type ToolKey =
+  | 'organize'
   | 'rotate' | 'crop' | 'delete-pages' | 'reorder' | 'n-up' | 'resize' | 'bookmarks' | 'page-numbers'
   | 'watermark' | 'redact' | 'metadata' | 'flatten' | 'repair'
   | 'protect' | 'unlock'
@@ -35,12 +45,16 @@ type ToolKey =
 
 interface ToolDef {
   key: ToolKey; label: string; icon: IconName; desc: string; category: string;
-  outputMode: 'replace' | 'download';
+  // 'organizer' opens PdfPageOrganizer's own full drag-and-drop screen
+  // instead of the usual "pick a config, click Run" flow below — reorder/
+  // delete/combine genuinely needs a visual surface, not a form.
+  outputMode: 'replace' | 'download' | 'organizer';
   downloadName?: string;
 }
 
 const TOOLS: ToolDef[] = [
   // Pages
+  { key: 'organize',     label: 'Organize Pages',      icon: 'grid',       desc: 'Drag to reorder, remove, or combine pages visually.', category: 'Pages', outputMode: 'organizer' },
   { key: 'rotate',       label: 'Rotate',              icon: 'refresh',    desc: 'Rotate every page by a fixed angle.', category: 'Pages', outputMode: 'replace' },
   { key: 'crop',         label: 'Crop',                icon: 'scan',       desc: 'Trim every page to a fixed box.', category: 'Pages', outputMode: 'replace' },
   { key: 'delete-pages', label: 'Delete Pages',        icon: 'trash',      desc: 'Remove specific pages from the document.', category: 'Pages', outputMode: 'replace' },
@@ -88,7 +102,7 @@ function triggerDownload(blob: Blob, name: string) {
 const inputStyle: React.CSSProperties = { width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid var(--border)', fontSize: 13, boxSizing: 'border-box' };
 const labelStyle: React.CSSProperties = { fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 };
 
-export function StirlingPdfTools({ documentSrc, fileName, onExport, onClose }: StirlingPdfToolsProps) {
+export function StirlingPdfTools({ documentSrc, fileName, onExport, onClose, embedded }: StirlingPdfToolsProps) {
   const { user } = useAuth();
   const isSuperAdmin = user?.role === 'SUPER_ADMIN';
 
@@ -98,6 +112,7 @@ export function StirlingPdfTools({ documentSrc, fileName, onExport, onClose }: S
 
   const [activeTool, setActiveTool] = useState<ToolKey | null>(null);
   const [running, setRunning] = useState(false);
+  const [showOrganizer, setShowOrganizer] = useState(false);
 
   // Pages
   const [angle, setAngle] = useState('90');
@@ -146,6 +161,31 @@ export function StirlingPdfTools({ documentSrc, fileName, onExport, onClose }: S
   }
 
   function fail(msg: string) { showAlert(msg); setRunning(false); }
+
+  // A real, tool-specific description for Version History — reflects the
+  // actual parameters just used, not a generic "document edited".
+  function buildToolSummary(tool: ToolDef): string {
+    switch (tool.key) {
+      case 'rotate': return `Rotated ${angle}°`;
+      case 'crop': return 'Cropped';
+      case 'delete-pages': return `Deleted page(s) ${deletePages}`;
+      case 'reorder': return 'Reordered pages';
+      case 'n-up': return `${pagesPerSheet}-up layout`;
+      case 'resize': return `Resized to ${resizeSize}`;
+      case 'bookmarks': return 'Added bookmarks';
+      case 'page-numbers': return 'Added page numbers';
+      case 'watermark': return `Added watermark "${watermarkText}"`;
+      case 'redact': return 'Redacted matching text';
+      case 'metadata': return 'Edited document metadata';
+      case 'flatten': return 'Flattened form fields';
+      case 'repair': return 'Repaired document';
+      case 'protect': return 'Password-protected';
+      case 'unlock': return 'Removed password';
+      case 'ocr': return `OCR (${ocrLang})`;
+      case 'compress': return `Compressed (level ${compressLevel})`;
+      default: return tool.label;
+    }
+  }
 
   async function runTool(tool: ToolDef) {
     setRunning(true);
@@ -225,7 +265,7 @@ export function StirlingPdfTools({ documentSrc, fileName, onExport, onClose }: S
         triggerDownload(blob, tool.downloadName ?? 'output');
         showAlert(`${tool.label} finished — the file downloaded to your device.`, { variant: 'success' });
       } else {
-        onExport(blob);
+        onExport(blob, buildToolSummary(tool), { tool: tool.key });
       }
     } catch (err) {
       showAlert(err instanceof Error ? err.message : 'This tool failed to run.');
@@ -236,20 +276,42 @@ export function StirlingPdfTools({ documentSrc, fileName, onExport, onClose }: S
 
   const active = TOOLS.find(t => t.key === activeTool) ?? null;
 
+  // Always full-screen, even when this panel itself is embedded in
+  // SignEditor's narrow right column — drag-and-drop reordering genuinely
+  // needs real space, the same reasoning the rest of this session's
+  // embedded-panel work doesn't apply to. Applying forwards the result to
+  // this component's own onExport (closing the whole PDF Tools panel, same
+  // as every other tool); Cancel/X just returns to the tool grid.
+  if (showOrganizer) {
+    return (
+      <PdfPageOrganizer
+        documentSrc={documentSrc}
+        fileName={fileName}
+        onExport={(blob, summary, details) => { setShowOrganizer(false); onExport(blob, summary, details); }}
+        onClose={() => setShowOrganizer(false)}
+      />
+    );
+  }
+
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'var(--white)', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 18px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+    <div style={embedded
+      ? { display: 'flex', flexDirection: 'column', height: '100%', width: '100%', minWidth: 0 }
+      : { position: 'fixed', inset: 0, zIndex: 1000, background: 'var(--white)', display: 'flex', flexDirection: 'column' }
+    }>
+      <div style={{ display: 'flex', alignItems: 'center', gap: embedded ? 8 : 12, padding: embedded ? '12px 16px' : '10px 18px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
         <Icon name="layers" size={16} style={{ color: 'var(--teal)' }} />
         <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--ink)' }}>PDF Tools</span>
-        <span style={{ fontSize: 12.5, color: 'var(--ink3)' }}>{fileName}</span>
-        <Button variant="outline" size="sm" onClick={onClose} style={{ marginLeft: 'auto' }}>Close</Button>
+        {!embedded && <span style={{ fontSize: 12.5, color: 'var(--ink3)' }}>{fileName}</span>}
+        <Button variant="outline" size="sm" onClick={onClose} style={{ marginLeft: 'auto' }}>
+          {embedded ? <Icon name="close" size={13} /> : 'Close'}
+        </Button>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: 32 }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: embedded ? 16 : 32 }}>
         {baseUrl === undefined ? (
           <div style={{ textAlign: 'center', color: 'var(--ink3)', fontSize: 13, marginTop: 60 }}>Loading…</div>
         ) : baseUrl === null ? (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, maxWidth: 460, margin: '60px auto 0', textAlign: 'center' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, maxWidth: embedded ? '100%' : 460, margin: embedded ? '20px auto 0' : '60px auto 0', textAlign: 'center' }}>
             <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Icon name="layers" size={24} style={{ color: 'var(--ink3)' }} />
             </div>
@@ -281,32 +343,34 @@ export function StirlingPdfTools({ documentSrc, fileName, onExport, onClose }: S
             )}
           </div>
         ) : (
-          <div style={{ maxWidth: 960, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 24 }}>
-            <div style={{ fontSize: 13, color: 'var(--ink3)' }}>
-              Connected to Stirling-PDF at <code style={{ background: 'var(--bg)', padding: '1px 6px', borderRadius: 4 }}>{baseUrl}</code>. Pick a tool to run on <strong>{fileName}</strong>:
-            </div>
+          <div style={{ maxWidth: embedded ? '100%' : 960, margin: embedded ? 0 : '0 auto', display: 'flex', flexDirection: 'column', gap: embedded ? 18 : 24 }}>
+            {!embedded && (
+              <div style={{ fontSize: 13, color: 'var(--ink3)' }}>
+                Connected to Stirling-PDF at <code style={{ background: 'var(--bg)', padding: '1px 6px', borderRadius: 4 }}>{baseUrl}</code>. Pick a tool to run on <strong>{fileName}</strong>:
+              </div>
+            )}
 
             {CATEGORIES.map(cat => (
               <div key={cat}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>{cat}</div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: 12 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: embedded ? '1fr' : 'repeat(auto-fill, minmax(210px, 1fr))', gap: embedded ? 8 : 12 }}>
                   {TOOLS.filter(t => t.category === cat).map(t => (
                     <div
                       key={t.key}
-                      onClick={() => setActiveTool(t.key)}
+                      onClick={() => t.outputMode === 'organizer' ? setShowOrganizer(true) : setActiveTool(t.key)}
                       style={{
-                        padding: 14, borderRadius: 10, border: `1px solid ${activeTool === t.key ? 'var(--teal)' : 'var(--border)'}`,
+                        padding: embedded ? '8px 10px' : 14, borderRadius: 10, border: `1px solid ${activeTool === t.key ? 'var(--teal)' : 'var(--border)'}`,
                         background: activeTool === t.key ? 'var(--teal-l)' : 'var(--white)', cursor: 'pointer',
-                        display: 'flex', flexDirection: 'column', gap: 6, transition: 'all 0.15s ease'
+                        display: 'flex', flexDirection: 'column', gap: embedded ? 2 : 6, transition: 'all 0.15s ease'
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <div style={{ width: 28, height: 28, borderRadius: 7, background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--teal)', flexShrink: 0 }}>
-                          <Icon name={t.icon} size={14} />
+                        <div style={{ width: embedded ? 22 : 28, height: embedded ? 22 : 28, borderRadius: 6, background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--teal)', flexShrink: 0 }}>
+                          <Icon name={t.icon} size={embedded ? 12 : 14} />
                         </div>
-                        <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)' }}>{t.label}</span>
+                        <span style={{ fontWeight: 700, fontSize: embedded ? 12.5 : 13, color: 'var(--ink)' }}>{t.label}</span>
                       </div>
-                      <div style={{ fontSize: 11.5, color: 'var(--ink3)', lineHeight: 1.4 }}>{t.desc}</div>
+                      {!embedded && <div style={{ fontSize: 11.5, color: 'var(--ink3)', lineHeight: 1.4 }}>{t.desc}</div>}
                     </div>
                   ))}
                 </div>
@@ -314,10 +378,10 @@ export function StirlingPdfTools({ documentSrc, fileName, onExport, onClose }: S
             ))}
 
             {active && (
-              <div style={{ padding: 20, borderRadius: 12, border: '1px solid var(--teal)', background: 'var(--white)', display: 'flex', flexDirection: 'column', gap: 14, position: 'sticky', bottom: 0, boxShadow: 'var(--elev-lg)' }}>
-                <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--teal)' }}>
+              <div style={{ padding: embedded ? 14 : 20, borderRadius: 12, border: '1px solid var(--teal)', background: 'var(--white)', display: 'flex', flexDirection: 'column', gap: embedded ? 10 : 14, position: 'sticky', bottom: 0, boxShadow: 'var(--elev-lg)' }}>
+                <div style={{ fontWeight: 700, fontSize: embedded ? 13 : 14, color: 'var(--teal)' }}>
                   Configure {active.label}
-                  {active.outputMode === 'download' && <span style={{ fontWeight: 500, fontSize: 11.5, color: 'var(--ink3)', marginLeft: 8 }}>— downloads a file, doesn’t change the envelope’s document</span>}
+                  {active.outputMode === 'download' && <div style={{ fontWeight: 500, fontSize: 11, color: 'var(--ink3)', marginTop: 4 }}>Downloads a file, doesn’t change the envelope’s document</div>}
                 </div>
 
                 {active.key === 'rotate' && (
@@ -332,7 +396,7 @@ export function StirlingPdfTools({ documentSrc, fileName, onExport, onClose }: S
                 )}
 
                 {active.key === 'crop' && (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: embedded ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 10 }}>
                     {(['x', 'y', 'width', 'height'] as const).map(f => (
                       <div key={f}>
                         <label style={labelStyle}>{f[0].toUpperCase() + f.slice(1)} (pt)</label>
@@ -423,7 +487,7 @@ export function StirlingPdfTools({ documentSrc, fileName, onExport, onClose }: S
                 )}
 
                 {active.key === 'metadata' && (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: embedded ? '1fr' : '1fr 1fr 1fr', gap: 10 }}>
                     <div><label style={labelStyle}>Title</label><input type="text" value={metaTitle} onChange={e => setMetaTitle(e.target.value)} style={inputStyle} /></div>
                     <div><label style={labelStyle}>Author</label><input type="text" value={metaAuthor} onChange={e => setMetaAuthor(e.target.value)} style={inputStyle} /></div>
                     <div><label style={labelStyle}>Subject</label><input type="text" value={metaSubject} onChange={e => setMetaSubject(e.target.value)} style={inputStyle} /></div>

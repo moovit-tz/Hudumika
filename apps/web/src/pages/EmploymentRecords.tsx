@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
+import { PersonAvatar } from '../components/PersonAvatar.js';
 import { Badge } from '../components/ui/badge.js';
 import { Button } from '../components/ui/button.js';
 import { Input } from '../components/ui/input.js';
@@ -247,8 +248,13 @@ export function EmploymentRecords() {
                   <React.Fragment key={r.userId}>
                   <tr style={{ borderTop: '1px solid var(--border)' }}>
                     <td style={{ padding: '9px 14px' }}>
-                      <div style={{ color: 'var(--ink)', fontWeight: 600 }}>{r.name || r.email}</div>
-                      <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{r.email}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <PersonAvatar userId={r.userId} name={r.name || r.email} size={26} />
+                        <div>
+                          <div style={{ color: 'var(--ink)', fontWeight: 600 }}>{r.name || r.email}</div>
+                          <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{r.email}</div>
+                        </div>
+                      </div>
                     </td>
                     <td style={{ padding: '9px 14px', color: 'var(--ink2)' }}>{r.role}</td>
                     <td style={{ padding: '9px 14px' }}>
@@ -568,8 +574,13 @@ function PayrollVsContractPanel({ roster }: { roster: RosterRow[] }) {
                     {data.rows.map(r => (
                       <tr key={r.userId} style={{ borderTop: '1px solid var(--border)' }}>
                         <td style={{ padding: '9px 14px' }}>
-                          <div style={{ color: 'var(--ink)', fontWeight: 600 }}>{r.name || r.email}</div>
-                          <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{r.email}</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <PersonAvatar userId={r.userId} name={r.name || r.email} size={26} />
+                            <div>
+                              <div style={{ color: 'var(--ink)', fontWeight: 600 }}>{r.name || r.email}</div>
+                              <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{r.email}</div>
+                            </div>
+                          </div>
                         </td>
                         <td style={{ padding: '9px 14px' }}>
                           <Badge variant={r.status === 'PAID' ? 'success' : 'gray'}>{String(r.status).toLowerCase()}</Badge>

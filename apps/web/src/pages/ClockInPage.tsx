@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { apiFetch, apiDownload } from '../lib/api.js';
 import { Icon, IconName } from '../components/Icon.js';
+import { PersonAvatar } from '../components/PersonAvatar.js';
 import { PageHeader as SharedPageHeader } from '../components/PageHeader.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
@@ -497,9 +498,7 @@ export function ClockInPage() {
       {/* User Welcome & Date Filter Bar */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ width: 44, height: 44, borderRadius: '50%', background: '#7c3aed', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 700, boxShadow: '0 2px 8px rgba(124,58,237,0.2)' }}>
-            {(userProfile?.name || 'User').slice(0, 1).toUpperCase()}
-          </div>
+          <PersonAvatar userId={user?.id} name={userProfile?.name || user?.name || 'User'} size={44} style={{ boxShadow: '0 2px 8px rgba(124,58,237,0.2)' }} />
           <div>
             <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--navy)', display: 'flex', alignItems: 'center', gap: 6 }}>
               Welcome, {userProfile?.name || user?.name || 'there'} 👋
@@ -539,11 +538,7 @@ export function ClockInPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {approvals.map(a => (
               <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 10, background: 'var(--card-sunken)', flexWrap: 'wrap' }}>
-                <div style={{ width: 34, height: 34, borderRadius: '50%', overflow: 'hidden', background: '#7c3aed', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
-                  {a.employee_avatar
-                    ? <img src={a.employee_avatar} alt={a.employee_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    : (a.employee_name || '?').slice(0, 1).toUpperCase()}
-                </div>
+                <PersonAvatar userId={a.user_id} name={a.employee_name || 'Employee'} size={34} />
                 <div style={{ flex: 1, minWidth: 160 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)' }}>{a.employee_name || 'Employee'}</div>
                   <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
+import { PersonAvatar } from '../components/PersonAvatar.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { PageHeader } from '../components/PageHeader.js';
 
@@ -194,7 +195,12 @@ export const TrackingShipments: React.FC = () => {
                     </span>
                   </td>
                   <td style={{ padding: '16px 20px', color: 'var(--ink2)', fontWeight: 500 }}>
-                    {customerName(s.customer_id)}
+                    {s.customer_id ? (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                        <PersonAvatar userId={s.customer_id} kind="customers" name={customerName(s.customer_id)} size={22} />
+                        {customerName(s.customer_id)}
+                      </span>
+                    ) : '—'}
                   </td>
                   <td style={{ padding: '16px 20px' }}>
                     <div style={{ color: 'var(--ink)', fontWeight: 500 }}>{s.origin || '—'}</div>

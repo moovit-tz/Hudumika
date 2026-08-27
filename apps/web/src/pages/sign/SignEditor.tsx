@@ -35,6 +35,8 @@ import { PdfPageCanvas } from '../cloud/components/PdfPageCanvas.js';
 // its own discrete-operation shape (rotate/watermark/redact/OCR/compress,
 // submit-and-get-a-new-file) is what StirlingPdfTools.tsx below is built for.
 import { StirlingPdfTools } from './StirlingPdfTools.js';
+import { VersionHistoryPanel } from './VersionHistoryPanel.js';
+import { draftKey, loadDraft, saveDraft, clearDraft, isMeaningfulDraft, type SignDraft } from './draftStore.js';
 import { useIsMobile } from '../../hooks/useIsMobile.js';
 import './Sign.css';
 
@@ -106,6 +108,21 @@ export function SignEditor() {
   const [sourceFileId, setSourceFileId] = useState<string | null>(null);
   const [previewSrc, setPreviewSrc] = useState<string | null>(null);
   const [showPdfTools, setShowPdfTools] = useState(false);
+  const [showVersionHistory, setShowVersionHistory] = useState(false);
+  // What actually changed the document since it was last saved — set by
+  // handleFile/handleEditedDocument, sent along on the next Save/Send so
+  // the version history's change_summary/change_details are genuine
+  // (SignEditor knows which tool just ran; the backend never has to guess
+  // from a diff of opaque bytes), then cleared once that save lands.
+  const [pendingChangeSummary, setPendingChangeSummary] = useState<{ summary: string; details?: unknown } | null>(null);
+  // Local-only autosave (draftStore.ts, IndexedDB) — a reload before a real
+  // Save/Send would otherwise lose everything typed so far. draftReadyRef
+  // gates the autosave effect below until whichever restore path applies
+  // (existing envelope loaded from the server, or a brand-new one's own
+  // localStorage-adjacent draft) has finished, so the autosave effect can't
+  // fire on the transient blank state and overwrite a real draft with it.
+  const draftReadyRef = useRef(false);
+  const [draftRestoredAt, setDraftRestoredAt] = useState<number | null>(null);
   const isPdf = !!fileName?.toLowerCase().endsWith('.pdf');
   const { doc: pdfDoc, numPages: pdfNumPages, loading: pdfLoading, error: pdfError } = usePdfDocument(isPdf ? previewSrc : null);
   const [currentPdfPage, setCurrentPdfPage] = useState(1);
@@ -184,7 +201,7 @@ export function SignEditor() {
   // ── Load existing envelope ────────────────────────────────────────────────
   useEffect(() => {
     if (!envelopeId) return;
-    apiFetch(`/v1/sign/envelopes/${envelopeId}`).then(env => {
+    apiFetch(`/v1/sign/envelopes/${envelopeId}`).then(async env => {
       setTitle(env.title ?? '');
       setMessage(env.message ?? '');
       setOrderMode(env.order_mode ?? 'sequential');
@@ -211,6 +228,30 @@ export function SignEditor() {
           required: f.required, placeholder: f.placeholder ?? undefined,
         })));
       }
+
+      // A local draft under this same envelope's id only survives past a
+      // successful save (see clearDraft calls in handleSave/handleSend), so
+      // if one is still here it's genuinely unsaved work from an interrupted
+      // session — always more recent than whatever the server just returned.
+      const draft = await loadDraft(draftKey(envelopeId));
+      if (draft && isMeaningfulDraft(draft)) {
+        setTitle(draft.title);
+        setMessage(draft.message);
+        setOrderMode(draft.orderMode);
+        setRequireOtp(draft.requireOtp);
+        setFileName(draft.fileName);
+        setDocumentData(draft.documentData);
+        setSourceFileId(draft.sourceFileId);
+        setRecipients(draft.recipients as RecipientInput[]);
+        setFields(draft.fields as PlacedField[]);
+        setPendingChangeSummary(draft.pendingChangeSummary);
+        if (draft.documentData) setPreviewSrc(draft.documentData);
+        else if (draft.sourceFileId) {
+          apiFetchBlob(`/v1/files/${draft.sourceFileId}/preview`).then(blob => setPreviewSrc(URL.createObjectURL(blob))).catch(console.error);
+        }
+        setDraftRestoredAt(draft.savedAt);
+      }
+      draftReadyRef.current = true;
     }).catch(console.error);
   }, [envelopeId]);
 
@@ -258,12 +299,66 @@ export function SignEditor() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [envelopeId]);
 
+  // ── Restore a not-yet-created envelope's local draft ────────────────────
+  // Skipped when ?fileId= or ?template= is present — arriving here from
+  // Cloud's "Sign & Stamp" or "Use Template" is a deliberate fresh start,
+  // which should win over an old, possibly unrelated abandoned draft.
+  useEffect(() => {
+    if (envelopeId) return;
+    if (searchParams.get('fileId') || searchParams.get('template')) { draftReadyRef.current = true; return; }
+    loadDraft(draftKey(undefined)).then(draft => {
+      if (draft && isMeaningfulDraft(draft)) {
+        setTitle(draft.title);
+        setMessage(draft.message);
+        setOrderMode(draft.orderMode);
+        setRequireOtp(draft.requireOtp);
+        setFileName(draft.fileName);
+        setDocumentData(draft.documentData);
+        setSourceFileId(draft.sourceFileId);
+        setRecipients(draft.recipients as RecipientInput[]);
+        setFields(draft.fields as PlacedField[]);
+        setPendingChangeSummary(draft.pendingChangeSummary);
+        if (draft.documentData) setPreviewSrc(draft.documentData);
+        else if (draft.sourceFileId) {
+          apiFetchBlob(`/v1/files/${draft.sourceFileId}/preview`).then(blob => setPreviewSrc(URL.createObjectURL(blob))).catch(console.error);
+        }
+        setDraftRestoredAt(draft.savedAt);
+      }
+      draftReadyRef.current = true;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [envelopeId]);
+
+  // ── Autosave the in-progress envelope locally (IndexedDB) ────────────────
+  useEffect(() => {
+    if (!draftReadyRef.current) return;
+    const handle = setTimeout(() => {
+      const draft: SignDraft = {
+        title, message, orderMode, requireOtp, fileName, documentData, sourceFileId,
+        recipients, fields, pendingChangeSummary, savedAt: Date.now(),
+      };
+      if (isMeaningfulDraft(draft)) saveDraft(draftKey(envelopeId), draft);
+    }, 800);
+    return () => clearTimeout(handle);
+  }, [envelopeId, title, message, orderMode, requireOtp, fileName, documentData, sourceFileId, recipients, fields, pendingChangeSummary]);
+
   // ── File upload ───────────────────────────────────────────────────────────
+  // Suggests a title from the file's own name (strip extension, turn
+  // separators into spaces) rather than leaving "Envelope title…" empty —
+  // purely a starting point: setTitle below only fills an empty field, and
+  // the title input stays a normal controlled input, so typing over it or
+  // editing it after the fact works exactly as it always did.
+  function suggestTitleFromFileName(name: string): string {
+    return name.replace(/\.[^./]+$/, '').replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
+  }
+
   function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     setFileName(file.name);
     setSourceFileId(null); // a fresh upload replaces whichever existing Cloud file this started from, if any
+    setTitle(prev => prev.trim() ? prev : suggestTitleFromFileName(file.name));
+    setPendingChangeSummary({ summary: documentData || sourceFileId ? 'Document replaced' : 'Document uploaded' });
     const reader = new FileReader();
     reader.onload = ev => {
       const dataUrl = ev.target?.result as string ?? null;
@@ -273,12 +368,15 @@ export function SignEditor() {
     reader.readAsDataURL(file);
   }
 
-  // The processed PDF coming back from a Stirling-PDF tool run replaces the
-  // working document exactly the same way a fresh local upload does above —
-  // it's a new binary now, no longer in sync with whichever Cloud file (if
-  // any) it started from.
-  function handleEditedDocument(blob: Blob) {
+  // The processed PDF coming back from a Stirling-PDF tool run (or a
+  // reverted version from Version History) replaces the working document
+  // exactly the same way a fresh local upload does above — it's a new
+  // binary now, no longer in sync with whichever Cloud file (if any) it
+  // started from. summary/details, when given, become this change's
+  // version-history entry on the next save.
+  function handleEditedDocument(blob: Blob, summary?: string, details?: unknown) {
     setSourceFileId(null);
+    if (summary) setPendingChangeSummary({ summary, details });
     const reader = new FileReader();
     reader.onload = ev => {
       const dataUrl = ev.target?.result as string ?? null;
@@ -373,7 +471,11 @@ export function SignEditor() {
       // used to be sent `recipient_id: ''` on every field here, which the
       // backend's NOT NULL uuid column rejected outright on every save of
       // an already-created draft that had any fields placed.
-      const body = { title, message, order_mode: orderMode, require_otp: requireOtp, file_name: fileName, document_data: sourceFileId ? null : documentData, file_id: sourceFileId, recipients, fields };
+      const body = {
+        title, message, order_mode: orderMode, require_otp: requireOtp, file_name: fileName,
+        document_data: sourceFileId ? null : documentData, file_id: sourceFileId, recipients, fields,
+        changeSummary: pendingChangeSummary?.summary, changeDetails: pendingChangeSummary?.details,
+      };
       if (envelopeId) {
         await apiFetch(`/v1/sign/envelopes/${envelopeId}`, { method: 'PUT', body: JSON.stringify(body) });
         navigate(`/sign/envelope/${envelopeId}`);
@@ -381,6 +483,8 @@ export function SignEditor() {
         const env = await apiFetch('/v1/sign/envelopes', { method: 'POST', body: JSON.stringify(body) });
         navigate(`/sign/envelope/${env.id}`);
       }
+      setPendingChangeSummary(null);
+      clearDraft(draftKey(envelopeId));
     } catch (e: unknown) {
       showAlert(e instanceof Error ? e.message : 'Failed to save');
     } finally {
@@ -398,7 +502,11 @@ export function SignEditor() {
     }
     setSending(true);
     try {
-      const body = { title, message, order_mode: orderMode, require_otp: requireOtp, file_name: fileName, document_data: sourceFileId ? null : documentData, file_id: sourceFileId, recipients, fields };
+      const body = {
+        title, message, order_mode: orderMode, require_otp: requireOtp, file_name: fileName,
+        document_data: sourceFileId ? null : documentData, file_id: sourceFileId, recipients, fields,
+        changeSummary: pendingChangeSummary?.summary, changeDetails: pendingChangeSummary?.details,
+      };
       let envId = envelopeId;
       if (!envId) {
         const env = await apiFetch('/v1/sign/envelopes', { method: 'POST', body: JSON.stringify(body) });
@@ -411,6 +519,8 @@ export function SignEditor() {
         await apiFetch(`/v1/sign/envelopes/${envId}`, { method: 'PUT', body: JSON.stringify(body) });
       }
       await apiFetch(`/v1/sign/envelopes/${envId}/send`, { method: 'POST' });
+      setPendingChangeSummary(null);
+      clearDraft(draftKey(envelopeId));
       navigate(`/sign/envelope/${envId}`);
     } catch (e: unknown) {
       showAlert(e instanceof Error ? e.message : 'Failed to send');
@@ -504,8 +614,16 @@ export function SignEditor() {
 
           {isPdf && previewSrc && (
             <Tip label="Rotate, watermark, redact, OCR, compress">
-              <Button variant="outline" size="sm" onClick={() => setShowPdfTools(true)} style={{ height: 32, fontSize: 12, padding: '0 10px' }}>
+              <Button variant="outline" size="sm" onClick={() => { setShowPdfTools(true); if (isMobile) setMobileTab('right'); }} style={{ height: 32, fontSize: 12, padding: '0 10px' }}>
                 <Icon name="layers" size={13} /> PDF Tools
+              </Button>
+            </Tip>
+          )}
+
+          {envelopeId && (
+            <Tip label="See every saved version of this document and what changed, with the ability to revert">
+              <Button variant="outline" size="sm" onClick={() => setShowVersionHistory(true)} style={{ height: 32, fontSize: 12, padding: '0 10px' }}>
+                <Icon name="clock" size={13} /> Version History
               </Button>
             </Tip>
           )}
@@ -546,13 +664,23 @@ export function SignEditor() {
         </div>
       </div>
 
+      {draftRestoredAt && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 16px', background: 'var(--blue-l)', borderBottom: '1px solid var(--border)', fontSize: 12, color: 'var(--ink2)', flexShrink: 0 }}>
+          <Icon name="clock" size={13} style={{ color: 'var(--blue)', flexShrink: 0 }} />
+          <span>Restored your unsaved edits from {new Date(draftRestoredAt).toLocaleString()}.</span>
+          <Button variant="ghost" size="xs" onClick={() => { clearDraft(draftKey(envelopeId)); window.location.reload(); }} style={{ marginLeft: 'auto', color: 'var(--ink3)' }}>
+            Discard and start fresh
+          </Button>
+        </div>
+      )}
+
       {/* Mobile Tab Switcher (visible on phones and tablets) */}
       {isMobile && (
         <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', background: 'var(--card-bg)', padding: '4px 8px', gap: 4 }}>
           {[
             { key: 'left', label: 'Recipients & Fields', icon: 'users' },
             { key: 'center', label: 'Document Canvas', icon: 'fileText' },
-            { key: 'right', label: 'Field Options', icon: 'settings' },
+            showPdfTools ? { key: 'right', label: 'PDF Tools', icon: 'layers' } : { key: 'right', label: 'Field Options', icon: 'settings' },
           ].map(tab => (
             <button
               key={tab.key}
@@ -886,8 +1014,21 @@ export function SignEditor() {
           )}
         </div>
 
-        {/* RIGHT: Selected field properties */}
+        {/* RIGHT: Selected field properties — swapped out for PDF Tools
+            while a tool is active, rather than PDF Tools covering the whole
+            screen. Same panel, same mobile "Field Options" tab, so it stays
+            reachable exactly the same way on a phone as on desktop. */}
         <div className="sign-editor-right" style={{ display: isMobile && mobileTab !== 'right' ? 'none' : undefined }}>
+          {showPdfTools && previewSrc ? (
+            <StirlingPdfTools
+              embedded
+              documentSrc={previewSrc}
+              fileName={fileName ?? 'document.pdf'}
+              onExport={blob => { handleEditedDocument(blob); setShowPdfTools(false); }}
+              onClose={() => setShowPdfTools(false)}
+            />
+          ) : (
+          <>
           <div className="sign-panel-title">Field Properties</div>
           {selectedFieldData ? (
             <div style={{ padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -947,15 +1088,25 @@ export function SignEditor() {
               </div>
             </>
           )}
+          </>
+          )}
         </div>
       </div>
 
-      {showPdfTools && previewSrc && (
-        <StirlingPdfTools
-          documentSrc={previewSrc}
-          fileName={fileName ?? 'document.pdf'}
-          onExport={blob => { handleEditedDocument(blob); setShowPdfTools(false); }}
-          onClose={() => setShowPdfTools(false)}
+      {showVersionHistory && envelopeId && (
+        <VersionHistoryPanel
+          envelopeId={envelopeId}
+          onRestore={(newDocumentData, newFileName) => {
+            setSourceFileId(null);
+            setDocumentData(newDocumentData);
+            setPreviewSrc(newDocumentData);
+            if (newFileName) setFileName(newFileName);
+            // The restore itself was already saved server-side (it creates
+            // its own version), so there's nothing pending for the next
+            // Save/Send to additionally record.
+            setPendingChangeSummary(null);
+          }}
+          onClose={() => setShowVersionHistory(false)}
         />
       )}
     </div>

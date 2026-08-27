@@ -39,6 +39,7 @@ import { WhatsAppIntegration } from '../integrations/whatsapp.js';
 import { MinioIntegration } from '../integrations/minio.js';
 import { buildSignedPdf } from '../services/sign-pdf.service.js';
 import { canApplyTenantStamp } from './sign-stamps.routes.js';
+import { recordDocumentVersion } from './sign-versions.routes.js';
 import {
   logEvent, buildStampPayload, getEnvelopeWithRelations, recipientsToNotify, notifyRecipients,
 } from '../services/sign-notify.service.js';
@@ -258,6 +259,14 @@ export async function signRoutes(fastify: FastifyInstance) {
 
       await logEvent(trx, envelope.id, tid, 'created', { actorName: userName(req), actorEmail: userEmail(req) });
 
+      // Version 1 — only when there's an actual document to snapshot (a
+      // Cloud-linked file_id with no document_data has nothing to diff
+      // against later; that envelope's first real version starts whenever
+      // a document is actually attached via a later PUT).
+      if (envelope.document_data) {
+        await recordDocumentVersion(trx, tid, envelope.id, envelope.document_data, envelope.file_name, uid, userName(req), 'Document uploaded');
+      }
+
       return reply.status(201).send({ ...envelope, recipients: recipientRows });
     });
   });
@@ -296,6 +305,12 @@ export async function signRoutes(fastify: FastifyInstance) {
       file_name: string; document_data: string; file_id: string; require_otp: boolean;
       recipients: Array<{ id?: string; name: string; email: string; phone?: string; user_id?: string; role_label?: string; sign_order?: number; is_certifier?: boolean; certifier_title?: string; certifier_roll_number?: string; certifier_firm?: string }>;
       fields: Array<{ recipient_index: number; field_type: string; page: number; x: number; y: number; width: number; height: number; required?: boolean; placeholder?: string }>;
+      // What just changed the document, if anything — SignEditor.tsx tracks
+      // which PDF Tool (or Organize Pages, with its own real moved/added/
+      // deleted counts) last ran and threads it through on save, so the
+      // version history's change_summary/change_details are genuine, not
+      // inferred after the fact from a diff of opaque bytes.
+      changeSummary: string; changeDetails: unknown;
     }>;
 
     return withTenant(tid, async (trx) => {
@@ -310,6 +325,9 @@ export async function signRoutes(fastify: FastifyInstance) {
         return reply.status(400).send({ error: 'Every recipient needs a phone number when SMS verification is required' });
       }
 
+      const newDocumentData = body.document_data ?? envelope.document_data;
+      const documentChanged = body.document_data !== undefined && body.document_data !== envelope.document_data;
+
       await trx.updateTable('sign_envelopes').set({
         title: body.title ?? envelope.title,
         message: body.message ?? envelope.message,
@@ -317,9 +335,16 @@ export async function signRoutes(fastify: FastifyInstance) {
         require_otp: requireOtp,
         expires_at: body.expires_at ? new Date(body.expires_at) : envelope.expires_at,
         file_name: body.file_name ?? envelope.file_name,
-        document_data: body.document_data ?? envelope.document_data,
+        document_data: newDocumentData,
         file_id: body.file_id ?? envelope.file_id,
       }).where('id', '=', req.params.id).execute();
+
+      if (documentChanged && newDocumentData) {
+        await recordDocumentVersion(
+          trx, tid, req.params.id, newDocumentData, body.file_name ?? envelope.file_name,
+          userId(req), userName(req), body.changeSummary, body.changeDetails,
+        );
+      }
 
       // Recipients as they stand right now — used below to resolve each
       // field's recipient_index if body.fields arrives without a fresh

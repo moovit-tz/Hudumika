@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { usePageSEO } from '../hooks/usePageSEO.js';
 import { Icon } from '../components/Icon.js';
+import { PersonAvatar } from '../components/PersonAvatar.js';
 import { apiFetch } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.js';
 import type { ShipmentType } from '@hudumika/types';
@@ -52,13 +53,6 @@ function OfficerMentionInput({
     !q || o.name.toLowerCase().includes(q) || (o.role || '').toLowerCase().includes(q)
   );
 
-  const avatarColor = (name: string) => {
-    const colors = ['#0b7264','#7c3aed','#0891b2','#ea580c','#059669','#dc2626','#d97706'];
-    let h = 0;
-    for (let i = 0; i < (name ?? '').length; i++) h = ((h << 5) - h) + (name ?? '').charCodeAt(i);
-    return colors[Math.abs(h) % colors.length];
-  };
-
   const select = (o: any) => {
     onChange(o.user_id || o.id, o.name);
     setQuery('');
@@ -71,9 +65,6 @@ function OfficerMentionInput({
     setQuery('');
     setTimeout(() => inputRef.current?.focus(), 10);
   };
-
-  const inits = (name: string) =>
-    name.split(' ').slice(0,2).map(w => w[0] || '').join('').toUpperCase();
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -90,9 +81,7 @@ function OfficerMentionInput({
         >
           {value.id ? (
             <>
-              <div style={{ width: 22, height: 22, borderRadius: '50%', background: avatarColor(value.name), color: '#fff', fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                {inits(value.name)}
-              </div>
+              <PersonAvatar userId={value.id} name={value.name} size={22} />
               <span style={{ fontSize: 13, color: 'var(--ink)', flex: 1, fontWeight: 600 }}>{value.name}</span>
               <button type="button" onClick={clear} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 15, padding: '0 2px', lineHeight: 1, flexShrink: 0 }}>×</button>
             </>
@@ -121,9 +110,7 @@ function OfficerMentionInput({
             className="rounded-lg hover:bg-accent hover:text-accent-foreground"
             style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: 'var(--ds-btn-py) 12px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
           >
-            <div style={{ width: 30, height: 30, borderRadius: '50%', background: avatarColor(o.name), color: '#fff', fontSize: 10.5, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              {inits(o.name)}
-            </div>
+            <PersonAvatar userId={o.user_id || o.id} name={o.name} size={30} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{o.name}</div>
               <div style={{ fontSize: 11, color: 'var(--ink3)' }}>

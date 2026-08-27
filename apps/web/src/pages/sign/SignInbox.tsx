@@ -7,7 +7,6 @@ import { Icon } from '../../components/Icon.js';
 import { Button } from '../../components/ui/button.js';
 import { Badge } from '../../components/ui/badge.js';
 import { Tip } from '../../components/ui/tooltip.js';
-import { FeaturedIcon } from '../../components/ui/featured-icon.js';
 import { PersonAvatar } from '../../components/PersonAvatar.js';
 import { PageHeader } from '../../components/PageHeader.js';
 import { SectionCard } from '../../components/SectionCard.js';
@@ -830,34 +829,62 @@ export function SignEnvelopeDetail() {
             </div>
           )}
 
-          {/* Stamped & Verified Certificate Card (if Completed) */}
+          {/* Stamped & Verified Certificate Card (if Completed) — styled as an
+              actual certificate (serial plate + provenance line + corner
+              seal) rather than a generic tinted SaaS status card. */}
           {env.status === 'completed' && env.verification_code && (
             <div style={{
-              background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(13, 148, 136, 0.12) 100%)',
-              border: '1.5px solid var(--sign-green)', borderRadius: 16, padding: '20px 22px', boxShadow: '0 4px 16px rgba(16, 185, 129, 0.1)',
-              display: 'flex', flexDirection: 'column', gap: 16
+              position: 'relative', overflow: 'hidden',
+              background: 'var(--sign-green-l)', border: '1px solid var(--sign-green)', borderRadius: 'var(--r)',
+              padding: '22px 24px', boxShadow: 'var(--elev-sm)',
+              display: 'flex', flexDirection: 'column', gap: 14,
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                <FeaturedIcon variant="success" size="md" shape="circle"><Icon name="lock" size={20} /></FeaturedIcon>
+              {/* Corner seal ring — a notary-stamp motif, not another icon-in-a-circle */}
+              <div aria-hidden style={{
+                position: 'absolute', top: -20, right: -20, width: 88, height: 88, borderRadius: '50%',
+                border: '2px dashed var(--sign-green)', opacity: 0.3, transform: 'rotate(12deg)', pointerEvents: 'none',
+              }} />
+
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
                 <div>
-                  <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--sign-green)' }}>
-                    Stamped & Legal Verification Certificate
+                  <div style={{ fontSize: 10.5, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--sign-green)' }}>
+                    Legal Verification Certificate
                   </div>
-                  <div style={{ fontFamily: 'var(--mono)', fontSize: 19, fontWeight: 900, color: 'var(--sign-green)', letterSpacing: '0.06em', marginTop: 2 }}>
-                    {env.verification_code}
+                  <div style={{ fontSize: 12.5, color: 'var(--ink2)', marginTop: 3, maxWidth: 420 }}>
+                    This document's signed record is sealed and independently verifiable by anyone holding the certificate number below.
                   </div>
+                </div>
+                <div style={{
+                  width: 40, height: 40, borderRadius: '50%', flexShrink: 0, zIndex: 1,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: 'var(--white)', border: '2px solid var(--sign-green)', color: 'var(--sign-green)', transform: 'rotate(-8deg)',
+                }}>
+                  <Icon name="stamp" size={18} />
                 </div>
               </div>
 
-              <div style={{ fontSize: 12, color: 'var(--ink2)', background: 'var(--white)', padding: '10px 12px', borderRadius: 8, border: '1px solid var(--border)' }}>
-                Verification URL: <a href={`/sign/verify/${env.verification_code}`} target="_blank" rel="noreferrer" style={{ color: 'var(--teal)', fontWeight: 700, textDecoration: 'underline' }}>
-                  /sign/verify/{env.verification_code}
+              {/* Certificate plate — the code presented like a serial number */}
+              <div style={{
+                background: 'var(--white)', border: '1px dashed var(--sign-green)', borderRadius: 'var(--r-sm)',
+                padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap',
+              }}>
+                <div>
+                  <div style={{ fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--ink3)' }}>
+                    Certificate No.
+                  </div>
+                  <div style={{ fontFamily: 'var(--mono)', fontSize: 19, fontWeight: 800, letterSpacing: '0.07em', color: 'var(--sign-green)', marginTop: 2 }}>
+                    {env.verification_code}
+                  </div>
+                </div>
+                <a href={`/sign/verify/${env.verification_code}`} target="_blank" rel="noreferrer"
+                  style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11.5, color: 'var(--sign-green)', fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' }}>
+                  Verify record <Icon name="arrowRight" size={12} />
                 </a>
               </div>
 
               {env.anchor_status && (
-                <div style={{ fontSize: 11.5, color: 'var(--ink2)', display: 'flex', alignItems: 'center', gap: 6, background: 'var(--white)', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)' }}>
-                  <Icon name={env.anchor_status === 'confirmed' ? 'checkCircle' : 'clock'} size={14} style={{ color: env.anchor_status === 'confirmed' ? 'var(--green)' : 'var(--gold)' }} />
+                <div style={{ fontSize: 11.5, color: 'var(--ink2)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Icon name={env.anchor_status === 'confirmed' ? 'checkCircle' : 'clock'} size={14} style={{ color: env.anchor_status === 'confirmed' ? 'var(--green)' : 'var(--gold)', flexShrink: 0 }} />
                   <span>
                     {env.anchor_status === 'confirmed'
                       ? `Bitcoin-anchored — confirmed in block #${env.anchor_block_height}`
@@ -871,7 +898,7 @@ export function SignEnvelopeDetail() {
                   <Icon name="share" size={13} /> Share Link
                 </Button>
                 {env.stamped_file_url && (
-                  <Button variant="default" size="sm" onClick={() => apiDownload(`/v1/sign/envelopes/${env.id}/download`, `${env.title} — signed.pdf`)} style={{ background: 'var(--sign-green)', color: '#fff', fontWeight: 700 }}>
+                  <Button variant="outline" size="sm" onClick={() => apiDownload(`/v1/sign/envelopes/${env.id}/download`, `${env.title} — signed.pdf`)} style={{ background: 'var(--sign-green-l)', borderColor: 'var(--sign-green)', color: 'var(--sign-green)', fontWeight: 700 }}>
                     <Icon name="download" size={13} /> Download PDF
                   </Button>
                 )}

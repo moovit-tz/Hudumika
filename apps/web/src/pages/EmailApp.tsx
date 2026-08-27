@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext, useCallback, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
+import { PersonAvatar } from '../components/PersonAvatar.js';
 import { apiFetch } from '../lib/api.js';
 import { MobileNavContext } from '../shells/WorkspaceApp.js';
 import { showAlert } from '../lib/alert.js';
@@ -15,6 +16,9 @@ type Filter = 'all' | 'unread' | 'starred';
 interface EmailAddress {
   name: string;
   email: string;
+  /** Set only when this address is the mailbox owner (every Sent message) —
+   *  a real, known account, unlike an external inbox sender. */
+  userId?: string;
 }
 
 interface Email {
@@ -48,19 +52,6 @@ interface ComposeData {
 
 const PAGE_SIZE = 15;
 
-const AV_COLORS = [
-  '#1a73e8', '#0b8043', '#d93025', '#e37400', '#ab47bc', '#00acc1',
-  '#00838f', '#2e7d32', '#c62828', '#ad1457', '#6a1b9a', '#37474f',
-];
-
-function avColor(name: string): string {
-  return AV_COLORS[((name ?? '?').charCodeAt(0)) % AV_COLORS.length];
-}
-
-function initials(name: string): string {
-  return name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
-}
-
 function fmtDate(d: Date): string {
   const now = new Date();
   const diff = now.getTime() - d.getTime();
@@ -85,20 +76,6 @@ const LABEL_COLORS: Record<Label, string> = {
   HR:        'var(--green)',
   Urgent:    'var(--red)',
 };
-
-// ─── Avatar ─────────────────────────────────────────────────────────────────────
-
-const Avatar: React.FC<{ name: string; size?: number }> = ({ name, size = 32 }) => (
-  <div style={{
-    width: size, height: size, borderRadius: '50%',
-    background: avColor(name), color: '#fff', display: 'flex',
-    alignItems: 'center', justifyContent: 'center',
-    fontWeight: 600, fontSize: size * 0.42, flexShrink: 0,
-    userSelect: 'none',
-  }}>
-    {initials(name)}
-  </div>
-);
 
 // ─── Main Component ─────────────────────────────────────────────────────────────
 
@@ -455,6 +432,7 @@ export const EmailApp: React.FC = () => {
                   <div className="em-row-star" onClick={ev => toggleStar(email.id, ev)}>
                     <Icon name="star" size={16} color={email.starred ? '#f4b400' : 'var(--border)'} />
                   </div>
+                  <PersonAvatar userId={email.from.userId} name={email.from.name} size={24} style={{ marginRight: 8, flexShrink: 0 }} />
                   <div className={`em-row-sender${!email.read ? ' em-row-sender--bold' : ''}`}>
                     {email.from.name}
                   </div>
@@ -539,7 +517,7 @@ export const EmailApp: React.FC = () => {
               </h2>
 
               <div className="em-detail-from-row">
-                <Avatar name={selectedEmail.from.name} size={44} />
+                <PersonAvatar userId={selectedEmail.from.userId} name={selectedEmail.from.name} size={44} />
                 <div className="em-detail-from-meta">
                   <div className="em-detail-from-top">
                     <div>

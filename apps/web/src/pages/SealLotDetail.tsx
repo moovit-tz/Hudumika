@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
+import { PersonAvatar } from '../components/PersonAvatar.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { Badge } from '../components/ui/badge.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
@@ -191,7 +192,10 @@ export function SealLotDetail() {
             <span className="seal-strip" style={{ height: 24, background: `var(${CUSTOMS_STATUS_COLOR_VAR[lot.customsStatus]})` }} />
             <h1 className="seal-page-title" style={{ margin: 0 }}>{lot.description}</h1>
           </div>
-          <p className="seal-page-sub" style={{ marginTop: 6 }}>{lot.ownerName ?? 'Unknown owner'} · {lot.qtyOnHand.toLocaleString()} {lot.uom}</p>
+          <p className="seal-page-sub" style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <PersonAvatar userId={lot.ownerId} kind="customers" name={lot.ownerName ?? 'Unknown owner'} size={18} />
+            {lot.ownerName ?? 'Unknown owner'} · {lot.qtyOnHand.toLocaleString()} {lot.uom}
+          </p>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           {lot.isDangerousGoods && <Badge variant="warning">DG Class {lot.imdgClass ?? '?'}</Badge>}
@@ -242,7 +246,10 @@ export function SealLotDetail() {
           <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div className="seal-field-row">
               <span className="seal-field-label">Owner</span>
-              <span className="seal-field-value">{lot.ownerName ?? '—'}</span>
+              <span className="seal-field-value" style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                <PersonAvatar userId={lot.ownerId} kind="customers" name={lot.ownerName ?? ''} size={20} />
+                {lot.ownerName ?? '—'}
+              </span>
             </div>
             <div className="seal-field-row">
               <span className="seal-field-label">Location</span>

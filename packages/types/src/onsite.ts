@@ -390,6 +390,7 @@ export interface OnsiteAgencyProfile {
   updated_at: string;
   // Joined / computed, present on public + admin listings
   tenant_name?: string;
+  tenant_logo_url?: string | null;
   /** Live COUNT(*) against agency_managed_tenants at read time — never stored. */
   client_count?: number;
 }

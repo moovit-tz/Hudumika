@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
+import { PersonAvatar } from '../components/PersonAvatar.js';
 import { useComplyApplications, useComplyCertificates } from '../hooks/useComply.js';
 import type { CompApplication } from '@hudumika/types';
 import { apiFetch } from '../lib/api.js';
@@ -256,7 +257,12 @@ export function ComplyApplications() {
                 {[
                   { label: 'Application ID', val: selected.app_number,            mono: true  },
                   { label: 'Agency',          val: selected.agency_code,           mono: false },
-                  { label: 'Client / Entity', val: selected.customer_name ?? 'This business', mono: false },
+                  { label: 'Client / Entity', val: selected.customer_name
+                      ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
+                          <PersonAvatar userId={selected.customer_id ?? undefined} kind="customers" name={selected.customer_name} size={20} />
+                          {selected.customer_name}
+                        </span>
+                      : 'This business', mono: false },
                   { label: 'Submitted',       val: formatDate(selected.submitted_at), mono: false },
                   { label: 'Last Updated',    val: formatDate(selected.updated_at),  mono: false },
                   ...(selected.agency_ref ? [{ label: 'Agency Ref.', val: selected.agency_ref, mono: true }] : []),

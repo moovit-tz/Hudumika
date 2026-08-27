@@ -238,6 +238,7 @@ export interface Customer {
   tax_id?: string;             // TIN for invoicing
   avatar_color?: string;       // hex color for avatar background
   avatar_initials?: string;    // computed from company name
+  logo_url?: string;           // real company logo, served via /v1/identity/customers/:id/avatar
   assigned_officer_id?: string;
   active: boolean;
   created_at: string;

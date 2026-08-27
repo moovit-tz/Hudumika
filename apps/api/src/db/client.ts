@@ -1130,7 +1130,7 @@ export interface SealEquipmentMaintenanceRecordsTable {
   equipment_id: string;
   maintenance_type: string; // inspection | repair | service | calibration
   performed_at: DateOnlyGenerated;
-  performed_by: string | null;
+  performed_by_user_id: string | null;
   description: string | null;
   cost: string | null;
   next_due_date: DateOnlyNull;
@@ -1591,6 +1591,7 @@ export interface CarriersTable {
   contact_email: string | null;
   contact_phone: string | null;
   active: Generated<boolean>;
+  logo_url: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -4370,6 +4371,25 @@ export interface SignStampRequestsTable {
   decided_at: Date | null;
 }
 
+/** Draft document edit history (345_sign_document_versions.sql) — distinct
+ *  from SignEnvelopesTable's own previous_version_id/version_number chain,
+ *  which links whole separate envelopes created by amending an already-
+ *  COMPLETED document. This is a lighter snapshot list for a still-draft
+ *  envelope's working document, taken on each real content change. */
+export interface SignDocumentVersionsTable {
+  id: string;
+  tenant_id: string;
+  envelope_id: string;
+  version_number: number;
+  document_data: string;
+  file_name: string | null;
+  change_summary: string;
+  change_details: any; // JSONB — shape varies per tool, see sign-versions.routes.ts
+  created_by: string | null;
+  created_by_name: string;
+  created_at: Generated<Date>;
+}
+
 export interface PlatformSigningIdentitiesTable {
   id: Generated<string>;
   label: string;
@@ -4865,6 +4885,7 @@ export interface Database {
   sign_verifications: SignVerificationsTable;
   sign_stamps: SignStampsTable;
   sign_stamp_requests: SignStampRequestsTable;
+  sign_document_versions: SignDocumentVersionsTable;
   platform_signing_identities: PlatformSigningIdentitiesTable;
 }
 
@@ -7693,6 +7714,7 @@ export interface HrCandidatesTable {
   rating: number | null;
   source: string | null;
   notes: string | null;
+  avatar_url: string | null;
   created_by: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;

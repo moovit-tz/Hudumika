@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
+import { PersonAvatar } from '../components/PersonAvatar.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { useFullLayout } from '../hooks/useFullLayout.js';
 import './SupportOverview.css';
@@ -21,10 +22,6 @@ interface AgentStat {
   id: string; name: string; assigned: number; resolved: number; open: number;
   avgResolutionHours: number | null; csat: number | null; resolutionRate: number;
 }
-
-const AVT_COLORS = ['#0d7a6b','#0550ae','#6e40c9','#059669','#9a6700','#cf222e','#d05c30','#0e7490'];
-const initials = (n: string) => n.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
-const avtColor = (n: string) => AVT_COLORS[((n ?? '?').charCodeAt(0)) % AVT_COLORS.length];
 
 /* ── Shared bits ── */
 function KpiCard({ icon, label, value, sub, color, iconBg, trend, trendUp }: {
@@ -71,12 +68,8 @@ function StatRow({ label, value, pct, color }: { label: string; value: number; p
   );
 }
 
-function Av({ name, size = 30 }: { name: string; size?: number }) {
-  return (
-    <div className="sov-av" style={{ width: size, height: size, background: avtColor(name), fontSize: size * 0.34 }}>
-      {initials(name)}
-    </div>
-  );
+function Av({ name, userId, size = 30 }: { name: string; userId?: string; size?: number }) {
+  return <PersonAvatar userId={userId} name={name} size={size} />;
 }
 
 export const SupportOverview: React.FC = () => {
@@ -446,7 +439,7 @@ export const SupportOverview: React.FC = () => {
                       <tr key={a.id}>
                         <td>
                           <div className="sov-agent-cell">
-                            <Av name={a.name} size={30} />
+                            <Av name={a.name} userId={a.id} size={30} />
                             <span className="sov-agent-name">{a.name}</span>
                           </div>
                         </td>

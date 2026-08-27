@@ -141,7 +141,11 @@ export async function emailRoutes(fastify: FastifyInstance) {
       return rows.map(r => ({
         id: r.id,
         folder: r.folder,
-        from: { name: r.from_name, email: r.from_email },
+        // A Sent-folder message's sender is always the mailbox owner — a real,
+        // known account, not a name string. Inbox/spam senders are external
+        // parties with no Hudumika account, so userId stays unset there and
+        // PersonAvatar correctly falls back to initials rather than guessing.
+        from: { name: r.from_name, email: r.from_email, userId: r.from_email === user.email ? user.sub : undefined },
         to: r.to_addresses,
         cc: r.cc_addresses,
         subject: r.subject,

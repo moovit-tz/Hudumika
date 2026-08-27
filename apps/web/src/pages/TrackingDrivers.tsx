@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
+import { PersonAvatar } from '../components/PersonAvatar.js';
 import { AreaChart, Area, XAxis, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import './TrackingDrivers.css';
 import { PageHeader } from '../components/PageHeader.js';
@@ -127,7 +128,7 @@ export const TrackingDrivers: React.FC = () => {
             {filteredDrivers.map(d => (
               <div key={d.id} className={`drv-card ${selectedDriver?.id === d.id ? 'selected' : ''}`} onClick={() => setSelectedDriver(d)}>
                 <div className="drv-card-top">
-                  <img src={d.avatar_url || 'https://i.pravatar.cc/150'} alt={d.name} className="drv-avatar" />
+                  <PersonAvatar userId={d.id} kind="drivers" name={d.name} size={44} style={{ marginBottom: 8, border: '2px solid var(--white)', boxShadow: 'var(--elev)' }} />
                   <div className="drv-name">{d.name}</div>
                   <div className="drv-badge-row">
                     <span className="drv-id">{d.custom_id}</span>
@@ -179,7 +180,7 @@ export const TrackingDrivers: React.FC = () => {
                   <tr key={d.id} className={selectedDriver?.id === d.id ? 'drv-list-row--selected' : ''} onClick={() => setSelectedDriver(d)} style={{ cursor: 'pointer' }}>
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <img src={d.avatar_url || 'https://i.pravatar.cc/150'} alt={d.name} style={{ width: 30, height: 30, borderRadius: '50%', objectFit: 'cover' }} />
+                        <PersonAvatar userId={d.id} kind="drivers" name={d.name} size={30} />
                         <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{d.name}</span>
                       </div>
                     </td>

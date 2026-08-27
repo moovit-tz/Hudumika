@@ -30,9 +30,9 @@ const equipmentPatchSchema = z.object({
 const maintenanceRecordCreateSchema = z.object({
   maintenanceType: z.enum(MAINTENANCE_TYPES),
   performedAt: z.string().optional(),
-  performedBy: z.string().max(255).optional(),
-  description: z.string().max(2000).optional(),
-  cost: z.number().optional(),
+  performedByUserId: z.string().uuid().optional(),
+  description: z.string().max(2000).nullable().optional(),
+  cost: z.number().nullable().optional(),
   nextDueDate: z.string().nullable().optional(),
   condition: z.enum(EQUIPMENT_CONDITIONS).optional(),
   resultingStatus: z.enum(EQUIPMENT_STATUSES).optional(),
@@ -71,7 +71,10 @@ function mapEquipment(row: any) {
 function mapMaintenanceRecord(row: any) {
   return {
     id: row.id, equipmentId: row.equipment_id, maintenanceType: row.maintenance_type,
-    performedAt: row.performed_at, performedBy: row.performed_by, description: row.description,
+    performedAt: row.performed_at,
+    performedByUserId: row.performed_by_user_id ?? null,
+    performedByName: row.performed_by_name ?? null,
+    description: row.description,
     cost: row.cost != null ? Number(row.cost) : null, nextDueDate: row.next_due_date, createdAt: row.created_at,
   };
 }
@@ -149,9 +152,13 @@ export async function sealEquipmentRoutes(fastify: FastifyInstance) {
   fastify.get('/equipment/:id/maintenance', async (request: any, reply) => {
     try {
       const rows = await withTenant(request.user.tenant_id, trx =>
-        trx.selectFrom('seal_equipment_maintenance_records').selectAll()
-          .where('equipment_id', '=', request.params.id).where('tenant_id', '=', request.user.tenant_id)
-          .orderBy('performed_at', 'desc').execute()
+        trx.selectFrom('seal_equipment_maintenance_records')
+          .leftJoin('users', 'users.id', 'seal_equipment_maintenance_records.performed_by_user_id')
+          .selectAll('seal_equipment_maintenance_records')
+          .select('users.name as performed_by_name')
+          .where('seal_equipment_maintenance_records.equipment_id', '=', request.params.id)
+          .where('seal_equipment_maintenance_records.tenant_id', '=', request.user.tenant_id)
+          .orderBy('seal_equipment_maintenance_records.performed_at', 'desc').execute()
       );
       return rows.map(mapMaintenanceRecord);
     } catch (err: any) {
@@ -173,7 +180,7 @@ export async function sealEquipmentRoutes(fastify: FastifyInstance) {
           equipment_id: request.params.id,
           maintenance_type: b.maintenanceType,
           performed_at: b.performedAt ? new Date(b.performedAt) : new Date(),
-          performed_by: b.performedBy ?? null,
+          performed_by_user_id: b.performedByUserId ?? null,
           description: b.description ?? null,
           cost: b.cost != null ? String(b.cost) : null,
           next_due_date: b.nextDueDate ? new Date(b.nextDueDate) : null,

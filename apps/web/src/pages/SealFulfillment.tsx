@@ -11,9 +11,10 @@ import { showAlert } from '../lib/alert.js';
 import { useSealCompartmentId } from '../hooks/useSealCompartment.js';
 import './Seal.css';
 import { PageHeader } from '../components/PageHeader.js';
+import { PersonAvatar } from '../components/PersonAvatar.js';
 
 interface Order {
-  id: string; reference: string; status: string; ownerName?: string; compartmentName?: string; createdAt: string;
+  id: string; reference: string; status: string; customerId?: string; ownerName?: string; compartmentName?: string; createdAt: string;
 }
 interface Lot { id: string; description: string; qtyOnHand: number; uom: string; ownerId: string; }
 interface Customer { id: string; name: string; }
@@ -167,7 +168,14 @@ export function SealFulfillment() {
                 {orders.map(o => (
                   <tr key={o.id} onClick={() => navigate(`/seal/fulfillment/${o.id}`)}>
                     <td className="seal-mono" style={{ fontWeight: 700, color: 'var(--ink)' }}>{o.reference}</td>
-                    <td>{o.ownerName ?? '—'}</td>
+                    <td>
+                      {o.ownerName ? (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                          <PersonAvatar userId={o.customerId} kind="customers" name={o.ownerName} size={22} />
+                          {o.ownerName}
+                        </span>
+                      ) : '—'}
+                    </td>
                     <td>{o.compartmentName ?? '—'}</td>
                     <td><Badge variant={STATUS_VARIANT[o.status] ?? 'gray'}>{o.status}</Badge></td>
                     <td>{new Date(o.createdAt).toLocaleDateString()}</td>

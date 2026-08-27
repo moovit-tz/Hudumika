@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Icon } from '../components/Icon.js';
+import { PersonAvatar } from '../components/PersonAvatar.js';
 import { useBranding } from '../hooks/useBranding.js';
 import { useCurrency } from '../hooks/useCurrency.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
@@ -1062,9 +1063,12 @@ export const PurchaseOrders: React.FC = () => {
                         </span>
                       </div>
 
-                      <div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{po.vendorName}</div>
-                        <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>Terms: {po.paymentTerms || 'N/A'}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <PersonAvatar userId={po.vendorId} kind="suppliers" name={po.vendorName} size={26} />
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{po.vendorName}</div>
+                          <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>Terms: {po.paymentTerms || 'N/A'}</div>
+                        </div>
                       </div>
 
                       <div style={{ height: 1, background: 'var(--border)' }} />
@@ -1274,7 +1278,10 @@ export const PurchaseOrders: React.FC = () => {
                             </td>
 
                             <td style={{ padding: '12px 14px', fontWeight: 600, color: 'var(--ink)' }}>
-                              {po.vendorName}
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                                <PersonAvatar userId={po.vendorId} kind="suppliers" name={po.vendorName} size={22} />
+                                {po.vendorName}
+                              </span>
                             </td>
 
                             <td style={{ padding: '12px 14px', color: 'var(--ink2)' }}>

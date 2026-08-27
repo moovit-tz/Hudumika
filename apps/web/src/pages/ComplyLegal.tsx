@@ -9,6 +9,7 @@ import { ComplyWizardPage, WizardField } from './ComplyWizardPage.js';
 import { ComplyCustomerPicker } from './ComplyCustomerPicker.js';
 import { showConfirm } from '../lib/confirm.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { PersonAvatar, CompanyAvatar } from '../components/PersonAvatar.js';
 
 const SPECIALTIES_FILTER = [
   'All', 'Corporate Registration', 'Tax Compliance', 'Employment Law',
@@ -245,7 +246,7 @@ export function ComplyLegal() {
             {!firmsLoading && visible.map(firm => (
               <div key={firm.id} className="comply-firm-card">
                 <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-                  <div className="comply-firm-logo" style={{ background: firm.color }}>{firm.initials}</div>
+                  <CompanyAvatar name={firm.name} size={44} shape="square" />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div className="comply-firm-name">{firm.name}</div>
                     <div className="comply-firm-location">
@@ -303,7 +304,14 @@ export function ComplyLegal() {
                       <td className="comply-table-name">{e.firm_name}</td>
                       <td>{e.engagement_type}</td>
                       <td>{e.agency_code ?? '—'}</td>
-                      <td className="comply-td-muted">{e.customer_name ?? 'This business'}</td>
+                      <td className="comply-td-muted">
+                        {e.customer_name ? (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
+                            <PersonAvatar userId={e.customer_id ?? undefined} kind="customers" name={e.customer_name} size={20} />
+                            {e.customer_name}
+                          </span>
+                        ) : 'This business'}
+                      </td>
                       <td><EngagementStepper status={e.status} /></td>
                       <td className="comply-td-muted">{new Date(e.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
                       <td onClick={ev => ev.stopPropagation()}>
@@ -328,7 +336,7 @@ export function ComplyLegal() {
             <div style={{ height: 6, background: selected.color }} />
             <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
-                <div className="comply-firm-logo" style={{ background: selected.color, width: 48, height: 48, fontSize: 18 }}>{selected.initials}</div>
+                <CompanyAvatar name={selected.name} size={48} shape="square" />
                 <div>
                   <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)', marginBottom: 2 }}>{selected.name}</div>
                   <div style={{ fontSize: 12, color: 'var(--ink3)' }}>{selected.location}</div>

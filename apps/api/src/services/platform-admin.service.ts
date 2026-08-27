@@ -58,7 +58,7 @@ export class PlatformAdminService {
     let q = dbPlatform.selectFrom('platform_activity_log as a')
       .leftJoin('tenants as t', 't.id', 'a.tenant_id')
       .select([
-        'a.id', 'a.actor_name', 'a.action', 'a.category', 'a.target_type',
+        'a.id', 'a.actor_name', 'a.actor_user_id', 'a.action', 'a.category', 'a.target_type',
         'a.target_id', 'a.target_name', 'a.tenant_id', 'a.metadata', 'a.created_at',
         't.name as tenant_name',
       ])

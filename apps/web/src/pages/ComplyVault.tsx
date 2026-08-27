@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { PersonAvatar } from '../components/PersonAvatar.js';
 import { useComplyCertificates, useComplyRenewals } from '../hooks/useComply.js';
 import type { CompCertificate } from '@hudumika/types';
 import { ComplyWizardPage, WizardField } from './ComplyWizardPage.js';
@@ -304,7 +305,12 @@ export function ComplyVault() {
                 {[
                   { label: 'Certificate Number', val: selected.cert_number, mono: true  },
                   { label: 'Agency',              val: selected.agency_name,  mono: false },
-                  { label: 'Client / Entity',     val: selected.customer_name ?? 'This business', mono: false },
+                  { label: 'Client / Entity',     val: selected.customer_name
+                      ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
+                          <PersonAvatar userId={selected.customer_id ?? undefined} kind="customers" name={selected.customer_name} size={20} />
+                          {selected.customer_name}
+                        </span>
+                      : 'This business', mono: false },
                   { label: 'Date Issued',         val: issuedLabel(selected), mono: false },
                   { label: 'Expiry / Validity',   val: expiryLabel(selected), mono: false },
                   ...(selected.expiry_date ? [{ label: 'Reminders', val: reminderStageLabel(selected), mono: false }] : []),

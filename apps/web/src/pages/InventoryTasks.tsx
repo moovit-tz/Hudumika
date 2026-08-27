@@ -10,6 +10,7 @@ import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import './Inventory.css';
 import { PageHeader } from '../components/PageHeader.js';
+import { PersonAvatar } from '../components/PersonAvatar.js';
 
 interface Task {
   id: string; itemId: string | null; warehouseId: string | null; title: string;
@@ -170,7 +171,10 @@ export function InventoryTasks() {
                       </div>
                       {t.itemName && <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 4 }}>{t.itemName}</div>}
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, fontSize: 11.5, color: 'var(--ink3)' }}>
-                        <span>{t.assigneeName ?? 'Unassigned'}</span>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                          {t.assigneeName && <PersonAvatar userId={t.assignedTo ?? undefined} name={t.assigneeName} size={16} />}
+                          {t.assigneeName ?? 'Unassigned'}
+                        </span>
                         {t.dueDate && <span>{new Date(t.dueDate).toLocaleDateString()}</span>}
                       </div>
                       <div style={{ marginTop: 10 }}>

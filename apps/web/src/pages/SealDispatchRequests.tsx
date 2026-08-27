@@ -7,6 +7,7 @@ import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import './Seal.css';
 import { PageHeader } from '../components/PageHeader.js';
+import { CompanyAvatar } from '../components/PersonAvatar.js';
 
 interface DispatchRequest {
   id: string;
@@ -87,7 +88,14 @@ export function SealDispatchRequests() {
                 {requests.map(r => (
                   <tr key={r.id}>
                     <td>{r.lotDescription ?? '—'}</td>
-                    <td>{r.requestedByOrgName ?? '—'}</td>
+                    <td>
+                      {r.requestedByOrgName ? (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                          <CompanyAvatar name={r.requestedByOrgName} size={22} shape="circle" />
+                          {r.requestedByOrgName}
+                        </span>
+                      ) : '—'}
+                    </td>
                     <td>{r.qtyRequested} {r.lotUom ?? ''}</td>
                     <td style={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.note || '—'}</td>
                     <td><Badge variant={STATUS_VARIANT[r.status] ?? 'gray'}>{r.status}</Badge></td>

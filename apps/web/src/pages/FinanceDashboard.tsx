@@ -4,6 +4,7 @@ import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { MetricsRow, MiniBar } from '../components/MetricCard.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { CompanyAvatar } from '../components/PersonAvatar.js';
 import { useCurrency } from '../hooks/useCurrency.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { useLocale } from '../hooks/useLocale.js';
@@ -14,17 +15,6 @@ import { SkeletonPage } from '../components/ui/skeleton.js';
 function pct(n: number) { return (n > 0 ? '+' : '') + n.toFixed(2) + '%'; }
 
 /* -- Avatar -- */
-function Av({ name, color, size = 38, img }: { name: string; color?: string; size?: number; img?: string }) {
-  const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
-  const colors = ['#0d7a6b','#4f46e5','#ec4899','#f59e0b','#8b5cf6','#0550ae','#059669'];
-  const bg = color || colors[((name ?? '?').charCodeAt(0)) % colors.length];
-  if (img) return <img src={img} alt={name} style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />;
-  return (
-    <div style={{ width: size, height: size, borderRadius: '50%', background: bg, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: size * 0.33, flexShrink: 0, fontFamily: 'var(--font)' }}>
-      {initials}
-    </div>
-  );
-}
 
 /* MiniBar and Trend are imported from MetricCard */
 
@@ -351,7 +341,7 @@ export const FinanceDashboard: React.FC = () => {
                   </div>
                 ) : filteredActivities.map((act, i) => (
                 <div key={i} style={{ display: 'flex', gap: 12, padding: '10px 0', borderBottom: i < filteredActivities.length - 1 ? '1px solid var(--border)' : 'none' }}>
-                  <Av name={act.name} color={act.color} size={38} />
+                  <CompanyAvatar name={act.name} size={38} shape="circle" />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 13, lineHeight: 1.4 }}>
                       <span style={{ fontWeight: 700, color: 'var(--navy)' }}>{act.name}</span>

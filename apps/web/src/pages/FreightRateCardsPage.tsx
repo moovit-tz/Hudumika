@@ -3,6 +3,7 @@ import { PageHeader } from '../components/PageHeader.js';
 import { Icon } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
 import { Combobox } from '../components/ui/combobox.js';
+import { PersonAvatar } from '../components/PersonAvatar.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 
 interface Carrier { id: string; name: string; active?: boolean; }
@@ -157,7 +158,12 @@ export function FreightRateCardsPage() {
             <tbody>
               {cards.map(c => (
                 <tr key={c.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                  <td style={{ padding: '12px 16px', fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>{c.carrier_name || '—'}</td>
+                  <td style={{ padding: '12px 16px', fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 9 }}>
+                      <PersonAvatar userId={c.carrier_id} kind="carriers" name={c.carrier_name ?? ''} size={26} style={{ borderRadius: 6 }} />
+                      {c.carrier_name || '—'}
+                    </span>
+                  </td>
                   <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)' }}>{MODES.find(m => m.value === c.mode)?.label || c.mode}</td>
                   <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)' }}>{c.origin_port} → {c.destination_port}</td>
                   <td style={{ padding: '12px 16px', fontSize: 12.5, fontFamily: 'var(--mono)', color: 'var(--ink3)' }}>{c.currency} {Number(c.cost_rate).toFixed(2)}</td>

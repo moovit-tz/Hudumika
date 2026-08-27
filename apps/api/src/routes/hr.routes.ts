@@ -1565,7 +1565,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
       if (ids.length) {
         interviews = await trx.selectFrom('hr_interviews as i')
           .leftJoin('users as u', 'u.id', 'i.interviewer_id')
-          .select(['i.id', 'i.candidate_id', 'i.scheduled_at', 'i.mode', 'i.status', 'i.notes', 'u.name as interviewer_name'])
+          .select(['i.id', 'i.candidate_id', 'i.scheduled_at', 'i.mode', 'i.status', 'i.notes', 'i.interviewer_id', 'u.name as interviewer_name'])
           .where('i.tenant_id', '=', user.tenant_id)
           .where('i.candidate_id', 'in', ids)
           .orderBy('i.scheduled_at', 'asc')
