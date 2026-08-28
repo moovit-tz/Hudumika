@@ -514,11 +514,14 @@ export const PLATFORM_THEMES: PlatformTheme[] = [
 // ── Design system version ────────────────────────────────────────────────────
 // v1 = today's system exactly as documented: a SuperAdmin-chosen platform
 // theme plus per-app/per-tenant color overrides (getAppColor's cascade in
-// useBranding.ts). v2 = one fixed brand color platform-wide — every app,
-// every tenant, no exceptions — for a SuperAdmin who wants a single uniform
-// identity instead of the "different color per app" system. v3 is reserved
-// for whatever gets designed next; selectable in the switcher so the slot
-// exists, but behaves exactly like v1 until it has a real definition.
+// useBranding.ts). v2 — named "Mellon" in the SuperAdmin UI — is one fixed
+// brand color platform-wide — every app, every tenant, no exceptions — for a
+// SuperAdmin who wants a single uniform identity instead of the "different
+// color per app" system. The internal value stays the literal 'v2' (the
+// type, the API payload field, anything already persisted); only the label a
+// person sees was renamed. v3 is reserved for whatever gets designed next;
+// selectable in the switcher so the slot exists, but behaves exactly like v1
+// until it has a real definition.
 //
 // Deliberately a separate settings key from design-tokens/branding (see
 // platform.routes.ts) rather than a field inside them: flipping the version

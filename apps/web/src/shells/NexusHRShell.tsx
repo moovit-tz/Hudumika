@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useParams, useNavigate } from 'react-router-dom';
 import '../pages/OnePi.css';
 import { WorkspaceApp } from './WorkspaceApp.js';
 import { GoogleWorkspaceRightSidebar } from '../components/GoogleWorkspaceRightSidebar.js';
@@ -23,6 +23,7 @@ import { MyHubPage }    from '../pages/MyHub.js';
 import { RecruitmentPage } from '../pages/Recruitment.js';
 import { ITAdminDashboard } from '../pages/ITAdminDashboard.js';
 import { Calls } from '../pages/Calls.js';
+import { MeetingSession } from '../pages/calls/MeetingSession.js';
 import {
   HrmDashboard, EmployeesPage, DepartmentsPage, DesignationsPage, TeamsPage,
   AttendancePage, LeavesPage, ShiftsPage, HolidaysPage,
@@ -104,6 +105,16 @@ const NAV: SidebarSection[] = [
   },
 ];
 
+// Shareable meeting link (/nexushr/calls/meeting/:id) — MeetingSession
+// itself does the lobby→room flow; this just wires it to the route param
+// and sends "back to Calls" on exit, same as clicking a meeting in the list.
+function MeetingJoinRoute() {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  if (!id) return <Navigate to="/nexushr/calls" replace />;
+  return <MeetingSession meetingId={id} onExit={() => navigate('/nexushr/calls')} />;
+}
+
 export function NexusHRShell() {
   return (
     <WorkspaceApp appId="nexushr">
@@ -129,6 +140,7 @@ export function NexusHRShell() {
               <Route path="device-management" element={<RequireRoles roles={MGMT_ROLES}><DeviceManagementPage /></RequireRoles>} />
               <Route path="me"                element={<MyHubPage />} />
               <Route path="calls"             element={<Calls />} />
+              <Route path="calls/meeting/:id" element={<MeetingJoinRoute />} />
               <Route path="clock-in"          element={<ClockInPage />} />
               <Route path="leaves"            element={<RequireRoles roles={MGMT_ROLES}><LeavesPage /></RequireRoles>} />
               <Route path="attendance"        element={<RequireRoles roles={MGMT_ROLES}><AttendancePage /></RequireRoles>} />

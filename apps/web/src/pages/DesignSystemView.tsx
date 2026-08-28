@@ -305,7 +305,7 @@ export function DesignSystemView() {
               <span className="ds-field-label">Design system version</span>
               <p className="ds-section-hint" style={{ margin: '2px 0 10px' }}>
                 v1 keeps everything below — the theme grid, per-app colors, tenant overrides — exactly as it works today.
-                v2 locks every app and every tenant to one fixed brand color, ignoring the theme/per-app settings entirely.
+                Mellon locks every app and every tenant to one fixed brand color, ignoring the theme/per-app settings entirely.
                 v3 is reserved for a future version and behaves like v1 until one is built.
               </p>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -315,7 +315,7 @@ export function DesignSystemView() {
                     style={{ padding: '10px 18px', minHeight: 0 }}
                     onClick={() => setVersion(v)}>
                     {designSystemVersion.version === v && <span className="ds-theme-check"><Icon name="check" size={11} /></span>}
-                    <span className="ds-theme-name">{v === 'v1' ? 'v1 — Per-app colors' : v === 'v2' ? 'v2 — Unified brand color' : 'v3 — Reserved'}</span>
+                    <span className="ds-theme-name">{v === 'v1' ? 'v1 — Per-app colors' : v === 'v2' ? 'Mellon — Unified brand color' : 'v3 — Reserved'}</span>
                   </button>
                 ))}
                 {designSystemVersion.version === 'v2' && (

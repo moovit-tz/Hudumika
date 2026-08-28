@@ -3,10 +3,16 @@ import { apiFetch, BASE_URL } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { Icon, IconName } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { Button } from '../components/ui/button.js';
+import { DatePicker } from '../components/ui/date-picker.js';
+import { showAlert } from '../lib/alert.js';
+import { MeetingSession } from './calls/MeetingSession.js';
+import { CallsMetrics } from './calls/CallsMetrics.js';
 
 interface Staff { id: string; name: string; role: string; email?: string }
 interface CallRow { id: string; caller_id: string; callee_id: string; kind: string; status: string; started_at: string; duration_seconds: number; caller_name: string; callee_name: string }
 type CallState = 'idle' | 'calling' | 'incoming' | 'in-call';
+interface MeetingRow { id: string; title: string; join_code: string; kind: string; status: string; scheduled_at: string | null; started_at: string | null; ended_at: string | null; locked: boolean; host_id: string; host_name: string }
 
 const ini = (n: string) => (n || '?').split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
 const fmtDur = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
@@ -41,6 +47,63 @@ export function Calls() {
     try { const cfg = await apiFetch('/v1/hr/config'); if (cfg?.iceServers) iceServers.current = cfg.iceServers; } catch { /* */ }
   }, [user?.id]);
   useEffect(() => { load(); }, [load]);
+
+  // ── Meetings ──
+  const [tab, setTab] = useState<'directory' | 'meetings' | 'metrics'>('directory');
+  const [meetings, setMeetings] = useState<MeetingRow[]>([]);
+  const [showSchedule, setShowSchedule] = useState(false);
+  const [schedTitle, setSchedTitle] = useState('');
+  const [schedDate, setSchedDate] = useState<Date | undefined>(undefined);
+  const [schedTime, setSchedTime] = useState('09:00');
+  const [schedKind, setSchedKind] = useState<'VIDEO' | 'VOICE'>('VIDEO');
+  const [joinCodeInput, setJoinCodeInput] = useState('');
+  const [activeMeetingId, setActiveMeetingId] = useState<string | null>(null);
+  const [creatingMeeting, setCreatingMeeting] = useState(false);
+
+  const loadMeetings = useCallback(async () => {
+    try { const m = await apiFetch('/v1/hr/meetings'); if (Array.isArray(m)) setMeetings(m); } catch { /* */ }
+  }, []);
+  useEffect(() => { if (tab === 'meetings') loadMeetings(); }, [tab, loadMeetings]);
+
+  async function startInstantMeeting() {
+    setCreatingMeeting(true);
+    try {
+      const m = await apiFetch('/v1/hr/meetings', { method: 'POST', body: JSON.stringify({ title: `${user?.name || 'Team'}'s meeting`, kind: 'VIDEO' }) });
+      setActiveMeetingId(m.id);
+    } catch (e: any) { showAlert(e?.message || 'Could not start a meeting.'); }
+    finally { setCreatingMeeting(false); }
+  }
+
+  async function scheduleMeeting() {
+    if (!schedTitle.trim()) { showAlert('Give the meeting a title.'); return; }
+    if (!schedDate) { showAlert('Pick a date.'); return; }
+    const [h, min] = schedTime.split(':').map(Number);
+    const when = new Date(schedDate); when.setHours(h || 0, min || 0, 0, 0);
+    try {
+      await apiFetch('/v1/hr/meetings', { method: 'POST', body: JSON.stringify({ title: schedTitle, kind: schedKind, scheduled_at: when.toISOString() }) });
+      setShowSchedule(false); setSchedTitle(''); setSchedDate(undefined); setSchedTime('09:00');
+      loadMeetings();
+    } catch (e: any) { showAlert(e?.message || 'Could not schedule that meeting.'); }
+  }
+
+  async function cancelMeeting(id: string) {
+    try { await apiFetch(`/v1/hr/meetings/${id}`, { method: 'DELETE' }); loadMeetings(); } catch (e: any) { showAlert(e?.message || 'Could not cancel.'); }
+  }
+
+  function copyJoinLink(m: MeetingRow) {
+    const url = `${window.location.origin}/nexushr/calls/meeting/${m.id}`;
+    navigator.clipboard?.writeText(url);
+  }
+
+  async function joinByCode() {
+    const code = joinCodeInput.trim().toUpperCase();
+    if (!code) return;
+    try {
+      const m = await apiFetch(`/v1/hr/meetings/by-code/${encodeURIComponent(code)}`);
+      setActiveMeetingId(m.id);
+      setJoinCodeInput('');
+    } catch { showAlert('No meeting found for that code.'); }
+  }
 
   // ── Signaling socket ──
   const send = (m: any) => { try { wsRef.current?.send(JSON.stringify(m)); } catch { /* */ } };
@@ -167,6 +230,16 @@ export function Calls() {
 
       {error && <div style={{ fontSize: 12.5, color: 'var(--red)', background: 'var(--red-l)', borderRadius: 8, padding: '8px 12px' }}>{error}</div>}
 
+      <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid var(--border)' }}>
+        {([['directory', 'Direct calls'], ['meetings', 'Meetings'], ['metrics', 'Metrics']] as const).map(([key, label]) => (
+          <button key={key} type="button" onClick={() => setTab(key)}
+            style={{ fontSize: 13, fontWeight: 600, padding: '10px 14px', border: 'none', background: 'none', cursor: 'pointer', color: tab === key ? 'hsl(var(--primary))' : 'var(--ink3)', borderBottom: tab === key ? '2px solid hsl(var(--primary))' : '2px solid transparent', marginBottom: -1 }}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'directory' && (
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(320px, 100%), 1fr))', gap: 20 }}>
         {/* Directory + presence */}
         <div style={{ ...card, padding: 20 }}>
@@ -225,6 +298,87 @@ export function Calls() {
           )}
         </div>
       </div>
+      )}
+
+      {tab === 'meetings' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+            <Button variant="default" onClick={startInstantMeeting} disabled={creatingMeeting}>
+              <Icon name="camera" size={14} /> {creatingMeeting ? 'Starting…' : 'New meeting'}
+            </Button>
+            <Button variant="outline" onClick={() => setShowSchedule(v => !v)}>
+              <Icon name="calendar" size={14} /> Schedule
+            </Button>
+            <div style={{ display: 'flex', gap: 6, marginLeft: 'auto' }}>
+              <input value={joinCodeInput} onChange={e => setJoinCodeInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && joinByCode()} placeholder="Have a code? Enter it here"
+                style={{ height: 34, borderRadius: 8, border: '1px solid var(--border)', padding: '0 10px', fontSize: 12.5, width: 200 }} />
+              <Button variant="outline" size="sm" onClick={joinByCode}>Join</Button>
+            </div>
+          </div>
+
+          {showSchedule && (
+            <div style={{ ...card, padding: 18, display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)' }}>Schedule a meeting</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10 }}>
+                <input value={schedTitle} onChange={e => setSchedTitle(e.target.value)} placeholder="Meeting title"
+                  style={{ height: 36, borderRadius: 8, border: '1px solid var(--border)', padding: '0 10px', fontSize: 13, gridColumn: '1 / -1' }} />
+                <DatePicker date={schedDate} onChange={setSchedDate} placeholder="Date" />
+                <input type="time" value={schedTime} onChange={e => setSchedTime(e.target.value)} style={{ height: 36, borderRadius: 8, border: '1px solid var(--border)', padding: '0 10px', fontSize: 13 }} />
+                <select value={schedKind} onChange={e => setSchedKind(e.target.value as 'VIDEO' | 'VOICE')} style={{ height: 36, borderRadius: 8, border: '1px solid var(--border)', padding: '0 10px', fontSize: 13 }}>
+                  <option value="VIDEO">Video</option>
+                  <option value="VOICE">Voice only</option>
+                </select>
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <Button variant="default" size="sm" onClick={scheduleMeeting}>Schedule</Button>
+                <Button variant="outline" size="sm" onClick={() => setShowSchedule(false)}>Cancel</Button>
+              </div>
+            </div>
+          )}
+
+          <div style={{ ...card, padding: 20 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)', marginBottom: 14 }}>Meetings</div>
+            {meetings.length === 0 ? (
+              <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>No meetings yet — start an instant one or schedule ahead.</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {meetings.map(m => {
+                  const isPast = m.status === 'ENDED' || m.status === 'CANCELLED';
+                  const isMine = m.host_id === user?.id;
+                  const statusColor = m.status === 'ACTIVE' ? 'var(--green)' : m.status === 'SCHEDULED' ? 'var(--gold)' : 'var(--ink3)';
+                  return (
+                    <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 4px', borderBottom: '1px solid var(--border)' }}>
+                      <Icon name={m.kind === 'VOICE' ? 'phone' : 'camera'} size={14} color="var(--ink3)" />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.title}{m.locked && <Icon name="lock" size={10} color="var(--ink3)" />}</div>
+                        <div style={{ fontSize: 11, color: 'var(--ink3)' }}>
+                          Hosted by {isMine ? 'you' : m.host_name} · {m.status === 'SCHEDULED' && m.scheduled_at ? new Date(m.scheduled_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : m.status.toLowerCase()}
+                        </div>
+                      </div>
+                      <span style={{ width: 7, height: 7, borderRadius: '50%', background: statusColor, flexShrink: 0 }} />
+                      {!isPast && (
+                        <>
+                          <Button variant="ghost" size="xs" onClick={() => copyJoinLink(m)} title="Copy join link"><Icon name="copy" size={13} /></Button>
+                          {isMine && m.status === 'SCHEDULED' && (
+                            <Button variant="ghost" size="xs" onClick={() => cancelMeeting(m.id)} title="Cancel"><Icon name="x" size={13} color="var(--red)" /></Button>
+                          )}
+                          <Button variant="default" size="xs" onClick={() => setActiveMeetingId(m.id)}>Join</Button>
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {tab === 'metrics' && <CallsMetrics />}
+
+      {activeMeetingId && (
+        <MeetingSession meetingId={activeMeetingId} onExit={() => { setActiveMeetingId(null); loadMeetings(); }} />
+      )}
 
       {/* Incoming call prompt */}
       {callState === 'incoming' && peer && (
@@ -262,8 +416,8 @@ export function Calls() {
           </div>
           {/* Controls */}
           <div style={{ display: 'flex', gap: 16, justifyContent: 'center', padding: '20px 0 30px', background: '#0b0b0f' }}>
-            <button type="button" onClick={toggleMute} title={muted ? 'Unmute' : 'Mute'} style={ctrlBtn(muted)}><Icon name="volume2" size={20} color="#fff" /></button>
-            {kind === 'VIDEO' && <button type="button" onClick={toggleCam} title={camOff ? 'Camera on' : 'Camera off'} style={ctrlBtn(camOff)}><Icon name="camera" size={20} color="#fff" /></button>}
+            <button type="button" onClick={toggleMute} title={muted ? 'Unmute' : 'Mute'} style={ctrlBtn(muted)}><Icon name="volume2" size={20} color={muted ? '#111' : '#fff'} /></button>
+            {kind === 'VIDEO' && <button type="button" onClick={toggleCam} title={camOff ? 'Camera on' : 'Camera off'} style={ctrlBtn(camOff)}><Icon name="camera" size={20} color={camOff ? '#111' : '#fff'} /></button>}
             <button type="button" onClick={hangup} title="Hang up" style={{ ...ctrlBtn(false), background: 'var(--red)' }}><Icon name="x" size={20} color="#fff" /></button>
           </div>
         </div>

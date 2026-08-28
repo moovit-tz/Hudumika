@@ -11,6 +11,25 @@ import { PageHeader } from '../components/PageHeader.js';
 import { PersonLink } from '../components/PersonLink.js';
 import { MetricsRow, type MetricCardProps } from '../components/MetricCard.js';
 import { DatePicker } from '../components/ui/date-picker.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { Combobox } from '../components/ui/combobox.js';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog.js';
+import { showAlert } from '../lib/alert.js';
+
+/** Escapes user-supplied text before it's spliced into an HTML template body
+ *  — every `{placeholder}` value here comes from a free-text field an admin
+ *  types into, and the rendered result is both shown via
+ *  `dangerouslySetInnerHTML` and saved as a real .html file. Unescaped, a
+ *  value like `<img src=x onerror=...>` executes in the previewer's browser
+ *  and persists in the stored document. */
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
 
 interface Doc {
   id: string;
@@ -95,6 +114,7 @@ export function HrDocuments() {
   const [requirements, setRequirements] = useState<Requirement[]>([]);
   const [radar, setRadar] = useState<ExpiryRadarData | null>(null);
   const [employees, setEmployees] = useState<Array<{ id: string; name: string; email: string; designation?: string }>>([]);
+  const [tenantName, setTenantName] = useState('');
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -125,18 +145,20 @@ export function HrDocuments() {
   const loadData = useCallback(async () => {
     setError('');
     try {
-      const [d, t, reqs, rad, emps] = await Promise.all([
-        apiFetch('/v1/nexushr/documents'),
-        apiFetch('/v1/nexushr/documents/templates'),
-        apiFetch('/v1/nexushr/document-requirements').catch(() => []),
-        apiFetch('/v1/nexushr/documents/expiry-radar').catch(() => null),
+      const [d, t, reqs, rad, emps, me] = await Promise.all([
+        apiFetch('/v1/hr/documents'),
+        apiFetch('/v1/hr/documents/templates'),
+        apiFetch('/v1/hr/document-requirements').catch(() => []),
+        apiFetch('/v1/hr/documents/expiry-radar').catch(() => null),
         apiFetch('/v1/hr/employees').catch(() => []),
+        apiFetch('/v1/identity/me').catch(() => null),
       ]);
       setDocs(Array.isArray(d) ? d : []);
       setTemplates(Array.isArray(t) ? t : []);
       setRequirements(Array.isArray(reqs) ? reqs : []);
       setRadar(rad);
       setEmployees(Array.isArray(emps) ? emps : []);
+      setTenantName(me?.tenant?.name ?? '');
     } catch (err: any) {
       setError(err?.message ?? 'Could not load HR documents data.');
     } finally {
@@ -197,7 +219,7 @@ export function HrDocuments() {
       value: String(templates.length),
       sub1Label: 'WorkDo Templates',
       sub1Value: 'Offer/NOC/Warning',
-      barColor: '#0e1f3d',
+      barColor: 'var(--teal)',
       icon: 'edit',
     },
   ];
@@ -205,7 +227,7 @@ export function HrDocuments() {
   const handleUploadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!uploadFile) {
-      alert('Please select a file to upload.');
+      showAlert('Please select a file to upload.');
       return;
     }
     setUploading(true);
@@ -218,7 +240,7 @@ export function HrDocuments() {
       if (uploadUserId) formData.append('user_id', uploadUserId);
       if (uploadExpiry) formData.append('expiry_date', uploadExpiry);
 
-      await apiFetch('/v1/nexushr/documents/upload', {
+      await apiFetch('/v1/hr/documents/upload', {
         method: 'POST',
         body: formData,
       });
@@ -229,7 +251,7 @@ export function HrDocuments() {
       setUploadExpiry('');
       loadData();
     } catch (err: any) {
-      alert(err?.message ?? 'Failed to upload document.');
+      showAlert(err?.message ?? 'Failed to upload document.', { variant: 'error' });
     } finally {
       setUploading(false);
     }
@@ -239,7 +261,7 @@ export function HrDocuments() {
     if (!reviewDoc) return;
     setReviewing(true);
     try {
-      await apiFetch(`/v1/nexushr/documents/${reviewDoc.id}/review`, {
+      await apiFetch(`/v1/hr/documents/${reviewDoc.id}/review`, {
         method: 'PATCH',
         body: JSON.stringify({
           approval_status,
@@ -250,7 +272,7 @@ export function HrDocuments() {
       setReviewNotes('');
       loadData();
     } catch (err: any) {
-      alert(err?.message ?? 'Failed to update review status.');
+      showAlert(err?.message ?? 'Failed to update review status.', { variant: 'error' });
     } finally {
       setReviewing(false);
     }
@@ -274,14 +296,21 @@ export function HrDocuments() {
   const updatePreview = (t: Template, vars: Record<string, string>, targetUserId: string) => {
     let body = t.body;
     const emp = employees.find(e => e.id === targetUserId);
+    // Smart defaults, then a real typed value (not just "the key is present" —
+    // every placeholder is pre-seeded as '' on template select, so spreading
+    // `vars` unconditionally overwrote every one of these defaults back to
+    // blank even when a real employee/date/tenant value was already known).
     const defaults: Record<string, string> = {
-      '{employee_name}': emp ? emp.name : 'Employee Name',
-      '{tenant_name}': 'Hudumika Corporate',
+      '{employee_name}': emp ? emp.name : '',
+      '{tenant_name}': tenantName,
       '{joining_date}': new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-      ...vars,
     };
-    for (const [k, v] of Object.entries(defaults)) {
-      body = body.split(k).join(v || `<span style="color:var(--teal); font-weight:bold;">${k}</span>`);
+    const merged = { ...defaults };
+    for (const [k, v] of Object.entries(vars)) {
+      if (v) merged[k] = v;
+    }
+    for (const [k, v] of Object.entries(merged)) {
+      body = body.split(k).join(v ? escapeHtml(v) : `<span style="color:var(--teal); font-weight:bold;">${k}</span>`);
     }
     setGenHtmlPreview(body);
   };
@@ -290,7 +319,7 @@ export function HrDocuments() {
     if (!selectedTemplate) return;
     setGenerating(true);
     try {
-      const res = await apiFetch('/v1/nexushr/documents/generate-letter', {
+      const res = await apiFetch('/v1/hr/documents/generate-letter', {
         method: 'POST',
         body: JSON.stringify({
           template_id: selectedTemplate.id,
@@ -298,11 +327,11 @@ export function HrDocuments() {
           variables: genVariables,
         }),
       });
-      alert(`Letter "${res.document.name}" generated and saved successfully!`);
+      showAlert(`Letter "${res.document.name}" generated and saved successfully!`, { variant: 'success' });
       setSelectedTemplate(null);
       loadData();
     } catch (err: any) {
-      alert(err?.message ?? 'Failed to generate letter.');
+      showAlert(err?.message ?? 'Failed to generate letter.', { variant: 'error' });
     } finally {
       setGenerating(false);
     }
@@ -315,7 +344,7 @@ export function HrDocuments() {
       <PageHeader
         crumbs={['NexusHR', 'Documents']}
         titlePlain="HR"
-        titleEm="documents & compliance."
+        titleEm="documents"
         subtitle="Automated letter generators, verification approval queue, compliance expiry radar, and mandatory document rules."
         actions={
           <div style={{ display: 'flex', gap: 10 }}>
@@ -331,7 +360,7 @@ export function HrDocuments() {
             <Button
               size="sm"
               onClick={() => setShowUploadModal(true)}
-              style={{ height: 38, fontSize: 13, background: '#0e1f3d', color: '#fff', border: 'none', display: 'flex', alignItems: 'center', gap: 6 }}
+              style={{ height: 38, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}
             >
               <Icon name="plus" size={14} />
               Upload Document
@@ -366,24 +395,24 @@ export function HrDocuments() {
               fontSize: 13,
               fontWeight: 600,
               border: 'none',
-              borderBottom: activeTab === tab.key ? '2px solid #0e1f3d' : '2px solid transparent',
+              borderBottom: activeTab === tab.key ? '2px solid hsl(var(--primary))' : '2px solid transparent',
               background: 'transparent',
-              color: activeTab === tab.key ? '#0e1f3d' : 'var(--ink2)',
+              color: activeTab === tab.key ? 'hsl(var(--primary))' : 'var(--ink2)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               gap: 8,
             }}
           >
-            <Icon name={tab.icon as any} size={15} color={activeTab === tab.key ? '#0e1f3d' : 'var(--ink3)'} />
+            <Icon name={tab.icon as any} size={15} color={activeTab === tab.key ? 'hsl(var(--primary))' : 'var(--ink3)'} />
             <span>{tab.label}</span>
             {tab.badge !== undefined && (
               <span
                 style={{
                   fontSize: 11,
                   fontWeight: 700,
-                  background: tab.badgeColor ?? 'var(--teal-l)',
-                  color: tab.badgeColor ? '#fff' : 'var(--teal)',
+                  background: tab.badgeColor ? 'var(--red-l)' : 'var(--teal-l)',
+                  color: tab.badgeColor ? 'var(--red)' : 'var(--teal)',
                   padding: '2px 7px',
                   borderRadius: 12,
                 }}
@@ -522,7 +551,7 @@ export function HrDocuments() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => window.open(`http://localhost:3001/v1/documents/download?key=${encodeURIComponent(d.storage_key)}&filename=${encodeURIComponent(d.name)}`, '_blank')}
+                            onClick={() => apiDownload(`/v1/hr/documents/${d.id}/download`, d.name)}
                             style={{ height: 28, fontSize: 11.5, padding: '0 10px' }}
                           >
                             <Icon name="download" size={12} /> Download
@@ -557,9 +586,9 @@ export function HrDocuments() {
               <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--teal)', marginTop: 4 }}>{radar.expiring_60_days}</div>
               <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 4 }}>Prepare renewal paperwork</div>
             </div>
-            <div style={{ ...cardStyle, padding: 18, borderLeft: '4px solid #0e1f3d' }}>
+            <div style={{ ...cardStyle, padding: 18, borderLeft: '4px solid hsl(var(--primary))' }}>
               <div style={labelStyle}>Total Monitored Files</div>
-              <div style={{ fontSize: 26, fontWeight: 800, color: '#0e1f3d', marginTop: 4 }}>{radar.total_tracked}</div>
+              <div style={{ fontSize: 26, fontWeight: 800, color: 'hsl(var(--primary))', marginTop: 4 }}>{radar.total_tracked}</div>
               <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 4 }}>Passports, Visas &amp; Licenses</div>
             </div>
           </div>
@@ -639,8 +668,8 @@ export function HrDocuments() {
                     ...cardStyle,
                     padding: 16,
                     cursor: 'pointer',
-                    borderColor: selectedTemplate?.id === t.id ? '#0e1f3d' : 'var(--border)',
-                    boxShadow: selectedTemplate?.id === t.id ? '0 0 0 2px #0e1f3d' : 'none',
+                    borderColor: selectedTemplate?.id === t.id ? 'hsl(var(--primary))' : 'var(--border)',
+                    boxShadow: selectedTemplate?.id === t.id ? '0 0 0 2px hsl(var(--primary))' : 'none',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
@@ -663,7 +692,7 @@ export function HrDocuments() {
             <div style={{ ...cardStyle, padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: 12 }}>
                 <div>
-                  <div style={{ fontWeight: 700, fontSize: 16, color: '#0e1f3d' }}>{selectedTemplate.name}</div>
+                  <div style={{ fontWeight: 700, fontSize: 16, color: 'hsl(var(--primary))' }}>{selectedTemplate.name}</div>
                   <div style={{ fontSize: 12, color: 'var(--ink3)' }}>Fill in variables below for instant live HTML/PDF generation</div>
                 </div>
                 <Button variant="outline" size="sm" onClick={() => setSelectedTemplate(null)}>Close Generator</Button>
@@ -673,19 +702,17 @@ export function HrDocuments() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, background: 'var(--bg)', padding: 14, borderRadius: 8, border: '1px solid var(--border)' }}>
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 700, display: 'block', marginBottom: 4, color: 'var(--ink)' }}>Target Employee</label>
-                  <select
+                  <Combobox
+                    options={employees.map(emp => ({ value: emp.id, label: emp.name, sublabel: emp.email }))}
                     value={genUserId}
-                    onChange={e => {
-                      setGenUserId(e.target.value);
-                      updatePreview(selectedTemplate, genVariables, e.target.value);
+                    onChange={v => {
+                      setGenUserId(v);
+                      updatePreview(selectedTemplate, genVariables, v);
                     }}
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid var(--border)', fontSize: 13, background: '#fff' }}
-                  >
-                    <option value="">-- Select Employee --</option>
-                    {employees.map(emp => (
-                      <option key={emp.id} value={emp.id}>{emp.name} ({emp.email})</option>
-                    ))}
-                  </select>
+                    placeholder="Select employee…"
+                    searchPlaceholder="Search staff…"
+                    emptyText="No matching staff."
+                  />
                 </div>
 
                 {Object.keys(genVariables).map(k => (
@@ -726,7 +753,7 @@ export function HrDocuments() {
                 <Button
                   onClick={handleGenerateLetter}
                   disabled={generating}
-                  style={{ height: 38, fontSize: 13, fontWeight: 700, background: '#0e1f3d', color: '#fff', border: 'none' }}
+                  style={{ height: 38, fontSize: 13, fontWeight: 700 }}
                 >
                   <Icon name="checkCircle" size={15} />
                   {generating ? 'Generating Letter…' : 'Issue & File HR Document'}
@@ -776,117 +803,113 @@ export function HrDocuments() {
       )}
 
       {/* MODAL 1: Upload Document Modal */}
-      {showUploadModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ background: '#fff', borderRadius: 12, width: 460, padding: 24, boxShadow: 'var(--elev-xl)', display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: 10 }}>
-              <div style={{ fontWeight: 700, fontSize: 16, color: '#0e1f3d' }}>Upload HR Document</div>
-              <button type="button" onClick={() => setShowUploadModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16 }}>✕</button>
-            </div>
-
-            <form onSubmit={handleUploadSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div>
-                <label style={{ fontSize: 12, fontWeight: 700, display: 'block', marginBottom: 4 }}>Document File *</label>
-                <input type="file" onChange={e => setUploadFile(e.target.files?.[0] ?? null)} required style={{ fontSize: 12.5 }} />
-              </div>
-
-              <div>
-                <label style={{ fontSize: 12, fontWeight: 700, display: 'block', marginBottom: 4 }}>Document Title</label>
-                <Input value={uploadName} onChange={e => setUploadName(e.target.value)} placeholder="e.g. Passport Copy 2026" />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                <div>
-                  <label style={{ fontSize: 12, fontWeight: 700, display: 'block', marginBottom: 4 }}>Category</label>
-                  <select value={uploadCategory} onChange={e => setUploadCategory(e.target.value)} style={{ width: '100%', padding: '7px 10px', borderRadius: 6, border: '1px solid var(--border)', fontSize: 12.5 }}>
-                    <option value="PERSONAL_ID">Personal ID / Passport</option>
-                    <option value="QUALIFICATION">Degree / Certificate</option>
-                    <option value="CONTRACT">Employment Contract</option>
-                    <option value="WORK_PERMIT">Work Permit / Visa</option>
-                    <option value="GENERAL">General Document</option>
-                  </select>
-                </div>
-                <div>
-                  <label style={{ fontSize: 12, fontWeight: 700, display: 'block', marginBottom: 4 }}>Type</label>
-                  <Input value={uploadType} onChange={e => setUploadType(e.target.value)} placeholder="CONTRACT / ID_SCAN" />
-                </div>
-              </div>
-
-              <div>
-                <label style={{ fontSize: 12, fontWeight: 700, display: 'block', marginBottom: 4 }}>Assign Employee Owner</label>
-                <select value={uploadUserId} onChange={e => setUploadUserId(e.target.value)} style={{ width: '100%', padding: '7px 10px', borderRadius: 6, border: '1px solid var(--border)', fontSize: 12.5 }}>
-                  <option value="">-- Unattached (Organization Policy) --</option>
-                  {employees.map(emp => (
-                    <option key={emp.id} value={emp.id}>{emp.name} ({emp.email})</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label style={{ fontSize: 12, fontWeight: 700, display: 'block', marginBottom: 4 }}>Expiry Date (Optional)</label>
-                <DatePicker
-                  date={uploadExpiry ? new Date(uploadExpiry) : undefined}
-                  onChange={d => setUploadExpiry(d ? d.toISOString().slice(0, 10) : '')}
-                  placeholder="Select expiration date"
-                  triggerClassName="w-full"
-                />
-              </div>
-
-              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 10 }}>
-                <Button variant="outline" type="button" onClick={() => setShowUploadModal(false)}>Cancel</Button>
-                <Button type="submit" disabled={uploading} style={{ background: '#0e1f3d', color: '#fff', border: 'none' }}>
-                  {uploading ? 'Uploading…' : 'Upload & Submit for Review'}
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL 2: HR Review Approval Modal */}
-      {reviewDoc && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ background: '#fff', borderRadius: 12, width: 440, padding: 24, boxShadow: 'var(--elev-xl)', display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: 10 }}>
-              <div style={{ fontWeight: 700, fontSize: 16, color: '#0e1f3d' }}>HR Document Verification Review</div>
-              <button type="button" onClick={() => setReviewDoc(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16 }}>✕</button>
-            </div>
-
-            <div style={{ fontSize: 13, color: 'var(--ink2)' }}>
-              Reviewing file: <strong>{reviewDoc.name}</strong> uploaded for <strong>{reviewDoc.person_name ?? 'Unattached'}</strong>.
+      <Dialog open={showUploadModal} onOpenChange={setShowUploadModal}>
+        <DialogContent className="sm:max-w-115">
+          <DialogHeader><DialogTitle>Upload HR Document</DialogTitle></DialogHeader>
+          <form onSubmit={handleUploadSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 700, display: 'block', marginBottom: 4 }}>Document File *</label>
+              <input type="file" onChange={e => setUploadFile(e.target.files?.[0] ?? null)} required style={{ fontSize: 12.5 }} />
             </div>
 
             <div>
-              <label style={{ fontSize: 12, fontWeight: 700, display: 'block', marginBottom: 4 }}>Review Feedback / Verification Notes</label>
-              <textarea
-                value={reviewNotes}
-                onChange={e => setReviewNotes(e.target.value)}
-                placeholder="e.g. Document verified against National Identification database."
-                rows={3}
-                style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid var(--border)', fontSize: 12.5, outline: 'none' }}
+              <label style={{ fontSize: 12, fontWeight: 700, display: 'block', marginBottom: 4 }}>Document Title</label>
+              <Input value={uploadName} onChange={e => setUploadName(e.target.value)} placeholder="e.g. Passport Copy 2026" />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, display: 'block', marginBottom: 4 }}>Category</label>
+                <Select value={uploadCategory} onValueChange={setUploadCategory}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="PERSONAL_ID">Personal ID / Passport</SelectItem>
+                    <SelectItem value="QUALIFICATION">Degree / Certificate</SelectItem>
+                    <SelectItem value="CONTRACT">Employment Contract</SelectItem>
+                    <SelectItem value="WORK_PERMIT">Work Permit / Visa</SelectItem>
+                    <SelectItem value="GENERAL">General Document</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, display: 'block', marginBottom: 4 }}>Type</label>
+                <Input value={uploadType} onChange={e => setUploadType(e.target.value)} placeholder="CONTRACT / ID_SCAN" />
+              </div>
+            </div>
+
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 700, display: 'block', marginBottom: 4 }}>Assign Employee Owner</label>
+              <Combobox
+                options={employees.map(emp => ({ value: emp.id, label: emp.name, sublabel: emp.email }))}
+                value={uploadUserId}
+                onChange={setUploadUserId}
+                placeholder="Unattached (Organization Policy)"
+                searchPlaceholder="Search staff…"
+                emptyText="No matching staff."
               />
             </div>
 
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', paddingTop: 10 }}>
-              <Button
-                variant="outline"
-                onClick={() => handleReviewSubmit('REJECTED')}
-                disabled={reviewing}
-                style={{ borderColor: 'var(--red)', color: 'var(--red)' }}
-              >
-                Reject Document
-              </Button>
-              <Button
-                onClick={() => handleReviewSubmit('APPROVED')}
-                disabled={reviewing}
-                style={{ background: 'var(--green)', color: '#fff', border: 'none' }}
-              >
-                Approve &amp; Verify
-              </Button>
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 700, display: 'block', marginBottom: 4 }}>Expiry Date (Optional)</label>
+              <DatePicker
+                date={uploadExpiry ? new Date(uploadExpiry) : undefined}
+                onChange={d => setUploadExpiry(d ? d.toISOString().slice(0, 10) : '')}
+                placeholder="Select expiration date"
+                triggerClassName="w-full"
+              />
             </div>
-          </div>
-        </div>
-      )}
+
+            <DialogFooter>
+              <Button variant="outline" type="button" onClick={() => setShowUploadModal(false)}>Cancel</Button>
+              <Button type="submit" disabled={uploading}>
+                {uploading ? 'Uploading…' : 'Upload & Submit for Review'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* MODAL 2: HR Review Approval Modal */}
+      <Dialog open={!!reviewDoc} onOpenChange={o => !o && setReviewDoc(null)}>
+        <DialogContent className="sm:max-w-110">
+          <DialogHeader><DialogTitle>HR Document Verification Review</DialogTitle></DialogHeader>
+          {reviewDoc && (
+            <>
+              <div style={{ fontSize: 13, color: 'var(--ink2)' }}>
+                Reviewing file: <strong>{reviewDoc.name}</strong> uploaded for <strong>{reviewDoc.person_name ?? 'Unattached'}</strong>.
+              </div>
+
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, display: 'block', marginBottom: 4 }}>Review Feedback / Verification Notes</label>
+                <textarea
+                  value={reviewNotes}
+                  onChange={e => setReviewNotes(e.target.value)}
+                  placeholder="e.g. Document verified against National Identification database."
+                  rows={3}
+                  style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid var(--border)', fontSize: 12.5, outline: 'none' }}
+                />
+              </div>
+
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => handleReviewSubmit('REJECTED')}
+                  disabled={reviewing}
+                  style={{ borderColor: 'var(--red)', color: 'var(--red)' }}
+                >
+                  Reject Document
+                </Button>
+                <Button
+                  onClick={() => handleReviewSubmit('APPROVED')}
+                  disabled={reviewing}
+                >
+                  Approve &amp; Verify
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

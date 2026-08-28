@@ -4543,6 +4543,8 @@ export interface Database {
   hr_candidates: HrCandidatesTable;
   hr_interviews: HrInterviewsTable;
   hr_calls: HrCallsTable;
+  hr_meetings: HrMeetingsTable;
+  hr_meeting_participants: HrMeetingParticipantsTable;
   hr_leaves: HrLeavesTable;
   hr_payroll: HrPayrollTable;
   hr_announcements: HrAnnouncementsTable;
@@ -7693,6 +7695,34 @@ export interface HrCallsTable {
   duration_seconds: Generated<number>;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
+}
+
+export interface HrMeetingsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  host_id: string;
+  title: Generated<string>;
+  join_code: string;
+  kind: Generated<string>;
+  status: Generated<string>;
+  scheduled_at: Date | null;
+  started_at: Date | null;
+  ended_at: Date | null;
+  locked: Generated<boolean>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface HrMeetingParticipantsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  meeting_id: string;
+  user_id: string;
+  role: Generated<string>;
+  joined_at: Generated<Date>;
+  left_at: Date | null;
+  duration_seconds: Generated<number>;
+  created_at: Generated<Date>;
 }
 
 export interface HrJobOpeningsTable {

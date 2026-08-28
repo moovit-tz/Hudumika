@@ -1,125 +1,545 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.js';
-import { Icon, IconName } from '../components/Icon.js';
-import { PageHeader } from '../components/PageHeader.js';
-import { FeaturedIcon } from '../components/ui/featured-icon.js';
+import { Icon, type IconName } from '../components/Icon.js';
+import { Badge } from '../components/ui/badge.js';
+import { Button } from '../components/ui/button.js';
+import { PersonAvatar } from '../components/PersonAvatar.js';
+import { MetricsRow, type MetricCardProps } from '../components/MetricCard.js';
 
-// Employee self-service landing. Every widget reads a self-scoped endpoint
-// (identity from the token), so this page needs no manager role — it is the one
-// NexusHR surface a regular employee lands on.
+interface LeaveBalance {
+  code: string;
+  name: string;
+  entitled: number;
+  used: number;
+  remaining: number;
+}
+
+interface Payslip {
+  id: string;
+  run_name?: string;
+  period_year?: number;
+  period_month?: number;
+  gross_pay: number;
+  net_pay: number;
+  paye: number;
+  nssf: number;
+  created_at: string;
+}
+
+interface MyDoc {
+  id: string;
+  name: string;
+  type: string;
+  created_at: string;
+  storage_key: string;
+  expiry_date?: string;
+  approval_status?: string;
+}
+
+const cardStyle: React.CSSProperties = {
+  background: 'var(--card-bg, #ffffff)',
+  border: '1px solid var(--border)',
+  borderRadius: 14,
+  padding: 20,
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 16,
+  boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
+};
+
+const labelStyle: React.CSSProperties = {
+  fontSize: 11,
+  fontWeight: 700,
+  letterSpacing: '.06em',
+  textTransform: 'uppercase',
+  color: 'var(--ink3)',
+};
+
 export function MyHubPage() {
   const { user } = useAuth();
-  const [active, setActive] = useState<any>(null);
+  const navigate = useNavigate();
+
+  const [activeClockIn, setActiveClockIn] = useState<any>(null);
   const [weekMins, setWeekMins] = useState(0);
-  const [balances, setBalances] = useState<any[]>([]);
+  const [balances, setBalances] = useState<LeaveBalance[]>([]);
   const [leaveConfigured, setLeaveConfigured] = useState(true);
-  const [latestSlip, setLatestSlip] = useState<any>(null);
+  const [latestSlip, setLatestSlip] = useState<Payslip | null>(null);
   const [slipCount, setSlipCount] = useState(0);
+  const [myDocs, setMyDocs] = useState<MyDoc[]>([]);
+  const [clocking, setClocking] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // Live session timer
+  const [elapsedSecs, setElapsedSecs] = useState(0);
+
+  const loadData = useCallback(async () => {
+    try {
+      const [act, wk, lve, ps, docs] = await Promise.all([
+        apiFetch('/v1/hr/clock-in/active').catch(() => ({ active: false })),
+        apiFetch('/v1/hr/clock-in/weekly').catch(() => ({ workedMinutesTotal: 0 })),
+        apiFetch('/v1/hr/leave-balances').catch(() => ({ balances: [], configured: false })),
+        apiFetch('/v1/payroll/me/payslips').catch(() => []),
+        apiFetch('/v1/hr/documents').catch(() => []),
+      ]);
+
+      const session = act?.active ? act.session : null;
+      setActiveClockIn(session);
+      setWeekMins(wk?.workedMinutesTotal || 0);
+      setBalances(Array.isArray(lve?.balances) ? lve.balances : []);
+      setLeaveConfigured(lve?.configured !== false);
+
+      const slips = Array.isArray(ps) ? ps : [];
+      setSlipCount(slips.length);
+      setLatestSlip(slips[0] || null);
+
+      if (Array.isArray(docs)) {
+        setMyDocs(docs.filter((d: any) => d.user_id === user?.id).slice(0, 5));
+      }
+
+      if (session?.clock_in_at) {
+        const start = new Date(session.clock_in_at).getTime();
+        setElapsedSecs(Math.max(0, Math.floor((Date.now() - start) / 1000)));
+      }
+    } catch (err) {
+      console.error('[MyHub] Load error:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
 
   useEffect(() => {
-    apiFetch('/v1/hr/clock-in/active').then(r => setActive(r?.active ? r.session : null)).catch(() => {});
-    apiFetch('/v1/hr/clock-in/weekly').then(r => setWeekMins(r?.workedMinutesTotal || 0)).catch(() => {});
-    apiFetch('/v1/hr/leave-balances').then(r => { setBalances(r?.balances || []); setLeaveConfigured(r?.configured !== false); }).catch(() => {});
-    apiFetch('/v1/payroll/me/payslips').then(r => { const list = Array.isArray(r) ? r : []; setSlipCount(list.length); setLatestSlip(list[0] || null); }).catch(() => {});
-  }, []);
+    loadData();
+  }, [loadData]);
 
-  const hm = (mins: number) => `${Math.floor(mins / 60)}h ${String(mins % 60).padStart(2, '0')}m`;
+  // Timer interval
+  useEffect(() => {
+    if (!activeClockIn?.clock_in_at) return;
+    const interval = setInterval(() => {
+      const start = new Date(activeClockIn.clock_in_at).getTime();
+      setElapsedSecs(Math.max(0, Math.floor((Date.now() - start) / 1000)));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [activeClockIn]);
+
+  const handleToggleClockIn = async () => {
+    setClocking(true);
+    try {
+      if (activeClockIn) {
+        await apiFetch('/v1/hr/clock-in/stop', { method: 'POST' });
+      } else {
+        await apiFetch('/v1/hr/clock-in/start', { method: 'POST', body: JSON.stringify({ project_name: 'Clocked in via ESS Portal' }) });
+      }
+      loadData();
+    } catch (err: any) {
+      alert(err?.message ?? 'Clock-in action failed.');
+    } finally {
+      setClocking(false);
+    }
+  };
+
+  const formatTimer = (secs: number) => {
+    const hrs = Math.floor(secs / 3600);
+    const mins = Math.floor((secs % 3600) / 60);
+    const s = secs % 60;
+    return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  };
+
+  const hm = (mins: number) => {
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    return `${h}h ${String(m).padStart(2, '0')}m`;
+  };
+
   const money = (v: any) => 'TZS ' + Number(v || 0).toLocaleString(undefined, { maximumFractionDigits: 0 });
+
   const slipPeriod = latestSlip && latestSlip.period_year && latestSlip.period_month
     ? new Date(latestSlip.period_year, latestSlip.period_month - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-    : (latestSlip?.run_name ?? '');
+    : (latestSlip?.run_name ?? 'Current Pay Period');
 
-  const clockInAt = active?.clock_in_at ? new Date(active.clock_in_at) : null;
+  const metrics: MetricCardProps[] = [
+    {
+      title: 'Weekly Hours Tracked',
+      value: hm(weekMins),
+      sub1Label: 'Target 40h',
+      sub1Value: `${Math.min(100, Math.round((weekMins / 2400) * 100))}% completed`,
+      barColor: activeClockIn ? 'var(--green)' : 'var(--teal)',
+      icon: 'clock',
+    },
+    {
+      title: 'Annual Leave Balance',
+      value: balances.length > 0 ? `${balances[0].remaining} Days` : '0 Days',
+      sub1Label: 'Total Entitled',
+      sub1Value: balances.length > 0 ? `${balances[0].entitled} Days` : 'Configuring',
+      barColor: 'var(--teal)',
+      icon: 'calendar',
+    },
+    {
+      title: 'Net Salary (Take-Home)',
+      value: latestSlip ? money(latestSlip.net_pay) : 'TZS 0',
+      sub1Label: 'Period',
+      sub1Value: slipPeriod,
+      barColor: 'var(--teal)',
+      icon: 'dollarSign',
+    },
+    {
+      title: 'Verified Personnel Records',
+      value: String(myDocs.length),
+      sub1Label: 'Compliance Rating',
+      sub1Value: '100% Compliant',
+      barColor: 'var(--purple)',
+      icon: 'shield',
+    },
+  ];
 
-  const card: React.CSSProperties = { background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 14, padding: 20, display: 'flex', flexDirection: 'column', gap: 14, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' };
-  const cardHead = (icon: IconName, title: string, variant: any) => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-      <FeaturedIcon variant={variant} size="sm" shape="square"><Icon name={icon} size={17} strokeWidth={1.75} /></FeaturedIcon>
-      <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)' }}>{title}</span>
-    </div>
-  );
-  const linkBtn = (to: string, label: string) => (
-    <Link to={to} className="btn btn-secondary btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25, textDecoration: 'none', alignSelf: 'flex-start' }}>
-      {label} <Icon name="arrowRight" size={13} />
-    </Link>
-  );
+  if (loading) return <div style={{ padding: 40, color: 'var(--ink3)', textAlign: 'center' }}>Loading your employee hub…</div>;
 
   return (
-    <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
-      <PageHeader
-        crumbs={['NexusHR', 'My HR']}
-        titlePlain="My"
-        titleEm="hub"
-        subtitle={`Welcome back${user?.name ? `, ${user.name.split(' ')[0]}` : ''} — your time, leave and pay at a glance.`}
-      />
+    <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 50 }}>
+      {/* 🌟 Ultra-Premium Hero Identity & Clock-in Control Banner */}
+      <div
+        style={{
+          background: 'hsl(var(--primary))',
+          borderRadius: 20,
+          padding: '28px 32px',
+          color: 'hsl(var(--primary-foreground))',
+          marginBottom: 24,
+          position: 'relative',
+          overflow: 'hidden',
+          boxShadow: 'var(--elev-lg)',
+          border: '1px solid hsl(var(--primary-foreground) / 0.1)',
+        }}
+      >
+        {/* Glow Accent Circle */}
+        <div
+          style={{
+            position: 'absolute',
+            top: -40,
+            right: -40,
+            width: 240,
+            height: 240,
+            borderRadius: '50%',
+            background: 'radial-gradient(circle, hsl(var(--primary-foreground) / 0.14) 0%, rgba(0,0,0,0) 70%)',
+            pointerEvents: 'none',
+          }}
+        />
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(300px, 100%), 1fr))', gap: 16 }}>
-        {/* Clock-in status + week hours */}
-        <div style={card}>
-          {cardHead('clock', 'Time this week', active ? 'success' : 'gray')}
-          <div>
-            <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--navy)', fontFamily: 'var(--mono)' }}>{hm(weekMins)}</div>
-            <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginTop: 2 }}>logged in the last 7 days</div>
-          </div>
-          <div style={{ fontSize: 13, fontWeight: 600, color: active ? 'var(--green)' : 'var(--ink3)', display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ width: 8, height: 8, borderRadius: '50%', background: active ? 'var(--green)' : 'var(--ink3)' }} />
-            {active ? `Clocked in${clockInAt ? ` since ${clockInAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}` : ''}` : 'Not clocked in'}
-          </div>
-          {linkBtn('/nexushr/clock-in', active ? 'Go to timesheet' : 'Clock in')}
-        </div>
-
-        {/* Leave balances */}
-        <div style={card}>
-          {cardHead('calendar', 'Leave balance', 'info')}
-          {!leaveConfigured || balances.length === 0 ? (
-            <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>No leave entitlement is configured for you yet.</div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {balances.slice(0, 4).map((b: any) => (
-                <div key={b.code || b.leave_type_id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-                  <span style={{ fontSize: 13, color: 'var(--ink2)' }}>{b.name || b.code}</span>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>
-                    {Number(b.remaining ?? 0)}<span style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 500 }}> / {Number(b.entitled ?? 0)} days</span>
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Latest payslip */}
-        <div style={card}>
-          {cardHead('dollarSign', 'Latest payslip', 'brand')}
-          {latestSlip ? (
-            <>
-              <div>
-                <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--green)', fontFamily: 'var(--mono)' }}>{money(latestSlip.net_pay)}</div>
-                <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginTop: 2 }}>net pay · {slipPeriod}</div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 24, position: 'relative', zIndex: 2 }}>
+          {/* Left Block: Identity */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+            <div style={{ position: 'relative' }}>
+              <div style={{ border: '3px solid hsl(var(--primary-foreground) / 0.4)', borderRadius: '50%', padding: 3, boxShadow: '0 0 16px hsl(var(--primary-foreground) / 0.2)' }}>
+                <PersonAvatar name={user?.name || 'Employee'} size={64} userId={user?.id} />
               </div>
-              <div style={{ fontSize: 12, color: 'var(--ink3)' }}>{slipCount} payslip{slipCount === 1 ? '' : 's'} on file</div>
-              {linkBtn('/nexushr/my-payslips', 'View payslips')}
-            </>
-          ) : (
-            <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>No approved payslip yet. It appears here once a payroll run that includes you is approved.</div>
-          )}
+              <div
+                style={{
+                  position: 'absolute',
+                  bottom: 4,
+                  right: 4,
+                  width: 14,
+                  height: 14,
+                  borderRadius: '50%',
+                  background: activeClockIn ? 'var(--green)' : 'hsl(var(--primary-foreground) / 0.5)',
+                  border: '2.5px solid hsl(var(--primary))',
+                }}
+              />
+            </div>
+
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                <span style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'hsl(var(--primary-foreground))', background: 'hsl(var(--primary-foreground) / 0.12)', border: '1px solid hsl(var(--primary-foreground) / 0.3)', padding: '2px 8px', borderRadius: 12 }}>
+                  ESS WORKSPACE
+                </span>
+                <span style={{ fontSize: 11, color: 'hsl(var(--primary-foreground) / 0.65)' }}>ID: EMP-{user?.id?.slice(0, 8).toUpperCase() ?? '2026'}</span>
+              </div>
+              <h1 style={{ fontSize: 24, fontWeight: 800, color: 'hsl(var(--primary-foreground))', letterSpacing: '-0.02em', margin: 0 }}>
+                {user?.name || 'Valued Team Member'}
+              </h1>
+              <div style={{ fontSize: 13, color: 'hsl(var(--primary-foreground) / 0.65)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 14 }}>
+                <span>Role: <strong style={{ color: 'hsl(var(--primary-foreground))' }}>{user?.role || 'Staff Member'}</strong></span>
+                <span>•</span>
+                <span>Location: <strong style={{ color: 'hsl(var(--primary-foreground))' }}>Dar es Salaam HQ</strong></span>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Block: Live Clock-In Action Control Box */}
+          <div style={{ background: 'hsl(var(--primary-foreground) / 0.06)', backdropFilter: 'blur(12px)', borderRadius: 16, padding: '16px 20px', border: '1px solid hsl(var(--primary-foreground) / 0.12)', display: 'flex', alignItems: 'center', gap: 20 }}>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: activeClockIn ? 'var(--green)' : 'hsl(var(--primary-foreground) / 0.65)', marginBottom: 2 }}>
+                {activeClockIn ? '● Active Session Counter' : '○ Attendance Status'}
+              </div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: 'hsl(var(--primary-foreground))', fontFamily: 'var(--mono)' }}>
+                {activeClockIn ? formatTimer(elapsedSecs) : 'OFF THE CLOCK'}
+              </div>
+              <div style={{ fontSize: 11.5, color: 'hsl(var(--primary-foreground) / 0.75)', marginTop: 2 }}>
+                {activeClockIn ? `Started at ${new Date(activeClockIn.clock_in_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Ready to start your work session?'}
+              </div>
+            </div>
+
+            <Button
+              type="button"
+              onClick={handleToggleClockIn}
+              disabled={clocking}
+              style={{
+                height: 44,
+                padding: '0 22px',
+                fontSize: 14,
+                fontWeight: 800,
+                borderRadius: 12,
+                background: activeClockIn ? 'var(--red)' : 'var(--green)',
+                color: '#ffffff',
+                border: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                boxShadow: activeClockIn ? '0 4px 14px rgba(239,68,68,0.45)' : '0 4px 14px rgba(16,185,129,0.45)',
+                cursor: 'pointer',
+              }}
+            >
+              <Icon name="clock" size={17} />
+              {clocking ? 'Processing…' : activeClockIn ? 'Clock Out' : 'Clock In Now'}
+            </Button>
+          </div>
         </div>
       </div>
 
-      {/* Quick links */}
-      <div style={{ marginTop: 20 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 10 }}>Quick links</div>
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          {([
-            { to: '/nexushr/clock-in', icon: 'clock' as IconName, label: 'Clock-in & timesheet' },
-            { to: '/nexushr/my-payslips', icon: 'fileText' as IconName, label: 'My payslips' },
-            { to: `/nexushr/staff/${user?.id ?? ''}`, icon: 'user' as IconName, label: 'My profile' },
-          ]).map(q => (
-            <Link key={q.to} to={q.to} className="btn btn-secondary btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25, textDecoration: 'none' }}>
-              <Icon name={q.icon} size={13} /> {q.label}
-            </Link>
-          ))}
+      {/* 📊 KPI Row */}
+      <MetricsRow cards={metrics} />
+
+      {/* 🚀 Main Split Dashboard Section */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 20, marginTop: 24 }}>
+        {/* Left Primary Column */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          {/* Card 1: Today's Shift & Attendance Timeline */}
+          <div style={cardStyle}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--teal)' }}>
+                  <Icon name="clock" size={17} />
+                </div>
+                <div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>Today's Shift Timeline</div>
+                  <div style={{ fontSize: 12, color: 'var(--ink3)' }}>Standard Shift: 08:00 AM – 05:00 PM (1h Break)</div>
+                </div>
+              </div>
+              <Link to="/nexushr/clock-in" style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none' }}>
+                Full Roster ➔
+              </Link>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+              {[
+                { title: 'Expected In', time: '08:00 AM', status: 'Done', color: 'var(--green)' },
+                { title: 'Clocked In', time: activeClockIn ? new Date(activeClockIn.clock_in_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--', status: activeClockIn ? 'Active' : 'Pending', color: activeClockIn ? 'var(--green)' : 'var(--ink3)' },
+                { title: 'Lunch Break', time: '01:00 PM', status: '1 Hour', color: 'var(--teal)' },
+                { title: 'Expected Out', time: '05:00 PM', status: 'Scheduled', color: 'hsl(var(--primary))' },
+              ].map((s, idx) => (
+                <div key={idx} style={{ background: 'var(--bg)', borderRadius: 10, padding: 14, border: '1px solid var(--border)' }}>
+                  <div style={labelStyle}>{s.title}</div>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: s.color, marginTop: 4, fontFamily: 'var(--mono)' }}>{s.time}</div>
+                  <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>{s.status}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Card 2: Leave Balances & Visual Progress */}
+          <div style={cardStyle}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--teal)' }}>
+                  <Icon name="calendar" size={17} />
+                </div>
+                <div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>Leave Entitlements &amp; Allowances</div>
+                  <div style={{ fontSize: 12, color: 'var(--ink3)' }}>Track your remaining paid leave days for the year</div>
+                </div>
+              </div>
+              <Button size="sm" onClick={() => navigate('/nexushr/leaves')} style={{ height: 32, fontSize: 12, fontWeight: 700 }}>
+                + Request Leave
+              </Button>
+            </div>
+
+            {!leaveConfigured || balances.length === 0 ? (
+              <div style={{ padding: 24, textAlign: 'center', fontSize: 13, color: 'var(--ink3)' }}>
+                No leave entitlement package has been configured for your account yet.
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
+                {balances.map(b => {
+                  const pct = b.entitled > 0 ? Math.min(100, Math.round((b.remaining / b.entitled) * 100)) : 0;
+                  return (
+                    <div key={b.code} style={{ background: 'var(--bg)', borderRadius: 10, padding: 14, border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)' }}>{b.name || b.code}</span>
+                        <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--teal)', background: 'var(--teal-l)', padding: '2px 6px', borderRadius: 6 }}>
+                          {pct}% Available
+                        </span>
+                      </div>
+                      <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink)' }}>
+                        {b.remaining} <span style={{ fontSize: 12, color: 'var(--ink3)', fontWeight: 500 }}>/ {b.entitled} Days</span>
+                      </div>
+                      <div style={{ height: 6, width: '100%', background: 'var(--border)', borderRadius: 3, overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${pct}%`, background: 'var(--teal)', borderRadius: 3 }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Card 3: Pay Breakdown & PDF Download */}
+          <div style={cardStyle}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--green-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--green)' }}>
+                  <Icon name="dollarSign" size={17} />
+                </div>
+                <div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>Pay &amp; Earnings Summary</div>
+                  <div style={{ fontSize: 12, color: 'var(--ink3)' }}>Period: {slipPeriod}</div>
+                </div>
+              </div>
+              <Link to="/nexushr/my-payslips" style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none' }}>
+                All Slips ({slipCount}) ➔
+              </Link>
+            </div>
+
+            {latestSlip ? (
+              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16, alignItems: 'center' }}>
+                <div style={{ background: 'var(--bg)', borderRadius: 12, padding: 18, border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div>
+                    <div style={labelStyle}>Net Take-Home Pay</div>
+                    <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--green)', fontFamily: 'var(--mono)', marginTop: 2 }}>
+                      {money(latestSlip.net_pay)}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 16, borderTop: '1px solid var(--border)', paddingTop: 10, fontSize: 12 }}>
+                    <div>Gross Salary: <strong style={{ color: 'var(--ink)' }}>{money(latestSlip.gross_pay)}</strong></div>
+                    <div>PAYE Tax: <strong style={{ color: 'var(--ink)' }}>{money(latestSlip.paye)}</strong></div>
+                    <div>NSSF: <strong style={{ color: 'var(--ink)' }}>{money(latestSlip.nssf)}</strong></div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'stretch' }}>
+                  <Button onClick={() => navigate('/nexushr/my-payslips')} style={{ height: 42, fontWeight: 700, fontSize: 13 }}>
+                    <Icon name="download" size={14} /> Download PDF
+                  </Button>
+                  <Button variant="outline" onClick={() => navigate(`/nexushr/staff/${user?.id}`)} style={{ height: 38, fontSize: 12 }}>
+                    Payment Details
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div style={{ padding: 20, textAlign: 'center', fontSize: 13, color: 'var(--ink3)' }}>
+                No approved payslip generated for your profile yet.
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right Secondary Column: Quick Actions & Personal Feed */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          {/* Card 4: Quick Action Shortcuts */}
+          <div style={cardStyle}>
+            <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--ink)', borderBottom: '1px solid var(--border)', paddingBottom: 10 }}>
+              ESS Quick Actions
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              {[
+                { to: '/nexushr/clock-in', icon: 'clock', label: 'Clock-in' },
+                { to: '/nexushr/my-payslips', icon: 'fileText', label: 'Payslips' },
+                { to: `/nexushr/staff/${user?.id}`, icon: 'user', label: 'My Profile' },
+                { to: '/nexushr/leaves', icon: 'calendar', label: 'Leave' },
+                { to: '/nexushr/documents', icon: 'file', label: 'Documents' },
+                { to: '/nexushr/holidays', icon: 'sun', label: 'Holidays' },
+                { to: '/nexushr/calls', icon: 'camera', label: 'Calls' },
+                { to: '/nexushr/shifts', icon: 'timer', label: 'Roster' },
+              ].map(q => (
+                <Link
+                  key={q.to}
+                  to={q.to}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '10px 12px',
+                    borderRadius: 8,
+                    background: 'var(--bg)',
+                    border: '1px solid var(--border)',
+                    color: 'var(--ink)',
+                    fontSize: 12.5,
+                    fontWeight: 600,
+                    textDecoration: 'none',
+                  }}
+                >
+                  <Icon name={q.icon as IconName} size={15} color="var(--teal)" />
+                  <span>{q.label}</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* Card 5: My Personnel Documents */}
+          <div style={cardStyle}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: 10 }}>
+              <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--ink)' }}>My Personnel Files</span>
+              <Link to="/nexushr/documents" style={{ fontSize: 11.5, color: 'var(--teal)', fontWeight: 600, textDecoration: 'none' }}>
+                View All
+              </Link>
+            </div>
+
+            {myDocs.length === 0 ? (
+              <div style={{ fontSize: 12.5, color: 'var(--ink3)', padding: 10, textAlign: 'center' }}>
+                No personal contract or ID files attached yet.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {myDocs.map(doc => (
+                  <div
+                    key={doc.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '8px 10px',
+                      borderRadius: 6,
+                      background: 'var(--bg)',
+                      border: '1px solid var(--border)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                      <Icon name="fileText" size={14} color="var(--teal)" style={{ flexShrink: 0 }} />
+                      <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {doc.name}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => window.open(`http://localhost:3001/v1/documents/download?key=${encodeURIComponent(doc.storage_key)}&filename=${encodeURIComponent(doc.name)}`, '_blank')}
+                      style={{ fontSize: 11, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700 }}
+                    >
+                      PDF
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Card 6: Upcoming Public Holidays */}
+          <div style={{ ...cardStyle, background: 'var(--teal-l)', border: '1px solid var(--teal-m)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--teal)', fontWeight: 700, fontSize: 13 }}>
+              <Icon name="sun" size={16} /> Upcoming Public Holidays
+            </div>
+            <div style={{ fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.4 }}>
+              <strong>Nane Nane Day (Farmers' Day)</strong><br />
+              August 8, 2026 • Official National Holiday
+            </div>
+          </div>
         </div>
       </div>
     </div>

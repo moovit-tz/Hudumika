@@ -5,6 +5,7 @@ import { requireRole } from '../middleware/rbac.js';
 import { withTenant } from '../db/client.js';
 import { MinioIntegration } from '../integrations/minio.js';
 import { CloudSync } from '../services/cloud-sync.service.js';
+import { escapeHtml } from '../services/sign-notify.service.js';
 
 export async function nexusHRRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
@@ -131,7 +132,7 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
   });
 
   /**
-   * POST /v1/nexushr/documents/upload — a real file, stored and recorded.
+   * POST /v1/hr/documents/upload — a real file, stored and recorded.
    *
    * Documents could be listed and never created, so `hr_documents` was empty in
    * every tenant and the Documents tab could only ever show nothing. The one
@@ -195,6 +196,32 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
       }
     });
 
+  // GET /v1/hr/documents/:id/download — the actual file, not a fabricated
+  // /v1/documents/download?key=... URL the frontend used to call: that route
+  // was never registered anywhere, so every download attempt 404'd. Looked
+  // up by document id (tenant-scoped) rather than taking a raw storage key
+  // as a query param, so a caller can't request an arbitrary storage key —
+  // same shape as seal-documents.routes.ts's own /documents/:id/download.
+  fastify.get('/documents/:id/download', async (request: any, reply) => {
+    try {
+      const doc = await withTenant(request.user.tenant_id, trx =>
+        trx.selectFrom('hr_documents').selectAll()
+          .where('id', '=', request.params.id).where('tenant_id', '=', request.user.tenant_id)
+          .executeTakeFirst()
+      );
+      if (!doc) return reply.status(404).send({ error: 'Document not found' });
+
+      const fileBuffer = MinioIntegration.readFile(doc.storage_key);
+      if (!fileBuffer) return reply.status(404).send({ error: 'File missing from storage' });
+
+      reply.header('Content-Type', 'application/octet-stream');
+      reply.header('Content-Disposition', `attachment; filename="${doc.name.replace(/"/g, '')}"`);
+      return reply.send(fileBuffer);
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
   fastify.patch('/documents/:id/review',
     { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') },
     async (request: any, reply) => {
@@ -249,17 +276,30 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
           if (emp) empName = emp.name;
         }
 
-        // Replace placeholders in HTML template body
-        let renderedHtml = template.body;
-        const vars = {
-          '{employee_name}': empName,
-          '{tenant_name}': request.user.tenant_name || 'Organization',
-          '{joining_date}': new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-          ...variables
-        };
+        // request.user carries no tenant_name — the JWT payload only has
+        // sub/tenant_id/role/email/name — so this always fell through to the
+        // literal string 'Organization' for every tenant. Looked up for real.
+        const tenant = await withTenant(tenantId, trx =>
+          trx.selectFrom('tenants').select('name').where('id', '=', tenantId).executeTakeFirst());
 
-        for (const [k, v] of Object.entries(vars)) {
-          renderedHtml = renderedHtml.split(k).join(String(v));
+        // Replace placeholders in HTML template body. Defaults first, then
+        // only a real (non-empty) submitted value overrides one — the caller
+        // sends every template placeholder pre-seeded as '' until a person
+        // types into it, and spreading that unconditionally overwrote
+        // empName/tenant/joining_date back to blank on every real generation.
+        let renderedHtml = template.body;
+        const defaults: Record<string, string> = {
+          '{employee_name}': empName,
+          '{tenant_name}': tenant?.name || 'Organization',
+          '{joining_date}': new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+        };
+        const merged: Record<string, string> = { ...defaults };
+        for (const [k, v] of Object.entries(variables || {})) {
+          if (v) merged[k] = String(v);
+        }
+
+        for (const [k, v] of Object.entries(merged)) {
+          renderedHtml = renderedHtml.split(k).join(escapeHtml(v));
         }
 
         // Store generated HTML as document file

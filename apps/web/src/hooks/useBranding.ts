@@ -61,16 +61,17 @@ function readBranding(): BrandingState {
     accentColor:     localStorage.getItem('hudumika_email_accent')     ?? '#0d7a6b',
     supportEmail:    localStorage.getItem('hudumika_support_email')    ?? '',
     /**
-     * Resolution order: design system v2's fixed color (if active — see
-     * below), else the tenant's own colour for this app, then the
-     * platform's, then the tenant's overall accent, then the caller's default.
+     * Resolution order: design system v2's ("Mellon" in the SuperAdmin UI —
+     * see useDesignSystem.ts) fixed color (if active — see below), else the
+     * tenant's own colour for this app, then the platform's, then the
+     * tenant's overall accent, then the caller's default.
      *
      * The tenant accent sits *below* any per-app colour on purpose. Apps are
      * deliberately different colours — that is why one page header renders
      * orange in ClearOS and green in Admin — so a workspace accent fills in
      * where no app colour has been chosen rather than flattening them all.
      *
-     * v2 short-circuits all of that. Every one of the ~8 call sites that read
+     * Mellon (v2) short-circuits all of that. Every one of the ~8 call sites that read
      * getAppColor() directly as a JS value (AppSidebar's nav icon, AppHeader's
      * launcher icon and clock accent, AppLauncher's grid, WorkspaceHome's app
      * tiles) goes through this single function — patching it here, rather
