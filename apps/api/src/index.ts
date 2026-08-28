@@ -379,7 +379,9 @@ async function main() {
     await server.register(queryBuilderRoutes, { prefix: '/v1/superadmin/query-builder' });
     await server.register(ocrRoutes, { prefix: '/v1/ocr' });
     await server.register(hrRoutes, { prefix: '/v1/hr' });
-    await server.register(callsRoutes, { prefix: '/v1/hr' });
+    // Calls (1:1 + group meetings) moved to Bliss, matching chatRoutes/supportRoutes'
+    // own topic-based prefix convention rather than an app-namespaced one.
+    await server.register(callsRoutes, { prefix: '/v1/calls' });
     await server.register(payrollRoutes, { prefix: '/v1/payroll' });
     // Shared across every app: who a person is, and whether the country is open.
     await server.register(identityRoutes, { prefix: '/v1/identity' });

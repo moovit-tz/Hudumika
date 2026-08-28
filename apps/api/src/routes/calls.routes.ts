@@ -7,8 +7,13 @@ import { sql } from 'kysely';
 import crypto from 'crypto';
 
 /**
- * NexusHR calls — 1:1 voice/video, plus group meetings (mesh WebRTC: every
- * participant connects directly to every other; no media server).
+ * Bliss calls — the platform's comms hub, matching how Team Chat
+ * (chat.routes.ts) already lives here rather than in any one app: 1:1
+ * voice/video, plus group meetings (mesh WebRTC: every participant connects
+ * directly to every other; no media server). Originally built for NexusHR
+ * (migrations 226, 349-350) and relocated here (migration 351) — apps that
+ * need calling (NexusHR staff calling colleagues, a future Calendar "join
+ * meeting" link, etc.) pull it from here rather than owning their own copy.
  *
  * WebRTC media is peer-to-peer and never touches the server. This module only
  * (a) relays signaling (ring / SDP offer & answer / ICE candidates / hang-up,
@@ -232,12 +237,12 @@ export async function callsRoutes(fastify: FastifyInstance) {
   });
 
   // ── REST: presence, history, records ──────────────────────────────
-  fastify.get('/presence', { preHandler: [fastify.authenticate, requireEntitlement('nexushr')] }, async (req: any) => {
+  fastify.get('/presence', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any) => {
     const user = req.user;
     return { online: onlineUserIds(user.tenant_id).filter(id => id !== user.sub) };
   });
 
-  fastify.get('/config', { preHandler: [fastify.authenticate, requireEntitlement('nexushr')] }, async (req: any) => {
+  fastify.get('/config', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any) => {
     // Public STUN handles same-network / simple-NAT calls on its own. For strict
     // NATs a TURN relay is required — read it from the tenant's own settings
     // (settings.calls.turn = { urls, username, credential }), then fall back to a
@@ -247,10 +252,10 @@ export async function callsRoutes(fastify: FastifyInstance) {
     return { iceServers, turnConfigured: iceServers.length > 2 };
   });
 
-  fastify.get('/calls', { preHandler: [fastify.authenticate, requireEntitlement('nexushr')] }, async (req: any) => {
+  fastify.get('/direct', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any) => {
     const user = req.user;
     return withTenant(user.tenant_id, async (trx) => {
-      return trx.selectFrom('hr_calls as c')
+      return trx.selectFrom('bliss_calls as c')
         .innerJoin('users as caller', 'caller.id', 'c.caller_id')
         .innerJoin('users as callee', 'callee.id', 'c.callee_id')
         .select(['c.id', 'c.caller_id', 'c.callee_id', 'c.kind', 'c.status', 'c.started_at',
@@ -264,7 +269,7 @@ export async function callsRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/calls', { preHandler: [fastify.authenticate, requireEntitlement('nexushr')] }, async (req: any, reply) => {
+  fastify.post('/direct', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any, reply) => {
     const user = req.user;
     const b = (req.body as any) || {};
     if (!b.callee_id) return reply.status(400).send({ error: 'callee_id is required' });
@@ -272,14 +277,14 @@ export async function callsRoutes(fastify: FastifyInstance) {
     return withTenant(user.tenant_id, async (trx) => {
       const callee = await trx.selectFrom('users').select('id').where('id', '=', b.callee_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!callee) return reply.status(404).send({ error: 'Person not found' });
-      return trx.insertInto('hr_calls').values({
+      return trx.insertInto('bliss_calls').values({
         tenant_id: user.tenant_id, caller_id: user.sub, callee_id: b.callee_id,
         kind: b.kind === 'VOICE' ? 'VOICE' : 'VIDEO', status: 'RINGING',
       }).returningAll().executeTakeFirstOrThrow();
     });
   });
 
-  fastify.patch('/calls/:id', { preHandler: [fastify.authenticate, requireEntitlement('nexushr')] }, async (req: any, reply) => {
+  fastify.patch('/direct/:id', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any, reply) => {
     const user = req.user;
     const { id } = req.params as any;
     const b = (req.body as any) || {};
@@ -294,7 +299,7 @@ export async function callsRoutes(fastify: FastifyInstance) {
     if (b.duration_seconds !== undefined) patch.duration_seconds = Math.max(0, Number(b.duration_seconds) || 0);
     return withTenant(user.tenant_id, async (trx) => {
       // Only a participant may update the record.
-      const updated = await trx.updateTable('hr_calls').set(patch as any)
+      const updated = await trx.updateTable('bliss_calls').set(patch as any)
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
         .where((eb) => eb.or([eb('caller_id', '=', user.sub), eb('callee_id', '=', user.sub)]))
         .returningAll().executeTakeFirst();
@@ -306,10 +311,10 @@ export async function callsRoutes(fastify: FastifyInstance) {
   // ── REST: group meetings ────────────────────────────────────────────
   const MEETING_KINDS = ['VIDEO', 'VOICE'];
 
-  fastify.get('/meetings', { preHandler: [fastify.authenticate, requireEntitlement('nexushr')] }, async (req: any) => {
+  fastify.get('/meetings', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any) => {
     const user = req.user;
     return withTenant(user.tenant_id, async (trx) => {
-      return trx.selectFrom('hr_meetings as m')
+      return trx.selectFrom('bliss_meetings as m')
         .innerJoin('users as host', 'host.id', 'm.host_id')
         .select(['m.id', 'm.title', 'm.join_code', 'm.kind', 'm.status', 'm.scheduled_at',
                  'm.started_at', 'm.ended_at', 'm.locked', 'm.host_id', 'host.name as host_name'])
@@ -321,21 +326,21 @@ export async function callsRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.get('/meetings/by-code/:code', { preHandler: [fastify.authenticate, requireEntitlement('nexushr')] }, async (req: any, reply) => {
+  fastify.get('/meetings/by-code/:code', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any, reply) => {
     const user = req.user;
     const code = String((req.params as any).code || '').toUpperCase();
     return withTenant(user.tenant_id, async (trx) => {
-      const m = await trx.selectFrom('hr_meetings').selectAll().where('tenant_id', '=', user.tenant_id).where('join_code', '=', code).executeTakeFirst();
+      const m = await trx.selectFrom('bliss_meetings').selectAll().where('tenant_id', '=', user.tenant_id).where('join_code', '=', code).executeTakeFirst();
       if (!m) return reply.status(404).send({ error: 'No meeting found for that code' });
       return m;
     });
   });
 
-  fastify.get('/meetings/:id', { preHandler: [fastify.authenticate, requireEntitlement('nexushr')] }, async (req: any, reply) => {
+  fastify.get('/meetings/:id', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any, reply) => {
     const user = req.user;
     const { id } = req.params as any;
     return withTenant(user.tenant_id, async (trx) => {
-      const m = await trx.selectFrom('hr_meetings as m')
+      const m = await trx.selectFrom('bliss_meetings as m')
         .innerJoin('users as host', 'host.id', 'm.host_id')
         .select(['m.id', 'm.title', 'm.join_code', 'm.kind', 'm.status', 'm.scheduled_at',
                  'm.started_at', 'm.ended_at', 'm.locked', 'm.host_id', 'host.name as host_name'])
@@ -345,7 +350,7 @@ export async function callsRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/meetings', { preHandler: [fastify.authenticate, requireEntitlement('nexushr')] }, async (req: any, reply) => {
+  fastify.post('/meetings', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any, reply) => {
     const user = req.user;
     const b = (req.body as any) || {};
     const kind = MEETING_KINDS.includes(b.kind) ? b.kind : 'VIDEO';
@@ -360,12 +365,12 @@ export async function callsRoutes(fastify: FastifyInstance) {
       let joinCode = '';
       for (let attempt = 0; attempt < 5; attempt++) {
         const candidate = generateJoinCode();
-        const clash = await trx.selectFrom('hr_meetings').select('id').where('join_code', '=', candidate).executeTakeFirst();
+        const clash = await trx.selectFrom('bliss_meetings').select('id').where('join_code', '=', candidate).executeTakeFirst();
         if (!clash) { joinCode = candidate; break; }
       }
       if (!joinCode) return reply.status(500).send({ error: 'Could not generate a join code — try again' });
       const isInstant = !scheduledAt;
-      return trx.insertInto('hr_meetings').values({
+      return trx.insertInto('bliss_meetings').values({
         tenant_id: user.tenant_id, host_id: user.sub, title, join_code: joinCode, kind,
         status: isInstant ? 'ACTIVE' : 'SCHEDULED',
         scheduled_at: scheduledAt, started_at: isInstant ? new Date() : null,
@@ -373,7 +378,7 @@ export async function callsRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.patch('/meetings/:id', { preHandler: [fastify.authenticate, requireEntitlement('nexushr')] }, async (req: any, reply) => {
+  fastify.patch('/meetings/:id', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any, reply) => {
     const user = req.user;
     const { id } = req.params as any;
     const b = (req.body as any) || {};
@@ -387,7 +392,7 @@ export async function callsRoutes(fastify: FastifyInstance) {
       patch.scheduled_at = d;
     }
     return withTenant(user.tenant_id, async (trx) => {
-      const updated = await trx.updateTable('hr_meetings').set(patch as any)
+      const updated = await trx.updateTable('bliss_meetings').set(patch as any)
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id).where('host_id', '=', user.sub)
         .returningAll().executeTakeFirst();
       if (!updated) return reply.status(404).send({ error: 'Meeting not found, or you are not its host' });
@@ -395,11 +400,11 @@ export async function callsRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.delete('/meetings/:id', { preHandler: [fastify.authenticate, requireEntitlement('nexushr')] }, async (req: any, reply) => {
+  fastify.delete('/meetings/:id', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any, reply) => {
     const user = req.user;
     const { id } = req.params as any;
     return withTenant(user.tenant_id, async (trx) => {
-      const updated = await trx.updateTable('hr_meetings').set({ status: 'CANCELLED', updated_at: new Date() })
+      const updated = await trx.updateTable('bliss_meetings').set({ status: 'CANCELLED', updated_at: new Date() })
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id).where('host_id', '=', user.sub).where('status', '=', 'SCHEDULED')
         .returningAll().executeTakeFirst();
       if (!updated) return reply.status(404).send({ error: 'No cancellable scheduled meeting found, or you are not its host' });
@@ -407,16 +412,16 @@ export async function callsRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/meetings/:id/join', { preHandler: [fastify.authenticate, requireEntitlement('nexushr')] }, async (req: any, reply) => {
+  fastify.post('/meetings/:id/join', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any, reply) => {
     const user = req.user;
     const { id } = req.params as any;
     return withTenant(user.tenant_id, async (trx) => {
-      const meeting = await trx.selectFrom('hr_meetings').selectAll().where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      const meeting = await trx.selectFrom('bliss_meetings').selectAll().where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!meeting) return reply.status(404).send({ error: 'Meeting not found' });
       if (meeting.status === 'ENDED' || meeting.status === 'CANCELLED') return reply.status(410).send({ error: 'This meeting has ended' });
       const isHost = meeting.host_id === user.sub;
       if (meeting.locked && !isHost) {
-        const attendedBefore = await trx.selectFrom('hr_meeting_participants').select('id')
+        const attendedBefore = await trx.selectFrom('bliss_meeting_participants').select('id')
           .where('meeting_id', '=', id).where('user_id', '=', user.sub).executeTakeFirst();
         if (!attendedBefore) return reply.status(403).send({ error: 'This meeting is locked' });
       }
@@ -424,9 +429,9 @@ export async function callsRoutes(fastify: FastifyInstance) {
       if (meeting.status === 'SCHEDULED') { patch.status = 'ACTIVE'; patch.started_at = new Date(); }
       const [updatedMeeting] = await Promise.all([
         Object.keys(patch).length > 1
-          ? trx.updateTable('hr_meetings').set(patch as any).where('id', '=', id).returningAll().executeTakeFirstOrThrow()
+          ? trx.updateTable('bliss_meetings').set(patch as any).where('id', '=', id).returningAll().executeTakeFirstOrThrow()
           : Promise.resolve(meeting),
-        trx.insertInto('hr_meeting_participants').values({
+        trx.insertInto('bliss_meeting_participants').values({
           tenant_id: user.tenant_id, meeting_id: id, user_id: user.sub, role: isHost ? 'HOST' : 'PARTICIPANT',
         }).execute(),
       ]);
@@ -435,44 +440,44 @@ export async function callsRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/meetings/:id/leave', { preHandler: [fastify.authenticate, requireEntitlement('nexushr')] }, async (req: any) => {
+  fastify.post('/meetings/:id/leave', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any) => {
     const user = req.user;
     const { id } = req.params as any;
     return withTenant(user.tenant_id, async (trx) => {
-      const open = await trx.selectFrom('hr_meeting_participants').select(['id', 'joined_at'])
+      const open = await trx.selectFrom('bliss_meeting_participants').select(['id', 'joined_at'])
         .where('meeting_id', '=', id).where('user_id', '=', user.sub).where('left_at', 'is', null)
         .orderBy('joined_at', 'desc').executeTakeFirst();
       if (!open) return { ok: true };
       const durationSeconds = Math.max(0, Math.round((Date.now() - new Date(open.joined_at).getTime()) / 1000));
-      await trx.updateTable('hr_meeting_participants').set({ left_at: new Date(), duration_seconds: durationSeconds }).where('id', '=', open.id).execute();
+      await trx.updateTable('bliss_meeting_participants').set({ left_at: new Date(), duration_seconds: durationSeconds }).where('id', '=', open.id).execute();
       return { ok: true, duration_seconds: durationSeconds };
     });
   });
 
-  fastify.post('/meetings/:id/end', { preHandler: [fastify.authenticate, requireEntitlement('nexushr')] }, async (req: any, reply) => {
+  fastify.post('/meetings/:id/end', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any, reply) => {
     const user = req.user;
     const { id } = req.params as any;
     return withTenant(user.tenant_id, async (trx) => {
-      const meeting = await trx.updateTable('hr_meetings').set({ status: 'ENDED', ended_at: new Date(), updated_at: new Date() })
+      const meeting = await trx.updateTable('bliss_meetings').set({ status: 'ENDED', ended_at: new Date(), updated_at: new Date() })
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id).where('host_id', '=', user.sub).where('status', '!=', 'ENDED')
         .returningAll().executeTakeFirst();
       if (!meeting) return reply.status(404).send({ error: 'Meeting not found, or you are not its host' });
-      const openRows = await trx.selectFrom('hr_meeting_participants').select(['id', 'joined_at'])
+      const openRows = await trx.selectFrom('bliss_meeting_participants').select(['id', 'joined_at'])
         .where('meeting_id', '=', id).where('left_at', 'is', null).execute();
       for (const row of openRows) {
         const durationSeconds = Math.max(0, Math.round((Date.now() - new Date(row.joined_at).getTime()) / 1000));
-        await trx.updateTable('hr_meeting_participants').set({ left_at: new Date(), duration_seconds: durationSeconds }).where('id', '=', row.id).execute();
+        await trx.updateTable('bliss_meeting_participants').set({ left_at: new Date(), duration_seconds: durationSeconds }).where('id', '=', row.id).execute();
       }
       broadcastToRoom(user.tenant_id, id, { type: 'meeting-ended', meetingId: id });
       return meeting;
     });
   });
 
-  fastify.get('/meetings/:id/participants', { preHandler: [fastify.authenticate, requireEntitlement('nexushr')] }, async (req: any) => {
+  fastify.get('/meetings/:id/participants', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any) => {
     const user = req.user;
     const { id } = req.params as any;
     return withTenant(user.tenant_id, async (trx) => {
-      return trx.selectFrom('hr_meeting_participants as p')
+      return trx.selectFrom('bliss_meeting_participants as p')
         .innerJoin('users as u', 'u.id', 'p.user_id')
         .select(['p.id', 'p.user_id', 'u.name as user_name', 'p.role', 'p.joined_at', 'p.left_at', 'p.duration_seconds'])
         .where('p.tenant_id', '=', user.tenant_id).where('p.meeting_id', '=', id)
@@ -482,18 +487,18 @@ export async function callsRoutes(fastify: FastifyInstance) {
   });
 
   // ── REST: metrics ───────────────────────────────────────────────────
-  // Personal figures are always real, computed from hr_calls/hr_meeting_participants
+  // Personal figures are always real, computed from bliss_calls/bliss_meeting_participants
   // — never a fabricated placeholder. The tenant-wide leaderboard section is
   // gated to HR/admin roles: a "who calls the most" ranking visible to every
   // employee reads as surveillance in an HR context, not a helpful metric.
-  fastify.get('/metrics/calls', { preHandler: [fastify.authenticate, requireEntitlement('nexushr')] }, async (req: any) => {
+  fastify.get('/metrics', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any) => {
     const user = req.user;
     const days = Math.min(365, Math.max(1, Number((req.query as any)?.days) || 30));
     const since = new Date(Date.now() - days * 86400_000);
     const isMgmt = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'HR'].includes(user.role);
 
     return withTenant(user.tenant_id, async (trx) => {
-      const myCalls = await trx.selectFrom('hr_calls')
+      const myCalls = await trx.selectFrom('bliss_calls')
         .select([
           sql<number>`count(*)`.as('total'),
           sql<number>`count(*) filter (where status in ('MISSED','DECLINED'))`.as('missed'),
@@ -504,7 +509,7 @@ export async function callsRoutes(fastify: FastifyInstance) {
         .where('started_at', '>=', since)
         .executeTakeFirstOrThrow();
 
-      const myMeetings = await trx.selectFrom('hr_meeting_participants')
+      const myMeetings = await trx.selectFrom('bliss_meeting_participants')
         .select([sql<number>`count(*)`.as('total'), sql<number>`coalesce(sum(duration_seconds), 0)`.as('total_seconds')])
         .where('tenant_id', '=', user.tenant_id).where('user_id', '=', user.sub).where('joined_at', '>=', since)
         .executeTakeFirstOrThrow();
@@ -516,7 +521,7 @@ export async function callsRoutes(fastify: FastifyInstance) {
 
       if (!isMgmt) return { days, personal };
 
-      const tenantCalls = await trx.selectFrom('hr_calls')
+      const tenantCalls = await trx.selectFrom('bliss_calls')
         .select([
           sql<number>`count(*)`.as('total'),
           sql<number>`count(*) filter (where status in ('MISSED','DECLINED'))`.as('missed'),
@@ -525,7 +530,7 @@ export async function callsRoutes(fastify: FastifyInstance) {
         .where('tenant_id', '=', user.tenant_id).where('started_at', '>=', since)
         .executeTakeFirstOrThrow();
 
-      const tenantMeetings = await trx.selectFrom('hr_meetings')
+      const tenantMeetings = await trx.selectFrom('bliss_meetings')
         .select([sql<number>`count(*)`.as('total')])
         .where('tenant_id', '=', user.tenant_id).where('status', '!=', 'CANCELLED')
         .where(sql`coalesce(started_at, scheduled_at)`, '>=', since)
@@ -536,18 +541,18 @@ export async function callsRoutes(fastify: FastifyInstance) {
       const dailyTrendRows = await sql<{ day: string; calls: number; meetings: number }>`
         SELECT day, SUM(calls)::int AS calls, SUM(meetings)::int AS meetings FROM (
           SELECT to_char(started_at, 'YYYY-MM-DD') AS day, count(*) AS calls, 0 AS meetings
-          FROM hr_calls WHERE tenant_id = ${user.tenant_id} AND started_at >= ${since}
+          FROM bliss_calls WHERE tenant_id = ${user.tenant_id} AND started_at >= ${since}
           GROUP BY 1
           UNION ALL
           SELECT to_char(COALESCE(started_at, scheduled_at), 'YYYY-MM-DD') AS day, 0 AS calls, count(*) AS meetings
-          FROM hr_meetings WHERE tenant_id = ${user.tenant_id} AND status != 'CANCELLED' AND COALESCE(started_at, scheduled_at) >= ${since}
+          FROM bliss_meetings WHERE tenant_id = ${user.tenant_id} AND status != 'CANCELLED' AND COALESCE(started_at, scheduled_at) >= ${since}
           GROUP BY 1
         ) combined
         GROUP BY day ORDER BY day ASC
       `.execute(trx);
       const dailyTrend = dailyTrendRows.rows;
 
-      const topParticipants = await trx.selectFrom('hr_meeting_participants as p')
+      const topParticipants = await trx.selectFrom('bliss_meeting_participants as p')
         .innerJoin('users as u', 'u.id', 'p.user_id')
         .select(['p.user_id', 'u.name as user_name', sql<number>`count(*)`.as('meetings'), sql<number>`coalesce(sum(p.duration_seconds), 0)`.as('total_seconds')])
         .where('p.tenant_id', '=', user.tenant_id).where('p.joined_at', '>=', since)

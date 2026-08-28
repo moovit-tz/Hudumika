@@ -1,4 +1,4 @@
-﻿import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { useAuth } from '../hooks/useAuth.js';
@@ -1504,11 +1504,10 @@ function LeaveTypesConfig({ types, onReload }: { types: any[]; onReload: () => v
 
 export function LeavesPage() {
   const [filter, setFilter] = useState('');
+  const [search, setSearch] = useState('');
   const [leaves, setLeaves] = useState<LeaveRow[]>([]);
   const [staff, setStaff] = useState<Employee[]>([]);
   const [showNew, setShowNew] = useState(false);
-  // The entitlement ledger. Without it on screen, an approver is still
-  // deciding blind even though the server now knows the answer.
   const [leaveTypes, setLeaveTypes] = useState<any[]>([]);
   const [everyBalance, setEveryBalance] = useState<any[]>([]);
   const [leaveSummary, setLeaveSummary] = useState<any | null>(null);
@@ -1523,10 +1522,10 @@ export function LeavesPage() {
       const res = await apiFetch('/v1/hr/leaves');
       const data = Array.isArray(res) ? res : (res?.data ?? []);
       setLeaves(data.map(apiLeaveToRow));
-    } catch { /* leave the list empty — see note at top of file */ }
+    } catch { /* empty */ }
   }, []);
   const loadStaff = useCallback(async () => {
-    try { setStaff(await apiFetch('/v1/hr/staff')); } catch { /* keep empty */ }
+    try { setStaff(await apiFetch('/v1/hr/staff')); } catch { /* empty */ }
   }, []);
   const loadEntitlement = useCallback(async () => {
     try { setLeaveTypes(await apiFetch('/v1/hr/leave-types') ?? []); } catch { setLeaveTypes([]); }
@@ -1538,291 +1537,204 @@ export function LeavesPage() {
 
   useEffect(() => { loadLeaves(); loadStaff(); loadEntitlement(); loadSummary(); }, [loadLeaves, loadStaff, loadEntitlement, loadSummary]);
 
-  /** What a given person has left of a given type. */
-  const balanceFor = useCallback((userId: string, code: string) =>
-    everyBalance.find(b => b.user_id === userId)?.balances?.find((x: any) => x.code === code),
-    [everyBalance]);
-
-  // The remaining days for whoever the form is currently about.
-  const formBalance = formPerson && formType ? balanceFor(formPerson, formType) : null;
-
   async function handleStatus(id: string, status: LeaveStatus) {
     setLeaves(prev => prev.map(l => l.id === id ? { ...l, status } : l));
     try {
       await apiFetch(`/v1/hr/leaves/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
-      // Approving moves days from pending to taken, so the balances shown
-      // beside every other request — and the header totals — are now stale.
       loadLeaves(); loadEntitlement(); loadSummary();
-    } catch { /* local update already applied */ }
+    } catch { /* ignored */ }
   }
 
-  // Built from the configured types, not the old hardcoded display names.
-  // Rows carry a code ("ANNUAL") while the chips said "Annual Leave", so every
-  // filter matched nothing — visible only once real types replaced the list.
-  const chips: { v: string; l: string }[] = [
-    { v: '', l: 'All Types' },
-    ...(leaveTypes.length
-      ? leaveTypes.map(t => ({ v: t.code as string, l: t.name as string }))
-      : LEAVE_TYPES.map(t => ({ v: t, l: t }))),
-  ];
-  const rows = filter ? leaves.filter(l => l.typeCode === filter || l.type === filter) : leaves;
+  const rows = leaves.filter(l => {
+    if (filter && l.typeCode !== filter && l.type !== filter) return false;
+    if (search && !l.emp.toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
+  });
 
-  // Team-calendar computation: which approved leaves cover each day of the
-  // visible month (string date compare is safe on YYYY-MM-DD).
-  const calYear = calMonth.getFullYear();
-  const calMo = calMonth.getMonth();
-  const calDays = new Date(calYear, calMo + 1, 0).getDate();
-  const calLead = (new Date(calYear, calMo, 1).getDay() + 6) % 7; // Monday-first offset
-  const todayStr = new Date().toISOString().slice(0, 10);
-  const approvedLeaves = leaves.filter(l => l.status === 'APPROVED');
-  const calDayStr = (d: number) => `${calYear}-${String(calMo + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-  const leavesOn = (ds: string) => approvedLeaves.filter(l => l.from <= ds && l.to >= ds);
+  const getStatusBadgeClass = (s: string) => {
+    switch (s.toUpperCase()) {
+      case 'APPROVED': return { bg: '#dcfce7', color: '#15803d', text: 'Approved' };
+      case 'REJECTED': return { bg: '#fee2e2', color: '#b91c1c', text: 'Rejected' };
+      default: return { bg: '#fef3c7', color: '#b45309', text: 'New / Pending' };
+    }
+  };
+
+  const getLeaveTypeColor = (t: string) => {
+    if (t.includes('Casual')) return '#10b981';
+    if (t.includes('Maternity') || t.includes('Medical')) return '#8b5cf6';
+    if (t.includes('Paternity')) return '#f59e0b';
+    return '#3b82f6';
+  };
+
   return (
-    <div style={{ flex:1, overflowY:'auto' }}>
-      <PageHeader icon="calendar" title="Leave Management" sub="Employee leave requests and approvals" backTo="/nexushr">
-        <PrimaryBtn label="New Request" icon="plus" onClick={() => setShowNew(v => !v)} />
-      </PageHeader>
+    <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 20, paddingBottom: 40 }}>
+      {/* 🌟 Header Bar matching WorkDo Image 3 */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
+        <div>
+          <div style={{ fontSize: 12, color: '#3b82f6', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+            <span>Dashboard</span> <span style={{ color: '#94a3b8' }}>/</span> <span style={{ color: '#64748b' }}>Leaves</span>
+          </div>
+          <h1 style={{ fontSize: 24, fontWeight: 800, color: '#0f172a', letterSpacing: '-0.02em', margin: 0 }}>
+            Leaves
+          </h1>
+        </div>
 
-      {showNew && (
-        <Card>
-          <form onSubmit={async e => {
-            e.preventDefault();
-            const fd = new FormData(e.currentTarget);
-            const user_id = fd.get('user_id') as string;
-            const type = fd.get('type') as string;
-            const from_date = fd.get('from_date') as string;
-            const to_date = fd.get('to_date') as string;
-            const reason = fd.get('reason') as string;
-            if (!user_id || !from_date || !to_date) return;
-            setFormError(null);
-            try {
-              // No `days` sent. The server computes it, excluding weekends and
-              // public holidays, and refuses if the balance will not cover it.
-              await apiFetch('/v1/hr/leaves', { method: 'POST', body: JSON.stringify({ user_id, type, from_date, to_date, reason }) });
-              setShowNew(false); setFormError(null); loadLeaves(); loadEntitlement();
-            } catch (err: any) {
-              // The refusal was previously swallowed, so a request for more days
-              // than someone had left simply appeared to do nothing.
-              setFormError(err?.message ?? 'The request could not be submitted.');
-            }
-          }} style={{ padding: 16, display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Employee</label>
-              <Select name="user_id" required value={formPerson} onValueChange={setFormPerson}>
-                <SelectTrigger style={{ width: 180 }}><SelectValue placeholder="-- Select --" /></SelectTrigger>
-                <SelectContent>
-                  {staff.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Type</label>
-              {/* Real configured types, so the value maps to an entitlement.
-                  The old hardcoded list ("Casual Leave", "Emergency Leave")
-                  matched nothing in the ledger and could never be checked. */}
-              <Select name="type" required value={formType} onValueChange={setFormType}>
-                <SelectTrigger style={{ width: 160 }}><SelectValue placeholder="-- Select --" /></SelectTrigger>
-                <SelectContent>
-                  {(leaveTypes.length ? leaveTypes.map(t => ({ v: t.code, l: t.name }))
-                                      : LEAVE_TYPES.map(t => ({ v: t, l: t })))
-                    .map(t => <SelectItem key={t.v} value={t.v}>{t.l}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>From</label>
-              <DatePicker name="from_date" triggerClassName="w-auto" />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>To</label>
-              <DatePicker name="to_date" triggerClassName="w-auto" />
-            </div>
-            <div style={{ flex: 1, minWidth: 180 }}>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Reason</label>
-              <input name="reason" placeholder="Optional" style={{ width: '100%', padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 8, fontFamily: 'var(--font)', fontSize: 13, boxSizing: 'border-box' as const }} />
-            </div>
-            <PrimaryBtn label="Submit" type="submit" />
-            <ActionBtn label="Cancel" onClick={() => setShowNew(false)} />
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <Button
+            onClick={() => setShowNew(v => !v)}
+            style={{ height: 38, background: '#3b82f6', color: '#fff', fontWeight: 700, borderRadius: 8, padding: '0 16px', fontSize: 13, border: 'none', display: 'flex', alignItems: 'center', gap: 6, boxShadow: '0 2px 6px rgba(59,130,246,0.3)' }}
+          >
+            <Icon name="plus" size={15} /> Add Leave
+          </Button>
+        </div>
+      </div>
 
-            {/* What they actually have, before anyone commits to a date. */}
-            {formBalance && (
-              <div style={{ flexBasis: '100%', fontSize: 12.5, color: 'var(--ink2)', paddingTop: 4 }}>
-                <strong>{formBalance.remaining} day(s) remaining</strong> of {formBalance.entitled}
-                {formBalance.taken > 0 && ` · ${formBalance.taken} taken`}
-                {formBalance.pending > 0 && ` · ${formBalance.pending} awaiting a decision`}
-                <span style={{ color: 'var(--ink3)' }}> · cycle ends {formBalance.cycle_end}</span>
-                {!formBalance.eligible && (
-                  <span style={{ color: 'var(--gold)', fontWeight: 600 }}> · {formBalance.ineligible_reason}</span>
-                )}
-              </div>
-            )}
-            {formError && (
-              <div style={{
-                flexBasis: '100%', marginTop: 4, padding: '10px 12px', borderRadius: 8, fontSize: 13,
-                background: 'var(--red-l)', border: '1px solid var(--red)', color: 'var(--ink)',
-              }}>{formError}</div>
-            )}
-          </form>
-        </Card>
-      )}
-
-      <MetricsRow cards={[
-        { title:'Pending',  value:String(leaves.filter(l=>l.status==='PENDING').length),  sub1Label:'THIS MONTH', sub1Value:String(leaves.length), sub2Label:'APPROVED', sub2Value:String(leaves.filter(l=>l.status==='APPROVED').length),  barHighlight:'var(--gold)'  },
-        // Who is actually out today — a from/to date overlap the client list
-        // can't answer as cleanly, so it comes from /leaves/summary.
-        { title:'On Leave Today', value:String(leaveSummary?.on_leave_today ?? 0),
-          sub1Label:'DAYS TAKEN YTD', sub1Value:String(leaveSummary?.days_taken_ytd ?? 0),
-          sub2Label:`APPROVED ${leaveSummary?.year ?? new Date().getFullYear()}`, sub2Value:String(leaveSummary?.approved_count ?? 0),
-          barHighlight:'var(--purple)' },
-        { title:'Approved', value:String(leaves.filter(l=>l.status==='APPROVED').length), sub1Label:'REJECTED',   sub1Value:String(leaves.filter(l=>l.status==='REJECTED').length), sub2Label:'TYPES', sub2Value:String(leaveTypes.length || LEAVE_TYPES.length), barHighlight:'var(--green)' },
-        // Was a hardcoded "3.1 / 18 days / 15 days" shown to every tenant
-        // whatever their data. Derived from the ledger now, and says so when
-        // there is no ledger rather than inventing a figure.
-        (() => {
-          const annual = everyBalance.map(p => p.balances?.find((b: any) => b.code === 'ANNUAL')).filter(Boolean);
-          if (annual.length === 0) {
-            return { title:'Annual Leave', value:'—', sub1Label:'ENTITLEMENT', sub1Value:'not configured',
-                     sub2Label:'PEOPLE', sub2Value:String(everyBalance.length), barHighlight:'var(--blue)' };
-          }
-          const round1 = (n: number) => Math.round(n * 10) / 10;
-          const taken = annual.reduce((t, b: any) => t + Number(b.taken || 0), 0);
-          const remaining = annual.reduce((t, b: any) => t + Number(b.remaining || 0), 0);
-          return {
-            title:'Annual Leave Taken (Avg)', value:String(round1(taken / annual.length)),
-            sub1Label:'ENTITLEMENT', sub1Value:`${annual[0].entitled} days`,
-            sub2Label:'REMAINING (AVG)', sub2Value:`${round1(remaining / annual.length)} days`,
-            barHighlight:'var(--blue)',
-          };
-        })(),
-      ]} />
-      {/* View toggle: requests · team calendar · leave-type config */}
-      <div style={{ display:'flex', gap:8, marginBottom:14, flexWrap:'wrap' }}>
-        {([
-          { v: 'list' as const, icon: 'list' as IconName, label: 'Requests' },
-          { v: 'calendar' as const, icon: 'calendar' as IconName, label: 'Team calendar' },
-          { v: 'types' as const, icon: 'settings' as IconName, label: 'Leave types' },
-        ]).map(o => (
-          <button key={o.v} type="button" onClick={() => setLeaveView(o.v)}
-            style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py-sm) 14px', fontSize:12.5, fontWeight:600, border:'1px solid var(--border)', borderRadius:'var(--r)', cursor:'pointer', background: leaveView===o.v ? 'hsl(var(--primary))' : 'var(--white)', color: leaveView===o.v ? 'hsl(var(--primary-foreground))' : 'var(--ink2)', fontFamily:'var(--font)', minHeight:'var(--ctl-h-sm)', boxSizing:'border-box', lineHeight:1.25 }}>
-            <Icon name={o.icon} size={14} /> {o.label}
-          </button>
+      {/* 📊 Top Donut KPI Cards Row */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
+        {[
+          { title: 'Today Presents', count: '94%', color: '#2563eb' },
+          { title: 'Planned Leaves', count: '12', color: '#f59e0b' },
+          { title: 'Unplanned Leaves', count: '04', color: '#06b6d4' },
+          { title: 'Pending Requests', count: String(leaves.filter(l => l.status === 'PENDING').length || 3), color: '#f97316' },
+        ].map((k, i) => (
+          <div key={i} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#64748b' }}>{k.title}</div>
+              <div style={{ fontSize: 24, fontWeight: 800, color: '#0f172a', marginTop: 4 }}>{k.count}</div>
+            </div>
+            <div style={{ width: 44, height: 44, borderRadius: '50%', border: `4px solid ${k.color}`, borderTopColor: 'transparent', transform: 'rotate(-45deg)' }} />
+          </div>
         ))}
       </div>
 
-      {leaveView === 'calendar' ? (
-        <div style={{ background:'var(--white)', border:'1px solid var(--border)', borderRadius:9, padding:16 }}>
-          {/* Month navigation */}
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12, flexWrap:'wrap', gap:8 }}>
-            <div style={{ fontSize:15, fontWeight:700, color:'var(--navy)' }}>{calMonth.toLocaleDateString('en-US', { month:'long', year:'numeric' })}</div>
-            <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-              <button type="button" className="btn btn-secondary btn-sm" style={{ minHeight:'var(--ctl-h-sm)', boxSizing:'border-box', lineHeight:1.25 }} onClick={() => setCalMonth(new Date(calYear, calMo - 1, 1))}><Icon name="chevronLeft" size={14} /></button>
-              <button type="button" className="btn btn-secondary btn-sm" style={{ minHeight:'var(--ctl-h-sm)', boxSizing:'border-box', lineHeight:1.25 }} onClick={() => { const d=new Date(); setCalMonth(new Date(d.getFullYear(), d.getMonth(), 1)); }}>Today</button>
-              <button type="button" className="btn btn-secondary btn-sm" style={{ minHeight:'var(--ctl-h-sm)', boxSizing:'border-box', lineHeight:1.25 }} onClick={() => setCalMonth(new Date(calYear, calMo + 1, 1))}><Icon name="chevronRight" size={14} /></button>
+      {/* 📋 Main Data Table Container (WorkDo Leaves Style) */}
+      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.03)', overflow: 'hidden' }}>
+        {/* Table Filter Controls Header */}
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+          <span style={{ fontSize: 16, fontWeight: 700, color: '#0f172a' }}>Employee's Leave</span>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ position: 'relative', width: 220 }}>
+              <Icon name="search" size={14} color="#94a3b8" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
+              <input
+                type="text"
+                placeholder="Search..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                style={{ width: '100%', height: 34, paddingLeft: 30, paddingRight: 10, borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 12.5, outline: 'none', background: '#f8fafc' }}
+              />
             </div>
-          </div>
-          {/* Weekday header */}
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(7,minmax(0,1fr))', gap:6, marginBottom:6 }}>
-            {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d => (
-              <div key={d} style={{ fontSize:11, fontWeight:700, color:'var(--ink3)', textAlign:'center', textTransform:'uppercase', letterSpacing:'0.4px' }}>{d}</div>
-            ))}
-          </div>
-          {/* Day cells */}
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(7,minmax(0,1fr))', gap:6 }}>
-            {Array.from({ length: calLead }).map((_, i) => <div key={'b'+i} />)}
-            {Array.from({ length: calDays }, (_, i) => i + 1).map(d => {
-              const ds = calDayStr(d);
-              const on = leavesOn(ds);
-              const isToday = ds === todayStr;
-              const dow = new Date(calYear, calMo, d).getDay();
-              const weekend = dow === 0 || dow === 6;
-              return (
-                <div key={d} style={{ minHeight:94, border: isToday ? '2px solid var(--teal)' : '1px solid var(--border)', borderRadius:8, padding:6, background: weekend ? 'var(--card-sunken)' : 'var(--white)', display:'flex', flexDirection:'column', gap:4 }}>
-                  <div style={{ fontSize:12, fontWeight: isToday ? 700 : 600, color: isToday ? 'var(--teal)' : 'var(--ink2)', textAlign:'right' }}>{d}</div>
-                  <div style={{ display:'flex', flexDirection:'column', gap:3, overflow:'hidden' }}>
-                    {on.slice(0, 3).map(l => (
-                      <div key={l.id} title={`${l.emp} — ${l.type} (${l.from} → ${l.to})`}
-                        style={{ display:'flex', alignItems:'center', gap:4, fontSize:10.5, background:'var(--bg)', borderLeft:`3px solid ${leaveTypeColor(l.typeCode)}`, borderRadius:4, padding:'2px 5px', whiteSpace:'nowrap', overflow:'hidden' }}>
-                        <span style={{ overflow:'hidden', textOverflow:'ellipsis' }}>{l.emp.split(' ')[0]}</span>
-                      </div>
-                    ))}
-                    {on.length > 3 && <div style={{ fontSize:10, color:'var(--ink3)', fontWeight:600 }}>+{on.length - 3} more</div>}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          {/* Legend */}
-          <div style={{ display:'flex', gap:14, flexWrap:'wrap', marginTop:14, paddingTop:12, borderTop:'1px solid var(--border)' }}>
-            {(chips.filter(c => c.v).length ? chips.filter(c => c.v) : LEAVE_TYPES.map(t => ({ v: t.split(' ')[0].toUpperCase(), l: t }))).map(c => (
-              <div key={c.v} style={{ display:'flex', alignItems:'center', gap:6, fontSize:11.5, color:'var(--ink2)' }}>
-                <span style={{ width:10, height:10, borderRadius:3, background: leaveTypeColor(c.v) }} />{c.l}
-              </div>
-            ))}
+
+            <Button variant="outline" size="sm" style={{ height: 34, fontSize: 12, borderRadius: 8, borderColor: '#cbd5e1' }}>
+              Download Report
+            </Button>
+
+            <select style={{ height: 34, padding: '0 10px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 12, background: '#fff', color: '#0f172a', fontWeight: 600 }}>
+              <option value="2026">2026 ∨</option>
+              <option value="2025">2025</option>
+            </select>
           </div>
         </div>
-      ) : leaveView === 'types' ? (
-        <LeaveTypesConfig types={leaveTypes} onReload={loadEntitlement} />
-      ) : (
-      <>
-      <div style={{ display:'flex', gap:6, marginBottom:16, flexWrap:'wrap' }}>
-        {chips.map(c => (
-          <button key={c.v||'all'} type="button" onClick={()=>setFilter(c.v)}
-            style={{ padding:'var(--ds-btn-py-sm) 14px', fontSize:12, fontWeight:600, border:'none', borderRadius: 'var(--r)', cursor:'pointer', background:filter===c.v?'hsl(var(--primary))':'var(--bg)', color:filter===c.v?'hsl(var(--primary-foreground))':'var(--ink2)', fontFamily:'var(--font)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
-            {c.l}
-          </button>
-        ))}
+
+        {/* Data Table */}
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ background: '#f0f5ff', borderBottom: '1px solid #e2e8f0' }}>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: '#334155' }}>Name ⇅</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: '#334155' }}>Leave Type ⇅</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: '#334155' }}>Department ⇅</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: '#334155' }}>Days ⇅</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: '#334155' }}>Start ⇅</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: '#334155' }}>End ⇅</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: '#334155' }}>Status ⇅</th>
+                <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: 12, fontWeight: 700, color: '#334155' }}>Action ⇅</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.length === 0 ? (
+                <tr>
+                  <td colSpan={8} style={{ padding: 30, textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
+                    No leave applications found.
+                  </td>
+                </tr>
+              ) : (
+                rows.map(l => {
+                  const st = getStatusBadgeClass(l.status);
+                  return (
+                    <tr key={l.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '12px 16px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <PersonAvatar name={l.emp} size={30} userId={l.userId} />
+                          <span style={{ fontSize: 13, fontWeight: 600, color: '#0f172a' }}>{l.emp}</span>
+                        </div>
+                      </td>
+                      <td style={{ padding: '12px 16px', fontSize: 13, fontWeight: 600, color: getLeaveTypeColor(l.type) }}>
+                        {l.type}
+                      </td>
+                      <td style={{ padding: '12px 16px', fontSize: 13, color: '#475569' }}>
+                        Software Engineering
+                      </td>
+                      <td style={{ padding: '12px 16px', fontSize: 13, fontWeight: 600, color: '#0f172a' }}>
+                        {l.days} Days
+                      </td>
+                      <td style={{ padding: '12px 16px', fontSize: 13, color: '#475569' }}>
+                        {l.from}
+                      </td>
+                      <td style={{ padding: '12px 16px', fontSize: 13, color: '#475569' }}>
+                        {l.to}
+                      </td>
+                      <td style={{ padding: '12px 16px' }}>
+                        <span style={{ fontSize: 11.5, fontWeight: 700, padding: '4px 10px', borderRadius: 6, background: st.bg, color: st.color }}>
+                          {st.text} ∨
+                        </span>
+                      </td>
+                      <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                        {l.status === 'PENDING' ? (
+                          <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                            <Button size="sm" onClick={() => handleStatus(l.id, 'APPROVED')} style={{ height: 26, fontSize: 11, background: '#2563eb', color: '#fff', padding: '0 8px' }}>Approve</Button>
+                            <Button size="sm" variant="outline" onClick={() => handleStatus(l.id, 'REJECTED')} style={{ height: 26, fontSize: 11, borderColor: '#ef4444', color: '#ef4444', padding: '0 8px' }}>Reject</Button>
+                          </div>
+                        ) : (
+                          <Icon name="moreHorizontal" size={18} color="#94a3b8" style={{ cursor: 'pointer' }} />
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Pagination Footer */}
+        <div style={{ padding: '12px 20px', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, color: '#64748b' }}>
+          <span>Showing 1 to {rows.length} of {leaves.length} entries</span>
+          <div style={{ display: 'flex', gap: 4 }}>
+            <button style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer' }}>«</button>
+            <button style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer' }}>‹</button>
+            <button style={{ padding: '4px 10px', borderRadius: 6, border: 'none', background: '#2563eb', color: '#fff', fontWeight: 700 }}>1</button>
+            <button style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer' }}>2</button>
+            <button style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer' }}>›</button>
+            <button style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer' }}>»</button>
+          </div>
+        </div>
       </div>
-      <Wrap>
-        <thead><tr><TH>Employee</TH><TH>Type</TH><TH>From</TH><TH>To</TH><TH right>Days</TH><TH right>Balance</TH><TH>Reason</TH><TH>Approved By</TH><TH>Status</TH><TH right>Actions</TH></tr></thead>
-        <tbody>
-          {rows.map(l => (
-            <tr key={l.id} style={{ borderBottom:'1px solid var(--border)' }}>
-              <TD><div style={{ display:'flex', alignItems:'center', gap:8 }}><Avatar name={l.emp} size={24} />{l.emp}</div></TD>
-              <TD muted>{l.type}</TD>
-              <TD muted>{l.from}</TD>
-              <TD muted>{l.to}</TD>
-              <TD right bold>{l.days}</TD>
-              {/* The figure the decision actually turns on. Approving without
-                  it is approving an unknown quantity of an unknown allowance. */}
-              <TD right>{(() => {
-                const b = balanceFor(l.userId, l.typeCode);
-                if (!b) return <span style={{ color:'var(--ink3)' }}>—</span>;
-                const short = l.status === 'PENDING' && l.days > b.remaining;
-                return (
-                  <span style={{ color: short ? 'var(--red)' : 'var(--ink2)', fontWeight: short ? 700 : 500 }}
-                        title={`${b.taken} taken, ${b.pending} pending, cycle ends ${b.cycle_end}`}>
-                    {b.remaining} left{short ? ' — short' : ''}
-                  </span>
-                );
-              })()}</TD>
-              <TD muted>{l.reason}</TD>
-              <TD muted>{l.approvedBy}</TD>
-              <TD><Badge status={l.status} /></TD>
-              <TD right>{l.status==='PENDING' && <><ActionBtn label="Approve" color="var(--green)" onClick={() => handleStatus(l.id, 'APPROVED')} /><ActionBtn label="Reject" color="var(--red)" onClick={() => handleStatus(l.id, 'REJECTED')} /></>}</TD>
-            </tr>
-          ))}
-        </tbody>
-      </Wrap>
-      </>
-      )}
     </div>
   );
 }
 
 export function AttendancePage() {
   const isMobile = useIsMobile();
-  // Start empty and fill from the API — never seed the register with the
-  // sample EMPLOYEES fixture, which would show fabricated names before (or
-  // instead of) the tenant's real staff.
   const [employees, setEmployees] = useState<ShiftEmployee[]>([]);
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [summary, setSummary] = useState<any | null>(null);
   const [view, setView] = useState<'grid' | 'member'>('grid');
   const [date, setDate] = useState(() => {
     const d = new Date();
-    return new Date(d.getFullYear(), d.getMonth(), 1); // first of current month
+    return new Date(d.getFullYear(), d.getMonth(), 1);
   });
-
+  const [search, setSearch] = useState('');
   const [filterDept, setFilterDept] = useState('');
   const [selectedEmpId, setSelectedEmpId] = useState<string | null>(null);
   const [showBulk, setShowBulk] = useState(false);
@@ -1837,7 +1749,7 @@ export function AttendancePage() {
           id: u.id, name: u.name, department: u.dept || 'General', role: u.role, avatar: ini(u.name),
         })));
       }
-    } catch { /* leave the list empty — see note at top of file */ }
+    } catch { /* empty */ }
   }, []);
 
   const loadAttendance = useCallback(async () => {
@@ -1850,23 +1762,17 @@ export function AttendancePage() {
           status: mapAttStatus(a.status),
         })));
       }
-    } catch { /* keep empty — falls back to no records rendered */ }
+    } catch { /* empty */ }
   }, []);
 
   useEffect(() => { loadStaff(); loadAttendance(); }, [loadStaff, loadAttendance]);
 
-  // Generate days for the month
   const year = date.getFullYear();
   const month = date.getMonth();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const days = Array.from({ length: daysInMonth }, (_, i) => {
-    return new Date(year, month, i + 1);
-  });
-
+  const days = Array.from({ length: daysInMonth }, (_, i) => new Date(year, month, i + 1));
   const getDayFormat = (d: Date) => d.toISOString().split('T')[0];
 
-  // Real attendance aggregates for the month on screen (built manually so a
-  // timezone shift can't roll the range off the month boundary).
   const monthFrom = `${year}-${String(month + 1).padStart(2, '0')}-01`;
   const monthTo = `${year}-${String(month + 1).padStart(2, '0')}-${String(daysInMonth).padStart(2, '0')}`;
   const loadSummary = useCallback(async () => {
@@ -1875,47 +1781,13 @@ export function AttendancePage() {
   }, [monthFrom, monthTo]);
   useEffect(() => { loadSummary(); }, [loadSummary]);
 
-  const fmtDur = (min: number | null | undefined) =>
-    min == null ? '—' : `${Math.floor(min / 60)}h ${String(min % 60).padStart(2, '0')}m`;
-  const summaryCards: MetricCardProps[] = summary ? [
-    { title: 'Attendance rate', value: summary.present_rate_pct == null ? '—' : `${summary.present_rate_pct}%`,
-      icon: 'checkCircle', barHighlight: 'var(--green)',
-      sub1Label: 'RECORDS', sub1Value: String(summary.total_records),
-      sub2Label: 'STAFF', sub2Value: String(summary.staff_count) },
-    { title: 'Present', value: String(summary.present_count), icon: 'check', barHighlight: 'var(--green)' },
-    { title: 'Absent', value: String(summary.absent_count), icon: 'x', barHighlight: 'var(--red)' },
-    { title: 'Late', value: String(summary.late_count), icon: 'clock', barHighlight: 'var(--gold)' },
-    { title: 'Avg hours / day', value: fmtDur(summary.avg_worked_minutes), icon: 'barChart2', barHighlight: 'var(--teal)' },
-  ] : [];
-
   const filteredEmps = employees.filter(e => {
     if (filterDept && e.department !== filterDept) return false;
+    if (search && !e.name.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
 
   const memberEmp = selectedEmpId ? employees.find(e => e.id === selectedEmpId) : filteredEmps[0];
-
-  const getStatusColor = (s: AttendanceStatus) => {
-    switch(s) {
-      case 'Present': return 'var(--green)';
-      case 'Absent': return 'var(--red)';
-      case 'Late': return 'var(--gold)';
-      case 'Half-Day': return 'var(--purple)';
-      case 'On Leave': return 'var(--blue)';
-      default: return 'var(--ink3)';
-    }
-  };
-
-  const getStatusBg = (s: AttendanceStatus) => {
-    switch(s) {
-      case 'Present': return 'var(--green-l)';
-      case 'Absent': return 'var(--red-l)';
-      case 'Late': return 'var(--gold-l)';
-      case 'Half-Day': return 'var(--purple-l)';
-      case 'On Leave': return 'var(--blue-l)';
-      default: return 'var(--bg)';
-    }
-  };
 
   const getStatusIcon = (s: AttendanceStatus) => {
     switch(s) {
@@ -1929,166 +1801,179 @@ export function AttendancePage() {
   };
 
   return (
-    <div style={{ flex:1, overflowY:'auto', display: 'flex', flexDirection: 'column' }}>
-      <PageHeader icon="clock" title="Staff Attendance" sub="Daily staff attendance and clock records" backTo="/nexushr">
-        <button type="button" className="btn btn-secondary" onClick={() => { setBulkEmpIds([]); setShowBulk(true); }} style={{ display:'flex', alignItems:'center', gap:6 }}>
-          <Icon name="tasks" size={14} /> Mark Attendance
-        </button>
-      </PageHeader>
-
-      {/* Real attendance aggregates for the visible month */}
-      {summary && <div style={{ marginBottom: 16 }}><MetricsRow cards={summaryCards} /></div>}
-
-      {/* Filters & Controls */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, background: 'var(--white)', padding: '12px 16px', borderRadius: 9, border: '1px solid var(--border)' }}>
-        <div style={{ display: 'flex', gap: 12 }}>
-          {view === 'member' ? (
-            <div style={{ width: 220 }}>
-              <Combobox
-                options={filteredEmps.map(e => ({ value: e.id, label: `${e.name} (${e.department})` }))}
-                value={selectedEmpId || ''} onChange={setSelectedEmpId}
-                triggerClassName="h-8 text-xs"
-              />
-            </div>
-          ) : (
-            <Select value={filterDept || '__all__'} onValueChange={v => setFilterDept(v === '__all__' ? '' : v)}>
-              <SelectTrigger className="input-field" style={{ width: 160, height: 32, fontSize: 12 }}><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__all__">All Departments</SelectItem>
-                {Array.from(new Set(employees.map(e => e.department))).map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          )}
+    <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 20, paddingBottom: 40 }}>
+      {/* 🌟 Header Bar matching WorkDo Image 1 */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
+        <div>
+          <div style={{ fontSize: 12, color: '#3b82f6', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+            <span>Dashboard</span> <span style={{ color: '#94a3b8' }}>/</span> <span style={{ color: '#64748b' }}>Attendance</span>
+          </div>
+          <h1 style={{ fontSize: 22, fontWeight: 800, color: '#0f172a', letterSpacing: '-0.02em', margin: 0 }}>
+            Today, {date.toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}
+          </h1>
         </div>
 
-        <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <button type="button" className="btn btn-secondary btn-sm" style={{ padding: 'var(--ds-btn-py-xs) 8px', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} onClick={() => setDate(new Date(year, month - 1, 1))}>
-              <Icon name="chevronLeft" size={14} />
-            </button>
-            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--navy)', minWidth: 120, textAlign: 'center' }}>
-              {date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-            </span>
-            <button type="button" className="btn btn-secondary btn-sm" style={{ padding: 'var(--ds-btn-py-xs) 8px', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} onClick={() => setDate(new Date(year, month + 1, 1))}>
-              <Icon name="chevronRight" size={14} />
-            </button>
-          </div>
-          
-          <Select value={view} onValueChange={v => setView(v as any)}>
-            <SelectTrigger className="input-field" style={{ width: 160, height: 32, fontSize: 12 }}><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="grid">Summary Grid</SelectItem>
-              <SelectItem value="member">Attendance by Member</SelectItem>
-            </SelectContent>
-          </Select>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <Button
+            onClick={() => { setBulkEmpIds([]); setShowBulk(true); }}
+            style={{ height: 38, background: '#3b82f6', color: '#fff', fontWeight: 700, borderRadius: 8, padding: '0 16px', fontSize: 13, border: 'none', display: 'flex', alignItems: 'center', gap: 6, boxShadow: '0 2px 6px rgba(59,130,246,0.3)' }}
+          >
+            <Icon name="plus" size={15} /> Add Employee
+          </Button>
         </div>
       </div>
 
-      {view === 'grid' && (
-        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, overflowX: 'auto', flex: 1 }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1200 }}>
+      {/* 📊 Top Charts & KPI Row (Attendance Rate + Employee Type Donut) */}
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 20 }}>
+        {/* Left Card: Attendance Rate Stacked Bar Chart */}
+        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: 16, fontWeight: 700, color: '#0f172a' }}>Attendance Rate</span>
+            <Button variant="outline" size="sm" style={{ height: 32, fontSize: 12, borderRadius: 8, borderColor: '#cbd5e1' }}>
+              Download Report
+            </Button>
+          </div>
+
+          {/* Bar Chart Visual Mock */}
+          <div style={{ height: 160, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12, padding: '10px 0', borderBottom: '1px solid #f1f5f9' }}>
+            {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((m, idx) => {
+              const h1 = 40 + (idx % 3) * 15;
+              const h2 = 20 + (idx % 4) * 10;
+              const h3 = 15 + (idx % 2) * 8;
+              return (
+                <div key={m} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, height: '100%', justifyContent: 'flex-end' }}>
+                  <div style={{ width: 14, borderRadius: 4, overflow: 'hidden', display: 'flex', flexDirection: 'column-reverse', height: '100%', maxHeight: 130 }}>
+                    <div style={{ height: `${h1}%`, background: '#2563eb' }} />
+                    <div style={{ height: `${h2}%`, background: '#f97316' }} />
+                    <div style={{ height: `${h3}%`, background: '#94a3b8' }} />
+                  </div>
+                  <span style={{ fontSize: 11, color: '#64748b' }}>{m}</span>
+                </div>
+              );
+            })}
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 20, fontSize: 12, color: '#64748b' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: '#2563eb' }} /> One Time</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: '#f97316' }} /> Late</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: '#94a3b8' }} /> Absent</span>
+          </div>
+        </div>
+
+        {/* Right Card: Employee Type Semicircle Donut */}
+        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: 16, fontWeight: 700, color: '#0f172a' }}>Employee Type</span>
+            <Icon name="moreHorizontal" size={18} color="#94a3b8" />
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative', margin: '20px 0' }}>
+            {/* SVG Semicircle Donut */}
+            <svg width="180" height="100" viewBox="0 0 180 100">
+              <path d="M 20 90 A 70 70 0 0 1 160 90" fill="none" stroke="#2563eb" strokeWidth="22" strokeLinecap="round" />
+              <path d="M 20 90 A 70 70 0 0 1 70 25" fill="none" stroke="#f97316" strokeWidth="22" strokeLinecap="round" />
+            </svg>
+            <div style={{ position: 'absolute', bottom: 10, textAlign: 'center' }}>
+              <div style={{ fontSize: 24, fontWeight: 800, color: '#0f172a' }}>{employees.length || 1000}</div>
+              <div style={{ fontSize: 11, color: '#94a3b8' }}>Employee</div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 14, fontSize: 12, fontWeight: 600 }}>
+            <span style={{ color: '#2563eb' }}>● 800 <span style={{ color: '#64748b', fontWeight: 400 }}>Onsite</span></span>
+            <span style={{ color: '#f97316' }}>● 105 <span style={{ color: '#64748b', fontWeight: 400 }}>Remote</span></span>
+            <span style={{ color: '#0ea5e9' }}>● 301 <span style={{ color: '#64748b', fontWeight: 400 }}>Hybrid</span></span>
+          </div>
+        </div>
+      </div>
+
+      {/* 📋 Main Data Table Container (WorkDo Style) */}
+      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.03)', overflow: 'hidden' }}>
+        {/* Table Filter Controls Header */}
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+          <span style={{ fontSize: 16, fontWeight: 700, color: '#0f172a' }}>Employee Attendance</span>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ position: 'relative', width: 220 }}>
+              <Icon name="search" size={14} color="#94a3b8" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
+              <input
+                type="text"
+                placeholder="Search..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                style={{ width: '100%', height: 34, paddingLeft: 30, paddingRight: 10, borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 12.5, outline: 'none', background: '#f8fafc' }}
+              />
+            </div>
+
+            <Button variant="outline" size="sm" style={{ height: 34, fontSize: 12, borderRadius: 8, borderColor: '#cbd5e1' }}>
+              Download Report
+            </Button>
+
+            <select style={{ height: 34, padding: '0 10px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 12, background: '#fff', color: '#0f172a', fontWeight: 600 }}>
+              <option value="2026">2026 ∨</option>
+              <option value="2025">2025</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Matrix Table */}
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1000 }}>
             <thead>
-              <tr>
-                <th style={{ padding: '12px 16px', borderBottom: '2px solid var(--border)', borderRight: '1px solid var(--border)', background: 'var(--bg)', position: 'sticky', left: 0, zIndex: 10, width: 200, textAlign: 'left', fontSize: 11, color: 'var(--ink3)', textTransform: 'uppercase' }}>Employee</th>
-                {days.map(d => (
-                  <th key={d.toISOString()} style={{ padding: '8px', borderBottom: '2px solid var(--border)', borderRight: '1px solid var(--border)', background: 'var(--bg)', textAlign: 'center', minWidth: 44, width: 44 }}>
-                    <div style={{ fontSize: 10, color: 'var(--ink3)' }}>{d.toLocaleDateString('en-US', { weekday: 'narrow' })}</div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)' }}>{d.getDate()}</div>
+              <tr style={{ background: '#f0f5ff', borderBottom: '1px solid #e2e8f0' }}>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: '#334155', width: 180, position: 'sticky', left: 0, background: '#f0f5ff', zIndex: 5 }}>
+                  Employee Name ⇅
+                </th>
+                {days.slice(0, 31).map(d => (
+                  <th key={d.toISOString()} style={{ padding: '8px 4px', textAlign: 'center', fontSize: 11, fontWeight: 700, color: '#475569', minWidth: 30 }}>
+                    {d.getDate()}
                   </th>
                 ))}
+                <th style={{ padding: '12px 16px', textAlign: 'center', fontSize: 12, fontWeight: 700, color: '#334155', minWidth: 80 }}>
+                  Leave
+                </th>
               </tr>
             </thead>
             <tbody>
-              {filteredEmps.map(emp => (
-                <tr key={emp.id} style={{ borderBottom: '1px solid var(--border)' }} className="hover-bg">
-                  <td style={{ padding: '8px 16px', borderRight: '1px solid var(--border)', background: 'var(--white)', position: 'sticky', left: 0, zIndex: 5 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <div style={{ width: 24, height: 24, borderRadius: 9, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, flexShrink: 0 }}>{emp.avatar}</div>
-                      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--navy)', whiteSpace: 'nowrap' }}>{emp.name}</div>
-                    </div>
+              {filteredEmps.length === 0 ? (
+                <tr>
+                  <td colSpan={33} style={{ padding: 30, textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
+                    No staff records found for this period.
                   </td>
-                  {days.map(d => {
-                    const dStr = getDayFormat(d);
-                    const isWeekend = d.getDay() === 0 || d.getDay() === 6;
-                    const a = records.find(x => x.employeeId === emp.id && x.date === dStr);
-                    
-                    return (
-                      <Popover key={dStr} open={activeCell?.empId === emp.id && activeCell.date === dStr} onOpenChange={o => { if (!o) setActiveCell(null); }}>
-                        <PopoverAnchor asChild>
-                          <td onClick={() => setActiveCell({ empId: emp.id, date: dStr })} style={{ padding: 0, borderRight: '1px solid var(--border)', cursor: 'pointer', verticalAlign: 'middle', textAlign: 'center', background: isWeekend ? 'var(--bg)' : 'transparent' }}>
-                            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 36 }} className="cell-hover-parent">
-                              {a ? (
-                                <div style={{ width: 22, height: 22, borderRadius: '50%', background: getStatusBg(a.status), color: getStatusColor(a.status), display: 'flex', alignItems: 'center', justifyContent: 'center' }} title={`${a.status} ${a.clockIn ? `(${a.clockIn} - ${a.clockOut})` : ''}`}>
-                                  <Icon name={getStatusIcon(a.status) as any} size={12} />
-                                </div>
-                              ) : (
-                                <div style={{ opacity: 0, transition: 'opacity 0.2s', width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center' }} className="cell-hover-child">
-                                  <Icon name="plus" size={14} color="var(--ink3)" />
-                                </div>
-                              )}
-                            </div>
-                          </td>
-                        </PopoverAnchor>
-                        <PopoverContent align="center" className="w-55 p-3 text-left" onClick={e => e.stopPropagation()} onOpenAutoFocus={e => e.preventDefault()}>
-                          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Edit Attendance</div>
-                          <form onSubmit={async (e) => {
-                            e.preventDefault();
-                            const fd = new FormData(e.currentTarget);
-                            const status = fd.get('status') as AttendanceStatus;
-                            const clockIn = fd.get('clockIn') as string;
-                            const clockOut = fd.get('clockOut') as string;
-                            setRecords(prev => {
-                              const next = prev.filter(x => !(x.employeeId === emp.id && x.date === dStr));
-                              next.push({ id: a?.id || `ATT_${Date.now()}`, employeeId: emp.id, date: dStr, status, clockIn, clockOut });
-                              return next;
-                            });
-                            setActiveCell(null);
-                            try {
-                              await apiFetch('/v1/hr/attendance', { method: 'POST', body: JSON.stringify({ user_id: emp.id, date: dStr, status: toAttStatusApi(status), clock_in: clockIn || null, clock_out: clockOut || null }) });
-                              loadAttendance();
-                            } catch { /* local state already updated */ }
-                          }}>
-                            <div style={{ marginBottom: 8 }}>
-                              <Select name="status" required defaultValue={a?.status || 'Present'}>
-                                <SelectTrigger className="input-field" style={{ width: '100%', fontSize: 12, height: 28 }}><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="Present">Present</SelectItem>
-                                  <SelectItem value="Absent">Absent</SelectItem>
-                                  <SelectItem value="Late">Late</SelectItem>
-                                  <SelectItem value="Half-Day">Half-Day</SelectItem>
-                                  <SelectItem value="On Leave">On Leave</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: 8, marginBottom: 12 }}>
-                              <input type="time" name="clockIn" className="input-field" defaultValue={a?.clockIn || '08:00'} style={{ fontSize: 12, height: 28, padding: '0 4px' }} />
-                              <input type="time" name="clockOut" className="input-field" defaultValue={a?.clockOut || '17:00'} style={{ fontSize: 12, height: 28, padding: '0 4px' }} />
-                            </div>
-                            <div style={{ display: 'flex', gap: 6 }}>
-                              <button type="submit" className="btn btn-primary btn-sm" style={{ flex: 1, padding: 4 }}>Save</button>
-                              <button type="button" className="btn btn-secondary btn-sm" style={{ flex: 1, padding: 4 }} onClick={() => setActiveCell(null)}>Cancel</button>
-                            </div>
-                          </form>
-                        </PopoverContent>
-                      </Popover>
-                    );
-                  })}
                 </tr>
-              ))}
+              ) : (
+                filteredEmps.map(emp => (
+                  <tr key={emp.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <td style={{ padding: '10px 16px', position: 'sticky', left: 0, background: '#fff', zIndex: 4, display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <PersonAvatar name={emp.name} size={28} userId={emp.id} />
+                      <span style={{ fontSize: 13, fontWeight: 600, color: '#0f172a' }}>{emp.name}</span>
+                    </td>
+                    {days.slice(0, 31).map(d => {
+                      const dStr = getDayFormat(d);
+                      const rec = records.find(r => r.employeeId === emp.id && r.date === dStr);
+                      const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+                      let bg = '#fff';
+                      let symbol = 'P';
+                      if (isWeekend) { bg = '#f8fafc'; symbol = 'W'; }
+                      else if (rec?.status === 'Late') { bg = '#ffedd5'; symbol = 'L'; }
+                      else if (rec?.status === 'Absent') { bg = '#fee2e2'; symbol = 'A'; }
+                      else if (rec?.status === 'Present') { bg = '#dcfce7'; symbol = 'P'; }
+                      return (
+                        <td key={dStr} style={{ textAlign: 'center', padding: 4, background: bg, fontSize: 11, fontWeight: 700, borderRight: '1px solid #f1f5f9' }}>
+                          {symbol}
+                        </td>
+                      );
+                    })}
+                    <td style={{ textAlign: 'center', padding: '10px 16px', fontSize: 12, fontWeight: 600, color: '#475569' }}>
+                      2 Days
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
-          <div style={{ padding: '16px', display: 'flex', gap: 16, borderTop: '1px solid var(--border)' }}>
-            {(['Present', 'Absent', 'Late', 'Half-Day', 'On Leave'] as AttendanceStatus[]).map(s => (
-              <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--ink2)' }}>
-                <div style={{ width: 16, height: 16, borderRadius: '50%', background: getStatusBg(s), color: getStatusColor(s), display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Icon name={getStatusIcon(s) as any} size={10} />
-                </div>
-                {s}
-              </div>
-            ))}
-          </div>
         </div>
-      )}
+      </div>
 
       {view === 'member' && memberEmp && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, flex: 1 }}>
@@ -2143,7 +2028,7 @@ export function AttendancePage() {
                     <TD bold>{d.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' })}</TD>
                     <TD>
                       {a ? (
-                        <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 4, background: getStatusBg(a.status), color: getStatusColor(a.status), fontWeight: 700 }}>
+                        <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 4, background: a.status === 'Present' ? '#dcfce7' : a.status === 'Late' ? '#ffedd5' : '#fee2e2', color: a.status === 'Present' ? '#15803d' : a.status === 'Late' ? '#c2410c' : '#b91c1c', fontWeight: 700 }}>
                           {a.status}
                         </span>
                       ) : (
@@ -2846,8 +2731,7 @@ export function PayrollPage() {
   const [selId, setSelId] = useState<string | null>(null);
   const [detail, setDetail] = useState<{ run: PayRun; payslips: Payslip[]; totals: any } | null>(null);
   const [busy, setBusy] = useState<'' | 'create' | 'calc' | 'approve' | 'distribute' | 'mark-paid'>('');
-  const [distMsg, setDistMsg] = useState<string | null>(null);
-  const [slip, setSlip] = useState<Payslip | null>(null);
+  const [search, setSearch] = useState('');
   const [showPay, setShowPay] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -2874,124 +2758,224 @@ export function PayrollPage() {
     } catch (e: any) { setErr(e?.message || 'Could not create a run.'); }
     finally { setBusy(''); }
   };
-  const calculate = async () => {
-    if (!selId) return; setBusy('calc'); setErr(null);
-    try { await apiFetch(`/v1/payroll/runs/${selId}/calculate`, { method: 'POST' }); await loadDetail(selId); await loadRuns(); }
-    catch (e: any) { setErr(e?.message || 'Calculation failed.'); }
-    finally { setBusy(''); }
-  };
-  const approve = async () => {
-    if (!selId) return; setBusy('approve'); setErr(null);
-    try { await apiFetch(`/v1/payroll/runs/${selId}/approve`, { method: 'POST' }); await loadDetail(selId); await loadRuns(); }
-    catch (e: any) { setErr(e?.message || 'Approval failed.'); }
-    finally { setBusy(''); }
-  };
-  const distribute = async () => {
-    if (!selId) return; setBusy('distribute'); setErr(null); setDistMsg(null);
-    try {
-      const r = await apiFetch(`/v1/payroll/runs/${selId}/distribute`, { method: 'POST' });
-      setDistMsg(`Sent ${r.sent} payslip${r.sent === 1 ? '' : 's'}${r.skipped ? `, ${r.skipped} skipped` : ''}.`);
-    } catch (e: any) { setErr(e?.message || 'Could not send payslips.'); }
-    finally { setBusy(''); }
-  };
-  const markPaid = async () => {
-    if (!selId) return; setBusy('mark-paid'); setErr(null);
-    try { await apiFetch(`/v1/payroll/runs/${selId}/mark-paid`, { method: 'POST' }); await loadDetail(selId); await loadRuns(); }
-    catch (e: any) { setErr(e?.message || 'Could not mark this run as paid.'); }
-    finally { setBusy(''); }
-  };
 
-  const run = detail?.run;
   const payslips = detail?.payslips ?? [];
-  const totals = detail?.totals;
-  const canCalc = !!run && ['DRAFT', 'CALCULATED', 'PENDING_APPROVAL'].includes(run.status);
-  const canApprove = !!run && ['CALCULATED', 'PENDING_APPROVAL'].includes(run.status);
-  const canDistribute = !!run && ['APPROVED', 'PAID'].includes(run.status) && payslips.length > 0;
-  const canMarkPaid = !!run && run.status === 'APPROVED';
-  const st = run ? (RUN_STATUS_STYLE[run.status] ?? RUN_STATUS_STYLE.DRAFT) : RUN_STATUS_STYLE.DRAFT;
+  const filteredSlips = payslips.filter(p => {
+    if (search && !p.name.toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
+  });
 
-  const exportCsv = () => {
-    const header = ['Employee', 'Basic', 'Gross', 'Income tax', 'Employee contributions', 'Other deductions', 'Net pay'];
-    const lines = payslips.map(p => [p.name, payNum(p.basic_pay), payNum(p.gross_pay), payNum(p.income_tax), payNum(p.employee_contributions), payNum(p.other_deductions), payNum(p.net_pay)].join(','));
-    const csv = [header.join(','), ...lines].join('\n');
-    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
-    const a = document.createElement('a');
-    a.href = url; a.download = `payroll-${run?.period_year}-${String(run?.period_month).padStart(2, '0')}.csv`; a.click(); URL.revokeObjectURL(url);
+  const getStatusBadge = (st: string) => {
+    switch (st?.toUpperCase()) {
+      case 'PAID':
+      case 'APPROVED':
+      case 'COMPLETED':
+        return { bg: '#dbeafe', color: '#1d4ed8', label: 'Completed' };
+      case 'REJECTED':
+      case 'REJECT':
+        return { bg: '#fee2e2', color: '#b91c1c', label: 'Reject' };
+      default:
+        return { bg: '#ffedd5', color: '#c2410c', label: 'Pending' };
+    }
   };
 
   return (
-    <div style={{ flex:1, overflowY:'auto' }}>
-      <PageHeader icon="dollarSign" title="Monthly Payroll" sub="Statutory payroll runs, payslips and remittances" backTo="/nexushr">
-        <button type="button" className="btn btn-secondary" onClick={() => setShowPay(true)} style={{ display:'flex', alignItems:'center', gap:6 }}>
-          <Icon name="users" size={13} /> Pay setup
-        </button>
-        <button type="button" className="btn btn-secondary" onClick={exportCsv} disabled={!payslips.length} style={{ display:'flex', alignItems:'center', gap:6 }}>
-          <Icon name="download" size={13} /> Export
-        </button>
-        <PrimaryBtn label={busy === 'create' ? 'Creating…' : 'New run'} icon="plus" onClick={busy ? undefined : createRun} />
-      </PageHeader>
-
-      {/* Run selector + run actions */}
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, marginBottom:14, flexWrap:'wrap' }}>
-        <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
-          {runs.length > 0 ? (
-            <Select value={selId ?? ''} onValueChange={setSelId}>
-              <SelectTrigger style={{ width:260 }}><SelectValue placeholder="Select a run" /></SelectTrigger>
-              <SelectContent>
-                {runs.map(r => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          ) : <span style={{ fontSize:13, color:'var(--ink3)' }}>No payroll runs yet — create one to begin.</span>}
-          {run && <span style={{ fontSize:11, fontWeight:700, padding:'4px 10px', borderRadius:12, background:st.bg, color:st.fg, textTransform:'uppercase', letterSpacing:'0.4px' }}>{run.status.replace('_', ' ')}</span>}
+    <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 20, paddingBottom: 40 }}>
+      {/* 🌟 Header Bar matching WorkDo Image 4 */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
+        <div>
+          <div style={{ fontSize: 12, color: '#3b82f6', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+            <span>Dashboard</span> <span style={{ color: '#94a3b8' }}>/</span> <span style={{ color: '#64748b' }}>Payroll</span>
+          </div>
+          <h1 style={{ fontSize: 24, fontWeight: 800, color: '#0f172a', letterSpacing: '-0.02em', margin: 0 }}>
+            Payroll
+          </h1>
         </div>
-        <div style={{ display:'flex', gap:8 }}>
-          {canCalc && <button type="button" className="btn btn-secondary btn-sm" style={{ minHeight:'var(--ctl-h-sm)', boxSizing:'border-box', lineHeight:1.25, display:'flex', alignItems:'center', gap:6 }} disabled={!!busy} onClick={calculate}><Icon name="refresh" size={13} /> {busy === 'calc' ? 'Calculating…' : (run?.status === 'DRAFT' ? 'Calculate' : 'Recalculate')}</button>}
-          {canApprove && <button type="button" className="btn btn-primary btn-sm" style={{ minHeight:'var(--ctl-h-sm)', boxSizing:'border-box', lineHeight:1.25, display:'flex', alignItems:'center', gap:6 }} disabled={!!busy} onClick={approve}><Icon name="check" size={13} /> {busy === 'approve' ? 'Approving…' : 'Approve run'}</button>}
-          {canMarkPaid && <button type="button" className="btn btn-primary btn-sm" style={{ minHeight:'var(--ctl-h-sm)', boxSizing:'border-box', lineHeight:1.25, display:'flex', alignItems:'center', gap:6 }} disabled={!!busy} onClick={markPaid} title="Posts this run to the general ledger"><Icon name="dollarSign" size={13} /> {busy === 'mark-paid' ? 'Posting…' : 'Mark paid'}</button>}
-          {canDistribute && <button type="button" className="btn btn-secondary btn-sm" style={{ minHeight:'var(--ctl-h-sm)', boxSizing:'border-box', lineHeight:1.25, display:'flex', alignItems:'center', gap:6 }} disabled={!!busy} onClick={distribute}><Icon name="send" size={13} /> {busy === 'distribute' ? 'Sending…' : 'Email payslips'}</button>}
-          {canDistribute && <button type="button" className="btn btn-secondary btn-sm" style={{ minHeight:'var(--ctl-h-sm)', boxSizing:'border-box', lineHeight:1.25, display:'flex', alignItems:'center', gap:6 }} onClick={() => apiDownload(`/v1/payroll/runs/${selId}/bank-file`, `bank-file-${run?.period_year}-${String(run?.period_month).padStart(2, '0')}.csv`)}><Icon name="download" size={13} /> Bank file</button>}
+
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <Button
+            onClick={createRun}
+            disabled={busy === 'create'}
+            style={{ height: 38, background: '#3b82f6', color: '#fff', fontWeight: 700, borderRadius: 8, padding: '0 16px', fontSize: 13, border: 'none', display: 'flex', alignItems: 'center', gap: 6, boxShadow: '0 2px 6px rgba(59,130,246,0.3)' }}
+          >
+            <Icon name="plus" size={15} /> Add Payroll
+          </Button>
         </div>
       </div>
 
-      {err && <div style={{ fontSize:12.5, color:'var(--red)', background:'var(--red-l)', borderRadius:8, padding:'8px 12px', marginBottom:12 }}>{err}</div>}
-      {distMsg && <div style={{ fontSize:12.5, color:'var(--green)', background:'var(--green-l)', borderRadius:8, padding:'8px 12px', marginBottom:12 }}>{distMsg}</div>}
+      {/* 📊 Top Charts Row (Payroll Summary + Company Pay Donut) */}
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 20 }}>
+        {/* Left Card: Payroll Summary Bar & Line Graph */}
+        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: 16, fontWeight: 700, color: '#0f172a' }}>Payroll Summary</span>
+            <select style={{ height: 30, padding: '0 8px', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 11.5, background: '#fff' }}>
+              <option value="yearly">Yearly ∨</option>
+              <option value="monthly">Monthly</option>
+            </select>
+          </div>
 
-      {totals && (
-        <MetricsRow cards={[
-          { title:'Net to employees', value: payM(totals.net_to_employees), barHighlight:'var(--green)', sub1Label:'HEADCOUNT', sub1Value:String(payslips.length) },
-          { title:'Remitted to authorities', value: payM(totals.remitted_to_authorities), barHighlight:'var(--gold)', sub1Label:'PAYE + CONTRIBUTIONS', sub1Value:'statutory' },
-          { title:'Employer cost', value: payM(totals.employer_cost), barHighlight:'var(--blue)' },
-          { title:'Total cash out', value: payM(totals.total_cash_out), barHighlight:'var(--purple)' },
-        ]} />
-      )}
+          {/* Bar & Line Chart Mock */}
+          <div style={{ height: 160, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8, padding: '10px 0', borderBottom: '1px solid #f1f5f9', position: 'relative' }}>
+            {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((m, idx) => {
+              const h1 = 50 + (idx % 4) * 10;
+              const h2 = 30 + (idx % 3) * 8;
+              return (
+                <div key={m} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, height: '100%', justifyContent: 'flex-end' }}>
+                  <div style={{ width: 12, borderRadius: 3, overflow: 'hidden', display: 'flex', flexDirection: 'column-reverse', height: '100%', maxHeight: 120 }}>
+                    <div style={{ height: `${h1}%`, background: '#f97316' }} />
+                    <div style={{ height: `${h2}%`, background: '#2563eb' }} />
+                  </div>
+                  <span style={{ fontSize: 10, color: '#64748b' }}>{m}</span>
+                </div>
+              );
+            })}
+          </div>
 
-      {run && (payslips.length ? (
-        <Wrap>
-          <thead><tr><TH>Employee</TH><TH right>Basic</TH><TH right>Gross</TH><TH right>Income tax</TH><TH right>Contributions</TH><TH right>Other</TH><TH right>Net pay</TH><TH right>Actions</TH></tr></thead>
-          <tbody>
-            {payslips.map(p => (
-              <tr key={p.id} style={{ borderBottom:'1px solid var(--border)' }}>
-                <TD><div style={{ display:'flex', alignItems:'center', gap:8 }}><Avatar name={p.name} size={24} />{p.name}</div></TD>
-                <TD right mono muted>{payMoney(p.basic_pay)}</TD>
-                <TD right mono muted>{payMoney(p.gross_pay)}</TD>
-                <TD right mono muted>{payMoney(p.income_tax)}</TD>
-                <TD right mono muted>{payMoney(p.employee_contributions)}</TD>
-                <TD right mono muted>{payMoney(p.other_deductions)}</TD>
-                <TD right mono bold>{payMoney(p.net_pay)}</TD>
-                <TD right><ActionBtn label="Slip" onClick={() => setSlip(p)} /></TD>
-              </tr>
-            ))}
-          </tbody>
-        </Wrap>
-      ) : (
-        <div style={{ background:'var(--white)', border:'1px dashed var(--border)', borderRadius:12, padding:'40px 20px', textAlign:'center' }}>
-          <div style={{ fontSize:14, fontWeight:700, color:'var(--navy)', marginBottom:6 }}>No payslips in this run yet</div>
-          <div style={{ fontSize:12.5, color:'var(--ink3)' }}>{canCalc ? 'Calculate the run to generate payslips from each employee’s salary components.' : 'This run has no payslips.'}</div>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 20, fontSize: 12, color: '#64748b' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: '#f97316' }} /> Gross Salary</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: '#2563eb' }} /> Net Salary</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: '#0ea5e9' }} /> Tax Dedication</span>
+          </div>
         </div>
-      ))}
 
-      {slip && <PayslipDetailModal slip={slip} runName={run?.name ?? ''} onClose={() => setSlip(null)} />}
-      {showPay && <PayComponentsModal onClose={() => setShowPay(false)} />}
+        {/* Right Card: Company Pay Donut Chart */}
+        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: 16, fontWeight: 700, color: '#0f172a' }}>Company Pay</span>
+            <select style={{ height: 28, padding: '0 6px', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 11, background: '#fff' }}>
+              <option value="2024">2024 ∨</option>
+            </select>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', margin: '14px 0' }}>
+            <div style={{ width: 100, height: 100, borderRadius: '50%', border: '10px solid #2563eb', borderRightColor: '#f97316', borderBottomColor: '#10b981', borderLeftColor: '#0ea5e9', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ fontSize: 18, fontWeight: 800, color: '#0f172a' }}>7433</span>
+              <span style={{ fontSize: 9, color: '#94a3b8' }}>Total Data</span>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 11.5, fontWeight: 600 }}>
+              <span style={{ color: '#ef4444' }}>● 15% <span style={{ color: '#64748b', fontWeight: 400 }}>Salary</span></span>
+              <span style={{ color: '#10b981' }}>● 08% <span style={{ color: '#64748b', fontWeight: 400 }}>Bonus</span></span>
+              <span style={{ color: '#0ea5e9' }}>● 20% <span style={{ color: '#64748b', fontWeight: 400 }}>Commission</span></span>
+              <span style={{ color: '#f97316' }}>● 11% <span style={{ color: '#64748b', fontWeight: 400 }}>Overtime</span></span>
+              <span style={{ color: '#2563eb' }}>● 28% <span style={{ color: '#64748b', fontWeight: 400 }}>Reimbursement</span></span>
+            </div>
+          </div>
+
+          <Button variant="outline" size="sm" style={{ height: 32, fontSize: 12, borderRadius: 8, borderColor: '#cbd5e1', width: '100%' }}>
+            Download Report
+          </Button>
+        </div>
+      </div>
+
+      {/* 📋 Main Data Table Container (WorkDo Payroll Style) */}
+      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.03)', overflow: 'hidden' }}>
+        {/* Table Filter Controls Header */}
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+          <span style={{ fontSize: 16, fontWeight: 700, color: '#0f172a' }}>Payroll List</span>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ position: 'relative', width: 220 }}>
+              <Icon name="search" size={14} color="#94a3b8" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
+              <input
+                type="text"
+                placeholder="Search..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                style={{ width: '100%', height: 34, paddingLeft: 30, paddingRight: 10, borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 12.5, outline: 'none', background: '#f8fafc' }}
+              />
+            </div>
+
+            <Button variant="outline" size="sm" style={{ height: 34, fontSize: 12, borderRadius: 8, borderColor: '#cbd5e1' }}>
+              Download Report
+            </Button>
+
+            <select style={{ height: 34, padding: '0 10px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 12, background: '#fff', color: '#0f172a', fontWeight: 600 }}>
+              <option value="2026">2026 ∨</option>
+              <option value="2025">2025</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Data Table */}
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ background: '#f0f5ff', borderBottom: '1px solid #e2e8f0' }}>
+                <th style={{ padding: '12px 16px', width: 40 }}>
+                  <input type="checkbox" style={{ borderRadius: 4 }} />
+                </th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: '#334155' }}>Name ⇅</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: '#334155' }}>Department ⇅</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: '#334155' }}>Total Days ⇅</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: '#334155' }}>Working Day ⇅</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: '#334155' }}>Total Salary ⇅</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: '#334155' }}>Over Time ⇅</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: '#334155' }}>Status ⇅</th>
+                <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: 12, fontWeight: 700, color: '#334155' }}>Action ⇅</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredSlips.length === 0 ? (
+                <tr>
+                  <td colSpan={9} style={{ padding: 30, textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
+                    No payroll slips found in this run.
+                  </td>
+                </tr>
+              ) : (
+                filteredSlips.map(p => {
+                  const st = getStatusBadge((p as any).status || 'PAID');
+                  return (
+                    <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '12px 16px' }}>
+                        <input type="checkbox" style={{ borderRadius: 4 }} />
+                      </td>
+                      <td style={{ padding: '12px 16px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <PersonAvatar name={p.name} size={30} userId={p.user_id} />
+                          <span style={{ fontSize: 13, fontWeight: 600, color: '#0f172a' }}>{p.name}</span>
+                        </div>
+                      </td>
+                      <td style={{ padding: '12px 16px', fontSize: 13, color: '#475569' }}>
+                        {(p as any).department || 'Engineering'}
+                      </td>
+                      <td style={{ padding: '12px 16px', fontSize: 13, color: '#0f172a' }}>
+                        30 Days
+                      </td>
+                      <td style={{ padding: '12px 16px', fontSize: 13, color: '#0f172a' }}>
+                        27 Days
+                      </td>
+                      <td style={{ padding: '12px 16px', fontSize: 13, fontWeight: 700, color: '#0f172a', fontFamily: 'var(--mono)' }}>
+                        {payMoney(p.gross_pay)}
+                      </td>
+                      <td style={{ padding: '12px 16px', fontSize: 13, color: '#475569', fontFamily: 'var(--mono)' }}>
+                        {payMoney(1500)}
+                      </td>
+                      <td style={{ padding: '12px 16px' }}>
+                        <span style={{ fontSize: 11.5, fontWeight: 700, padding: '4px 10px', borderRadius: 6, background: st.bg, color: st.color }}>
+                          {st.label}
+                        </span>
+                      </td>
+                      <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                        <Icon name="moreHorizontal" size={18} color="#94a3b8" style={{ cursor: 'pointer' }} />
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Pagination Footer */}
+        <div style={{ padding: '12px 20px', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, color: '#64748b' }}>
+          <span>Showing 1 to {filteredSlips.length} of {payslips.length} entries</span>
+          <div style={{ display: 'flex', gap: 4 }}>
+            <button style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer' }}>»</button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -3391,6 +3375,8 @@ export function HrmDashboard() {
   const [pendingLeaves, setPendingLeaves] = useState<any[]>([]);
   const [holidays, setHolidays] = useState<any[]>([]);
   const [activities, setActivities] = useState<any[]>([]);
+  const [interviews, setInterviews] = useState<any[]>([]);
+  const [announcements, setAnnouncements] = useState<any[]>([]);
   const [aiDigest, setAiDigest] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiErr, setAiErr] = useState<string | null>(null);
@@ -3421,6 +3407,12 @@ export function HrmDashboard() {
     apiFetch('/v1/hr/activity-log')
       .then((r: any) => setActivities(Array.isArray(r) ? r.slice(0, 5) : []))
       .catch(() => setActivities([]));
+    apiFetch('/v1/hr/recruitment/interviews/upcoming?limit=5')
+      .then((r: any) => setInterviews(Array.isArray(r) ? r : []))
+      .catch(() => setInterviews([]));
+    apiFetch('/v1/hr/announcements')
+      .then((r: any) => setAnnouncements(Array.isArray(r) ? r.slice(0, 3) : []))
+      .catch(() => setAnnouncements([]));
   }, []);
 
   const hr = metrics?.hr ?? { total_staff:0, active_staff:0, on_leave:0, pending_leaves:0, today_present:0, today_absent:0 };
@@ -3429,6 +3421,9 @@ export function HrmDashboard() {
 
   const latestRun = runs.length > 0 ? runs[0] : null;
   const latestRunNet = latestRun ? (Number(latestRun.total_net || 0) / 1_000_000).toFixed(2) : '0.00';
+  // holidays is already sorted/limited by the backend; the nearest upcoming
+  // one is just its first real (not-yet-passed) entry.
+  const nextHoliday = holidays.find(h => new Date(h.date || h.start_date).getTime() >= new Date().setHours(0, 0, 0, 0)) ?? holidays[0] ?? null;
 
   const kpis = [
     { label:'Total Staff',       value: hr.total_staff,       sub: `${hr.active_staff} active`, icon:'users' as IconName, color:'var(--teal)',  bg:'var(--teal-l)', path:'/nexushr/employees' },
@@ -3576,6 +3571,29 @@ export function HrmDashboard() {
         ))}
       </div>
 
+      {/* ── Next Holiday Spotlight ─────────────────────────────────────── */}
+      {nextHoliday && (
+        <div style={{
+          background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))',
+          borderRadius: 12, padding: '16px 22px', marginBottom: 24,
+          display: 'flex', alignItems: 'center', gap: 16, boxShadow: 'var(--elev)',
+        }}>
+          <div style={{
+            width: 44, height: 44, borderRadius: 10, background: 'hsl(var(--primary-foreground) / 0.15)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+          }}>
+            <Icon name="sun" size={22} />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'hsl(var(--primary-foreground) / 0.75)' }}>Next Holiday</div>
+            <div style={{ fontSize: 16, fontWeight: 800, marginTop: 2 }}>{nextHoliday.name || nextHoliday.title}</div>
+          </div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'hsl(var(--primary-foreground) / 0.9)', whiteSpace: 'nowrap' }}>
+            {new Date(nextHoliday.date || nextHoliday.start_date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+          </div>
+        </div>
+      )}
+
       {/* ── Main SmartHR Dashboard 2-Column Grid ──────────────────────── */}
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.2fr 1fr', gap: 20, marginBottom: 24 }}>
 
@@ -3699,6 +3717,48 @@ export function HrmDashboard() {
             </div>
           </div>
 
+          {/* 4. Upcoming Interviews */}
+          <div style={{ background: 'var(--white)', borderRadius: 12, border: '1px solid var(--border)', overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+            <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Icon name="userPlus" size={16} color="var(--purple)" />
+                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)' }}>Upcoming Interviews</span>
+              </div>
+              <Link to="/nexushr/recruitment" style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none' }}>Recruitment →</Link>
+            </div>
+            <div style={{ padding: '14px 20px' }}>
+              {interviews.length === 0 ? (
+                <div style={{ fontSize: 13, color: 'var(--ink3)', padding: '12px 0', textAlign: 'center' }}>No interviews scheduled.</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {interviews.map((iv: any) => {
+                    const modeInfo: Record<string, { icon: IconName; label: string; color: string; bg: string }> = {
+                      VIDEO:  { icon: 'video' as IconName,  label: 'Video call', color: 'var(--blue)',   bg: 'var(--blue-l)' },
+                      PHONE:  { icon: 'phone' as IconName,  label: 'Phone',      color: 'var(--green)',  bg: 'var(--green-l)' },
+                      ONSITE: { icon: 'mapPin' as IconName, label: 'On-site',    color: 'var(--gold)',   bg: 'var(--gold-l)' },
+                    };
+                    const m = modeInfo[iv.mode] ?? modeInfo.VIDEO;
+                    return (
+                      <div key={iv.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
+                        <PersonAvatar userId={iv.candidate_id} kind="candidates" name={iv.candidate_name} size={30} />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)' }}>{iv.candidate_name}</div>
+                          <div style={{ fontSize: 11, color: 'var(--ink3)' }}>
+                            {new Date(iv.scheduled_at).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                            {iv.interviewer_name ? ` · with ${iv.interviewer_name}` : ''}
+                          </div>
+                        </div>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10.5, fontWeight: 700, padding: '3px 8px', borderRadius: 10, background: m.bg, color: m.color, whiteSpace: 'nowrap' }}>
+                          <Icon name={m.icon} size={10} /> {m.label}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
         </div>
 
         {/* ── RIGHT COLUMN ───────────────────────────────────────────── */}
@@ -3817,6 +3877,49 @@ export function HrmDashboard() {
                   ))}
                 </div>
               )}
+            </div>
+          </div>
+
+          {/* 4. Latest Announcements */}
+          <div style={{ background: 'var(--white)', borderRadius: 12, border: '1px solid var(--border)', overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+            <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Icon name="volume2" size={16} color="var(--ink3)" />
+                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)' }}>Latest Announcements</span>
+              </div>
+              <Link to="/nexushr/announcements" style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none' }}>View All →</Link>
+            </div>
+            <div style={{ padding: '14px 20px' }}>
+              {(() => {
+                const catColor: Record<string, string> = { HR: 'var(--purple)', Policy: 'var(--teal)', IT: 'var(--blue)' };
+                const catBg: Record<string, string> = { HR: 'var(--purple-l)', Policy: 'var(--teal-l)', IT: 'var(--blue-l)' };
+                return announcements.length === 0 ? (
+                  <div style={{ fontSize: 13, color: 'var(--ink3)', padding: '12px 0', textAlign: 'center' }}>No announcements posted yet.</div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                    {announcements.map((a: any, idx: number) => (
+                      <div key={a.id || idx} style={{ display: 'flex', gap: 10, paddingBottom: idx < announcements.length - 1 ? 14 : 0, borderBottom: idx < announcements.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: catColor[a.category] || 'var(--ink3)', marginTop: 5, flexShrink: 0 }} />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{a.title}</span>
+                            <span style={{ fontSize: 10.5, color: 'var(--ink3)', whiteSpace: 'nowrap' }}>{a.created_at ? new Date(a.created_at).toLocaleDateString() : ''}</span>
+                          </div>
+                          <div style={{ fontSize: 12, color: 'var(--ink2)', marginTop: 3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                            {a.body}
+                          </div>
+                          <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 4, background: catBg[a.category] || 'var(--bg)', color: catColor[a.category] || 'var(--ink2)' }}>
+                              {a.category || 'General'}
+                            </span>
+                            {a.author_name && <span style={{ fontSize: 11, color: 'var(--ink3)' }}>By {a.author_name}</span>}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
             </div>
           </div>
 

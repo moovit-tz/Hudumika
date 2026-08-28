@@ -104,7 +104,7 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
       }
     })();
 
-    const wsUrl = BASE_URL.replace(/^http/, 'ws') + '/v1/hr/signal';
+    const wsUrl = BASE_URL.replace(/^http/, 'ws') + '/v1/calls/signal';
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 
@@ -223,12 +223,12 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
   };
 
   const leave = async () => {
-    try { await apiFetch(`/v1/hr/meetings/${meetingId}/leave`, { method: 'POST' }); } catch { /* */ }
+    try { await apiFetch(`/v1/calls/meetings/${meetingId}/leave`, { method: 'POST' }); } catch { /* */ }
     onLeave();
   };
 
   const endForEveryone = async () => {
-    try { await apiFetch(`/v1/hr/meetings/${meetingId}/end`, { method: 'POST' }); } catch { /* */ }
+    try { await apiFetch(`/v1/calls/meetings/${meetingId}/end`, { method: 'POST' }); } catch { /* */ }
     onLeave();
   };
 

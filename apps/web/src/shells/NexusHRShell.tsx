@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route, Navigate, useParams, useNavigate } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import '../pages/OnePi.css';
 import { WorkspaceApp } from './WorkspaceApp.js';
 import { GoogleWorkspaceRightSidebar } from '../components/GoogleWorkspaceRightSidebar.js';
@@ -22,8 +22,8 @@ import { ClockInPage }  from '../pages/ClockInPage.js';
 import { MyHubPage }    from '../pages/MyHub.js';
 import { RecruitmentPage } from '../pages/Recruitment.js';
 import { ITAdminDashboard } from '../pages/ITAdminDashboard.js';
-import { Calls } from '../pages/Calls.js';
-import { MeetingSession } from '../pages/calls/MeetingSession.js';
+// Calls (1:1 + group meetings) moved to Bliss, matching Team Chat's own
+// precedent — see BlissShell.tsx. The nav item below now just links out.
 import {
   HrmDashboard, EmployeesPage, DepartmentsPage, DesignationsPage, TeamsPage,
   AttendancePage, LeavesPage, ShiftsPage, HolidaysPage,
@@ -37,7 +37,7 @@ const NAV: SidebarSection[] = [
     items: [
       { label: 'Dashboard', icon: 'home', path: '/nexushr', exact: true },
       { label: 'My HR', icon: 'user', path: '/nexushr/me' },
-      { label: 'Calls', icon: 'camera', path: '/nexushr/calls' },
+      { label: 'Calls', icon: 'camera', path: '/bliss/calls' },
       { label: 'Clock-in', icon: 'clock', path: '/nexushr/clock-in' },
     ],
   },
@@ -105,16 +105,6 @@ const NAV: SidebarSection[] = [
   },
 ];
 
-// Shareable meeting link (/nexushr/calls/meeting/:id) — MeetingSession
-// itself does the lobby→room flow; this just wires it to the route param
-// and sends "back to Calls" on exit, same as clicking a meeting in the list.
-function MeetingJoinRoute() {
-  const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  if (!id) return <Navigate to="/nexushr/calls" replace />;
-  return <MeetingSession meetingId={id} onExit={() => navigate('/nexushr/calls')} />;
-}
-
 export function NexusHRShell() {
   return (
     <WorkspaceApp appId="nexushr">
@@ -139,8 +129,6 @@ export function NexusHRShell() {
               <Route path="login-history"     element={<RequireRoles roles={MGMT_ROLES}><LoginHistoryPage /></RequireRoles>} />
               <Route path="device-management" element={<RequireRoles roles={MGMT_ROLES}><DeviceManagementPage /></RequireRoles>} />
               <Route path="me"                element={<MyHubPage />} />
-              <Route path="calls"             element={<Calls />} />
-              <Route path="calls/meeting/:id" element={<MeetingJoinRoute />} />
               <Route path="clock-in"          element={<ClockInPage />} />
               <Route path="leaves"            element={<RequireRoles roles={MGMT_ROLES}><LeavesPage /></RequireRoles>} />
               <Route path="attendance"        element={<RequireRoles roles={MGMT_ROLES}><AttendancePage /></RequireRoles>} />

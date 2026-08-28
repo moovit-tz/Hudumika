@@ -318,8 +318,16 @@ export function WorkspaceHome({ externalSearch }: WorkspaceHomeProps) {
                   options={categories.map(cat => ({ value: cat, label: cat }))}
                 />
 
-                {/* Settings Link */}
-                <Link to="/admin/branding" className="wh-btn wh-btn--ghost wh-btn--sm" style={{ padding: '6px 12px', fontSize: 12, fontWeight: 700, borderRadius: 8, border: '1px solid var(--border)', textDecoration: 'none', color: 'var(--ink)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                {/* Settings Link — explicit height on the same --ctl-h-sm
+                    token as the List/Grid toggle group and the filter pill
+                    beside it, so all three toolbar controls line up exactly
+                    (a raw padding value here, with no height floor at all,
+                    previously rendered a few px shorter than its neighbors —
+                    "wh-btn"/"wh-btn--ghost"/"wh-btn--sm" below are dead
+                    classes with no matching CSS rule anywhere, so this
+                    control's size has only ever come from its own inline
+                    style). */}
+                <Link to="/admin/branding" className="wh-btn wh-btn--ghost wh-btn--sm" style={{ padding: '0 14px', height: 'var(--ctl-h-sm)', boxSizing: 'border-box', fontSize: 13, fontWeight: 700, borderRadius: 8, border: '1px solid var(--border)', textDecoration: 'none', color: 'var(--ink)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                   <Icon name="sliders" size={14} />
                   <span>SETTINGS</span>
                 </Link>

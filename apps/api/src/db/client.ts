@@ -4542,9 +4542,9 @@ export interface Database {
   hr_job_openings: HrJobOpeningsTable;
   hr_candidates: HrCandidatesTable;
   hr_interviews: HrInterviewsTable;
-  hr_calls: HrCallsTable;
-  hr_meetings: HrMeetingsTable;
-  hr_meeting_participants: HrMeetingParticipantsTable;
+  bliss_calls: BlissCallsTable;
+  bliss_meetings: BlissMeetingsTable;
+  bliss_meeting_participants: BlissMeetingParticipantsTable;
   hr_leaves: HrLeavesTable;
   hr_payroll: HrPayrollTable;
   hr_announcements: HrAnnouncementsTable;
@@ -7682,7 +7682,7 @@ export interface HrClockBreaksTable {
   created_at: Generated<Date>;
 }
 
-export interface HrCallsTable {
+export interface BlissCallsTable {
   id: Generated<string>;
   tenant_id: string;
   caller_id: string;
@@ -7697,7 +7697,7 @@ export interface HrCallsTable {
   updated_at: Generated<Date>;
 }
 
-export interface HrMeetingsTable {
+export interface BlissMeetingsTable {
   id: Generated<string>;
   tenant_id: string;
   host_id: string;
@@ -7713,7 +7713,7 @@ export interface HrMeetingsTable {
   updated_at: Generated<Date>;
 }
 
-export interface HrMeetingParticipantsTable {
+export interface BlissMeetingParticipantsTable {
   id: Generated<string>;
   tenant_id: string;
   meeting_id: string;

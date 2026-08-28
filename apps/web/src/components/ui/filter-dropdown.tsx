@@ -16,7 +16,16 @@ const triggerPillClass = cn(
   // py-[var(--ds-btn-py)], not py-2: a filter pill sits in the same toolbar
   // row as the page's action buttons, so it has to track the same density
   // token or it renders 2px short of everything beside it.
-  "inline-flex items-center gap-2 rounded-full border border-border bg-background px-3.5 py-[var(--ds-btn-py,7px)] text-sm font-semibold text-foreground/80 shadow-sm transition-colors hover:border-primary/40 hover:text-foreground data-[active=true]:border-primary/50 data-[active=true]:bg-accent data-[active=true]:text-accent-foreground"
+  //
+  // h-[var(--ctl-h-sm)], not min-h: padding alone leaves the rendered
+  // height at the mercy of font-size/line-height/border like every other
+  // un-floored control CLAUDE.md warns about, and even a min-height floor
+  // only wins when the pill's own content is shorter than it — this pill's
+  // padding+border already exceeds --ctl-h-sm on its own, so a floor alone
+  // still rendered it a few px taller than a neighboring toggle button. A
+  // stated height (content vertically centered by items-center) is what
+  // actually guarantees every control in the same toolbar row lines up.
+  "inline-flex items-center gap-2 rounded-full border border-border bg-background px-3.5 h-[var(--ctl-h-sm,32px)] box-border text-sm font-semibold text-foreground/80 shadow-sm transition-colors hover:border-primary/40 hover:text-foreground data-[active=true]:border-primary/50 data-[active=true]:bg-accent data-[active=true]:text-accent-foreground"
 )
 
 function TriggerPill({

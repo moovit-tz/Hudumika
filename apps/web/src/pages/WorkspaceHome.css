@@ -258,7 +258,14 @@
   border-radius: 9px;
   overflow: hidden;
   background: var(--white);
-  height: 42px;
+  /* Was a raw 42px literal — taller than the --ctl-h-sm floor its own
+     buttons ask for inline, and taller than the filter pill/Settings link
+     beside it in the same toolbar row, so this one hardcoded height alone
+     was why "same-row" controls rendered at three different heights.
+     A flex child with no height of its own stretches to fill this box, so
+     stating the height here (not on each button) is what actually decides
+     it — matches CLAUDE.md's "height is stated, not derived" rule. */
+  height: var(--ctl-h-sm);
 }
 
 .wh-toggle-btn {

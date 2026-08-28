@@ -42,9 +42,9 @@ export function Calls() {
 
   const load = useCallback(async () => {
     try { const s = await apiFetch('/v1/hr/staff'); if (Array.isArray(s)) setStaff(s.filter((x: any) => x.id !== user?.id)); } catch { /* */ }
-    try { const p = await apiFetch('/v1/hr/presence'); if (p?.online) setOnline(new Set(p.online)); } catch { /* */ }
-    try { const h = await apiFetch('/v1/hr/calls'); if (Array.isArray(h)) setHistory(h); } catch { /* */ }
-    try { const cfg = await apiFetch('/v1/hr/config'); if (cfg?.iceServers) iceServers.current = cfg.iceServers; } catch { /* */ }
+    try { const p = await apiFetch('/v1/calls/presence'); if (p?.online) setOnline(new Set(p.online)); } catch { /* */ }
+    try { const h = await apiFetch('/v1/calls/direct'); if (Array.isArray(h)) setHistory(h); } catch { /* */ }
+    try { const cfg = await apiFetch('/v1/calls/config'); if (cfg?.iceServers) iceServers.current = cfg.iceServers; } catch { /* */ }
   }, [user?.id]);
   useEffect(() => { load(); }, [load]);
 
@@ -61,14 +61,14 @@ export function Calls() {
   const [creatingMeeting, setCreatingMeeting] = useState(false);
 
   const loadMeetings = useCallback(async () => {
-    try { const m = await apiFetch('/v1/hr/meetings'); if (Array.isArray(m)) setMeetings(m); } catch { /* */ }
+    try { const m = await apiFetch('/v1/calls/meetings'); if (Array.isArray(m)) setMeetings(m); } catch { /* */ }
   }, []);
   useEffect(() => { if (tab === 'meetings') loadMeetings(); }, [tab, loadMeetings]);
 
   async function startInstantMeeting() {
     setCreatingMeeting(true);
     try {
-      const m = await apiFetch('/v1/hr/meetings', { method: 'POST', body: JSON.stringify({ title: `${user?.name || 'Team'}'s meeting`, kind: 'VIDEO' }) });
+      const m = await apiFetch('/v1/calls/meetings', { method: 'POST', body: JSON.stringify({ title: `${user?.name || 'Team'}'s meeting`, kind: 'VIDEO' }) });
       setActiveMeetingId(m.id);
     } catch (e: any) { showAlert(e?.message || 'Could not start a meeting.'); }
     finally { setCreatingMeeting(false); }
@@ -80,18 +80,18 @@ export function Calls() {
     const [h, min] = schedTime.split(':').map(Number);
     const when = new Date(schedDate); when.setHours(h || 0, min || 0, 0, 0);
     try {
-      await apiFetch('/v1/hr/meetings', { method: 'POST', body: JSON.stringify({ title: schedTitle, kind: schedKind, scheduled_at: when.toISOString() }) });
+      await apiFetch('/v1/calls/meetings', { method: 'POST', body: JSON.stringify({ title: schedTitle, kind: schedKind, scheduled_at: when.toISOString() }) });
       setShowSchedule(false); setSchedTitle(''); setSchedDate(undefined); setSchedTime('09:00');
       loadMeetings();
     } catch (e: any) { showAlert(e?.message || 'Could not schedule that meeting.'); }
   }
 
   async function cancelMeeting(id: string) {
-    try { await apiFetch(`/v1/hr/meetings/${id}`, { method: 'DELETE' }); loadMeetings(); } catch (e: any) { showAlert(e?.message || 'Could not cancel.'); }
+    try { await apiFetch(`/v1/calls/meetings/${id}`, { method: 'DELETE' }); loadMeetings(); } catch (e: any) { showAlert(e?.message || 'Could not cancel.'); }
   }
 
   function copyJoinLink(m: MeetingRow) {
-    const url = `${window.location.origin}/nexushr/calls/meeting/${m.id}`;
+    const url = `${window.location.origin}/bliss/calls/meeting/${m.id}`;
     navigator.clipboard?.writeText(url);
   }
 
@@ -99,7 +99,7 @@ export function Calls() {
     const code = joinCodeInput.trim().toUpperCase();
     if (!code) return;
     try {
-      const m = await apiFetch(`/v1/hr/meetings/by-code/${encodeURIComponent(code)}`);
+      const m = await apiFetch(`/v1/calls/meetings/by-code/${encodeURIComponent(code)}`);
       setActiveMeetingId(m.id);
       setJoinCodeInput('');
     } catch { showAlert('No meeting found for that code.'); }
@@ -115,7 +115,7 @@ export function Calls() {
     if (remoteVideo.current) remoteVideo.current.srcObject = null;
     if (logStatus && callId.current) {
       const dur = answeredAt.current ? Math.round((Date.now() - answeredAt.current) / 1000) : 0;
-      apiFetch(`/v1/hr/calls/${callId.current}`, { method: 'PATCH', body: JSON.stringify({ status: logStatus, duration_seconds: dur }) }).then(load).catch(() => {});
+      apiFetch(`/v1/calls/direct/${callId.current}`, { method: 'PATCH', body: JSON.stringify({ status: logStatus, duration_seconds: dur }) }).then(load).catch(() => {});
     }
     callId.current = null; answeredAt.current = null;
     setElapsed(0); setMuted(false); setCamOff(false);
@@ -150,7 +150,7 @@ export function Calls() {
     // connection with nothing to attach — see calls.routes.ts's /signal.
     // No more raw access token riding in the URL (server/proxy logs,
     // browser history).
-    const wsUrl = BASE_URL.replace(/^http/, 'ws') + '/v1/hr/signal';
+    const wsUrl = BASE_URL.replace(/^http/, 'ws') + '/v1/calls/signal';
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 
@@ -172,7 +172,7 @@ export function Calls() {
             const pc = newPeerConnection(m.from);
             const offer = await pc.createOffer(); await pc.setLocalDescription(offer);
             send({ type: 'offer', to: m.from, sdp: offer });
-            if (callId.current) apiFetch(`/v1/hr/calls/${callId.current}`, { method: 'PATCH', body: JSON.stringify({ status: 'ONGOING' }) }).catch(() => {});
+            if (callId.current) apiFetch(`/v1/calls/direct/${callId.current}`, { method: 'PATCH', body: JSON.stringify({ status: 'ONGOING' }) }).catch(() => {});
             setCallState('in-call'); startTimer();
           } catch { setError('Could not start the call.'); cleanup('ENDED'); }
           break;
@@ -202,7 +202,7 @@ export function Calls() {
     setError(null); setKind(k); setPeer(person);
     try {
       await getMedia(k === 'VIDEO');
-      const rec = await apiFetch('/v1/hr/calls', { method: 'POST', body: JSON.stringify({ callee_id: person.id, kind: k }) });
+      const rec = await apiFetch('/v1/calls/direct', { method: 'POST', body: JSON.stringify({ callee_id: person.id, kind: k }) });
       callId.current = rec?.id || null;
       send({ type: 'ring', to: person.id, kind: k, callId: callId.current });
       setCallState('calling');
@@ -225,7 +225,7 @@ export function Calls() {
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <PageHeader crumbs={['NexusHR', 'Calls']} titlePlain="Voice &" titleEm="video"
+      <PageHeader crumbs={['Bliss', 'Calls']} titlePlain="Voice &" titleEm="video"
         subtitle="Call a colleague directly — peer-to-peer, with live presence and a record of every call." />
 
       {error && <div style={{ fontSize: 12.5, color: 'var(--red)', background: 'var(--red-l)', borderRadius: 8, padding: '8px 12px' }}>{error}</div>}

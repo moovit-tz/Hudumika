@@ -45,7 +45,7 @@ export function CallsMetrics() {
 
   useEffect(() => {
     setLoading(true);
-    apiFetch(`/v1/hr/metrics/calls?days=${days}`).then(setData).catch(() => setData(null)).finally(() => setLoading(false));
+    apiFetch(`/v1/calls/metrics?days=${days}`).then(setData).catch(() => setData(null)).finally(() => setLoading(false));
   }, [days]);
 
   if (loading && !data) return <div style={{ fontSize: 12.5, color: 'var(--ink3)', padding: 20 }}>Loading metrics…</div>;

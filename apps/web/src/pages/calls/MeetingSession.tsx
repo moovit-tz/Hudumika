@@ -27,7 +27,7 @@ export function MeetingSession({ meetingId, onExit }: { meetingId: string; onExi
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    apiFetch(`/v1/hr/meetings/${meetingId}`).then(m => { if (!cancelled) setMeeting(m); })
+    apiFetch(`/v1/calls/meetings/${meetingId}`).then(m => { if (!cancelled) setMeeting(m); })
       .catch(() => { if (!cancelled) setError('This meeting could not be found.'); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
@@ -35,7 +35,7 @@ export function MeetingSession({ meetingId, onExit }: { meetingId: string; onExi
 
   async function handleJoin(opts: { audioEnabled: boolean; videoEnabled: boolean }) {
     try {
-      const res = await apiFetch(`/v1/hr/meetings/${meetingId}/join`, { method: 'POST' });
+      const res = await apiFetch(`/v1/calls/meetings/${meetingId}/join`, { method: 'POST' });
       setMeeting(res.meeting);
       setJoined({ iceServers: res.iceServers, role: res.role, audioEnabled: opts.audioEnabled, videoEnabled: opts.videoEnabled });
     } catch (e: any) {

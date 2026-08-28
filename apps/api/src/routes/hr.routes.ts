@@ -76,7 +76,6 @@ async function ensureAttendanceSessionOpen(trx: any, tenantId: string, userId: s
   if (open) return; // already clocked in — a task switch must not reopen a session
 
   const dateStr = isoDate(now);
-  const timeStr = hhmm(now);
 
   await trx.insertInto('hr_clock_sessions').values({
     tenant_id: tenantId,
@@ -88,20 +87,7 @@ async function ensureAttendanceSessionOpen(trx: any, tenantId: string, userId: s
     total_break_minutes: 0,
   }).execute();
 
-  const att = await trx.selectFrom('hr_attendance').selectAll()
-    .where('tenant_id', '=', tenantId)
-    .where('user_id', '=', userId)
-    .where('date', '=', dateStr)
-    .executeTakeFirst();
-  if (att) {
-    await trx.updateTable('hr_attendance').set({
-      clock_in: att.clock_in || timeStr, status: 'PRESENT', recorded_by: userId, updated_at: new Date(),
-    }).where('id', '=', att.id).execute();
-  } else {
-    await trx.insertInto('hr_attendance').values({
-      tenant_id: tenantId, user_id: userId, date: dateStr, status: 'PRESENT', clock_in: timeStr, recorded_by: userId,
-    }).execute();
-  }
+  await syncAttendanceFromSessions(trx, tenantId, userId, dateStr, userId, 'PRESENT');
 }
 
 async function closeAttendanceSessionIfIdle(trx: any, tenantId: string, userId: string, now: Date) {
@@ -146,16 +132,7 @@ async function closeAttendanceSessionIfIdle(trx: any, tenantId: string, userId: 
     worked_minutes: workedMins, updated_at: now,
   }).where('id', '=', session.id).execute();
 
-  const att = await trx.selectFrom('hr_attendance').selectAll()
-    .where('tenant_id', '=', tenantId)
-    .where('user_id', '=', userId)
-    .where('date', '=', session.date)
-    .executeTakeFirst();
-  if (att) {
-    await trx.updateTable('hr_attendance').set({
-      clock_out: hhmm(now), worked_minutes: workedMins, updated_at: now,
-    }).where('id', '=', att.id).execute();
-  }
+  await syncAttendanceFromSessions(trx, tenantId, userId, session.date, userId);
 }
 
 /**
@@ -185,6 +162,61 @@ async function closeOpenTimeEntries(trx: any, tenantId: string, userId: string, 
   for (const e of open) {
     const dur = Math.max(0, Math.round((now.getTime() - new Date(e.started_at as any).getTime()) / 60000));
     await trx.updateTable('hr_time_entries').set({ ended_at: now, duration_minutes: dur, updated_at: now }).where('id', '=', e.id).execute();
+  }
+}
+
+/**
+ * Recomputes an hr_attendance row's clock_in/clock_out/worked_minutes from
+ * every hr_clock_sessions row that date, instead of whichever single
+ * session most recently wrote to it. A day genuinely can hold more than one
+ * session — a real clock session plus a manual backfill, a missed
+ * clock-out fixed by clocking in again, lunch taken outside the in-session
+ * break button — and hr_attendance is one row per day, so without this the
+ * admin Attendance dashboard's number is whichever session happened to
+ * write last, not the employee's real total. Called after every write to
+ * hr_clock_sessions for that user/date (start, stop, manual).
+ */
+async function syncAttendanceFromSessions(trx: any, tenantId: string, userId: string, dateStr: string, actorId: string, statusOverride?: string) {
+  const sessions = await trx.selectFrom('hr_clock_sessions')
+    .select(['clock_in_at', 'clock_out_at', 'worked_minutes', 'status'])
+    .where('tenant_id', '=', tenantId).where('user_id', '=', userId).where('date', '=', dateStr)
+    .execute();
+  if (sessions.length === 0) return;
+
+  const fmt = (d: Date) => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  let earliestIn: Date | null = null;
+  let latestOut: Date | null = null;
+  let totalWorked = 0;
+  for (const s of sessions) {
+    const inAt = new Date(s.clock_in_at as any);
+    if (!earliestIn || inAt < earliestIn) earliestIn = inAt;
+    if (s.status === 'COMPLETED') {
+      totalWorked += (s.worked_minutes as number) || 0;
+      if (s.clock_out_at) {
+        const outAt = new Date(s.clock_out_at as any);
+        if (!latestOut || outAt > latestOut) latestOut = outAt;
+      }
+    }
+  }
+
+  const existing = await trx.selectFrom('hr_attendance').select('id')
+    .where('tenant_id', '=', tenantId).where('user_id', '=', userId).where('date', '=', dateStr)
+    .executeTakeFirst();
+
+  const patch: Record<string, unknown> = {
+    clock_in: earliestIn ? fmt(earliestIn) : null,
+    clock_out: latestOut ? fmt(latestOut) : null,
+    worked_minutes: totalWorked,
+    recorded_by: actorId,
+    updated_at: new Date(),
+  };
+  if (statusOverride) patch.status = statusOverride;
+  if (existing) {
+    await trx.updateTable('hr_attendance').set(patch).where('id', '=', existing.id).execute();
+  } else {
+    await trx.insertInto('hr_attendance').values({
+      tenant_id: tenantId, user_id: userId, date: dateStr, status: statusOverride || 'PRESENT', ...patch,
+    }).execute();
   }
 }
 
@@ -637,30 +669,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
         total_break_minutes: 0,
       }).returningAll().executeTakeFirstOrThrow();
 
-      const att = await trx.selectFrom('hr_attendance')
-        .selectAll()
-        .where('tenant_id', '=', user.tenant_id)
-        .where('user_id', '=', user.sub)
-        .where('date', '=', dateStr)
-        .executeTakeFirst();
-
-      if (att) {
-        await trx.updateTable('hr_attendance').set({
-          clock_in: att.clock_in || timeStr,
-          status: 'PRESENT',
-          recorded_by: user.sub,
-          updated_at: new Date(),
-        }).where('id', '=', att.id).execute();
-      } else {
-        await trx.insertInto('hr_attendance').values({
-          tenant_id: user.tenant_id,
-          user_id: user.sub,
-          date: dateStr,
-          status: 'PRESENT',
-          clock_in: timeStr,
-          recorded_by: user.sub,
-        }).execute();
-      }
+      await syncAttendanceFromSessions(trx, user.tenant_id, user.sub, dateStr, user.sub, 'PRESENT');
 
       // Also open a header time entry so the top-bar check-in widget reflects it.
       await ensureTimeEntryOpen(trx, user.tenant_id, user.sub, now);
@@ -780,22 +789,18 @@ export async function hrRoutes(fastify: FastifyInstance) {
       }).where('id', '=', session.id).returningAll().executeTakeFirstOrThrow();
 
       const dateStr = session.date;
-      const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
-      const att = await trx.selectFrom('hr_attendance')
-        .selectAll()
-        .where('tenant_id', '=', user.tenant_id)
-        .where('user_id', '=', user.sub)
-        .where('date', '=', dateStr)
-        .executeTakeFirst();
-
-      if (att) {
-        await trx.updateTable('hr_attendance').set({
-          clock_out: timeStr,
-          worked_minutes: workedMins,
-          updated_at: now,
-        }).where('id', '=', att.id).execute();
-      }
+      // A day can hold several clock-in/out cycles (a real lunch break not
+      // taken via the in-session break button, a missed clock-out fixed by
+      // clocking in again, simple double-clicks) — hr_attendance used to be
+      // set from just *this* session's own clock_out/duration, so completing
+      // a second session silently overwrote (not added to) whatever the
+      // first one had already recorded, and the admin Attendance dashboard's
+      // number stopped tallying with the employee's own real total the
+      // moment a day had more than one session. syncAttendanceFromSessions
+      // recomputes clock_in (earliest)/clock_out (latest)/worked_minutes
+      // (sum) from every session that date, `completed` above included.
+      await syncAttendanceFromSessions(trx, user.tenant_id, user.sub, dateStr, user.sub);
 
       // Close the matching header time entry so the widget flips back to idle.
       await closeOpenTimeEntries(trx, user.tenant_id, user.sub, now);
@@ -931,34 +936,13 @@ export async function hrRoutes(fastify: FastifyInstance) {
         worked_minutes: workedMins,
       }).returningAll().executeTakeFirstOrThrow();
 
-      const existingAtt = await trx.selectFrom('hr_attendance')
-        .selectAll()
-        .where('tenant_id', '=', user.tenant_id)
-        .where('user_id', '=', targetUserId)
-        .where('date', '=', dateStr)
-        .executeTakeFirst();
-
-      if (existingAtt) {
-        await trx.updateTable('hr_attendance').set({
-          clock_in: body.clock_in,
-          clock_out: body.clock_out,
-          worked_minutes: workedMins,
-          status: body.status || 'PRESENT',
-          recorded_by: user.sub,
-          updated_at: new Date(),
-        }).where('id', '=', existingAtt.id).execute();
-      } else {
-        await trx.insertInto('hr_attendance').values({
-          tenant_id: user.tenant_id,
-          user_id: targetUserId,
-          date: dateStr,
-          status: body.status || 'PRESENT',
-          clock_in: body.clock_in,
-          clock_out: body.clock_out,
-          worked_minutes: workedMins,
-          recorded_by: user.sub,
-        }).execute();
-      }
+      // Same fix as /clock-in/stop: a day can already hold a real clocked
+      // session (or an earlier manual entry) before this one is added, so
+      // hr_attendance has to be recomputed from every session that date —
+      // clock_in earliest, clock_out latest, worked_minutes summed — not
+      // just overwritten with this one entry's own values, or adding a
+      // second entry silently erases the first one from the admin's view.
+      await syncAttendanceFromSessions(trx, user.tenant_id, targetUserId, dateStr, user.sub, body.status || 'PRESENT');
 
       return { ok: true, session };
     });
@@ -1486,6 +1470,31 @@ export async function hrRoutes(fastify: FastifyInstance) {
   });
 
   // ── Recruitment: job openings & candidate pipeline ────────────
+
+  // GET /recruitment/interviews/upcoming — every scheduled interview across
+  // every opening, for the dashboard's "Upcoming Interviews" widget. The
+  // existing /openings/:id/candidates route only ever returns one opening's
+  // slice; this is the flat, tenant-wide view nothing else needed until now.
+  fastify.get('/recruitment/interviews/upcoming', async (req) => {
+    const user = req.user;
+    const limit = Math.min(Number((req.query as any)?.limit) || 6, 20);
+    return withTenant(user.tenant_id, async (trx) => {
+      return trx.selectFrom('hr_interviews as i')
+        .innerJoin('hr_candidates as c', 'c.id', 'i.candidate_id')
+        .leftJoin('users as u', 'u.id', 'i.interviewer_id')
+        .select([
+          'i.id', 'i.scheduled_at', 'i.mode', 'i.status',
+          'c.id as candidate_id', 'c.name as candidate_name',
+          'u.name as interviewer_name',
+        ])
+        .where('i.tenant_id', '=', user.tenant_id)
+        .where('i.status', '=', 'SCHEDULED')
+        .where('i.scheduled_at', '>=', new Date())
+        .orderBy('i.scheduled_at', 'asc')
+        .limit(limit)
+        .execute();
+    });
+  });
 
   fastify.get('/recruitment/openings', async (req) => {
     const user = req.user;
