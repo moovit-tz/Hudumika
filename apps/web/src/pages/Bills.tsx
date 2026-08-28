@@ -10,6 +10,7 @@ import { PageHeader } from '../components/PageHeader.js';
 import { EntityPicker, PickerItem } from '../components/EntityPicker.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Combobox } from '../components/ui/combobox.js';
+import { Button } from '../components/ui/button.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { showAlert } from '../lib/alert.js';
 import { useTaxCodes } from '../data/taxCodeData.js';
@@ -239,7 +240,7 @@ function PayModal({ bill, onPay, onClose }: {
         <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
           <button type="button" title="Cancel" onClick={onClose} style={{ padding:'var(--ds-btn-py) 18px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:13, color:'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
           <button type="button" title="Confirm payment" disabled={amount <= 0 || amount > balance} onClick={() => onPay(amount, date, method, ref, note)}
-            style={{ padding:'var(--ds-btn-py) 20px', border:'none', borderRadius: 'var(--r)', background: amount > 0 && amount <= balance ? 'var(--teal)' : 'var(--border)', color:'#fff', cursor: amount > 0 && amount <= balance ? 'pointer' : 'default', fontWeight:700, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+            style={{ padding:'var(--ds-btn-py) 20px', border:'none', borderRadius: 'var(--r)', background: amount > 0 && amount <= balance ? 'hsl(var(--primary))' : 'var(--border)', color: amount > 0 && amount <= balance ? 'hsl(var(--primary-foreground))' : 'var(--ink3)', cursor: amount > 0 && amount <= balance ? 'pointer' : 'default', fontWeight:700, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
             Confirm Payment
           </button>
         </div>
@@ -788,7 +789,7 @@ function DetailView({ bill, payments, supplierMap, onBack, onEdit, onPay, onPost
               style={{ width:'100%', padding:'7px 9px', borderRadius:6, border:'1px solid var(--border)', background:'var(--white)', color:'var(--ink)', fontSize:12.5, fontFamily:'var(--mono)', outline:'none', boxSizing:'border-box' as const, marginBottom:8 }}
             />
             <button type="button" onClick={runVerify} disabled={!efdInput.trim() || efdChecking}
-              style={{ width:'100%', padding:'var(--ds-btn-py) 0', borderRadius:'var(--r)', border:'none', background: efdChecking ? 'var(--ink3)' : 'var(--teal)', color:'#fff', fontSize:13, fontWeight:700, cursor: efdChecking ? 'default' : 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+              style={{ width:'100%', padding:'var(--ds-btn-py) 0', borderRadius:'var(--r)', border:'none', background: efdChecking ? 'var(--ink3)' : 'hsl(var(--primary))', color: efdChecking ? 'var(--white)' : 'hsl(var(--primary-foreground))', fontSize:13, fontWeight:700, cursor: efdChecking ? 'default' : 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
               {efdChecking ? 'Checking with TRA…' : 'Verify against TRA'}
             </button>
             {efdError && <div style={{ marginTop:8, fontSize:11.5, color:'var(--red)' }}>{efdError}</div>}
@@ -1113,7 +1114,7 @@ export const Bills: React.FC = () => {
             <div style={{ fontSize:13, color:'var(--ink2)', marginBottom:20 }}>Void <strong>{voidTarget.bill_number}</strong>? This cannot be undone. Payments already recorded will remain.</div>
             <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
               <button type="button" title="Cancel" onClick={() => setVoidTarget(null)} style={{ padding:'var(--ds-btn-py) 18px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:13, color:'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
-              <button type="button" title="Confirm void" onClick={() => handleVoid(voidTarget)} style={{ padding:'var(--ds-btn-py) 18px', border:'none', borderRadius: 'var(--r)', background:'var(--red)', color:'#fff', cursor:'pointer', fontWeight:600, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Void Bill</button>
+              <Button type="button" variant="destructive" title="Confirm void" onClick={() => handleVoid(voidTarget)}>Void Bill</Button>
             </div>
           </div>
         </div>

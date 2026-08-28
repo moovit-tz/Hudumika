@@ -74,7 +74,7 @@ export const SuperAdminReferrals: React.FC = () => {
   };
 
   return (
-    <div style={{ padding: '24px 28px' }}>
+    <div>
       <PageHeader
         crumbs={['Admin', 'Referrals']}
         titlePlain="Referral"

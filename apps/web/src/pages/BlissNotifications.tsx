@@ -3,6 +3,7 @@ import { usePageSEO } from "../hooks/usePageSEO.js";
 import { Icon } from "../components/Icon.js";
 import { apiFetch } from "../lib/api.js";
 import { NOTIF_TYPE_CFG, notifRelTime } from "../components/NotificationListItem.js";
+import { PageHeader } from "../components/PageHeader.js";
 import "./BlissNotifications.css";
 
 const PAGE_SIZE = 30;
@@ -134,22 +135,24 @@ export function BlissNotifications() {
         style={selected && listWidth != null ? ({ "--bnc-list-w": `${listWidth}px` } as React.CSSProperties) : undefined}
       >
         <div className="bnc-left-hdr">
-          <div className="bnc-left-hdr-top">
-            <div className="bnc-title-block">
-              <span className="bnc-title">Notifications</span>
-              {unreadCount > 0 && <span className="bnc-badge">{unreadCount}</span>}
-            </div>
-            <div className="bnc-hdr-actions">
-              {unreadCount > 0 && (
-                <button type="button" className="bnc-icon-btn" title="Mark all read" onClick={handleMarkAllRead}>
-                  <Icon name="checkCircle" size={15} />
+          <PageHeader
+            crumbs={['Support', 'Notifications']}
+            titlePlain="Notification"
+            titleEm="centre"
+            subtitle={unreadCount > 0 ? `${unreadCount} unread · every notification across the platform, in one place.` : 'Every notification across the platform, in one place.'}
+            actions={
+              <div className="bnc-hdr-actions">
+                {unreadCount > 0 && (
+                  <button type="button" className="bnc-icon-btn" title="Mark all read" onClick={handleMarkAllRead}>
+                    <Icon name="checkCircle" size={15} />
+                  </button>
+                )}
+                <button type="button" className="bnc-icon-btn" title="Refresh" onClick={() => load(offset, tab)}>
+                  <Icon name="refresh" size={15} />
                 </button>
-              )}
-              <button type="button" className="bnc-icon-btn" title="Refresh" onClick={() => load(offset, tab)}>
-                <Icon name="refresh" size={15} />
-              </button>
-            </div>
-          </div>
+              </div>
+            }
+          />
           <div className="bnc-search-wrap">
             <Icon name="search" size={14} className="bnc-search-icon" />
             <input

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
@@ -43,9 +43,9 @@ const ACTIVITY_COLORS = ['#9333ea', '#f59e0b', 'var(--teal)', 'var(--purple)', '
 const PLAN_COLORS = ['#4f46e5', 'var(--teal)', '#10b981', '#ec4899', 'var(--blue)'];
 
 function fmtDate(d: string | null | undefined): string {
-  if (!d) return '—';
+  if (!d) return 'â€”';
   const date = new Date(d);
-  return isNaN(date.getTime()) ? '—' : date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  return isNaN(date.getTime()) ? 'â€”' : date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 /* -- Compact stat tile, used inside the Tax & Compliance card -- */
@@ -142,7 +142,7 @@ export const FinanceDashboard: React.FC = () => {
     const invoicesThisMonthAmount = invoicesThisMonth.reduce((s, i) => s + i.total, 0);
 
     // Invoiced-in-period, keyed by the Overview/This Year/All Time tabs above
-    // the Clearance Overview card. Those tabs used to only move an underline —
+    // the Clearance Overview card. Those tabs used to only move an underline â€”
     // the figures under them never changed with the selection.
     const invoicesThisYear = invoices.filter(i => i.date && i.date >= yearStart);
     const invoicedByPeriod = {
@@ -151,7 +151,7 @@ export const FinanceDashboard: React.FC = () => {
       alltime: { amount: totalRevenue, count: invoices.length },
     };
 
-    // Top customers by revenue — real substitute for a "top service plans" breakdown
+    // Top customers by revenue â€” real substitute for a "top service plans" breakdown
     // that had no equivalent concept anywhere in the real invoice/shipment model.
     const byClient = new Map<string, number>();
     invoices.forEach(i => byClient.set(i.mapped.client || 'Unknown', (byClient.get(i.mapped.client || 'Unknown') || 0) + i.total));
@@ -159,9 +159,9 @@ export const FinanceDashboard: React.FC = () => {
       .sort((a, b) => b[1] - a[1]).slice(0, 5)
       .map(([name, amt], idx) => ({ name, pct: totalRevenue > 0 ? Math.round((amt / totalRevenue) * 1000) / 10 : 0, color: PLAN_COLORS[idx % PLAN_COLORS.length] }));
 
-    // Recent activity — merged real invoice/bill/payment events, not fabricated
+    // Recent activity â€” merged real invoice/bill/payment events, not fabricated
     // names. `kind` backs the All/Cancel filter below: 'cancel' only for
-    // invoices actually credited and bills actually voided — real status
+    // invoices actually credited and bills actually voided â€” real status
     // fields, not a filter invented to give the toggle something to do.
     const events: { name: string; action: string; time: string; ts: number; color: string; kind: 'all' | 'cancel' }[] = [];
     invoices.forEach(i => {
@@ -196,7 +196,7 @@ export const FinanceDashboard: React.FC = () => {
     { title: t('finance.totalDisbursements'), value: fmt(derived.totalWithdraw, 'TZS'), sub1Value: fmt(derived.monthWithdraw, 'TZS'), sub2Value: fmt(derived.weekWithdraw, 'TZS'),    barHighlight: 'var(--red)', invertTrend: true },
     // Real GL cash balance (account 1010/1001), not the naive
     // invoiced-minus-billed subtraction the old "Balance in Account" card
-    // used — that number never reflected actual cash received or paid.
+    // used â€” that number never reflected actual cash received or paid.
     { title: 'Cash & Bank', icon: 'wallet' as const, value: fmt(snapshot?.cash?.total ?? 0, 'TZS'), sub1Label: 'TZS BANK', sub1Value: fmt(snapshot?.cash?.tzs ?? 0, 'TZS'), sub2Label: snapshot?.cash?.usd ? 'USD BANK' : 'CASH ON HAND', sub2Value: fmt(snapshot?.cash?.usd || snapshot?.cash?.onHand || 0, snapshot?.cash?.usd ? 'USD' : 'TZS'), barHighlight: 'var(--blue)' },
   ];
 
@@ -221,7 +221,7 @@ export const FinanceDashboard: React.FC = () => {
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1.3fr 1fr', gap: 16, marginBottom: 16 }}>
 
           {/* Investment Overview */}
-          <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '18px 20px', boxShadow: 'var(--shadow-sm)' }}>
+          <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '18px 20px', boxShadow: 'var(--elev-sm)' }}>
             <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--navy)', marginBottom: 4 }}>{t('finance.clearanceOverview')}</div>
             <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 14 }}>
               {t('finance.revenueOverviewOf')}{' '}
@@ -265,7 +265,7 @@ export const FinanceDashboard: React.FC = () => {
               </div>
             </div>
 
-            {/* Invoiced in period — reflects the Overview/This Year/All Time
+            {/* Invoiced in period â€” reflects the Overview/This Year/All Time
                 tabs above. Those tabs used to only move the underline; the
                 figures underneath never changed with the selection. */}
             <div>
@@ -288,7 +288,7 @@ export const FinanceDashboard: React.FC = () => {
           </div>
 
           {/* Top Customers by Revenue */}
-          <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '18px 20px', boxShadow: 'var(--shadow-sm)' }}>
+          <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '18px 20px', boxShadow: 'var(--elev-sm)' }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 4 }}>
               <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--navy)' }}>Top Customers</div>
               <button
@@ -320,7 +320,7 @@ export const FinanceDashboard: React.FC = () => {
           </div>
 
           {/* Recent Activities */}
-          <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '18px 20px', boxShadow: 'var(--shadow-sm)', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '18px 20px', boxShadow: 'var(--elev-sm)', display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--navy)' }}>{t('finance.recentActivities')}</div>
               <div style={{ display: 'flex', gap: 2 }}>
@@ -356,7 +356,7 @@ export const FinanceDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* -- ROW 3: Action Required — only the things someone here actually
+        {/* -- ROW 3: Action Required â€” only the things someone here actually
                has to act on (bills/expenses stuck in an approval queue).
                Rendered only when there's real work waiting, not as a
                permanent empty slot. -- */}
@@ -389,25 +389,25 @@ export const FinanceDashboard: React.FC = () => {
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16, marginBottom: 16 }}>
 
           {/* Receivables & Payables */}
-          <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '18px 20px', boxShadow: 'var(--shadow-sm)' }}>
+          <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '18px 20px', boxShadow: 'var(--elev-sm)' }}>
             <SHdr title="Receivables & Payables" />
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div onClick={() => navigate('/finance/accounts/aged-receivables')} style={{ cursor: 'pointer', padding: '12px 14px', background: 'var(--bg)', borderRadius: 8 }}>
                 <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Outstanding AR</div>
                 <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--navy)', letterSpacing: '-0.3px' }}>{fmt(snapshot?.receivables?.total ?? 0, 'TZS')}</div>
-                <div style={{ fontSize: 11, color: 'var(--red)', marginTop: 3 }}>{fmt(snapshot?.receivables?.overdue ?? 0, 'TZS')} overdue · {snapshot?.receivables?.count ?? 0} invoices</div>
+                <div style={{ fontSize: 11, color: 'var(--red)', marginTop: 3 }}>{fmt(snapshot?.receivables?.overdue ?? 0, 'TZS')} overdue Â· {snapshot?.receivables?.count ?? 0} invoices</div>
               </div>
               <div onClick={() => navigate('/finance/accounts/aged-payables')} style={{ cursor: 'pointer', padding: '12px 14px', background: 'var(--bg)', borderRadius: 8 }}>
                 <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Outstanding AP</div>
                 <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--navy)', letterSpacing: '-0.3px' }}>{fmt(snapshot?.payables?.total ?? 0, 'TZS')}</div>
-                <div style={{ fontSize: 11, color: 'var(--red)', marginTop: 3 }}>{fmt(snapshot?.payables?.overdue ?? 0, 'TZS')} overdue · {snapshot?.payables?.count ?? 0} bills</div>
+                <div style={{ fontSize: 11, color: 'var(--red)', marginTop: 3 }}>{fmt(snapshot?.payables?.overdue ?? 0, 'TZS')} overdue Â· {snapshot?.payables?.count ?? 0} bills</div>
               </div>
             </div>
           </div>
 
           {/* This Month P&L */}
-          <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '18px 20px', boxShadow: 'var(--shadow-sm)' }}>
-            <SHdr title="This Month — Profit & Loss" action="Full report" onAction={() => navigate('/finance/accounts/profit-loss')} />
+          <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '18px 20px', boxShadow: 'var(--elev-sm)' }}>
+            <SHdr title="This Month â€” Profit & Loss" action="Full report" onAction={() => navigate('/finance/accounts/profit-loss')} />
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
               <StatTile label="Revenue" value={fmt(snapshot?.profitLoss?.month?.revenue ?? 0, 'TZS')} />
               <StatTile label="Expenses" value={fmt(snapshot?.profitLoss?.month?.expenses ?? 0, 'TZS')} />
@@ -416,19 +416,19 @@ export const FinanceDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* -- ROW 5: Tax & Compliance snapshot — the real numbers behind
+        {/* -- ROW 5: Tax & Compliance snapshot â€” the real numbers behind
                WHT/CIT/deferred tax have never had a dedicated page anywhere
                in the app; this is the first place a user can see them at
                all. Deferred tax is explicitly labelled to its actual scope
                (fixed-asset timing differences only), not shown as if it
                were the whole deferred-tax picture. -- */}
-        <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '18px 20px', boxShadow: 'var(--shadow-sm)', marginBottom: 16 }}>
+        <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '18px 20px', boxShadow: 'var(--elev-sm)', marginBottom: 16 }}>
           <SHdr title="Tax & Compliance" action="VAT periods" onAction={() => navigate('/finance/vat-periods')} />
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: 12 }}>
             <StatTile
-              label="VAT — open period"
+              label="VAT â€” open period"
               value={snapshot?.tax?.vat ? (snapshot.tax.vat.netPayable != null ? fmt(snapshot.tax.vat.netPayable, 'TZS') : 'Unable to compute') : 'No open period'}
-              sub={snapshot?.tax?.vat ? `${fmtDate(snapshot.tax.vat.periodStart)} – ${fmtDate(snapshot.tax.vat.periodEnd)}` : undefined}
+              sub={snapshot?.tax?.vat ? `${fmtDate(snapshot.tax.vat.periodStart)} â€“ ${fmtDate(snapshot.tax.vat.periodEnd)}` : undefined}
               tone={snapshot?.tax?.vat?.netPayable > 0 ? 'warning' : 'neutral'}
             />
             <StatTile
@@ -440,7 +440,7 @@ export const FinanceDashboard: React.FC = () => {
             <StatTile
               label="Corporate Income Tax Payable"
               value={fmt(snapshot?.tax?.cit?.payable ?? 0, 'TZS')}
-              sub={snapshot?.tax?.cit?.latestReturn ? `${snapshot.tax.cit.latestReturn.ratePct}% · ${snapshot.tax.cit.latestReturn.status} return to ${fmtDate(snapshot.tax.cit.latestReturn.periodEnd)}` : 'No return computed yet'}
+              sub={snapshot?.tax?.cit?.latestReturn ? `${snapshot.tax.cit.latestReturn.ratePct}% Â· ${snapshot.tax.cit.latestReturn.status} return to ${fmtDate(snapshot.tax.cit.latestReturn.periodEnd)}` : 'No return computed yet'}
               tone={(snapshot?.tax?.cit?.payable ?? 0) > 0 ? 'warning' : 'neutral'}
             />
             <StatTile
@@ -455,7 +455,7 @@ export const FinanceDashboard: React.FC = () => {
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.3fr 1fr', gap: 16 }}>
 
           {/* Top Customers by Revenue */}
-          <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '18px 20px', boxShadow: 'var(--shadow-sm)' }}>
+          <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '18px 20px', boxShadow: 'var(--elev-sm)' }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 4 }}>
               <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--navy)' }}>Top Customers</div>
               <button
@@ -488,7 +488,7 @@ export const FinanceDashboard: React.FC = () => {
 
           {/* Fixed Assets + Period Close */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div onClick={() => navigate('/finance/accounts/fixed-assets')} style={{ cursor: 'pointer', background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '16px 18px', boxShadow: 'var(--shadow-sm)', display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div onClick={() => navigate('/finance/accounts/fixed-assets')} style={{ cursor: 'pointer', background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '16px 18px', boxShadow: 'var(--elev-sm)', display: 'flex', alignItems: 'center', gap: 12 }}>
               <div style={{ width: 38, height: 38, borderRadius: 9, background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Icon name="package" size={17} strokeWidth={1.75} style={{ color: 'var(--teal)' } as React.CSSProperties} />
               </div>
@@ -498,7 +498,7 @@ export const FinanceDashboard: React.FC = () => {
               </div>
               <Icon name="chevronRight" size={15} style={{ color: 'var(--ink3)' } as React.CSSProperties} />
             </div>
-            <div onClick={() => navigate('/finance/accounts/gl-periods')} style={{ cursor: 'pointer', background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '16px 18px', boxShadow: 'var(--shadow-sm)', display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div onClick={() => navigate('/finance/accounts/gl-periods')} style={{ cursor: 'pointer', background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '16px 18px', boxShadow: 'var(--elev-sm)', display: 'flex', alignItems: 'center', gap: 12 }}>
               <div style={{ width: 38, height: 38, borderRadius: 9, background: 'var(--blue-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Icon name="lock" size={16} strokeWidth={1.75} style={{ color: 'var(--blue)' } as React.CSSProperties} />
               </div>

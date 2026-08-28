@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import './Seal.css';
@@ -287,7 +288,12 @@ export function SealCompartmentEdit() {
 
             <div>
               <label className="seal-field-label">License Expiry Date</label>
-              <input type="date" className="input-field" value={licenceExpiry} onChange={e => setLicenceExpiry(e.target.value)} />
+              <DatePicker
+                date={parseDateOnly(licenceExpiry)}
+                onChange={d => setLicenceExpiry(toDateOnlyString(d))}
+                placeholder="Select date"
+                triggerClassName="w-full"
+              />
             </div>
 
             <div>

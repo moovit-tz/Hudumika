@@ -151,6 +151,10 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
       const userId = field('user_id') || (request.query as any)?.user_id || null;
       const name = (field('name') || data.filename || '').trim();
       const type = (field('type') || 'OTHER').trim().toUpperCase();
+      const expiryDate = field('expiry_date') ? new Date(field('expiry_date')!) : null;
+      const category = (field('category') || 'GENERAL').trim().toUpperCase();
+      const isMandatory = field('is_mandatory') === 'true';
+
       if (!name) return reply.status(400).send({ error: 'A document name is required.' });
 
       // Validated before the file is written, so a refusal leaves nothing behind.
@@ -164,8 +168,6 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
 
       try {
         const buffer = await data.toBuffer();
-        // Unattached documents are filed under the tenant rather than refused —
-        // a policy or a template belongs to nobody in particular.
         const up = await MinioIntegration.uploadHrDocument(
           user.tenant_id, userId ?? 'unattached', data.filename || name, buffer);
 
@@ -176,18 +178,108 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
             name,
             type,
             storage_key: up.storageKey,
-            // A freshly uploaded file has not been checked by anyone yet, and
-            // saying otherwise would make the verify step meaningless.
-            status: 'PENDING',
+            status: 'ACTIVE',
+            approval_status: 'PENDING_APPROVAL',
+            expiry_date: expiryDate,
+            category,
+            is_mandatory: isMandatory,
           }).returningAll().executeTakeFirstOrThrow());
 
-        // Mirror into Employees ▸ <name> in Cloud — a no-op when userId is
-        // null (an unattached policy/template has nothing to link to).
         CloudSync.syncEmployeeDoc(user.tenant_id, {
           userId, filename: data.filename || name, buffer, mime: data.mimetype,
         }).catch(err => console.error('[Cloud] employee document sync failed:', err.message));
 
         return row;
+      } catch (err: any) {
+        return reply.status(500).send({ error: err.message });
+      }
+    });
+
+  fastify.patch('/documents/:id/review',
+    { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') },
+    async (request: any, reply) => {
+      try {
+        const { id } = request.params;
+        const { approval_status, review_notes } = request.body || {};
+        if (!['APPROVED', 'REJECTED'].includes(approval_status)) {
+          return reply.status(400).send({ error: 'approval_status must be APPROVED or REJECTED' });
+        }
+        return await NexusHRService.reviewDocument(
+          request.user.tenant_id, id, request.user.sub, approval_status, review_notes
+        );
+      } catch (err: any) {
+        return reply.status(400).send({ error: err.message });
+      }
+    });
+
+  fastify.get('/documents/expiry-radar', async (request: any, reply) => {
+    try {
+      return await NexusHRService.getExpiryRadar(request.user.tenant_id);
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  fastify.get('/document-requirements', async (request: any, reply) => {
+    try {
+      return await NexusHRService.getDocumentRequirements(request.user.tenant_id);
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  fastify.post('/documents/generate-letter',
+    { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') },
+    async (request: any, reply) => {
+      try {
+        const { template_id, user_id, variables } = request.body || {};
+        if (!template_id) return reply.status(400).send({ error: 'template_id is required' });
+
+        const tenantId = request.user.tenant_id;
+        const template = await withTenant(tenantId, trx =>
+          trx.selectFrom('hr_document_templates').selectAll()
+            .where('id', '=', template_id).where('tenant_id', '=', tenantId)
+            .executeTakeFirst());
+        if (!template) return reply.status(404).send({ error: 'Template not found' });
+
+        let empName = 'Employee';
+        if (user_id) {
+          const emp = await withTenant(tenantId, trx =>
+            trx.selectFrom('users').select(['name', 'email']).where('id', '=', user_id).executeTakeFirst());
+          if (emp) empName = emp.name;
+        }
+
+        // Replace placeholders in HTML template body
+        let renderedHtml = template.body;
+        const vars = {
+          '{employee_name}': empName,
+          '{tenant_name}': request.user.tenant_name || 'Organization',
+          '{joining_date}': new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+          ...variables
+        };
+
+        for (const [k, v] of Object.entries(vars)) {
+          renderedHtml = renderedHtml.split(k).join(String(v));
+        }
+
+        // Store generated HTML as document file
+        const filename = `${template.name.replace(/[^a-zA-Z0-9]/g, '_')}_${empName.replace(/[^a-zA-Z0-9]/g, '_')}.html`;
+        const buffer = Buffer.from(renderedHtml, 'utf-8');
+        const up = await MinioIntegration.uploadHrDocument(tenantId, user_id ?? 'unattached', filename, buffer);
+
+        const doc = await withTenant(tenantId, trx =>
+          trx.insertInto('hr_documents').values({
+            tenant_id: tenantId,
+            user_id: user_id ?? null,
+            name: `${template.name} - ${empName}`,
+            type: template.type,
+            storage_key: up.storageKey,
+            status: 'ACTIVE',
+            approval_status: 'APPROVED',
+            category: 'LETTER',
+          }).returningAll().executeTakeFirstOrThrow());
+
+        return { success: true, document: doc, html: renderedHtml };
       } catch (err: any) {
         return reply.status(500).send({ error: err.message });
       }

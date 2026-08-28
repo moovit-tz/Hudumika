@@ -20,6 +20,8 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .trk-select {
@@ -60,8 +62,8 @@
   padding: var(--ds-btn-py) 20px;
   border-radius: 9px;
   border: none;
-  background: var(--trk-brand, #0891b2);
-  color: #fff;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
   font-family: var(--font);
   font-size: 14px;
   font-weight: 700;
@@ -255,8 +257,8 @@
 }
 
 .trk-pill.active {
-  background: var(--trk-brand, #0891b2);
-  color: #fff;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
 }
 
 .trk-pill.inactive {
@@ -404,7 +406,7 @@
 
 .trk-vcard-load-bar-fill {
   height: 100%;
-  background: var(--trk-brand, #0891b2);
+  background: var(--teal);
   border-radius: 3px;
 }
 
@@ -517,7 +519,7 @@
 
 .trk-page-btn:hover:not(:disabled) { background: var(--bg); }
 .trk-page-btn:disabled { opacity: 0.4; cursor: default; }
-.trk-page-btn.active { background: var(--trk-brand, #0891b2); border-color: var(--trk-brand, #0891b2); color: #fff; }
+.trk-page-btn.active { background: hsl(var(--primary)); border-color: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }
 
 @media (max-width: 768px) {
   .trk-vlist-item {
@@ -544,4 +546,14 @@
   .trk-fleet-header-controls { flex-direction: column; align-items: stretch; }
   .trk-search-bar { width: 100%; }
   .trk-primary-btn { justify-content: center; }
+}
+
+/* PageHeader's actions slot (.trk-actions: search + date-range Select +
+   refresh) has no room to sit on one row once the header's own title block
+   also needs space — wraps as a block above, but the search bar itself
+   still needs to go full-width or it wraps mid-way and looks cramped. */
+@media (max-width: 480px) {
+  .trk-actions .trk-search-bar {
+    width: 100%;
+  }
 }

@@ -703,7 +703,7 @@ export const Expenses: React.FC = () => {
       {/* ── Bulk Upload Modal — bulk CSV paste stays a dialog, unlike single Add Expense ── */}
       {showBulkUpload && (
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowBulkUpload(false)}>
-          <div className="card" style={{ width: '90%', maxWidth: 540, padding: 24, borderRadius: 9, boxShadow: 'var(--shadow-lg)' }}>
+          <div className="card" style={{ width: '90%', maxWidth: 540, padding: 24, borderRadius: 9, boxShadow: 'var(--elev-lg)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
               <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--navy)' }}>Bulk Upload Expenses</h2>
               <button type="button" className="dp-close" onClick={() => setShowBulkUpload(false)}>×</button>

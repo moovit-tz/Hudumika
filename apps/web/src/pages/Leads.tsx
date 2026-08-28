@@ -841,7 +841,7 @@ export const Leads: React.FC = () => {
         {/* Add/Edit modal (reused from list) */}
         {showAdd && (
           <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowAdd(false)}>
-            <div className="card" style={{ width: '90%', maxWidth: 580, padding: 28, borderRadius: 9, boxShadow: 'var(--shadow-lg)', maxHeight: '92vh', overflowY: 'auto' }}>
+            <div className="card" style={{ width: '90%', maxWidth: 580, padding: 28, borderRadius: 9, boxShadow: 'var(--elev-lg)', maxHeight: '92vh', overflowY: 'auto' }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 22 }}>
                 <h2 style={{ fontSize: 17, fontWeight: 700, color: 'var(--navy)', margin: 0 }}>{editingId ? 'Edit Lead' : 'Add New Lead'}</h2>
                 <button type="button" className="dp-close" aria-label="Close" onClick={() => { setShowAdd(false); setAddForm({ ...EMPTY_FORM }); setEditingId(null); }}>×</button>
@@ -959,7 +959,7 @@ export const Leads: React.FC = () => {
           relative to the title/breadcrumb above it. */}
       <div style={{ padding: '0 0 28px' }}>
         {/* ── Table card ── */}
-        <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)', overflow: 'hidden' }}>
+        <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', boxShadow: 'var(--elev-sm)', overflow: 'hidden' }}>
 
           {/* Toolbar */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px', borderBottom: '1px solid var(--border)', flexWrap: 'wrap' }}>
@@ -1115,7 +1115,7 @@ export const Leads: React.FC = () => {
       {/* Add/Edit modal */}
       {showAdd && (
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowAdd(false)}>
-          <div className="card" style={{ width: '90%', maxWidth: 580, padding: 28, borderRadius: 9, boxShadow: 'var(--shadow-lg)', maxHeight: '92vh', overflowY: 'auto' }}>
+          <div className="card" style={{ width: '90%', maxWidth: 580, padding: 28, borderRadius: 9, boxShadow: 'var(--elev-lg)', maxHeight: '92vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 22 }}>
               <div>
                 <h2 style={{ fontSize: 17, fontWeight: 700, color: 'var(--navy)', margin: 0 }}>{editingId ? 'Edit Lead' : 'Add New Lead'}</h2>

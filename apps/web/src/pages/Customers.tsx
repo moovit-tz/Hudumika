@@ -991,7 +991,7 @@ export const Customers: React.FC = () => {
         {/* Create modal */}
         {showCreate && (
           <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowCreate(false)}>
-            <div className="card" style={{ width: '90%', maxWidth: 480, padding: 24, borderRadius: 9, boxShadow: 'var(--shadow-lg)' }}>
+            <div className="card" style={{ width: '90%', maxWidth: 480, padding: 24, borderRadius: 9, boxShadow: 'var(--elev-lg)' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
                 <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--navy)', margin: 0 }}>New Customer</h2>
                 <button type="button" className="dp-close" onClick={() => setShowCreate(false)}>×</button>
@@ -1462,7 +1462,7 @@ export const Customers: React.FC = () => {
           {/* Add / Edit Contact modal */}
           {showAddContact && (
             <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) { setShowAddContact(false); setContactForm({ name: '', email: '', phone: '', role: '' }); } }}>
-              <div className="card" style={{ width: '90%', maxWidth: 440, padding: 24, borderRadius: 9, boxShadow: 'var(--shadow-lg)' }}>
+              <div className="card" style={{ width: '90%', maxWidth: 440, padding: 24, borderRadius: 9, boxShadow: 'var(--elev-lg)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
                   <h2 style={{ fontSize: 15, fontWeight: 700, color: 'var(--navy)', margin: 0 }}>{contactForm.name ? 'Edit Contact' : 'Add Contact Person'}</h2>
                   <button type="button" className="dp-close" aria-label="Close" onClick={() => { setShowAddContact(false); setContactForm({ name: '', email: '', phone: '', role: '' }); }}>×</button>
@@ -2060,7 +2060,7 @@ export const Customers: React.FC = () => {
           {/* Link existing file modal */}
           {showLinkFileModal && (
             <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) { setShowLinkFileModal(false); setFileSearch(''); setFileSearchResults([]); } }}>
-              <div className="card" style={{ width: '90%', maxWidth: 480, padding: 24, borderRadius: 9, boxShadow: 'var(--shadow-lg)' }}>
+              <div className="card" style={{ width: '90%', maxWidth: 480, padding: 24, borderRadius: 9, boxShadow: 'var(--elev-lg)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
                   <h2 style={{ fontSize: 15, fontWeight: 700, color: 'var(--navy)', margin: 0 }}>Link a file from Drive</h2>
                   <button type="button" className="dp-close" aria-label="Close" onClick={() => { setShowLinkFileModal(false); setFileSearch(''); setFileSearchResults([]); }}>×</button>

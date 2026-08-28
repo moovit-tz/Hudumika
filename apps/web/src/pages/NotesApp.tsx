@@ -171,13 +171,11 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Close composer when clicking outside if title/content empty. Radix
-  // Popover content (ReminderPicker, CategoryPicker) renders through a
-  // Portal straight onto document.body, so it's never a DOM descendant of
-  // composerRef — without this check, picking a reminder or a category
-  // read as an "outside" click and silently saved+reset the composer before
-  // Done could be pressed. The label picker doesn't need this: it's a
-  // hand-rolled absolutely-positioned div, still a real descendant of
-  // composerRef, not portaled.
+  // Popover content (ReminderPicker, CategoryPicker, the label picker)
+  // renders through a Portal straight onto document.body, so it's never a
+  // DOM descendant of composerRef — without this check, picking a
+  // reminder, category or label read as an "outside" click and silently
+  // saved+reset the composer before Done could be pressed.
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       const target = event.target as HTMLElement;
@@ -579,17 +577,18 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
                       </button>
 
                       {/* Labels Selector */}
-                      <button
-                        type="button"
-                        className="notes-icon-btn"
-                        title="Add label"
-                        onClick={() => setActiveLabelPopover(activeLabelPopover === 'composer' ? null : 'composer')}
-                      >
-                        <Icon name="tag" size={17} />
-                      </button>
-
-                      {activeLabelPopover === 'composer' && (
-                        <div style={{ position: 'absolute', bottom: '100%', left: 0, background: 'var(--card-bg, #fff)', border: '1px solid var(--border)', borderRadius: 8, padding: 8, minWidth: 160, boxShadow: '0 4px 16px rgba(0,0,0,0.15)', zIndex: 100 }}>
+                      <Popover open={activeLabelPopover === 'composer'} onOpenChange={o => setActiveLabelPopover(o ? 'composer' : null)}>
+                        <PopoverAnchor asChild>
+                          <button
+                            type="button"
+                            className="notes-icon-btn"
+                            title="Add label"
+                            onClick={() => setActiveLabelPopover(activeLabelPopover === 'composer' ? null : 'composer')}
+                          >
+                            <Icon name="tag" size={17} />
+                          </button>
+                        </PopoverAnchor>
+                        <PopoverContent align="start" className="w-40 p-2">
                           <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--ink3)', marginBottom: 6 }}>LABEL NOTE</div>
                           {labels.length === 0 && (
                             <div style={{ fontSize: 12.5, color: 'var(--ink3)', padding: '4px 0 8px' }}>No labels yet.</div>
@@ -610,8 +609,8 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
                           <Link to="/notes/labels" style={{ display: 'block', marginTop: 6, paddingTop: 6, borderTop: '1px solid var(--border)', fontSize: 12, color: 'var(--teal)', fontWeight: 700, textDecoration: 'none' }}>
                             Manage labels
                           </Link>
-                        </div>
-                      )}
+                        </PopoverContent>
+                      </Popover>
 
                       {/* Related app — tags this note with which app it's
                           about (customer, shipment, calendar, drive, …),
@@ -1501,17 +1500,26 @@ const SharePanel: React.FC<{
 
       {visibility === 'shared' && (
         <div>
-          <div style={{ position: 'relative', marginBottom: 8 }}>
-            <input
-              type="text"
-              className="input-field"
-              placeholder="Add a person by name or email…"
-              value={query}
-              onChange={e => setQuery(e.target.value)}
-              style={{ width: '100%', boxSizing: 'border-box' }}
-            />
-            {(results.length > 0 || searching) && (
-              <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, background: 'var(--card-bg, #fff)', border: '1px solid var(--border)', borderRadius: 8, boxShadow: '0 4px 16px rgba(0,0,0,0.15)', zIndex: 20, maxHeight: 200, overflowY: 'auto' }}>
+          {/* Async search-as-you-type is EntityPicker's usual case, but its
+              result rows are plain label/sublabel text with no slot for a
+              PersonAvatar — and CLAUDE.md requires a real photo on every
+              "shared with" row. Swapping to EntityPicker would satisfy one
+              design-system rule by breaking a more specific one, so this
+              stays a Popover-based dropdown (same primitive, hand-built
+              rows) rather than a raw absolutely-positioned div. */}
+          <div style={{ marginBottom: 8 }}>
+            <Popover open={query.trim().length > 0} onOpenChange={o => { if (!o) setQuery(''); }}>
+              <PopoverAnchor asChild>
+                <input
+                  type="text"
+                  className="input-field"
+                  placeholder="Add a person by name or email…"
+                  value={query}
+                  onChange={e => setQuery(e.target.value)}
+                  style={{ width: '100%', boxSizing: 'border-box' }}
+                />
+              </PopoverAnchor>
+              <PopoverContent align="start" className="w-(--radix-popover-trigger-width) max-h-50 overflow-y-auto p-1" onOpenAutoFocus={e => e.preventDefault()}>
                 {searching && <div style={{ padding: 8, fontSize: 12.5, color: 'var(--ink3)' }}>Searching…</div>}
                 {!searching && results.map(p => (
                   <button
@@ -1530,8 +1538,8 @@ const SharePanel: React.FC<{
                 {!searching && results.length === 0 && (
                   <div style={{ padding: 8, fontSize: 12.5, color: 'var(--ink3)' }}>No matches.</div>
                 )}
-              </div>
-            )}
+              </PopoverContent>
+            </Popover>
           </div>
 
           {shares.length === 0 ? (

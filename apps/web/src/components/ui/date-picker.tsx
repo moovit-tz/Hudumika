@@ -82,6 +82,100 @@ export function DatePicker({ date: controlledDate, defaultDate, onChange, name, 
   )
 }
 
+export interface DateTimePickerProps {
+  date?: Date
+  defaultDate?: Date
+  onChange?: (date: Date | undefined) => void
+  placeholder?: string
+  disabled?: boolean
+  className?: string
+  triggerClassName?: string
+}
+
+/** Same trigger+popover shape as DatePicker, with a time-of-day row under the
+ *  calendar — the platform's one answer for "date and time", so a scheduling
+ *  field reaches for this instead of a native `datetime-local` input or a
+ *  one-off local component. Selecting a day does not close the popover (there
+ *  is no single "final" click the way a date-only pick has); a Done button
+ *  commits and closes explicitly. */
+export function DateTimePicker({ date: controlledDate, defaultDate, onChange, placeholder = "Pick date & time", disabled, className, triggerClassName }: DateTimePickerProps) {
+  const [open, setOpen] = React.useState(false)
+  const [internalDate, setInternalDate] = React.useState<Date | undefined>(defaultDate)
+  const isControlled = controlledDate !== undefined
+  const date = isControlled ? controlledDate : internalDate
+
+  function commit(d: Date | undefined) {
+    if (!isControlled) setInternalDate(d)
+    onChange?.(d)
+  }
+
+  function handleDaySelect(d: Date | undefined) {
+    if (!d) { commit(undefined); return }
+    // Preserve the time-of-day already chosen (or default to 09:00 for a
+    // fresh pick) rather than resetting it to midnight.
+    const next = new Date(d)
+    if (date) next.setHours(date.getHours(), date.getMinutes(), 0, 0)
+    else next.setHours(9, 0, 0, 0)
+    commit(next)
+  }
+
+  function handleTimeChange(value: string) {
+    const [h, m] = value.split(":").map(Number)
+    if (Number.isNaN(h) || Number.isNaN(m)) return
+    const base = date ?? new Date()
+    const next = new Date(base)
+    next.setHours(h, m, 0, 0)
+    commit(next)
+  }
+
+  const timeValue = date ? format(date, "HH:mm") : ""
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button type="button" disabled={disabled} className={cn(triggerClass, !date && "text-muted-foreground", triggerClassName)}>
+          <CalendarIcon className="h-4 w-4 shrink-0 opacity-60" />
+          <span className="flex-1 truncate">{date ? format(date, "d MMM yyyy, HH:mm") : placeholder}</span>
+          {date && (
+            <span
+              role="button"
+              tabIndex={-1}
+              onClick={(e) => { e.stopPropagation(); commit(undefined) }}
+              className="rounded-full p-0.5 text-muted-foreground/70 hover:bg-destructive/10 hover:text-destructive"
+            >
+              <X className="h-3.5 w-3.5" />
+            </span>
+          )}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className={cn("w-auto p-2", className)}>
+        <Calendar
+          mode="single"
+          selected={date}
+          onSelect={handleDaySelect}
+          autoFocus
+        />
+        <div className="flex items-center gap-2 border-t border-border px-2 pt-2 mt-1">
+          <span className="text-xs font-medium text-muted-foreground">Time</span>
+          <input
+            type="time"
+            value={timeValue}
+            onChange={(e) => handleTimeChange(e.target.value)}
+            className="flex-1 rounded-md border border-input bg-transparent px-2 py-1 text-sm"
+          />
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            className="rounded-md bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground"
+          >
+            Done
+          </button>
+        </div>
+      </PopoverContent>
+    </Popover>
+  )
+}
+
 export interface DateRangePickerProps {
   range?: DateRange
   onChange: (range: DateRange | undefined) => void

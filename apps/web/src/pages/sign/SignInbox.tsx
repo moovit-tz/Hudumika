@@ -240,8 +240,8 @@ export function SignInbox({ view }: { view: ViewKey }) {
                 onClick={() => navigate(tab.key === 'inbox' ? '/sign' : `/sign/${tab.key}`)}
                 style={{
                   padding: '7px 16px', borderRadius: 20, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', border: '1px solid var(--border)',
-                  background: active ? '#0e1f3d' : 'var(--white)',
-                  color: active ? '#ffffff' : 'var(--ink2)',
+                  background: active ? 'hsl(var(--primary))' : 'var(--white)',
+                  color: active ? 'hsl(var(--primary-foreground))' : 'var(--ink2)',
                   boxShadow: active ? '0 2px 8px rgba(14,31,61,0.25)' : 'none',
                   transition: 'all 0.15s ease'
                 }}
@@ -273,7 +273,7 @@ export function SignInbox({ view }: { view: ViewKey }) {
             />
           </div>
 
-          <Button variant="default" onClick={() => navigate('/sign/editor')} style={{ background: '#0e1f3d', color: '#fff', fontWeight: 700, padding: '8px 16px' }}>
+          <Button variant="default" onClick={() => navigate('/sign/editor')} style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 700, padding: '8px 16px' }}>
             <Icon name="plus" size={14} /> New Envelope
           </Button>
         </div>
@@ -696,7 +696,7 @@ export function SignEnvelopeDetail() {
                 <Button variant="outline" size="sm" onClick={() => navigate(`/sign/editor/${env.id}`)}>
                   <Icon name="edit" size={14} /> Edit Studio
                 </Button>
-                <Button variant="default" size="sm" onClick={handleSend} style={{ background: 'var(--teal)', color: '#fff', fontWeight: 700 }}>
+                <Button variant="default" size="sm" onClick={handleSend} style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 700 }}>
                   <Icon name="send" size={14} /> Send for Signing
                 </Button>
               </>
@@ -1096,7 +1096,7 @@ export function SignAllDocuments() {
         <div style={{ display: 'flex', gap: 4, background: 'var(--bg)', borderRadius: 'var(--r)', padding: 3 }}>
           {(['all', 'draft', 'sent', 'completed', 'voided', 'declined', 'expired'] as const).map(s => (
             <button key={s} type="button" onClick={() => setStatusFilter(s)}
-              style={{ padding: '6px 12px', border: 'none', borderRadius: 'var(--r-sm)', cursor: 'pointer', fontWeight: 600, fontSize: 12, textTransform: 'capitalize', background: statusFilter === s ? 'var(--white)' : 'transparent', color: statusFilter === s ? 'var(--ink)' : 'var(--ink3)', boxShadow: statusFilter === s ? 'var(--shadow-sm)' : 'none' }}>
+              style={{ padding: '6px 12px', border: 'none', borderRadius: 'var(--r-sm)', cursor: 'pointer', fontWeight: 600, fontSize: 12, textTransform: 'capitalize', background: statusFilter === s ? 'var(--white)' : 'transparent', color: statusFilter === s ? 'var(--ink)' : 'var(--ink3)', boxShadow: statusFilter === s ? 'var(--elev-sm)' : 'none' }}>
               {s}
             </button>
           ))}

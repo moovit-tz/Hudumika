@@ -139,7 +139,7 @@ export const OneIdUsers: React.FC = () => {
                 <td style={{ padding: '10px 14px' }}>
                   {canManage ? (
                     <Select value={u.role} onValueChange={v => changeRole(u.id, v)}>
-                      <SelectTrigger aria-label="Change role" style={{ width: 'auto', height: 'auto', padding: '4px 8px', fontSize: 12 }}><SelectValue /></SelectTrigger>
+                      <SelectTrigger aria-label="Change role" style={{ width: 'auto', fontSize: 12 }}><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {[u.role, ...ROLES.filter(r => r !== u.role)].map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
                       </SelectContent>

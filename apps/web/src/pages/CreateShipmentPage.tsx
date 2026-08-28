@@ -74,9 +74,9 @@ function OfficerMentionInput({
           style={{
             display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px',
             border: `1px solid ${open ? 'var(--teal)' : 'var(--border)'}`,
-            borderRadius: 7, background: 'var(--white)', cursor: 'text',
+            borderRadius: 'var(--r-sm)', background: 'var(--white)', cursor: 'text',
             boxShadow: open ? '0 0 0 2px var(--teal-l)' : 'none', transition: 'border-color .15s, box-shadow .15s',
-            minHeight: 36,
+            minHeight: 'var(--ctl-h-sm)',
           }}
         >
           {value.id ? (

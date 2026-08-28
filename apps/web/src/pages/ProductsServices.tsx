@@ -11,6 +11,7 @@ import { showConfirm } from '../lib/confirm.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { FormPage } from '../components/FormPage.js';
 import { EntityPicker, PickerItem } from '../components/EntityPicker.js';
+import { Button } from '../components/ui/button.js';
 
 // -- Types ---------------------------------------------------------------------
 // Field names/values below mirror the real `products` table (migration
@@ -275,7 +276,7 @@ function DeleteModal({ name, onConfirm, onCancel }: { name: string; onConfirm: (
         </div>
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
           <button type="button" title="Cancel" onClick={onCancel} style={{ padding: 'var(--ds-btn-py) 18px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--bg)', cursor: 'pointer', fontWeight: 600, fontSize: 13, color: 'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
-          <button type="button" title="Confirm delete" onClick={onConfirm} style={{ padding: 'var(--ds-btn-py) 18px', border: 'none', borderRadius: 'var(--r)', background: 'var(--red)', color: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Delete</button>
+          <Button type="button" variant="destructive" title="Confirm delete" onClick={onConfirm}>Delete</Button>
         </div>
       </div>
     </div>

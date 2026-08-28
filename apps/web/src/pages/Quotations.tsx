@@ -9,6 +9,7 @@ import { PageHeader } from '../components/PageHeader.js';
 import { FormPage } from '../components/FormPage.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from '../components/ui/popover.js';
+import { Button } from '../components/ui/button.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
@@ -227,10 +228,9 @@ function RejectModal({ onConfirm, onCancel }: { onConfirm:(r:string)=>void; onCa
           style={{ width:'100%', padding:'10px 12px', border:'1px solid var(--border)', borderRadius: 9, fontSize:13, resize:'vertical', boxSizing:'border-box' as const, fontFamily:'inherit', outline:'none' }} />
         <div style={{ display:'flex', gap:8, justifyContent:'flex-end', marginTop:16 }}>
           <button type="button" title="Cancel" onClick={onCancel} style={{ padding:'var(--ds-btn-py) 18px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:13, color:'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
-          <button type="button" title="Confirm rejection" onClick={()=>reason.trim()&&onConfirm(reason.trim())}
-            style={{ padding:'var(--ds-btn-py) 18px', border:'none', borderRadius: 'var(--r)', background:reason.trim()?'var(--red)':'var(--border)', color:'#fff', cursor:reason.trim()?'pointer':'not-allowed', fontWeight:600, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+          <Button type="button" variant="destructive" title="Confirm rejection" disabled={!reason.trim()} onClick={()=>reason.trim()&&onConfirm(reason.trim())}>
             Reject Quote
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -410,7 +410,7 @@ function ContactSelector({ customers, leads, value, onChange }: {
   return (
     <Popover open={open} onOpenChange={(o) => { setOpen(o); if (!o) setQ(''); }}>
       <PopoverAnchor asChild>
-        <div onClick={()=>setOpen(o=>!o)} style={{ display:'flex', alignItems:'center', gap:8, padding:'9px 12px', border:'1px solid var(--border)', borderRadius: 9, cursor:'pointer', background:'var(--white)', minHeight:40 }}>
+        <div onClick={()=>setOpen(o=>!o)} style={{ display:'flex', alignItems:'center', gap:8, padding:'var(--ds-btn-py) 12px', border:'1px solid var(--border)', borderRadius: 'var(--r)', cursor:'pointer', background:'var(--white)', minHeight:'var(--ctl-h)', boxSizing:'border-box' as const }}>
           {selected
             ? <><Av name={selected.label} size={22}/><div><span style={{ fontSize:13, fontWeight:600 }}>{selected.label}</span>{selected.company&&<span style={{ fontSize:11, color:'var(--ink3)', marginLeft:6 }}>{selected.company}</span>}</div><span style={{ marginLeft:4, fontSize:10, background: selected.type==='lead'?'var(--gold-l)':'var(--teal-l)', color:selected.type==='lead'?'var(--gold)':'var(--teal)', borderRadius:4, padding:'2px 6px', fontWeight:700 }}>{selected.type==='lead'?'LEAD':'CLIENT'}</span></>
             : <span style={{ fontSize:13, color:'var(--ink3)' }}>Select customer or lead...</span>
@@ -797,7 +797,7 @@ function QuoteFormView({ mode, initial, customers, leads, onSave, onCancel, isMo
             <div style={{ padding:16, display:'flex', alignItems:'center', gap:12 }}>
               {co.logoUrl
                 ? <img src={co.logoUrl} alt={co.name} style={{ height:36, maxWidth:100, objectFit:'contain' }}/>
-                : <div style={{ width:40, height:36, background:'var(--teal)', borderRadius:6, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontWeight:800, fontSize:11 }}>LOGO</div>
+                : <div style={{ width:40, height:36, background:'hsl(var(--primary))', borderRadius:6, display:'flex', alignItems:'center', justifyContent:'center', color:'hsl(var(--primary-foreground))', fontWeight:800, fontSize:11 }}>LOGO</div>
               }
               <div>
                 <div style={{ fontSize:13, fontWeight:700 }}>{co.name}</div>

@@ -782,8 +782,8 @@ export function SignPublicPage() {
               Decline
             </Button>
             <Button type="button" onClick={handleSubmit} disabled={!signature || submitting}
-              style={{ flex: 2, height: 38, fontSize: 13, fontWeight: 700, background: signature ? '#0e1f3d' : 'var(--border)', color: '#fff', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-              <Icon name="checkCircle" size={15} color="#fff" />
+              style={{ flex: 2, height: 38, fontSize: 13, fontWeight: 700, background: signature ? accent : 'var(--border)', color: signature ? accentFg : '#fff', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              <Icon name="checkCircle" size={15} color={signature ? accentFg : '#fff'} />
               {submitting ? 'Submitting…' : 'Sign & Submit'}
             </Button>
           </div>

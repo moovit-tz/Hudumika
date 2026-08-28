@@ -14,7 +14,6 @@ import 'leaflet/dist/leaflet.css';
 import './TrackingRoutePlanner.css';
 import L from 'leaflet';
 import { format } from 'date-fns';
-import { PageHeader } from '../components/PageHeader.js';
 
 const DEFAULT_CENTER: [number, number] = [-6.7924, 39.2083];
 
@@ -138,12 +137,13 @@ export const TrackingRoutePlanner: React.FC = () => {
 
   return (
     <div className="rp-container">
-      <PageHeader
-        crumbs={['HuduFreight', 'Route Planner']}
-        titlePlain="Route"
-        titleEm="planner"
-        subtitle="Plan a trip stop by stop before it is dispatched."
-      />
+      {/* No PageHeader here, deliberately — see CLAUDE.md's full-screen app
+          surface exclusion, same as TrackingLiveMap.tsx. .rp-container is a
+          fixed `calc(100vh - 60px)` box with overflow: hidden, and
+          .rp-map-wrapper is `position: absolute; inset: 0` — a PageHeader
+          rendered above it here doesn't sit over the map, it renders inside
+          the same box and gets covered by the absolutely-positioned map, the
+          same failure mode CLAUDE.md documents for Email/Drive. */}
       {/* ── Background Fullscreen Map ── */}
       <div className="rp-map-wrapper">
         <MapContainer center={DEFAULT_CENTER} zoom={11} style={{ height: '100%', width: '100%' }} zoomControl={false}>

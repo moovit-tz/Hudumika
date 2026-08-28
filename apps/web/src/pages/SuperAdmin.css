@@ -195,12 +195,6 @@
   flex-shrink: 0;
 }
 
-.sa-toolbar .btn-sm {
-  padding-left: 14px;
-  padding-right: 14px;
-  font-size: 13px;
-}
-
 .sa-toolbar-offline {
   font-size: 11px;
   color: var(--gold);

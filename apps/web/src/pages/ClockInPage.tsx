@@ -800,7 +800,7 @@ export function ClockInPage() {
       {/* Manual Entry Log Modal */}
       {showManualModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ background: 'var(--white)', borderRadius: 16, width: '100%', maxWidth: 440, padding: 24, boxShadow: 'var(--shadow-lg)', display: 'flex', flexDirection: 'column', gap: 16, border: '1px solid var(--border)' }}>
+          <div style={{ background: 'var(--white)', borderRadius: 16, width: '100%', maxWidth: 440, padding: 24, boxShadow: 'var(--elev-lg)', display: 'flex', flexDirection: 'column', gap: 16, border: '1px solid var(--border)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--navy)' }}>+ Log Manual Time Entry</div>
               <button type="button" onClick={() => setShowManualModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}>

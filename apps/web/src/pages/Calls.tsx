@@ -234,6 +234,7 @@ export function Calls() {
             <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)' }}>{peer.name}</div>
             <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 4, marginBottom: 24 }}>Incoming {kind === 'VIDEO' ? 'video' : 'voice'} call…</div>
             <div style={{ display: 'flex', gap: 14, justifyContent: 'center' }}>
+              {/* TODO design-system: migrate to <Button variant="destructive"> once it can express a fixed-size circular icon button (paired with the plain --green accept button below, so only converting one half would leave the pair inconsistent). */}
               <button type="button" onClick={declineCall} style={{ width: 58, height: 58, borderRadius: '50%', border: 'none', background: 'var(--red)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="x" size={22} color="#fff" /></button>
               <button type="button" onClick={acceptCall} style={{ width: 58, height: 58, borderRadius: '50%', border: 'none', background: 'var(--green)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name={kind === 'VIDEO' ? 'camera' : 'phone'} size={22} color="#fff" /></button>
             </div>

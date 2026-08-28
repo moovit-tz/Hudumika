@@ -171,7 +171,7 @@ export function PettiDeposit() {
               </div>
             </div>
 
-            <Button type="submit" disabled={saving} style={{ background: 'var(--teal)', color: '#fff', padding: '12px', fontWeight: 700, fontSize: 14 }}>
+            <Button type="submit" disabled={saving} style={{ padding: '12px', fontWeight: 700, fontSize: 14 }}>
               <Icon name="plus" size={16} /> {saving ? 'Processing Deposit…' : `Deposit ${amount ? `${Number(amount).toLocaleString()} ${selectedWallet?.currency || ''}` : 'Money'}`}
             </Button>
           </form>

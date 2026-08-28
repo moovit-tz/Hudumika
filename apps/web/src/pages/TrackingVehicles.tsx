@@ -6,7 +6,6 @@ import { MapContainer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import { formatDistanceToNow } from 'date-fns';
 import { MapTileLayer } from '../components/MapTileLayer.js';
-import { useBranding } from '../hooks/useBranding.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Combobox } from '../components/ui/combobox.js';
 import './TrackingVehicles.css';
@@ -154,8 +153,6 @@ const DEFAULT_KPIS: DashboardKPIs = {
 };
 
 export const TrackingVehicles: React.FC = () => {
-  const branding = useBranding();
-  const brandColor = branding.getAppColor('tracking', '#0891b2');
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [kpis, setKpis] = useState<DashboardKPIs | null>(null);
   const [loading, setLoading] = useState(true);
@@ -211,7 +208,7 @@ export const TrackingVehicles: React.FC = () => {
   useEffect(() => { if (page > totalPages) setPage(totalPages); }, [page, totalPages]);
 
   return (
-    <div className="trk-dashboard" style={{ '--trk-brand': brandColor } as React.CSSProperties}>
+    <div className="trk-dashboard">
       {/* Header. The search/range/refresh controls go through PageHeader's own
           `actions` slot rather than sitting beside it in a flex row: as a flex
           child the header shrank to its own text, so the title block was 450px

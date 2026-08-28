@@ -8,9 +8,18 @@ import { Button } from '../../components/ui/button.js';
 import { Input } from '../../components/ui/input.js';
 import { Textarea } from '../../components/ui/textarea.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
+import { DateTimePicker } from '../../components/ui/date-picker.js';
 import { apiFetch } from '../../lib/api.js';
 import { usePageSEO } from '../../hooks/usePageSEO.js';
 import { showConfirm } from '../../lib/confirm.js';
+
+/** Format a Date to "YYYY-MM-DDTHH:mm" in local time — same shape a native
+ *  <input type="datetime-local"> value had, so the existing string form
+ *  state (parsed with `new Date(...)` on save) keeps working unchanged. */
+const toLocalDateTimeString = (d: Date): string => {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
 
 interface Campaign {
   id: string; name: string; status: string; group_id: string | null; template_id: string | null;
@@ -132,7 +141,11 @@ export function SmsCampaigns() {
 
           <div style={{ marginBottom: 14, maxWidth: 280 }}>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Schedule for later (optional)</label>
-            <Input type="datetime-local" value={form.scheduledAt} onChange={e => setForm(p => ({ ...p, scheduledAt: e.target.value }))} />
+            <DateTimePicker
+              date={form.scheduledAt ? new Date(form.scheduledAt) : undefined}
+              onChange={d => setForm(p => ({ ...p, scheduledAt: d ? toLocalDateTimeString(d) : '' }))}
+              triggerClassName="w-full"
+            />
             <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 4 }}>Leave blank to save as a draft you send manually.</div>
           </div>
 

@@ -185,7 +185,7 @@ export function PettiWithdrawals() {
 
             <p style={{ margin: 0, fontSize: 11.5, color: 'var(--ink3)' }}>This submits a request for approval and finance release — it doesn't disburse funds immediately.</p>
 
-            <Button type="submit" disabled={saving} style={{ background: 'var(--red)', color: '#fff', padding: '12px', fontWeight: 700, fontSize: 14 }}>
+            <Button type="submit" variant="destructive" disabled={saving} style={{ padding: '12px', fontWeight: 700, fontSize: 14 }}>
               {saving ? 'Submitting…' : 'Submit Withdrawal Request'}
             </Button>
           </form>

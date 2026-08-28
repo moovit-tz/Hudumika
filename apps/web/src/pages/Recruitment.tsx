@@ -4,6 +4,7 @@ import { Icon } from '../components/Icon.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { DateTimePicker } from '../components/ui/date-picker.js';
 
 interface Opening {
   id: string; title: string; department: string | null; location: string | null;
@@ -27,6 +28,11 @@ const STAGES: { key: string; label: string; color: string; tint: string }[] = [
 ];
 const EMP_TYPES = ['FULL_TIME', 'PART_TIME', 'CONTRACT', 'INTERN', 'TEMPORARY'];
 const prettyType = (t: string) => t.replace('_', ' ').toLowerCase().replace(/\b\w/g, ch => ch.toUpperCase());
+/** Format a Date to "YYYY-MM-DDTHH:mm" in local time — same shape a native <input type="datetime-local"> value had, so downstream `new Date(schedForm.scheduled_at)` parsing keeps working unchanged. */
+const toLocalDateTimeString = (d: Date): string => {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
 
 const inp: React.CSSProperties = { width: '100%', boxSizing: 'border-box', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, fontFamily: 'var(--font)', color: 'var(--ink)', background: 'var(--white)' };
 const lbl: React.CSSProperties = { display: 'block', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 4 };
@@ -212,7 +218,13 @@ export function RecruitmentPage() {
           {sched && (
             <div style={{ background: 'var(--purple-l)', border: '1px solid var(--border)', borderRadius: 12, padding: 14, marginBottom: 16, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, alignItems: 'end' }}>
               <div style={{ gridColumn: '1 / -1', fontSize: 13, color: 'var(--ink)' }}>Schedule an interview with <strong>{sched.name}</strong></div>
-              <div><label style={lbl}>When</label><input style={inp} type="datetime-local" value={schedForm.scheduled_at} onChange={e => setSchedForm({ ...schedForm, scheduled_at: e.target.value })} /></div>
+              <div><label style={lbl}>When</label>
+                <DateTimePicker
+                  date={schedForm.scheduled_at ? new Date(schedForm.scheduled_at) : undefined}
+                  onChange={d => setSchedForm({ ...schedForm, scheduled_at: d ? toLocalDateTimeString(d) : '' })}
+                  placeholder="Pick date & time"
+                />
+              </div>
               <div><label style={lbl}>Mode</label>
                 <Select value={schedForm.mode} onValueChange={v => setSchedForm({ ...schedForm, mode: v })}>
                   <SelectTrigger style={{ width: '100%' }}><SelectValue /></SelectTrigger>

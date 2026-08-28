@@ -7,6 +7,7 @@ import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '../components/ui/dropdown-menu.js';
+import { Popover, PopoverTrigger, PopoverContent } from '../components/ui/popover.js';
 
 // ─── Types (match apps/api/src/routes/chat.routes.ts) ─────────────────────────
 
@@ -115,7 +116,6 @@ export const Chat: React.FC = () => {
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const emojiRef = useRef<HTMLDivElement>(null);
 
   const loadChannels = useCallback(async (selectFirst = false) => {
     try {
@@ -157,12 +157,6 @@ export const Chat: React.FC = () => {
   }, [activeId, loadMessages]);
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, activeId]);
-
-  useEffect(() => {
-    function h(e: MouseEvent) { if (emojiRef.current && !emojiRef.current.contains(e.target as Node)) setShowEmoji(false); }
-    document.addEventListener('mousedown', h);
-    return () => document.removeEventListener('mousedown', h);
-  }, []);
 
   const activeCh = channels.find(c => c.id === activeId) ?? null;
 
@@ -553,12 +547,14 @@ export const Chat: React.FC = () => {
                   style={{ width: '100%', border: 'none', outline: 'none', resize: 'none', padding: '12px 14px 8px', fontSize: 13.5, color: 'var(--ink)', background: 'transparent', fontFamily: 'var(--font)', lineHeight: 1.55, minHeight: 44, boxSizing: 'border-box', display: 'block' }}
                 />
                 <div style={{ display: 'flex', alignItems: 'center', padding: '5px 8px', gap: 1, borderTop: '1px solid var(--border)' }}>
-                  <div ref={emojiRef} style={{ position: 'relative' }}>
-                    <button type="button" onClick={() => setShowEmoji(p => !p)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 'var(--ds-btn-py-sm) 6px', borderRadius: 'var(--r)', color: showEmoji ? 'var(--teal)' : 'var(--ink3)', display: 'flex', alignItems: 'center', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
-                      <Icon name="smile" size={15} />
-                    </button>
-                    {showEmoji && (
-                      <div style={{ position: 'absolute', bottom: 'calc(100% + 8px)', left: 0, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: 8, display: 'grid', gridTemplateColumns: 'repeat(8,1fr)', gap: 2, boxShadow: 'var(--elev-lg)', zIndex: 100 }}>
+                  <Popover open={showEmoji} onOpenChange={setShowEmoji}>
+                    <PopoverTrigger asChild>
+                      <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 'var(--ds-btn-py-sm) 6px', borderRadius: 'var(--r)', color: showEmoji ? 'var(--teal)' : 'var(--ink3)', display: 'flex', alignItems: 'center', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                        <Icon name="smile" size={15} />
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent align="start" side="top" sideOffset={8} className="w-auto p-2">
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8,1fr)', gap: 2 }}>
                         {EMOJIS.map(em => (
                           <button type="button" key={em} onClick={() => { setInput(p => p + em); setShowEmoji(false); inputRef.current?.focus(); }}
                             style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, padding: '5px', borderRadius: 'var(--r)', lineHeight: 1 }}>
@@ -566,8 +562,8 @@ export const Chat: React.FC = () => {
                           </button>
                         ))}
                       </div>
-                    )}
-                  </div>
+                    </PopoverContent>
+                  </Popover>
 
                   <div style={{ flex: 1 }} />
 

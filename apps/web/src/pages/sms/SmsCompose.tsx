@@ -6,6 +6,7 @@ import { Button } from '../../components/ui/button.js';
 import { Input } from '../../components/ui/input.js';
 import { Textarea } from '../../components/ui/textarea.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
+import { EntityPicker, type PickerItem } from '../../components/EntityPicker.js';
 import { apiFetch } from '../../lib/api.js';
 import { usePageSEO } from '../../hooks/usePageSEO.js';
 
@@ -30,9 +31,6 @@ export function SmsCompose() {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [templateId, setTemplateId] = useState<string>('');
   const [body, setBody] = useState('');
-  const [search, setSearch] = useState('');
-  const [searchResults, setSearchResults] = useState<RecipientHit[]>([]);
-  const [searching, setSearching] = useState(false);
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
 
@@ -41,28 +39,28 @@ export function SmsCompose() {
     apiFetch('/v1/sms/templates').then(res => setTemplates(res.data || [])).catch(() => {});
   }, []);
 
-  useEffect(() => {
-    if (search.trim().length < 2) { setSearchResults([]); return; }
-    let alive = true;
-    setSearching(true);
-    const t = setTimeout(() => {
-      apiFetch(`/v1/sms/recipients/search?q=${encodeURIComponent(search.trim())}`)
-        .then(res => { if (alive) setSearchResults((res.data || []).filter((r: RecipientHit) => !numbers.some(n => n.phone === r.phone))); })
-        .finally(() => { if (alive) setSearching(false); });
-    }, 250);
-    return () => { alive = false; clearTimeout(t); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search]);
-
   function addManualNumber() {
     const phone = phoneInput.trim();
     if (!phone) return;
     if (!numbers.some(n => n.phone === phone)) setNumbers(prev => [...prev, { phone }]);
     setPhoneInput('');
   }
-  function addFromSearch(hit: RecipientHit) {
-    setNumbers(prev => prev.some(n => n.phone === hit.phone) ? prev : [...prev, { phone: hit.phone, name: hit.name }]);
-    setSearch(''); setSearchResults([]);
+  // EntityPicker is a single-value "pick one" widget, but this field needs
+  // "search, add, search again" — so it's used here purely as the search
+  // dropdown mechanism (debounce + Popover positioning/outside-click) with
+  // `value` always null; each pick is appended to `numbers` immediately
+  // instead of being retained as EntityPicker's own selected value.
+  async function searchRecipients(query: string): Promise<PickerItem[]> {
+    if (query.trim().length < 2) return [];
+    const res = await apiFetch(`/v1/sms/recipients/search?q=${encodeURIComponent(query.trim())}`);
+    const hits: RecipientHit[] = res.data || [];
+    return hits
+      .filter(hit => !numbers.some(n => n.phone === hit.phone))
+      .map(hit => ({ id: hit.phone, label: hit.name, sublabel: `${hit.phone} · ${SOURCE_LABEL[hit.source]}` }));
+  }
+  function addFromSearch(item: PickerItem | null) {
+    if (!item) return;
+    setNumbers(prev => prev.some(n => n.phone === item.id) ? prev : [...prev, { phone: item.id, name: item.label }]);
   }
   function removeNumber(phone: string) {
     setNumbers(prev => prev.filter(n => n.phone !== phone));
@@ -125,23 +123,13 @@ export function SmsCompose() {
                 <Input value={phoneInput} onChange={e => setPhoneInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && addManualNumber()} placeholder="Type a phone number and press Enter" />
                 <Button variant="outline" onClick={addManualNumber}><Icon name="plus" size={14} /></Button>
               </div>
-              <div style={{ position: 'relative', marginBottom: 12 }}>
-                <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Or search contacts, leads, customers, staff…" />
-                {(searchResults.length > 0 || searching) && (
-                  <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 8, boxShadow: 'var(--elev)', zIndex: 20, maxHeight: 240, overflowY: 'auto' }}>
-                    {searching && <div style={{ padding: 10, fontSize: 12.5, color: 'var(--ink3)' }}>Searching…</div>}
-                    {!searching && searchResults.map(hit => (
-                      <button key={`${hit.source}-${hit.id}`} type="button" onClick={() => addFromSearch(hit)}
-                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '8px 12px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
-                        <div>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{hit.name}</div>
-                          <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>{hit.phone}</div>
-                        </div>
-                        <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>{SOURCE_LABEL[hit.source]}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
+              <div style={{ marginBottom: 12 }}>
+                <EntityPicker
+                  value={null}
+                  onChange={addFromSearch}
+                  search={searchRecipients}
+                  placeholder="Or search contacts, leads, customers, staff…"
+                />
               </div>
               {numbers.length > 0 && (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>

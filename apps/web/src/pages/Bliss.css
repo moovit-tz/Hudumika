@@ -990,7 +990,7 @@
 .spt-send-btn--email     { background: #1d4ed8; }
 .spt-send-btn--note      { background: #92400e; }
 .spt-send-btn--sms       { background: #7c3aed; }
-.spt-send-btn--inapp     { background: var(--teal); }
+.spt-send-btn--inapp     { background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }
 
 /* ── Broadcast success toast ── */
 .spt-broadcast-toast {

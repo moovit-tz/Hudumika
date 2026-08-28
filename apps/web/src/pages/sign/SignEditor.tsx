@@ -658,7 +658,7 @@ export function SignEditor() {
             </PopoverContent>
           </Popover>
 
-          <Button variant="default" size="sm" onClick={handleSend} disabled={sending} style={{ height: 32, fontSize: 12, fontWeight: 700, background: '#0e1f3d', color: '#fff', padding: '0 14px' }}>
+          <Button variant="default" size="sm" onClick={handleSend} disabled={sending} style={{ height: 32, fontSize: 12, fontWeight: 700, padding: '0 14px' }}>
             {sending ? 'Sending…' : 'Send'} <Icon name="send" size={13} style={{ marginLeft: 4 }} />
           </Button>
         </div>

@@ -207,7 +207,7 @@
 .ds-tab--active {
   background: var(--white);
   color: var(--teal);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--elev-sm);
 }
 
 .ds-shape-preview {

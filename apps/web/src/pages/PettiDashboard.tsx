@@ -646,7 +646,7 @@ export function PettiDashboard() {
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 10 }}>
               <Button type="button" variant="outline" onClick={() => setDepositModalOpen(false)}>Cancel</Button>
-              <Button type="submit" disabled={depositSaving} style={{ background: 'var(--teal)', color: '#fff' }}>
+              <Button type="submit" disabled={depositSaving}>
                 {depositSaving ? 'Recording…' : 'Record Deposit'}
               </Button>
             </div>
@@ -772,7 +772,7 @@ export function PettiDashboard() {
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 10 }}>
               <Button type="button" variant="outline" onClick={() => setTransferModalOpen(false)}>Cancel</Button>
-              <Button type="submit" disabled={transferSaving} style={{ background: 'var(--teal)', color: '#fff' }}>
+              <Button type="submit" disabled={transferSaving}>
                 {transferSaving ? 'Transferring…' : 'Execute Transfer'}
               </Button>
             </div>

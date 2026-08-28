@@ -3,8 +3,17 @@ import { Link, useNavigate } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { Combobox } from '../components/ui/combobox.js';
+import { DateTimePicker } from '../components/ui/date-picker.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { BackButton } from '../components/ui/BackButton.js';
+
+/** Format a Date to "YYYY-MM-DDTHH:mm" in local time — same shape a native
+ *  <input type="datetime-local"> value had, so the existing string form
+ *  state (submitted as scheduled_start/scheduled_end) keeps working unchanged. */
+const toLocalDateTimeString = (d: Date): string => {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
 
 interface Vehicle { id: string; name: string; plate_number: string | null }
 interface Driver { id: string; name: string }
@@ -221,8 +230,8 @@ export const TrackingShipmentNew: React.FC = () => {
             </div>
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
-            <div style={{ flex: 1 }}><label style={labelStyle}>Scheduled start</label><input title="Scheduled start" type="datetime-local" value={scheduledStart} onChange={e => setScheduledStart(e.target.value)} style={inputStyle} /></div>
-            <div style={{ flex: 1 }}><label style={labelStyle}>Scheduled end</label><input title="Scheduled end" type="datetime-local" value={scheduledEnd} onChange={e => setScheduledEnd(e.target.value)} style={inputStyle} /></div>
+            <div style={{ flex: 1 }}><label style={labelStyle}>Scheduled start</label><DateTimePicker date={scheduledStart ? new Date(scheduledStart) : undefined} onChange={d => setScheduledStart(d ? toLocalDateTimeString(d) : '')} triggerClassName="w-full" /></div>
+            <div style={{ flex: 1 }}><label style={labelStyle}>Scheduled end</label><DateTimePicker date={scheduledEnd ? new Date(scheduledEnd) : undefined} onChange={d => setScheduledEnd(d ? toLocalDateTimeString(d) : '')} triggerClassName="w-full" /></div>
           </div>
           <div style={sectionDivider} />
           <div style={{ display: 'flex', gap: 10 }}>

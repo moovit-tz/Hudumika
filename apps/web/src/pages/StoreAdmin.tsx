@@ -48,8 +48,8 @@ export const StoreAdmin: React.FC = () => {
         subtitle="Review and manage app submissions to the Hudumika Store."
       />
 
-      <div style={{ background: 'var(--surface)', borderRadius: '12px', border: '1px solid var(--border)', overflow: 'hidden', marginTop: 20 }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+      <div style={{ background: 'var(--surface)', borderRadius: '12px', border: '1px solid var(--border)', overflowX: 'auto', overflowY: 'hidden', marginTop: 20 }}>
+        <table style={{ width: '100%', minWidth: 640, borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead>
             <tr style={{ background: 'var(--bg)', borderBottom: '1px solid var(--border)' }}>
               <th style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--ink3)' }}>App Name</th>

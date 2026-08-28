@@ -231,11 +231,6 @@ export function Lens() {
 
       {/* Filters */}
       <div style={{ ...card, padding: '10px 12px', margin: '0 0 16px', display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', flexShrink: 0, justifyContent: 'space-between' }}>
-        <div style={{ flex: '1 1 220px', minWidth: 200, maxWidth: 400 }}>
-          <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search title, body, evidence…"
-            style={{ ...input, width: '100%' }} />
-        </div>
-        
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
           <Select value={fKind || '__all__'} onValueChange={v => setFKind(v === '__all__' ? '' : v)}>
             <SelectTrigger style={{ minWidth: 130, width: 'auto' }}><SelectValue placeholder="All kinds" /></SelectTrigger>
@@ -264,6 +259,11 @@ export function Lens() {
             <input type="checkbox" checked={showClosed} onChange={e => setShowClosed(e.target.checked)} />
             Show closed
           </label>
+        </div>
+
+        <div style={{ flex: '1 1 220px', minWidth: 200, maxWidth: 400, marginLeft: 'auto' }}>
+          <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search title, body, evidence…"
+            style={{ ...input, width: '100%' }} />
         </div>
       </div>
 

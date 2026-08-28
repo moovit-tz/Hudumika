@@ -50,7 +50,7 @@
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 16px 18px;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--elev-sm);
 }
 .seal-kpi-value { font-size: 26px; font-weight: 800; color: var(--ink); line-height: 1.1; }
 .seal-kpi-value--alert { color: var(--gold); }
@@ -61,7 +61,7 @@
   border: 1px solid var(--border);
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--elev-sm);
 }
 .seal-card-hdr {
   display: flex; align-items: center; justify-content: space-between;
@@ -222,7 +222,7 @@
 .seal-mode-btn.active {
   background: var(--white);
   color: var(--teal);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--elev-sm);
 }
 
 /* Zone rack cards 3x3 grid */

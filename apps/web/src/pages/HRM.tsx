@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+﻿import React, { useState, useCallback, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { useAuth } from '../hooks/useAuth.js';
@@ -15,6 +15,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { Combobox } from '../components/ui/combobox.js';
 import { MultiSelectFilter } from '../components/ui/filter-dropdown.js';
 import { DatePicker } from '../components/ui/date-picker.js';
+import { Popover, PopoverAnchor, PopoverContent } from '../components/ui/popover.js';
 import { PageHeader as SharedPageHeader } from '../components/PageHeader.js';
 import { PersonLink } from '../components/PersonLink.js';
 
@@ -84,7 +85,7 @@ function fmtTZS(n: number) { return 'TZS ' + n.toLocaleString(); }
 /**
  * Delegates to the shared avatar so a person looks the same here as in every
  * other app. This file used to carry its own palette and hash, which disagreed
- * with the one ClearOS and CRM used — the same colleague rendered purple in one
+ * with the one ClearOS and CRM used â€” the same colleague rendered purple in one
  * app and amber in another.
  *
  * Passing `userId` is preferred over `src`: the picture is then fetched once
@@ -121,7 +122,7 @@ function Badge({ status }: { status: string }) {
 }
 
 /**
- * NexusHR's page title — the second private copy of PageHeader that had grown
+ * NexusHR's page title â€” the second private copy of PageHeader that had grown
  * in this repo. It now delegates to the real one, so all ~30 views in this
  * file take the house style without touching a call site. `icon` is still
  * accepted so those call sites compile unchanged, but is no longer rendered.
@@ -190,7 +191,7 @@ export function EmployeesPage() {
   const [statusF,   setStatusF]   = useState('');
   const [viewMode,  setViewMode]  = useState<'list' | 'grid'>('list');
   const [showOnboard, setShowOnboard] = useState(false);
-  // Start empty and fill from /v1/hr/staff — never seed with the sample fixture,
+  // Start empty and fill from /v1/hr/staff â€” never seed with the sample fixture,
   // which would flash fabricated names before (or instead of) the real roster.
   const [employees, setEmployees] = useState<Employee[]>([]);
 
@@ -201,9 +202,9 @@ export function EmployeesPage() {
         id: u.id, name: u.name, email: u.email, phone: u.phone || '',
         // Em dash, not 'Operations'/'Officer'. Those defaults gave every
         // unassigned person a department this tenant has never created and a
-        // job title nobody gave them — indistinguishable, in the table, from
+        // job title nobody gave them â€” indistinguishable, in the table, from
         // someone genuinely assigned to Operations.
-        dept: u.dept || '—', designation: u.designation || '—',
+        dept: u.dept || 'â€”', designation: u.designation || 'â€”',
         role: u.role, status: (u.status || 'ACTIVE') as EmpStatus,
         hireDate: u.hireDate || (u.created_at ? String(u.created_at).split('T')[0] : ''),
         // Dropped here previously, which is the last of the three places this
@@ -211,12 +212,12 @@ export function EmployeesPage() {
         // could not render it, and this mapper discarded it.
         avatarUrl: u.avatar_url ?? null,
       })));
-    } catch { /* leave the list empty — see note at top of file */ }
+    } catch { /* leave the list empty â€” see note at top of file */ }
   }, []);
   useEffect(() => { loadEmployees(); }, [loadEmployees]);
 
-  const depts = [...new Set(employees.map(e => e.dept).filter(d => d && d !== '—'))];
-  // Real figures for the metrics row — no hardcoded "2 new / 4 roles / 1 pending".
+  const depts = [...new Set(employees.map(e => e.dept).filter(d => d && d !== 'â€”'))];
+  // Real figures for the metrics row â€” no hardcoded "2 new / 4 roles / 1 pending".
   const thisMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
   const hiredThisMonth = employees.filter(e => (e.hireDate || '').startsWith(thisMonth)).length;
   const roleCount = new Set(employees.map(e => e.role).filter(Boolean)).size;
@@ -246,7 +247,7 @@ export function EmployeesPage() {
 
   return (
     <div style={{ flex: 1, overflowY: 'auto' }}>
-      <PageHeader icon="users" title="Manage Staff" sub={`${employees.filter(e => e.status === 'ACTIVE').length} active — ${employees.length} total`} backTo="/nexushr">
+      <PageHeader icon="users" title="Manage Staff" sub={`${employees.filter(e => e.status === 'ACTIVE').length} active â€” ${employees.length} total`} backTo="/nexushr">
         <PrimaryBtn label="Invite User" icon="userPlus" onClick={() => setShowOnboard(true)} />
       </PageHeader>
 
@@ -274,7 +275,7 @@ export function EmployeesPage() {
         {/* Search */}
         <div style={{ position: 'relative', width: 260 }}>
           <Icon name="search" size={13} color="var(--ink3)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name or email—"
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name or emailâ€”"
             style={{ width: '100%', padding: '7px 10px 7px 32px', border: '1px solid var(--border)', borderRadius: 9, fontFamily: 'var(--font)', fontSize: 13, background: 'var(--white)', color: 'var(--ink)', boxSizing: 'border-box' as const }} />
         </div>
 
@@ -511,7 +512,7 @@ export function RolesPage() {
         {dirty && (
           <button type="button" onClick={save} disabled={saving}
             style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 16px', borderRadius:'var(--r)', border:'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight:700, fontSize:13, fontFamily:'var(--font)', cursor:'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-            <Icon name="save" size={14} color="hsl(var(--primary-foreground))" />{saving ? 'Saving—' : 'Save Changes'}
+            <Icon name="save" size={14} color="hsl(var(--primary-foreground))" />{saving ? 'Savingâ€”' : 'Save Changes'}
           </button>
         )}
       </PageHeader>
@@ -577,7 +578,7 @@ export function RolesPage() {
               <Icon name="shield" size={17} color={selMeta.color} />
             </div>
             <div>
-              <div style={{ fontSize:14, fontWeight:800, color:'var(--ink)' }}>{selMeta.label} — Permission Matrix</div>
+              <div style={{ fontSize:14, fontWeight:800, color:'var(--ink)' }}>{selMeta.label} â€” Permission Matrix</div>
               <div style={{ fontSize:11.5, color:'var(--ink3)' }}>Click checkboxes to grant or revoke access. Save when done.</div>
             </div>
           </div>
@@ -711,18 +712,18 @@ export function PermissionsPage() {
 
   return (
     <div style={{ flex: 1, overflowY: 'auto' }}>
-      <PageHeader icon="key" title="Permission Matrix" sub="Full cross-role permission overview — toggle access per module and action" backTo="/nexushr">
+      <PageHeader icon="key" title="Permission Matrix" sub="Full cross-role permission overview â€” toggle access per module and action" backTo="/nexushr">
         {dirty && (
           <button type="button" onClick={save} disabled={saving}
             style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 16px', borderRadius:'var(--r)', border:'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight:700, fontSize:13, fontFamily:'var(--font)', cursor:'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-            <Icon name="save" size={14} color="hsl(var(--primary-foreground))" />{saving ? 'Saving—' : 'Save Changes'}
+            <Icon name="save" size={14} color="hsl(var(--primary-foreground))" />{saving ? 'Savingâ€”' : 'Save Changes'}
           </button>
         )}
       </PageHeader>
 
       {/* Filter */}
       <div style={{ marginBottom:16, maxWidth:340 }}>
-        <input value={filter} onChange={e => setFilter(e.target.value)} placeholder="Filter modules—"
+        <input value={filter} onChange={e => setFilter(e.target.value)} placeholder="Filter modulesâ€”"
           style={{ width:'100%', padding:'8px 12px', border:'1px solid var(--border)', borderRadius:8, fontSize:13, fontFamily:'var(--font)', color:'var(--ink)', background:'var(--white)', boxSizing:'border-box' as const }} />
       </div>
 
@@ -793,8 +794,8 @@ export function PermissionsPage() {
         ))}
       </div>
 
-      {/* eSign stamp access — a separate role allow-list (tenant_settings,
-          not this page's own resource×action grid above: 'stamp' has no
+      {/* eSign stamp access â€” a separate role allow-list (tenant_settings,
+          not this page's own resourceÃ—action grid above: 'stamp' has no
           natural fit among shipments/clearance/finance/hr/sales/crm/
           documents/reports/settings, and extending that shared grid for one
           feature's own gate was judged riskier than it's worth). Lives here
@@ -833,7 +834,7 @@ function StampAccessCard() {
         Only these roles can apply the company stamp directly (Hudumika eSign, and any other app using the shared stamp API). Anyone else sees a "Request stamping" option instead, which tags a real person below to approve it.
       </div>
       {roles === null ? (
-        <div style={{ color:'var(--ink3)', fontSize:13 }}>Loading…</div>
+        <div style={{ color:'var(--ink3)', fontSize:13 }}>Loadingâ€¦</div>
       ) : (
         <div style={{ display:'flex', flexDirection:'column', gap:2 }}>
           {STAMP_ROLE_OPTIONS.map(role => (
@@ -872,7 +873,7 @@ function StampRequestsCard() {
       <div style={{ fontSize:14, fontWeight:700, color:'var(--ink)', marginBottom:4 }}>Stamp requests</div>
       <div style={{ fontSize:12.5, color:'var(--ink3)', marginBottom:14 }}>People without direct stamp access who have tagged you as their approver.</div>
       {requests === null ? (
-        <div style={{ color:'var(--ink3)', fontSize:13 }}>Loading…</div>
+        <div style={{ color:'var(--ink3)', fontSize:13 }}>Loadingâ€¦</div>
       ) : pending.length === 0 ? (
         <div style={{ color:'var(--ink3)', fontSize:13 }}>No pending requests.</div>
       ) : (
@@ -1028,7 +1029,7 @@ export function DepartmentsPage() {
         id: d.id, name: d.name, head: d.head_name || '-', head_user_id: d.head_user_id,
         employees: d.employee_count || 0, status: d.status || 'ACTIVE',
       })));
-    } catch { /* leave the list empty — see note at top of file */ }
+    } catch { /* leave the list empty â€” see note at top of file */ }
   }, []);
   const loadStaff = useCallback(async () => {
     try { setStaff(await apiFetch('/v1/hr/staff')); } catch { /* keep empty */ }
@@ -1063,7 +1064,7 @@ export function DepartmentsPage() {
           {depts.map(d => (
             <tr key={d.name} style={{ borderBottom:'1px solid var(--border)' }}>
               <TD bold>{d.name}</TD>
-              <TD>{d.head === '-' ? <span style={{ color:'var(--ink3)' }}>—</span> : <div style={{ display:'flex', alignItems:'center', gap:8 }}><Avatar name={d.head} size={24} />{d.head}</div>}</TD>
+              <TD>{d.head === '-' ? <span style={{ color:'var(--ink3)' }}>â€”</span> : <div style={{ display:'flex', alignItems:'center', gap:8 }}><Avatar name={d.head} size={24} />{d.head}</div>}</TD>
               <TD right bold>{d.employees}</TD>
               <TD><Badge status={d.status} /></TD>
               <TD right>{d.id && <ActionBtn label="Edit" onClick={() => { setShowNew(false); setEditing(d); }} />}</TD>
@@ -1143,7 +1144,7 @@ export function TeamsPage() {
         {teams.map(t => (
           <div key={t.id} style={{ background:'var(--white)', borderRadius: 9, border:'1px solid var(--border)', padding:18 }}>
             <div style={{ fontWeight:700, fontSize:14, color:'var(--ink)', marginBottom:4 }}>{t.name}</div>
-            <div style={{ fontSize:12, color:'var(--ink3)', marginBottom:12 }}>Lead: {t.lead_name || '—'} — {t.members.length} member{t.members.length!==1?'s':''}</div>
+            <div style={{ fontSize:12, color:'var(--ink3)', marginBottom:12 }}>Lead: {t.lead_name || 'â€”'} â€” {t.members.length} member{t.members.length!==1?'s':''}</div>
             <div style={{ display:'flex', flexDirection:'column', gap:6, marginBottom:12 }}>
               {t.members.map(m => (
                 <div key={m.user_id} style={{ display:'flex', alignItems:'center', gap:8 }}>
@@ -1255,7 +1256,7 @@ type ActivityRow = { id: string; user_name: string | null; action: string; modul
 export function ActivityLogsPage() {
   const [logs, setLogs] = useState<ActivityRow[]>([]);
   // A swallowed failure here rendered "No activity recorded yet", which is a
-  // different claim from "we could not load it" — and for three years this
+  // different claim from "we could not load it" â€” and for three years this
   // module returned 403 to SUPER_ADMIN while showing exactly that empty state.
   const [err, setErr] = useState('');
   useEffect(() => { apiFetch('/v1/hr/activity-log').then(setLogs).catch((e: any) => setErr(e?.message ?? 'Could not load activity.')); }, []);
@@ -1454,7 +1455,7 @@ function LeaveTypeCard({ t, onSaved }: { t: any; onSaved: () => void }) {
       <div style={{ display:'flex', justifyContent:'flex-end', borderTop:'1px solid var(--border)', paddingTop:12 }}>
         <button type="button" className="btn btn-primary btn-sm" disabled={!dirty || saving}
           style={{ minHeight:'var(--ctl-h-sm)', boxSizing:'border-box', lineHeight:1.25, opacity:(!dirty||saving)?0.55:1 }} onClick={save}>
-          {saving ? 'Saving…' : 'Save'}
+          {saving ? 'Savingâ€¦' : 'Save'}
         </button>
       </div>
     </div>
@@ -1482,7 +1483,7 @@ function LeaveTypesConfig({ types, onReload }: { types: any[]; onReload: () => v
           These entitlements drive every leave balance and the request checks. Statutory rows are seeded from the tenant's country.
         </div>
         <button type="button" className="btn btn-secondary btn-sm" disabled={gen} style={{ display:'flex', alignItems:'center', gap:6, minHeight:'var(--ctl-h-sm)', boxSizing:'border-box', lineHeight:1.25 }} onClick={generate}>
-          <Icon name="download" size={14} /> {gen ? 'Generating…' : 'Generate statutory types'}
+          <Icon name="download" size={14} /> {gen ? 'Generatingâ€¦' : 'Generate statutory types'}
         </button>
       </div>
       {genMsg && <div style={{ fontSize:12.5, color:'var(--ink2)', background:'var(--bg)', border:'1px solid var(--border)', borderRadius:8, padding:'8px 12px' }}>{genMsg}</div>}
@@ -1522,7 +1523,7 @@ export function LeavesPage() {
       const res = await apiFetch('/v1/hr/leaves');
       const data = Array.isArray(res) ? res : (res?.data ?? []);
       setLeaves(data.map(apiLeaveToRow));
-    } catch { /* leave the list empty — see note at top of file */ }
+    } catch { /* leave the list empty â€” see note at top of file */ }
   }, []);
   const loadStaff = useCallback(async () => {
     try { setStaff(await apiFetch('/v1/hr/staff')); } catch { /* keep empty */ }
@@ -1550,14 +1551,14 @@ export function LeavesPage() {
     try {
       await apiFetch(`/v1/hr/leaves/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
       // Approving moves days from pending to taken, so the balances shown
-      // beside every other request — and the header totals — are now stale.
+      // beside every other request â€” and the header totals â€” are now stale.
       loadLeaves(); loadEntitlement(); loadSummary();
     } catch { /* local update already applied */ }
   }
 
   // Built from the configured types, not the old hardcoded display names.
   // Rows carry a code ("ANNUAL") while the chips said "Annual Leave", so every
-  // filter matched nothing — visible only once real types replaced the list.
+  // filter matched nothing â€” visible only once real types replaced the list.
   const chips: { v: string; l: string }[] = [
     { v: '', l: 'All Types' },
     ...(leaveTypes.length
@@ -1647,11 +1648,11 @@ export function LeavesPage() {
             {formBalance && (
               <div style={{ flexBasis: '100%', fontSize: 12.5, color: 'var(--ink2)', paddingTop: 4 }}>
                 <strong>{formBalance.remaining} day(s) remaining</strong> of {formBalance.entitled}
-                {formBalance.taken > 0 && ` · ${formBalance.taken} taken`}
-                {formBalance.pending > 0 && ` · ${formBalance.pending} awaiting a decision`}
-                <span style={{ color: 'var(--ink3)' }}> · cycle ends {formBalance.cycle_end}</span>
+                {formBalance.taken > 0 && ` Â· ${formBalance.taken} taken`}
+                {formBalance.pending > 0 && ` Â· ${formBalance.pending} awaiting a decision`}
+                <span style={{ color: 'var(--ink3)' }}> Â· cycle ends {formBalance.cycle_end}</span>
                 {!formBalance.eligible && (
-                  <span style={{ color: 'var(--gold)', fontWeight: 600 }}> · {formBalance.ineligible_reason}</span>
+                  <span style={{ color: 'var(--gold)', fontWeight: 600 }}> Â· {formBalance.ineligible_reason}</span>
                 )}
               </div>
             )}
@@ -1667,7 +1668,7 @@ export function LeavesPage() {
 
       <MetricsRow cards={[
         { title:'Pending',  value:String(leaves.filter(l=>l.status==='PENDING').length),  sub1Label:'THIS MONTH', sub1Value:String(leaves.length), sub2Label:'APPROVED', sub2Value:String(leaves.filter(l=>l.status==='APPROVED').length),  barHighlight:'var(--gold)'  },
-        // Who is actually out today — a from/to date overlap the client list
+        // Who is actually out today â€” a from/to date overlap the client list
         // can't answer as cleanly, so it comes from /leaves/summary.
         { title:'On Leave Today', value:String(leaveSummary?.on_leave_today ?? 0),
           sub1Label:'DAYS TAKEN YTD', sub1Value:String(leaveSummary?.days_taken_ytd ?? 0),
@@ -1680,7 +1681,7 @@ export function LeavesPage() {
         (() => {
           const annual = everyBalance.map(p => p.balances?.find((b: any) => b.code === 'ANNUAL')).filter(Boolean);
           if (annual.length === 0) {
-            return { title:'Annual Leave', value:'—', sub1Label:'ENTITLEMENT', sub1Value:'not configured',
+            return { title:'Annual Leave', value:'â€”', sub1Label:'ENTITLEMENT', sub1Value:'not configured',
                      sub2Label:'PEOPLE', sub2Value:String(everyBalance.length), barHighlight:'var(--blue)' };
           }
           const round1 = (n: number) => Math.round(n * 10) / 10;
@@ -1694,7 +1695,7 @@ export function LeavesPage() {
           };
         })(),
       ]} />
-      {/* View toggle: requests · team calendar · leave-type config */}
+      {/* View toggle: requests Â· team calendar Â· leave-type config */}
       <div style={{ display:'flex', gap:8, marginBottom:14, flexWrap:'wrap' }}>
         {([
           { v: 'list' as const, icon: 'list' as IconName, label: 'Requests' },
@@ -1739,7 +1740,7 @@ export function LeavesPage() {
                   <div style={{ fontSize:12, fontWeight: isToday ? 700 : 600, color: isToday ? 'var(--teal)' : 'var(--ink2)', textAlign:'right' }}>{d}</div>
                   <div style={{ display:'flex', flexDirection:'column', gap:3, overflow:'hidden' }}>
                     {on.slice(0, 3).map(l => (
-                      <div key={l.id} title={`${l.emp} — ${l.type} (${l.from} → ${l.to})`}
+                      <div key={l.id} title={`${l.emp} â€” ${l.type} (${l.from} â†’ ${l.to})`}
                         style={{ display:'flex', alignItems:'center', gap:4, fontSize:10.5, background:'var(--bg)', borderLeft:`3px solid ${leaveTypeColor(l.typeCode)}`, borderRadius:4, padding:'2px 5px', whiteSpace:'nowrap', overflow:'hidden' }}>
                         <span style={{ overflow:'hidden', textOverflow:'ellipsis' }}>{l.emp.split(' ')[0]}</span>
                       </div>
@@ -1785,12 +1786,12 @@ export function LeavesPage() {
                   it is approving an unknown quantity of an unknown allowance. */}
               <TD right>{(() => {
                 const b = balanceFor(l.userId, l.typeCode);
-                if (!b) return <span style={{ color:'var(--ink3)' }}>—</span>;
+                if (!b) return <span style={{ color:'var(--ink3)' }}>â€”</span>;
                 const short = l.status === 'PENDING' && l.days > b.remaining;
                 return (
                   <span style={{ color: short ? 'var(--red)' : 'var(--ink2)', fontWeight: short ? 700 : 500 }}
                         title={`${b.taken} taken, ${b.pending} pending, cycle ends ${b.cycle_end}`}>
-                    {b.remaining} left{short ? ' — short' : ''}
+                    {b.remaining} left{short ? ' â€” short' : ''}
                   </span>
                 );
               })()}</TD>
@@ -1810,7 +1811,7 @@ export function LeavesPage() {
 
 export function AttendancePage() {
   const isMobile = useIsMobile();
-  // Start empty and fill from the API — never seed the register with the
+  // Start empty and fill from the API â€” never seed the register with the
   // sample EMPLOYEES fixture, which would show fabricated names before (or
   // instead of) the tenant's real staff.
   const [employees, setEmployees] = useState<ShiftEmployee[]>([]);
@@ -1836,7 +1837,7 @@ export function AttendancePage() {
           id: u.id, name: u.name, department: u.dept || 'General', role: u.role, avatar: ini(u.name),
         })));
       }
-    } catch { /* leave the list empty — see note at top of file */ }
+    } catch { /* leave the list empty â€” see note at top of file */ }
   }, []);
 
   const loadAttendance = useCallback(async () => {
@@ -1849,7 +1850,7 @@ export function AttendancePage() {
           status: mapAttStatus(a.status),
         })));
       }
-    } catch { /* keep empty — falls back to no records rendered */ }
+    } catch { /* keep empty â€” falls back to no records rendered */ }
   }, []);
 
   useEffect(() => { loadStaff(); loadAttendance(); }, [loadStaff, loadAttendance]);
@@ -1875,9 +1876,9 @@ export function AttendancePage() {
   useEffect(() => { loadSummary(); }, [loadSummary]);
 
   const fmtDur = (min: number | null | undefined) =>
-    min == null ? '—' : `${Math.floor(min / 60)}h ${String(min % 60).padStart(2, '0')}m`;
+    min == null ? 'â€”' : `${Math.floor(min / 60)}h ${String(min % 60).padStart(2, '0')}m`;
   const summaryCards: MetricCardProps[] = summary ? [
-    { title: 'Attendance rate', value: summary.present_rate_pct == null ? '—' : `${summary.present_rate_pct}%`,
+    { title: 'Attendance rate', value: summary.present_rate_pct == null ? 'â€”' : `${summary.present_rate_pct}%`,
       icon: 'checkCircle', barHighlight: 'var(--green)',
       sub1Label: 'RECORDS', sub1Value: String(summary.total_records),
       sub2Label: 'STAFF', sub2Value: String(summary.staff_count) },
@@ -2012,63 +2013,64 @@ export function AttendancePage() {
                     const a = records.find(x => x.employeeId === emp.id && x.date === dStr);
                     
                     return (
-                      <td key={dStr} onClick={() => setActiveCell({ empId: emp.id, date: dStr })} style={{ padding: 0, borderRight: '1px solid var(--border)', cursor: 'pointer', verticalAlign: 'middle', textAlign: 'center', background: isWeekend ? 'var(--bg)' : 'transparent', position: 'relative' }}>
-                        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 36 }} className="cell-hover-parent">
-                          {a ? (
-                            <div style={{ width: 22, height: 22, borderRadius: '50%', background: getStatusBg(a.status), color: getStatusColor(a.status), display: 'flex', alignItems: 'center', justifyContent: 'center' }} title={`${a.status} ${a.clockIn ? `(${a.clockIn} - ${a.clockOut})` : ''}`}>
-                              <Icon name={getStatusIcon(a.status) as any} size={12} />
+                      <Popover key={dStr} open={activeCell?.empId === emp.id && activeCell.date === dStr} onOpenChange={o => { if (!o) setActiveCell(null); }}>
+                        <PopoverAnchor asChild>
+                          <td onClick={() => setActiveCell({ empId: emp.id, date: dStr })} style={{ padding: 0, borderRight: '1px solid var(--border)', cursor: 'pointer', verticalAlign: 'middle', textAlign: 'center', background: isWeekend ? 'var(--bg)' : 'transparent' }}>
+                            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 36 }} className="cell-hover-parent">
+                              {a ? (
+                                <div style={{ width: 22, height: 22, borderRadius: '50%', background: getStatusBg(a.status), color: getStatusColor(a.status), display: 'flex', alignItems: 'center', justifyContent: 'center' }} title={`${a.status} ${a.clockIn ? `(${a.clockIn} - ${a.clockOut})` : ''}`}>
+                                  <Icon name={getStatusIcon(a.status) as any} size={12} />
+                                </div>
+                              ) : (
+                                <div style={{ opacity: 0, transition: 'opacity 0.2s', width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center' }} className="cell-hover-child">
+                                  <Icon name="plus" size={14} color="var(--ink3)" />
+                                </div>
+                              )}
                             </div>
-                          ) : (
-                            <div style={{ opacity: 0, transition: 'opacity 0.2s', width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center' }} className="cell-hover-child">
-                              <Icon name="plus" size={14} color="var(--ink3)" />
+                          </td>
+                        </PopoverAnchor>
+                        <PopoverContent align="center" className="w-55 p-3 text-left" onClick={e => e.stopPropagation()} onOpenAutoFocus={e => e.preventDefault()}>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Edit Attendance</div>
+                          <form onSubmit={async (e) => {
+                            e.preventDefault();
+                            const fd = new FormData(e.currentTarget);
+                            const status = fd.get('status') as AttendanceStatus;
+                            const clockIn = fd.get('clockIn') as string;
+                            const clockOut = fd.get('clockOut') as string;
+                            setRecords(prev => {
+                              const next = prev.filter(x => !(x.employeeId === emp.id && x.date === dStr));
+                              next.push({ id: a?.id || `ATT_${Date.now()}`, employeeId: emp.id, date: dStr, status, clockIn, clockOut });
+                              return next;
+                            });
+                            setActiveCell(null);
+                            try {
+                              await apiFetch('/v1/hr/attendance', { method: 'POST', body: JSON.stringify({ user_id: emp.id, date: dStr, status: toAttStatusApi(status), clock_in: clockIn || null, clock_out: clockOut || null }) });
+                              loadAttendance();
+                            } catch { /* local state already updated */ }
+                          }}>
+                            <div style={{ marginBottom: 8 }}>
+                              <Select name="status" required defaultValue={a?.status || 'Present'}>
+                                <SelectTrigger className="input-field" style={{ width: '100%', fontSize: 12, height: 28 }}><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="Present">Present</SelectItem>
+                                  <SelectItem value="Absent">Absent</SelectItem>
+                                  <SelectItem value="Late">Late</SelectItem>
+                                  <SelectItem value="Half-Day">Half-Day</SelectItem>
+                                  <SelectItem value="On Leave">On Leave</SelectItem>
+                                </SelectContent>
+                              </Select>
                             </div>
-                          )}
-                        </div>
-                        
-                        {activeCell?.empId === emp.id && activeCell.date === dStr && (
-                          <div style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, boxShadow: 'var(--elev-lg)', zIndex: 100, padding: 12, width: 220, marginTop: 4, textAlign: 'left' }} onClick={e => e.stopPropagation()}>
-                            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Edit Attendance</div>
-                            <form onSubmit={async (e) => {
-                              e.preventDefault();
-                              const fd = new FormData(e.currentTarget);
-                              const status = fd.get('status') as AttendanceStatus;
-                              const clockIn = fd.get('clockIn') as string;
-                              const clockOut = fd.get('clockOut') as string;
-                              setRecords(prev => {
-                                const next = prev.filter(x => !(x.employeeId === emp.id && x.date === dStr));
-                                next.push({ id: a?.id || `ATT_${Date.now()}`, employeeId: emp.id, date: dStr, status, clockIn, clockOut });
-                                return next;
-                              });
-                              setActiveCell(null);
-                              try {
-                                await apiFetch('/v1/hr/attendance', { method: 'POST', body: JSON.stringify({ user_id: emp.id, date: dStr, status: toAttStatusApi(status), clock_in: clockIn || null, clock_out: clockOut || null }) });
-                                loadAttendance();
-                              } catch { /* local state already updated */ }
-                            }}>
-                              <div style={{ marginBottom: 8 }}>
-                                <Select name="status" required defaultValue={a?.status || 'Present'}>
-                                  <SelectTrigger className="input-field" style={{ width: '100%', fontSize: 12, height: 28 }}><SelectValue /></SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="Present">Present</SelectItem>
-                                    <SelectItem value="Absent">Absent</SelectItem>
-                                    <SelectItem value="Late">Late</SelectItem>
-                                    <SelectItem value="Half-Day">Half-Day</SelectItem>
-                                    <SelectItem value="On Leave">On Leave</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: 8, marginBottom: 12 }}>
-                                <input type="time" name="clockIn" className="input-field" defaultValue={a?.clockIn || '08:00'} style={{ fontSize: 12, height: 28, padding: '0 4px' }} />
-                                <input type="time" name="clockOut" className="input-field" defaultValue={a?.clockOut || '17:00'} style={{ fontSize: 12, height: 28, padding: '0 4px' }} />
-                              </div>
-                              <div style={{ display: 'flex', gap: 6 }}>
-                                <button type="submit" className="btn btn-primary btn-sm" style={{ flex: 1, padding: 4 }}>Save</button>
-                                <button type="button" className="btn btn-secondary btn-sm" style={{ flex: 1, padding: 4 }} onClick={() => setActiveCell(null)}>Cancel</button>
-                              </div>
-                            </form>
-                          </div>
-                        )}
-                      </td>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: 8, marginBottom: 12 }}>
+                              <input type="time" name="clockIn" className="input-field" defaultValue={a?.clockIn || '08:00'} style={{ fontSize: 12, height: 28, padding: '0 4px' }} />
+                              <input type="time" name="clockOut" className="input-field" defaultValue={a?.clockOut || '17:00'} style={{ fontSize: 12, height: 28, padding: '0 4px' }} />
+                            </div>
+                            <div style={{ display: 'flex', gap: 6 }}>
+                              <button type="submit" className="btn btn-primary btn-sm" style={{ flex: 1, padding: 4 }}>Save</button>
+                              <button type="button" className="btn btn-secondary btn-sm" style={{ flex: 1, padding: 4 }} onClick={() => setActiveCell(null)}>Cancel</button>
+                            </div>
+                          </form>
+                        </PopoverContent>
+                      </Popover>
                     );
                   })}
                 </tr>
@@ -2243,15 +2245,13 @@ export function AttendancePage() {
         .hover-bg:hover td { background: var(--bg) !important; }
         td:hover .cell-hover-child { opacity: 1 !important; }
       `}} />
-      
-      {activeCell && <div style={{ position: 'fixed', inset: 0, zIndex: 90 }} onClick={() => setActiveCell(null)} />}
     </div>
   );
 }
 
 export function ShiftsPage() {
   const isMobile = useIsMobile();
-  // Start empty and fill from the API — never seed with the sample fixtures,
+  // Start empty and fill from the API â€” never seed with the sample fixtures,
   // which would render fabricated staff and shift types as if they were the
   // tenant's real roster/schedule.
   const [employees, setEmployees] = useState<ShiftEmployee[]>([]);
@@ -2280,7 +2280,7 @@ export function ShiftsPage() {
           id: u.id, name: u.name, department: u.dept || 'General', role: u.role, avatar: ini(u.name),
         })));
       }
-    } catch { /* leave the list empty — see note at top of file */ }
+    } catch { /* leave the list empty â€” see note at top of file */ }
   }, []);
 
   const loadShiftTypes = useCallback(async () => {
@@ -2291,7 +2291,7 @@ export function ShiftsPage() {
           id: s.id, name: s.name, startTime: s.start_time, endTime: s.end_time, color: s.color || 'var(--blue)',
         })));
       }
-    } catch { /* leave the list empty — see note at top of file */ }
+    } catch { /* leave the list empty â€” see note at top of file */ }
   }, []);
 
   const loadAssignments = useCallback(async () => {
@@ -2416,50 +2416,50 @@ export function ShiftsPage() {
                   const sType = a?.shiftId ? shiftTypes.find(s => s.id === a.shiftId) : null;
                   
                   return (
-                    <td key={dStr} onClick={() => setActiveCell({ empId: emp.id, date: dStr })} style={{ padding: 4, borderRight: '1px solid var(--border)', cursor: 'pointer', verticalAlign: 'top', position: 'relative' }}>
-                      <div style={{ minHeight: 46, borderRadius: 6, border: '1px dashed transparent', padding: 6, transition: 'border 0.2s', ...((!sType) ? { ':hover': { borderColor: 'var(--border)' } } : {}) } as any}>
-                        {sType ? (
-                          <div style={{ background: `${sType.color}15`, border: `1px solid ${sType.color}40`, borderRadius: 4, padding: '4px 6px' }}>
-                            <div style={{ fontSize: 10, fontWeight: 800, color: sType.color, marginBottom: 2 }}>{sType.name}</div>
-                            <div style={{ fontSize: 9, color: 'var(--ink3)', fontFamily: 'var(--mono)' }}>{sType.startTime} - {sType.endTime}</div>
+                    <Popover key={dStr} open={activeCell?.empId === emp.id && activeCell.date === dStr} onOpenChange={o => { if (!o) setActiveCell(null); }}>
+                      <PopoverAnchor asChild>
+                        <td onClick={() => setActiveCell({ empId: emp.id, date: dStr })} style={{ padding: 4, borderRight: '1px solid var(--border)', cursor: 'pointer', verticalAlign: 'top' }}>
+                          <div style={{ minHeight: 46, borderRadius: 6, border: '1px dashed transparent', padding: 6, transition: 'border 0.2s', ...((!sType) ? { ':hover': { borderColor: 'var(--border)' } } : {}) } as any}>
+                            {sType ? (
+                              <div style={{ background: `${sType.color}15`, border: `1px solid ${sType.color}40`, borderRadius: 4, padding: '4px 6px' }}>
+                                <div style={{ fontSize: 10, fontWeight: 800, color: sType.color, marginBottom: 2 }}>{sType.name}</div>
+                                <div style={{ fontSize: 9, color: 'var(--ink3)', fontFamily: 'var(--mono)' }}>{sType.startTime} - {sType.endTime}</div>
+                              </div>
+                            ) : (
+                              <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'opacity 0.2s' }} className="cell-hover">
+                                <Icon name="plus" size={14} color="var(--ink3)" />
+                              </div>
+                            )}
                           </div>
-                        ) : (
-                          <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'opacity 0.2s' }} className="cell-hover">
-                            <Icon name="plus" size={14} color="var(--ink3)" />
-                          </div>
-                        )}
-                      </div>
-                      
-                      {/* Active Cell Modal (Popover) */}
-                      {activeCell?.empId === emp.id && activeCell.date === dStr && (
-                        <div style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, boxShadow: 'var(--elev-lg)', zIndex: 100, padding: 12, width: 220, marginTop: 4 }}>
-                          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Assign Shift</div>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                            {shiftTypes.map(st => (
-                              <button key={st.id} type="button" onClick={async (e) => {
-                                e.stopPropagation();
-                                setAssignments(prev => [...prev.filter(x => !(x.employeeId === emp.id && x.date === dStr)), { id: `A_${Date.now()}`, employeeId: emp.id, date: dStr, shiftId: st.id }]);
-                                setActiveCell(null);
-                                try { await apiFetch('/v1/hr/shift-assignments', { method: 'POST', body: JSON.stringify({ user_id: emp.id, shift_id: st.id, date: dStr }) }); loadAssignments(); } catch { /**/ }
-                              }} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py-sm) 8px', borderRadius: 'var(--r-sm)', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}} className="hover-bg">
-                                <div style={{ width: 10, height: 10, borderRadius: 2, background: st.color }} />
-                                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--navy)' }}>{st.name}</span>
-                              </button>
-                            ))}
-                            <div style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />
-                            <button type="button" onClick={async (e) => {
+                        </td>
+                      </PopoverAnchor>
+                      <PopoverContent align="center" className="w-55 p-3" onClick={e => e.stopPropagation()} onOpenAutoFocus={e => e.preventDefault()}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Assign Shift</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                          {shiftTypes.map(st => (
+                            <button key={st.id} type="button" onClick={async (e) => {
                               e.stopPropagation();
-                              setAssignments(prev => prev.filter(x => !(x.employeeId === emp.id && x.date === dStr)));
+                              setAssignments(prev => [...prev.filter(x => !(x.employeeId === emp.id && x.date === dStr)), { id: `A_${Date.now()}`, employeeId: emp.id, date: dStr, shiftId: st.id }]);
                               setActiveCell(null);
-                              try { await apiFetch('/v1/hr/shift-assignments', { method: 'POST', body: JSON.stringify({ user_id: emp.id, shift_id: null, date: dStr }) }); loadAssignments(); } catch { /**/ }
-                            }} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py-sm) 8px', borderRadius: 'var(--r-sm)', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', color: 'var(--red)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}} className="hover-bg">
-                              <Icon name="x" size={12} />
-                              <span style={{ fontSize: 12, fontWeight: 600 }}>Clear Shift</span>
+                              try { await apiFetch('/v1/hr/shift-assignments', { method: 'POST', body: JSON.stringify({ user_id: emp.id, shift_id: st.id, date: dStr }) }); loadAssignments(); } catch { /**/ }
+                            }} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py-sm) 8px', borderRadius: 'var(--r-sm)', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}} className="hover-bg">
+                              <div style={{ width: 10, height: 10, borderRadius: 2, background: st.color }} />
+                              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--navy)' }}>{st.name}</span>
                             </button>
-                          </div>
+                          ))}
+                          <div style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />
+                          <button type="button" onClick={async (e) => {
+                            e.stopPropagation();
+                            setAssignments(prev => prev.filter(x => !(x.employeeId === emp.id && x.date === dStr)));
+                            setActiveCell(null);
+                            try { await apiFetch('/v1/hr/shift-assignments', { method: 'POST', body: JSON.stringify({ user_id: emp.id, shift_id: null, date: dStr }) }); loadAssignments(); } catch { /**/ }
+                          }} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py-sm) 8px', borderRadius: 'var(--r-sm)', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', color: 'var(--red)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}} className="hover-bg">
+                            <Icon name="x" size={12} />
+                            <span style={{ fontSize: 12, fontWeight: 600 }}>Clear Shift</span>
+                          </button>
                         </div>
-                      )}
-                    </td>
+                      </PopoverContent>
+                    </Popover>
                   );
                 })}
               </tr>
@@ -2544,10 +2544,6 @@ export function ShiftsPage() {
         td:hover .cell-hover { opacity: 1 !important; }
       `}} />
       
-      {/* Click outside active cell listener */}
-      {activeCell && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 90 }} onClick={() => setActiveCell(null)} />
-      )}
     </div>
   );
 }
@@ -2555,7 +2551,7 @@ export function ShiftsPage() {
 type HolidayRow = {
   id?: string; date: string; name: string; type: string;
   localName?: string | null; country?: string | null; category?: string;
-  /** Follows a moon sighting — the date can still move by a day. */
+  /** Follows a moon sighting â€” the date can still move by a day. */
   provisional?: boolean;
   source?: string;
 };
@@ -2577,7 +2573,7 @@ export function HolidaysPage() {
         localName: h.local_name, country: h.country, category: h.category,
         provisional: !!h.is_provisional, source: h.source,
       })));
-    } catch { /* leave the list empty — see note at top of file */ }
+    } catch { /* leave the list empty â€” see note at top of file */ }
   }, []);
   useEffect(() => { load(); }, [load]);
 
@@ -2593,7 +2589,7 @@ export function HolidaysPage() {
       const r = await apiFetch('/v1/hr/holidays/sync', { method: 'POST' });
       await load();
       // Report what happened. The previous version said "synchronized
-      // successfully" whatever came back — including a sync that reached no
+      // successfully" whatever came back â€” including a sync that reached no
       // provider and added nothing at all.
       const bits: string[] = [];
       if (r?.added) bits.push(`${r.added} added`);
@@ -2602,7 +2598,7 @@ export function HolidaysPage() {
       setSyncNote({
         ok: !!r?.ok,
         text: r?.ok
-          ? `${(r.countries ?? []).join(', ')} · ${(r.years ?? []).join(' and ')} — ${bits.join(', ') || 'already up to date'}`
+          ? `${(r.countries ?? []).join(', ')} Â· ${(r.years ?? []).join(' and ')} â€” ${bits.join(', ') || 'already up to date'}`
           : 'Nothing was synchronised.',
         problems: Array.isArray(r?.problems) ? r.problems : [],
       });
@@ -2680,7 +2676,7 @@ export function HolidaysPage() {
           <strong>{syncNote.ok ? 'Calendar updated' : 'Nothing was synchronised'}</strong>
           <div style={{ marginTop: 3, color: 'var(--ink2)' }}>{syncNote.text}</div>
           {syncNote.problems.map((p, i) => (
-            <div key={i} style={{ marginTop: 5, fontSize: 12.5, color: 'var(--ink2)' }}>• {p}</div>
+            <div key={i} style={{ marginTop: 5, fontSize: 12.5, color: 'var(--ink2)' }}>â€¢ {p}</div>
           ))}
         </div>
       )}
@@ -2693,8 +2689,8 @@ export function HolidaysPage() {
           <Wrap>
             <thead><tr><TH>Date</TH><TH>Holiday Name</TH><TH>Type</TH><TH right>Actions</TH></tr></thead>
             <tbody>
-              {/* Keyed on id, not date: two holidays can now fall on one date —
-                  Eid has landed on Union Day — and a duplicate key silently
+              {/* Keyed on id, not date: two holidays can now fall on one date â€”
+                  Eid has landed on Union Day â€” and a duplicate key silently
                   drops the second row. */}
               {list.map(h => (
                 <tr key={h.id ?? `${h.date}-${h.name}`} style={{ borderBottom:'1px solid var(--border)' }}>
@@ -2771,7 +2767,7 @@ export function DesignationsPage() {
       const res = await apiFetch('/v1/hr/designations');
       const data = Array.isArray(res) ? res : [];
       setDesigs(data.map((d: any) => ({ id: d.id, title: d.title, dept: d.department_name || '', department_id: d.department_id, employees: d.employee_count || 0 })));
-    } catch { /* leave the list empty — see note at top of file */ }
+    } catch { /* leave the list empty â€” see note at top of file */ }
   }, []);
   const loadDepts = useCallback(async () => {
     try {
@@ -2932,7 +2928,7 @@ export function PayrollPage() {
         <button type="button" className="btn btn-secondary" onClick={exportCsv} disabled={!payslips.length} style={{ display:'flex', alignItems:'center', gap:6 }}>
           <Icon name="download" size={13} /> Export
         </button>
-        <PrimaryBtn label={busy === 'create' ? 'Creating…' : 'New run'} icon="plus" onClick={busy ? undefined : createRun} />
+        <PrimaryBtn label={busy === 'create' ? 'Creatingâ€¦' : 'New run'} icon="plus" onClick={busy ? undefined : createRun} />
       </PageHeader>
 
       {/* Run selector + run actions */}
@@ -2945,14 +2941,14 @@ export function PayrollPage() {
                 {runs.map(r => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}
               </SelectContent>
             </Select>
-          ) : <span style={{ fontSize:13, color:'var(--ink3)' }}>No payroll runs yet — create one to begin.</span>}
+          ) : <span style={{ fontSize:13, color:'var(--ink3)' }}>No payroll runs yet â€” create one to begin.</span>}
           {run && <span style={{ fontSize:11, fontWeight:700, padding:'4px 10px', borderRadius:12, background:st.bg, color:st.fg, textTransform:'uppercase', letterSpacing:'0.4px' }}>{run.status.replace('_', ' ')}</span>}
         </div>
         <div style={{ display:'flex', gap:8 }}>
-          {canCalc && <button type="button" className="btn btn-secondary btn-sm" style={{ minHeight:'var(--ctl-h-sm)', boxSizing:'border-box', lineHeight:1.25, display:'flex', alignItems:'center', gap:6 }} disabled={!!busy} onClick={calculate}><Icon name="refresh" size={13} /> {busy === 'calc' ? 'Calculating…' : (run?.status === 'DRAFT' ? 'Calculate' : 'Recalculate')}</button>}
-          {canApprove && <button type="button" className="btn btn-primary btn-sm" style={{ minHeight:'var(--ctl-h-sm)', boxSizing:'border-box', lineHeight:1.25, display:'flex', alignItems:'center', gap:6 }} disabled={!!busy} onClick={approve}><Icon name="check" size={13} /> {busy === 'approve' ? 'Approving…' : 'Approve run'}</button>}
-          {canMarkPaid && <button type="button" className="btn btn-primary btn-sm" style={{ minHeight:'var(--ctl-h-sm)', boxSizing:'border-box', lineHeight:1.25, display:'flex', alignItems:'center', gap:6 }} disabled={!!busy} onClick={markPaid} title="Posts this run to the general ledger"><Icon name="dollarSign" size={13} /> {busy === 'mark-paid' ? 'Posting…' : 'Mark paid'}</button>}
-          {canDistribute && <button type="button" className="btn btn-secondary btn-sm" style={{ minHeight:'var(--ctl-h-sm)', boxSizing:'border-box', lineHeight:1.25, display:'flex', alignItems:'center', gap:6 }} disabled={!!busy} onClick={distribute}><Icon name="send" size={13} /> {busy === 'distribute' ? 'Sending…' : 'Email payslips'}</button>}
+          {canCalc && <button type="button" className="btn btn-secondary btn-sm" style={{ minHeight:'var(--ctl-h-sm)', boxSizing:'border-box', lineHeight:1.25, display:'flex', alignItems:'center', gap:6 }} disabled={!!busy} onClick={calculate}><Icon name="refresh" size={13} /> {busy === 'calc' ? 'Calculatingâ€¦' : (run?.status === 'DRAFT' ? 'Calculate' : 'Recalculate')}</button>}
+          {canApprove && <button type="button" className="btn btn-primary btn-sm" style={{ minHeight:'var(--ctl-h-sm)', boxSizing:'border-box', lineHeight:1.25, display:'flex', alignItems:'center', gap:6 }} disabled={!!busy} onClick={approve}><Icon name="check" size={13} /> {busy === 'approve' ? 'Approvingâ€¦' : 'Approve run'}</button>}
+          {canMarkPaid && <button type="button" className="btn btn-primary btn-sm" style={{ minHeight:'var(--ctl-h-sm)', boxSizing:'border-box', lineHeight:1.25, display:'flex', alignItems:'center', gap:6 }} disabled={!!busy} onClick={markPaid} title="Posts this run to the general ledger"><Icon name="dollarSign" size={13} /> {busy === 'mark-paid' ? 'Postingâ€¦' : 'Mark paid'}</button>}
+          {canDistribute && <button type="button" className="btn btn-secondary btn-sm" style={{ minHeight:'var(--ctl-h-sm)', boxSizing:'border-box', lineHeight:1.25, display:'flex', alignItems:'center', gap:6 }} disabled={!!busy} onClick={distribute}><Icon name="send" size={13} /> {busy === 'distribute' ? 'Sendingâ€¦' : 'Email payslips'}</button>}
           {canDistribute && <button type="button" className="btn btn-secondary btn-sm" style={{ minHeight:'var(--ctl-h-sm)', boxSizing:'border-box', lineHeight:1.25, display:'flex', alignItems:'center', gap:6 }} onClick={() => apiDownload(`/v1/payroll/runs/${selId}/bank-file`, `bank-file-${run?.period_year}-${String(run?.period_month).padStart(2, '0')}.csv`)}><Icon name="download" size={13} /> Bank file</button>}
         </div>
       </div>
@@ -2990,7 +2986,7 @@ export function PayrollPage() {
       ) : (
         <div style={{ background:'var(--white)', border:'1px dashed var(--border)', borderRadius:12, padding:'40px 20px', textAlign:'center' }}>
           <div style={{ fontSize:14, fontWeight:700, color:'var(--navy)', marginBottom:6 }}>No payslips in this run yet</div>
-          <div style={{ fontSize:12.5, color:'var(--ink3)' }}>{canCalc ? 'Calculate the run to generate payslips from each employee’s salary components.' : 'This run has no payslips.'}</div>
+          <div style={{ fontSize:12.5, color:'var(--ink3)' }}>{canCalc ? 'Calculate the run to generate payslips from each employeeâ€™s salary components.' : 'This run has no payslips.'}</div>
         </div>
       ))}
 
@@ -3000,7 +2996,7 @@ export function PayrollPage() {
   );
 }
 
-// Print a payslip via a clean pop-up the browser can save as PDF — no server
+// Print a payslip via a clean pop-up the browser can save as PDF â€” no server
 // PDF dependency. Reads whatever fields the slip carries; a manager's slip and
 // an employee's own /payslips/:id both fit.
 function printPayslipPdf(slip: any) {
@@ -3010,11 +3006,11 @@ function printPayslipPdf(slip: any) {
     : (slip.run_name ?? '');
   const esc = (s: any) => String(s ?? '').replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch] as string));
   const row = (label: string, value: any, opts: { strong?: boolean; neg?: boolean } = {}) =>
-    `<tr><td class="l${opts.strong ? ' b' : ''}">${esc(label)}</td><td class="v${opts.strong ? ' b' : ''}${opts.neg ? ' neg' : ''}">${opts.neg && Number(value) > 0 ? '−' : ''}${money(value)}</td></tr>`;
+    `<tr><td class="l${opts.strong ? ' b' : ''}">${esc(label)}</td><td class="v${opts.strong ? ' b' : ''}${opts.neg ? ' neg' : ''}">${opts.neg && Number(value) > 0 ? 'âˆ’' : ''}${money(value)}</td></tr>`;
   const lines: any[] = Array.isArray(slip.lines) ? slip.lines : [];
   const w = window.open('', '_blank', 'width=760,height=900');
   if (!w) return;
-  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Payslip — ${esc(slip.name)} — ${esc(period)}</title>
+  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Payslip â€” ${esc(slip.name)} â€” ${esc(period)}</title>
     <style>
       *{box-sizing:border-box} body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;color:#111;margin:0;padding:40px;background:#fff}
       .wrap{max-width:640px;margin:0 auto}
@@ -3050,7 +3046,7 @@ function PayslipDetailModal({ slip, runName, onClose }: { slip: Payslip; runName
   const Row = ({ label, value, strong, negative }: { label: string; value: any; strong?: boolean; negative?: boolean }) => (
     <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'8px 0', borderBottom:'1px solid var(--border)' }}>
       <span style={{ fontSize:13, color: strong ? 'var(--ink)' : 'var(--ink2)', fontWeight: strong ? 700 : 500 }}>{label}</span>
-      <span style={{ fontSize:13, fontFamily:'var(--mono)', fontWeight: strong ? 700 : 500, color: negative ? 'var(--red)' : 'var(--ink)' }}>{negative && payNum(value) > 0 ? '−' : ''}{payMoney(value)}</span>
+      <span style={{ fontSize:13, fontFamily:'var(--mono)', fontWeight: strong ? 700 : 500, color: negative ? 'var(--red)' : 'var(--ink)' }}>{negative && payNum(value) > 0 ? 'âˆ’' : ''}{payMoney(value)}</span>
     </div>
   );
   const lines: any[] = Array.isArray(slip.lines) ? slip.lines : [];
@@ -3060,7 +3056,7 @@ function PayslipDetailModal({ slip, runName, onClose }: { slip: Payslip; runName
         <div style={{ padding:'20px 24px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'flex-start', justifyContent:'space-between' }}>
           <div>
             <div style={{ fontSize:16, fontWeight:700, color:'var(--ink)' }}>{slip.name}</div>
-            <div style={{ fontSize:12.5, color:'var(--ink3)' }}>{runName}{slip.email ? ` · ${slip.email}` : ''}</div>
+            <div style={{ fontSize:12.5, color:'var(--ink3)' }}>{runName}{slip.email ? ` Â· ${slip.email}` : ''}</div>
           </div>
           <button type="button" onClick={onClose} title="Close" style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink3)', padding:4 }}><Icon name="x" size={18} /></button>
         </div>
@@ -3103,7 +3099,7 @@ function PayslipDetailModal({ slip, runName, onClose }: { slip: Payslip; runName
 
 // Employee salary-components editor. Components are effective-dated and add-only
 // on the server (a new row supersedes; the calculator reads whatever is in force
-// on the run's period-end), so this adds — it never edits or deletes in place.
+// on the run's period-end), so this adds â€” it never edits or deletes in place.
 // A person with no basic-pay component is *skipped and named* by /calculate,
 // which is why setting pay here is the prerequisite for paying a new hire.
 function PayComponentsModal({ onClose }: { onClose: () => void }) {
@@ -3136,7 +3132,7 @@ function PayComponentsModal({ onClose }: { onClose: () => void }) {
         body: JSON.stringify({ component_type_id: typeId, amount: Number(amount) }),
       });
       setAmount(''); setTypeId('');
-      setMsg({ text: 'Component added — effective today.', kind: 'ok' });
+      setMsg({ text: 'Component added â€” effective today.', kind: 'ok' });
       loadComponents(userId);
     } catch (e: any) { setMsg({ text: e?.message || 'Could not add the component.', kind: 'err' }); }
     finally { setSaving(false); }
@@ -3182,7 +3178,7 @@ function PayComponentsModal({ onClose }: { onClose: () => void }) {
                         {c.taxable && <span style={{ marginLeft:8, fontSize:10, fontWeight:700, padding:'1px 6px', borderRadius:8, background:'var(--gold-l)', color:'var(--gold)' }}>TAXABLE</span>}
                       </span>
                       <span style={{ fontSize:11, color:'var(--ink3)' }}>from {String(c.effective_from).slice(0,10)}</span>
-                      <span style={{ fontSize:13, fontFamily:'var(--mono)', fontWeight:700, color: isEarn(c.direction) ? 'var(--ink)' : 'var(--red)' }}>{isEarn(c.direction) ? '' : '−'}{payMoney(c.amount)}</span>
+                      <span style={{ fontSize:13, fontFamily:'var(--mono)', fontWeight:700, color: isEarn(c.direction) ? 'var(--ink)' : 'var(--red)' }}>{isEarn(c.direction) ? '' : 'âˆ’'}{payMoney(c.amount)}</span>
                     </div>
                   ))}
                 </div>
@@ -3206,7 +3202,7 @@ function PayComponentsModal({ onClose }: { onClose: () => void }) {
                   <input style={ltInput} type="number" min="0" step="1000" placeholder="Amount (TZS)" value={amount} onChange={e => setAmount(e.target.value)} />
                 </div>
                 <button type="button" className="btn btn-primary btn-sm" style={{ minHeight:'var(--ctl-h-sm)', boxSizing:'border-box', lineHeight:1.25 }} disabled={saving} onClick={add}>
-                  {saving ? 'Adding…' : 'Add'}
+                  {saving ? 'Addingâ€¦' : 'Add'}
                 </button>
               </div>
               {msg && <div style={{ fontSize:12, fontWeight:500, color: msg.kind === 'err' ? 'var(--red)' : 'var(--green)' }}>{msg.text}</div>}
@@ -3218,7 +3214,7 @@ function PayComponentsModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-// Employee self-service: your own approved payslips. Not manager-gated — the
+// Employee self-service: your own approved payslips. Not manager-gated â€” the
 // server (/me/payslips, /payslips/:id) only ever returns the caller's own,
 // approved slips, so identity comes from the token, not this route's guard.
 export function MyPayslipsPage() {
@@ -3243,7 +3239,7 @@ export function MyPayslipsPage() {
     <div style={{ flex:1, overflowY:'auto' }}>
       <PageHeader icon="dollarSign" title="My Payslips" sub="Your approved payslips and pay history" backTo="/nexushr" />
       {loading ? (
-        <div style={{ padding:'40px', textAlign:'center', color:'var(--ink3)', fontSize:13 }}>Loading…</div>
+        <div style={{ padding:'40px', textAlign:'center', color:'var(--ink3)', fontSize:13 }}>Loadingâ€¦</div>
       ) : slips.length === 0 ? (
         <div style={{ background:'var(--white)', border:'1px dashed var(--border)', borderRadius:12, padding:'48px 20px', textAlign:'center' }}>
           <div style={{ fontSize:14, fontWeight:700, color:'var(--navy)', marginBottom:6 }}>No payslips yet</div>
@@ -3287,7 +3283,7 @@ export function AnnouncementsPage() {
         author: a.author_name || a.author || '', date: String(a.created_at || a.date || '').slice(0,10),
         audience: a.audience,
       })));
-    } catch { /* leave the list empty — see note at top of file */ }
+    } catch { /* leave the list empty â€” see note at top of file */ }
   }, []);
   useEffect(() => { load(); }, [load]);
 
@@ -3445,7 +3441,7 @@ export function HrmDashboard() {
   return (
     <div style={{ flex: 1, overflowY: 'auto', padding: '0 4px 24px 4px' }}>
 
-      {/* ── SmartHR Admin Welcome & Action Header Banner ──────────────── */}
+      {/* â”€â”€ SmartHR Admin Welcome & Action Header Banner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div style={{
         background: 'linear-gradient(135deg, #0e1f3d 0%, #1e3a8a 50%, #0d7a6b 100%)',
         borderRadius: 14,
@@ -3478,7 +3474,7 @@ export function HrmDashboard() {
                 </span>
               </div>
               <p style={{ margin: '4px 0 0 0', fontSize: 13, color: 'rgba(255,255,255,0.85)' }}>
-                SmartHR Workforce Command Center • {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}
+                SmartHR Workforce Command Center â€¢ {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}
               </p>
             </div>
           </div>
@@ -3505,13 +3501,13 @@ export function HrmDashboard() {
               background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)', color: '#ffffff', border: 'none',
               fontSize: 13, fontWeight: 700, cursor: 'pointer', boxShadow: '0 2px 8px rgba(124,58,237,0.3)'
             }}>
-              <Icon name="sparkle" size={15} /> {aiLoading ? 'Analysing…' : 'AI Digest'}
+              <Icon name="sparkle" size={15} /> {aiLoading ? 'Analysingâ€¦' : 'AI Digest'}
             </button>
           </div>
         </div>
       </div>
 
-      {/* ── AI Insights Card Banner ───────────────────────────────────── */}
+      {/* â”€â”€ AI Insights Card Banner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {(aiDigest || aiErr || aiLoading) && (
         <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: '16px 20px', marginBottom: 24, boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
@@ -3525,7 +3521,7 @@ export function HrmDashboard() {
               </div>
             </div>
             <button type="button" className="btn btn-secondary btn-sm" disabled={aiLoading} onClick={genInsights} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Icon name="sparkle" size={13} /> {aiLoading ? 'Refreshing…' : 'Refresh Digest'}
+              <Icon name="sparkle" size={13} /> {aiLoading ? 'Refreshingâ€¦' : 'Refresh Digest'}
             </button>
           </div>
           {aiErr && (
@@ -3536,10 +3532,10 @@ export function HrmDashboard() {
           {aiDigest && (
             <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
               {aiDigest.split('\n').filter(l => l.trim()).map((line, i) => {
-                const clean = line.replace(/^[-*•]\s*/, '');
+                const clean = line.replace(/^[-*â€¢]\s*/, '');
                 return (
                   <div key={i} style={{ display: 'flex', gap: 10, fontSize: 13, color: 'var(--ink)', lineHeight: 1.5, background: 'var(--bg)', padding: '8px 12px', borderRadius: 6 }}>
-                    <span style={{ color: 'var(--purple)', fontWeight: 800 }}>•</span>
+                    <span style={{ color: 'var(--purple)', fontWeight: 800 }}>â€¢</span>
                     <span>{clean}</span>
                   </div>
                 );
@@ -3549,7 +3545,7 @@ export function HrmDashboard() {
         </div>
       )}
 
-      {/* ── SmartHR 5 Metric KPI Cards Row ────────────────────────────── */}
+      {/* â”€â”€ SmartHR 5 Metric KPI Cards Row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 24 }}>
         {kpis.map(k => (
           <Link key={k.label} to={k.path} style={{
@@ -3580,10 +3576,10 @@ export function HrmDashboard() {
         ))}
       </div>
 
-      {/* ── Main SmartHR Dashboard 2-Column Grid ──────────────────────── */}
+      {/* â”€â”€ Main SmartHR Dashboard 2-Column Grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.2fr 1fr', gap: 20, marginBottom: 24 }}>
 
-        {/* ── LEFT COLUMN ────────────────────────────────────────────── */}
+        {/* â”€â”€ LEFT COLUMN â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
           {/* 1. Today's Attendance Overview */}
@@ -3593,7 +3589,7 @@ export function HrmDashboard() {
                 <Icon name="check" size={16} color="var(--green)" />
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)' }}>Today's Attendance Overview</span>
               </div>
-              <Link to="/nexushr/attendance" style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none' }}>Mark Attendance →</Link>
+              <Link to="/nexushr/attendance" style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none' }}>Mark Attendance â†’</Link>
             </div>
             <div style={{ padding: '20px' }}>
               {[
@@ -3640,7 +3636,7 @@ export function HrmDashboard() {
                 <Icon name="building" size={16} color="var(--purple)" />
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)' }}>Department Distribution</span>
               </div>
-              <Link to="/nexushr/departments" style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none' }}>Manage →</Link>
+              <Link to="/nexushr/departments" style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none' }}>Manage â†’</Link>
             </div>
             <div style={{ padding: '18px 20px' }}>
               {depts.length === 0 ? (
@@ -3676,7 +3672,7 @@ export function HrmDashboard() {
                 <Icon name="activity" size={16} color="var(--blue)" />
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)' }}>Recent Audit Activity</span>
               </div>
-              <Link to="/nexushr/activity-logs" style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none' }}>View All →</Link>
+              <Link to="/nexushr/activity-logs" style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none' }}>View All â†’</Link>
             </div>
             <div style={{ padding: '14px 20px' }}>
               {activities.length === 0 ? (
@@ -3690,7 +3686,7 @@ export function HrmDashboard() {
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {a.user_name || a.actor || 'System Event'} — <span style={{ fontWeight: 400, color: 'var(--ink2)' }}>{a.action || a.description}</span>
+                          {a.user_name || a.actor || 'System Event'} â€” <span style={{ fontWeight: 400, color: 'var(--ink2)' }}>{a.action || a.description}</span>
                         </div>
                         <div style={{ fontSize: 11, color: 'var(--ink3)' }}>
                           {a.created_at ? new Date(a.created_at).toLocaleString() : 'Just now'}
@@ -3705,7 +3701,7 @@ export function HrmDashboard() {
 
         </div>
 
-        {/* ── RIGHT COLUMN ───────────────────────────────────────────── */}
+        {/* â”€â”€ RIGHT COLUMN â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
           {/* 1. Payroll Runs Widget */}
@@ -3715,7 +3711,7 @@ export function HrmDashboard() {
                 <Icon name="dollarSign" size={16} color="var(--green)" />
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)' }}>Payroll Engine</span>
               </div>
-              <Link to="/nexushr/payroll" style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none' }}>Payroll →</Link>
+              <Link to="/nexushr/payroll" style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none' }}>Payroll â†’</Link>
             </div>
             <div style={{ padding: '18px 20px' }}>
               {runs.length === 0 ? (
@@ -3766,7 +3762,7 @@ export function HrmDashboard() {
                 <Icon name="calendar" size={16} color="var(--gold)" />
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)' }}>Pending Leave Approvals</span>
               </div>
-              <Link to="/nexushr/leaves" style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none' }}>Review ({pendingLeaves.length}) →</Link>
+              <Link to="/nexushr/leaves" style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none' }}>Review ({pendingLeaves.length}) â†’</Link>
             </div>
             <div style={{ padding: '14px 20px' }}>
               {pendingLeaves.length === 0 ? (
@@ -3777,7 +3773,7 @@ export function HrmDashboard() {
                     <div key={l.id || idx} style={{ padding: '10px 12px', background: 'var(--bg)', borderRadius: 8, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <div>
                         <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{l.user_name || l.employee_name || 'Staff Member'}</div>
-                        <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>{l.leave_type || 'Annual Leave'} • {l.start_date || 'Upcoming'}</div>
+                        <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>{l.leave_type || 'Annual Leave'} â€¢ {l.start_date || 'Upcoming'}</div>
                       </div>
                       <Link to="/nexushr/leaves" style={{ fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 6, background: 'var(--teal-l)', color: 'var(--teal)', textDecoration: 'none' }}>
                         Review
@@ -3796,7 +3792,7 @@ export function HrmDashboard() {
                 <Icon name="sun" size={16} color="var(--teal)" />
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)' }}>Upcoming Holidays</span>
               </div>
-              <Link to="/nexushr/holidays" style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none' }}>Calendar →</Link>
+              <Link to="/nexushr/holidays" style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none' }}>Calendar â†’</Link>
             </div>
             <div style={{ padding: '14px 20px' }}>
               {holidays.length === 0 ? (
@@ -3827,7 +3823,7 @@ export function HrmDashboard() {
         </div>
       </div>
 
-      {/* ── SmartHR HR Hub Quick Modules Grid Section ───────────────────── */}
+      {/* â”€â”€ SmartHR HR Hub Quick Modules Grid Section â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div style={{ background: 'var(--white)', borderRadius: 14, border: '1px solid var(--border)', padding: '20px 24px', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
           <div>

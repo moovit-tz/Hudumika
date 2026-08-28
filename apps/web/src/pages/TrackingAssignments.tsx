@@ -3,8 +3,17 @@ import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { Combobox } from '../components/ui/combobox.js';
+import { DateTimePicker } from '../components/ui/date-picker.js';
 import { showAlert } from '../lib/alert.js';
 import { PageHeader } from '../components/PageHeader.js';
+
+/** Format a Date to "YYYY-MM-DDTHH:mm" in local time — same shape a native
+ *  <input type="datetime-local"> value had, so the existing string-based
+ *  form state and JSON.stringify(form) POST body keep working unchanged. */
+const toLocalDateTimeString = (d: Date): string => {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
 
 interface Vehicle {
   id: string;
@@ -222,11 +231,19 @@ const AddAssignmentModal = ({ onClose, onSave }: { onClose: () => void, onSave: 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
             <div>
               <label style={labelStyle}>Start Date/Time *</label>
-              <input type="datetime-local" style={inputStyle} value={form.start_time} onChange={e => setForm({...form, start_time: e.target.value})} />
+              <DateTimePicker
+                date={form.start_time ? new Date(form.start_time) : undefined}
+                onChange={d => setForm({ ...form, start_time: d ? toLocalDateTimeString(d) : '' })}
+                triggerClassName="w-full"
+              />
             </div>
             <div>
               <label style={labelStyle}>End Date/Time</label>
-              <input type="datetime-local" style={inputStyle} value={form.end_time} onChange={e => setForm({...form, end_time: e.target.value})} />
+              <DateTimePicker
+                date={form.end_time ? new Date(form.end_time) : undefined}
+                onChange={d => setForm({ ...form, end_time: d ? toLocalDateTimeString(d) : '' })}
+                triggerClassName="w-full"
+              />
             </div>
           </div>
           <div>

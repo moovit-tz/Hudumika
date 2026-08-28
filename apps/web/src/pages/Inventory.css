@@ -1,7 +1,7 @@
-/* ── Inventory Control shared layout tokens ──
+﻿/* â”€â”€ Inventory Control shared layout tokens â”€â”€
    Mirrors the SEAL app's page/kpi-strip/table pattern (apps/web/src/pages/Seal.css)
    but keeps every interactive control on the real ui/ component library from day
-   one — no legacy .btn-primary/.input-field classes here. */
+   one â€” no legacy .btn-primary/.input-field classes here. */
 
 .inv-page {
   width: 100%;
@@ -41,7 +41,7 @@
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 16px 18px;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--elev-sm);
 }
 .inv-kpi-value { font-size: 26px; font-weight: 800; color: var(--ink); line-height: 1.1; }
 .inv-kpi-value--alert { color: var(--gold); }
@@ -52,7 +52,7 @@
   border: 1px solid var(--border);
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--elev-sm);
 }
 .inv-card-hdr {
   display: flex; align-items: center; justify-content: space-between;

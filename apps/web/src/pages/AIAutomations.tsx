@@ -14,6 +14,7 @@ import type { ActionKind, StatusKind } from '../components/flow/FlowNodes.js';
 import { Popover, PopoverContent, PopoverAnchor } from '../components/ui/popover.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { apiFetch } from '../lib/api.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 type FlowNodeData = {
   title?: string;
@@ -298,23 +299,30 @@ export function AIAutomations() {
   }, [testMode, selectedNode]);
 
   return (
-    <div className={`aia-container ${testMode ? 'test-mode' : ''}`}>
-      {/* ── Toolbar ── */}
-      <div className="aia-header">
-        <div className="aia-header-title">
-          Automations
-          <button className="btn btn-secondary btn-sm" style={{ padding: 'var(--ds-btn-py-xs) 10px', height: 28, fontSize: 12, marginLeft: 8 }} onClick={handleNewPage}>
+    <>
+    <PageHeader
+      crumbs={['AI', 'Automations']}
+      titlePlain="AI"
+      titleEm="automations"
+      subtitle="Build automated workflows triggered by events across the platform."
+      actions={
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <button className="btn btn-secondary btn-sm" style={{ padding: 'var(--ds-btn-py-xs) 10px', height: 28, fontSize: 12 }} onClick={handleNewPage}>
             New page <Icon name="plus" size={12} style={{ marginLeft: 4 }} />
           </button>
 
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 16, fontSize: 12, color: 'var(--ink2)', fontWeight: 500, cursor: 'pointer' }} onClick={() => setTestMode(t => !t)}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--ink2)', fontWeight: 500, cursor: 'pointer' }} onClick={() => setTestMode(t => !t)}>
             Testing mode:
             <div className={`aia-toggle ${testMode ? 'on' : ''}`}>
               <div className="aia-toggle-knob" />
             </div>
           </label>
         </div>
-
+      }
+    />
+    <div className={`aia-container ${testMode ? 'test-mode' : ''}`}>
+      {/* ── Toolbar ── */}
+      <div className="aia-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, position: 'relative' }}>
           <button className="btn btn-secondary btn-sm" style={{ padding: 6, height: 32, width: 32 }} title="Share"><Icon name="send" size={16} /></button>
           <button className="btn btn-secondary btn-sm" style={{ padding: 6, height: 32, width: 32 }} title="Settings"><Icon name="settings" size={16} /></button>
@@ -487,6 +495,7 @@ export function AIAutomations() {
         )}
       </div>
     </div>
+    </>
   );
 }
 

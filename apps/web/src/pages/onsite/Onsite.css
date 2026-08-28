@@ -1,4 +1,4 @@
-/* ─── Onsite Infrastructure Control Plane Styling (Hostinger / hPanel UI) ─── */
+﻿/* â”€â”€â”€ Onsite Infrastructure Control Plane Styling (Hostinger / hPanel UI) â”€â”€â”€ */
 
 .onsite-page {
   display: flex;
@@ -59,7 +59,7 @@
   border: 1px solid var(--border);
   border-radius: 1.25rem;
   padding: 1rem 1.25rem;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--elev-sm);
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -151,7 +151,7 @@
   flex-direction: column;
   justify-content: space-between;
   gap: 1rem;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--elev-sm);
   position: relative;
   overflow: hidden;
 }
@@ -295,7 +295,7 @@
 .onsite-tab.active {
   background: var(--white);
   color: var(--ink);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--elev-sm);
 }
 
 /* Plan Group */
@@ -307,7 +307,7 @@
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--elev-sm);
 }
 
 .onsite-plan-header {
@@ -419,7 +419,7 @@
   padding: 0.875rem 1.25rem;
   min-width: 120px;
   text-align: center;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--elev-sm);
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
@@ -485,7 +485,7 @@
   display: flex;
   align-items: flex-start;
   gap: 1rem;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--elev-sm);
 }
 
 .onsite-stat-icon {
@@ -540,7 +540,7 @@
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--elev-sm);
 }
 
 .onsite-card-header {
@@ -757,7 +757,7 @@
   margin: 0 0 0.75rem;
 }
 
-/* ─── Domain Portfolio & Management Redesign ─── */
+/* â”€â”€â”€ Domain Portfolio & Management Redesign â”€â”€â”€ */
 .onsite-domains-stats {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -784,7 +784,7 @@
   display: flex;
   align-items: center;
   gap: 1rem;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--elev-sm);
   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
@@ -875,7 +875,7 @@
   background: var(--white);
   border: 1px solid var(--border);
   border-radius: 1rem;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--elev-sm);
 }
 
 .onsite-domains-search-box {
@@ -1039,7 +1039,7 @@
   background: var(--white);
   border: 1px solid var(--border);
   border-radius: 1rem;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--elev-sm);
   width: 100% !important;
   flex-wrap: nowrap !important;
   overflow-x: auto !important;
@@ -1102,7 +1102,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.875rem;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--elev-sm);
   transition: border-color 0.15s ease;
 }
 
@@ -1283,7 +1283,7 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
-/* ─── Website Control Plane Mobile Responsiveness ─── */
+/* â”€â”€â”€ Website Control Plane Mobile Responsiveness â”€â”€â”€ */
 .onsite-plan-header-actions {
   display: flex;
   align-items: center;
@@ -1357,7 +1357,7 @@
   }
 }
 
-/* ─── Email Hosting & Mailboxes Redesign ─── */
+/* â”€â”€â”€ Email Hosting & Mailboxes Redesign â”€â”€â”€ */
 .onsite-email-banner {
   background: #f5f3ff;
   border: 1px solid #e9d5ff;
@@ -1416,7 +1416,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--elev-sm);
 }
 
 .onsite-email-domain-avatar {

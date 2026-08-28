@@ -4754,6 +4754,7 @@ export interface Database {
   hr_contracts: HrContractsTable;
   hr_emergency_contacts: HrEmergencyContactsTable;
   hr_document_templates: HrDocumentTemplatesTable;
+  hr_document_requirements: HrDocumentRequirementsTable;
   hr_signature_requests: HrSignatureRequestsTable;
   hr_signature_events: HrSignatureEventsTable;
   hr_assets: HrAssetsTable;
@@ -6548,6 +6549,13 @@ export interface HrDocumentsTable {
   type: string;
   storage_key: string;
   status: Generated<string>;
+  expiry_date: Date | null;
+  approval_status: Generated<string>;
+  review_notes: string | null;
+  reviewed_by: string | null;
+  reviewed_at: Date | null;
+  category: Generated<string>;
+  is_mandatory: Generated<boolean>;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -6589,10 +6597,23 @@ export interface HrDocumentTemplatesTable {
   tenant_id: string;
   name: string;
   type: string;
+  template_category: Generated<string>;
   country_code: string | null;
   body: string;
+  placeholders: Generated<any>;
   version: Generated<number>;
   is_active: Generated<boolean>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface HrDocumentRequirementsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  designation: Generated<string>;
+  document_type: string;
+  is_required: Generated<boolean>;
+  expiry_warning_days: Generated<number>;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }

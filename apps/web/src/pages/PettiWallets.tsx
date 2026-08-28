@@ -168,14 +168,6 @@ export function PettiWallets() {
 
       {/* Filter Bar */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 20 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, maxWidth: 400 }}>
-          <Input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Search wallets by name or description…"
-          />
-        </div>
-
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)' }}>Currency:</span>
           <Select value={currencyFilter} onValueChange={setCurrencyFilter}>
@@ -185,6 +177,14 @@ export function PettiWallets() {
               {currencies.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
             </SelectContent>
           </Select>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: '1 1 220px', maxWidth: 400, marginLeft: 'auto' }}>
+          <Input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search wallets by name or description…"
+          />
         </div>
       </div>
 

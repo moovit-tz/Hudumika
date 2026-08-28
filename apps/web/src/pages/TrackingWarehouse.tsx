@@ -3,8 +3,18 @@ import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Combobox } from '../components/ui/combobox.js';
+import { DateTimePicker } from '../components/ui/date-picker.js';
 import { showConfirm } from '../lib/confirm.js';
+import { showAlert } from '../lib/alert.js';
 import { PageHeader } from '../components/PageHeader.js';
+
+/** Format a Date to "YYYY-MM-DDTHH:mm" in local time — same shape a native
+ *  <input type="datetime-local"> value had, so the existing string form
+ *  state (submitted as scheduled_at) keeps working unchanged. */
+const toLocalDateTimeString = (d: Date): string => {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
 
 interface Location { id: string; code: string; name: string; zone: string | null; capacity_units: number | null; active: boolean }
 interface Vehicle { id: string; name: string }
@@ -91,6 +101,14 @@ function AddAppointmentModal({ vehicles, onClose, onAdded }: { vehicles: Vehicle
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    // DateTimePicker has no native `required` attribute — HTML5 form
+    // validation no longer catches an empty scheduled_at the way it did
+    // when this was a plain <input type="datetime-local" required>, so it
+    // needs an explicit check here.
+    if (!scheduledAt) {
+      showAlert('Please pick a scheduled date & time.');
+      return;
+    }
     setSaving(true);
     try {
       await apiFetch('/v1/tracking/warehouse/dock-appointments', {
@@ -127,7 +145,7 @@ function AddAppointmentModal({ vehicles, onClose, onAdded }: { vehicles: Vehicle
             />
           </div>
           <div><label style={labelStyle}>Reference</label><input value={reference} onChange={e => setReference(e.target.value)} style={inputStyle} /></div>
-          <div><label style={labelStyle}>Scheduled at</label><input required type="datetime-local" value={scheduledAt} onChange={e => setScheduledAt(e.target.value)} style={inputStyle} /></div>
+          <div><label style={labelStyle}>Scheduled at *</label><DateTimePicker date={scheduledAt ? new Date(scheduledAt) : undefined} onChange={d => setScheduledAt(d ? toLocalDateTimeString(d) : '')} triggerClassName="w-full" /></div>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
             <button type="button" onClick={onClose} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', cursor: 'pointer', fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
             <button type="submit" disabled={saving} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13, opacity: saving ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>

@@ -155,7 +155,7 @@ export function SignTemplates() {
               <Button variant="outline" size="sm" onClick={() => navigate('/sign')} style={{ fontWeight: 600 }}>
                 <Icon name="arrowLeft" size={14} /> Back to Inbox
               </Button>
-              <Button variant="default" onClick={() => navigate('/sign/editor')} style={{ background: '#0e1f3d', color: '#fff', fontWeight: 700 }}>
+              <Button variant="default" onClick={() => navigate('/sign/editor')} style={{ fontWeight: 700 }}>
                 <Icon name="plus" size={14} /> New Envelope from Scratch
               </Button>
             </div>

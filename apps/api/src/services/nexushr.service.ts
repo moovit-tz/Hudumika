@@ -421,14 +421,14 @@ export class NexusHRService {
     return withTenant(tenantId, async (trx) => {
       const rows = await trx
         .selectFrom('hr_documents')
-        // One owner, joined to a table that has people in it. There used to be
-        // two — person_id and employment_id — resolved through three joins
-        // onto tables holding no rows, so every document's owner came back null.
         .leftJoin('users', 'users.id', 'hr_documents.user_id')
         .select([
           'hr_documents.id', 'hr_documents.user_id',
           'hr_documents.name', 'hr_documents.type',
           'hr_documents.storage_key', 'hr_documents.status', 'hr_documents.created_at',
+          'hr_documents.expiry_date', 'hr_documents.approval_status',
+          'hr_documents.review_notes', 'hr_documents.reviewed_by', 'hr_documents.reviewed_at',
+          'hr_documents.category', 'hr_documents.is_mandatory',
           'users.name as owner_name', 'users.email as owner_email',
         ])
         .where('hr_documents.tenant_id', '=', tenantId)
@@ -443,26 +443,196 @@ export class NexusHRService {
             .execute()
         : [];
 
-      return rows.map(r => ({
-        id: r.id, name: r.name, type: r.type, status: r.status,
-        storage_key: r.storage_key, created_at: r.created_at,
-        user_id: r.user_id,
-        // One name, from one join. The two-column fallback existed because
-        // neither table it read from had any rows to fall back to.
-        person_name: r.owner_name ?? null,
-        person_email: r.owner_email ?? null,
-        signature_status: sigs.find(s => s.document_id === r.id)?.status ?? null,
-      }));
+      const now = new Date();
+      return rows.map(r => {
+        let daysUntilExpiry: number | null = null;
+        if (r.expiry_date) {
+          const exp = new Date(r.expiry_date);
+          daysUntilExpiry = Math.ceil((exp.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        }
+        return {
+          id: r.id, name: r.name, type: r.type, status: r.status,
+          storage_key: r.storage_key, created_at: r.created_at,
+          user_id: r.user_id,
+          expiry_date: r.expiry_date,
+          approval_status: r.approval_status ?? 'APPROVED',
+          review_notes: r.review_notes ?? null,
+          reviewed_by: r.reviewed_by ?? null,
+          reviewed_at: r.reviewed_at ?? null,
+          category: r.category ?? 'GENERAL',
+          is_mandatory: !!r.is_mandatory,
+          days_until_expiry: daysUntilExpiry,
+          person_name: r.owner_name ?? null,
+          person_email: r.owner_email ?? null,
+          signature_status: sigs.find(s => s.document_id === r.id)?.status ?? null,
+        };
+      });
+    });
+  }
+
+  static async reviewDocument(tenantId: string, docId: string, reviewerId: string, approvalStatus: 'APPROVED' | 'REJECTED', notes?: string) {
+    return withTenant(tenantId, async (trx) => {
+      const updated = await trx.updateTable('hr_documents')
+        .set({
+          approval_status: approvalStatus,
+          review_notes: notes ?? null,
+          reviewed_by: reviewerId,
+          reviewed_at: new Date(),
+          updated_at: new Date(),
+        })
+        .where('id', '=', docId)
+        .where('tenant_id', '=', tenantId)
+        .returningAll()
+        .executeTakeFirst();
+      if (!updated) throw new Error('Document not found.');
+      return updated;
+    });
+  }
+
+  static async getExpiryRadar(tenantId: string) {
+    return withTenant(tenantId, async (trx) => {
+      const now = new Date();
+      const in90Days = new Date();
+      in90Days.setDate(in90Days.getDate() + 90);
+
+      const docs = await trx
+        .selectFrom('hr_documents')
+        .leftJoin('users', 'users.id', 'hr_documents.user_id')
+        .select([
+          'hr_documents.id', 'hr_documents.name', 'hr_documents.type',
+          'hr_documents.expiry_date', 'hr_documents.user_id', 'hr_documents.status',
+          'users.name as owner_name', 'users.email as owner_email',
+        ])
+        .where('hr_documents.tenant_id', '=', tenantId)
+        .where('hr_documents.expiry_date', 'is not', null)
+        .orderBy('hr_documents.expiry_date', 'asc')
+        .execute();
+
+      const expired = docs.filter(d => d.expiry_date && new Date(d.expiry_date) < now);
+      const expiringSoon = docs.filter(d => d.expiry_date && new Date(d.expiry_date) >= now && new Date(d.expiry_date) <= in90Days);
+
+      return {
+        total_tracked: docs.length,
+        expired_count: expired.length,
+        expiring_30_days: docs.filter(d => {
+          if (!d.expiry_date) return false;
+          const diffDays = Math.ceil((new Date(d.expiry_date).getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+          return diffDays >= 0 && diffDays <= 30;
+        }).length,
+        expiring_60_days: docs.filter(d => {
+          if (!d.expiry_date) return false;
+          const diffDays = Math.ceil((new Date(d.expiry_date).getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+          return diffDays > 30 && diffDays <= 60;
+        }).length,
+        expiring_90_days: docs.filter(d => {
+          if (!d.expiry_date) return false;
+          const diffDays = Math.ceil((new Date(d.expiry_date).getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+          return diffDays > 60 && diffDays <= 90;
+        }).length,
+        expired_items: expired.map(d => ({
+          ...d,
+          days_overdue: Math.abs(Math.ceil((new Date(d.expiry_date!).getTime() - now.getTime()) / (1000 * 60 * 60 * 24))),
+        })),
+        expiring_items: expiringSoon.map(d => ({
+          ...d,
+          days_until_expiry: Math.ceil((new Date(d.expiry_date!).getTime() - now.getTime()) / (1000 * 60 * 60 * 24)),
+        })),
+      };
     });
   }
 
   static async getDocumentTemplates(tenantId: string) {
     return withTenant(tenantId, async (trx) => {
-      return await trx
+      const templates = await trx
         .selectFrom('hr_document_templates')
         .selectAll()
         .where('tenant_id', '=', tenantId)
+        .orderBy('created_at', 'desc')
         .execute();
+
+      if (templates.length === 0) {
+        // Seed standard WorkDo templates if none exist
+        const defaultTemplates = [
+          {
+            tenant_id: tenantId,
+            name: 'Standard Employment Contract & Offer Letter',
+            type: 'OFFER_LETTER',
+            template_category: 'OFFER_LETTER',
+            country_code: 'TZ',
+            placeholders: JSON.stringify(['{employee_name}', '{joining_date}', '{designation}', '{salary}', '{department}', '{tenant_name}']),
+            body: `<div style="font-family: Arial; padding: 24px;"><h2>OFFER OF EMPLOYMENT</h2><p>Dear <strong>{employee_name}</strong>,</p><p>We are pleased to offer you employment at <strong>{tenant_name}</strong> as a <strong>{designation}</strong> in the <strong>{department}</strong> department, effective from <strong>{joining_date}</strong>.</p><p>Your starting monthly gross salary will be <strong>{salary}</strong> subject to statutory deductions.</p><br/><p>Yours sincerely,<br/>Human Resources Department<br/><strong>{tenant_name}</strong></p></div>`,
+          },
+          {
+            tenant_id: tenantId,
+            name: 'Certificate of Service / Experience Certificate',
+            type: 'EXPERIENCE_CERTIFICATE',
+            template_category: 'EXPERIENCE_CERTIFICATE',
+            country_code: 'TZ',
+            placeholders: JSON.stringify(['{employee_name}', '{joining_date}', '{end_date}', '{designation}', '{tenant_name}']),
+            body: `<div style="font-family: Arial; padding: 24px;"><h2>TO WHOM IT MAY CONCERN</h2><p>This is to certify that <strong>{employee_name}</strong> was employed with <strong>{tenant_name}</strong> as a <strong>{designation}</strong> from <strong>{joining_date}</strong> to <strong>{end_date}</strong>.</p><p>During their tenure, they demonstrated dedication and high professional standards. We wish them success in their future endeavors.</p><br/><p>Issued by,<br/>Human Resources Director<br/><strong>{tenant_name}</strong></p></div>`,
+          },
+          {
+            tenant_id: tenantId,
+            name: 'No Objection Certificate (NOC)',
+            type: 'NOC_CERTIFICATE',
+            template_category: 'NOC_CERTIFICATE',
+            country_code: 'TZ',
+            placeholders: JSON.stringify(['{employee_name}', '{passport_number}', '{purpose}', '{tenant_name}']),
+            body: `<div style="font-family: Arial; padding: 24px;"><h2>NO OBJECTION CERTIFICATE</h2><p>This is to confirm that <strong>{tenant_name}</strong> has no objection to <strong>{employee_name}</strong> (Holder of ID/Passport: <strong>{passport_number}</strong>) proceeding with <strong>{purpose}</strong>.</p><p>The company confirms they remain a valued member of our organization in good standing.</p><br/><p>Authorized Signatory,<br/><strong>{tenant_name}</strong></p></div>`,
+          },
+          {
+            tenant_id: tenantId,
+            name: 'Promotion & Compensation Revision Letter',
+            type: 'PROMOTION_LETTER',
+            template_category: 'PROMOTION_LETTER',
+            country_code: 'TZ',
+            placeholders: JSON.stringify(['{employee_name}', '{new_designation}', '{effective_date}', '{new_salary}', '{tenant_name}']),
+            body: `<div style="font-family: Arial; padding: 24px;"><h2>PROMOTION & SALARY REVISION</h2><p>Dear <strong>{employee_name}</strong>,</p><p>In recognition of your exceptional performance and leadership, we are delighted to promote you to <strong>{new_designation}</strong> effective <strong>{effective_date}</strong>.</p><p>Your revised monthly salary will be <strong>{new_salary}</strong>.</p><br/><p>Congratulations,<br/>Executive Management<br/><strong>{tenant_name}</strong></p></div>`,
+          },
+          {
+            tenant_id: tenantId,
+            name: 'Written Warning & Performance Improvement Notice',
+            type: 'WARNING_LETTER',
+            template_category: 'WARNING_LETTER',
+            country_code: 'TZ',
+            placeholders: JSON.stringify(['{employee_name}', '{issue_summary}', '{action_required}', '{review_date}', '{tenant_name}']),
+            body: `<div style="font-family: Arial; padding: 24px; border: 2px solid #ef4444;"><h2 style="color: #dc2626;">OFFICIAL WRITTEN WARNING</h2><p>Dear <strong>{employee_name}</strong>,</p><p>This letter serves as a formal written warning regarding: <strong>{issue_summary}</strong>.</p><p>Required Corrective Action: <strong>{action_required}</strong> before <strong>{review_date}</strong>.</p><br/><p>HR Compliance Officer,<br/><strong>{tenant_name}</strong></p></div>`,
+          },
+        ];
+
+        for (const dt of defaultTemplates) {
+          await trx.insertInto('hr_document_templates').values(dt as any).execute();
+        }
+        return await trx.selectFrom('hr_document_templates').selectAll().where('tenant_id', '=', tenantId).execute();
+      }
+
+      return templates;
+    });
+  }
+
+  static async getDocumentRequirements(tenantId: string) {
+    return withTenant(tenantId, async (trx) => {
+      const reqs = await trx.selectFrom('hr_document_requirements')
+        .selectAll()
+        .where('tenant_id', '=', tenantId)
+        .orderBy('created_at', 'desc')
+        .execute();
+
+      if (reqs.length === 0) {
+        // Seed default document requirements per WorkDo standards
+        const defaults = [
+          { tenant_id: tenantId, designation: 'ALL', document_type: 'NATIONAL_ID', is_required: true, expiry_warning_days: 60 },
+          { tenant_id: tenantId, designation: 'ALL', document_type: 'PASSPORT', is_required: false, expiry_warning_days: 90 },
+          { tenant_id: tenantId, designation: 'ALL', document_type: 'ACADEMIC_CERTIFICATE', is_required: true, expiry_warning_days: 0 },
+          { tenant_id: tenantId, designation: 'LOGISTICS_DRIVER', document_type: 'DRIVING_LICENSE', is_required: true, expiry_warning_days: 30 },
+          { tenant_id: tenantId, designation: 'EXPATRIATE', document_type: 'WORK_PERMIT', is_required: true, expiry_warning_days: 90 },
+        ];
+        for (const d of defaults) {
+          await trx.insertInto('hr_document_requirements').values(d).execute();
+        }
+        return await trx.selectFrom('hr_document_requirements').selectAll().where('tenant_id', '=', tenantId).execute();
+      }
+      return reqs;
     });
   }
 

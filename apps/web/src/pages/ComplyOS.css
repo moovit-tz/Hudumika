@@ -1531,6 +1531,8 @@
 
 /* ── Obligations helpers ── */
 .comply-kpis--4col         { grid-template-columns: repeat(4, 1fr); margin-bottom: 24px; }
+@media (max-width: 900px) { .comply-kpis--4col { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 560px) { .comply-kpis--4col { grid-template-columns: 1fr; } }
 .comply-card-title-row     { display: flex; align-items: center; gap: 8px; }
 .comply-oblig-count        { font-size: 11.5px; color: var(--ink3); }
 .comply-oblig-flex-body    { flex: 1; min-width: 0; }
