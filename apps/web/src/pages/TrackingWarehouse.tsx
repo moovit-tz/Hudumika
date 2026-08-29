@@ -7,6 +7,7 @@ import { DateTimePicker } from '../components/ui/date-picker.js';
 import { showConfirm } from '../lib/confirm.js';
 import { showAlert } from '../lib/alert.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 /** Format a Date to "YYYY-MM-DDTHH:mm" in local time — same shape a native
  *  <input type="datetime-local"> value had, so the existing string form
@@ -235,10 +236,10 @@ export const TrackingWarehouse: React.FC = () => {
             subtitle="Storage locations &amp; dock scheduling"
           />
         </div>
-        <div style={{ display: 'flex', gap: 6, background: 'var(--bg)', borderRadius: 9, padding: 4 }}>
-          <button type="button" onClick={() => setTab('locations')} style={{ height: 32, padding: '0 16px', borderRadius: 'var(--r)', border: 'none', background: tab === 'locations' ? 'var(--white)' : 'transparent', color: tab === 'locations' ? 'var(--ink)' : 'var(--ink3)', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>Locations</button>
-          <button type="button" onClick={() => setTab('dock')} style={{ height: 32, padding: '0 16px', borderRadius: 'var(--r)', border: 'none', background: tab === 'dock' ? 'var(--white)' : 'transparent', color: tab === 'dock' ? 'var(--ink)' : 'var(--ink3)', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>Dock Schedule</button>
-          <button type="button" onClick={() => setTab('map')} style={{ height: 32, padding: '0 16px', borderRadius: 'var(--r)', border: 'none', background: tab === 'map' ? 'var(--white)' : 'transparent', color: tab === 'map' ? 'var(--ink)' : 'var(--ink3)', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>Warehouse Map</button>
+        <div className="ds-tabs-list" data-variant="segmented">
+          <button type="button" className="ds-tabs-trigger" data-variant="segmented" data-state={tab === 'locations' ? 'active' : 'inactive'} onClick={() => setTab('locations')}>Locations</button>
+          <button type="button" className="ds-tabs-trigger" data-variant="segmented" data-state={tab === 'dock' ? 'active' : 'inactive'} onClick={() => setTab('dock')}>Dock Schedule</button>
+          <button type="button" className="ds-tabs-trigger" data-variant="segmented" data-state={tab === 'map' ? 'active' : 'inactive'} onClick={() => setTab('map')}>Warehouse Map</button>
         </div>
       </div>
 
@@ -249,7 +250,7 @@ export const TrackingWarehouse: React.FC = () => {
               <Icon name="plus" size={15} /> Add location
             </button>
           </div>
-          <div style={cardStyle}>
+          <SectionCard>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
                 <tr style={{ background: 'var(--bg)', textAlign: 'left' }}>
@@ -276,7 +277,7 @@ export const TrackingWarehouse: React.FC = () => {
               </tbody>
             </table>
             {locations.length === 0 && <div style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No storage locations yet.</div>}
-          </div>
+          </SectionCard>
         </>
       )}
 
@@ -287,7 +288,7 @@ export const TrackingWarehouse: React.FC = () => {
               <Icon name="calendar" size={15} /> Schedule appointment
             </button>
           </div>
-          <div style={cardStyle}>
+          <SectionCard>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
                 <tr style={{ background: 'var(--bg)', textAlign: 'left' }}>
@@ -320,7 +321,7 @@ export const TrackingWarehouse: React.FC = () => {
               </tbody>
             </table>
             {appointments.length === 0 && <div style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No dock appointments scheduled.</div>}
-          </div>
+          </SectionCard>
         </>
       )}
 
@@ -332,16 +333,14 @@ export const TrackingWarehouse: React.FC = () => {
               <div style={{ ...cardStyle, padding: '32px 20px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No active storage locations yet — add one under the Locations tab.</div>
             )}
             {!occupancyLoading && occupancy?.map(z => (
-              <div key={z.zone} style={cardStyle}>
-                <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{z.zone}</div>
-                  <div style={{ display: 'flex', gap: 10, fontSize: 10.5, color: 'var(--ink3)' }}>
-                    <span><span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 2, background: '#059669', marginRight: 4 }} />0-60%</span>
-                    <span><span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 2, background: '#ca8a04', marginRight: 4 }} />61-85%</span>
-                    <span><span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 2, background: '#dc2626', marginRight: 4 }} />86-100%</span>
-                  </div>
+              <SectionCard key={z.zone} title={z.zone} action={
+                <div style={{ display: 'flex', gap: 10, fontSize: 10.5, color: 'var(--ink3)' }}>
+                  <span><span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 2, background: '#059669', marginRight: 4 }} />0-60%</span>
+                  <span><span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 2, background: '#ca8a04', marginRight: 4 }} />61-85%</span>
+                  <span><span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 2, background: '#dc2626', marginRight: 4 }} />86-100%</span>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(110px,1fr))', gap: 10, padding: 16 }}>
+              }>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(110px,1fr))', gap: 10 }}>
                   {z.locations.map(loc => {
                     const pct = loc.occupancy_pct;
                     const color = pct == null ? 'var(--ink3)' : pct > 85 ? '#dc2626' : pct > 60 ? '#ca8a04' : '#059669';
@@ -356,14 +355,12 @@ export const TrackingWarehouse: React.FC = () => {
                     );
                   })}
                 </div>
-              </div>
+              </SectionCard>
             ))}
           </div>
 
-          <div style={{ ...cardStyle, padding: 16, position: 'sticky', top: 16 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>
-              <Icon name="sparkle" size={14} color="var(--teal)" /> AI Insight
-            </div>
+          <div style={{ position: 'sticky', top: 16 }}>
+          <SectionCard title="AI Insight">
             {!insight && !insightLoading && !insightError && (
               <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 12 }}>Generate a rearrangement suggestion based on real occupancy data.</div>
             )}
@@ -380,6 +377,7 @@ export const TrackingWarehouse: React.FC = () => {
               style={{ width: '100%', padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 600, fontSize: 13, cursor: 'pointer', opacity: insightLoading ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
               {insightLoading ? 'Generating…' : insight ? 'Regenerate' : 'Generate Insight'}
             </button>
+          </SectionCard>
           </div>
         </div>
       )}

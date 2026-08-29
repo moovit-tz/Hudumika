@@ -9,6 +9,7 @@ import type { TrialBalanceReport, TrialBalanceRow, LedgerReport, AccountType } f
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 const TYPE_CFG: Record<AccountType, { label: string; color: string; bg: string }> = {
   ASSET:     { label: 'Asset',     color: '#0891b2', bg: '#ecfeff' },
@@ -192,7 +193,9 @@ export const FinanceLedger: React.FC = () => {
       </div>
 
       {/* Filters Toolbar Card: Tabs on Left, Search on Right */}
-      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 20 }}>
+      <div style={{ marginBottom: 20 }}>
+      <SectionCard>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
         <Tabs value={typeFilter} onValueChange={v => setTypeFilter(v as AccountType | 'ALL')} variant="pill">
           <TabsList>
             <TabsTrigger value="ALL">All ({accounts.length})</TabsTrigger>
@@ -226,6 +229,8 @@ export const FinanceLedger: React.FC = () => {
             }}
           />
         </div>
+        </div>
+      </SectionCard>
       </div>
 
       {filtered.length === 0 && (

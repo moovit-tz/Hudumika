@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { Icon, IconName } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 interface Dashboard {
   period: string;
@@ -19,7 +20,6 @@ const tzs = (v: number) => v >= 1_000_000 ? `TZS ${(v / 1_000_000).toFixed(1)}M`
 const monthLabel = (m: string) => { const [y, mo] = m.split('-'); return new Date(Number(y), Number(mo) - 1, 1).toLocaleDateString('en-US', { month: 'short' }); };
 
 const card: React.CSSProperties = { background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 14, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' };
-const cardTitle: React.CSSProperties = { fontSize: 14, fontWeight: 700, color: 'var(--navy)' };
 const cardSub: React.CSSProperties = { fontSize: 12, color: 'var(--ink3)', marginTop: 2 };
 
 // A labelled horizontal bar list, shares of a total. Colour comes from the
@@ -86,12 +86,13 @@ export function HuduBIDashboard() {
         }
       />
 
-      {loading && <div style={{ ...card, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading your data…</div>}
+      {loading && <SectionCard><div style={{ textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading your data…</div></SectionCard>}
 
       {data && (
         <>
           {/* Data-layer strip */}
-          <div style={{ ...card, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+          <SectionCard>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
             <div style={{ width: 38, height: 38, borderRadius: 10, background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <Icon name="layers" size={18} color="var(--teal)" />
             </div>
@@ -104,7 +105,8 @@ export function HuduBIDashboard() {
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 600, color: 'var(--green)', background: 'var(--green-l)', padding: '4px 10px', borderRadius: 20 }}>
               <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--green)' }} /> Live
             </span>
-          </div>
+            </div>
+          </SectionCard>
 
           {/* KPI grid */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 14 }}>
@@ -123,27 +125,23 @@ export function HuduBIDashboard() {
 
           {/* Pipeline + mode */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
-            <div style={card}>
-              <div style={cardTitle}>Clearance pipeline</div>
+            <SectionCard title="Clearance pipeline">
               <div style={{ ...cardSub, marginBottom: 16 }}>Active shipment cases by clearance stage</div>
               <BarList rows={data.shipmentPipeline.map(s => ({ label: s.label, value: s.count }))} />
-            </div>
-            <div style={card}>
-              <div style={cardTitle}>Shipment mix</div>
+            </SectionCard>
+            <SectionCard title="Shipment mix">
               <div style={{ ...cardSub, marginBottom: 16 }}>Cases by transport mode</div>
               <BarList rows={data.shipmentsByMode.map(m => ({ label: m.label, value: m.count }))} />
-            </div>
+            </SectionCard>
           </div>
 
           {/* Segments + monthly volume */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
-            <div style={card}>
-              <div style={cardTitle}>Customer segments</div>
+            <SectionCard title="Customer segments">
               <div style={{ ...cardSub, marginBottom: 16 }}>Customers by category</div>
               <BarList rows={data.customersBySegment.map(s => ({ label: s.segment.charAt(0).toUpperCase() + s.segment.slice(1), value: s.count }))} />
-            </div>
-            <div style={card}>
-              <div style={cardTitle}>Shipment volume</div>
+            </SectionCard>
+            <SectionCard title="Shipment volume">
               <div style={{ ...cardSub, marginBottom: 16 }}>New cases per month</div>
               {data.monthlyVolume.length === 0 ? (
                 <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>No cases yet.</div>
@@ -161,7 +159,7 @@ export function HuduBIDashboard() {
                   </div>
                 );
               })()}
-            </div>
+            </SectionCard>
           </div>
         </>
       )}

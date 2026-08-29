@@ -6,6 +6,7 @@ import { useCompany } from '../data/companyStore.js';
 import type { CashFlowReport } from '@hudumika/types';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 const YEARS = ['2026', '2025', '2024'];
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -134,10 +135,7 @@ export const FinanceCashFlow: React.FC = () => {
         </div>
 
         {/* Cash Flow table */}
-        <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', overflow: 'hidden' }}>
-          <div style={{ padding: '11px 18px', borderBottom: '1px solid var(--border)' }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Monthly Cash Flow — {year}</span>
-          </div>
+        <SectionCard padded={false} title={`Monthly Cash Flow — ${year}`}>
           <div className="rtbl-wrap"><table className="rtbl" style={{ borderCollapse: 'collapse', fontSize: 12, width: '100%' }}>
             <thead>
               <tr style={{ background: 'var(--bg)' }}>
@@ -167,11 +165,10 @@ export const FinanceCashFlow: React.FC = () => {
               </tr>
             </tbody>
           </table></div>
-        </div>
+        </SectionCard>
 
         {/* Breakdown note */}
-        <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '16px 20px' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 14 }}>Cash Movement Breakdown — {year}</div>
+        <SectionCard title={`Cash Movement Breakdown — ${year}`}>
           <div style={{ display: 'flex', gap: 14 }}>
             {sourceBreakdown.map(s => (
               <div key={s.label} style={{ flex: 1 }}>
@@ -185,7 +182,7 @@ export const FinanceCashFlow: React.FC = () => {
               </div>
             ))}
           </div>
-        </div>
+        </SectionCard>
       </div>
       )}
     </div>

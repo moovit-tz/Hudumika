@@ -3,6 +3,7 @@ import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 interface SsoProvider {
   id: string; provider_type: string; name: string; enabled: boolean;
@@ -123,7 +124,7 @@ export const OneIdSSO: React.FC = () => {
         <span>This registry stores provider configuration only. Actually signing users in via a connected provider (SAML assertion validation, OAuth redirect handling) is not implemented yet — enabling a provider here does not change how anyone logs in today.</span>
       </div>
 
-      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, overflow: 'hidden' }}>
+      <SectionCard padded={false}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
           <thead>
             <tr style={{ background: 'var(--bg)', textAlign: 'left' }}>
@@ -157,7 +158,7 @@ export const OneIdSSO: React.FC = () => {
         {!loading && providers.length === 0 && (
           <div style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No identity providers configured yet.</div>
         )}
-      </div>
+      </SectionCard>
     </div>
   );
 };

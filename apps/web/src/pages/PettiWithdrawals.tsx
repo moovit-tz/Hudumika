@@ -86,7 +86,7 @@ export function PettiWithdrawals() {
       />
 
       {/* PayMoney Navigation Tabs */}
-      <div style={{ display: 'flex', gap: 10, borderBottom: '1px solid var(--border)', marginBottom: 20 }}>
+      <div className="ds-tabs-list" data-variant="segmented" style={{ marginBottom: 20 }}>
         {[
           { key: 'list', label: 'Withdrawal List', icon: 'list' },
           { key: 'withdraw', label: 'Withdraw Money', icon: 'plus' },
@@ -95,12 +95,10 @@ export function PettiWithdrawals() {
           <button
             key={t.key}
             type="button"
+            className="ds-tabs-trigger"
+            data-variant="segmented"
+            data-state={activeTab === t.key ? 'active' : 'inactive'}
             onClick={() => setActiveTab(t.key as any)}
-            style={{
-              padding: '10px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer', border: 'none', background: 'none',
-              borderBottom: activeTab === t.key ? '2px solid var(--teal)' : '2px solid transparent',
-              color: activeTab === t.key ? 'var(--teal)' : 'var(--ink3)', display: 'flex', alignItems: 'center', gap: 6
-            }}
           >
             <Icon name={t.icon as any} size={14} /> {t.label}
           </button>

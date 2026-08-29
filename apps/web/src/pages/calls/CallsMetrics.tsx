@@ -9,6 +9,7 @@ import { Bar } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Tooltip, Legend } from 'chart.js';
 import { apiFetch } from '../../lib/api.js';
 import { Icon } from '../../components/Icon.js';
+import { SectionCard } from '../../components/SectionCard.js';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
@@ -23,6 +24,17 @@ interface Metrics {
 }
 
 const fmtHrs = (s: number) => { const h = Math.floor(s / 3600); const m = Math.round((s % 3600) / 60); return h > 0 ? `${h}h ${m}m` : `${m}m`; };
+
+// Chart.js paints onto a <canvas> via ctx.fillStyle, which never goes through
+// the DOM's CSS cascade — an unresolved `var(--x)` (or `hsl(var(--x))`) is an
+// invalid Canvas2D color string, so the browser silently drops it and keeps
+// the previous fillStyle (black), rendering both bar series as one solid
+// black block. Resolve the real, theme-aware value ourselves instead.
+function cssVar(name: string, fallback: string) {
+  if (typeof window === 'undefined') return fallback;
+  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return v || fallback;
+}
 
 function StatCard({ label, value, icon }: { label: string; value: string; icon: string }) {
   return (
@@ -52,6 +64,8 @@ export function CallsMetrics() {
   if (!data) return <div style={{ fontSize: 12.5, color: 'var(--ink3)', padding: 20 }}>Could not load metrics.</div>;
 
   const missedRate = data.personal.calls > 0 ? Math.round((data.personal.callsMissed / data.personal.calls) * 100) : 0;
+  const primaryColor = `hsl(${cssVar('--primary', '217 91% 60%')})`;
+  const purpleColor = cssVar('--purple', '#6e40c9');
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -86,23 +100,24 @@ export function CallsMetrics() {
           </div>
 
           {data.tenant.dailyTrend.length > 0 && (
-            <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: 16, height: 220 }}>
+            <SectionCard>
+              <div style={{ height: 180 }}>
               <Bar
                 data={{
                   labels: data.tenant.dailyTrend.map(d => d.day.slice(5)),
                   datasets: [
-                    { label: 'Calls', data: data.tenant.dailyTrend.map(d => d.calls), backgroundColor: 'hsl(var(--primary))' },
-                    { label: 'Meetings', data: data.tenant.dailyTrend.map(d => d.meetings), backgroundColor: 'var(--purple)' },
+                    { label: 'Calls', data: data.tenant.dailyTrend.map(d => d.calls), backgroundColor: primaryColor },
+                    { label: 'Meetings', data: data.tenant.dailyTrend.map(d => d.meetings), backgroundColor: purpleColor },
                   ],
                 }}
                 options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }}
               />
-            </div>
+              </div>
+            </SectionCard>
           )}
 
           {data.tenant.topParticipants.length > 0 && (
-            <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
-              <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', marginBottom: 10 }}>Most meeting time</div>
+            <SectionCard title="Most meeting time">
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {data.tenant.topParticipants.map(p => (
                   <div key={p.userId} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12.5 }}>
@@ -112,7 +127,7 @@ export function CallsMetrics() {
                   </div>
                 ))}
               </div>
-            </div>
+            </SectionCard>
           )}
         </>
       )}

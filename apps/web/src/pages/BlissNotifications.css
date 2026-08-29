@@ -185,34 +185,8 @@
 
 .bnc-chips::-webkit-scrollbar { display: none; }
 
-.bnc-chip {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  white-space: nowrap;
-  padding: 4px 10px;
-  border-radius: 20px;
-  border: 1px solid var(--border);
-  background: transparent;
-  color: var(--ink3);
-  font-size: 12px;
-  font-weight: 600;
-  font-family: var(--font);
-  cursor: pointer;
-  transition: all 0.12s;
-  flex-shrink: 0;
-}
-
-.bnc-chip:hover {
-  background: var(--bg);
-  color: var(--ink);
-}
-
-.bnc-chip--active {
-  background: var(--teal-l);
-  color: var(--teal);
-  border-color: var(--teal);
-}
+/* Filter chip row itself is now the shared .ds-tabs-list/.ds-tabs-trigger
+   (segmented variant, ds-tabs.css); .bnc-chips only adds the bottom padding. */
 
 /* Notification list */
 .bnc-list {

@@ -4,6 +4,7 @@ import { PageHeader } from '../components/PageHeader.js';
 import { Icon } from '../components/Icon.js';
 import { showAlert } from '../lib/alert.js';
 import { useAuth } from '../hooks/useAuth.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 interface Settings { enabled: boolean; captureKeystrokes: boolean; captureHeatmap: boolean; intervalSeconds: number; }
 interface Summary { rows: number; grid: { rows: number; cols: number }; zones: Record<string, number>; users: any[]; }
@@ -70,24 +71,32 @@ export function ActivityMonitorPage() {
       </div>
 
       {/* My consent */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: '14px 18px', marginBottom: 14 }}>
-        <div>
-          <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--ink)' }}>My participation</div>
-          <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginTop: 2 }}>
-            {settings?.enabled ? (consent ? 'You are opted in. Collection runs while you use the app.' : 'You are opted out. Nothing is collected for you.') : 'The workspace has monitoring switched off — nothing is collected regardless.'}
+      <div style={{ marginBottom: 14 }}>
+      <SectionCard
+        collapsible={false}
+        action={
+          <button type="button" onClick={toggleConsent} disabled={!settings?.enabled} style={{
+            padding: 'var(--ds-btn-py-sm) 16px', borderRadius: 'var(--r)', border: '1px solid ' + (consent ? 'var(--red)' : 'var(--teal)'),
+            background: consent ? 'var(--white)' : 'var(--teal)', color: consent ? 'var(--red)' : '#fff', fontSize: 13, fontWeight: 700,
+            cursor: settings?.enabled ? 'pointer' : 'not-allowed', opacity: settings?.enabled ? 1 : 0.5, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25,
+          }}>{consent ? 'Opt out' : 'Opt in'}</button>
+        }
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--ink)' }}>My participation</div>
+            <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginTop: 2 }}>
+              {settings?.enabled ? (consent ? 'You are opted in. Collection runs while you use the app.' : 'You are opted out. Nothing is collected for you.') : 'The workspace has monitoring switched off — nothing is collected regardless.'}
+            </div>
           </div>
         </div>
-        <button type="button" onClick={toggleConsent} disabled={!settings?.enabled} style={{
-          padding: 'var(--ds-btn-py-sm) 16px', borderRadius: 'var(--r)', border: '1px solid ' + (consent ? 'var(--red)' : 'var(--teal)'),
-          background: consent ? 'var(--white)' : 'var(--teal)', color: consent ? 'var(--red)' : '#fff', fontSize: 13, fontWeight: 700,
-          cursor: settings?.enabled ? 'pointer' : 'not-allowed', opacity: settings?.enabled ? 1 : 0.5, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25,
-        }}>{consent ? 'Opt out' : 'Opt in'}</button>
+      </SectionCard>
       </div>
 
       {/* Admin settings */}
       {canAdmin && settings && (
-        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: '14px 18px', marginBottom: 20 }}>
-          <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--ink)', marginBottom: 4 }}>Workspace settings <span style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 600 }}>· admin</span></div>
+        <div style={{ marginBottom: 20 }}>
+        <SectionCard title="Workspace settings · admin">
           <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 12 }}>Turning this off stops collection for everyone immediately, opted-in or not.</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {([
@@ -108,6 +117,7 @@ export function ActivityMonitorPage() {
               </select>
             </label>
           </div>
+        </SectionCard>
         </div>
       )}
 
@@ -115,27 +125,27 @@ export function ActivityMonitorPage() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
         <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--ink)' }}>Last 24 hours</div>
         {isLead && (
-          <div style={{ display: 'inline-flex', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
+          <div className="ds-tabs-list" data-variant="segmented">
             {(['self', 'team'] as const).map(s => (
-              <button key={s} onClick={() => setScope(s)} style={{ padding: '5px 12px', fontSize: 12, fontWeight: 700, border: 'none', cursor: 'pointer', background: scope === s ? 'var(--teal)' : 'var(--white)', color: scope === s ? '#fff' : 'var(--ink2)' }}>{s === 'self' ? 'Me' : 'Team'}</button>
+              <button key={s} type="button" className="ds-tabs-trigger" data-variant="segmented"
+                data-state={scope === s ? 'active' : 'inactive'} onClick={() => setScope(s)}>{s === 'self' ? 'Me' : 'Team'}</button>
             ))}
           </div>
         )}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(280px, 1fr) minmax(280px, 1.2fr)', gap: 16, alignItems: 'start' }}>
-        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: 14 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 8 }}>Attention heatmap</div>
+        <SectionCard title="Attention heatmap">
           {summary && summary.rows > 0 ? (
             <div style={{ display: 'grid', gridTemplateColumns: `repeat(${summary.grid.cols}, 1fr)`, gridAutoRows: '1fr', gap: 2, aspectRatio: `${summary.grid.cols} / ${summary.grid.rows}`, background: 'var(--bg)', padding: 4, borderRadius: 6 }}>
               {Array.from({ length: summary.grid.rows }).flatMap((_, r) => Array.from({ length: summary.grid.cols }).map((__, cc) => cell(r, cc)))}
             </div>
           ) : <div style={{ fontSize: 13, color: 'var(--ink3)', padding: '18px 0', textAlign: 'center' }}>No activity recorded yet.</div>}
           <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 8 }}>Where the pointer spent time on screen — a proxy for where attention went, at a resolution far too coarse to reconstruct anything specific.</div>
-        </div>
+        </SectionCard>
 
-        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: 14, overflowX: 'auto' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 8 }}>Intensity totals</div>
+        <SectionCard title="Intensity totals">
+          <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead><tr>{['Member', 'Active', 'Keystrokes', 'Clicks', 'Mouse (m)'].map(h => <th key={h} style={{ textAlign: h === 'Member' ? 'left' : 'right', padding: '6px 8px', fontSize: 11, textTransform: 'uppercase', letterSpacing: '.04em', color: 'var(--ink3)', borderBottom: '1px solid var(--border)' }}>{h}</th>)}</tr></thead>
             <tbody>
@@ -151,7 +161,8 @@ export function ActivityMonitorPage() {
               {(!summary || summary.users.length === 0) && <tr><td colSpan={5} style={{ padding: '18px', textAlign: 'center', color: 'var(--ink3)' }}>No activity recorded yet.</td></tr>}
             </tbody>
           </table>
-        </div>
+          </div>
+        </SectionCard>
       </div>
     </div>
   );

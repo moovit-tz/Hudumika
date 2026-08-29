@@ -12,6 +12,7 @@ import { useSealCompartmentId } from '../hooks/useSealCompartment.js';
 import './Seal.css';
 import { PageHeader } from '../components/PageHeader.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 interface Equipment {
   id: string; compartmentId: string; equipmentType: string; assetTag: string; name: string;
@@ -157,7 +158,8 @@ export function SealEquipment() {
       </div>
 
       {showNew && (
-        <form onSubmit={handleCreate} className="seal-card" style={{ marginBottom: 20 }}>
+        <form onSubmit={handleCreate} style={{ marginBottom: 20 }}>
+        <SectionCard collapsible={false} padded={false}>
           <div style={{ padding: 20, display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
             <div className="seal-field-row" style={{ width: 180 }}>
               <label className="seal-field-label">Compartment</label>
@@ -185,10 +187,11 @@ export function SealEquipment() {
               {saving ? 'Adding…' : 'Add'}
             </Button>
           </div>
+        </SectionCard>
         </form>
       )}
 
-      <div className="seal-card">
+      <SectionCard collapsible={false} padded={false}>
         <div className="seal-card-body">
           {loading ? (
             <div className="seal-empty">Loading…</div>
@@ -300,7 +303,7 @@ export function SealEquipment() {
             </table>
           )}
         </div>
-      </div>
+      </SectionCard>
     </div>
   );
 }

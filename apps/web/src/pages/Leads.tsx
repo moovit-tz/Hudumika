@@ -12,6 +12,7 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 /* ── Types ── */
 export interface Lead {
@@ -564,14 +565,13 @@ export const Leads: React.FC = () => {
           </div>
 
           {/* Tabs */}
-          <div style={{ display: 'flex', padding: '0 28px', overflowX: 'auto' }}>
+          <div className="ds-tabs-list" data-variant="segmented" style={{ margin: '0 28px' }}>
             {PROF_TABS.map(tab => {
               const isActive = profileTab === tab.key;
               return (
-                <button key={tab.key} type="button" onClick={() => { setProfileTab(tab.key); setEditMode(false); }}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py-lg) 16px', border: 'none', borderBottom: isActive ? '2px solid var(--teal)' : '2px solid transparent', background: 'none', color: isActive ? 'var(--teal)' : 'var(--ink3)', fontSize: 13, fontWeight: isActive ? 700 : 500, cursor: 'pointer', fontFamily: 'var(--font)', whiteSpace: 'nowrap', marginBottom: -1, minHeight: 'var(--ctl-h-lg)', boxSizing: 'border-box', lineHeight: 1.25}}
-                  onMouseEnter={e => { if (!isActive) e.currentTarget.style.color = 'var(--ink)'; }}
-                  onMouseLeave={e => { if (!isActive) e.currentTarget.style.color = 'var(--ink3)'; }}>
+                <button key={tab.key} type="button" className="ds-tabs-trigger" data-variant="segmented"
+                  data-state={isActive ? 'active' : 'inactive'}
+                  onClick={() => { setProfileTab(tab.key); setEditMode(false); }}>
                   <Icon name={tab.icon} size={13} color={isActive ? 'var(--teal)' : 'var(--ink3)'} strokeWidth={1.75} />
                   {tab.label}
                 </button>
@@ -587,10 +587,10 @@ export const Leads: React.FC = () => {
           {profileTab === 'overview' && (
             <div style={{ padding: '24px 28px' }}>
               {/* Stage pipeline */}
-              <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: '18px 20px', marginBottom: 20 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 14 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--ink3)' }}>Pipeline Stage</div>
-                  {!['WON', 'LOST'].includes(sel.stage) && (
+              <div style={{ marginBottom: 20 }}>
+              <SectionCard
+                title="Pipeline Stage"
+                action={!['WON', 'LOST'].includes(sel.stage) ? (
                     <button type="button"
                       onClick={() => updateStage('LOST')}
                       style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 11px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'none', cursor: 'pointer', fontSize: 11.5, fontWeight: 600, fontFamily: 'var(--font)', color: 'var(--ink3)', transition: 'color 0.12s, border-color 0.12s, background 0.12s' }}
@@ -600,11 +600,12 @@ export const Leads: React.FC = () => {
                       <Icon name="x" size={12} strokeWidth={2.5} />
                       Mark as Lost
                     </button>
-                  )}
-                </div>
+                ) : undefined}
+              >
                 <div style={{ overflowX: 'auto', paddingBottom: 2 }}>
                   <StagePipeline current={sel.stage} onSelect={updateStage} interactive={!['WON', 'LOST'].includes(sel.stage)} />
                 </div>
+              </SectionCard>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 300px', gap: 20 }}>
@@ -629,9 +630,10 @@ export const Leads: React.FC = () => {
 
                   {/* Notes preview */}
                   {sel.notes && (
-                    <div style={{ gridColumn: '1 / -1', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: '16px 18px' }}>
-                      <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--ink3)', marginBottom: 8 }}>Notes</div>
+                    <div style={{ gridColumn: '1 / -1' }}>
+                    <SectionCard title="Notes">
                       <p style={{ fontSize: 13, color: 'var(--ink)', lineHeight: 1.65, margin: 0 }}>{sel.notes}</p>
+                    </SectionCard>
                     </div>
                   )}
                 </div>
@@ -639,8 +641,7 @@ export const Leads: React.FC = () => {
                 {/* Right sidebar */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                   {/* Key info */}
-                  <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: '18px' }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink3)', marginBottom: 14 }}>Key Information</div>
+                  <SectionCard title="Key Information">
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                       {[
                         { label: 'Contact Person', value: sel.contact_name },
@@ -658,11 +659,10 @@ export const Leads: React.FC = () => {
                         </div>
                       ))}
                     </div>
-                  </div>
+                  </SectionCard>
 
                   {/* Quick actions */}
-                  <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: '18px' }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink3)', marginBottom: 12 }}>Quick Actions</div>
+                  <SectionCard title="Quick Actions">
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                       {([
                         { label: 'Send Email',         icon: 'mail'       as IconName, action: () => sel.contact_email && window.open(`mailto:${sel.contact_email}`) },
@@ -680,7 +680,7 @@ export const Leads: React.FC = () => {
                         </button>
                       ))}
                     </div>
-                  </div>
+                  </SectionCard>
                 </div>
               </div>
             </div>
@@ -696,7 +696,7 @@ export const Leads: React.FC = () => {
                       <Icon name="edit" size={14} strokeWidth={1.75} /> Edit Contact
                     </button>
                   </div>
-                  <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: '20px 24px' }}>
+                  <SectionCard collapsible={false}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20, paddingBottom: 20, borderBottom: '1px solid var(--border)' }}>
                       <LeadAv name={sel.contact_name} size={56} />
                       <div>
@@ -720,11 +720,12 @@ export const Leads: React.FC = () => {
                         </div>
                       ))}
                     </div>
-                  </div>
+                  </SectionCard>
                 </>
               ) : (
                 <form onSubmit={handleProfileSave}>
-                  <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: '20px 24px', marginBottom: 16 }}>
+                  <div style={{ marginBottom: 16 }}>
+                  <SectionCard collapsible={false}>
                     <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '14px 20px' }}>
                       {([
                         { label: 'Company Name *', key: 'company',       req: true  },
@@ -753,6 +754,7 @@ export const Leads: React.FC = () => {
                         </Select>
                       </div>
                     </div>
+                  </SectionCard>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
                     <button type="button" className="btn btn-secondary btn-sm" onClick={() => { setProfileForm({ ...sel }); setEditMode(false); }}>Discard</button>
@@ -804,7 +806,7 @@ export const Leads: React.FC = () => {
               {filesLoading ? (
                 <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading…</div>
               ) : linkedFiles.length > 0 ? (
-                <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', overflow: 'hidden' }}>
+                <SectionCard collapsible={false} padded={false}>
                   {linkedFiles.map((f: any, i: number) => (
                     <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 18px', borderBottom: i < linkedFiles.length - 1 ? '1px solid var(--bg)' : 'none' }}>
                       <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -826,7 +828,7 @@ export const Leads: React.FC = () => {
                       </button>
                     </div>
                   ))}
-                </div>
+                </SectionCard>
               ) : (
                 <div style={{ border: '2px dashed var(--border)', borderRadius: 9, padding: '40px 24px', textAlign: 'center', color: 'var(--ink3)', background: 'var(--bg)' }}>
                   <Icon name="upload" size={28} strokeWidth={1.25} />
@@ -959,7 +961,7 @@ export const Leads: React.FC = () => {
           relative to the title/breadcrumb above it. */}
       <div style={{ padding: '0 0 28px' }}>
         {/* ── Table card ── */}
-        <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', boxShadow: 'var(--elev-sm)', overflow: 'hidden' }}>
+        <SectionCard collapsible={false} padded={false}>
 
           {/* Toolbar */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px', borderBottom: '1px solid var(--border)', flexWrap: 'wrap' }}>
@@ -1109,7 +1111,7 @@ export const Leads: React.FC = () => {
               </div>
             </div>
           )}
-        </div>
+        </SectionCard>
       </div>
 
       {/* Add/Edit modal */}

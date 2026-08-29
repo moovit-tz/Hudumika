@@ -230,21 +230,17 @@ export function SignInbox({ view }: { view: ViewKey }) {
 
       {/* Filter Navigation Pills & Action Toolbar matching standard format */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+        <div className="ds-tabs-list" data-variant="segmented">
           {VIEW_TABS.map(tab => {
             const active = view === tab.key;
             return (
               <button
                 key={tab.key}
                 type="button"
+                className="ds-tabs-trigger"
+                data-variant="segmented"
+                data-state={active ? 'active' : 'inactive'}
                 onClick={() => navigate(tab.key === 'inbox' ? '/sign' : `/sign/${tab.key}`)}
-                style={{
-                  padding: '7px 16px', borderRadius: 20, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', border: '1px solid var(--border)',
-                  background: active ? 'hsl(var(--primary))' : 'var(--white)',
-                  color: active ? 'hsl(var(--primary-foreground))' : 'var(--ink2)',
-                  boxShadow: active ? '0 2px 8px rgba(14,31,61,0.25)' : 'none',
-                  transition: 'all 0.15s ease'
-                }}
               >
                 {tab.label}
               </button>

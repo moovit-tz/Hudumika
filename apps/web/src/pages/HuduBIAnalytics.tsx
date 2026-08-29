@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { PageHeader } from '../components/PageHeader.js';
 import { apiFetch } from '../lib/api.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 interface Analytics {
   topCustomers: { name: string; cases: number; cifUsd: number }[];
@@ -10,8 +11,6 @@ interface Analytics {
 
 const MODE_LABELS: Record<string, string> = { SEA_FCL: 'Sea (FCL)', SEA_LCL: 'Sea (LCL)', AIR: 'Air', ROAD: 'Road', RAIL: 'Rail' };
 const usd = (v: number) => v >= 1_000_000 ? `$${(v / 1_000_000).toFixed(2)}M` : `$${Math.round(v).toLocaleString()}`;
-
-const card: React.CSSProperties = { background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 14, padding: 24, boxShadow: '0 1px 3px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: 16 };
 
 function BarList({ rows }: { rows: { label: string; value: number; display: string }[] }) {
   const max = Math.max(1, ...rows.map(r => r.value));
@@ -54,14 +53,13 @@ export function HuduBIAnalytics() {
         subtitle="Where your consignment value and volume concentrate — computed from your shipment and customer records."
       />
 
-      {loading && <div style={{ ...card, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading…</div>}
+      {loading && <SectionCard><div style={{ textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading…</div></SectionCard>}
 
       {data && (
         <>
           {/* Top customers */}
-          <div style={card}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--navy)' }}>Top customers by volume</div>
-            <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: -8 }}>Shipment cases and total CIF value per customer</div>
+          <SectionCard title="Top customers by volume">
+            <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 12 }}>Shipment cases and total CIF value per customer</div>
             {data.topCustomers.length === 0 ? (
               <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>No customer activity yet.</div>
             ) : (
@@ -76,20 +74,18 @@ export function HuduBIAnalytics() {
                 ))}
               </div>
             )}
-          </div>
+          </SectionCard>
 
           {/* CIF by mode + origin ports */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
-            <div style={card}>
-              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--navy)' }}>Consignment value by mode</div>
-              <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: -8 }}>Total CIF (USD) carried by each transport mode</div>
+            <SectionCard title="Consignment value by mode">
+              <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 12 }}>Total CIF (USD) carried by each transport mode</div>
               <BarList rows={data.cifByMode.map(m => ({ label: `${MODE_LABELS[m.mode] || m.mode} · ${m.cases} cases`, value: m.cifUsd, display: usd(m.cifUsd) }))} />
-            </div>
-            <div style={card}>
-              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--navy)' }}>Top origin ports</div>
-              <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: -8 }}>Where your shipments come from</div>
+            </SectionCard>
+            <SectionCard title="Top origin ports">
+              <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 12 }}>Where your shipments come from</div>
               <BarList rows={data.byOriginPort.map(p => ({ label: p.port, value: p.count, display: String(p.count) }))} />
-            </div>
+            </SectionCard>
           </div>
         </>
       )}

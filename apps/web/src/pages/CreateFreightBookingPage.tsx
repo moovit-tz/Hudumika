@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader.js';
+import { SectionCard } from '../components/SectionCard.js';
 import { apiFetch } from '../lib/api.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
@@ -61,7 +62,8 @@ export function CreateFreightBookingPage() {
     <div style={{ flex: 1, overflowY: 'auto' }}>
       <PageHeader crumbs={['CargoTracker', 'Freight Booking', 'New']} titlePlain="New booking" titleEm="request" subtitle="Vessel, voyage and BL/AWB are entered later once the carrier confirms — this just captures what the customer wants shipped." />
 
-      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: '28px 32px', maxWidth: 720 }}>
+      <div style={{ maxWidth: 720 }}>
+      <SectionCard>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
           <div>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Customer *</label>
@@ -97,6 +99,7 @@ export function CreateFreightBookingPage() {
         </div>
         {error && <div style={{ color: 'var(--red)', fontSize: 12.5, marginBottom: 14 }}>{error}</div>}
         <button type="button" className="btn btn-primary" onClick={submit} disabled={saving}>{saving ? 'Creating…' : 'Create Booking Request'}</button>
+      </SectionCard>
       </div>
     </div>
   );

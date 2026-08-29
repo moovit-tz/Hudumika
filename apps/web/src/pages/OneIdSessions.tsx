@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 interface Device {
   id: string; device_label: string | null; device_type: string | null;
@@ -56,8 +57,8 @@ export const OneIdSessions: React.FC = () => {
         subtitle="Session policy and known devices for this tenant."
       />
 
-      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: 20, marginBottom: 24 }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 16 }}>Session policy</div>
+      <div style={{ marginBottom: 24 }}>
+      <SectionCard title="Session policy">
         <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', marginBottom: 16 }}>
           <div>
             <label style={labelStyle}>Session timeout (minutes)</label>
@@ -72,10 +73,10 @@ export const OneIdSessions: React.FC = () => {
           style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13, opacity: saving ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
           {saving ? 'Saving…' : saved ? 'Saved ✓' : 'Save policy'}
         </button>
+      </SectionCard>
       </div>
 
-      <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 10 }}>Known devices</div>
-      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, overflow: 'hidden' }}>
+      <SectionCard padded={false} title="Known devices">
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
           <thead>
             <tr style={{ background: 'var(--bg)', textAlign: 'left' }}>
@@ -106,7 +107,7 @@ export const OneIdSessions: React.FC = () => {
         {devices.length === 0 && (
           <div style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No known devices yet.</div>
         )}
-      </div>
+      </SectionCard>
     </div>
   );
 };

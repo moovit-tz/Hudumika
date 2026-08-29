@@ -182,11 +182,11 @@ export function AccountingIntegrations() {
       />
 
       {/* Tabs */}
-      <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
-        <div style={{ display: 'flex', gap: 0 }}>
+      <div style={{ flexShrink: 0 }}>
+        <div className="ds-tabs-list" data-variant="segmented">
           {(['connected', 'marketplace'] as TabId[]).map(tab => (
-            <button key={tab} type="button" onClick={() => setActiveTab(tab)}
-              style={{ padding: 'var(--ds-btn-py) 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer', border: 'none', background: 'none', fontFamily: 'var(--font)', color: activeTab === tab ? 'var(--teal)' : 'var(--ink3)', borderBottom: activeTab === tab ? '2px solid var(--teal)' : '2px solid transparent', marginBottom: -1, transition: 'all 0.15s', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+            <button key={tab} type="button" className="ds-tabs-trigger" data-variant="segmented"
+              data-state={activeTab === tab ? 'active' : 'inactive'} onClick={() => setActiveTab(tab)}>
               {tab === 'connected' ? 'Connected Platforms' : 'Marketplace'}
               {tab === 'connected' && <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 700, padding: '1px 6px', borderRadius: 8, background: 'var(--teal-l)', color: 'var(--teal)' }}>{integrations.filter(i => i.status === 'CONNECTED').length}</span>}
               {tab === 'marketplace' && <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 700, padding: '1px 6px', borderRadius: 8, background: 'var(--bg)', color: 'var(--ink3)' }}>{MARKETPLACE.length}</span>}

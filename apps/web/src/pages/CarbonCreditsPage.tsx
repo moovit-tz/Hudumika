@@ -3,6 +3,7 @@ import { PageHeader } from '../components/PageHeader.js';
 import { Icon } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
 import { useBranding } from '../hooks/useBranding.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 interface CO2Record {
   id: string;
@@ -180,11 +181,7 @@ export const CarbonCreditsPage: React.FC = () => {
         </div>
 
         {/* Records Table */}
-        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
-          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <h3 style={{ fontSize: 15, fontWeight: 700, margin: 0, color: 'var(--ink)' }}>Shipment Offset Records</h3>
-          </div>
-          
+        <SectionCard title="Shipment Offset Records" padded={false}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ background: 'var(--bg)' }}>
@@ -219,7 +216,7 @@ export const CarbonCreditsPage: React.FC = () => {
               )}
             </tbody>
           </table>
-        </div>
+        </SectionCard>
       </div>
     </div>
   );

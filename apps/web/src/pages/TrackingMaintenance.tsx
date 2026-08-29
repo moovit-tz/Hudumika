@@ -4,6 +4,7 @@ import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { showConfirm } from '../lib/confirm.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 interface Vehicle { id: string; name: string; plate_number: string | null }
 interface Vendor { id: string; name: string }
@@ -138,7 +139,7 @@ export const TrackingMaintenance: React.FC = () => {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: selectedDate ? '1fr 300px' : '1fr', gap: 16, alignItems: 'flex-start' }}>
-        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: 16 }}>
+        <SectionCard>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
             <button type="button" title="Previous month" onClick={prevMonth} style={{ width: 30, height: 30, borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink2)' }}>
               <Icon name="chevronLeft" size={13} />
@@ -188,15 +189,13 @@ export const TrackingMaintenance: React.FC = () => {
             <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 8, height: 8, borderRadius: 2, background: '#059669' }} /> Service done</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 8, height: 8, borderRadius: 2, background: '#ca8a04' }} /> Expected / due</div>
           </div>
-        </div>
+        </SectionCard>
 
         {selectedDate && (
-          <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: 16 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{new Date(selectedDate + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</div>
-              <button type="button" title="Close" onClick={() => setSelectedDate(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}><Icon name="close" size={14} /></button>
-            </div>
-
+          <SectionCard
+            title={new Date(selectedDate + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+            action={<button type="button" title="Close" onClick={() => setSelectedDate(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}><Icon name="close" size={14} /></button>}
+          >
             {selectedDone.length > 0 && (
               <div style={{ marginBottom: 14 }}>
                 <div style={{ fontSize: 10.5, fontWeight: 700, color: '#059669', textTransform: 'uppercase', marginBottom: 6 }}>Done</div>
@@ -223,7 +222,7 @@ export const TrackingMaintenance: React.FC = () => {
                 ))}
               </div>
             )}
-          </div>
+          </SectionCard>
         )}
       </div>
 

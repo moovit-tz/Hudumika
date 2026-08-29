@@ -4,6 +4,7 @@ import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 interface ToolsMetrics {
   hr: {
@@ -91,26 +92,25 @@ function StatusCard({ label, value, pct, color, icon }: { label: string; value: 
 }
 
 /* ── Module summary card shell ── */
-function ModuleSummaryCard({ icon, title, color, bg, to, children }: {
+function ModuleSummaryCard({ title, color, to, children }: {
   icon: IconName; title: string; color: string; bg: string;
   to: string; children: React.ReactNode;
 }) {
   return (
-    <div style={{ background: 'var(--white)', borderRadius: 10, border: '1px solid var(--border)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ padding: '11px 16px', borderBottom: '1px solid var(--border)', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-          <div style={{ width: 28, height: 28, borderRadius: 7, background: 'var(--white)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: 'var(--elev-sm)' }}>
-            <Icon name={icon} size={14} color={color} />
-          </div>
-          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{title}</span>
-        </div>
+    <SectionCard
+      title={title}
+      padded={false}
+      action={
         <Link to={to}
           style={{ fontSize: 11, fontWeight: 600, color, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', gap: 3, textDecoration: 'none' }}>
           Open <Icon name="chevronRight" size={12} color={color} />
         </Link>
+      }
+    >
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        {children}
       </div>
-      {children}
-    </div>
+    </SectionCard>
   );
 }
 

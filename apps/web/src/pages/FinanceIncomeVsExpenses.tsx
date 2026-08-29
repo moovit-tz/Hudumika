@@ -6,6 +6,7 @@ import { useCompany } from '../data/companyStore.js';
 import type { ProfitLossReport } from '@hudumika/types';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const YEARS = ['2026', '2025', '2024'];
@@ -145,12 +146,9 @@ export const FinanceIncomeVsExpenses: React.FC = () => {
         </div>
 
         {/* Chart */}
-        <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '18px 20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-            <div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>Monthly Comparison — {year}</div>
-              <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>Green = Income &nbsp;·&nbsp; Red = Expenses</div>
-            </div>
+        <SectionCard
+          title={`Monthly Comparison — ${year}`}
+          action={
             <div style={{ display: 'flex', gap: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <div style={{ width: 10, height: 10, borderRadius: 2, background: 'var(--teal)' }} />
@@ -161,15 +159,13 @@ export const FinanceIncomeVsExpenses: React.FC = () => {
                 <span style={{ fontSize: 11, color: 'var(--ink3)' }}>Expenses</span>
               </div>
             </div>
-          </div>
+          }
+        >
           <GroupedBarChart labels={MONTHS} income={income} expenses={expenses} />
-        </div>
+        </SectionCard>
 
         {/* Monthly breakdown table */}
-        <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', overflow: 'hidden' }}>
-          <div style={{ padding: '11px 18px', borderBottom: '1px solid var(--border)' }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Monthly Breakdown</span>
-          </div>
+        <SectionCard padded={false} title="Monthly Breakdown">
           <div className="rtbl-wrap"><table className="rtbl" style={{ borderCollapse: 'collapse', fontSize: 12, width: '100%' }}>
             <thead>
               <tr style={{ background: 'var(--bg)' }}>
@@ -210,7 +206,7 @@ export const FinanceIncomeVsExpenses: React.FC = () => {
               </tr>
             </tbody>
           </table></div>
-        </div>
+        </SectionCard>
       </div>
       )}
     </div>

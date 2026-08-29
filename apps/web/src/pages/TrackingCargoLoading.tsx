@@ -7,6 +7,7 @@ import { Combobox } from '../components/ui/combobox.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { showConfirm } from '../lib/confirm.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 export type CameraPreset = 'iso' | 'front' | 'side' | 'top';
 
@@ -394,11 +395,9 @@ export const TrackingCargoLoading: React.FC = () => {
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: 16 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div style={cardStyle}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{manifest.name}</div>
-                <button type="button" onClick={deleteManifest} title="Delete load plan" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}><Icon name="close" size={14} /></button>
-              </div>
+            <SectionCard title={manifest.name} action={
+              <button type="button" onClick={deleteManifest} title="Delete load plan" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}><Icon name="close" size={14} /></button>
+            }>
               <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 8 }}>
                 {manifest.container_length_cm} × {manifest.container_width_cm} × {manifest.container_height_cm} cm · max {manifest.max_weight_kg.toLocaleString()} kg
               </div>
@@ -418,15 +417,12 @@ export const TrackingCargoLoading: React.FC = () => {
                   </div>
                 )}
               </div>
-            </div>
+            </SectionCard>
 
             {isDraft && (
-              <div style={cardStyle}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Add cargo item</div>
-                  <button onClick={() => setShowImportModal(true)} style={{ background: 'none', border: 'none', color: 'var(--teal)', fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: 0 }}>Import</button>
-                </div>
-                
+              <SectionCard title="Add cargo item" action={
+                <button onClick={() => setShowImportModal(true)} style={{ background: 'none', border: 'none', color: 'var(--teal)', fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: 0 }}>Import</button>
+              }>
                 <form onSubmit={addItem} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   <input required value={itemLabel} onChange={e => setItemLabel(e.target.value)} placeholder="Label" style={inputStyle} />
                   <div style={{ display: 'flex', gap: 6 }}>
@@ -440,11 +436,10 @@ export const TrackingCargoLoading: React.FC = () => {
                   </div>
                   <button type="submit" style={{ padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Add item</button>
                 </form>
-              </div>
+              </SectionCard>
             )}
 
-            <div style={cardStyle}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 10 }}>Items ({items.length})</div>
+            <SectionCard title={`Items (${items.length})`}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 200, overflowY: 'auto' }}>
                 {items.map(it => (
                   <div key={it.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
@@ -459,11 +454,10 @@ export const TrackingCargoLoading: React.FC = () => {
                 style={{ marginTop: 12, width: '100%', padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border: 'none', background: 'var(--ink)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: items.length === 0 || !isDraft ? 'default' : 'pointer', opacity: items.length === 0 || !isDraft ? 0.5 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
                 {packing ? 'Packing…' : 'Pack load'}
               </button>
-            </div>
+            </SectionCard>
 
             {packResult && (
-              <div style={cardStyle}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 10 }}>Utilization</div>
+              <SectionCard title="Utilization">
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 6 }}>
                   <span>Volume</span><strong>{packResult.volume_utilization_pct}%</strong>
                 </div>
@@ -475,7 +469,7 @@ export const TrackingCargoLoading: React.FC = () => {
                     Didn't fit: {packResult.unplaced_items.map(u => `${u.label} ×${u.count}`).join(', ')}
                   </div>
                 )}
-              </div>
+              </SectionCard>
             )}
           </div>
 

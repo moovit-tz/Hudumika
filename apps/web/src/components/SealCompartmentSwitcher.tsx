@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Icon } from './Icon.js';
+import { CompanyAvatar } from './PersonAvatar.js';
 import { Popover, PopoverTrigger, PopoverContent } from './ui/popover.js';
 import { apiFetch } from '../lib/api.js';
 import { useSealCompartmentId } from '../hooks/useSealCompartment.js';
@@ -16,37 +17,24 @@ interface Props {
   collapsed?: boolean;
 }
 
-function getInitials(name: string, code?: string): string {
-  if (code && code.length <= 3) return code.toUpperCase();
-  const parts = name.trim().split(/\s+/);
-  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
-  return name.substring(0, 2).toUpperCase();
-}
-
+// "All Compartments" (compartment === null) isn't a real entity — it has no
+// name/logo to key an avatar off, so it keeps its own SEAL-teal grid icon.
+// A real compartment goes through CompanyAvatar like every other logo in the
+// app, rather than a hand-rolled <img>/initials pair with SEAL-specific
+// colors that only this dropdown used.
 function CompartmentAvatar({ compartment, size = 26 }: { compartment: Compartment | null; size?: number }) {
-  const base: React.CSSProperties = {
-    width: size, height: size, borderRadius: '50%', flexShrink: 0,
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-  };
   if (!compartment) {
     return (
-      <div style={{ ...base, background: 'var(--seal)', color: '#fff', fontSize: 10, fontWeight: 800 }}>
+      <div style={{
+        width: size, height: size, borderRadius: '50%', flexShrink: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: 'var(--seal)', color: '#fff', fontSize: 10, fontWeight: 800,
+      }}>
         <Icon name="grid" size={size * 0.5} />
       </div>
     );
   }
-  if (compartment.logo_url) {
-    return (
-      <div style={{ ...base, border: '1px solid var(--border)', overflow: 'hidden', background: 'var(--white)' }}>
-        <img src={compartment.logo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-      </div>
-    );
-  }
-  return (
-    <div style={{ ...base, background: 'var(--teal-l)', border: '1px solid var(--teal-m)', color: 'var(--seal)', fontSize: 10, fontWeight: 800 }}>
-      {getInitials(compartment.name, compartment.code)}
-    </div>
-  );
+  return <CompanyAvatar name={compartment.name} logoUrl={compartment.logo_url} size={size} shape="circle" />;
 }
 
 // Persistent "which warehouse am I viewing" context for SEAL — every

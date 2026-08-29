@@ -5,6 +5,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { apiFetch } from '../lib/api.js';
 import type { ExpenseListItem } from './Expenses.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 const fmtM = (n: number) => `TZS ${(n / 1_000_000).toFixed(1)}M`;
 const fmtFull = (n: number) => `TZS ${Math.round(n).toLocaleString()}`;
@@ -192,17 +193,16 @@ export const FinanceExpensesReport: React.FC = () => {
 
         <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
           {/* Monthly chart */}
-          <div style={{ flex: 2, background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '18px 20px' }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Monthly Expenses</div>
+          <div style={{ flex: 2 }}>
+          <SectionCard title="Monthly Expenses">
             <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 16 }}>{period}</div>
             <BarChart labels={monthLabels} values={monthlyTotals} color="var(--red)" />
+          </SectionCard>
           </div>
 
           {/* Category breakdown */}
-          <div style={{ flex: 1, background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', overflow: 'hidden' }}>
-            <div style={{ padding: '11px 18px', borderBottom: '1px solid var(--border)' }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>By Category</span>
-            </div>
+          <div style={{ flex: 1 }}>
+          <SectionCard padded={false} title="By Category">
             <div style={{ padding: '4px 0' }}>
               {categoryBreakdown.length === 0 ? (
                 <div style={{ padding: '20px 18px', textAlign: 'center', color: 'var(--ink3)', fontSize: 12 }}>No expenses in this period</div>
@@ -222,14 +222,12 @@ export const FinanceExpensesReport: React.FC = () => {
                 );
               })}
             </div>
+          </SectionCard>
           </div>
         </div>
 
         {/* Table Container Card */}
-        <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', overflow: 'hidden' }}>
-          <div style={{ padding: '11px 18px', borderBottom: '1px solid var(--border)' }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Expense Details ({expenses.length})</span>
-          </div>
+        <SectionCard padded={false} title={`Expense Details (${expenses.length})`}>
           <div className="rtbl-wrap" style={{ overflowX: 'auto' }}><table className="rtbl" style={{ borderCollapse: 'collapse', fontSize: 12, width: '100%' }}>
             <thead>
               <tr style={{ background: 'var(--bg)' }}>
@@ -287,7 +285,7 @@ export const FinanceExpensesReport: React.FC = () => {
               </div>
             </div>
           )}
-        </div>
+        </SectionCard>
       </div>
     </div>
   );

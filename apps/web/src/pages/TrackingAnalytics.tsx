@@ -6,6 +6,7 @@ import {
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Tooltip, Legend);
 
@@ -134,44 +135,43 @@ export const TrackingAnalytics: React.FC = () => {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 20 }}>
-        <div style={{ ...cardStyle, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', alignSelf: 'flex-start', marginBottom: 6 }}>Fleet Health Score</div>
-          <HealthGauge score={data.fleet_health_score} />
-        </div>
-        <div style={cardStyle}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 12 }}>Health Score Breakdown</div>
+        <SectionCard title="Fleet Health Score">
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <HealthGauge score={data.fleet_health_score} />
+          </div>
+        </SectionCard>
+        <SectionCard title="Health Score Breakdown">
           <div style={{ height: 150 }}>
             <Doughnut data={breakdownData} options={{ plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: { size: 10 } } } }, cutout: '60%' }} />
           </div>
-        </div>
-        <div style={cardStyle}>
+        </SectionCard>
+        <SectionCard>
           <div style={statBlock}>On-time trips</div>
           <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--ink)' }}>{data.on_time_trip_pct != null ? `${data.on_time_trip_pct}%` : '—'}</div>
           <div style={{ ...statBlock, marginTop: 16 }}>Docs expiring (30d)</div>
           <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--ink)' }}>{data.documents_expiring_30d}</div>
-        </div>
+        </SectionCard>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
-        <div style={{ ...cardStyle, height: 300 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 12 }}>Health Score by Vehicle</div>
+        <SectionCard title="Health Score by Vehicle">
           <div style={{ height: 230 }}>
             <Line data={trendData} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { min: 0, max: 100 } } }} />
           </div>
-        </div>
-        <div style={{ ...cardStyle, height: 300 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 12 }}>Fuel Consumption Trend</div>
+        </SectionCard>
+        <SectionCard title="Fuel Consumption Trend">
           <div style={{ height: 230 }}>
             <Bar data={fuelTrendData} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }} />
           </div>
-        </div>
+        </SectionCard>
       </div>
 
-      <div style={{ ...cardStyle, maxWidth: 400, marginBottom: 20 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 12 }}>Cost Performance (90d)</div>
+      <div style={{ maxWidth: 400, marginBottom: 20 }}>
+      <SectionCard title="Cost Performance (90d)">
         <div style={{ height: 180 }}>
           <Doughnut data={costData} options={{ plugins: { legend: { position: 'bottom' } }, cutout: '55%' }} />
         </div>
+      </SectionCard>
       </div>
 
       {/* ── Fleet operations widgets ── */}
@@ -181,8 +181,7 @@ export const TrackingAnalytics: React.FC = () => {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 14, marginBottom: 14 }}>
-        <div style={cardStyle}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 12 }}>Vehicle Status</div>
+        <SectionCard title="Vehicle Status">
           {vehicleStatusItems.map(it => (
             <div key={it.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 0', borderTop: '1px solid var(--border)', fontSize: 13 }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--ink2)' }}>
@@ -191,10 +190,9 @@ export const TrackingAnalytics: React.FC = () => {
               <span style={{ fontWeight: 800, color: 'var(--ink)' }}>{it.value}</span>
             </div>
           ))}
-        </div>
+        </SectionCard>
 
-        <div style={cardStyle}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 12 }}>On-Time Service Compliance</div>
+        <SectionCard title="On-Time Service Compliance">
           <div style={{ display: 'flex', gap: 20 }}>
             <div>
               <div style={{ fontSize: 26, fontWeight: 800, color: '#059669' }}>{data.on_time_service_compliance.all_time_pct != null ? `${data.on_time_service_compliance.all_time_pct}%` : '—'}</div>
@@ -205,83 +203,76 @@ export const TrackingAnalytics: React.FC = () => {
               <div style={statBlock}>Last 30 Days</div>
             </div>
           </div>
-        </div>
+        </SectionCard>
 
-        <div style={cardStyle}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 12 }}>Active Work Orders</div>
+        <SectionCard title="Active Work Orders">
           <div style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderTop: '1px solid var(--border)', fontSize: 13 }}>
             <span style={{ color: 'var(--ink2)' }}>Scheduled</span><span style={{ fontWeight: 800, color: 'var(--ink)' }}>{data.work_orders.scheduled}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderTop: '1px solid var(--border)', fontSize: 13 }}>
             <span style={{ color: 'var(--ink2)' }}>Overdue</span><span style={{ fontWeight: 800, color: data.work_orders.overdue > 0 ? '#dc2626' : 'var(--ink)' }}>{data.work_orders.overdue}</span>
           </div>
-        </div>
+        </SectionCard>
 
-        <div style={cardStyle}>
+        <SectionCard>
           <div style={statBlock}>Overdue Service Items</div>
           <div style={{ fontSize: 28, fontWeight: 800, color: data.overdue_service_count > 0 ? '#dc2626' : 'var(--ink)' }}>{data.overdue_service_count}</div>
           <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 6 }}>Vehicles past their next-due service date</div>
-        </div>
+        </SectionCard>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 14 }}>
-        <div style={cardStyle}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 12 }}>Issues by Status</div>
+        <SectionCard title="Issues by Status">
           {Object.entries(data.issues_summary.by_status).map(([status, count]) => (
             <div key={status} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderTop: '1px solid var(--border)', fontSize: 13 }}>
               <span style={{ color: 'var(--ink2)' }}>{status.replace('_', ' ')}</span>
               <span style={{ fontWeight: 800, color: 'var(--ink)' }}>{count}</span>
             </div>
           ))}
-        </div>
-        <div style={cardStyle}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 12 }}>Issues by Priority</div>
+        </SectionCard>
+        <SectionCard title="Issues by Priority">
           {Object.entries(data.issues_summary.by_severity).map(([sev, count]) => (
             <div key={sev} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderTop: '1px solid var(--border)', fontSize: 13 }}>
               <span style={{ color: 'var(--ink2)' }}>{sev.charAt(0) + sev.slice(1).toLowerCase()}</span>
               <span style={{ fontWeight: 800, color: 'var(--ink)' }}>{count}</span>
             </div>
           ))}
-        </div>
-        <div style={cardStyle}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 12 }}>Issue Resolution</div>
+        </SectionCard>
+        <SectionCard title="Issue Resolution">
           <div style={statBlock}>Avg. resolution time</div>
           <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)', marginBottom: 12 }}>{data.issues_summary.avg_resolution_hours != null ? `${data.issues_summary.avg_resolution_hours} hrs` : '—'}</div>
           <div style={statBlock}>Overdue issues</div>
           <div style={{ fontSize: 22, fontWeight: 800, color: data.issues_summary.overdue > 0 ? '#dc2626' : 'var(--ink)' }}>{data.issues_summary.overdue}</div>
-        </div>
+        </SectionCard>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
-        <div style={{ ...cardStyle, height: 260 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 12 }}>Total Costs</div>
+        <SectionCard title="Total Costs">
           <div style={{ height: 190 }}>
             {data.total_cost_by_month.length > 0
               ? <Bar data={totalCostData} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }} />
               : <div style={{ color: 'var(--ink3)', fontSize: 12, textAlign: 'center', paddingTop: 60 }}>No cost data yet.</div>}
           </div>
-        </div>
-        <div style={{ ...cardStyle, height: 260 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 12 }}>Service Costs</div>
+        </SectionCard>
+        <SectionCard title="Service Costs">
           <div style={{ height: 190 }}>
             {data.total_cost_by_month.length > 0
               ? <Bar data={serviceCostData} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }} />
               : <div style={{ color: 'var(--ink3)', fontSize: 12, textAlign: 'center', paddingTop: 60 }}>No service cost data yet.</div>}
           </div>
-        </div>
+        </SectionCard>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-        <div style={{ ...cardStyle, height: 260 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 12 }}>Cost Per Km</div>
+        <SectionCard title="Cost Per Km">
           <div style={{ height: 190 }}>
             {data.cost_per_km_by_month.length > 0
               ? <Line data={costPerKmData} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }} />
               : <div style={{ color: 'var(--ink3)', fontSize: 12, textAlign: 'center', paddingTop: 60 }}>Not enough trip distance data yet.</div>}
           </div>
-        </div>
-        <div style={{ ...cardStyle, height: 260, overflowY: 'auto' }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 12 }}>Latest Meter Readings</div>
+        </SectionCard>
+        <SectionCard title="Latest Meter Readings">
+          <div style={{ maxHeight: 190, overflowY: 'auto' }}>
           {data.latest_meter_readings.length === 0 && <div style={{ color: 'var(--ink3)', fontSize: 12 }}>No meter readings logged yet.</div>}
           {data.latest_meter_readings.map((r, i) => (
             <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderTop: '1px solid var(--border)', fontSize: 12.5 }}>
@@ -290,7 +281,8 @@ export const TrackingAnalytics: React.FC = () => {
               <span style={{ color: 'var(--ink3)' }}>{new Date(r.recorded_at).toLocaleDateString()}</span>
             </div>
           ))}
-        </div>
+          </div>
+        </SectionCard>
       </div>
     </div>
   );

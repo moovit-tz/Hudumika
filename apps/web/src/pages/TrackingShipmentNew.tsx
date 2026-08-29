@@ -5,6 +5,7 @@ import { Icon } from '../components/Icon.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { DateTimePicker } from '../components/ui/date-picker.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { SectionCard } from '../components/SectionCard.js';
 import { BackButton } from '../components/ui/BackButton.js';
 
 /** Format a Date to "YYYY-MM-DDTHH:mm" in local time — same shape a native
@@ -171,7 +172,7 @@ export const TrackingShipmentNew: React.FC = () => {
       )}
 
       {step === 2 && jobType === 'CLEARANCE_LINKED' && (
-        <div style={cardStyle}>
+        <SectionCard>
           <div style={labelStyle}>Search ClearOS shipments</div>
           <input value={shipmentSearch} onChange={e => setShipmentSearch(e.target.value)} placeholder="Reference #, goods description, B/L, AWB…" style={inputStyle} />
           {clearosAvailable === false && (
@@ -191,11 +192,12 @@ export const TrackingShipmentNew: React.FC = () => {
               <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>No matching shipments.</div>
             )}
           </div>
-        </div>
+        </SectionCard>
       )}
 
       {step === 2 && jobType === 'TRANSPORT_ONLY' && (
-        <div style={{ ...cardStyle, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <SectionCard>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div>
             <label style={labelStyle}>Customer (optional)</label>
             <Combobox
@@ -209,10 +211,12 @@ export const TrackingShipmentNew: React.FC = () => {
           </div>
           <div><label style={labelStyle}>Cargo description</label><input value={cargoDesc} onChange={e => setCargoDesc(e.target.value)} style={inputStyle} /></div>
         </div>
+        </SectionCard>
       )}
 
       {step === 3 && (
-        <div style={{ ...cardStyle, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <SectionCard>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div style={{ display: 'flex', gap: 10 }}>
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>Vehicle</label>
@@ -243,10 +247,11 @@ export const TrackingShipmentNew: React.FC = () => {
             <div style={{ flex: 1 }}><label style={labelStyle}>Load capacity (%)</label><input title="Load capacity" type="number" value={loadCapacityPct} onChange={e => setLoadCapacityPct(e.target.value)} style={inputStyle} /></div>
           </div>
         </div>
+        </SectionCard>
       )}
 
       {step === 4 && (
-        <div style={cardStyle}>
+        <SectionCard>
           <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
             {jobType === 'CLEARANCE_LINKED' ? 'Linked to ClearOS Shipment' : 'Transport Only'}
           </div>
@@ -270,7 +275,7 @@ export const TrackingShipmentNew: React.FC = () => {
             </div>
           ))}
           {error && <div style={{ marginTop: 12, fontSize: 12, color: 'var(--red)' }}>{error}</div>}
-        </div>
+        </SectionCard>
       )}
 
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 20 }}>

@@ -11,6 +11,7 @@ import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { showAlert } from '../lib/alert.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 interface Payment {
   id: string;
@@ -84,10 +85,7 @@ function PaymentDetailPanel({ payment, onClose, isMobile }: { payment: Payment; 
         </div>
 
         {/* Details List */}
-        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, overflow: 'hidden' }}>
-          <div style={{ padding: '12px 16px', background: 'var(--bg)', borderBottom: '1px solid var(--border)', fontSize: 12, fontWeight: 700, color: 'var(--navy)', textTransform: 'uppercase' }}>
-            Transaction Details
-          </div>
+        <SectionCard title="Transaction Details" padded={false}>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             {[
               { label: 'Payment Mode', value: payment.method || '—' },
@@ -102,7 +100,7 @@ function PaymentDetailPanel({ payment, onClose, isMobile }: { payment: Payment; 
               </div>
             ))}
           </div>
-        </div>
+        </SectionCard>
 
         {/* Note */}
         {payment.note && (

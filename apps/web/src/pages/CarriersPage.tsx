@@ -9,6 +9,7 @@ import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { SingleSelectFilter } from '../components/ui/filter-dropdown.js';
 import { showAlert } from '../lib/alert.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 interface Carrier {
   id: string;
@@ -39,7 +40,6 @@ const MODES = [
 
 const MODE_ICON: Record<string, any> = { OCEAN: 'anchor', AIR: 'compass', ROAD: 'truck', RAIL: 'layers' };
 
-const cardBox: React.CSSProperties = { background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12 };
 const fieldLabel: React.CSSProperties = { display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 };
 
 export function CarriersPage() {
@@ -150,14 +150,9 @@ export function CarriersPage() {
 
       {/* ── Browse the global carrier directory ── */}
       {showDirectory && (
-        <div style={{ ...cardBox, padding: isMobile ? 16 : 24, marginBottom: 20 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-            <FeaturedIcon variant="brand" size="sm" shape="square"><Icon name="globe" size={15} /></FeaturedIcon>
-            <div>
-              <div style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--ink)' }}>Global carrier directory</div>
-              <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 1 }}>119 real ocean, air, road & rail carriers — search and add with one click</div>
-            </div>
-          </div>
+        <div style={{ marginBottom: 20 }}>
+        <SectionCard title="Global carrier directory">
+          <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 16 }}>119 real ocean, air, road & rail carriers — search and add with one click</div>
 
           <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
             <div style={{ position: 'relative', flex: '1 1 260px', minWidth: 200 }}>
@@ -217,12 +212,14 @@ export function CarriersPage() {
               })}
             </div>
           )}
+        </SectionCard>
         </div>
       )}
 
       {/* ── Manual add form ── */}
       {showForm && (
-        <div style={{ ...cardBox, padding: isMobile ? 16 : 24, marginBottom: 20 }}>
+        <div style={{ marginBottom: 20 }}>
+        <SectionCard>
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 16, marginBottom: 16 }}>
             <div>
               <label style={fieldLabel}>Name *</label>
@@ -254,10 +251,11 @@ export function CarriersPage() {
           </div>
           {error && <div style={{ color: 'var(--red)', fontSize: 12.5, marginBottom: 12 }}>{error}</div>}
           <button type="button" className="btn btn-primary btn-lg" onClick={saveCarrier} disabled={saving}>{saving ? 'Saving…' : 'Save Carrier'}</button>
+        </SectionCard>
         </div>
       )}
 
-      <div style={{ ...cardBox, overflow: 'hidden' }}>
+      <SectionCard padded={false}>
         {loading ? (
           <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>Loading carriers…</div>
         ) : carriers.length === 0 ? (
@@ -299,7 +297,7 @@ export function CarriersPage() {
             </tbody>
           </table></div>
         )}
-      </div>
+      </SectionCard>
     </div>
   );
 }

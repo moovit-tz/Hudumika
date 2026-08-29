@@ -42,7 +42,7 @@ export async function chatRoutes(fastify: FastifyInstance) {
       }
 
       const memberships = await trx.selectFrom('chat_channel_members')
-        .select(['channel_id', 'last_read_at'])
+        .select(['channel_id', 'last_read_at', 'is_favorite'])
         .where('user_id', '=', user.sub)
         .execute();
       const channelIds = memberships.map((m) => m.channel_id);
@@ -60,6 +60,7 @@ export async function chatRoutes(fastify: FastifyInstance) {
       for (const m of lastMsgs) if (!lastByChannel.has(m.channel_id)) lastByChannel.set(m.channel_id, m);
 
       const readMap = new Map(memberships.map((m) => [m.channel_id, m.last_read_at]));
+      const favoriteMap = new Map(memberships.map((m) => [m.channel_id, m.is_favorite]));
       const unreadCounts = new Map<string, number>();
       for (const m of lastMsgs) {
         const readAt = readMap.get(m.channel_id);
@@ -96,6 +97,7 @@ export async function chatRoutes(fastify: FastifyInstance) {
           created_by: c.created_by,
           other_user_id: otherId ?? null,
           other_user_role: other?.role ?? null,
+          is_favorite: favoriteMap.get(c.id) ?? false,
           unread: unreadCounts.get(c.id) ?? 0,
           last_message: last?.content ?? null,
           last_message_at: last?.created_at ?? null,
@@ -302,6 +304,24 @@ export async function chatRoutes(fastify: FastifyInstance) {
       await trx.updateTable('chat_channel_members').set({ last_read_at: new Date() })
         .where('channel_id', '=', id).where('user_id', '=', user.sub).execute();
       return { ok: true };
+    });
+  });
+
+  // PATCH /v1/chat/channels/:id/favorite — toggle the current user's own
+  // favorite flag for a channel/DM/group. Per-user, so it lives on the
+  // membership row, not on chat_channels itself.
+  fastify.patch('/channels/:id/favorite', async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    return withTenant(user.tenant_id, async (trx) => {
+      const member = await trx.selectFrom('chat_channel_members').select('is_favorite')
+        .where('channel_id', '=', id).where('user_id', '=', user.sub).executeTakeFirst();
+      if (!member) return reply.status(403).send({ error: 'Not a member of this channel' });
+
+      const next = !member.is_favorite;
+      await trx.updateTable('chat_channel_members').set({ is_favorite: next })
+        .where('channel_id', '=', id).where('user_id', '=', user.sub).execute();
+      return { is_favorite: next };
     });
   });
 

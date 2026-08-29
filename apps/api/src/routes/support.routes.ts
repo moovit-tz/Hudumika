@@ -1142,68 +1142,11 @@ Write a professional, empathetic reply to this customer. Be concise (2–4 sente
     });
   });
 
-  // ── Live Chat ─────────────────────────────────────────────────────
-
-  fastify.get('/chat/sessions', async (request) => {
-    const user = request.user;
-    return withTenant(user.tenant_id, async (trx) =>
-      trx.selectFrom('live_chat_sessions').selectAll().where('tenant_id', '=', user.tenant_id).orderBy('updated_at', 'desc').execute()
-    );
-  });
-
-  fastify.get<{ Params: { id: string } }>('/chat/sessions/:id/messages', async (request) => {
-    const user = request.user;
-    return withTenant(user.tenant_id, async (trx) =>
-      trx.selectFrom('live_chat_messages').selectAll()
-        .where('session_id', '=', request.params.id)
-        .where('tenant_id', '=', user.tenant_id)
-        .orderBy('created_at', 'asc')
-        .execute()
-    );
-  });
-
-  fastify.post<{ Params: { id: string }; Body: { content: string } }>('/chat/sessions/:id/messages', async (request, reply) => {
-    const user = request.user;
-    return withTenant(user.tenant_id, async (trx) => {
-      const session = await trx.selectFrom('live_chat_sessions').select('id')
-        .where('id', '=', request.params.id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
-      if (!session) {
-        reply.status(404);
-        return { error: 'Session not found' };
-      }
-
-      const message = await trx.insertInto('live_chat_messages')
-        .values({
-          tenant_id: user.tenant_id,
-          session_id: request.params.id,
-          sender_type: 'agent',
-          sender_id: user.sub,
-          content: request.body.content,
-        })
-        .returningAll().executeTakeFirstOrThrow();
-
-      await trx.updateTable('live_chat_sessions')
-        .set({ status: 'active', updated_at: new Date() })
-        .where('id', '=', request.params.id).where('tenant_id', '=', user.tenant_id).execute();
-
-      reply.status(201);
-      return message;
-    });
-  });
-
-  fastify.patch<{ Params: { id: string }; Body: { status?: string; assigned_to?: string | null } }>(
-    '/chat/sessions/:id',
-    async (request, reply) => {
-      const user = request.user;
-      return withTenant(user.tenant_id, async (trx) => {
-        const updates: Record<string, unknown> = { updated_at: new Date() };
-        if (request.body.status !== undefined) updates.status = request.body.status;
-        if (request.body.assigned_to !== undefined) updates.assigned_to = request.body.assigned_to;
-
-        const session = await trx.updateTable('live_chat_sessions').set(updates)
-          .where('id', '=', request.params.id).where('tenant_id', '=', user.tenant_id).returningAll().executeTakeFirstOrThrow();
-        return session;
-      });
-    }
-  );
 }
+
+// Live Chat (customer-facing) was retired in favor of Team Chat
+// (chat.routes.ts) — see BlissShell.tsx's own note on the decision. The
+// former /chat/sessions* routes and their SupportChat.tsx frontend are gone;
+// the live_chat_sessions/live_chat_messages tables are left in place
+// un-dropped, since any real historical customer conversation in them
+// shouldn't be destroyed by a route cleanup.

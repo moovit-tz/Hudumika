@@ -14,6 +14,7 @@ import { Combobox } from '../components/ui/combobox.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { showConfirm } from '../lib/confirm.js';
 import { getCompany } from '../data/companyStore.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 // Types and Interfaces
 // Mirrors the backend's purchase_orders.status CHECK constraint
@@ -806,7 +807,8 @@ export const PurchaseOrders: React.FC = () => {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
             {/* Filter, Search & Toggles Block */}
-            <div style={{ display: 'flex', flexDirection: 'column', background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: 14, gap: 14 }}>
+            <SectionCard collapsible={false}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
                 
                 {/* Search field */}
@@ -985,6 +987,7 @@ export const PurchaseOrders: React.FC = () => {
                 </div>
               )}
             </div>
+            </SectionCard>
 
             {/* Empty State vs List vs Grid Display */}
             {processedPOs.length === 0 ? (
@@ -1202,7 +1205,7 @@ export const PurchaseOrders: React.FC = () => {
               </div>
             ) : (
               // MAIN LIST VIEW (TABLE)
-              <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', overflow: 'hidden' }}>
+              <SectionCard collapsible={false} padded={false}>
                 <div className="rtbl-wrap" style={{ overflowX: 'auto' }}>
                   <table className="rtbl" style={{ borderCollapse: 'collapse', fontSize: 13 }}>
                     <thead>
@@ -1439,7 +1442,7 @@ export const PurchaseOrders: React.FC = () => {
                     </tbody>
                   </table>
                 </div>
-              </div>
+              </SectionCard>
             )}
 
             {/* Pagination Controls */}
@@ -1690,10 +1693,7 @@ export const PurchaseOrders: React.FC = () => {
             </div>
 
             {/* Items Table Card */}
-            <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', overflow: 'hidden' }}>
-              <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
-                <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', margin: 0 }}>Invoice Items</h3>
-              </div>
+            <SectionCard title="Invoice Items" padded={false}>
               <div className="rtbl-wrap" style={{ overflowX: 'auto' }}>
                 <table className="rtbl" style={{ borderCollapse: 'collapse', fontSize: 13 }}>
                   <thead>
@@ -1757,7 +1757,7 @@ export const PurchaseOrders: React.FC = () => {
                   </tbody>
                 </table>
               </div>
-            </div>
+            </SectionCard>
 
           </div>
         )}
@@ -1778,11 +1778,8 @@ export const PurchaseOrders: React.FC = () => {
           <form id="po-form" onSubmit={handleSavePO} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             
             {/* Purchase Invoice Details Card */}
-            <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: 24, display: 'flex', flexDirection: 'column', gap: 18 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 700, color: 'var(--ink)', borderBottom: '1px solid var(--border)', paddingBottom: 12, marginBottom: 4 }}>
-                <Icon name="calendar" size={16} color="var(--blue)" />
-                Purchase Invoice Details
-              </div>
+            <SectionCard title="Purchase Invoice Details">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
 
               {/* Grid 4 columns details */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
@@ -1846,15 +1843,13 @@ export const PurchaseOrders: React.FC = () => {
                   />
                 </div>
               </div>
-            </div>
+              </div>
+            </SectionCard>
 
             {/* Purchase Invoice Items Card */}
-            <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border)', paddingBottom: 12, marginBottom: 4 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>
-                  <Icon name="package" size={16} color="var(--blue)" />
-                  Purchase Invoice Items
-                </div>
+            <SectionCard
+              title="Purchase Invoice Items"
+              action={
                 <button
                   type="button"
                   onClick={handleAddFormItem}
@@ -1873,7 +1868,9 @@ export const PurchaseOrders: React.FC = () => {
                 >
                   <Icon name="plus" size={12} strokeWidth={2.5} /> Add Item
                 </button>
-              </div>
+              }
+            >
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
               {/* Items Table Form */}
               <div className="rtbl-wrap" style={{ overflowX: 'auto' }}>
@@ -2042,7 +2039,8 @@ export const PurchaseOrders: React.FC = () => {
 
               </div>
 
-            </div>
+              </div>
+            </SectionCard>
           </form>
           </FormPage>
         )}

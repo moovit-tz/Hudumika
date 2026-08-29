@@ -13,6 +13,7 @@ import {
 import { useTaxCodes, defaultTaxCode, TAX_CODE_KIND_HINT } from '../data/taxCodeData.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { showConfirm } from '../lib/confirm.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 function newId() { return 'PRD-' + Date.now().toString(36).toUpperCase(); }
 
@@ -408,7 +409,9 @@ export function FinanceProducts() {
       ]} />
 
       {/* Toolbar Card */}
-      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
+      <div style={{ marginBottom: 16 }}>
+      <SectionCard>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
           <Select value={filterType || '__all__'} onValueChange={v => setFilterType(v === '__all__' ? '' : v as ProductType)}>
             <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
@@ -441,12 +444,15 @@ export function FinanceProducts() {
             placeholder="Search products & services…"
             style={{ width: '100%', padding: '8px 12px 8px 32px', border: '1px solid var(--border)', borderRadius: 'var(--r, 6px)', fontSize: 13, fontFamily: 'var(--font)', background: 'var(--white)', color: 'var(--ink)', outline: 'none', boxSizing: 'border-box' }} />
         </div>
+        </div>
+      </SectionCard>
       </div>
 
       {/* Split body */}
       <div style={{ display: 'flex', margin: '0 0 20px' }}>
         {/* Table */}
-        <div style={{ flex: 1, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 10, overflow: 'auto', minWidth: 0 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+        <SectionCard padded={false}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ background: 'var(--bg)', borderBottom: '2px solid var(--border)' }}>
@@ -538,6 +544,7 @@ export function FinanceProducts() {
               </div>
             </div>
           )}
+        </SectionCard>
         </div>
 
         {/* Detail panel */}

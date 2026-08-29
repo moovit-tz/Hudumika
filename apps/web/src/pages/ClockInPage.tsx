@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '../components/ui/button.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { showAlert } from '../lib/alert.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 interface TimesheetApproval {
   id: string;
@@ -539,12 +540,7 @@ export function ClockInPage() {
 
       {/* Manager: timesheets awaiting approval (real submissions only) */}
       {isManager && approvals.length > 0 && (
-        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 14, padding: 20, display: 'flex', flexDirection: 'column', gap: 14, boxShadow: 'var(--elev-sm)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 700, color: 'var(--navy)' }}>
-            <Icon name="checkCircle" size={16} color="var(--teal)" />
-            <span>Timesheets awaiting your approval</span>
-            <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: 'var(--gold-l)', color: 'var(--gold)' }}>{approvals.length}</span>
-          </div>
+        <SectionCard title={`Timesheets awaiting your approval (${approvals.length})`}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {approvals.map(a => (
               <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 10, background: 'var(--card-sunken)', flexWrap: 'wrap' }}>
@@ -567,20 +563,16 @@ export function ClockInPage() {
               </div>
             ))}
           </div>
-        </div>
+        </SectionCard>
       )}
 
       {/* Clock-in control, weekly target, and worked-hours summary cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(310px, 100%), 1fr))', gap: 16 }}>
         
         {/* Widget 1: Clock-in Control Widget */}
-        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 14, padding: 20, display: 'flex', flexDirection: 'column', gap: 14, boxShadow: 'var(--elev-sm)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 700, color: 'var(--navy)' }}>
-              <Icon name="clock" size={16} color="var(--teal)" />
-              <span>Clock-in</span>
-            </div>
-            {activeSession ? (
+        <SectionCard
+          title="Clock-in"
+          action={activeSession ? (
               <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 12, background: activeSession.status === 'ON_BREAK' ? 'var(--gold-l)' : 'var(--teal-l)', color: activeSession.status === 'ON_BREAK' ? 'var(--gold)' : 'var(--teal)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                 {activeSession.status === 'ON_BREAK' ? 'ON BREAK' : 'ONGOING'}
               </span>
@@ -589,8 +581,7 @@ export function ClockInPage() {
                 NOT CLOCKED IN
               </span>
             )}
-          </div>
-
+        >
           {/* Large Live Stopwatch Counter */}
           <div style={{ textAlign: 'center', padding: '10px 0' }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: 4 }}>
@@ -643,20 +634,15 @@ export function ClockInPage() {
               )}
             </div>
           </div>
-        </div>
+        </SectionCard>
 
         {/* Widget 2: Weekly Target Widget — a fixed full-time reference line, not
              this employee's own tracked data (no contracted-hours field exists
              anywhere in the schema to pull a real per-employee figure from). Framed
              as a standard benchmark, and compared against the one number here that
              *is* real: workedMinutesTotal. */}
-        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 14, padding: 20, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxShadow: 'var(--elev-sm)' }}>
+        <SectionCard title="Weekly target">
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 700, color: 'var(--navy)', marginBottom: 16 }}>
-              <Icon name="target" size={16} color="var(--teal)" />
-              <span>Weekly target</span>
-            </div>
-
             <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 4 }}>Standard full-time benchmark</div>
             <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--navy)', marginBottom: 14 }}>
               40<span style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink3)' }}>hrs</span> / 5<span style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink3)' }}>days</span>
@@ -672,16 +658,11 @@ export function ClockInPage() {
             <Icon name="info" size={13} color="var(--ink3)" style={{ flexShrink: 0, marginTop: 1 }} />
             <span>A general reference, not this employee's personal contracted hours — no contract-hours record exists yet to show that.</span>
           </div>
-        </div>
+        </SectionCard>
 
         {/* Widget 3: Worked Hours Widget */}
-        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 14, padding: 20, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxShadow: 'var(--elev-sm)' }}>
+        <SectionCard title="Worked hours">
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 700, color: 'var(--navy)', marginBottom: 16 }}>
-              <Icon name="activity" size={16} color="var(--green)" />
-              <span>Worked hours</span>
-            </div>
-
             <div style={{ background: 'var(--card-sunken)', borderRadius: 10, padding: '16px 18px', textAlign: 'center', border: '1px solid var(--border)', marginBottom: 14 }}>
               <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 6 }}>Total hours (Until today)</div>
               <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--navy)' }}>
@@ -694,20 +675,14 @@ export function ClockInPage() {
             <Icon name="info" size={13} color="var(--ink3)" style={{ flexShrink: 0, marginTop: 1 }} />
             <span>The total time an employee worked, including break time.</span>
           </div>
-        </div>
+        </SectionCard>
 
       </div>
 
       {/* Main Section: My Timesheets Timeline */}
-      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 14, padding: 20, display: 'flex', flexDirection: 'column', gap: 16, boxShadow: 'var(--elev-sm)' }}>
-        
-        {/* Header & Legend Bar */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 16, fontWeight: 700, color: 'var(--navy)' }}>
-            <Icon name="clock" size={18} color="var(--teal)" />
-            <span>My timesheets</span>
-          </div>
-
+      <SectionCard
+        title="My timesheets"
+        action={
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
             {/* Category Legend */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, fontSize: 12, color: 'var(--ink2)' }}>
@@ -733,8 +708,8 @@ export function ClockInPage() {
               + Entry log
             </button>
           </div>
-        </div>
-
+        }
+      >
         {/* Timeline Table Visualization */}
         <div style={{ overflowX: 'auto', display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 10 }}>
           
@@ -804,7 +779,7 @@ export function ClockInPage() {
 
         </div>
 
-      </div>
+      </SectionCard>
 
       {/* Manual Entry Log Dialog */}
       <Dialog open={showManualModal} onOpenChange={setShowManualModal}>

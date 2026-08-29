@@ -6,6 +6,7 @@ import { MapContainer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import { formatDistanceToNow } from 'date-fns';
 import { MapTileLayer } from '../components/MapTileLayer.js';
+import { PersonAvatar } from '../components/PersonAvatar.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Combobox } from '../components/ui/combobox.js';
 import './TrackingVehicles.css';
@@ -16,7 +17,7 @@ interface Vehicle {
   id: string; name: string; plate_number: string | null; type: string;
   driver_name: string | null; driver_phone: string | null; device_id: string; status: string;
   photo_url: string | null; current_load_pct: number | null;
-  driver_avatar: string | null;
+  driver_id: string | null;
   make: string | null; model: string | null; dimensions: string | null; group_name: string | null;
   last_position: {
     latitude: number; longitude: number; speed: number | null; recorded_at: string;
@@ -60,7 +61,7 @@ const DEFAULT_VEHICLES: Vehicle[] = [
     status: 'ACTIVE',
     photo_url: null,
     current_load_pct: 85,
-    driver_avatar: null,
+    driver_id: null,
     make: 'Scania',
     model: 'R500 6x4',
     dimensions: '16.5m x 2.5m x 4.0m',
@@ -78,7 +79,7 @@ const DEFAULT_VEHICLES: Vehicle[] = [
     status: 'ACTIVE',
     photo_url: null,
     current_load_pct: 100,
-    driver_avatar: null,
+    driver_id: null,
     make: 'Volvo',
     model: 'FH16 750',
     dimensions: '16.5m x 2.5m x 4.0m',
@@ -96,7 +97,7 @@ const DEFAULT_VEHICLES: Vehicle[] = [
     status: 'ACTIVE',
     photo_url: null,
     current_load_pct: 45,
-    driver_avatar: null,
+    driver_id: null,
     make: 'Isuzu',
     model: 'FVR 34',
     dimensions: '9.0m x 2.4m x 2.6m',
@@ -114,7 +115,7 @@ const DEFAULT_VEHICLES: Vehicle[] = [
     status: 'ACTIVE',
     photo_url: null,
     current_load_pct: 0,
-    driver_avatar: null,
+    driver_id: null,
     make: 'Mercedes-Benz',
     model: 'Actros 3340',
     dimensions: '16.5m x 2.5m x 4.0m',
@@ -132,7 +133,7 @@ const DEFAULT_VEHICLES: Vehicle[] = [
     status: 'MAINTENANCE',
     photo_url: null,
     current_load_pct: 0,
-    driver_avatar: null,
+    driver_id: null,
     make: 'MAN',
     model: 'TGX 26.540',
     dimensions: '16.5m x 2.5m x 4.0m',
@@ -417,7 +418,7 @@ export const TrackingVehicles: React.FC = () => {
                       <div className="trk-vcard-label">Driver</div>
                       <div className="trk-vcard-driver">
                         <div className="trk-vcard-driver-info">
-                          <img src={v.driver_avatar || 'https://i.pravatar.cc/150'} alt="Driver" className="trk-vcard-avatar" />
+                          <PersonAvatar userId={v.driver_id} kind="drivers" name={v.driver_name || 'Unassigned'} size={24} style={{ borderRadius: '50%' }} />
                           <span className="trk-vcard-driver-name">{v.driver_name || 'Unassigned'}</span>
                         </div>
                         <div className="trk-vcard-updated">
@@ -462,7 +463,7 @@ export const TrackingVehicles: React.FC = () => {
                         <div className="trk-vcard-title" style={{fontSize: 16}}>{v.name}</div>
                         <div className="trk-vcard-id">ID: {v.plate_number || v.id.slice(0, 8)}</div>
                         <div className="trk-vcard-driver-info" style={{marginTop: 8}}>
-                          <img src={v.driver_avatar || 'https://i.pravatar.cc/150'} alt="Driver" className="trk-vcard-avatar" />
+                          <PersonAvatar userId={v.driver_id} kind="drivers" name={v.driver_name || 'Unassigned'} size={24} style={{ borderRadius: '50%' }} />
                           <span className="trk-vcard-driver-name">{v.driver_name || 'Unassigned'}</span>
                           <span style={{color: 'var(--ink3)', fontSize: 11, marginLeft: 8}}>
                             Updated {v.last_position ? formatDistanceToNow(new Date(v.last_position.recorded_at), {addSuffix: true}) : '2 min ago'}

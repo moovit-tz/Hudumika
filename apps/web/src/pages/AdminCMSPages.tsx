@@ -6,6 +6,7 @@ import type { CmsPage } from '@hudumika/types';
 import { showAlert } from '../lib/alert.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 function PageHdr({ title, sub, action }: { title: string; sub: string; action?: React.ReactNode }) {
   return (
@@ -110,8 +111,8 @@ export function AdminCMSPages() {
       {error && <div style={{ color: 'var(--red)', padding: 12, marginBottom: 16, background: 'var(--red-l)', borderRadius: 8 }}>{error}</div>}
 
       {creating && (
-        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: 20, marginBottom: 20 }}>
-          <h2 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 12px' }}>Create New Page</h2>
+        <div style={{ marginBottom: 20 }}>
+        <SectionCard title="Create New Page">
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
             <input
               type="text"
@@ -136,13 +137,15 @@ export function AdminCMSPages() {
             </button>
             <button type="button" className="btn btn-secondary btn-sm" onClick={() => setCreating(false)}>Cancel</button>
           </div>
+        </SectionCard>
         </div>
       )}
 
       {editing ? (
-        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: 20 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Editing: {editing.title}</h2>
+        <SectionCard
+          collapsible={false}
+          title={`Editing: ${editing.title}`}
+          action={
             <div style={{ display: 'flex', gap: 8 }}>
               <Select value={editing.status} onValueChange={v => setEditing({ ...editing, status: v as any })}>
                 <SelectTrigger style={{ width: 120, minHeight: 'var(--ctl-h-sm)' }}><SelectValue /></SelectTrigger>
@@ -156,8 +159,8 @@ export function AdminCMSPages() {
               </button>
               <button type="button" className="btn btn-secondary btn-sm" onClick={() => setEditing(null)}>Close</button>
             </div>
-          </div>
-
+          }
+        >
           <div style={{ marginBottom: 16 }}>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 4, color: 'var(--ink2)' }}>Page Title</label>
             <input
@@ -185,9 +188,9 @@ export function AdminCMSPages() {
             <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 4, color: 'var(--ink2)' }}>Page Content</label>
             <RichTextEditor value={editing.content} onChange={html => setEditing({ ...editing, content: html })} placeholder="Write page content here…" />
           </div>
-        </div>
+        </SectionCard>
       ) : (
-        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+        <SectionCard padded={false}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ background: 'var(--bg)', borderBottom: '1px solid var(--border)', textAlign: 'left' }}>
@@ -231,7 +234,7 @@ export function AdminCMSPages() {
               )}
             </tbody>
           </table>
-        </div>
+        </SectionCard>
       )}
     </div>
   );

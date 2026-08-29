@@ -9,6 +9,7 @@ import { Icon } from '../components/Icon.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Tooltip, Legend);
 
@@ -172,8 +173,9 @@ export const TrackingReports: React.FC = () => {
       )}
 
       {preview && (
-        <div style={{ ...cardStyle, marginBottom: 20, overflowX: 'auto' }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 12 }}>Preview</div>
+        <div style={{ marginBottom: 20 }}>
+        <SectionCard title="Preview">
+          <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
             <tbody>
               {(preview.vehicles ?? preview.records ?? preview.logs ?? preview.trips ?? preview.issues ?? []).slice(0, 15).map((row: any, i: number) => (
@@ -184,6 +186,8 @@ export const TrackingReports: React.FC = () => {
               ))}
             </tbody>
           </table>
+          </div>
+        </SectionCard>
         </div>
       )}
 
@@ -207,24 +211,22 @@ export const TrackingReports: React.FC = () => {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-        <div style={{ ...cardStyle, height: 300 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 12 }}>Fuel cost by month</div>
+        <SectionCard title="Fuel cost by month">
           <div style={{ height: 230 }}>
             <Line
               data={{ labels: months, datasets: [{ label: 'Fuel cost', data: months.map(m => fuelByMonth.get(m) ?? 0), borderColor: '#0891b2', backgroundColor: '#0891b2', tension: 0.25 }] }}
               options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }}
             />
           </div>
-        </div>
-        <div style={{ ...cardStyle, height: 300 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 12 }}>Trips per vehicle</div>
+        </SectionCard>
+        <SectionCard title="Trips per vehicle">
           <div style={{ height: 230 }}>
             <Bar
               data={{ labels: [...tripsByVehicle.keys()].map(vehicleName), datasets: [{ label: 'Trips', data: [...tripsByVehicle.values()], backgroundColor: '#0891b2' }] }}
               options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }}
             />
           </div>
-        </div>
+        </SectionCard>
       </div>
     </div>
   );

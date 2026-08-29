@@ -5,6 +5,7 @@ import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
@@ -109,17 +110,15 @@ export const TrackingDashboard: React.FC = () => {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr 1fr', gap: 14, marginBottom: 20 }}>
-        <div style={{ ...cardStyle, display: 'flex', flexDirection: 'column' }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 12 }}>Fleet Status</div>
+        <SectionCard title="Fleet Status">
           <div style={{ height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             {activeSummary.vehicles.total > 0
               ? <Doughnut data={fleetStatusData} options={{ plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } }, cutout: '65%' }} />
               : <div style={{ color: 'var(--ink3)', fontSize: 12 }}>No vehicles yet.</div>}
           </div>
-        </div>
+        </SectionCard>
 
-        <div style={cardStyle}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 14 }}>Today's Overview</div>
+        <SectionCard title="Today's Overview">
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
             <div>
               <div style={statLabel}>Scheduled</div>
@@ -146,10 +145,9 @@ export const TrackingDashboard: React.FC = () => {
               <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink)' }}>{activeSummary.vehicles.total}</div>
             </div>
           </div>
-        </div>
+        </SectionCard>
 
-        <div style={cardStyle}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 14 }}>Daily Costs (30d)</div>
+        <SectionCard title="Daily Costs (30d)">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <div>
               <div style={statLabel}>Total operational cost</div>
@@ -165,15 +163,13 @@ export const TrackingDashboard: React.FC = () => {
               <span>Cost / vehicle</span><span style={{ fontWeight: 700 }}>{activeSummary.costs_30d.per_vehicle.toLocaleString()}</span>
             </div>
           </div>
-        </div>
+        </SectionCard>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-        <div style={cardStyle}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>Recent alerts</div>
-            <Link to="/tracking/alerts" style={{ fontSize: 12, color: 'var(--teal)', fontWeight: 600, textDecoration: 'none' }}>View all</Link>
-          </div>
+        <SectionCard title="Recent alerts" action={
+          <Link to="/tracking/alerts" style={{ fontSize: 12, color: 'var(--teal)', fontWeight: 600, textDecoration: 'none' }}>View all</Link>
+        }>
           {activeSummary.recent_alerts.length === 0 && <div style={{ color: 'var(--ink3)', fontSize: 13 }}>No unacknowledged alerts.</div>}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {activeSummary.recent_alerts.map(a => (
@@ -184,13 +180,11 @@ export const TrackingDashboard: React.FC = () => {
               </div>
             ))}
           </div>
-        </div>
+        </SectionCard>
 
-        <div style={cardStyle}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>Maintenance Alerts</div>
-            <Link to="/tracking/maintenance" style={{ fontSize: 12, color: 'var(--teal)', fontWeight: 600, textDecoration: 'none' }}>View all</Link>
-          </div>
+        <SectionCard title="Maintenance Alerts" action={
+          <Link to="/tracking/maintenance" style={{ fontSize: 12, color: 'var(--teal)', fontWeight: 600, textDecoration: 'none' }}>View all</Link>
+        }>
           {upcomingMaintenance.length === 0 && <div style={{ color: 'var(--ink3)', fontSize: 13 }}>Nothing due in the next 30 days.</div>}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {upcomingMaintenance.map(m => {
@@ -206,7 +200,7 @@ export const TrackingDashboard: React.FC = () => {
               );
             })}
           </div>
-        </div>
+        </SectionCard>
       </div>
     </div>
   );

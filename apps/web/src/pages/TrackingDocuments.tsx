@@ -6,6 +6,7 @@ import { Combobox } from '../components/ui/combobox.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { showConfirm } from '../lib/confirm.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 interface Vehicle { id: string; name: string; plate_number: string | null }
 interface Doc {
@@ -134,7 +135,7 @@ export const TrackingDocuments: React.FC = () => {
         </button>
       </div>
 
-      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, overflow: 'hidden' }}>
+      <SectionCard>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
           <thead>
             <tr style={{ background: 'var(--bg)', textAlign: 'left' }}>
@@ -168,7 +169,7 @@ export const TrackingDocuments: React.FC = () => {
         {!loading && docs.length === 0 && (
           <div style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No documents added yet.</div>
         )}
-      </div>
+      </SectionCard>
     </div>
   );
 };

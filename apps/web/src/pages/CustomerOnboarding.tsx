@@ -4,6 +4,7 @@ import { Icon } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { SectionCard } from '../components/SectionCard.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 
 /**
@@ -115,8 +116,7 @@ export const CustomerOnboarding: React.FC = () => {
             </div>
           )}
 
-          <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '20px 22px' }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 14 }}>Company</div>
+          <SectionCard title="Company">
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 14 }}>
               <div style={{ gridColumn: isMobile ? 'auto' : '1 / 3' }}>
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>Company Name *</label>
@@ -142,10 +142,9 @@ export const CustomerOnboarding: React.FC = () => {
                 <input type="text" className="input-field" placeholder="https://acme.co.tz" value={website} onChange={e => setWebsite(e.target.value)} />
               </div>
             </div>
-          </div>
+          </SectionCard>
 
-          <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '20px 22px' }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 14 }}>Contact</div>
+          <SectionCard title="Contact">
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 14 }}>
               <div>
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>Contact Person</label>
@@ -175,10 +174,9 @@ export const CustomerOnboarding: React.FC = () => {
                 </Select>
               </div>
             </div>
-          </div>
+          </SectionCard>
 
-          <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '20px 22px' }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 14 }}>Address</div>
+          <SectionCard title="Address">
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 14 }}>
               <div style={{ gridColumn: isMobile ? 'auto' : '1 / 3' }}>
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>Street Address</label>
@@ -193,7 +191,7 @@ export const CustomerOnboarding: React.FC = () => {
                 <input type="text" className="input-field" placeholder="Tanzania" value={country} onChange={e => setCountry(e.target.value)} />
               </div>
             </div>
-          </div>
+          </SectionCard>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
             <Link to={backHref()} className="btn btn-secondary btn-sm">Cancel</Link>

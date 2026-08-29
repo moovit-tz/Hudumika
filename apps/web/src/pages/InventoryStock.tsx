@@ -11,6 +11,7 @@ import { showAlert } from '../lib/alert.js';
 import './Inventory.css';
 import { PageHeader } from '../components/PageHeader.js';
 import { SkeletonPage } from '../components/ui/skeleton.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 interface StockLevel {
   itemId: string; locationId: string; batchNo: string | null; expiryDate: string | null; qtyOnHand: number;
@@ -136,7 +137,8 @@ export function InventoryStock() {
       </div>
 
       {showNew && (
-        <form onSubmit={handleRecordMovement} className="inv-card" style={{ marginBottom: 20 }}>
+        <form onSubmit={handleRecordMovement} style={{ marginBottom: 20 }}>
+        <SectionCard collapsible={false} padded={false}>
           <div className="inv-form-grid-3">
             <div className="inv-field-row">
               <label className="inv-field-label">Movement Type</label>
@@ -215,10 +217,11 @@ export function InventoryStock() {
           <div style={{ padding: '0 20px 20px' }}>
             <Button type="submit" disabled={saving || !itemId || !enteredQty || !enteredUom}>{saving ? 'Recording…' : 'Record Movement'}</Button>
           </div>
+        </SectionCard>
         </form>
       )}
 
-      <div className="inv-card">
+      <SectionCard collapsible={false} padded={false}>
         <div className="inv-card-body">
           {loading ? (
             <div className="inv-empty">Loading…</div>
@@ -276,7 +279,7 @@ export function InventoryStock() {
             </table>
           )}
         </div>
-      </div>
+      </SectionCard>
     </div>
   );
 }

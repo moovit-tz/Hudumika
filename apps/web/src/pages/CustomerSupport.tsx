@@ -530,20 +530,16 @@ export const CustomerSupport: React.FC = () => {
       </div>
 
       {/* Filter tabs */}
-      <div style={{ padding: '0 16px', display: 'flex', gap: 8, marginBottom: 16 }}>
+      <div className="ds-tabs-list" data-variant="segmented" style={{ margin: '0 16px', marginBottom: 16 }}>
         {(['ALL', 'OPEN', 'RESOLVED'] as const).map(f => (
           <button
             key={f}
             type="button"
             title={f}
-            onClick={() => setFilter(f)}
-            style={{
-              background: filter === f ? 'var(--teal)' : 'var(--white)',
-              color: filter === f ? '#fff' : 'var(--ink2)',
-              border: `1.5px solid ${filter === f ? 'var(--teal)' : 'var(--border)'}`,
-              borderRadius: 20, padding: 'var(--ds-btn-py) 16px',
-              fontSize: 13, fontWeight: 600,
-              cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+            className="ds-tabs-trigger"
+            data-variant="segmented"
+            data-state={filter === f ? 'active' : 'inactive'}
+            onClick={() => setFilter(f)}>
             {f === 'ALL' ? 'All' : f === 'OPEN' ? 'Open' : 'Resolved'}
           </button>
         ))}

@@ -499,11 +499,12 @@ export const CMS: React.FC = () => {
           <div style={{ padding: '18px 24px' }}>
             {/* Filter tabs + search */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-              <div style={{ display: 'flex', gap: 4 }}>
+              <div className="ds-tabs-list" data-variant="segmented">
                 {(['all', 'published', 'draft', 'trash'] as const).map(f => {
                   const cnt = f === 'all' ? posts.filter(p => p.status !== 'trash').length : posts.filter(p => p.status === f).length;
                   return (
-                    <button key={f} onClick={() => setPFilter(f)} style={{ padding: 'var(--ds-btn-py-sm) 13px', border: 'none', borderRadius: 'var(--r-sm)', background: pFilter === f ? 'var(--teal)' : 'var(--bg)', color: pFilter === f ? '#fff' : 'var(--ink3)', fontWeight: 600, fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font)', transition: 'all 0.1s', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                    <button key={f} type="button" className="ds-tabs-trigger" data-variant="segmented"
+                      data-state={pFilter === f ? 'active' : 'inactive'} onClick={() => setPFilter(f)}>
                       {f.charAt(0).toUpperCase() + f.slice(1)} ({cnt})
                     </button>
                   );

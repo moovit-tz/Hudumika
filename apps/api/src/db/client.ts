@@ -1168,6 +1168,7 @@ export interface ChatChannelMembersTable {
   user_id: string;
   last_read_at: Generated<Date>;
   joined_at: Generated<Date>;
+  is_favorite: Generated<boolean>;
 }
 
 export interface ChatMessagesTable {
@@ -4545,6 +4546,15 @@ export interface Database {
   bliss_calls: BlissCallsTable;
   bliss_meetings: BlissMeetingsTable;
   bliss_meeting_participants: BlissMeetingParticipantsTable;
+  bliss_meeting_polls: BlissMeetingPollsTable;
+  bliss_meeting_poll_votes: BlissMeetingPollVotesTable;
+  bliss_meeting_questions: BlissMeetingQuestionsTable;
+  bliss_meeting_question_upvotes: BlissMeetingQuestionUpvotesTable;
+  bliss_meeting_transcript_lines: BlissMeetingTranscriptLinesTable;
+  bliss_meeting_waiting_room: BlissMeetingWaitingRoomTable;
+  bliss_meeting_breakout_rooms: BlissMeetingBreakoutRoomsTable;
+  bliss_meeting_breakout_assignments: BlissMeetingBreakoutAssignmentsTable;
+  bliss_meeting_summaries: BlissMeetingSummariesTable;
   hr_leaves: HrLeavesTable;
   hr_payroll: HrPayrollTable;
   hr_announcements: HrAnnouncementsTable;
@@ -7709,6 +7719,10 @@ export interface BlissMeetingsTable {
   started_at: Date | null;
   ended_at: Date | null;
   locked: Generated<boolean>;
+  password_hash: string | null;
+  waiting_room_enabled: Generated<boolean>;
+  chat_disabled: Generated<boolean>;
+  screen_share_disabled: Generated<boolean>;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -7722,6 +7736,95 @@ export interface BlissMeetingParticipantsTable {
   joined_at: Generated<Date>;
   left_at: Date | null;
   duration_seconds: Generated<number>;
+  camera_disabled: Generated<boolean>;
+  created_at: Generated<Date>;
+}
+
+export interface BlissMeetingWaitingRoomTable {
+  id: Generated<string>;
+  tenant_id: string;
+  meeting_id: string;
+  user_id: string;
+  user_name: string;
+  status: Generated<string>;
+  requested_at: Generated<Date>;
+  decided_at: Date | null;
+}
+
+export interface BlissMeetingBreakoutRoomsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  meeting_id: string;
+  name: string;
+  created_at: Generated<Date>;
+  closed_at: Date | null;
+}
+
+export interface BlissMeetingBreakoutAssignmentsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  breakout_room_id: string;
+  user_id: string;
+  user_name: string;
+  assigned_at: Generated<Date>;
+}
+
+export interface BlissMeetingSummariesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  meeting_id: string;
+  generated_by: string;
+  summary_json: unknown;
+  created_at: Generated<Date>;
+}
+
+export interface BlissMeetingPollsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  meeting_id: string;
+  question: string;
+  options: any; // JSONB string[]
+  created_by: string;
+  created_by_name: string;
+  created_at: Generated<Date>;
+  closed_at: Date | null;
+}
+
+export interface BlissMeetingPollVotesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  poll_id: string;
+  user_id: string;
+  option_index: number;
+  created_at: Generated<Date>;
+}
+
+export interface BlissMeetingQuestionsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  meeting_id: string;
+  user_id: string;
+  user_name: string;
+  text: string;
+  answered: Generated<boolean>;
+  created_at: Generated<Date>;
+}
+
+export interface BlissMeetingQuestionUpvotesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  question_id: string;
+  user_id: string;
+  created_at: Generated<Date>;
+}
+
+export interface BlissMeetingTranscriptLinesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  meeting_id: string;
+  user_id: string;
+  user_name: string;
+  text: string;
   created_at: Generated<Date>;
 }
 

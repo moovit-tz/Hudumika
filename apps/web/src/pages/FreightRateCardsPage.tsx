@@ -5,6 +5,7 @@ import { apiFetch } from '../lib/api.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 interface Carrier { id: string; name: string; active?: boolean; }
 interface RateCard {
@@ -95,7 +96,8 @@ export function FreightRateCardsPage() {
       )}
 
       {showForm && (
-        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: 24, marginBottom: 20 }}>
+        <div style={{ marginBottom: 20 }}>
+        <SectionCard>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 16 }}>
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Carrier *</label>
@@ -138,10 +140,11 @@ export function FreightRateCardsPage() {
           </div>
           {error && <div style={{ color: 'var(--red)', fontSize: 12.5, marginBottom: 12 }}>{error}</div>}
           <button type="button" className="btn btn-primary" onClick={saveCard} disabled={saving}>{saving ? 'Saving…' : 'Save Rate Card'}</button>
+        </SectionCard>
         </div>
       )}
 
-      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+      <SectionCard padded={false}>
         {loading ? (
           <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>Loading rate cards…</div>
         ) : cards.length === 0 ? (
@@ -174,7 +177,7 @@ export function FreightRateCardsPage() {
             </tbody>
           </table></div>
         )}
-      </div>
+      </SectionCard>
     </div>
   );
 }

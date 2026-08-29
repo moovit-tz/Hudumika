@@ -232,12 +232,17 @@ export async function trackingRoutes(fastify: FastifyInstance) {
       `.execute(trx);
 
       const drivers = await trx.selectFrom('drivers')
-        .select(['assigned_vehicle_id', 'avatar_url', 'photo_url'])
+        .select(['id', 'assigned_vehicle_id'])
         .where('tenant_id', '=', user.tenant_id)
         .where('assigned_vehicle_id', 'is not', null)
         .execute();
 
-      const driverByVehicle = new Map(drivers.map(d => [d.assigned_vehicle_id, d.avatar_url || d.photo_url]));
+      // Sends the driver's id, not a raw avatar_url/photo_url — the client
+      // fetches the actual picture through PersonAvatar's own identity-
+      // system proxy (GET /v1/identity/drivers/:id/avatar), same as every
+      // other driver picture in the app, rather than a second, independent
+      // read of the same column that could drift from what that shows.
+      const driverByVehicle = new Map(drivers.map(d => [d.assigned_vehicle_id, d.id]));
 
       const posByVehicle = new Map(latest.rows.map(r => [r.vehicle_id, {
         ...r,
@@ -245,9 +250,9 @@ export async function trackingRoutes(fastify: FastifyInstance) {
         speed: numOrNull(r.speed), heading: numOrNull(r.heading), battery_pct: numOrNull(r.battery_pct),
       }]));
       return vehicles.map(v => ({
-        ...v, 
+        ...v,
         mileage_km: numOrNull(v.mileage_km),
-        driver_avatar: driverByVehicle.get(v.id) ?? null,
+        driver_id: driverByVehicle.get(v.id) ?? null,
         last_position: posByVehicle.get(v.id) ?? null,
       }));
     });

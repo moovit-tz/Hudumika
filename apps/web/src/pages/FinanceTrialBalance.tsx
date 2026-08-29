@@ -8,6 +8,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { MetricsRow } from '../components/MetricCard.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 const TYPE_CFG: Record<AccountType, { label: string; color: string; bg: string }> = {
   ASSET:     { label: 'Assets',      color: '#0891b2', bg: '#ecfeff' },
@@ -192,7 +193,9 @@ export const FinanceTrialBalance: React.FC = () => {
       ]} />
 
       {/* Filters Toolbar Card: Tabs on Left, Search on Right */}
-      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 20 }}>
+      <div style={{ marginBottom: 20 }}>
+      <SectionCard>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
         <Tabs value={typeFilter} onValueChange={v => setTypeFilter(v as AccountType | 'ALL')} variant="pill">
           <TabsList>
             <TabsTrigger value="ALL">All ({rows.length})</TabsTrigger>
@@ -226,12 +229,15 @@ export const FinanceTrialBalance: React.FC = () => {
             }}
           />
         </div>
+        </div>
+      </SectionCard>
       </div>
 
       {/* Table — .rtbl/.rtbl-wrap is the shared responsive-table convention (index.css):
           horizontal scroll + col-hide-md/col-hide-sm on narrow viewports, instead of a
           fixed-pixel CSS grid that would overflow on mobile. */}
-      <div className="rtbl-wrap" style={{ border:'1px solid var(--border)', borderRadius: 9 }}>
+      <SectionCard padded={false}>
+        <div className="rtbl-wrap">
         <table className="rtbl" style={{ minWidth: 640 }}>
           <thead>
             <tr>
@@ -305,7 +311,8 @@ export const FinanceTrialBalance: React.FC = () => {
             </tr>
           </tbody>
         </table>
-      </div>
+        </div>
+      </SectionCard>
 
       {filtered.length > PAGE_SIZE && (
         <div style={{

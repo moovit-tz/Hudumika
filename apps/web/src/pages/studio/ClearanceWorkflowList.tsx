@@ -8,6 +8,7 @@ import { showAlert } from '../../lib/alert.js';
 import './Workflows.css';
 import { showConfirm } from '../../lib/confirm.js';
 import { PageHeader } from '../../components/PageHeader.js';
+import { SectionCard } from '../../components/SectionCard.js';
 import { useAuth } from '../../hooks/useAuth.js';
 
 export type { FieldCondition, AutoComm, WorkflowStep, WorkflowTrigger, Workflow } from '@hudumika/types';
@@ -239,11 +240,8 @@ export function ClearanceWorkflowList() {
 
       {/* Template library — start from a platform template (superadmin-published) */}
       {templates.length > 0 && (
-        <div style={{ marginBottom: 18, padding: '14px 16px', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-            <Icon name="layers" size={14} color="var(--teal)" />
-            <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--navy)' }}>Start from a template</span>
-          </div>
+        <div style={{ marginBottom: 18 }}>
+        <SectionCard title="Start from a template">
           <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 12 }}>
             Platform-maintained workflows for each freight mode. Adopt one to get a fully editable copy of your own.
           </div>
@@ -266,17 +264,15 @@ export function ClearanceWorkflowList() {
               </div>
             ))}
           </div>
+        </SectionCard>
         </div>
       )}
 
       {/* Self-learning — what tenants are changing about these templates, and any
           consensus version the tool has proposed (superadmin approves). */}
       {(learning.proposals.length > 0 || learning.signals.length > 0) && (
-        <div style={{ marginBottom: 18, padding: '14px 16px', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-            <Icon name="zap" size={14} color="var(--teal)" />
-            <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--navy)' }}>Workflow self-learning</span>
-          </div>
+        <div style={{ marginBottom: 18 }}>
+        <SectionCard title="Workflow self-learning">
           <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 12 }}>
             Learned from how workspaces across the platform edit these templates. {isSuperAdmin ? 'Approve a proposal to publish it as a new template version.' : 'A platform admin reviews and approves proposed versions.'}
           </div>
@@ -325,6 +321,7 @@ export function ClearanceWorkflowList() {
               </ul>
             </details>
           )}
+        </SectionCard>
         </div>
       )}
 

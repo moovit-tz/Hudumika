@@ -57,35 +57,51 @@
 }
 
 /* ── List toolbar: status chips + search ── */
+/* Tabs, action buttons and search all live in one row (.inv-toolbar-scroll)
+   that never wraps into a second row — on a viewport too narrow to fit
+   everything, it scrolls sideways instead (scrollbar hidden, so it reads as
+   a clean single row, not an overflowing one). Create Invoice is a fixed
+   sibling outside that scroller (.inv-toolbar-cta), not inside it — the
+   primary action must never be something a user has to scroll to find. */
 .inv-list-toolbar {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   padding: 8px 0;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
-  flex-wrap: wrap;
 }
 
-.inv-status-chips { display: flex; gap: 4px; flex-wrap: wrap; }
-
-.inv-status-chip {
+.inv-toolbar-scroll {
   display: flex;
   align-items: center;
-  gap: 5px;
-  padding: var(--badge-py) var(--badge-px);
-  border-radius: 6px;
-  font-size: var(--badge-fs);
-  font-weight: 600;
-  cursor: pointer;
-  font-family: var(--font);
-  white-space: nowrap;
-  border: 1px solid var(--border);
-  background: var(--bg);
-  color: var(--ink2);
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  /* A soft fade at the trailing edge reads as "there's more, scroll for it"
+     instead of a button looking harshly sliced in half mid-icon whenever
+     the row doesn't fully fit. */
+  -webkit-mask-image: linear-gradient(to right, black calc(100% - 20px), transparent 100%);
+  mask-image: linear-gradient(to right, black calc(100% - 20px), transparent 100%);
 }
-.inv-status-chip--active { border: 1.5px solid var(--teal); background: var(--teal-l); color: var(--teal); }
+.inv-toolbar-scroll::-webkit-scrollbar { display: none; }
+.inv-toolbar-scroll > * { flex-shrink: 0; }
 
+.inv-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.inv-toolbar-actions > * { flex-shrink: 0; }
+
+.inv-toolbar-cta { flex-shrink: 0; }
+
+/* Status filter row itself is now the shared .ds-tabs-list/.ds-tabs-trigger
+   (segmented variant, ds-tabs.css) — only the per-chip count bubble is
+   still local, since the shared tab trigger has no built-in badge slot. */
 .inv-status-chip-count {
   font-size: var(--badge-fs-sm);
   font-weight: 700;
@@ -94,7 +110,7 @@
   background: var(--border);
   color: var(--ink2);
 }
-.inv-status-chip--active .inv-status-chip-count { background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }
+.ds-tabs-trigger[data-state="active"] .inv-status-chip-count { background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }
 
 .inv-search-wrap { position: relative; }
 .inv-search-icon { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); pointer-events: none; }
@@ -111,27 +127,9 @@
 }
 .inv-body--split .inv-search-input { width: 160px; }
 
-/* ── Filters popover ── */
-.inv-filters-popover {
-  position: absolute;
-  top: 100%;
-  right: 20px;
-  margin-top: 6px;
-  z-index: 40;
-  width: 260px;
-  max-width: calc(100vw - 40px);
-  background: var(--white);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  box-shadow: var(--elev-lg);
-  padding: 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-@media (max-width: 600px) {
-  .inv-filters-popover { right: 10px; left: 10px; width: auto; max-width: none; }
-}
+/* ── Filters popover — the popover shell itself (position, background,
+   border, shadow, radius) now comes from the shared Radix PopoverContent;
+   these are just the internal field layout. ── */
 .inv-filters-field label {
   display: block;
   font-size: 10.5px;
@@ -197,6 +195,29 @@
 .inv-table tbody tr:hover { background: var(--teal-l); }
 .inv-table tbody tr.inv-row--selected { background: var(--teal-l); border-left-color: var(--teal); }
 
+.th--checkbox { width: 36px; padding-right: 0 !important; text-align: center; }
+.th--checkbox input[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--teal); cursor: pointer; margin: 0; }
+
+/* ── Bulk selection → export bar — appears in the toolbar only once at
+   least one row is checked. ── */
+.inv-bulk-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px 0 10px;
+  height: var(--ctl-h-sm, 32px);
+  background: var(--teal-l);
+  border: 1px solid var(--teal-m, var(--teal));
+  border-radius: var(--r);
+}
+.inv-bulk-count { font-size: 12.5px; font-weight: 700; color: var(--teal); white-space: nowrap; }
+.inv-bulk-clear {
+  display: flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: none; border: none; color: var(--teal); cursor: pointer;
+}
+.inv-bulk-clear:hover { background: var(--teal-m, var(--teal)); color: var(--white); }
+
 .inv-cell-id { color: var(--teal); font-weight: 600; font-family: var(--mono); font-size: 12px; }
 .inv-cell-link {
   background: none; border: none; padding: 0; cursor: pointer;
@@ -238,22 +259,15 @@
   font-size: 12px;
 }
 
-/* ── Batch payments modal ── */
-.inv-batch-list { max-height: 320px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; margin: 10px 0; }
-.inv-batch-row {
-  display: flex; align-items: center; gap: 10px; padding: 8px 10px;
-  border: 1px solid var(--border); border-radius: 8px; font-size: 12.5px;
-}
-.inv-batch-row-amt { margin-left: auto; font-family: var(--mono); font-weight: 700; }
-
 /* ── Mobile: List <-> Detail toggle ── */
 @media (max-width: 899px) {
   .inv-body--has-selection .inv-list-panel { display: none; }
   .inv-body:not(.inv-body--has-selection) .inv-detail-panel { display: none; }
   .inv-body--split .inv-list-panel { width: 100%; }
-  .inv-body--split .inv-search-input { width: 100%; flex: 1; }
-  .inv-list-toolbar { flex-direction: column; align-items: stretch; }
-  .inv-search-wrap { width: 100%; }
+  /* The toolbar stays one row (see .inv-list-toolbar above) and scrolls
+     sideways here instead of stacking — a fixed, narrower search box so it
+     doesn't eat the whole scrollable width on its own. */
+  .inv-search-input, .inv-body--split .inv-search-input { width: 150px; }
 }
 
 /* Create/edit occupies the full body. The form was rendering in the right

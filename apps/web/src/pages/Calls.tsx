@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { apiFetch, BASE_URL } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { Icon, IconName } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { SectionCard } from '../components/SectionCard.js';
 import { Button } from '../components/ui/button.js';
 import { DatePicker } from '../components/ui/date-picker.js';
 import { showAlert } from '../lib/alert.js';
 import { MeetingSession } from './calls/MeetingSession.js';
-import { CallsMetrics } from './calls/CallsMetrics.js';
 
 interface Staff { id: string; name: string; role: string; email?: string }
 interface CallRow { id: string; caller_id: string; callee_id: string; kind: string; status: string; started_at: string; duration_seconds: number; caller_name: string; callee_name: string }
@@ -19,6 +20,7 @@ const fmtDur = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2
 
 export function Calls() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [staff, setStaff] = useState<Staff[]>([]);
   const [online, setOnline] = useState<Set<string>>(new Set());
   const [history, setHistory] = useState<CallRow[]>([]);
@@ -49,13 +51,15 @@ export function Calls() {
   useEffect(() => { load(); }, [load]);
 
   // ── Meetings ──
-  const [tab, setTab] = useState<'directory' | 'meetings' | 'metrics'>('directory');
+  const [tab, setTab] = useState<'directory' | 'meetings'>('directory');
   const [meetings, setMeetings] = useState<MeetingRow[]>([]);
   const [showSchedule, setShowSchedule] = useState(false);
   const [schedTitle, setSchedTitle] = useState('');
   const [schedDate, setSchedDate] = useState<Date | undefined>(undefined);
   const [schedTime, setSchedTime] = useState('09:00');
   const [schedKind, setSchedKind] = useState<'VIDEO' | 'VOICE'>('VIDEO');
+  const [schedPassword, setSchedPassword] = useState('');
+  const [schedWaitingRoom, setSchedWaitingRoom] = useState(false);
   const [joinCodeInput, setJoinCodeInput] = useState('');
   const [activeMeetingId, setActiveMeetingId] = useState<string | null>(null);
   const [creatingMeeting, setCreatingMeeting] = useState(false);
@@ -80,8 +84,8 @@ export function Calls() {
     const [h, min] = schedTime.split(':').map(Number);
     const when = new Date(schedDate); when.setHours(h || 0, min || 0, 0, 0);
     try {
-      await apiFetch('/v1/calls/meetings', { method: 'POST', body: JSON.stringify({ title: schedTitle, kind: schedKind, scheduled_at: when.toISOString() }) });
-      setShowSchedule(false); setSchedTitle(''); setSchedDate(undefined); setSchedTime('09:00');
+      await apiFetch('/v1/calls/meetings', { method: 'POST', body: JSON.stringify({ title: schedTitle, kind: schedKind, scheduled_at: when.toISOString(), password: schedPassword.trim() || undefined, waiting_room_enabled: schedWaitingRoom }) });
+      setShowSchedule(false); setSchedTitle(''); setSchedDate(undefined); setSchedTime('09:00'); setSchedPassword(''); setSchedWaitingRoom(false);
       loadMeetings();
     } catch (e: any) { showAlert(e?.message || 'Could not schedule that meeting.'); }
   }
@@ -220,20 +224,20 @@ export function Calls() {
   const toggleMute = () => { const t = localStream.current?.getAudioTracks()[0]; if (t) { t.enabled = !t.enabled; setMuted(!t.enabled); } };
   const toggleCam = () => { const t = localStream.current?.getVideoTracks()[0]; if (t) { t.enabled = !t.enabled; setCamOff(!t.enabled); } };
 
-  const card: React.CSSProperties = { background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 14, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' };
   const inCall = callState === 'in-call' || callState === 'calling';
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
       <PageHeader crumbs={['Bliss', 'Calls']} titlePlain="Voice &" titleEm="video"
-        subtitle="Call a colleague directly — peer-to-peer, with live presence and a record of every call." />
+        subtitle="Call a colleague directly — peer-to-peer, with live presence and a record of every call."
+        actions={<Button variant="outline" onClick={() => navigate('/bliss/calls/reports')}><Icon name="barChart" size={14} /> Reports</Button>} />
 
       {error && <div style={{ fontSize: 12.5, color: 'var(--red)', background: 'var(--red-l)', borderRadius: 8, padding: '8px 12px' }}>{error}</div>}
 
-      <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid var(--border)' }}>
-        {([['directory', 'Direct calls'], ['meetings', 'Meetings'], ['metrics', 'Metrics']] as const).map(([key, label]) => (
-          <button key={key} type="button" onClick={() => setTab(key)}
-            style={{ fontSize: 13, fontWeight: 600, padding: '10px 14px', border: 'none', background: 'none', cursor: 'pointer', color: tab === key ? 'hsl(var(--primary))' : 'var(--ink3)', borderBottom: tab === key ? '2px solid hsl(var(--primary))' : '2px solid transparent', marginBottom: -1 }}>
+      <div className="ds-tabs-list" data-variant="segmented">
+        {([['directory', 'Direct calls'], ['meetings', 'Meetings']] as const).map(([key, label]) => (
+          <button key={key} type="button" className="ds-tabs-trigger" data-variant="segmented"
+            data-state={tab === key ? 'active' : 'inactive'} onClick={() => setTab(key)}>
             {label}
           </button>
         ))}
@@ -242,8 +246,7 @@ export function Calls() {
       {tab === 'directory' && (
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(320px, 100%), 1fr))', gap: 20 }}>
         {/* Directory + presence */}
-        <div style={{ ...card, padding: 20 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)', marginBottom: 4 }}>Team</div>
+        <SectionCard title="Team">
           <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 14 }}>{online.size} online now</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {staff.length === 0 && <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>No colleagues found.</div>}
@@ -271,11 +274,10 @@ export function Calls() {
               );
             })}
           </div>
-        </div>
+        </SectionCard>
 
         {/* History */}
-        <div style={{ ...card, padding: 20 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)', marginBottom: 14 }}>Recent calls</div>
+        <SectionCard title="Recent calls">
           {history.length === 0 ? (
             <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>No calls yet.</div>
           ) : (
@@ -296,7 +298,7 @@ export function Calls() {
               })}
             </div>
           )}
-        </div>
+        </SectionCard>
       </div>
       )}
 
@@ -317,8 +319,8 @@ export function Calls() {
           </div>
 
           {showSchedule && (
-            <div style={{ ...card, padding: 18, display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)' }}>Schedule a meeting</div>
+            <SectionCard title="Schedule a meeting" collapsible={false}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10 }}>
                 <input value={schedTitle} onChange={e => setSchedTitle(e.target.value)} placeholder="Meeting title"
                   style={{ height: 36, borderRadius: 8, border: '1px solid var(--border)', padding: '0 10px', fontSize: 13, gridColumn: '1 / -1' }} />
@@ -328,16 +330,22 @@ export function Calls() {
                   <option value="VIDEO">Video</option>
                   <option value="VOICE">Voice only</option>
                 </select>
+                <input value={schedPassword} onChange={e => setSchedPassword(e.target.value)} placeholder="Password (optional)"
+                  style={{ height: 36, borderRadius: 8, border: '1px solid var(--border)', padding: '0 10px', fontSize: 13 }} />
               </div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: 'var(--ink2)', cursor: 'pointer' }}>
+                <input type="checkbox" checked={schedWaitingRoom} onChange={e => setSchedWaitingRoom(e.target.checked)} />
+                Enable waiting room — you'll admit each participant before they can join
+              </label>
               <div style={{ display: 'flex', gap: 8 }}>
                 <Button variant="default" size="sm" onClick={scheduleMeeting}>Schedule</Button>
                 <Button variant="outline" size="sm" onClick={() => setShowSchedule(false)}>Cancel</Button>
               </div>
-            </div>
+              </div>
+            </SectionCard>
           )}
 
-          <div style={{ ...card, padding: 20 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)', marginBottom: 14 }}>Meetings</div>
+          <SectionCard title="Meetings">
             {meetings.length === 0 ? (
               <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>No meetings yet — start an instant one or schedule ahead.</div>
             ) : (
@@ -370,11 +378,9 @@ export function Calls() {
                 })}
               </div>
             )}
-          </div>
+          </SectionCard>
         </div>
       )}
-
-      {tab === 'metrics' && <CallsMetrics />}
 
       {activeMeetingId && (
         <MeetingSession meetingId={activeMeetingId} onExit={() => { setActiveMeetingId(null); loadMeetings(); }} />

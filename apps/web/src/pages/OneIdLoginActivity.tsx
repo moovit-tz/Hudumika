@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 interface LoginEvent {
   id: string; ip: string | null; user_agent: string | null;
@@ -24,7 +25,7 @@ export const OneIdLoginActivity: React.FC = () => {
         subtitle="Recent sign-in attempts across this tenant."
       />
 
-      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, overflow: 'hidden' }}>
+      <SectionCard padded={false}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
           <thead>
             <tr style={{ background: 'var(--bg)', textAlign: 'left' }}>
@@ -52,7 +53,7 @@ export const OneIdLoginActivity: React.FC = () => {
         {!loading && events.length === 0 && (
           <div style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No login activity recorded yet.</div>
         )}
-      </div>
+      </SectionCard>
     </div>
   );
 };

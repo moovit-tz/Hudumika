@@ -4,6 +4,7 @@ import { Icon } from '../components/Icon.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { showConfirm } from '../lib/confirm.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 interface Vendor { id: string; name: string }
 interface Part {
@@ -120,7 +121,7 @@ export const TrackingPartsStock: React.FC = () => {
         </button>
       </div>
 
-      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, overflow: 'hidden' }}>
+      <SectionCard>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
           <thead>
             <tr style={{ background: 'var(--bg)', textAlign: 'left' }}>
@@ -155,7 +156,7 @@ export const TrackingPartsStock: React.FC = () => {
         {!loading && parts.length === 0 && (
           <div style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No parts in stock yet.</div>
         )}
-      </div>
+      </SectionCard>
     </div>
   );
 };

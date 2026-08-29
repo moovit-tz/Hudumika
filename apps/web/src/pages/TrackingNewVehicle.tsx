@@ -7,6 +7,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { showAlert } from '../lib/alert.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 // Rough mapping from this form's vehicle Type to NHTSA vPIC's vehicle-type
 // categories — used only to seed the Make picker with relevant suggestions.
@@ -120,8 +121,9 @@ export const TrackingNewVehicle: React.FC = () => {
 
         {/* Content */}
         <div style={{ flex: 1, overflowY: 'auto', padding: 32 }}>
-          <div style={{ maxWidth: 700, margin: '0 auto', background: 'var(--white)', borderRadius: 12, border: '1px solid var(--border)', padding: 32 }}>
-            
+          <div style={{ maxWidth: 700, margin: '0 auto' }}>
+          <SectionCard collapsible={false}>
+
             {activeSection === 'Details' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
                 <div>
@@ -366,6 +368,7 @@ export const TrackingNewVehicle: React.FC = () => {
               </div>
             </div>
 
+          </SectionCard>
           </div>
         </div>
       </div>

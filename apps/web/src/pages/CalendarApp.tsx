@@ -659,30 +659,24 @@ export const CalendarApp: React.FC = () => {
           </DropdownMenu>
 
           {/* 4. Dual View Switcher Pill: Calendar vs Tasks (Image 3) */}
-          <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 20, overflow: 'hidden', background: 'var(--white)', padding: 2 }}>
+          <div className="ds-tabs-list" data-variant="segmented">
             <button
               type="button"
+              className="ds-tabs-trigger"
+              data-variant="segmented"
+              data-state={viewMode !== 'agenda' ? 'active' : 'inactive'}
               onClick={() => setViewMode('month')}
               title="Calendar View"
-              style={{
-                padding: '4px 10px', borderRadius: 16, border: 'none', cursor: 'pointer',
-                background: viewMode !== 'agenda' ? 'var(--teal-l)' : 'transparent',
-                color: viewMode !== 'agenda' ? 'var(--teal)' : 'var(--ink3)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center'
-              }}
             >
               <Icon name="calendar" size={16} />
             </button>
             <button
               type="button"
+              className="ds-tabs-trigger"
+              data-variant="segmented"
+              data-state={viewMode === 'agenda' ? 'active' : 'inactive'}
               onClick={() => setViewMode('agenda')}
               title="Tasks & Schedule View"
-              style={{
-                padding: '4px 10px', borderRadius: 16, border: 'none', cursor: 'pointer',
-                background: viewMode === 'agenda' ? 'var(--teal-l)' : 'transparent',
-                color: viewMode === 'agenda' ? 'var(--teal)' : 'var(--ink3)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center'
-              }}
             >
               <Icon name="tasks" size={16} />
             </button>

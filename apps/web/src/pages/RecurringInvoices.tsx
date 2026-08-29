@@ -11,6 +11,7 @@ import { EntityPicker, type PickerItem } from '../components/EntityPicker.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { useTaxCodes } from '../data/taxCodeData.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 type Freq = 'WEEKLY' | 'MONTHLY' | 'QUARTERLY' | 'ANNUAL';
 type State = 'ACTIVE' | 'PAUSED' | 'ENDED';
@@ -238,7 +239,7 @@ export function RecurringInvoices() {
         </button>
       </div>
 
-      <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', overflow: 'hidden' }}>
+      <SectionCard collapsible={false} padded={false}>
         {recurring.length === 0 ? (
           <div style={{ padding: '64px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
             <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
@@ -292,7 +293,7 @@ export function RecurringInvoices() {
             </tbody>
           </table></div>
         )}
-      </div>
+      </SectionCard>
 
       {showForm && <RecurFormPanel initial={editing} onSave={handleSave} onClose={() => { setShowForm(false); setEditing(null); }} />}
     </div>

@@ -131,16 +131,15 @@ export const TrackingShipments: React.FC = () => {
       <div style={{ background: '#fff', borderRadius: 12, border: '1px solid var(--border)', boxShadow: 'var(--elev-sm)' }}>
         {/* Filters */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div className="ds-tabs-list" data-variant="segmented">
             {['All', 'Shipped', 'In Transit', 'Delayed', 'Delivered'].map(f => (
               <button
                 key={f}
+                type="button"
+                className="ds-tabs-trigger"
+                data-variant="segmented"
+                data-state={filter === f ? 'active' : 'inactive'}
                 onClick={() => setFilter(f)}
-                style={{
-                  padding: 'var(--ds-btn-py-sm) 14px', borderRadius: 20, fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                  border: `1px solid ${filter === f ? 'var(--teal)' : 'var(--border)'}`,
-                  background: filter === f ? 'var(--teal)' : '#fff',
-                  color: filter === f ? '#fff' : 'var(--ink2)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}
               >
                 {f}
               </button>

@@ -79,6 +79,13 @@ export function SignPublicPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [signature, setSignature] = useState<string | null>(null);
+  // No CompanyAvatar here — this strip is a wide wordmark-shaped logo
+  // (height:34, contain-fit) with a specific branded "eSign" fallback, not
+  // a square/circle "who" badge, and there's no tenant name in this public
+  // payload for CompanyAvatar's own initials fallback to use. A broken
+  // logo_url used to render nothing but a broken-image icon; this makes it
+  // degrade to the same eSign wordmark the no-logo case already shows.
+  const [logoFailed, setLogoFailed] = useState(false);
   const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
   const [currentField, setCurrentField] = useState(0);
   const [step, setStep] = useState<'review' | 'sign' | 'done'>('review');
@@ -441,8 +448,8 @@ export function SignPublicPage() {
       {/* Header */}
       <div className="sign-public-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
-          {data.tenant.logo_url ? (
-            <img src={data.tenant.logo_url} alt="" style={{ height: 34, maxWidth: 150, objectFit: 'contain' }} />
+          {data.tenant.logo_url && !logoFailed ? (
+            <img src={data.tenant.logo_url} alt="" onError={() => setLogoFailed(true)} style={{ height: 34, maxWidth: 150, objectFit: 'contain' }} />
           ) : (
             <div style={{ fontWeight: 800, fontSize: 18, color: accent, display: 'flex', alignItems: 'center', gap: 8 }}>
               <div style={{ width: 34, height: 34, borderRadius: 8, background: accent, display: 'flex', alignItems: 'center', justifyContent: 'center', color: accentFg, boxShadow: '0 2px 6px rgba(0,0,0,0.15)' }}>

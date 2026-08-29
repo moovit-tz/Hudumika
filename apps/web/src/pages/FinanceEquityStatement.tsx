@@ -7,6 +7,7 @@ import { MetricsRow } from '../components/MetricCard.js';
 import { Badge } from '../components/ui/badge.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 const YEARS = ['2026', '2025', '2024'];
 
@@ -23,7 +24,6 @@ interface Dividend {
   status: 'DECLARED' | 'PAID'; paid_at: string | null; reference: string | null;
 }
 
-const card: React.CSSProperties = { background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', overflow: 'hidden' };
 const th: React.CSSProperties = {
   padding: '10px 14px', textAlign: 'right', fontSize: 10, fontWeight: 700, color: 'var(--ink3)',
   textTransform: 'uppercase', letterSpacing: '0.07em', whiteSpace: 'nowrap', borderBottom: '1px solid var(--border)',
@@ -154,12 +154,11 @@ export function FinanceEquityStatement() {
         ]} />
 
         {/* Statement table */}
-        <div style={card}>
-          <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--blue)' }} />
-            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Movement by account</span>
-            <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--ink3)' }}>{from} to {to}</span>
-          </div>
+        <SectionCard
+          padded={false}
+          title="Movement by account"
+          action={<span style={{ fontSize: 11, color: 'var(--ink3)' }}>{from} to {to}</span>}
+        >
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
               <thead>
@@ -196,18 +195,16 @@ export function FinanceEquityStatement() {
               </tbody>
             </table>
           </div>
-        </div>
+        </SectionCard>
 
         {/* Dividends */}
-        <div style={card}>
-          <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--red)' }} />
-            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Dividends</span>
-            <button type="button" className="btn btn-secondary btn-sm" style={{ marginLeft: 'auto', gap: 6 }} onClick={() => setShowDeclareForm(v => !v)}>
-              <Icon name="plus" size={13} /> Declare dividend
-            </button>
-          </div>
-
+        <SectionCard
+          padded={false}
+          title="Dividends"
+          action={<button type="button" className="btn btn-secondary btn-sm" style={{ gap: 6 }} onClick={() => setShowDeclareForm(v => !v)}>
+            <Icon name="plus" size={13} /> Declare dividend
+          </button>}
+        >
           {showDeclareForm && (
             <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', background: 'var(--bg)', display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
               <div>
@@ -265,7 +262,7 @@ export function FinanceEquityStatement() {
               </tbody>
             </table>
           </div>
-        </div>
+        </SectionCard>
       </div>
       )}
     </div>

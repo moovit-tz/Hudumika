@@ -8,6 +8,7 @@ import { useCompany } from '../data/companyStore.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { showPrompt } from '../lib/prompt.js';
 import { Tip } from '../components/ui/tooltip.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 /**
  * Filing periods.
@@ -38,10 +39,6 @@ interface ReturnSnapshot {
   fxSkipped: { invoices: number; bills: number };
 }
 
-const card: React.CSSProperties = {
-  background: 'var(--white)', border: '1px solid var(--border)',
-  borderRadius: 'var(--r)', overflow: 'hidden',
-};
 const th: React.CSSProperties = {
   padding: '10px 14px', textAlign: 'left', fontSize: 10, fontWeight: 700, color: 'var(--ink3)',
   textTransform: 'uppercase', letterSpacing: '0.07em', whiteSpace: 'nowrap',
@@ -202,25 +199,29 @@ export function FinanceVatPeriods() {
       )}
 
       {/* New period */}
-      <div style={{ ...card, padding: '12px 14px', marginBottom: 16, display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
-        <div>
-          <label style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 4 }}>From</label>
-          <DatePicker date={parseDateOnly(from)} onChange={d => setFrom(toDateOnlyString(d))} />
-        </div>
-        <div>
-          <label style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 4 }}>To</label>
-          <DatePicker date={parseDateOnly(to)} onChange={d => setTo(toDateOnlyString(d))} />
-        </div>
-        <button type="button" className="btn btn-primary btn-sm" disabled={busy === 'create'} onClick={create}>
-          <Icon name="plus" size={13} color="hsl(var(--primary-foreground))" /> {busy === 'create' ? 'Creating…' : 'New period'}
-        </button>
-        <div style={{ fontSize: 11.5, color: 'var(--ink3)', flex: '1 1 240px', minWidth: 200, lineHeight: 1.5 }}>
-          Periods cannot overlap within a jurisdiction — a document must belong to exactly one return.
-        </div>
+      <div style={{ marginBottom: 16 }}>
+        <SectionCard>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+            <div>
+              <label style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 4 }}>From</label>
+              <DatePicker date={parseDateOnly(from)} onChange={d => setFrom(toDateOnlyString(d))} />
+            </div>
+            <div>
+              <label style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 4 }}>To</label>
+              <DatePicker date={parseDateOnly(to)} onChange={d => setTo(toDateOnlyString(d))} />
+            </div>
+            <button type="button" className="btn btn-primary btn-sm" disabled={busy === 'create'} onClick={create}>
+              <Icon name="plus" size={13} color="hsl(var(--primary-foreground))" /> {busy === 'create' ? 'Creating…' : 'New period'}
+            </button>
+            <div style={{ fontSize: 11.5, color: 'var(--ink3)', flex: '1 1 240px', minWidth: 200, lineHeight: 1.5 }}>
+              Periods cannot overlap within a jurisdiction — a document must belong to exactly one return.
+            </div>
+          </div>
+        </SectionCard>
       </div>
 
       {/* The periods */}
-      <div style={card}>
+      <SectionCard padded={false}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
           <thead>
             <tr style={{ background: 'var(--bg)' }}>
@@ -275,23 +276,19 @@ export function FinanceVatPeriods() {
             ))}
           </tbody>
         </table>
-      </div>
+      </SectionCard>
 
       {/* The return for one period */}
       {open && (
-        <div style={{ ...card, marginTop: 16 }}>
-          <div style={{ padding: '11px 18px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-              {String(open.period.period_start).slice(0, 10)} → {String(open.period.period_end).slice(0, 10)}
-              {open.provisional
-                ? ' · provisional, recomputed live'
-                : ' · as filed'}
-            </span>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => setOpen(null)}>
-              <Icon name="x" size={13} /> Close
-            </button>
-          </div>
-
+        <div style={{ marginTop: 16 }}>
+        <SectionCard
+          padded={false}
+          collapsible={false}
+          title={`${String(open.period.period_start).slice(0, 10)} → ${String(open.period.period_end).slice(0, 10)}${open.provisional ? ' · provisional, recomputed live' : ' · as filed'}`}
+          action={<button type="button" className="btn btn-secondary btn-sm" onClick={() => setOpen(null)}>
+            <Icon name="x" size={13} /> Close
+          </button>}
+        >
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
             <tbody>
               {[
@@ -325,6 +322,7 @@ export function FinanceVatPeriods() {
               </div>
             </div>
           )}
+        </SectionCard>
         </div>
       )}
     </div>

@@ -7,6 +7,7 @@ import type { ProfitLossReport, ProfitLossLine } from '@hudumika/types';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { MetricsRow } from '../components/MetricCard.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 interface PLRow { label: string; amount: number; sub?: boolean; bold?: boolean; separator?: boolean }
 
@@ -272,26 +273,16 @@ export const FinanceProfitLoss: React.FC = () => {
 
         {/* P&L Statement */}
         <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-          <div style={{ flex: 1, minWidth: 300, background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', overflow: 'hidden' }}>
-            <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--teal)' }} />
-              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Income</span>
-              <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--ink3)' }}>{period}</span>
-            </div>
-            <div style={{ padding: '8px 20px 16px' }}>
-              <PLSection rows={incomeRows} highlightColor="var(--teal)" cur={cur} />
-            </div>
+          <div style={{ flex: 1, minWidth: 300 }}>
+          <SectionCard title="Income" action={<span style={{ fontSize: 11, color: 'var(--ink3)' }}>{period}</span>}>
+            <PLSection rows={incomeRows} highlightColor="var(--teal)" cur={cur} />
+          </SectionCard>
           </div>
 
-          <div style={{ flex: 1, minWidth: 300, background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', overflow: 'hidden' }}>
-            <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--green)' }} />
-              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Costs &amp; Profit</span>
-              <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--ink3)' }}>{period}</span>
-            </div>
-            <div style={{ padding: '8px 20px 16px' }}>
-              <PLSection rows={costRows} highlightColor="var(--green)" cur={cur} />
-            </div>
+          <div style={{ flex: 1, minWidth: 300 }}>
+          <SectionCard title="Costs & Profit" action={<span style={{ fontSize: 11, color: 'var(--ink3)' }}>{period}</span>}>
+            <PLSection rows={costRows} highlightColor="var(--green)" cur={cur} />
+          </SectionCard>
           </div>
         </div>
       </div>

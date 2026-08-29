@@ -4,6 +4,7 @@ import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { SectionCard } from '../components/SectionCard.js';
 import { apiFetch } from '../lib/api.js';
 import { useCompany } from '../data/companyStore.js';
 
@@ -58,29 +59,6 @@ function StatusCard({ label, value, pct, color, icon }: {
       <div style={{ height: 5, borderRadius: 3, background: 'var(--border)', overflow: 'hidden' }}>
         <div style={{ height: '100%', width: `${Math.min(100, pct)}%`, borderRadius: 3, background: color, transition: 'width 0.6s ease' }} />
       </div>
-    </div>
-  );
-}
-
-function Card({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
-  return (
-    <div style={{
-      background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)',
-      overflow: 'hidden', ...style,
-    }}>
-      {children}
-    </div>
-  );
-}
-
-function CardHeader({ title, action }: { title: string; action?: React.ReactNode }) {
-  return (
-    <div style={{
-      padding: '11px 18px', borderBottom: '1px solid var(--border)',
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-    }}>
-      <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{title}</span>
-      {action}
     </div>
   );
 }
@@ -188,8 +166,7 @@ export const CustomerOverview: React.FC = () => {
           {/* LEFT */}
           <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-            <Card>
-              <CardHeader title="Shipment Status Breakdown" />
+            <SectionCard title="Shipment Status Breakdown" padded={false}>
               <div style={{ padding: '4px 0' }}>
                 {SHIPMENT_STATUSES.map(s => (
                   <div key={s.label} style={{ padding: '10px 18px', display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -203,20 +180,20 @@ export const CustomerOverview: React.FC = () => {
                   </div>
                 ))}
               </div>
-            </Card>
+            </SectionCard>
 
-            <Card style={{ flex: 1 }}>
-              <CardHeader
-                title="Top Customers by Shipment Volume (MTD)"
-                action={
-                  <Link
-                    to="/customers"
-                    style={{ fontSize: 11, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, textDecoration: 'none' }}
-                  >
-                    View All
-                  </Link>
-                }
-              />
+            <SectionCard
+              title="Top Customers by Shipment Volume (MTD)"
+              padded={false}
+              action={
+                <Link
+                  to="/customers"
+                  style={{ fontSize: 11, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, textDecoration: 'none' }}
+                >
+                  View All
+                </Link>
+              }
+            >
               <div>
                 {data.top_customers.map((c, i) => (
                   <div key={c.name} style={{
@@ -244,14 +221,13 @@ export const CustomerOverview: React.FC = () => {
                   <div style={{ padding: '24px 18px', textAlign: 'center', color: 'var(--ink3)', fontSize: 12 }}>No shipments recorded this month.</div>
                 )}
               </div>
-            </Card>
+            </SectionCard>
           </div>
 
           {/* RIGHT */}
           <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-            <Card>
-              <CardHeader title="Financial Summary — Current Month" />
+            <SectionCard title="Financial Summary — Current Month" padded={false}>
               <div style={{ padding: '4px 0' }}>
                 {FINANCE_ROWS.map((r, i) => (
                   <div key={r.label} style={{
@@ -268,10 +244,9 @@ export const CustomerOverview: React.FC = () => {
                   </div>
                 ))}
               </div>
-            </Card>
+            </SectionCard>
 
-            <Card>
-              <CardHeader title="Customs Declarations — Today" />
+            <SectionCard title="Customs Declarations — Today" padded={false}>
               <div style={{ padding: '6px 0' }}>
                 {DECL_ROWS.map(d => (
                   <div key={d.label} style={{ padding: '9px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -280,10 +255,10 @@ export const CustomerOverview: React.FC = () => {
                   </div>
                 ))}
               </div>
-            </Card>
+            </SectionCard>
 
-            <Card style={{ flex: 1 }}>
-              <CardHeader title="Quick Actions" />
+            <div style={{ flex: 1 }}>
+            <SectionCard title="Quick Actions" padded={false}>
               <div style={{ padding: 14, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 10 }}>
                 {[
                   { icon: 'plus',          label: 'New Customer',    path: '/crm/customers'     },
@@ -318,7 +293,8 @@ export const CustomerOverview: React.FC = () => {
                   </Link>
                 ))}
               </div>
-            </Card>
+            </SectionCard>
+            </div>
           </div>
         </div>
       </div>

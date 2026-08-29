@@ -5,6 +5,7 @@ import { Icon } from '../components/Icon.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { BackButton } from '../components/ui/BackButton.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 interface Vehicle { id: string; name: string; plate_number: string | null }
 interface Driver { id: string; name: string }
@@ -58,7 +59,8 @@ export const TrackingFuelNew: React.FC = () => {
         titleEm="entry"
       />
 
-      <form onSubmit={submit} style={{ ...cardStyle, display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <SectionCard>
+      <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div style={{ display: 'flex', gap: 10 }}>
           <div style={{ flex: 1 }}>
             <label style={labelStyle}>Vehicle</label>
@@ -91,6 +93,7 @@ export const TrackingFuelNew: React.FC = () => {
           </button>
         </div>
       </form>
+      </SectionCard>
     </div>
   );
 };

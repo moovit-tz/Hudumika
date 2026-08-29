@@ -7,8 +7,7 @@ import { EntityPicker, PickerItem } from '../../components/EntityPicker.js';
 import { apiFetch } from '../../lib/api.js';
 import { useAuth } from '../../hooks/useAuth.js';
 import type { StepProps } from './types.js';
-
-const card: React.CSSProperties = { background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: 20 };
+import { SectionCard } from '../../components/SectionCard.js';
 
 // Same height/padding box-model as .btn.btn-sm (index.css), so the kind
 // badge lines up with the "Source" link button next to it instead of
@@ -99,12 +98,10 @@ export function StepResults({ draft, onBack }: StepProps) {
       {/* Process flow — the primary content of this step; certificates/timing/
           offices reference data is folded behind the toggle below so the
           reader lands straight on what to actually do next. */}
-      <div style={{ ...card, marginBottom: 14 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <FeaturedIcon variant="success" size="sm" shape="square"><Icon name="layers" size={15} /></FeaturedIcon>
-            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>Process flow</div>
-          </div>
+      <div style={{ marginBottom: 14 }}>
+      <SectionCard
+        title="Process flow"
+        action={
           <button
             type="button"
             onClick={() => setShowDetails(v => !v)}
@@ -113,7 +110,8 @@ export function StepResults({ draft, onBack }: StepProps) {
             <Icon name={showDetails ? 'chevronUp' : 'chevronDown'} size={13} />
             {showDetails ? 'Hide' : 'View'} certificates, timing & offices
           </button>
-        </div>
+        }
+      >
         <Accordion type="single" collapsible className="flex flex-col gap-2">
           {steps.map(s => (
             <AccordionItem key={s.id} value={s.id}>
@@ -135,17 +133,14 @@ export function StepResults({ draft, onBack }: StepProps) {
             </AccordionItem>
           ))}
         </Accordion>
+      </SectionCard>
       </div>
 
       {/* Certificates / timing / offices — collapsed by default */}
       {showDetails && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16, marginBottom: 20 }}>
           {/* Certificates & permits needed */}
-          <div style={card}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-              <FeaturedIcon variant="warning" size="sm" shape="square"><Icon name="fileText" size={15} /></FeaturedIcon>
-              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>Certificates & permits needed</div>
-            </div>
+          <SectionCard title="Certificates & permits needed">
             {documents_needed.length === 0 ? (
               <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>No specific documents recorded for this procedure yet.</div>
             ) : (
@@ -157,16 +152,12 @@ export function StepResults({ draft, onBack }: StepProps) {
                 ))}
               </div>
             )}
-          </div>
+          </SectionCard>
 
           {/* Time to acquire — a real two-column table (Process / Time), scrolls
               horizontally on its own instead of squeezing text if the card
               ever gets narrower than the content needs. */}
-          <div style={{ ...card, overflow: 'hidden' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-              <FeaturedIcon variant="info" size="sm" shape="square"><Icon name="clock" size={15} /></FeaturedIcon>
-              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>Time to acquire</div>
-            </div>
+          <SectionCard title="Time to acquire">
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5, minWidth: 220 }}>
                 <thead>
@@ -187,14 +178,10 @@ export function StepResults({ draft, onBack }: StepProps) {
                 </tbody>
               </table>
             </div>
-          </div>
+          </SectionCard>
 
           {/* Offices & authorities */}
-          <div style={card}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-              <FeaturedIcon variant="brand" size="sm" shape="square"><Icon name="mapPin" size={15} /></FeaturedIcon>
-              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>Offices & authorities</div>
-            </div>
+          <SectionCard title="Offices & authorities">
             {offices.length === 0 ? (
               <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>No specific offices recorded for this procedure yet.</div>
             ) : (
@@ -211,7 +198,7 @@ export function StepResults({ draft, onBack }: StepProps) {
                 ))}
               </div>
             )}
-          </div>
+          </SectionCard>
         </div>
       )}
 

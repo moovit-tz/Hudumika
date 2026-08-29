@@ -156,10 +156,10 @@ export function Budgets() {
         </button>
       </div>
 
-      <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 20, flexWrap: 'wrap' }}>
+      <div className="ds-tabs-list" data-variant="segmented" style={{ marginBottom: 20 }}>
         {budgets.map(b => (
-          <button key={b.id} type="button" onClick={() => setSelectedId(b.id)}
-            style={{ padding: '8px 14px', borderRadius: 20, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', border: selectedId === b.id ? '1.5px solid var(--teal)' : '1px solid var(--border)', background: selectedId === b.id ? 'var(--teal-l)' : 'var(--white)', color: selectedId === b.id ? 'var(--teal)' : 'var(--ink2)' }}>
+          <button key={b.id} type="button" className="ds-tabs-trigger" data-variant="segmented"
+            data-state={selectedId === b.id ? 'active' : 'inactive'} onClick={() => setSelectedId(b.id)}>
             {b.name} ({b.fiscal_year})
           </button>
         ))}

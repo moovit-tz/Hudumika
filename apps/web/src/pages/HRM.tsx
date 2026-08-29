@@ -17,6 +17,7 @@ import { MultiSelectFilter } from '../components/ui/filter-dropdown.js';
 import { DatePicker } from '../components/ui/date-picker.js';
 import { Popover, PopoverAnchor, PopoverContent } from '../components/ui/popover.js';
 import { PageHeader as SharedPageHeader } from '../components/PageHeader.js';
+import { SectionCard } from '../components/SectionCard.js';
 import { PersonLink } from '../components/PersonLink.js';
 
 function mapAttStatus(s: string): AttendanceStatus {
@@ -2270,7 +2271,9 @@ export function ShiftsPage() {
       </div>
 
       {/* Grid */}
-      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, overflowX: 'auto', flex: 1 }}>
+      <div style={{ flex: 1 }}>
+      <SectionCard padded={false}>
+        <div style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: view === 'week' ? 800 : 2000 }}>
           <thead>
             <tr>
@@ -2351,6 +2354,8 @@ export function ShiftsPage() {
             ))}
           </tbody>
         </table>
+        </div>
+      </SectionCard>
       </div>
 
       {/* Bulk Assign Drawer */}
@@ -3504,21 +3509,16 @@ export function HrmDashboard() {
 
       {/* ── AI Insights Card Banner ───────────────────────────────────── */}
       {(aiDigest || aiErr || aiLoading) && (
-        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: '16px 20px', marginBottom: 24, boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ width: 34, height: 34, borderRadius: 8, background: 'rgba(124,58,237,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Icon name="sparkle" size={17} color="var(--purple)" />
-              </div>
-              <div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)' }}>SmartHR AI Insights</div>
-                <div style={{ fontSize: 12, color: 'var(--ink3)' }}>Real-time automated audit across staffing, leave trends, and payroll.</div>
-              </div>
-            </div>
+        <div style={{ marginBottom: 24 }}>
+        <SectionCard
+          title="SmartHR AI Insights"
+          action={
             <button type="button" className="btn btn-secondary btn-sm" disabled={aiLoading} onClick={genInsights} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <Icon name="sparkle" size={13} /> {aiLoading ? 'Refreshing…' : 'Refresh Digest'}
             </button>
-          </div>
+          }
+        >
+          <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: aiErr || aiDigest ? 12 : 0 }}>Real-time automated audit across staffing, leave trends, and payroll.</div>
           {aiErr && (
             <div style={{ marginTop: 12, fontSize: 12.5, color: 'var(--red)', background: 'rgba(239,68,68,0.08)', borderRadius: 8, padding: '10px 14px' }}>
               {aiErr}
@@ -3537,6 +3537,7 @@ export function HrmDashboard() {
               })}
             </div>
           )}
+        </SectionCard>
         </div>
       )}
 

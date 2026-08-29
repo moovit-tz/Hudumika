@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 interface Issue {
   id: string; vehicle_id: string; title: string; severity: string; status: string;
@@ -52,16 +53,16 @@ export const TrackingIssues: React.FC = () => {
         </Link>
       </div>
 
-      <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
+      <div className="ds-tabs-list" data-variant="segmented" style={{ marginBottom: 16 }}>
         {STATUS_FILTERS.map(s => (
-          <button key={s} type="button" onClick={() => setStatusFilter(s)}
-            style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${statusFilter === s ? 'var(--teal)' : 'var(--border)'}`, background: statusFilter === s ? 'var(--teal-l)' : 'var(--white)', color: statusFilter === s ? 'var(--teal)' : 'var(--ink3)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
+          <button key={s} type="button" className="ds-tabs-trigger" data-variant="segmented"
+            data-state={statusFilter === s ? 'active' : 'inactive'} onClick={() => setStatusFilter(s)}>
             {s === 'All' ? 'All' : s.replace('_', ' ')} <span style={{ fontWeight: 700 }}>{counts[s] ?? 0}</span>
           </button>
         ))}
       </div>
 
-      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, overflow: 'hidden' }}>
+      <SectionCard>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
           <thead>
             <tr style={{ background: 'var(--bg)', textAlign: 'left' }}>
@@ -101,7 +102,7 @@ export const TrackingIssues: React.FC = () => {
         {!loading && filtered.length === 0 && (
           <div style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No issues match this filter.</div>
         )}
-      </div>
+      </SectionCard>
     </div>
   );
 };

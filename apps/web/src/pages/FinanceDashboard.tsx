@@ -4,6 +4,7 @@ import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { MetricsRow, MiniBar } from '../components/MetricCard.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { SectionCard } from '../components/SectionCard.js';
 import { CompanyAvatar } from '../components/PersonAvatar.js';
 import { useCurrency } from '../hooks/useCurrency.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
@@ -28,16 +29,6 @@ function ProgressBar({ pct: p, color }: { pct: number; color: string }) {
 }
 
 /* Trend imported from MetricCard */
-
-/* -- Section header -- */
-function SHdr({ title, action, onAction }: { title: string; action?: string; onAction?: () => void }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-      <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--navy)', fontFamily: 'var(--font)' }}>{title}</div>
-      {action && <button onClick={onAction} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--teal)', fontFamily: 'var(--font)' }}>{action}</button>}
-    </div>
-  );
-}
 
 const ACTIVITY_COLORS = ['#9333ea', '#f59e0b', 'var(--teal)', 'var(--purple)', '#ec4899', '#4f46e5'];
 const PLAN_COLORS = ['#4f46e5', 'var(--teal)', '#10b981', '#ec4899', 'var(--blue)'];
@@ -221,8 +212,7 @@ export const FinanceDashboard: React.FC = () => {
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1.3fr 1fr', gap: 16, marginBottom: 16 }}>
 
           {/* Investment Overview */}
-          <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '18px 20px', boxShadow: 'var(--elev-sm)' }}>
-            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--navy)', marginBottom: 4 }}>{t('finance.clearanceOverview')}</div>
+          <SectionCard title={t('finance.clearanceOverview')}>
             <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 14 }}>
               {t('finance.revenueOverviewOf')}{' '}
               <span
@@ -237,11 +227,12 @@ export const FinanceDashboard: React.FC = () => {
             </div>
 
             {/* Tabs */}
-            <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid var(--border)', marginBottom: 18 }}>
+            <div className="ds-tabs-list" data-variant="segmented" style={{ marginBottom: 18 }}>
               {(['overview', 'year', 'alltime'] as const).map((tabKey, i) => {
                 const labels = [t('finance.tabOverview'), t('finance.tabThisYear'), t('finance.tabAllTime')];
                 return (
-                  <button key={tabKey} onClick={() => setOverviewTab(tabKey)} style={{ padding: 'var(--ds-btn-py-sm) 14px', border: 'none', background: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)', color: overviewTab === tabKey ? 'var(--teal)' : 'var(--ink3)', borderBottom: overviewTab === tabKey ? '2px solid var(--teal)' : '2px solid transparent', marginBottom: -1, transition: 'all 0.12s', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                  <button key={tabKey} type="button" className="ds-tabs-trigger" data-variant="segmented"
+                    data-state={overviewTab === tabKey ? 'active' : 'inactive'} onClick={() => setOverviewTab(tabKey)}>
                     {labels[i]}
                   </button>
                 );
@@ -285,21 +276,22 @@ export const FinanceDashboard: React.FC = () => {
                 </div>
               </div>
             </div>
-          </div>
+          </SectionCard>
 
           {/* Top Customers by Revenue */}
-          <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '18px 20px', boxShadow: 'var(--elev-sm)' }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 4 }}>
-              <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--navy)' }}>Top Customers</div>
+          <SectionCard
+            title="Top Customers"
+            action={
               <button
                 type="button"
                 title="View all customers"
                 onClick={() => navigate('/crm/customers')}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, display: 'flex', flexShrink: 0, marginTop: 2 }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, display: 'flex', flexShrink: 0 }}
               >
                 <Icon name="moreHorizontal" size={16} strokeWidth={1.75} style={{ color: 'var(--ink3)' } as React.CSSProperties} />
               </button>
-            </div>
+            }
+          >
             <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 18 }}>By total invoiced revenue</div>
 
             {derived.topCustomers.length === 0 ? (
@@ -317,12 +309,12 @@ export const FinanceDashboard: React.FC = () => {
                 ))}
               </div>
             )}
-          </div>
+          </SectionCard>
 
           {/* Recent Activities */}
-          <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '18px 20px', boxShadow: 'var(--elev-sm)', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-              <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--navy)' }}>{t('finance.recentActivities')}</div>
+          <SectionCard
+            title={t('finance.recentActivities')}
+            action={
               <div style={{ display: 'flex', gap: 2 }}>
                 {(['all', 'cancel'] as const).map(f => (
                   <button key={f} onClick={() => setActFilter(f)} style={{ padding: 'var(--ds-btn-py-xs) 11px', border: 'none', borderRadius: 20, background: actFilter === f ? 'var(--navy)' : 'transparent', color: actFilter === f ? '#fff' : 'var(--ink3)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
@@ -330,7 +322,8 @@ export const FinanceDashboard: React.FC = () => {
                   </button>
                 ))}
               </div>
-            </div>
+            }
+          >
 
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 0, overflowY: 'auto' }}>
               {(() => {
@@ -353,7 +346,7 @@ export const FinanceDashboard: React.FC = () => {
                 ));
               })()}
             </div>
-          </div>
+          </SectionCard>
         </div>
 
         {/* -- ROW 3: Action Required — only the things someone here actually
@@ -389,8 +382,7 @@ export const FinanceDashboard: React.FC = () => {
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16, marginBottom: 16 }}>
 
           {/* Receivables & Payables */}
-          <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '18px 20px', boxShadow: 'var(--elev-sm)' }}>
-            <SHdr title="Receivables & Payables" />
+          <SectionCard title="Receivables & Payables">
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div onClick={() => navigate('/finance/accounts/aged-receivables')} style={{ cursor: 'pointer', padding: '12px 14px', background: 'var(--bg)', borderRadius: 8 }}>
                 <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Outstanding AR</div>
@@ -403,17 +395,19 @@ export const FinanceDashboard: React.FC = () => {
                 <div style={{ fontSize: 11, color: 'var(--red)', marginTop: 3 }}>{fmt(snapshot?.payables?.overdue ?? 0, 'TZS')} overdue · {snapshot?.payables?.count ?? 0} bills</div>
               </div>
             </div>
-          </div>
+          </SectionCard>
 
           {/* This Month P&L */}
-          <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '18px 20px', boxShadow: 'var(--elev-sm)' }}>
-            <SHdr title="This Month — Profit & Loss" action="Full report" onAction={() => navigate('/finance/accounts/profit-loss')} />
+          <SectionCard
+            title="This Month — Profit & Loss"
+            action={<button onClick={() => navigate('/finance/accounts/profit-loss')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--teal)', fontFamily: 'var(--font)' }}>Full report</button>}
+          >
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
               <StatTile label="Revenue" value={fmt(snapshot?.profitLoss?.month?.revenue ?? 0, 'TZS')} />
               <StatTile label="Expenses" value={fmt(snapshot?.profitLoss?.month?.expenses ?? 0, 'TZS')} />
               <StatTile label="Net" value={fmt(snapshot?.profitLoss?.month?.net ?? 0, 'TZS')} tone={(snapshot?.profitLoss?.month?.net ?? 0) >= 0 ? 'good' : 'warning'} />
             </div>
-          </div>
+          </SectionCard>
         </div>
 
         {/* -- ROW 5: Tax & Compliance snapshot — the real numbers behind
@@ -422,8 +416,11 @@ export const FinanceDashboard: React.FC = () => {
                all. Deferred tax is explicitly labelled to its actual scope
                (fixed-asset timing differences only), not shown as if it
                were the whole deferred-tax picture. -- */}
-        <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '18px 20px', boxShadow: 'var(--elev-sm)', marginBottom: 16 }}>
-          <SHdr title="Tax & Compliance" action="VAT periods" onAction={() => navigate('/finance/vat-periods')} />
+        <div style={{ marginBottom: 16 }}>
+        <SectionCard
+          title="Tax & Compliance"
+          action={<button onClick={() => navigate('/finance/vat-periods')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--teal)', fontFamily: 'var(--font)' }}>VAT periods</button>}
+        >
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: 12 }}>
             <StatTile
               label="VAT — open period"
@@ -449,24 +446,26 @@ export const FinanceDashboard: React.FC = () => {
               sub="Fixed-asset timing differences only, as of most recent compute"
             />
           </div>
+        </SectionCard>
         </div>
 
         {/* -- ROW 6: Top Customers + Fixed Assets / Period Close footer -- */}
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.3fr 1fr', gap: 16 }}>
 
           {/* Top Customers by Revenue */}
-          <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '18px 20px', boxShadow: 'var(--elev-sm)' }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 4 }}>
-              <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--navy)' }}>Top Customers</div>
+          <SectionCard
+            title="Top Customers"
+            action={
               <button
                 type="button"
                 title="View all customers"
                 onClick={() => navigate('/crm/customers')}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, display: 'flex', flexShrink: 0, marginTop: 2 }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, display: 'flex', flexShrink: 0 }}
               >
                 <Icon name="moreHorizontal" size={16} strokeWidth={1.75} style={{ color: 'var(--ink3)' } as React.CSSProperties} />
               </button>
-            </div>
+            }
+          >
             <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 18 }}>By total invoiced revenue</div>
 
             {derived.topCustomers.length === 0 ? (
@@ -484,7 +483,7 @@ export const FinanceDashboard: React.FC = () => {
                 ))}
               </div>
             )}
-          </div>
+          </SectionCard>
 
           {/* Fixed Assets + Period Close */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>

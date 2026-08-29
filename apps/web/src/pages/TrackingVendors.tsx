@@ -4,6 +4,7 @@ import { Icon } from '../components/Icon.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { showConfirm } from '../lib/confirm.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 interface Vendor {
   id: string; name: string; vendor_type: string; phone: string | null;
@@ -106,7 +107,7 @@ export const TrackingVendors: React.FC = () => {
         </button>
       </div>
 
-      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, overflow: 'hidden' }}>
+      <SectionCard>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
           <thead>
             <tr style={{ background: 'var(--bg)', textAlign: 'left' }}>
@@ -135,7 +136,7 @@ export const TrackingVendors: React.FC = () => {
         {!loading && vendors.length === 0 && (
           <div style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No vendors added yet.</div>
         )}
-      </div>
+      </SectionCard>
     </div>
   );
 };

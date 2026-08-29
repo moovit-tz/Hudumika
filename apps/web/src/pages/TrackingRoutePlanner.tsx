@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { MapContainer, Marker, Polyline, useMapEvents } from 'react-leaflet';
 import { Icon } from '../components/Icon.js';
 import { MapTileLayer } from '../components/MapTileLayer.js';
+import { PersonAvatar } from '../components/PersonAvatar.js';
 import type { MapVariant } from '../components/MapTileLayer.js';
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
@@ -28,7 +29,7 @@ interface RouteResult {
 
 interface Vehicle {
   id: string; name: string; plate_number: string | null; type: string;
-  driver_name: string | null; driver_avatar: string | null; current_load_pct: number | null;
+  driver_name: string | null; driver_id: string | null; current_load_pct: number | null;
 }
 
 function ClickToAddWaypoint({ onAdd }: { onAdd: (pos: [number, number]) => void }) {
@@ -218,7 +219,7 @@ export const TrackingRoutePlanner: React.FC = () => {
           {selectedVehicle && (
             <>
               <div className="rp-driver-card">
-                <img src={selectedVehicle.driver_avatar || 'https://i.pravatar.cc/150'} alt="Driver" className="rp-avatar" />
+                <PersonAvatar userId={selectedVehicle.driver_id} kind="drivers" name={selectedVehicle.driver_name || 'Unassigned Driver'} size={40} />
                 <div className="rp-driver-info">
                   <div className="rp-driver-name">
                     {selectedVehicle.driver_name || 'Unassigned Driver'}

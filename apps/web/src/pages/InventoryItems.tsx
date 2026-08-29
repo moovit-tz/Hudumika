@@ -9,6 +9,7 @@ import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import './Inventory.css';
 import { PageHeader } from '../components/PageHeader.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 interface Item {
   id: string; sku: string; name: string; productId: string | null; productName?: string;
@@ -118,7 +119,9 @@ export function InventoryItems() {
       </div>
 
       {showNew && (
-        <form onSubmit={handleCreate} className="inv-card" style={{ marginBottom: 20 }}>
+        <div style={{ marginBottom: 20 }}>
+        <SectionCard padded={false}>
+          <form onSubmit={handleCreate}>
           <div className="inv-form-grid-3">
             <div className="inv-field-row">
               <label className="inv-field-label">SKU</label>
@@ -163,11 +166,13 @@ export function InventoryItems() {
           <div style={{ padding: '0 20px 20px' }}>
             <Button type="submit" disabled={saving || !newSku.trim() || !newName.trim()}>{saving ? 'Creating…' : 'Create Item'}</Button>
           </div>
-        </form>
+          </form>
+        </SectionCard>
+        </div>
       )}
 
-      <div className="inv-card">
-        <div className="inv-card-body">
+      <SectionCard padded={false}>
+        <div style={{ overflowX: 'auto' }}>
           {items.length === 0 ? (
             <div className="inv-empty">No items match.</div>
           ) : (
@@ -217,7 +222,7 @@ export function InventoryItems() {
             </table>
           )}
         </div>
-      </div>
+      </SectionCard>
     </div>
   );
 }

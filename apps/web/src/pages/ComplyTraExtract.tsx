@@ -264,7 +264,7 @@ export function ComplyTraExtract() {
             </div>
 
             {/* Results Navigation Tabs */}
-            <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', background: 'var(--bg)', padding: '0 24px', marginTop: 16 }}>
+            <div className="ds-tabs-list" data-variant="segmented" style={{ padding: '0 24px', marginTop: 16 }}>
               {([
                 { key: 'profile', label: 'Taxpayer Profile', icon: 'user' },
                 { key: 'obligations', label: 'Active Obligations', icon: 'clipboardList' },
@@ -274,20 +274,10 @@ export function ComplyTraExtract() {
                 <button
                   key={tab.key}
                   type="button"
+                  className="ds-tabs-trigger"
+                  data-variant="segmented"
+                  data-state={activeTab === tab.key ? 'active' : 'inactive'}
                   onClick={() => setActiveTab(tab.key)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    padding: 'var(--ds-btn-py-lg) 20px',
-                    border: 'none',
-                    background: 'none',
-                    fontSize: 13,
-                    fontWeight: activeTab === tab.key ? 700 : 500,
-                    color: activeTab === tab.key ? 'var(--teal)' : 'var(--ink2)',
-                    borderBottom: activeTab === tab.key ? '2px solid var(--teal)' : '2px solid transparent',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s', minHeight: 'var(--ctl-h-lg)', boxSizing: 'border-box', lineHeight: 1.25}}
                 >
                   <Icon name={tab.icon as any} style={{ width: 14, height: 14 }} />
                   {tab.label}

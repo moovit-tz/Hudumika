@@ -4,6 +4,7 @@ import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { SectionCard } from '../components/SectionCard.js';
 import { BackButton } from '../components/ui/BackButton.js';
 
 interface Issue {
@@ -119,9 +120,7 @@ export const TrackingIssueDetail: React.FC = () => {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 14, alignItems: 'start' }}>
-        <div style={cardStyle}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Issue Details</div>
-
+        <SectionCard title="Issue Details">
           <div style={rowStyle}><span style={labelStyle}>Issue #</span><span style={valueStyle}>{issue.id.slice(0, 8).toUpperCase()}</span></div>
           <div style={rowStyle}>
             <span style={labelStyle}>Status</span>
@@ -155,19 +154,17 @@ export const TrackingIssueDetail: React.FC = () => {
           <div style={rowStyle}><span style={labelStyle}>Assigned To</span><span style={valueStyle}>{issue.assigned_to_name || 'Unassigned'}</span></div>
           <div style={rowStyle}><span style={labelStyle}>Due Date</span><span style={valueStyle}>{fdate(issue.due_date)}</span></div>
           <div style={rowStyle}><span style={labelStyle}>Due Odometer</span><span style={valueStyle}>{issue.due_odometer_km != null ? `${issue.due_odometer_km.toLocaleString()} km` : '—'}</span></div>
-        </div>
+        </SectionCard>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div style={cardStyle}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Resolution Details</div>
+          <SectionCard title="Resolution Details">
             <div style={rowStyle}><span style={labelStyle}>Resolved Date</span><span style={valueStyle}>{fdate(issue.resolved_at)}</span></div>
             <div style={rowStyle}><span style={labelStyle}>Resolved Meter Entry</span><span style={valueStyle}>{issue.resolved_odometer_km != null ? `${issue.resolved_odometer_km.toLocaleString()} km` : '—'}</span></div>
             <div style={rowStyle}><span style={labelStyle}>Time to Resolve</span><span style={valueStyle}>{issue.resolved_at ? durationBetween(issue.created_at, issue.resolved_at) : '—'}</span></div>
             <div style={rowStyle}><span style={labelStyle}>Miles to Resolve</span><span style={valueStyle}>{milesToResolve != null ? `${milesToResolve.toLocaleString()} km` : '—'}</span></div>
-          </div>
+          </SectionCard>
 
-          <div style={cardStyle}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 14 }}>Timeline</div>
+          <SectionCard title="Timeline">
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               {events.map((ev, i) => (
                 <div key={ev.id} style={{ display: 'flex', gap: 10, position: 'relative' }}>
@@ -189,7 +186,7 @@ export const TrackingIssueDetail: React.FC = () => {
               <input type="text" placeholder="Add a comment..." value={commentText} onChange={e => setCommentText(e.target.value)} style={{ flex: 1, padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 13, fontFamily: 'var(--font)' }} />
               <button type="submit" disabled={!commentText.trim()} style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', padding: '0 16px', borderRadius: 'var(--r)', fontWeight: 600, cursor: 'pointer', opacity: !commentText.trim() ? 0.6 : 1 }}>Post</button>
             </form>
-          </div>
+          </SectionCard>
         </div>
       </div>
     </div>

@@ -204,6 +204,14 @@ const P = {
   cloudRain:    'M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z',
   unlock:       ['M7 11V7a5 5 0 0 1 9.9-1', 'M5 11h14a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2z'],
   bookmark:     'M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z',
+  mic:          'M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z M19 10v1a7 7 0 0 1-14 0v-1 M12 18v4 M8 22h8',
+  micOff:       ['M18.89 13.23A7.12 7.12 0 0 0 19 11v-1', 'M5 10v1a6.93 6.93 0 0 0 1.25 4', 'M12 18v4', 'M8 22h8', 'M2 2l20 20'],
+  pin:          'M12 17v5M5 12h14M12 2a4 4 0 0 1 4 4v6l2 2v2H6v-2l2-2V6a4 4 0 0 1 4-4z',
+  hand:         'M18 11V6a2 2 0 0 0-4 0v5M14 10V4a2 2 0 0 0-4 0v6M10 10.5V6a2 2 0 0 0-4 0v9a7 7 0 0 0 7 7h1a7 7 0 0 0 7-7v-3a2 2 0 0 0-4 0',
+  closedCaptions: 'M5 15h14a2 2 0 0 0 2-2V11a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2a2 2 0 0 0 2 2z M7 12h2 M15 12h2',
+  translate:    'M5 8h14M12 3v5M11 8a6 6 0 0 1-6 6M5 18a6 6 0 0 1 6-6M13 18l3-6 3 6M14 16h4',
+  gemini:       'M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z',
+  activities:   'M3 3h7v7H3V3zm11 0h7v7h-7V3zM3 14h7v7H3v-7zm11 0h7v7h-7v-7z',
 } satisfies Record<string, string | string[]>;
 
 export type IconName = keyof typeof P;

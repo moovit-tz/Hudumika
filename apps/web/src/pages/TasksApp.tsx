@@ -238,30 +238,24 @@ export const TasksApp: React.FC = () => {
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {/* Display Mode Switcher */}
-            <div style={{ display: 'flex', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 8, padding: 2 }}>
+            <div className="ds-tabs-list" data-variant="segmented">
               <button
                 type="button"
+                className="ds-tabs-trigger"
+                data-variant="segmented"
+                data-state={displayMode === 'list' ? 'active' : 'inactive'}
                 onClick={() => setDisplayMode('list')}
                 title="List View"
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 6, border: 'none',
-                  fontSize: 12.5, fontWeight: 700, cursor: 'pointer',
-                  background: displayMode === 'list' ? 'var(--teal)' : 'transparent',
-                  color: displayMode === 'list' ? '#fff' : 'var(--ink2)'
-                }}
               >
                 <Icon name="list" size={14} /> List
               </button>
               <button
                 type="button"
+                className="ds-tabs-trigger"
+                data-variant="segmented"
+                data-state={displayMode === 'kanban' ? 'active' : 'inactive'}
                 onClick={() => setDisplayMode('kanban')}
                 title="Kanban Board View"
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 6, border: 'none',
-                  fontSize: 12.5, fontWeight: 700, cursor: 'pointer',
-                  background: displayMode === 'kanban' ? 'var(--teal)' : 'transparent',
-                  color: displayMode === 'kanban' ? '#fff' : 'var(--ink2)'
-                }}
               >
                 <Icon name="layers" size={14} /> Kanban
               </button>

@@ -52,6 +52,15 @@ export function SealCompartmentEdit() {
   const [jurisdiction, setJurisdiction] = useState('TZ');
   const [defaultStorageDays, setDefaultStorageDays] = useState(180);
   const [logoUrl, setLogoUrl] = useState('');
+  // Compartment logos aren't in the identity system's SUBJECTS registry
+  // (only people/customers/leads/contacts/drivers/suppliers/carriers/
+  // candidates are), so this stays its own self-contained upload-or-paste-
+  // a-URL flow rather than AvatarPicker — there's no second read path for
+  // it to drift from (the read-only displays elsewhere all take this same
+  // logo_url as a CompanyAvatar prop, not a separate fetch). The one real
+  // gap was the live preview having no fallback for a broken/unreachable
+  // pasted URL.
+  const [logoPreviewFailed, setLogoPreviewFailed] = useState(false);
 
   // Billing Fields
   const [billingMethod, setBillingMethod] = useState<'flat_per_lot' | 'per_cbm'>('flat_per_lot');
@@ -75,6 +84,7 @@ export function SealCompartmentEdit() {
         setJurisdiction(c.jurisdiction || 'TZ');
         setDefaultStorageDays(c.default_storage_days || 180);
         setLogoUrl(c.logo_url || '');
+        setLogoPreviewFailed(false);
 
         setBillingMethod(c.billing_method || 'flat_per_lot');
         setStorageFeePerDay(c.storage_fee_per_day || '0');
@@ -97,6 +107,7 @@ export function SealCompartmentEdit() {
     reader.onload = () => {
       if (typeof reader.result === 'string') {
         setLogoUrl(reader.result);
+        setLogoPreviewFailed(false);
       }
     };
     reader.readAsDataURL(file);
@@ -183,12 +194,12 @@ export function SealCompartmentEdit() {
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               overflow: 'hidden', background: 'var(--bg)', position: 'relative'
             }}>
-              {logoUrl ? (
-                <img src={logoUrl} alt="Facility Logo" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 8 }} />
+              {logoUrl && !logoPreviewFailed ? (
+                <img src={logoUrl} alt="Facility Logo" onError={() => setLogoPreviewFailed(true)} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 8 }} />
               ) : (
-                <div style={{ textAlign: 'center', color: 'var(--ink3)', padding: 10 }}>
-                  <Icon name="warehouse" size={28} />
-                  <div style={{ fontSize: 10, marginTop: 4, fontWeight: 600 }}>No Logo</div>
+                <div style={{ textAlign: 'center', color: logoUrl ? 'var(--red)' : 'var(--ink3)', padding: 10 }}>
+                  <Icon name={logoUrl ? 'alertCircle' : 'warehouse'} size={28} />
+                  <div style={{ fontSize: 10, marginTop: 4, fontWeight: 600 }}>{logoUrl ? "Couldn't load image" : 'No Logo'}</div>
                 </div>
               )}
             </div>
@@ -214,7 +225,7 @@ export function SealCompartmentEdit() {
                   type="url"
                   className="input-field"
                   value={logoUrl}
-                  onChange={e => setLogoUrl(e.target.value)}
+                  onChange={e => { setLogoUrl(e.target.value); setLogoPreviewFailed(false); }}
                   placeholder="https://example.com/logo.png"
                   style={{ width: '100%' }}
                 />

@@ -4,6 +4,7 @@ import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 interface OneIdUser {
   id: string; name: string; email: string; phone: string | null;
@@ -122,7 +123,8 @@ export const OneIdUsers: React.FC = () => {
         ) : undefined}
       />
 
-      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, overflow: 'hidden', marginBottom: canManage && invites.length > 0 ? 24 : 0 }}>
+      <div style={{ marginBottom: canManage && invites.length > 0 ? 24 : 0 }}>
+      <SectionCard padded={false}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
           <thead>
             <tr style={{ background: 'var(--bg)', textAlign: 'left' }}>
@@ -167,12 +169,11 @@ export const OneIdUsers: React.FC = () => {
         {!loading && users.length === 0 && (
           <div style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No users found.</div>
         )}
+      </SectionCard>
       </div>
 
       {canManage && invites.length > 0 && (
-        <>
-          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 10 }}>Pending invitations</div>
-          <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, overflow: 'hidden' }}>
+        <SectionCard padded={false} title="Pending invitations">
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
                 <tr style={{ background: 'var(--bg)', textAlign: 'left' }}>
@@ -193,8 +194,7 @@ export const OneIdUsers: React.FC = () => {
                 ))}
               </tbody>
             </table>
-          </div>
-        </>
+        </SectionCard>
       )}
     </div>
   );

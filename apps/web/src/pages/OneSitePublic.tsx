@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
+import { CompanyAvatar } from '../components/PersonAvatar.js';
 import { usePageSEO } from '../hooks/usePageSEO.js';
 import type { CmsPublicSite, CmsPage } from '@hudumika/types';
 import '../pages/LegalPages.css';
@@ -95,7 +96,7 @@ export function OneSitePublic() {
       <header className="onesite-pub-header">
         <div className="onesite-pub-header-inner">
           <Link to={`/site/${tenantSlug}`} className="onesite-pub-brand">
-            {site.settings.logoUrl && <img src={site.settings.logoUrl} alt={site.tenantName} />}
+            <CompanyAvatar name={site.tenantName} logoUrl={site.settings.logoUrl} size={28} shape="square" />
             <span>{site.tenantName}</span>
           </Link>
           {site.settings.tagline && <span className="onesite-pub-tagline">{site.settings.tagline}</span>}

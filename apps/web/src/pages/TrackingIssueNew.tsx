@@ -7,6 +7,7 @@ import { Combobox } from '../components/ui/combobox.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 interface Vehicle { id: string; name: string; plate_number: string | null }
 interface StaffUser { id: string; name: string }
@@ -60,7 +61,8 @@ export const TrackingIssueNew: React.FC = () => {
         titleEm="issue"
       />
 
-      <form onSubmit={submit} style={{ ...cardStyle, display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <SectionCard>
+      <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div>
           <label style={labelStyle}>Vehicle</label>
           <Combobox
@@ -111,6 +113,7 @@ export const TrackingIssueNew: React.FC = () => {
           </button>
         </div>
       </form>
+      </SectionCard>
     </div>
   );
 };

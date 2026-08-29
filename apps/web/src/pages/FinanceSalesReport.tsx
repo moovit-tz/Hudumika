@@ -5,6 +5,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { apiFetch } from '../lib/api.js';
 import { mapApiInvoice, invoiceTotals, STATUS_STYLE } from './Billing.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 const fmtM = (n: number) => `TZS ${(n / 1_000_000).toFixed(1)}M`;
 const fmtFull = (n: number) => `TZS ${Math.round(n).toLocaleString()}`;
@@ -167,17 +168,13 @@ export const FinanceSalesReport: React.FC = () => {
         </div>
 
         {/* Chart */}
-        <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '18px 20px' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Monthly Sales Income</div>
+        <SectionCard title="Monthly Sales Income">
           <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 16 }}>{period}</div>
           <BarChart labels={monthLabels} values={monthlyTotals} color="var(--teal)" />
-        </div>
+        </SectionCard>
 
         {/* Table */}
-        <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', overflow: 'hidden' }}>
-          <div style={{ padding: '11px 18px', borderBottom: '1px solid var(--border)' }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Invoice Details ({invoices.length})</span>
-          </div>
+        <SectionCard padded={false} title={`Invoice Details (${invoices.length})`}>
           <div className="rtbl-wrap" style={{ overflowX: 'auto' }}><table className="rtbl" style={{ borderCollapse: 'collapse', fontSize: 12, width: '100%' }}>
             <thead>
               <tr style={{ background: 'var(--bg)' }}>
@@ -241,7 +238,7 @@ export const FinanceSalesReport: React.FC = () => {
               </div>
             </div>
           )}
-        </div>
+        </SectionCard>
       </div>
     </div>
   );

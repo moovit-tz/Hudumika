@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 interface Vehicle {
   id: string; name: string; device_id: string | null; status: string;
@@ -71,8 +72,8 @@ export const TrackingDevices: React.FC = () => {
         </button>
       </div>
 
-      {/* ── Connection status ── */}
-      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: '18px 20px', marginBottom: 20 }}>
+      <div style={{ marginBottom: 20 }}>
+      <SectionCard title="Connection Status">
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: configured ? 12 : 0 }}>
           <span style={{ width: 9, height: 9, borderRadius: '50%', background: configured ? '#059669' : '#dc2626', flexShrink: 0 }} />
           <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{configured ? 'Connected' : 'Not connected'}</span>
@@ -117,13 +118,10 @@ export const TrackingDevices: React.FC = () => {
             Unmatched GPSWOX device IDs (no vehicle has this Device ID): {lastSync.unmatched.join(', ')}
           </div>
         )}
+      </SectionCard>
       </div>
 
-      {/* ── Vehicle mapping table ── */}
-      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, overflow: 'hidden' }}>
-        <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>
-          Vehicle ↔ Device mapping
-        </div>
+      <SectionCard title="Vehicle ↔ Device Mapping">
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
           <thead>
             <tr style={{ background: 'var(--bg)', textAlign: 'left' }}>
@@ -154,7 +152,7 @@ export const TrackingDevices: React.FC = () => {
         {!loading && mapped.length === 0 && (
           <div style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No vehicles have a Device ID set yet.</div>
         )}
-      </div>
+      </SectionCard>
 
       {!loading && unmapped.length > 0 && (
         <div style={{ marginTop: 14, fontSize: 12, color: 'var(--ink3)' }}>

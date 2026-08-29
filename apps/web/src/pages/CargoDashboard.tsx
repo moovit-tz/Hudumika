@@ -4,6 +4,7 @@ import { PageHeader } from '../components/PageHeader.js';
 import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
 import { MetricsRow } from '../components/MetricCard.js';
+import { SectionCard } from '../components/SectionCard.js';
 import { apiFetch } from '../lib/api.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 
@@ -74,12 +75,7 @@ function EmptyPanel({ icon, title, sub }: { icon: any; title: string; sub: strin
   );
 }
 
-const panelStyle: React.CSSProperties = {
-  background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden',
-};
-const panelHeadStyle: React.CSSProperties = {
-  padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-};
+const panelSubStyle: React.CSSProperties = { fontSize: 12, color: 'var(--ink3)', marginBottom: 14 };
 
 export function CargoDashboard() {
   const navigate = useNavigate();
@@ -168,13 +164,8 @@ export function CargoDashboard() {
       ]} />
 
       {/* Carrier reliability */}
-      <div style={panelStyle}>
-        <div style={panelHeadStyle}>
-          <div>
-            <div style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--ink)' }}>Carrier Analysis</div>
-            <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>On-time %, ETA deviation and transit time, computed from your own tracked shipments</div>
-          </div>
-        </div>
+      <SectionCard title="Carrier Analysis">
+        <div style={panelSubStyle}>On-time %, ETA deviation and transit time, computed from your own tracked shipments</div>
         {carriers.length === 0 ? (
           <EmptyPanel icon="ship" title="No carrier data yet" sub="Save a few tracked shipments to see reliability by carrier." />
         ) : (
@@ -203,21 +194,16 @@ export function CargoDashboard() {
             </table>
           </div>
         )}
-      </div>
+      </SectionCard>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 20 }}>
         {/* Lane performance */}
-        <div style={panelStyle}>
-          <div style={panelHeadStyle}>
-            <div>
-              <div style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--ink)' }}>Lane Performance</div>
-              <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>Busiest origin → destination lanes</div>
-            </div>
-          </div>
+        <SectionCard title="Lane Performance">
+          <div style={panelSubStyle}>Busiest origin → destination lanes</div>
           {lanes.length === 0 ? (
             <EmptyPanel icon="mapPin" title="No lane data yet" sub="Lanes appear once you've tracked shipments with known ports." />
           ) : (
-            <div style={{ padding: '8px 20px 18px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {lanes.slice(0, 8).map(l => (
                 <div key={l.lane}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, marginBottom: 4 }}>
@@ -232,20 +218,15 @@ export function CargoDashboard() {
               ))}
             </div>
           )}
-        </div>
+        </SectionCard>
 
         {/* Regional performance */}
-        <div style={panelStyle}>
-          <div style={panelHeadStyle}>
-            <div>
-              <div style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--ink)' }}>Regional Analysis</div>
-              <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>Destination country, from your own shipment history</div>
-            </div>
-          </div>
+        <SectionCard title="Regional Analysis">
+          <div style={panelSubStyle}>Destination country, from your own shipment history</div>
           {regions.length === 0 ? (
             <EmptyPanel icon="globe" title="No regional data yet" sub="Regions are grouped from destination port codes." />
           ) : (
-            <div style={{ padding: '8px 20px 18px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {regions.slice(0, 8).map(r => (
                 <div key={r.country}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, marginBottom: 4 }}>
@@ -260,28 +241,25 @@ export function CargoDashboard() {
               ))}
             </div>
           )}
-        </div>
+        </SectionCard>
       </div>
 
       {/* Demurrage & Detention */}
-      <div style={panelStyle}>
-        <div style={panelHeadStyle}>
-          <div>
-            <div style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--ink)' }}>Demurrage & Detention</div>
-            <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>Cost exposure by carrier and month</div>
-          </div>
-          {demurrageEnabled && (
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => navigate('/cargotracker/demurrage')}>
-              Open Demurrage <Icon name="arrowRight" size={13} />
-            </button>
-          )}
-        </div>
+      <SectionCard
+        title="Demurrage & Detention"
+        action={demurrageEnabled && (
+          <button type="button" className="btn btn-secondary btn-sm" onClick={() => navigate('/cargotracker/demurrage')}>
+            Open Demurrage <Icon name="arrowRight" size={13} />
+          </button>
+        )}
+      >
+        <div style={panelSubStyle}>Cost exposure by carrier and month</div>
         {!demurrageEnabled ? (
           <EmptyPanel icon="lock" title="Demurrage tracking isn't enabled" sub="This tenant doesn't have the Demurrage entitlement — contact your administrator to turn it on." />
         ) : !demurrage || demurrage.total_containers === 0 ? (
           <EmptyPanel icon="package" title="No containers tracked yet" sub="Add containers under Demurrage & Detention to see cost trends here." />
         ) : (
-          <div style={{ padding: '18px 20px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24 }}>
             <div>
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10 }}>Cost by carrier</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -313,7 +291,7 @@ export function CargoDashboard() {
             </div>
           </div>
         )}
-      </div>
+      </SectionCard>
     </div>
   );
 }

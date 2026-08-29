@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
-import { FeaturedIcon } from '../components/ui/featured-icon.js';
+import { CompanyAvatar } from '../components/PersonAvatar.js';
 import { Badge } from '../components/ui/badge.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { apiFetch } from '../lib/api.js';
@@ -140,13 +140,7 @@ export function SealCompartmentDetail() {
       <div className="seal-card" style={{ padding: 24, marginBottom: 20 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            {c.logo_url ? (
-              <div style={{ width: 56, height: 56, borderRadius: 12, border: '1px solid var(--border)', overflow: 'hidden', padding: 4, background: 'var(--white)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'var(--elev-sm)' }}>
-                <img src={c.logo_url} alt={c.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-              </div>
-            ) : (
-              <FeaturedIcon variant="brand" size="lg" shape="square"><Icon name="layers" size={24} /></FeaturedIcon>
-            )}
+            <CompanyAvatar name={c.name} logoUrl={c.logo_url} size={56} shape="square" style={{ boxShadow: 'var(--elev-sm)' }} />
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <h1 className="seal-page-title" style={{ margin: 0, fontSize: 22 }}>{c.name}</h1>

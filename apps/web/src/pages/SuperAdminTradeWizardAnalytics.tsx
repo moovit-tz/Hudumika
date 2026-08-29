@@ -5,6 +5,7 @@ import { Badge } from '../components/ui/badge.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { MetricsRow } from '../components/MetricCard.js';
 import { apiFetch } from '../lib/api.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 interface Summary { total_searches: number; total_runs: number; unique_tenants: number; no_result_searches: number; no_result_rate: number; conversion_rate: number }
 interface TermRow { term: string; count: number; no_result_count?: number }
@@ -90,8 +91,7 @@ export function SuperAdminTradeWizardAnalytics() {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16, marginBottom: 16 }}>
         {/* Daily trend */}
-        <div style={card}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Daily activity</div>
+        <SectionCard title="Daily activity">
           <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 14 }}>Searches vs. completed runs, last 30 days</div>
           {trend.length === 0 ? <EmptyPanel text="No activity yet." /> : (
             <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 100 }}>
@@ -107,11 +107,10 @@ export function SuperAdminTradeWizardAnalytics() {
             <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 8, height: 8, borderRadius: 2, background: 'var(--blue)' }} /> Searches</span>
             <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 8, height: 8, borderRadius: 2, background: 'var(--teal)' }} /> Runs</span>
           </div>
-        </div>
+        </SectionCard>
 
         {/* Searches by kind */}
-        <div style={card}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 14 }}>Searches by kind</div>
+        <SectionCard title="Searches by kind">
           {byKind.length === 0 ? <EmptyPanel text="No searches yet." /> : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {byKind.map(k => (
@@ -122,13 +121,12 @@ export function SuperAdminTradeWizardAnalytics() {
               ))}
             </div>
           )}
-        </div>
+        </SectionCard>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16, marginBottom: 16 }}>
         {/* Top search terms */}
-        <div style={card}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 14 }}>Top search terms</div>
+        <SectionCard title="Top search terms">
           {topTerms.length === 0 ? <EmptyPanel text="No searches yet." /> : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {topTerms.map(t => (
@@ -142,11 +140,10 @@ export function SuperAdminTradeWizardAnalytics() {
               ))}
             </div>
           )}
-        </div>
+        </SectionCard>
 
         {/* Top procedures run */}
-        <div style={card}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 14 }}>Most-run procedures</div>
+        <SectionCard title="Most-run procedures">
           {topProcedures.length === 0 ? <EmptyPanel text="No wizard runs yet." /> : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {topProcedures.map(p => (
@@ -160,13 +157,12 @@ export function SuperAdminTradeWizardAnalytics() {
               ))}
             </div>
           )}
-        </div>
+        </SectionCard>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16 }}>
         {/* By tenant */}
-        <div style={card}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 14 }}>Usage by tenant</div>
+        <SectionCard title="Usage by tenant">
           {byTenant.length === 0 ? <EmptyPanel text="No activity yet." /> : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {byTenant.map(t => (
@@ -180,14 +176,10 @@ export function SuperAdminTradeWizardAnalytics() {
               ))}
             </div>
           )}
-        </div>
+        </SectionCard>
 
         {/* No-result searches — the actionable list */}
-        <div style={card}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-            <FeaturedIcon variant="error" size="sm" shape="square"><Icon name="xCircle" size={14} /></FeaturedIcon>
-            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>Searches with no results</div>
-          </div>
+        <SectionCard title="Searches with no results">
           {noResults.length === 0 ? (
             <EmptyPanel text="No unmatched searches — good coverage." />
           ) : (
@@ -200,7 +192,7 @@ export function SuperAdminTradeWizardAnalytics() {
               ))}
             </div>
           )}
-        </div>
+        </SectionCard>
       </div>
     </div>
   );

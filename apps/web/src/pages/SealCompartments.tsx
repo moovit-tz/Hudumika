@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
-import { FeaturedIcon } from '../components/ui/featured-icon.js';
+import { CompanyAvatar } from '../components/PersonAvatar.js';
 import { Badge } from '../components/ui/badge.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '../components/ui/dropdown-menu.js';
@@ -199,15 +199,7 @@ export function SealCompartments() {
                   style={{ display: 'flex', alignItems: 'center', gap: 16, flex: 1, minWidth: 220, cursor: 'pointer' }}
                   onClick={() => navigate(`/seal/compartments/${c.id}`)}
                 >
-                  {c.logo_url ? (
-                    <div style={{ width: 44, height: 44, borderRadius: 10, border: '1px solid var(--border)', overflow: 'hidden', padding: 3, background: 'var(--white)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <img src={c.logo_url} alt={c.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                    </div>
-                  ) : (
-                    <FeaturedIcon variant="brand" size="md" shape="square">
-                      <Icon name="layers" size={18} />
-                    </FeaturedIcon>
-                  )}
+                  <CompanyAvatar name={c.name} logoUrl={c.logo_url} size={44} shape="square" />
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>{c.name}</span>

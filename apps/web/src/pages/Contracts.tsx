@@ -8,6 +8,7 @@ import { EntityPicker, type PickerItem } from '../components/EntityPicker.js';
 import { apiFetch } from '../lib/api.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { SectionCard } from '../components/SectionCard.js';
 
 // Real Contracts (migration 316, 'projects' entitlement) — M2a of the
 // standalone Projects app's enterprise-parity program. A hardcoded-sample
@@ -110,7 +111,9 @@ export const Contracts: React.FC = () => {
         </div>
 
         {creating && (
-          <div style={{ marginBottom: 16, padding: 16, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ marginBottom: 16 }}>
+          <SectionCard>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
             <div style={{ flex: 1, minWidth: 220 }}>
               <EntityPicker value={newCustomer} onChange={setNewCustomer} search={searchCustomers} placeholder="Customer…" />
             </div>
@@ -123,12 +126,13 @@ export const Contracts: React.FC = () => {
             <Button size="sm" onClick={createContract} disabled={!newSubject.trim() || !newCustomer}>Create</Button>
             <Button size="sm" variant="outline" onClick={() => setCreating(false)}>Cancel</Button>
           </div>
+          </SectionCard>
+          </div>
         )}
 
         {!showTrash && (
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16, marginBottom: 24 }}>
-            <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 10 }}>Contracts by Type</div>
+            <SectionCard title="Contracts by Type">
               <div style={{ height: 200 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={byType}>
@@ -140,9 +144,8 @@ export const Contracts: React.FC = () => {
                   </BarChart>
                 </ResponsiveContainer>
               </div>
-            </div>
-            <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 10 }}>Contract Value by Type</div>
+            </SectionCard>
+            <SectionCard title="Contract Value by Type">
               <div style={{ height: 200 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={byType}>
@@ -154,7 +157,7 @@ export const Contracts: React.FC = () => {
                   </LineChart>
                 </ResponsiveContainer>
               </div>
-            </div>
+            </SectionCard>
           </div>
         )}
 
@@ -165,7 +168,7 @@ export const Contracts: React.FC = () => {
             {showTrash ? 'Trash is empty.' : 'No contracts yet.'}
           </div>
         ) : (
-          <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'auto' }}>
+          <SectionCard padded={false}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border)', textAlign: 'left' }}>
@@ -194,7 +197,7 @@ export const Contracts: React.FC = () => {
                 ))}
               </tbody>
             </table>
-          </div>
+          </SectionCard>
         )}
       </div>
     </div>

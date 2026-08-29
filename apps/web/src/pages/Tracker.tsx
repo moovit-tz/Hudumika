@@ -8,6 +8,7 @@ import { getCompany } from '../data/companyStore.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -600,7 +601,6 @@ export const Tracker: React.FC = () => {
   // ── Render ────────────────────────────────────────────────────────────────
 
   const p = isMobile ? '16px 14px' : '24px 28px';
-  const card: React.CSSProperties = { background: 'var(--white)', borderRadius: 16, border: '1px solid var(--border)', padding: isMobile ? '18px 16px' : '22px 26px', marginBottom: 16 };
 
   return (
     <div style={{ padding: p, boxSizing: 'border-box', width: '100%' }}>
@@ -629,21 +629,14 @@ export const Tracker: React.FC = () => {
       />
 
       {/* ── Search card ── */}
-      <div style={{ ...card, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 220px', gap: 0, padding: 0, overflow: 'hidden' }}>
+      <div style={{ background: 'var(--white)', borderRadius: 16, border: '1px solid var(--border)', marginBottom: 16, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 220px', gap: 0, padding: 0, overflow: 'hidden' }}>
         {/* Left: input */}
         <div style={{ padding: isMobile ? '20px 18px' : '24px 28px' }}>
           {/* Mode toggle */}
-          <div style={{ display: 'flex', gap: 6, marginBottom: 18, background: 'var(--bg)', borderRadius: 10, padding: 4, width: 'fit-content' }}>
+          <div className="ds-tabs-list" data-variant="segmented" style={{ marginBottom: 18, width: 'fit-content' }}>
             {(['AWB', 'BL'] as const).map(t => (
-              <button key={t} className="tr-btn" onClick={() => setTrackType(t)} style={{
-                height: 32, padding: '0 16px', borderRadius: 'var(--r)',
-                border: 'none',
-                background: trackType === t ? 'var(--white)' : 'transparent',
-                color: trackType === t ? 'var(--ink)' : 'var(--ink3)',
-                boxShadow: trackType === t ? '0 1px 4px rgba(0,0,0,.10)' : 'none',
-                fontFamily: 'var(--font)', fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                display: 'flex', alignItems: 'center', gap: 6,
-              }}>
+              <button key={t} type="button" className="ds-tabs-trigger" data-variant="segmented"
+                data-state={trackType === t ? 'active' : 'inactive'} onClick={() => setTrackType(t)}>
                 <Icon name={t === 'AWB' ? 'compass' : 'anchor'} size={12} color={trackType === t ? 'var(--teal)' : 'var(--ink3)'} />
                 {t === 'AWB' ? 'Air Waybill' : 'Bill of Lading'}
               </button>
@@ -872,21 +865,17 @@ export const Tracker: React.FC = () => {
 
           {/* ── Port Routing Table (ShipsGo / rich data) ── */}
           {result.port_calls && result.port_calls.length > 0 && (
-            <div style={{ ...card, marginBottom: 16, overflowX: 'auto' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
-                <div style={{ width: 34, height: 34, borderRadius: 10, background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Icon name="map" size={16} color="var(--teal)" />
+            <div style={{ marginBottom: 16 }}>
+            <SectionCard
+              title="Port Routing"
+              action={result.provider ? (
+                <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '3px 9px' }}>
+                  via {result.provider === 'shipsgo' ? 'ShipsGo' : 'Ship24'}
                 </div>
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-.01em' }}>Port Routing</div>
-                  <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 1 }}>{result.port_calls.length} ports · actual dates confirmed · estimated shown in italic</div>
-                </div>
-                {result.provider && (
-                  <div style={{ marginLeft: 'auto', fontSize: 10, fontWeight: 700, color: 'var(--ink3)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '3px 9px' }}>
-                    via {result.provider === 'shipsgo' ? 'ShipsGo' : 'Ship24'}
-                  </div>
-                )}
-              </div>
+              ) : undefined}
+            >
+              <div style={{ overflowX: 'auto' }}>
+              <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 14 }}>{result.port_calls.length} ports · actual dates confirmed · estimated shown in italic</div>
 
               {/* All unique event codes across all port calls */}
               {(() => {
@@ -963,6 +952,8 @@ export const Tracker: React.FC = () => {
                   </table>
                 );
               })()}
+              </div>
+            </SectionCard>
             </div>
           )}
 
@@ -970,16 +961,9 @@ export const Tracker: React.FC = () => {
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '3fr 2fr', gap: 16 }}>
 
             {/* Events */}
-            <div style={card}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-                <div style={{ width: 34, height: 34, borderRadius: 10, background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Icon name="activity" size={16} color="var(--teal)" />
-                </div>
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-.01em' }}>Tracking Events</div>
-                  <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 1 }}>{result.events.length} updates recorded</div>
-                </div>
-              </div>
+            <div style={{ marginBottom: 16 }}>
+            <SectionCard title="Tracking Events">
+              <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 14 }}>{result.events.length} updates recorded</div>
               <div style={{ maxHeight: 440, overflowY: 'auto' }}>
                 {result.events.map((ev, i) => {
                   const st = getStatus(ev.status_code);
@@ -1002,19 +986,13 @@ export const Tracker: React.FC = () => {
                   );
                 })}
               </div>
+            </SectionCard>
             </div>
 
             {/* Snapshot panel */}
-            <div style={card}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                <div style={{ width: 34, height: 34, borderRadius: 10, background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Icon name="save" size={16} color="var(--teal)" />
-                </div>
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-.01em' }}>Tracking Snapshot</div>
-                  <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 1 }}>Save · Share · Embed · PDF</div>
-                </div>
-              </div>
+            <div style={{ marginBottom: 16 }}>
+            <SectionCard title="Tracking Snapshot">
+              <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 10 }}>Save · Share · Embed · PDF</div>
 
               <div style={{ margin: '16px 0' }}>
                 <SnapshotCard result={result} />
@@ -1074,22 +1052,15 @@ export const Tracker: React.FC = () => {
                   </button>
                 )}
               </div>
+            </SectionCard>
             </div>
           </div>
 
           {/* ── Arrival Analytics + Demurrage bridge ── */}
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '3fr 2fr', gap: 16, marginTop: 16 }}>
             {/* Arrival Analytics */}
-            <div style={card}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-                <div style={{ width: 34, height: 34, borderRadius: 10, background: 'var(--blue-l)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Icon name="barChart2" size={16} color="var(--blue)" />
-                </div>
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-.01em' }}>Arrival Analytics</div>
-                  <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 1 }}>{result.carrier} reliability, computed from your own tracked shipments</div>
-                </div>
-              </div>
+            <SectionCard title="Arrival Analytics">
+              <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 14 }}>{result.carrier} reliability, computed from your own tracked shipments</div>
               {!carrierReliability || carrierReliability.on_time_pct === null ? (
                 <div style={{ padding: '20px 4px', fontSize: 12.5, color: 'var(--ink3)' }}>
                   Not enough history for {result.carrier} yet — save a few more shipments on this carrier to build a reliability rating.
@@ -1111,19 +1082,11 @@ export const Tracker: React.FC = () => {
                   </div>
                 </div>
               )}
-            </div>
+            </SectionCard>
 
             {/* Demurrage bridge */}
-            <div style={card}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-                <div style={{ width: 34, height: 34, borderRadius: 10, background: 'var(--gold-l)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Icon name="alertTriangle" size={16} color="var(--gold)" />
-                </div>
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-.01em' }}>Demurrage</div>
-                  <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 1 }}>Containers on this BL already under dwell tracking</div>
-                </div>
-              </div>
+            <SectionCard title="Demurrage">
+              <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 14 }}>Containers on this BL already under dwell tracking</div>
               {demurrageContainers.length === 0 ? (
                 <div style={{ padding: '8px 4px', fontSize: 12.5, color: 'var(--ink3)' }}>
                   {result.containers && result.containers.length > 0
@@ -1150,27 +1113,21 @@ export const Tracker: React.FC = () => {
                   ))}
                 </div>
               )}
-            </div>
+            </SectionCard>
           </div>
         </div>
       )}
 
       {/* ── Saved Snapshots ── */}
-      <div style={card}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 10 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(8,145,178,.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Icon name="layers" size={16} color="var(--teal)" />
-            </div>
-            <div>
-              <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-.01em' }}>Saved Snapshots</div>
-              <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 1 }}>{snapshots.length} snapshot{snapshots.length !== 1 ? 's' : ''}</div>
-            </div>
-          </div>
+      <SectionCard
+        title="Saved Snapshots"
+        action={
           <button className="tr-btn" onClick={loadSnapshots} style={{ height: 34, padding: '0 14px', borderRadius: 'var(--r)', border: '1.5px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontFamily: 'var(--font)', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
             <Icon name="refresh" size={13} />Refresh
           </button>
-        </div>
+        }
+      >
+        <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 16 }}>{snapshots.length} snapshot{snapshots.length !== 1 ? 's' : ''}</div>
 
         {loadingSnaps ? (
           <div style={{ padding: '40px 0', display: 'flex', justifyContent: 'center' }}>
@@ -1280,7 +1237,7 @@ export const Tracker: React.FC = () => {
             })}
           </div>
         )}
-      </div>
+      </SectionCard>
     </div>
   );
 };

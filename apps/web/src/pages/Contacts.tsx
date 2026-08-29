@@ -20,16 +20,6 @@ const MODAL_STEPS: { key: 'profile' | 'contact' | 'business' | 'extra'; label: s
   { key: 'extra',    label: 'Labels & Notes', icon: 'tag'      },
 ];
 
-const PRESET_AVATARS = [
-  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=60',
-  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&auto=format&fit=crop&q=60',
-  'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=120&auto=format&fit=crop&q=60',
-  'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=120&auto=format&fit=crop&q=60',
-  'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=120&auto=format&fit=crop&q=60',
-  'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=120&auto=format&fit=crop&q=60',
-  'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120&auto=format&fit=crop&q=60',
-  'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=120&auto=format&fit=crop&q=60',
-];
 
 export function Contacts() {
   // Shared state + data from context (provided by ContactsProvider in ContactsShell)
@@ -113,7 +103,9 @@ export function Contacts() {
       setFormBirthday(contact.birthday ? contact.birthday.split('T')[0] : '');
       setFormLabelIds(contact.labels.map(l => l.id));
       setFormIsFavorite(contact.is_favorite);
-      setFormAvatarUrl(contact.avatar_url || null);
+      // Not seeded here — an existing contact's picture is shown/edited
+      // entirely through AvatarPicker below, which reads the identity
+      // system directly rather than this form's own local state.
 
       // Eyris fields
       setFormLocation(contact.location || '');
@@ -157,7 +149,7 @@ export function Contacts() {
     e.preventDefault();
     if (!showEditModal) return;
 
-    const body = {
+    const body: Record<string, unknown> = {
       first_name: formFirstName,
       last_name: formLastName,
       email: formEmail,
@@ -168,7 +160,6 @@ export function Contacts() {
       notes: formNotes,
       birthday: formBirthday || null,
       is_favorite: formIsFavorite,
-      avatar_url: formAvatarUrl,
       label_ids: formLabelIds,
       location: formLocation,
       website: formWebsite,
@@ -180,13 +171,20 @@ export function Contacts() {
 
     try {
       if (showEditModal.id) {
-        // Update
+        // Update — avatar_url is deliberately NOT included here. An
+        // existing contact's picture is owned entirely by AvatarPicker
+        // (below), which writes straight through the identity system on
+        // each change; sending a possibly-stale formAvatarUrl here on an
+        // unrelated field edit would silently stomp on that.
         await apiFetch(`/v1/contacts/${showEditModal.id}`, {
           method: 'PATCH',
           body: JSON.stringify(body)
         });
       } else {
-        // Create
+        // Create — there's no contact id yet for AvatarPicker/the identity
+        // system to key off, so a freshly-picked picture rides along in the
+        // creation payload this one time only.
+        body.avatar_url = formAvatarUrl;
         await apiFetch('/v1/contacts', {
           method: 'POST',
           body: JSON.stringify(body)
@@ -1108,122 +1106,111 @@ export function Contacts() {
 
             {/* STEP: Profile — avatar + name + favorite */}
             {formStep === 'profile' && (<>
-            {/* Profile Avatar Block */}
+            {/* Profile Avatar Block — an existing contact (has an id) is
+                edited through the real AvatarPicker, the same shared
+                upload/remove control (and PersonAvatar read path) every
+                other picture in the app uses; it writes straight through
+                the identity system, so this modal can't drift from what the
+                contact list/detail sidebar shows for the same person the
+                way it used to. A brand-new contact has no id yet for
+                AvatarPicker to key off, so creation keeps a small local
+                upload-only widget for that one case (no preset Unsplash
+                grid, no paste-a-URL field — both were the exact kind of
+                unvalidated external image CLAUDE.md's own avatar section
+                warns about). */}
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 24, position: 'relative' }}>
-              <div
-                onClick={() => setShowAvatarSelector(o => !o)}
-                style={{
-                  width: 80, height: 80, borderRadius: '50%',
-                  cursor: 'pointer', overflow: 'hidden', position: 'relative',
-                  border: '2px solid var(--cts-accent)', background: 'var(--bg)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center'
-                }}
-              >
-                {formAvatarUrl ? (
-                  <img src={formAvatarUrl} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                ) : (
-                  <div style={{
-                    width: '100%', height: '100%', background: 'var(--cts-accent)', color: '#fff',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontWeight: 700, fontSize: 28
-                  }}>
-                    {formFirstName ? monogram(formFirstName, formLastName) : '?'}
-                  </div>
-                )}
-                
-                {/* Hover overlay */}
-                <div style={{
-                  position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)',
-                  color: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                  opacity: 0, transition: 'opacity 0.2s'
-                }}
-                onMouseEnter={e => e.currentTarget.style.opacity = '1'}
-                onMouseLeave={e => e.currentTarget.style.opacity = '0'}
-                >
-                  <Icon name="camera" size={18} color="#fff" />
-                  <span style={{ fontSize: 10, marginTop: 2, fontWeight: 500 }}>Change</span>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setShowAvatarSelector(o => !o)}
-                style={{
-                  background: 'none', border: 'none', color: 'var(--cts-accent)', fontSize: 12,
-                  fontWeight: 600, cursor: 'pointer', marginTop: 8
-                }}
-              >
-                Change Profile Picture
-              </button>
-
-              {/* Avatar Selector Dropdown Panel */}
-              {showAvatarSelector && (
-                <div style={{
-                  position: 'absolute', top: 90, zIndex: 10, width: 280,
-                  background: 'var(--white)', borderRadius: 8, padding: 16,
-                  boxShadow: 'var(--elev-lg)', border: '1px solid var(--border)'
-                }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 8 }}>Choose Preset Portrait</div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 16 }}>
-                    {PRESET_AVATARS.map((url, i) => (
-                      <img
-                        key={i}
-                        src={url}
-                        alt=""
-                        onClick={() => { setFormAvatarUrl(url); setShowAvatarSelector(false); }}
-                        style={{
-                          width: 52, height: 52, borderRadius: '50%', objectFit: 'cover',
-                          cursor: 'pointer', border: formAvatarUrl === url ? '2.5px solid var(--cts-accent)' : '1.5px solid transparent'
-                        }}
-                      />
-                    ))}
-                  </div>
-
-                  <div style={{ borderTop: '1px solid var(--border)', paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      style={{
-                        width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                        padding: '8px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)',
-                        fontSize: 13, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer'
-                      }}
-                    >
-                      <Icon name="upload" size={14} color="var(--ink2)" />
-                      Upload Photo
-                    </button>
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      accept="image/*"
-                      onChange={handleAvatarUpload}
-                      style={{ display: 'none' }}
-                    />
-
-                    <div>
-                      <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>Or Paste Image URL</div>
-                      <input
-                        className="input-field"
-                        placeholder="https://example.com/photo.jpg"
-                        style={{ height: 30, fontSize: 12, padding: '4px 8px' }}
-                        value={formAvatarUrl?.startsWith('data:') ? '' : (formAvatarUrl || '')}
-                        onChange={e => setFormAvatarUrl(e.target.value || null)}
-                      />
-                    </div>
-
-                    {formAvatarUrl && (
-                      <button
-                        type="button"
-                        onClick={() => { setFormAvatarUrl(null); setShowAvatarSelector(false); }}
-                        style={{
-                          width: '100%', border: 'none', background: 'none', color: 'var(--red)',
-                          fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: 'var(--ds-btn-py-sm) 0 0', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}
-                      >
-                        Remove Photo
-                      </button>
+              {showEditModal.id ? (
+                <AvatarPicker id={showEditModal.id} kind="contacts" name={`${formFirstName} ${formLastName}`.trim() || 'Contact'} size={80} />
+              ) : (
+                <>
+                  <div
+                    onClick={() => setShowAvatarSelector(o => !o)}
+                    style={{
+                      width: 80, height: 80, borderRadius: '50%',
+                      cursor: 'pointer', overflow: 'hidden', position: 'relative',
+                      border: '2px solid var(--cts-accent)', background: 'var(--bg)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center'
+                    }}
+                  >
+                    {formAvatarUrl ? (
+                      <img src={formAvatarUrl} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      <div style={{
+                        width: '100%', height: '100%', background: 'var(--cts-accent)', color: '#fff',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontWeight: 700, fontSize: 28
+                      }}>
+                        {formFirstName ? monogram(formFirstName, formLastName) : '?'}
+                      </div>
                     )}
+
+                    {/* Hover overlay */}
+                    <div style={{
+                      position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)',
+                      color: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                      opacity: 0, transition: 'opacity 0.2s'
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.opacity = '1'}
+                    onMouseLeave={e => e.currentTarget.style.opacity = '0'}
+                    >
+                      <Icon name="camera" size={18} color="#fff" />
+                      <span style={{ fontSize: 10, marginTop: 2, fontWeight: 500 }}>Change</span>
+                    </div>
                   </div>
-                </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowAvatarSelector(o => !o)}
+                    style={{
+                      background: 'none', border: 'none', color: 'var(--cts-accent)', fontSize: 12,
+                      fontWeight: 600, cursor: 'pointer', marginTop: 8
+                    }}
+                  >
+                    Set Profile Picture
+                  </button>
+
+                  {showAvatarSelector && (
+                    <div style={{
+                      position: 'absolute', top: 90, zIndex: 10, width: 220,
+                      background: 'var(--white)', borderRadius: 8, padding: 16,
+                      boxShadow: 'var(--elev-lg)', border: '1px solid var(--border)'
+                    }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          style={{
+                            width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                            padding: '8px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)',
+                            fontSize: 13, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer'
+                          }}
+                        >
+                          <Icon name="upload" size={14} color="var(--ink2)" />
+                          Upload Photo
+                        </button>
+                        <input
+                          type="file"
+                          ref={fileInputRef}
+                          accept="image/*"
+                          onChange={handleAvatarUpload}
+                          style={{ display: 'none' }}
+                        />
+
+                        {formAvatarUrl && (
+                          <button
+                            type="button"
+                            onClick={() => { setFormAvatarUrl(null); setShowAvatarSelector(false); }}
+                            style={{
+                              width: '100%', border: 'none', background: 'none', color: 'var(--red)',
+                              fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: 'var(--ds-btn-py-sm) 0 0', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}
+                          >
+                            Remove Photo
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
 

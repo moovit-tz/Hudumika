@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { PageHeader } from '../components/PageHeader.js';
 import { Icon } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 interface DataSource { name: string; type: string; status: string; recordsCount: number; lastSync: string }
 interface TableRow { table: string; records: number }
@@ -28,8 +29,6 @@ export function HuduBIDataSources() {
     })();
   }, []);
 
-  const card: React.CSSProperties = { background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 14, padding: 24, boxShadow: '0 1px 3px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: 16 };
-
   return (
     <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
       <PageHeader
@@ -39,13 +38,12 @@ export function HuduBIDataSources() {
         subtitle="The tables HuduBI reads to build your snapshot — scoped to this workspace, with live row counts."
       />
 
-      {loading && <div style={{ ...card, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading…</div>}
+      {loading && <SectionCard><div style={{ textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading…</div></SectionCard>}
 
       {!loading && (
         <>
           {/* Connected sources (the real one) */}
-          <div style={card}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--navy)' }}>Connected sources</div>
+          <SectionCard title="Connected sources">
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
               {sources.map(s => (
                 <div key={s.name} style={{ border: '1px solid var(--border)', borderRadius: 12, padding: 18, display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -66,11 +64,10 @@ export function HuduBIDataSources() {
                 </div>
               ))}
             </div>
-          </div>
+          </SectionCard>
 
           {/* Real per-table breakdown (replaces the fabricated ETL pipeline table) */}
-          <div style={card}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--navy)' }}>Tables in your data layer</div>
+          <SectionCard title="Tables in your data layer">
             {breakdown.length === 0 ? (
               <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>No data yet.</div>
             ) : (() => {
@@ -92,7 +89,7 @@ export function HuduBIDataSources() {
             <div style={{ fontSize: 11.5, color: 'var(--ink3)', borderTop: '1px solid var(--border)', paddingTop: 12 }}>
               These are the live tables HuduBI aggregates. It reads them directly — there is no separate warehouse or ETL copy to fall out of sync.
             </div>
-          </div>
+          </SectionCard>
         </>
       )}
     </div>

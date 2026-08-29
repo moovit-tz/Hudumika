@@ -8,6 +8,7 @@ import { Combobox } from '../components/ui/combobox.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { BackButton } from '../components/ui/BackButton.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 const CATS: Record<string, string> = {
   PORT_CHARGES: 'Port Charges', CUSTOMS_DUTY: 'Customs Duty', FREIGHT: 'Freight',
@@ -18,7 +19,6 @@ const CATS: Record<string, string> = {
 interface ShipmentOpt { id: string; ref_number?: string; bl_number?: string | null; customer_name?: string }
 interface CustomerOpt { id: string; name: string }
 
-const cardStyle: React.CSSProperties = { background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: 24 };
 const inputStyle: React.CSSProperties = { width: '100%', padding: '9px 12px', borderRadius: 9, border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: 13, background: 'var(--bg)', color: 'var(--ink)', boxSizing: 'border-box' };
 const labelStyle: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 };
 
@@ -101,7 +101,8 @@ export const FinanceExpenseNew: React.FC = () => {
         subtitle="Record a cost or revenue line — link it to a shipment or customer if it belongs to one."
       />
 
-      <form onSubmit={submit} style={{ ...cardStyle, display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <SectionCard>
+      <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div style={{ display: 'flex', gap: 14 }}>
           <div style={{ flex: 1 }}>
             <label style={labelStyle}>Expense Name</label>
@@ -210,6 +211,7 @@ export const FinanceExpenseNew: React.FC = () => {
           </button>
         </div>
       </form>
+      </SectionCard>
     </div>
   );
 };

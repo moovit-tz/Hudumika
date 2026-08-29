@@ -735,12 +735,14 @@ export const TopBar: React.FC<TopBarProps> = ({ navCollapsed, onToggleNav, onMob
                 return (
                   <div key={n.id} className="notif-item" data-read={n.read}
                     onClick={() => markRead(n.id, n.link)}>
-                    {/* Avatar — background is data-driven, kept as inline style */}
-                    <div className="notif-avatar" style={{ background: n.avatar_url ? 'transparent' : cfg.bg }}>
-                      {n.avatar_url
-                        ? <img src={n.avatar_url} alt="" className="notif-avatar-img" />
-                        : <Icon name={cfg.icon} size={20} color={cfg.fg} strokeWidth={2} />
-                      }
+                    {/* No PersonAvatar — a notification carries no actor
+                        id, only a type/title/message, so there's no "who"
+                        to fetch a picture for. n.avatar_url was never
+                        actually sent by the API (see
+                        notifications.routes.ts); this always rendered the
+                        type icon in practice. */}
+                    <div className="notif-avatar" style={{ background: cfg.bg }}>
+                      <Icon name={cfg.icon} size={20} color={cfg.fg} strokeWidth={2} />
                     </div>
 
                     {/* Content */}

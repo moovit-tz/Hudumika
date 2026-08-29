@@ -6,6 +6,7 @@ import { Icon } from '../components/Icon.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 interface Vehicle { id: string; name: string; plate_number: string | null }
 
@@ -57,7 +58,8 @@ export const TrackingDriverNew: React.FC = () => {
         titleEm="driver"
       />
 
-      <form onSubmit={submit} style={{ ...cardStyle, display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <SectionCard>
+      <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div><label style={labelStyle}>Name</label><input required value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Amara Kone" style={inputStyle} /></div>
         <div><label style={labelStyle}>Phone</label><input value={phone} onChange={e => setPhone(e.target.value)} style={inputStyle} /></div>
         <div style={{ display: 'flex', gap: 10 }}>
@@ -85,6 +87,7 @@ export const TrackingDriverNew: React.FC = () => {
           </button>
         </div>
       </form>
+      </SectionCard>
     </div>
   );
 };

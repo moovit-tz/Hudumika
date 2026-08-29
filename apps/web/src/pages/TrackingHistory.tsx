@@ -10,6 +10,7 @@ import { MapTileLayer } from '../components/MapTileLayer.js';
 import { Combobox } from '../components/ui/combobox.js';
 import 'leaflet/dist/leaflet.css';
 import { PageHeader } from '../components/PageHeader.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend);
 
@@ -86,9 +87,11 @@ export const TrackingHistory: React.FC = () => {
             </MapContainer>
           </div>
 
-          <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: 20, height: 240 }}>
-            <Line data={chartData} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }} />
-          </div>
+          <SectionCard>
+            <div style={{ height: 200 }}>
+              <Line data={chartData} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }} />
+            </div>
+          </SectionCard>
         </>
       )}
     </div>

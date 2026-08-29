@@ -5,6 +5,7 @@ import { apiFetch } from '../lib/api.js';
 import { useWebSocket } from '../hooks/useWebSocket.js';
 import { Icon } from '../components/Icon.js';
 import { MapTileLayer } from '../components/MapTileLayer.js';
+import { PersonAvatar } from '../components/PersonAvatar.js';
 import type { MapVariant } from '../components/MapTileLayer.js';
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
@@ -21,7 +22,7 @@ interface VehicleWithPosition {
   ignition?: boolean;
   odometer?: number;
   driver_name?: string;
-  driver_avatar?: string;
+  driver_id?: string | null;
   origin?: string;
   destination?: string;
   eta_time?: string;
@@ -111,7 +112,7 @@ const DEFAULT_MAP_VEHICLES: VehicleWithPosition[] = [
     ignition: true,
     odometer: 42150,
     driver_name: 'Juma Hamisi',
-    driver_avatar: 'https://i.pravatar.cc/150?u=veh-101',
+    driver_id: null,
     origin: 'Dar es Salaam Port Terminal',
     destination: 'Dodoma Inland Container Depot',
     eta_time: '18:30',
@@ -131,7 +132,7 @@ const DEFAULT_MAP_VEHICLES: VehicleWithPosition[] = [
     ignition: true,
     odometer: 18400,
     driver_name: 'Rashidi Athumani',
-    driver_avatar: 'https://i.pravatar.cc/150?u=veh-102',
+    driver_id: null,
     origin: 'Kurasini ICD Hub',
     destination: 'Tunduma Border Clearance',
     eta_time: '21:15',
@@ -151,7 +152,7 @@ const DEFAULT_MAP_VEHICLES: VehicleWithPosition[] = [
     ignition: false,
     odometer: 31200,
     driver_name: 'Bakari Mwamba',
-    driver_avatar: 'https://i.pravatar.cc/150?u=veh-103',
+    driver_id: null,
     origin: 'JNIA Cargo Terminal',
     destination: 'Mbezi Distribution Center',
     eta_time: 'Standby',
@@ -190,8 +191,14 @@ export const TrackingLiveMap: React.FC = () => {
           battery: v.last_position?.battery_pct ?? 100,
           ignition: v.last_position?.ignition === 'ON' || isMoving,
           odometer: Math.floor(Math.random() * 50000) + 10000,
-          driver_name: v.id.includes('1') ? 'Juma Hamisi' : (v.id.includes('2') ? 'Rashidi Athumani' : 'Bakari Mwamba'),
-          driver_avatar: `https://i.pravatar.cc/150?u=${v.id}`,
+          // driver_name and driver_id ride along from the real API record
+          // (the ...v spread above) untouched — this used to overwrite a
+          // real vehicle's actual driver with one of three fabricated
+          // names keyed off a substring of the vehicle id, and a random
+          // pravatar.cc stranger's face for the picture. Out of scope for
+          // today: odometer/origin/destination/eta/cargo below are still
+          // fabricated placeholders, a separate, larger gap (no real route/
+          // cargo data model exists yet for tracking vehicles).
           origin: 'Dar es Salaam Port Terminal',
           destination: 'Dodoma ICD Depot',
           eta_time: isMoving ? '16:45' : 'N/A',
@@ -360,7 +367,7 @@ export const TrackingLiveMap: React.FC = () => {
               >
                 <div className="trk-v-head">
                   <div className="trk-v-name-wrap">
-                    <img src={v.driver_avatar} alt="driver" className="trk-v-avatar" />
+                    <PersonAvatar userId={v.driver_id} kind="drivers" name={v.driver_name || 'Unassigned'} size={32} />
                     <div>
                       <div className="trk-v-name">{v.name}</div>
                       <div className="trk-v-sub">{v.plate_number || 'No Plate'}</div>
@@ -433,7 +440,7 @@ export const TrackingLiveMap: React.FC = () => {
 
               {/* Driver info */}
               <div className="trk-info-group trk-driver-card">
-                 <img src={selectedVehicle.driver_avatar} alt="driver" className="trk-driver-avatar-lg" />
+                 <PersonAvatar userId={selectedVehicle.driver_id} kind="drivers" name={selectedVehicle.driver_name || 'Unassigned'} size={40} />
                  <div>
                     <div className="trk-info-label" style={{marginBottom: 2}}>Driver</div>
                     <div className="trk-driver-name">{selectedVehicle.driver_name}</div>

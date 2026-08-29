@@ -9,6 +9,7 @@ import { EntityPicker, type PickerItem } from '../components/EntityPicker.js';
 import { FileUploader } from '../components/ui/file-uploader.js';
 import { apiFetch, apiDownload, apiViewBlob } from '../lib/api.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 // Contract detail (M2b) — Contract Information/Content/Attachments/Comments
 // tabs. Attachments reuse the platform's existing generic Drive entity-tag
@@ -179,10 +180,11 @@ export const ContractDetail: React.FC = () => {
           <div style={{ fontSize: 11.5, color: 'var(--green)', marginTop: 4 }}>Signed {new Date(contract.signed_at).toLocaleString()}</div>
         )}
 
-        <div style={{ display: 'flex', gap: 4, marginTop: 18, borderBottom: '1px solid var(--border)' }}>
+        <div className="ds-tabs-list" data-variant="segmented" style={{ marginTop: 18 }}>
           {(['info', 'content', 'attachments', 'comments'] as const).map(t => (
-            <button key={t} type="button" onClick={() => setTab(t)}
-              style={{ padding: 'var(--ds-btn-py) 14px', background: 'none', border: 'none', borderBottom: `2px solid ${tab === t ? 'var(--teal)' : 'transparent'}`, color: tab === t ? 'var(--teal)' : 'var(--ink3)', fontWeight: tab === t ? 700 : 500, fontSize: 13.5, cursor: 'pointer', textTransform: 'capitalize' }}>
+            <button key={t} type="button" className="ds-tabs-trigger" data-variant="segmented"
+              data-state={tab === t ? 'active' : 'inactive'} onClick={() => setTab(t)}
+              style={{ textTransform: 'capitalize' }}>
               {t === 'info' ? 'Contract Information' : t}
             </button>
           ))}
@@ -191,7 +193,8 @@ export const ContractDetail: React.FC = () => {
 
       <div style={{ padding: isMobile ? 16 : 32, maxWidth: 720 }}>
         {tab === 'info' && (
-          <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <SectionCard collapsible={false}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--ink2)', cursor: 'pointer' }}>
               <input type="checkbox" checked={!!contract.deleted_at} onChange={e => patch({ trashed: e.target.checked })} />
               Trash
@@ -255,11 +258,12 @@ export const ContractDetail: React.FC = () => {
                 </div>
               )}
             </div>
-          </div>
+            </div>
+          </SectionCard>
         )}
 
         {tab === 'content' && (
-          <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: 20 }}>
+          <SectionCard collapsible={false}>
             <textarea
               defaultValue={contract.content ?? ''}
               onBlur={e => patch({ content: e.target.value })}
@@ -267,7 +271,7 @@ export const ContractDetail: React.FC = () => {
               placeholder="Contract body / terms…"
               style={{ width: '100%', padding: 'var(--ds-input-py, 7px) 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, color: 'var(--ink)', fontFamily: 'var(--font)', resize: 'vertical', boxSizing: 'border-box', lineHeight: 1.6 }}
             />
-          </div>
+          </SectionCard>
         )}
 
         {tab === 'attachments' && (

@@ -4,6 +4,7 @@ import { apiFetch } from '../lib/api.js';
 import { Icon, IconName } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 // IT-admin / security overview. Composes the existing security endpoints
 // (devices, login history, activity log, staff) into one real dashboard — no
@@ -49,11 +50,8 @@ export function ITAdminDashboard() {
   ];
 
   const card: React.CSSProperties = { background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' };
-  const cardHd = (title: string, to: string, link: string) => (
-    <div style={{ padding: '11px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-      <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{title}</span>
-      <Link to={to} style={{ fontSize: 11, fontWeight: 600, color: 'var(--teal)', textDecoration: 'none' }}>{link} →</Link>
-    </div>
+  const cardAction = (to: string, link: string) => (
+    <Link to={to} style={{ fontSize: 11, fontWeight: 600, color: 'var(--teal)', textDecoration: 'none' }}>{link} →</Link>
   );
 
   return (
@@ -76,9 +74,7 @@ export function ITAdminDashboard() {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(320px, 100%), 1fr))', gap: 20 }}>
         {/* Users by role */}
-        <div style={card}>
-          {cardHd('Accounts by role', '/nexushr/roles', 'Manage')}
-          <div style={{ padding: '14px 18px' }}>
+        <SectionCard title="Accounts by role" action={cardAction('/nexushr/roles', 'Manage')}>
             {byRole.length === 0 ? <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>No accounts.</div> : byRole.map(([role, n], i) => {
               const colors = ['var(--teal)', 'var(--blue)', 'var(--purple)', 'var(--green)', 'var(--gold)', 'var(--red)', 'var(--ink3)'];
               return (
@@ -91,13 +87,10 @@ export function ITAdminDashboard() {
                 </div>
               );
             })}
-          </div>
-        </div>
+        </SectionCard>
 
         {/* Recent sign-ins */}
-        <div style={card}>
-          {cardHd('Recent sign-ins', '/nexushr/login-history', 'View all')}
-          <div style={{ padding: '8px 12px' }}>
+        <SectionCard title="Recent sign-ins" action={cardAction('/nexushr/login-history', 'View all')}>
             {logins.length === 0 ? <div style={{ fontSize: 12.5, color: 'var(--ink3)', padding: '8px' }}>No sign-in history.</div> : logins.slice(0, 8).map(l => {
               const ok = String(l.status).toUpperCase() === 'SUCCESS';
               return (
@@ -109,13 +102,10 @@ export function ITAdminDashboard() {
                 </div>
               );
             })}
-          </div>
-        </div>
+        </SectionCard>
 
         {/* Recent activity */}
-        <div style={card}>
-          {cardHd('Recent activity', '/nexushr/activity-logs', 'View all')}
-          <div style={{ padding: '8px 12px' }}>
+        <SectionCard title="Recent activity" action={cardAction('/nexushr/activity-logs', 'View all')}>
             {activity.length === 0 ? <div style={{ fontSize: 12.5, color: 'var(--ink3)', padding: '8px' }}>No activity logged.</div> : activity.slice(0, 8).map(a => (
               <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 6px', borderBottom: '1px solid var(--border)' }}>
                 <span style={{ fontSize: 12.5, color: 'var(--ink)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -125,8 +115,7 @@ export function ITAdminDashboard() {
                 <span style={{ fontSize: 11, color: 'var(--ink3)', minWidth: 56, textAlign: 'right' }}>{when(a.created_at)}</span>
               </div>
             ))}
-          </div>
-        </div>
+        </SectionCard>
       </div>
     </div>
   );

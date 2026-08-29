@@ -8,6 +8,7 @@ import { useIsMobile } from '../hooks/useIsMobile.js';
 import { apiFetch, apiDownload } from '../lib/api.js';
 import { EntityPicker, PickerItem } from '../components/EntityPicker.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { Popover, PopoverTrigger, PopoverContent } from '../components/ui/popover.js';
 import { Button } from '../components/ui/button.js';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
@@ -585,7 +586,7 @@ function ChargeSectionEditor({ title, color, group, currency, items, onChange, c
         </thead>
         <tbody>
           {items.length === 0 ? (
-            <tr><td colSpan={9} style={{ padding: '12px 10px', color: 'var(--ink3)', fontStyle: 'italic', fontSize: 12, textAlign: 'center', borderBottom: '1px solid var(--border)' }}>No charges — click "Add Item" below</td></tr>
+            <tr><td colSpan={10} style={{ padding: '12px 10px', color: 'var(--ink3)', fontStyle: 'italic', fontSize: 12, textAlign: 'center', borderBottom: '1px solid var(--border)' }}>No charges — click "Add Item" below</td></tr>
           ) : items.map((item, i) => {
             const lineSub = item.qty * item.rate;
             const lineTax = lineSub * item.taxPct / 100;
@@ -1694,12 +1695,10 @@ export const Billing: React.FC = () => {
   const [filterDateTo, setFilterDateTo]     = useState('');
   const activeFilterCount = (filterMode !== 'all' ? 1 : 0) + (filterDateFrom ? 1 : 0) + (filterDateTo ? 1 : 0);
 
-  /* ── Batch payments modal ── */
-  const [showBatchPayment, setShowBatchPayment] = useState(false);
-  const [batchSelected, setBatchSelected]       = useState<Set<string>>(new Set());
-  const [batchMethod, setBatchMethod]           = useState('Bank Transfer');
-  const [batchDate, setBatchDate]               = useState(() => new Date().toLocaleDateString('en-GB').split('/').join('-'));
-  const [batchSubmitting, setBatchSubmitting]   = useState(false);
+  /* ── Row selection → bulk export ── keyed by invoice id, not filtered
+     index, so a selection survives the user narrowing/widening the table
+     with the status tabs / filters / search afterward. */
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const selectedInvoice = selectedId ? (invoices.find(i => i.id === selectedId) ?? null) : null;
   const isSplit = mode !== 'list';
@@ -1717,19 +1716,11 @@ export const Billing: React.FC = () => {
     .filter(inv => !search || [inv.client, inv.id, inv.blNumber].some(s => s.toLowerCase().includes(search.toLowerCase())))
     .sort((a, b) => sortAsc ? a.id.localeCompare(b.id) : b.id.localeCompare(a.id));
 
-  const outstandingInvoices = invoices.filter(inv => (inv.status === 'Unpaid' || inv.status === 'Partial' || inv.status === 'Overdue') && inv._dbId);
-
   const invStats = (() => {
     const draftCount = invoices.filter(i => i.status === 'Draft').length;
     const paidCount = invoices.filter(i => i.status === 'Paid').length;
     const overdueInvoices = invoices.filter(i => i.status === 'Overdue');
     const overdueTotal = overdueInvoices.reduce((s, i) => s + Math.max(0, invoiceTotal(i) - i.received), 0);
-    // Same definition as the table footer below (Math.max(0, invoiceTotal(i)
-    // - i.received) summed with no status filter) — outstandingInvoices
-    // itself stays scoped to Unpaid/Partial/Overdue because that's what
-    // batch-payment eligibility actually means, but this card sits right
-    // above a footer already showing "Outstanding" a different way; the two
-    // numbers on one page have to agree or one of them reads as wrong.
     const outstandingTotal = invoices.reduce((s, i) => s + Math.max(0, invoiceTotal(i) - i.received), 0);
     const totalReceived = invoices.reduce((s, i) => s + i.received, 0);
     const totalBilled = invoices.reduce((s, i) => s + invoiceTotal(i), 0);
@@ -1741,39 +1732,29 @@ export const Billing: React.FC = () => {
     };
   })();
 
-  function toggleBatchSelect(id: string) {
-    setBatchSelected(prev => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; });
+  const selectedInvoicesList = invoices.filter(inv => selectedIds.has(inv.id));
+  const allFilteredSelected = filtered.length > 0 && filtered.every(inv => selectedIds.has(inv.id));
+
+  function toggleSelect(id: string) {
+    setSelectedIds(prev => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; });
+  }
+  function toggleSelectAllFiltered() {
+    setSelectedIds(prev => {
+      if (allFilteredSelected) {
+        const next = new Set(prev);
+        filtered.forEach(inv => next.delete(inv.id));
+        return next;
+      }
+      const next = new Set(prev);
+      filtered.forEach(inv => next.add(inv.id));
+      return next;
+    });
   }
 
-  async function submitBatchPayment() {
-    if (batchSelected.size === 0 || batchSubmitting) return;
-    setBatchSubmitting(true);
-    const targets = outstandingInvoices.filter(inv => batchSelected.has(inv.id));
-    for (const inv of targets) {
-      const balance = Math.max(0, invoiceTotal(inv) - inv.received);
-      if (balance <= 0 || !inv._dbId) continue;
-      try {
-        await apiFetch(`/v1/invoices/${inv._dbId}/payment`, {
-          method: 'POST',
-          body: JSON.stringify({ amount: balance, method: batchMethod, payment_date: billDateToIso(batchDate) }),
-        });
-      } catch { /* continue with remaining invoices */ }
-    }
-    const data: any = await apiFetch('/v1/invoices').catch(() => null);
-    if (Array.isArray(data)) setInvoices(data.map(mapApiInvoice));
-    setBatchSubmitting(false);
-    setShowBatchPayment(false);
-    setBatchSelected(new Set());
-  }
-
-  function exportCsv() {
-    // Exports what the table is currently showing (filtered), not every
-    // invoice regardless of the status chips / mode / date range / search
-    // the user has applied — those visibly narrow the table, so the export
-    // has to agree with it.
+  function exportSelectedCsv() {
     const rows = [
       ['Invoice ID', 'Client', 'BL/AWB', 'Origin', 'Destination', 'Mode', 'Date', 'Due Date', 'Status', 'Grand Total (TZS)', 'Received (TZS)', 'Balance Due (TZS)'],
-      ...filtered.map(inv => {
+      ...selectedInvoicesList.map(inv => {
         const total = invoiceTotal(inv);
         return [inv.id, inv.client, inv.blNumber, inv.origin, inv.destination, inv.mode, inv.billDate, inv.dueDate ?? '', inv.status, Math.round(total), Math.round(inv.received), Math.round(Math.max(0, total - inv.received))];
       }),
@@ -1786,6 +1767,21 @@ export const Billing: React.FC = () => {
     a.download = `invoices-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  const [downloadingAll, setDownloadingAll] = useState(false);
+  async function downloadAllSelected() {
+    if (downloadingAll) return;
+    setDownloadingAll(true);
+    // Sequential, not Promise.all — back-to-back a.click() downloads
+    // fired all at once are exactly what triggers a browser's
+    // multiple-automatic-downloads block; pacing them by each fetch's own
+    // network time avoids that.
+    for (const inv of selectedInvoicesList) {
+      if (!inv._dbId) continue;
+      try { await apiDownload(`/v1/invoices/${inv._dbId}/pdf`, `${inv.id}.pdf`); } catch { /* continue with the rest */ }
+    }
+    setDownloadingAll(false);
   }
 
   function handleSaveInvoice(inv: Invoice) {
@@ -1887,7 +1883,7 @@ export const Billing: React.FC = () => {
   }
 
   return (
-    <div className="inv-shell" onClick={() => showFilters && setShowFilters(false)}>
+    <div className="inv-shell">
       {mode !== 'create' && mode !== 'edit' && (
       <>
       <PageHeader
@@ -1919,60 +1915,6 @@ export const Billing: React.FC = () => {
           sub2Label: 'TOTAL', sub2Value: String(invStats.total), barHighlight: 'var(--blue)',
         },
       ]} />
-
-      <div style={{ padding: '16px 0', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-        <button type="button" className="btn btn-secondary btn-sm" onClick={() => { setSearch(''); setFilterStatus('all'); setFilterMode('all'); setFilterDateFrom(''); setFilterDateTo(''); }} title="Reset filters">
-          <Icon name="refresh" size={13} /> Reset
-        </button>
-        <div style={{ position: 'relative' }}>
-          <button type="button" className={`btn btn-secondary btn-sm${activeFilterCount > 0 ? ' inv-btn--active' : ''}`} onClick={e => { e.stopPropagation(); setShowFilters(v => !v); }}>
-            <Icon name="filter" size={13} color={activeFilterCount > 0 ? 'var(--teal)' : 'var(--ink3)'} /> Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
-          </button>
-          {showFilters && (
-            <div className="inv-filters-popover" style={{ top: 'calc(100% + 6px)', right: 0 }} onClick={e => e.stopPropagation()}>
-              <div className="inv-filters-field">
-                <label>Mode</label>
-                <Select value={filterMode} onValueChange={v => setFilterMode(v as any)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All modes</SelectItem>
-                    <SelectItem value="SEA">SEA</SelectItem>
-                    <SelectItem value="AIR">AIR</SelectItem>
-                    <SelectItem value="ROAD">ROAD</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="inv-filters-row">
-                <div className="inv-filters-field">
-                  <label>From</label>
-                  <DatePicker date={parseDateOnly(filterDateFrom)} onChange={d => setFilterDateFrom(toDateOnlyString(d))} />
-                </div>
-                <div className="inv-filters-field">
-                  <label>To</label>
-                  <DatePicker date={parseDateOnly(filterDateTo)} onChange={d => setFilterDateTo(toDateOnlyString(d))} />
-                </div>
-              </div>
-              <div className="inv-filters-foot">
-                <button type="button" className="btn btn-secondary" onClick={() => { setFilterMode('all'); setFilterDateFrom(''); setFilterDateTo(''); }}>Clear</button>
-                <button type="button" className="btn btn-primary" onClick={() => setShowFilters(false)}>Done</button>
-              </div>
-            </div>
-          )}
-        </div>
-        <button type="button" className="btn btn-secondary btn-sm" onClick={exportCsv}>
-          <Icon name="download" size={13} /> Export
-        </button>
-        <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowBatchPayment(true)} disabled={outstandingInvoices.length === 0} title={outstandingInvoices.length === 0 ? 'No outstanding invoices' : undefined}>
-          <Icon name="creditCard" size={13} /> Batch Payments
-        </button>
-        <Link to="/finance/invoices/recurring" className="btn btn-secondary btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}>
-          <Icon name="refresh" size={13} /> Recurring
-        </Link>
-        <button type="button" onClick={() => { setSelectedId(null); setMode('create'); }}
-          style={{ padding: 'var(--ds-btn-py-sm) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }}>
-          <Icon name="plus" size={13} color="hsl(var(--primary-foreground))" /> Create Invoice
-        </button>
-      </div>
       </>
       )}
 
@@ -1983,15 +1925,22 @@ export const Billing: React.FC = () => {
         {/* List panel */}
         <div className="inv-list-panel">
 
-          {/* Toolbar */}
+          {/* Toolbar — tabs, actions and search all in one row. The tabs +
+              actions + search live inside .inv-toolbar-scroll, which scrolls
+              sideways on a viewport too narrow to fit them all (instead of
+              wrapping into a second row); Create Invoice sits outside that
+              scroller as a fixed sibling, so the primary action is never
+              something a user has to scroll to discover. */}
           <div className="inv-list-toolbar">
+          <div className="inv-toolbar-scroll">
             {!isSplit && (
-              <div className="inv-status-chips">
+              <div className="ds-tabs-list" data-variant="segmented">
                 {(['all', 'Draft', 'Unpaid', 'Partial', 'Paid', 'Overdue', 'Credited'] as FilterStatus[]).map(s => {
                   const cnt = s === 'all' ? invoices.length : invoices.filter(i => i.status === s).length;
                   const active = filterStatus === s;
                   return (
-                    <button key={s} type="button" className={`inv-status-chip${active ? ' inv-status-chip--active' : ''}`} onClick={() => setFilterStatus(s)}>
+                    <button key={s} type="button" className="ds-tabs-trigger" data-variant="segmented"
+                      data-state={active ? 'active' : 'inactive'} onClick={() => setFilterStatus(s)}>
                       {s === 'all' ? 'All' : STATUS_STYLE[s as Status].label}
                       {cnt > 0 && <span className="inv-status-chip-count">{cnt}</span>}
                     </button>
@@ -2000,10 +1949,84 @@ export const Billing: React.FC = () => {
               </div>
             )}
             <div className="inv-topbar-spacer" />
-            <div className="inv-search-wrap">
-              <Icon name="search" size={13} color="var(--ink3)" className="inv-search-icon" />
-              <input className="inv-search-input" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search invoice, client, BL…" />
+            <div className="inv-toolbar-actions">
+              {/* Bulk export — only appears once at least one row is
+                  checked, rather than a permanently-visible "Export"
+                  button that acted on the whole filtered list regardless
+                  of what (if anything) the user had actually picked. */}
+              {selectedIds.size > 0 && (
+                <div className="inv-bulk-actions">
+                  <span className="inv-bulk-count">{selectedIds.size} selected</span>
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={exportSelectedCsv}>
+                    <Icon name="download" size={13} /> Export CSV
+                  </button>
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={downloadAllSelected} disabled={downloadingAll}>
+                    <Icon name="file" size={13} /> {downloadingAll ? 'Downloading…' : 'Download all'}
+                  </button>
+                  <button type="button" className="inv-bulk-clear" onClick={() => setSelectedIds(new Set())} title="Clear selection">
+                    <Icon name="x" size={13} />
+                  </button>
+                </div>
+              )}
+              {/* A real Radix Popover, not a hand-rolled absolute-positioned
+                  div — that version rendered inside .inv-toolbar-scroll,
+                  whose overflow-x:auto (needed for the horizontal-scroll
+                  toolbar) computes overflow-y to auto too, clipping any
+                  plain absolutely-positioned child that extended below the
+                  row. PopoverContent portals to document.body, so it always
+                  escapes that clip regardless of which row it's triggered
+                  from. It also gets outside-click/Escape dismissal for free,
+                  replacing the manual stopPropagation + shell-level onClick
+                  dance that used to do the same job a second way. */}
+              <Popover open={showFilters} onOpenChange={setShowFilters}>
+                <PopoverTrigger asChild>
+                  <button type="button" className={`btn btn-secondary btn-sm${activeFilterCount > 0 ? ' inv-btn--active' : ''}`}>
+                    <Icon name="filter" size={13} color={activeFilterCount > 0 ? 'var(--teal)' : 'var(--ink3)'} /> Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent align="start" sideOffset={6} className="w-72 flex flex-col gap-2.5">
+                  <div className="inv-filters-field">
+                    <label>Mode</label>
+                    <Select value={filterMode} onValueChange={v => setFilterMode(v as any)}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All modes</SelectItem>
+                        <SelectItem value="SEA">SEA</SelectItem>
+                        <SelectItem value="AIR">AIR</SelectItem>
+                        <SelectItem value="ROAD">ROAD</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="inv-filters-row">
+                    <div className="inv-filters-field">
+                      <label>From</label>
+                      <DatePicker date={parseDateOnly(filterDateFrom)} onChange={d => setFilterDateFrom(toDateOnlyString(d))} />
+                    </div>
+                    <div className="inv-filters-field">
+                      <label>To</label>
+                      <DatePicker date={parseDateOnly(filterDateTo)} onChange={d => setFilterDateTo(toDateOnlyString(d))} />
+                    </div>
+                  </div>
+                  <div className="inv-filters-foot">
+                    <button type="button" className="btn btn-secondary" onClick={() => { setFilterMode('all'); setFilterDateFrom(''); setFilterDateTo(''); }}>Clear</button>
+                    <button type="button" className="btn btn-primary" onClick={() => setShowFilters(false)}>Done</button>
+                  </div>
+                </PopoverContent>
+              </Popover>
+              <Link to="/finance/invoices/recurring" className="btn btn-secondary btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}>
+                <Icon name="calendar" size={13} /> Recurring
+              </Link>
+              <div className="inv-search-wrap">
+                <Icon name="search" size={13} color="var(--ink3)" className="inv-search-icon" />
+                <input className="inv-search-input" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search invoice, client, BL…" />
+              </div>
             </div>
+          </div>
+          <button type="button" onClick={() => { setSelectedId(null); setMode('create'); }}
+            className="inv-toolbar-cta"
+            style={{ padding: 'var(--ds-btn-py-sm) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+            <Icon name="plus" size={13} color="hsl(var(--primary-foreground))" /> Create Invoice
+          </button>
           </div>
 
           {/* Table */}
@@ -2011,6 +2034,9 @@ export const Billing: React.FC = () => {
             <table className="rtbl inv-table">
               <thead>
                 <tr>
+                  <th className="th--checkbox">
+                    <input type="checkbox" checked={allFilteredSelected} onChange={toggleSelectAllFiltered} title="Select all" />
+                  </th>
                   <th className="th--sortable" onClick={() => setSortAsc(v => !v)}>
                     <span>Invoice # <Icon name={sortAsc ? 'arrowUp' : 'arrowDown'} size={11} color="var(--ink3)" /></span>
                   </th>
@@ -2026,12 +2052,16 @@ export const Billing: React.FC = () => {
               <tbody>
                 {filtered.map(inv => {
                   const isSelected = inv.id === selectedId;
+                  const isChecked = selectedIds.has(inv.id);
                   const st = STATUS_STYLE[inv.status];
                   const total = invoiceTotal(inv);
                   return (
                     <tr key={inv.id}
                       className={isSelected ? 'inv-row--selected' : ''}
                       onClick={() => { if (mode !== 'edit' && mode !== 'create') { setSelectedId(inv.id); setMode('view'); } }}>
+                      <td className="th--checkbox" onClick={e => e.stopPropagation()}>
+                        <input type="checkbox" checked={isChecked} onChange={() => toggleSelect(inv.id)} />
+                      </td>
                       <td><span className="inv-cell-id">{inv.id}</span></td>
                       {!isSplit && (
                         <td>
@@ -2061,10 +2091,10 @@ export const Billing: React.FC = () => {
                   );
                 })}
                 {apiLoading && (
-                  <tr><td colSpan={9} className="inv-table-msg">Loading invoices…</td></tr>
+                  <tr><td colSpan={10} className="inv-table-msg">Loading invoices…</td></tr>
                 )}
                 {!apiLoading && filtered.length === 0 && invoices.length === 0 && (
-                  <tr><td colSpan={9} className="inv-table-msg">
+                  <tr><td colSpan={10} className="inv-table-msg">
                     <div className="inv-empty-title">No invoices yet</div>
                     <div className="inv-empty-sub">Create your first invoice to start billing customers.</div>
                     <button type="button" className="btn btn-primary" onClick={() => { setSelectedId(null); setMode('create'); }}>
@@ -2073,7 +2103,7 @@ export const Billing: React.FC = () => {
                   </td></tr>
                 )}
                 {!apiLoading && filtered.length === 0 && invoices.length > 0 && (
-                  <tr><td colSpan={9} className="inv-table-msg">No invoices match your filters</td></tr>
+                  <tr><td colSpan={10} className="inv-table-msg">No invoices match your filters</td></tr>
                 )}
               </tbody>
             </table>
@@ -2105,59 +2135,6 @@ export const Billing: React.FC = () => {
       </div>
 
       {/* Batch Payments modal */}
-      {showBatchPayment && (
-        <div className="spt-modal-overlay" onClick={e => e.target === e.currentTarget && setShowBatchPayment(false)}>
-          <div className="spt-modal" style={{ maxWidth: 480 }}>
-            <div className="spt-modal-hdr">
-              <h2 className="spt-modal-title">Batch Payments</h2>
-              <button type="button" className="spt-icon-btn" onClick={() => setShowBatchPayment(false)} title="Close">
-                <Icon name="x" size={18} strokeWidth={2} />
-              </button>
-            </div>
-            <div style={{ padding: '0 2px' }}>
-              <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 8 }}>
-                Select outstanding invoices to record a full payment against. Each invoice is marked paid in full using the method and date below.
-              </div>
-              <div className="inv-batch-list">
-                {outstandingInvoices.length === 0 && <div className="inv-tab-empty">No outstanding invoices.</div>}
-                {outstandingInvoices.map(inv => {
-                  const balance = Math.max(0, invoiceTotal(inv) - inv.received);
-                  return (
-                    <label key={inv.id} className="inv-batch-row">
-                      <input type="checkbox" checked={batchSelected.has(inv.id)} onChange={() => toggleBatchSelect(inv.id)} />
-                      <span className="inv-cell-id">{inv.id}</span>
-                      <span>{inv.client}</span>
-                      <span className="inv-batch-row-amt">{fmtTZS(balance)}</span>
-                    </label>
-                  );
-                })}
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 10, marginBottom: 8 }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Method</label>
-                  <Select value={batchMethod} onValueChange={setBatchMethod}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {['Bank Transfer', 'Cash', 'Cheque', 'Mobile Money'].map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Payment Date</label>
-                  <input value={batchDate} onChange={e => setBatchDate(e.target.value)} placeholder="DD-MM-YYYY"
-                    style={{ width: '100%', padding: '7px 9px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, fontFamily: 'var(--mono)', outline: 'none', boxSizing: 'border-box' }} />
-                </div>
-              </div>
-              <div className="spt-modal-actions">
-                <button type="button" className="spt-modal-cancel" onClick={() => setShowBatchPayment(false)}>Cancel</button>
-                <button type="button" className="spt-modal-submit" onClick={submitBatchPayment} disabled={batchSelected.size === 0 || batchSubmitting}>
-                  {batchSubmitting ? 'Recording…' : `Record payment for ${batchSelected.size} invoice${batchSelected.size === 1 ? '' : 's'}`}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

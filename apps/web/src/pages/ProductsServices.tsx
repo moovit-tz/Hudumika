@@ -9,6 +9,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/s
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { SectionCard } from '../components/SectionCard.js';
 import { FormPage } from '../components/FormPage.js';
 import { EntityPicker, PickerItem } from '../components/EntityPicker.js';
 import { Button } from '../components/ui/button.js';
@@ -920,7 +921,9 @@ export const ProductsServices: React.FC = () => {
         </div>
 
         {/* Filters Toolbar Card */}
-        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
+        <div style={{ marginBottom: 16 }}>
+        <SectionCard>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
             {/* Category Dropdown */}
             <Select value={catFilter} onValueChange={v => { setCatFilter(v as CatFilter); setPage(1); }}>
@@ -968,10 +971,12 @@ export const ProductsServices: React.FC = () => {
                 background: 'var(--white)', color: 'var(--ink)', outline: 'none', boxSizing: 'border-box'
               }} />
           </div>
+          </div>
+        </SectionCard>
         </div>
 
         {/* Table */}
-        <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', overflow: 'hidden' }}>
+        <SectionCard padded={false}>
           {loading ? (
             <div style={{ padding: '60px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading services…</div>
           ) : loadError ? (
@@ -1065,7 +1070,7 @@ export const ProductsServices: React.FC = () => {
               />
             </div>
           )}
-        </div>
+        </SectionCard>
       </div>
     </>
   );

@@ -379,7 +379,7 @@ export function HrDocuments() {
       <MetricsRow cards={metrics} />
 
       {/* Main Tabs Navigation */}
-      <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', marginBottom: 20, gap: 4 }}>
+      <div className="ds-tabs-list" data-variant="segmented">
         {[
           { key: 'documents', label: 'Filed Documents', icon: 'fileText', badge: docs.length },
           { key: 'radar', label: 'Compliance & Expiry Radar', icon: 'shield', badge: expiringCount > 0 ? expiringCount : undefined, badgeColor: 'var(--red)' },
@@ -389,20 +389,10 @@ export function HrDocuments() {
           <button
             key={tab.key}
             type="button"
+            className="ds-tabs-trigger"
+            data-variant="segmented"
+            data-state={activeTab === tab.key ? 'active' : 'inactive'}
             onClick={() => setActiveTab(tab.key as any)}
-            style={{
-              padding: '10px 18px',
-              fontSize: 13,
-              fontWeight: 600,
-              border: 'none',
-              borderBottom: activeTab === tab.key ? '2px solid hsl(var(--primary))' : '2px solid transparent',
-              background: 'transparent',
-              color: activeTab === tab.key ? 'hsl(var(--primary))' : 'var(--ink2)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-            }}
           >
             <Icon name={tab.icon as any} size={15} color={activeTab === tab.key ? 'hsl(var(--primary))' : 'var(--ink3)'} />
             <span>{tab.label}</span>

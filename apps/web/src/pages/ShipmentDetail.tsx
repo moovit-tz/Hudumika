@@ -822,8 +822,7 @@ function CustomerAgentCard({ job }: { job: ClearanceJob }) {
   const agent = EMPLOYEES.find(e => e.name === agentName);
 
   return (
-    <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: '14px 18px' }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10 }}>Your Clearing Agent</div>
+    <SectionCard title="Your Clearing Agent">
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <div style={{ width: 38, height: 38, borderRadius: '50%', background: empAvatarColor(agentName), color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
           {empInitials(agentName)}
@@ -843,7 +842,7 @@ function CustomerAgentCard({ job }: { job: ClearanceJob }) {
           </a>
         </div>
       )}
-    </div>
+    </SectionCard>
   );
 }
 
@@ -2059,15 +2058,13 @@ function CustomerOverviewTab({ job, isMobile }: { job: ClearanceJob; isMobile: b
   return (
     <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '3fr 2fr', gap: 14 }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: '18px 20px' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 14 }}>Your Shipment's Journey</div>
+        <SectionCard title="Your Shipment's Journey">
           <CustomerMilestoneTimeline job={job} />
-        </div>
+        </SectionCard>
 
         <CustomerAttentionPanel job={job} />
 
-        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: '16px 20px' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12 }}>Shipment Details</div>
+        <SectionCard title="Shipment Details">
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(3, 1fr)', gap: 2 }}>
             {([
               ['B/L Number',  job.bl || '—',                                   true ],
@@ -2084,18 +2081,17 @@ function CustomerOverviewTab({ job, isMobile }: { job: ClearanceJob; isMobile: b
               </div>
             ))}
           </div>
-        </div>
+        </SectionCard>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <CustomerAgentCard job={job} />
-        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: '16px 18px' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Shared Documents</div>
+        <SectionCard title="Shared Documents">
           <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 10 }}>{job.documents.length} document{job.documents.length === 1 ? '' : 's'} on this shipment</div>
           <Link to={`?tab=files`} style={{ display: 'block', textAlign: 'center', padding: '9px 0', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 7, fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', textDecoration: 'none' }}>
             View Files
           </Link>
-        </div>
+        </SectionCard>
       </div>
     </div>
   );
@@ -2372,16 +2368,14 @@ function LinkedAppsPanel({ shipmentId, isMobile }: { shipmentId: string; isMobil
 
   if (cards.length === 0) {
     return (
-      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: '16px 20px' }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Linked Apps</div>
+      <Card title="Linked Apps">
         <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>No invoices, demurrage tracking, AWB/BL snapshots, or transport trips linked to this shipment yet.</div>
-      </div>
+      </Card>
     );
   }
 
   return (
-    <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: '16px 20px' }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12 }}>Linked Apps</div>
+    <Card title="Linked Apps">
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: 10 }}>
         {cards.map(c => (
           <Link key={c.app} to={c.href} style={{ display: 'block', padding: '12px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', textDecoration: 'none' }}>
@@ -2393,7 +2387,7 @@ function LinkedAppsPanel({ shipmentId, isMobile }: { shipmentId: string; isMobil
           </Link>
         ))}
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -2583,8 +2577,9 @@ function TasksTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
 
       {/* Add-task form */}
       {showAdd && (
-        <form onSubmit={handleAdd} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: '16px 18px', marginBottom: 14 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 12 }}>New Task</div>
+        <div style={{ marginBottom: 14 }}>
+        <Card title="New Task">
+        <form onSubmit={handleAdd}>
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr 1fr 1fr', gap: 10, marginBottom: 10 }}>
             <div>
               <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 3 }}>Task Title</label>
@@ -2641,11 +2636,13 @@ function TasksTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
             <button type="button" onClick={() => setShowAdd(false)} className="btn btn-secondary btn-sm">Cancel</button>
           </div>
         </form>
+        </Card>
+        </div>
       )}
 
       {/* Table */}
       <div className="rtbl-wrap">
-      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+      <Card padded={false}>
         <table className="rtbl" style={{ borderCollapse: 'collapse' }}>
           <thead>
             <tr>{['#','Task','Service','Status','Start','Due','Assignees','Priority','Tags','Actions'].map(h => (
@@ -2738,7 +2735,7 @@ function TasksTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
             })}
           </tbody>
         </table>
-      </div>
+      </Card>
       </div>
     </div>
   );
@@ -2829,8 +2826,9 @@ function TimesheetsTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: 
 
       {/* Log time form */}
       {showLog && (
-        <form onSubmit={handleLog} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: '16px 18px', marginBottom: 14 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 12 }}>Log Time Entry</div>
+        <div style={{ marginBottom: 14 }}>
+        <Card title="Log Time Entry">
+        <form onSubmit={handleLog}>
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 2fr 1fr 1fr', gap: 10, marginBottom: 10 }}>
             <div>
               <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 3 }}>Member</label>
@@ -2878,11 +2876,13 @@ function TimesheetsTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: 
             <button type="button" onClick={() => setShowLog(false)} className="btn btn-secondary btn-sm">Cancel</button>
           </div>
         </form>
+        </Card>
+        </div>
       )}
 
       {/* Table */}
       <div className="rtbl-wrap">
-      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+      <Card padded={false}>
         <table className="rtbl" style={{ borderCollapse: 'collapse' }}>
           <thead>
             <tr>{['Member','Task','Service','Date','Duration','Hours','Amount','Note'].map(h => (
@@ -2931,7 +2931,7 @@ function TimesheetsTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: 
             </tfoot>
           )}
         </table>
-      </div>
+      </Card>
       </div>
     </div>
   );
@@ -3697,13 +3697,13 @@ function LedgerTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; 
         }, {});
         const billableSummary = Object.entries(billableByCurrency);
         return (
-          <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: '20px 22px', marginBottom: 20 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Shipment Economics</div>
-              <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, background: marginPct >= 20 ? 'var(--green-l)' : marginPct >= 0 ? 'var(--gold-l)' : 'var(--red-l)', color: marginPct >= 20 ? 'var(--green)' : marginPct >= 0 ? 'var(--gold)' : 'var(--red)' }}>
-                {marginPct >= 0 ? '+' : ''}{marginPct}% margin
-              </span>
-            </div>
+          <div style={{ marginBottom: 20 }}>
+          <Card
+            title="Shipment Economics"
+            action={<span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, background: marginPct >= 20 ? 'var(--green-l)' : marginPct >= 0 ? 'var(--gold-l)' : 'var(--red-l)', color: marginPct >= 20 ? 'var(--green)' : marginPct >= 0 ? 'var(--gold)' : 'var(--red)' }}>
+              {marginPct >= 0 ? '+' : ''}{marginPct}% margin
+            </span>}
+          >
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: 12, marginBottom: billableSummary.length ? 16 : 0 }}>
               {([
                 { label: 'Revenue',        value: fmtTZS(revenue),     color: 'var(--green)', icon: 'arrowUp' },
@@ -3720,6 +3720,7 @@ function LedgerTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; 
             {billableSummary.length > 0 && (
               <div style={{ fontSize: 11, color: 'var(--ink3)' }}>From rated time entries on the Timesheets tab — not yet reflected in Revenue above until invoiced.</div>
             )}
+          </Card>
           </div>
         );
       })()}
@@ -3753,8 +3754,9 @@ function LedgerTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; 
           </button>
         )}
         {showForm && (
-          <form onSubmit={handleAdd} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: '18px 20px', flex: 1 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 14 }}>New Ledger Entry</div>
+          <div style={{ flex: 1 }}>
+          <Card title="New Ledger Entry">
+          <form onSubmit={handleAdd}>
             {/* Type toggle */}
             <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
               {(['charge', 'payment'] as const).map(t => (
@@ -3791,6 +3793,8 @@ function LedgerTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; 
               <button type="button" onClick={() => setShowForm(false)} className="btn btn-secondary btn-sm">Cancel</button>
             </div>
           </form>
+          </Card>
+          </div>
         )}
       </div>
 
@@ -3799,11 +3803,11 @@ function LedgerTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; 
           shown anywhere at all), with a running balance so the shipment's
           financial story reads top to bottom like a real statement rather
           than requiring a mental merge of two disconnected lists. */}
-      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
-        <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', background: 'var(--bg)', fontSize: 13, fontWeight: 700, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', justifyContent: 'space-between' }}>
-          <span>Ledger</span>
-          <span style={{ fontFamily: 'var(--mono)', color: balance >= 0 ? 'var(--green)' : 'var(--red)' }}>{balance >= 0 ? '+' : '−'}{fmtTZS(Math.abs(balance))}</span>
-        </div>
+      <Card
+        title="Ledger"
+        action={<span style={{ fontFamily: 'var(--mono)', color: balance >= 0 ? 'var(--green)' : 'var(--red)' }}>{balance >= 0 ? '+' : '−'}{fmtTZS(Math.abs(balance))}</span>}
+        padded={false}
+      >
         {job.ledger.length === 0 ? (
           <div style={{ padding: '16px 20px', fontSize: 13, color: 'var(--ink3)' }}>No entries recorded.</div>
         ) : (
@@ -3848,7 +3852,7 @@ function LedgerTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; 
             </tbody>
           </table></div>
         )}
-      </div>
+      </Card>
     </div>
   );
 }
@@ -5006,9 +5010,9 @@ function LinkedOperationalDocs({ shipmentId }: { shipmentId: string }) {
   if (docs.length === 0 && coos.length === 0) return null;
 
   return (
-    <div style={{ marginTop: 20, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', overflow: 'hidden' }}>
-      <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', fontSize: 12.5, fontWeight: 700, color: 'var(--ink2)' }}>Linked operational documents</div>
-      <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+    <div style={{ marginTop: 20 }}>
+    <Card title="Linked operational documents">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {docs.map(d => (
           <Link key={d.id} to={`/finance/delivery-documents?shipment=${shipmentId}`} style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
             <Icon name={LINKED_DOC_TYPE_ICON[d.doc_type] ?? 'fileText'} size={14} color="var(--ink3)" />
@@ -5024,6 +5028,7 @@ function LinkedOperationalDocs({ shipmentId }: { shipmentId: string }) {
           </Link>
         ))}
       </div>
+    </Card>
     </div>
   );
 }

@@ -14,6 +14,7 @@ import {
 import type { ExpenseListItem } from './Expenses.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { showConfirm } from '../lib/confirm.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 function mapApiSupplier(s: any, balancesById: Map<string, { balance: number; totalPaid: number }>): Vendor {
   const b = balancesById.get(s.id);
@@ -565,7 +566,8 @@ export function FinanceVendors() {
       {/* Split body */}
       <div style={{ display: 'flex', margin: '0 0 20px' }}>
         {/* Table */}
-        <div style={{ flex: 1, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 10, overflow: 'auto', minWidth: 0 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+        <SectionCard padded={false}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ background: 'var(--bg)', borderBottom: '2px solid var(--border)' }}>
@@ -618,6 +620,7 @@ export function FinanceVendors() {
               })}
             </tbody>
           </table>
+        </SectionCard>
         </div>
 
         {/* Detail panel */}

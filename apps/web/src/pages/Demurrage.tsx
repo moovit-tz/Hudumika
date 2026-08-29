@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
+import { SectionCard } from '../components/SectionCard.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 
@@ -53,7 +54,6 @@ interface Summary {
 
 type ViewMode = 'dashboard' | 'containers' | 'tariffs' | 'calculator';
 
-const card: React.CSSProperties = { background: 'var(--white)', borderRadius: 12, border: '1px solid var(--border)', overflow: 'hidden' };
 const cardPad: React.CSSProperties = { background: 'var(--white)', borderRadius: 12, border: '1px solid var(--border)', padding: 24 };
 const label: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: 'var(--ink2)' };
 const fieldInput: React.CSSProperties = { width: '100%', boxSizing: 'border-box', marginTop: 4, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, fontFamily: 'var(--font)' };
@@ -311,14 +311,10 @@ export const Demurrage: React.FC = () => {
 
             {/* Carrier Breakdown */}
             {summary?.by_carrier && Object.keys(summary.by_carrier).length > 0 && (
-              <div style={cardPad}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-                  <FeaturedIcon variant="info" size="sm" shape="square"><Icon name="fileText" size={15} /></FeaturedIcon>
-                  <div style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--ink)' }}>Carrier Breakdown</div>
-                </div>
+              <SectionCard title="Carrier Breakdown">
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
                   {Object.entries(summary.by_carrier).map(([carrier, data]) => (
-                    <div key={carrier} style={{ padding: 14, background: 'var(--bg)', borderRadius: 10, border: '1px solid var(--border)' }}>
+                    <div key={carrier} style={{ padding: 14, background: 'var(--white)', borderRadius: 10, border: '1px solid var(--border)' }}>
                       <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)', marginBottom: 4 }}>{carrier}</div>
                       <div style={{ fontSize: 12, color: 'var(--ink2)' }}>
                         {data.count} containers · {formatCurrency(data.cost)}
@@ -326,7 +322,7 @@ export const Demurrage: React.FC = () => {
                     </div>
                   ))}
                 </div>
-              </div>
+              </SectionCard>
             )}
 
             {!summary && !loading && (
@@ -337,23 +333,20 @@ export const Demurrage: React.FC = () => {
 
         {/* ── Container Tracking ── */}
         <TabsContent value="containers">
-          <div style={card}>
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <FeaturedIcon variant="brand" size="sm" shape="square"><Icon name="container" size={15} /></FeaturedIcon>
-                <div>
-                  <div style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--ink)' }}>Container Demurrage Tracker</div>
-                  <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 1 }}>{containers.length} container{containers.length === 1 ? '' : 's'}</div>
-                </div>
-              </div>
+          <SectionCard
+            title="Container Demurrage Tracker"
+            padded={false}
+            action={
               <button type="button" className="btn btn-primary btn-sm" onClick={startAddC}>
                 <Icon name="plus" size={13} /> Add Container
               </button>
-            </div>
+            }
+          >
+            <div style={{ padding: '8px 18px', fontSize: 11.5, color: 'var(--ink3)' }}>{containers.length} container{containers.length === 1 ? '' : 's'}</div>
 
             {/* Inline add/edit form — full-width section, not a popup */}
             {showCForm && (
-              <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', background: 'var(--bg)' }}>
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', background: 'var(--white)' }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 12 }}>
                   {editCId ? 'Edit Container' : 'Track New Container'}
                 </div>
@@ -491,19 +484,13 @@ export const Demurrage: React.FC = () => {
                 </table>
               </div>
             )}
-          </div>
+          </SectionCard>
         </TabsContent>
 
         {/* ── Tariff Configuration ── */}
         <TabsContent value="tariffs">
-          <div style={card}>
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10 }}>
-              <FeaturedIcon variant="gray" size="sm" shape="square"><Icon name="sliders" size={15} /></FeaturedIcon>
-              <div>
-                <div style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--ink)' }}>Demurrage Tariff Configuration</div>
-                <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 1 }}>Configure daily rates per shipping line and container size. Rates use progressive step-up tiers.</div>
-              </div>
-            </div>
+          <SectionCard title="Demurrage Tariff Configuration" padded={false}>
+            <div style={{ padding: '8px 18px', fontSize: 11.5, color: 'var(--ink3)' }}>Configure daily rates per shipping line and container size. Rates use progressive step-up tiers.</div>
             {tariffs.length === 0 ? (
               <EmptyState icon="sliders" title="No tariffs configured" sub="Use the API to add tariff rules." />
             ) : (
@@ -545,17 +532,13 @@ export const Demurrage: React.FC = () => {
                 </table>
               </div>
             )}
-          </div>
+          </SectionCard>
         </TabsContent>
 
         {/* ── Quick Calculator ── */}
         <TabsContent value="calculator">
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 20 }}>
-            <div style={cardPad}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-                <FeaturedIcon variant="brand" size="sm" shape="square"><Icon name="calculator" size={15} /></FeaturedIcon>
-                <div style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--ink)' }}>Demurrage Calculator</div>
-              </div>
+            <SectionCard title="Demurrage Calculator">
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <div>
                   <label style={{ display: 'block', ...label, marginBottom: 4 }}>Carrier / Shipping Line</label>
@@ -589,7 +572,7 @@ export const Demurrage: React.FC = () => {
                   Calculate Demurrage
                 </button>
               </div>
-            </div>
+            </SectionCard>
 
             {/* Result Panel */}
             <div style={{ ...cardPad, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', background: calcResult ? 'var(--white)' : 'var(--bg)' }}>

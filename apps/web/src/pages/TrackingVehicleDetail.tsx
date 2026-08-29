@@ -9,6 +9,7 @@ import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { MapTileLayer } from '../components/MapTileLayer.js';
+import { PersonAvatar } from '../components/PersonAvatar.js';
 import 'leaflet/dist/leaflet.css';
 import { CargoScene } from './TrackingCargoLoading.js';
 import type { CameraPreset, Manifest as CargoManifest, CargoItem, PackResult } from './TrackingCargoLoading.js';
@@ -19,6 +20,7 @@ import {
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { BackButton } from '../components/ui/BackButton.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
@@ -205,10 +207,10 @@ export const TrackingVehicleDetail: React.FC = () => {
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid var(--border)', marginBottom: 20, flexWrap: 'wrap' }}>
+      <div className="ds-tabs-list" data-variant="segmented" style={{ marginBottom: 20 }}>
         {TABS.map(t => (
-          <button key={t} type="button" onClick={() => setTab(t)}
-            style={{ padding: 'var(--ds-btn-py) 16px', border: 'none', borderBottom: tab === t ? '2px solid var(--teal)' : '2px solid transparent', background: 'none', color: tab === t ? 'var(--ink)' : 'var(--ink3)', fontWeight: tab === t ? 700 : 500, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+          <button key={t} type="button" className="ds-tabs-trigger" data-variant="segmented"
+            data-state={tab === t ? 'active' : 'inactive'} onClick={() => setTab(t)}>
             {t}
           </button>
         ))}
@@ -216,25 +218,23 @@ export const TrackingVehicleDetail: React.FC = () => {
 
       {tab === 'Overview' && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-          <div style={cardStyle}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>All Fields Details</div>
-              {!editing ? (
-                <button type="button" onClick={startEdit}
-                  style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer' }}>
-                  <Icon name="edit" size={13} /> Edit
+          <SectionCard title="All Fields Details" action={
+            !editing ? (
+              <button type="button" onClick={startEdit}
+                style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer' }}>
+                <Icon name="edit" size={13} /> Edit
+              </button>
+            ) : (
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button type="button" onClick={() => setEditing(false)}
+                  style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink3)', background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 12px', cursor: 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
+                <button type="button" onClick={saveEdit} disabled={saving}
+                  style={{ fontSize: 12, fontWeight: 600, color: 'hsl(var(--primary-foreground))', background: 'hsl(var(--primary))', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 12px', cursor: 'pointer', opacity: saving ? 0.6 : 1, minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                  {saving ? 'Saving…' : 'Save'}
                 </button>
-              ) : (
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button type="button" onClick={() => setEditing(false)}
-                    style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink3)', background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 12px', cursor: 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
-                  <button type="button" onClick={saveEdit} disabled={saving}
-                    style={{ fontSize: 12, fontWeight: 600, color: 'hsl(var(--primary-foreground))', background: 'hsl(var(--primary))', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 12px', cursor: 'pointer', opacity: saving ? 0.6 : 1, minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
-                    {saving ? 'Saving…' : 'Save'}
-                  </button>
-                </div>
-              )}
-            </div>
+              </div>
+            )
+          }>
             {(editing ? [
               ['name', 'Name'], ['mileage_km', 'Meter (km)'], ['status', 'Status'], ['group_name', 'Group'],
               ['type', 'Type'], ['fuel_type', 'Fuel'], ['vin', 'VIN/SN'], ['plate_number', 'License Plate'],
@@ -306,29 +306,24 @@ export const TrackingVehicleDetail: React.FC = () => {
                 )}
               </div>
             ))}
-          </div>
+          </SectionCard>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div style={cardStyle}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 14 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>Cost of Ownership</div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={statLabel}>Total costs</div>
-                  <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)' }}>{total_cost.toLocaleString()}</div>
-                </div>
+            <SectionCard title="Cost of Ownership" action={
+              <div style={{ textAlign: 'right' }}>
+                <div style={statLabel}>Total costs</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)' }}>{total_cost.toLocaleString()}</div>
               </div>
+            }>
               {cost_per_km != null && <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 10 }}>Cost per km: <strong>{cost_per_km}</strong></div>}
               <div style={{ height: 180 }}>
                 {cost_of_ownership.length > 0
                   ? <Bar data={costChartData} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } }, scales: { x: { stacked: true }, y: { stacked: true } } }} />
                   : <div style={{ color: 'var(--ink3)', fontSize: 12, textAlign: 'center', paddingTop: 60 }}>No cost data yet.</div>}
               </div>
-            </div>
+            </SectionCard>
 
-            <div style={cardStyle}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 14 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>Service Reminders</div>
-              </div>
+            <SectionCard title="Service Reminders">
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 12 }}>
                 <div><div style={statLabel}>Overdue</div><div style={{ fontSize: 20, fontWeight: 800, color: service_reminders.overdue > 0 ? '#dc2626' : 'var(--ink)' }}>{service_reminders.overdue}</div></div>
                 <div><div style={statLabel}>Due Soon</div><div style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink)' }}>{service_reminders.due_soon}</div></div>
@@ -339,11 +334,10 @@ export const TrackingVehicleDetail: React.FC = () => {
                   {r.title} — due {new Date(r.due_date).toLocaleDateString()}
                 </div>
               ))}
-            </div>
+            </SectionCard>
           </div>
 
-          <div style={cardStyle}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 14 }}>Last Known Location</div>
+          <SectionCard title="Last Known Location">
             {last_position ? (
               <div style={{ height: 200, borderRadius: 9, overflow: 'hidden' }}>
                 <MapContainer center={[last_position.latitude, last_position.longitude]} zoom={13} style={{ height: '100%', width: '100%' }}>
@@ -352,10 +346,9 @@ export const TrackingVehicleDetail: React.FC = () => {
                 </MapContainer>
               </div>
             ) : <div style={{ color: 'var(--ink3)', fontSize: 13 }}>No GPS position recorded yet.</div>}
-          </div>
+          </SectionCard>
 
-          <div style={cardStyle}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 14 }}>Live Status</div>
+          <SectionCard title="Live Status">
             {active_trip ? (
               <>
                 <div style={statLabel}>Cargo &amp; Capacity</div>
@@ -406,13 +399,11 @@ export const TrackingVehicleDetail: React.FC = () => {
                 </>
               ) : <div style={{ color: 'var(--ink3)' }}>No telemetry yet.</div>}
             </div>
-          </div>
+          </SectionCard>
 
-          <div style={cardStyle}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 14 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>Open Issues</div>
-              <div style={{ textAlign: 'right' }}><div style={statLabel}>Open</div><div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)' }}>{open_issues.length}</div></div>
-            </div>
+          <SectionCard title="Open Issues" action={
+            <div style={{ textAlign: 'right' }}><div style={statLabel}>Open</div><div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)' }}>{open_issues.length}</div></div>
+          }>
             {open_issues.length === 0 && <div style={{ color: 'var(--ink3)', fontSize: 13 }}>No open issues.</div>}
             {open_issues.map(i => (
               <div key={i.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderTop: '1px solid var(--border)' }}>
@@ -421,12 +412,12 @@ export const TrackingVehicleDetail: React.FC = () => {
                 <button type="button" onClick={() => resolveIssue(i.id)} style={{ fontSize: 11, fontWeight: 600, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer' }}>Resolve</button>
               </div>
             ))}
-          </div>
+          </SectionCard>
         </div>
       )}
 
       {tab === 'Service History' && (
-        <div style={cardStyle}>
+        <SectionCard>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead><tr style={{ textAlign: 'left' }}>{['Service', 'Cost', 'Date', 'Next Due'].map(h => <th key={h} style={{ padding: '8px 10px', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>{h}</th>)}</tr></thead>
             <tbody>
@@ -441,11 +432,11 @@ export const TrackingVehicleDetail: React.FC = () => {
             </tbody>
           </table>
           {maintenance.length === 0 && <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No service history yet.</div>}
-        </div>
+        </SectionCard>
       )}
 
       {tab === 'Fuel' && (
-        <div style={cardStyle}>
+        <SectionCard>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead><tr style={{ textAlign: 'left' }}>{['Liters', 'Cost', 'Date'].map(h => <th key={h} style={{ padding: '8px 10px', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>{h}</th>)}</tr></thead>
             <tbody>
@@ -459,11 +450,11 @@ export const TrackingVehicleDetail: React.FC = () => {
             </tbody>
           </table>
           {fuel.length === 0 && <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No fuel entries yet.</div>}
-        </div>
+        </SectionCard>
       )}
 
       {tab === 'Documents' && (
-        <div style={cardStyle}>
+        <SectionCard>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead><tr style={{ textAlign: 'left' }}>{['Type', 'Number', 'Expiry'].map(h => <th key={h} style={{ padding: '8px 10px', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>{h}</th>)}</tr></thead>
             <tbody>
@@ -477,11 +468,11 @@ export const TrackingVehicleDetail: React.FC = () => {
             </tbody>
           </table>
           {documents.length === 0 && <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No documents on file. Registration, insurance &amp; renewal records live here — add them from the Documents &amp; Insurance page.</div>}
-        </div>
+        </SectionCard>
       )}
 
       {tab === 'Issues' && (
-        <div style={cardStyle}>
+        <SectionCard>
           {detail.issues.length === 0 && <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No issues reported.</div>}
           {detail.issues.map(i => (
             <div key={i.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderTop: '1px solid var(--border)' }}>
@@ -495,7 +486,7 @@ export const TrackingVehicleDetail: React.FC = () => {
               {i.status !== 'RESOLVED' && <button type="button" onClick={() => resolveIssue(i.id)} style={{ fontSize: 11, fontWeight: 600, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer' }}>Resolve</button>}
             </div>
           ))}
-        </div>
+        </SectionCard>
       )}
 
       {tab === 'Expenses' && <VehicleExpensesTab vehicleId={id!} />}
@@ -510,7 +501,7 @@ function VehicleExpensesTab({ vehicleId }: { vehicleId: string }) {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   useEffect(() => { apiFetch(`/v1/tracking/vehicles/${vehicleId}/expenses`).then(setExpenses).catch(() => setExpenses([])); }, [vehicleId]);
   return (
-    <div style={cardStyle}>
+    <SectionCard>
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
         <thead><tr style={{ textAlign: 'left' }}>{['Category', 'Description', 'Amount', 'Date'].map(h => <th key={h} style={{ padding: '8px 10px', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>{h}</th>)}</tr></thead>
         <tbody>
@@ -525,7 +516,7 @@ function VehicleExpensesTab({ vehicleId }: { vehicleId: string }) {
         </tbody>
       </table>
       {expenses.length === 0 && <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No expenses logged yet.</div>}
-    </div>
+    </SectionCard>
   );
 }
 
@@ -558,8 +549,7 @@ function VehicleSensorSnapshotsTab({ vehicleId }: { vehicleId: string }) {
         </div>
       </div>
 
-      <div style={cardStyle}>
-        <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 16 }}>Recent Sensor Data</div>
+      <SectionCard title="Recent Sensor Data">
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
           <thead>
             <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border)' }}>
@@ -583,7 +573,7 @@ function VehicleSensorSnapshotsTab({ vehicleId }: { vehicleId: string }) {
           </tbody>
         </table>
         {snapshots.length === 0 && <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No sensor snapshots recorded.</div>}
-      </div>
+      </SectionCard>
     </div>
   );
 }
@@ -602,10 +592,7 @@ function VehicleAssignmentsTab({ vehicleId }: { vehicleId: string }) {
   if (loading) return <div style={{ padding: 24, textAlign: 'center', color: 'var(--ink3)' }}>Loading assignments...</div>;
 
   return (
-    <div style={cardStyle}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-        <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>Driver Assignments History</div>
-      </div>
+    <SectionCard title="Driver Assignments History">
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
         <thead>
           <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border)' }}>
@@ -619,7 +606,7 @@ function VehicleAssignmentsTab({ vehicleId }: { vehicleId: string }) {
             <tr key={a.id} style={{ borderBottom: '1px solid var(--border)' }}>
               <td style={{ padding: '12px 10px', fontWeight: 600, color: 'var(--ink)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <img src={a.driver_avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(a.driver_name)}&background=random`} alt={a.driver_name} style={{ width: 24, height: 24, borderRadius: '50%' }} />
+                  <PersonAvatar userId={a.driver_id} kind="drivers" name={a.driver_name} size={24} />
                   {a.driver_name}
                 </div>
               </td>
@@ -636,7 +623,7 @@ function VehicleAssignmentsTab({ vehicleId }: { vehicleId: string }) {
         </tbody>
       </table>
       {assignments.length === 0 && <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No driver assignments recorded.</div>}
-    </div>
+    </SectionCard>
   );
 }
 

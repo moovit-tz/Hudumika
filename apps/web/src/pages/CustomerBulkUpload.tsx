@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import { FileUploader } from '../components/ui/file-uploader.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { SectionCard } from '../components/SectionCard.js';
 import { apiFetch } from '../lib/api.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 
@@ -70,20 +71,22 @@ export const CustomerBulkUpload: React.FC = () => {
               button stack on mobile instead of squeezing into a sliver
               between a fixed-width icon and a fixed-width button, which used
               to wrap the description into an unreadably narrow column. */}
-          <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '16px 20px', display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'center', gap: 14 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14, width: isMobile ? '100%' : 'auto' }}>
-              <div style={{ width: 40, height: 40, borderRadius: 9, background: 'var(--green-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Icon name="file" size={18} color="var(--green)" />
+          <SectionCard padded={false}>
+            <div style={{ padding: '16px 20px', display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'center', gap: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14, width: isMobile ? '100%' : 'auto' }}>
+                <div style={{ width: 40, height: 40, borderRadius: 9, background: 'var(--green-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Icon name="file" size={18} color="var(--green)" />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Download Template</div>
+                  <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>Use our template to ensure your data is formatted correctly</div>
+                </div>
               </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Download Template</div>
-                <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>Use our template to ensure your data is formatted correctly</div>
-              </div>
+              <button onClick={downloadCsvTemplate} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25, width: isMobile ? '100%' : 'auto', flexShrink: 0 }}>
+                <Icon name="download" size={13} /> CSV Template
+              </button>
             </div>
-            <button onClick={downloadCsvTemplate} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25, width: isMobile ? '100%' : 'auto', flexShrink: 0 }}>
-              <Icon name="download" size={13} /> CSV Template
-            </button>
-          </div>
+          </SectionCard>
 
           {/* Drop zone */}
           {!summary && (
@@ -130,10 +133,7 @@ export const CustomerBulkUpload: React.FC = () => {
           )}
 
           {/* Column mapping guide */}
-          <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', overflow: 'hidden' }}>
-            <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border)', fontSize: 12, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-              Required Columns
-            </div>
+          <SectionCard title="Required Columns" padded={false}>
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 0 }}>
               {(() => {
                 const cols: [string, string, boolean][] = [
@@ -159,7 +159,7 @@ export const CustomerBulkUpload: React.FC = () => {
                 ));
               })()}
             </div>
-          </div>
+          </SectionCard>
 
           {/* Action buttons */}
           {file && !summary && (

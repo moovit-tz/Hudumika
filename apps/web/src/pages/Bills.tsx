@@ -10,6 +10,7 @@ import { PageHeader } from '../components/PageHeader.js';
 import { EntityPicker, PickerItem } from '../components/EntityPicker.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Combobox } from '../components/ui/combobox.js';
+import { SingleSelectFilter } from '../components/ui/filter-dropdown.js';
 import { Button } from '../components/ui/button.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { showAlert } from '../lib/alert.js';
@@ -1153,35 +1154,53 @@ export const Bills: React.FC = () => {
             { title:'OVERDUE BILLS', value:String(overdueBills.length), sub1Label:'OVERDUE AMOUNT', sub1Value:`TZS ${overdueAmt.toLocaleString()}`, sub2Label:'AVG DAYS OVERDUE', sub2Value:overdueBills.length ? String(Math.round(overdueBills.reduce((a,b)=>a+daysOverdue(b.due_date),0)/overdueBills.length)) : '0', barHighlight:'var(--red)' },
           ]} />
 
-          {/* Action & Filter Toolbar matching standard arrangement */}
-          <div style={{ padding: '16px 0', display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-            <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
-              <Icon name="search" size={14} color="var(--ink3)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
-              <input
-                type="search"
-                placeholder="Search bill # or supplier…"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                style={{ width: '100%', padding: '8px 10px 8px 32px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, fontFamily: 'var(--font)', background: 'var(--white)', color: 'var(--ink)', outline: 'none', boxSizing: 'border-box' }}
-              />
+          {/* Toolbar — tabs + filters on the left, search + New Bill on the right,
+              one row per CLAUDE.md's toolbar convention (was 3 stacked rows). */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', justifyContent: 'space-between', padding: '16px 0', marginBottom: 18 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
+              <div className="ds-tabs-list" data-variant="segmented">
+                {([{k:'bills',l:'Bills'},{k:'recurring',l:`Recurring (${recurring.length})`}] as {k:MainTab;l:string}[]).map(t => (
+                  <button key={t.k} type="button" title={t.l} className="ds-tabs-trigger" data-variant="segmented"
+                    data-state={tab === t.k ? 'active' : 'inactive'} onClick={() => setTab(t.k)}>
+                    {t.l}
+                  </button>
+                ))}
+              </div>
+              {tab === 'bills' && (
+                <>
+                  <SingleSelectFilter
+                    label="Status"
+                    options={(['DRAFT','POSTED','PARTIAL','OVERDUE','PAID','VOID'] as const).map(s => ({ value: s, label: STATUS_CFG[s]?.label ?? s }))}
+                    value={statusFilter === 'ALL' ? null : statusFilter}
+                    onChange={v => setStatusFilter((v as BillStatus) ?? 'ALL')}
+                  />
+                  <Combobox
+                    options={[{ value: 'ALL', label: 'All Suppliers' }, ...uniqueSups.map(id => ({ value: id, label: supplierMap[id]?.name ?? id }))]}
+                    value={supFilter} onChange={setSupFilter} triggerClassName="w-44"
+                  />
+                </>
+              )}
             </div>
-            <button
-              type="button"
-              onClick={() => { setFormBill(null); setShowBillForm(true); }}
-              style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }}
-            >
-              <Icon name="plus" size={14} color="hsl(var(--primary-foreground))" /> New Bill
-            </button>
-          </div>
 
-          {/* Main Tabs */}
-          <div style={{ display:'flex', borderBottom:'1px solid var(--border)', marginBottom:18 }}>
-            {([{k:'bills',l:'Bills'},{k:'recurring',l:`Recurring (${recurring.length})`}] as {k:MainTab;l:string}[]).map(t => (
-              <button key={t.k} type="button" title={t.l} onClick={() => setTab(t.k)}
-                style={{ padding:'var(--ds-btn-py) 18px', border:'none', borderBottom:`2px solid ${tab===t.k?'var(--teal)':'transparent'}`, background:'none', cursor:'pointer', fontWeight:700, fontSize:14, color:tab===t.k?'var(--teal)':'var(--ink3)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-                {t.l}
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', flex: isMobile ? '1 1 100%' : '0 0 auto' }}>
+              <div style={{ position: 'relative', flex: isMobile ? 1 : '0 0 220px' }}>
+                <Icon name="search" size={14} color="var(--ink3)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
+                <input
+                  type="search"
+                  placeholder="Search bill # or supplier…"
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  style={{ width: '100%', padding: '8px 10px 8px 32px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, fontFamily: 'var(--font)', background: 'var(--white)', color: 'var(--ink)', outline: 'none', boxSizing: 'border-box' }}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => { setFormBill(null); setShowBillForm(true); }}
+                style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }}
+              >
+                <Icon name="plus" size={14} color="hsl(var(--primary-foreground))" /> New Bill
               </button>
-            ))}
+            </div>
           </div>
 
           {tab === 'recurring' ? (
@@ -1202,22 +1221,6 @@ export const Bills: React.FC = () => {
             />
           ) : (
             <>
-              {/* Filter bar */}
-              <div style={{ display:'flex', gap:8, alignItems:'center', marginBottom:14, flexWrap:'wrap' }}>
-                <div style={{ display:'flex', gap:3, background:'var(--bg)', padding:3, borderRadius:9, flexWrap:'wrap' }}>
-                  {(['ALL','DRAFT','POSTED','PARTIAL','OVERDUE','PAID','VOID'] as const).map(s => (
-                    <button key={s} type="button" title={`Status: ${s}`} onClick={() => setStatusFilter(s)}
-                      style={{ padding:'var(--ds-btn-py-sm) 11px', fontSize:12, fontWeight:600, border:'none', borderRadius:'var(--r)', cursor:'pointer', background:statusFilter===s?'var(--white)':'transparent', color:statusFilter===s?'var(--ink)':'var(--ink3)', boxShadow:statusFilter===s?'0 1px 4px rgba(0,0,0,0.08)':'none', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
-                      {s === 'ALL' ? 'All' : STATUS_CFG[s]?.label ?? s}
-                    </button>
-                  ))}
-                </div>
-                <Combobox
-                  options={[{ value: 'ALL', label: 'All Suppliers' }, ...uniqueSups.map(id => ({ value: id, label: supplierMap[id]?.name ?? id }))]}
-                  value={supFilter} onChange={setSupFilter} triggerClassName="w-52"
-                />
-              </div>
-
               {/* Bills Table */}
               <div style={{ background:'var(--white)', borderRadius: 9, border:'1px solid var(--border)', overflow:'hidden' }}>
                 {displayed.length === 0 ? (

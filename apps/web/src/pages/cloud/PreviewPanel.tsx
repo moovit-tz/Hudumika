@@ -251,13 +251,11 @@ export function PreviewPanel({ item, onClose, onStar, onDownload, onDelete, onSh
         </button>
       </div>
 
-      <div style={{ display: 'flex', borderBottom: '1px solid var(--border)' }}>
+      <div className="ds-tabs-list" data-variant="segmented">
         {(['details', 'activity', 'comments'] as const).map(t => (
-          <button key={t} onClick={() => setTab(t)}
-            style={{
-              flex: 1, padding: 'var(--ds-btn-py) 0', background: 'none', border: 'none', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, textTransform: 'capitalize',
-              color: tab === t ? 'var(--teal)' : 'var(--ink3)', borderBottom: tab === t ? '2px solid var(--teal)' : '2px solid transparent', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25,
-            }}
+          <button key={t} type="button" className="ds-tabs-trigger" data-variant="segmented"
+            data-state={tab === t ? 'active' : 'inactive'} onClick={() => setTab(t)}
+            style={{ flex: 1, textTransform: 'capitalize' }}
           >{t}</button>
         ))}
       </div>

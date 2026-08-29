@@ -291,17 +291,15 @@ export function StudioDashboard() {
             </div>
 
             {/* Filter buttons */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div className="ds-tabs-list" data-variant="segmented">
               {(['all', 'SUCCESS', 'SIMULATED', 'FAILED'] as const).map(st => (
                 <button
                   key={st}
                   type="button"
+                  className="ds-tabs-trigger"
+                  data-variant="segmented"
+                  data-state={runFilter === st ? 'active' : 'inactive'}
                   onClick={() => setRunFilter(st)}
-                  style={{
-                    fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 6, border: 'none', cursor: 'pointer',
-                    background: runFilter === st ? 'var(--teal-l)' : 'transparent',
-                    color: runFilter === st ? 'var(--teal)' : 'var(--ink3)'
-                  }}
                 >
                   {st === 'all' ? 'All' : st}
                 </button>

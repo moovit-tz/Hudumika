@@ -167,9 +167,10 @@ export function BlissNotifications() {
               </button>
             )}
           </div>
-          <div className="bnc-chips">
+          <div className="ds-tabs-list bnc-chips" data-variant="segmented">
             {FILTER_TABS.map(t => (
-              <button key={t.key} type="button" className={`bnc-chip${tab === t.key ? " bnc-chip--active" : ""}`} onClick={() => switchTab(t.key)}>
+              <button key={t.key} type="button" className="ds-tabs-trigger" data-variant="segmented"
+                data-state={tab === t.key ? 'active' : 'inactive'} onClick={() => switchTab(t.key)}>
                 <Icon name={t.icon as any} size={12} />
                 {t.label}
               </button>
@@ -231,14 +232,15 @@ function NotifRow({ n, isActive, onClick }: { n: any; isActive: boolean; onClick
       onClick={onClick}
     >
       {!n.read && <div className="bnc-row-bar" style={{ background: cfg.color }} />}
+      {/* No PersonAvatar — a notification carries no actor id, only a
+          type/title/message, so there's no "who" to fetch a picture for.
+          n.avatar_url was never actually sent by the API (see
+          notifications.routes.ts); this always rendered initials in
+          practice. */}
       <div className="bnc-row-avatar-wrap">
-        {n.avatar_url ? (
-          <img src={n.avatar_url} alt="" className="bnc-row-avatar" />
-        ) : (
-          <div className="bnc-row-initials" style={{ background: cfg.color }}>
-            {(n.title || "?")[0]?.toUpperCase()}
-          </div>
-        )}
+        <div className="bnc-row-initials" style={{ background: cfg.color }}>
+          {(n.title || "?")[0]?.toUpperCase()}
+        </div>
         <div className="bnc-row-type-badge" style={{ color: cfg.color }}>
           <Icon name={cfg.icon as any} size={9} strokeWidth={2.5} />
         </div>

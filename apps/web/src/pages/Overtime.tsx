@@ -7,6 +7,7 @@ import { Button } from '../components/ui/button.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { DatePicker } from '../components/ui/date-picker.js';
 import { fetchPeople, type Person } from '../lib/identity.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 /**
  * Overtime — claiming it and deciding on it.
@@ -152,10 +153,9 @@ export function OvertimePage() {
       )}
 
       {showNew && (
-        <form onSubmit={submit} style={{
-          background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 10,
-          padding: 16, marginBottom: 16, display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap',
-        }}>
+        <div style={{ marginBottom: 16 }}>
+        <SectionCard>
+        <form onSubmit={submit} style={{ display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
           <div>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Employee</label>
             <Select value={fPerson} onValueChange={setFPerson}>
@@ -199,6 +199,8 @@ export function OvertimePage() {
             The rate is worked out from the date — 1.5&times; on a working day, 2&times; on a rest day or public holiday.
           </div>
         </form>
+        </SectionCard>
+        </div>
       )}
 
       <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
@@ -217,18 +219,14 @@ export function OvertimePage() {
         ))}
       </div>
 
-      <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
+      <div className="ds-tabs-list" data-variant="segmented" style={{ marginBottom: 14, display: 'inline-flex' }}>
         {[['', 'All'], ['PENDING', 'Pending'], ['APPROVED', 'Approved'], ['REJECTED', 'Rejected']].map(([v, l]) => (
-          <button key={v || 'all'} type="button" onClick={() => setFilter(v)} style={{
-            padding: 'var(--ds-btn-py-sm) 14px', fontSize: 12, fontWeight: 600, border: 'none',
-            borderRadius: 'var(--r)', cursor: 'pointer', fontFamily: 'var(--font)',
-            minHeight: 'var(--ctl-h-sm)', lineHeight: 1.25,
-            background: filter === v ? 'hsl(var(--primary))' : 'var(--bg)', color: filter === v ? 'hsl(var(--primary-foreground))' : 'var(--ink2)',
-          }}>{l}</button>
+          <button key={v || 'all'} type="button" className="ds-tabs-trigger" data-variant="segmented"
+            data-state={filter === v ? 'active' : 'inactive'} onClick={() => setFilter(v)}>{l}</button>
         ))}
       </div>
 
-      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
+      <SectionCard padded={false}>
         {loading ? (
           <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading…</div>
         ) : shown.length === 0 ? (
@@ -296,7 +294,7 @@ export function OvertimePage() {
             </table>
           </div>
         )}
-      </div>
+      </SectionCard>
     </div>
   );
 }

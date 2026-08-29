@@ -6,6 +6,7 @@ import { StatusPill } from '@hudumika/ui';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { SectionCard } from '../components/SectionCard.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { AvatarPicker } from '../components/AvatarPicker.js';
 import { EntityPicker } from '../components/EntityPicker.js';
@@ -1421,7 +1422,8 @@ export const Customers: React.FC = () => {
           </div>
 
           {sel.contact_name ? (
-            <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, overflow: 'hidden', marginBottom: 14 }}>
+            <div style={{ marginBottom: 14 }}>
+            <SectionCard padded={false}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 20px' }}>
                 <Avatar name={sel.contact_name} size={44} />
                 <div style={{ flex: 1 }}>
@@ -1454,6 +1456,7 @@ export const Customers: React.FC = () => {
                   </button>
                 </div>
               </div>
+            </SectionCard>
             </div>
           ) : (
             <EmptyState icon="users" title="No contacts added" sub="Add contact persons for this customer" />
@@ -1685,8 +1688,7 @@ export const Customers: React.FC = () => {
               {transactions.length === 0 ? (
                 <EmptyState icon="barChart" title="No financial activity" sub="Invoices and payments will build your statement" />
               ) : (
-                <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, overflow: 'hidden' }}>
-                  <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border)', fontSize: 12, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Transaction History</div>
+                <SectionCard padded={false} title="Transaction History">
                   {transactions.map((tx, i) => (
                     <div key={i} style={{ display: 'flex', alignItems: 'center', padding: '12px 20px', borderBottom: '1px solid var(--border)', gap: 14 }}>
                       <div style={{ width: 32, height: 32, borderRadius: 8, background: tx.debit ? 'var(--red-l)' : 'var(--green-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -1701,7 +1703,7 @@ export const Customers: React.FC = () => {
                       <span style={{ fontSize: 13, fontWeight: 700, fontFamily: 'var(--mono)', color: tx.balance >= 0 ? 'var(--ink)' : 'var(--red)', width: 130, textAlign: 'right' }}>{tx.balance.toLocaleString()}</span>
                     </div>
                   ))}
-                </div>
+                </SectionCard>
               )}
             </div>
             );
@@ -2028,7 +2030,7 @@ export const Customers: React.FC = () => {
             <EmptyState icon="folder" title="No documents linked yet" sub="Upload a new file or link one already sitting in Drive" />
           )}
           {!filesLoading && linkedFiles.length > 0 && (
-            <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', overflow: 'hidden' }}>
+            <SectionCard padded={false}>
               {linkedFiles.map((f: any, i: number) => {
                 const ft = fileTypeStyle(f.type);
                 return (
@@ -2054,7 +2056,7 @@ export const Customers: React.FC = () => {
                   </div>
                 );
               })}
-            </div>
+            </SectionCard>
           )}
 
           {/* Link existing file modal */}
@@ -2178,14 +2180,13 @@ export const Customers: React.FC = () => {
         </div>
 
         {/* Horizontal tabs */}
-        <div style={{ display: 'flex', padding: '0 28px', gap: 0, overflowX: 'auto' }}>
+        <div className="ds-tabs-list" data-variant="segmented" style={{ margin: '0 28px' }}>
           {MAIN_TABS.map(tab => {
             const active = mainTab === tab.key;
             return (
-              <button key={tab.key} type="button" onClick={() => { setMainTab(tab.key); setEditMode(false); }}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py-lg) 16px', border: 'none', borderBottom: active ? '2px solid var(--teal)' : '2px solid transparent', background: 'none', color: active ? 'var(--teal)' : 'var(--ink3)', fontSize: 13, fontWeight: active ? 700 : 500, cursor: 'pointer', fontFamily: 'var(--font)', whiteSpace: 'nowrap', marginBottom: -1, minHeight: 'var(--ctl-h-lg)', boxSizing: 'border-box', lineHeight: 1.25}}
-                onMouseEnter={e => { if (!active) e.currentTarget.style.color = 'var(--ink)'; }}
-                onMouseLeave={e => { if (!active) e.currentTarget.style.color = 'var(--ink3)'; }}>
+              <button key={tab.key} type="button" className="ds-tabs-trigger" data-variant="segmented"
+                data-state={active ? 'active' : 'inactive'}
+                onClick={() => { setMainTab(tab.key); setEditMode(false); }}>
                 <Icon name={tab.icon} size={13} color={active ? 'var(--teal)' : 'var(--ink3)'} strokeWidth={1.75} />
                 {tab.label}
               </button>
@@ -2205,9 +2206,8 @@ export const Customers: React.FC = () => {
 /* ── Section card wrapper ── */
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: '20px 24px', marginBottom: 16 }}>
-      <div style={{ fontSize: 12, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--ink3)', marginBottom: 16, paddingBottom: 10, borderBottom: '1px solid var(--border)' }}>{title}</div>
-      {children}
+    <div style={{ marginBottom: 16 }}>
+      <SectionCard title={title}>{children}</SectionCard>
     </div>
   );
 }

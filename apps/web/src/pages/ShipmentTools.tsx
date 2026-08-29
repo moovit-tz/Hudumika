@@ -5,6 +5,7 @@ import type { IconName } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
 import { HUDUMIKA_FOOTER_HTML } from '../lib/watermark.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 // ── Tanzania customs constants ────────────────────────────────────────────────
 
@@ -627,18 +628,12 @@ export const ShipmentTools: React.FC = () => {
 
         {/* ── AI Summary ── */}
         {summary && (
-          <div style={{ gridColumn: '1 / -1', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
-            <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', background: 'rgba(20,184,166,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Icon name="zap" size={15} color="#fff" />
-                </div>
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>AI Summary</div>
-                  <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>Aggregated from all tool results</div>
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ gridColumn: '1 / -1' }}>
+          <SectionCard
+            title="AI Summary"
+            collapsible={false}
+            action={
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <button type="button" className="btn btn-secondary"
                   onClick={() => printReport(lcHs || ccHs, lcCif, lcQty, lcResult, ccResult, pResult, summary)}
                   style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
@@ -647,10 +642,12 @@ export const ShipmentTools: React.FC = () => {
                 <button type="button" onClick={() => setSummary('')}
                   style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 20, lineHeight: 1, padding: '0 4px' }}>×</button>
               </div>
-            </div>
-            <div style={{ padding: '22px 26px', fontSize: 13.5, color: 'var(--ink)', lineHeight: 1.85, whiteSpace: 'pre-wrap' }}>
+            }
+          >
+            <div style={{ fontSize: 13.5, color: 'var(--ink)', lineHeight: 1.85, whiteSpace: 'pre-wrap' }}>
               {summary}
             </div>
+          </SectionCard>
           </div>
         )}
 

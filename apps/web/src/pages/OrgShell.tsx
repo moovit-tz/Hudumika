@@ -4,6 +4,7 @@ import type { IconName } from '../components/Icon.js';
 import { showAlert } from '../lib/alert.js';
 import { useOrgAuth, orgApiFetch, orgFetchRaw } from '../hooks/useOrgAuth.js';
 import { mapApiInvoice, invoiceTotals, fmtTZS, STATUS_STYLE } from './Billing.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 interface LinkedAgent {
   customer_id: string;
@@ -525,10 +526,10 @@ export const OrgShell: React.FC = () => {
 
             {/* Tabs + tenant filter */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
-              <div style={{ display: 'flex', gap: 4, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 10, padding: 4 }}>
+              <div className="ds-tabs-list" data-variant="segmented">
                 {TABS.map(t => (
-                  <button key={t.key} type="button" onClick={() => setTab(t.key as any)}
-                    style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 7, border: 'none', cursor: 'pointer', fontSize: 12.5, fontWeight: 700, fontFamily: 'var(--font)', background: tab === t.key ? 'var(--teal)' : 'transparent', color: tab === t.key ? '#fff' : 'var(--ink2)' }}>
+                  <button key={t.key} type="button" className="ds-tabs-trigger" data-variant="segmented"
+                    data-state={tab === t.key ? 'active' : 'inactive'} onClick={() => setTab(t.key as any)}>
                     <Icon name={t.icon} size={13} />
                     {t.label}
                   </button>
@@ -554,7 +555,7 @@ export const OrgShell: React.FC = () => {
                   <p style={{ color: 'var(--ink3)', fontSize: 13.5, margin: '10px 0 0' }}>No shipments yet</p>
                 </div>
               ) : (
-                <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, overflow: 'hidden' }}>
+                <SectionCard collapsible={false} padded={false}>
                   {filteredShipments.map((s, i) => {
                     const st = stageStyle(s.stage);
                     return (
@@ -573,7 +574,7 @@ export const OrgShell: React.FC = () => {
                       </div>
                     );
                   })}
-                </div>
+                </SectionCard>
               )
             )}
 
@@ -585,7 +586,7 @@ export const OrgShell: React.FC = () => {
                   <p style={{ color: 'var(--ink3)', fontSize: 13.5, margin: '10px 0 0' }}>No invoices yet</p>
                 </div>
               ) : (
-                <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, overflow: 'hidden' }}>
+                <SectionCard collapsible={false} padded={false}>
                   {filteredInvoices.map((inv: any, i: number) => {
                     const st = (STATUS_STYLE as Record<string, { color: string; bg: string }>)[inv.status] ?? { color: 'var(--ink3)', bg: 'var(--bg)' };
                     const total = invoiceTotals(inv).grandTotalTZS;
@@ -605,7 +606,7 @@ export const OrgShell: React.FC = () => {
                       </div>
                     );
                   })}
-                </div>
+                </SectionCard>
               )
             )}
 
@@ -617,7 +618,7 @@ export const OrgShell: React.FC = () => {
                   <p style={{ color: 'var(--ink3)', fontSize: 13.5, margin: '10px 0 0' }}>No documents yet</p>
                 </div>
               ) : (
-                <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, overflow: 'hidden' }}>
+                <SectionCard collapsible={false} padded={false}>
                   {filteredDocuments.map((d, i) => {
                     const ft = fileTypeStyle(d.type);
                     return (
@@ -647,7 +648,7 @@ export const OrgShell: React.FC = () => {
                       </div>
                     );
                   })}
-                </div>
+                </SectionCard>
               )
             )}
 
@@ -659,7 +660,7 @@ export const OrgShell: React.FC = () => {
                   <p style={{ color: 'var(--ink3)', fontSize: 13.5, margin: '10px 0 0' }}>Nothing stored on your behalf yet</p>
                 </div>
               ) : (
-                <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, overflow: 'hidden' }}>
+                <SectionCard collapsible={false} padded={false}>
                   {filteredSealLots.map((lot, i) => {
                     const available = Number(lot.qty_on_hand);
                     return (
@@ -684,16 +685,13 @@ export const OrgShell: React.FC = () => {
                       </div>
                     );
                   })}
-                </div>
+                </SectionCard>
               )
             )}
 
             {tab === 'goods' && filteredDispatchRequests.length > 0 && (
               <div style={{ marginTop: 20 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
-                  Your Dispatch Requests
-                </div>
-                <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, overflow: 'hidden' }}>
+                <SectionCard title="Your Dispatch Requests" padded={false}>
                   {filteredDispatchRequests.map((r, i) => {
                     const st = DISPATCH_STATUS_STYLE[r.status] ?? DISPATCH_STATUS_STYLE.PENDING;
                     return (
@@ -713,7 +711,7 @@ export const OrgShell: React.FC = () => {
                       </div>
                     );
                   })}
-                </div>
+                </SectionCard>
               </div>
             )}
 
@@ -732,7 +730,7 @@ export const OrgShell: React.FC = () => {
                     <p style={{ color: 'var(--ink3)', fontSize: 13.5, margin: '10px 0 0' }}>No tickets yet</p>
                   </div>
                 ) : (
-                  <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, overflow: 'hidden' }}>
+                  <SectionCard collapsible={false} padded={false}>
                     {filteredTickets.map((t, i) => {
                       const st = TICKET_STATUS_STYLE[t.status] ?? TICKET_STATUS_STYLE.OPEN;
                       return (
@@ -752,7 +750,7 @@ export const OrgShell: React.FC = () => {
                         </button>
                       );
                     })}
-                  </div>
+                  </SectionCard>
                 )}
               </>
             )}

@@ -6,6 +6,7 @@ import { apiFetch } from '../lib/api.js';
 import { Badge } from '../components/ui/badge.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 interface Booking {
   id: string; booking_number: string; customer_id: string; customer_name: string | null;
@@ -126,7 +127,7 @@ export function FreightBookingsPage() {
         }
       />
 
-      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+      <SectionCard padded={false}>
         {loading ? (
           <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>Loading bookings…</div>
         ) : bookings.length === 0 ? (
@@ -234,7 +235,7 @@ export function FreightBookingsPage() {
             ))}
           </div>
         )}
-      </div>
+      </SectionCard>
     </div>
   );
 }

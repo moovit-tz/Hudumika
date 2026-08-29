@@ -5,6 +5,7 @@ import { Icon } from '../components/Icon.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { SectionCard } from '../components/SectionCard.js';
 import { BackButton } from '../components/ui/BackButton.js';
 
 interface Vehicle { id: string; name: string; plate_number: string | null }
@@ -62,7 +63,8 @@ export const TrackingMaintenanceNew: React.FC = () => {
         titleEm="maintenance"
       />
 
-      <form onSubmit={submit} style={{ ...cardStyle, display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <SectionCard>
+      <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div style={{ display: 'flex', gap: 10 }}>
           <div style={{ flex: 1 }}>
             <label style={labelStyle}>Vehicle</label>
@@ -100,6 +102,7 @@ export const TrackingMaintenanceNew: React.FC = () => {
           </button>
         </div>
       </form>
+      </SectionCard>
     </div>
   );
 };

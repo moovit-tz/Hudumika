@@ -16,6 +16,7 @@ import { PersonAvatar } from '../components/PersonAvatar.js';
 import { StaffContracts, StaffEmergencyContacts } from '../components/StaffContracts.js';
 import { Button } from '../components/ui/button.js';
 import { SignaturePad } from '../components/SignaturePad.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 interface StaffData {
   id: string;
@@ -122,23 +123,19 @@ function FieldItem({ label, value }: { label: string; value?: string | null }) {
   );
 }
 
-function ProfileCard({ icon, title, filled, total, children }: { icon: React.ReactNode, title: string, filled?: number, total?: number, children: React.ReactNode }) {
+function ProfileCard({ title, filled, total, children }: { icon: React.ReactNode, title: string, filled?: number, total?: number, children: React.ReactNode }) {
   return (
-    <div style={{ background: 'var(--white)', borderRadius: 10, border: '1px solid var(--border)', marginBottom: 16, overflow: 'hidden' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 28, height: 28, borderRadius: 6, background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--teal)' }}>
-            {icon}
-          </div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{title}</div>
+    <div style={{ marginBottom: 16 }}>
+      <SectionCard
+        title={title}
+        action={filled !== undefined && total !== undefined ? (
+          <span style={{ fontSize: 11, color: 'var(--ink3)' }}>{filled}/{total} filled</span>
+        ) : undefined}
+      >
+        <div style={{ paddingBottom: 16 }}>
+          {children}
         </div>
-        {filled !== undefined && total !== undefined && (
-          <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{filled}/{total} filled</div>
-        )}
-      </div>
-      <div style={{ padding: '20px 20px 4px 20px' }}>
-        {children}
-      </div>
+      </SectionCard>
     </div>
   );
 }
@@ -209,15 +206,15 @@ function TabTable({ loading, rows, head, row, empty, summary }: {
   summary?: (rows: any[]) => string;
 }) {
   if (loading) {
-    return <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--ink3)', background: 'var(--white)', borderRadius: 10, border: '1px solid var(--border)' }}>Loading…</div>;
+    return <SectionCard collapsible={false}><div style={{ textAlign: 'center', color: 'var(--ink3)' }}>Loading…</div></SectionCard>;
   }
   if (rows.length === 0) {
-    return <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--ink3)', background: 'var(--white)', borderRadius: 10, border: '1px solid var(--border)' }}>{empty}</div>;
+    return <SectionCard collapsible={false}><div style={{ textAlign: 'center', color: 'var(--ink3)' }}>{empty}</div></SectionCard>;
   }
   return (
-    <div style={{ background: 'var(--white)', borderRadius: 10, border: '1px solid var(--border)', overflow: 'hidden' }}>
+    <SectionCard collapsible={false} padded={false}>
       {summary && (
-        <div style={{ padding: '11px 16px', borderBottom: '1px solid var(--border)', background: 'var(--bg)', fontSize: 12.5, color: 'var(--ink2)', fontWeight: 600 }}>
+        <div style={{ padding: '11px 16px', borderBottom: '1px solid var(--border)', fontSize: 12.5, color: 'var(--ink2)', fontWeight: 600 }}>
           {summary(rows)}
         </div>
       )}
@@ -241,7 +238,7 @@ function TabTable({ loading, rows, head, row, empty, summary }: {
           </tbody>
         </table>
       </div>
-    </div>
+    </SectionCard>
   );
 }
 
@@ -293,9 +290,11 @@ function SignatureTab({ isSelf, stamps, loading, onChanged }: {
       )}
 
       {showPad && (
-        <div style={{ maxWidth: 560, marginBottom: 16, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 10, padding: 16 }}>
-          <SignaturePad onCapture={handleCapture} />
-          {saving && <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 8 }}>Saving…</div>}
+        <div style={{ maxWidth: 560, marginBottom: 16 }}>
+          <SectionCard collapsible={false}>
+            <SignaturePad onCapture={handleCapture} />
+            {saving && <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 8 }}>Saving…</div>}
+          </SectionCard>
         </div>
       )}
 
@@ -776,17 +775,15 @@ export const StaffDetail: React.FC = () => {
         </div>
 
         {/* Horizontal Tabs */}
-        <div style={{ padding: '0 32px', display: 'flex', gap: 24, overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+        <div className="ds-tabs-list" data-variant="segmented" style={{ margin: '0 32px' }}>
           {TABS.map(t => (
             <button
               key={t}
+              type="button"
+              className="ds-tabs-trigger"
+              data-variant="segmented"
+              data-state={tab === t ? 'active' : 'inactive'}
               onClick={() => setTab(t)}
-              style={{
-                background: 'none', border: 'none', padding: '12px 0', cursor: 'pointer',
-                fontSize: 14, fontWeight: tab === t ? 600 : 500, color: tab === t ? 'var(--teal)' : 'var(--ink2)',
-                borderBottom: tab === t ? '2px solid var(--teal)' : '2px solid transparent',
-                whiteSpace: 'nowrap'
-              }}
             >
               {t}
             </button>
@@ -891,9 +888,8 @@ export const StaffDetail: React.FC = () => {
             {/* Right Column (Summary & Action Cards) */}
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
               
-              <div style={{ background: 'var(--white)', borderRadius: 10, border: '1px solid var(--border)', marginBottom: 16 }}>
-                <div style={{ padding: '16px 20px', fontSize: 14, fontWeight: 700, color: 'var(--ink)', borderBottom: '1px solid var(--border)' }}>Account</div>
-                <div style={{ padding: '16px 20px' }}>
+              <div style={{ marginBottom: 16 }}>
+              <SectionCard title="Account">
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
                     <span style={{ fontSize: 12, color: 'var(--ink3)' }}>Status</span>
                     <span style={{ padding: '2px 8px', borderRadius: 12, fontSize: 10, fontWeight: 700, background: ss.bg, color: ss.color }}>{ss.label}</span>
@@ -910,17 +906,19 @@ export const StaffDetail: React.FC = () => {
                     <span style={{ fontSize: 12, color: 'var(--ink3)' }}>Member since</span>
                     <span style={{ fontSize: 12, color: 'var(--ink)', fontWeight: 500 }}>{staff.member_since}</span>
                   </div>
-                </div>
+              </SectionCard>
               </div>
 
-              <div style={{ background: 'var(--white)', borderRadius: 10, border: '1px solid var(--border)', marginBottom: 16 }}>
-                <div style={{ padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)' }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>Current Shift</div>
-                  <button type="button" style={{ background: 'none', border: 'none', color: 'var(--teal)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Manage</button>
-                </div>
+              <div style={{ marginBottom: 16 }}>
+              <SectionCard
+                title="Current Shift"
+                padded={false}
+                action={<button type="button" style={{ background: 'none', border: 'none', color: 'var(--teal)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Manage</button>}
+              >
                 <div style={{ padding: '20px', fontSize: 12, color: 'var(--ink3)', lineHeight: 1.5 }}>
                   No shift assigned — office hours from HR Settings apply.
                 </div>
+              </SectionCard>
               </div>
 
               {/* Both live in the right column beside Account, because they are
@@ -928,8 +926,8 @@ export const StaffDetail: React.FC = () => {
               {id && <StaffContracts userId={id} canEdit={canSetPay} />}
               {id && <StaffEmergencyContacts userId={id} canEdit={canSetPay} />}
 
-              <div style={{ background: 'var(--white)', borderRadius: 10, border: '1px solid var(--border)', marginBottom: 16 }}>
-                <div style={{ padding: '16px 20px', fontSize: 14, fontWeight: 700, color: 'var(--ink)', borderBottom: '1px solid var(--border)' }}>Quick actions</div>
+              <div style={{ marginBottom: 16 }}>
+              <SectionCard title="Quick actions" padded={false}>
                 <div>
                   <ActionLink label="Add payroll" />
                   <ActionLink label="Upload document" onClick={() => { setTab('Documents'); fileInputRef.current?.click(); }} />
@@ -939,6 +937,7 @@ export const StaffDetail: React.FC = () => {
                     <Icon name="chevronRight" size={14} color="var(--border)" />
                   </div>
                 </div>
+              </SectionCard>
               </div>
 
             </div>
@@ -1029,10 +1028,8 @@ export const StaffDetail: React.FC = () => {
         {/* The most recent payslip, line by line, so the figures above can be
             explained without anyone re-running the payroll. */}
         {tab === 'Payroll' && !tabDenied && payslips.length > 0 && Array.isArray(payslips[0]?.lines) && (
-          <div style={{ marginTop: 16, background: 'var(--white)', borderRadius: 10, border: '1px solid var(--border)', overflow: 'hidden' }}>
-            <div style={{ padding: '11px 16px', borderBottom: '1px solid var(--border)', background: 'var(--bg)', fontSize: 12.5, fontWeight: 600, color: 'var(--ink2)' }}>
-              {payslips[0].run_name} — how it was calculated
-            </div>
+          <div style={{ marginTop: 16 }}>
+          <SectionCard title={`${payslips[0].run_name} — how it was calculated`} padded={false}>
             {/* Employer contributions are split off rather than listed among the
                 deductions. They are a cost the employer bears on top of pay, and
                 a minus sign beside them reads as money taken from this person —
@@ -1081,6 +1078,7 @@ export const StaffDetail: React.FC = () => {
                 </>
               );
             })()}
+          </SectionCard>
           </div>
         )}
 
@@ -1242,9 +1240,9 @@ export const StaffDetail: React.FC = () => {
 
         {tab === 'Permissions' && !tabDenied && (
           tabLoading ? (
-            <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--ink3)', background: 'var(--white)', borderRadius: 10, border: '1px solid var(--border)' }}>Loading…</div>
+            <SectionCard collapsible={false}><div style={{ textAlign: 'center', color: 'var(--ink3)' }}>Loading…</div></SectionCard>
           ) : (
-            <div style={{ background: 'var(--white)', borderRadius: 10, border: '1px solid var(--border)', overflow: 'hidden' }}>
+            <SectionCard title="Permissions" padded={false}>
               <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', background: 'var(--bg)', fontSize: 12.5, color: 'var(--ink2)' }}>
                 Role <strong style={{ color: 'var(--ink)' }}>{tabRows.Permissions?.role ?? '—'}</strong>
                 {tabRows.Permissions?.active === false && ' · account deactivated'}
@@ -1262,7 +1260,7 @@ export const StaffDetail: React.FC = () => {
                   </span>
                 </div>
               ))}
-            </div>
+            </SectionCard>
           )
         )}
 

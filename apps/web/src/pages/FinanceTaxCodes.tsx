@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { PageHeader } from '../components/PageHeader.js';
 import { MetricsRow } from '../components/MetricCard.js';
+import { SectionCard } from '../components/SectionCard.js';
 import { FormPage, FormPageActions } from '../components/FormPage.js';
 import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
@@ -737,7 +738,7 @@ export function FinanceTaxCodes() {
         </div>
       )}
 
-      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', overflow: 'auto' }}>
+      <SectionCard padded={false}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
           <thead>
             <tr style={{ background: 'var(--bg)', borderBottom: '2px solid var(--border)' }}>
@@ -788,7 +789,7 @@ export function FinanceTaxCodes() {
             ))}
           </tbody>
         </table>
-      </div>
+      </SectionCard>
     </div>
   );
 }

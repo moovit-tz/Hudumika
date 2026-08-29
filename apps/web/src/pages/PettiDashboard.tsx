@@ -410,17 +410,17 @@ export function PettiDashboard() {
       {/* ── Payment Gateway Status — real, from Settings ▸ Finance ▸ Payment
           Gateways via GET /v1/petti/gateway-status. Used to fabricate a
           fixed list of 6 "Active" providers regardless of tenant config. ── */}
-      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 14, padding: '20px 24px', marginBottom: 24, boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-          <div>
-            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: 'var(--navy)' }}>Deposit Channel</h3>
-            <p style={{ margin: '2px 0 0 0', fontSize: 12, color: 'var(--ink3)' }}>The payment gateway this workspace has connected for mobile-money deposits</p>
-          </div>
+      <div style={{ marginBottom: 24 }}>
+      <SectionCard
+        title="Deposit Channel"
+        action={
           <Badge variant={gatewayStatus.configured ? (gatewayStatus.chargeSupported ? 'success' : 'warning') : 'gray'}>
             <Icon name={gatewayStatus.configured ? 'check' : 'x'} size={11} />
             {gatewayStatus.configured ? '1 Gateway Connected' : 'No Gateway Connected'}
           </Badge>
-        </div>
+        }
+      >
+        <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 14 }}>The payment gateway this workspace has connected for mobile-money deposits</div>
 
         {gatewayStatus.configured ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10, padding: '14px 16px' }}>
@@ -445,6 +445,7 @@ export function PettiDashboard() {
             <Link to="/workspace/settings?s=payment-gateways" className="btn btn-secondary btn-sm">Connect a gateway</Link>
           </div>
         )}
+      </SectionCard>
       </div>
 
       {/* ── Main 2-Column Dashboard Grid: Approval Queue & Activity ─────── */}
@@ -452,15 +453,11 @@ export function PettiDashboard() {
         
         {/* ── Pending Voucher Approval Queue (PayMoney Signature) ───────── */}
         {pendingQueue.length > 0 && (
-          <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
-            <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Icon name="clock" size={16} color="var(--gold)" />
-                <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--navy)' }}>Pending Voucher Approval Queue ({pendingQueue.length})</span>
-              </div>
-              <Link to="/petti/wallets" style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none' }}>View All Wallets →</Link>
-            </div>
-
+          <SectionCard
+            padded={false}
+            title={`Pending Voucher Approval Queue (${pendingQueue.length})`}
+            action={<Link to="/petti/wallets" style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none' }}>View All Wallets →</Link>}
+          >
             <div style={{ padding: '14px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
               {pendingQueue.map(w => {
                 const wallet = walletsById[w.wallet_id];
@@ -525,19 +522,15 @@ export function PettiDashboard() {
                 );
               })}
             </div>
-          </div>
+          </SectionCard>
         )}
 
         {/* ── Recent Financial Activity Feed ──────────────────────────── */}
-        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
-          <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Icon name="activity" size={16} color="var(--blue)" />
-              <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--navy)' }}>Recent Financial Activity</span>
-            </div>
-            <span style={{ fontSize: 12, color: 'var(--ink3)' }}>Audit Stream</span>
-          </div>
-
+        <SectionCard
+          padded={false}
+          title="Recent Financial Activity"
+          action={<span style={{ fontSize: 12, color: 'var(--ink3)' }}>Audit Stream</span>}
+        >
           {recentActivity.length === 0 ? (
             <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No activity recorded yet.</div>
           ) : (
@@ -558,7 +551,7 @@ export function PettiDashboard() {
               ))}
             </div>
           )}
-        </div>
+        </SectionCard>
 
       </div>
 

@@ -439,10 +439,10 @@ export const CustomerQuotations: React.FC = () => {
       </div>
 
       {/* Filter tabs */}
-      <div style={{ padding: '0 16px', display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4, marginBottom: 12 }}>
+      <div className="ds-tabs-list" data-variant="segmented" style={{ margin: '0 16px', marginBottom: 12 }}>
         {FILTER_OPTIONS.map(f => (
-          <button key={f.key} type="button" title={f.label} onClick={() => setFilter(f.key)}
-            style={{ flexShrink: 0, padding: 'var(--ds-btn-py) 16px', borderRadius: 20, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', border: `1.5px solid ${filter === f.key ? 'var(--teal)' : 'var(--border)'}`, background: filter === f.key ? 'var(--teal)' : 'var(--white)', color: filter === f.key ? '#fff' : 'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+          <button key={f.key} type="button" title={f.label} className="ds-tabs-trigger" data-variant="segmented"
+            data-state={filter === f.key ? 'active' : 'inactive'} onClick={() => setFilter(f.key)}>
             {f.label}
             {f.key === 'PENDING' && pendingCount > 0 && (
               <span style={{ marginLeft: 6, background: '#dc2626', color: '#fff', borderRadius: '50%', width: 16, height: 16, fontSize: 10, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>

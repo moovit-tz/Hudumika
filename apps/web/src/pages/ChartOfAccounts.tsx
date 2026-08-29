@@ -13,6 +13,7 @@ import { showConfirm } from '../lib/confirm.js';
 import { Tip } from '../components/ui/tooltip.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { MetricsRow } from '../components/MetricCard.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 /** Top-level accounts per page. Matches the rest of the platform's lists
  *  (products, landed-cost history, Bliss notifications). */
@@ -417,7 +418,7 @@ export const ChartOfAccounts: React.FC = () => {
       </div>
 
       {/* Table Card Container */}
-      <div style={{ border: '1px solid var(--border)', borderRadius: 9, overflow: 'hidden', background: 'var(--white)' }}>
+      <SectionCard padded={false}>
 
         {/* Toolbar Header: Tabs on Left, Search on Right */}
         <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
@@ -527,7 +528,7 @@ export const ChartOfAccounts: React.FC = () => {
             </div>
           </div>
         )}
-      </div>
+      </SectionCard>
 
       {/* Selected account detail panel */}
       {selected && (

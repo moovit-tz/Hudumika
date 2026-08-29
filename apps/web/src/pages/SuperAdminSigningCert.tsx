@@ -5,6 +5,7 @@ import { Button } from '../components/ui/button.js';
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 /**
  * The platform's real (CA-issued) document-signing certificate — the
@@ -120,8 +121,8 @@ export function SuperAdminSigningCert() {
       />
 
       {/* Active identity */}
-      <div style={{ background: 'var(--white)', borderRadius: 10, border: '1px solid var(--border)', padding: 20, marginTop: 20 }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 10 }}>Currently signing with</div>
+      <div style={{ marginTop: 20 }}>
+      <SectionCard title="Currently signing with">
         {loading ? (
           <div style={{ color: 'var(--ink3)', fontSize: 13 }}>Loading…</div>
         ) : active ? (
@@ -147,11 +148,12 @@ export function SuperAdminSigningCert() {
             </div>
           </div>
         )}
+      </SectionCard>
       </div>
 
       {/* Upload */}
-      <div style={{ background: 'var(--white)', borderRadius: 10, border: '1px solid var(--border)', padding: 20, marginTop: 16 }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Upload a certificate</div>
+      <div style={{ marginTop: 16 }}>
+      <SectionCard title="Upload a certificate">
         <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 14 }}>
           A real, CA-issued PKCS#12 (.p12/.pfx) document-signing certificate — from DigiCert, Sectigo, GlobalSign, SSL.com, or any other CA. It's parsed, then signs and independently re-verifies a real test document before it's stored — never taken on faith.
         </div>
@@ -174,11 +176,12 @@ export function SuperAdminSigningCert() {
             {uploading ? 'Verifying…' : 'Upload & Verify'}
           </Button>
         </div>
+      </SectionCard>
       </div>
 
       {/* History */}
-      <div style={{ background: 'var(--white)', borderRadius: 10, border: '1px solid var(--border)', padding: 20, marginTop: 16 }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Uploaded certificates</div>
+      <div style={{ marginTop: 16 }}>
+      <SectionCard title="Uploaded certificates">
         {history.length === 0 ? (
           <div style={{ color: 'var(--ink3)', fontSize: 13, marginTop: 10 }}>None uploaded yet — the platform is signing with the self-signed default.</div>
         ) : (
@@ -204,6 +207,7 @@ export function SuperAdminSigningCert() {
             ))}
           </div>
         )}
+      </SectionCard>
       </div>
     </div>
   );

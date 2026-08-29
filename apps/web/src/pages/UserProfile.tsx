@@ -1,21 +1,16 @@
 import React, { useState, useRef } from 'react';
-import { forgetAvatar, squareAvatarDataUrl } from '../lib/identity.js';
 import { usePageSEO } from '../hooks/usePageSEO.js';
 import { useSearchParams, Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.js';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { MetricsRow } from '../components/MetricCard.js';
+import { AvatarPicker } from '../components/AvatarPicker.js';
 import type { IconName } from '../components/Icon.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { showAlert } from '../lib/alert.js';
 import { SkeletonPage } from '../components/ui/skeleton.js';
-
-/* ── Avatar ── */
-const AV_COLORS = ['#0d7a6b','#0550ae','#6e40c9','#059669','#9a6700','#cf222e','#d05c30'];
-function avColor(name: string) { return AV_COLORS[((name ?? '?').charCodeAt(0)) % AV_COLORS.length]; }
-function initials(name: string) { return name.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase(); }
 
 /* ── Role label ── */
 const ROLE_LABELS: Record<string, string> = {
@@ -94,14 +89,18 @@ export const UserProfile: React.FC = () => {
   const [params, setParams] = useSearchParams();
   const activeTab = params.get('tab') || 'personal';
 
-  const avatarInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
 
-  /* Personal info form */
+  /* Personal info form — the avatar itself is NOT part of this form; it's
+     owned entirely by AvatarPicker (shared with every other avatar in the
+     app), which writes straight through the identity system on each
+     change. Keeping a parallel avatar_url field here that only syncs on
+     "Save Changes" is exactly what let this page's own picture drift from
+     what the header (PersonAvatar) shows for the same account — see
+     AvatarPicker's own module comment for why. */
   const buildInitialForm = () => ({
     name:       user?.name || '',
     phone:      user?.phone || '',
-    avatar_url: user?.avatar_url || '',
     cover_url:  user?.profile?.cover_url || '',
     bio:        user?.profile?.bio || '',
     job_title:  user?.profile?.job_title || ROLE_LABELS[user?.role || ''] || '',
@@ -145,7 +144,6 @@ export const UserProfile: React.FC = () => {
         body: JSON.stringify({
           name: form.name,
           phone: form.phone,
-          avatar_url: form.avatar_url || null,
           profile: {
             bio: form.bio, job_title: form.job_title, city: form.city,
             country: form.country, timezone: form.timezone, language: form.language, website: form.website,
@@ -161,17 +159,13 @@ export const UserProfile: React.FC = () => {
     } finally { setSaving(false); }
   };
 
-  const persistImagePatch = async (avatarUrl?: string | null, coverUrl?: string | null) => {
+  const persistCoverPatch = async (coverUrl: string | null) => {
     setSaving(true);
     setSaveError(null);
     try {
-      const payload: Record<string, any> = {};
-      if (avatarUrl !== undefined) payload.avatar_url = avatarUrl;
-      if (coverUrl !== undefined) payload.profile = { cover_url: coverUrl };
-
       const res = await apiFetch('/v1/auth/me', {
         method: 'PATCH',
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ profile: { cover_url: coverUrl } }),
       });
       if (res?.user) updateUser(res.user);
       setSaved(true);
@@ -179,26 +173,6 @@ export const UserProfile: React.FC = () => {
     } catch (err: any) {
       setSaveError(err?.message || 'Failed to save image.');
     } finally { setSaving(false); }
-  };
-
-  const handleAvatarFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith('image/')) { showAlert('That file is not an image.'); return; }
-    try {
-      const dataUrl = await squareAvatarDataUrl(file);
-      setForm(p => ({ ...p, avatar_url: dataUrl }));
-      await persistImagePatch(dataUrl, undefined);
-      // Tell every mounted avatar to re-fetch. The module cache in
-      // lib/identity.ts is what lets one picture serve every app without a
-      // request per render — and it was also pinning the old picture
-      // everywhere until a full page reload.
-      if (user?.id) forgetAvatar(user.id);
-    } catch (err: any) {
-      showAlert(err?.message || 'That picture could not be processed.');
-    } finally {
-      e.target.value = '';
-    }
   };
 
   const handleCoverFile = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -212,7 +186,7 @@ export const UserProfile: React.FC = () => {
     reader.onload = (evt) => {
       const dataUrl = evt.target?.result as string;
       setForm(p => ({ ...p, cover_url: dataUrl }));
-      persistImagePatch(undefined, dataUrl);
+      persistCoverPatch(dataUrl);
     };
     reader.readAsDataURL(file);
   };
@@ -264,7 +238,7 @@ export const UserProfile: React.FC = () => {
                 type="button"
                 onClick={() => {
                   setForm(p => ({ ...p, cover_url: '' }));
-                  persistImagePatch(undefined, null);
+                  persistCoverPatch(null);
                 }}
                 style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py-sm) 12px', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 'var(--r)', background: 'rgba(0,0,0,0.45)', color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'var(--font)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25, backdropFilter: 'blur(4px)' }}
               >
@@ -291,46 +265,18 @@ export const UserProfile: React.FC = () => {
         </div>
 
         <div style={{ padding: '0 28px 20px', position: 'relative' }}>
-          {/* Avatar */}
+          {/* Avatar — AvatarPicker, the same shared upload/remove control (and
+              the same PersonAvatar read path) as every other picture in the
+              app, not a hand-rolled <img src={raw field}>. That used to be
+              exactly how this page's own picture could drift from what the
+              header shows for the same account: this page wrote through
+              /v1/auth/me while the header read through the identity system's
+              cached fetch, so a change on one side never necessarily reached
+              the other. AvatarPicker is single-sourced from the start. */}
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: -42 }}>
-            <div style={{ position: 'relative', cursor: 'pointer' }} onClick={() => avatarInputRef.current?.click()} title="Click to change profile picture">
-              <div style={{ width: 88, height: 88, borderRadius: '50%', background: avColor(user.name), color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30, fontWeight: 800, border: '4px solid #fff', boxShadow: 'var(--elev)', overflow: 'hidden' }}>
-                {form.avatar_url ? (
-                  <img src={form.avatar_url} alt={form.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                ) : (
-                  initials(form.name || user.name)
-                )}
-              </div>
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); avatarInputRef.current?.click(); }}
-                title="Upload profile picture"
-                style={{ position: 'absolute', bottom: 2, right: 2, width: 28, height: 28, borderRadius: '50%', background: 'var(--teal)', border: '2px solid #fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 6px rgba(0,0,0,0.18)' }}
-              >
-                <Icon name="camera" size={12} strokeWidth={2.5} style={{ color: '#fff' } as React.CSSProperties} />
-              </button>
-              {form.avatar_url && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setForm(p => ({ ...p, avatar_url: '' }));
-                    persistImagePatch(null, undefined);
-                  }}
-                  title="Remove profile picture"
-                  style={{ position: 'absolute', top: 0, right: 0, width: 22, height: 22, borderRadius: '50%', background: 'var(--red)', border: '2px solid #fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 6px rgba(0,0,0,0.18)' }}
-                >
-                  <Icon name="x" size={11} strokeWidth={3} style={{ color: '#fff' } as React.CSSProperties} />
-                </button>
-              )}
+            <div style={{ background: 'var(--white)', borderRadius: '50%', border: '4px solid #fff', boxShadow: 'var(--elev)' }}>
+              <AvatarPicker id={user.id} kind="people" name={user.name} size={80} />
             </div>
-            <input
-              type="file"
-              ref={avatarInputRef}
-              onChange={handleAvatarFile}
-              accept="image/*"
-              style={{ display: 'none' }}
-            />
             <div style={{ display: 'flex', gap: 8, paddingBottom: 4 }}>
               <Link to="/subscription" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 16px', border: '1.5px solid var(--border)', borderRadius: 9, background: 'var(--white)', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)', color: 'var(--ink)', textDecoration: 'none' }}>
                 <Icon name="creditCard" size={13} strokeWidth={2} />
@@ -356,9 +302,10 @@ export const UserProfile: React.FC = () => {
         </div>
 
         {/* Tab strip */}
-        <div style={{ display: 'flex', padding: '0 28px', borderTop: '1px solid var(--border)', gap: 0 }}>
+        <div className="ds-tabs-list" data-variant="segmented" style={{ margin: '0 28px' }}>
           {TABS.map(t => (
-            <button key={t.key} onClick={() => setTab(t.key)} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 16px', border: 'none', background: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)', color: activeTab === t.key ? 'var(--teal)' : 'var(--ink3)', borderBottom: activeTab === t.key ? '2px solid var(--teal)' : '2px solid transparent', marginBottom: -1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+            <button key={t.key} type="button" className="ds-tabs-trigger" data-variant="segmented"
+              data-state={activeTab === t.key ? 'active' : 'inactive'} onClick={() => setTab(t.key)}>
               <Icon name={t.icon} size={14} strokeWidth={activeTab === t.key ? 2.3 : 1.8} />
               {t.label}
             </button>

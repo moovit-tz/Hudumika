@@ -6,6 +6,7 @@ import { useCompany } from '../data/companyStore.js';
 import type { AgedReport, AgedRow } from '@hudumika/types';
 import { PageHeader } from '../components/PageHeader.js';
 import { MetricsRow } from '../components/MetricCard.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 export const FinanceAgedReceivables: React.FC = () => {
   const co = useCompany();
@@ -118,8 +119,7 @@ export const FinanceAgedReceivables: React.FC = () => {
         ]} />
 
         {/* Aging bars summary */}
-        <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '16px 20px' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 14 }}>Aging Distribution</div>
+        <SectionCard title="Aging Distribution">
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
             {[
               { label: 'Current',   value: totals.current,      color: 'var(--green)'  },
@@ -143,13 +143,10 @@ export const FinanceAgedReceivables: React.FC = () => {
               );
             })}
           </div>
-        </div>
+        </SectionCard>
 
         {/* Aging table */}
-        <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', overflow: 'hidden' }}>
-          <div style={{ padding: '11px 18px', borderBottom: '1px solid var(--border)' }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Customer Aging Detail ({rows.length})</span>
-          </div>
+        <SectionCard padded={false} title={`Customer Aging Detail (${rows.length})`}>
           {rows.length === 0 ? (
             <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No outstanding customer balances.</div>
           ) : (
@@ -206,7 +203,7 @@ export const FinanceAgedReceivables: React.FC = () => {
             </table>
           </div>
           )}
-        </div>
+        </SectionCard>
       </div>
       )}
     </div>

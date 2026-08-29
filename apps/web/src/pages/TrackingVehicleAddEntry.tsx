@@ -4,6 +4,7 @@ import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 type FieldDef = { key: string; label: string; type: 'text' | 'number' | 'date' | 'textarea' | 'select'; options?: { value: string; label: string }[]; required?: boolean };
 
@@ -130,7 +131,8 @@ export const TrackingVehicleAddEntry: React.FC = () => {
       </Link>
       <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--ink)', marginBottom: 20 }}>{config.title}</div>
 
-      <form onSubmit={submit} style={{ ...cardStyle, display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <SectionCard>
+      <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         {fields.map(f => (
           <div key={f.key}>
             <label style={labelStyle}>{f.label}</label>
@@ -159,6 +161,7 @@ export const TrackingVehicleAddEntry: React.FC = () => {
           </button>
         </div>
       </form>
+      </SectionCard>
     </div>
   );
 };

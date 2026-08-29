@@ -5,6 +5,7 @@ import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { apiFetch } from '../lib/api.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 type Kind = 'BUG' | 'FEATURE' | 'DEBT' | 'DECISION' | 'QUESTION' | 'RISK';
 type Status = 'OPEN' | 'IN_PROGRESS' | 'BLOCKED' | 'DONE' | 'WONTFIX';
@@ -230,7 +231,9 @@ export function Lens() {
       )}
 
       {/* Filters */}
-      <div style={{ ...card, padding: '10px 12px', margin: '0 0 16px', display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', flexShrink: 0, justifyContent: 'space-between' }}>
+      <div style={{ margin: '0 0 16px', flexShrink: 0 }}>
+      <SectionCard>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
           <Select value={fKind || '__all__'} onValueChange={v => setFKind(v === '__all__' ? '' : v)}>
             <SelectTrigger style={{ minWidth: 130, width: 'auto' }}><SelectValue placeholder="All kinds" /></SelectTrigger>
@@ -265,6 +268,8 @@ export function Lens() {
           <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search title, body, evidence…"
             style={{ ...input, width: '100%' }} />
         </div>
+        </div>
+      </SectionCard>
       </div>
 
       {loading ? (
@@ -348,12 +353,8 @@ export function Lens() {
               Nothing matches. {showClosed ? '' : 'Closed items are hidden — tick "Show closed" to include them.'}
             </div>
           ) : grouped.map(([area, list]) => (
-            <div key={area} style={{ ...card, overflow: 'hidden', marginBottom: 16 }}>
-              <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--border)', background: 'var(--bg)' }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-                  {area} · {list.length}
-                </span>
-              </div>
+            <div key={area} style={{ marginBottom: 16 }}>
+            <SectionCard padded={false} title={`${area} · ${list.length}`}>
               {list.map(it => (
                 <button key={it.id} type="button" onClick={() => open(it.ref)}
                   style={{
@@ -376,6 +377,7 @@ export function Lens() {
                   )}
                 </button>
               ))}
+            </SectionCard>
             </div>
           ))}
         </div>

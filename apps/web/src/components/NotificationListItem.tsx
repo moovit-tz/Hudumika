@@ -49,19 +49,20 @@ export function NotificationListItem({ n, onMarkRead, onNavigate }: {
     isClickable ? 'notif-item--clickable' : '',
   ].filter(Boolean).join(' ');
 
-  const avatarSrc = n.avatar_url;
   const initialLetter = (n.title || '?').trim()[0]?.toUpperCase() ?? '?';
 
+  // No PersonAvatar here — a notification carries no actor id, only a
+  // type/title/message (see notifications.routes.ts / migration
+  // 014_notifications_mail.sql), so there's no "who" to fetch a picture
+  // for. The `avatar_url` field this used to read was never actually sent
+  // by the API; this always rendered initials in practice, just via a
+  // branch that could never fire the other way.
   const content = (
     <>
       <div className="notif-item-avatar-wrap">
-        {avatarSrc ? (
-          <img src={avatarSrc} alt="" className="notif-item-avatar" />
-        ) : (
-          <div className="notif-item-initials" style={{ background: cfg.color }}>
-            {initialLetter}
-          </div>
-        )}
+        <div className="notif-item-initials" style={{ background: cfg.color }}>
+          {initialLetter}
+        </div>
         <div className="notif-item-badge" style={{ color: cfg.color }}>
           <Icon name={cfg.icon} size={10} strokeWidth={2.2} />
         </div>

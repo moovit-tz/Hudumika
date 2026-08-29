@@ -17,6 +17,7 @@ import { useAuth } from '../hooks/useAuth.js';
 import { FileUploader } from '../components/ui/file-uploader.js';
 import { MentionInput, type MentionUser } from '../components/MentionInput.js';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuCheckboxItem } from '../components/ui/dropdown-menu.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 // Standalone Projects app (HuduPlus+, entitlement key 'projects' — migration
 // 313) — Projects/Milestones are real, tenant-shared entities (migration
@@ -733,7 +734,9 @@ export const ProjectsApp: React.FC = () => {
         </div>
 
         {creating && (
-          <div style={{ margin: isMobile ? 16 : '20px 32px 0', padding: 16, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ margin: isMobile ? 16 : '20px 32px 0' }}>
+          <SectionCard collapsible={false}>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
             <input
               autoFocus value={newName} onChange={e => setNewName(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') createProject(); if (e.key === 'Escape') setCreating(false); }}
@@ -752,6 +755,8 @@ export const ProjectsApp: React.FC = () => {
             )}
             <Button size="sm" onClick={createProject} disabled={!newName.trim()}>Create</Button>
             <Button size="sm" variant="outline" onClick={() => { setCreating(false); setNewName(''); setNewTemplateId('__none__'); }}>Cancel</Button>
+          </div>
+          </SectionCard>
           </div>
         )}
 
@@ -882,7 +887,9 @@ export const ProjectsApp: React.FC = () => {
         {selected.ref && <div style={{ fontSize: 11.5, color: 'var(--ink4)', marginTop: 2 }}>{selected.ref}</div>}
         {selected.description && <p style={{ fontSize: 13, color: 'var(--ink3)', margin: '6px 0 0' }}>{selected.description}</p>}
         {savingTemplate && (
-          <div style={{ marginTop: 14, padding: 14, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 10, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', maxWidth: 480 }}>
+          <div style={{ marginTop: 14, maxWidth: 480 }}>
+          <SectionCard collapsible={false}>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
             <input
               autoFocus value={templateName} onChange={e => setTemplateName(e.target.value)}
               placeholder="Template name…"
@@ -891,18 +898,18 @@ export const ProjectsApp: React.FC = () => {
             <Button size="sm" onClick={saveAsTemplate} disabled={!templateName.trim()}>Save</Button>
             <Button size="sm" variant="outline" onClick={() => setSavingTemplate(false)}>Cancel</Button>
           </div>
+          </SectionCard>
+          </div>
         )}
 
-        <div style={{ display: 'flex', gap: 4, marginTop: 18, borderBottom: '1px solid var(--border)' }}>
+        <div className="ds-tabs-list" data-variant="segmented" style={{ marginTop: 18 }}>
           {(['overview', 'board', 'gantt', 'timesheets', 'files', 'discussions', 'tickets', 'sales', 'activity', 'milestones', 'members'] as const)
             .filter(t => !viewAsCustomer || CUSTOMER_VISIBLE_TABS.has(t))
             .map(t => (
             <button
-              key={t} type="button" onClick={() => setTab(t)}
-              style={{
-                padding: 'var(--ds-btn-py) 14px', background: 'none', border: 'none', borderBottom: `2px solid ${tab === t ? 'var(--teal)' : 'transparent'}`,
-                color: tab === t ? 'var(--teal)' : 'var(--ink3)', fontWeight: tab === t ? 700 : 500, fontSize: 13.5, cursor: 'pointer', textTransform: 'capitalize',
-              }}
+              key={t} type="button" className="ds-tabs-trigger" data-variant="segmented"
+              data-state={tab === t ? 'active' : 'inactive'} onClick={() => setTab(t)}
+              style={{ textTransform: 'capitalize' }}
             >
               {t === 'overview' ? 'Overview' : t === 'board' ? `Tasks${projectTasks.length ? ` (${projectTasks.length})` : ''}` : t === 'gantt' ? 'Gantt' : t === 'timesheets' ? 'Timesheets' : t === 'files' ? `Files${projectFiles ? ` (${projectFiles.length})` : ''}` : t === 'discussions' ? `Discussions${discussions ? ` (${discussions.length})` : ''}` : t === 'tickets' ? `Tickets${projectTickets ? ` (${projectTickets.length})` : ''}` : t === 'sales' ? `Sales${projectInvoices ? ` (${projectInvoices.length})` : ''}` : t === 'activity' ? 'Activity' : t === 'milestones' ? `Milestones${milestones ? ` (${milestones.length})` : ''}` : `Members${members ? ` (${members.length})` : ''}`}
             </button>
@@ -916,8 +923,7 @@ export const ProjectsApp: React.FC = () => {
             <div style={{ color: 'var(--ink3)', fontSize: 14 }}>Loading…</div>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 20, alignItems: 'start' }}>
-              <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: 20 }}>
-                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', marginBottom: 16 }}>Overview</div>
+              <SectionCard title="Overview">
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 16px', fontSize: 13 }}>
                   <OverviewField label="Project #" value={detail.ref || '—'} />
                   <OverviewField label="Customer" value={detail.customer_name || '—'} />
@@ -935,7 +941,7 @@ export const ProjectsApp: React.FC = () => {
                     <p style={{ fontSize: 13, color: 'var(--ink2)', margin: 0, lineHeight: 1.6 }}>{detail.description}</p>
                   </>
                 )}
-              </div>
+              </SectionCard>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>{selected.name}</div>
@@ -953,31 +959,25 @@ export const ProjectsApp: React.FC = () => {
                 </div>
 
                 {!viewAsCustomer && (
-                  <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                      <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <Icon name="fileText" size={13} /> Expenses
-                      </div>
-                      {!!detail.expenses.unbilled && (
+                  <SectionCard
+                    title="Expenses"
+                    action={!!detail.expenses.unbilled ? (
                         <Button size="sm" onClick={invoiceProject} disabled={invoicing} style={{ height: 26, fontSize: 11.5 }}>
                           {invoicing ? 'Invoicing…' : 'Invoice Project'}
                         </Button>
-                      )}
-                    </div>
+                    ) : undefined}
+                  >
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
                       <ExpenseStat label="Total" value={detail.expenses.total} color="var(--ink)" currency={detail.currency} />
                       <ExpenseStat label="Billable" value={detail.expenses.billable} color="var(--blue)" currency={detail.currency} />
                       <ExpenseStat label="Billed" value={detail.expenses.billed} color="var(--green)" currency={detail.currency} />
                       <ExpenseStat label="Unbilled" value={detail.expenses.unbilled} color="var(--red)" currency={detail.currency} />
                     </div>
-                  </div>
+                  </SectionCard>
                 )}
 
                 {!viewAsCustomer && selected.customer_id && retainer !== undefined && (
-                  <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
-                    <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-                      <Icon name="refresh" size={13} /> Retainer
-                    </div>
+                  <SectionCard title="Retainer">
                     {retainer ? (
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <div>
@@ -1007,11 +1007,10 @@ export const ProjectsApp: React.FC = () => {
                     ) : (
                       <Button size="sm" variant="outline" onClick={() => setSettingUpRetainer(true)}>Set up retainer</Button>
                     )}
-                  </div>
+                  </SectionCard>
                 )}
 
-                <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
-                  <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>Total Logged Hours — This Week</div>
+                <SectionCard title="Total Logged Hours — This Week">
                   <div style={{ height: 180 }}>
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={detail.logged_hours_by_day.map(r => ({ day: r.day.slice(5, 10), hours: +(r.minutes / 60).toFixed(2) }))}>
@@ -1023,7 +1022,7 @@ export const ProjectsApp: React.FC = () => {
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
-                </div>
+                </SectionCard>
               </div>
             </div>
           )
@@ -1146,7 +1145,8 @@ export const ProjectsApp: React.FC = () => {
                 })}
               </div>
             ) : boardView === 'table' ? (
-              <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'auto' }}>
+              <SectionCard collapsible={false} padded={false}>
+                <div style={{ overflow: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                   <thead>
                     <tr style={{ borderBottom: '1px solid var(--border)', textAlign: 'left' }}>
@@ -1213,7 +1213,8 @@ export const ProjectsApp: React.FC = () => {
                     )}
                   </tbody>
                 </table>
-              </div>
+                </div>
+              </SectionCard>
             ) : (
               <div style={{ display: 'flex', gap: 14, overflowX: 'auto', paddingBottom: 8 }}>
                 {[...(milestones || []), null].map(ms => {
@@ -1424,7 +1425,8 @@ export const ProjectsApp: React.FC = () => {
             ) : timesheets.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--ink3)', fontSize: 14 }}>No logged time yet.</div>
             ) : (
-              <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'auto' }}>
+              <SectionCard collapsible={false} padded={false}>
+                <div style={{ overflow: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                   <thead>
                     <tr style={{ borderBottom: '1px solid var(--border)', textAlign: 'left' }}>
@@ -1446,7 +1448,8 @@ export const ProjectsApp: React.FC = () => {
                     ))}
                   </tbody>
                 </table>
-              </div>
+                </div>
+              </SectionCard>
             )}
           </>
         )}
@@ -1611,7 +1614,8 @@ export const ProjectsApp: React.FC = () => {
             ) : projectInvoices.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--ink3)', fontSize: 14 }}>No invoices yet — use "Invoice Project" on the Overview tab.</div>
             ) : (
-              <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'auto' }}>
+              <SectionCard collapsible={false} padded={false}>
+                <div style={{ overflow: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                   <thead>
                     <tr style={{ borderBottom: '1px solid var(--border)', textAlign: 'left' }}>
@@ -1637,7 +1641,8 @@ export const ProjectsApp: React.FC = () => {
                     })}
                   </tbody>
                 </table>
-              </div>
+                </div>
+              </SectionCard>
             )}
           </div>
         )}

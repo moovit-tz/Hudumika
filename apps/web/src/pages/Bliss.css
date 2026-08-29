@@ -18,7 +18,8 @@
    app-shell-content's default 1380px-capped, 24px-padded, centered box. Other
    Bliss routes (Overview, KB, Settings, Escalations) keep the default padding. */
 [data-bliss] .app-shell-content:has(> .spt-shell),
-[data-bliss] .app-shell-content:has(> .spc-shell) {
+[data-bliss] .app-shell-content:has(> .spc-shell),
+[data-bliss] .app-shell-content:has(> .bliss-chat-shell) {
   max-width: none;
   margin: 0;
   padding: 0;
