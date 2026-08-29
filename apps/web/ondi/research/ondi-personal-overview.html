@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Ondi Personal — Platform Overview</title>
+<link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@300;400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#FAFAF8;--surf:#F4F3EF;--card:#FFFFFF;--card2:#F9F8F5;
+  --border:#E4E0D8;--border2:#CFC9BE;
+  --ondi:#4338CA;--ind:rgba(67,56,202,.10);
+  --violet:#6D28D9;--vd:rgba(109,40,217,.10);
+  --rose:#E11D48;--rd:rgba(225,29,72,.09);
+  --amber:#D97706;--ad:rgba(217,119,6,.10);
+  --green:#059669;--gd:rgba(5,150,105,.09);
+  --sky:#0284C7;--sd:rgba(2,132,199,.10);
+  --teal:#0D9488;--td:rgba(13,148,136,.09);
+  --gold:#B45309;--gold-d:rgba(180,83,9,.10);
+  --ink:#1A1C22;--text:#2C3340;--muted:#9A9187;--muted2:#5A6070;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:'League Spartan',sans-serif;font-size:14px;line-height:1.6;letter-spacing:-0.01em;}
+
+nav{position:sticky;top:0;z-index:100;background:rgba(250,250,248,.96);
+  backdrop-filter:blur(18px);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 36px;overflow-x:auto;gap:0;}
+.nav-brand{display:flex;align-items:center;gap:10px;margin-right:28px;flex-shrink:0;padding:12px 0;}
+.nav-brand-name{font-size:15px;font-weight:800;color:var(--ink);letter-spacing:-0.02em;}
+.nav-brand-badge{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:1px;
+  background:var(--rose);color:#fff;padding:2px 7px;border-radius:4px;text-transform:uppercase;}
+.nl{padding:13px 14px;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.4px;
+  color:var(--muted2);white-space:nowrap;border-bottom:2px solid transparent;transition:.2s;cursor:pointer;text-decoration:none;display:block;}
+.nl:hover{color:var(--ink);}
+.nl.on{color:var(--ondi);border-bottom-color:var(--ondi);}
+
+#hero{min-height:82vh;display:flex;flex-direction:column;justify-content:center;
+  padding:72px 36px 56px;position:relative;overflow:hidden;border-bottom:1px solid var(--border);}
+.hbg{position:absolute;inset:0;background:
+  radial-gradient(ellipse 65% 55% at 8% 50%,rgba(225,29,72,.08) 0%,transparent 60%),
+  radial-gradient(ellipse 40% 35% at 85% 20%,rgba(67,56,202,.08) 0%,transparent 55%),
+  radial-gradient(ellipse 35% 30% at 60% 90%,rgba(217,119,6,.06) 0%,transparent 50%);}
+.hgrid{position:absolute;inset:0;background-image:
+  repeating-linear-gradient(0deg,transparent,transparent 47px,rgba(0,0,0,.028) 47px,rgba(0,0,0,.028) 48px),
+  repeating-linear-gradient(90deg,transparent,transparent 47px,rgba(0,0,0,.028) 47px,rgba(0,0,0,.028) 48px);pointer-events:none;}
+.hin{position:relative;max-width:1080px;margin:0 auto;width:100%;}
+.hsuper{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:5px;color:var(--rose);text-transform:uppercase;margin-bottom:18px;}
+.hh1{font-size:clamp(28px,4.5vw,54px);font-weight:900;color:var(--ink);line-height:1.05;margin-bottom:10px;}
+.hh1 em{color:var(--ondi);font-style:normal;}
+.hh1 .r{color:var(--rose);}
+.hmeta{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted2);margin-bottom:22px;letter-spacing:.5px;}
+.hdesc{max-width:680px;font-size:15px;line-height:1.85;color:var(--muted2);font-weight:300;margin-bottom:30px;
+  border-left:3px solid var(--ondi);padding-left:18px;}
+.hpills{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:36px;}
+.hpill{padding:8px 18px;border-radius:6px;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;letter-spacing:1px;border:1px solid;}
+.hp-a{background:var(--ind);color:var(--ondi);border-color:rgba(67,56,202,.3);}
+.hp-b{background:var(--rd);color:var(--rose);border-color:rgba(225,29,72,.3);}
+.hp-c{background:var(--ad);color:var(--amber);border-color:rgba(217,119,6,.3);}
+.hp-d{background:var(--gd);color:var(--green);border-color:rgba(5,150,105,.3);}
+.hstats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;max-width:700px;}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;}
+.statn{font-size:22px;font-weight:800;color:var(--ondi);}
+.statl{font-size:11px;color:var(--muted);margin-top:2px;}
+
+section{padding:56px 36px;max-width:1080px;margin:0 auto;border-bottom:1px solid var(--border);}
+.eyebrow{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:4px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;}
+.stitle{font-size:24px;font-weight:800;color:var(--ink);line-height:1.2;margin-bottom:10px;}
+.stitle span{color:var(--ondi);}
+.stitle .r{color:var(--rose);}
+.slead{font-size:14px;line-height:1.8;color:var(--muted2);font-weight:300;max-width:700px;margin-bottom:32px;}
+.mb28{margin-bottom:28px;}.mt24{margin-top:24px;}.mt32{margin-top:32px;}
+
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:13px;}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px 20px;transition:border-color .2s;}
+.card:hover{border-color:var(--border2);}
+.card-icon{font-size:22px;margin-bottom:10px;}
+.card-title{font-size:13px;font-weight:700;color:var(--ink);margin-bottom:5px;}
+.card-desc{font-size:12px;color:var(--muted2);line-height:1.55;}
+
+.suite{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:16px;}
+.suite-hdr{padding:16px 22px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px;}
+.suite-icon{font-size:26px;}
+.suite-name{font-size:16px;font-weight:800;}
+.suite-motto{font-size:11px;color:var(--muted);font-style:italic;margin-top:2px;}
+.suite-body{padding:14px 22px 18px;}
+.suite-desc{font-size:12.5px;color:var(--muted2);margin-bottom:14px;line-height:1.6;}
+.mod-rows{display:flex;flex-direction:column;gap:9px;}
+.mod-hdr{display:grid;grid-template-columns:160px 200px 1fr;gap:12px;padding:7px 12px;background:var(--surf);border-radius:6px;}
+.mod-hdr span{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--muted);}
+.mod-row{display:grid;grid-template-columns:160px 200px 1fr;gap:12px;padding:9px 12px;background:var(--surf);border-radius:8px;border:1px solid var(--border);}
+.mod-name{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;}
+.mod-full{font-size:11.5px;color:var(--muted2);}
+.mod-func{font-size:11.5px;color:var(--text);}
+
+/* PERSONA JOURNEY */
+.journey{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:12px;}
+.journey-hdr{padding:13px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.jicon{font-size:20px;}
+.jtitle{font-size:13px;font-weight:800;color:var(--ink);flex:1;}
+.jtag{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;padding:2px 8px;border-radius:4px;border:1px solid;}
+.journey-body{padding:16px 20px;}
+.jsteps{display:flex;flex-direction:column;gap:10px;}
+.jstep-row{display:flex;gap:12px;align-items:flex-start;}
+.jstep-num{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;flex-shrink:0;margin-top:2px;}
+.jstep-content{flex:1;}
+.jstep-title{font-size:12px;font-weight:700;color:var(--ink);margin-bottom:2px;}
+.jstep-desc{font-size:11.5px;color:var(--muted2);line-height:1.5;}
+
+/* TRUST SCORE BANDS */
+.trust-band{border-radius:12px;overflow:hidden;border:1px solid var(--border);margin-bottom:28px;}
+.tb-hdr{padding:14px 22px;border-bottom:1px solid var(--border);font-size:14px;font-weight:800;color:var(--ink);}
+.tb-row{display:grid;grid-template-columns:180px 130px 1fr;align-items:center;padding:12px 22px;border-bottom:1px solid var(--border);}
+.tb-row:last-child{border-bottom:none;}
+.tb-row:nth-child(odd){background:var(--card2);}
+.tb-scenario{font-size:12px;font-weight:700;color:var(--ink);}
+.tb-signal{font-family:'IBM Plex Mono',monospace;font-size:10px;}
+.tb-action{font-size:12px;color:var(--muted2);}
+
+/* SIGNAL PILLARS */
+.signal-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:28px;}
+.signal-card{border-radius:10px;padding:16px 18px;border:1px solid;}
+.signal-title{font-size:12px;font-weight:800;color:var(--ink);margin-bottom:8px;display:flex;align-items:center;gap:7px;}
+.signal-list{display:flex;flex-direction:column;gap:5px;}
+.signal-item{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:500;padding:3px 8px;border-radius:4px;}
+
+/* CALLOUT */
+.callout{border-radius:12px;padding:22px 26px;margin-bottom:20px;}
+.callout-title{font-size:15px;font-weight:800;color:var(--ink);margin-bottom:7px;}
+.callout-body{font-size:13px;line-height:1.8;color:var(--muted2);}
+
+/* ACTOR TABLE */
+.atbl{width:100%;border-collapse:collapse;margin-bottom:24px;}
+.atbl th{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);padding:10px 14px;text-align:left;border-bottom:1px solid var(--border);background:var(--surf);}
+.atbl td{padding:11px 14px;border-bottom:1px solid var(--border);font-size:12.5px;vertical-align:top;}
+.atbl tr:nth-child(odd) td{background:var(--card);}
+.atbl tr:nth-child(even) td{background:var(--card2);}
+.atbl tr:last-child td{border-bottom:none;}
+.aname{font-size:12px;font-weight:700;color:var(--ink);}
+
+/* ROADMAP */
+.rm-wrap{display:flex;flex-direction:column;gap:12px;}
+.rm-row{display:flex;gap:0;align-items:stretch;}
+.rm-num{width:44px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;}
+.rm-dot{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;flex-shrink:0;}
+.rm-vline{width:2px;flex:1;margin-top:4px;}
+.rm-card{flex:1;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-left:14px;}
+.rm-head{display:flex;align-items:baseline;gap:10px;margin-bottom:6px;flex-wrap:wrap;}
+.rm-title{font-size:14px;font-weight:800;}
+.rm-label{font-size:10px;padding:2px 8px;border-radius:20px;border:1px solid var(--border);color:var(--muted);font-family:'IBM Plex Mono',monospace;}
+.rm-goal{font-size:12px;color:var(--muted2);margin-bottom:8px;font-style:italic;}
+.rm-tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;}
+.rmtag{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;padding:3px 9px;border-radius:4px;}
+.rm-focus{font-size:12px;color:var(--muted2);line-height:1.6;}
+
+.battr{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px 18px;}
+.battr-dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:8px;vertical-align:middle;}
+.battr-text{font-size:13px;color:var(--text);}
+.battr-sub{font-size:12px;color:var(--muted2);margin-top:4px;padding-left:14px;line-height:1.5;}
+
+@keyframes up{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.hin>*{animation:up .65s ease both;}
+.hsuper{animation-delay:.0s}.hh1{animation-delay:.08s}.hmeta{animation-delay:.15s}
+.hdesc{animation-delay:.2s}.hpills{animation-delay:.26s}.hstats{animation-delay:.32s}
+footer{padding:18px 36px;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);border-top:1px solid var(--border);}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand">
+    <div class="nav-brand-name">Ondi</div>
+    <div class="nav-brand-badge">Personal</div>
+  </div>
+  <a class="nl on" href="#hero">Overview</a>
+  <a class="nl" href="#why">Why It Matters</a>
+  <a class="nl" href="#modules">Features</a>
+  <a class="nl" href="#trust">Trust Score</a>
+  <a class="nl" href="#journeys">Personas</a>
+  <a class="nl" href="#opportunities">Opportunities</a>
+  <a class="nl" href="#security">Security</a>
+  <a class="nl" href="#roadmap">Roadmap</a>
+</nav>
+
+<div id="hero">
+  <div class="hbg"></div>
+  <div class="hgrid"></div>
+  <div class="hin">
+    <div class="hsuper">Your Verified Digital Identity · Trust · Access Passport</div>
+    <h1 class="hh1"><em>Ondi</em> Personal<br/><span class="r">Verified once. Trusted everywhere.</span></h1>
+    <div class="hmeta">IDENTITY WALLET · TRUST SCORE · VERIFIED PROFILE · OPPORTUNITY PASSPORT · UNIVERSAL SSO</div>
+    <div class="hdesc">Ondi Personal gives every individual in Africa a verified digital identity, a portable trust profile, and an opportunity passport. Not just login. Not just KYC. A digital life that works for you — helping you prove trust, access opportunities faster, and carry your verified reputation everywhere.</div>
+    <div class="hpills">
+      <div class="hpill hp-a">🪪 Identity Wallet</div>
+      <div class="hpill hp-b">⭐ Trust Score</div>
+      <div class="hpill hp-c">🎓 Verified Profile</div>
+      <div class="hpill hp-d">🚀 Opportunity Passport</div>
+      <div class="hpill hp-a">🔐 Universal Login</div>
+    </div>
+    <div class="hstats">
+      <div class="stat"><div class="statn">850</div><div class="statl">Max Trust Score · Ondi</div></div>
+      <div class="stat"><div class="statn">1-tap</div><div class="statl">Verified Applications · Jobs, Loans, Schools</div></div>
+      <div class="stat"><div class="statn">0×</div><div class="statl">Re-KYC · Verified once, reused everywhere</div></div>
+      <div class="stat"><div class="statn">∞</div><div class="statl">Portable Reputation · Carries with you always</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- WHY -->
+<section id="why">
+  <div class="eyebrow">01 — The Problem &amp; The Shift</div>
+  <div class="stitle">Why Ordinary People <span>Need Ondi</span></div>
+  <div class="slead">Millions of people across Africa have stable lives, verified identities, and real track records — but no way to prove it digitally. Ondi converts what people already have into trusted digital capital.</div>
+
+  <div class="g2 mb28">
+    <div class="card">
+      <div class="card-title" style="color:var(--rose);margin-bottom:14px;">The Problem Today</div>
+      <div style="font-size:13px;color:var(--muted2);line-height:1.85;">
+        <span style="color:var(--rose);font-weight:700;">→</span> Banks ask for the same documents over and over<br/>
+        <span style="color:var(--rose);font-weight:700;">→</span> Employers can't verify certificates — fake CVs are rampant<br/>
+        <span style="color:var(--rose);font-weight:700;">→</span> Freelancers lose reputation when they switch platforms<br/>
+        <span style="color:var(--rose);font-weight:700;">→</span> Students can't prove credentials to international employers<br/>
+        <span style="color:var(--rose);font-weight:700;">→</span> Millions are credit-invisible despite stable mobile money use<br/>
+        <span style="color:var(--rose);font-weight:700;">→</span> No portable, trusted record follows people through life<br/><br/>
+        <strong style="color:var(--ink);">People have trust. They just can't prove it.</strong>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title" style="color:var(--green);margin-bottom:14px;">What People Already Have</div>
+      <div style="font-size:13px;color:var(--muted2);line-height:1.85;">
+        <span style="color:var(--green);font-weight:700;">✓</span> Stable phone usage for years<br/>
+        <span style="color:var(--green);font-weight:700;">✓</span> Verified government ID (NIDA, NIN, Passport)<br/>
+        <span style="color:var(--green);font-weight:700;">✓</span> Consistent mobile money transaction history<br/>
+        <span style="color:var(--green);font-weight:700;">✓</span> Real educational records and certificates<br/>
+        <span style="color:var(--green);font-weight:700;">✓</span> Employment history and employer endorsements<br/>
+        <span style="color:var(--green);font-weight:700;">✓</span> Community trust and social proof<br/><br/>
+        <strong style="color:var(--ondi);">Ondi converts all of that into portable digital trust.</strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout" style="background:var(--ind);border:1px solid rgba(67,56,202,.2);">
+    <div class="callout-title" style="color:var(--ondi);">💡 The Mental Shift</div>
+    <div class="callout-body">
+      <strong style="color:var(--ink);">Traditional systems ask:</strong> "Who are you?" — requiring document uploads every single time.<br/>
+      <strong style="color:var(--ondi);">Ondi asks:</strong> "How trustworthy and verifiable are you?" — and answers that question on your behalf, everywhere, forever.<br/><br/>
+      People don't want an "identity product." They want <strong style="color:var(--ink);">jobs, loans, access, recognition, and convenience.</strong> Ondi becomes the bridge.
+    </div>
+  </div>
+
+  <div class="eyebrow mt32">Who Ondi Personal Is For</div>
+  <div class="g3 mt24">
+    <div class="card"><div class="card-icon">🎓</div><div class="card-title">Students</div><div class="card-desc">"I need opportunities." Verified academic records, internship applications, scholarship access, and campus identity — all in one profile.</div></div>
+    <div class="card"><div class="card-icon">💼</div><div class="card-title">Professionals</div><div class="card-desc">"I need credibility." A verified resume that can't be faked, employer-endorsed work history, and a professional trust passport for remote opportunities.</div></div>
+    <div class="card"><div class="card-icon">🛵</div><div class="card-title">Freelancers &amp; Gig Workers</div><div class="card-desc">"I need portable trust." Reputation, ratings, and verified work history that follows them across platforms and clients.</div></div>
+    <div class="card"><div class="card-icon">🏪</div><div class="card-title">SME Owners &amp; Traders</div><div class="card-desc">"I need easier onboarding." Verified business identity that banks, partners, and customers can trust — without repeated document submissions.</div></div>
+    <div class="card"><div class="card-icon">🏥</div><div class="card-title">Workers &amp; Service Professionals</div><div class="card-desc">"I need verified employment identity." Nurses, teachers, technicians — professionals whose licences and employment history should be instantly verifiable.</div></div>
+    <div class="card"><div class="card-icon">👤</div><div class="card-title">Citizens</div><div class="card-desc">"I need secure, convenient access." Government portals, hospitals, schools, and utilities — all accessible with one verified identity and no repeated forms.</div></div>
+  </div>
+</section>
+
+<!-- MODULES -->
+<section id="modules">
+  <div class="eyebrow">02 — Feature Architecture</div>
+  <div class="stitle">Eight <span>Core Features</span> — Personal Identity Suite</div>
+  <div class="slead">Ondi Personal is built around eight deeply integrated features. Together they form a complete personal identity and trust platform — far more powerful than any single-purpose identity tool.</div>
+
+  <div class="suite">
+    <div class="suite-hdr">
+      <div class="suite-icon">🪪</div>
+      <div>
+        <div class="suite-name" style="color:var(--ondi);">1 — Identity Wallet</div>
+        <div class="suite-motto">Your verified digital vault — store once, share everywhere, never upload again.</div>
+      </div>
+    </div>
+    <div class="suite-body">
+      <div class="suite-desc">The Identity Wallet stores every document and credential a person needs — verified by Ondi against authoritative sources. Once stored, banks, schools, employers, and landlords can verify instantly without the person re-uploading anything.</div>
+      <div class="mod-rows">
+        <div class="mod-hdr"><span>DOCUMENT TYPE</span><span>VERIFICATION SOURCE</span><span>WHO BENEFITS</span></div>
+        <div class="mod-row"><span class="mod-name" style="color:var(--ondi);">National ID / NIN</span><span class="mod-full">NIDA (TZ) · NIN (KE/UG)</span><span class="mod-func">Banks, employers, government portals verify identity in seconds. No counter visits. No paper copies.</span></div>
+        <div class="mod-row"><span class="mod-name" style="color:var(--ondi);">Passport &amp; Driving Licence</span><span class="mod-full">Travel document registry</span><span class="mod-func">International employers, airlines, and embassies can verify instantly without physical presentation.</span></div>
+        <div class="mod-row"><span class="mod-name" style="color:var(--ondi);">Academic Certificates</span><span class="mod-full">University / institution API</span><span class="mod-func">Verified degrees and diplomas — eliminates fake certificate problem entirely. Employers verify in one click.</span></div>
+        <div class="mod-row"><span class="mod-name" style="color:var(--ondi);">Professional Licences</span><span class="mod-full">Regulatory body APIs</span><span class="mod-func">Medical, legal, engineering, and teaching licences — verified and always current. No manual licence checks.</span></div>
+        <div class="mod-row"><span class="mod-name" style="color:var(--violet);">Insurance &amp; Tax Documents</span><span class="mod-full">Insurance company · TRA / KRA</span><span class="mod-func">Insurance status and tax compliance available on demand to partners, lenders, and regulators.</span></div>
+        <div class="mod-row"><span class="mod-name" style="color:var(--violet);">Employment History</span><span class="mod-full">Employer-verified records</span><span class="mod-func">Past employers verify employment dates, roles, and performance directly. Eliminates false employment claims on CVs.</span></div>
+        <div class="mod-row"><span class="mod-name" style="color:var(--violet);">Digital Portfolio &amp; CV</span><span class="mod-full">Skill badges + peer endorsements</span><span class="mod-func">Verified CV with tamper-proof certificates, portfolio links, and employer endorsements. Shareable as a single link.</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="suite">
+    <div class="suite-hdr">
+      <div class="suite-icon">🔐</div>
+      <div>
+        <div class="suite-name" style="color:var(--ondi);">2 — Universal Login (Ondi SSO)</div>
+        <div class="suite-motto">One identity across every platform — fintechs, hospitals, universities, government portals.</div>
+      </div>
+    </div>
+    <div class="suite-body">
+      <div class="suite-desc">Login with Ondi becomes the single authentication layer across Africa's digital ecosystem. Every platform that integrates Ondi SSO gives its users instant, verified, friction-free access — with identity and trust score passed automatically.</div>
+      <div class="mod-rows">
+        <div class="mod-hdr"><span>PLATFORM</span><span>INTEGRATION</span><span>EXPERIENCE</span></div>
+        <div class="mod-row"><span class="mod-name" style="color:var(--ondi);">Fintechs &amp; Banks</span><span class="mod-full">OAuth 2.0 / SAML</span><span class="mod-func">Instant KYC bypass for returning Ondi-verified users. Trust score passed with consent. Loan and account opening in minutes.</span></div>
+        <div class="mod-row"><span class="mod-name" style="color:var(--ondi);">Universities &amp; Schools</span><span class="mod-full">Ondi Education Gateway</span><span class="mod-func">Student portal, exam system, library, and hostel access — all through the same verified Ondi. Eliminates student ID cards.</span></div>
+        <div class="mod-row"><span class="mod-name" style="color:var(--ondi);">Hospitals &amp; Clinics</span><span class="mod-full">Healthcare identity</span><span class="mod-func">Patient identity verified instantly. Medical history accessible. Insurance status visible. No paper patient cards.</span></div>
+        <div class="mod-row"><span class="mod-name" style="color:var(--ondi);">Government Portals</span><span class="mod-full">e-Government SSO</span><span class="mod-func">Tax submission, licence renewal, permit applications — all authenticated by Ondi. No repeated registration per service.</span></div>
+        <div class="mod-row"><span class="mod-name" style="color:var(--violet);">Ecommerce &amp; Marketplaces</span><span class="mod-full">Verified buyer/seller identity</span><span class="mod-func">Buyers and sellers transact with verified identity. Reduces fraud. Enables trust-based payment flexibility.</span></div>
+        <div class="mod-row"><span class="mod-name" style="color:var(--violet);">Telecoms</span><span class="mod-full">Operator identity layer</span><span class="mod-func">SIM registration, service onboarding, and M-Pesa account linking — all via Ondi. Instant NIDA verification bypass.</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="suite">
+    <div class="suite-hdr">
+      <div class="suite-icon">🎓</div>
+      <div>
+        <div class="suite-name" style="color:var(--amber);">3 — Verified Professional Profile</div>
+        <div class="suite-motto">LinkedIn + digital ID + trust passport — but actually verified.</div>
+      </div>
+    </div>
+    <div class="suite-body">
+      <div class="suite-desc">The Verified Professional Profile is a shareable, tamper-proof professional identity. Share it as a link. Employers, clients, and institutions see verified credentials — not a document they have to manually check.</div>
+      <div class="mod-rows">
+        <div class="mod-hdr"><span>COMPONENT</span><span>VERIFIED BY</span><span>VALUE</span></div>
+        <div class="mod-row"><span class="mod-name" style="color:var(--amber);">Verified Degree</span><span class="mod-full">University registry API</span><span class="mod-func">Employer sees confirmed degree, institution, grade, and graduation year. Fake certificate problem solved.</span></div>
+        <div class="mod-row"><span class="mod-name" style="color:var(--amber);">Employment History</span><span class="mod-full">Former employers via Ondi</span><span class="mod-func">Previous employers verify tenure, role, and exit status directly. Background checks done instantly.</span></div>
+        <div class="mod-row"><span class="mod-name" style="color:var(--amber);">Skill Badges</span><span class="mod-full">Platform-issued + peer-endorsed</span><span class="mod-func">Skills verified by courses, assessments, and peer endorsements. Weighted by endorser trust score.</span></div>
+        <div class="mod-row"><span class="mod-name" style="color:var(--amber);">Portfolio Links</span><span class="mod-full">Self-curated + verified</span><span class="mod-func">GitHub, Behance, published work — linked and context-verified. Available in the shareable profile card.</span></div>
+        <div class="mod-row"><span class="mod-name" style="color:var(--amber);">Endorsements</span><span class="mod-full">Identity-verified contacts</span><span class="mod-func">Professional endorsements from people with verified Ondi identities — unlike anonymous LinkedIn recommendations.</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="suite">
+    <div class="suite-hdr">
+      <div class="suite-icon">🛡</div>
+      <div>
+        <div class="suite-name" style="color:var(--rose);">4 — Personal Security Layer</div>
+        <div class="suite-motto">Login alerts, fraud detection, identity monitoring — full control over your digital identity.</div>
+      </div>
+    </div>
+    <div class="suite-body">
+      <div class="suite-desc">Ondi gives individuals complete visibility and control over who is accessing their identity and trust data — with real-time alerts, consent management, and fraud detection built in.</div>
+      <div class="mod-rows">
+        <div class="mod-hdr"><span>FEATURE</span><span>TYPE</span><span>DETAILS</span></div>
+        <div class="mod-row"><span class="mod-name" style="color:var(--rose);">Login Alerts</span><span class="mod-full">Real-time notifications</span><span class="mod-func">Instant notification every time your Ondi is used to authenticate anywhere. See the platform, time, and location.</span></div>
+        <div class="mod-row"><span class="mod-name" style="color:var(--rose);">Access Consent Manager</span><span class="mod-full">Granular data control</span><span class="mod-func">See exactly which organisations access your identity and trust data. Revoke consent at any time with immediate effect.</span></div>
+        <div class="mod-row"><span class="mod-name" style="color:var(--rose);">Fraud Detection</span><span class="mod-full">ML anomaly detection</span><span class="mod-func">Impossible travel, unrecognised device logins, and unusual access patterns trigger instant alerts and optional account lock.</span></div>
+        <div class="mod-row"><span class="mod-name" style="color:var(--rose);">Identity Monitoring</span><span class="mod-full">Dark web + data breach signals</span><span class="mod-func">Alerts if your NIDA number, email, or phone number appears in known data breaches or suspicious contexts.</span></div>
+        <div class="mod-row"><span class="mod-name" style="color:var(--rose);">Biometric Lock</span><span class="mod-full">Device-bound security</span><span class="mod-func">All sensitive identity operations require biometric confirmation on the enrolled device. Phishing-resistant by design.</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="suite">
+    <div class="suite-hdr">
+      <div class="suite-icon">👨‍👩‍👧</div>
+      <div>
+        <div class="suite-name" style="color:var(--teal);">5 — Family Identity Layer</div>
+        <div class="suite-motto">Manage your household — children's school records, healthcare, dependents, emergency contacts.</div>
+      </div>
+    </div>
+    <div class="suite-body">
+      <div class="suite-desc">In Africa, managing a household means managing multiple identities across schools, hospitals, and government services. Ondi lets one verified identity manage a family — critical for parents, guardians, and carers.</div>
+      <div class="mod-rows">
+        <div class="mod-hdr"><span>FEATURE</span><span>SCOPE</span><span>VALUE</span></div>
+        <div class="mod-row"><span class="mod-name" style="color:var(--teal);">Child School Records</span><span class="mod-full">School registry integration</span><span class="mod-func">Parent accesses child's academic records, exam results, and school communications through their verified Ondi.</span></div>
+        <div class="mod-row"><span class="mod-name" style="color:var(--teal);">Family Healthcare</span><span class="mod-full">Hospital identity link</span><span class="mod-func">Guardian manages medical records, insurance coverage, and appointment access for dependents. No paper files.</span></div>
+        <div class="mod-row"><span class="mod-name" style="color:var(--teal);">Dependent Management</span><span class="mod-full">Linked identity sub-profiles</span><span class="mod-func">Children and elderly dependents have verified sub-profiles linked to the guardian's Ondi. Permissions controlled by guardian.</span></div>
+        <div class="mod-row"><span class="mod-name" style="color:var(--teal);">Emergency Contacts</span><span class="mod-full">Verified contact network</span><span class="mod-func">Emergency contacts are verified Ondi identities — hospitals and schools can reach them with confidence during emergencies.</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TRUST SCORE -->
+<section id="trust">
+  <div class="eyebrow">03 — The Trust Engine</div>
+  <div class="stitle">The <span>Trust Score</span> — Not a Credit Score. Something Bigger.</div>
+  <div class="slead">The Ondi Trust Score (0–850) is not a financial credit score. It is a multidimensional measure of how trustworthy, verifiable, and consistent an identity is — unlocking opportunity for millions who have no formal credit history but have real, provable trust.</div>
+
+  <div class="callout mb28" style="background:var(--ind);border:1px solid rgba(67,56,202,.2);">
+    <div class="callout-title" style="color:var(--ondi);">🌍 Why This Matters in Africa</div>
+    <div class="callout-body">
+      Millions of people across East Africa are <strong style="color:var(--ink);">credit-invisible</strong> — no formal loan history, no bank-verified income, no credit bureau record. Traditional scoring systems exclude them entirely.<br/><br/>
+      But they DO have: verified government IDs · years of mobile money history · consistent phone usage · real educational records · stable employment · community trust.<br/><br/>
+      <strong style="color:var(--ondi);">Ondi converts what people already have into digital trust — making the invisible, visible.</strong>
+    </div>
+  </div>
+
+  <div class="signal-grid">
+    <div class="signal-card" style="background:rgba(67,56,202,.05);border-color:rgba(67,56,202,.2);">
+      <div class="signal-title" style="color:var(--ondi);">🪪 Identity Signals <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);">35%</span></div>
+      <div class="signal-list">
+        <div class="signal-item" style="background:rgba(67,56,202,.08);color:var(--ondi);">NIDA / NIN verification depth</div>
+        <div class="signal-item" style="background:rgba(67,56,202,.08);color:var(--ondi);">Biometric match confidence</div>
+        <div class="signal-item" style="background:rgba(67,56,202,.08);color:var(--ondi);">Document authenticity score</div>
+        <div class="signal-item" style="background:rgba(67,56,202,.08);color:var(--ondi);">Phone tenure &amp; SIM stability</div>
+      </div>
+    </div>
+    <div class="signal-card" style="background:rgba(5,150,105,.05);border-color:rgba(5,150,105,.2);">
+      <div class="signal-title" style="color:var(--green);">🎓 Education &amp; Work Signals <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);">25%</span></div>
+      <div class="signal-list">
+        <div class="signal-item" style="background:rgba(5,150,105,.08);color:var(--green);">Verified educational credentials</div>
+        <div class="signal-item" style="background:rgba(5,150,105,.08);color:var(--green);">Employment history verified</div>
+        <div class="signal-item" style="background:rgba(5,150,105,.08);color:var(--green);">Professional licences active</div>
+        <div class="signal-item" style="background:rgba(5,150,105,.08);color:var(--green);">Employer endorsements received</div>
+      </div>
+    </div>
+    <div class="signal-card" style="background:rgba(13,148,136,.05);border-color:rgba(13,148,136,.2);">
+      <div class="signal-title" style="color:var(--teal);">📱 Behavioural Signals <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);">20%</span></div>
+      <div class="signal-list">
+        <div class="signal-item" style="background:rgba(13,148,136,.08);color:var(--teal);">Login consistency &amp; device trust</div>
+        <div class="signal-item" style="background:rgba(13,148,136,.08);color:var(--teal);">Geographic stability</div>
+        <div class="signal-item" style="background:rgba(13,148,136,.08);color:var(--teal);">Platform interaction quality</div>
+        <div class="signal-item" style="background:rgba(13,148,136,.08);color:var(--teal);">Dispute &amp; fraud history</div>
+      </div>
+    </div>
+    <div class="signal-card" style="background:rgba(217,119,6,.05);border-color:rgba(217,119,6,.2);">
+      <div class="signal-title" style="color:var(--amber);">💰 Financial Signals <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);">10%</span></div>
+      <div class="signal-list">
+        <div class="signal-item" style="background:rgba(217,119,6,.08);color:var(--amber);">Mobile money regularity</div>
+        <div class="signal-item" style="background:rgba(217,119,6,.08);color:var(--amber);">Payment consistency</div>
+        <div class="signal-item" style="background:rgba(217,119,6,.08);color:var(--amber);">Utility payment history</div>
+        <div class="signal-item" style="background:rgba(217,119,6,.08);color:var(--amber);">Bank account stability</div>
+      </div>
+    </div>
+    <div class="signal-card" style="background:rgba(109,40,217,.05);border-color:rgba(109,40,217,.2);">
+      <div class="signal-title" style="color:var(--violet);">📋 Compliance Signals <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);">10%</span></div>
+      <div class="signal-list">
+        <div class="signal-item" style="background:rgba(109,40,217,.08);color:var(--violet);">Active regulatory licences</div>
+        <div class="signal-item" style="background:rgba(109,40,217,.08);color:var(--violet);">TRA / KRA compliance status</div>
+        <div class="signal-item" style="background:rgba(109,40,217,.08);color:var(--violet);">ComplyOS certificate standing</div>
+        <div class="signal-item" style="background:rgba(109,40,217,.08);color:var(--violet);">No sanctions or watchlist hits</div>
+      </div>
+    </div>
+    <div class="signal-card" style="background:rgba(225,29,72,.05);border-color:rgba(225,29,72,.2);">
+      <div class="signal-title" style="color:var(--rose);">🌐 Community &amp; Reputation <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);">Bonus</span></div>
+      <div class="signal-list">
+        <div class="signal-item" style="background:rgba(225,29,72,.08);color:var(--rose);">Verified seller/buyer reviews</div>
+        <div class="signal-item" style="background:rgba(225,29,72,.08);color:var(--rose);">Platform ratings (Bolt, Fiverr etc.)</div>
+        <div class="signal-item" style="background:rgba(225,29,72,.08);color:var(--rose);">Peer endorsements (verified)</div>
+        <div class="signal-item" style="background:rgba(225,29,72,.08);color:var(--rose);">Social proof depth</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="trust-band">
+    <div class="tb-hdr">What Your Trust Score Unlocks</div>
+    <div class="tb-row">
+      <div class="tb-scenario">750–850 · Exceptional</div>
+      <div class="tb-signal" style="color:var(--green);">Highest Trust</div>
+      <div class="tb-action">Instant loan pre-approval · Automatic rental approval · Fast-track job applications · Frictionless banking onboarding · Premium platform access.</div>
+    </div>
+    <div class="tb-row">
+      <div class="tb-scenario">600–749 · Strong</div>
+      <div class="tb-signal" style="color:var(--teal);">Trusted Identity</div>
+      <div class="tb-action">BNPL eligibility · Internship priority access · Insurance access · Employer shortlisting · Verified seller badge on marketplaces.</div>
+    </div>
+    <div class="tb-row">
+      <div class="tb-scenario">450–599 · Building</div>
+      <div class="tb-signal" style="color:var(--amber);">Growing Trust</div>
+      <div class="tb-action">Standard platform access · Nano loan eligibility · Basic employer verification · School application verification. Score improves over time.</div>
+    </div>
+    <div class="tb-row">
+      <div class="tb-scenario">0–449 · New / Limited</div>
+      <div class="tb-signal" style="color:var(--rose);">Early Stage</div>
+      <div class="tb-action">Identity verified but limited history. Guided actions to build trust: verify education, connect mobile money, add employment history.</div>
+    </div>
+  </div>
+</section>
+
+<!-- PERSONA JOURNEYS -->
+<section id="journeys">
+  <div class="eyebrow">04 — Persona Journeys</div>
+  <div class="stitle">How <span>Real People</span> Use Ondi Personal</div>
+  <div class="slead">Ondi Personal delivers immediate, tangible value to every type of person — from a student applying for their first internship to a freelancer building a cross-platform reputation.</div>
+
+  <div class="journey mb28">
+    <div class="journey-hdr">
+      <div class="jicon">🎓</div>
+      <div class="jtitle">The Student — From Campus to Career</div>
+      <div class="jtag" style="background:rgba(67,56,202,.08);color:var(--ondi);border-color:rgba(67,56,202,.2);">STUDENT</div>
+    </div>
+    <div class="journey-body">
+      <div class="jsteps">
+        <div class="jstep-row"><div class="jstep-num" style="background:rgba(67,56,202,.1);color:var(--ondi);">1</div><div class="jstep-content"><div class="jstep-title">Creates Ondi at university enrolment</div><div class="jstep-desc">NIDA verified. University links academic records automatically. Trust Score starts building from Day 1. Gets verified student ID via Ondi.</div></div></div>
+        <div class="jstep-row"><div class="jstep-num" style="background:rgba(67,56,202,.1);color:var(--ondi);">2</div><div class="jstep-content"><div class="jstep-title">Applies for internships with one click</div><div class="jstep-desc">Sends verified Ondi profile instead of uploading CV and certificates. Employer sees verified degree progress, NIDA confirmation, and trust score instantly.</div></div></div>
+        <div class="jstep-row"><div class="jstep-num" style="background:rgba(67,56,202,.1);color:var(--ondi);">3</div><div class="jstep-content"><div class="jstep-title">Graduates — verified credentials auto-update</div><div class="jstep-desc">Degree verified by university directly on Ondi profile. Fake certificate problem eliminated. Scholarship applications verified without submissions.</div></div></div>
+        <div class="jstep-row"><div class="jstep-num" style="background:rgba(67,56,202,.1);color:var(--ondi);">4</div><div class="jstep-content"><div class="jstep-title">Gets hired — trust and history carry forward</div><div class="jstep-desc">Employment starts. Trust Score grows with internship endorsements and employment verification. No fresh start — continuity of trusted identity.</div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="journey mb28">
+    <div class="journey-hdr">
+      <div class="jicon">🛵</div>
+      <div class="jtitle">The Gig Worker — Portable Reputation Across Platforms</div>
+      <div class="jtag" style="background:rgba(217,119,6,.08);color:var(--amber);border-color:rgba(217,119,6,.2);">FREELANCER</div>
+    </div>
+    <div class="journey-body">
+      <div class="jsteps">
+        <div class="jstep-row"><div class="jstep-num" style="background:rgba(217,119,6,.1);color:var(--amber);">1</div><div class="jstep-content"><div class="jstep-title">Rider joins Bolt — identity verified via Ondi</div><div class="jstep-desc">NIDA verified, driving licence verified, phone confirmed. Onboarding takes minutes instead of days. Trust Score assigned.</div></div></div>
+        <div class="jstep-row"><div class="jstep-num" style="background:rgba(217,119,6,.1);color:var(--amber);">2</div><div class="jstep-content"><div class="jstep-title">Builds reputation on platform — ratings attach to Ondi</div><div class="jstep-desc">Trip ratings, safety score, and consistency record attach to their portable Ondi reputation — not just the Bolt account.</div></div></div>
+        <div class="jstep-row"><div class="jstep-num" style="background:rgba(217,119,6,.1);color:var(--amber);">3</div><div class="jstep-content"><div class="jstep-title">Switches to Little or SafeBoda — reputation carries over</div><div class="jstep-desc">No starting from zero. Verified identity, safety record, and trust score move with them. Premium onboarding on new platform.</div></div></div>
+        <div class="jstep-row"><div class="jstep-num" style="background:rgba(217,119,6,.1);color:var(--amber);">4</div><div class="jstep-content"><div class="jstep-title">Trust Score enables nano loan for bike repair</div><div class="jstep-desc">Consistent income from mobile money + high platform reputation + verified identity = nano loan approved without bank account.</div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="journey">
+    <div class="journey-hdr">
+      <div class="jicon">💼</div>
+      <div class="jtitle">The Remote Professional — Verified Credibility for Global Opportunities</div>
+      <div class="jtag" style="background:rgba(5,150,105,.08);color:var(--green);border-color:rgba(5,150,105,.2);">PROFESSIONAL</div>
+    </div>
+    <div class="journey-body">
+      <div class="jsteps">
+        <div class="jstep-row"><div class="jstep-num" style="background:rgba(5,150,105,.1);color:var(--green);">1</div><div class="jstep-content"><div class="jstep-title">Software engineer builds Ondi Verified Profile</div><div class="jstep-desc">University verifies degree. Former employer verifies 3 years of work. GitHub portfolio linked. Skill badges added. Trust Score: 740.</div></div></div>
+        <div class="jstep-row"><div class="jstep-num" style="background:rgba(5,150,105,.1);color:var(--green);">2</div><div class="jstep-content"><div class="jstep-title">Applies to remote role in Europe — shares one link</div><div class="jstep-desc">Instead of uploading CV, certificates, and references separately — sends a single verified Ondi profile link. Employer verifies everything in one click.</div></div></div>
+        <div class="jstep-row"><div class="jstep-num" style="background:rgba(5,150,105,.1);color:var(--green);">3</div><div class="jstep-content"><div class="jstep-title">Wins freelance contracts on trust — not just portfolio</div><div class="jstep-desc">Upwork, Toptal, and direct clients see verified employment history and education — not just a self-written profile. Conversion rate increases dramatically.</div></div></div>
+        <div class="jstep-row"><div class="jstep-num" style="background:rgba(5,150,105,.1);color:var(--green);">4</div><div class="jstep-content"><div class="jstep-title">Trust Score unlocks financial products</div><div class="jstep-desc">High trust + verified income history = insurance access, BNPL, and eventually home loan eligibility — without traditional bank credit history.</div></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- OPPORTUNITIES -->
+<section id="opportunities">
+  <div class="eyebrow">05 — The Opportunity Passport</div>
+  <div class="stitle">Ondi as an <span>Opportunity Passport</span></div>
+  <div class="slead">People don't want an identity product. They want jobs, loans, access, trust, and convenience. Ondi becomes the bridge — the verified credential that unlocks real-world opportunity across every part of life.</div>
+
+  <div class="g2 mb28">
+    <div class="suite">
+      <div class="suite-hdr">
+        <div class="suite-icon">💰</div>
+        <div>
+          <div class="suite-name" style="color:var(--gold);font-size:14px;">Financial Enablement</div>
+          <div class="suite-motto">Trust Score enables access without traditional banking history.</div>
+        </div>
+      </div>
+      <div class="suite-body">
+        <div class="mod-rows">
+          <div class="mod-row"><span class="mod-name" style="color:var(--gold);">Nano Loans</span><span class="mod-full">Trust-based eligibility</span><span class="mod-func">Small emergency loans based on Trust Score and mobile money history — no bank account required, no guarantor.</span></div>
+          <div class="mod-row"><span class="mod-name" style="color:var(--gold);">BNPL Access</span><span class="mod-full">Buy Now Pay Later</span><span class="mod-func">Purchase goods and services with deferred payment — enabled by Trust Score, repaid via mobile money.</span></div>
+          <div class="mod-row"><span class="mod-name" style="color:var(--gold);">Insurance Access</span><span class="mod-full">Risk profile from Trust Score</span><span class="mod-func">Health and device insurance priced from Trust Score signals — available to the informally employed for the first time.</span></div>
+          <div class="mod-row"><span class="mod-name" style="color:var(--gold);">Rental Approvals</span><span class="mod-full">Landlord trust verification</span><span class="mod-func">Landlords verify identity, employment, and financial stability in one consent-gated check. No paper payslips needed.</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="suite">
+      <div class="suite-hdr">
+        <div class="suite-icon">🚀</div>
+        <div>
+          <div class="suite-name" style="color:var(--ondi);font-size:14px;">Career &amp; Education Access</div>
+          <div class="suite-motto">Verified identity opens doors that were previously closed.</div>
+        </div>
+      </div>
+      <div class="suite-body">
+        <div class="mod-rows">
+          <div class="mod-row"><span class="mod-name" style="color:var(--ondi);">Job Applications</span><span class="mod-full">One-click verified apply</span><span class="mod-func">Verified profile sent instead of manual document pack. Employers shortlist faster. Applicants stand out immediately.</span></div>
+          <div class="mod-row"><span class="mod-name" style="color:var(--ondi);">Scholarships</span><span class="mod-full">No repeated submissions</span><span class="mod-func">Scholarship bodies verify academic standing, financial need signals, and identity — without repeated document requests.</span></div>
+          <div class="mod-row"><span class="mod-name" style="color:var(--ondi);">Student Loans</span><span class="mod-full">Trust-based eligibility</span><span class="mod-func">Academic standing + family Trust Score + compliance = faster, fairer student loan assessment beyond HELSB capacity.</span></div>
+          <div class="mod-row"><span class="mod-name" style="color:var(--ondi);">Internships</span><span class="mod-full">Verified applications</span><span class="mod-func">Companies using Ondi Workforce can immediately verify intern identity, academic records, and eligibility — zero friction.</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout" style="background:rgba(5,150,105,.06);border:1px solid rgba(5,150,105,.2);">
+    <div class="callout-title" style="color:var(--green);">🔗 The Long-Term Moat — The Trust Graph</div>
+    <div class="callout-body">
+      Every university that verifies a degree strengthens academic trust. Every employer that endorses employment deepens workforce trust. Every fintech that consumes the Trust Score enriches financial trust. Every government that integrates Ondi deepens civic identity.<br/><br/>
+      <strong style="color:var(--ink);">Every participant strengthens everyone else. That is a network effect that is very difficult to replicate.</strong> Identity graph + education graph + employment graph + financial graph + compliance graph = infrastructure-scale positioning.
+    </div>
+  </div>
+</section>
+
+<!-- SECURITY -->
+<section id="security">
+  <div class="eyebrow">06 — Privacy &amp; Security</div>
+  <div class="stitle">Your Identity. <span>Your Control.</span></div>
+  <div class="slead">Ondi is designed around user sovereignty. You decide what is shared, with whom, and for how long — with full visibility into every access event and the ability to revoke at any time.</div>
+
+  <div class="g4 mb28">
+    <div class="card"><div class="card-icon">🔒</div><div class="card-title">Consent-Gated Sharing</div><div class="card-desc">Every data access by any organisation requires explicit user consent. Consent is specific, time-limited, and revocable instantly.</div></div>
+    <div class="card"><div class="card-icon">👁</div><div class="card-title">Full Access Transparency</div><div class="card-desc">See every organisation that has accessed your identity, what data they received, and when. Complete audit log for the user.</div></div>
+    <div class="card"><div class="card-icon">🧬</div><div class="card-title">Biometric Protection</div><div class="card-desc">All sensitive operations require biometric confirmation on an enrolled device. FIDO2 passkey — phishing-resistant by design.</div></div>
+    <div class="card"><div class="card-icon">🌍</div><div class="card-title">Data Residency</div><div class="card-desc">All personal data stored within East Africa (TZ, KE, UG, RW). GDPR-equivalent governance. AES-256 encryption at rest.</div></div>
+  </div>
+</section>
+
+<!-- ROADMAP -->
+<section id="roadmap">
+  <div class="eyebrow">07 — Product Roadmap</div>
+  <div class="stitle">Build <span>Roadmap</span> — Ondi Personal Rollout</div>
+  <div class="slead">Ondi Personal rolls out in four phases — each delivering immediate standalone value to individuals while building the network effect that makes the platform increasingly powerful over time.</div>
+
+  <div class="rm-wrap">
+    <div class="rm-row">
+      <div class="rm-num"><div class="rm-dot" style="background:var(--ind);color:var(--ondi);">1</div><div class="rm-vline" style="background:var(--border);"></div></div>
+      <div class="rm-card">
+        <div class="rm-head"><div class="rm-title" style="color:var(--ondi);">Phase 1 — Identity Foundation</div><div class="rm-label">Months 1–3</div></div>
+        <div class="rm-goal">"Give every person a verified digital identity they can use everywhere."</div>
+        <div class="rm-tags">
+          <span class="rmtag" style="background:var(--ind);color:var(--ondi);">Identity Wallet</span>
+          <span class="rmtag" style="background:var(--ind);color:var(--ondi);">NIDA / NIN KYC</span>
+          <span class="rmtag" style="background:var(--ind);color:var(--ondi);">Biometric Verification</span>
+          <span class="rmtag" style="background:var(--ind);color:var(--ondi);">Universal SSO</span>
+          <span class="rmtag" style="background:var(--ind);color:var(--ondi);">Login Alerts</span>
+        </div>
+        <div class="rm-focus">Core identity wallet with NIDA/NIN verification. Government ID, passport, and driving licence storage. Universal SSO for first integration partners. Biometric device lock. Personal security alerts.</div>
+      </div>
+    </div>
+    <div class="rm-row">
+      <div class="rm-num"><div class="rm-dot" style="background:rgba(217,119,6,.12);color:var(--amber);">2</div><div class="rm-vline" style="background:var(--border);"></div></div>
+      <div class="rm-card">
+        <div class="rm-head"><div class="rm-title" style="color:var(--amber);">Phase 2 — Trust Score &amp; Verified Profile</div><div class="rm-label">Months 4–7</div></div>
+        <div class="rm-goal">"Launch the Trust Score and verified professional profile — the platform's consumer superpower."</div>
+        <div class="rm-tags">
+          <span class="rmtag" style="background:var(--ad);color:var(--amber);">Trust Score Engine</span>
+          <span class="rmtag" style="background:var(--ad);color:var(--amber);">Academic Verification</span>
+          <span class="rmtag" style="background:var(--ad);color:var(--amber);">Employment Verification</span>
+          <span class="rmtag" style="background:var(--ad);color:var(--amber);">Verified Profile Card</span>
+          <span class="rmtag" style="background:var(--ad);color:var(--amber);">Mobile Money Signal</span>
+        </div>
+        <div class="rm-focus">Trust Score calculated from identity, education, and behavioural signals. University API integrations for academic verification. Employer verification portal. Shareable verified profile card. Mobile money history ingestion (M-Pesa, Airtel, HaloPesa).</div>
+      </div>
+    </div>
+    <div class="rm-row">
+      <div class="rm-num"><div class="rm-dot" style="background:var(--gd);color:var(--green);">3</div><div class="rm-vline" style="background:var(--border);"></div></div>
+      <div class="rm-card">
+        <div class="rm-head"><div class="rm-title" style="color:var(--green);">Phase 3 — Opportunity Network</div><div class="rm-label">Months 8–12</div></div>
+        <div class="rm-goal">"Activate the opportunity layer — jobs, loans, scholarships, and rentals powered by Trust Score."</div>
+        <div class="rm-tags">
+          <span class="rmtag" style="background:var(--gd);color:var(--green);">Fintech Score API</span>
+          <span class="rmtag" style="background:var(--gd);color:var(--green);">BNPL Enablement</span>
+          <span class="rmtag" style="background:var(--gd);color:var(--green);">Insurance Access</span>
+          <span class="rmtag" style="background:var(--gd);color:var(--green);">Job Platform Integrations</span>
+          <span class="rmtag" style="background:var(--gd);color:var(--green);">Family Identity Layer</span>
+        </div>
+        <div class="rm-focus">Trust Score API live for bank and fintech partners. BNPL and nano loan products via partner fintechs. Family sub-profiles and dependent management. Job platform integrations for verified applications. Scholarship body integrations.</div>
+      </div>
+    </div>
+    <div class="rm-row">
+      <div class="rm-num"><div class="rm-dot" style="background:var(--vd);color:var(--violet);">4</div></div>
+      <div class="rm-card">
+        <div class="rm-head"><div class="rm-title" style="color:var(--violet);">Phase 4 — Reputation &amp; Network Effects</div><div class="rm-label">Months 13–24</div></div>
+        <div class="rm-goal">"Portable workforce reputation, verified reviews, and the full Trust Graph at scale."</div>
+        <div class="rm-tags">
+          <span class="rmtag" style="background:var(--vd);color:var(--violet);">Portable Gig Reputation</span>
+          <span class="rmtag" style="background:var(--vd);color:var(--violet);">Verified Seller Trust</span>
+          <span class="rmtag" style="background:var(--vd);color:var(--violet);">Employment Records Marketplace</span>
+          <span class="rmtag" style="background:var(--vd);color:var(--violet);">Home Loan Signals</span>
+          <span class="rmtag" style="background:var(--vd);color:var(--violet);">Workforce Reputation Portability</span>
+        </div>
+        <div class="rm-focus">Gig platform reputation portability (Bolt, Fiverr, Upwork integrations). Verified seller and buyer trust for marketplaces. Digital employment records as a portable asset. Home loan and long-term credit signal partnerships. Cross-border trust assertion for international opportunities.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>Ondi Personal · Your Verified Digital Identity, Trust Profile &amp; Opportunity Passport · © 2026 Hudumika Mobility LLC · All Rights Reserved · Confidential</footer>
+
+<script>
+const secs = document.querySelectorAll('section[id], div[id="hero"]');
+const nls = document.querySelectorAll('.nl');
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      nls.forEach(n => n.classList.remove('on'));
+      const a = document.querySelector(`.nl[href="#${e.target.id}"]`);
+      if (a) a.classList.add('on');
+    }
+  });
+}, { threshold: 0.2 });
+secs.forEach(s => obs.observe(s));
+</script>
+</body>
+</html>

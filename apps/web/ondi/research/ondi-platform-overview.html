@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Ondi Platform — Identity. Trust. Access.</title>
+<link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@300;400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#FAFAF8;--surf:#F4F3EF;--card:#FFFFFF;--card2:#F9F8F5;
+  --border:#E4E0D8;--border2:#CFC9BE;
+  /* Ondi primary */
+  --ondi:#4338CA;--ind:rgba(67,56,202,.10);--ing:rgba(67,56,202,.22);
+  /* Identity layer */
+  --ident:#6D28D9;--vd:rgba(109,40,217,.10);
+  /* Trust layer */
+  --trust:#D97706;--td:rgba(217,119,6,.10);
+  /* Access layer */
+  --access:#0284C7;--acd:rgba(2,132,199,.10);
+  /* Lifecycle layer */
+  --life:#059669;--lcd:rgba(5,150,105,.09);
+  /* Opportunity layer */
+  --oppo:#E11D48;--opd:rgba(225,29,72,.08);
+  /* Workforce module */
+  --work:#1A6BFF;--wkd:rgba(26,107,255,.10);
+  /* Consumer module */
+  --cons:#008B7D;--cod:rgba(0,139,125,.09);
+  /* Developer */
+  --dev:#7C3AED;--devd:rgba(124,58,237,.10);
+  /* Signals */
+  --gold:#B45309;--gold-d:rgba(180,83,9,.10);
+  --text:#2C3340;--muted:#9A9187;--muted2:#5A6070;--ink:#1A1C22;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:'League Spartan',sans-serif;font-size:14px;line-height:1.6;letter-spacing:-0.01em;}
+
+/* ── NAV ── */
+nav{position:sticky;top:0;z-index:100;background:rgba(250,250,248,.96);
+  backdrop-filter:blur(18px);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 36px;overflow-x:auto;gap:0;}
+.nav-brand{display:flex;align-items:center;gap:10px;margin-right:28px;flex-shrink:0;padding:12px 0;}
+.nav-brand-name{font-family:'League Spartan',sans-serif;font-size:15px;font-weight:800;color:var(--ink);letter-spacing:-0.02em;}
+.nav-brand-badge{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:1px;
+  background:var(--ondi);color:#fff;padding:2px 7px;border-radius:4px;text-transform:uppercase;}
+.nl{padding:13px 14px;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.4px;
+  color:var(--muted2);white-space:nowrap;border-bottom:2px solid transparent;transition:.2s;cursor:pointer;text-decoration:none;display:block;}
+.nl:hover{color:var(--ink);}
+.nl.on{color:var(--ondi);border-bottom-color:var(--ondi);}
+
+/* ── HERO ── */
+#hero{min-height:82vh;display:flex;flex-direction:column;justify-content:center;
+  padding:72px 36px 56px;max-width:100%;position:relative;overflow:hidden;border-bottom:1px solid var(--border);}
+.hbg{position:absolute;inset:0;background:
+  radial-gradient(ellipse 65% 50% at 10% 55%,rgba(67,56,202,.10) 0%,transparent 60%),
+  radial-gradient(ellipse 40% 35% at 88% 25%,rgba(109,40,217,.07) 0%,transparent 55%),
+  radial-gradient(ellipse 30% 30% at 55% 88%,rgba(217,119,6,.06) 0%,transparent 50%);}
+.hgrid{position:absolute;inset:0;background-image:
+  repeating-linear-gradient(0deg,transparent,transparent 47px,rgba(0,0,0,.028) 47px,rgba(0,0,0,.028) 48px),
+  repeating-linear-gradient(90deg,transparent,transparent 47px,rgba(0,0,0,.028) 47px,rgba(0,0,0,.028) 48px);pointer-events:none;}
+.hin{position:relative;max-width:1080px;margin:0 auto;width:100%;}
+.hsuper{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:5px;color:var(--ondi);text-transform:uppercase;margin-bottom:18px;}
+.hh1{font-family:'League Spartan',sans-serif;font-size:clamp(28px,4.5vw,54px);font-weight:900;color:var(--ink);line-height:1.05;margin-bottom:10px;}
+.hh1 em{color:var(--ondi);font-style:normal;}
+.hh1 .v{color:var(--ident);}
+.hh1 .o{color:var(--trust);}
+.hmeta{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted2);margin-bottom:22px;letter-spacing:.5px;}
+.hdesc{max-width:680px;font-size:15px;line-height:1.85;color:var(--muted2);font-weight:300;margin-bottom:30px;
+  border-left:3px solid var(--ondi);padding-left:18px;}
+.hpills{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:36px;}
+.hpill{padding:8px 18px;border-radius:6px;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;letter-spacing:1px;border:1px solid;}
+.hp-a{background:var(--ind);color:var(--ondi);border-color:rgba(67,56,202,.3);}
+.hp-b{background:var(--vd);color:var(--ident);border-color:rgba(109,40,217,.3);}
+.hp-c{background:var(--td);color:var(--trust);border-color:rgba(217,119,6,.3);}
+.hp-d{background:var(--acd);color:var(--access);border-color:rgba(2,132,199,.3);}
+.hp-e{background:var(--lcd);color:var(--life);border-color:rgba(5,150,105,.3);}
+.hstats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;max-width:700px;}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;}
+.statn{font-family:'League Spartan',sans-serif;font-size:22px;font-weight:800;color:var(--ondi);}
+.statl{font-size:11px;color:var(--muted);margin-top:2px;}
+
+/* ── SECTIONS ── */
+section{padding:56px 36px;max-width:1080px;margin:0 auto;border-bottom:1px solid var(--border);}
+.eyebrow{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:4px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;}
+.stitle{font-family:'League Spartan',sans-serif;font-size:24px;font-weight:800;color:var(--ink);line-height:1.2;margin-bottom:10px;}
+.stitle span{color:var(--ondi);}
+.stitle .v{color:var(--ident);}
+.stitle .o{color:var(--trust);}
+.stitle .g{color:var(--life);}
+.slead{font-size:14px;line-height:1.8;color:var(--muted2);font-weight:300;max-width:700px;margin-bottom:32px;}
+.mb28{margin-bottom:28px;}.mt24{margin-top:24px;}.mt32{margin-top:32px;}
+
+/* ── GRIDS ── */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:13px;}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+.g5{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;}
+
+/* ── CARDS ── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px 20px;transition:border-color .2s;}
+.card:hover{border-color:var(--border2);}
+.card-icon{font-size:22px;margin-bottom:10px;}
+.card-title{font-family:'League Spartan',sans-serif;font-size:13px;font-weight:700;color:var(--ink);margin-bottom:5px;}
+.card-desc{font-size:12px;color:var(--muted2);line-height:1.55;}
+code{font-family:'IBM Plex Mono',monospace;font-size:10.5px;background:rgba(67,56,202,.09);color:var(--ondi);padding:1px 5px;border-radius:3px;}
+
+/* ── LAYER STACK ── */
+.layer-stack{display:flex;flex-direction:column;gap:4px;margin-bottom:28px;}
+.layer-row{display:grid;grid-template-columns:140px 1fr;border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.layer-l{display:flex;align-items:center;justify-content:center;padding:16px 10px;font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;text-align:center;font-weight:600;}
+.layer-r{padding:16px 20px;border-left:1px solid var(--border);}
+.layer-title{font-family:'League Spartan',sans-serif;font-size:13px;font-weight:700;color:var(--ink);margin-bottom:4px;}
+.layer-desc{font-size:12px;color:var(--muted2);line-height:1.55;}
+.layer-tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px;}
+.ltag{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;padding:2px 7px;border-radius:4px;}
+
+/* ── MODULE ROWS ── */
+.mod-rows{display:flex;flex-direction:column;gap:9px;}
+.mod-hdr{display:grid;grid-template-columns:160px 200px 1fr;gap:12px;padding:7px 12px;background:var(--surf);border-radius:6px;}
+.mod-hdr span{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--muted);}
+.mod-row{display:grid;grid-template-columns:160px 200px 1fr;gap:12px;padding:9px 12px;background:var(--surf);border-radius:8px;border:1px solid var(--border);}
+.mod-name{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;}
+.mod-full{font-size:11.5px;color:var(--muted2);}
+.mod-func{font-size:11.5px;color:var(--text);}
+
+/* ── SUITE CARDS ── */
+.suite{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:16px;}
+.suite-hdr{padding:16px 22px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px;}
+.suite-icon{font-size:26px;}
+.suite-name{font-family:'League Spartan',sans-serif;font-size:16px;font-weight:800;}
+.suite-motto{font-size:11px;color:var(--muted);font-style:italic;margin-top:2px;}
+.suite-body{padding:14px 22px 18px;}
+.suite-desc{font-size:12.5px;color:var(--muted2);margin-bottom:14px;line-height:1.6;}
+
+/* ── FLOW STEPS ── */
+.flow-step{display:flex;gap:0;position:relative;margin-bottom:12px;}
+.fnum{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'League Spartan',sans-serif;font-size:14px;font-weight:800;flex-shrink:0;}
+.fcontent{flex:1;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:13px 16px;margin-left:14px;}
+.ftitle{font-family:'League Spartan',sans-serif;font-size:13px;font-weight:700;color:var(--ink);margin-bottom:3px;}
+.fdetail{font-size:12px;color:var(--muted2);line-height:1.55;}
+.fmods{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px;}
+.fmod{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;padding:2px 8px;border-radius:4px;}
+
+/* ── SIGNAL GRID ── */
+.sig-block{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;}
+.sig-title{font-family:'League Spartan',sans-serif;font-size:12px;font-weight:700;color:var(--ink);margin-bottom:8px;display:flex;align-items:center;gap:7px;}
+.sig-item{font-size:11.5px;color:var(--muted2);padding:3px 0;display:flex;gap:7px;align-items:center;}
+.sig-item::before{content:'·';color:var(--muted);}
+
+/* ── ACTOR TABLE ── */
+.atbl{width:100%;border-collapse:collapse;margin-bottom:24px;}
+.atbl th{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);padding:10px 14px;text-align:left;border-bottom:1px solid var(--border);background:var(--surf);}
+.atbl td{padding:11px 14px;border-bottom:1px solid var(--border);font-size:12.5px;vertical-align:top;}
+.atbl tr:nth-child(odd) td{background:var(--card);}
+.atbl tr:nth-child(even) td{background:var(--card2);}
+.atbl tr:last-child td{border-bottom:none;}
+.aname{font-family:'League Spartan',sans-serif;font-size:12px;font-weight:700;color:var(--ink);}
+.arole{font-size:12px;color:var(--muted2);}
+.amods{font-family:'IBM Plex Mono',monospace;font-size:10.5px;}
+
+/* ── JOURNEY ── */
+.journey{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:12px;}
+.journey-hdr{padding:13px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.jnum{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);}
+.jicon{font-size:18px;}
+.jtitle{font-family:'League Spartan',sans-serif;font-size:13px;font-weight:700;color:var(--ink);flex:1;}
+.jtags{display:flex;gap:6px;flex-wrap:wrap;}
+.jtag{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;padding:2px 7px;border-radius:4px;border:1px solid;}
+.journey-body{padding:16px 20px;display:flex;gap:0;overflow-x:auto;}
+.jstep{flex:1;min-width:160px;position:relative;padding-right:24px;}
+.jstep::after{content:'→';position:absolute;right:6px;top:16px;color:var(--muted);font-size:12px;}
+.jstep:last-child::after{display:none;}
+.jstep-num{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);margin-bottom:5px;}
+.jstep-title{font-family:'League Spartan',sans-serif;font-size:12px;font-weight:700;color:var(--ink);margin-bottom:4px;}
+.jstep-desc{font-size:11px;color:var(--muted2);line-height:1.5;}
+.jstep-tag{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:9px;padding:1px 6px;border-radius:3px;margin-top:5px;}
+
+/* ── ROADMAP ── */
+.rm-wrap{display:flex;flex-direction:column;gap:12px;}
+.rm-row{display:flex;gap:0;align-items:stretch;}
+.rm-num{width:44px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;}
+.rm-dot{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'League Spartan',sans-serif;font-size:14px;font-weight:800;flex-shrink:0;}
+.rm-vline{width:2px;flex:1;margin-top:4px;}
+.rm-card{flex:1;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-left:14px;}
+.rm-head{display:flex;align-items:baseline;gap:10px;margin-bottom:6px;flex-wrap:wrap;}
+.rm-title{font-family:'League Spartan',sans-serif;font-size:14px;font-weight:800;}
+.rm-label{font-size:10px;padding:2px 8px;border-radius:20px;border:1px solid var(--border);color:var(--muted);font-family:'IBM Plex Mono',monospace;}
+.rm-goal{font-size:12px;color:var(--muted2);margin-bottom:8px;font-style:italic;}
+.rm-tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;}
+.rmtag{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;padding:3px 9px;border-radius:4px;}
+.rm-focus{font-size:12px;color:var(--muted2);line-height:1.6;}
+
+/* ── CALLOUT ── */
+.callout{border-radius:10px;padding:16px 20px;margin-bottom:20px;}
+.callout-title{font-family:'League Spartan',sans-serif;font-size:13px;font-weight:700;margin-bottom:6px;}
+.callout-body{font-size:12px;color:var(--muted2);line-height:1.7;}
+
+/* ── NETWORK EFFECT ── */
+.net-row{display:grid;grid-template-columns:140px 1fr;gap:16px;border:1px solid var(--border);border-radius:9px;overflow:hidden;margin-bottom:6px;}
+.net-actor{display:flex;align-items:center;justify-content:center;padding:14px 10px;font-family:'League Spartan',sans-serif;font-size:11px;font-weight:700;text-align:center;flex-direction:column;gap:4px;}
+.net-contrib{padding:14px 18px;border-left:1px solid var(--border);font-size:12px;color:var(--muted2);line-height:1.6;display:flex;align-items:center;}
+
+/* ── INFRA ── */
+.infra-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;}
+
+/* ── FOOTER ── */
+footer{text-align:center;padding:28px 36px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);border-top:1px solid var(--border);}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-brand">
+    <div class="nav-brand-name">Ondi</div>
+    <div class="nav-brand-badge">PLATFORM</div>
+  </div>
+  <a class="nl on" href="#hero">Overview</a>
+  <a class="nl" href="#vision">Vision</a>
+  <a class="nl" href="#architecture">Architecture</a>
+  <a class="nl" href="#modules">Modules</a>
+  <a class="nl" href="#trust">Trust Score</a>
+  <a class="nl" href="#journeys">Journeys</a>
+  <a class="nl" href="#network">Network Effect</a>
+  <a class="nl" href="#actors">Actor Model</a>
+  <a class="nl" href="#roadmap">Roadmap</a>
+  <a class="nl" href="#infra">Infrastructure</a>
+</nav>
+
+<!-- HERO -->
+<div id="hero">
+  <div class="hbg"></div>
+  <div class="hgrid"></div>
+  <div class="hin">
+    <div class="hsuper">Ondi · Identity. Trust. Access.</div>
+    <div class="hh1">The <em>Identity &amp; Trust</em><br/>Infrastructure for<br/><span class="o">Modern Africa.</span></div>
+    <div class="hmeta">PLATFORM OVERVIEW · UNIFIED ARCHITECTURE · CONFIDENTIAL · 2026</div>
+    <div class="hdesc">
+      One platform for people, workforce, and organisations. Verified once. Trusted everywhere.<br/>
+      Students, professionals, enterprises, fintechs, and governments — all inside the same trust ecosystem. That continuity is the moat.
+    </div>
+    <div class="hpills">
+      <span class="hpill hp-a">Identity Core</span>
+      <span class="hpill hp-b">Trust Engine</span>
+      <span class="hpill hp-c">AccessOS</span>
+      <span class="hpill hp-d">Opportunity Network</span>
+      <span class="hpill hp-e">Developer Platform</span>
+    </div>
+    <div class="hstats">
+      <div class="stat"><div class="statn">5</div><div class="statl">Core architecture layers</div></div>
+      <div class="stat"><div class="statn">850</div><div class="statl">Max trust score (multidimensional)</div></div>
+      <div class="stat"><div class="statn">4+</div><div class="statl">East African markets (TZ, KE, UG, RW)</div></div>
+      <div class="stat"><div class="statn">∞</div><div class="statl">Identity evolves — never resets</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- 01 VISION -->
+<section id="vision">
+  <div class="eyebrow">01 — Core Vision &amp; Strategic Positioning</div>
+  <div class="stitle">Verified Once. <span>Trusted Everywhere.</span></div>
+  <div class="slead">Ondi is not authentication software, HR software, or KYC software. It is trust infrastructure — a multidimensional, portable, evolving trust graph that spans every stage of a person's life and every touchpoint in the enterprise ecosystem.</div>
+
+  <div class="callout mb28" style="background:var(--ind);border:1px solid rgba(67,56,202,.25);">
+    <div class="callout-title" style="color:var(--ondi);">🧭 The Strategic Insight</div>
+    <div class="callout-body">
+      A person is <strong style="color:var(--ink);">both</strong> a consumer identity and a workforce identity. A student becomes an intern, then an employee, then a freelancer, then a founder. Their trust and identity should evolve continuously — not restart at each stage. That continuity is the platform advantage. By unifying Ondi Personal and Ondi Workforce, we don't serve two markets — we own one: the entire identity lifecycle of every person in Africa.
+    </div>
+  </div>
+
+  <div class="g3 mb28">
+    <div class="card">
+      <div class="card-icon">🔐</div>
+      <div class="card-title">Identity Wallet</div>
+      <div class="card-desc">A sovereign, portable digital identity that follows the individual across organisations, platforms, and life stages — verified once, reused everywhere.</div>
+    </div>
+    <div class="card">
+      <div class="card-icon">🏢</div>
+      <div class="card-title">Workforce Identity</div>
+      <div class="card-desc">Enterprise-grade SSO, provisioning, lifecycle management, and trust-aware access control — built on the same identity core as the consumer product.</div>
+    </div>
+    <div class="card">
+      <div class="card-icon">⚙️</div>
+      <div class="card-title">Trust Engine</div>
+      <div class="card-desc">A multidimensional trust graph aggregating identity, behaviour, employment, education, financial, and compliance signals into a portable 0–850 score.</div>
+    </div>
+    <div class="card">
+      <div class="card-icon">🔗</div>
+      <div class="card-title">Access Orchestration</div>
+      <div class="card-desc">OAuth 2.0 / SAML SSO, RBAC, adaptive MFA, and SaaS provisioning — the access layer that enforces trust at every door.</div>
+    </div>
+    <div class="card">
+      <div class="card-icon">🌍</div>
+      <div class="card-title">Onboarding Infrastructure</div>
+      <div class="card-desc">KYC/KYB in seconds — NIDA, BRELA, TRA, NIN — the rails that onboard individuals and enterprises with zero friction and no re-verification.</div>
+    </div>
+    <div class="card">
+      <div class="card-icon">🚀</div>
+      <div class="card-title">Opportunity Passport</div>
+      <div class="card-desc">Verified identity unlocks loans, jobs, rentals, scholarships, insurance, and enterprise access — the opportunity network that rewards trust.</div>
+    </div>
+  </div>
+
+  <div class="callout" style="background:rgba(217,119,6,.07);border:1px solid rgba(217,119,6,.25);">
+    <div class="callout-title" style="color:var(--trust);">🎯 Final Product Positioning</div>
+    <div class="callout-body">
+      <strong style="color:var(--ink);">Ondi</strong> — <em>Identity. Trust. Access.</em><br/>
+      The digital trust layer for modern Africa. Not a login button. Not an HR system. Not a KYC widget.<br/>
+      <strong style="color:var(--ink);">Infrastructure-scale positioning.</strong> Eventually the login layer, workforce layer, trust layer, verification layer, and opportunity layer for East Africa.
+    </div>
+  </div>
+</section>
+
+<!-- 02 ARCHITECTURE -->
+<section id="architecture">
+  <div class="eyebrow">02 — Unified Platform Architecture</div>
+  <div class="stitle">Five Core <span>Architecture Layers</span></div>
+  <div class="slead">Ondi is built as five vertically integrated layers — each answering a distinct question about the user's identity, trustworthiness, access rights, lifecycle stage, and opportunities available. Every module in the platform routes through these layers.</div>
+
+  <div class="layer-stack mb28">
+
+    <div class="layer-row">
+      <div class="layer-l" style="background:var(--ind);color:var(--ondi);">LAYER 1<br/>Identity</div>
+      <div class="layer-r">
+        <div class="layer-title">🪪 Identity Layer — "Who are you?"</div>
+        <div class="layer-desc">Handles all verification and credential issuance. The foundation everything else depends on. No identity layer = no trust layer.</div>
+        <div class="layer-tags">
+          <span class="ltag" style="background:var(--ind);color:var(--ondi);">KYC / KYB</span>
+          <span class="ltag" style="background:var(--ind);color:var(--ondi);">Biometric Verification</span>
+          <span class="ltag" style="background:var(--ind);color:var(--ondi);">Document Verification</span>
+          <span class="ltag" style="background:var(--ind);color:var(--ondi);">Identity Wallet</span>
+          <span class="ltag" style="background:var(--ind);color:var(--ondi);">Digital Credentials</span>
+          <span class="ltag" style="background:var(--ind);color:var(--ondi);">Unified Profile</span>
+          <span class="ltag" style="background:var(--ind);color:var(--ondi);">NIDA / NIN / BRELA</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="layer-row">
+      <div class="layer-l" style="background:var(--td);color:var(--trust);">LAYER 2<br/>Trust</div>
+      <div class="layer-r">
+        <div class="layer-title">⚖️ Trust Layer — "How trustworthy are you?"</div>
+        <div class="layer-desc">The Trust Score is not a credit score. It is a multidimensional trust graph combining identity, behavioural, employment, education, financial, and compliance signals.</div>
+        <div class="layer-tags">
+          <span class="ltag" style="background:var(--td);color:var(--trust);">Identity Authenticity</span>
+          <span class="ltag" style="background:var(--td);color:var(--trust);">Behavioural Consistency</span>
+          <span class="ltag" style="background:var(--td);color:var(--trust);">Employment Reputation</span>
+          <span class="ltag" style="background:var(--td);color:var(--trust);">Education Verification</span>
+          <span class="ltag" style="background:var(--td);color:var(--trust);">Financial Patterns</span>
+          <span class="ltag" style="background:var(--td);color:var(--trust);">Compliance Standing</span>
+          <span class="ltag" style="background:var(--td);color:var(--trust);">Platform Reputation</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="layer-row">
+      <div class="layer-l" style="background:var(--acd);color:var(--access);">LAYER 3<br/>Access</div>
+      <div class="layer-r">
+        <div class="layer-title">🔑 Access Layer — "What should you access?"</div>
+        <div class="layer-desc">Trust-aware access orchestration for both consumer and enterprise contexts. One identity, one session, one policy engine — across every application.</div>
+        <div class="layer-tags">
+          <span class="ltag" style="background:var(--acd);color:var(--access);">SSO (OAuth 2.0 / SAML)</span>
+          <span class="ltag" style="background:var(--acd);color:var(--access);">RBAC</span>
+          <span class="ltag" style="background:var(--acd);color:var(--access);">Adaptive MFA</span>
+          <span class="ltag" style="background:var(--acd);color:var(--access);">SaaS Provisioning</span>
+          <span class="ltag" style="background:var(--acd);color:var(--access);">Session Governance</span>
+          <span class="ltag" style="background:var(--acd);color:var(--access);">Workforce Access</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="layer-row">
+      <div class="layer-l" style="background:var(--lcd);color:var(--life);">LAYER 4<br/>Lifecycle</div>
+      <div class="layer-r">
+        <div class="layer-title">🔄 Lifecycle Layer — "Where are you in your journey?"</div>
+        <div class="layer-desc">The layer where consumer and enterprise worlds merge. A student identity evolves into an employee identity — with verified history carrying forward. This is where the moat lives.</div>
+        <div class="layer-tags">
+          <span class="ltag" style="background:var(--lcd);color:var(--life);">Student Lifecycle</span>
+          <span class="ltag" style="background:var(--lcd);color:var(--life);">Employment Lifecycle</span>
+          <span class="ltag" style="background:var(--lcd);color:var(--life);">Contractor Lifecycle</span>
+          <span class="ltag" style="background:var(--lcd);color:var(--life);">Enterprise Onboarding</span>
+          <span class="ltag" style="background:var(--lcd);color:var(--life);">Joiner / Mover / Leaver</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="layer-row">
+      <div class="layer-l" style="background:var(--opd);color:var(--oppo);">LAYER 5<br/>Opportunity</div>
+      <div class="layer-r">
+        <div class="layer-title">🚀 Opportunity Layer — "What can this identity unlock?"</div>
+        <div class="layer-desc">Verified trust is not just a security feature — it is a key. Every participant in the ecosystem can offer or access opportunities gated by the Trust Score.</div>
+        <div class="layer-tags">
+          <span class="ltag" style="background:var(--opd);color:var(--oppo);">Jobs &amp; Internships</span>
+          <span class="ltag" style="background:var(--opd);color:var(--oppo);">Loans &amp; Insurance</span>
+          <span class="ltag" style="background:var(--opd);color:var(--oppo);">Rentals</span>
+          <span class="ltag" style="background:var(--opd);color:var(--oppo);">Scholarships</span>
+          <span class="ltag" style="background:var(--opd);color:var(--oppo);">Enterprise Access</span>
+          <span class="ltag" style="background:var(--opd);color:var(--oppo);">Marketplace Trust</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Architecture visual connector -->
+  <div style="background:var(--surf);border:1px solid var(--border);border-radius:10px;padding:16px 20px;display:grid;grid-template-columns:repeat(5,1fr);gap:10px;text-align:center;">
+    <div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--ondi);letter-spacing:2px;margin-bottom:4px;">IDENTITY</div>
+      <div style="font-size:11px;color:var(--muted2);">KYC/KYB · Biometrics · Wallet</div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:16px;">→</div>
+    <div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--trust);letter-spacing:2px;margin-bottom:4px;">TRUST</div>
+      <div style="font-size:11px;color:var(--muted2);">Score 0–850 · Signals · Graph</div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:16px;">→</div>
+    <div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--access);letter-spacing:2px;margin-bottom:4px;">ACCESS</div>
+      <div style="font-size:11px;color:var(--muted2);">SSO · RBAC · Provisioning</div>
+    </div>
+  </div>
+</section>
+
+<!-- 03 MODULES -->
+<section id="modules">
+  <div class="eyebrow">03 — Product Module Structure</div>
+  <div class="stitle">Four Product <span>Module Groups</span></div>
+  <div class="slead">Ondi is a single unified platform with four module groups — Identity Core, Workforce (enterprise), Consumer, and Developer Platform. Workforce is no longer a separate product; it is a module set powered by the shared identity and trust layers.</div>
+
+  <!-- Identity Core -->
+  <div class="suite mb28">
+    <div class="suite-hdr" style="background:var(--ind);">
+      <div class="suite-icon">🪪</div>
+      <div>
+        <div class="suite-name" style="color:var(--ondi);">Identity Core</div>
+        <div class="suite-motto">The foundation. Every module depends on this.</div>
+      </div>
+    </div>
+    <div class="suite-body">
+      <div class="suite-desc">KYC/KYB, biometric verification, document checks, identity wallet, and unified digital profile. Shared infrastructure — used by both consumer and enterprise flows. Verified once, reused everywhere.</div>
+      <div class="mod-rows">
+        <div class="mod-hdr"><span>MODULE</span><span>FULL NAME</span><span>FUNCTION</span></div>
+        <div class="mod-row">
+          <div class="mod-name" style="color:var(--ondi);">KYC/KYB Engine</div>
+          <div class="mod-full">Know Your Customer / Business</div>
+          <div class="mod-func">NIDA, NIN, BRELA, TRA verification in real-time. Liveness check. Director verification for enterprises.</div>
+        </div>
+        <div class="mod-row">
+          <div class="mod-name" style="color:var(--ondi);">Biometric Core</div>
+          <div class="mod-full">Biometric Verification Engine</div>
+          <div class="mod-func">Face liveness, fingerprint matching, anti-spoofing. Works offline. Confidence scoring per session.</div>
+        </div>
+        <div class="mod-row">
+          <div class="mod-name" style="color:var(--ondi);">Identity Wallet</div>
+          <div class="mod-full">Digital Credential Wallet</div>
+          <div class="mod-func">Store verified credentials — NIN, degree certificates, employment letters, licences. W3C VC-compatible.</div>
+        </div>
+        <div class="mod-row">
+          <div class="mod-name" style="color:var(--ondi);">Unified Profile</div>
+          <div class="mod-full">Cross-Context Identity Graph</div>
+          <div class="mod-func">Single profile that persists across consumer, workforce, and enterprise contexts. Evolves with the user.</div>
+        </div>
+        <div class="mod-row">
+          <div class="mod-name" style="color:var(--ondi);">Doc Verification</div>
+          <div class="mod-full">Document Intelligence Engine</div>
+          <div class="mod-func">OCR + AI validation of passports, IDs, degree certs, business docs. Fraud pattern detection. Tamper alerts.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Workforce Modules -->
+  <div class="suite mb28">
+    <div class="suite-hdr" style="background:var(--wkd);">
+      <div class="suite-icon">🏢</div>
+      <div>
+        <div class="suite-name" style="color:var(--work);">Workforce Module Group</div>
+        <div class="suite-motto">Enterprise identity, lifecycle, and access — now a module, not a separate product.</div>
+      </div>
+    </div>
+    <div class="suite-body">
+      <div class="suite-desc">Everything an enterprise needs to manage workforce identity — from onboarding to offboarding, SSO to device governance. Built on the shared Ondi identity and trust layers, so enterprise access decisions are powered by real verified identity data.</div>
+      <div class="mod-rows">
+        <div class="mod-hdr"><span>MODULE</span><span>FULL NAME</span><span>FUNCTION</span></div>
+        <div class="mod-row">
+          <div class="mod-name" style="color:var(--work);">Workforce Directory</div>
+          <div class="mod-full">Unified Employee Identity Graph</div>
+          <div class="mod-func">Central registry of all workforce identities — employees, contractors, interns. Linked to verified Ondi profiles.</div>
+        </div>
+        <div class="mod-row">
+          <div class="mod-name" style="color:var(--work);">Lifecycle Engine</div>
+          <div class="mod-full">Joiner / Mover / Leaver Automation</div>
+          <div class="mod-func">Automated onboarding, role transitions, and offboarding. Email creation, access provisioning, account revocation.</div>
+        </div>
+        <div class="mod-row">
+          <div class="mod-name" style="color:var(--work);">AccessOS</div>
+          <div class="mod-full">Enterprise Access Orchestration</div>
+          <div class="mod-func">SSO + SaaS provisioning + RBAC. Supports SAML, OAuth 2.0 PKCE. Adaptive MFA based on Trust Score.</div>
+        </div>
+        <div class="mod-row">
+          <div class="mod-name" style="color:var(--work);">Device &amp; Asset</div>
+          <div class="mod-full">Device &amp; Asset Governance</div>
+          <div class="mod-func">Identity-linked device registry. Asset assignment. Lost/stolen revocation. MDM integration hooks.</div>
+        </div>
+        <div class="mod-row">
+          <div class="mod-name" style="color:var(--work);">Workforce Trust</div>
+          <div class="mod-full">Workforce Trust Intelligence</div>
+          <div class="mod-func">Risk-aware access — Trust Score gates permissions. Ghost worker detection. Fake CV / cert alert system.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Consumer Modules -->
+  <div class="suite mb28">
+    <div class="suite-hdr" style="background:var(--cod);">
+      <div class="suite-icon">👤</div>
+      <div>
+        <div class="suite-name" style="color:var(--cons);">Consumer Module Group</div>
+        <div class="suite-motto">Personal identity, reputation, and opportunity — for individuals and freelancers.</div>
+      </div>
+    </div>
+    <div class="suite-body">
+      <div class="suite-desc">Consumer-facing modules that give individuals a portable, verified identity — usable across platforms, markets, and life stages. The individual is the product's first-class citizen; enterprise integration amplifies their trust.</div>
+      <div class="mod-rows">
+        <div class="mod-hdr"><span>MODULE</span><span>FULL NAME</span><span>FUNCTION</span></div>
+        <div class="mod-row">
+          <div class="mod-name" style="color:var(--cons);">Identity Wallet</div>
+          <div class="mod-full">Personal Credential Wallet</div>
+          <div class="mod-func">Store and share verified documents — NIN, certificates, employment letters. User controls what is shared.</div>
+        </div>
+        <div class="mod-row">
+          <div class="mod-name" style="color:var(--cons);">Verified Profile</div>
+          <div class="mod-full">Portable Professional Identity</div>
+          <div class="mod-func">A shareable profile with verified education, employment history, and skills — across job platforms and clients.</div>
+        </div>
+        <div class="mod-row">
+          <div class="mod-name" style="color:var(--cons);">Trust Passport</div>
+          <div class="mod-full">Shareable Trust Assertions</div>
+          <div class="mod-func">Consent-gated trust report shared with fintechs, landlords, employers — a portable proof of trustworthiness.</div>
+        </div>
+        <div class="mod-row">
+          <div class="mod-name" style="color:var(--cons);">Opportunity Passport</div>
+          <div class="mod-full">Opportunity Unlock Engine</div>
+          <div class="mod-func">Match high-trust individuals with jobs, loans, internships, rentals, and scholarships — trust unlocks access.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Developer Platform -->
+  <div class="suite">
+    <div class="suite-hdr" style="background:var(--devd);">
+      <div class="suite-icon">⚙️</div>
+      <div>
+        <div class="suite-name" style="color:var(--dev);">Developer Platform</div>
+        <div class="suite-motto">APIs, SDKs, and integrations — the layer that makes Ondi ecosystem-scale.</div>
+      </div>
+    </div>
+    <div class="suite-body">
+      <div class="suite-desc">Every fintech, school, marketplace, and enterprise can consume Ondi via API. The developer platform is what transforms Ondi from a product into infrastructure.</div>
+      <div class="mod-rows">
+        <div class="mod-hdr"><span>MODULE</span><span>FULL NAME</span><span>FUNCTION</span></div>
+        <div class="mod-row">
+          <div class="mod-name" style="color:var(--dev);">Ondi OAuth</div>
+          <div class="mod-full">OAuth 2.0 / SAML Identity Provider</div>
+          <div class="mod-func">"Login with Ondi" for third-party apps. JWT assertions. PKCE-secure. Plugs into any standard OAuth consumer.</div>
+        </div>
+        <div class="mod-row">
+          <div class="mod-name" style="color:var(--dev);">Trust Score API</div>
+          <div class="mod-full">Trust &amp; Credit Signal API</div>
+          <div class="mod-func">Consent-gated API for fintechs and insurers. Returns Trust Score 0–850 with signal breakdown. KYB bypass for verified entities.</div>
+        </div>
+        <div class="mod-row">
+          <div class="mod-name" style="color:var(--dev);">Verify API</div>
+          <div class="mod-full">Identity Verification API</div>
+          <div class="mod-func">Real-time KYC check for any third party — returns verification status, NIN match, biometric confidence. Pay-per-check.</div>
+        </div>
+        <div class="mod-row">
+          <div class="mod-name" style="color:var(--dev);">Webhook &amp; SDK</div>
+          <div class="mod-full">Mobile &amp; Web SDK + Webhooks</div>
+          <div class="mod-func">Drop-in identity components for mobile/web. Real-time webhooks for auth events, score changes, lifecycle transitions.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 04 TRUST SCORE -->
+<section id="trust">
+  <div class="eyebrow">04 — Trust Engine &amp; Score Model</div>
+  <div class="stitle">The <span>Multidimensional</span> Trust Graph</div>
+  <div class="slead">The Ondi Trust Score (0–850) is not a credit bureau score. It is a portable, multidimensional trust graph — combining six categories of signals into a single portable assertion of trustworthiness that any participant in the ecosystem can consume (with user consent).</div>
+
+  <div class="callout mb28" style="background:var(--td);border:1px solid rgba(217,119,6,.25);">
+    <div class="callout-title" style="color:var(--trust);">⚡ Trust Score Thresholds</div>
+    <div class="callout-body">
+      <strong style="color:var(--ink);">Score ≥ 700</strong> — Frictionless access. No step-up MFA. Fast-lane loan processing. Preferred onboarding tier.<br/>
+      <strong style="color:var(--ink);">Score 500–699</strong> — Standard access. Step-up MFA on sensitive actions. Conditional loan eligibility.<br/>
+      <strong style="color:var(--ink);">Score &lt; 500</strong> — Heightened review. Manual KYC escalation. Restricted access permissions. Fraud watchlist check.
+    </div>
+  </div>
+
+  <div class="g3">
+    <div class="sig-block" style="border-top:3px solid var(--ondi);">
+      <div class="sig-title">🪪 Identity Signals <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);font-weight:400;">~25% weight</span></div>
+      <div class="sig-item">NIDA / NIN / BRELA verification</div>
+      <div class="sig-item">Biometric confidence score</div>
+      <div class="sig-item">Device trust &amp; binding</div>
+      <div class="sig-item">Document authenticity score</div>
+      <div class="sig-item">Liveness pass rate</div>
+    </div>
+    <div class="sig-block" style="border-top:3px solid var(--ident);">
+      <div class="sig-title">🎓 Education Signals <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);font-weight:400;">~15% weight</span></div>
+      <div class="sig-item">Verified certificates &amp; degrees</div>
+      <div class="sig-item">Academic standing confirmation</div>
+      <div class="sig-item">Institution verification</div>
+      <div class="sig-item">Professional certifications</div>
+      <div class="sig-item">Continuing education signals</div>
+    </div>
+    <div class="sig-block" style="border-top:3px solid var(--work);">
+      <div class="sig-title">💼 Workforce Signals <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);font-weight:400;">~25% weight</span></div>
+      <div class="sig-item">Employment history (verified)</div>
+      <div class="sig-item">Employer endorsements</div>
+      <div class="sig-item">Access behaviour consistency</div>
+      <div class="sig-item">Role &amp; seniority continuity</div>
+      <div class="sig-item">Offboarding conduct</div>
+    </div>
+    <div class="sig-block" style="border-top:3px solid var(--life);">
+      <div class="sig-title">🧠 Behavioural Signals <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);font-weight:400;">~15% weight</span></div>
+      <div class="sig-item">Login consistency &amp; device patterns</div>
+      <div class="sig-item">Fraud risk indicators</div>
+      <div class="sig-item">Dispute patterns &amp; resolution</div>
+      <div class="sig-item">Interaction quality scores</div>
+      <div class="sig-item">Session anomaly detection</div>
+    </div>
+    <div class="sig-block" style="border-top:3px solid var(--trust);">
+      <div class="sig-title">💰 Financial Signals <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);font-weight:400;">~10% weight</span></div>
+      <div class="sig-item">Payment consistency</div>
+      <div class="sig-item">Mobile money stability (M-Pesa, Airtel)</div>
+      <div class="sig-item">Loan repayment history</div>
+      <div class="sig-item">Income pattern regularity</div>
+      <div class="sig-item">Overdraft behaviour</div>
+    </div>
+    <div class="sig-block" style="border-top:3px solid var(--cons);">
+      <div class="sig-title">✅ Compliance Signals <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);font-weight:400;">~10% weight</span></div>
+      <div class="sig-item">Professional licences (verified)</div>
+      <div class="sig-item">Regulatory certifications</div>
+      <div class="sig-item">AML / PEP watchlist clear</div>
+      <div class="sig-item">Tax compliance (TRA)</div>
+      <div class="sig-item">NSSF / regulatory standing</div>
+    </div>
+  </div>
+</section>
+
+<!-- 05 JOURNEYS -->
+<section id="journeys">
+  <div class="eyebrow">05 — Unified User Journeys</div>
+  <div class="stitle">Identity That <span>Evolves</span> With You</div>
+  <div class="slead">The power of the unified model: a student's identity does not restart when they become an employee. An employee's trust record does not disappear when they leave a company. The identity continuity across life stages is the product's deepest competitive advantage.</div>
+
+  <!-- Student Journey -->
+  <div class="journey mb28">
+    <div class="journey-hdr">
+      <div class="jnum">JOURNEY 01</div>
+      <div class="jicon">🎓</div>
+      <div class="jtitle">Student → Employee → Founder</div>
+      <div class="jtags">
+        <span class="jtag" style="background:var(--ind);color:var(--ondi);border-color:rgba(67,56,202,.3);">Identity Core</span>
+        <span class="jtag" style="background:var(--wkd);color:var(--work);border-color:rgba(26,107,255,.3);">Workforce</span>
+        <span class="jtag" style="background:var(--lcd);color:var(--life);border-color:rgba(5,150,105,.3);">Lifecycle Layer</span>
+      </div>
+    </div>
+    <div class="journey-body">
+      <div class="jstep">
+        <div class="jstep-num">STEP 01</div>
+        <div class="jstep-title">Creates Ondi</div>
+        <div class="jstep-desc">Verifies NIDA/NIN and school records. Builds Trust Score. Gets verified academic identity.</div>
+        <div class="jstep-tag" style="background:var(--ind);color:var(--ondi);">Identity Core</div>
+      </div>
+      <div class="jstep">
+        <div class="jstep-num">STEP 02</div>
+        <div class="jstep-title">Applies for Internship</div>
+        <div class="jstep-desc">Company uses Ondi Workforce. Automatically verifies student, provisions temporary access, creates email, grants internship permissions.</div>
+        <div class="jstep-tag" style="background:var(--wkd);color:var(--work);">Workforce Module</div>
+      </div>
+      <div class="jstep">
+        <div class="jstep-num">STEP 03</div>
+        <div class="jstep-title">Becomes Employee</div>
+        <div class="jstep-desc">Identity evolves — not restarted. Education verification, internship performance, and behavioural trust all carry forward.</div>
+        <div class="jstep-tag" style="background:var(--lcd);color:var(--life);">Lifecycle Layer</div>
+      </div>
+      <div class="jstep">
+        <div class="jstep-num">STEP 04</div>
+        <div class="jstep-title">Leaves Company</div>
+        <div class="jstep-desc">Enterprise access revoked. Professional identity and verified work history preserved. Trust score continues growing.</div>
+        <div class="jstep-tag" style="background:var(--td);color:var(--trust);">Trust Engine</div>
+      </div>
+      <div class="jstep">
+        <div class="jstep-num">STEP 05</div>
+        <div class="jstep-title">Launches as Founder</div>
+        <div class="jstep-desc">Uses Trust Passport to secure a business loan, rent office space, and onboard their own employees — all verified via Ondi.</div>
+        <div class="jstep-tag" style="background:var(--opd);color:var(--oppo);">Opportunity Layer</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Enterprise Journey -->
+  <div class="journey mb28">
+    <div class="journey-hdr">
+      <div class="jnum">JOURNEY 02</div>
+      <div class="jicon">🏢</div>
+      <div class="jtitle">Enterprise Adopts Ondi Workforce</div>
+      <div class="jtags">
+        <span class="jtag" style="background:var(--wkd);color:var(--work);border-color:rgba(26,107,255,.3);">Workforce</span>
+        <span class="jtag" style="background:var(--acd);color:var(--access);border-color:rgba(2,132,199,.3);">AccessOS</span>
+        <span class="jtag" style="background:var(--td);color:var(--trust);border-color:rgba(217,119,6,.3);">Trust Intelligence</span>
+      </div>
+    </div>
+    <div class="journey-body">
+      <div class="jstep">
+        <div class="jstep-num">STEP 01</div>
+        <div class="jstep-title">Enterprise Registers</div>
+        <div class="jstep-desc">KYB via BRELA/TRA. Director verification via Ondi personal. Entity token issued instantly.</div>
+        <div class="jstep-tag" style="background:var(--ind);color:var(--ondi);">Identity Core</div>
+      </div>
+      <div class="jstep">
+        <div class="jstep-num">STEP 02</div>
+        <div class="jstep-title">Connects AccessOS</div>
+        <div class="jstep-desc">SSO configured. Existing SaaS tools provisioned. RBAC policies defined. MFA thresholds set by Trust Score.</div>
+        <div class="jstep-tag" style="background:var(--acd);color:var(--access);">AccessOS</div>
+      </div>
+      <div class="jstep">
+        <div class="jstep-num">STEP 03</div>
+        <div class="jstep-title">Onboards Workforce</div>
+        <div class="jstep-desc">New joiners verified against Ondi. Certificates and employment history confirmed. Ghost workers and fake CVs flagged automatically.</div>
+        <div class="jstep-tag" style="background:var(--wkd);color:var(--work);">Workforce Module</div>
+      </div>
+      <div class="jstep">
+        <div class="jstep-num">STEP 04</div>
+        <div class="jstep-title">Manages Lifecycle</div>
+        <div class="jstep-desc">Joiner/mover/leaver automation. Role changes trigger access updates. Offboarding fully automated — no orphan accounts.</div>
+        <div class="jstep-tag" style="background:var(--lcd);color:var(--life);">Lifecycle Engine</div>
+      </div>
+      <div class="jstep">
+        <div class="jstep-num">STEP 05</div>
+        <div class="jstep-title">Gains Trust Intelligence</div>
+        <div class="jstep-desc">Real-time access risk monitoring. Insider threat signals. Workforce Trust Score dashboard for HR and security teams.</div>
+        <div class="jstep-tag" style="background:var(--td);color:var(--trust);">Trust Intelligence</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Freelancer Journey -->
+  <div class="journey">
+    <div class="journey-hdr">
+      <div class="jnum">JOURNEY 03</div>
+      <div class="jicon">💼</div>
+      <div class="jtitle">Freelancer Builds Portable Trust</div>
+      <div class="jtags">
+        <span class="jtag" style="background:var(--cod);color:var(--cons);border-color:rgba(0,139,125,.3);">Consumer Modules</span>
+        <span class="jtag" style="background:var(--td);color:var(--trust);border-color:rgba(217,119,6,.3);">Trust Engine</span>
+        <span class="jtag" style="background:var(--opd);color:var(--oppo);border-color:rgba(225,29,72,.3);">Opportunity Layer</span>
+      </div>
+    </div>
+    <div class="journey-body">
+      <div class="jstep">
+        <div class="jstep-num">STEP 01</div>
+        <div class="jstep-title">Creates Verified Profile</div>
+        <div class="jstep-desc">Uploads certificates, past work history. Ondi verifies each document. Trust Score baseline established.</div>
+        <div class="jstep-tag" style="background:var(--cod);color:var(--cons);">Verified Profile</div>
+      </div>
+      <div class="jstep">
+        <div class="jstep-num">STEP 02</div>
+        <div class="jstep-title">Completes Gigs</div>
+        <div class="jstep-desc">Clients endorse work via Ondi. Endorsements added as trust signals. Score grows with each verified engagement.</div>
+        <div class="jstep-tag" style="background:var(--td);color:var(--trust);">Trust Engine</div>
+      </div>
+      <div class="jstep">
+        <div class="jstep-num">STEP 03</div>
+        <div class="jstep-title">Shares Trust Passport</div>
+        <div class="jstep-desc">Consents to share Trust Passport with new clients or platforms. Instantly credible — no reference calls needed.</div>
+        <div class="jstep-tag" style="background:var(--cod);color:var(--cons);">Trust Passport</div>
+      </div>
+      <div class="jstep">
+        <div class="jstep-num">STEP 04</div>
+        <div class="jstep-title">Unlocks Opportunities</div>
+        <div class="jstep-desc">High Trust Score unlocks fast-lane loan, apartment rental, and premium marketplace tiers. Reputation is portable capital.</div>
+        <div class="jstep-tag" style="background:var(--opd);color:var(--oppo);">Opportunity Passport</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 06 NETWORK EFFECT -->
+<section id="network">
+  <div class="eyebrow">06 — Network Effect &amp; Ecosystem Moat</div>
+  <div class="stitle">Every Participant <span>Strengthens</span> Everyone</div>
+  <div class="slead">The Ondi network effect is the moat. Every new integration, verification, and endorsement makes the trust graph denser and more valuable for all participants. This is why unification matters — each layer feeds every other.</div>
+
+  <div class="callout mb28" style="background:var(--ind);border:1px solid rgba(67,56,202,.22);">
+    <div class="callout-title" style="color:var(--ondi);">🕸 The Flywheel</div>
+    <div class="callout-body">
+      More universities verifying education → richer trust graphs → more employers adopting workforce module → more employment signals → better trust scores → more fintechs consuming Trust Score API → more loan access for individuals → more individuals creating Ondi → more universities verifying education → <strong style="color:var(--ink);">repeat at scale.</strong>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:28px;">
+    <div class="net-row">
+      <div class="net-actor" style="background:var(--ind);color:var(--ondi);">🎓<span>Universities</span></div>
+      <div class="net-contrib">Verify education credentials → enriches Trust Score education signal → reduces fake degree risk for employers → attracts more enterprise adoption</div>
+    </div>
+    <div class="net-row">
+      <div class="net-actor" style="background:var(--wkd);color:var(--work);">🏢<span>Employers</span></div>
+      <div class="net-contrib">Verify work history via Workforce Module → generates employment signals → builds portable career reputation for individuals → reduces ghost workers and CV fraud</div>
+    </div>
+    <div class="net-row">
+      <div class="net-actor" style="background:var(--td);color:var(--trust);">🏦<span>Fintechs</span></div>
+      <div class="net-contrib">Consume Trust Score API (consent-gated) → enables better credit decisions → reduces default risk → passes savings to users via better rates → increases trust in financial system</div>
+    </div>
+    <div class="net-row">
+      <div class="net-actor" style="background:var(--acd);color:var(--access);">🔗<span>Third-Party Apps</span></div>
+      <div class="net-contrib">Integrate via "Login with Ondi" OAuth → inherit verified identity at zero KYC cost → generate behavioural signals back into trust graph</div>
+    </div>
+    <div class="net-row">
+      <div class="net-actor" style="background:var(--lcd);color:var(--life);">🏛<span>Government</span></div>
+      <div class="net-contrib">Verify identity via NIDA / BRELA / TRA → provides authoritative ground truth → reduces fraud at the root → enables regulatory reporting integration</div>
+    </div>
+    <div class="net-row">
+      <div class="net-actor" style="background:var(--opd);color:var(--oppo);">🛒<span>Marketplaces</span></div>
+      <div class="net-contrib">Consume trust assertions via API → gate premium tiers on Trust Score → generate peer review signals → high-trust individuals win more business → increases platform quality</div>
+    </div>
+  </div>
+</section>
+
+<!-- 07 ACTOR MODEL -->
+<section id="actors">
+  <div class="eyebrow">07 — Platform Actor Model</div>
+  <div class="stitle">Multi-Role <span>Actor Model</span></div>
+  <div class="slead">Multi-tier actor model with role-based access control enforced at the API gateway. All internal services communicate via mTLS; external clients via OAuth 2.0 PKCE through the Ondi identity provider. Every action produces an immutable audit trail entry.</div>
+
+  <table class="atbl mb28">
+    <thead>
+      <tr>
+        <th style="width:190px;">Actor</th>
+        <th style="width:230px;">Role on Ondi</th>
+        <th>Platform Access</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><div class="aname">👤 Individual / Consumer</div></td>
+        <td class="arole">Identity creation, credential storage, Trust Score building, opportunity access</td>
+        <td class="amods" style="color:var(--ondi);">Identity Wallet · Verified Profile · Trust Passport · Opportunity Passport</td>
+      </tr>
+      <tr>
+        <td><div class="aname">🎓 Student</div></td>
+        <td class="arole">Academic identity verification, internship access, career transition</td>
+        <td class="amods" style="color:var(--ident);">Identity Core · Education Signals · Lifecycle Engine (student)</td>
+      </tr>
+      <tr>
+        <td><div class="aname">💼 Employee</div></td>
+        <td class="arole">Workforce identity, SSO access, performance and trust building</td>
+        <td class="amods" style="color:var(--work);">Workforce Directory · AccessOS · Trust Signals</td>
+      </tr>
+      <tr>
+        <td><div class="aname">🛠 Freelancer / Contractor</div></td>
+        <td class="arole">Portable work history, trust endorsements, cross-platform reputation</td>
+        <td class="amods" style="color:var(--cons);">Verified Profile · Trust Passport · Opportunity Passport</td>
+      </tr>
+      <tr>
+        <td><div class="aname">🏢 Enterprise (HR / IT)</div></td>
+        <td class="arole">Workforce onboarding, access provisioning, offboarding, compliance</td>
+        <td class="amods" style="color:var(--work);">Workforce Module (full) · AccessOS · Lifecycle Engine · Trust Intelligence</td>
+      </tr>
+      <tr>
+        <td><div class="aname">🏦 Bank / Fintech / Insurer</div></td>
+        <td class="arole">Trust Score consumption (consent-gated), KYB bypass, lending eligibility</td>
+        <td class="amods" style="color:var(--trust);">Trust Score API · KYB Bypass · Trust Report</td>
+      </tr>
+      <tr>
+        <td><div class="aname">🎓 University / Institution</div></td>
+        <td class="arole">Education credential issuance and verification</td>
+        <td class="amods" style="color:var(--ident);">Verify API (education) · Credential Issuance · Identity Wallet (write)</td>
+      </tr>
+      <tr>
+        <td><div class="aname">🏛 Government Agency</div></td>
+        <td class="arole">Identity ground truth — NIDA, BRELA, TRA, NIN verification</td>
+        <td class="amods" style="color:var(--ondi);">KYC/KYB Engine (registry partner) · Compliance Signals · Audit API</td>
+      </tr>
+      <tr>
+        <td><div class="aname">🔗 Third-Party App / Marketplace</div></td>
+        <td class="arole">SSO integration, trust assertion consumption, identity verification</td>
+        <td class="amods" style="color:var(--dev);">Ondi OAuth 2.0 · Verify API · Trust Assertion · JWT</td>
+      </tr>
+      <tr>
+        <td><div class="aname">🛠 Platform Admin</div></td>
+        <td class="arole">Full system access, tenant provisioning, security configuration</td>
+        <td class="amods" style="color:var(--muted2);">All modules + audit logs + tenant management + score model config</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout" style="background:var(--ind);border:1px solid rgba(67,56,202,.2);">
+    <div class="callout-title" style="color:var(--ondi);">🔐 Security &amp; Governance Notes</div>
+    <div class="callout-body">
+      Multi-tenant architecture with permissioned data layers per actor type.<br/>
+      RBAC enforced at the API gateway — roles from INDIVIDUAL to PLATFORM_ADMIN.<br/>
+      All internal services communicate via mTLS; external clients via OAuth 2.0 PKCE.<br/>
+      Every trust signal consumed by a third party is user-consent-gated. No passive data monetisation.<br/>
+      Registry integrations: NIDA (identity), BRELA (company), TRA (tax), NIN (national ID) — authoritative ground truth.<br/>
+      Every platform action — auth event, score change, lifecycle transition, credential issue — produces an immutable audit log entry.
+    </div>
+  </div>
+</section>
+
+<!-- 08 ROADMAP -->
+<section id="roadmap">
+  <div class="eyebrow">08 — Product Roadmap</div>
+  <div class="stitle">From Foundation to <span>Infrastructure Scale</span></div>
+  <div class="slead">Four build phases — from unified identity core to ecosystem-scale trust infrastructure across East Africa. Each phase unlocks the next and compounds the network effect.</div>
+
+  <div class="rm-wrap">
+
+    <div class="rm-row">
+      <div class="rm-num">
+        <div class="rm-dot" style="background:var(--ind);color:var(--ondi);">1</div>
+        <div class="rm-vline" style="background:var(--border);"></div>
+      </div>
+      <div class="rm-card">
+        <div class="rm-head">
+          <div class="rm-title" style="color:var(--ondi);">Phase 1 — Identity Foundation</div>
+          <div class="rm-label">Q1–Q2 2026</div>
+        </div>
+        <div class="rm-goal">Establish the unified identity core. Merge Ondi Personal and Workforce into one platform architecture.</div>
+        <div class="rm-tags">
+          <span class="rmtag" style="background:var(--ind);color:var(--ondi);">KYC/KYB Engine</span>
+          <span class="rmtag" style="background:var(--ind);color:var(--ondi);">Biometric Core</span>
+          <span class="rmtag" style="background:var(--ind);color:var(--ondi);">Identity Wallet</span>
+          <span class="rmtag" style="background:var(--ind);color:var(--ondi);">Unified Profile</span>
+          <span class="rmtag" style="background:var(--ind);color:var(--ondi);">NIDA / BRELA / TRA Integration</span>
+        </div>
+        <div class="rm-focus">Launch unified Ondi sign-up. Verify individuals via NIDA and enterprises via BRELA/TRA. Deploy Identity Wallet for document storage. First Trust Score v1 (identity-only signals).</div>
+      </div>
+    </div>
+
+    <div class="rm-row">
+      <div class="rm-num">
+        <div class="rm-dot" style="background:var(--wkd);color:var(--work);">2</div>
+        <div class="rm-vline" style="background:var(--border);"></div>
+      </div>
+      <div class="rm-card">
+        <div class="rm-head">
+          <div class="rm-title" style="color:var(--work);">Phase 2 — Workforce &amp; Access Layer</div>
+          <div class="rm-label">Q3–Q4 2026</div>
+        </div>
+        <div class="rm-goal">Bring enterprise workforce identity online. AccessOS, lifecycle automation, and workforce trust intelligence.</div>
+        <div class="rm-tags">
+          <span class="rmtag" style="background:var(--wkd);color:var(--work);">Workforce Directory</span>
+          <span class="rmtag" style="background:var(--wkd);color:var(--work);">Lifecycle Engine</span>
+          <span class="rmtag" style="background:var(--acd);color:var(--access);">AccessOS (SSO + RBAC)</span>
+          <span class="rmtag" style="background:var(--wkd);color:var(--work);">Workforce Trust Intelligence</span>
+          <span class="rmtag" style="background:var(--wkd);color:var(--work);">Device &amp; Asset Governance</span>
+        </div>
+        <div class="rm-focus">First 10 enterprise clients. Joiner/mover/leaver automation live. SaaS provisioning for G Suite, Microsoft 365, Slack, Jira. Ghost worker and fake CV detection active. Trust Score enriched with employment signals.</div>
+      </div>
+    </div>
+
+    <div class="rm-row">
+      <div class="rm-num">
+        <div class="rm-dot" style="background:var(--td);color:var(--trust);">3</div>
+        <div class="rm-vline" style="background:var(--border);"></div>
+      </div>
+      <div class="rm-card">
+        <div class="rm-head">
+          <div class="rm-title" style="color:var(--trust);">Phase 3 — Trust Engine &amp; Opportunity Network</div>
+          <div class="rm-label">Q1–Q2 2027</div>
+        </div>
+        <div class="rm-goal">Activate the full multidimensional Trust Score. Open Trust Score API to fintechs, insurers, and marketplaces. Launch Opportunity Passport.</div>
+        <div class="rm-tags">
+          <span class="rmtag" style="background:var(--td);color:var(--trust);">Trust Score v2 (full signals)</span>
+          <span class="rmtag" style="background:var(--devd);color:var(--dev);">Trust Score API</span>
+          <span class="rmtag" style="background:var(--cod);color:var(--cons);">Opportunity Passport</span>
+          <span class="rmtag" style="background:var(--cod);color:var(--cons);">Trust Passport</span>
+          <span class="rmtag" style="background:var(--devd);color:var(--dev);">Verify API (public)</span>
+        </div>
+        <div class="rm-focus">First fintech and bank partnerships consuming Trust Score API. Loan fast-lane for score ≥700. Marketplace trust tiers. Education signal enrichment via university partnerships (TZ, KE, UG). Financial signals via M-Pesa, Airtel Money, HaloPesa.</div>
+      </div>
+    </div>
+
+    <div class="rm-row">
+      <div class="rm-num">
+        <div class="rm-dot" style="background:var(--life);color:#fff;">4</div>
+      </div>
+      <div class="rm-card">
+        <div class="rm-head">
+          <div class="rm-title" style="color:var(--life);">Phase 4 — Infrastructure Scale</div>
+          <div class="rm-label">Q3 2027+</div>
+        </div>
+        <div class="rm-goal">Become the identity and trust infrastructure layer for East Africa — the login, workforce, trust, verification, and opportunity layer across the region.</div>
+        <div class="rm-tags">
+          <span class="rmtag" style="background:var(--lcd);color:var(--life);">Kenya Launch</span>
+          <span class="rmtag" style="background:var(--lcd);color:var(--life);">Uganda Launch</span>
+          <span class="rmtag" style="background:var(--lcd);color:var(--life);">Rwanda Launch</span>
+          <span class="rmtag" style="background:var(--devd);color:var(--dev);">Developer Ecosystem</span>
+          <span class="rmtag" style="background:var(--ind);color:var(--ondi);">Government Partnerships</span>
+        </div>
+        <div class="rm-focus">Regional identity federation — one Ondi works across TZ, KE, UG, RW. Government digital identity integration. Developer marketplace with third-party Ondi apps. Regulatory-grade trust reporting for BOT, CMA, CBK equivalents. Infrastructure licensing to telcos and banks.</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- 09 INFRASTRUCTURE -->
+<section id="infra">
+  <div class="eyebrow">09 — Shared Platform Infrastructure</div>
+  <div class="stitle">Common Foundation — <span>Built for East Africa</span></div>
+  <div class="slead">Shared services that every Ondi module runs on — no duplication, maximum consistency. Hosted on Contabo infrastructure (Frankfurt &amp; Nuremberg), chosen for cost-efficiency, East Africa latency performance, and GDPR-equivalent data governance at ~8× lower cost than AWS.</div>
+
+  <div class="callout mb28" style="background:var(--ind);border:1px solid rgba(67,56,202,.2);">
+    <div class="callout-title" style="color:var(--ondi);">🖥 Contabo Hosting Architecture</div>
+    <div class="callout-body">
+      <strong style="color:var(--ink);">Primary Cluster:</strong> Contabo VPS XL / Dedicated Servers — Frankfurt (DE) data centre. GDPR-compliant, ISO 27001-certified. Latency to Dar es Salaam: ~130ms; Nairobi: ~120ms — acceptable for API-first architecture with Cloudflare edge caching.<br/><br/>
+      <strong style="color:var(--ink);">Deployment Stack:</strong> Docker + Kubernetes (K3s) on Contabo bare-metal VPS. Nginx reverse proxy. PostgreSQL (primary) + Redis (cache / queue). MinIO for object storage (biometric hashes, credential vault, audit logs).<br/><br/>
+      <strong style="color:var(--ink);">Backup &amp; Redundancy:</strong> Contabo Object Storage for automated daily backups. Geo-redundant replica in Nuremberg (DE). 99.9% uptime SLA. Failover via HAProxy + keepalived.<br/><br/>
+      <strong style="color:var(--ink);">Cost Advantage:</strong> Contabo dedicated server (128GB RAM, 8 cores, 1.6TB NVMe) ≈ €89/month vs AWS r6i.4xlarge ≈ $700+/month — approximately 8× cost saving. Critical for East Africa pricing tiers.
+    </div>
+  </div>
+
+  <div class="g4">
+    <div class="card"><div class="card-icon">🤖</div><div class="card-title">AI &amp; ML Engine</div><div class="card-desc">Shared NLP (Swahili-first), biometric liveness, OCR, Trust Score ML engine, fraud pattern detection — trained on East African identity data.</div></div>
+    <div class="card"><div class="card-icon">🌍</div><div class="card-title">Multi-Tenant Data Layer</div><div class="card-desc">Isolated namespaces per organisation. East Africa data residency (TZ, KE, UG, RW). GDPR-equivalent governance. Immutable audit log on every action.</div></div>
+    <div class="card"><div class="card-icon">🔗</div><div class="card-title">API &amp; Webhook Layer</div><div class="card-desc">Unified REST API across all modules. OAuth 2.0 / SAML identity provider. Real-time webhooks. Mobile and web SDK. Pay-per-check Verify API.</div></div>
+    <div class="card"><div class="card-icon">📡</div><div class="card-title">Channel Gateway</div><div class="card-desc">WhatsApp Business API, USSD, SMS, voice/IVR — shared channel infrastructure for auth flows, OTP delivery, and identity verification prompts.</div></div>
+    <div class="card"><div class="card-icon">🔒</div><div class="card-title">Security &amp; AML/KYC</div><div class="card-desc">AML/KYC enforcement across all modules. End-to-end encryption. Shared fraud detection signals. Biometric anti-spoofing. PEP / watchlist screening.</div></div>
+    <div class="card"><div class="card-icon">📊</div><div class="card-title">Analytics &amp; Reporting</div><div class="card-desc">Platform-wide analytics — Trust Score distribution, verification rates, lifecycle events, access anomalies. Export for enterprise and regulatory reporting.</div></div>
+    <div class="card"><div class="card-icon">🌐</div><div class="card-title">Localisation Engine</div><div class="card-desc">Swahili, Amharic, Kinyarwanda, Luganda, English — shared translation pipeline across all Ondi UI surfaces and API responses.</div></div>
+    <div class="card"><div class="card-icon">⚡</div><div class="card-title">Registry Connector Hub</div><div class="card-desc">Pre-built connectors — NIDA (TZ), NIN (UG), BRELA, TRA, NSSF, M-Pesa, Airtel Money, HaloPesa, mobile number registries, credit bureaux.</div></div>
+  </div>
+</section>
+
+<footer>Ondi Platform Overview · Identity. Trust. Access. · © 2026 Hudumika Mobility LLC · All Rights Reserved · Confidential</footer>
+
+<script>
+const secs = document.querySelectorAll('section[id], div[id="hero"]');
+const nls = document.querySelectorAll('.nl');
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      nls.forEach(n => n.classList.remove('on'));
+      const a = document.querySelector(`.nl[href="#${e.target.id}"]`);
+      if (a) a.classList.add('on');
+    }
+  });
+}, { threshold: 0.2 });
+secs.forEach(s => obs.observe(s));
+</script>
+</body>
+</html>
