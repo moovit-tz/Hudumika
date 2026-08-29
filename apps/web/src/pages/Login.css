@@ -242,6 +242,33 @@
   cursor: pointer;
   padding: 0;
 }
+
+/* ── Ondi login mode tabs (phone-code / authenticator) ── */
+.ondi-mode-tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--lp-input-bg, #fff);
+  border: 1px solid var(--lp-input-border, #e0e2e6);
+  border-radius: 100px;
+  padding: 4px;
+  margin-bottom: 20px;
+}
+.ondi-mode-tab {
+  flex: 1;
+  background: none;
+  border: none;
+  border-radius: 100px;
+  color: var(--lp-ink3, #5f6368);
+  font-weight: 600;
+  font-size: 13px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.ondi-mode-tab--active {
+  background: var(--lp-accent, #0d7a6b);
+  color: #fff;
+}
 .login-submit-btn {
   background: var(--lp-accent, #0d7a6b);
   color: #fff;

@@ -31,6 +31,7 @@ import { SuperAdminIssues } from '../pages/SuperAdminIssues.js';
 import { SuperAdminReferrals } from '../pages/SuperAdminReferrals.js';
 import { SuperAdminAnnouncements } from '../pages/SuperAdminAnnouncements.js';
 import { SuperAdminSigningCert } from '../pages/SuperAdminSigningCert.js';
+import { SuperAdminKyb } from '../pages/SuperAdminKyb.js';
 
 const NAV: SidebarSection[] = [
   {
@@ -49,6 +50,7 @@ const NAV: SidebarSection[] = [
     title: 'PLATFORM',
     items: [
       { label: 'Reported Issues',   icon: 'alertCircle', path: '/admin/issues'      },
+      { label: 'Business Verification', icon: 'fingerprint', path: '/admin/kyb'    },
       { label: 'Referral Commissions', icon: 'link', path: '/admin/referrals'    },
       { label: 'Announcements',     icon: 'bell',      path: '/admin/announcements' },
       { label: 'App Status',        icon: 'shield',   path: '/admin/app-status'     },
@@ -83,6 +85,7 @@ function AdminContent() {
           <Route path="domains"       element={<DomainsView />} />
           <Route path="activity"      element={<ActivityView />} />
           <Route path="issues"        element={<SuperAdminIssues />} />
+          <Route path="kyb"           element={<SuperAdminKyb />} />
           <Route path="referrals"     element={<SuperAdminReferrals />} />
           <Route path="announcements" element={<SuperAdminAnnouncements />} />
           <Route path="app-status"    element={<AppStatusView />} />

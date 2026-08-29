@@ -54,6 +54,10 @@ export interface TenantsTable {
   /** AgencyHost M8 — which tenant's referral link this tenant signed up
    *  through, if any. Set once at signup, never reassigned. Migration 250. */
   referred_by_tenant_id: string | null;
+  /** Ondi M5 (migration 362) — the tenant's own business-registration KYB,
+   *  reviewed by the platform SuperAdmin (a tenant can't self-certify its
+   *  own business identity). See ondi_org_kyb. */
+  kyb_status: Generated<'not_started' | 'pending' | 'verified' | 'rejected'>;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -129,6 +133,11 @@ export interface UsersTable {
    * read as "sees nothing".
    */
   customer_id: string | null;
+  // Ondi identity (M0, migration 358) — see that migration's own header for
+  // why ondi_handle is a global unique index rather than per-tenant like email.
+  ondi_handle: string | null;
+  verification_level: Generated<'unverified' | 'phone_verified' | 'id_verified' | 'enhanced'>;
+  kyc_status: Generated<'not_started' | 'pending' | 'approved' | 'rejected'>;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -4721,6 +4730,16 @@ export interface Database {
   accounting_sync_logs: AccountingSyncLogsTable;
   accounting_integration_entity_map: AccountingIntegrationEntityMapTable;
   user_totp: UserTotpTable;
+  ondi_credentials: OndiCredentialsTable;
+  ondi_auth_events: OndiAuthEventsTable;
+  ondi_kyc_submissions: OndiKycSubmissionsTable;
+  ondi_org_kyb: OndiOrgKybTable;
+  ondi_org_roles: OndiOrgRolesTable;
+  ondi_org_role_members: OndiOrgRoleMembersTable;
+  ondi_org_access_requests: OndiOrgAccessRequestsTable;
+  ondi_oidc_signing_keys: OndiOidcSigningKeysTable;
+  ondi_oauth_clients: OndiOauthClientsTable;
+  ondi_oauth_consents: OndiOauthConsentsTable;
   workflow_studio_apps: WorkflowStudioAppsTable;
   workflow_studio_runs: WorkflowStudioRunsTable;
   announcements: AnnouncementsTable;
@@ -6186,6 +6205,143 @@ export interface UserTotpTable {
   enabled: Generated<boolean>;
   backup_codes: Generated<any>;
   enabled_at: Date | null;
+  created_at: Generated<Date>;
+}
+
+/** WebAuthn passkeys (Ondi M2) — TOTP stays in UserTotpTable above, see
+ *  359_ondi_credentials_passkey_only.sql's own comment on why this table
+ *  narrowed to passkeys only rather than duplicating it. */
+export interface OndiCredentialsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  user_id: string;
+  label: string;
+  passkey_credential_id: string;
+  passkey_public_key: string;
+  passkey_counter: Generated<number>;
+  passkey_transports: string | null;
+  last_used_at: Date | null;
+  created_at: Generated<Date>;
+}
+
+/** Personal KYC submissions (Ondi M4) — see 361_ondi_kyc.sql. */
+export interface OndiKycSubmissionsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  user_id: string;
+  document_type: 'national_id' | 'passport' | 'drivers_license';
+  document_storage_key: string;
+  extracted_full_name: string | null;
+  extracted_dob: string | null;
+  extracted_document_number: string | null;
+  extracted_nationality: string | null;
+  extracted_expiry: string | null;
+  mrz_raw: string | null;
+  mrz_valid: boolean | null;
+  ocr_confidence: string | null;
+  status: Generated<'pending' | 'approved' | 'rejected'>;
+  reviewed_by: string | null;
+  reviewed_at: Date | null;
+  rejection_reason: string | null;
+  created_at: Generated<Date>;
+}
+
+/** Org identity — KYB + custom roles/groups + access requests (Ondi M5,
+ *  migration 362). See that migration's own header for why these key
+ *  directly off `tenants`, not the pre-existing `organizations` table
+ *  (a different, cross-tenant customer-portal concept). */
+export interface OndiOrgKybTable {
+  id: Generated<string>;
+  tenant_id: string;
+  submitted_by: string;
+  document_storage_key: string;
+  extracted_company_name: string | null;
+  extracted_registry_number: string | null;
+  extracted_entity_type: string | null;
+  extracted_status: string | null;
+  extracted_incorporation_date: string | null;
+  status: Generated<'pending' | 'verified' | 'rejected'>;
+  reviewed_by: string | null;
+  reviewed_at: Date | null;
+  rejection_reason: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface OndiOrgRolesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  name: string;
+  description: string | null;
+  permissions: Generated<any>;
+  created_by: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface OndiOrgRoleMembersTable {
+  id: Generated<string>;
+  tenant_id: string;
+  role_id: string;
+  user_id: string;
+  granted_by: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface OndiOrgAccessRequestsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  user_id: string;
+  role_id: string;
+  reason: string | null;
+  status: Generated<'pending' | 'approved' | 'denied'>;
+  reviewed_by: string | null;
+  reviewed_at: Date | null;
+  created_at: Generated<Date>;
+}
+
+/** OAuth 2.0 / OIDC provider (Ondi M6, migration 363) — platform-global,
+ *  not tenant-scoped; see that migration's own header for why. */
+export interface OndiOidcSigningKeysTable {
+  id: Generated<string>;
+  kid: string;
+  public_key_pem: string;
+  encrypted_private_key: string;
+  algorithm: Generated<string>;
+  enabled: Generated<boolean>;
+  created_at: Generated<Date>;
+}
+
+export interface OndiOauthClientsTable {
+  id: Generated<string>;
+  client_id: string;
+  client_secret_hash: string | null;
+  name: string;
+  logo_url: string | null;
+  redirect_uris: Generated<any>;
+  first_party: Generated<boolean>;
+  created_at: Generated<Date>;
+}
+
+export interface OndiOauthConsentsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  user_id: string;
+  client_id: string;
+  scopes: Generated<any>;
+  granted_at: Generated<Date>;
+}
+
+/** SHA-256 hash-chain audit log (Ondi M0/M3) — schema only until M3 adds a
+ *  writer; see 358_ondi_identity_foundation.sql's own header comment. */
+export interface OndiAuthEventsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  user_id: string | null;
+  event_type: string;
+  ip: string | null;
+  user_agent: string | null;
+  metadata: Generated<any>;
+  prev_hash: string | null;
+  event_hash: string;
   created_at: Generated<Date>;
 }
 

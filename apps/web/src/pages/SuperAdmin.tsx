@@ -1974,6 +1974,7 @@ export function SettingsView() {
   const [api, setApi] = useState({ rateLimit:'120', corsOrigins:'*', webhookSecret:'whs_live_••••••••••••••••', keyRotationDays:'90' });
   const [showWebhookSecret, setShowWebhookSecret] = useState(false);
   const [ocr, setOcr] = useState({ geminiApiKey:'' });
+  const [ondiSso, setOndiSso] = useState({ enabled: false });
   const [loading, setLoading] = useState(true);
   const [testingSmtp, setTestingSmtp] = useState(false);
   const [smtpTested, setSmtpTested] = useState(false);
@@ -1991,6 +1992,7 @@ export function SettingsView() {
         if (s.security) setSecurity(prev => ({ ...prev, ...s.security }));
         if (s.api) setApi(prev => ({ ...prev, ...s.api }));
         if (s.ocr) setOcr(prev => ({ ...prev, ...s.ocr }));
+        if (s.ondiSso) setOndiSso(prev => ({ ...prev, ...s.ondiSso }));
         setLoading(false);
       })
       .catch(() => {
@@ -2006,7 +2008,8 @@ export function SettingsView() {
       smtp,
       security,
       api,
-      ocr
+      ocr,
+      ondiSso
     };
 
     try {
@@ -2225,6 +2228,21 @@ export function SettingsView() {
         </div>
         <div style={{ fontSize:11, color:'var(--ink3)', marginTop:2 }}>
           {ocr.geminiApiKey ? <span style={{ color:'var(--teal)' }}>● Live — scans use Gemini vision extraction</span> : <span>○ Simulated — no key configured, scans return demo data</span>}
+        </div>
+      </SectionCard>
+
+      {/* ── Ondi SSO (M7 dark-launch flag) ── */}
+      <SectionCard title="Ondi SSO" sub="Default sign-in experience for every tenant — phone/authenticator/passkey/Google first, or password first" section="ondiSso">
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:24 }}>
+          <div>
+            <div style={{ fontSize:13, fontWeight:600, color:'var(--ink)' }}>Make Ondi the default sign-in page</div>
+            <div style={{ fontSize:12, color:'var(--ink3)', marginTop:3 }}>
+              {ondiSso.enabled
+                ? 'On — visitors land on Ondi (phone code / authenticator / passkey / Google) first. Password sign-in stays fully reachable via the link on that page.'
+                : 'Off — visitors land on the password sign-in page first, same as today. Ondi is reachable via its own link, but is not the default.'}
+            </div>
+          </div>
+          <SAToggle value={ondiSso.enabled} onChange={v => setOndiSso({ enabled: v })} label="Ondi SSO default" />
         </div>
       </SectionCard>
 

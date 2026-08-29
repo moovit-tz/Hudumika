@@ -23,7 +23,7 @@ import { Icon } from './Icon.js';
  * rather than a disabled button.
  */
 export function AvatarPicker({
-  id, kind, name, size = 72, shape, canEdit = true, onChange,
+  id, kind, name, size = 72, shape, ring = false, canEdit = true, onChange,
 }: {
   id: string;
   kind: SubjectKind;
@@ -31,6 +31,12 @@ export function AvatarPicker({
   size?: number;
   /** Defaults to a circle for people, a rounded square for organisations. */
   shape?: 'circle' | 'square';
+  /** A white frame + shadow drawn on the avatar itself (e.g. sitting on a
+   *  cover photo), not a wrapping div — a wrapper can't stay concentric with
+   *  the avatar's own clip once the "Remove" label/error text sits beside it
+   *  in the same flex column, so the frame goes directly on the element that
+   *  is already clipped to `shape`. */
+  ring?: boolean;
   canEdit?: boolean;
   /** Fired after the picture is saved or removed, for a caller that keeps its own copy. */
   onChange?: (dataUrl: string | null) => void;
@@ -90,10 +96,14 @@ export function AvatarPicker({
   // an already-resolved URL, and the whole point here is to read the picture
   // from the identity endpoint like every other subject. The only difference an
   // organisation gets is the corner radius.
+  const avatarStyle: React.CSSProperties | undefined = {
+    ...(effectiveShape === 'square' ? { borderRadius: Math.max(4, Math.round(size * 0.22)) } : {}),
+    ...(ring ? { border: '4px solid #fff', boxShadow: 'var(--elev)', boxSizing: 'border-box' } : {}),
+  };
   const avatar = (
     <PersonAvatar
       key={rev} userId={id} kind={kind} name={name} size={size}
-      style={effectiveShape === 'square' ? { borderRadius: Math.max(4, Math.round(size * 0.22)) } : undefined}
+      style={Object.keys(avatarStyle).length > 0 ? avatarStyle : undefined}
     />
   );
 

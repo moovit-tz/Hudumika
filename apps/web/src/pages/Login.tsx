@@ -264,6 +264,10 @@ export const Login: React.FC = () => {
               </button>
             </div>
 
+            <p className="login-create-p">
+              <Link to="/ondi/login" className="login-create-link">Sign in with phone or authenticator instead</Link>
+            </p>
+
           </form>
         )}
 

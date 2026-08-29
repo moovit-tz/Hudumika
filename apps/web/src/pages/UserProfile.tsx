@@ -6,6 +6,7 @@ import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { MetricsRow } from '../components/MetricCard.js';
 import { AvatarPicker } from '../components/AvatarPicker.js';
+import { AccountSecurityPanel } from '../components/AccountSecurityPanel.js';
 import type { IconName } from '../components/Icon.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
@@ -102,6 +103,7 @@ export const UserProfile: React.FC = () => {
     name:       user?.name || '',
     phone:      user?.phone || '',
     cover_url:  user?.profile?.cover_url || '',
+    cover_position: user?.profile?.cover_position || { x: 50, y: 50 },
     bio:        user?.profile?.bio || '',
     job_title:  user?.profile?.job_title || ROLE_LABELS[user?.role || ''] || '',
     employee_code: user?.profile?.employee_code || '',
@@ -117,12 +119,6 @@ export const UserProfile: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved]   = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-
-  /* Security form */
-  const [pwForm, setPwForm] = useState({ current: '', next: '', confirm: '' });
-  const [pwSaving, setPwSaving] = useState(false);
-  const [twoFa, setTwoFa]   = useState(true);
-  const [activityLogs, setActivityLogs] = useState(true);
 
   /* Notifications */
   const [notif, setNotif] = useState({
@@ -159,13 +155,13 @@ export const UserProfile: React.FC = () => {
     } finally { setSaving(false); }
   };
 
-  const persistCoverPatch = async (coverUrl: string | null) => {
+  const persistCoverPatch = async (coverUrl: string | null, coverPosition?: { x: number; y: number }) => {
     setSaving(true);
     setSaveError(null);
     try {
       const res = await apiFetch('/v1/auth/me', {
         method: 'PATCH',
-        body: JSON.stringify({ profile: { cover_url: coverUrl } }),
+        body: JSON.stringify({ profile: { cover_url: coverUrl, ...(coverPosition ? { cover_position: coverPosition } : {}) } }),
       });
       if (res?.user) updateUser(res.user);
       setSaved(true);
@@ -185,28 +181,53 @@ export const UserProfile: React.FC = () => {
     const reader = new FileReader();
     reader.onload = (evt) => {
       const dataUrl = evt.target?.result as string;
-      setForm(p => ({ ...p, cover_url: dataUrl }));
-      persistCoverPatch(dataUrl);
+      const centered = { x: 50, y: 50 };
+      setForm(p => ({ ...p, cover_url: dataUrl, cover_position: centered }));
+      persistCoverPatch(dataUrl, centered);
     };
     reader.readAsDataURL(file);
   };
 
-  const handlePwSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (pwForm.next !== pwForm.confirm) { showAlert('New passwords do not match.'); return; }
-    if (pwForm.next.length < 8) { showAlert('Password must be at least 8 characters.'); return; }
-    setPwSaving(true);
-    try {
-      await apiFetch('/v1/auth/change-password', { method: 'POST', body: JSON.stringify({ current_password: pwForm.current, new_password: pwForm.next }) });
-      setPwForm({ current: '', next: '', confirm: '' });
-      showAlert('Password changed successfully.');
-    } catch (err: any) { showAlert(err.message || 'Failed to change password.'); } finally { setPwSaving(false); }
+  /* Cover drag-to-reposition — mirrors the LinkedIn/Facebook cover-photo
+     pattern: drag pans the image, position is expressed as the same
+     background-position percentages CSS already uses, so no separate crop
+     math is needed on render. Persisted on pointer-up only (not per-pixel)
+     to avoid spamming the API mid-drag. */
+  const coverBannerRef = useRef<HTMLDivElement>(null);
+  const [draggingCover, setDraggingCover] = useState(false);
+  const coverDragStart = useRef<{ x: number; y: number; posX: number; posY: number } | null>(null);
+
+  const handleCoverPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!form.cover_url) return;
+    if ((e.target as HTMLElement).closest('button')) return;
+    coverDragStart.current = { x: e.clientX, y: e.clientY, posX: form.cover_position.x, posY: form.cover_position.y };
+    setDraggingCover(true);
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  };
+
+  const handleCoverPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!draggingCover || !coverDragStart.current) return;
+    const rect = coverBannerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const dxPct = ((e.clientX - coverDragStart.current.x) / rect.width) * 100;
+    const dyPct = ((e.clientY - coverDragStart.current.y) / rect.height) * 100;
+    const nextX = Math.min(100, Math.max(0, coverDragStart.current.posX - dxPct));
+    const nextY = Math.min(100, Math.max(0, coverDragStart.current.posY - dyPct));
+    setForm(p => ({ ...p, cover_position: { x: nextX, y: nextY } }));
+  };
+
+  const handleCoverPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!draggingCover) return;
+    setDraggingCover(false);
+    coverDragStart.current = null;
+    (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+    persistCoverPatch(form.cover_url, form.cover_position);
   };
 
   if (!user) return <SkeletonPage variant="detail" />;
 
   return (
-    <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', background: 'var(--bg)', fontFamily: 'var(--font)', padding: isMobile ? '16px' : '32px' }}>
+    <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', background: 'var(--bg)', fontFamily: 'var(--font)', padding: isMobile ? '8px 16px 16px' : '12px 32px 32px' }}>
       <style>{`
         .profile-container {
           max-width: 1600px;
@@ -225,20 +246,41 @@ export const UserProfile: React.FC = () => {
       <div className="profile-container">
         {/* ── Profile header card ── */}
         <div style={{ borderBottom: '1px solid var(--border)', marginBottom: 24 }}>
-        {/* Cover banner */}
-        <div style={{
-          height: 150,
-          background: form.cover_url ? `url("${form.cover_url}") center/cover no-repeat` : 'linear-gradient(135deg, var(--navy) 0%, var(--teal) 100%)',
-          position: 'relative',
-          transition: 'background 0.3s ease',
-        }}>
-          <div style={{ position: 'absolute', top: 12, right: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+        {/* Cover banner — draggable when a real image is set (a gradient
+            placeholder has nothing to pan). Pointer events (not mouse) so
+            the same handlers cover touch drag on mobile. */}
+        <div
+          ref={coverBannerRef}
+          onPointerDown={handleCoverPointerDown}
+          onPointerMove={handleCoverPointerMove}
+          onPointerUp={handleCoverPointerUp}
+          onPointerCancel={handleCoverPointerUp}
+          style={{
+            height: 150,
+            backgroundImage: form.cover_url ? `url("${form.cover_url}")` : 'linear-gradient(135deg, var(--navy) 0%, var(--teal) 100%)',
+            backgroundSize: 'cover',
+            backgroundPosition: form.cover_url ? `${form.cover_position.x}% ${form.cover_position.y}%` : 'center',
+            backgroundRepeat: 'no-repeat',
+            position: 'relative',
+            transition: draggingCover ? 'none' : 'background-image 0.3s ease',
+            cursor: form.cover_url ? (draggingCover ? 'grabbing' : 'grab') : 'default',
+            touchAction: form.cover_url ? 'none' : undefined,
+            userSelect: 'none',
+          }}
+        >
+          {form.cover_url && !draggingCover && (
+            <div style={{ position: 'absolute', top: 16, left: 16, display: 'flex', alignItems: 'center', gap: 6, padding: '5px 10px', borderRadius: 'var(--r)', background: 'rgba(0,0,0,0.45)', color: 'rgba(255,255,255,0.85)', fontSize: 11.5, fontWeight: 600, backdropFilter: 'blur(4px)', pointerEvents: 'none' }}>
+              <Icon name="hand" size={12} strokeWidth={2} />
+              Drag to reposition
+            </div>
+          )}
+          <div style={{ position: 'absolute', top: 16, right: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
             {form.cover_url && (
               <button
                 type="button"
                 onClick={() => {
-                  setForm(p => ({ ...p, cover_url: '' }));
-                  persistCoverPatch(null);
+                  setForm(p => ({ ...p, cover_url: '', cover_position: { x: 50, y: 50 } }));
+                  persistCoverPatch(null, { x: 50, y: 50 });
                 }}
                 style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py-sm) 12px', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 'var(--r)', background: 'rgba(0,0,0,0.45)', color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'var(--font)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25, backdropFilter: 'blur(4px)' }}
               >
@@ -273,20 +315,8 @@ export const UserProfile: React.FC = () => {
               /v1/auth/me while the header read through the identity system's
               cached fetch, so a change on one side never necessarily reached
               the other. AvatarPicker is single-sourced from the start. */}
-          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: -42 }}>
-            <div style={{ background: 'var(--white)', borderRadius: '50%', border: '4px solid #fff', boxShadow: 'var(--elev)' }}>
-              <AvatarPicker id={user.id} kind="people" name={user.name} size={80} />
-            </div>
-            <div style={{ display: 'flex', gap: 8, paddingBottom: 4 }}>
-              <Link to="/subscription" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 16px', border: '1.5px solid var(--border)', borderRadius: 9, background: 'var(--white)', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)', color: 'var(--ink)', textDecoration: 'none' }}>
-                <Icon name="creditCard" size={13} strokeWidth={2} />
-                Subscription
-              </Link>
-              <button onClick={logout} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)', color: 'var(--red)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-                <Icon name="externalLink" size={13} strokeWidth={2} />
-                Sign Out
-              </button>
-            </div>
+          <div style={{ marginTop: -42 }}>
+            <AvatarPicker id={user.id} kind="people" name={user.name} size={64} ring />
           </div>
 
           {/* Name / meta */}
@@ -301,15 +331,27 @@ export const UserProfile: React.FC = () => {
           </div>
         </div>
 
-        {/* Tab strip */}
-        <div className="ds-tabs-list" data-variant="segmented" style={{ margin: '0 28px' }}>
-          {TABS.map(t => (
-            <button key={t.key} type="button" className="ds-tabs-trigger" data-variant="segmented"
-              data-state={activeTab === t.key ? 'active' : 'inactive'} onClick={() => setTab(t.key)}>
-              <Icon name={t.icon} size={14} strokeWidth={activeTab === t.key ? 2.3 : 1.8} />
-              {t.label}
+        {/* Tab strip + account actions — one row */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', margin: '16px 28px 20px' }}>
+          <div className="ds-tabs-list" data-variant="segmented">
+            {TABS.map(t => (
+              <button key={t.key} type="button" className="ds-tabs-trigger" data-variant="segmented"
+                data-state={activeTab === t.key ? 'active' : 'inactive'} onClick={() => setTab(t.key)}>
+                <Icon name={t.icon} size={14} strokeWidth={activeTab === t.key ? 2.3 : 1.8} />
+                {t.label}
+              </button>
+            ))}
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Link to="/subscription" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 16px', border: '1.5px solid var(--border)', borderRadius: 9, background: 'var(--white)', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)', color: 'var(--ink)', textDecoration: 'none' }}>
+              <Icon name="creditCard" size={13} strokeWidth={2} />
+              Subscription
+            </Link>
+            <button onClick={logout} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)', color: 'var(--red)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+              <Icon name="externalLink" size={13} strokeWidth={2} />
+              Sign Out
             </button>
-          ))}
+          </div>
         </div>
       </div>
 
@@ -330,11 +372,9 @@ export const UserProfile: React.FC = () => {
           },
           {
             title: 'Security Score',
-            value: twoFa ? '94%' : '68%',
-            trend: twoFa ? 4.1 : -8.3,
-            invertTrend: !twoFa,
-            sub1Label: '2FA', sub1Value: twoFa ? 'Enabled' : 'Disabled',
-            sub2Label: 'FAILED LOGINS', sub2Value: String(ACTIVITY_LOG.filter(l => !l.ok).length), barHighlight: twoFa ? 'var(--green)' : 'var(--red)',
+            value: '—',
+            sub1Label: '2FA', sub1Value: '—',
+            sub2Label: 'FAILED LOGINS', sub2Value: String(ACTIVITY_LOG.filter(l => !l.ok).length), barHighlight: 'var(--blue)',
           },
         ]} />
       </div>
@@ -432,89 +472,7 @@ export const UserProfile: React.FC = () => {
         )}
 
         {/* ══ SECURITY ══ */}
-        {activeTab === 'security' && (
-          <>
-            <Card title="Change Password" subtitle="Use a strong password with letters, numbers and symbols.">
-              <form onSubmit={handlePwSave}>
-                <Field label="Current Password">
-                  <input type="password" style={INPUT} value={pwForm.current} onChange={e => setPwForm(p => ({...p, current: e.target.value}))} placeholder="Your current password" required />
-                </Field>
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '0 20px' }}>
-                  <Field label="New Password" hint="At least 8 characters.">
-                    <input type="password" style={INPUT} value={pwForm.next} onChange={e => setPwForm(p => ({...p, next: e.target.value}))} placeholder="New password" required />
-                  </Field>
-                  <Field label="Confirm New Password">
-                    <input type="password" style={INPUT} value={pwForm.confirm} onChange={e => setPwForm(p => ({...p, confirm: e.target.value}))} placeholder="Repeat new password" required />
-                  </Field>
-                </div>
-                {pwForm.next && (
-                  <div style={{ marginBottom: 16 }}>
-                    <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Strength</div>
-                    <div style={{ display: 'flex', gap: 4 }}>
-                      {[8,12,16].map((min, i) => (
-                        <div key={i} style={{ flex: 1, height: 4, borderRadius: 2, background: pwForm.next.length >= min ? (min===16?'var(--green)':min===12?'var(--gold)':'var(--red)') : 'var(--border)' }} />
-                      ))}
-                    </div>
-                  </div>
-                )}
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-                  <button type="button" onClick={() => setPwForm({current:'',next:'',confirm:''})} style={{ padding: 'var(--ds-btn-py) 20px', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', fontSize: 14, fontWeight: 600, fontFamily: 'var(--font)', color: 'var(--ink)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
-                  <button type="submit" disabled={pwSaving} style={{ padding: 'var(--ds-btn-py) 22px', border: 'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor: 'pointer', fontSize: 14, fontWeight: 700, fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-                    {pwSaving ? 'Updating…' : 'Update Password'}
-                  </button>
-                </div>
-              </form>
-            </Card>
-
-            <Card title="Two-Factor Authentication" subtitle="Add an extra layer of security to your account.">
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
-                <div>
-                  <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)', marginBottom: 3 }}>Authenticator App</div>
-                  <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>Use an authenticator app (Google, Authy) to generate codes.</div>
-                </div>
-                <Toggle on={twoFa} onChange={setTwoFa} />
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0' }}>
-                <div>
-                  <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)', marginBottom: 3 }}>Save Activity Logs</div>
-                  <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>Record all account activity and detect unusual access patterns.</div>
-                </div>
-                <Toggle on={activityLogs} onChange={setActivityLogs} />
-              </div>
-            </Card>
-
-            <Card title="Active Sessions" subtitle="Devices currently logged into your account.">
-              {[
-                { device: 'Chrome on Windows', ip: '41.33.21.5',    location: 'Dar es Salaam, TZ', current: true,  time: 'Active now' },
-                { device: 'Safari on iPhone',  ip: '41.33.22.11',   location: 'Dar es Salaam, TZ', current: false, time: '2 hours ago' },
-              ].map((s, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 0', borderBottom: i === 0 ? '1px solid var(--border)' : 'none' }}>
-                  <div style={{ width: 40, height: 40, borderRadius: 9, background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <Icon name="monitor" size={18} strokeWidth={1.75} style={{ color: 'var(--ink3)' } as React.CSSProperties} />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                      {s.device}
-                      {s.current && <span style={{ padding: '1px 8px', borderRadius: 20, background: 'var(--green-l)', color: 'var(--green)', fontSize: 10.5, fontWeight: 700 }}>Current</span>}
-                    </div>
-                    <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>{s.ip} · {s.location} · {s.time}</div>
-                  </div>
-                  {!s.current && <button style={{ padding: 'var(--ds-btn-py-sm) 12px', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', fontSize: 13, color: 'var(--red)', fontWeight: 600, fontFamily: 'var(--font)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>Revoke</button>}
-                </div>
-              ))}
-            </Card>
-
-            <Card title="Danger Zone" subtitle="Irreversible actions. Proceed with caution.">
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0' }}>
-                <div>
-                  <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>Deactivate Account</div>
-                  <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginTop: 2 }}>Temporarily disable your account. You can reactivate at any time.</div>
-                </div>
-                <button style={{ padding: 'var(--ds-btn-py) 16px', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--gold)', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Deactivate</button>
-              </div>
-            </Card>
-          </>
-        )}
+        {activeTab === 'security' && <AccountSecurityPanel />}
 
         {/* ══ NOTIFICATIONS ══ */}
         {activeTab === 'notifications' && (

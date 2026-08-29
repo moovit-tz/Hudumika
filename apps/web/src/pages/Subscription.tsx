@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
-import { QRCodeSVG } from 'qrcode.react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.js';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
+import { AccountSecurityPanel } from '../components/AccountSecurityPanel.js';
+import { OrgVerificationPanel } from '../components/OrgVerificationPanel.js';
 import { apiFetch, apiDownload } from '../lib/api.js';
 import './Subscription.css';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
@@ -222,6 +223,7 @@ function FormRow({ label, children }: { label: string; children: React.ReactNode
 
 function CompanyInfoTab({ tenant }: { tenant: any }) {
   const co = useCompany();
+  const { user } = useAuth();
   const [editingInfo, setEditingInfo] = useState(false);
   const [editingReg, setEditingReg] = useState(false);
   const [infoForm, setInfoForm] = useState(co);
@@ -320,6 +322,9 @@ function CompanyInfoTab({ tenant }: { tenant: any }) {
             ))}
           </div>
         </Card>
+
+        {/* Business verification (KYB) — shared with Ondi's own "Business" mode */}
+        <OrgVerificationPanel />
       </div>
 
       {/* Right: plan summary + logo */}
@@ -784,241 +789,6 @@ function PaymentsTab({ onNavigateTab }: { tenant?: any; onNavigateTab: (t: SubTa
 }
 
 // ─── Tab: Security ────────────────────────────────────────────────────────────
-
-function SecurityTab() {
-  const { logout } = useAuth();
-
-  // ── Change password ──────────────────────────────────────────
-  const [currentPw, setCurrentPw] = useState('');
-  const [newPw, setNewPw] = useState('');
-  const [confirmPw, setConfirmPw] = useState('');
-  const [pwSaving, setPwSaving] = useState(false);
-
-  async function updatePassword() {
-    if (newPw.length < 8) { showAlert('New password must be at least 8 characters.'); return; }
-    if (newPw !== confirmPw) { showAlert('New password and confirmation do not match.'); return; }
-    setPwSaving(true);
-    try {
-      await apiFetch('/auth/change-password', { method: 'POST', body: JSON.stringify({ current_password: currentPw, new_password: newPw }) });
-      showAlert('Password updated.', { variant: 'success', title: 'Success' });
-      setCurrentPw(''); setNewPw(''); setConfirmPw('');
-    } catch (err: any) {
-      showAlert(err.message);
-    } finally {
-      setPwSaving(false);
-    }
-  }
-
-  // ── 2FA ───────────────────────────────────────────────────────
-  const [twoFA, setTwoFA] = useState<{ enabled: boolean; enabled_at: string | null } | null>(null);
-  const [setupData, setSetupData] = useState<{ secret: string; uri: string } | null>(null);
-  const [verifyCode, setVerifyCode] = useState('');
-  const [backupCodes, setBackupCodes] = useState<string[] | null>(null);
-  const [showDisable, setShowDisable] = useState(false);
-  const [disableCode, setDisableCode] = useState('');
-  const [twoFABusy, setTwoFABusy] = useState(false);
-
-  useEffect(() => {
-    apiFetch('/v1/security/2fa/status').then(setTwoFA).catch(() => setTwoFA({ enabled: false, enabled_at: null }));
-  }, []);
-
-  async function startSetup() {
-    setTwoFABusy(true);
-    try {
-      setSetupData(await apiFetch('/v1/security/2fa/setup', { method: 'POST' }));
-    } catch (err: any) {
-      showAlert(err.message);
-    } finally {
-      setTwoFABusy(false);
-    }
-  }
-
-  async function verifyAndEnable() {
-    setTwoFABusy(true);
-    try {
-      const res = await apiFetch('/v1/security/2fa/verify', { method: 'POST', body: JSON.stringify({ token: verifyCode }) });
-      setBackupCodes(res.backup_codes);
-      setTwoFA({ enabled: true, enabled_at: new Date().toISOString() });
-      setSetupData(null);
-      setVerifyCode('');
-    } catch (err: any) {
-      showAlert(err.message);
-    } finally {
-      setTwoFABusy(false);
-    }
-  }
-
-  async function disable2FA() {
-    setTwoFABusy(true);
-    try {
-      await apiFetch('/v1/security/2fa/disable', { method: 'POST', body: JSON.stringify({ token: disableCode }) });
-      setTwoFA({ enabled: false, enabled_at: null });
-      setShowDisable(false);
-      setDisableCode('');
-      setBackupCodes(null);
-    } catch (err: any) {
-      showAlert(err.message);
-    } finally {
-      setTwoFABusy(false);
-    }
-  }
-
-  // ── Sessions ──────────────────────────────────────────────────
-  const [sessions, setSessions] = useState<any[] | null>(null);
-
-  const reloadSessions = useCallback(async () => {
-    try { setSessions(await apiFetch('/v1/security/sessions')); } catch { setSessions([]); }
-  }, []);
-
-  useEffect(() => { reloadSessions(); }, [reloadSessions]);
-
-  async function signOutSession(id: string) {
-    try {
-      const res = await apiFetch(`/v1/security/sessions/${id}`, { method: 'DELETE' });
-      if (res.was_current) { logout(); return; }
-      await reloadSessions();
-    } catch (err: any) {
-      showAlert(err.message);
-    }
-  }
-
-  async function signOutOthers() {
-    if (!(await showConfirm('Sign out of every other session? Those devices will need to log in again.', { variant: 'warning', confirmLabel: 'Sign Out Others' }))) return;
-    try {
-      await apiFetch('/v1/security/sessions/revoke-others', { method: 'POST' });
-      await reloadSessions();
-    } catch (err: any) {
-      showAlert(err.message);
-    }
-  }
-
-  return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 20 }}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-        {/* Change password */}
-        <Card>
-          <CardHead title="Change Password" sub="Use a strong password that you don't use elsewhere." />
-          <div style={{ padding: '0 20px 20px' }}>
-            <FormRow label="Current Password">
-              <input type="password" value={currentPw} onChange={e => setCurrentPw(e.target.value)} placeholder="••••••••••••" className="input-field" style={{ fontSize: 13, padding: '8px 12px', width: '100%' }} />
-            </FormRow>
-            <FormRow label="New Password">
-              <input type="password" value={newPw} onChange={e => setNewPw(e.target.value)} placeholder="••••••••••••" className="input-field" style={{ fontSize: 13, padding: '8px 12px', width: '100%' }} />
-            </FormRow>
-            <FormRow label="Confirm New Password">
-              <input type="password" value={confirmPw} onChange={e => setConfirmPw(e.target.value)} placeholder="••••••••••••" className="input-field" style={{ fontSize: 13, padding: '8px 12px', width: '100%' }} />
-            </FormRow>
-            <div style={{ marginTop: 16, display: 'flex', gap: 10 }}>
-              <Btn label={pwSaving ? 'Updating…' : 'Update Password'} icon="save" variant="primary" onClick={updatePassword} disabled={pwSaving || !currentPw || newPw.length < 8} />
-            </div>
-          </div>
-        </Card>
-
-        {/* 2FA */}
-        <Card>
-          <CardHead title="Two-Factor Authentication" sub="Add an extra layer of protection to your account." right={
-            twoFA?.enabled ? <span style={{ padding: '3px 10px', borderRadius: 20, background: 'var(--green-l)', color: '#059669', fontSize: 11, fontWeight: 700 }}>Enabled</span> : undefined
-          } />
-          <div style={{ padding: '16px 20px' }}>
-            {twoFA === null && <div style={{ fontSize: 13, color: 'var(--ink3)' }}>Loading…</div>}
-
-            {twoFA && !twoFA.enabled && !setupData && (
-              <>
-                <div style={{ fontSize: 13, color: 'var(--ink3)', lineHeight: 1.6, marginBottom: 12 }}>
-                  Enable 2FA to require a verification code from your authenticator app when signing in.
-                </div>
-                <Btn label="Enable 2FA" icon="shield" variant="primary" onClick={startSetup} disabled={twoFABusy} />
-              </>
-            )}
-
-            {setupData && (
-              <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-                <div style={{ flexShrink: 0 }}>
-                  <QRCodeSVG value={setupData.uri} size={120} level="M" />
-                </div>
-                <div style={{ flex: 1, minWidth: 200 }}>
-                  <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 8 }}>Scan with your authenticator app, or enter this code manually:</div>
-                  <div style={{ fontFamily: 'var(--mono)', fontSize: 14, fontWeight: 700, color: 'var(--ink)', letterSpacing: '0.05em', background: 'var(--bg)', padding: '8px 14px', borderRadius: 6, marginBottom: 12, wordBreak: 'break-all' }}>{setupData.secret}</div>
-                  <input value={verifyCode} onChange={e => setVerifyCode(e.target.value)} placeholder="Enter 6-digit code to verify" className="input-field" style={{ fontSize: 13, padding: '8px 12px', width: '100%', marginBottom: 10 }} />
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <Btn label="Verify & Enable" variant="primary" onClick={verifyAndEnable} disabled={twoFABusy || verifyCode.length < 6} />
-                    <Btn label="Cancel" onClick={() => { setSetupData(null); setVerifyCode(''); }} />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {backupCodes && (
-              <div style={{ marginTop: 16, padding: 14, background: 'var(--bg)', borderRadius: 9, border: '1px solid var(--border)' }}>
-                <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>Save these backup codes — shown only once</div>
-                <div style={{ fontFamily: 'var(--mono)', fontSize: 12.5, color: 'var(--ink2)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
-                  {backupCodes.map(c => <div key={c}>{c}</div>)}
-                </div>
-              </div>
-            )}
-
-            {twoFA?.enabled && !setupData && (
-              <>
-                <div style={{ fontSize: 13, color: '#059669', fontWeight: 600, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <Icon name="checkCircle" size={14} strokeWidth={2} />
-                  Two-factor authentication is enabled{twoFA.enabled_at ? ` since ${fmtDate(twoFA.enabled_at)}` : ''}.
-                </div>
-                {!showDisable ? (
-                  <Btn label="Disable 2FA" variant="danger" onClick={() => setShowDisable(true)} />
-                ) : (
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                    <input value={disableCode} onChange={e => setDisableCode(e.target.value)} placeholder="6-digit code" className="input-field" style={{ fontSize: 13, padding: '8px 12px', width: 160 }} />
-                    <Btn label="Confirm Disable" variant="danger" onClick={disable2FA} disabled={twoFABusy || disableCode.length < 6} />
-                    <Btn label="Cancel" onClick={() => { setShowDisable(false); setDisableCode(''); }} />
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        </Card>
-
-        {/* Active sessions */}
-        <Card>
-          <CardHead title="Active Sessions" sub="All devices currently signed in." right={<Btn label="Sign Out Other Sessions" variant="danger" onClick={signOutOthers} />} />
-          <div>
-            {sessions === null && <div style={{ padding: '16px 20px', fontSize: 12.5, color: 'var(--ink3)' }}>Loading sessions…</div>}
-            {sessions?.length === 0 && <div style={{ padding: '16px 20px', fontSize: 12.5, color: 'var(--ink3)' }}>No sessions found.</div>}
-            {sessions?.filter(s => s.active).map((s, i, arr) => (
-              <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '13px 20px', borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none' }}>
-                <div style={{ width: 40, height: 40, borderRadius: 9, background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Icon name={s.device_type === 'mobile' ? 'smartphone' : 'monitor'} size={18} strokeWidth={1.75} style={{ color: 'var(--ink3)' } as React.CSSProperties} />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>
-                    {s.device_label || s.user_agent || 'Unknown device'}
-                    {s.is_current && <span style={{ marginLeft: 8, padding: '1px 7px', borderRadius: 9, background: 'var(--green-l)', color: '#059669', fontSize: 10, fontWeight: 700 }}>This device</span>}
-                  </div>
-                  <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>Last active {relTime(s.last_used_at)}</div>
-                </div>
-                <Btn label="Sign Out" variant="danger" onClick={() => signOutSession(s.id)} />
-              </div>
-            ))}
-          </div>
-        </Card>
-      </div>
-
-      {/* Right: tips */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <Card>
-          <CardHead title="Security Tips" />
-          <div style={{ padding: '12px 20px 16px' }}>
-            {['Use a unique, strong password (12+ chars)','Enable two-factor authentication','Review active sessions regularly','Never share your login credentials'].map(tip => (
-              <div key={tip} style={{ display: 'flex', gap: 8, fontSize: 12.5, color: 'var(--ink2)', padding: '7px 0', borderBottom: '1px solid var(--border)', lineHeight: 1.4 }}>
-                <Icon name="check" size={13} strokeWidth={2.5} style={{ color: 'var(--teal)', flexShrink: 0, marginTop: 1 } as React.CSSProperties} />
-                {tip}
-              </div>
-            ))}
-          </div>
-        </Card>
-      </div>
-    </div>
-  );
-}
 
 // ─── Tab: Plans ───────────────────────────────────────────────────────────────
 
@@ -1518,9 +1288,13 @@ const TABS: { id: SubTab; label: string; icon: IconName }[] = [
   { id: 'support',  label: 'Support',      icon: 'headphones'  },
 ];
 
+const TAB_IDS = new Set(TABS.map(t => t.id));
+
 export const Subscription: React.FC = () => {
   const { user } = useAuth();
-  const [tab, setTab] = useState<SubTab>('company');
+  const [searchParams] = useSearchParams();
+  const requestedTab = searchParams.get('v');
+  const [tab, setTab] = useState<SubTab>(requestedTab && TAB_IDS.has(requestedTab as SubTab) ? (requestedTab as SubTab) : 'company');
   const [loading, setLoading] = useState(true);
   const [tenant, setTenant] = useState<any>(null);
 
@@ -1594,7 +1368,7 @@ export const Subscription: React.FC = () => {
         {tab === 'company'  && <CompanyInfoTab tenant={tenant} />}
         {tab === 'billing'  && <BillingTab tenant={tenant} onNavigateTab={setTab} />}
         {tab === 'payments' && <PaymentsTab tenant={tenant} onNavigateTab={setTab} />}
-        {tab === 'security' && <SecurityTab />}
+        {tab === 'security' && <AccountSecurityPanel />}
         {tab === 'plans'    && <PlansTab tenant={tenant} onReload={load} />}
         {tab === 'modules'  && <ModulesTab />}
         {tab === 'reports'  && <ReportsTab />}

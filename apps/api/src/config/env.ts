@@ -121,6 +121,19 @@ const envSchema = z.object({
   QUICKBOOKS_CLIENT_SECRET: z.string().optional(),
   XERO_CLIENT_ID: z.string().optional(),
   XERO_CLIENT_SECRET: z.string().optional(),
+
+  /**
+   * Google Sign-In (Ondi M2) — one platform-level OAuth client, unlike
+   * mail-oauth's per-tenant Gmail-sync credentials: this is Hudumika asking
+   * "who is this person," not a tenant asking to send mail as themself, so
+   * one client registered once covers every tenant, same shape as
+   * QUICKBOOKS_CLIENT_ID above. Only a client ID is needed — the frontend
+   * uses Google Identity Services' implicit ID-token flow, and the backend
+   * verifies that token against Google's own tokeninfo endpoint rather than
+   * holding a client secret at all. Optional: unset until a real Google
+   * Cloud OAuth client exists, same "report not configured" convention.
+   */
+  GOOGLE_OAUTH_CLIENT_ID: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

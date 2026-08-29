@@ -72,6 +72,9 @@ import { taxCodeRoutes }  from './routes/tax-codes.routes.js';
 import { vatPeriodRoutes } from './routes/vat-periods.routes.js';
 import { lensRoutes } from './routes/lens.routes.js';
 import { oneidRoutes }    from './routes/oneid.routes.js';
+import { ondiAuthRoutes } from './routes/ondi-auth.routes.js';
+import { ondiOauthRoutes } from './routes/ondi-oauth.routes.js';
+import { oidcDiscoveryRoutes } from './routes/oidc-discovery.routes.js';
 import { trackingRoutes } from './routes/tracking.routes.js';
 import { fleetOpsRoutes } from './routes/fleetOps.routes.js';
 import { fleetComplianceRoutes } from './routes/fleetCompliance.routes.js';
@@ -133,6 +136,7 @@ import { superAdminSigningCertRoutes } from './routes/superadmin-signing-cert.ro
 import { superAdminReportsRoutes } from './routes/superadmin-reports.routes.js';
 import { superAdminTradeWizardRoutes } from './routes/superadmin-trade-wizard.routes.js';
 import { superAdminIssuesRoutes } from './routes/superadmin-issues.routes.js';
+import { superAdminKybRoutes } from './routes/superadmin-kyb.routes.js';
 import { superAdminReferralsRoutes } from './routes/superadmin-referrals.routes.js';
 import { referralsRoutes } from './routes/referrals.routes.js';
 import { announcementRoutes, superAdminAnnouncementRoutes, tenantAnnouncementRoutes } from './routes/announcements.routes.js';
@@ -368,6 +372,7 @@ async function main() {
     await server.register(superAdminReportsRoutes, { prefix: '/v1/superadmin/reports' });
     await server.register(superAdminTradeWizardRoutes, { prefix: '/v1/superadmin/trade-wizard' });
     await server.register(superAdminIssuesRoutes, { prefix: '/v1/superadmin' });
+    await server.register(superAdminKybRoutes, { prefix: '/v1/superadmin' });
     await server.register(superAdminReferralsRoutes, { prefix: '/v1/superadmin/referrals' });
     await server.register(referralsRoutes, { prefix: '/v1/referrals' });
     await server.register(superAdminAnnouncementRoutes, { prefix: '/v1/superadmin/announcements' });
@@ -408,6 +413,9 @@ async function main() {
     await server.register(vatPeriodRoutes, { prefix: '/v1/vat-periods' });
     await server.register(lensRoutes, { prefix: '/v1/lens' });
     await server.register(oneidRoutes,    { prefix: '/v1/oneid' });
+    await server.register(ondiAuthRoutes, { prefix: '/v1/ondi/auth' });
+    await server.register(ondiOauthRoutes, { prefix: '/v1/ondi/oauth' });
+    await server.register(oidcDiscoveryRoutes);
     await server.register(trackingRoutes, { prefix: '/v1/tracking' });
     await server.register(fleetOpsRoutes, { prefix: '/v1/tracking' });
     await server.register(fleetComplianceRoutes, { prefix: '/v1/tracking' });

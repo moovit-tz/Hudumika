@@ -6,7 +6,7 @@ import { Badge } from './ui/badge.js';
 import { FeaturedIcon } from './ui/featured-icon.js';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from './ui/accordion.js';
 
-type PhaseKey = 'foundation' | 'finance' | 'crm' | 'operations' | 'people' | 'compliance' | 'automate';
+type PhaseKey = 'foundation' | 'security' | 'finance' | 'crm' | 'operations' | 'people' | 'compliance' | 'automate';
 
 interface ChecklistItem {
   title: string;
@@ -29,6 +29,14 @@ const PHASES: Phase[] = [
       { title: 'Company information & localization', desc: 'Legal name, timezone, currency.', to: '/workspace/settings?s=company' },
       { title: 'Branding', desc: 'Logo and accent colour, applied across every app.', to: '/workspace/settings?s=branding' },
       { title: 'Modules & extensions', desc: 'Turn on the departments this workspace needs.', to: '/workspace/settings?s=modules' },
+    ],
+  },
+  {
+    key: 'security', name: 'Identity & Security', blurb: 'Ondi — verify who your team is, not just what they can access',
+    items: [
+      { title: 'Verify your identity', desc: 'Confirm a government ID to raise your account\'s trust level.', to: '/profile?tab=security' },
+      { title: 'Set up a passkey or 2FA', desc: 'Sign in with your device\'s fingerprint/face, or an authenticator app — no password to type or lose.', to: '/profile?tab=security' },
+      { title: 'Custom roles & access requests', desc: 'Grant specific permissions — like reviewing KYC — without making someone a full admin.', to: '/ondi/roles' },
     ],
   },
   {

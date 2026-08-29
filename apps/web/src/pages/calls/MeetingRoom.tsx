@@ -5,6 +5,7 @@ import { Icon, type IconName } from '../../components/Icon.js';
 import { Button } from '../../components/ui/button.js';
 import { useMediaDevices } from '../../hooks/useMediaDevices.js';
 import { Popover, PopoverTrigger, PopoverContent } from '../../components/ui/popover.js';
+import { Tip } from '../../components/ui/tooltip.js';
 import { PersonAvatar } from '../../components/PersonAvatar.js';
 
 interface ParticipantState {
@@ -738,28 +739,33 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
           <span>{currentTimeStr || '12:30 AM'}</span>
           <span style={{ color: '#5f6368' }}>|</span>
           <span style={{ fontWeight: 600, letterSpacing: '0.04em' }}>{meetingId.substring(0, 12)}</span>
-          <button style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 4, display: 'flex' }} title="Meeting details">
-            <Icon name="info" size={15} />
-          </button>
+          <Tip label="Meeting details">
+            <button style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 4, display: 'flex' }}>
+              <Icon name="info" size={15} />
+            </button>
+          </Tip>
         </div>
 
         {/* Right: Participants list / hosting settings */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <button
-            onClick={() => setPanel(p => p === 'participants' ? 'none' : 'participants')}
-            title="People"
-            style={{ display: 'flex', alignItems: 'center', gap: 4, background: panel === 'participants' ? '#8ab4f8' : '#3c4043', padding: '2px 10px', borderRadius: 20, fontSize: 13, border: 'none', cursor: 'pointer', color: panel === 'participants' ? '#202124' : '#fff' }}
-          >
-            <PersonAvatar name={myName} size={20} />
-            <span style={{ fontWeight: 600 }}>{totalCount}</span>
-          </button>
-          {canModerate && (
-            <button onClick={() => setPanel(p => p === 'host' ? 'none' : 'host')} style={{ position: 'relative', background: panel === 'host' ? '#3c4043' : 'none', border: 'none', color: '#cbd5e1', cursor: 'pointer', padding: 4, borderRadius: '50%', display: 'flex' }} title="Host controls">
-              <Icon name="lock" size={15} />
-              {waitingRoomList.length > 0 && (
-                <span style={{ position: 'absolute', top: -3, right: -3, width: 15, height: 15, borderRadius: '50%', background: '#ea4335', color: '#fff', fontSize: 9, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{waitingRoomList.length}</span>
-              )}
+          <Tip label="People">
+            <button
+              onClick={() => setPanel(p => p === 'participants' ? 'none' : 'participants')}
+              style={{ display: 'flex', alignItems: 'center', gap: 4, background: panel === 'participants' ? 'var(--teal)' : '#3c4043', padding: '2px 10px', borderRadius: 20, fontSize: 13, border: 'none', cursor: 'pointer', color: panel === 'participants' ? 'hsl(var(--primary-foreground))' : '#fff' }}
+            >
+              <PersonAvatar name={myName} size={20} />
+              <span style={{ fontWeight: 600 }}>{totalCount}</span>
             </button>
+          </Tip>
+          {canModerate && (
+            <Tip label="Host controls">
+              <button onClick={() => setPanel(p => p === 'host' ? 'none' : 'host')} style={{ position: 'relative', background: panel === 'host' ? '#3c4043' : 'none', border: 'none', color: '#cbd5e1', cursor: 'pointer', padding: 4, borderRadius: '50%', display: 'flex' }}>
+                <Icon name="lock" size={15} />
+                {waitingRoomList.length > 0 && (
+                  <span style={{ position: 'absolute', top: -3, right: -3, width: 15, height: 15, borderRadius: '50%', background: 'var(--red)', color: '#fff', fontSize: 9, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{waitingRoomList.length}</span>
+                )}
+              </button>
+            </Tip>
           )}
         </div>
       </div>
@@ -1488,7 +1494,7 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
             <Popover open={showAskAssistant} onOpenChange={setShowAskAssistant}>
               <PopoverTrigger asChild>
                 <div style={{ display: 'flex', alignItems: 'center', background: '#3c4043', borderRadius: 24, height: 40, padding: '0 12px 0 36px', width: '100%', cursor: 'pointer' }}>
-                  <Icon name="sparkle" size={16} color="#8ab4f8" style={{ position: 'absolute', left: 12 }} />
+                  <Icon name="sparkle" size={16} color="var(--teal)" style={{ position: 'absolute', left: 12 }} />
                   <input
                     value={aiInput}
                     onChange={e => setAiInput(e.target.value)}
@@ -1496,14 +1502,14 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
                     placeholder="Ask Assistant…"
                     style={{ background: 'none', border: 'none', outline: 'none', color: '#fff', fontSize: 13, width: '100%' }}
                   />
-                  <button onClick={askAssistant} disabled={aiBusy} style={{ background: 'none', border: 'none', color: '#8ab4f8', padding: 2, display: 'flex', cursor: 'pointer' }}>
+                  <button onClick={askAssistant} disabled={aiBusy} style={{ background: 'none', border: 'none', color: 'var(--teal)', padding: 2, display: 'flex', cursor: 'pointer' }}>
                     <Icon name="arrowUp" size={14} />
                   </button>
                 </div>
               </PopoverTrigger>
               <PopoverContent align="start" side="top" className="w-80 bg-slate-800 border-slate-700 text-slate-100 p-3 rounded-xl shadow-2xl">
                 <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 border-b border-slate-700 pb-1">
-                  <Icon name="sparkle" size={14} color="#8ab4f8" /> Assistant
+                  <Icon name="sparkle" size={14} color="var(--teal)" /> Assistant
                 </div>
                 <div className="max-h-48 overflow-y-auto mb-2 flex flex-col gap-2">
                   {aiTurns.length === 0 ? (
@@ -1522,63 +1528,69 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
           </div>
         </div>
 
-        {/* Center Control Column: Google Meet Control Capsule */}
+        {/* Center Control Column: Meeting Control Capsule */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {/* Microphone Mute */}
-          <button
-            type="button"
-            onClick={toggleMute}
-            title={muted ? 'Unmute microphone' : 'Mute microphone'}
-            style={{ width: 40, height: 40, borderRadius: '50%', background: muted ? '#ea4335' : '#3c4043', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          >
-            <Icon name={muted ? 'micOff' : 'mic'} size={18} />
-          </button>
+          <Tip label={muted ? 'Unmute microphone' : 'Mute microphone'}>
+            <button
+              type="button"
+              onClick={toggleMute}
+              style={{ width: 40, height: 40, borderRadius: '50%', background: muted ? 'var(--red)' : '#3c4043', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            >
+              <Icon name={muted ? 'micOff' : 'mic'} size={18} />
+            </button>
+          </Tip>
 
           {/* Camera toggle */}
           {kind === 'VIDEO' && (
-            <button
-              type="button"
-              onClick={toggleCam}
-              title={camOff ? 'Turn on camera' : 'Turn off camera'}
-              style={{ width: 40, height: 40, borderRadius: '50%', background: camOff ? '#ea4335' : '#3c4043', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-            >
-              <Icon name="camera" size={18} />
-            </button>
+            <Tip label={camOff ? 'Turn on camera' : 'Turn off camera'}>
+              <button
+                type="button"
+                onClick={toggleCam}
+                style={{ width: 40, height: 40, borderRadius: '50%', background: camOff ? 'var(--red)' : '#3c4043', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <Icon name="camera" size={18} />
+              </button>
+            </Tip>
           )}
 
           {/* Screen Present */}
           {kind === 'VIDEO' && (!hostSettings.screenShareDisabled || canModerate) && (
-            <button
-              type="button"
-              onClick={toggleScreenShare}
-              title={sharing ? 'Stop screen share' : 'Present screen'}
-              style={{ width: 40, height: 40, borderRadius: '50%', background: sharing ? '#8ab4f8' : '#3c4043', border: 'none', color: sharing ? '#202124' : '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-            >
-              <Icon name="monitor" size={18} />
-            </button>
+            <Tip label={sharing ? 'Stop screen share' : 'Present screen'}>
+              <button
+                type="button"
+                onClick={toggleScreenShare}
+                style={{ width: 40, height: 40, borderRadius: '50%', background: sharing ? 'var(--teal)' : '#3c4043', border: 'none', color: sharing ? 'hsl(var(--primary-foreground))' : '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <Icon name="monitor" size={18} />
+              </button>
+            </Tip>
           )}
 
           {/* Annotate / laser pointer — pen tools for whoever is presenting,
               a laser pointer for anyone (real, broadcast live, not local-only) */}
           {kind === 'VIDEO' && (
-            <button
-              type="button"
-              onClick={() => setAnnotationTool(t => t ? null : (sharing ? 'pen' : 'laser'))}
-              title={annotationTool ? 'Close annotation tools' : sharing ? 'Draw on your shared screen' : 'Laser pointer'}
-              style={{ width: 40, height: 40, borderRadius: '50%', background: annotationTool ? '#8ab4f8' : '#3c4043', border: 'none', color: annotationTool ? '#202124' : '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-            >
-              <Icon name="target" size={18} />
-            </button>
+            <Tip label={annotationTool ? 'Close annotation tools' : sharing ? 'Draw on your shared screen' : 'Laser pointer'}>
+              <button
+                type="button"
+                onClick={() => setAnnotationTool(t => t ? null : (sharing ? 'pen' : 'laser'))}
+                style={{ width: 40, height: 40, borderRadius: '50%', background: annotationTool ? 'var(--teal)' : '#3c4043', border: 'none', color: annotationTool ? 'hsl(var(--primary-foreground))' : '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <Icon name="target" size={18} />
+              </button>
+            </Tip>
           )}
 
           {/* Emoji Reactions Popover */}
           <Popover>
-            <PopoverTrigger asChild>
-              <button type="button" title="Send reaction" style={{ width: 40, height: 40, borderRadius: '50%', background: '#3c4043', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Icon name="smile" size={18} />
-              </button>
-            </PopoverTrigger>
-            <PopoverContent align="center" side="top" className="w-auto p-2 bg-slate-800 border-slate-700 rounded-lg">
+            <Tip label="Send reaction">
+              <PopoverTrigger asChild>
+                <button type="button" style={{ width: 40, height: 40, borderRadius: '50%', background: '#3c4043', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Icon name="smile" size={18} />
+                </button>
+              </PopoverTrigger>
+            </Tip>
+            <PopoverContent align="center" side="top" className="w-auto p-2">
               <div style={{ display: 'flex', gap: 6 }}>
                 {['👍', '❤️', '😄', '🎉', '🚀', '👀'].map(em => (
                   <button key={em} onClick={() => sendReaction(em)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, padding: 4 }}>{em}</button>
@@ -1590,44 +1602,48 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
           {/* Closed Captions CC — shows real live captions (Web Speech API
               transcript broadcasts) when someone has Transcribe running;
               this button only controls whether YOU see them. */}
-          <button
-            type="button"
-            onClick={() => setCaptionsEnabled(v => !v)}
-            title={captionsEnabled ? 'Turn off captions' : 'Turn on captions'}
-            style={{ width: 40, height: 40, borderRadius: '50%', background: captionsEnabled ? '#8ab4f8' : '#3c4043', border: 'none', color: captionsEnabled ? '#202124' : '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          >
-            <Icon name="closedCaptions" size={18} />
-          </button>
+          <Tip label={captionsEnabled ? 'Turn off captions' : 'Turn on captions'}>
+            <button
+              type="button"
+              onClick={() => setCaptionsEnabled(v => !v)}
+              style={{ width: 40, height: 40, borderRadius: '50%', background: captionsEnabled ? 'var(--teal)' : '#3c4043', border: 'none', color: captionsEnabled ? 'hsl(var(--primary-foreground))' : '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            >
+              <Icon name="closedCaptions" size={18} />
+            </button>
+          </Tip>
 
           {/* Hand Raise */}
-          <button
-            type="button"
-            onClick={() => { setHandRaised(v => !v); send({ type: 'room-status', audioMuted: muted, videoOff: camOff, handRaised: !handRaised }); }}
-            title="Raise hand"
-            style={{ width: 40, height: 40, borderRadius: '50%', background: handRaised ? '#8ab4f8' : '#3c4043', border: 'none', color: handRaised ? '#202124' : '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          >
-            <Icon name="hand" size={18} />
-          </button>
+          <Tip label="Raise hand">
+            <button
+              type="button"
+              onClick={() => { setHandRaised(v => !v); send({ type: 'room-status', audioMuted: muted, videoOff: camOff, handRaised: !handRaised }); }}
+              style={{ width: 40, height: 40, borderRadius: '50%', background: handRaised ? 'var(--teal)' : '#3c4043', border: 'none', color: handRaised ? 'hsl(var(--primary-foreground))' : '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            >
+              <Icon name="hand" size={18} />
+            </button>
+          </Tip>
 
           {/* Settings / More Options */}
-          <button
-            type="button"
-            onClick={() => setPanel(p => p === 'settings' ? 'none' : 'settings')}
-            title="More Options"
-            style={{ width: 40, height: 40, borderRadius: '50%', background: '#3c4043', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          >
-            <Icon name="moreVertical" size={18} />
-          </button>
+          <Tip label="More options">
+            <button
+              type="button"
+              onClick={() => setPanel(p => p === 'settings' ? 'none' : 'settings')}
+              style={{ width: 40, height: 40, borderRadius: '50%', background: '#3c4043', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            >
+              <Icon name="moreVertical" size={18} />
+            </button>
+          </Tip>
 
           {/* End Call / Leave Red Capsule Handset Button */}
-          <button
-            type="button"
-            onClick={isHost ? endForEveryone : leave}
-            title={isHost ? 'End call for everyone' : 'Leave meeting'}
-            style={{ width: 64, height: 40, borderRadius: 20, background: '#ea4335', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          >
-            <Icon name="phone" size={18} color="#fff" style={{ transform: 'rotate(135deg)' }} />
-          </button>
+          <Tip label={isHost ? 'End call for everyone' : 'Leave meeting'}>
+            <button
+              type="button"
+              onClick={isHost ? endForEveryone : leave}
+              style={{ width: 64, height: 40, borderRadius: 20, background: 'var(--red)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            >
+              <Icon name="phone" size={18} color="#fff" style={{ transform: 'rotate(135deg)' }} />
+            </button>
+          </Tip>
         </div>
 
         {/* Right Control Column: transcripts, chat, tools widgets */}
@@ -1637,41 +1653,44 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
               (a second control toggling the same state independently was
               how this used to drift out of sync with the Tools panel). */}
           {recording && (
-            <button
-              type="button"
-              onClick={() => { setPanel('tools'); setSubPanel('recording'); }}
-              title="Recording — open recording controls"
-              style={{
-                height: 34, padding: '0 12px', borderRadius: 17,
-                background: '#ea4335', border: 'none',
-                color: '#fff', fontSize: 11.5, fontWeight: 800, cursor: 'pointer',
-                display: 'flex', alignItems: 'center', gap: 6,
-              }}
-            >
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#fff', display: 'inline-block' }} />
-              REC {fmtDur(elapsed)}
-            </button>
+            <Tip label="Recording — open recording controls">
+              <button
+                type="button"
+                onClick={() => { setPanel('tools'); setSubPanel('recording'); }}
+                style={{
+                  height: 34, padding: '0 12px', borderRadius: 17,
+                  background: 'var(--red)', border: 'none',
+                  color: '#fff', fontSize: 11.5, fontWeight: 800, cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: 6,
+                }}
+              >
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#fff', display: 'inline-block' }} />
+                REC {fmtDur(elapsed)}
+              </button>
+            </Tip>
           )}
 
           {/* Chat toggle */}
-          <button
-            type="button"
-            onClick={() => setPanel(p => p === 'chat' ? 'none' : 'chat')}
-            title="Meeting chat"
-            style={{ width: 38, height: 38, borderRadius: '50%', background: panel === 'chat' ? '#3c4043' : 'transparent', border: 'none', color: panel === 'chat' ? '#8ab4f8' : '#cbd5e1', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          >
-            <Icon name="messageSquare" size={18} />
-          </button>
+          <Tip label="Meeting chat">
+            <button
+              type="button"
+              onClick={() => setPanel(p => p === 'chat' ? 'none' : 'chat')}
+              style={{ width: 40, height: 40, borderRadius: '50%', background: panel === 'chat' ? '#3c4043' : 'transparent', border: 'none', color: panel === 'chat' ? 'var(--teal)' : '#cbd5e1', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            >
+              <Icon name="messageSquare" size={18} />
+            </button>
+          </Tip>
 
           {/* Tools panel toggle */}
-          <button
-            type="button"
-            onClick={() => setPanel(p => p === 'tools' ? 'none' : 'tools')}
-            title="Meeting Tools"
-            style={{ width: 38, height: 38, borderRadius: '50%', background: panel === 'tools' ? '#3c4043' : 'transparent', border: 'none', color: panel === 'tools' ? '#8ab4f8' : '#cbd5e1', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          >
-            <Icon name="activities" size={18} />
-          </button>
+          <Tip label="Meeting tools">
+            <button
+              type="button"
+              onClick={() => setPanel(p => p === 'tools' ? 'none' : 'tools')}
+              style={{ width: 40, height: 40, borderRadius: '50%', background: panel === 'tools' ? '#3c4043' : 'transparent', border: 'none', color: panel === 'tools' ? 'var(--teal)' : '#cbd5e1', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            >
+              <Icon name="activities" size={18} />
+            </button>
+          </Tip>
         </div>
       </div>
     </div>

@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation, useParams, Link } from 'react-router-dom';
 import { AuthProvider, useAuth } from './hooks/useAuth.js';
+import { getOndiConfig } from './lib/ondiConfig.js';
 import { OrgAuthProvider, useOrgAuth } from './hooks/useOrgAuth.js';
 import { IdleLockProvider, useIdleLock } from './hooks/useIdleLock.js';
 import { LockScreen } from './components/LockScreen.js';
@@ -14,6 +15,7 @@ import { WorkspaceProvider } from './contexts/WorkspaceContext.js';
 import { Icon, type IconName } from './components/Icon.js';
 import { SkeletonPage } from './components/ui/skeleton.js';
 import { Login }           from './pages/Login.js';
+import { OndiLogin }       from './pages/OndiLogin.js';
 import { MaintenancePage } from './pages/MaintenancePage.js';
 import { OnboardingWizard } from './pages/onboarding/OnboardingWizard.js';
 import { ForgotPassword }  from './pages/ForgotPassword.js';
@@ -281,6 +283,17 @@ const AppContentBody: React.FC = () => {
   const { pathname } = useLocation();
   const isHub = pathname === '/';
 
+  // M7 SSO cutover — dark-launched, SuperAdmin-controlled (Platform Settings
+  // → Ondi SSO), default off. Decides only which login experience an
+  // unauthenticated visitor sees FIRST at the catch-all route; both pages
+  // remain fully reachable via their existing cross-link regardless of this
+  // flag (see ondi-auth.routes.ts's GET /config for why this is global, not
+  // per-tenant). Starts false so nothing changes until a SuperAdmin opts in.
+  const [ondiSsoDefault, setOndiSsoDefault] = useState(false);
+  useEffect(() => {
+    getOndiConfig().then(cfg => setOndiSsoDefault(cfg.sso_enabled)).catch(() => {});
+  }, []);
+
   /* ── Organization portal — a completely separate session from the
      staff/customer one above (see useOrgAuth.tsx). Checked first: an org
      session can exist with or without a staff/customer session in the same
@@ -328,7 +341,15 @@ const AppContentBody: React.FC = () => {
       <Route path="/sign/verify"         element={<SignVerifyPage />} />
       {/* Calendly-style booking pages — anyone with the link can book, no account needed */}
       <Route path="/book/:slug"          element={<BookingPublicPage />} />
-      <Route path="*"                     element={<Login />} />
+      <Route path="/ondi/login"          element={<OndiLogin />} />
+      {/* Always the password page, unconditionally — the one stable target
+          for OndiLogin's "Sign in with password instead" link. Without this,
+          /login had no route of its own and fell through to the same
+          flag-conditional catch-all below, so flipping Ondi SSO on made
+          that link loop back to Ondi instead of ever reaching the password
+          page — caught by testing the link, not just the default view. */}
+      <Route path="/login"                element={<Login />} />
+      <Route path="*"                     element={ondiSsoDefault ? <OndiLogin /> : <Login />} />
     </Routes>
   );
 

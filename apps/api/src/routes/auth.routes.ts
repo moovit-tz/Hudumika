@@ -59,7 +59,7 @@ function parseDevice(userAgent: string): { label: string; type: string } {
 // Returns the hr_devices row id for this login, so callers can stamp it into
 // the JWT as `device_id` — that's what lets a single session later be
 // "signed out" for real (see hr_devices.revoked_at, checked in middleware/auth.ts).
-async function recordLogin(tenantId: string, userId: string, status: 'SUCCESS' | 'FAILED', ip: string, userAgent: string): Promise<string | null> {
+export async function recordLogin(tenantId: string, userId: string, status: 'SUCCESS' | 'FAILED', ip: string, userAgent: string): Promise<string | null> {
   try {
     return await withTenant(tenantId, async (trx) => {
       await trx.insertInto('hr_login_history').values({ tenant_id: tenantId, user_id: userId, ip, user_agent: userAgent, status }).execute();

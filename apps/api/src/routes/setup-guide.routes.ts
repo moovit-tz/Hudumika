@@ -10,7 +10,9 @@ import { withTenant } from '../db/client.js';
  * .seedForTenant), so either would read as "done" before an admin has touched
  * anything. tax_codes, customers, shipment_cases, hr_departments,
  * comply_obligations and workflow_studio_apps are never seeded — each stays
- * empty until a tenant genuinely acts.
+ * empty until a tenant genuinely acts. Same reasoning for
+ * ondi_kyc_submissions (security phase, added with Ondi M0-M7): nobody has
+ * one until they've actually submitted an ID for verification.
  */
 export async function setupGuideRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
@@ -18,8 +20,10 @@ export async function setupGuideRoutes(fastify: FastifyInstance) {
   fastify.get('/checklist', async (request) => {
     const user = request.user;
     return withTenant(user.tenant_id, async (trx) => {
-      const [users, taxCodes, customers, shipments, departments, obligations, automations] = await Promise.all([
+      const [users, kycSubmissions, taxCodes, customers, shipments, departments, obligations, automations] = await Promise.all([
         trx.selectFrom('users').select(({ fn }) => fn.countAll<number>().as('c'))
+          .where('tenant_id', '=', user.tenant_id).executeTakeFirst(),
+        trx.selectFrom('ondi_kyc_submissions').select(({ fn }) => fn.countAll<number>().as('c'))
           .where('tenant_id', '=', user.tenant_id).executeTakeFirst(),
         trx.selectFrom('tax_codes').select(({ fn }) => fn.countAll<number>().as('c'))
           .where('tenant_id', '=', user.tenant_id).executeTakeFirst(),
@@ -38,6 +42,7 @@ export async function setupGuideRoutes(fastify: FastifyInstance) {
       return {
         data: {
           foundation: Number(users?.c ?? 0) > 1,
+          security: Number(kycSubmissions?.c ?? 0) > 0,
           finance: Number(taxCodes?.c ?? 0) > 0,
           crm: Number(customers?.c ?? 0) > 0,
           operations: Number(shipments?.c ?? 0) > 0,

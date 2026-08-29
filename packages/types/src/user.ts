@@ -94,7 +94,8 @@ export interface UserProfileFields {
   language?: string;
   website?: string;
   cover_url?: string;
-  
+  cover_position?: { x: number; y: number }; // background-position percentages, drag-to-reposition
+
   // HR/Staff Fields
   employee_code?: string;
   department?: string;

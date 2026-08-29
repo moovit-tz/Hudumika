@@ -16,7 +16,7 @@ interface DetailPanelProps {
 // `initials` now comes from lib/identity — see the import at the top.
 
 function relTime(iso?: string | null): string {
-  if (!iso) return '�';
+  if (!iso) return '—';
   const d = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
   if (d === 0) return 'Today';
   if (d === 1) return 'Yesterday';
@@ -59,7 +59,7 @@ export const DetailPanel: React.FC<DetailPanelProps> = ({ shipmentId, onClose })
   const stagePct   = stageIdx >= 0 ? Math.round((stageIdx + 1) / stageCount * 100) : 0;
   const stageLabel = isCustomWorkflow
     ? (shipment.workflow_step_name || shipment.stage)
-    : (shipment?.stage ? (STAGE_LABELS[shipment.stage as ClearanceStage] || shipment.stage) : '�');
+    : (shipment?.stage ? (STAGE_LABELS[shipment.stage as ClearanceStage] || shipment.stage) : '—');
   const isOverdue  = shipment?.sla_deadline && new Date(shipment.sla_deadline) < new Date();
 
   const selCh = shipment?.selectivity_channel;
@@ -90,7 +90,7 @@ export const DetailPanel: React.FC<DetailPanelProps> = ({ shipmentId, onClose })
       {/* -- Header -- */}
       <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
         <span style={{ fontFamily: 'var(--mono)', fontWeight: 800, fontSize: 13, color: 'var(--teal)', letterSpacing: '0.05em' }}>
-          {loading ? 'Loading�' : (shipment?.ref_number || '�')}
+          {loading ? 'Loading…' : (shipment?.ref_number || '—')}
         </span>
         <button type="button" title="Close panel" onClick={onClose}
           style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center', flexShrink: 0 }}>
@@ -119,7 +119,7 @@ export const DetailPanel: React.FC<DetailPanelProps> = ({ shipmentId, onClose })
               {shipment.goods_desc || 'No description'}
             </div>
             <div style={{ fontSize: 13, color: 'var(--ink3)' }}>
-              {shipment.customer_name}{shipment.type ? ` � ${shipment.type.replace(/_/g, ' ')}` : ''}
+              {shipment.customer_name}{shipment.type ? ` · ${shipment.type.replace(/_/g, ' ')}` : ''}
             </div>
           </div>
 
@@ -169,13 +169,13 @@ export const DetailPanel: React.FC<DetailPanelProps> = ({ shipmentId, onClose })
             </div>
           </div>
 
-          {/* 2�2 stats grid */}
+          {/* 2×2 stats grid */}
           <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             {[
               { label: 'DOCUMENTS', value: `${docs.length}${verifiedDocs ? ` (${verifiedDocs} verified)` : ''}` },
               { label: 'MESSAGES',  value: `${msgs.length} update${msgs.length !== 1 ? 's' : ''}` },
-              { label: 'CHARGES',   value: totalCharges > 0 ? fmtTZS(totalCharges) : '�' },
-              { label: 'RECEIVED',  value: '�' },
+              { label: 'CHARGES',   value: totalCharges > 0 ? fmtTZS(totalCharges) : '—' },
+              { label: 'RECEIVED',  value: '—' },
             ].map(s => (
               <div key={s.label} style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 9, padding: '10px 12px' }}>
                 <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.06em', marginBottom: 5 }}>{s.label}</div>
@@ -277,7 +277,7 @@ export const DetailPanel: React.FC<DetailPanelProps> = ({ shipmentId, onClose })
 
             {isOverdue && (
               <div style={{ marginTop: 10, textAlign: 'center', fontSize: 12.5, color: '#dc2626', fontWeight: 600 }}>
-                ? Overdue � {new Date(shipment.sla_deadline).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                ⚠ Overdue · {new Date(shipment.sla_deadline).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
               </div>
             )}
           </div>

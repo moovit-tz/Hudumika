@@ -140,6 +140,51 @@ export class MinioIntegration {
   }
 
   /**
+   * Stores a KYC identity-document image (Ondi M4) — own tree, same
+   * reasoning as uploadHrDocument: this is government ID imagery, not a
+   * customer or cloud file, and must never be swept up by code that walks
+   * either of those trees. Never served by public URL — see kyc.routes.ts's
+   * download handler, which re-checks tenant + (owner or reviewer role) on
+   * every read, same convention as files.routes.ts's own download route.
+   */
+  static async uploadKycDocument(
+    tenantId: string,
+    userId: string,
+    filename: string,
+    fileBuffer: Buffer
+  ): Promise<{ storageKey: string; size: number }> {
+    const cleanFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '_') || 'document';
+    const unique = `${Date.now()}-${cleanFilename}`;
+    const localDir = path.join(UPLOADS_DIR, 'tenants', tenantId, 'kyc', userId);
+    fs.mkdirSync(localDir, { recursive: true });
+    const storageKey = `tenants/${tenantId}/kyc/${userId}/${unique}`;
+    fs.writeFileSync(path.join(localDir, unique), fileBuffer);
+    console.log(`🗄️ Storage: KYC document saved — ${storageKey}`);
+    return { storageKey, size: fileBuffer.length };
+  }
+
+  /**
+   * Stores a tenant's own business-registration document (Ondi M5 org
+   * KYB) — own tree, keyed by tenant only (there's no per-user id here:
+   * this document belongs to the tenant, not to whichever admin uploaded
+   * it, unlike uploadKycDocument's per-user tree).
+   */
+  static async uploadOrgKybDocument(
+    tenantId: string,
+    filename: string,
+    fileBuffer: Buffer
+  ): Promise<{ storageKey: string; size: number }> {
+    const cleanFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '_') || 'document';
+    const unique = `${Date.now()}-${cleanFilename}`;
+    const localDir = path.join(UPLOADS_DIR, 'tenants', tenantId, 'kyb');
+    fs.mkdirSync(localDir, { recursive: true });
+    const storageKey = `tenants/${tenantId}/kyb/${unique}`;
+    fs.writeFileSync(path.join(localDir, unique), fileBuffer);
+    console.log(`🗄️ Storage: Org KYB document saved — ${storageKey}`);
+    return { storageKey, size: fileBuffer.length };
+  }
+
+  /**
    * Stores a generated shipment-report PDF (daily automation + on-demand
    * downloads). Deliberately its own tree, same reasoning as
    * uploadHrDocument/uploadSupportAttachment — a report snapshot is neither

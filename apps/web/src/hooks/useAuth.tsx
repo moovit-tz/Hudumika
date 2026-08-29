@@ -19,6 +19,12 @@ interface AuthContextType {
   user: SafeUser | null;
   isImpersonating: boolean;
   login: (email: string, password: string) => Promise<SafeUser>;
+  requestOtpLogin: (phone: string) => Promise<{ success: boolean; message: string }>;
+  verifyOtpLogin: (phone: string, code: string) => Promise<SafeUser>;
+  loginWithTotp: (email: string, code: string) => Promise<SafeUser>;
+  requestPasskeyLoginOptions: (email: string) => Promise<any>;
+  verifyPasskeyLogin: (email: string, response: any) => Promise<SafeUser>;
+  loginWithGoogle: (credential: string) => Promise<SafeUser>;
   completeOnboarding: (res: OnboardingCompleteResponse) => void;
   logout: () => void;
   impersonate: (tenantId: string) => Promise<void>;
@@ -102,11 +108,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(false);
   }, []);
 
-  const login = async (email: string, password: string) => {
-    const res = await apiFetch('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ email, password }),
-    });
+  // Shared by every login path (password, OTP, TOTP) — each hits a
+  // different endpoint but they all return the same { user, ...tokens }
+  // shape (see ondi-auth.routes.ts's issueSessionFor / auth.routes.ts's
+  // /login, both built on the same issueTokens+setSessionCookies seam).
+  const completeLogin = (res: { user: SafeUser }) => {
     localStorage.setItem(KEYS.user, JSON.stringify(res.user));
     resetEnabledAppsCache();
     resetCompanyCache();
@@ -119,6 +125,60 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // when the workspace's own language should already be in place.
     hydrateIdentityFromServer(setUser);
     return res.user;
+  };
+
+  const login = async (email: string, password: string) => {
+    const res = await apiFetch('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
+    return completeLogin(res);
+  };
+
+  const requestOtpLogin = async (phone: string) => {
+    return apiFetch('/v1/ondi/auth/otp/request', {
+      method: 'POST',
+      body: JSON.stringify({ phone }),
+    });
+  };
+
+  const verifyOtpLogin = async (phone: string, code: string) => {
+    const res = await apiFetch('/v1/ondi/auth/otp/verify', {
+      method: 'POST',
+      body: JSON.stringify({ phone, code }),
+    });
+    return completeLogin(res);
+  };
+
+  const loginWithTotp = async (email: string, code: string) => {
+    const res = await apiFetch('/v1/ondi/auth/totp/verify', {
+      method: 'POST',
+      body: JSON.stringify({ email, code }),
+    });
+    return completeLogin(res);
+  };
+
+  const requestPasskeyLoginOptions = async (email: string) => {
+    return apiFetch('/v1/ondi/auth/passkey/login/options', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  };
+
+  const verifyPasskeyLogin = async (email: string, response: any) => {
+    const res = await apiFetch('/v1/ondi/auth/passkey/login/verify', {
+      method: 'POST',
+      body: JSON.stringify({ email, response }),
+    });
+    return completeLogin(res);
+  };
+
+  const loginWithGoogle = async (credential: string) => {
+    const res = await apiFetch('/v1/ondi/auth/google/verify', {
+      method: 'POST',
+      body: JSON.stringify({ credential }),
+    });
+    return completeLogin(res);
   };
 
   const completeOnboarding = (res: OnboardingCompleteResponse) => {
@@ -250,7 +310,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, isImpersonating, login, completeOnboarding, logout, impersonate, impersonateCustomer, stopImpersonating, updateUser, loading }}>
+    <AuthContext.Provider value={{ user, isImpersonating, login, requestOtpLogin, verifyOtpLogin, loginWithTotp, requestPasskeyLoginOptions, verifyPasskeyLogin, loginWithGoogle, completeOnboarding, logout, impersonate, impersonateCustomer, stopImpersonating, updateUser, loading }}>
       {children}
     </AuthContext.Provider>
   );
