@@ -1,0 +1,47 @@
+{
+  "name": "@ondi/api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "NODE_OPTIONS='--no-deprecation' tsx watch src/server.ts",
+    "start": "NODE_OPTIONS='--no-deprecation' tsx src/server.ts",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@fastify/cors": "^9.0.1",
+    "@fastify/formbody": "^7.4.0",
+    "@fastify/multipart": "8.3.1",
+    "@fastify/rate-limit": "^9",
+    "@ondi/db": "workspace:*",
+    "@ondi/shared-types": "workspace:*",
+    "@prisma/client": "^5.12.0",
+    "@simplewebauthn/server": "^13.3.2",
+    "bcryptjs": "^2.4.3",
+    "bullmq": "^5.34.0",
+    "dotenv": "^17.4.2",
+    "fastify": "^4.26.2",
+    "fastify-plugin": "^4.5.1",
+    "ioredis": "^5.11.1",
+    "jsonwebtoken": "^9.0.2",
+    "mrz": "^5.0.2",
+    "nodemailer": "^9.0.1",
+    "pdfkit": "^0.19.1",
+    "samlify": "^2.13.1",
+    "selfsigned": "^5.5.0",
+    "sharp": "^0.35.3",
+    "tesseract.js": "^7.0.0",
+    "tsx": "^4.7.2",
+    "zod": "^4.4.1"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.6",
+    "@types/nodemailer": "^8.0.1",
+    "@types/node": "^20.12.7",
+    "@types/pdfkit": "^0.17.6",
+    "typescript": "^5.4.5",
+    "vitest": "^2.1.9"
+  }
+}

@@ -1,0 +1,100 @@
+/* Outfit — same typeface apps/mobile/ondi uses (GoogleFonts.outfitTextTheme
+   in app_theme.dart) so the PWA and the native app read as one product. */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300..800&display=swap');
+@import "tailwindcss";
+
+/* Tailwind v4 dark mode defaults to prefers-color-scheme; this app has an
+   explicit user-controlled toggle instead (see ThemeToggle.tsx), so `dark:`
+   utilities are driven by a `.dark` class on <html>, not the OS setting. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+  --ondi-primary: #4253d1;
+  --ondi-secondary: #4e76e5;
+  --ondi-mist: #eceeff;
+  --ondi-border: #d5d9f5;
+  --ondi-card: #ffffff;
+  --ondi-muted: #737373;
+}
+
+.dark {
+  --background: #0a0b12;
+  --foreground: #edeef5;
+  --ondi-primary: #6c7ceb;
+  --ondi-secondary: #8098f0;
+  --ondi-mist: #1a1d33;
+  --ondi-border: #262a44;
+  --ondi-card: #12131e;
+  --ondi-muted: #8b8fa8;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-ondi-primary: var(--ondi-primary);
+  --color-ondi-secondary: var(--ondi-secondary);
+  --color-ondi-mist: var(--ondi-mist);
+  --color-ondi-border: var(--ondi-border);
+  --color-ondi-card: var(--ondi-card);
+  --color-ondi-muted: var(--ondi-muted);
+  --font-sans: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+html {
+  color-scheme: light;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  transition: background-color 150ms ease, color 150ms ease;
+  /* Standalone PWA polish: no browser-style blue tap flash on touch, no
+     rubber-band scroll on the body (individual scroll containers opt back
+     in), no accidental text selection on taps — reads as an app, not a page. */
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+  overflow-x: hidden;
+}
+
+a, button, [role="button"], [tabindex]:not([tabindex="-1"]), label[for], select, summary {
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+input, textarea {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* Sign-in flow's fixed brand backdrop — deliberately independent of the
+   light/dark theme toggle (the welcome/phone/OTP screens always render on
+   this dark gradient, the same way Pinterest's own sign-in intro doesn't
+   follow the OS theme either). Soft color fields anchored on Ondi's
+   confirmed brand indigo (#4253d1), plus a faint dot-grid texture so the
+   background isn't flat. */
+.auth-gradient {
+  position: relative;
+  background:
+    radial-gradient(circle at 18% 15%, rgba(140, 155, 255, .55), transparent 40%),
+    radial-gradient(circle at 85% 20%, rgba(255, 140, 200, .30), transparent 38%),
+    radial-gradient(circle at 30% 78%, rgba(120, 220, 190, .26), transparent 42%),
+    radial-gradient(circle at 90% 85%, rgba(255, 200, 120, .20), transparent 40%),
+    linear-gradient(160deg, #14183a 0%, #1b1440 45%, #0b0c1f 100%);
+}
+
+.auth-gradient::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(255, 255, 255, .10) 1px, transparent 1.4px);
+  background-size: 16px 16px;
+  opacity: .5;
+  pointer-events: none;
+}

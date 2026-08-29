@@ -1,0 +1,143 @@
+@import url('https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wdth,wght@8..144,25..100,100..1000&display=swap');
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: 'Google Sans Flex', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-space: 'Google Sans Flex', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-dm-sans: 'Google Sans Flex', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-barlow: 'Google Sans Flex', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: var(--font-geist-mono);
+}
+
+/* This product is light-theme only (no dark-mode UI exists anywhere in it) —
+   a leftover create-next-app dark media-query used to flip --background to
+   near-black (#0a0a0a) on any dark-mode OS/browser. Since ClientLayout's
+   page-transition briefly shows the bare <body> background during the
+   AnimatePresence fade, that showed up as a black flash between page
+   navigations. color-scheme: light also stops the browser's own UA
+   dark-mode form-control/scrollbar repaint from doing the same thing. */
+html {
+  color-scheme: light;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: 'Google Sans Flex', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+a, button, [role="button"], [tabindex]:not([tabindex="-1"]), label[for], select, summary {
+  cursor: pointer;
+}
+
+/* ─── Premium iPF Softwares-inspired Shiny Cards ─── */
+@keyframes advancedCardShine {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.advanced-gradient-card {
+  position: relative;
+  box-shadow: -1px 1px 2px 0 rgba(217, 226, 237, 0.40), 0 10px 28px rgba(66, 83, 209, 0.08);
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.advanced-gradient-card:hover {
+  transform: translateY(-6px);
+  box-shadow: -1px 10px 30px 0 rgba(66, 83, 209, 0.15);
+}
+
+.advanced-gradient-card__trace {
+  position: absolute;
+  inset: 0;
+  padding: 1.5px;
+  border-radius: inherit;
+  pointer-events: none;
+  background: conic-gradient(
+    from 0deg,
+    #4253D1,
+    #4E76E5,
+    #ECEEFF,
+    #4253D1,
+    #4E76E5,
+    #ECEEFF
+  );
+  background-size: 300% 300%;
+  background-position: 0% 50%;
+  opacity: 0.2;
+  transition: opacity 0.3s ease;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+}
+
+.advanced-gradient-card:hover .advanced-gradient-card__trace {
+  opacity: 0.92;
+  animation: advancedCardShine 4.5s ease-out infinite;
+}
+
+.advanced-gradient-card__glow {
+  position: absolute;
+  inset: 1px;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at top right, rgba(78, 118, 229, 0.06), transparent 30%),
+    radial-gradient(circle at bottom left, rgba(66, 83, 209, 0.05), transparent 30%);
+  filter: blur(8px);
+  opacity: 0.55;
+  transition: opacity 0.3s ease;
+}
+
+.advanced-gradient-card:hover .advanced-gradient-card__glow {
+  opacity: 0.85;
+}
+
+/* ─── Global Clickable / Interactive Cursor Overrides ─── */
+button,
+a,
+[role="button"],
+.cursor-pointer,
+select,
+summary,
+.advanced-gradient-card,
+.interactive-card,
+.group:hover,
+[onClick] {
+  cursor: pointer !important;
+}
+
+/* ─── Seamless Infinite Logo Ticker (Marquee) ─── */
+@keyframes logoTickerScroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-logo-ticker {
+  display: flex;
+  width: max-content;
+  gap: 2rem; /* Tighter 32px gap */
+  animation: logoTickerScroll 30s linear infinite;
+}
+
+
+

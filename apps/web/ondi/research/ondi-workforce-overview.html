@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Ondi Workforce — Platform Overview</title>
+<link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@300;400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#FAFAF8;--surf:#F4F3EF;--card:#FFFFFF;--card2:#F9F8F5;
+  --border:#E4E0D8;--border2:#CFC9BE;
+  --ondi:#4338CA;--ind:rgba(67,56,202,.10);--ing:rgba(67,56,202,.22);
+  --violet:#6D28D9;--vd:rgba(109,40,217,.10);
+  --teal:#0D9488;--td:rgba(13,148,136,.09);
+  --amber:#D97706;--ad:rgba(217,119,6,.10);
+  --red:#DC2626;--rdd:rgba(220,38,38,.10);
+  --green:#059669;--gd:rgba(5,150,105,.09);
+  --sky:#0284C7;--sd:rgba(2,132,199,.10);
+  --ink:#1A1C22;--text:#2C3340;--muted:#9A9187;--muted2:#5A6070;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:'League Spartan',sans-serif;font-size:14px;line-height:1.6;letter-spacing:-0.01em;}
+
+/* NAV */
+nav{position:sticky;top:0;z-index:100;background:rgba(250,250,248,.96);
+  backdrop-filter:blur(18px);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 36px;overflow-x:auto;gap:0;}
+.nav-brand{display:flex;align-items:center;gap:10px;margin-right:28px;flex-shrink:0;padding:12px 0;}
+.nav-brand-name{font-family:'League Spartan',sans-serif;font-size:15px;font-weight:800;color:var(--ink);letter-spacing:-0.02em;}
+.nav-brand-badge{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:1px;
+  background:var(--ondi);color:#fff;padding:2px 7px;border-radius:4px;text-transform:uppercase;}
+.nl{padding:13px 14px;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.4px;
+  color:var(--muted2);white-space:nowrap;border-bottom:2px solid transparent;transition:.2s;cursor:pointer;text-decoration:none;display:block;}
+.nl:hover{color:var(--ink);}
+.nl.on{color:var(--ondi);border-bottom-color:var(--ondi);}
+
+/* HERO */
+#hero{min-height:82vh;display:flex;flex-direction:column;justify-content:center;
+  padding:72px 36px 56px;max-width:100%;position:relative;overflow:hidden;border-bottom:1px solid var(--border);}
+.hbg{position:absolute;inset:0;background:
+  radial-gradient(ellipse 65% 50% at 10% 55%,rgba(67,56,202,.10) 0%,transparent 60%),
+  radial-gradient(ellipse 40% 35% at 88% 25%,rgba(109,40,217,.07) 0%,transparent 55%),
+  radial-gradient(ellipse 30% 30% at 55% 88%,rgba(13,148,136,.06) 0%,transparent 50%);}
+.hgrid{position:absolute;inset:0;background-image:
+  repeating-linear-gradient(0deg,transparent,transparent 47px,rgba(0,0,0,.028) 47px,rgba(0,0,0,.028) 48px),
+  repeating-linear-gradient(90deg,transparent,transparent 47px,rgba(0,0,0,.028) 47px,rgba(0,0,0,.028) 48px);pointer-events:none;}
+.hin{position:relative;max-width:1080px;margin:0 auto;width:100%;}
+.hsuper{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:5px;color:var(--ondi);text-transform:uppercase;margin-bottom:18px;}
+.hh1{font-family:'League Spartan',sans-serif;font-size:clamp(28px,4.5vw,54px);font-weight:900;color:var(--ink);line-height:1.05;margin-bottom:10px;}
+.hh1 em{color:var(--ondi);font-style:normal;}
+.hh1 .t{color:var(--teal);}
+.hmeta{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted2);margin-bottom:22px;letter-spacing:.5px;}
+.hdesc{max-width:680px;font-size:15px;line-height:1.85;color:var(--muted2);font-weight:300;margin-bottom:30px;
+  border-left:3px solid var(--ondi);padding-left:18px;}
+.hpills{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:36px;}
+.hpill{padding:8px 18px;border-radius:6px;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;letter-spacing:1px;border:1px solid;}
+.hp-id{background:var(--ind);color:var(--ondi);border-color:rgba(67,56,202,.3);}
+.hp-wf{background:var(--vd);color:var(--violet);border-color:rgba(109,40,217,.3);}
+.hp-tl{background:var(--td);color:var(--teal);border-color:rgba(13,148,136,.3);}
+.hstats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;max-width:700px;}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;}
+.statn{font-family:'League Spartan',sans-serif;font-size:22px;font-weight:800;color:var(--ondi);}
+.statl{font-size:11px;color:var(--muted);margin-top:2px;}
+
+/* SECTIONS */
+section{padding:56px 36px;max-width:1080px;margin:0 auto;border-bottom:1px solid var(--border);}
+.eyebrow{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:4px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;}
+.stitle{font-family:'League Spartan',sans-serif;font-size:24px;font-weight:800;color:var(--ink);line-height:1.2;margin-bottom:10px;}
+.stitle span{color:var(--ondi);}
+.stitle .t{color:var(--teal);}
+.slead{font-size:14px;line-height:1.8;color:var(--muted2);font-weight:300;max-width:700px;margin-bottom:32px;}
+.mb28{margin-bottom:28px;}.mt24{margin-top:24px;}.mt32{margin-top:32px;}
+
+/* GRIDS */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:13px;}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+
+/* CARDS */
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px 20px;transition:border-color .2s;}
+.card:hover{border-color:var(--border2);}
+.card-icon{font-size:22px;margin-bottom:10px;}
+.card-title{font-family:'League Spartan',sans-serif;font-size:13px;font-weight:700;color:var(--ink);margin-bottom:5px;}
+.card-desc{font-size:12px;color:var(--muted2);line-height:1.55;}
+code{font-family:'IBM Plex Mono',monospace;font-size:10.5px;background:rgba(13,148,136,.09);color:var(--teal);padding:1px 5px;border-radius:3px;}
+
+/* MODULE TABLE */
+.suite{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:16px;}
+.suite-hdr{padding:16px 22px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px;}
+.suite-icon{font-size:26px;}
+.suite-name{font-family:'League Spartan',sans-serif;font-size:16px;font-weight:800;}
+.suite-motto{font-size:11px;color:var(--muted);font-style:italic;margin-top:2px;}
+.suite-body{padding:14px 22px 18px;}
+.suite-desc{font-size:12.5px;color:var(--muted2);margin-bottom:14px;line-height:1.6;}
+.mod-rows{display:flex;flex-direction:column;gap:9px;}
+.mod-hdr{display:grid;grid-template-columns:160px 200px 1fr;gap:12px;padding:7px 12px;background:var(--surf);border-radius:6px;}
+.mod-hdr span{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--muted);}
+.mod-row{display:grid;grid-template-columns:160px 200px 1fr;gap:12px;padding:9px 12px;background:var(--surf);border-radius:8px;border:1px solid var(--border);}
+.mod-name{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;}
+.mod-full{font-size:11.5px;color:var(--muted2);}
+.mod-func{font-size:11.5px;color:var(--text);}
+
+/* LIFECYCLE */
+.lifecycle{display:flex;flex-direction:column;gap:0;}
+.lc-phase{border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:12px;}
+.lc-hdr{display:flex;align-items:center;gap:14px;padding:14px 20px;border-bottom:1px solid var(--border);}
+.lc-badge{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:2px;padding:4px 10px;border-radius:4px;}
+.lc-name{font-family:'League Spartan',sans-serif;font-size:14px;font-weight:800;color:var(--ink);}
+.lc-desc{font-size:12px;color:var(--muted2);}
+.lc-body{padding:14px 20px;display:flex;flex-wrap:wrap;gap:8px;}
+.lc-chip{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;padding:5px 11px;border-radius:6px;border:1px solid;}
+
+/* TRUST BAND */
+.trust-band{border-radius:12px;overflow:hidden;border:1px solid var(--border);margin-bottom:28px;}
+.tb-hdr{padding:14px 22px;border-bottom:1px solid var(--border);font-family:'League Spartan',sans-serif;font-size:14px;font-weight:800;color:var(--ink);}
+.tb-rows{display:flex;flex-direction:column;}
+.tb-row{display:grid;grid-template-columns:180px 120px 1fr;align-items:center;padding:12px 22px;border-bottom:1px solid var(--border);}
+.tb-row:last-child{border-bottom:none;}
+.tb-row:nth-child(odd){background:var(--card2);}
+.tb-scenario{font-family:'League Spartan',sans-serif;font-size:12px;font-weight:700;color:var(--ink);}
+.tb-signal{font-family:'IBM Plex Mono',monospace;font-size:10px;}
+.tb-action{font-size:12px;color:var(--muted2);}
+
+/* ARCH STACK */
+.arch-stack{display:flex;flex-direction:column;gap:4px;margin-bottom:28px;}
+.arch-row{display:grid;grid-template-columns:130px 210px 1fr;border:1px solid var(--border);border-radius:9px;overflow:hidden;}
+.arch-l{display:flex;align-items:center;justify-content:center;padding:14px 8px;font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;text-align:center;}
+.arch-n{padding:14px 16px;border-left:1px solid var(--border);display:flex;align-items:center;}
+.arch-n span{font-family:'League Spartan',sans-serif;font-size:12px;font-weight:700;color:var(--ink);}
+.arch-d{padding:14px 16px;border-left:1px solid var(--border);font-size:12px;color:var(--muted2);}
+
+/* CALLOUT */
+.callout{border-radius:12px;padding:22px 26px;margin-bottom:20px;}
+.callout-title{font-family:'League Spartan',sans-serif;font-size:15px;font-weight:800;color:var(--ink);margin-bottom:7px;}
+.callout-body{font-size:13px;line-height:1.8;color:var(--muted2);}
+
+/* ACTOR TABLE */
+.atbl{width:100%;border-collapse:collapse;margin-bottom:24px;}
+.atbl th{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);padding:10px 14px;text-align:left;border-bottom:1px solid var(--border);background:var(--surf);}
+.atbl td{padding:11px 14px;border-bottom:1px solid var(--border);font-size:12.5px;vertical-align:top;}
+.atbl tr:nth-child(odd) td{background:var(--card);}
+.atbl tr:nth-child(even) td{background:var(--card2);}
+.atbl tr:last-child td{border-bottom:none;}
+.aname{font-family:'League Spartan',sans-serif;font-size:12px;font-weight:700;color:var(--ink);}
+
+/* ROADMAP */
+.rm-wrap{display:flex;flex-direction:column;gap:12px;}
+.rm-row{display:flex;gap:0;align-items:stretch;}
+.rm-num{width:44px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;}
+.rm-dot{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'League Spartan',sans-serif;font-size:14px;font-weight:800;flex-shrink:0;}
+.rm-vline{width:2px;flex:1;margin-top:4px;}
+.rm-card{flex:1;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-left:14px;}
+.rm-head{display:flex;align-items:baseline;gap:10px;margin-bottom:6px;flex-wrap:wrap;}
+.rm-title{font-family:'League Spartan',sans-serif;font-size:14px;font-weight:800;}
+.rm-label{font-size:10px;padding:2px 8px;border-radius:20px;border:1px solid var(--border);color:var(--muted);font-family:'IBM Plex Mono',monospace;}
+.rm-goal{font-size:12px;color:var(--muted2);margin-bottom:8px;font-style:italic;}
+.rm-tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;}
+.rmtag{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;padding:3px 9px;border-radius:4px;}
+.rm-focus{font-size:12px;color:var(--muted2);line-height:1.6;}
+
+/* BRAND ATTRS */
+.battr{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px 18px;}
+.battr-dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:8px;vertical-align:middle;}
+.battr-text{font-size:13px;color:var(--text);}
+.battr-sub{font-size:12px;color:var(--muted2);margin-top:4px;padding-left:14px;line-height:1.5;}
+
+/* ANIMATIONS */
+@keyframes up{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.hin>*{animation:up .65s ease both;}
+.hsuper{animation-delay:.0s}.hh1{animation-delay:.08s}.hmeta{animation-delay:.15s}
+.hdesc{animation-delay:.2s}.hpills{animation-delay:.26s}.hstats{animation-delay:.32s}
+
+/* FOOTER */
+footer{padding:18px 36px;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);border-top:1px solid var(--border);}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-brand">
+    <div class="nav-brand-name">Ondi</div>
+    <div class="nav-brand-badge">Workforce</div>
+  </div>
+  <a class="nl on" href="#hero">Overview</a>
+  <a class="nl" href="#positioning">Positioning</a>
+  <a class="nl" href="#modules">Modules</a>
+  <a class="nl" href="#lifecycle">Lifecycle Engine</a>
+  <a class="nl" href="#trust">Trust Intelligence</a>
+  <a class="nl" href="#architecture">Architecture</a>
+  <a class="nl" href="#usecases">Use Cases</a>
+  <a class="nl" href="#actors">Actor Model</a>
+  <a class="nl" href="#roadmap">Roadmap</a>
+</nav>
+
+<!-- HERO -->
+<div id="hero">
+  <div class="hbg"></div>
+  <div class="hgrid"></div>
+  <div class="hin">
+    <div class="hsuper">Identity-Powered Workforce Lifecycle &amp; Access Orchestration</div>
+    <h1 class="hh1"><em>Ondi</em> Workforce<br/><span class="t">Onboard. Provision. Govern. Offboard.</span></h1>
+    <div class="hmeta">WORKFORCE IDENTITY · ACCESS ORCHESTRATION · LIFECYCLE AUTOMATION · EAST AFRICA FIRST</div>
+    <div class="hdesc">Ondi Workforce is the enterprise identity access layer — where identity, trust, access, compliance, and the employment lifecycle converge. Hire once. Provision everywhere. Revoke instantly. From offer letter to last login — automated.</div>
+    <div class="hpills">
+      <div class="hpill hp-id">🔐 Identity &amp; SSO</div>
+      <div class="hpill hp-wf">👥 Workforce IAM</div>
+      <div class="hpill hp-tl">⚡ Lifecycle Automation</div>
+      <div class="hpill hp-id">🛡 Compliance Governance</div>
+      <div class="hpill hp-wf">📊 Trust Intelligence</div>
+    </div>
+    <div class="hstats">
+      <div class="stat"><div class="statn">1-click</div><div class="statl">Full Provisioning · All SaaS Tools</div></div>
+      <div class="stat"><div class="statn">0 sec</div><div class="statl">Offboard Revocation · Instant</div></div>
+      <div class="stat"><div class="statn">8+</div><div class="statl">Module Suite · Workforce Engine</div></div>
+      <div class="stat"><div class="statn">JML</div><div class="statl">Joiner · Mover · Leaver Flows</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- 01 POSITIONING -->
+<section id="positioning">
+  <div class="eyebrow">01 — Strategic Positioning</div>
+  <div class="stitle">The <span>Identity Access Layer</span> of the Modern Workforce</div>
+  <div class="slead">Ondi Workforce sits between HR systems, SaaS tools, internal infrastructure, compliance, and employee identity — becoming the enterprise operating layer that none of these fragmented tools currently provide.</div>
+
+  <div class="g2 mb28">
+    <div class="card">
+      <div class="card-title" style="color:var(--ondi);margin-bottom:14px;">Product Identity</div>
+      <table style="width:100%;font-size:12.5px;border-collapse:collapse;">
+        <tr><td style="padding:7px 0;color:var(--muted2);border-bottom:1px solid var(--border);width:140px;">Full Name</td><td style="padding:7px 0;border-bottom:1px solid var(--border);font-family:'League Spartan',sans-serif;font-weight:800;color:var(--ink);">Ondi Workforce</td></tr>
+        <tr><td style="padding:7px 0;color:var(--muted2);border-bottom:1px solid var(--border);">Tagline</td><td style="padding:7px 0;border-bottom:1px solid var(--border);color:var(--ondi);font-style:italic;font-weight:600;">"Hire once. Provision everywhere. Revoke instantly."</td></tr>
+        <tr><td style="padding:7px 0;color:var(--muted2);border-bottom:1px solid var(--border);">Category</td><td style="padding:7px 0;border-bottom:1px solid var(--border);">Workforce IAM · Identity Access Management</td></tr>
+        <tr><td style="padding:7px 0;color:var(--muted2);border-bottom:1px solid var(--border);">Comparable To</td><td style="padding:7px 0;border-bottom:1px solid var(--border);">Okta · Rippling · JumpCloud · OneLogin</td></tr>
+        <tr><td style="padding:7px 0;color:var(--muted2);border-bottom:1px solid var(--border);">Differentiator</td><td style="padding:7px 0;border-bottom:1px solid var(--border);">Trust Score + KYC + Compliance Intelligence</td></tr>
+        <tr><td style="padding:7px 0;color:var(--muted2);border-bottom:1px solid var(--border);">Primary Market</td><td style="padding:7px 0;border-bottom:1px solid var(--border);">East Africa — TZ, KE, UG, RW — Enterprises &amp; SMEs</td></tr>
+        <tr><td style="padding:7px 0;color:var(--muted2);">Deployment</td><td style="padding:7px 0;">SaaS · PaaS (API/SDK) · Multi-tenant</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-title" style="color:var(--ondi);margin-bottom:14px;">The Problem Today</div>
+      <div style="font-size:13px;color:var(--muted2);line-height:1.85;">Enterprise onboarding is deeply fragmented today:<br/><br/>
+        <span style="color:var(--red);font-weight:700;">→ HR</span> <span style="color:var(--text);">creates the employee record</span><br/>
+        <span style="color:var(--sky);font-weight:700;">→ IT</span> <span style="color:var(--text);">manually creates email and devices</span><br/>
+        <span style="color:var(--violet);font-weight:700;">→ Admin</span> <span style="color:var(--text);">manually provisions Slack, Notion, Jira</span><br/>
+        <span style="color:var(--amber);font-weight:700;">→ Security</span> <span style="color:var(--text);">sets up VPN and MFA separately</span><br/>
+        <span style="color:var(--green);font-weight:700;">→ Finance</span> <span style="color:var(--text);">creates ERP and payroll profiles</span><br/>
+        <span style="color:var(--teal);font-weight:700;">→ Compliance</span> <span style="color:var(--text);">verifies documents in parallel</span><br/>
+        <span style="color:var(--muted2);font-weight:700;">→ Nobody</span> <span style="color:var(--text);">fully tracks offboarding<br/><br/></span>
+        <strong style="color:var(--ondi);">Ondi Workforce centralises all of this into a single automated flow.</strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="eyebrow mt32">Strategic Differentiators</div>
+  <div class="g2 mt24">
+    <div class="battr"><span class="battr-dot" style="background:var(--ondi);"></span><span class="battr-text"><strong>Identity + Trust — not just access management</strong></span><div class="battr-sub">Unlike Okta or OneLogin, Ondi layers a live Trust Score, KYC verification, and behavioural identity on top of every access decision</div></div>
+    <div class="battr"><span class="battr-dot" style="background:var(--teal);"></span><span class="battr-text"><strong>East Africa-first architecture</strong></span><div class="battr-sub">Built for USSD, M-Pesa payroll sync, NIDA/NIN KYC, and East African regulatory compliance — not adapted from a Western product</div></div>
+    <div class="battr"><span class="battr-dot" style="background:var(--violet);"></span><span class="battr-text"><strong>Compliance-aware provisioning</strong></span><div class="battr-sub">Every access grant is compliance-aware — regulatory standing feeds directly into access scope and risk level</div></div>
+    <div class="battr"><span class="battr-dot" style="background:var(--amber);"></span><span class="battr-text"><strong>Contractor &amp; temporary workforce support</strong></span><div class="battr-sub">Auto-expiry permissions, geofenced access, site-specific provisioning — critical for East Africa's gig, construction, and BPO economies</div></div>
+    <div class="battr"><span class="battr-dot" style="background:var(--red);"></span><span class="battr-text"><strong>Zero-second offboarding</strong></span><div class="battr-sub">Instant revocation across all sessions, SaaS tools, VPN, API keys, and devices — the most valuable capability for regulated enterprises</div></div>
+    <div class="battr"><span class="battr-dot" style="background:var(--green);"></span><span class="battr-text"><strong>Workforce Trust Intelligence</strong></span><div class="battr-sub">Detects ghost employees, dormant identities, insider threat signals, and access abuse patterns — a defensible long-term moat</div></div>
+  </div>
+</section>
+
+<!-- 02 MODULES -->
+<section id="modules">
+  <div class="eyebrow">02 — Product Architecture</div>
+  <div class="stitle">Eight <span>Core Modules</span> — Workforce Identity Suite</div>
+  <div class="slead">Ondi Workforce is structured as eight deeply integrated modules, each independently valuable, compounding in power as an end-to-end workforce identity operating system.</div>
+
+  <!-- MODULE 1: DIRECTORY -->
+  <div class="suite">
+    <div class="suite-hdr">
+      <div class="suite-icon">🗂</div>
+      <div>
+        <div class="suite-name" style="color:var(--ondi);">1 — Workforce Directory</div>
+        <div class="suite-motto">Unified Employee Identity Graph — the company's single source of workforce truth.</div>
+      </div>
+    </div>
+    <div class="suite-body">
+      <div class="suite-desc">The Workforce Directory is the canonical identity record for every person who interacts with the organisation — employees, contractors, interns, consultants, vendors, and partners — with org hierarchy, reporting lines, department structure, and real-time employment status.</div>
+      <div class="mod-rows">
+        <div class="mod-hdr"><span>FEATURE</span><span>SCOPE</span><span>DETAILS</span></div>
+        <div class="mod-row"><span class="mod-name" style="color:var(--ondi);">Employee Profiles</span><span class="mod-full">Full identity records</span><span class="mod-func">Name, role, department, location, employment type, start date, contract duration, manager, reports. Ondi-verified identity with KYC score and biometric hash.</span></div>
+        <div class="mod-row"><span class="mod-name" style="color:var(--ondi);">Org Hierarchy</span><span class="mod-full">Reporting lines &amp; structure</span><span class="mod-func">Dynamic org chart with reporting lines, team structure, and branch/location assignments. Auto-updates on promotions, transfers, and departures.</span></div>
+        <div class="mod-row"><span class="mod-name" style="color:var(--ondi);">Identity Types</span><span class="mod-full">Multi-worker-class support</span><span class="mod-func">Employees · Contractors · Interns · Consultants · Vendors · Partners — each with appropriate access scope, trust level, and compliance rules.</span></div>
+        <div class="mod-row"><span class="mod-name" style="color:var(--ondi);">Device &amp; Asset Graph</span><span class="mod-full">Identity-bound assets</span><span class="mod-func">Laptops, phones, SIM cards, biometric devices, and company IDs bound to the employee identity record. Auto-flags on offboarding.</span></div>
+        <div class="mod-row"><span class="mod-name" style="color:var(--teal);">Directory Integrations</span><span class="mod-full">SaaS sync layer</span><span class="mod-func">Google Workspace · Microsoft 365 · Slack · Notion · Jira · GitHub · AWS IAM · Azure AD · ERP systems. Bi-directional SCIM sync.</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODULE 2: LIFECYCLE ENGINE -->
+  <div class="suite">
+    <div class="suite-hdr">
+      <div class="suite-icon">⚙️</div>
+      <div>
+        <div class="suite-name" style="color:var(--violet);">2 — Lifecycle Engine</div>
+        <div class="suite-motto">Automated Joiner · Mover · Leaver workflows — the heart of the product.</div>
+      </div>
+    </div>
+    <div class="suite-body">
+      <div class="suite-desc">The Lifecycle Engine orchestrates the full employment lifecycle in a single automated flow — triggered by HR events and executed across all connected systems simultaneously. No manual IT tickets. No forgotten accounts.</div>
+      <div class="mod-rows">
+        <div class="mod-hdr"><span>PHASE</span><span>TRIGGER</span><span>AUTOMATED ACTIONS</span></div>
+        <div class="mod-row"><span class="mod-name" style="color:var(--green);">JOINER</span><span class="mod-full">HR marks employee as hired</span><span class="mod-func">Create Ondi account → generate company email → provision Slack / Notion / Jira → assign RBAC permissions → create payroll profile → assign device → enforce MFA → generate onboarding checklist. All from ONE workflow.</span></div>
+        <div class="mod-row"><span class="mod-name" style="color:var(--amber);">MOVER</span><span class="mod-full">Role or department change</span><span class="mod-func">Revoke old permissions → grant new permissions → update reporting lines → adjust compliance scope → recalculate risk/access level. Zero access gap or access bleed.</span></div>
+        <div class="mod-row"><span class="mod-name" style="color:var(--red);">LEAVER</span><span class="mod-full">Employee exit confirmed</span><span class="mod-func">Instantly: revoke all sessions → disable SSO → revoke SaaS access → revoke VPN → revoke API keys → lock devices → archive email → transfer file ownership → trigger exit compliance workflow. Zero latency.</span></div>
+        <div class="mod-row"><span class="mod-name" style="color:var(--teal);">CONTRACTOR</span><span class="mod-full">Temporary engagement</span><span class="mod-func">Provisions temporary access with auto-expiry date. Geofenced to site/location. Specific permission scope only. Contractor trust verification via Ondi KYC. Auto-revoke at contract end.</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODULE 3: ACCESS HUB -->
+  <div class="suite">
+    <div class="suite-hdr">
+      <div class="suite-icon">🔐</div>
+      <div>
+        <div class="suite-name" style="color:var(--ondi);">3 — Access Hub</div>
+        <div class="suite-motto">Centralised SSO &amp; Provisioning — the enterprise access layer.</div>
+      </div>
+    </div>
+    <div class="suite-body">
+      <div class="suite-desc">The Access Hub is the single authentication and provisioning gateway for the enterprise — replacing siloed logins across every SaaS tool with one identity-verified, risk-aware access point.</div>
+      <div class="mod-rows">
+        <div class="mod-hdr"><span>CAPABILITY</span><span>STANDARD</span><span>DETAILS</span></div>
+        <div class="mod-row"><span class="mod-name" style="color:var(--ondi);">SSO Gateway</span><span class="mod-full">OAuth 2.0 / SAML 2.0</span><span class="mod-func">One login across all enterprise SaaS tools and internal systems. Signed JWT returns identity + trust score + compliance status + RBAC roles.</span></div>
+        <div class="mod-row"><span class="mod-name" style="color:var(--ondi);">SCIM Provisioning</span><span class="mod-full">Automated user lifecycle</span><span class="mod-func">Bi-directional SCIM sync with all connected SaaS applications. Auto-provision on join, update on move, deprovision on leave.</span></div>
+        <div class="mod-row"><span class="mod-name" style="color:var(--ondi);">RBAC Engine</span><span class="mod-full">Role-Based Access Control</span><span class="mod-func">Granular role-permission mapping by department, seniority, location, and compliance scope. Policy-as-code with full audit trail.</span></div>
+        <div class="mod-row"><span class="mod-name" style="color:var(--violet);">Adaptive MFA</span><span class="mod-full">Risk-Based Step-Up Auth</span><span class="mod-func">High trust + low risk = frictionless passwordless. Anomaly or sensitive action detected = OTP or biometric step-up. Continuous risk evaluation per session.</span></div>
+        <div class="mod-row"><span class="mod-name" style="color:var(--violet);">Passwordless Login</span><span class="mod-full">Biometric &amp; device-bound</span><span class="mod-func">FIDO2 / WebAuthn support. Device-bound passkeys. Biometric unlock via mobile. Fully eliminates password-based credential risk.</span></div>
+        <div class="mod-row"><span class="mod-name" style="color:var(--teal);">Session Management</span><span class="mod-full">Continuous session governance</span><span class="mod-func">Real-time session monitoring. Forced re-auth on risk events. Remote session kill for all devices on offboarding. Session duration policies per role.</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODULE 4: COMPLIANCE & AUDIT -->
+  <div class="suite">
+    <div class="suite-hdr">
+      <div class="suite-icon">📋</div>
+      <div>
+        <div class="suite-name" style="color:var(--green);">4 — Compliance &amp; Audit Layer</div>
+        <div class="suite-motto">Complete access audit trail — built for banks, telecoms, and regulated enterprises.</div>
+      </div>
+    </div>
+    <div class="suite-body">
+      <div class="suite-desc">Every access grant, permission change, login attempt, and admin action produces an immutable audit record — meeting the compliance requirements of East African banking, insurance, telecom, and government regulations automatically.</div>
+      <div class="mod-rows">
+        <div class="mod-hdr"><span>CAPABILITY</span><span>SCOPE</span><span>DETAILS</span></div>
+        <div class="mod-row"><span class="mod-name" style="color:var(--green);">Access Audit Trail</span><span class="mod-full">Immutable access log</span><span class="mod-func">Who accessed what, when, from where, on which device. Every permission change recorded with before/after state. Tamper-proof ledger.</span></div>
+        <div class="mod-row"><span class="mod-name" style="color:var(--green);">Dormant Account Detection</span><span class="mod-full">Ghost employee scanner</span><span class="mod-func">Identifies accounts with no activity for configurable periods. Surfaces orphaned access, ghost employees, and stale permissions for immediate review.</span></div>
+        <div class="mod-row"><span class="mod-name" style="color:var(--green);">Privileged Access Governance</span><span class="mod-full">Admin action monitoring</span><span class="mod-func">All admin and elevated-privilege actions require additional MFA and generate high-priority audit entries. Just-in-time access for sensitive operations.</span></div>
+        <div class="mod-row"><span class="mod-name" style="color:var(--teal);">Compliance Reporting</span><span class="mod-full">Regulatory-ready exports</span><span class="mod-func">One-click audit reports for BOT, CBK, CMA, TRA, NSSF, and other East African regulators. Board-ready access review dashboards.</span></div>
+        <div class="mod-row"><span class="mod-name" style="color:var(--teal);">Access Certification</span><span class="mod-full">Periodic access reviews</span><span class="mod-func">Automated periodic access review campaigns. Managers certify or revoke team member access. Non-responses auto-flag for security team action.</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODULE 5: DEVICE & ASSET -->
+  <div class="suite">
+    <div class="suite-hdr">
+      <div class="suite-icon">💻</div>
+      <div>
+        <div class="suite-name" style="color:var(--sky);">5 — Device &amp; Asset Access</div>
+        <div class="suite-motto">Identity-bound device governance — every asset tracked, every access controlled.</div>
+      </div>
+    </div>
+    <div class="suite-body">
+      <div class="suite-desc">Every company device is bound to an employee identity record — laptops, phones, SIM cards, biometric access devices, and physical company IDs. On offboarding, all device access is revoked, unreturned assets are flagged, and supported devices can be remotely wiped.</div>
+      <div class="mod-rows">
+        <div class="mod-hdr"><span>ASSET TYPE</span><span>TRACKING</span><span>OFFBOARDING ACTION</span></div>
+        <div class="mod-row"><span class="mod-name" style="color:var(--sky);">Laptops &amp; Workstations</span><span class="mod-full">Device trust + MDM binding</span><span class="mod-func">Certificate-based device trust. MDM integration for policy enforcement. Remote wipe on exit. Automatic SSO revocation on device deregistration.</span></div>
+        <div class="mod-row"><span class="mod-name" style="color:var(--sky);">Mobile Devices</span><span class="mod-full">BYOD &amp; company-issued</span><span class="mod-func">Containerised company access on personal devices. Full wipe for company-issued. MFA device deregistration on exit.</span></div>
+        <div class="mod-row"><span class="mod-name" style="color:var(--sky);">SIM Cards &amp; Physical IDs</span><span class="mod-full">Physical asset registry</span><span class="mod-func">SIM and physical ID assignment tracked in identity record. Flagged as unreturned on offboarding. Blocks re-issue until confirmed return.</span></div>
+        <div class="mod-row"><span class="mod-name" style="color:var(--sky);">Biometric Access Devices</span><span class="mod-full">Physical access gates</span><span class="mod-func">Biometric (fingerprint/face) door access bound to workforce identity. Revoked instantly on offboarding. Covers offices, data centres, and secured zones.</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODULE 6: CONTRACTOR ACCESS -->
+  <div class="suite">
+    <div class="suite-hdr">
+      <div class="suite-icon">🏗</div>
+      <div>
+        <div class="suite-name" style="color:var(--amber);">6 — Contractor &amp; Temporary Access</div>
+        <div class="suite-motto">East Africa's biggest workforce pain point — finally solved.</div>
+      </div>
+    </div>
+    <div class="suite-body">
+      <div class="suite-desc">Temporary and contractor workforces are massive in East Africa — construction, logistics, BPO, and project-based industries employ thousands of short-term workers with no consistent identity or access infrastructure. Ondi Workforce solves this with native temporary provisioning.</div>
+      <div class="mod-rows">
+        <div class="mod-hdr"><span>CAPABILITY</span><span>SCOPE</span><span>DETAILS</span></div>
+        <div class="mod-row"><span class="mod-name" style="color:var(--amber);">Temporary Provisioning</span><span class="mod-full">Time-bound access grants</span><span class="mod-func">Access provisioned for defined engagement period. Auto-expiry date set at creation. No manual offboarding required — expires automatically.</span></div>
+        <div class="mod-row"><span class="mod-name" style="color:var(--amber);">Geofenced Access</span><span class="mod-full">Location-bound permissions</span><span class="mod-func">Access restricted to specific sites, branches, or geographic zones. Construction site engineer can only access systems relevant to that site.</span></div>
+        <div class="mod-row"><span class="mod-name" style="color:var(--amber);">Contractor Trust Verification</span><span class="mod-full">KYC before provisioning</span><span class="mod-func">Ondi KYC verifies contractor identity before any access is granted. National ID check, biometric liveness, and trust score assigned.</span></div>
+        <div class="mod-row"><span class="mod-name" style="color:var(--amber);">Scope-Limited Permissions</span><span class="mod-full">Minimum viable access</span><span class="mod-func">Contractors receive only the specific tool and data access required for their role. No lateral access. Role-scoped permissions auto-applied from templates.</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 03 LIFECYCLE ENGINE DETAIL -->
+<section id="lifecycle">
+  <div class="eyebrow">03 — Joiner · Mover · Leaver in Detail</div>
+  <div class="stitle"><span>Lifecycle Engine</span> — End-to-End Automation</div>
+  <div class="slead">The JML (Joiner-Mover-Leaver) engine is the heart of Ondi Workforce. Every employment lifecycle event triggers a fully automated, auditable, multi-system orchestration — replacing weeks of manual IT work with zero-touch automation.</div>
+
+  <!-- JOINER -->
+  <div class="lc-phase mb28">
+    <div class="lc-hdr" style="background:rgba(5,150,105,.05);">
+      <div class="lc-badge" style="background:var(--gd);color:var(--green);border:1px solid rgba(5,150,105,.3);">JOINER</div>
+      <div>
+        <div class="lc-name">New Employee Hired → Everything Provisioned Automatically</div>
+        <div class="lc-desc">HR marks employee as hired in HRIS. Ondi Workforce executes the full provisioning sequence in under 60 seconds.</div>
+      </div>
+    </div>
+    <div class="lc-body">
+      <div class="lc-chip" style="background:rgba(5,150,105,.08);color:var(--green);border-color:rgba(5,150,105,.3);">✓ Create Ondi Account</div>
+      <div class="lc-chip" style="background:rgba(5,150,105,.08);color:var(--green);border-color:rgba(5,150,105,.3);">✓ Generate Company Email</div>
+      <div class="lc-chip" style="background:rgba(5,150,105,.08);color:var(--green);border-color:rgba(5,150,105,.3);">✓ Provision Slack</div>
+      <div class="lc-chip" style="background:rgba(5,150,105,.08);color:var(--green);border-color:rgba(5,150,105,.3);">✓ Provision Notion</div>
+      <div class="lc-chip" style="background:rgba(5,150,105,.08);color:var(--green);border-color:rgba(5,150,105,.3);">✓ Provision Jira</div>
+      <div class="lc-chip" style="background:rgba(5,150,105,.08);color:var(--green);border-color:rgba(5,150,105,.3);">✓ Provision GitHub</div>
+      <div class="lc-chip" style="background:rgba(5,150,105,.08);color:var(--green);border-color:rgba(5,150,105,.3);">✓ Assign RBAC Roles</div>
+      <div class="lc-chip" style="background:rgba(5,150,105,.08);color:var(--green);border-color:rgba(5,150,105,.3);">✓ Create Payroll Profile</div>
+      <div class="lc-chip" style="background:rgba(5,150,105,.08);color:var(--green);border-color:rgba(5,150,105,.3);">✓ Assign Device</div>
+      <div class="lc-chip" style="background:rgba(5,150,105,.08);color:var(--green);border-color:rgba(5,150,105,.3);">✓ Enforce MFA</div>
+      <div class="lc-chip" style="background:rgba(5,150,105,.08);color:var(--green);border-color:rgba(5,150,105,.3);">✓ Grant VPN Access</div>
+      <div class="lc-chip" style="background:rgba(5,150,105,.08);color:var(--green);border-color:rgba(5,150,105,.3);">✓ Generate Onboarding Checklist</div>
+    </div>
+  </div>
+
+  <!-- MOVER -->
+  <div class="lc-phase mb28">
+    <div class="lc-hdr" style="background:rgba(217,119,6,.05);">
+      <div class="lc-badge" style="background:rgba(217,119,6,.1);color:var(--amber);border:1px solid rgba(217,119,6,.3);">MOVER</div>
+      <div>
+        <div class="lc-name">Role or Department Change → Access Updated Without Access Bleed</div>
+        <div class="lc-desc">HR updates the employee's role or department. Ondi Workforce revokes old access and grants new access atomically — no overlap, no gap.</div>
+      </div>
+    </div>
+    <div class="lc-body">
+      <div class="lc-chip" style="background:rgba(217,119,6,.08);color:var(--amber);border-color:rgba(217,119,6,.3);">⟳ Revoke Old Permissions</div>
+      <div class="lc-chip" style="background:rgba(217,119,6,.08);color:var(--amber);border-color:rgba(217,119,6,.3);">⟳ Grant New Permissions</div>
+      <div class="lc-chip" style="background:rgba(217,119,6,.08);color:var(--amber);border-color:rgba(217,119,6,.3);">⟳ Update Reporting Lines</div>
+      <div class="lc-chip" style="background:rgba(217,119,6,.08);color:var(--amber);border-color:rgba(217,119,6,.3);">⟳ Adjust Compliance Scope</div>
+      <div class="lc-chip" style="background:rgba(217,119,6,.08);color:var(--amber);border-color:rgba(217,119,6,.3);">⟳ Recalculate Risk Level</div>
+      <div class="lc-chip" style="background:rgba(217,119,6,.08);color:var(--amber);border-color:rgba(217,119,6,.3);">⟳ Update Org Hierarchy</div>
+      <div class="lc-chip" style="background:rgba(217,119,6,.08);color:var(--amber);border-color:rgba(217,119,6,.3);">⟳ Notify New Manager</div>
+      <div class="lc-chip" style="background:rgba(217,119,6,.08);color:var(--amber);border-color:rgba(217,119,6,.3);">⟳ Audit Entry Created</div>
+    </div>
+  </div>
+
+  <!-- LEAVER -->
+  <div class="lc-phase">
+    <div class="lc-hdr" style="background:rgba(220,38,38,.05);">
+      <div class="lc-badge" style="background:rgba(220,38,38,.1);color:var(--red);border:1px solid rgba(220,38,38,.3);">LEAVER</div>
+      <div>
+        <div class="lc-name">Employee Exit → Zero-Second Full Revocation — Across Every System</div>
+        <div class="lc-desc">The most critical enterprise capability. Instant, complete, and auditable revocation at the moment of exit confirmation.</div>
+      </div>
+    </div>
+    <div class="lc-body">
+      <div class="lc-chip" style="background:rgba(220,38,38,.08);color:var(--red);border-color:rgba(220,38,38,.3);">✗ Revoke All Sessions</div>
+      <div class="lc-chip" style="background:rgba(220,38,38,.08);color:var(--red);border-color:rgba(220,38,38,.3);">✗ Disable SSO</div>
+      <div class="lc-chip" style="background:rgba(220,38,38,.08);color:var(--red);border-color:rgba(220,38,38,.3);">✗ Revoke SaaS Access</div>
+      <div class="lc-chip" style="background:rgba(220,38,38,.08);color:var(--red);border-color:rgba(220,38,38,.3);">✗ Revoke VPN</div>
+      <div class="lc-chip" style="background:rgba(220,38,38,.08);color:var(--red);border-color:rgba(220,38,38,.3);">✗ Revoke API Keys</div>
+      <div class="lc-chip" style="background:rgba(220,38,38,.08);color:var(--red);border-color:rgba(220,38,38,.3);">✗ Lock Devices</div>
+      <div class="lc-chip" style="background:rgba(220,38,38,.08);color:var(--red);border-color:rgba(220,38,38,.3);">✗ Archive Email</div>
+      <div class="lc-chip" style="background:rgba(220,38,38,.08);color:var(--red);border-color:rgba(220,38,38,.3);">✗ Transfer File Ownership</div>
+      <div class="lc-chip" style="background:rgba(220,38,38,.08);color:var(--red);border-color:rgba(220,38,38,.3);">✗ Revoke Physical Access</div>
+      <div class="lc-chip" style="background:rgba(220,38,38,.08);color:var(--red);border-color:rgba(220,38,38,.3);">✗ Flag Unreturned Assets</div>
+      <div class="lc-chip" style="background:rgba(220,38,38,.08);color:var(--red);border-color:rgba(220,38,38,.3);">✗ Exit Compliance Workflow</div>
+      <div class="lc-chip" style="background:rgba(220,38,38,.08);color:var(--red);border-color:rgba(220,38,38,.3);">✗ Full Audit Entry</div>
+    </div>
+  </div>
+</section>
+
+<!-- 04 TRUST INTELLIGENCE -->
+<section id="trust">
+  <div class="eyebrow">04 — Trust-Aware Workforce Identity</div>
+  <div class="stitle">Workforce <span>Trust Intelligence</span> — Ondi's Unique Moat</div>
+  <div class="slead">Unlike Okta or JumpCloud, Ondi Workforce layers a live Trust Score, KYC verification, and behavioural identity signals on top of every access decision — making access risk-aware, not just role-aware.</div>
+
+  <div class="callout mb28" style="background:var(--ind);border:1px solid rgba(67,56,202,.2);">
+    <div class="callout-title" style="color:var(--ondi);">🔐 What Makes Ondi Different</div>
+    <div class="callout-body">
+      <strong style="color:var(--ink);">Others:</strong> Identity access management — who are you, what role do you have?<br/>
+      <strong style="color:var(--ondi);">Ondi:</strong> Identity + Trust + Compliance + Workforce Lifecycle — who are you, how trustworthy is your identity, are you compliant, and what is your current risk level?<br/><br/>
+      Every access decision in Ondi Workforce is informed by a live Trust Score combining: <strong style="color:var(--ink);">Identity authenticity (35%)</strong> · <strong style="color:var(--ink);">Behavioural consistency (25%)</strong> · <strong style="color:var(--ink);">Financial patterns (25%)</strong> · <strong style="color:var(--ink);">Compliance standing (15%)</strong>.
+    </div>
+  </div>
+
+  <div class="trust-band mb28">
+    <div class="tb-hdr">Adaptive Access by Trust &amp; Risk Scenario</div>
+    <div class="tb-rows">
+      <div class="tb-row">
+        <div class="tb-scenario">✅ High Trust Employee</div>
+        <div class="tb-signal" style="color:var(--green);">Score ≥ 700 · Low Risk</div>
+        <div class="tb-action">Seamless passwordless access. 1-tap authentication. Minimum friction. No additional verification required.</div>
+      </div>
+      <div class="tb-row">
+        <div class="tb-scenario">⚠️ Impossible Travel</div>
+        <div class="tb-signal" style="color:var(--amber);">Anomaly Detected</div>
+        <div class="tb-action">Login from Nairobi at 9am, Dar es Salaam at 10am → automatic step-up MFA + security alert. Session held pending verification.</div>
+      </div>
+      <div class="tb-row">
+        <div class="tb-scenario">⚠️ Unusual Device</div>
+        <div class="tb-signal" style="color:var(--amber);">Unrecognised Device</div>
+        <div class="tb-action">First-time login from unregistered device → biometric step-up required. Device registration flow. Security team notified.</div>
+      </div>
+      <div class="tb-row">
+        <div class="tb-scenario">🔴 Repeated Failed Auth</div>
+        <div class="tb-signal" style="color:var(--red);">Brute Force Signal</div>
+        <div class="tb-action">5+ consecutive failures → account temporarily locked. Manager and security team alerted. Unlock requires helpdesk + biometric verification.</div>
+      </div>
+      <div class="tb-row">
+        <div class="tb-scenario">🔴 Suspicious Behaviour</div>
+        <div class="tb-signal" style="color:var(--red);">Insider Threat Signal</div>
+        <div class="tb-action">Bulk data export, off-hours privileged access, or unusual API key usage → temporary access restriction + immediate security alert + audit trail.</div>
+      </div>
+      <div class="tb-row">
+        <div class="tb-scenario">🔴 Dormant Identity</div>
+        <div class="tb-signal" style="color:var(--red);">Ghost Employee Risk</div>
+        <div class="tb-action">60+ days no login → account flagged as dormant. Auto-notification to HR and manager for review. Can escalate to auto-disable.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="eyebrow mt32">Enterprise Trust Graph — Long-Term Intelligence</div>
+  <div class="g3 mt24">
+    <div class="card"><div class="card-icon">👻</div><div class="card-title">Ghost Employee Detection</div><div class="card-desc">Identifies payroll employees with no system activity — a major fraud vector in East African enterprises with large legacy workforces.</div></div>
+    <div class="card"><div class="card-icon">💤</div><div class="card-title">Dormant Identity Monitoring</div><div class="card-desc">Continuously surfaces accounts with no recent activity — reducing the attack surface of stale credentials and forgotten access grants.</div></div>
+    <div class="card"><div class="card-icon">🔍</div><div class="card-title">Access Abuse Detection</div><div class="card-desc">ML-powered detection of access patterns that deviate from peer group norms — surfaces privilege misuse before damage occurs.</div></div>
+    <div class="card"><div class="card-icon">🕵️</div><div class="card-title">Insider Threat Signals</div><div class="card-desc">Behavioural signals including off-hours access, bulk exports, and lateral movement attempts — correlated across all connected systems.</div></div>
+    <div class="card"><div class="card-icon">🔗</div><div class="card-title">Orphaned Access Graph</div><div class="card-desc">Tracks access that was never revoked — former contractor accounts, project-specific permissions, and inherited role accumulation.</div></div>
+    <div class="card"><div class="card-icon">📈</div><div class="card-title">Workforce Trust Score</div><div class="card-desc">An aggregate trust health index for the entire organisation — surfacing teams, departments, or locations with elevated risk profiles.</div></div>
+  </div>
+</section>
+
+<!-- 05 ARCHITECTURE -->
+<section id="architecture">
+  <div class="eyebrow">05 — Platform Architecture</div>
+  <div class="stitle">Five-Layer <span>Architecture Stack</span></div>
+  <div class="slead">Ondi Workforce is built as a decoupled, event-driven architecture. Each layer is independently scalable. The Trust Score runs as a cross-cutting concern at every layer.</div>
+
+  <div class="arch-stack mb28">
+    <div class="arch-row" style="border-color:rgba(67,56,202,.25);">
+      <div class="arch-l" style="background:rgba(67,56,202,.12);color:var(--ondi);">UI Layer</div>
+      <div class="arch-n" style="border-color:rgba(67,56,202,.18);"><span>Client Interfaces</span></div>
+      <div class="arch-d" style="border-color:rgba(67,56,202,.18);">HR Admin Console · Employee Self-Service Portal · Security Dashboard · Manager Access Review · Ondi Mobile App · WhatsApp / USSD for field workers</div>
+    </div>
+    <div class="arch-row" style="border-color:rgba(109,40,217,.25);">
+      <div class="arch-l" style="background:rgba(109,40,217,.12);color:var(--violet);">Layer 3</div>
+      <div class="arch-n" style="border-color:rgba(109,40,217,.18);"><span>Workforce Modules</span></div>
+      <div class="arch-d" style="border-color:rgba(109,40,217,.18);">Workforce Directory · Lifecycle Engine (JML) · Access Hub (SSO / SCIM / RBAC) · Compliance Audit Layer · Device Governance · Contractor Access · Trust Intelligence</div>
+    </div>
+    <div class="arch-row" style="border-color:rgba(13,148,136,.25);">
+      <div class="arch-l" style="background:rgba(13,148,136,.12);color:var(--teal);">Layer 2</div>
+      <div class="arch-n" style="border-color:rgba(13,148,136,.18);"><span>Shared Services</span></div>
+      <div class="arch-d" style="border-color:rgba(13,148,136,.18);">Trust Score Engine · KYC/KYB · Biometric Liveness · Behavioural ML · Audit Trail · Multi-Tenant Data Layer · Analytics &amp; Reporting · Notification Gateway</div>
+    </div>
+    <div class="arch-row" style="border-color:rgba(217,119,6,.25);">
+      <div class="arch-l" style="background:rgba(217,119,6,.12);color:var(--amber);">Layer 1</div>
+      <div class="arch-n" style="border-color:rgba(217,119,6,.18);"><span>Integration Layer</span></div>
+      <div class="arch-d" style="border-color:rgba(217,119,6,.18);">Google Workspace · Microsoft 365 · Slack · Jira · GitHub · AWS IAM · Azure AD · HRIS systems · ERP adapters · NIDA/NIN registry · MDM platforms</div>
+    </div>
+    <div class="arch-row" style="border-color:rgba(2,132,199,.25);">
+      <div class="arch-l" style="background:rgba(2,132,199,.12);color:var(--sky);">Layer 0</div>
+      <div class="arch-n" style="border-color:rgba(2,132,199,.18);"><span>Data Backbone</span></div>
+      <div class="arch-d" style="border-color:rgba(2,132,199,.18);">Event-driven provisioning · Webhook delivery · Immutable audit ledger · East Africa data residency (TZ, KE, UG, RW) · AES-256 encryption at rest · Zero-trust network policies</div>
+    </div>
+  </div>
+
+  <div class="g4">
+    <div class="card"><div class="card-icon">🔗</div><div class="card-title">SaaS Integrations</div><div class="card-desc">Google Workspace, Microsoft 365, Slack, Notion, Jira, GitHub, AWS, Azure — pre-built SCIM/OAuth connectors. Deploy in minutes.</div></div>
+    <div class="card"><div class="card-icon">🌍</div><div class="card-title">Multi-Tenant</div><div class="card-desc">Isolated namespaces per organisation. East Africa data residency. GDPR-equivalent governance. Full audit trail on every action.</div></div>
+    <div class="card"><div class="card-icon">⚡</div><div class="card-title">Event-Driven</div><div class="card-desc">HR events trigger instant downstream provisioning via webhooks and message queues. No polling. No delays. Zero-latency offboarding.</div></div>
+    <div class="card"><div class="card-icon">🛡</div><div class="card-title">Zero Trust</div><div class="card-desc">Never trust, always verify. Every access request evaluated against identity, device trust, location, behaviour, and Trust Score in real time.</div></div>
+  </div>
+</section>
+
+<!-- 06 USE CASES -->
+<section id="usecases">
+  <div class="eyebrow">06 — Enterprise Use Cases</div>
+  <div class="stitle">Industry <span>Use Cases</span> — East Africa Focus</div>
+  <div class="slead">Ondi Workforce is built for the specific workforce challenges of East African regulated industries — where fragmented access, high contractor churn, and manual offboarding create real security and compliance risks every day.</div>
+
+  <div class="g2 mb28">
+    <div class="suite">
+      <div class="suite-hdr">
+        <div class="suite-icon">🏦</div>
+        <div>
+          <div class="suite-name" style="color:var(--ondi);font-size:14px;">Banks &amp; Financial Services</div>
+          <div class="suite-motto">Staff onboarding, branch access, privileged access governance.</div>
+        </div>
+      </div>
+      <div class="suite-body">
+        <div class="suite-desc">Banks face the most severe compliance and security requirements around workforce access — BOT and CBK require complete audit trails for any staff access to customer financial data.</div>
+        <div class="mod-rows">
+          <div class="mod-row"><span class="mod-name" style="color:var(--ondi);">Branch Access Control</span><span class="mod-full"></span><span class="mod-func">Role-based access to core banking, customer PII, and transaction systems. Branch-specific permission scoping.</span></div>
+          <div class="mod-row"><span class="mod-name" style="color:var(--ondi);">Privileged Access</span><span class="mod-full"></span><span class="mod-func">Just-in-time access for admin operations. Every privileged session recorded and time-limited.</span></div>
+          <div class="mod-row"><span class="mod-name" style="color:var(--ondi);">BOT Audit Compliance</span><span class="mod-full"></span><span class="mod-func">Regulatory-ready access logs. One-click audit report for Bank of Tanzania examinations.</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="suite">
+      <div class="suite-hdr">
+        <div class="suite-icon">📡</div>
+        <div>
+          <div class="suite-name" style="color:var(--teal);font-size:14px;">Telecoms</div>
+          <div class="suite-motto">SIM registration agents, regional access governance.</div>
+        </div>
+      </div>
+      <div class="suite-body">
+        <div class="suite-desc">Telecoms manage large distributed agent workforces — SIM registration agents, field technicians, and retail staff — each needing scoped, auditable access to customer data systems.</div>
+        <div class="mod-rows">
+          <div class="mod-row"><span class="mod-name" style="color:var(--teal);">Agent Provisioning</span><span class="mod-full"></span><span class="mod-func">Rapid onboarding of SIM registration agents with KYC verification before any system access is granted.</span></div>
+          <div class="mod-row"><span class="mod-name" style="color:var(--teal);">Regional Access</span><span class="mod-full"></span><span class="mod-func">Geofenced access for field agents — restricted to the region and systems relevant to their deployment.</span></div>
+          <div class="mod-row"><span class="mod-name" style="color:var(--teal);">High Churn Management</span><span class="mod-full"></span><span class="mod-func">Instant offboarding for agent contract terminations — critical given high turnover in telecom retail networks.</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="suite">
+      <div class="suite-hdr">
+        <div class="suite-icon">🏗</div>
+        <div>
+          <div class="suite-name" style="color:var(--amber);font-size:14px;">Construction &amp; Logistics</div>
+          <div class="suite-motto">Temporary workforce provisioning, site-level access controls.</div>
+        </div>
+      </div>
+      <div class="suite-body">
+        <div class="suite-desc">Construction and logistics employ thousands of temporary workers across multiple sites — each needing fast provisioning, geofenced access, and automatic expiry when their engagement ends.</div>
+        <div class="mod-rows">
+          <div class="mod-row"><span class="mod-name" style="color:var(--amber);">Site-Level Access</span><span class="mod-full"></span><span class="mod-func">Engineer on a 2-month contract gets access scoped to that site only. Auto-expires at contract end.</span></div>
+          <div class="mod-row"><span class="mod-name" style="color:var(--amber);">Driver Onboarding</span><span class="mod-full"></span><span class="mod-func">Rapid KYC verification for fleet drivers. Biometric access to vehicle management systems and dispatch tools.</span></div>
+          <div class="mod-row"><span class="mod-name" style="color:var(--amber);">Contractor Verification</span><span class="mod-full"></span><span class="mod-func">Every contractor identity verified via Ondi KYC before site or system access. Trust score assigned.</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="suite">
+      <div class="suite-hdr">
+        <div class="suite-icon">🏛</div>
+        <div>
+          <div class="suite-name" style="color:var(--green);font-size:14px;">Government &amp; Public Sector</div>
+          <div class="suite-motto">Civil servant identity management, agency access orchestration.</div>
+        </div>
+      </div>
+      <div class="suite-body">
+        <div class="suite-desc">Government agencies manage large civil servant workforces across multiple agencies and departments — with complex inter-agency access requirements and strict compliance obligations.</div>
+        <div class="mod-rows">
+          <div class="mod-row"><span class="mod-name" style="color:var(--green);">Civil Servant Identity</span><span class="mod-full"></span><span class="mod-func">NIDA-verified identity for all government employees. Single identity across all agency systems.</span></div>
+          <div class="mod-row"><span class="mod-name" style="color:var(--green);">Inter-Agency Access</span><span class="mod-full"></span><span class="mod-func">Federated identity allows civil servants to access relevant systems across agencies without re-authentication.</span></div>
+          <div class="mod-row"><span class="mod-name" style="color:var(--green);">Audit Compliance</span><span class="mod-full"></span><span class="mod-func">Full audit trail for all government system access — meets Tanzania and Kenya e-government compliance requirements.</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout" style="background:rgba(67,56,202,.06);border:1px solid rgba(67,56,202,.2);">
+    <div class="callout-title" style="color:var(--ondi);">🏢 BPO / Call Centres — A Specific Fit</div>
+    <div class="callout-body">
+      BPO and call centre operations have some of the highest workforce churn in East Africa — agents hired weekly, shift-based access requirements, and rapid offboarding when contracts end. Ondi Workforce is a natural fit: <strong style="color:var(--ink);">fast provisioning</strong> for new agent cohorts, <strong style="color:var(--ink);">shift-based access windows</strong> for time-limited system access, and <strong style="color:var(--ink);">instant offboarding</strong> for contract terminations — all with full audit trails required by enterprise BPO clients.
+    </div>
+  </div>
+</section>
+
+<!-- 07 ACTOR MODEL -->
+<section id="actors">
+  <div class="eyebrow">07 — Platform Access &amp; Actor Model</div>
+  <div class="stitle">Multi-Role <span>Actor Model</span></div>
+  <div class="slead">Ondi Workforce operates across multiple actor types — each with distinct access scope, trust level, and interaction model. RBAC enforced at the API gateway; all inter-service communication via mTLS.</div>
+
+  <table class="atbl mb28">
+    <thead><tr><th style="width:200px;">Actor</th><th style="width:220px;">Role in Ondi Workforce</th><th>Access Scope</th></tr></thead>
+    <tbody>
+      <tr><td><div class="aname">🏢 HR Administrator</div></td><td style="font-size:12px;color:var(--muted2);">Manages employee records, triggers lifecycle events, reviews access</td><td style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--ondi);">Workforce Directory (full) · Lifecycle Engine · Provisioning Dashboard</td></tr>
+      <tr><td><div class="aname">👤 Employee</div></td><td style="font-size:12px;color:var(--muted2);">Self-service identity management, MFA enrollment, access requests</td><td style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--teal);">Ondi Portal (own profile) · Self-Service Access Requests · MFA Management</td></tr>
+      <tr><td><div class="aname">👨‍💼 Team Manager</div></td><td style="font-size:12px;color:var(--muted2);">Access certification reviews, team access approval, onboarding oversight</td><td style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--violet);">Team Directory View · Access Review Dashboard · Approval Workflows</td></tr>
+      <tr><td><div class="aname">⚙️ IT Administrator</div></td><td style="font-size:12px;color:var(--muted2);">SaaS integration configuration, device management, RBAC policy</td><td style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--ondi);">Access Hub (full) · Integration Config · Device Registry · RBAC Engine</td></tr>
+      <tr><td><div class="aname">🛡 Security Officer</div></td><td style="font-size:12px;color:var(--muted2);">Trust monitoring, anomaly review, incident response, audit access</td><td style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--red);">Trust Intelligence (full) · Audit Trail (full) · Session Management · Alert Console</td></tr>
+      <tr><td><div class="aname">📋 Compliance Officer</div></td><td style="font-size:12px;color:var(--muted2);">Audit report generation, access certification, regulatory submission</td><td style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--green);">Audit Layer (full) · Compliance Reports · Access Certification · Dormant Account Review</td></tr>
+      <tr><td><div class="aname">🏗 Contractor</div></td><td style="font-size:12px;color:var(--muted2);">Time-limited, geofenced access to specified systems only</td><td style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--amber);">Scoped SaaS Access (time-limited) · Site-Specific Systems · No Admin Access</td></tr>
+      <tr><td><div class="aname">🔗 Third-Party App</div></td><td style="font-size:12px;color:var(--muted2);">SSO integration, identity assertion, trust signal consumption via API</td><td style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--sky);">Ondi OAuth 2.0 / SAML · JWT assertion · Trust Score API (consent-gated)</td></tr>
+      <tr><td><div class="aname">🛠 Platform Admin</div></td><td style="font-size:12px;color:var(--muted2);">Full system access, tenant provisioning, security configuration</td><td style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--muted2);">All modules + audit logs + tenant management + system configuration</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout" style="background:rgba(5,150,105,.06);border:1px solid rgba(5,150,105,.2);">
+    <div class="callout-title" style="color:var(--green);">🔐 Security &amp; Governance Model</div>
+    <div class="callout-body">
+      Multi-tenant architecture with permissioned data layers per actor type and organisation. RBAC enforced at the API gateway — roles from EMPLOYEE to PLATFORM_ADMIN.<br/>
+      All internal services communicate via mTLS; external clients via OAuth 2.0 PKCE (Ondi as the identity provider).<br/>
+      KYC verification via NIDA (TZ), NIN (KE/UG), and BRELA for business entity directors. Every platform action produces an immutable audit trail entry.<br/>
+      Zero trust network policy — no implicit trust inside the perimeter. Continuous verification of identity, device, location, and behaviour.
+    </div>
+  </div>
+</section>
+
+<!-- 08 ROADMAP -->
+<section id="roadmap">
+  <div class="eyebrow">08 — Product Roadmap</div>
+  <div class="stitle">Build <span>Roadmap</span> — Workforce Module Rollout</div>
+  <div class="slead">Ondi Workforce rolls out in four phases — each phase independently valuable, each compounding into a more defensible and comprehensive workforce identity platform.</div>
+
+  <div class="rm-wrap">
+    <div class="rm-row">
+      <div class="rm-num">
+        <div class="rm-dot" style="background:var(--ind);color:var(--ondi);">1</div>
+        <div class="rm-vline" style="background:var(--border);"></div>
+      </div>
+      <div class="rm-card">
+        <div class="rm-head">
+          <div class="rm-title" style="color:var(--ondi);">Phase 1 — Identity Foundation</div>
+          <div class="rm-label">Months 1–3</div>
+        </div>
+        <div class="rm-goal">"Establish the workforce identity backbone — directory, SSO, and basic provisioning."</div>
+        <div class="rm-tags">
+          <span class="rmtag" style="background:var(--ind);color:var(--ondi);">Workforce Directory</span>
+          <span class="rmtag" style="background:var(--ind);color:var(--ondi);">SSO Gateway</span>
+          <span class="rmtag" style="background:var(--ind);color:var(--ondi);">RBAC Engine</span>
+          <span class="rmtag" style="background:var(--ind);color:var(--ondi);">KYC Integration</span>
+          <span class="rmtag" style="background:var(--ind);color:var(--ondi);">Adaptive MFA</span>
+        </div>
+        <div class="rm-focus">Core SaaS connectors (Google Workspace, Microsoft 365, Slack). NIDA/NIN KYC for employee verification. Basic SCIM provisioning. HR admin console. Employee self-service portal.</div>
+      </div>
+    </div>
+
+    <div class="rm-row">
+      <div class="rm-num">
+        <div class="rm-dot" style="background:var(--vd);color:var(--violet);">2</div>
+        <div class="rm-vline" style="background:var(--border);"></div>
+      </div>
+      <div class="rm-card">
+        <div class="rm-head">
+          <div class="rm-title" style="color:var(--violet);">Phase 2 — Lifecycle Automation</div>
+          <div class="rm-label">Months 4–6</div>
+        </div>
+        <div class="rm-goal">"Automate the full Joiner-Mover-Leaver flow and connect the compliance audit layer."</div>
+        <div class="rm-tags">
+          <span class="rmtag" style="background:var(--vd);color:var(--violet);">JML Engine</span>
+          <span class="rmtag" style="background:var(--vd);color:var(--violet);">Offboarding Revocation</span>
+          <span class="rmtag" style="background:var(--vd);color:var(--violet);">Audit Trail</span>
+          <span class="rmtag" style="background:var(--vd);color:var(--violet);">Device Governance</span>
+          <span class="rmtag" style="background:var(--vd);color:var(--violet);">Contractor Access</span>
+        </div>
+        <div class="rm-focus">Full JML automation with zero-second offboarding. Device and asset registry. Contractor temporary provisioning with auto-expiry. Immutable audit ledger. Dormant account detection.</div>
+      </div>
+    </div>
+
+    <div class="rm-row">
+      <div class="rm-num">
+        <div class="rm-dot" style="background:var(--td);color:var(--teal);">3</div>
+        <div class="rm-vline" style="background:var(--border);"></div>
+      </div>
+      <div class="rm-card">
+        <div class="rm-head">
+          <div class="rm-title" style="color:var(--teal);">Phase 3 — Trust Intelligence</div>
+          <div class="rm-label">Months 7–10</div>
+        </div>
+        <div class="rm-goal">"Activate behavioural ML, insider threat signals, and the Workforce Trust Graph."</div>
+        <div class="rm-tags">
+          <span class="rmtag" style="background:var(--td);color:var(--teal);">Trust Score · Workforce</span>
+          <span class="rmtag" style="background:var(--td);color:var(--teal);">Insider Threat ML</span>
+          <span class="rmtag" style="background:var(--td);color:var(--teal);">Anomaly Detection</span>
+          <span class="rmtag" style="background:var(--td);color:var(--teal);">Access Certification</span>
+          <span class="rmtag" style="background:var(--td);color:var(--teal);">Ghost Employee Scanner</span>
+        </div>
+        <div class="rm-focus">ML-powered behavioural anomaly detection. Impossible travel, off-hours access, and bulk export signals. Periodic access certification campaigns. Privileged access governance with just-in-time grants. Compliance reporting for BOT, CBK, and CMA.</div>
+      </div>
+    </div>
+
+    <div class="rm-row">
+      <div class="rm-num">
+        <div class="rm-dot" style="background:var(--ad);color:var(--amber);">4</div>
+      </div>
+      <div class="rm-card">
+        <div class="rm-head">
+          <div class="rm-title" style="color:var(--amber);">Phase 4 — Workforce Intelligence Platform</div>
+          <div class="rm-label">Months 11–18</div>
+        </div>
+        <div class="rm-goal">"Evolve into the full workforce identity infrastructure layer for East Africa."</div>
+        <div class="rm-tags">
+          <span class="rmtag" style="background:var(--ad);color:var(--amber);">Payroll Sync</span>
+          <span class="rmtag" style="background:var(--ad);color:var(--amber);">HRIS Integrations</span>
+          <span class="rmtag" style="background:var(--ad);color:var(--amber);">Digital Employment Records</span>
+          <span class="rmtag" style="background:var(--ad);color:var(--amber);">Workforce Compliance Score</span>
+          <span class="rmtag" style="background:var(--ad);color:var(--amber);">Portable Reputation</span>
+        </div>
+        <div class="rm-focus">Payroll sync integration. Identity-backed employment records. Employee verification marketplace for background checks. Portable workforce reputation — employees carry their verified identity and trust record between employers. Workforce compliance scoring for enterprise risk management.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>Ondi Workforce · Identity-Powered Employee Lifecycle &amp; Access Orchestration · © 2026 Hudumika Mobility LLC · All Rights Reserved · Confidential</footer>
+
+<script>
+const secs = document.querySelectorAll('section[id], div[id="hero"]');
+const nls = document.querySelectorAll('.nl');
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      nls.forEach(n => n.classList.remove('on'));
+      const a = document.querySelector(`.nl[href="#${e.target.id}"]`);
+      if (a) a.classList.add('on');
+    }
+  });
+}, { threshold: 0.2 });
+secs.forEach(s => obs.observe(s));
+</script>
+</body>
+</html>
