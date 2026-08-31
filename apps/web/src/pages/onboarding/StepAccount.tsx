@@ -148,7 +148,7 @@ export const StepAccount: React.FC<StepProps> = ({ draft, update, onNext }) => {
       </div>
 
       <div className="login-form-actions">
-        <button type="button" onClick={() => navigate('/login')} className="login-back-btn">Back</button>
+        <button type="button" onClick={() => navigate('/login')} className="login-back-btn">Back to sign in</button>
         <button type="submit" className="login-submit-btn">Continue</button>
       </div>
     </form>

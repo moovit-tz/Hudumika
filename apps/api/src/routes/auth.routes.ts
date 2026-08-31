@@ -10,6 +10,7 @@ import { env } from '../config/env.js';
 import { PlatformAdminService } from '../services/platform-admin.service.js';
 import { COOKIE_NAMES, setSessionCookies, clearSessionCookies, setSuperCookies, clearSuperCookies } from '../lib/cookies.js';
 import { verifyCsrf } from '../middleware/csrf.js';
+import { recordAuthEvent } from '../lib/audit-chain.js';
 import type { LoginInput, CustomerOTPInput, CustomerVerifyInput, SafeUser, JWTPayload, OrgLoginInput, SafeOrgUser } from '@hudumika/types';
 
 // Simple in-memory storage for customer OTPs in dev
@@ -46,6 +47,10 @@ const orgLoginSchema = z.object({
 const verifyPasswordSchema = z.object({
   password: z.string().min(1).max(200),
   totp: z.string().max(20).optional(),
+});
+const changeEmailSchema = z.object({
+  current_password: z.string().min(1).max(200),
+  new_email: z.string().trim().email().max(320),
 });
 
 function parseDevice(userAgent: string): { label: string; type: string } {
@@ -841,12 +846,90 @@ export async function authRoutes(fastify: FastifyInstance) {
       if (!user) return reply.status(404).send({ error: 'User not found' });
 
       const isMatch = verifyPassword(current_password, user.password_hash);
-      if (!isMatch) return reply.status(401).send({ error: 'Current password is incorrect' });
+      // 403, not 401: a wrong CURRENT password on an already-valid session is
+      // "this action isn't allowed," not "your session is dead." api.ts's
+      // handleUnauthorized() treats every 401 as the latter platform-wide —
+      // clears the cached session and force-redirects to /login?expired=1 —
+      // so a 401 here silently logged the user out instead of showing an
+      // inline error. See the http-401-session-collision-bug lesson.
+      if (!isMatch) return reply.status(403).send({ error: 'Current password is incorrect' });
 
       const new_hash = hashPassword(new_password);
 
       await trx.updateTable('users').set({ password_hash: new_hash, updated_at: new Date() }).where('id', '=', actor.sub).execute();
+
+      await recordAuthEvent(actor.tenant_id, actor.sub, 'password_changed', {
+        ip: request.ip, userAgent: String(request.headers['user-agent'] || ''),
+      });
+
       return { success: true };
+    });
+  });
+
+  /**
+   * POST /auth/change-email
+   * Authenticated user changes their own login email — gated behind the
+   * current password, the same re-auth check /change-password uses, since
+   * email is also the identifier /login resolves an account by.
+   *
+   * Checked for a *global* collision via dbPlatform, not just within the
+   * caller's own tenant: the DB only enforces uniqueness per
+   * (tenant_id, email) (users_email_tenant_unique), but /login looks email
+   * up with no tenant filter at all (`.where('email','=',...)`, no
+   * tenant_id, `executeTakeFirst()` with no ORDER BY) — a second tenant
+   * reusing the same address would make login resolve to whichever row the
+   * query planner happens to return first. dbPlatform runs outside the
+   * withTenant() transaction below (a separate connection, not nested
+   * inside it), so this doesn't hit the "never call withTenant from inside
+   * another open one" trap — it's just a second, independent client.
+   */
+  fastify.post('/change-email', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const { current_password, new_email } = changeEmailSchema.parse(request.body);
+    const actor = request.user;
+
+    return withTenant(actor.tenant_id, async (trx) => {
+      const user = await trx.selectFrom('users').selectAll().where('id', '=', actor.sub).executeTakeFirst();
+      if (!user) return reply.status(404).send({ error: 'User not found' });
+
+      const isMatch = verifyPassword(current_password, user.password_hash);
+      // 403, not 401 — same reasoning as /change-password just above.
+      if (!isMatch) return reply.status(403).send({ error: 'Current password is incorrect' });
+
+      if (new_email === user.email) {
+        return reply.status(400).send({ error: 'That is already your email address.' });
+      }
+
+      const clash = await dbPlatform.selectFrom('users').select('id')
+        .where('email', '=', new_email).where('id', '!=', actor.sub).executeTakeFirst();
+      if (clash) return reply.status(409).send({ error: 'That email address is already in use.' });
+
+      await trx.updateTable('users').set({ email: new_email, updated_at: new Date() }).where('id', '=', actor.sub).execute();
+      const updated = await trx.selectFrom('users').selectAll().where('id', '=', actor.sub).executeTakeFirst();
+      if (!updated) return reply.status(404).send({ error: 'User not found' });
+
+      await recordAuthEvent(actor.tenant_id, actor.sub, 'email_changed', {
+        ip: request.ip, userAgent: String(request.headers['user-agent'] || ''),
+        metadata: { previous_email: user.email, new_email },
+      });
+
+      const safeUser: SafeUser & { profile?: Record<string, any> } = {
+        id: updated.id,
+        tenant_id: updated.tenant_id,
+        email: updated.email,
+        role: updated.role,
+        name: updated.name,
+        phone: updated.phone || undefined,
+        avatar_url: updated.avatar_url || undefined,
+        location_id: updated.location_id || undefined,
+        profile: typeof updated.profile === 'string' ? JSON.parse(updated.profile) : (updated.profile || {}),
+        active: updated.active,
+        last_login_at: updated.last_login_at ? updated.last_login_at.toISOString() : undefined,
+        created_at: updated.created_at.toISOString(),
+        updated_at: updated.updated_at.toISOString(),
+      };
+      return { user: safeUser };
     });
   });
 

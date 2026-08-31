@@ -21,6 +21,7 @@
 import type { FastifyInstance } from 'fastify';
 import crypto from 'crypto';
 import { withTenant } from '../db/client.js';
+import { getUserOrgPermissions } from '../lib/org-rbac.js';
 
 /** Stable colour for a name, so initials look the same in every app. */
 const AVATAR_COLORS = ['#e8461a', '#0891b2', '#7c3aed', '#059669', '#d97706', '#9333ea', '#db2777', '#0284c7'];
@@ -130,6 +131,8 @@ export async function identityRoutes(fastify: FastifyInstance) {
         : {};
       const loc = tenantSettings?.localization ?? {};
 
+      const orgPermissions = await getUserOrgPermissions(user.tenant_id, user.sub);
+
       return {
         id: row.id, tenant_id: row.tenant_id, email: row.email, name: row.name,
         role: row.role, phone: row.phone ?? undefined,
@@ -152,6 +155,10 @@ export async function identityRoutes(fastify: FastifyInstance) {
             base_currency: typeof tenantSettings?.currencies?.base === 'string' && tenantSettings.currencies.base
               ? tenantSettings.currencies.base : null,
           },
+          // The tenant-wide default for Basic/Advanced landing — a user's own
+          // profile.landing_style (see UserProfileFields) always wins over this
+          // when set; this is only the fallback. Settings > Landing Experience.
+          landing_style: tenantSettings?.landingStyle?.mode === 'basic' ? 'basic' : 'advanced',
         } : undefined,
         created_at: row.created_at, updated_at: row.updated_at,
         // Session properties, not columns on `users` — sourced from the JWT
@@ -164,6 +171,7 @@ export async function identityRoutes(fastify: FastifyInstance) {
         // this is stated, not implied.
         impersonated_by: user.impersonated_by ?? null,
         impersonated_by_name: user.impersonated_by_name ?? null,
+        org_permissions: orgPermissions,
       };
     });
   });

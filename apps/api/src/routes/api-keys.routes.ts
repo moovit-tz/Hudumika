@@ -2,9 +2,9 @@ import type { FastifyInstance } from 'fastify';
 import crypto from 'crypto';
 import type { Kysely, Transaction } from 'kysely';
 import { withTenant, type Database } from '../db/client.js';
-import { requireRole } from '../middleware/rbac.js';
 import { hashApiKey } from '../middleware/auth.js';
 import type { UserRole } from '@hudumika/types';
+import { requireRoleOrOrgPermission, ORG_PERMISSIONS } from '../lib/org-rbac.js';
 
 type Db = Kysely<Database> | Transaction<Database>;
 
@@ -35,7 +35,7 @@ async function getGrantedFeatures(trx: Db, tenantId: string): Promise<Set<string
 
 export async function apiKeysRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
-  fastify.addHook('preHandler', requireRole(...MGMT_ROLES));
+  fastify.addHook('preHandler', requireRoleOrOrgPermission(ORG_PERMISSIONS.API_KEYS_MANAGE, ...MGMT_ROLES));
 
   // GET /v1/api-keys — list this tenant's keys (never returns the hash or full key)
   fastify.get('/', async (request) => {

@@ -16,22 +16,45 @@
 .g-brand-sq--g      { background: #34a853; }
 
 .g-brand-name {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 800;
   color: var(--lp-ink, #1f1f1f);
   letter-spacing: -0.5px;
 }
 
-/* ── Page shell ── */
+/* ── Page shell ──
+   index.css sets `body { overflow: hidden }` for the authenticated app
+   shell, where every panel manages its own internal scroll region — correct
+   there, but every page that shares this class (Login, signup/onboarding,
+   forgot-password, verify-email, accept-invite...) inherited that and had
+   no scroll region of its own. On any of them taller than the viewport —
+   the onboarding pricing step being the clearest case, with 4 plan cards
+   plus a feature-comparison accordion plus FAQ — the excess content and the
+   Continue button below it were simply unreachable: not clipped-looking,
+   just gone, with no scrollbar anywhere to find them. `height` (bounded)
+   + `overflow-y: auto` makes this page its own scroll region instead,
+   exactly the pattern .app-shell-content already uses correctly for the
+   authenticated app. `100dvh` (falling back to `100vh` where unsupported)
+   over a fixed 100vh avoids the classic mobile-Safari issue where 100vh
+   is taller than what's actually visible once the address bar is showing.
+   `justify-content: safe center` (not plain `center`) is the other half of
+   the fix: centering a flex child taller than its container clips its own
+   *start* edge unreachable even with scrolling enabled — `safe` falls back
+   to start-alignment exactly when content overflows, and is visually
+   identical to plain `center` whenever content already fits. */
 .login-page {
   background: var(--lp-bg, #f0f4f9);
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   justify-content: center;
+  justify-content: safe center;
   align-items: center;
   font-family: var(--font);
   padding: 20px;
+  box-sizing: border-box;
   transition: background 0.3s ease;
 }
 
@@ -57,160 +80,235 @@
 /* ── Card ── */
 .login-card {
   background: var(--lp-card-bg, #fff);
-  border-radius: 12px;
-  padding: 28px;
+  border-radius: 20px;
+  padding: 26px;
   width: 100%;
   max-width: 396px;
   border: 1px solid var(--lp-card-border, #e0e2e6);
   box-shadow: var(--lp-card-shadow, none);
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 16px;
   transition: all 0.2s ease;
 }
 
-/* ── Brand header ── */
+/* ── Brand header (logo only — headline/subtext sit in their own
+   left-aligned block below the Sign in / Sign up toggle, not centered
+   under the logo the way the whole header used to be) ── */
 .login-brand-hdr {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
   text-align: center;
+  gap: 12px;
 }
 .login-brand-row   { display: flex; align-items: center; gap: 8px; }
-.login-headline    { font-size: 24px; font-weight: 400; color: var(--lp-ink, #1f1f1f); margin: 0; }
-.login-subtext     { font-size: 14px; color: var(--lp-ink2, #444746); margin: 8px 0 0; }
+.login-header-left { text-align: center; }
+.login-headline    { font-size: 19px; font-weight: 700; color: var(--lp-ink, #1f1f1f); margin: 0; }
+.login-subtext     { font-size: 12.5px; color: var(--lp-ink2, #444746); margin: 4px 0 0; }
+
+/* ── Segmented pill toggle — neutral grey↔white track, used both for the
+   Sign in / Sign up top-level switch and Ondi's Phone code / Authenticator
+   / Passkey method switch below. Both are "pick one of several equal
+   options", not "this option is now active/armed" — an accent fill (the
+   Ondi tabs' original look) reads more like a toggle-on state than a plain
+   navigation choice, so both share this same neutral style instead. ── */
+.login-toplevel-tabs {
+  display: flex;
+  gap: 2px;
+  background: var(--lp-input-bg, #f3f4f6);
+  border: 1px solid var(--lp-list-border, #e0e2e6);
+  border-radius: var(--r, 8px);
+  padding: 3px;
+}
+.login-toplevel-tab {
+  flex: 1;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm, 6px);
+  background: transparent;
+  color: var(--lp-ink3, #5f6368);
+  font-size: 12.5px;
+  font-weight: 700;
+  font-family: var(--font);
+  padding: 7px 10px;
+  cursor: pointer;
+  outline: none;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.login-toplevel-tab--active {
+  background: var(--lp-card-bg, #fff);
+  border-color: var(--lp-list-border, #e0e2e6);
+  color: var(--lp-ink, #1f1f1f);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+}
+/* In light mode the active pill and its track are both literally white —
+   the border + shadow alone carry the "raised chip" read, which works
+   fine against a light ground. --lp-card-bg (#1e1e1f) is now *darker*
+   than the track (--lp-input-bg, #2a2a2d) in dark mode, so reusing it
+   here would flip that same chip to look sunken instead of raised — a
+   step lighter than the track keeps the active pill reading as selected. */
+[data-theme="dark"] .login-toplevel-tab--active { background: #3a3a3e; }
+
+/* ── Sign-in method tabs (Password / Google / Microsoft) — underline
+   style, only rendered when more than one method is actually available
+   (see Login.tsx's `methods` list), so a platform with no federated
+   provider configured shows a plain password form with no tab chrome
+   around it. ── */
+.login-method-tabs {
+  display: flex;
+  gap: 18px;
+  border-bottom: 1px solid var(--lp-list-border, #e0e2e6);
+}
+.login-method-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: transparent;
+  padding: 0 0 10px;
+  margin-bottom: -1px;
+  border-bottom: 2px solid transparent;
+  color: var(--lp-ink3, #5f6368);
+  font-size: 12.5px;
+  font-weight: 600;
+  font-family: var(--font);
+  cursor: pointer;
+  outline: none;
+  white-space: nowrap;
+}
+.login-method-tab--active { color: var(--lp-ink, #1f1f1f); border-bottom-color: var(--lp-ink, #1f1f1f); }
+.login-method-panel { display: flex; justify-content: center; padding: 6px 0 2px; }
+
+/* ── Labeled fields ── */
+.login-label     { font-size: 12.5px; font-weight: 700; color: var(--lp-ink, #1f1f1f); }
+.login-label-row { display: flex; justify-content: space-between; align-items: center; }
+.login-forgot-link { font-size: 12px; font-weight: 600; color: var(--lp-link-accent, var(--lp-accent, #0d7a6b)); text-decoration: none; }
 
 /* ── Error banner ── */
 .login-error {
   background: var(--lp-error-bg, #fdf2f2);
   border: 1px solid var(--lp-error-border, #fde2e2);
-  border-radius: 8px;
+  border-radius: var(--r, 8px);
   padding: 12px 16px;
   color: var(--lp-error-text, #c2410c);
-  font-size: 13px;
+  font-size: 12.5px;
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-/* ── Account list ── */
-.login-accounts { display: flex; flex-direction: column; gap: 2px; }
-
-.login-account-list {
-  max-height: 320px;
-  border: 1px solid var(--lp-list-border, #e0e2e6);
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-.login-account-btn {
+/* ── Federated sign-in (Google / Microsoft) ── */
+.login-social-btn {
   display: flex;
   align-items: center;
-  gap: 14px;
+  justify-content: center;
+  gap: 10px;
   width: 100%;
-  padding: var(--ds-btn-py-lg) 18px;
-  border: none;
-  border-bottom: 1px solid var(--lp-row-border, #f0f2f5);
+  max-width: 320px;
+  margin: 0 auto 16px;
+  padding: 10px 12px;
+  border: 1px solid var(--lp-input-border, #747775);
+  border-radius: var(--r-sm, 4px);
+  background: var(--lp-input-bg, #fff);
+  color: var(--lp-ink2, #444746);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font);
+  cursor: pointer;
+  outline: none;
+  transition: background 0.15s;
+}
+.login-social-btn:disabled { cursor: not-allowed; opacity: 0.65; }
+.login-social-btn:hover { text-decoration: none; }
+[data-theme="light"] .login-social-btn:hover:not(:disabled) { background: #f8fafc; }
+[data-theme="dark"]  .login-social-btn:hover:not(:disabled) { background: #2d2f31; }
+/* This component's other use (inside .login-method-panel, a plain centered
+   div) needs its own bottom margin. As a direct child of .login-card's
+   gapped flex column (the "Continue with Ondi" placement) that margin
+   would stack on top of the parent's own 16px gap — same double-spacing
+   bug .login-create-p had; see that rule's comment. */
+.login-card > .login-social-btn { margin-bottom: 0; }
+
+/* ── Divider ("or try a demo role") ── */
+.login-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.login-divider::before,
+.login-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--lp-list-border, #e0e2e6);
+}
+.login-divider span {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--lp-ink3, #5f6368);
+  white-space: nowrap;
+}
+
+/* ── Demo role grid — two columns of plain, role-labelled buttons rather
+   than the old avatar/email/badge account cards, so trying a role reads as
+   a quick shortcut and not a second, competing way to "pick your account".
+   An odd number of roles (5 today) leaves a lone button in the final row —
+   :last-child:nth-child(odd) spans it full-width instead of stranding it
+   at half-width with empty space beside it, and keeps working automatically
+   whatever the count is later. ── */
+.login-demo-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+.login-demo-grid > .login-demo-btn:last-child:nth-child(odd) { grid-column: 1 / -1; }
+.login-demo-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border: 1px solid var(--lp-list-border, #e0e2e6);
+  border-radius: var(--r, 8px);
   background: var(--lp-row-bg, #fff);
+  color: var(--lp-ink2, #444746);
+  font-size: 12.5px;
+  font-weight: 600;
   text-align: left;
   cursor: pointer;
-  transition: background 0.15s;
   outline: none;
+  transition: background 0.15s, border-color 0.15s;
 }
-.login-account-btn:last-child     { border-bottom: none; }
-.login-account-btn:disabled       { cursor: not-allowed; opacity: 0.65; }
-[data-theme="light"] .login-account-btn:hover:not(:disabled) { background: #f8fafc; }
-[data-theme="dark"]  .login-account-btn:hover:not(:disabled) { background: #2d2f31; }
-
-/* ── Account avatar ── */
-.login-av {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 800;
-  font-size: 12px;
-  flex-shrink: 0;
-}
-[data-theme="light"] .login-av { background: var(--av-bg-l); color: var(--av-color-l); }
-[data-theme="dark"]  .login-av { background: var(--av-bg-d); color: var(--av-color-d); }
-
-/* per-account colour vars */
-.login-av--sa { --av-bg-d:rgba(239,68,68,0.15);  --av-color-d:#fca5a5; --av-bg-l:#fef2f2; --av-color-l:#dc2626; }
-.login-av--ma { --av-bg-d:rgba(59,130,246,0.15); --av-color-d:#93c5fd; --av-bg-l:#e8f0fe; --av-color-l:#1a73e8; }
-.login-av--jm { --av-bg-d:rgba(16,185,129,0.15); --av-color-d:#6ee7b7; --av-bg-l:#e6fcf5; --av-color-l:#12b886; }
-.login-av--dm { --av-bg-d:rgba(249,115,22,0.15); --av-color-d:#fdba74; --av-bg-l:#fff4e6; --av-color-l:#f76707; }
-.login-av--fm { --av-bg-d:rgba(168,85,247,0.15); --av-color-d:#c084fc; --av-bg-l:#f3f0ff; --av-color-l:#7048e8; }
-
-/* spinner inside avatar — picks up av colour vars */
-.login-av .auth-spinner {
-  width: 14px;
-  height: 14px;
-  border-top-color: transparent !important;
-}
-[data-theme="light"] .login-av .auth-spinner { border-color: var(--av-color-l); border-top-color: transparent !important; }
-[data-theme="dark"]  .login-av .auth-spinner { border-color: var(--av-color-d); border-top-color: transparent !important; }
-
-/* ── Account info ── */
-.login-acc-info       { flex: 1; min-width: 0; }
-.login-acc-info-top   { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-.login-acc-name       { font-size: 13.5px; font-weight: 600; color: var(--lp-ink, #1f1f1f); text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
-.login-acc-email      { font-size: 12px; color: var(--lp-ink3, #5f6368); text-overflow: ellipsis; overflow: hidden; white-space: nowrap; margin-top: 1px; }
-
-/* ── Role badge — same per-account colour vars ── */
-.login-badge          { font-size: var(--badge-fs); font-weight: 700; padding: var(--badge-py) var(--badge-px); border-radius: 4px; flex-shrink: 0; }
-[data-theme="light"] .login-badge { background: var(--av-bg-l); color: var(--av-color-l); }
-[data-theme="dark"]  .login-badge { background: var(--av-bg-d); color: var(--av-color-d); }
-
-/* ── "Use another account" ── */
-.login-use-other {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  width: 100%;
-  padding: 16px 18px;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  outline: none;
-  margin-top: 8px;
-  border-radius: 8px;
-  transition: background 0.15s;
-}
-.login-use-other:hover       { background: var(--lp-use-other-hover, rgba(0,0,0,0.04)); }
-.login-use-other-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  border: 1px solid var(--lp-list-border, #cbd5e1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--lp-accent, #0d7a6b);
-  flex-shrink: 0;
-}
-.login-use-other-label { font-size: 13.5px; font-weight: 600; color: var(--lp-accent, #0d7a6b); }
+.login-demo-btn span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.login-demo-btn:disabled { cursor: not-allowed; opacity: 0.6; }
+[data-theme="light"] .login-demo-btn:hover:not(:disabled) { background: #f8fafc; border-color: var(--lp-accent); }
+[data-theme="dark"]  .login-demo-btn:hover:not(:disabled) { background: #2d2f31; border-color: var(--lp-accent); }
+.login-demo-btn .auth-spinner { border-top-color: transparent !important; }
+[data-theme="light"] .login-demo-btn .auth-spinner { border-color: var(--lp-ink3, #5f6368); }
+[data-theme="dark"]  .login-demo-btn .auth-spinner { border-color: var(--lp-ink3, #9aa0a6); }
 
 /* ── Create account ── */
-.login-create-p    { text-align: center; margin-top: 20px; margin-bottom: 0; font-size: 13px; color: var(--lp-ink3, #5f6368); }
-.login-create-link { font-weight: 700; color: var(--lp-accent, #0d7a6b); text-decoration: none; }
+/* margin-top: 0, not a standalone value — this paragraph sits inside
+   .login-card's own `gap: 16px` flex column, so any margin here stacked on
+   top of that gap instead of replacing it, opening a visibly bigger gap
+   above this link than the matching one below it before the divider. */
+.login-create-p    { text-align: center; margin: 0; font-size: 12.5px; color: var(--lp-ink3, #5f6368); }
+.login-create-link { font-weight: 700; color: var(--lp-link-accent, var(--lp-accent, #0d7a6b)); text-decoration: none; }
 
 /* ── Credentials form ── */
-.login-form           { display: flex; flex-direction: column; gap: 18px; }
+.login-form           { display: flex; flex-direction: column; gap: 16px; }
 .login-field          { display: flex; flex-direction: column; gap: 6px; }
 .login-field-pw       { position: relative; }
 
 .login-input {
   width: 100%;
-  padding: 14px 16px;
-  border-radius: 4px;
+  padding: 11px 14px;
+  border-radius: var(--r-sm, 4px);
   border: 1px solid var(--lp-input-border, #747775);
   background: var(--lp-input-bg, #fff);
   color: var(--lp-ink, #1f1f1f);
-  font-size: 14.5px;
+  font-size: 13.5px;
   outline: none;
   transition: border-color 0.15s;
 }
@@ -228,7 +326,7 @@
   color: var(--lp-ink3, #5f6368);
 }
 
-.login-field-err { font-size: 12px; color: #ea4335; display: flex; align-items: center; gap: 4px; }
+.login-field-err { font-size: 11.5px; color: #ea4335; display: flex; align-items: center; gap: 4px; }
 
 /* ── Form footer (back + submit) ── */
 .login-form-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; }
@@ -236,46 +334,27 @@
 .login-back-btn {
   background: none;
   border: none;
-  color: var(--lp-accent, #0d7a6b);
+  /* Same reasoning as .login-create-link — the raw tenant accent has no
+     contrast guarantee and can read as near-invisible text on a dark
+     page when the accent itself is a dark tone (e.g. navy). */
+  color: var(--lp-link-accent, var(--lp-accent, #0d7a6b));
   font-weight: 600;
-  font-size: 14px;
+  font-size: 13px;
   cursor: pointer;
   padding: 0;
 }
 
-/* ── Ondi login mode tabs (phone-code / authenticator) ── */
-.ondi-mode-tabs {
-  display: flex;
-  gap: 4px;
-  background: var(--lp-input-bg, #fff);
-  border: 1px solid var(--lp-input-border, #e0e2e6);
-  border-radius: 100px;
-  padding: 4px;
-  margin-bottom: 20px;
-}
-.ondi-mode-tab {
-  flex: 1;
-  background: none;
-  border: none;
-  border-radius: 100px;
-  color: var(--lp-ink3, #5f6368);
-  font-weight: 600;
-  font-size: 13px;
-  padding: 8px 12px;
-  cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
-}
-.ondi-mode-tab--active {
-  background: var(--lp-accent, #0d7a6b);
-  color: #fff;
-}
 .login-submit-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   background: var(--lp-accent, #0d7a6b);
   color: #fff;
   border: none;
-  border-radius: 100px;
+  border-radius: var(--r, 8px);
   padding: var(--ds-btn-py) 24px;
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 700;
   cursor: pointer;
   transition: opacity 0.15s;
@@ -284,10 +363,25 @@
 .login-submit-btn:disabled             { opacity: 0.7; cursor: not-allowed; }
 
 /* ── Page footer ── */
-.login-footer       { display: flex; justify-content: space-between; width: 100%; max-width: 396px; margin-top: 24px; font-size: 12px; color: var(--lp-page-text, #5f6368); padding: 0 8px; transition: color 0.2s ease; }
-.login-footer--accounts { max-width: 396px; }
+.login-footer       { display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 396px; margin-top: 24px; font-size: 11.5px; color: var(--lp-page-text, #5f6368); padding: 0 8px; transition: color 0.2s ease; }
 .login-footer-links { display: flex; gap: 16px; }
 .login-footer-link  { color: var(--lp-page-link, #5f6368); text-decoration: none; }
+.login-lang-trigger  {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: transparent;
+  padding: 4px 2px;
+  margin: -4px -2px;
+  font: inherit;
+  font-size: 11.5px;
+  color: var(--lp-page-text, #5f6368);
+  cursor: pointer;
+  outline: none;
+  border-radius: 6px;
+}
+.login-lang-trigger:hover { color: var(--lp-page-link, #5f6368); }
 
 /* ── Shared auth components (AuthBrand, AuthAlert, AuthSuccess, AuthField) ── */
 .auth-brand         { display: none; }
@@ -298,7 +392,7 @@
   border-radius: 8px;
   padding: 12px 16px;
   color: #c2410c;
-  font-size: 13px;
+  font-size: 12.5px;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -321,11 +415,11 @@
   justify-content: space-between;
   align-items: center;
 }
-.auth-field-label { font-size: 13px; font-weight: 700; color: #1f1f1f; }
-.auth-field-error { font-size: 12px; color: #d93025; }
+.auth-field-label { font-size: 12.5px; font-weight: 700; color: #1f1f1f; }
+.auth-field-error { font-size: 11.5px; color: #d93025; }
 
 /* ── Register-specific ── */
-.reg-label { font-size: 12.5px; font-weight: 700; color: var(--lp-ink, #334155); }
+.reg-label { font-size: 12px; font-weight: 700; color: var(--lp-ink, #334155); }
 
 .reg-strength           { display: flex; align-items: center; gap: 6px; margin-top: 2px; }
 .reg-strength-bars      { display: flex; gap: 3px; flex: 1; max-width: 120px; }
@@ -337,16 +431,15 @@
 .reg-strength[data-strength="3"] { --reg-strength-color: #059669; }
 
 .reg-terms-row  { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
-.reg-terms-label { display: flex; align-items: flex-start; gap: 8px; cursor: pointer; font-size: 13px; color: var(--lp-ink2, #475569); line-height: 1.4; }
+.reg-terms-label { display: flex; align-items: flex-start; gap: 8px; cursor: pointer; font-size: 12.5px; color: var(--lp-ink2, #475569); line-height: 1.4; }
 .reg-terms-checkbox { margin-top: 2px; }
 .reg-terms-link { color: var(--lp-accent, #0d7a6b); font-weight: 600; text-decoration: none; }
 
-.reg-signin-p    { text-align: center; margin: 0; font-size: 13px; color: var(--lp-ink3, #64748b); }
+.reg-signin-p    { text-align: center; margin: 0; font-size: 12.5px; color: var(--lp-ink3, #64748b); }
 .reg-signin-link { font-weight: 700; color: var(--lp-accent, #0d7a6b); text-decoration: none; }
 
 /* Register card is slightly wider to accommodate more fields */
 .login-card--reg { max-width: 396px; }
-.login-card--accounts { max-width: 396px; }
 
 /* Full-width submit button (register form) */
 .login-submit-btn--full { width: 100%; margin-top: 8px; }

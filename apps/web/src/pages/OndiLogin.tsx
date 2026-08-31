@@ -7,6 +7,8 @@ import { Icon } from '../components/Icon.js';
 import { toggleThemeWithAnimation } from '../lib/theme.js';
 import { apiFetch } from '../lib/api.js';
 import { GoogleSignInButton } from '../components/GoogleSignInButton.js';
+import { MicrosoftSignInButton } from '../components/MicrosoftSignInButton.js';
+import { OndiLogo } from '../components/OndiLogo.js';
 import './Login.css';
 
 const LOGIN_BG_MAP: Record<string, string> = {
@@ -25,7 +27,7 @@ const LOGIN_BG_MAP: Record<string, string> = {
  * account that has already registered one from Workspace ▸ Security.
  */
 export const OndiLogin: React.FC = () => {
-  const { requestOtpLogin, verifyOtpLogin, loginWithTotp, requestPasskeyLoginOptions, verifyPasskeyLogin, loginWithGoogle } = useAuth();
+  const { requestOtpLogin, verifyOtpLogin, loginWithTotp, requestPasskeyLoginOptions, verifyPasskeyLogin, loginWithGoogle, loginWithMicrosoft } = useAuth();
   const navigate = useNavigate();
   const rootRef = useRef<HTMLDivElement>(null);
   const branding = useBranding();
@@ -52,11 +54,22 @@ export const OndiLogin: React.FC = () => {
     el.style.setProperty('--lp-ink', d ? '#e3e3e3' : '#1f1f1f');
     el.style.setProperty('--lp-ink2', d ? '#c4c7c5' : '#444746');
     el.style.setProperty('--lp-ink3', d ? '#9aa0a6' : '#5f6368');
-    el.style.setProperty('--lp-input-bg', d ? '#131314' : '#fff');
+    // Lighter than --lp-card-bg (#1e1e1f), not a reuse of the page-level
+    // near-black (#131314) — an input darker than the card it sits in
+    // reads as a hole punched through the card rather than a field on it.
+    el.style.setProperty('--lp-input-bg', d ? '#2a2a2d' : '#fff');
     el.style.setProperty('--lp-input-border', d ? '#8e918f' : '#747775');
+    // Used by the segmented-tab track/active-pill border — without this,
+    // dark mode fell through to the light-mode CSS fallback (#e0e2e6) and
+    // drew a near-white ring around the tabs on an otherwise dark page.
+    el.style.setProperty('--lp-list-border', d ? '#3c4043' : '#e0e2e6');
     el.style.setProperty('--lp-toggle-border', d ? '#3c4043' : b ? 'rgba(255,255,255,0.25)' : '#e0e2e6');
     el.style.setProperty('--lp-toggle-bg', d ? '#1e1e1f' : b ? 'rgba(255,255,255,0.12)' : '#fff');
     el.style.setProperty('--lp-toggle-color', d ? '#e3e3e3' : b ? '#fff' : '#444746');
+    // The tenant's raw accent has no contrast guarantee (see Login.tsx's
+    // identical comment) — used as literal link text below, it can be
+    // nearly invisible on the dark card when the accent itself is dark.
+    el.style.setProperty('--lp-link-accent', d ? '#8ab4f8' : accent);
     el.style.setProperty('--lp-error-bg', d ? '#2c1e1e' : '#fdf2f2');
     el.style.setProperty('--lp-error-border', d ? '#4b2e2e' : '#fde2e2');
     el.style.setProperty('--lp-error-text', d ? '#fca5a5' : '#c2410c');
@@ -152,6 +165,16 @@ export const OndiLogin: React.FC = () => {
     } finally { setLoading(false); }
   };
 
+  const handleMicrosoftCredential = async (credential: string) => {
+    setError(null); setLoading(true);
+    try {
+      await loginWithMicrosoft(credential);
+      navigate('/');
+    } catch (err: any) {
+      setError(err.message || 'Could not sign in with Microsoft.');
+    } finally { setLoading(false); }
+  };
+
   return (
     <div ref={rootRef} className="login-page" data-theme={theme}>
       <button
@@ -166,45 +189,41 @@ export const OndiLogin: React.FC = () => {
       <div className="login-card">
         <div className="login-brand-hdr">
           <div className="login-brand-row">
-            <div className="g-brand-grid">
-              <div className="g-brand-sq g-brand-sq--r" />
-              <div className="g-brand-sq g-brand-sq--b" />
-              <div className="g-brand-sq g-brand-sq--y" />
-              <div className="g-brand-sq g-brand-sq--g" />
-            </div>
+            <OndiLogo size={28} />
             <span className="g-brand-name">Ondi</span>
           </div>
-          <div>
+          <div className="login-header-left">
             <h1 className="login-headline">Sign in</h1>
             <p className="login-subtext">Your Hudumika identity — no password needed.</p>
           </div>
         </div>
 
-        <div className="ondi-mode-tabs">
+        <div className="login-toplevel-tabs">
           <button
             type="button"
             onClick={() => switchMode('phone')}
-            className={`ondi-mode-tab${mode === 'phone' ? ' ondi-mode-tab--active' : ''}`}
+            className={`login-toplevel-tab${mode === 'phone' ? ' login-toplevel-tab--active' : ''}`}
           >
             Phone code
           </button>
           <button
             type="button"
             onClick={() => switchMode('totp')}
-            className={`ondi-mode-tab${mode === 'totp' ? ' ondi-mode-tab--active' : ''}`}
+            className={`login-toplevel-tab${mode === 'totp' ? ' login-toplevel-tab--active' : ''}`}
           >
             Authenticator
           </button>
           <button
             type="button"
             onClick={() => switchMode('passkey')}
-            className={`ondi-mode-tab${mode === 'passkey' ? ' ondi-mode-tab--active' : ''}`}
+            className={`login-toplevel-tab${mode === 'passkey' ? ' login-toplevel-tab--active' : ''}`}
           >
             Passkey
           </button>
         </div>
 
         <GoogleSignInButton onCredential={handleGoogleCredential} onError={setError} />
+        <MicrosoftSignInButton onCredential={handleMicrosoftCredential} onError={setError} />
 
         {error && (
           <div className="login-error">
@@ -248,8 +267,8 @@ export const OndiLogin: React.FC = () => {
               </div>
             )}
 
-            <div className="login-form-actions">
-              {otpSent ? (
+            {otpSent ? (
+              <div className="login-form-actions">
                 <button
                   type="button"
                   onClick={sendCode}
@@ -258,11 +277,15 @@ export const OndiLogin: React.FC = () => {
                 >
                   {resendIn > 0 ? `Resend in ${resendIn}s` : 'Resend code'}
                 </button>
-              ) : <span />}
-              <button type="submit" disabled={loading} className="login-submit-btn">
-                {loading ? 'Please wait…' : otpSent ? 'Verify & sign in' : 'Send code'}
+                <button type="submit" disabled={loading} className="login-submit-btn">
+                  {loading ? 'Please wait…' : 'Verify & sign in'}
+                </button>
+              </div>
+            ) : (
+              <button type="submit" disabled={loading} className="login-submit-btn login-submit-btn--full">
+                {loading ? 'Please wait…' : 'Send code'}
               </button>
-            </div>
+            )}
           </form>
         )}
 
@@ -291,12 +314,9 @@ export const OndiLogin: React.FC = () => {
                 disabled={loading}
               />
             </div>
-            <div className="login-form-actions">
-              <span />
-              <button type="submit" disabled={loading} className="login-submit-btn">
-                {loading ? 'Please wait…' : 'Verify & sign in'}
-              </button>
-            </div>
+            <button type="submit" disabled={loading} className="login-submit-btn login-submit-btn--full">
+              {loading ? 'Please wait…' : 'Verify & sign in'}
+            </button>
           </form>
         )}
 
@@ -313,12 +333,9 @@ export const OndiLogin: React.FC = () => {
                 disabled={loading}
               />
             </div>
-            <div className="login-form-actions">
-              <span />
-              <button type="submit" disabled={loading} className="login-submit-btn">
-                {loading ? 'Please wait…' : 'Continue with passkey'}
-              </button>
-            </div>
+            <button type="submit" disabled={loading} className="login-submit-btn login-submit-btn--full">
+              {loading ? 'Please wait…' : 'Continue with passkey'}
+            </button>
           </form>
         )}
 

@@ -10,14 +10,31 @@
   min-height: var(--tab-height, 38px);
   position: relative;
   /* Long tab rows scroll rather than wrapping into a ragged second line,
-     which on a phone otherwise pushes the panel below the fold. */
+     which on a phone otherwise pushes the panel below the fold. A slim,
+     on-brand scrollbar is the only cue a viewer has that a tab exists past
+     the edge — hiding it (the previous behaviour here) let tabs disappear
+     off-screen with nothing to suggest they still existed. `min-height`
+     rather than a fixed `height` above means the extra strip this needs
+     grows the list, not clips the (fixed-height) triggers inside it. */
   overflow-x: auto;
-  /* Hide the scrollbar where supported; where it isn't, a visible one is a
-     harmless fallback. -webkit-overflow-scrolling is obsolete on every browser
-     this app targets, so it is deliberately absent. */
-  scrollbar-width: none;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+  /* The segmented/pill variants below set display:inline-flex so a short
+     row (3-4 tabs) hugs its content instead of stretching edge-to-edge.
+     Unbounded, that also lets a long row (StaffDetail's 13 tabs) grow past
+     its own container: inline-flex has no built-in ceiling, so the box
+     just resizes to fit everything, overflow-x never has anything left to
+     scroll, and the excess silently vanishes into whichever ancestor has
+     overflow:hidden — no scrollbar, no wrap, no sign anything is missing.
+     max-width:100% keeps the hug-content sizing for short rows while
+     capping long ones at the real available width, which is what makes
+     overflow-x above actually engage instead of being permanently moot. */
+  max-width: 100%;
 }
-.ds-tabs-list::-webkit-scrollbar { display: none; }
+.ds-tabs-list::-webkit-scrollbar { height: 5px; }
+.ds-tabs-list::-webkit-scrollbar-track { background: transparent; }
+.ds-tabs-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+.ds-tabs-list::-webkit-scrollbar-thumb:hover { background: var(--ink3); }
 
 .ds-tabs-trigger {
   appearance: none;

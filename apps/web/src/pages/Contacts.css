@@ -319,7 +319,7 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
-  padding: 10px 24px;
+  padding: 10px 0;
 }
 .cts-filter-section--body {
   border-top: 1px solid #f1f3f4;
@@ -375,7 +375,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 6px 24px;
+  padding: 6px 0;
   background: #fafafa;
   border-bottom: 1px solid #e8eaed;
   flex-shrink: 0;
@@ -433,19 +433,29 @@
   text-overflow: ellipsis;
 }
 
-/* Dark mode */
+/* Dark mode.
+   --surface/--surface2/--surface3 below used to be undefined everywhere in
+   the codebase (grepped — no such token exists in index.css or anywhere
+   else), so every rule using them was silently falling back to its literal
+   fallback hex the whole time: a purple-slate palette (#1e1e2e/#2a2a3e/
+   #353550) unrelated to the platform's real dark theme (--bg: #080b10,
+   --white: #111218). Remapped to the tokens that are actually defined and
+   already carry the right role elsewhere: --white for a page/card surface,
+   --bg for a subtle recessed/hover surface (same token AppSidebar.css's own
+   nav-item hover already uses), hsl(var(--muted)) for a neutral chip/pill
+   resting background (the same token Badge's gray variant renders with). */
 [data-theme="dark"] .cts-list-bar {
-  background: var(--surface2, #2a2a3e);
+  background: var(--bg);
   border-bottom-color: var(--border, #334155);
 }
 [data-theme="dark"] .cts-list-bar-count { color: var(--ink3, #64748b); }
 [data-theme="dark"] .cts-list-bar-sort {
-  background: var(--surface3, #353550);
+  background: hsl(var(--muted));
   color: var(--ink3, #64748b);
 }
 [data-theme="dark"] .cts-list-bar-badge--label { background: #1a3460; color: #7aafff; }
 [data-theme="dark"] .cts-list-bar-badge--search {
-  background: var(--surface3, #353550);
+  background: hsl(var(--muted));
   color: var(--ink2, #94a3b8);
 }
 
@@ -453,13 +463,13 @@
    Dark mode overrides
 ══════════════════════════════════════════════════ */
 [data-theme="dark"] .cts-page {
-  background: var(--surface, #1e1e2e);
+  background: var(--white);
   color: var(--ink, #e2e8f0);
 }
 
 /* Sidebar content */
 [data-theme="dark"] .csb-create-btn {
-  background: var(--surface2, #2a2a3e);
+  background: var(--bg);
   color: var(--ink, #e2e8f0);
   box-shadow: var(--elev-sm);
 }
@@ -467,29 +477,31 @@
   box-shadow: var(--elev);
 }
 [data-theme="dark"] .csb-nav-item { color: var(--ink2, #94a3b8); }
-[data-theme="dark"] .csb-nav-item:hover { background: var(--surface2, #2a2a3e); }
+[data-theme="dark"] .csb-nav-item:hover { background: var(--bg); }
 [data-theme="dark"] .csb-nav-item--on { background: #1a3460; color: #7aafff; }
 [data-theme="dark"] .csb-labels { border-top-color: var(--border, #334155); }
 [data-theme="dark"] .csb-labels-title { color: var(--ink3, #64748b); }
 [data-theme="dark"] .csb-labels-add { color: var(--ink3, #64748b); }
-[data-theme="dark"] .csb-labels-add:hover { background: var(--surface2, #2a2a3e); color: var(--ink, #e2e8f0); }
-[data-theme="dark"] .csb-label-row:hover { background: var(--surface2, #2a2a3e); }
+[data-theme="dark"] .csb-labels-add:hover { background: var(--bg); color: var(--ink, #e2e8f0); }
+[data-theme="dark"] .csb-label-row:hover { background: var(--bg); }
 [data-theme="dark"] .csb-label-row--on { background: #1a3460; }
 [data-theme="dark"] .csb-label-btn { color: var(--ink2, #94a3b8); }
 [data-theme="dark"] .csb-label-row--on .csb-label-btn { color: #7aafff; }
 [data-theme="dark"] .csb-sys { border-top-color: var(--border, #334155); }
 [data-theme="dark"] .csb-sys-item { color: var(--ink2, #94a3b8); }
-[data-theme="dark"] .csb-sys-item:hover { background: var(--surface2, #2a2a3e); }
+[data-theme="dark"] .csb-sys-item:hover { background: var(--bg); }
 [data-theme="dark"] .csb-sys-item--on { background: #1a3460; color: #7aafff; }
-[data-theme="dark"] .csb-modal { background: var(--surface, #1e1e2e); color: var(--ink, #e2e8f0); }
+[data-theme="dark"] .csb-modal { background: var(--white); color: var(--ink, #e2e8f0); }
 [data-theme="dark"] .csb-modal-title { color: var(--ink, #e2e8f0); }
 
 /* Filter panel */
-[data-theme="dark"] .cts-filter-panel { background: var(--surface, #1e1e2e); border-bottom-color: var(--border, #334155); }
+[data-theme="dark"] .cts-filter-panel { background: var(--white); border-bottom-color: var(--border, #334155); }
 [data-theme="dark"] .cts-filter-section--body { border-top-color: var(--border, #334155); }
 [data-theme="dark"] .cts-filter-section-label { color: var(--ink3, #64748b); }
-[data-theme="dark"] .cts-chip { background: var(--surface2, #2a2a3e); border-color: var(--border, #334155); color: var(--ink2, #94a3b8); }
-[data-theme="dark"] .cts-chip:hover { background: var(--surface3, #353550); }
+[data-theme="dark"] .cts-chip { background: var(--bg); border-color: var(--border, #334155); color: var(--ink2, #94a3b8); }
+[data-theme="dark"] .cts-chip:hover { background: hsl(var(--muted)); }
 [data-theme="dark"] .cts-chip--on { background: #1a3460; border-color: #3d6bce; color: #7aafff; }
+[data-theme="dark"] .cts-chip--clear { border-color: var(--red); color: var(--red); }
+[data-theme="dark"] .cts-chip--clear:hover { background: color-mix(in srgb, var(--red) 18%, transparent); }
 
 /* Section stretching ──────────────────────────────────────────── */

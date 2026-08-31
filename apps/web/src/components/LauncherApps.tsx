@@ -22,7 +22,7 @@ export const LAUNCHER_APPS: Array<{ id: string; name: string; color: string; pat
   { id: 'contacts',  name: 'Contacts', color: '#1a73e8', path: '/contacts'  },
   { id: 'ai',        name: 'AI',       color: '#6d28d9', path: '/ai'        },
   { id: 'store',     name: 'Store',    color: '#8b5cf6', path: '/store'     },
-  { id: 'oneid',     name: 'Ondi',     color: '#4361EE', path: '/ondi'     },
+  { id: 'oneid',     name: 'Ondi',     color: '#4253d1', path: '/ondi'     },
   { id: 'tracking',  name: 'HuduFreight', color: '#0891b2', path: '/tracking'  },
   { id: 'workspace', name: 'Admin',    color: '#64748b', path: '/workspace' },
   { id: 'calendar',  name: 'Calendar', color: '#db2777', path: '/calendar'  },
@@ -65,7 +65,13 @@ export const LAUNCHER_SVG_ICONS: Record<string, React.ReactElement> = {
   store:    (<g fill="white"><rect x="6" y="6" width="12" height="12" rx="2.5"/><rect x="22" y="6" width="12" height="12" rx="2.5"/><rect x="6" y="22" width="12" height="12" rx="2.5"/><rect x="22" y="22" width="12" height="12" rx="2.5" opacity="0.45"/><line x1="28" y1="25" x2="28" y2="31" stroke="#8b5cf6" strokeWidth="2.5" strokeLinecap="round"/><line x1="25" y1="28" x2="31" y2="28" stroke="#8b5cf6" strokeWidth="2.5" strokeLinecap="round"/></g>),
   seal:     (<g stroke="white" strokeWidth="2.3" fill="none" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L31 11V20C31 27 26.5 31.5 20 34C13.5 31.5 9 27 9 20V11L20 6Z"/><path d="M15 20L18.5 23.5L26 15" strokeWidth="2.5"/></g>),
   inventory: (<g stroke="white" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round"><path d="M6 13L20 6L34 13V27L20 34L6 27Z"/><path d="M6 13L20 20L34 13"/><line x1="20" y1="20" x2="20" y2="34"/></g>),
-  oneid:    (<g><circle cx="20" cy="12" r="5.5" fill="white"/><path d="M7 38C7 26.5 12.5 21 20 21C27.5 21 33 26.5 33 38Z" fill="white"/><path d="M14 38C14 30.5 16.5 27.5 20 27.5C23.5 27.5 26 30.5 26 38Z" fill="#4361EE"/></g>),
+  // Ondi's real glyph — the exact two paths from the source ondi-icon-white.svg
+  // (a 0-3000 viewBox), scaled 40/3000 to fit this file's own 0-40 grid rather
+  // than a hand-approximated stand-in for it.
+  oneid:    (<g transform="scale(0.0133333)" fill="white">
+    <path d="M1500,414.97c208.63,0,377.95,169.32,377.95,377.95s-169.32,377.95-377.95,377.95-377.95-169.32-377.95-377.95,169.32-377.95,377.95-377.95Z"/>
+    <path d="M2203.95,2350.38c0,129.53-104.89,234.65-234.65,234.65s-234.65-105.12-234.65-234.65v-234.65c0-129.3-105.12-234.65-234.65-234.65s-234.65,105.37-234.65,234.65v234.65c0,129.53-104.89,234.65-234.65,234.65s-234.65-105.12-234.65-234.65v-234.65c0-388.12,315.85-703.97,703.97-703.97s703.97,315.85,703.97,703.97v234.65h-.02Z"/>
+  </g>),
   tracking: (<g><path d="M20 4C13 4 8 9.5 8 16C8 25 20 36 20 36C20 36 32 25 32 16C32 9.5 27 4 20 4Z" fill="white"/><circle cx="20" cy="16" r="5.5" fill="#0891b2"/></g>),
   calendar: (<g fill="white"><path d="M11 9h18v3H11z" /><path d="M11 14h18v15H11z" opacity="0.6"/><rect x="15" y="6" width="2" height="5" rx="1" fill="white" /><rect x="23" y="6" width="2" height="5" rx="1" fill="white" /></g>),
   notes:    (<g stroke="white" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="7" width="22" height="26" rx="3"/><line x1="14" y1="14" x2="26" y2="14"/><line x1="14" y1="20" x2="26" y2="20"/><line x1="14" y1="26" x2="21" y2="26"/></g>),

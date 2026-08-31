@@ -12,6 +12,7 @@ import { setSessionCookies } from '../lib/cookies.js';
 import { recordLogin } from './auth.routes.js';
 import { webauthnOrigin, webauthnRpID } from '../lib/webauthn-config.js';
 import { recordAuthEvent } from '../lib/audit-chain.js';
+import { verifyMicrosoftIdToken } from '../lib/microsoft-oidc.js';
 import { computeTrustScore } from '../lib/trust-score.js';
 import { assessRisk } from '../lib/risk-engine.js';
 import type { SafeUser, JWTPayload } from '@hudumika/types';
@@ -53,6 +54,7 @@ const totpLoginSchema = z.object({ email: z.string().trim().email().max(320), co
 const passkeyOptionsSchema = z.object({ email: z.string().trim().email().max(320) });
 const passkeyVerifySchema = z.object({ email: z.string().trim().email().max(320), response: z.any() });
 const googleVerifySchema = z.object({ credential: z.string().trim().min(1).max(4000) });
+const microsoftVerifySchema = z.object({ credential: z.string().trim().min(1).max(4000) });
 
 const OTP_TTL_SECONDS = 5 * 60;
 const OTP_MAX_ATTEMPTS = 5;
@@ -117,7 +119,11 @@ export async function ondiAuthRoutes(fastify: FastifyInstance) {
     const row = await dbPlatform.selectFrom('tenant_settings').select('settings')
       .where('tenant_id', '=', '00000000-0000-0000-0000-000000000000').executeTakeFirst();
     const settings = row ? (typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings) : {};
-    return { google_client_id: env.GOOGLE_OAUTH_CLIENT_ID || null, sso_enabled: !!settings?.ondiSso?.enabled };
+    return {
+      google_client_id: env.GOOGLE_OAUTH_CLIENT_ID || null,
+      microsoft_client_id: env.MICROSOFT_OAUTH_CLIENT_ID || null,
+      sso_enabled: !!settings?.ondiSso?.enabled,
+    };
   });
 
   /**
@@ -376,6 +382,35 @@ export async function ondiAuthRoutes(fastify: FastifyInstance) {
     if (!user) return reply.status(404).send({ error: 'No active account found for this Google email.' });
 
     await recordAuthEvent(user.tenant_id, user.id, 'google_login', { ip: request.ip, userAgent: String(request.headers['user-agent'] || '') });
+    return issueSessionFor(fastify, reply, user, request.ip, String(request.headers['user-agent'] || ''));
+  });
+
+  /**
+   * POST /v1/ondi/auth/microsoft/verify
+   * Login-only, not registration — same constraint as /google/verify just
+   * above, for the same reason. `email` falls back to `preferred_username`
+   * because Azure AD v2 id_tokens don't reliably populate a distinct
+   * `email` claim for work/school accounts unless the tenant's directory
+   * has one configured — `preferred_username` is the account's UPN, which
+   * is email-shaped and present on every token this flow will see.
+   */
+  fastify.post('/microsoft/verify', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (request, reply) => {
+    const { credential } = microsoftVerifySchema.parse(request.body);
+    if (!env.MICROSOFT_OAUTH_CLIENT_ID) {
+      return reply.status(503).send({ error: 'Microsoft sign-in is not configured for this platform yet.' });
+    }
+
+    const data = await verifyMicrosoftIdToken(credential, env.MICROSOFT_OAUTH_CLIENT_ID);
+    if (!data) return reply.status(401).send({ error: 'Invalid Microsoft credential.' });
+
+    const email = data.email || data.preferred_username;
+    if (!email) return reply.status(401).send({ error: 'Your Microsoft account has no email address to sign in with.' });
+
+    const user = await dbPlatform.selectFrom('users').selectAll()
+      .where('email', '=', email).where('active', '=', true).executeTakeFirst();
+    if (!user) return reply.status(404).send({ error: 'No active account found for this Microsoft email.' });
+
+    await recordAuthEvent(user.tenant_id, user.id, 'microsoft_login', { ip: request.ip, userAgent: String(request.headers['user-agent'] || '') });
     return issueSessionFor(fastify, reply, user, request.ip, String(request.headers['user-agent'] || ''));
   });
 }

@@ -3,24 +3,39 @@ import { Icon } from '../../components/Icon.js';
 import type { StepProps } from './types.js';
 import type { Package } from '@hudumika/types';
 
+// Cards still clear fine here, but GPay/PayPal/Apple Pay have close to no
+// real reach in Tanzania -- mobile money is how this region actually pays.
+// M-Pesa, Mixx by Yas (Tigo Pesa's own current name since the Axian/Yas
+// rebrand in Nov 2024 -- using "Tigo Pesa" here would already be a stale
+// brand name) and Airtel Money are the three mobile money rails an East
+// African workspace's own buyers are actually holding a wallet on.
+//
+// None of these are licensed brand-asset files (no verified source for
+// exact vector artwork was available) -- each mark below is redrawn to
+// match its real-world visual identity as closely as good-faith reference
+// allows: Mastercard's interlocking circles are real official geometry
+// (equal-radius circles, centers offset 0.7x the radius, #EB001B/#F79E1B),
+// not a placeholder. M-PESA and Airtel Money's real acceptance marks are
+// colored badges (not bare colored text, which is what this used to be),
+// so those got the badge treatment; Visa and Mixx by Yas are genuinely
+// wordmark-only brands, so a refined wordmark is the accurate shape for them.
 const PaymentLogos = () => (
   <div className="ob-payment-logos">
-    <span className="ob-pay-badge ob-pay-visa">VISA</span>
-    <span className="ob-pay-badge ob-pay-mc">
-      <span className="mc-red" />
-      <span className="mc-yellow" />
+    <span className="ob-pay-visa">VISA</span>
+    <svg className="ob-pay-mc" width="34" height="21" viewBox="0 0 34 21" aria-label="Mastercard">
+      <circle cx="13" cy="10.5" r="10.5" fill="#EB001B" />
+      <circle cx="21" cy="10.5" r="10.5" fill="#F79E1B" />
+      <path d="M17 3.2a10.47 10.47 0 0 1 0 14.6 10.47 10.47 0 0 1 0-14.6Z" fill="#FF5F00" />
+    </svg>
+    <span className="ob-pay-badge-chip ob-pay-mpesa">M-PESA</span>
+    <span className="ob-pay-mixx">
+      <span className="ob-pay-mixx-word">Mixx</span>
+      <span className="ob-pay-mixx-by"> by Yas</span>
     </span>
-    <span className="ob-pay-badge ob-pay-gpay">
-      <span style={{ color: '#4285F4' }}>G</span>
-      <span style={{ color: '#EA4335' }}>P</span>
-      <span style={{ color: '#FBBC05' }}>a</span>
-      <span style={{ color: '#34A853' }}>y</span>
+    <span className="ob-pay-airtel-wrap">
+      <span className="ob-pay-badge-chip ob-pay-airtel">airtel</span>
+      <span className="ob-pay-airtel-money">Money</span>
     </span>
-    <span className="ob-pay-badge ob-pay-paypal">
-      <span style={{ color: '#003087', fontWeight: 800 }}>Pay</span>
-      <span style={{ color: '#0079C1', fontWeight: 800 }}>Pal</span>
-    </span>
-    <span className="ob-pay-badge ob-pay-apple"> Pay</span>
   </div>
 );
 
@@ -130,9 +145,6 @@ export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack
                 {selected ? 'Plan Selected ✓' : isCustom ? 'Contact Sales' : 'Buy Plan'}
               </button>
 
-              {/* Payment Logos Row */}
-              <PaymentLogos />
-
               {/* Feature Groups */}
               <div className="ob-pkg-group">
                 <div className="ob-pkg-group-title">Users &amp; Workspaces</div>
@@ -191,6 +203,15 @@ export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack
         })}
       </div>
 
+      {/* Payment methods — shown once for the whole grid rather than once
+          per card (all plans take the same payment methods, and repeating
+          this row inside every card was most of why the cards read as
+          cramped once there were four of them instead of three). */}
+      <div className="ob-payment-trust">
+        <span className="ob-payment-trust-label">Secure payment via</span>
+        <PaymentLogos />
+      </div>
+
       {/* Feature Comparison Matrix Accordion */}
       <div className="ob-matrix-wrap">
         <button
@@ -227,7 +248,7 @@ export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack
         <div className="ob-faq-list">
           {[
             { q: 'Can I change or upgrade my plan later?', a: 'Yes! You can upgrade, downgrade, or switch between monthly and annual billing cycles at any time directly from your Workspace Settings.' },
-            { q: 'What payment methods are supported?', a: 'We accept Visa, Mastercard, M-Pesa, Tigo Pesa, Airtel Money, and GePG direct bank transfer for East African businesses.' },
+            { q: 'What payment methods are supported?', a: 'We accept Visa, Mastercard, M-Pesa, Mixx by Yas, Airtel Money, and GePG direct bank transfer for East African businesses.' },
             { q: 'Is there a free trial period?', a: 'Yes! All packages come with a 14-day full-featured free trial so you can explore all features with zero upfront commitment.' }
           ].map((item, idx) => (
             <div className="ob-faq-item" key={idx}>

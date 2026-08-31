@@ -11,6 +11,7 @@ import * as BookingPages from '../services/booking-pages.service.js';
 import { SlugTakenError, BookingPageNotFoundError } from '../services/booking-pages.service.js';
 import { resolveProjectAccess, canEditProject } from './task-projects.routes.js';
 import { requireEntitlement, tenantHasEntitlement } from '../middleware/entitlement.js';
+import { webauthnOrigin } from '../lib/webauthn-config.js';
 
 // Tasks + Calendar backend. Both are personal (per-user), not tenant-shared —
 // every query is scoped by (tenant_id, user_id) so each staff member only
@@ -136,12 +137,24 @@ const recurrenceSchema = z.object({
   until: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   count: z.number().int().min(1).max(1000).optional(),
 });
-// A real Jitsi Meet room (meet.jit.si) — restricted to https and that one
-// host so this can never become an open redirect/arbitrary-link store via
-// the calendar API, the same reasoning any stored external URL needs.
+// Either a real Jitsi Meet room (meet.jit.si) or a real Bliss meeting on
+// this platform's own frontend origin (/bliss/calls/meeting/<uuid> — the
+// exact shareable-link shape Calls.tsx itself builds) — restricted to
+// exactly those two shapes so this can never become an open redirect/
+// arbitrary-link store via the calendar API, the same reasoning any stored
+// external URL needs. webauthnOrigin() is this platform's own existing
+// "is this URL really ours" check (used for the WebAuthn RP origin), reused
+// here rather than a second hardcoded copy of the frontend's own domain.
+const BLISS_MEETING_PATH = /^\/bliss\/calls\/meeting\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const meetingUrlSchema = z.string().url().max(300)
-  .refine(u => { try { const p = new URL(u); return p.protocol === 'https:' && p.hostname === 'meet.jit.si'; } catch { return false; } },
-    'Meeting URL must be a real https://meet.jit.si/... room');
+  .refine(u => {
+    try {
+      const p = new URL(u);
+      if (p.protocol === 'https:' && p.hostname === 'meet.jit.si') return true;
+      const origin = webauthnOrigin();
+      return !!origin && p.origin === origin && BLISS_MEETING_PATH.test(p.pathname);
+    } catch { return false; }
+  }, 'Meeting URL must be a real https://meet.jit.si/... room or a Bliss meeting link on this workspace');
 const meetingSettingsSchema = z.object({
   startWithVideoMuted: z.boolean().optional(),
   startWithAudioMuted: z.boolean().optional(),

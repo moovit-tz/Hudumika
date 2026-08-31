@@ -25,6 +25,8 @@ import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/da
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { showAlert } from '../lib/alert.js';
 import { fetchPeople, type Person } from '../lib/identity.js';
+import { apiFetch } from '../lib/api.js';
+import { useEntitlements } from '../hooks/useEntitlements.js';
 import './CalendarApp.css';
 
 type ViewMode = 'month' | 'week' | 'day' | 'agenda';
@@ -82,17 +84,30 @@ const REMINDER_OFFSET_OPTIONS = [
  *  codebase's own convention for client-generated row ids — see
  *  calendarStore.ts's own comment) rather than Math.random().toString(36),
  *  which is both weak (an 8-char slug is brute-forceable) and not what a
- *  server-verified room id should ever be built from. */
+ *  server-verified room id should ever be built from.
+ *
+ *  This is now the *fallback* path only — see handleAddVideoCall below,
+ *  which prefers a real Bliss meeting (tenant-owned WebRTC, host controls,
+ *  waiting room, participant history) whenever the tenant is entitled to
+ *  it, and only drops to a disposable public Jitsi room for tenants without
+ *  Bliss, so "Add Video Call" never has a broken/unavailable state. */
 function newMeetingUrl(): string {
   return `https://meet.jit.si/Hudumika-${crypto.randomUUID()}`;
+}
+
+function isJitsiUrl(url: string): boolean {
+  return url.includes('meet.jit.si');
 }
 
 /** Jitsi reads join-time preferences from its own documented URL hash
  *  config (https://meet.jit.si/RoomName#config.startWithVideoMuted=true) —
  *  real, stable behaviour, not a fabricated setting. Applied at join time
  *  rather than baked into the stored meetingUrl so the shareable room link
- *  itself stays a clean, stable identifier. */
+ *  itself stays a clean, stable identifier. A Bliss meeting link has no such
+ *  convention — MeetingLobby.tsx already offers mute-before-join controls
+ *  of its own inside the app, so the URL is returned as-is. */
 function buildJoinUrl(meetingUrl: string, settings: MeetingSettings): string {
+  if (!isJitsiUrl(meetingUrl)) return meetingUrl;
   const params: string[] = [];
   if (settings.startWithVideoMuted) params.push('config.startWithVideoMuted=true');
   if (settings.startWithAudioMuted) params.push('config.startWithAudioMuted=true');
@@ -121,6 +136,8 @@ export const CalendarApp: React.FC = () => {
   const allTodos = useTodos();
   const appSettings = useAppSettings();
   const meetWithPeople = useMeetWithPeople();
+  const entitlements = useEntitlements();
+  const hasBliss = !!entitlements?.features?.bliss;
   const [meetWithBusy, setMeetWithBusy] = useState<Record<string, BusyBlock[]>>({});
 
   // Real-time clock for Google Calendar red indicator line
@@ -174,6 +191,13 @@ export const CalendarApp: React.FC = () => {
   const [eventTimezone, setEventTimezone] = useState('GMT+03:00 (East Africa Time)');
   const [showTimezoneModal, setShowTimezoneModal] = useState(false);
   const [eventMeetingUrl, setEventMeetingUrl] = useState('');
+  // Only set when THIS session just created a fresh Bliss meeting (the
+  // create response is the only place this code is ever available — it
+  // isn't recoverable from a previously-saved meetingUrl string alone).
+  // Shown next to the link so a guest can also join via Calls' own
+  // "Have a code? Enter it here" box instead of the link.
+  const [eventMeetingJoinCode, setEventMeetingJoinCode] = useState<string | null>(null);
+  const [creatingMeeting, setCreatingMeeting] = useState(false);
   const [showMeetingOptionsModal, setShowMeetingOptionsModal] = useState(false);
   const [eventMeetingSettings, setEventMeetingSettings] = useState<MeetingSettings>({});
   const [eventGuestPermissions, setEventGuestPermissions] = useState<GuestPermissions>({
@@ -381,6 +405,7 @@ export const CalendarApp: React.FC = () => {
     setEventAllDay(false); setEventColorChoice(null); setEventRecurrence(null); setEventReminderOffsets([]);
     setEventTimezone('GMT+03:00 (East Africa Time)');
     setEventMeetingUrl('');
+    setEventMeetingJoinCode(null);
     setEventMeetingSettings({});
     setEventGuestPermissions({ modifyEvent: false, inviteOthers: true, seeGuestList: true });
     setEventVisibility('default');
@@ -411,6 +436,7 @@ export const CalendarApp: React.FC = () => {
     setEventReminderOffsets(ev.reminderOffsets || []);
     setEventTimezone(ev.timezone || 'GMT+03:00 (East Africa Time)');
     setEventMeetingUrl(ev.meetingUrl || '');
+    setEventMeetingJoinCode(null);
     setEventMeetingSettings(ev.meetingSettings || {});
     setEventGuestPermissions(ev.guestPermissions || { modifyEvent: false, inviteOthers: true, seeGuestList: true });
     setEventVisibility(ev.visibility || 'default');
@@ -418,6 +444,57 @@ export const CalendarApp: React.FC = () => {
     setEditScope('all');
     setShowModal(true);
   }
+
+  /** "Add Video Call" — prefers a real, tenant-owned Bliss meeting
+   *  (POST /v1/calls/meetings: host controls, waiting room, participant
+   *  history, real WebRTC) over the disposable public Jitsi room, for any
+   *  tenant actually entitled to Bliss. A tenant without Bliss — or a
+   *  failed request, so the button never dead-ends — still gets the
+   *  Jitsi fallback that already worked before this existed. */
+  async function handleAddVideoCall() {
+    if (!hasBliss) { setEventMeetingUrl(newMeetingUrl()); setEventMeetingJoinCode(null); return; }
+    setCreatingMeeting(true);
+    try {
+      const meeting = await apiFetch('/v1/calls/meetings', {
+        method: 'POST',
+        body: JSON.stringify({ title: eventTitle.trim() || 'Meeting', kind: 'VIDEO' }),
+      });
+      setEventMeetingUrl(`${window.location.origin}/bliss/calls/meeting/${meeting.id}`);
+      setEventMeetingJoinCode(meeting.join_code || null);
+    } catch {
+      setEventMeetingUrl(newMeetingUrl());
+      setEventMeetingJoinCode(null);
+    } finally {
+      setCreatingMeeting(false);
+    }
+  }
+
+  /** Share a meeting's info — the OS/browser share sheet where available
+   *  (mobile Safari/Chrome, and desktop Chrome/Edge on Windows 11), a real
+   *  clipboard copy of the same text everywhere else. Not a fake "send
+   *  invite" — nothing here claims to email or message anyone who isn't
+   *  already added as a guest. Takes explicit values rather than reading
+   *  the edit-modal's own state, so the read-only event popover (a
+   *  different event than whatever the modal currently has loaded, if it's
+   *  even open) can share correctly too. */
+  async function shareMeetingInfo(url: string, title: string, start: string, settings: MeetingSettings, joinCode: string | null) {
+    if (!url) return;
+    const when = start
+      ? new Date(start).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+      : '';
+    const lines = [title.trim() || 'Meeting', when, `Join: ${buildJoinUrl(url, settings)}`];
+    if (joinCode) lines.push(`Meeting code: ${joinCode}`);
+    const text = lines.filter(Boolean).join('\n');
+    if (typeof navigator.share === 'function') {
+      try { await navigator.share({ title: title.trim() || 'Meeting', text }); }
+      catch { /* user dismissed the share sheet — not an error */ }
+      return;
+    }
+    await navigator.clipboard?.writeText(text);
+    showAlert('Meeting info copied to clipboard', { variant: 'success' });
+  }
+
+  const handleShareMeeting = () => shareMeetingInfo(eventMeetingUrl, eventTitle, eventStart, eventMeetingSettings, eventMeetingJoinCode);
 
   function handleSave() {
     if (!eventTitle.trim() || !eventStart || !eventEnd) return;
@@ -1198,41 +1275,63 @@ export const CalendarApp: React.FC = () => {
                 </div>
               </div>
 
-              {/* 2-Column Content Layout */}
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 320px', gap: 24 }}>
+              {/* 2-Column Content Layout — minmax(0, …) on both tracks: a grid
+                  track's implicit minimum is its content's min-content width,
+                  not 0, so a long guest email or unbroken meeting URL could
+                  otherwise force the track (and the whole overflow:hidden
+                  modal) wider than intended instead of wrapping/eliding. */}
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'minmax(0, 1fr) minmax(0, 320px)', gap: 24 }}>
                 {/* Left Column — Details & Video Call */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 18, minWidth: 0 }}>
                   {/* Video Call Integration */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: 12, borderRadius: 8, background: 'var(--bg)', border: '1px solid var(--border)' }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 6 }}>
                         <Icon name="video" size={16} style={{ color: 'var(--teal)' }} />
-                        {eventMeetingUrl ? 'Hudumika Meet Video Call' : 'Add Hudumika Meet Video Conference'}
+                        {eventMeetingUrl ? (isJitsiUrl(eventMeetingUrl) ? 'Video Call' : 'Bliss Meeting') : 'Add Video Conference'}
                       </div>
                       <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {eventMeetingUrl || 'Click to generate a 1-click video meeting link'}
+                        {eventMeetingUrl || (hasBliss ? 'Click to create a real Bliss meeting for this event' : 'Click to generate a 1-click video meeting link')}
                       </div>
+                      {eventMeetingJoinCode && (
+                        <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 1 }}>
+                          Meeting code: <strong style={{ color: 'var(--ink2)', letterSpacing: '0.03em' }}>{eventMeetingJoinCode}</strong>
+                        </div>
+                      )}
                     </div>
                     {eventMeetingUrl ? (
                       <div style={{ display: 'flex', gap: 6 }}>
                         <Tip label="Join this video call now">
-                          <Button variant="default" size="xs" onClick={() => window.open(buildJoinUrl(eventMeetingUrl, eventMeetingSettings), '_blank', 'noopener')} style={{ background: 'var(--teal)', color: '#fff' }}>
+                          <Button aria-label="Join video call" variant="default" size="xs" onClick={() => window.open(buildJoinUrl(eventMeetingUrl, eventMeetingSettings), '_blank', 'noopener')} style={{ background: 'var(--teal)', color: '#fff' }}>
                             <Icon name="video" size={12} /> Join
                           </Button>
                         </Tip>
-                        <Button variant="outline" size="xs" onClick={() => navigator.clipboard?.writeText(eventMeetingUrl)}>
-                          <Icon name="copy" size={12} />
-                        </Button>
-                        <Button variant="outline" size="xs" onClick={() => setShowMeetingOptionsModal(true)}>
-                          <Icon name="settings" size={12} />
-                        </Button>
-                        <Button variant="outline" size="xs" onClick={() => setEventMeetingUrl('')} style={{ color: 'var(--red)' }}>
-                          <Icon name="close" size={12} />
-                        </Button>
+                        <Tip label="Copy meeting link">
+                          <Button aria-label="Copy meeting link" variant="outline" size="xs" onClick={() => navigator.clipboard?.writeText(eventMeetingUrl)}>
+                            <Icon name="copy" size={12} />
+                          </Button>
+                        </Tip>
+                        <Tip label="Share meeting info">
+                          <Button aria-label="Share meeting info" variant="outline" size="xs" onClick={handleShareMeeting}>
+                            <Icon name="share" size={12} />
+                          </Button>
+                        </Tip>
+                        {isJitsiUrl(eventMeetingUrl) && (
+                          <Tip label="Join preferences">
+                            <Button aria-label="Join preferences" variant="outline" size="xs" onClick={() => setShowMeetingOptionsModal(true)}>
+                              <Icon name="settings" size={12} />
+                            </Button>
+                          </Tip>
+                        )}
+                        <Tip label="Remove video call">
+                          <Button aria-label="Remove video call" variant="outline" size="xs" onClick={() => { setEventMeetingUrl(''); setEventMeetingJoinCode(null); }} style={{ color: 'var(--red)' }}>
+                            <Icon name="close" size={12} />
+                          </Button>
+                        </Tip>
                       </div>
                     ) : (
-                      <Button variant="default" size="xs" onClick={() => setEventMeetingUrl(newMeetingUrl())}>
-                        Add Video Call
+                      <Button variant="default" size="xs" disabled={creatingMeeting} onClick={handleAddVideoCall}>
+                        {creatingMeeting ? <span className="auth-spinner" /> : 'Add Video Call'}
                       </Button>
                     )}
                   </div>
@@ -1320,7 +1419,7 @@ export const CalendarApp: React.FC = () => {
                 </div>
 
                 {/* Right Column — Guests & Permissions */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 18, borderLeft: isMobile ? 'none' : '1px solid var(--border)', paddingLeft: isMobile ? 0 : 24 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 18, minWidth: 0, borderLeft: isMobile ? 'none' : '1px solid var(--border)', paddingLeft: isMobile ? 0 : 24 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.01em' }}>Guests</div>
 
                   <EventGuestPicker guests={eventGuests} onAdd={addGuest} onRemove={removeGuest} />
@@ -1401,6 +1500,27 @@ export const CalendarApp: React.FC = () => {
                   </div>
                 </div>
               </div>
+              {ev.meetingUrl && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 24, marginBottom: 10 }}>
+                  <Button
+                    aria-label="Join video call"
+                    variant="default" size="xs"
+                    onClick={() => window.open(buildJoinUrl(ev.meetingUrl!, ev.meetingSettings || {}), '_blank', 'noopener')}
+                    style={{ background: 'var(--teal)', color: '#fff' }}
+                  >
+                    <Icon name="video" size={12} /> Join
+                  </Button>
+                  <Tip label="Share meeting info">
+                    <Button
+                      aria-label="Share meeting info"
+                      variant="outline" size="xs"
+                      onClick={() => shareMeetingInfo(ev.meetingUrl!, ev.title, ev.start, ev.meetingSettings || {}, null)}
+                    >
+                      <Icon name="share" size={12} />
+                    </Button>
+                  </Tip>
+                </div>
+              )}
               {ev.location && (
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, marginLeft: 24, marginBottom: 8, fontSize: 12.5, color: 'var(--ink3)' }}>
                   <Icon name="mapPin" size={13} style={{ marginTop: 1, flexShrink: 0 }} />

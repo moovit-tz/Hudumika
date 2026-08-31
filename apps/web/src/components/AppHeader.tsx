@@ -13,6 +13,7 @@ import { useLocale } from '../hooks/useLocale.js';
 import { AppLauncher } from './AppLauncher.js';
 import { LAUNCHER_APPS, LauncherAppSvg } from './LauncherApps.js';
 import { apiFetch } from '../lib/api.js';
+import { resolveLandingStyle } from '../lib/landingStyle.js';
 import { useClockIn } from '../contexts/ClockInContext.js';
 import { getJobs } from '../pages/clearanceData.js';
 import {
@@ -84,7 +85,7 @@ export function AppHeader({
   appSearchPlaceholder?: string;
   filterControl?: { open: boolean; onToggle: () => void; hasActive?: boolean };
 } = {}) {
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser } = useAuth();
   const { lock } = useIdleLock();
 
   /**
@@ -158,6 +159,24 @@ export function AppHeader({
 
   function toggleTheme(e?: React.MouseEvent) {
     toggleThemeWithAnimation(e);
+  }
+
+  // ── Landing style (Basic/Agentic vs Advanced) ──
+  // One click, same weight as the theme toggle above — a per-account
+  // preference (users.profile.landing_style), not per-device, so it follows
+  // the person across browsers/devices. See lib/landingStyle.ts for the
+  // resolution order against the tenant's own default.
+  const landingStyle = resolveLandingStyle(user);
+  const [landingStyleSaving, setLandingStyleSaving] = useState(false);
+  async function toggleLandingStyle() {
+    if (landingStyleSaving) return;
+    const next = landingStyle === 'basic' ? 'advanced' : 'basic';
+    setLandingStyleSaving(true);
+    try {
+      const res = await apiFetch('/auth/me', { method: 'PATCH', body: JSON.stringify({ profile: { landing_style: next } }) });
+      if (res?.user) updateUser(res.user);
+    } catch { /* the header toggle isn't the place to surface this — the button just stays on its current state */ }
+    finally { setLandingStyleSaving(false); }
   }
 
   // ── Layout toggle (boxed ↔ full-width) ──
@@ -690,6 +709,18 @@ export function AppHeader({
                 <Icon name={filterControl.open ? 'chevronUp' : 'chevronDown'} size={17} />
               </button>
             )}
+
+            {/* Landing style — Basic (Agentic) vs Advanced */}
+            <button
+              type="button"
+              className="app-header-icon-btn"
+              onClick={toggleLandingStyle}
+              disabled={landingStyleSaving}
+              title={landingStyle === 'basic' ? 'Switch to Advanced landing' : 'Switch to Basic (Agentic) landing'}
+              aria-pressed={landingStyle === 'basic'}
+            >
+              <Icon name={landingStyle === 'basic' ? 'layoutDashboard' : 'sparkle'} size={17} />
+            </button>
 
             {/* Theme toggle */}
             <button

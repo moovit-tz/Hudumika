@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useLocation, Link } from 'react-router-dom';
 import { Icon } from './Icon.js';
 import type { IconName } from './Icon.js';
+import { OndiLogo } from './OndiLogo.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { APP_LABELS, APP_COLORS, MobileNavContext } from '../shells/WorkspaceApp.js';
 import { useBranding } from '../hooks/useBranding.js';
@@ -279,6 +280,13 @@ export function AppSidebar({ appId, sections, beforeNav, fillNav, afterNav, load
           <div className="app-sb-brand-icon">
             {branding.getAppLogo(appId) ? (
               <img src={branding.getAppLogo(appId)} alt={appLabel} className="app-sb-brand-logo-img" />
+            ) : appId === 'oneid' ? (
+              // Ondi's real mark (white-glyph variant — .app-sb-brand-icon
+              // already draws its own --sb-color square behind whatever
+              // renders here, same as every other app's plain line icon;
+              // the full gradient-badge variant would double up two
+              // squares stacked on each other).
+              <OndiLogo size={18} variant="white" />
             ) : (
               <Icon name={appIcon} size={16} color="#fff" strokeWidth={2} />
             )}

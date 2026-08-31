@@ -57,7 +57,7 @@ function Card({ title, subtitle, children }: { title: string; subtitle?: string;
 }
 
 /* ── Form field ── */
-function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+function Field({ label, hint, children }: { label: string; hint?: React.ReactNode; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: 16 }}>
       <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</label>
@@ -390,7 +390,15 @@ export const UserProfile: React.FC = () => {
                 <Field label="Full Name">
                   <input style={INPUT} value={form.name} onChange={e => setForm(p => ({...p, name: e.target.value}))} />
                 </Field>
-                <Field label="Email Address" hint="Contact support to change your email address.">
+                <Field label="Email Address" hint={
+                  <>
+                    Changing your email requires your password —{' '}
+                    <button type="button" onClick={() => setTab('security')}
+                      style={{ background: 'none', border: 'none', padding: 0, color: 'var(--teal)', fontWeight: 600, fontSize: 11.5, cursor: 'pointer', fontFamily: 'var(--font)', textDecoration: 'underline' }}>
+                      change it from the Security tab
+                    </button>.
+                  </>
+                }>
                   <input style={INPUT_DISABLED} value={user.email} disabled />
                 </Field>
                 <Field label="Phone Number">

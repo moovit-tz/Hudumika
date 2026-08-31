@@ -4737,6 +4737,7 @@ export interface Database {
   ondi_org_roles: OndiOrgRolesTable;
   ondi_org_role_members: OndiOrgRoleMembersTable;
   ondi_org_access_requests: OndiOrgAccessRequestsTable;
+  ondi_org_access_request_approvals: OndiOrgAccessRequestApprovalsTable;
   ondi_oidc_signing_keys: OndiOidcSigningKeysTable;
   ondi_oauth_clients: OndiOauthClientsTable;
   ondi_oauth_consents: OndiOauthConsentsTable;
@@ -6284,6 +6285,12 @@ export interface OndiOrgRoleMembersTable {
   user_id: string;
   granted_by: string | null;
   created_at: Generated<Date>;
+  // Just-in-Time-lite access (migration 364) — NULL means permanent, same
+  // as every row before this column existed. A non-null value past its
+  // date simply stops counting in hasOrgPermission() (org-rbac.ts); the
+  // row is never auto-deleted, so it stays as a real record of who held
+  // the permission and until when.
+  expires_at: Date | null;
 }
 
 export interface OndiOrgAccessRequestsTable {
@@ -6295,6 +6302,25 @@ export interface OndiOrgAccessRequestsTable {
   status: Generated<'pending' | 'approved' | 'denied'>;
   reviewed_by: string | null;
   reviewed_at: Date | null;
+  created_at: Generated<Date>;
+  // Dual-control / break-glass (migration 365) — required_approvals=1 is the
+  // pre-existing single-approval behavior, unchanged. break_glass=true
+  // requests set required_approvals=2 and always carry expires_in_hours, so
+  // the resulting grant (via migration 364's expires_at) is never permanent.
+  break_glass: Generated<boolean>;
+  required_approvals: Generated<number>;
+  expires_in_hours: number | null;
+}
+
+/** One row per distinct approver's decision — see migration 365's header.
+ *  UNIQUE(request_id, approver_id) is the actual dual-control enforcement. */
+export interface OndiOrgAccessRequestApprovalsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  request_id: string;
+  approver_id: string;
+  decision: 'approve' | 'deny';
+  reason: string | null;
   created_at: Generated<Date>;
 }
 

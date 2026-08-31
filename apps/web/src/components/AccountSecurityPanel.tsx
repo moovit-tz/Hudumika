@@ -85,7 +85,7 @@ function FormRow({ label, children }: { label: string; children: React.ReactNode
 }
 
 export function AccountSecurityPanel() {
-  const { logout } = useAuth();
+  const { logout, user, updateUser } = useAuth();
 
   // ── Change password ──────────────────────────────────────────
   const [currentPw, setCurrentPw] = useState('');
@@ -105,6 +105,29 @@ export function AccountSecurityPanel() {
       showAlert(err.message);
     } finally {
       setPwSaving(false);
+    }
+  }
+
+  // ── Change email — same current-password gate as change-password,
+  // since email is also how /login resolves an account. ──────────
+  const [currentPwForEmail, setCurrentPwForEmail] = useState('');
+  const [newEmail, setNewEmail] = useState('');
+  const [emailSaving, setEmailSaving] = useState(false);
+
+  async function updateEmail() {
+    const trimmed = newEmail.trim();
+    if (!/^\S+@\S+\.\S+$/.test(trimmed)) { showAlert('Enter a valid email address.'); return; }
+    if (!currentPwForEmail) { showAlert('Enter your current password to confirm this change.'); return; }
+    setEmailSaving(true);
+    try {
+      const res = await apiFetch('/auth/change-email', { method: 'POST', body: JSON.stringify({ current_password: currentPwForEmail, new_email: trimmed }) });
+      if (res?.user) updateUser(res.user);
+      showAlert('Email address updated.', { variant: 'success', title: 'Success' });
+      setCurrentPwForEmail(''); setNewEmail('');
+    } catch (err: any) {
+      showAlert(err.message);
+    } finally {
+      setEmailSaving(false);
     }
   }
 
@@ -286,6 +309,27 @@ export function AccountSecurityPanel() {
             </FormRow>
             <div style={{ marginTop: 16, display: 'flex', gap: 10 }}>
               <Btn label={pwSaving ? 'Updating…' : 'Update Password'} icon="save" variant="primary" onClick={updatePassword} disabled={pwSaving || !currentPw || newPw.length < 8} />
+            </div>
+          </div>
+        </Card>
+
+        {/* Change email */}
+        <Card>
+          <CardHead title="Change Email Address" sub="Used to sign in and receive account notifications." />
+          <div style={{ padding: '0 20px 20px' }}>
+            {user?.email && (
+              <FormRow label="Current Email">
+                <div style={{ fontSize: 13, color: 'var(--ink)' }}>{user.email}</div>
+              </FormRow>
+            )}
+            <FormRow label="New Email">
+              <input type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="you@company.com" className="input-field" style={{ fontSize: 13, padding: '8px 12px', width: '100%' }} />
+            </FormRow>
+            <FormRow label="Current Password">
+              <input type="password" value={currentPwForEmail} onChange={e => setCurrentPwForEmail(e.target.value)} placeholder="••••••••••••" className="input-field" style={{ fontSize: 13, padding: '8px 12px', width: '100%' }} />
+            </FormRow>
+            <div style={{ marginTop: 16, display: 'flex', gap: 10 }}>
+              <Btn label={emailSaving ? 'Updating…' : 'Update Email'} icon="save" variant="primary" onClick={updateEmail} disabled={emailSaving || !newEmail.trim() || !currentPwForEmail} />
             </div>
           </div>
         </Card>

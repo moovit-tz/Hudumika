@@ -25,6 +25,7 @@ interface AuthContextType {
   requestPasskeyLoginOptions: (email: string) => Promise<any>;
   verifyPasskeyLogin: (email: string, response: any) => Promise<SafeUser>;
   loginWithGoogle: (credential: string) => Promise<SafeUser>;
+  loginWithMicrosoft: (credential: string) => Promise<SafeUser>;
   completeOnboarding: (res: OnboardingCompleteResponse) => void;
   logout: () => void;
   impersonate: (tenantId: string) => Promise<void>;
@@ -181,6 +182,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return completeLogin(res);
   };
 
+  const loginWithMicrosoft = async (credential: string) => {
+    const res = await apiFetch('/v1/ondi/auth/microsoft/verify', {
+      method: 'POST',
+      body: JSON.stringify({ credential }),
+    });
+    return completeLogin(res);
+  };
+
   const completeOnboarding = (res: OnboardingCompleteResponse) => {
     localStorage.setItem(KEYS.user, JSON.stringify(res.user));
     setUser(res.user);
@@ -310,7 +319,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, isImpersonating, login, requestOtpLogin, verifyOtpLogin, loginWithTotp, requestPasskeyLoginOptions, verifyPasskeyLogin, loginWithGoogle, completeOnboarding, logout, impersonate, impersonateCustomer, stopImpersonating, updateUser, loading }}>
+    <AuthContext.Provider value={{ user, isImpersonating, login, requestOtpLogin, verifyOtpLogin, loginWithTotp, requestPasskeyLoginOptions, verifyPasskeyLogin, loginWithGoogle, loginWithMicrosoft, completeOnboarding, logout, impersonate, impersonateCustomer, stopImpersonating, updateUser, loading }}>
       {children}
     </AuthContext.Provider>
   );

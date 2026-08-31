@@ -1,7 +1,7 @@
 import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { withTenant } from '../db/client.js';
-import { requireRole } from '../middleware/rbac.js';
+import { requireRoleOrOrgPermission, ORG_PERMISSIONS } from '../lib/org-rbac.js';
 
 const SEED_NODES = (tenantId: string) => [
   { label: 'Chief Executive Officer', job_title: 'CEO', department: 'Executive', position_x: 400, position_y: 20,  color: '#7c3aed', avatar_color: '#7c3aed', node_type: 'person' },
@@ -61,7 +61,7 @@ export async function orgChartRoutes(fastify: FastifyInstance) {
   });
 
   // POST /org-chart — create a node
-  fastify.post('/', { preHandler: requireRole('MANAGER', 'ADMIN', 'TENANT_ADMIN', 'SUPER_ADMIN') }, async (req) => {
+  fastify.post('/', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.ORG_CHART_MANAGE, 'MANAGER', 'ADMIN', 'TENANT_ADMIN', 'SUPER_ADMIN') }, async (req) => {
     const user = req.user;
     const body = req.body as any;
     return withTenant(user.tenant_id, async (trx) => {
@@ -84,7 +84,7 @@ export async function orgChartRoutes(fastify: FastifyInstance) {
   });
 
   // PATCH /org-chart/:id — update node (position, label, etc.)
-  fastify.patch('/:id', { preHandler: requireRole('MANAGER', 'ADMIN', 'TENANT_ADMIN', 'SUPER_ADMIN') }, async (req) => {
+  fastify.patch('/:id', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.ORG_CHART_MANAGE, 'MANAGER', 'ADMIN', 'TENANT_ADMIN', 'SUPER_ADMIN') }, async (req) => {
     const user = req.user;
     const { id } = req.params as { id: string };
     const body = req.body as any;
@@ -102,7 +102,7 @@ export async function orgChartRoutes(fastify: FastifyInstance) {
   });
 
   // POST /org-chart/bulk-positions — save multiple node positions at once
-  fastify.post('/bulk-positions', { preHandler: requireRole('MANAGER', 'ADMIN', 'TENANT_ADMIN', 'SUPER_ADMIN') }, async (req) => {
+  fastify.post('/bulk-positions', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.ORG_CHART_MANAGE, 'MANAGER', 'ADMIN', 'TENANT_ADMIN', 'SUPER_ADMIN') }, async (req) => {
     const user = req.user;
     const body = req.body as any; // { nodes: [{id, position_x, position_y}] }
     return withTenant(user.tenant_id, async (trx) => {
@@ -120,7 +120,7 @@ export async function orgChartRoutes(fastify: FastifyInstance) {
   });
 
   // DELETE /org-chart/:id
-  fastify.delete('/:id', { preHandler: requireRole('ADMIN', 'TENANT_ADMIN', 'SUPER_ADMIN') }, async (req) => {
+  fastify.delete('/:id', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.ORG_CHART_MANAGE, 'ADMIN', 'TENANT_ADMIN', 'SUPER_ADMIN') }, async (req) => {
     const user = req.user;
     const { id } = req.params as { id: string };
     return withTenant(user.tenant_id, async (trx) => {
@@ -143,7 +143,7 @@ export async function orgChartRoutes(fastify: FastifyInstance) {
   });
 
   // POST /org-chart/sync-staff — import/sync company staff into the org chart
-  fastify.post('/sync-staff', { preHandler: requireRole('MANAGER', 'ADMIN', 'TENANT_ADMIN', 'SUPER_ADMIN') }, async (req) => {
+  fastify.post('/sync-staff', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.ORG_CHART_MANAGE, 'MANAGER', 'ADMIN', 'TENANT_ADMIN', 'SUPER_ADMIN') }, async (req) => {
     const user = req.user;
     return withTenant(user.tenant_id, async (trx) => {
       const staffUsers = await trx.selectFrom('users')
@@ -191,7 +191,7 @@ export async function orgChartRoutes(fastify: FastifyInstance) {
   });
 
   // POST /org-chart/reset — reset org chart to default sample structure
-  fastify.post('/reset', { preHandler: requireRole('ADMIN', 'TENANT_ADMIN', 'SUPER_ADMIN') }, async (req) => {
+  fastify.post('/reset', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.ORG_CHART_MANAGE, 'ADMIN', 'TENANT_ADMIN', 'SUPER_ADMIN') }, async (req) => {
     const user = req.user;
     return withTenant(user.tenant_id, async (trx) => {
       await trx.deleteFrom('org_chart_nodes').where('tenant_id', '=', user.tenant_id).execute();

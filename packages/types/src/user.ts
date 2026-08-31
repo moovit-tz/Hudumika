@@ -95,6 +95,7 @@ export interface UserProfileFields {
   website?: string;
   cover_url?: string;
   cover_position?: { x: number; y: number }; // background-position percentages, drag-to-reposition
+  landing_style?: 'advanced' | 'basic'; // overrides the tenant's default at Settings > Landing Experience
 
   // HR/Staff Fields
   employee_code?: string;
@@ -139,6 +140,7 @@ export interface User {
 export type SafeUser = Omit<User, 'password_hash'> & {
   impersonated_by?: string;
   impersonated_by_name?: string;
+  org_permissions?: string[];
 };
 
 // ── Tenant ───────────────────────────────────────────────────

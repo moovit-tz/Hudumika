@@ -6,6 +6,7 @@ import { generateTotpSecret, buildTotpUri, verifyTotp, generateBackupCodes } fro
 import { webauthnOrigin, webauthnRpID, WEBAUTHN_RP_NAME } from '../lib/webauthn-config.js';
 import { recordAuthEvent, verifyAuditChain } from '../lib/audit-chain.js';
 import { computeTrustScore } from '../lib/trust-score.js';
+import { computeReliabilitySignals } from '../lib/reliability-signals.js';
 import { env } from '../config/env.js';
 
 let redisClient: Redis | null = null;
@@ -282,6 +283,15 @@ export default async function securityRoutes(fastify: FastifyInstance) {
   fastify.get('/trust-score', async (request) => {
     const user = request.user;
     return computeTrustScore(user.tenant_id, user.sub);
+  });
+
+  // A workplace-reliability signal composed from real cross-app data
+  // (payroll tenure, petty-cash discipline, attendance/leave) — see
+  // reliability-signals.ts's header for why this is intentionally separate
+  // from the trust score above rather than a "credit score."
+  fastify.get('/reliability-signals', async (request) => {
+    const user = request.user;
+    return computeReliabilitySignals(user.tenant_id, user.sub);
   });
 
   // Proves this tenant's Ondi audit log hasn't been tampered with — walks

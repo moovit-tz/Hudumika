@@ -42,6 +42,7 @@ export const NAV: Array<{ group: string; icon: IconName; items: Array<{ key: str
   { group: 'General', icon: 'settings', items: [
     { key: 'company',            label: 'Company Information',  icon: 'building'      },
     { key: 'localization',       label: 'Localization',         icon: 'globe'         },
+    { key: 'landing-experience', label: 'Landing Experience',   icon: 'layoutDashboard' },
     // Branding was mounted only in the platform console, so a tenant could not
     // put their own logo or colour on the workspace they pay for.
     { key: 'branding',           label: 'Branding',             icon: 'sparkle'       },
@@ -108,6 +109,7 @@ export const NAV: Array<{ group: string; icon: IconName; items: Array<{ key: str
   ]},
   { group: 'Developer', icon: 'key', items: [
     { key: 'developer-api',      label: 'API Keys',             icon: 'key'           },
+    { key: 'siem-export',        label: 'SIEM Export',          icon: 'activity'      },
   ]},
 ];
 
@@ -387,6 +389,89 @@ const LocalizationSection: React.FC = () => {
             nothing: dates are formatted through Intl, which derives all of it
             from the locale and timezone above. Keeping a control that cannot
             change anything is worse than not offering it. */}
+      </Card>
+      <SaveRow saving={saving} saved={saved} onSave={handleSave} />
+    </>
+  );
+};
+
+// -- section: Landing Experience ---------------------------------------------
+// The tenant's default for Basic (Agentic) vs Advanced at "/" — a user's own
+// choice (the header toggle, PATCH /auth/me's profile.landing_style) always
+// overrides this for their own account; this is only the fallback everyone
+// else gets. Same useSettingsFields/save('landingStyle', ...) shape as
+// LocalizationSection above, ADMIN+ only (settings.routes.ts's
+// MANAGER_WRITABLE allowlist deliberately does not include this key).
+const LandingExperienceSection: React.FC = () => {
+  const [f, set] = useSettingsFields('landingStyle', { mode: 'advanced' });
+  const { save } = useContext(SettingsCtx);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  async function handleSave() {
+    setSaving(true);
+    try {
+      await save('landingStyle', { ...f });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch {} finally { setSaving(false); }
+  }
+  return (
+    <>
+      <Card title="Landing Experience" desc="What everyone in this workspace sees at sign-in by default.">
+        <Field label="Default landing page">
+          <Select value={f.mode} onValueChange={v => set('mode', v)}>
+            <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="advanced">Advanced — the app launcher</SelectItem>
+              <SelectItem value="basic">Basic — the agentic cockpit</SelectItem>
+            </SelectContent>
+          </Select>
+        </Field>
+      </Card>
+      <SaveRow saving={saving} saved={saved} onSave={handleSave} />
+    </>
+  );
+};
+
+// -- section: SIEM Export -----------------------------------------------------
+// Fans Ondi's audit chain (ondi_auth_events — every login, KYC decision,
+// role grant/revoke, password/email change) out to a tenant-configured
+// webhook, signed the way Stripe/GitHub sign theirs: HMAC-SHA256 over the
+// raw JSON body, sent as X-Ondi-Signature. Any SIEM that can ingest a
+// signed HTTPS POST works — Splunk HEC, Sentinel, Datadog, or a tenant's
+// own collector — rather than one bespoke vendor integration. Dispatch
+// itself lives in siem-export.ts, fired (unawaited) from recordAuthEvent.
+const SiemExportSection: React.FC = () => {
+  const [on, setOn] = useState(false);
+  const [f, set] = useSettingsFields('siemExport', { webhookUrl: '', secret: '' });
+  const { s, save } = useContext(SettingsCtx);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const hydratedExtra = useRef(false);
+
+  useEffect(() => {
+    if (hydratedExtra.current) return;
+    if (s.siemExport) { setOn(s.siemExport.enabled ?? false); hydratedExtra.current = true; }
+  }, [s]);
+
+  async function handleSave() {
+    setSaving(true);
+    try { await save('siemExport', { enabled: on, ...f }); setSaved(true); setTimeout(() => setSaved(false), 2000); }
+    catch {} finally { setSaving(false); }
+  }
+
+  return (
+    <>
+      <Card title="SIEM Export" desc="Send every Ondi security event (logins, KYC decisions, role grants, credential changes) to your own SIEM or log collector as a signed webhook, in real time.">
+        <ToggleRow label="Enable SIEM export" value={on} onChange={setOn} />
+        {on && <>
+          <Field label="Webhook URL" full hint="Ondi POSTs a JSON event here as it happens.">
+            <input className="input-field" type="url" placeholder="https://your-siem.example.com/ingest" value={f.webhookUrl} onChange={e => set('webhookUrl', e.target.value)} />
+          </Field>
+          <Field label="Signing Secret" full hint="Verify the X-Ondi-Signature header: HMAC-SHA256 of the raw request body, hex-encoded, using this secret.">
+            <input className="input-field" type="password" value={f.secret} onChange={e => set('secret', e.target.value)} />
+          </Field>
+        </>}
       </Card>
       <SaveRow saving={saving} saved={saved} onSave={handleSave} />
     </>
@@ -2465,6 +2550,7 @@ function renderSection(key: string): React.ReactNode {
     case 'elsewhere':           return <ElsewhereSection />;
     case 'branding':            return <BrandingSection />;
     case 'localization':        return <LocalizationSection />;
+    case 'landing-experience':  return <LandingExperienceSection />;
     case 'email':               return <EmailSection />;
     case 'notifications':       return <NotificationsSection />;
     case 'app-freight':         return <FreightSection />;
@@ -2486,6 +2572,7 @@ function renderSection(key: string): React.ReactNode {
     case 'other-esign':         return <EsignSection />;
     case 'modules':             return <ModulesSection />;
     case 'developer-api':       return <ApiKeysSection />;
+    case 'siem-export':         return <SiemExportSection />;
     default: {
       const label = NAV.flatMap(g => g.items).find(i => i.key === key)?.label ?? key;
       return <GenericSection title={label} />;

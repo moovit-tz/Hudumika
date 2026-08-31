@@ -2,14 +2,14 @@ import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import crypto from 'crypto';
-import { withTenant } from '../db/client.js';
+import { withTenant, dbPlatform } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import { MailService } from '../services/mail.service.js';
 import { env } from '../config/env.js';
 import { MinioIntegration } from '../integrations/minio.js';
 import { extractKycDocument, extractKybDocument } from '../lib/kyc-ocr.js';
 import { recordAuthEvent } from '../lib/audit-chain.js';
-import { requireRoleOrOrgPermission, ORG_PERMISSIONS } from '../lib/org-rbac.js';
+import { requireRoleOrOrgPermission, hasOrgPermission, ORG_PERMISSIONS } from '../lib/org-rbac.js';
 
 const kybSubmitSchema = z.object({
   image_base64: z.string().min(1),
@@ -18,7 +18,13 @@ const kybSubmitSchema = z.object({
 const orgRoleSchema = z.object({
   name: z.string().trim().min(1).max(80),
   description: z.string().trim().max(300).optional(),
-  permissions: z.array(z.enum([ORG_PERMISSIONS.KYC_REVIEW])).default([]),
+  permissions: z.array(z.enum([
+    ORG_PERMISSIONS.KYC_REVIEW,
+    ORG_PERMISSIONS.ACCESS_REQUESTS_REVIEW,
+    ORG_PERMISSIONS.API_KEYS_MANAGE,
+    ORG_PERMISSIONS.ORG_CHART_MANAGE,
+    ORG_PERMISSIONS.SSO_PROVIDERS_MANAGE,
+  ])).default([]),
 });
 
 const KYC_SUBMIT_MEDIA_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;
@@ -130,6 +136,19 @@ export async function oneidRoutes(fastify: FastifyInstance) {
     });
   });
 
+  fastify.delete('/invitations/:id', { preHandler: requireRole('MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+    const user = req.user;
+    const { id } = req.params as { id: string };
+    return withTenant(user.tenant_id, async (trx) => {
+      await trx.updateTable('hr_invitations')
+        .set({ status: 'REVOKED' })
+        .where('id', '=', id)
+        .where('tenant_id', '=', user.tenant_id)
+        .execute();
+      return { ok: true };
+    });
+  });
+
   // ── Login history (already populated by auth.routes.ts on every login) ─
 
   fastify.get('/login-history', { preHandler: requireRole('ADMIN', 'TENANT_ADMIN') }, async (req) => {
@@ -171,7 +190,7 @@ export async function oneidRoutes(fastify: FastifyInstance) {
   // ── SSO providers (config registry — see migration 053 header comment:
   //    this is NOT a working SAML/OIDC federation implementation) ────────
 
-  fastify.get('/sso-providers', { preHandler: requireRole('ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.get('/sso-providers', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.SSO_PROVIDERS_MANAGE, 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     return withTenant(user.tenant_id, async (trx) => {
       return trx.selectFrom('sso_providers')
@@ -182,7 +201,7 @@ export async function oneidRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/sso-providers', { preHandler: requireRole('ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.post('/sso-providers', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.SSO_PROVIDERS_MANAGE, 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     const body = req.body as { provider_type: string; name: string; config?: Record<string, any> };
     return withTenant(user.tenant_id, async (trx) => {
@@ -196,7 +215,7 @@ export async function oneidRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.patch('/sso-providers/:id', { preHandler: requireRole('ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.patch('/sso-providers/:id', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.SSO_PROVIDERS_MANAGE, 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     const { id } = req.params as { id: string };
     const body = req.body as { name?: string; config?: Record<string, any>; enabled?: boolean };
@@ -211,7 +230,7 @@ export async function oneidRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.delete('/sso-providers/:id', { preHandler: requireRole('ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.delete('/sso-providers/:id', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.SSO_PROVIDERS_MANAGE, 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     const { id } = req.params as { id: string };
     return withTenant(user.tenant_id, async (trx) => {
@@ -219,6 +238,69 @@ export async function oneidRoutes(fastify: FastifyInstance) {
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id).execute();
       return { ok: true };
     });
+  });
+
+  // ── Outbound SSO Clients (Ondi M6) ───────────────────────────
+
+  fastify.get('/oauth-clients', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.SSO_PROVIDERS_MANAGE, 'ADMIN', 'TENANT_ADMIN') }, async () => {
+    return dbPlatform.selectFrom('ondi_oauth_clients')
+      .selectAll()
+      .orderBy('created_at', 'desc')
+      .execute();
+  });
+
+  fastify.post('/oauth-clients', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.SSO_PROVIDERS_MANAGE, 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+    const body = z.object({
+      client_id: z.string().trim().min(3).max(80),
+      name: z.string().trim().min(1).max(100),
+      redirect_uris: z.array(z.string()),
+      logo_url: z.string().url().optional().nullable(),
+      first_party: z.boolean().default(false),
+      client_secret: z.string().trim().max(100).optional().nullable(),
+    }).parse(req.body);
+
+    const clientSecretHash = body.client_secret ? crypto.createHash('sha256').update(body.client_secret).digest('hex') : null;
+
+    return dbPlatform.insertInto('ondi_oauth_clients').values({
+      client_id: body.client_id,
+      client_secret_hash: clientSecretHash,
+      name: body.name,
+      redirect_uris: JSON.stringify(body.redirect_uris) as any,
+      logo_url: body.logo_url || null,
+      first_party: body.first_party,
+    }).returningAll().executeTakeFirstOrThrow();
+  });
+
+  fastify.patch('/oauth-clients/:id', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.SSO_PROVIDERS_MANAGE, 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+    const { id } = req.params as { id: string };
+    const body = z.object({
+      name: z.string().trim().min(1).max(100).optional(),
+      redirect_uris: z.array(z.string()).optional(),
+      logo_url: z.string().url().optional().nullable(),
+      first_party: z.boolean().optional(),
+      client_secret: z.string().trim().max(100).optional().nullable(),
+    }).parse(req.body);
+
+    const updates: Record<string, any> = {};
+    if (body.name !== undefined) updates.name = body.name;
+    if (body.redirect_uris !== undefined) updates.redirect_uris = JSON.stringify(body.redirect_uris);
+    if (body.logo_url !== undefined) updates.logo_url = body.logo_url;
+    if (body.first_party !== undefined) updates.first_party = body.first_party;
+    if (body.client_secret !== undefined) {
+      updates.client_secret_hash = body.client_secret ? crypto.createHash('sha256').update(body.client_secret).digest('hex') : null;
+    }
+
+    return dbPlatform.updateTable('ondi_oauth_clients')
+      .set(updates)
+      .where('id', '=', id)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+  });
+
+  fastify.delete('/oauth-clients/:id', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.SSO_PROVIDERS_MANAGE, 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+    const { id } = req.params as { id: string };
+    await dbPlatform.deleteFrom('ondi_oauth_clients').where('id', '=', id).execute();
+    return { ok: true };
   });
 
   // ── KYC (Ondi M4) — real Gemini-vision OCR (same key/engine as
@@ -332,7 +414,12 @@ export async function oneidRoutes(fastify: FastifyInstance) {
   fastify.get('/kyc/:id/document', async (req, reply) => {
     const user = req.user;
     const { id } = req.params as { id: string };
-    const isReviewer = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'].includes(user.role);
+    // Same reviewer check as the approve/reject routes below (role OR the
+    // kyc.review org permission) — this used to be role-only, so a custom-role
+    // holder could approve/reject a submission but not view the document image
+    // being reviewed.
+    const isReviewer = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'].includes(user.role)
+      || await hasOrgPermission(user.tenant_id, user.sub, ORG_PERMISSIONS.KYC_REVIEW);
     const submission = await withTenant(user.tenant_id, trx => trx.selectFrom('ondi_kyc_submissions')
       .select(['user_id', 'document_storage_key'])
       .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst());
@@ -451,8 +538,10 @@ export async function oneidRoutes(fastify: FastifyInstance) {
   });
 
   // ── Custom roles & groups (Ondi M5) — additive layer on top of
-  // users.role; only 'kyc.review' actually gates anything today (see
-  // org-rbac.ts's own comment on why the permission catalog stays small). ──
+  // users.role; see org-rbac.ts's ORG_PERMISSIONS for what a role can
+  // actually be granted, and its own comment on why role administration
+  // itself (this section) stays ADMIN/TENANT_ADMIN-only rather than being
+  // gated by one of those permissions. ──
 
   fastify.get('/org/roles', { preHandler: requireRole('ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
@@ -460,7 +549,7 @@ export async function oneidRoutes(fastify: FastifyInstance) {
       const roles = await trx.selectFrom('ondi_org_roles').selectAll().where('tenant_id', '=', user.tenant_id).orderBy('name').execute();
       const members = await trx.selectFrom('ondi_org_role_members as m')
         .innerJoin('users as u', 'u.id', 'm.user_id')
-        .select(['m.role_id', 'm.user_id', 'u.name as user_name', 'u.email as user_email'])
+        .select(['m.role_id', 'm.user_id', 'u.name as user_name', 'u.email as user_email', 'm.expires_at'])
         .where('m.tenant_id', '=', user.tenant_id).execute();
       return roles.map(r => ({ ...r, members: members.filter(m => m.role_id === r.id) }));
     });
@@ -497,14 +586,20 @@ export async function oneidRoutes(fastify: FastifyInstance) {
   fastify.post('/org/roles/:id/members', { preHandler: requireRole('ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
     const user = req.user;
     const { id } = req.params as { id: string };
-    const { user_id } = z.object({ user_id: z.string().uuid() }).parse(req.body);
+    // Just-in-Time-lite access (migration 364): expires_in_hours is optional —
+    // omitted/undefined means a permanent grant, same as before this existed.
+    const { user_id, expires_in_hours } = z.object({
+      user_id: z.string().uuid(),
+      expires_in_hours: z.number().positive().max(24 * 365).optional(),
+    }).parse(req.body);
+    const expiresAt = expires_in_hours ? new Date(Date.now() + expires_in_hours * 3600_000) : null;
     return withTenant(user.tenant_id, async (trx) => {
       const role = await trx.selectFrom('ondi_org_roles').select('id').where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!role) { reply.status(404); return { error: 'Role not found' }; }
       await trx.insertInto('ondi_org_role_members').values({
-        tenant_id: user.tenant_id, role_id: id, user_id, granted_by: user.sub,
-      }).onConflict(oc => oc.columns(['role_id', 'user_id']).doNothing()).execute();
-      await recordAuthEvent(user.tenant_id, user_id, 'org_role_granted', { metadata: { role_id: id, granted_by: user.sub } });
+        tenant_id: user.tenant_id, role_id: id, user_id, granted_by: user.sub, expires_at: expiresAt,
+      }).onConflict(oc => oc.columns(['role_id', 'user_id']).doUpdateSet({ expires_at: expiresAt, granted_by: user.sub })).execute();
+      await recordAuthEvent(user.tenant_id, user_id, 'org_role_granted', { metadata: { role_id: id, granted_by: user.sub, expires_at: expiresAt?.toISOString() ?? null } });
       return { success: true };
     });
   });
@@ -531,15 +626,35 @@ export async function oneidRoutes(fastify: FastifyInstance) {
 
   fastify.get('/org/access-requests/mine', async (req) => {
     const user = req.user;
-    return withTenant(user.tenant_id, trx => trx.selectFrom('ondi_org_access_requests as a')
-      .innerJoin('ondi_org_roles as r', 'r.id', 'a.role_id')
-      .select(['a.id', 'a.status', 'a.reason', 'a.created_at', 'a.reviewed_at', 'r.name as role_name'])
-      .where('a.user_id', '=', user.sub).orderBy('a.created_at', 'desc').execute());
+    return withTenant(user.tenant_id, async (trx) => {
+      const mine = await trx.selectFrom('ondi_org_access_requests as a')
+        .innerJoin('ondi_org_roles as r', 'r.id', 'a.role_id')
+        .select(['a.id', 'a.status', 'a.reason', 'a.created_at', 'a.reviewed_at', 'a.break_glass', 'a.required_approvals', 'r.name as role_name'])
+        .where('a.user_id', '=', user.sub).orderBy('a.created_at', 'desc').execute();
+      const ids = mine.map(m => m.id);
+      const approvals = ids.length > 0
+        ? await trx.selectFrom('ondi_org_access_request_approvals').select(['request_id', 'decision']).where('request_id', 'in', ids).execute()
+        : [];
+      return mine.map(m => ({ ...m, approvals_count: approvals.filter(a => a.request_id === m.id && a.decision === 'approve').length }));
+    });
+  });
+
+  // Dual-control / break-glass (migration 365): break_glass=true forces
+  // required_approvals=2 and a mandatory, capped expiry — no single admin
+  // can grant, or self-grant, emergency access alone, and the grant it
+  // produces can never be permanent. Every other request keeps the
+  // pre-existing single-approval (required_approvals=1) behavior.
+  const accessRequestSchema = z.object({
+    role_id: z.string().uuid(),
+    reason: z.string().trim().max(300).optional(),
+    break_glass: z.boolean().optional(),
+    expires_in_hours: z.number().positive().max(24).optional(),
   });
 
   fastify.post('/org/access-requests', async (req, reply) => {
     const user = req.user;
-    const { role_id, reason } = z.object({ role_id: z.string().uuid(), reason: z.string().trim().max(300).optional() }).parse(req.body);
+    const { role_id, reason, break_glass, expires_in_hours } = accessRequestSchema.parse(req.body);
+    const isBreakGlass = break_glass === true;
     return withTenant(user.tenant_id, async (trx) => {
       const role = await trx.selectFrom('ondi_org_roles').select('id').where('id', '=', role_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!role) { reply.status(404); return { error: 'Role not found' }; }
@@ -547,49 +662,98 @@ export async function oneidRoutes(fastify: FastifyInstance) {
       if (existing) { reply.status(400); return { error: 'You already have this role.' }; }
       const created = await trx.insertInto('ondi_org_access_requests').values({
         tenant_id: user.tenant_id, user_id: user.sub, role_id, reason: reason ?? null,
+        break_glass: isBreakGlass, required_approvals: isBreakGlass ? 2 : 1,
+        expires_in_hours: isBreakGlass ? (expires_in_hours ?? 4) : null,
       }).returningAll().executeTakeFirstOrThrow();
-      await recordAuthEvent(user.tenant_id, user.sub, 'access_request_submitted', { metadata: { request_id: created.id, role_id } });
+      await recordAuthEvent(user.tenant_id, user.sub, 'access_request_submitted', { metadata: { request_id: created.id, role_id, break_glass: isBreakGlass } });
       reply.status(201);
       return created;
     });
   });
 
-  fastify.get('/org/access-requests', { preHandler: requireRole('ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.get('/org/access-requests', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.ACCESS_REQUESTS_REVIEW, 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
-    return withTenant(user.tenant_id, trx => trx.selectFrom('ondi_org_access_requests as a')
-      .innerJoin('ondi_org_roles as r', 'r.id', 'a.role_id')
-      .innerJoin('users as u', 'u.id', 'a.user_id')
-      .select(['a.id', 'a.user_id', 'a.reason', 'a.created_at', 'r.id as role_id', 'r.name as role_name', 'u.name as user_name', 'u.email as user_email'])
-      .where('a.tenant_id', '=', user.tenant_id).where('a.status', '=', 'pending')
-      .orderBy('a.created_at', 'asc').execute());
+    return withTenant(user.tenant_id, async (trx) => {
+      const rows = await trx.selectFrom('ondi_org_access_requests as a')
+        .innerJoin('ondi_org_roles as r', 'r.id', 'a.role_id')
+        .innerJoin('users as u', 'u.id', 'a.user_id')
+        .select(['a.id', 'a.user_id', 'a.reason', 'a.created_at', 'a.break_glass', 'a.required_approvals', 'a.expires_in_hours', 'r.id as role_id', 'r.name as role_name', 'u.name as user_name', 'u.email as user_email'])
+        .where('a.tenant_id', '=', user.tenant_id).where('a.status', '=', 'pending')
+        .orderBy('a.created_at', 'asc').execute();
+      const ids = rows.map(r => r.id);
+      const approvals = ids.length > 0
+        ? await trx.selectFrom('ondi_org_access_request_approvals').select(['request_id', 'approver_id', 'decision']).where('request_id', 'in', ids).execute()
+        : [];
+      return rows.map(r => ({
+        ...r,
+        approvals_count: approvals.filter(a => a.request_id === r.id && a.decision === 'approve').length,
+        my_decision: approvals.find(a => a.request_id === r.id && a.approver_id === user.sub)?.decision ?? null,
+      }));
+    });
   });
 
-  fastify.post('/org/access-requests/:id/approve', { preHandler: requireRole('ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
+  fastify.post('/org/access-requests/:id/approve', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.ACCESS_REQUESTS_REVIEW, 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
     const user = req.user;
     const { id } = req.params as { id: string };
-    const result = await withTenant(user.tenant_id, async (trx) => {
-      const request = await trx.updateTable('ondi_org_access_requests')
+    const outcome = await withTenant(user.tenant_id, async (trx) => {
+      const request = await trx.selectFrom('ondi_org_access_requests')
+        .selectAll().where('id', '=', id).where('tenant_id', '=', user.tenant_id).where('status', '=', 'pending').executeTakeFirst();
+      if (!request) return { kind: 'not_found' as const };
+
+      try {
+        await trx.insertInto('ondi_org_access_request_approvals').values({
+          tenant_id: user.tenant_id, request_id: id, approver_id: user.sub, decision: 'approve',
+        }).execute();
+      } catch (err: any) {
+        if (String(err.message || '').includes('unique')) return { kind: 'already_decided' as const };
+        throw err;
+      }
+
+      const approvals = await trx.selectFrom('ondi_org_access_request_approvals')
+        .select('id').where('request_id', '=', id).where('decision', '=', 'approve').execute();
+      if (approvals.length < request.required_approvals) {
+        return { kind: 'partial' as const, request, have: approvals.length };
+      }
+
+      await trx.updateTable('ondi_org_access_requests')
         .set({ status: 'approved', reviewed_by: user.sub, reviewed_at: new Date() })
+        .where('id', '=', id).execute();
+      const expiresAt = request.expires_in_hours ? new Date(Date.now() + request.expires_in_hours * 3600_000) : null;
+      await trx.insertInto('ondi_org_role_members').values({
+        tenant_id: user.tenant_id, role_id: request.role_id, user_id: request.user_id, granted_by: user.sub, expires_at: expiresAt,
+      }).onConflict(oc => oc.columns(['role_id', 'user_id']).doUpdateSet({ expires_at: expiresAt, granted_by: user.sub })).execute();
+      return { kind: 'final' as const, request };
+    });
+
+    if (outcome.kind === 'not_found') return reply.status(404).send({ error: 'Request not found or already reviewed' });
+    if (outcome.kind === 'already_decided') return reply.status(409).send({ error: "You've already recorded a decision on this request." });
+    if (outcome.kind === 'partial') {
+      await recordAuthEvent(user.tenant_id, outcome.request.user_id, 'access_request_approved', { metadata: { request_id: id, role_id: outcome.request.role_id, partial: true, approved_by: user.sub, have: outcome.have, need: outcome.request.required_approvals } });
+      return { success: true, finalized: false, approvals: outcome.have, required: outcome.request.required_approvals };
+    }
+    await recordAuthEvent(user.tenant_id, outcome.request.user_id, 'access_request_approved', { metadata: { request_id: id, role_id: outcome.request.role_id, reviewed_by: user.sub, break_glass: outcome.request.break_glass } });
+    return { success: true, finalized: true };
+  });
+
+  fastify.post('/org/access-requests/:id/deny', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.ACCESS_REQUESTS_REVIEW, 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
+    const user = req.user;
+    const { id } = req.params as { id: string };
+    // A single reviewer can always shut a request down — dual control gates
+    // granting emergency access, not blocking it; requiring two people to
+    // say no would be backwards.
+    const result = await withTenant(user.tenant_id, async (trx) => {
+      const updated = await trx.updateTable('ondi_org_access_requests')
+        .set({ status: 'denied', reviewed_by: user.sub, reviewed_at: new Date() })
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id).where('status', '=', 'pending')
         .returning(['user_id', 'role_id']).executeTakeFirst();
-      if (!request) return null;
-      await trx.insertInto('ondi_org_role_members').values({
-        tenant_id: user.tenant_id, role_id: request.role_id, user_id: request.user_id, granted_by: user.sub,
-      }).onConflict(oc => oc.columns(['role_id', 'user_id']).doNothing()).execute();
-      return request;
+      if (!updated) return null;
+      try {
+        await trx.insertInto('ondi_org_access_request_approvals').values({
+          tenant_id: user.tenant_id, request_id: id, approver_id: user.sub, decision: 'deny',
+        }).execute();
+      } catch { /* already had a decision recorded — the denial itself still stands */ }
+      return updated;
     });
-    if (!result) return reply.status(404).send({ error: 'Request not found or already reviewed' });
-    await recordAuthEvent(user.tenant_id, result.user_id, 'access_request_approved', { metadata: { request_id: id, role_id: result.role_id, reviewed_by: user.sub } });
-    return { success: true };
-  });
-
-  fastify.post('/org/access-requests/:id/deny', { preHandler: requireRole('ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
-    const user = req.user;
-    const { id } = req.params as { id: string };
-    const result = await withTenant(user.tenant_id, trx => trx.updateTable('ondi_org_access_requests')
-      .set({ status: 'denied', reviewed_by: user.sub, reviewed_at: new Date() })
-      .where('id', '=', id).where('tenant_id', '=', user.tenant_id).where('status', '=', 'pending')
-      .returning(['user_id', 'role_id']).executeTakeFirst());
     if (!result) return reply.status(404).send({ error: 'Request not found or already reviewed' });
     await recordAuthEvent(user.tenant_id, result.user_id, 'access_request_denied', { metadata: { request_id: id, role_id: result.role_id, reviewed_by: user.sub } });
     return { success: true };

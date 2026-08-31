@@ -98,10 +98,21 @@ import { SignVerifyPage } from './pages/sign/SignVerifyPage.js';
 import { BookingPublicPage } from './pages/BookingPublicPage.js';
 import { AppHeader }    from './components/AppHeader.js';
 import { WorkspaceHome } from './pages/WorkspaceHome.js';
+import { AgenticHome } from './pages/AgenticHome.js';
+import { resolveLandingStyle } from './lib/landingStyle.js';
 
-/* ── Hub page — shares search state between header and workspace ── */
+/* ── Hub page — shares search state between header and workspace.
+   Branches between the Advanced hub (WorkspaceHome, under the shared
+   AppHeader, unchanged) and the Basic/Agentic landing (AgenticHome, which
+   owns its own bespoke header/shell entirely — a deliberately different
+   chrome, not just different page content) on the resolved landing style.
+   See lib/landingStyle.ts for the per-user-override-beats-tenant-default
+   rule. ── */
 const HubPage: React.FC = () => {
   const [hubSearch, setHubSearch] = React.useState('');
+  const { user } = useAuth();
+  const isBasic = resolveLandingStyle(user) === 'basic';
+  if (isBasic) return <AgenticHome />;
   return (
     <div className="app-shell">
       <div className="app-main">
@@ -349,6 +360,14 @@ const AppContentBody: React.FC = () => {
           that link loop back to Ondi instead of ever reaching the password
           page — caught by testing the link, not just the default view. */}
       <Route path="/login"                element={<Login />} />
+      {/* Same gap, different link: ForgotPassword/AcceptInvite/ResetPassword
+          all point back to /auth/login (not /login) after a password reset
+          or invite acceptance. That path had no route of its own either, so
+          it fell through to the flag-conditional catch-all below the same
+          way /login did before the fix above — a user who just set a new
+          password would land back on OndiLogin instead of the form that
+          needs it once Ondi SSO is the default. */}
+      <Route path="/auth/login"           element={<Navigate to="/login" replace />} />
       <Route path="*"                     element={ondiSsoDefault ? <OndiLogin /> : <Login />} />
     </Routes>
   );

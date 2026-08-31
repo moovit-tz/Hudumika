@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { withTenant } from '../db/client.js';
+import { dispatchSiemExport } from './siem-export.js';
 
 /**
  * Ondi's tamper-evident audit log (M3) — ported from ondi-mvp's
@@ -16,21 +17,22 @@ import { withTenant } from '../db/client.js';
  *
  * Scoped down from the branch's full action taxonomy (which also covers
  * KYC/KYB/loans/vault — none of which exist in this platform yet) to only
- * events Ondi M1-M3 actually produce. SIEM webhook dispatch is dropped too
- * — it's explicitly on the migration plan's deferred list.
+ * events Ondi M1-M3 actually produce. Every event recorded here also fans
+ * out to a tenant's configured SIEM webhook, if any — see siem-export.ts.
  */
 export type OndiEventType =
   | 'login_success' | 'login_failed'
   | 'otp_issued' | 'otp_verified'
   | 'totp_verified'
   | 'passkey_added' | 'passkey_removed' | 'passkey_login'
-  | 'google_login'
+  | 'google_login' | 'microsoft_login'
   | 'device_renamed' | 'session_revoked'
   | 'access_denied'
   | 'kyc_submitted' | 'kyc_approved' | 'kyc_rejected'
   | 'kyb_submitted' | 'kyb_verified' | 'kyb_rejected'
   | 'org_role_created' | 'org_role_deleted' | 'org_role_granted' | 'org_role_revoked'
-  | 'access_request_submitted' | 'access_request_approved' | 'access_request_denied';
+  | 'access_request_submitted' | 'access_request_approved' | 'access_request_denied'
+  | 'password_changed' | 'email_changed';
 
 /** Postgres jsonb does not preserve object key insertion order — it's a
  *  storage format, not the original text (unlike the `json` type). Metadata
@@ -81,6 +83,10 @@ export async function recordAuthEvent(
         metadata: JSON.stringify(opts.metadata ?? {}),
         prev_hash: last?.event_hash ?? null, event_hash: eventHash,
       }).execute();
+
+      // Not awaited — dispatchSiemExport handles its own errors and must
+      // never add latency to (or block) the auth flow being recorded.
+      dispatchSiemExport(tenantId, { id, eventType, userId, metadata: opts.metadata ?? {}, createdAt: new Date().toISOString() });
     });
   } catch { /* audit trail must never block the auth flow it's recording */ }
 }

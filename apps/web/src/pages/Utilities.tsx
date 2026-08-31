@@ -29,7 +29,7 @@ export const APP_META: Record<string, { name: string; desc: string; icon: IconNa
   complyos:     { name: 'ComplyOS',      desc: 'Compliance applications and legal document tracking.', icon: 'clipboardList' },
   email:        { name: 'Email',         desc: 'Team inbox and email workspace.',                       icon: 'mail' },
   ai:           { name: 'AI',            desc: 'AI automations and document extraction.',               icon: 'sparkle' },
-  oneid:        { name: 'OneID',         desc: 'Single sign-on and identity management.',               icon: 'key' },
+  oneid:        { name: 'Ondi',          desc: 'Single sign-on and identity management.',               icon: 'key' },
   nexushr:        { name: 'OnePi',         desc: 'Platform integrations hub.',                            icon: 'link' },
   tracking:     { name: 'HuduFreight',   desc: 'Fleet, vehicle and driver tracking.',                   icon: 'truck' },
   demurrage:    { name: 'Demurrage',     desc: 'Container dwell time and demurrage cost tracking.',     icon: 'timer' },

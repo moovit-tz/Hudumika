@@ -1,0 +1,156 @@
+/* Basic (Agentic) landing — bespoke header + shell, deliberately separate
+   from AppHeader (see App.tsx's HubPage). Reuses .hub2-welcome-* (index.css)
+   for the greeting band — a complete, theme-aware welcome-band style that
+   already existed in the stylesheet with no component using it. */
+
+/* ── Bespoke header ── */
+.ah-header {
+  display: flex; align-items: center; gap: 14px;
+  padding: 10px 20px; border-bottom: 1px solid var(--border); background: var(--white);
+  flex-shrink: 0;
+}
+.ah-header-mark {
+  width: 30px; height: 30px; border-radius: 8px; background: var(--teal); border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.ah-header-search { position: relative; flex: 1; max-width: 360px; }
+.ah-header-search > svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); pointer-events: none; }
+.ah-header-search input {
+  width: 100%; height: 32px; border-radius: 999px; background: var(--bg); border: 1px solid var(--border);
+  padding: 0 12px 0 32px; font-size: 12.5px; color: var(--ink); font-family: var(--font); outline: none; box-sizing: border-box;
+}
+.ah-header-search input:focus { border-color: var(--teal-m, var(--teal)); }
+.ah-search-dropdown {
+  position: absolute; top: calc(100% + 6px); left: 0; right: 0; background: var(--white); border: 1px solid var(--border);
+  border-radius: var(--r-sm); box-shadow: var(--elev); max-height: 320px; overflow-y: auto; z-index: 30;
+}
+.ah-search-row { display: block; width: 100%; text-align: left; padding: 9px 12px; border: none; background: none; cursor: pointer; border-top: 1px solid var(--border); }
+.ah-search-row:first-child { border-top: none; }
+.ah-search-row:hover { background: var(--bg); }
+.ah-search-primary { font-size: 12.5px; color: var(--ink); font-weight: 500; }
+.ah-search-secondary { font-size: 11px; color: var(--ink3); margin-top: 1px; }
+
+.ah-header-right { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+.ah-header-icon-btn {
+  position: relative; width: 34px; height: 34px; border-radius: 8px; border: none; background: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.ah-header-icon-btn:hover { background: var(--bg); }
+.ah-header-badge {
+  position: absolute; top: 2px; right: 2px; min-width: 15px; height: 15px; padding: 0 3px; border-radius: 999px;
+  background: var(--red); color: #fff; font-size: 9.5px; font-weight: 700; display: flex; align-items: center; justify-content: center;
+}
+.ah-header-avatar-btn { border: none; background: none; cursor: pointer; padding: 0; border-radius: 50%; display: flex; }
+.ah-notif-menu { width: 300px; max-height: 320px; overflow-y: auto; }
+
+.ah-scroll { flex: 1 1 0; min-height: 0; overflow-y: auto; background: var(--bg); font-family: var(--font); position: relative; }
+
+.agentic-home-root { padding: 24px 0 40px; }
+
+.hub2-welcome-band { padding-left: 40px; padding-right: 40px; }
+
+.ah-role-line { display: flex; align-items: center; gap: 8px; margin-top: 8px; padding-left: 40px; }
+.ah-role-badge {
+  font-family: var(--font); font-size: 10.5px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase;
+  padding: 3px 9px; border-radius: 999px; background: var(--teal-l); color: var(--teal-d, var(--teal));
+}
+.ah-dept { font-size: 11.5px; color: var(--ink3); }
+
+.ah-momentum-pill {
+  display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; color: var(--green);
+  background: var(--green-l); padding: 3px 10px; border-radius: 999px; margin-left: 10px; vertical-align: middle;
+}
+
+.ah-headline {
+  display: flex; align-items: center; gap: 12px; margin: 16px 40px; padding: 14px 18px;
+  border-radius: var(--r); box-shadow: var(--elev-sm);
+}
+.ah-headline-icon { width: 34px; height: 34px; border-radius: 9px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.ah-headline-text { font-size: 13.5px; color: var(--ink); }
+
+.ah-stat-row {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px;
+  max-width: 1180px; margin: 0 auto 18px; padding: 0 40px;
+}
+.ah-stat-tile { background: var(--white); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 14px 16px; box-shadow: var(--elev-sm); }
+.ah-stat-tile--warn .ah-stat-n { color: var(--gold); }
+.ah-stat-n { font-size: 24px; font-weight: 700; color: var(--ink); line-height: 1; font-family: var(--font); }
+.ah-stat-l { font-size: 11.5px; color: var(--ink3); margin-top: 6px; }
+
+.ds-tabs-list {}
+
+.ah-body {
+  display: grid; grid-template-columns: 1.6fr 1fr; gap: 16px; align-items: start;
+  max-width: 1180px; margin: 0 auto; padding: 0 40px;
+}
+.ah-col-main, .ah-col-side { display: flex; flex-direction: column; gap: 16px; }
+
+.ah-agent-list { display: flex; flex-direction: column; gap: 10px; }
+.ah-agent-row { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; color: var(--ink2); line-height: 1.5; }
+.ah-agent-text { flex: 1; }
+.ah-agent-link { font-size: 12px; font-weight: 600; color: var(--teal); text-decoration: none; white-space: nowrap; }
+.ah-agent-link:hover { text-decoration: underline; }
+
+.ah-empty-row { padding: 20px 18px; text-align: center; color: var(--ink4); font-size: 12.5px; }
+
+.ah-task-row { display: flex; align-items: center; gap: 10px; padding: 10px 18px; border-top: 1px solid var(--border); }
+.ah-task-row:first-child { border-top: none; }
+.ah-task-check { width: 17px; height: 17px; border-radius: 5px; border: 1.6px solid var(--border2, var(--border)); background: var(--white); flex-shrink: 0; padding: 0; cursor: pointer; }
+.ah-task-check:hover { border-color: var(--teal); background: var(--teal-l); }
+.ah-task-title { flex: 1; font-size: 13px; color: var(--ink); }
+
+.ah-queue-row { display: flex; align-items: center; gap: 12px; padding: 11px 18px; border-top: 1px solid var(--border); }
+.ah-queue-row:first-child { border-top: none; }
+.ah-queue-main { flex: 1; min-width: 0; }
+.ah-queue-primary { font-size: 13px; font-weight: 500; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ah-queue-secondary { font-size: 11.5px; color: var(--ink3); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.ah-action-grid { display: flex; flex-direction: column; gap: 8px; }
+.ah-action-btn {
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--r-sm);
+  background: var(--bg); border: 1px solid var(--border); cursor: pointer; text-align: left;
+  font-size: 12.5px; font-weight: 600; color: var(--ink2); text-decoration: none;
+}
+.ah-action-btn:hover { background: var(--teal-l); border-color: var(--teal-m, var(--teal)); color: var(--teal-d, var(--teal)); }
+
+.ah-bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.ah-bar-label { font-size: 12.5px; color: var(--ink2); width: 130px; flex-shrink: 0; }
+.ah-bar-track { flex: 1; height: 8px; background: var(--bg); border-radius: 999px; overflow: hidden; }
+.ah-bar-fill { height: 100%; background: var(--teal); border-radius: 999px; }
+.ah-bar-val { font-size: 12.5px; color: var(--ink3); width: 30px; text-align: right; flex-shrink: 0; }
+
+.ah-profile-meta { display: flex; gap: 24px; flex-wrap: wrap; }
+.ah-profile-meta > div { display: flex; flex-direction: column; gap: 4px; }
+.ah-profile-meta b { font-size: 15px; color: var(--ink); }
+.ah-profile-meta span { font-size: 11.5px; color: var(--ink3); }
+
+.ah-operations-embed { display: flex; flex-direction: column; min-height: 0; height: 100%; }
+
+/* ── Chat FAB + panel ── */
+.ah-chat-fab {
+  position: absolute; bottom: 24px; right: 24px; width: 48px; height: 48px; border-radius: 50%;
+  background: var(--teal); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  box-shadow: var(--elev); z-index: 40;
+}
+.ah-chat-panel {
+  position: absolute; bottom: 84px; right: 24px; width: 320px; max-height: 420px;
+  background: var(--white); border: 1px solid var(--border); border-radius: var(--r); box-shadow: var(--elev);
+  display: flex; flex-direction: column; overflow: hidden; z-index: 40;
+}
+.ah-chat-head { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--border); font-size: 12.5px; font-weight: 700; color: var(--ink); }
+.ah-chat-msgs { flex: 1; overflow-y: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 9px; min-height: 140px; max-height: 260px; }
+.ah-chat-msg { max-width: 88%; font-size: 12.5px; line-height: 1.45; padding: 8px 11px; border-radius: 12px; }
+.ah-chat-msg--agent { align-self: flex-start; background: var(--bg); color: var(--ink); border-bottom-left-radius: 4px; }
+.ah-chat-msg--user { align-self: flex-end; background: var(--teal); color: hsl(var(--primary-foreground)); border-bottom-right-radius: 4px; }
+.ah-chat-input-row { display: flex; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--border); }
+.ah-chat-input { flex: 1; border: 1px solid var(--border); background: var(--bg); border-radius: 999px; padding: 8px 13px; font-size: 12.5px; color: var(--ink); font-family: var(--font); outline: none; }
+.ah-chat-input:focus { border-color: var(--teal-m, var(--teal)); }
+.ah-chat-send { width: 32px; height: 32px; border-radius: 50%; background: var(--teal); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+
+@media (max-width: 900px) {
+  .ah-body { grid-template-columns: 1fr; padding: 0 20px; }
+  .ah-stat-row { padding: 0 20px; }
+  .hub2-welcome-band, .ah-role-line { padding-left: 20px; padding-right: 20px; }
+  .ah-headline { margin: 16px 20px; }
+  .ah-header-search { display: none; }
+}

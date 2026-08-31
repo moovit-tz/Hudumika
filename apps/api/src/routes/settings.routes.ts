@@ -43,6 +43,10 @@ const SECRET_FIELDS_BY_KEY: Record<string, readonly string[]> = {
   // come out of actually authorizing it live in calendar_sync_connections
   // instead (personal data, not tenant config), never touching this blob.
   calendarSync: ['googleClientSecret', 'outlookClientSecret'],
+  // Generic SIEM/webhook export of Ondi's audit chain (siem-export.ts) —
+  // the signing secret behind the HMAC header, same masked-round-trip
+  // treatment as every other credential in this table.
+  siemExport: ['secret'],
 };
 /** OAuth tokens under settings.email — never sent to the browser at all
  *  (not even masked); only mail-oauth.routes.ts's callback ever writes

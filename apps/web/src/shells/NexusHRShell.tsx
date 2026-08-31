@@ -139,7 +139,7 @@ export function NexusHRShell() {
               <Route path="payroll"           element={<RequireRoles roles={MGMT_ROLES}><PayrollPage /></RequireRoles>} />
               <Route path="my-payslips"       element={<MyPayslipsPage />} />
               <Route path="announcements"     element={<RequireRoles roles={MGMT_ROLES}><AnnouncementsPage /></RequireRoles>} />
-              <Route path="org-chart"         element={<RequireRoles roles={MGMT_ROLES}><OrgChart /></RequireRoles>} />
+              <Route path="org-chart"         element={<RequireRoles roles={MGMT_ROLES} permissions={['org_chart.manage']}><OrgChart /></RequireRoles>} />
               <Route path="employment"        element={<RequireRoles roles={MGMT_ROLES}><EmploymentRecords /></RequireRoles>} />
               <Route path="recruitment"       element={<RequireRoles roles={MGMT_ROLES}><RecruitmentPage /></RequireRoles>} />
               <Route path="performance"       element={<RequireRoles roles={MGMT_ROLES}><Performance /></RequireRoles>} />

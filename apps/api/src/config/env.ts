@@ -134,6 +134,19 @@ const envSchema = z.object({
    * Cloud OAuth client exists, same "report not configured" convention.
    */
   GOOGLE_OAUTH_CLIENT_ID: z.string().optional(),
+
+  /**
+   * Microsoft Sign-In (Ondi M2, same shape as Google above) — one
+   * platform-level Azure AD app registration ("multitenant + personal
+   * Microsoft accounts" account type, authority `common`) covers every
+   * tenant. Only a client ID is needed: the frontend runs MSAL's public
+   * client (SPA) authorization-code+PKCE flow, which needs no client
+   * secret, and the backend verifies the returned id_token itself against
+   * Microsoft's own published JWKS (lib/microsoft-oidc.ts) rather than
+   * holding a secret. Optional: unset until a real Azure app registration
+   * exists, same "report not configured" convention.
+   */
+  MICROSOFT_OAUTH_CLIENT_ID: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

@@ -11,9 +11,22 @@ import { withTenant } from '../db/client.js';
  * reads (found while researching this milestone; left alone, not fixed,
  * since rewiring ~100 existing route files' auth checks is a different,
  * much larger, unrelated project).
+ *
+ * Deliberately still excluded: anything that lets a holder create/delete
+ * custom roles or grant/revoke role membership (POST/DELETE
+ * /org/roles*, in oneid.routes.ts). Gating those with a custom-role
+ * permission would let a non-admin holder mint a new role carrying any
+ * permission — including that same one — and grant it to themselves or
+ * anyone else, a straightforward self-escalation path. Role
+ * administration stays ADMIN/TENANT_ADMIN-only; every permission below
+ * only ever narrows what an *already-defined, admin-created* role can do.
  */
 export const ORG_PERMISSIONS = {
   KYC_REVIEW: 'kyc.review',
+  ACCESS_REQUESTS_REVIEW: 'access_requests.review',
+  API_KEYS_MANAGE: 'api_keys.manage',
+  ORG_CHART_MANAGE: 'org_chart.manage',
+  SSO_PROVIDERS_MANAGE: 'sso_providers.manage',
 } as const;
 export type OrgPermission = (typeof ORG_PERMISSIONS)[keyof typeof ORG_PERMISSIONS];
 
@@ -23,11 +36,33 @@ export async function hasOrgPermission(tenantId: string, userId: string, permiss
       .innerJoin('ondi_org_roles as r', 'r.id', 'm.role_id')
       .select('r.permissions')
       .where('m.user_id', '=', userId)
+      // A time-bound grant (migration 364) stops counting once past its
+      // expiry — no cleanup job needed, this check is the enforcement.
+      .where(eb => eb.or([eb('m.expires_at', 'is', null), eb('m.expires_at', '>', new Date())]))
       .execute();
     return rows.some((row) => {
       const perms = Array.isArray(row.permissions) ? row.permissions : (() => { try { return JSON.parse(row.permissions ?? '[]'); } catch { return []; } })();
       return perms.includes(permission);
     });
+  });
+}
+
+export async function getUserOrgPermissions(tenantId: string, userId: string): Promise<string[]> {
+  return withTenant(tenantId, async (trx) => {
+    const rows = await trx.selectFrom('ondi_org_role_members as m')
+      .innerJoin('ondi_org_roles as r', 'r.id', 'm.role_id')
+      .select('r.permissions')
+      .where('m.user_id', '=', userId)
+      .where(eb => eb.or([eb('m.expires_at', 'is', null), eb('m.expires_at', '>', new Date())]))
+      .execute();
+    const allPerms = new Set<string>();
+    for (const row of rows) {
+      const perms = Array.isArray(row.permissions) ? row.permissions : (() => { try { return JSON.parse(row.permissions ?? '[]'); } catch { return []; } })();
+      for (const p of perms) {
+        allPerms.add(p);
+      }
+    }
+    return Array.from(allPerms);
   });
 }
 

@@ -458,17 +458,19 @@ export function Contacts() {
               <div style={{ width: 300, flexShrink: 0 }}>
                 <div style={{ background: 'var(--white)', borderRadius: 12, padding: 24, border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
                   
-                  {/* Avatar.
-                      A contact could show a picture but never set one — the
-                      column was written only by the Google sync. The ring lives
-                      on a wrapper rather than on the circle itself because the
-                      old one clipped with overflow:hidden, which would cut the
-                      camera button off. */}
-                  <div style={{ borderRadius: '50%', border: '3px solid var(--cts-accent)', padding: 3, marginBottom: 16 }}>
+                  {/* Avatar — a contact could show a picture but never set
+                      one (the column was written only by the Google sync).
+                      The accent ring is drawn by AvatarPicker itself (its
+                      `ring` prop) directly on the avatar element, not a
+                      wrapping div — a wrapper here used to draw its
+                      border-radius circle around the *whole* component,
+                      Remove label included, so the ring visibly cut across
+                      that label instead of framing just the photo. */}
+                  <div style={{ marginBottom: 16 }}>
                     <AvatarPicker
                       id={activeContact.id} kind="contacts"
                       name={`${activeContact.first_name} ${activeContact.last_name || ''}`.trim()}
-                      size={104} shape="circle"
+                      size={104} shape="circle" ring="var(--cts-accent)"
                       onChange={url => {
                         // The list lives in ContactsProvider, so the open
                         // record is updated here and the list is re-read —
@@ -685,7 +687,7 @@ export function Contacts() {
                               created:          { label: 'Contact created',        dot: 'var(--cts-accent)' },
                               updated:          { label: 'Contact updated',        dot: 'var(--ink2)' },
                               company_linked:   { label: 'Company linked',         dot: 'var(--green)' },
-                              company_changed:  { label: 'Company switched',       dot: '#d97706' },
+                              company_changed:  { label: 'Company switched',       dot: 'var(--gold)' },
                               company_unlinked: { label: 'Company removed',        dot: 'var(--red)' },
                             };
                             const c = cfg[entry.action] || { label: entry.action, dot: 'var(--ink2)' };
@@ -719,7 +721,7 @@ export function Contacts() {
           /* ─── STANDARD CONTACTS LIST / SEARCH / TABLE VIEW ─── */
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
-            <div style={{ padding: '20px 24px 0' }}>
+            <div style={{ padding: '20px 0 0' }}>
               <PageHeader crumbs={['Contacts']} titlePlain="All" titleEm="contacts" subtitle="Everyone you've saved, synced, or tagged in one place." />
             </div>
 
@@ -809,7 +811,7 @@ export function Contacts() {
             </div>
 
             {/* Table Container */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '24px', background: 'var(--white)' }}>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '24px 0', background: 'var(--white)' }}>
               
               {/* Bulk Action Bar (when items are selected) */}
               {selectedIds.size > 0 && (

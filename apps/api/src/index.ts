@@ -160,6 +160,7 @@ import { entitlementsRoutes } from './routes/entitlements.routes.js';
 import { apiKeysRoutes } from './routes/api-keys.routes.js';
 import { storeRoutes } from './routes/store.routes.js';
 import { searchRoutes } from './routes/search.routes.js';
+import { workspaceCockpitRoutes } from './routes/workspace-cockpit.routes.js';
 import { tasksRoutes } from './routes/tasks.routes.js';
 import { taskProjectsRoutes } from './routes/task-projects.routes.js';
 import { contractsRoutes } from './routes/contracts.routes.js';
@@ -490,6 +491,7 @@ async function main() {
     await server.register(apiKeysRoutes, { prefix: '/v1/api-keys' });
     await server.register(storeRoutes, { prefix: '/v1/store' });
     await server.register(searchRoutes, { prefix: '/v1/search' });
+    await server.register(workspaceCockpitRoutes, { prefix: '/v1/workspace/cockpit' });
     await server.register(tasksRoutes, { prefix: '/v1/tasks' });
     await server.register(taskProjectsRoutes, { prefix: '/v1/tasks/projects' });
     await server.register(contractsRoutes, { prefix: '/v1/contracts' });

@@ -561,9 +561,16 @@ html[data-expanded="true"] .app-sidebar {
   max-width: 320px;
 }
 
-/* ── Dark mode ── */
+/* ── Dark mode ──
+   background was a hardcoded #0d1117, a one-off pick distinct from --white
+   (#111218) — .app-main/.page-layout's own dark background, and what the
+   sidebar itself already uses in light mode (var(--white), matching the
+   content card exactly, with only the surrounding gutter — .app-shell's
+   own darker background — reading as a different tone). The mismatched
+   literal broke that same relationship in dark mode, making the sidebar
+   read as visibly darker than the content beside it. */
 [data-theme="dark"] .app-sidebar {
-  background: #0d1117;
+  background: var(--white);
   border-right: none;
   border-radius: 0 9px 9px 0;
 }

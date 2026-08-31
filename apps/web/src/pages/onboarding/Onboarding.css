@@ -12,7 +12,7 @@
 
 /* Wider card for steps with richer content (package grid, review) */
 .login-card.ob-card--wide {
-  max-width: 1040px !important;
+  max-width: 1120px !important;
   width: 100%;
   transition: max-width 0.3s ease;
   background: var(--lp-card-bg, #ffffff);
@@ -25,11 +25,20 @@
   text-align: center;
   margin-bottom: 24px;
 }
+/* --lp-link-accent, not raw --lp-accent, on every plain-text/icon/thin-
+   border usage below (this tag, "Save 30%", the sparkle, the pro card's
+   border) — the tenant's raw accent has no contrast guarantee and can be
+   a dark tone itself (see Login.tsx's identical reasoning for its link
+   color), which reads as nearly invisible text or a vanished border on a
+   dark page. --lp-link-accent is dark-mode-safe (a fixed light blue) and
+   still carries the real tenant accent in light mode. Solid fills (the
+   "Plan Selected"/"Buy Plan" buttons) keep --lp-accent, since contrast
+   there is against the button's own white text, not the page. */
 .ob-pricing-tag {
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.12em;
-  color: #a855f7;
+  color: var(--lp-link-accent, var(--lp-accent, #a855f7));
   text-transform: uppercase;
   margin-bottom: 6px;
 }
@@ -45,12 +54,12 @@
 .ob-billing-toggle {
   display: flex;
   gap: 4px;
-  background: #f1f5f9;
+  background: var(--lp-input-bg, #f1f5f9);
   padding: 4px;
   border-radius: 999px;
   width: fit-content;
   margin: 0 auto 28px auto;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--lp-row-border, #e2e8f0);
 }
 .ob-billing-opt {
   border: none;
@@ -59,38 +68,46 @@
   border-radius: 999px;
   font-size: 13px;
   font-weight: 700;
-  color: #64748b;
+  color: var(--lp-ink3, #64748b);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 .ob-billing-opt--active {
-  background: #ffffff;
-  color: #0f172a;
+  background: var(--lp-card-bg, #ffffff);
+  color: var(--lp-ink, #0f172a);
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
 }
 .ob-billing-save {
   font-size: 10.5px;
   font-weight: 800;
-  color: #9333ea;
+  color: var(--lp-link-accent, var(--lp-accent, #9333ea));
   margin-left: 4px;
 }
 
-/* ── Pricing Grid (3 Columns) ── */
+/* ── Pricing Grid — auto-fit rather than a hardcoded column count.
+   packages.length is real, live data from the /v1/packages catalog (not a
+   fixed "3 plans" assumption) — a 4th tier (Onsite, alongside Starter/Plus/
+   Advanced) used to force a rigid 3-column grid into either an orphaned
+   card alone on its own row, or, on anything narrower than the card's own
+   max-width, four-plus columns squeezed into too little space with no
+   graceful step down until the single-column breakpoint kicked in. auto-fit
+   lets the browser pick 4/3/2/1 columns from the space actually available,
+   so there's no width band where cards render unreadably cramped. */
 .ob-pkg-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 20px;
-  margin-bottom: 32px;
+  margin-bottom: 28px;
   align-items: stretch;
 }
 
 .ob-pkg-card {
   position: relative;
   text-align: left;
-  border: 1.5px solid #e2e8f0;
+  border: 1.5px solid var(--lp-row-border, #e2e8f0);
   border-radius: 20px;
   padding: 28px 22px;
-  background: #ffffff;
+  background: var(--lp-card-bg, #ffffff);
   cursor: pointer;
   display: flex;
   flex-direction: column;
@@ -99,14 +116,14 @@
 }
 .ob-pkg-card:hover {
   transform: translateY(-4px);
-  border-color: #a855f7;
-  box-shadow: 0 12px 30px rgba(168, 85, 247, 0.12);
+  border-color: var(--lp-link-accent, var(--lp-accent, #a855f7));
+  box-shadow: 0 12px 30px color-mix(in srgb, var(--lp-accent, #a855f7) 12%, transparent);
 }
 
 /* Pro / Growth Highlighted Card (Middle Card) */
 .ob-pkg-card--pro {
-  border: 2px solid #a855f7 !important;
-  box-shadow: 0 12px 40px rgba(168, 85, 247, 0.18);
+  border: 2px solid var(--lp-link-accent, var(--lp-accent, #a855f7)) !important;
+  box-shadow: 0 12px 40px color-mix(in srgb, var(--lp-accent, #a855f7) 18%, transparent);
   transform: scale(1.02);
 }
 
@@ -114,7 +131,7 @@
   position: absolute;
   top: 20px;
   right: 20px;
-  color: #a855f7;
+  color: var(--lp-link-accent, var(--lp-accent, #a855f7));
 }
 
 .ob-pkg-header-row {
@@ -126,12 +143,12 @@
 .ob-pkg-name {
   font-size: 16px;
   font-weight: 800;
-  color: #0f172a;
+  color: var(--lp-ink, #0f172a);
 }
 
 .ob-badge-popular-green {
-  background: #dcfce7;
-  color: #15803d;
+  background: color-mix(in srgb, #22c55e 20%, var(--lp-card-bg, #dcfce7));
+  color: color-mix(in srgb, #15803d 70%, var(--lp-ink, #15803d));
   font-size: 11px;
   font-weight: 700;
   padding: 3px 10px;
@@ -141,7 +158,7 @@
 .ob-pkg-price {
   font-size: 32px;
   font-weight: 900;
-  color: #0f172a;
+  color: var(--lp-ink, #0f172a);
   letter-spacing: -0.03em;
   display: flex;
   align-items: baseline;
@@ -150,7 +167,7 @@
 .ob-pkg-price span {
   font-size: 14px;
   font-weight: 600;
-  color: #64748b;
+  color: var(--lp-ink3, #64748b);
 }
 
 /* Buttons in Cards */
@@ -165,66 +182,99 @@
   text-align: center;
 }
 
+/* Text stays white, unguarded, same as .login-submit-btn's identical
+   pattern elsewhere in this page family — the --lp-* accent has no
+   contrast-floor guarantee (see CLAUDE.md's --primary/--teal note); this
+   is an existing platform-wide limitation, not a new risk introduced here. */
 .ob-pkg-btn--solid {
-  background: #9333ea;
+  background: var(--lp-accent, #9333ea);
   color: #ffffff;
   border: none;
-  box-shadow: 0 4px 14px rgba(147, 51, 234, 0.35);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--lp-accent, #9333ea) 35%, transparent);
 }
 .ob-pkg-btn--solid:hover {
-  background: #7e22ce;
+  background: color-mix(in srgb, var(--lp-accent, #9333ea) 85%, black);
 }
 
 .ob-pkg-btn--outline {
-  background: #ffffff;
-  color: #9333ea;
-  border: 1.5px solid #c084fc;
+  background: var(--lp-card-bg, #ffffff);
+  color: var(--lp-link-accent, var(--lp-accent, #9333ea));
+  border: 1.5px solid color-mix(in srgb, var(--lp-link-accent, var(--lp-accent, #9333ea)) 55%, transparent);
 }
 .ob-pkg-btn--outline:hover {
-  background: #fef4ff;
+  background: color-mix(in srgb, var(--lp-accent, #9333ea) 8%, var(--lp-card-bg, #fef4ff));
 }
 
-/* Payment Logos Row under button */
+/* Payment methods trust row — shown once below the whole pricing grid
+   (see StepPackage.tsx), not per-card. Each brand mark (Visa's navy, M-PESA's
+   red, ...) is only ever designed against a light background — correct
+   in light mode where the page itself is pale, but the row sits directly on
+   the dark page in dark mode with nothing light behind it. A small white
+   backing chip keeps every mark legible and on-brand in both themes rather
+   than trying to invent a "dark mode Visa logo" that doesn't exist. */
+.ob-payment-trust {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 28px;
+  padding: 14px 24px;
+  border-radius: 14px;
+  background: #fff;
+  border: 1px solid var(--lp-row-border, #e2e8f0);
+}
+.ob-payment-trust-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  /* Fixed, not var(--lp-ink3) — the chip behind it is always white (see
+     .ob-payment-trust), so a dark-mode-lightened grey would wash out. */
+  color: #94a3b8;
+}
 .ob-payment-logos {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  margin-top: -4px;
-  margin-bottom: 6px;
+  flex-wrap: wrap;
+  gap: 14px;
 }
-.ob-pay-badge {
-  font-size: 10px;
-  font-weight: 800;
-  color: #475569;
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-}
+/* Each mark's real visual identity, not a uniform badge style for all
+   five — see StepPackage.tsx's own comment on why Visa/Mixx stay
+   wordmarks while Mastercard/M-PESA/Airtel Money get their real shapes. */
 .ob-pay-visa {
+  font-size: 15px;
   font-style: italic;
   font-weight: 900;
+  letter-spacing: -0.02em;
   color: #1a1f71;
 }
-.ob-pay-mc {
+.ob-pay-mc { display: inline-flex; align-items: center; flex-shrink: 0; }
+
+.ob-pay-badge-chip {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  color: #ffffff;
+  padding: 3px 8px;
+  border-radius: 4px;
   display: inline-flex;
   align-items: center;
 }
-.mc-red {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: #eb001b;
-  display: inline-block;
+.ob-pay-mpesa { background: #ee1b22; }
+
+.ob-pay-mixx {
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
 }
-.mc-yellow {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: #f79e1b;
-  display: inline-block;
-  margin-left: -4px;
-}
+.ob-pay-mixx-word { color: #e6007e; font-weight: 800; }
+.ob-pay-mixx-by   { color: #475569; font-weight: 700; }
+
+.ob-pay-airtel-wrap { display: inline-flex; align-items: center; gap: 4px; }
+.ob-pay-airtel       { background: #ed1c24; }
+.ob-pay-airtel-money { font-size: 12px; font-weight: 700; color: #475569; }
 
 /* Feature Groups inside Card */
 .ob-pkg-group {
@@ -236,7 +286,7 @@
 .ob-pkg-group-title {
   font-size: 12px;
   font-weight: 800;
-  color: #0f172a;
+  color: var(--lp-ink, #0f172a);
   margin-bottom: 2px;
 }
 .ob-pkg-feature-list {
@@ -252,7 +302,7 @@
   align-items: center;
   gap: 8px;
   font-size: 12px;
-  color: #334155;
+  color: var(--lp-ink2, #334155);
   line-height: 1.35;
 }
 .ob-pkg-feature-icon {
@@ -269,8 +319,8 @@
 }
 
 .ob-boosted-pill {
-  background: #f3e8ff;
-  color: #7e22ce;
+  background: color-mix(in srgb, var(--lp-accent, #9333ea) 15%, var(--lp-card-bg, #f3e8ff));
+  color: var(--lp-link-accent, var(--lp-accent, #7e22ce));
   font-size: 10px;
   font-weight: 800;
   padding: 2px 7px;
@@ -290,7 +340,7 @@
 .ob-matrix-toggle {
   background: none;
   border: none;
-  color: var(--lp-accent, #0d7a6b);
+  color: var(--lp-link-accent, var(--lp-accent, #0d7a6b));
   font-size: 13.5px;
   font-weight: 700;
   cursor: pointer;

@@ -3,10 +3,12 @@ import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-
 import { WorkspaceApp } from './WorkspaceApp.js';
 import { GoogleWorkspaceRightSidebar } from '../components/GoogleWorkspaceRightSidebar.js';
 import { AppSidebar } from '../components/AppSidebar.js';
-import type { SidebarSection } from '../components/AppSidebar.js';
+import type { SidebarSection, SidebarNavItem } from '../components/AppSidebar.js';
 import { AppHeader } from '../components/AppHeader.js';
 import { RequireRoles } from '../components/RequireRoles.js';
 import { PageLayout } from '../components/PageLayout.js';
+import { useAuth } from '../hooks/useAuth.js';
+import { Icon } from '../components/Icon.js';
 
 import { OneIdUsers } from '../pages/OneIdUsers.js';
 import { OneIdSSO } from '../pages/OneIdSSO.js';
@@ -15,13 +17,21 @@ import { OneIdLoginActivity } from '../pages/OneIdLoginActivity.js';
 import { OneIdKyc } from '../pages/OneIdKyc.js';
 import { OneIdRoles } from '../pages/OneIdRoles.js';
 import { OneIdPersonal } from '../pages/OneIdPersonal.js';
+import { OneIdSecuritySettings } from '../pages/OneIdSecuritySettings.js';
+import { OneIdVault } from '../pages/OneIdVault.js';
 import { OneIdBusinessVerification } from '../pages/OneIdBusinessVerification.js';
 import { OndiAuthorize } from '../pages/OndiAuthorize.js';
 
 const ADMIN_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'] as const;
 
 const PERSONAL_NAV: SidebarSection[] = [
-  { items: [{ label: 'My Identity', icon: 'fingerprint', path: '/ondi/personal', exact: true }] },
+  {
+    items: [
+      { label: 'My Profile',       icon: 'fingerprint', path: '/ondi/personal', exact: true },
+      { label: 'Security Settings', icon: 'lock',        path: '/ondi/personal/security' },
+      { label: 'Document Vault',   icon: 'fileText',    path: '/ondi/personal/vault' },
+    ],
+  },
 ];
 
 const BUSINESS_NAV: SidebarSection[] = [
@@ -56,27 +66,78 @@ const BUSINESS_NAV: SidebarSection[] = [
 function ModeToggle({ mode, onChange, collapsed }: { mode: 'personal' | 'business'; onChange: (m: 'personal' | 'business') => void; collapsed: boolean }) {
   if (collapsed) return null;
   return (
-    <div style={{ display: 'flex', gap: 4, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 100, padding: 4, margin: '0 12px 12px' }}>
-      {(['personal', 'business'] as const).map(m => (
-        <button
-          key={m}
-          type="button"
-          onClick={() => onChange(m)}
-          style={{
-            flex: 1, border: 'none', borderRadius: 100, padding: '7px 10px', fontSize: 12.5, fontWeight: 700,
-            fontFamily: 'var(--font)', cursor: 'pointer', textTransform: 'capitalize',
-            background: mode === m ? 'var(--teal)' : 'transparent',
-            color: mode === m ? '#fff' : 'var(--ink3)',
-          }}
-        >
-          {m}
-        </button>
-      ))}
+    <div style={{
+      position: 'relative',
+      display: 'flex',
+      background: 'var(--bg)',
+      border: '1px solid var(--border-soft, var(--border))',
+      borderRadius: 100,
+      padding: 3,
+      margin: '14px 12px',
+      boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.03)',
+      overflow: 'hidden'
+    }}>
+      {/* Sliding background highlight */}
+      <div style={{
+        position: 'absolute',
+        top: 3,
+        bottom: 3,
+        left: mode === 'personal' ? 3 : 'calc(50% + 1.5px)',
+        width: 'calc(50% - 4.5px)',
+        background: 'linear-gradient(135deg, var(--teal) 0%, var(--teal-d, var(--teal)) 100%)',
+        borderRadius: 100,
+        transition: 'all 0.22s cubic-bezier(0.4, 0, 0.2, 1)',
+        boxShadow: '0 2px 6px rgba(0, 181, 137, 0.2)'
+      }} />
+
+      {(['personal', 'business'] as const).map(m => {
+        const active = mode === m;
+        return (
+          <button
+            key={m}
+            type="button"
+            onClick={() => onChange(m)}
+            style={{
+              position: 'relative',
+              zIndex: 1,
+              flex: 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+              border: 'none',
+              borderRadius: 100,
+              padding: '6px 10px',
+              fontSize: 12.5,
+              fontWeight: 700,
+              fontFamily: 'var(--font)',
+              cursor: 'pointer',
+              textTransform: 'capitalize',
+              background: 'transparent',
+              color: active ? '#fff' : 'var(--ink3)',
+              transition: 'color 0.2s ease',
+              outline: 'none'
+            }}
+          >
+            <Icon 
+              name={m === 'personal' ? 'fingerprint' : 'building'} 
+              size={13} 
+              style={{ 
+                color: active ? '#fff' : 'var(--ink3)', 
+                opacity: active ? 1 : 0.7,
+                transition: 'all 0.2s ease'
+              }} 
+            />
+            {m}
+          </button>
+        );
+      })}
     </div>
   );
 }
 
 export function OneIdShell() {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [mode, setMode] = useState<'personal' | 'business'>(
@@ -96,12 +157,38 @@ export function OneIdShell() {
     navigate(next === 'personal' ? '/ondi/personal' : '/ondi');
   }
 
+  const isAdmin = !!user && ADMIN_ROLES.includes(user.role as any);
+  const hasKycPermission = isAdmin || !!user?.org_permissions?.includes('kyc.review');
+  const hasSsoPermission = isAdmin || !!user?.org_permissions?.includes('sso_providers.manage');
+
+  const businessNavItems: SidebarNavItem[] = [
+    { label: 'Users',          icon: 'users' as const,    path: '/ondi', exact: true },
+    { label: 'Business Verification', icon: 'building' as const, path: '/ondi/business' },
+  ];
+
+  if (hasKycPermission) {
+    businessNavItems.push({ label: 'KYC Review',     icon: 'shield' as const, path: '/ondi/kyc' });
+  }
+
+  businessNavItems.push({ label: 'Roles & Access', icon: 'userCheck' as const, path: '/ondi/roles' });
+
+  if (hasSsoPermission) {
+    businessNavItems.push({ label: 'SSO & Providers', icon: 'key' as const,     path: '/ondi/sso' });
+  }
+
+  if (isAdmin) {
+    businessNavItems.push({ label: 'Sessions & Security', icon: 'lock' as const, path: '/ondi/sessions' });
+    businessNavItems.push({ label: 'Login Activity', icon: 'clock' as const,    path: '/ondi/login-activity' });
+  }
+
+  const sections: SidebarSection[] = mode === 'personal' ? PERSONAL_NAV : [{ items: businessNavItems }];
+
   return (
     <WorkspaceApp appId="oneid">
       <div className="app-shell" data-oneid="true">
         <AppSidebar
           appId="oneid"
-          sections={mode === 'personal' ? PERSONAL_NAV : BUSINESS_NAV}
+          sections={sections}
           beforeNav={({ collapsed }) => <ModeToggle mode={mode} onChange={switchMode} collapsed={collapsed} />}
         />
         <div className="app-main">
@@ -111,11 +198,13 @@ export function OneIdShell() {
               <Route element={<PageLayout />}>
                 <Route index element={<OneIdUsers />} />
                 <Route path="personal" element={<OneIdPersonal />} />
+                <Route path="personal/security" element={<OneIdSecuritySettings />} />
+                <Route path="personal/vault" element={<OneIdVault />} />
                 <Route path="business" element={<OneIdBusinessVerification />} />
-                <Route path="kyc" element={<RequireRoles roles={[...ADMIN_ROLES]}><OneIdKyc /></RequireRoles>} />
+                <Route path="kyc" element={<RequireRoles roles={[...ADMIN_ROLES]} permissions={['kyc.review']}><OneIdKyc /></RequireRoles>} />
                 <Route path="roles" element={<OneIdRoles />} />
                 <Route path="authorize" element={<OndiAuthorize />} />
-                <Route path="sso" element={<RequireRoles roles={[...ADMIN_ROLES]}><OneIdSSO /></RequireRoles>} />
+                <Route path="sso" element={<RequireRoles roles={[...ADMIN_ROLES]} permissions={['sso_providers.manage']}><OneIdSSO /></RequireRoles>} />
                 <Route path="sessions" element={<RequireRoles roles={[...ADMIN_ROLES]}><OneIdSessions /></RequireRoles>} />
                 <Route path="login-activity" element={<RequireRoles roles={[...ADMIN_ROLES]}><OneIdLoginActivity /></RequireRoles>} />
               </Route>

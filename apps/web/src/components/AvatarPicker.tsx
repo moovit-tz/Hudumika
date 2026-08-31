@@ -31,12 +31,16 @@ export function AvatarPicker({
   size?: number;
   /** Defaults to a circle for people, a rounded square for organisations. */
   shape?: 'circle' | 'square';
-  /** A white frame + shadow drawn on the avatar itself (e.g. sitting on a
-   *  cover photo), not a wrapping div — a wrapper can't stay concentric with
-   *  the avatar's own clip once the "Remove" label/error text sits beside it
-   *  in the same flex column, so the frame goes directly on the element that
-   *  is already clipped to `shape`. */
-  ring?: boolean;
+  /** A frame + shadow drawn on the avatar itself (e.g. sitting on a cover
+   *  photo, or a brand-colored ring in a profile card), not a wrapping div —
+   *  a wrapper can't stay concentric with the avatar's own clip once the
+   *  "Remove" label/error text sits beside it in the same flex column (the
+   *  wrapper's own border-radius ends up an ellipse around that whole taller
+   *  box, cutting across the Remove label instead of ringing just the
+   *  avatar), so the frame goes directly on the element that is already
+   *  clipped to `shape`. `true` is a white 4px frame (the cover-photo case);
+   *  a color string draws that color instead, at the same 4px weight. */
+  ring?: boolean | string;
   canEdit?: boolean;
   /** Fired after the picture is saved or removed, for a caller that keeps its own copy. */
   onChange?: (dataUrl: string | null) => void;
@@ -98,7 +102,7 @@ export function AvatarPicker({
   // organisation gets is the corner radius.
   const avatarStyle: React.CSSProperties | undefined = {
     ...(effectiveShape === 'square' ? { borderRadius: Math.max(4, Math.round(size * 0.22)) } : {}),
-    ...(ring ? { border: '4px solid #fff', boxShadow: 'var(--elev)', boxSizing: 'border-box' } : {}),
+    ...(ring ? { border: `4px solid ${typeof ring === 'string' ? ring : '#fff'}`, boxShadow: 'var(--elev)', boxSizing: 'border-box' } : {}),
   };
   const avatar = (
     <PersonAvatar
