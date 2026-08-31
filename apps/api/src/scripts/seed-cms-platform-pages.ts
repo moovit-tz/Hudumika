@@ -89,7 +89,7 @@ const PRIVACY_CONTENT = `
   <li><strong>Right to Object</strong> — Object to processing based on legitimate interests or direct marketing.</li>
   <li><strong>Restrict Processing</strong> — Request that we limit processing while a dispute or review is underway.</li>
 </ul>
-<p>To exercise any of these rights, email <a href="mailto:privacy@hudumika.app">privacy@hudumika.app</a>. We will respond within 30 days. Some requests may be subject to legal limitations or identity verification.</p>
+<p>To exercise any of these rights, email <a href="mailto:privacy@hudumika.tz">privacy@hudumika.tz</a>. We will respond within 30 days. Some requests may be subject to legal limitations or identity verification.</p>
 
 <h2 id="security">Security Measures</h2>
 <p>We implement industry-standard technical and organisational measures to protect your data:</p>
@@ -101,7 +101,7 @@ const PRIVACY_CONTENT = `
   <li>Regular security audits and penetration testing.</li>
   <li>Secure data backup with geo-redundancy across multiple availability zones.</li>
 </ul>
-<p>Despite our measures, no system is 100% secure. If you believe your account has been compromised, contact <a href="mailto:security@hudumika.app">security@hudumika.app</a> immediately.</p>
+<p>Despite our measures, no system is 100% secure. If you believe your account has been compromised, contact <a href="mailto:security@hudumika.tz">security@hudumika.tz</a> immediately.</p>
 
 <h2 id="cookies">Cookies &amp; Tracking</h2>
 <p>We use session cookies for authentication and a small set of analytics cookies to understand aggregate usage patterns. We do not use third-party advertising trackers. You can control cookies via your browser settings, though disabling session cookies will prevent login.</p>
@@ -115,8 +115,8 @@ const PRIVACY_CONTENT = `
 <h2 id="contact">Contact &amp; DPO</h2>
 <p><strong>Data Protection Office</strong><br/>
 Hudumika Ltd · Plot 123, Maktaba Street · Dar es Salaam, Tanzania<br/>
-Email: <a href="mailto:privacy@hudumika.app">privacy@hudumika.app</a><br/>
-For urgent data breach notifications: <a href="mailto:security@hudumika.app">security@hudumika.app</a></p>
+Email: <a href="mailto:privacy@hudumika.tz">privacy@hudumika.tz</a><br/>
+For urgent data breach notifications: <a href="mailto:security@hudumika.tz">security@hudumika.tz</a></p>
 `.trim();
 
 const TERMS_CONTENT = `
@@ -211,7 +211,7 @@ const TERMS_CONTENT = `
 <h2 id="contact">Contact Us</h2>
 <p><strong>Legal Department</strong><br/>
 Hudumika Ltd · Plot 123, Maktaba Street · Dar es Salaam, Tanzania<br/>
-Email: <a href="mailto:legal@hudumika.app">legal@hudumika.app</a><br/>
+Email: <a href="mailto:legal@hudumika.tz">legal@hudumika.tz</a><br/>
 For support inquiries: <a href="/support-ticket">Open a Support Ticket</a></p>
 `.trim();
 
@@ -327,7 +327,7 @@ Yes. ComplyOS is designed for holding companies, corporate groups, and legal or 
 You receive a 14-day full access trial with no credit card required. Upon sign-up, the system inventories your obligations and generates your compliance schedule in under 5 minutes.</p>
 
 <h2 id="get-started">Get started</h2>
-<p>Free 14-day access, zero credit card required, roughly 5-minute onboarding. <a href="/signup">Start your free trial</a> or email <a href="mailto:sales@hudumika.app">sales@hudumika.app</a> to request an enterprise demo.</p>
+<p>Free 14-day access, zero credit card required, roughly 5-minute onboarding. <a href="/signup">Start your free trial</a> or email <a href="mailto:sales@hudumika.tz">sales@hudumika.tz</a> to request an enterprise demo.</p>
 `.trim();
 
 async function main() {

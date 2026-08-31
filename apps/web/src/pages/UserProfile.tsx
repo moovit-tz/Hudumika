@@ -114,6 +114,7 @@ export const UserProfile: React.FC = () => {
     timezone:   user?.profile?.timezone || 'Africa/Dar_es_Salaam',
     language:   user?.profile?.language || 'en',
     website:    user?.profile?.website || '',
+    hide_presence: user?.profile?.hide_presence || false,
   });
   const [form, setForm] = useState(buildInitialForm);
   const [saving, setSaving] = useState(false);
@@ -144,6 +145,7 @@ export const UserProfile: React.FC = () => {
             bio: form.bio, job_title: form.job_title, city: form.city,
             country: form.country, timezone: form.timezone, language: form.language, website: form.website,
             cover_url: form.cover_url || null,
+            hide_presence: form.hide_presence,
           },
         }),
       });
@@ -464,6 +466,18 @@ export const UserProfile: React.FC = () => {
                     </SelectContent>
                   </Select>
                 </Field>
+              </div>
+            </Card>
+
+            <Card title="Privacy" subtitle="Control what colleagues see about your status.">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>Show my online status</div>
+                  <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>
+                    Lets colleagues see the status dot on your avatar (offline / online / clocked in) wherever you're tagged. Turning this off always shows you as offline to others — you still see your own real status.
+                  </div>
+                </div>
+                <Toggle on={!form.hide_presence} onChange={v => setForm(p => ({ ...p, hide_presence: !v }))} />
               </div>
             </Card>
 

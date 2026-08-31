@@ -104,6 +104,12 @@ export const Login: React.FC = () => {
     // reads as a hole punched through the card rather than a field on it.
     el.style.setProperty('--lp-input-bg',        d ? '#2a2a2d'                     : '#fff');
     el.style.setProperty('--lp-input-border',    d ? '#8e918f'                     : '#747775');
+    // Segmented tabs background & active tab properties
+    el.style.setProperty('--lp-tabs-bg',         d ? '#131314'                     : '#f1f3f4');
+    el.style.setProperty('--lp-tabs-border',     d ? '#2a2a2d'                     : '#e0e2e6');
+    el.style.setProperty('--lp-tab-active-bg',   d ? '#2a2a2d'                     : '#fff');
+    el.style.setProperty('--lp-tab-active-color', d ? '#e3e3e3'                     : '#1f1f1f');
+    el.style.setProperty('--lp-tab-active-shadow', d ? 'none' : '0 1.5px 3px rgba(0,0,0,0.06), 0 1px 1px rgba(0,0,0,0.04)');
     el.style.setProperty('--lp-row-bg',          d ? '#1e1e1f'                     : '#fff');
     el.style.setProperty('--lp-row-border',      d ? '#303134'                     : '#f0f2f5');
     el.style.setProperty('--lp-list-border',     d ? '#3c4043'                     : '#e0e2e6');
@@ -360,7 +366,7 @@ export const Login: React.FC = () => {
           </DropdownMenuContent>
         </DropdownMenu>
         <div className="login-footer-links">
-          <a href="#help" className="login-footer-link">{t('login.help')}</a>
+          <Link to="/support-ticket" className="login-footer-link">{t('login.help')}</Link>
           <Link to="/privacy" className="login-footer-link">{t('login.privacy')}</Link>
           <Link to="/terms" className="login-footer-link">{t('login.terms')}</Link>
         </div>

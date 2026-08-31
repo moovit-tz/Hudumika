@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.js';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
@@ -100,8 +101,14 @@ export const OneIdUsers: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showInvite, setShowInvite] = useState(false);
 
-  // Tabs: 'users', 'invites', 'google', 'settings'
-  const [activeTab, setActiveTab] = useState<'users' | 'invites' | 'google' | 'settings'>('users');
+  // Tabs: 'users', 'invites', 'google', 'settings' — the NexusHR "Invitations"
+  // nav item links straight to ?tab=invites now that its own page is gone,
+  // so the initial tab has to be readable from the URL, not just clicked into.
+  const [searchParams] = useSearchParams();
+  const initialTab = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState<'users' | 'invites' | 'google' | 'settings'>(
+    initialTab === 'invites' || initialTab === 'google' || initialTab === 'settings' ? initialTab : 'users'
+  );
 
   // Search & Filter State
   const [search, setSearch] = useState('');
@@ -144,6 +151,15 @@ export const OneIdUsers: React.FC = () => {
     setInvites(prev => prev.map(i => i.id === id ? { ...i, status: 'REVOKED' } : i));
     try { await apiFetch(`/v1/oneid/invitations/${id}`, { method: 'DELETE' }); }
     catch { reload(); }
+  }
+
+  const [resent, setResent] = useState<string | null>(null);
+  async function resendInvite(id: string) {
+    try {
+      await apiFetch(`/v1/oneid/invitations/${id}/resend`, { method: 'POST' });
+      setResent(id);
+      setTimeout(() => setResent(prev => (prev === id ? null : prev)), 2000);
+    } catch { /* ignore */ }
   }
 
   // Filter computation
@@ -451,6 +467,10 @@ export const OneIdUsers: React.FC = () => {
                               </button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => resendInvite(i.id)}>
+                                <Icon name="send" size={14} /> {resent === i.id ? 'Sent ✓' : 'Resend Invite'}
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
                               <DropdownMenuItem onClick={() => revokeInvite(i.id)}>
                                 <Icon name="x" size={14} style={{ color: 'var(--red)' }} /> Revoke Invite
                               </DropdownMenuItem>

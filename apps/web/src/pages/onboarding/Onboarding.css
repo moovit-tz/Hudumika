@@ -319,23 +319,27 @@
 }
 
 .ob-boosted-pill {
-  background: color-mix(in srgb, var(--lp-accent, #9333ea) 15%, var(--lp-card-bg, #f3e8ff));
+  background: color-mix(in srgb, var(--lp-accent, #9333ea) 16%, var(--lp-card-bg, #f3e8ff));
   color: var(--lp-link-accent, var(--lp-accent, #7e22ce));
   font-size: 10px;
   font-weight: 800;
-  padding: 2px 7px;
+  letter-spacing: 0.02em;
+  padding: 3px 8px 3px 6px;
   border-radius: 999px;
-  margin-left: 4px;
+  margin-left: 6px;
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: 3px;
+  white-space: nowrap;
 }
+.ob-boosted-pill svg { flex-shrink: 0; }
 
-/* ── Feature Comparison Matrix Table ── */
+/* ── Feature Comparison Matrix Table — no divider rule above the toggle;
+   the payment-trust chip right above it already reads as its own visually
+   closed section, so a second border directly under it was a redundant
+   line rather than a meaningful separator. */
 .ob-matrix-wrap {
-  margin-top: 24px;
-  border-top: 1px solid var(--lp-row-border, #e2e8f0);
-  padding-top: 20px;
+  margin-top: 20px;
 }
 .ob-matrix-toggle {
   background: none;
@@ -374,42 +378,6 @@
 }
 .ob-matrix-col .ob-pkg-feature-list { display: flex; flex-direction: column; gap: 8px; }
 .ob-matrix-col .ob-pkg-feature-item { font-size: 12px; align-items: flex-start; }
-
-/* ── FAQ Section ── */
-.ob-faq-wrap {
-  margin-top: 24px;
-  border-top: 1px solid var(--lp-row-border, #e2e8f0);
-  padding-top: 20px;
-}
-.ob-faq-title { font-size: 14px; font-weight: 800; color: var(--lp-ink, #1f1f1f); margin-bottom: 12px; text-align: center; }
-.ob-faq-list { display: flex; flex-direction: column; gap: 8px; }
-.ob-faq-item {
-  border: 1px solid var(--lp-row-border, #e2e8f0);
-  border-radius: 8px;
-  overflow: hidden;
-}
-.ob-faq-question {
-  width: 100%;
-  padding: 10px 14px;
-  background: var(--lp-card-bg, #fff);
-  border: none;
-  text-align: left;
-  font-size: 12.5px;
-  font-weight: 700;
-  color: var(--lp-ink, #1f1f1f);
-  cursor: pointer;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.ob-faq-answer {
-  padding: 10px 14px;
-  font-size: 12px;
-  color: var(--lp-ink2, #444746);
-  line-height: 1.5;
-  background: var(--lp-row-border, #f8fafc);
-  border-top: 1px solid var(--lp-row-border, #e2e8f0);
-}
 
 /* ── Domain step ── */
 .ob-domain-row { display: flex; align-items: center; gap: 8px; }

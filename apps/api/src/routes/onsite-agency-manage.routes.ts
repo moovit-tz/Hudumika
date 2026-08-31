@@ -168,8 +168,8 @@ export async function onsiteAgencyManageRoutes(fastify: FastifyInstance) {
       }).returningAll().executeTakeFirstOrThrow();
 
       await trx.insertInto('onsite_dns_records').values([
-        { tenant_id: tenantId, zone_id: zone.id, name: '@', type: 'NS', value: 'ns1.hudumika.com', ttl: 3600, created_by: actorId(request) },
-        { tenant_id: tenantId, zone_id: zone.id, name: '@', type: 'NS', value: 'ns2.hudumika.com', ttl: 3600, created_by: actorId(request) },
+        { tenant_id: tenantId, zone_id: zone.id, name: '@', type: 'NS', value: 'ns1.hudumika.tz', ttl: 3600, created_by: actorId(request) },
+        { tenant_id: tenantId, zone_id: zone.id, name: '@', type: 'NS', value: 'ns2.hudumika.tz', ttl: 3600, created_by: actorId(request) },
       ]).execute();
 
       return reply.status(201).send(createdDomain);

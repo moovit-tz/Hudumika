@@ -1,6 +1,48 @@
 import React, { useEffect, useState } from 'react';
 import { avatarObjectUrl, nameColor, nameInitials, onAvatarChanged } from '../lib/identity.js';
 import type { SubjectKind } from '../lib/identity.js';
+import { subscribePresence } from '../lib/presence.js';
+import type { PresenceStatus } from '../lib/presence.js';
+import { Tip } from './ui/tooltip.js';
+
+const STATUS_COLOR: Record<PresenceStatus, string> = {
+  offline: 'var(--ink3)',
+  online: 'var(--gold)',
+  clocked_in: 'var(--green)',
+};
+
+const STATUS_LABEL: Record<PresenceStatus, string> = {
+  offline: 'Offline',
+  online: 'Online · clocked out',
+  clocked_in: 'Online · clocked in',
+};
+
+/**
+ * The presence dot — a real, API-linked status (lib/presence.ts), not a
+ * fabricated local flag. Only meaningful for `people` (real accounts with a
+ * login session); a CRM lead or a candidate has no session to be online in.
+ */
+function StatusDot({ userId, size, ringColor }: { userId: string; size: number; ringColor: string }) {
+  const [status, setStatus] = useState<PresenceStatus | null>(null);
+  useEffect(() => subscribePresence(userId, setStatus), [userId]);
+  if (!status) return null;
+
+  const dot = Math.max(7, Math.round(size * 0.28));
+  const border = Math.max(1.5, Math.round(dot * 0.18));
+  return (
+    <Tip label={STATUS_LABEL[status]} side="bottom">
+      <span
+        style={{
+          position: 'absolute', bottom: -1, right: -1,
+          width: dot, height: dot, borderRadius: '50%',
+          background: STATUS_COLOR[status],
+          border: `${border}px solid ${ringColor}`,
+          boxSizing: 'content-box',
+        }}
+      />
+    </Tip>
+  );
+}
 
 /**
  * One person's face, drawn the same way in every app.
@@ -21,7 +63,7 @@ import type { SubjectKind } from '../lib/identity.js';
  * HuduFreight driver passes its own kind and gets the same treatment.
  */
 export function PersonAvatar({
-  userId, kind = 'people', name, size = 32, src, title, style, onClick,
+  userId, kind = 'people', name, size = 32, src, title, style, onClick, hideStatus, statusRingColor,
 }: {
   userId?: string | null;
   kind?: SubjectKind;
@@ -32,6 +74,17 @@ export function PersonAvatar({
   title?: string;
   style?: React.CSSProperties;
   onClick?: () => void;
+  /** Opt out of the online/clocked-in status dot for this one avatar — e.g.
+      a giant profile-header photo, or a place a colored dot would clash. On
+      by default for real accounts (`kind === 'people'` with a `userId`);
+      a CRM lead/candidate/etc. never has one, since they have no session. */
+  hideStatus?: boolean;
+  /** The dot's ring colour, which should match whatever surface the avatar
+      sits on so the dot reads as "cut into" it. Defaults to var(--card-bg),
+      right for the overwhelming majority of call sites (table rows, list
+      items, plain cards); a colored hero/banner surface should pass its own
+      surface color explicitly, the way AttendanceStatusBanner does. */
+  statusRingColor?: string;
 }) {
   const [url, setUrl] = useState<string | null>(src ?? null);
   const [failed, setFailed] = useState(false);
@@ -60,17 +113,15 @@ export function PersonAvatar({
     ...style,
   };
 
-  if (url && !failed) {
-    return (
-      <img
-        src={url} alt={name} title={title ?? name} onClick={onClick}
-        onError={() => setFailed(true)}
-        style={{ ...common, objectFit: 'cover', background: nameColor(name) }}
-      />
-    );
-  }
+  const showStatus = !hideStatus && kind === 'people' && !!userId;
 
-  return (
+  const avatar = (url && !failed) ? (
+    <img
+      src={url} alt={name} title={title ?? name} onClick={onClick}
+      onError={() => setFailed(true)}
+      style={{ ...common, objectFit: 'cover', background: nameColor(name) }}
+    />
+  ) : (
     <div
       title={title ?? name} onClick={onClick}
       style={{
@@ -82,6 +133,15 @@ export function PersonAvatar({
     >
       {nameInitials(name)}
     </div>
+  );
+
+  if (!showStatus) return avatar;
+
+  return (
+    <span style={{ position: 'relative', display: 'inline-flex', width: size, height: size, flexShrink: 0 }}>
+      {avatar}
+      <StatusDot userId={userId!} size={size} ringColor={statusRingColor ?? 'var(--card-bg)'} />
+    </span>
   );
 }
 

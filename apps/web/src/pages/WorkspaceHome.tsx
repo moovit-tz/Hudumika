@@ -8,6 +8,7 @@ import { Icon } from '../components/Icon.js';
 import { SingleSelectFilter } from '../components/ui/filter-dropdown.js';
 import { SkeletonPage } from '../components/ui/skeleton.js';
 import { SetupGuideWidget } from '../components/SetupGuideWidget.js';
+import { AttendanceStatusBanner } from '../components/AttendanceStatusBanner.js';
 import { MGMT_ROLES } from '../lib/permissions.js';
 import './WorkspaceHome.css';
 
@@ -81,7 +82,6 @@ interface WorkspaceHomeProps {
 export function WorkspaceHome({ externalSearch }: WorkspaceHomeProps) {
   const { user } = useAuth();
   const branding = useBranding();
-  const [time, setTime] = useState(new Date());
 
   // View mode toggle: default to 5-column 'grid' cards view, switchable to 'list'
   const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
@@ -96,54 +96,10 @@ export function WorkspaceHome({ externalSearch }: WorkspaceHomeProps) {
   };
 
   const tMap: Record<string, string> = {
-    'hub.welcome': 'Welcome',
     'hub.recentlyViewed': 'Recently Viewed',
     'hub.myWorkspaces': 'My Workspaces',
   };
   const t = (k: string) => tMap[k] ?? k;
-
-  // Clock
-  useEffect(() => {
-    const timer = setInterval(() => setTime(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  // Weather state (live fetch from Open-Meteo for Dar es Salaam, with fallback)
-  const [weather, setWeather] = useState<{ temp: number; desc: string; city: string; humidDesc: string } | null>(null);
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadWeather() {
-      try {
-        const res = await fetch(
-          'https://api.open-meteo.com/v1/forecast?latitude=-6.8235&longitude=39.2695&current=temperature_2m,relative_humidity_2m,weather_code&timezone=Africa%2FDar_es_Salaam'
-        );
-        if (!res.ok) throw new Error('weather fetch failed');
-        const data = await res.json();
-        if (cancelled) return;
-        const cur = data.current;
-        const temp = Math.round(cur?.temperature_2m ?? 26);
-        const code = cur?.weather_code ?? 2;
-        const humidity = cur?.relative_humidity_2m ?? 75;
-
-        let desc = 'Partly Cloudy';
-        if (code === 0) desc = 'Clear sky';
-        else if (code === 1 || code === 2) desc = 'Partly Cloudy';
-        else if (code === 3) desc = 'Overcast';
-        else if (code >= 51 && code <= 67) desc = 'Light Rain';
-        else if (code >= 80 && code <= 99) desc = 'Rain Showers';
-
-        const humidDesc = humidity > 70 ? 'humid in Dar es Salaam' : 'comfortable in Dar es Salaam';
-        setWeather({ temp, desc, city: 'Dar es Salaam', humidDesc });
-      } catch {
-        if (cancelled) return;
-        setWeather({ temp: 26, desc: 'Overcast', city: 'Dar es Salaam', humidDesc: 'humid in Dar es Salaam' });
-      }
-    }
-
-    loadWeather();
-    return () => { cancelled = true; };
-  }, []);
 
   // Starred Workspaces
   const [starredIds, setStarredIds] = useState<string[]>(() => {
@@ -226,35 +182,16 @@ export function WorkspaceHome({ externalSearch }: WorkspaceHomeProps) {
     return result.slice(0, 5);
   })();
 
-  const displayName = (user as { name?: string } | null)?.name ?? 'there';
-  const timeStr = time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-
   return (
     <div className="wh-new-root">
       <div className="wh-page-box">
 
-        {/* ── Welcome Bar ── */}
-        <div className="wh-welcome-bar">
-          <div className="wh-welcome-left">
-            <p className="wh-welcome-greeting">
-              {t('hub.welcome')}, <span className="wh-welcome-name">{displayName}</span>.
-            </p>
-          </div>
-          <div className="wh-welcome-right">
-            <span className="wh-welcome-time">{timeStr}</span>
-            {weather && (
-              <>
-                <span className="wh-welcome-dot">·</span>
-                <span className="wh-welcome-weather">{weather.desc}, {weather.temp}°C</span>
-                <span className="wh-welcome-dot">·</span>
-                <span className="wh-welcome-weather">{weather.humidDesc}</span>
-              </>
-            )}
-          </div>
-        </div>
-
         {/* ── Main Content Area ── */}
         <div className="wh-new-container">
+
+          {/* ── Section: Attendance / Clock-in identity banner — moved here
+              from NexusHR's own "My HR" ESS dashboard at the user's request. ── */}
+          <AttendanceStatusBanner />
 
           {/* ── Section: Getting Started (hides itself once fully set up) ── */}
           {isManager && <SetupGuideWidget />}

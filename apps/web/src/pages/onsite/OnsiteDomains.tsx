@@ -513,7 +513,7 @@ export function OnsiteDomains() {
                                   {d.domain}
                                 </Link>
                                 <div style={{ fontSize: '0.75rem', color: 'var(--ink3)', marginTop: '0.1rem' }}>
-                                  NS: {d.nameservers && d.nameservers.length > 0 ? d.nameservers[0] : 'ns1.hudumika.com'}
+                                  NS: {d.nameservers && d.nameservers.length > 0 ? d.nameservers[0] : 'ns1.hudumika.tz'}
                                 </div>
                               </div>
                             </div>

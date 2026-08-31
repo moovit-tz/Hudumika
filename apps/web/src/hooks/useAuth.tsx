@@ -258,6 +258,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => window.removeEventListener('storage', onStorage);
   }, [user]);
 
+  // Keeps this user's real presence current for everyone else's status dot
+  // (lib/presence.ts, PersonAvatar) — every signed-in tab pings once on load
+  // and every 60s after. Best-effort: a failed beat just means the next one
+  // (or the 3-minute offline threshold on the server) sorts it out, never
+  // something to surface to the user.
+  useEffect(() => {
+    if (!user) return;
+    const beat = () => { apiFetch('/v1/presence/heartbeat', { method: 'POST' }).catch(() => {}); };
+    beat();
+    const interval = setInterval(beat, 60_000);
+    return () => clearInterval(interval);
+  }, [user?.id]);
+
   const impersonate = async (tenantId: string) => {
     // The server stashes the caller's own current session cookies before
     // overwriting them with the impersonated one (see auth.routes.ts's

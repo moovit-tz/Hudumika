@@ -32,7 +32,8 @@ export type OndiEventType =
   | 'kyb_submitted' | 'kyb_verified' | 'kyb_rejected'
   | 'org_role_created' | 'org_role_deleted' | 'org_role_granted' | 'org_role_revoked'
   | 'access_request_submitted' | 'access_request_approved' | 'access_request_denied'
-  | 'password_changed' | 'email_changed';
+  | 'password_changed' | 'email_changed'
+  | 'oauth_consent_revoked' | 'account_deactivation_requested';
 
 /** Postgres jsonb does not preserve object key insertion order — it's a
  *  storage format, not the original text (unlike the `json` type). Metadata

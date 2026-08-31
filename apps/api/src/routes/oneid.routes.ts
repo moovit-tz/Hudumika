@@ -130,9 +130,26 @@ export async function oneidRoutes(fastify: FastifyInstance) {
       // Same template key HR's own /invitations uses (hr.routes.ts) — this
       // was byte-identical duplicated HTML before; one template, two callers.
       await MailService.enqueueTemplated(user.tenant_id, 'hr.staff_invitation', body.email, { role: body.role, acceptUrl }, 'oneid')
-        .catch(() => { /* invite row exists regardless; resend is available via HR's endpoint */ });
+        .catch(() => { /* invite row exists regardless; can still be resent below */ });
 
       return invite;
+    });
+  });
+
+  // HR's own invitations page (hr.routes.ts POST /invitations/:id/resend)
+  // used to be the only place this action existed; now that Ondi is the
+  // one live home for invitations, it needs its own copy of the same call.
+  fastify.post('/invitations/:id/resend', { preHandler: requireRole('MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+    const user = req.user;
+    const { id } = req.params as { id: string };
+    return withTenant(user.tenant_id, async (trx) => {
+      const invite = await trx.selectFrom('hr_invitations').selectAll()
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!invite) throw Object.assign(new Error('Invitation not found'), { statusCode: 404 });
+      const acceptUrl = `${env.OPS_BOARD_URL}/accept-invite?token=${invite.token}`;
+      await MailService.enqueueTemplated(user.tenant_id, 'hr.staff_invitation_reminder', invite.email, { acceptUrl }, 'oneid')
+        .catch(() => {});
+      return { ok: true };
     });
   });
 

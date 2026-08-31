@@ -42,7 +42,6 @@ const RAIL_APPS: RailApp[] = [
   // that glyph is now Email's, above).
   { id: 'esign', label: 'eSign', icon: 'stamp', color: '#0284c7', entitlementKey: 'sign' },
   { id: 'contacts', label: 'Contacts', icon: 'contact', color: '#2563eb', entitlementKey: 'contacts' },
-  { id: 'ai', label: 'AI Assistant', icon: 'sparkle', color: 'var(--teal)', entitlementKey: 'ai' },
   { id: 'calendar', label: 'Calendar', icon: 'calendar', color: '#1a73e8' },
   { id: 'analytics', label: 'Analytics', icon: 'barChart', color: '#ea580c' },
   { id: 'clearos', label: 'ClearOS', icon: 'ship', color: '#f97316', entitlementKey: 'clearos' },
@@ -56,9 +55,13 @@ const RAIL_APPS: RailApp[] = [
   { id: 'store', label: 'Store', icon: 'shoppingCart', color: '#7c3aed', entitlementKey: 'store' },
 ];
 
-// 'ai' isn't in the default pinned list — it has its own dedicated button
-// (below the pinned-app list) with the real Hudumika AI brand glyph, so
-// pinning it here too would just duplicate the same trigger.
+// 'ai' isn't in RAIL_APPS at all (not just excluded from the default pin
+// list) — it has its own dedicated, always-visible button below the
+// pinned-app list with the real Hudumika AI brand glyph, so offering it as
+// a pinnable rail app too would just duplicate that same trigger. This used
+// to be a RAIL_APPS entry excluded only from DEFAULT_PINNED, which still
+// let it be pinned (and end up looking duplicated) via the "+" customize
+// menu — removed from the catalog entirely instead.
 const DEFAULT_PINNED: CompanionPanelId[] = ['notes', 'tasks', 'sms', 'email', 'chat', 'notifications', 'esign', 'contacts'];
 
 // Panels whose drawer shows a filterable list — the search button only

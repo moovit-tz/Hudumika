@@ -300,4 +300,82 @@ export default async function securityRoutes(fastify: FastifyInstance) {
     const user = request.user;
     return verifyAuditChain(user.tenant_id);
   });
+
+  // ── Personal activity feed — Ondi M1 (house-style expansion) ────
+  // hr_login_history already has a tenant-wide admin view (oneid.routes.ts
+  // GET /login-history) and ondi_auth_events already has a tamper-verify
+  // endpoint above, but neither had a self-scoped "what has my own account
+  // actually done" feed for the personal Activity page to read. Merges both
+  // sources rather than picking one — login_success/login_failed already
+  // exist in both, but ondi_auth_events alone misses plain password logins
+  // recorded only in hr_login_history before Ondi's M1 login paths existed.
+  fastify.get('/activity', async (request) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const [logins, events] = await Promise.all([
+        trx.selectFrom('hr_login_history')
+          .select(['id', 'ip', 'user_agent', 'status', 'created_at'])
+          .where('user_id', '=', user.sub)
+          .where('tenant_id', '=', user.tenant_id)
+          .orderBy('created_at', 'desc')
+          .limit(100)
+          .execute(),
+        trx.selectFrom('ondi_auth_events')
+          .select(['id', 'event_type', 'ip', 'user_agent', 'metadata', 'created_at'])
+          .where('user_id', '=', user.sub)
+          .where('tenant_id', '=', user.tenant_id)
+          .orderBy('created_at', 'desc')
+          .limit(100)
+          .execute(),
+      ]);
+
+      const combined = [
+        ...logins.map(l => ({ id: `login:${l.id}`, kind: 'login' as const, label: l.status === 'SUCCESS' ? 'Signed in' : 'Failed sign-in attempt', ip: l.ip, user_agent: l.user_agent, created_at: l.created_at })),
+        ...events.map(e => ({ id: `event:${e.id}`, kind: 'event' as const, label: e.event_type, ip: e.ip, user_agent: e.user_agent, metadata: e.metadata, created_at: e.created_at })),
+      ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+      return combined.slice(0, 100);
+    });
+  });
+
+  // ── Data export — Ondi M2, Personal ▸ Privacy ────────────────────
+  // A real export of what this platform actually holds about the caller —
+  // not a certified GDPR/PDPA Subject Access Request, just an honest JSON
+  // dump of the same rows every other self-service page here already reads
+  // (no new data collection, nothing invented for this endpoint).
+  fastify.get('/data-export', async (request) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const [profile, devices, logins, totp, passkeys, consents] = await Promise.all([
+        trx.selectFrom('users')
+          .select(['id', 'name', 'email', 'phone', 'role', 'profile', 'kyc_status', 'verification_level', 'created_at'])
+          .where('id', '=', user.sub).executeTakeFirst(),
+        trx.selectFrom('hr_devices')
+          .select(['device_label', 'device_type', 'trusted', 'last_used_at', 'created_at'])
+          .where('user_id', '=', user.sub).where('revoked_at', 'is', null).execute(),
+        trx.selectFrom('hr_login_history')
+          .select(['ip', 'user_agent', 'status', 'created_at'])
+          .where('user_id', '=', user.sub).orderBy('created_at', 'desc').limit(50).execute(),
+        trx.selectFrom('user_totp').select('enabled').where('user_id', '=', user.sub).executeTakeFirst(),
+        trx.selectFrom('ondi_credentials').select(['label', 'created_at']).where('user_id', '=', user.sub).execute(),
+        trx.selectFrom('ondi_oauth_consents').select(['client_id', 'scopes', 'granted_at']).where('user_id', '=', user.sub).execute(),
+      ]);
+      const [trustScore, reliability] = await Promise.all([
+        computeTrustScore(user.tenant_id, user.sub),
+        computeReliabilitySignals(user.tenant_id, user.sub),
+      ]);
+
+      return {
+        exported_at: new Date().toISOString(),
+        profile,
+        two_factor_enabled: !!totp?.enabled,
+        passkeys,
+        active_devices: devices,
+        recent_logins: logins,
+        trust_score: trustScore,
+        reliability_signals: reliability,
+        authorized_apps: consents,
+      };
+    });
+  });
 }

@@ -182,7 +182,7 @@ const appointmentCreateSchema = z.object({
 
 export function bondHeadroomResponse(err: BondHeadroomExceeded) {
   return {
-    type: 'https://hudumika.com/errors/bond-headroom-exceeded',
+    type: 'https://hudumika.tz/errors/bond-headroom-exceeded',
     title: 'Bond headroom exceeded',
     status: 422,
     detail: err.message,
@@ -1179,7 +1179,7 @@ export async function sealRoutes(fastify: FastifyInstance) {
       if (err instanceof BondHeadroomExceeded) return reply.status(422).send(bondHeadroomResponse(err));
       if (err instanceof DgSegregationViolation) {
         return reply.status(422).send({
-          type: 'https://hudumika.com/errors/dg-segregation-violation',
+          type: 'https://hudumika.tz/errors/dg-segregation-violation',
           title: 'Dangerous-goods segregation violation',
           status: 422,
           detail: err.message,
@@ -1237,7 +1237,7 @@ export async function sealRoutes(fastify: FastifyInstance) {
     } catch (err: any) {
       if (err instanceof IllegalCustomsTransition) {
         return reply.status(422).send({
-          type: 'https://hudumika.com/errors/illegal-customs-transition',
+          type: 'https://hudumika.tz/errors/illegal-customs-transition',
           title: 'Illegal customs transition',
           status: 422,
           detail: err.message,

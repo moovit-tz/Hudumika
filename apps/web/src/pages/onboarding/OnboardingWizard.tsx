@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { apiFetch } from '../../lib/api.js';
 import { Icon } from '../../components/Icon.js';
 import { useBranding } from '../../hooks/useBranding.js';
@@ -235,10 +235,15 @@ export const OnboardingWizard: React.FC = () => {
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
+        {/* target="_blank" here specifically (Login.tsx's own copy of this
+            footer navigates in place) — this page has real in-progress form
+            state with nowhere it's persisted, so a normal navigation away
+            to read Terms mid-signup would silently drop whatever the visitor
+            had already filled in. */}
         <div className="login-footer-links">
-          <a href="#help" className="login-footer-link">Help</a>
-          <span className="login-footer-link">Privacy</span>
-          <span className="login-footer-link">Terms</span>
+          <Link to="/support-ticket" target="_blank" rel="noopener noreferrer" className="login-footer-link">Help</Link>
+          <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="login-footer-link">Privacy</Link>
+          <Link to="/terms" target="_blank" rel="noopener noreferrer" className="login-footer-link">Terms</Link>
         </div>
       </div>
     </div>

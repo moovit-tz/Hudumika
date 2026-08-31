@@ -42,7 +42,6 @@ const PaymentLogos = () => (
 export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack, packages }) => {
   const [err, setErr] = useState<string | null>(null);
   const [showMatrix, setShowMatrix] = useState(false);
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   useEffect(() => {
     if (!draft.package_code && packages.length) {
@@ -56,10 +55,6 @@ export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack
     ev.preventDefault();
     if (!draft.package_code) { setErr('Please select a plan'); return; }
     onNext();
-  };
-
-  const toggleFaq = (idx: number) => {
-    setOpenFaq(prev => prev === idx ? null : idx);
   };
 
   return (
@@ -152,7 +147,7 @@ export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack
                   <li className="ob-pkg-feature-item">
                     <span className="ob-pkg-feature-icon">✓</span>
                     <span>{pkg.max_users === 0 ? 'Unlimited users' : `Up to ${pkg.max_users} users`}</span>
-                    {idx === 1 && <span className="ob-boosted-pill">Boosted ↑</span>}
+                    {idx === 1 && <span className="ob-boosted-pill"><Icon name="trendingUp" size={10} /> Boosted</span>}
                   </li>
                   <li className="ob-pkg-feature-item">
                     <span className="ob-pkg-feature-icon">✓</span>
@@ -169,7 +164,7 @@ export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack
                     <span>
                       {pkg.monthly_item_limit === null ? 'Unlimited shipments / month' : `${pkg.monthly_item_limit.toLocaleString()} shipments / month`}
                     </span>
-                    {idx === 1 && <span className="ob-boosted-pill">Boosted ↑</span>}
+                    {idx === 1 && <span className="ob-boosted-pill"><Icon name="trendingUp" size={10} /> Boosted</span>}
                   </li>
                   <li className="ob-pkg-feature-item">
                     <span className="ob-pkg-feature-icon">✓</span>
@@ -179,7 +174,7 @@ export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack
                     <li className="ob-pkg-feature-item">
                       <span className="ob-pkg-feature-icon">✓</span>
                       <span>Demurrage Risk Radar</span>
-                      {idx === 1 && <span className="ob-boosted-pill">Boosted ↑</span>}
+                      {idx === 1 && <span className="ob-boosted-pill"><Icon name="trendingUp" size={10} /> Boosted</span>}
                     </li>
                   )}
                 </ul>
@@ -240,32 +235,6 @@ export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack
             ))}
           </div>
         )}
-      </div>
-
-      {/* FAQ Accordion Section */}
-      <div className="ob-faq-wrap">
-        <div className="ob-faq-title">Frequently asked questions</div>
-        <div className="ob-faq-list">
-          {[
-            { q: 'Can I change or upgrade my plan later?', a: 'Yes! You can upgrade, downgrade, or switch between monthly and annual billing cycles at any time directly from your Workspace Settings.' },
-            { q: 'What payment methods are supported?', a: 'We accept Visa, Mastercard, M-Pesa, Mixx by Yas, Airtel Money, and GePG direct bank transfer for East African businesses.' },
-            { q: 'Is there a free trial period?', a: 'Yes! All packages come with a 14-day full-featured free trial so you can explore all features with zero upfront commitment.' }
-          ].map((item, idx) => (
-            <div className="ob-faq-item" key={idx}>
-              <button
-                type="button"
-                className="ob-faq-question"
-                onClick={() => toggleFaq(idx)}
-              >
-                <span>{item.q}</span>
-                <Icon name={openFaq === idx ? 'chevronUp' : 'chevronDown'} size={14} />
-              </button>
-              {openFaq === idx && (
-                <div className="ob-faq-answer">{item.a}</div>
-              )}
-            </div>
-          ))}
-        </div>
       </div>
 
       {/* Form Action Controls */}

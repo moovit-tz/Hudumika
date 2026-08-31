@@ -64,7 +64,7 @@ export const StepConfiguration: React.FC<StepProps> = ({ draft, update, onNext, 
         <div className="ob-review-row"><span>Account</span><span>{draft.name} · {draft.email}</span></div>
         <div className="ob-review-row"><span>Company</span><span>{draft.companyName}</span></div>
         <div className="ob-review-row"><span>Plan</span><span>{pkg?.name || draft.package_code} — ${price}/{draft.billing_cycle === 'annual' ? 'yr' : 'mo'}</span></div>
-        <div className="ob-review-row"><span>Workspace</span><span>{draft.subdomain}.hudumika.app</span></div>
+        <div className="ob-review-row"><span>Workspace</span><span>{draft.subdomain}.hudumika.tz</span></div>
         <div className="ob-review-row"><span>Payment</span><span>{maskedCard}</span></div>
       </div>
 

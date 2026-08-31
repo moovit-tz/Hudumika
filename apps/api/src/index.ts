@@ -48,6 +48,7 @@ import { rateCardRoutes } from './routes/rate-card.routes.js';
 import { consignmentRoutes } from './routes/consignments.routes.js';
 import { ocrRoutes } from './routes/ocr.routes.js';
 import { hrRoutes } from './routes/hr.routes.js';
+import { presenceRoutes } from './routes/presence.routes.js';
 import { callsRoutes } from './routes/calls.routes.js';
 import { payrollRoutes } from './routes/payroll.routes.js';
 import { identityRoutes } from './routes/identity.routes.js';
@@ -167,6 +168,7 @@ import { contractsRoutes } from './routes/contracts.routes.js';
 import securityRoutes from './routes/security.routes.js';
 import billingRoutes from './routes/billing.routes.js';
 import platformSupportRoutes from './routes/platform-support.routes.js';
+import publicSupportRoutes from './routes/public-support.routes.js';
 import { workflowStudioRoutes } from './routes/workflow-studio.routes.js';
 import { onsiteRoutes } from './routes/onsite.routes.js';
 import { onsiteAgencyRoutes } from './routes/onsite-agency.routes.js';
@@ -385,6 +387,7 @@ async function main() {
     await server.register(queryBuilderRoutes, { prefix: '/v1/superadmin/query-builder' });
     await server.register(ocrRoutes, { prefix: '/v1/ocr' });
     await server.register(hrRoutes, { prefix: '/v1/hr' });
+    await server.register(presenceRoutes, { prefix: '/v1/presence' });
     // Calls (1:1 + group meetings) moved to Bliss, matching chatRoutes/supportRoutes'
     // own topic-based prefix convention rather than an app-namespaced one.
     await server.register(callsRoutes, { prefix: '/v1/calls' });
@@ -498,6 +501,7 @@ async function main() {
     await server.register(securityRoutes, { prefix: '/v1/security' });
     await server.register(billingRoutes, { prefix: '/v1/billing' });
     await server.register(platformSupportRoutes, { prefix: '/v1/platform-support' });
+    await server.register(publicSupportRoutes, { prefix: '/v1/public-support' });
     await server.register(workflowStudioRoutes, { prefix: '/v1/workflow-studio' });
     await server.register(onsiteRoutes, { prefix: '/v1/onsite' });
     await server.register(onsiteAgencyRoutes, { prefix: '/v1/onsite/agency' });

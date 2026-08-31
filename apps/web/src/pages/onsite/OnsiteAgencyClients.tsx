@@ -95,7 +95,7 @@ export function OnsiteAgencyClients() {
                 {clients.map((c) => (
                   <tr key={c.id}>
                     <td style={{ fontWeight: 600 }}>{c.tenant_name}</td>
-                    <td className="onsite-mono">{c.tenant_subdomain ? `${c.tenant_subdomain}.hudumika.app` : '—'}</td>
+                    <td className="onsite-mono">{c.tenant_subdomain ? `${c.tenant_subdomain}.hudumika.tz` : '—'}</td>
                     <td>
                       <span className={`onsite-badge ${c.status === 'active' ? 'active' : 'inactive'}`}>
                         {c.status === 'active' ? 'Active' : 'Detached'}
@@ -232,7 +232,7 @@ function NewClientModal({ onClose, onCreated }: { onClose: () => void; onCreated
                 autoComplete="off"
                 required
               />
-              <span className="ob-domain-suffix">.hudumika.app</span>
+              <span className="ob-domain-suffix">.hudumika.tz</span>
             </div>
             {subStatus === 'checking' && <span className="ob-field-status ob-field-status--checking">Checking availability…</span>}
             {subStatus === 'available' && <span className="ob-field-status ob-field-status--ok"><Icon name="checkCircle" size={14} /> Available</span>}

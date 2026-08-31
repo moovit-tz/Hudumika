@@ -259,7 +259,7 @@ async function applyDigitalSignature(
     reason: envelope.verification_code
       ? `Certified by ${identity.displayName} — verification code ${envelope.verification_code}`
       : `Certified by ${identity.displayName}`,
-    contactInfo: 'support@hudumika.com',
+    contactInfo: 'support@hudumika.tz',
     name: identity.displayName,
     location: recipients.map(r => r.name).join(', ') || envelope.title,
     signingTime: envelope.completed_at ?? new Date(),

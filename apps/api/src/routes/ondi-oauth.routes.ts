@@ -235,6 +235,63 @@ export async function ondiOauthRoutes(fastify: FastifyInstance) {
   });
 
   /**
+   * GET /v1/ondi/oauth/consents — Ondi Personal ▸ Apps. Every third-party
+   * (or first-party) app this user has ever granted access to, for their
+   * own "what have I authorized" review. Two queries rather than one join:
+   * ondi_oauth_consents is RLS-scoped per-tenant (withTenant), while
+   * ondi_oauth_clients is a platform-global table read via dbPlatform —
+   * simplest to fetch each on its own connection and merge in JS.
+   */
+  fastify.get('/consents', { preHandler: fastify.authenticate }, async (request) => {
+    const user = request.user;
+    const consents = await withTenant(user.tenant_id, trx => trx.selectFrom('ondi_oauth_consents')
+      .select(['id', 'client_id', 'scopes', 'granted_at'])
+      .where('user_id', '=', user.sub)
+      .orderBy('granted_at', 'desc')
+      .execute());
+    if (consents.length === 0) return [];
+
+    const clientIds = [...new Set(consents.map(c => c.client_id))];
+    const clients = await dbPlatform.selectFrom('ondi_oauth_clients')
+      .select(['client_id', 'name', 'logo_url', 'first_party'])
+      .where('client_id', 'in', clientIds)
+      .execute();
+    const byId = new Map(clients.map(c => [c.client_id, c]));
+
+    return consents.map(c => ({
+      id: c.id,
+      client_id: c.client_id,
+      client_name: byId.get(c.client_id)?.name ?? c.client_id,
+      logo_url: byId.get(c.client_id)?.logo_url ?? null,
+      first_party: byId.get(c.client_id)?.first_party ?? false,
+      scopes: Array.isArray(c.scopes) ? c.scopes : JSON.parse(c.scopes ?? '[]'),
+      granted_at: c.granted_at,
+    }));
+  });
+
+  /**
+   * DELETE /v1/ondi/oauth/consents/:id — revoke a standing grant. Clears
+   * the consent row so the next /authorize prompts again; does not reach
+   * into Redis for any access/refresh token already issued under it (no
+   * index from consent → token exists), so an already-live token from this
+   * app keeps working until it naturally expires — same limitation noted
+   * on POST /revoke above, not a new gap introduced here.
+   */
+  fastify.delete<{ Params: { id: string } }>('/consents/:id', { preHandler: fastify.authenticate }, async (request, reply) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const deleted = await trx.deleteFrom('ondi_oauth_consents')
+        .where('id', '=', request.params.id)
+        .where('user_id', '=', user.sub)
+        .returning('id')
+        .executeTakeFirst();
+      if (!deleted) { reply.status(404); return { error: 'Not found' }; }
+      await recordAuthEvent(user.tenant_id, user.sub, 'oauth_consent_revoked', { metadata: { consent_id: request.params.id } });
+      return { success: true };
+    });
+  });
+
+  /**
    * POST /v1/ondi/oauth/revoke (RFC 7009)
    */
   fastify.post('/revoke', async (request) => {

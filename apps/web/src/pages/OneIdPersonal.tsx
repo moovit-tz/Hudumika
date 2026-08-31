@@ -85,8 +85,8 @@ export const OneIdPersonal: React.FC = () => {
             <Link to="/ondi/personal/security" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 600, fontSize: 13, textDecoration: 'none', minHeight: 'var(--ctl-h)', boxSizing: 'border-box' }}>
               <Icon name="lock" size={14} /> Manage security &amp; verification
             </Link>
-            <Link to="/ondi/personal/vault" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontWeight: 600, fontSize: 13, textDecoration: 'none', minHeight: 'var(--ctl-h)', boxSizing: 'border-box' }}>
-              <Icon name="fileText" size={14} /> Document Vault
+            <Link to="/ondi/personal/documents" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontWeight: 600, fontSize: 13, textDecoration: 'none', minHeight: 'var(--ctl-h)', boxSizing: 'border-box' }}>
+              <Icon name="fileText" size={14} /> Documents
             </Link>
             <Link to="/profile" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontWeight: 600, fontSize: 13, textDecoration: 'none', minHeight: 'var(--ctl-h)', boxSizing: 'border-box' }}>
               <Icon name="user" size={14} /> Edit profile details

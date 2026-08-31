@@ -59,10 +59,10 @@ export const StepDomain: React.FC<StepProps> = ({ draft, update, onNext, onBack 
             className={`login-input ob-domain-input${status === 'taken' ? ' login-input--error' : ''}`}
             autoComplete="off"
           />
-          <span className="ob-domain-suffix">.hudumika.app</span>
+          <span className="ob-domain-suffix">.hudumika.tz</span>
         </div>
         {status === 'checking' && <span className="ob-field-status ob-field-status--checking">Checking availability…</span>}
-        {status === 'available' && <span className="ob-field-status ob-field-status--ok"><Icon name="checkCircle" size={14} /> {draft.subdomain}.hudumika.app is available</span>}
+        {status === 'available' && <span className="ob-field-status ob-field-status--ok"><Icon name="checkCircle" size={14} /> {draft.subdomain}.hudumika.tz is available</span>}
         {status === 'taken' && <span className="login-field-err">{reason || 'This subdomain is already taken'}</span>}
       </div>
 

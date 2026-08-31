@@ -12,6 +12,7 @@ import { checkRequest as checkLeaveRequest, splitPayDays, computeBalances as com
 import { env } from '../config/env.js';
 import { settleEntry } from '../services/time-entry.service.js';
 import { callAI } from './ai.routes.js';
+import { recordAuthEvent } from '../lib/audit-chain.js';
 
 /**
  * YYYY-MM-DD from a `date` column, whatever the driver hands back.
@@ -805,7 +806,34 @@ export async function hrRoutes(fastify: FastifyInstance) {
       // Close the matching header time entry so the widget flips back to idle.
       await closeOpenTimeEntries(trx, user.tenant_id, user.sub, now);
 
-      return { ok: true, session: completed };
+      // Clock-out summary — real tasks this person actually finished during
+      // the session just closed, not an estimate. Owner or assignee, either
+      // one, since both mean "this person did the work".
+      const finishedTasks = await trx.selectFrom('tasks')
+        .select(['id', 'title', 'completed_at'])
+        .where('tenant_id', '=', user.tenant_id)
+        .where('deleted_at', 'is', null)
+        .where('completed', '=', true)
+        .where('completed_at', '>=', session.clock_in_at)
+        .where('completed_at', '<=', now)
+        .where((eb: any) => eb.or([
+          eb('user_id', '=', user.sub),
+          eb('assignee_id', '=', user.sub),
+        ]))
+        .orderBy('completed_at', 'asc')
+        .execute();
+
+      return {
+        ok: true,
+        session: completed,
+        summary: {
+          worked_minutes: workedMins,
+          clock_in_at: session.clock_in_at,
+          clock_out_at: now,
+          tasks_completed_count: finishedTasks.length,
+          tasks_completed: finishedTasks.map(t => ({ id: t.id, title: t.title, completed_at: t.completed_at })),
+        },
+      };
     });
   });
 
@@ -3045,17 +3073,41 @@ export async function hrRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/delete-requests', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
+  // A manager can request this on someone else's behalf, or a user can
+  // request their own account be deactivated (Ondi's Personal ▸ Privacy
+  // page — self-service, no manager needed) — same table, same approval
+  // workflow either way, just two different requesters.
+  fastify.post('/delete-requests', async (req, reply) => {
     const user = req.user;
     const body = z.object({ user_id: z.string().uuid(), reason: z.string().max(2000).optional() }).parse(req.body);
+    const isSelf = body.user_id === user.sub;
+    if (!isSelf && !['SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN'].includes(user.role)) {
+      return reply.status(403).send({ error: 'You can only request deactivation for your own account.' });
+    }
     return withTenant(user.tenant_id, async (trx) => {
       // user_id previously wasn't checked against this tenant before insert.
       const target = await trx.selectFrom('users').select('id').where('id', '=', body.user_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!target) return reply.status(404).send({ error: 'Employee not found' });
-      return trx.insertInto('hr_delete_requests').values({
+      const created = await trx.insertInto('hr_delete_requests').values({
         tenant_id: user.tenant_id, user_id: body.user_id, requested_by: user.sub, reason: body.reason || null,
       }).returningAll().executeTakeFirstOrThrow();
+      if (isSelf) await recordAuthEvent(user.tenant_id, user.sub, 'account_deactivation_requested', { metadata: { request_id: created.id } });
+      return created;
     });
+  });
+
+  // Self-scoped — the plain GET above returns every request in the tenant
+  // (deliberately, for the admin-facing NexusHR queue) which would leak
+  // other people's names/emails/reasons to a regular user's own Privacy
+  // page if reused here.
+  fastify.get('/delete-requests/mine', async (req) => {
+    const user = req.user;
+    return withTenant(user.tenant_id, trx => trx.selectFrom('hr_delete_requests')
+      .select(['id', 'reason', 'status', 'created_at'])
+      .where('tenant_id', '=', user.tenant_id)
+      .where('user_id', '=', user.sub)
+      .orderBy('created_at', 'desc')
+      .execute());
   });
 
   fastify.patch('/delete-requests/:id', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {

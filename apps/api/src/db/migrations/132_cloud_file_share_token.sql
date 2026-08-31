@@ -1,6 +1,6 @@
 -- 132_cloud_file_share_token.sql
 -- "Copy link" in the Cloud app's Share modal generated a fabricated URL
--- (https://cloud.hudumika.app/share/:id) that no route anywhere ever
+-- (https://cloud.hudumika.tz/share/:id) that no route anywhere ever
 -- served — clicking it just errored. Adds a real per-file token so a
 -- generated link can actually resolve to a public (unauthenticated)
 -- download endpoint. The token is only set while the file has at least

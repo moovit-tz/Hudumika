@@ -93,11 +93,11 @@ export function OnsiteDomainDetail() {
                 </thead>
                 <tbody>
                   <tr>
-                    <td className="onsite-mono">ns1.hudumika.com</td>
+                    <td className="onsite-mono">ns1.hudumika.tz</td>
                     <td className="onsite-mono">185.212.128.1</td>
                   </tr>
                   <tr>
-                    <td className="onsite-mono">ns2.hudumika.com</td>
+                    <td className="onsite-mono">ns2.hudumika.tz</td>
                     <td className="onsite-mono">185.212.128.2</td>
                   </tr>
                 </tbody>

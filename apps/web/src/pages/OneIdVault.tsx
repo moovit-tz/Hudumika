@@ -84,8 +84,8 @@ export const OneIdVault: React.FC = () => {
     <div>
       <PageHeader
         crumbs={['Ondi', 'Personal']}
-        titlePlain="Document"
-        titleEm="vault"
+        titlePlain="Your"
+        titleEm="documents"
         subtitle="Your own identity documents, stored in your personal Drive folder."
       />
 

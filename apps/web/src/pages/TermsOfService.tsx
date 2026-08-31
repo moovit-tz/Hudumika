@@ -1,6 +1,5 @@
 import React, { useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { PoweredByHudumika } from '../components/PoweredByHudumika.js';
 import { useCMSPage } from '../hooks/useCMSPage.js';
 import { usePageSEO } from '../hooks/usePageSEO.js';
 import './LegalPages.css';
@@ -72,7 +71,6 @@ export const TermsOfService: React.FC = () => {
       <footer className="lp-footer">
         <div className="lp-footer-inner">
           <span>Copyrights © {new Date().getFullYear()} by <strong>Hudumika LLC</strong>. All rights reserved.</span>
-          <span><PoweredByHudumika appName="Hudumika" theme="light" /></span>
           <nav className="lp-footer-links">
             <Link to="/terms">Terms of Service</Link>
             <Link to="/privacy">Privacy Policy</Link>

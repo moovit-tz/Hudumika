@@ -116,8 +116,8 @@
 .login-toplevel-tabs {
   display: flex;
   gap: 2px;
-  background: var(--lp-input-bg, #f3f4f6);
-  border: 1px solid var(--lp-list-border, #e0e2e6);
+  background: var(--lp-tabs-bg, #f1f3f4);
+  border: 1px solid var(--lp-tabs-border, #e0e2e6);
   border-radius: var(--r, 8px);
   padding: 3px;
 }
@@ -136,18 +136,25 @@
   transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 .login-toplevel-tab--active {
-  background: var(--lp-card-bg, #fff);
-  border-color: var(--lp-list-border, #e0e2e6);
-  color: var(--lp-ink, #1f1f1f);
-  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+  background: var(--lp-tab-active-bg, #fff);
+  color: var(--lp-tab-active-color, #1f1f1f);
+  box-shadow: var(--lp-tab-active-shadow, 0 1.5px 3px rgba(0,0,0,0.06));
 }
 /* In light mode the active pill and its track are both literally white —
-   the border + shadow alone carry the "raised chip" read, which works
-   fine against a light ground. --lp-card-bg (#1e1e1f) is now *darker*
-   than the track (--lp-input-bg, #2a2a2d) in dark mode, so reusing it
-   here would flip that same chip to look sunken instead of raised — a
-   step lighter than the track keeps the active pill reading as selected. */
-[data-theme="dark"] .login-toplevel-tab--active { background: #3a3a3e; }
+    the border + shadow alone carry the "raised chip" read, which works
+    fine against a light ground. --lp-card-bg (#1e1e1f) is now *darker*
+    than the track (--lp-input-bg, #2a2a2d) in dark mode, so reusing it
+    here would flip that same chip to look sunken instead of raised — a
+    step lighter than the track keeps the active pill reading as selected. */
+/* Scoped to .login-page[data-theme="dark"], not bare [data-theme="dark"] —
+    the latter matches on *any* ancestor carrying the attribute, including a
+    stale one left on <html> by the authenticated app's own separate theme
+    toggle; this page's own (possibly different) local theme state must be
+    what decides its own styling. Same reasoning as .login-input above. */
+.login-page[data-theme="dark"] .login-toplevel-tab--active {
+  background: var(--lp-tab-active-bg, #3a3a3e);
+  color: var(--lp-tab-active-color, #e3e3e3);
+}
 
 /* ── Sign-in method tabs (Password / Google / Microsoft) — underline
    style, only rendered when more than one method is actually available
@@ -220,8 +227,11 @@
 }
 .login-social-btn:disabled { cursor: not-allowed; opacity: 0.65; }
 .login-social-btn:hover { text-decoration: none; }
-[data-theme="light"] .login-social-btn:hover:not(:disabled) { background: #f8fafc; }
-[data-theme="dark"]  .login-social-btn:hover:not(:disabled) { background: #2d2f31; }
+/* Scoped to .login-page[data-theme=...], not a bare attribute selector —
+   see .login-input's own comment above for why (a stale data-theme left
+   on <html> by the authenticated app's own theme toggle must not leak in). */
+.login-page[data-theme="light"] .login-social-btn:hover:not(:disabled) { background: #f8fafc; }
+.login-page[data-theme="dark"]  .login-social-btn:hover:not(:disabled) { background: #2d2f31; }
 /* This component's other use (inside .login-method-panel, a plain centered
    div) needs its own bottom margin. As a direct child of .login-card's
    gapped flex column (the "Continue with Ondi" placement) that margin
@@ -282,11 +292,11 @@
 }
 .login-demo-btn span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .login-demo-btn:disabled { cursor: not-allowed; opacity: 0.6; }
-[data-theme="light"] .login-demo-btn:hover:not(:disabled) { background: #f8fafc; border-color: var(--lp-accent); }
-[data-theme="dark"]  .login-demo-btn:hover:not(:disabled) { background: #2d2f31; border-color: var(--lp-accent); }
+.login-page[data-theme="light"] .login-demo-btn:hover:not(:disabled) { background: #f8fafc; border-color: var(--lp-accent); }
+.login-page[data-theme="dark"]  .login-demo-btn:hover:not(:disabled) { background: #2d2f31; border-color: var(--lp-accent); }
 .login-demo-btn .auth-spinner { border-top-color: transparent !important; }
-[data-theme="light"] .login-demo-btn .auth-spinner { border-color: var(--lp-ink3, #5f6368); }
-[data-theme="dark"]  .login-demo-btn .auth-spinner { border-color: var(--lp-ink3, #9aa0a6); }
+.login-page[data-theme="light"] .login-demo-btn .auth-spinner { border-color: var(--lp-ink3, #5f6368); }
+.login-page[data-theme="dark"]  .login-demo-btn .auth-spinner { border-color: var(--lp-ink3, #9aa0a6); }
 
 /* ── Create account ── */
 /* margin-top: 0, not a standalone value — this paragraph sits inside
@@ -301,7 +311,16 @@
 .login-field          { display: flex; flex-direction: column; gap: 6px; }
 .login-field-pw       { position: relative; }
 
-.login-input {
+/* Scoped as .login-page .login-input, not bare .login-input — index.css's
+   global [data-theme="dark"] input rule (correct for the authenticated
+   app) has higher specificity than a single class, so it used to win
+   whenever <html> still carried a stale data-theme="dark" left over from
+   an earlier authenticated-app session, painting this input near-black
+   even while .login-page's own (separately themed, currently light)
+   --lp-input-bg correctly said white. Two classes beats one class + one
+   attribute regardless of dark/light or stylesheet load order, so this
+   page's own theme state always wins inside its own scope now. */
+.login-page .login-input {
   width: 100%;
   padding: 11px 14px;
   border-radius: var(--r-sm, 4px);
@@ -314,6 +333,22 @@
 }
 .login-input:focus           { border-color: var(--lp-accent); box-shadow: inset 0 0 0 1px var(--lp-accent); }
 .login-input--error          { border-color: #ea4335 !important; box-shadow: none !important; }
+/* Chrome/Edge paint their own autofill highlight (often dark, following the
+   OS/browser theme rather than the page's) straight over `background`, and
+   `color` alone can't touch autofilled text either — this is the standard
+   two-part override: an inset box-shadow the size of the field re-paints
+   the background in the page's own color, and -webkit-text-fill-color
+   re-asserts the text color. A recognized field (phone number, email,
+   saved password) with no override here silently loses this page's actual
+   theme and shows whatever the browser defaults to instead. */
+.login-input:-webkit-autofill,
+.login-input:-webkit-autofill:hover,
+.login-input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--lp-ink, #1f1f1f);
+  -webkit-box-shadow: 0 0 0 1000px var(--lp-input-bg, #fff) inset;
+  box-shadow: 0 0 0 1000px var(--lp-input-bg, #fff) inset;
+  caret-color: var(--lp-ink, #1f1f1f);
+}
 
 .login-pw-toggle {
   position: absolute;

@@ -3,9 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { Icon, type IconName } from '../components/Icon.js';
-import { Badge } from '../components/ui/badge.js';
 import { Button } from '../components/ui/button.js';
-import { PersonAvatar } from '../components/PersonAvatar.js';
 import { MetricsRow, type MetricCardProps } from '../components/MetricCard.js';
 
 interface LeaveBalance {
@@ -68,11 +66,7 @@ export function MyHubPage() {
   const [latestSlip, setLatestSlip] = useState<Payslip | null>(null);
   const [slipCount, setSlipCount] = useState(0);
   const [myDocs, setMyDocs] = useState<MyDoc[]>([]);
-  const [clocking, setClocking] = useState(false);
   const [loading, setLoading] = useState(true);
-
-  // Live session timer
-  const [elapsedSecs, setElapsedSecs] = useState(0);
 
   const loadData = useCallback(async () => {
     try {
@@ -97,11 +91,6 @@ export function MyHubPage() {
       if (Array.isArray(docs)) {
         setMyDocs(docs.filter((d: any) => d.user_id === user?.id).slice(0, 5));
       }
-
-      if (session?.clock_in_at) {
-        const start = new Date(session.clock_in_at).getTime();
-        setElapsedSecs(Math.max(0, Math.floor((Date.now() - start) / 1000)));
-      }
     } catch (err) {
       console.error('[MyHub] Load error:', err);
     } finally {
@@ -112,39 +101,6 @@ export function MyHubPage() {
   useEffect(() => {
     loadData();
   }, [loadData]);
-
-  // Timer interval
-  useEffect(() => {
-    if (!activeClockIn?.clock_in_at) return;
-    const interval = setInterval(() => {
-      const start = new Date(activeClockIn.clock_in_at).getTime();
-      setElapsedSecs(Math.max(0, Math.floor((Date.now() - start) / 1000)));
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [activeClockIn]);
-
-  const handleToggleClockIn = async () => {
-    setClocking(true);
-    try {
-      if (activeClockIn) {
-        await apiFetch('/v1/hr/clock-in/stop', { method: 'POST' });
-      } else {
-        await apiFetch('/v1/hr/clock-in/start', { method: 'POST', body: JSON.stringify({ project_name: 'Clocked in via ESS Portal' }) });
-      }
-      loadData();
-    } catch (err: any) {
-      alert(err?.message ?? 'Clock-in action failed.');
-    } finally {
-      setClocking(false);
-    }
-  };
-
-  const formatTimer = (secs: number) => {
-    const hrs = Math.floor(secs / 3600);
-    const mins = Math.floor((secs % 3600) / 60);
-    const s = secs % 60;
-    return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-  };
 
   const hm = (mins: number) => {
     const h = Math.floor(mins / 60);
@@ -197,114 +153,6 @@ export function MyHubPage() {
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 50 }}>
-      {/* 🌟 Ultra-Premium Hero Identity & Clock-in Control Banner */}
-      <div
-        style={{
-          background: 'hsl(var(--primary))',
-          borderRadius: 20,
-          padding: '28px 32px',
-          color: 'hsl(var(--primary-foreground))',
-          marginBottom: 24,
-          position: 'relative',
-          overflow: 'hidden',
-          boxShadow: 'var(--elev-lg)',
-          border: '1px solid hsl(var(--primary-foreground) / 0.1)',
-        }}
-      >
-        {/* Glow Accent Circle */}
-        <div
-          style={{
-            position: 'absolute',
-            top: -40,
-            right: -40,
-            width: 240,
-            height: 240,
-            borderRadius: '50%',
-            background: 'radial-gradient(circle, hsl(var(--primary-foreground) / 0.14) 0%, rgba(0,0,0,0) 70%)',
-            pointerEvents: 'none',
-          }}
-        />
-
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 24, position: 'relative', zIndex: 2 }}>
-          {/* Left Block: Identity */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-            <div style={{ position: 'relative' }}>
-              <div style={{ border: '3px solid hsl(var(--primary-foreground) / 0.4)', borderRadius: '50%', padding: 3, boxShadow: '0 0 16px hsl(var(--primary-foreground) / 0.2)' }}>
-                <PersonAvatar name={user?.name || 'Employee'} size={64} userId={user?.id} />
-              </div>
-              <div
-                style={{
-                  position: 'absolute',
-                  bottom: 4,
-                  right: 4,
-                  width: 14,
-                  height: 14,
-                  borderRadius: '50%',
-                  background: activeClockIn ? 'var(--green)' : 'hsl(var(--primary-foreground) / 0.5)',
-                  border: '2.5px solid hsl(var(--primary))',
-                }}
-              />
-            </div>
-
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                <span style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'hsl(var(--primary-foreground))', background: 'hsl(var(--primary-foreground) / 0.12)', border: '1px solid hsl(var(--primary-foreground) / 0.3)', padding: '2px 8px', borderRadius: 12 }}>
-                  ESS WORKSPACE
-                </span>
-                <span style={{ fontSize: 11, color: 'hsl(var(--primary-foreground) / 0.65)' }}>ID: EMP-{user?.id?.slice(0, 8).toUpperCase() ?? '2026'}</span>
-              </div>
-              <h1 style={{ fontSize: 24, fontWeight: 800, color: 'hsl(var(--primary-foreground))', letterSpacing: '-0.02em', margin: 0 }}>
-                {user?.name || 'Valued Team Member'}
-              </h1>
-              <div style={{ fontSize: 13, color: 'hsl(var(--primary-foreground) / 0.65)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 14 }}>
-                <span>Role: <strong style={{ color: 'hsl(var(--primary-foreground))' }}>{user?.role || 'Staff Member'}</strong></span>
-                <span>•</span>
-                <span>Location: <strong style={{ color: 'hsl(var(--primary-foreground))' }}>Dar es Salaam HQ</strong></span>
-              </div>
-            </div>
-          </div>
-
-          {/* Right Block: Live Clock-In Action Control Box */}
-          <div style={{ background: 'hsl(var(--primary-foreground) / 0.06)', backdropFilter: 'blur(12px)', borderRadius: 16, padding: '16px 20px', border: '1px solid hsl(var(--primary-foreground) / 0.12)', display: 'flex', alignItems: 'center', gap: 20 }}>
-            <div>
-              <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: activeClockIn ? 'var(--green)' : 'hsl(var(--primary-foreground) / 0.65)', marginBottom: 2 }}>
-                {activeClockIn ? '● Active Session Counter' : '○ Attendance Status'}
-              </div>
-              <div style={{ fontSize: 22, fontWeight: 800, color: 'hsl(var(--primary-foreground))', fontFamily: 'var(--mono)' }}>
-                {activeClockIn ? formatTimer(elapsedSecs) : 'OFF THE CLOCK'}
-              </div>
-              <div style={{ fontSize: 11.5, color: 'hsl(var(--primary-foreground) / 0.75)', marginTop: 2 }}>
-                {activeClockIn ? `Started at ${new Date(activeClockIn.clock_in_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Ready to start your work session?'}
-              </div>
-            </div>
-
-            <Button
-              type="button"
-              onClick={handleToggleClockIn}
-              disabled={clocking}
-              style={{
-                height: 44,
-                padding: '0 22px',
-                fontSize: 14,
-                fontWeight: 800,
-                borderRadius: 12,
-                background: activeClockIn ? 'var(--red)' : 'var(--green)',
-                color: '#ffffff',
-                border: 'none',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                boxShadow: activeClockIn ? '0 4px 14px rgba(239,68,68,0.45)' : '0 4px 14px rgba(16,185,129,0.45)',
-                cursor: 'pointer',
-              }}
-            >
-              <Icon name="clock" size={17} />
-              {clocking ? 'Processing…' : activeClockIn ? 'Clock Out' : 'Clock In Now'}
-            </Button>
-          </div>
-        </div>
-      </div>
-
       {/* 📊 KPI Row */}
       <MetricsRow cards={metrics} />
 

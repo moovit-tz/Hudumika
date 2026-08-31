@@ -202,6 +202,7 @@
 .st-upload-files { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
 .st-upload-file-chip { display: flex; align-items: center; gap: 6px; font-size: var(--badge-fs); color: #384B41; background: #EEF4EE; border: 1px solid #D5DEC8; border-radius: 5px; padding: 3px 10px 3px 8px; }
 .st-upload-file-remove { background: none; border: none; cursor: pointer; font-size: 14px; color: #64756B; line-height: 1; padding: 0; }
+.st-error-banner { display: flex; align-items: center; gap: 8px; margin: 0 28px; padding: 12px 16px; border-radius: 8px; background: var(--red-l); border: 1px solid var(--red); color: var(--red); font-size: 13px; }
 .st-form-foot { padding: 20px 28px; border-top: 1px solid #D5DEC8; background: #F7F5F0; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
 .st-form-note { font-size: 12px; color: #64756B; display: flex; align-items: center; gap: 6px; }
 .st-submit-btn { padding: var(--ds-btn-py) 28px; background: #0C3823; color: white; border: none; border-radius: 7px; font-size: 14px; font-weight: 700; font-family: inherit; cursor: pointer; transition: all 0.15s; display: flex; align-items: center; gap: 8px; }

@@ -1,8 +1,8 @@
 ﻿import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.js';
-import { PoweredByHudumika } from '../components/PoweredByHudumika.js';
 import { Icon, type IconName } from '../components/Icon.js';
+import { apiFetch } from '../lib/api.js';
 import './LegalPages.css';
 
 const CATEGORIES = [
@@ -33,10 +33,15 @@ const QUICK_LINKS: { icon: IconName; title: string; desc: string; href: string }
   { icon: 'phone', title: 'Call Support',     desc: '+255 22 000 0000 · Mon–Fri 8–6', href: 'tel:+255220000000' },
 ];
 
-function generateRef(): string {
-  const now = Date.now().toString(36).toUpperCase();
-  const rand = Math.random().toString(36).slice(2, 6).toUpperCase();
-  return `HUB-${now}-${rand}`;
+/** Reads a File into just the base64 payload (no `data:mime;base64,` prefix
+ *  — the server already knows the mime type from `file.type`). */
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).split(',')[1] || '');
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
 }
 
 export const SupportTicket: React.FC = () => {
@@ -57,6 +62,7 @@ export const SupportTicket: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted]   = useState(false);
   const [ticketRef, setTicketRef]   = useState('');
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const handleChange = (field: string, value: string) =>
     setForm(f => ({ ...f, [field]: value }));
@@ -71,16 +77,32 @@ export const SupportTicket: React.FC = () => {
 
   const canSubmit = form.name && form.email && form.subject && form.category && form.message.length >= 20;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit) return;
     setSubmitting(true);
-    setTimeout(() => {
-      const ref = generateRef();
-      setTicketRef(ref);
+    setSubmitError(null);
+    try {
+      const attachments = await Promise.all(files.map(async f => ({
+        filename: f.name,
+        mimeType: f.type || 'application/octet-stream',
+        dataBase64: await fileToBase64(f),
+      })));
+      const res = await apiFetch('/v1/public-support/ticket', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: form.name, email: form.email, company: form.company || undefined,
+          subject: form.subject, category: form.category, priority: form.priority,
+          message: form.message, attachments,
+        }),
+      });
+      setTicketRef(res.ref);
       setSubmitted(true);
+    } catch (err: any) {
+      setSubmitError(err.message || 'Could not send your message right now. Please try again, or email support@hudumika.tz directly.');
+    } finally {
       setSubmitting(false);
-    }, 1400);
+    }
   };
 
   return (
@@ -240,6 +262,13 @@ export const SupportTicket: React.FC = () => {
               </div>
             </div>
 
+            {submitError && (
+              <div className="st-error-banner">
+                <Icon name="alertCircle" size={15} />
+                {submitError}
+              </div>
+            )}
+
             <div className="st-form-foot">
               <div className="st-form-note">
                 <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
@@ -266,7 +295,6 @@ export const SupportTicket: React.FC = () => {
       <footer className="lp-footer">
         <div className="lp-footer-inner">
           <span>Copyrights © {new Date().getFullYear()} by <strong>Hudumika LLC</strong>. All rights reserved.</span>
-          <span><PoweredByHudumika appName="Hudumika" theme="light" /></span>
           <nav className="lp-footer-links">
             <Link to="/terms">Terms of Service</Link>
             <Link to="/privacy">Privacy Policy</Link>

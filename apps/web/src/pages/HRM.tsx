@@ -464,6 +464,12 @@ export function RolesPage() {
   const [selected,  setSelected]  = useState<string | null>(null); // selected role key
   const [saving,    setSaving]    = useState(false);
   const [dirty,     setDirty]     = useState(false);
+  // Roles and Permission Matrix used to be two separate pages showing the
+  // same /v1/permissions grid — one drill-into-a-role at a time, one every
+  // role at once. Same data, same toggle/save, so they're one page with a
+  // view switch now rather than two menu entries a tenant had to guess between.
+  const [view,       setView]     = useState<'byRole' | 'matrix'>('byRole');
+  const [filter,     setFilter]   = useState('');
 
   const load = useCallback(async () => {
     try {
@@ -506,18 +512,103 @@ export function RolesPage() {
 
   const roles = Object.entries(ROLE_META);
   const selMeta = selected ? ROLE_META[selected] : null;
+  const displayRoles = Object.entries(ROLE_META).filter(([k]) => !['TENANT_ADMIN'].includes(k));
+  const filteredRes  = RESOURCES.filter(r => !filter || RESOURCE_LABELS[r].toLowerCase().includes(filter.toLowerCase()));
 
   return (
     <div style={{ flex: 1, overflowY: 'auto' }}>
       <PageHeader icon="shield" title="Roles & Permissions" sub="Manage access control for each role across all modules" backTo="/nexushr">
-        {dirty && (
-          <button type="button" onClick={save} disabled={saving}
-            style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 16px', borderRadius:'var(--r)', border:'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight:700, fontSize:13, fontFamily:'var(--font)', cursor:'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-            <Icon name="save" size={14} color="hsl(var(--primary-foreground))" />{saving ? 'Saving—' : 'Save Changes'}
-          </button>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div className="ds-tabs-list" data-variant="segmented">
+            <button type="button" onClick={() => setView('byRole')} className="ds-tabs-trigger" data-variant="segmented" data-state={view === 'byRole' ? 'active' : 'inactive'}>By role</button>
+            <button type="button" onClick={() => setView('matrix')} className="ds-tabs-trigger" data-variant="segmented" data-state={view === 'matrix' ? 'active' : 'inactive'}>Full matrix</button>
+          </div>
+          {dirty && (
+            <button type="button" onClick={save} disabled={saving}
+              style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 16px', borderRadius:'var(--r)', border:'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight:700, fontSize:13, fontFamily:'var(--font)', cursor:'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+              <Icon name="save" size={14} color="hsl(var(--primary-foreground))" />{saving ? 'Saving—' : 'Save Changes'}
+            </button>
+          )}
+        </div>
       </PageHeader>
 
+      {view === 'matrix' ? (
+        <>
+          {/* Filter */}
+          <div style={{ marginBottom:16, maxWidth:340 }}>
+            <input value={filter} onChange={e => setFilter(e.target.value)} placeholder="Filter modules—"
+              style={{ width:'100%', padding:'8px 12px', border:'1px solid var(--border)', borderRadius:8, fontSize:13, fontFamily:'var(--font)', color:'var(--ink)', background:'var(--white)', boxSizing:'border-box' as const }} />
+          </div>
+
+          <div style={{ background:'var(--white)', borderRadius:10, border:'1px solid var(--border)', overflow:'hidden', marginBottom:24 }}>
+            <div style={{ overflowX:'auto' }}>
+              <table style={{ width:'100%', borderCollapse:'collapse', fontSize:12 }}>
+                <thead>
+                  <tr style={{ background:'var(--bg)' }}>
+                    <th style={{ padding:'12px 16px', textAlign:'left', fontWeight:700, color:'var(--ink3)', fontSize:11, textTransform:'uppercase', letterSpacing:'0.05em', borderBottom:'1px solid var(--border)', position:'sticky', left:0, background:'var(--bg)', minWidth:160 }}>
+                      Module / Action
+                    </th>
+                    {displayRoles.map(([key, meta]) => (
+                      <th key={key} colSpan={ACTIONS.length}
+                        style={{ padding:'10px 8px', textAlign:'center', borderBottom:'1px solid var(--border)', borderLeft:'2px solid var(--border)', background:meta.bg }}>
+                        <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:5 }}>
+                          <div style={{ width:8, height:8, borderRadius:'50%', background:meta.color }} />
+                          <span style={{ fontSize:11, fontWeight:800, color:meta.color }}>{meta.label}</span>
+                        </div>
+                      </th>
+                    ))}
+                  </tr>
+                  <tr style={{ background:'var(--white)' }}>
+                    <th style={{ padding:'6px 16px', borderBottom:'1px solid var(--border)', position:'sticky', left:0, background:'var(--white)' }} />
+                    {displayRoles.map(([key, meta]) =>
+                      ACTIONS.map(a => (
+                        <th key={`${key}-${a}`} style={{ padding:'5px 4px', textAlign:'center', borderBottom:'1px solid var(--border)', borderLeft: a === 'view' ? '2px solid var(--border)' : undefined }}>
+                          <span style={{ fontSize:9, fontWeight:700, color:ACTION_COLORS[a], textTransform:'uppercase' }}>{a.slice(0,3)}</span>
+                        </th>
+                      ))
+                    )}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredRes.map((res, ri) => (
+                    <tr key={res} style={{ borderBottom:'1px solid var(--border)', background: ri % 2 === 0 ? 'var(--white)' : 'var(--bg)' }}>
+                      <td style={{ padding:'10px 16px', fontWeight:600, color:'var(--ink)', fontSize:13, position:'sticky', left:0, background: ri % 2 === 0 ? 'var(--white)' : 'var(--bg)', whiteSpace:'nowrap' }}>
+                        {RESOURCE_LABELS[res]}
+                      </td>
+                      {displayRoles.map(([key, meta]) =>
+                        ACTIONS.map(a => {
+                          const on = isAllowed(key, res, a);
+                          return (
+                            <td key={`${key}-${a}`} style={{ padding:'6px 4px', textAlign:'center', borderLeft: a === 'view' ? '2px solid var(--border)' : undefined }}>
+                              <button type="button" onClick={() => toggle(key, res, a)}
+                                style={{ width:20, height:20, borderRadius:'var(--r-sm)', border:`2px solid ${on ? meta.color : 'var(--border)'}`,
+                                  background: on ? meta.color : 'transparent', cursor:'pointer',
+                                  display:'inline-flex', alignItems:'center', justifyContent:'center', transition:'all 0.1s' }}>
+                                {on && <Icon name="check" size={10} color="#fff" />}
+                              </button>
+                            </td>
+                          );
+                        })
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Legend */}
+          <div style={{ display:'flex', gap:16, flexWrap:'wrap', marginBottom: 24 }}>
+            {ACTIONS.map(a => (
+              <div key={a} style={{ display:'flex', alignItems:'center', gap:6 }}>
+                <div style={{ width:12, height:12, borderRadius:3, background:ACTION_COLORS[a] }} />
+                <span style={{ fontSize:12, color:'var(--ink2)', fontWeight:600 }}>{a.charAt(0).toUpperCase() + a.slice(1)}</span>
+              </div>
+            ))}
+          </div>
+        </>
+      ) : (
+      <>
       {/* Role cards */}
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))', gap:16, marginBottom:28 }}>
         {roles.map(([key, meta]) => {
@@ -667,133 +758,8 @@ export function RolesPage() {
           })}
         </div>
       </div>
-    </div>
-  );
-}
-
-export function PermissionsPage() {
-  const [perms,  setPerms]  = useState<PermRow[]>([]);
-  const [saving, setSaving] = useState(false);
-  const [dirty,  setDirty]  = useState(false);
-  const [filter, setFilter] = useState('');
-
-  const load = useCallback(async () => {
-    try {
-      const p = await apiFetch('/v1/permissions');
-      if (Array.isArray(p)) setPerms(p);
-    } catch { /* ignore */ }
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
-
-  function isAllowed(role: string, resource: string, action: string) {
-    return perms.find(p => p.role === role && p.resource === resource && p.action === action)?.allowed ?? false;
-  }
-
-  function toggle(role: string, resource: string, action: string) {
-    setPerms(prev => {
-      const exists = prev.find(p => p.role === role && p.resource === resource && p.action === action);
-      if (exists) return prev.map(p => p.role === role && p.resource === resource && p.action === action ? { ...p, allowed: !p.allowed } : p);
-      return [...prev, { role, resource, action, allowed: true }];
-    });
-    setDirty(true);
-  }
-
-  async function save() {
-    setSaving(true);
-    try {
-      await apiFetch('/v1/permissions', { method:'PATCH', body: JSON.stringify({ permissions: perms }) });
-      setDirty(false);
-    } catch { /* ignore */ }
-    finally { setSaving(false); }
-  }
-
-  const displayRoles = Object.entries(ROLE_META).filter(([k]) => !['TENANT_ADMIN'].includes(k));
-  const filteredRes  = RESOURCES.filter(r => !filter || RESOURCE_LABELS[r].toLowerCase().includes(filter.toLowerCase()));
-
-  return (
-    <div style={{ flex: 1, overflowY: 'auto' }}>
-      <PageHeader icon="key" title="Permission Matrix" sub="Full cross-role permission overview — toggle access per module and action" backTo="/nexushr">
-        {dirty && (
-          <button type="button" onClick={save} disabled={saving}
-            style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 16px', borderRadius:'var(--r)', border:'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight:700, fontSize:13, fontFamily:'var(--font)', cursor:'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-            <Icon name="save" size={14} color="hsl(var(--primary-foreground))" />{saving ? 'Saving—' : 'Save Changes'}
-          </button>
-        )}
-      </PageHeader>
-
-      {/* Filter */}
-      <div style={{ marginBottom:16, maxWidth:340 }}>
-        <input value={filter} onChange={e => setFilter(e.target.value)} placeholder="Filter modules—"
-          style={{ width:'100%', padding:'8px 12px', border:'1px solid var(--border)', borderRadius:8, fontSize:13, fontFamily:'var(--font)', color:'var(--ink)', background:'var(--white)', boxSizing:'border-box' as const }} />
-      </div>
-
-      <div style={{ background:'var(--white)', borderRadius:10, border:'1px solid var(--border)', overflow:'hidden', marginBottom:24 }}>
-        <div style={{ overflowX:'auto' }}>
-          <table style={{ width:'100%', borderCollapse:'collapse', fontSize:12 }}>
-            <thead>
-              <tr style={{ background:'var(--bg)' }}>
-                <th style={{ padding:'12px 16px', textAlign:'left', fontWeight:700, color:'var(--ink3)', fontSize:11, textTransform:'uppercase', letterSpacing:'0.05em', borderBottom:'1px solid var(--border)', position:'sticky', left:0, background:'var(--bg)', minWidth:160 }}>
-                  Module / Action
-                </th>
-                {displayRoles.map(([key, meta]) => (
-                  <th key={key} colSpan={ACTIONS.length}
-                    style={{ padding:'10px 8px', textAlign:'center', borderBottom:'1px solid var(--border)', borderLeft:'2px solid var(--border)', background:meta.bg }}>
-                    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:5 }}>
-                      <div style={{ width:8, height:8, borderRadius:'50%', background:meta.color }} />
-                      <span style={{ fontSize:11, fontWeight:800, color:meta.color }}>{meta.label}</span>
-                    </div>
-                  </th>
-                ))}
-              </tr>
-              <tr style={{ background:'var(--white)' }}>
-                <th style={{ padding:'6px 16px', borderBottom:'1px solid var(--border)', position:'sticky', left:0, background:'var(--white)' }} />
-                {displayRoles.map(([key, meta]) =>
-                  ACTIONS.map(a => (
-                    <th key={`${key}-${a}`} style={{ padding:'5px 4px', textAlign:'center', borderBottom:'1px solid var(--border)', borderLeft: a === 'view' ? '2px solid var(--border)' : undefined }}>
-                      <span style={{ fontSize:9, fontWeight:700, color:ACTION_COLORS[a], textTransform:'uppercase' }}>{a.slice(0,3)}</span>
-                    </th>
-                  ))
-                )}
-              </tr>
-            </thead>
-            <tbody>
-              {filteredRes.map((res, ri) => (
-                <tr key={res} style={{ borderBottom:'1px solid var(--border)', background: ri % 2 === 0 ? 'var(--white)' : 'var(--bg)' }}>
-                  <td style={{ padding:'10px 16px', fontWeight:600, color:'var(--ink)', fontSize:13, position:'sticky', left:0, background: ri % 2 === 0 ? 'var(--white)' : 'var(--bg)', whiteSpace:'nowrap' }}>
-                    {RESOURCE_LABELS[res]}
-                  </td>
-                  {displayRoles.map(([key, meta]) =>
-                    ACTIONS.map(a => {
-                      const on = isAllowed(key, res, a);
-                      return (
-                        <td key={`${key}-${a}`} style={{ padding:'6px 4px', textAlign:'center', borderLeft: a === 'view' ? '2px solid var(--border)' : undefined }}>
-                          <button type="button" onClick={() => toggle(key, res, a)}
-                            style={{ width:20, height:20, borderRadius:'var(--r-sm)', border:`2px solid ${on ? meta.color : 'var(--border)'}`,
-                              background: on ? meta.color : 'transparent', cursor:'pointer',
-                              display:'inline-flex', alignItems:'center', justifyContent:'center', transition:'all 0.1s' }}>
-                            {on && <Icon name="check" size={10} color="#fff" />}
-                          </button>
-                        </td>
-                      );
-                    })
-                  )}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Legend */}
-      <div style={{ display:'flex', gap:16, flexWrap:'wrap' }}>
-        {ACTIONS.map(a => (
-          <div key={a} style={{ display:'flex', alignItems:'center', gap:6 }}>
-            <div style={{ width:12, height:12, borderRadius:3, background:ACTION_COLORS[a] }} />
-            <span style={{ fontSize:12, color:'var(--ink2)', fontWeight:600 }}>{a.charAt(0).toUpperCase() + a.slice(1)}</span>
-          </div>
-        ))}
-      </div>
+      </>
+      )}
 
       {/* eSign stamp access — a separate role allow-list (tenant_settings,
           not this page's own resource×action grid above: 'stamp' has no
@@ -1172,86 +1138,6 @@ export function TeamsPage() {
   );
 }
 
-type InvitationRow = { id: string; email: string; role: string; invited_by_name: string | null; status: string; expires_at: string; created_at: string };
-
-export function InvitationsPage() {
-  const [invites, setInvites] = useState<InvitationRow[]>([]);
-  const [showNew, setShowNew] = useState(false);
-
-  const load = useCallback(async () => {
-    try { setInvites(await apiFetch('/v1/hr/invitations')); } catch { /* none yet */ }
-  }, []);
-  useEffect(() => { load(); }, [load]);
-
-  async function resend(id: string) {
-    try { await apiFetch(`/v1/hr/invitations/${id}/resend`, { method: 'POST' }); } catch { /* ignore */ }
-  }
-  async function revoke(id: string) {
-    try { await apiFetch(`/v1/hr/invitations/${id}`, { method: 'DELETE' }); load(); } catch { /* ignore */ }
-  }
-
-  return (
-    <div style={{ flex:1, overflowY:'auto' }}>
-      <PageHeader icon="userPlus" title="Pending Invitations" sub="Pending and sent user invitations" backTo="/nexushr">
-        <PrimaryBtn label="Send Invitation" icon="send" onClick={() => setShowNew(v => !v)} />
-      </PageHeader>
-
-      {showNew && (
-        <Card>
-          <form onSubmit={async e => {
-            e.preventDefault();
-            const fd = new FormData(e.currentTarget);
-            const email = fd.get('email') as string;
-            const role = fd.get('role') as string;
-            if (!email || !role) return;
-            try {
-              await apiFetch('/v1/hr/invitations', { method: 'POST', body: JSON.stringify({ email, role }) });
-              setShowNew(false); load();
-            } catch { /* ignore */ }
-          }} style={{ padding: 16, display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
-            <div style={{ flex: 1, minWidth: 200 }}>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Work Email</label>
-              <input name="email" type="email" required placeholder="name@company.com" style={{ width: '100%', padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 8, fontFamily: 'var(--font)', fontSize: 13, boxSizing: 'border-box' as const }} />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Role</label>
-              <Select name="role" required defaultValue="OFFICER">
-                <SelectTrigger style={{ width: 160 }}><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="OFFICER">Officer</SelectItem>
-                  <SelectItem value="SENIOR">Senior Officer</SelectItem>
-                  <SelectItem value="MANAGER">Manager</SelectItem>
-                  <SelectItem value="FINANCE">Finance</SelectItem>
-                  <SelectItem value="ADMIN">Admin</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <PrimaryBtn label="Send" icon="send" type="submit" />
-          </form>
-        </Card>
-      )}
-
-      <Wrap>
-        <thead><tr><TH>Email</TH><TH>Role</TH><TH>Invited By</TH><TH>Expires</TH><TH>Status</TH><TH right>Actions</TH></tr></thead>
-        <tbody>
-          {invites.length === 0 && <tr><td colSpan={6} style={{ padding: 32, textAlign: 'center', color: 'var(--ink3)' }}>No invitations sent yet.</td></tr>}
-          {invites.map(inv => (
-            <tr key={inv.id} style={{ borderBottom:'1px solid var(--border)' }}>
-              <TD mono>{inv.email}</TD>
-              <TD><span style={{ fontSize:11, padding:'2px 8px', borderRadius:4, background:'var(--bg)', border:'1px solid var(--border)', color:'var(--ink2)' }}>{inv.role}</span></TD>
-              <TD>{inv.invited_by_name || '-'}</TD>
-              <TD muted>{new Date(inv.expires_at).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' })}</TD>
-              <TD><Badge status={inv.status} /></TD>
-              <TD right>{inv.status==='PENDING' && <><ActionBtn label="Resend" onClick={() => resend(inv.id)} /><ActionBtn label="Revoke" color="var(--red)" onClick={() => revoke(inv.id)} /></>}</TD>
-            </tr>
-          ))}
-        </tbody>
-      </Wrap>
-    </div>
-  );
-}
-
-
 type ActivityRow = { id: string; user_name: string | null; action: string; module: string; created_at: string };
 
 export function ActivityLogsPage() {
@@ -1283,79 +1169,6 @@ export function ActivityLogsPage() {
   );
 }
 
-type LoginHistoryRow = { id: string; user_name: string; ip: string | null; user_agent: string | null; status: string; created_at: string };
-
-export function LoginHistoryPage() {
-  const [rows, setRows] = useState<LoginHistoryRow[]>([]);
-  const [err, setErr] = useState('');
-  useEffect(() => { apiFetch('/v1/hr/login-history').then(setRows).catch((e: any) => setErr(e?.message ?? 'Could not load login history.')); }, []);
-
-  return (
-    <div style={{ flex:1, overflowY:'auto' }}>
-      <PageHeader icon="lock" title="Login History" sub="Authentication events for all users" backTo="/nexushr" />
-      <Wrap>
-        <thead><tr><TH>User</TH><TH>IP Address</TH><TH>Device</TH><TH>Status</TH><TH>Time</TH></tr></thead>
-        <tbody>
-          {rows.length === 0 && <tr><td colSpan={5} style={{ padding: 32, textAlign: 'center', color: err ? 'var(--red)' : 'var(--ink3)' }}>{err || 'No login history recorded yet.'}</td></tr>}
-          {rows.map(l => (
-            <tr key={l.id} style={{ borderBottom:'1px solid var(--border)' }}>
-              <TD><div style={{ display:'flex', alignItems:'center', gap:8 }}><Avatar name={l.user_name} size={24} />{l.user_name}</div></TD>
-              <TD mono muted>{l.ip || '-'}</TD>
-              <TD muted><span style={{ display: 'inline-block', maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', verticalAlign: 'bottom' }}>{l.user_agent || '-'}</span></TD>
-              <TD><Badge status={l.status} /></TD>
-              <TD muted>{new Date(l.created_at).toLocaleString('en-GB', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })}</TD>
-            </tr>
-          ))}
-        </tbody>
-      </Wrap>
-    </div>
-  );
-}
-
-type DeviceRow = { id: string; user_name: string; device_label: string; device_type: string; trusted: boolean; last_used_at: string };
-
-export function DeviceManagementPage() {
-  const [devices, setDevices] = useState<DeviceRow[]>([]);
-  const [err, setErr] = useState('');
-  const load = useCallback(async () => {
-    try { setDevices(await apiFetch('/v1/hr/devices')); setErr(''); }
-    catch (e: any) { setErr(e?.message ?? 'Could not load devices.'); }
-  }, []);
-  useEffect(() => { load(); }, [load]);
-
-  async function setTrusted(id: string, trusted: boolean) {
-    try { await apiFetch(`/v1/hr/devices/${id}`, { method: 'PATCH', body: JSON.stringify({ trusted }) }); load(); } catch { /* ignore */ }
-  }
-
-  return (
-    <div style={{ flex:1, overflowY:'auto' }}>
-      <PageHeader icon="smartphone" title="Device Management" sub="Trusted and known devices per user" backTo="/nexushr" />
-      <Wrap>
-        <thead><tr><TH>User</TH><TH>Device</TH><TH>Type</TH><TH>Last Used</TH><TH>Trusted</TH><TH right>Actions</TH></tr></thead>
-        <tbody>
-          {devices.length === 0 && <tr><td colSpan={6} style={{ padding: 32, textAlign: 'center', color: err ? 'var(--red)' : 'var(--ink3)' }}>{err || 'No devices recorded yet.'}</td></tr>}
-          {devices.map(d => (
-            <tr key={d.id} style={{ borderBottom:'1px solid var(--border)' }}>
-              <TD><div style={{ display:'flex', alignItems:'center', gap:8 }}><Avatar name={d.user_name} size={24} />{d.user_name}</div></TD>
-              <TD bold>{d.device_label}</TD>
-              <TD muted>{d.device_type}</TD>
-              <TD muted>{new Date(d.last_used_at).toLocaleString('en-GB', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })}</TD>
-              <TD>
-                {d.trusted
-                  ? <span style={{ fontSize:11, padding:'2px 8px', borderRadius:4, background:'rgba(16,185,129,.12)', color:'var(--green)', fontWeight:700 }}>Trusted</span>
-                  : <span style={{ fontSize:11, padding:'2px 8px', borderRadius:4, background:'rgba(239,68,68,.12)', color:'var(--red)', fontWeight:700 }}>Unknown</span>}
-              </TD>
-              <TD right>
-                {!d.trusted && <ActionBtn label="Trust" color="var(--green)" onClick={() => setTrusted(d.id, true)} />}
-                <ActionBtn label="Block" color="var(--red)" onClick={() => setTrusted(d.id, false)} />
-              </TD>
-            </tr>
-          ))}
-        </tbody>
-      </Wrap>
-    </div>
-  );
-}
 
 type LeaveRow = {
   id: string; emp: string; type: string; from: string; to: string; days: number;

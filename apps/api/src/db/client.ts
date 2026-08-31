@@ -4548,6 +4548,7 @@ export interface Database {
   hr_attendance: HrAttendanceTable;
   hr_clock_sessions: HrClockSessionsTable;
   hr_clock_breaks: HrClockBreaksTable;
+  user_presence: UserPresenceTable;
   hr_timesheet_approvals: HrTimesheetApprovalsTable;
   hr_job_openings: HrJobOpeningsTable;
   hr_candidates: HrCandidatesTable;
@@ -7872,6 +7873,12 @@ export interface HrClockBreaksTable {
   end_at: Date | null;
   duration_minutes: number | null;
   created_at: Generated<Date>;
+}
+
+export interface UserPresenceTable {
+  user_id: string;
+  tenant_id: string;
+  last_active_at: Generated<Date>;
 }
 
 export interface BlissCallsTable {

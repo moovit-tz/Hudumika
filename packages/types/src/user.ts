@@ -96,6 +96,7 @@ export interface UserProfileFields {
   cover_url?: string;
   cover_position?: { x: number; y: number }; // background-position percentages, drag-to-reposition
   landing_style?: 'advanced' | 'basic'; // overrides the tenant's default at Settings > Landing Experience
+  hide_presence?: boolean; // opt out of the online/clocked-in status dot being shown to colleagues (Profile > Personal Info > Privacy)
 
   // HR/Staff Fields
   employee_code?: string;

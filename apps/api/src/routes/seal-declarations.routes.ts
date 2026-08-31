@@ -233,7 +233,7 @@ export async function sealDeclarationRoutes(fastify: FastifyInstance) {
     } catch (err: any) {
       if (err instanceof IllegalDeclarationTransition) {
         return reply.status(422).send({
-          type: 'https://hudumika.com/errors/illegal-declaration-transition',
+          type: 'https://hudumika.tz/errors/illegal-declaration-transition',
           title: 'Illegal declaration transition',
           status: 422,
           detail: err.message,
@@ -243,7 +243,7 @@ export async function sealDeclarationRoutes(fastify: FastifyInstance) {
       }
       if (err instanceof ExaminationPending) {
         return reply.status(422).send({
-          type: 'https://hudumika.com/errors/examination-pending',
+          type: 'https://hudumika.tz/errors/examination-pending',
           title: 'Examination pending',
           status: 422,
           detail: err.message,
@@ -264,7 +264,7 @@ export async function sealDeclarationRoutes(fastify: FastifyInstance) {
     } catch (err: any) {
       if (err instanceof IllegalCustomsTransition) {
         return reply.status(422).send({
-          type: 'https://hudumika.com/errors/illegal-customs-transition',
+          type: 'https://hudumika.tz/errors/illegal-customs-transition',
           title: 'Illegal customs transition',
           status: 422,
           detail: err.message,

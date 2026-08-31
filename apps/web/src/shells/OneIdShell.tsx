@@ -19,31 +19,46 @@ import { OneIdRoles } from '../pages/OneIdRoles.js';
 import { OneIdPersonal } from '../pages/OneIdPersonal.js';
 import { OneIdSecuritySettings } from '../pages/OneIdSecuritySettings.js';
 import { OneIdVault } from '../pages/OneIdVault.js';
+import { OneIdTrust } from '../pages/OneIdTrust.js';
+import { OneIdPersonalDevices } from '../pages/OneIdPersonalDevices.js';
+import { OneIdPersonalActivity } from '../pages/OneIdPersonalActivity.js';
+import { OneIdApps } from '../pages/OneIdApps.js';
+import { OneIdPrivacy } from '../pages/OneIdPrivacy.js';
 import { OneIdBusinessVerification } from '../pages/OneIdBusinessVerification.js';
 import { OndiAuthorize } from '../pages/OndiAuthorize.js';
 
 const ADMIN_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'] as const;
 
+// Sectioned to match the house-style mockup's Personal nav grouping
+// (You / Account / Business) — Wallet/Apps/Create Organization land in
+// their own later milestones, added into these same sections rather than
+// requiring another restructure.
 const PERSONAL_NAV: SidebarSection[] = [
   {
     items: [
-      { label: 'My Profile',       icon: 'fingerprint', path: '/ondi/personal', exact: true },
-      { label: 'Security Settings', icon: 'lock',        path: '/ondi/personal/security' },
-      { label: 'Document Vault',   icon: 'fileText',    path: '/ondi/personal/vault' },
+      { label: 'My Profile', icon: 'fingerprint', path: '/ondi/personal', exact: true },
     ],
   },
-];
-
-const BUSINESS_NAV: SidebarSection[] = [
   {
+    title: 'YOU',
     items: [
-      { label: 'Users',          icon: 'users',    path: '/ondi', exact: true },
-      { label: 'Business Verification', icon: 'building', path: '/ondi/business' },
-      { label: 'KYC Review',     icon: 'shield', path: '/ondi/kyc' },
-      { label: 'Roles & Access', icon: 'userCheck', path: '/ondi/roles' },
-      { label: 'SSO & Providers', icon: 'key',     path: '/ondi/sso' },
-      { label: 'Sessions & Security', icon: 'lock', path: '/ondi/sessions' },
-      { label: 'Login Activity', icon: 'clock',    path: '/ondi/login-activity' },
+      { label: 'Trust',    icon: 'trendingUp',  path: '/ondi/personal/trust' },
+      { label: 'Devices',  icon: 'smartphone',  path: '/ondi/personal/devices' },
+      { label: 'Activity', icon: 'activity',    path: '/ondi/personal/activity' },
+    ],
+  },
+  {
+    title: 'ACCOUNT',
+    items: [
+      { label: 'Documents',        icon: 'fileText', path: '/ondi/personal/documents' },
+      { label: 'Privacy',          icon: 'shield',   path: '/ondi/personal/privacy' },
+      { label: 'Security Settings', icon: 'lock',     path: '/ondi/personal/security' },
+    ],
+  },
+  {
+    title: 'BUSINESS',
+    items: [
+      { label: 'Apps', icon: 'grid', path: '/ondi/personal/apps' },
     ],
   },
 ];
@@ -198,8 +213,16 @@ export function OneIdShell() {
               <Route element={<PageLayout />}>
                 <Route index element={<OneIdUsers />} />
                 <Route path="personal" element={<OneIdPersonal />} />
+                <Route path="personal/trust" element={<OneIdTrust />} />
+                <Route path="personal/devices" element={<OneIdPersonalDevices />} />
+                <Route path="personal/activity" element={<OneIdPersonalActivity />} />
+                <Route path="personal/documents" element={<OneIdVault />} />
+                {/* Documents used to be labeled/routed as "Vault" — kept as a
+                    redirect so old links/bookmarks still land somewhere real. */}
+                <Route path="personal/vault" element={<Navigate to="/ondi/personal/documents" replace />} />
                 <Route path="personal/security" element={<OneIdSecuritySettings />} />
-                <Route path="personal/vault" element={<OneIdVault />} />
+                <Route path="personal/privacy" element={<OneIdPrivacy />} />
+                <Route path="personal/apps" element={<OneIdApps />} />
                 <Route path="business" element={<OneIdBusinessVerification />} />
                 <Route path="kyc" element={<RequireRoles roles={[...ADMIN_ROLES]} permissions={['kyc.review']}><OneIdKyc /></RequireRoles>} />
                 <Route path="roles" element={<OneIdRoles />} />

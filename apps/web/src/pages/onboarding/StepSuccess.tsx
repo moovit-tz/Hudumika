@@ -22,7 +22,7 @@ export const StepSuccess: React.FC<{ subdomain: string }> = ({ subdomain }) => {
     <div className="ob-success">
       <div className="ob-success-icon"><Icon name="checkCircle" size={40} /></div>
       <h1 className="login-headline">Your workspace is ready</h1>
-      <p className="login-subtext">{subdomain}.hudumika.app</p>
+      <p className="login-subtext">{subdomain}.hudumika.tz</p>
       <ul className="ob-checklist">
         {CHECKLIST.map((item, i) => (
           <li key={item} className={i < done ? 'ob-checklist-item ob-checklist-item--done' : 'ob-checklist-item'}>

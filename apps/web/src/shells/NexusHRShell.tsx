@@ -28,7 +28,7 @@ import {
   HrmDashboard, EmployeesPage, DepartmentsPage, DesignationsPage, TeamsPage,
   AttendancePage, LeavesPage, ShiftsPage, HolidaysPage,
   PayrollPage, MyPayslipsPage,
-  RolesPage, PermissionsPage, ActivityLogsPage, LoginHistoryPage, DeviceManagementPage, DeleteRequestsPage, InvitationsPage,
+  RolesPage, ActivityLogsPage, DeleteRequestsPage,
   AnnouncementsPage,
 } from '../pages/HRM.js';
 
@@ -89,12 +89,16 @@ const NAV: SidebarSection[] = [
     items: [
       { label: 'IT Admin',            icon: 'barChart2',  path: '/nexushr/it-admin'          },
       { label: 'Roles & Permissions', icon: 'shield',     path: '/nexushr/roles'             },
-      { label: 'Permission Matrix',   icon: 'key',        path: '/nexushr/permissions'       },
       { label: 'Activity Logs',       icon: 'activity',   path: '/nexushr/activity-logs'     },
-      { label: 'Login History',       icon: 'lock',       path: '/nexushr/login-history'     },
-      { label: 'Devices',             icon: 'smartphone', path: '/nexushr/device-management' },
+      // These three are the same users/hr_invitations/hr_login_history/hr_devices
+      // records Ondi Business already manages under Users/Login Activity/
+      // Sessions & Security — kept as two live, drifting copies before. Now
+      // one home (Ondi) and this nav just points there instead of rendering
+      // a second copy of the same screen.
+      { label: 'Login History',       icon: 'lock',       path: '/ondi/login-activity'       },
+      { label: 'Devices',             icon: 'smartphone', path: '/ondi/sessions'             },
       { label: 'Delete Requests',     icon: 'userMinus',  path: '/nexushr/delete-requests'   },
-      { label: 'Invitations',         icon: 'userPlus',   path: '/nexushr/invitations'        },
+      { label: 'Invitations',         icon: 'userPlus',   path: '/ondi?tab=invites'          },
     ],
   },
   {
@@ -121,13 +125,16 @@ export function NexusHRShell() {
               <Route path="delete-requests"   element={<RequireRoles roles={MGMT_ROLES}><DeleteRequestsPage /></RequireRoles>} />
               <Route path="departments"       element={<RequireRoles roles={MGMT_ROLES}><DepartmentsPage /></RequireRoles>} />
               <Route path="teams"             element={<RequireRoles roles={MGMT_ROLES}><TeamsPage /></RequireRoles>} />
-              <Route path="invitations"       element={<RequireRoles roles={MGMT_ROLES}><InvitationsPage /></RequireRoles>} />
+              {/* Invitations/Login History/Devices moved to Ondi Business (same
+                  underlying records) — these three routes stay only as
+                  redirects so old links/bookmarks still land somewhere real. */}
+              <Route path="invitations"       element={<Navigate to="/ondi?tab=invites" replace />} />
               <Route path="staff-directory"   element={<Navigate to="/nexushr/employees" replace />} />
               <Route path="staff/:id"         element={<RequireSelfOrRoles roles={MGMT_ROLES}><StaffDetail /></RequireSelfOrRoles>} />
               <Route path="it-admin"          element={<RequireRoles roles={['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN']}><ITAdminDashboard /></RequireRoles>} />
               <Route path="activity-logs"     element={<RequireRoles roles={MGMT_ROLES}><ActivityLogsPage /></RequireRoles>} />
-              <Route path="login-history"     element={<RequireRoles roles={MGMT_ROLES}><LoginHistoryPage /></RequireRoles>} />
-              <Route path="device-management" element={<RequireRoles roles={MGMT_ROLES}><DeviceManagementPage /></RequireRoles>} />
+              <Route path="login-history"     element={<Navigate to="/ondi/login-activity" replace />} />
+              <Route path="device-management" element={<Navigate to="/ondi/sessions" replace />} />
               <Route path="me"                element={<MyHubPage />} />
               <Route path="clock-in"          element={<ClockInPage />} />
               <Route path="leaves"            element={<RequireRoles roles={MGMT_ROLES}><LeavesPage /></RequireRoles>} />
@@ -145,7 +152,8 @@ export function NexusHRShell() {
               <Route path="performance"       element={<RequireRoles roles={MGMT_ROLES}><Performance /></RequireRoles>} />
               <Route path="documents"         element={<RequireRoles roles={MGMT_ROLES}><HrDocuments /></RequireRoles>} />
               <Route path="assets"            element={<RequireRoles roles={MGMT_ROLES}><HrAssets /></RequireRoles>} />
-              <Route path="permissions"       element={<RequireRoles roles={MGMT_ROLES}><PermissionsPage /></RequireRoles>} />
+              {/* Permission Matrix merged into the Roles & Permissions page itself (a view toggle there now). */}
+              <Route path="permissions"       element={<Navigate to="/nexushr/roles" replace />} />
             </Route>
 
             <Route path="*" element={<Navigate to="/nexushr" replace />} />

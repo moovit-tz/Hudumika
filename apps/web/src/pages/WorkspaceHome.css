@@ -24,71 +24,6 @@
   flex-direction: column;
 }
 
-/* ── WELCOME BAR ── */
-.wh-welcome-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  padding: 20px 40px;
-  background: var(--bg);
-  border-bottom: 0.5px solid var(--border);
-  flex-shrink: 0;
-}
-
-.wh-welcome-left {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  min-width: 0;
-}
-
-.wh-welcome-greeting {
-  font-size: 28px;
-  font-weight: 400;
-  color: var(--ink3);
-  letter-spacing: -0.01em;
-  margin: 0;
-  line-height: 1.2;
-}
-
-.wh-welcome-name {
-  font-family: 'Cormorant Garamond', Georgia, serif;
-  font-style: italic;
-  font-weight: 700;
-  color: var(--teal);
-  letter-spacing: 0;
-}
-
-.wh-welcome-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: var(--ink3);
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  flex-shrink: 0;
-}
-
-.wh-welcome-time {
-  font-weight: 600;
-  color: var(--ink2);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.01em;
-}
-
-.wh-welcome-weather {
-  color: var(--ink3);
-}
-
-.wh-welcome-dot {
-  opacity: 0.35;
-  font-size: 15px;
-  line-height: 1;
-}
-
-
 /* ── CONTAINER ── */
 .wh-new-container {
   max-width: 100%;
@@ -1015,26 +950,6 @@
   background: var(--bg);
 }
 
-[data-theme="dark"] .wh-welcome-bar {
-  border-bottom-color: rgba(255, 255, 255, 0.07);
-}
-
-[data-theme="dark"] .wh-welcome-greeting {
-  color: rgba(255, 255, 255, 0.4);
-}
-
-[data-theme="dark"] .wh-welcome-time {
-  color: rgba(255, 255, 255, 0.7);
-}
-
-[data-theme="dark"] .wh-welcome-right {
-  color: rgba(255, 255, 255, 0.35);
-}
-
-[data-theme="dark"] .wh-welcome-weather {
-  color: rgba(255, 255, 255, 0.35);
-}
-
 [data-theme="dark"] .wh-settings-btn {
   border-color: rgba(255, 255, 255, 0.12);
   color: rgba(255, 255, 255, 0.55);
@@ -1079,21 +994,6 @@
 
 /* Responsive */
 @media (max-width: 900px) {
-  .wh-welcome-bar {
-    flex-wrap: wrap;
-    gap: 8px;
-    padding: 16px 20px;
-  }
-
-  .wh-welcome-left {
-    flex: 1 1 100%;
-  }
-
-  .wh-welcome-right {
-    flex: 1 1 100%;
-    justify-content: flex-start;
-  }
-
   .wh-new-container {
     padding: 24px 20px 48px;
   }
@@ -1121,14 +1021,6 @@
 }
 
 @media (max-width: 600px) {
-  .wh-welcome-bar {
-    padding: 14px 16px;
-  }
-
-  .wh-welcome-greeting {
-    font-size: 20px;
-  }
-
   .wh-new-container {
     padding: 20px 16px 40px;
   }

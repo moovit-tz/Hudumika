@@ -4,7 +4,7 @@ import type { paths } from './schema.js';
 export type { paths } from './schema.js';
 
 export interface HudumikaClientOptions {
-  /** e.g. https://api.hudumika.io or http://localhost:3001 */
+  /** e.g. https://api.hudumika.tz or http://localhost:3001 */
   baseUrl: string;
   /** Partner API key (x-api-key header) — use this OR bearerToken, not both. */
   apiKey?: string;
@@ -18,7 +18,7 @@ export interface HudumikaClientOptions {
  * running API instance at http://localhost:3001/docs/json).
  *
  * Usage:
- *   const api = createHudumikaClient({ baseUrl: 'https://api.hudumika.io', apiKey: 'hdk_...' });
+ *   const api = createHudumikaClient({ baseUrl: 'https://api.hudumika.tz', apiKey: 'hdk_...' });
  *   const { data, error } = await api.GET('/v1/customers');
  */
 export function createHudumikaClient(options: HudumikaClientOptions) {

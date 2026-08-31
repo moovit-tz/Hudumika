@@ -32,11 +32,23 @@ export const OndiLogin: React.FC = () => {
   const rootRef = useRef<HTMLDivElement>(null);
   const branding = useBranding();
 
-  const [theme] = useState<'light' | 'dark'>(() => {
+  // Was `const [theme] = useState(...)` with no setter — the toggle button
+  // below called toggleThemeWithAnimation directly (only ever meant for
+  // components that read the theme reactively off document.documentElement,
+  // like AppHeader's own MutationObserver), which set documentElement's
+  // attribute and the *wrong* localStorage key ('theme', not this page's own
+  // 'hudumika_login_theme') but never updated this component's local state —
+  // so the button visibly did nothing to this page, while the stray
+  // documentElement attribute it left behind could bleed into a handful of
+  // elements through unscoped [data-theme="dark"] CSS selectors (see
+  // Login.css's own comments on that). Login.tsx/OnboardingWizard.tsx
+  // already had the correct, working version of this same block.
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     const saved = localStorage.getItem('hudumika_login_theme');
     if (saved === 'light' || saved === 'dark') return saved;
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   });
+  useEffect(() => { localStorage.setItem('hudumika_login_theme', theme); }, [theme]);
   const isDark = theme === 'dark';
   const pageBg = isDark ? '#131314' : (LOGIN_BG_MAP[branding.loginBgStyle] ?? '#f0f4f9');
   const isBgDark = !isDark && branding.loginBgStyle !== 'white';
@@ -59,6 +71,12 @@ export const OndiLogin: React.FC = () => {
     // reads as a hole punched through the card rather than a field on it.
     el.style.setProperty('--lp-input-bg', d ? '#2a2a2d' : '#fff');
     el.style.setProperty('--lp-input-border', d ? '#8e918f' : '#747775');
+    // Segmented tabs background & active tab properties
+    el.style.setProperty('--lp-tabs-bg', d ? '#131314' : '#f1f3f4');
+    el.style.setProperty('--lp-tabs-border', d ? '#2a2a2d' : '#e0e2e6');
+    el.style.setProperty('--lp-tab-active-bg', d ? '#2a2a2d' : '#fff');
+    el.style.setProperty('--lp-tab-active-color', d ? '#e3e3e3' : '#1f1f1f');
+    el.style.setProperty('--lp-tab-active-shadow', d ? 'none' : '0 1.5px 3px rgba(0,0,0,0.06), 0 1px 1px rgba(0,0,0,0.04)');
     // Used by the segmented-tab track/active-pill border — without this,
     // dark mode fell through to the light-mode CSS fallback (#e0e2e6) and
     // drew a near-white ring around the tabs on an otherwise dark page.
@@ -179,7 +197,11 @@ export const OndiLogin: React.FC = () => {
     <div ref={rootRef} className="login-page" data-theme={theme}>
       <button
         type="button"
-        onClick={e => toggleThemeWithAnimation(e, !isDark)}
+        onClick={e => {
+          const next = theme === 'light' ? 'dark' : 'light';
+          setTheme(next);
+          toggleThemeWithAnimation(e, next === 'dark');
+        }}
         className="login-toggle"
         title="Toggle theme"
       >

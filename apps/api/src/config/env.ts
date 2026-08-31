@@ -45,8 +45,8 @@ const envSchema = z.object({
   // the server, same reasoning as every other secret in this file.
   SIGN_CERT_PASSWORD: z.string().default('change-this-in-production-hudumika-sign'),
   // Session-cookie migration (security checklist #9). 'lax' is correct when
-  // the frontend and API share a registrable domain (e.g. app.hudumika.co /
-  // api.hudumika.co) — the expected production topology. Override to 'none'
+  // the frontend and API share a registrable domain (e.g. app.hudumika.tz /
+  // api.hudumika.tz) — the expected production topology. Override to 'none'
   // (requires `secure`, which APP_ENV=production already forces) only if a
   // deployment ever puts the frontend on a genuinely unrelated domain.
   COOKIE_SAME_SITE: z.enum(['lax', 'strict', 'none']).default('lax'),

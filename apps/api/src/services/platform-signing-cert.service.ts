@@ -111,7 +111,7 @@ export async function verifyRoundTrip(p12Buffer: Buffer, password: string): Prom
   pdflibAddPlaceholder({
     pdfDoc: doc,
     reason: 'Certificate verification test',
-    contactInfo: 'support@hudumika.com',
+    contactInfo: 'support@hudumika.tz',
     name: 'Hudumika eSign',
     location: 'Platform self-test',
     signingTime: new Date(),

@@ -445,7 +445,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       sub: customer.id,
       tenant_id: customer.tenant_id,
       role: 'CUSTOMER',
-      email: customer.email || `${customer.id}@hudumika.co`,
+      email: customer.email || `${customer.id}@hudumika.tz`,
       name: customer.name,
     };
 
@@ -652,7 +652,7 @@ export async function authRoutes(fastify: FastifyInstance) {
         }
       : {
           sub: customer.id, tenant_id: customer.tenant_id, role: 'CUSTOMER',
-          email: customer.email || `${customer.id}@hudumika.co`, name: customer.name,
+          email: customer.email || `${customer.id}@hudumika.tz`, name: customer.name,
           impersonated_by: actor.sub, impersonated_by_name: actor.name,
         };
 
