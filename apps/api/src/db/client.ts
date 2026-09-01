@@ -206,6 +206,11 @@ export interface NotesTable {
   label_ids: string[]; // native uuid[]
   subject_type: string | null;
   subject_id: string | null;
+  // Real cross-app meeting linking (369_meeting_link_everywhere.sql) — same
+  // shape as calendar_events'/tasks' own meeting_url/meeting_settings.
+  meeting_url: string | null;
+  meeting_settings: Generated<any>; // JSONB
+  bliss_meeting_id: string | null;
   /** 'team' (default, tenant-wide — the original and only behaviour before
    *  282_notes_enterprise.sql) | 'private' (creator only) | 'shared'
    *  (creator + note_shares). */
@@ -3386,6 +3391,12 @@ export interface TasksTable {
   // subject_type/subject_id convention as notes.subject_type etc.
   subject_type: string | null;
   subject_id: string | null;
+  // Real cross-app meeting linking (369_meeting_link_everywhere.sql) — same
+  // shape as calendar_events' own meeting_url/meeting_settings. Null unless
+  // this task actually has a video call attached.
+  meeting_url: string | null;
+  meeting_settings: Generated<any>; // JSONB
+  bliss_meeting_id: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -3659,6 +3670,10 @@ export interface CalendarEventsTable {
    *  itself so the shareable room link stays stable regardless of who last
    *  changed these (343_calendar_video_meeting.sql). */
   meeting_settings: any; // JSONB
+  /** Set when meeting_url is a real Bliss meeting (not the Jitsi fallback) —
+   *  the machine-readable FK half (369_meeting_link_everywhere.sql), null
+   *  for a Jitsi link since there's no bliss_meetings row to point at. */
+  bliss_meeting_id: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -4739,9 +4754,16 @@ export interface Database {
   ondi_org_role_members: OndiOrgRoleMembersTable;
   ondi_org_access_requests: OndiOrgAccessRequestsTable;
   ondi_org_access_request_approvals: OndiOrgAccessRequestApprovalsTable;
+  ondi_access_review_campaigns: OndiAccessReviewCampaignsTable;
+  ondi_access_review_items: OndiAccessReviewItemsTable;
+  ondi_automation_log: OndiAutomationLogTable;
+  ondi_visitors: OndiVisitorsTable;
+  tenant_marketplace_installs: TenantMarketplaceInstallsTable;
+  marketplace_apps: MarketplaceAppsTable;
   ondi_oidc_signing_keys: OndiOidcSigningKeysTable;
   ondi_oauth_clients: OndiOauthClientsTable;
   ondi_oauth_consents: OndiOauthConsentsTable;
+  ondi_wallet_items: OndiWalletItemsTable;
   workflow_studio_apps: WorkflowStudioAppsTable;
   workflow_studio_runs: WorkflowStudioRunsTable;
   announcements: AnnouncementsTable;
@@ -6325,6 +6347,97 @@ export interface OndiOrgAccessRequestApprovalsTable {
   created_at: Generated<Date>;
 }
 
+/** Periodic access-review campaigns (Ondi M5, migration 369) — the
+ *  sweep-and-reattest counterpart to ondi_org_access_requests' ad-hoc
+ *  request/approve flow above. */
+export interface OndiAccessReviewCampaignsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  name: string;
+  status: Generated<'active' | 'completed' | 'cancelled'>;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  completed_at: Date | null;
+}
+
+export interface OndiAccessReviewItemsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  campaign_id: string;
+  role_member_id: string | null;
+  user_id: string;
+  role_id: string | null;
+  role_name: string;
+  decision: Generated<'pending' | 'approved' | 'revoked'>;
+  decided_by: string | null;
+  decided_at: Date | null;
+  created_at: Generated<Date>;
+}
+
+/** Joiner/leaver automation log (Ondi M7, migration 370). */
+export interface OndiAutomationLogTable {
+  id: Generated<string>;
+  tenant_id: string;
+  rule: 'joiner_default_role' | 'leaver_revoke_access';
+  user_id: string;
+  summary: string;
+  created_at: Generated<Date>;
+}
+
+/** Front-desk visitor sign-in (Ondi M9, migration 372). */
+export interface OndiVisitorsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  name: string;
+  company: string | null;
+  purpose: string | null;
+  host_user_id: string | null;
+  badge_code: string;
+  checked_in_at: Generated<Date>;
+  checked_out_at: Date | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+}
+
+/** Global marketplace app catalog (migration 077) — read via raw sql`` in
+ *  store.routes.ts today; typed here so Ondi's Integrations page (M9) can
+ *  read it through the normal query builder instead of adding a second
+ *  raw-SQL reader for the same table. */
+export interface MarketplaceAppsTable {
+  id: Generated<string>;
+  name: string;
+  developer_id: string;
+  developer_name: string;
+  category: string;
+  short_desc: string;
+  long_desc: string;
+  features: Generated<any>;
+  permissions: Generated<any>;
+  icon_url: string | null;
+  webhook_url: string | null;
+  status: Generated<string>;
+  rating: Generated<number>;
+  reviews_count: Generated<number>;
+  installs: Generated<string>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+/** Per-tenant webhook-event authorization for a marketplace app (migration
+ *  156) — see domain-events.service.ts's dispatchToMarketplaceWebhooks(),
+ *  the reader this table already had with no writer anywhere until Ondi's
+ *  Integrations page (M9). */
+export interface TenantMarketplaceInstallsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  app_id: string;
+  webhook_secret: string;
+  events_enabled: Generated<boolean>;
+  installed_by: string | null;
+  installed_at: Generated<Date>;
+  revoked_at: Date | null;
+}
+
 /** OAuth 2.0 / OIDC provider (Ondi M6, migration 363) — platform-global,
  *  not tenant-scoped; see that migration's own header for why. */
 export interface OndiOidcSigningKeysTable {
@@ -6355,6 +6468,21 @@ export interface OndiOauthConsentsTable {
   client_id: string;
   scopes: Generated<any>;
   granted_at: Generated<Date>;
+}
+
+/** Personal ▸ Wallet (368_ondi_wallet.sql) — secret_cipher is
+ *  onsite-secrets.service.ts's encryptSecret() output, never selected
+ *  outside the single-item reveal route. */
+export interface OndiWalletItemsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  user_id: string;
+  label: string;
+  username: string | null;
+  url: string | null;
+  secret_cipher: string;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
 }
 
 /** SHA-256 hash-chain audit log (Ondi M0/M3) — schema only until M3 adds a
@@ -7912,6 +8040,9 @@ export interface BlissMeetingsTable {
   waiting_room_enabled: Generated<boolean>;
   chat_disabled: Generated<boolean>;
   screen_share_disabled: Generated<boolean>;
+  // Guest (no-account) join, migration 368 — off by default; see
+  // calls-public routes in calls.routes.ts for the actual guest flow.
+  guest_join_enabled: Generated<boolean>;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -7920,7 +8051,10 @@ export interface BlissMeetingParticipantsTable {
   id: Generated<string>;
   tenant_id: string;
   meeting_id: string;
-  user_id: string;
+  // Nullable since migration 368 — a guest participant has guest_name set
+  // instead (see that migration's identity CHECK).
+  user_id: string | null;
+  guest_name: string | null;
   role: Generated<string>;
   joined_at: Generated<Date>;
   left_at: Date | null;
@@ -7933,7 +8067,11 @@ export interface BlissMeetingWaitingRoomTable {
   id: Generated<string>;
   tenant_id: string;
   meeting_id: string;
-  user_id: string;
+  // Nullable since migration 368 — a guest row has guest_token set instead
+  // (their poll-for-admission key, since they have no session to identify
+  // the row by).
+  user_id: string | null;
+  guest_token: string | null;
   user_name: string;
   status: Generated<string>;
   requested_at: Generated<Date>;

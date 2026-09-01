@@ -79,6 +79,10 @@ export interface CalendarEvent {
   timezone?: string;
   meetingUrl?: string | null;
   meetingSettings?: MeetingSettings | null;
+  // Set when meetingUrl is a real Bliss meeting rather than the Jitsi
+  // fallback (369_meeting_link_everywhere.sql) — the FK half genuine
+  // cross-app queries need; null for a Jitsi link.
+  blissMeetingId?: string | null;
   guestPermissions?: GuestPermissions;
   visibility?: 'default' | 'public' | 'private';
   busyStatus?: 'busy' | 'free';
@@ -152,6 +156,11 @@ export interface Todo {
   hourlyRate?: number | null;
   subjectType?: string | null;
   subjectId?: string | null;
+  // Real cross-app meeting linking (369_meeting_link_everywhere.sql) — same
+  // shape a calendar event's own meetingUrl/meetingSettings use.
+  meetingUrl?: string | null;
+  meetingSettings?: { startWithVideoMuted?: boolean; startWithAudioMuted?: boolean };
+  blissMeetingId?: string | null;
   blockedByOpenCount?: number;
   recurrenceRule?: { freq: 'daily' | 'weekly' | 'monthly'; interval: number } | null;
   recurrenceNextDue?: string | null;
@@ -235,6 +244,9 @@ function fromApiTodo(row: any): Todo {
     projectId: row.project_id || null, milestoneId: row.milestone_id || null, isPrivate: !!row.is_private,
     isBillable: !!row.is_billable, hourlyRate: row.hourly_rate != null ? Number(row.hourly_rate) : null,
     subjectType: row.subject_type || null, subjectId: row.subject_id || null,
+    meetingUrl: row.meeting_url || null,
+    meetingSettings: typeof row.meeting_settings === 'string' ? JSON.parse(row.meeting_settings) : (row.meeting_settings || {}),
+    blissMeetingId: row.bliss_meeting_id || null,
     blockedByOpenCount: row.blocked_by_open_count || 0,
     recurrenceRule: row.recurrence_rule || null, recurrenceNextDue: row.recurrence_next_due || null,
   };
@@ -283,6 +295,7 @@ function fromApiEvent(row: any): CalendarEvent {
     timezone: row.timezone || undefined,
     meetingUrl: row.meeting_url || undefined,
     meetingSettings: row.meeting_settings || undefined,
+    blissMeetingId: row.bliss_meeting_id || null,
   };
 }
 
@@ -357,6 +370,7 @@ export function addEvent(event: NewEventInput) {
       description: newEvent.description, location: newEvent.location, category: newEvent.category, guests: newEvent.guests,
       allDay: newEvent.allDay, color: newEvent.color, recurrence: newEvent.recurrence, reminderOffsets: newEvent.reminderOffsets,
       timezone: newEvent.timezone, meetingUrl: newEvent.meetingUrl, meetingSettings: newEvent.meetingSettings,
+      blissMeetingId: newEvent.blissMeetingId,
     }),
   }).then(() => { if (newEvent.recurrence) reloadEvents(); }) // a recurring series needs its full occurrence set, not just the one optimistic row
     .catch(err => { events = events.filter(e => e.id !== id); emit(); reportSyncFailure(err); });
@@ -406,6 +420,7 @@ export function updateEvent(id: string, patch: Partial<CalendarEvent>, opts?: { 
   if (patch.timezone !== undefined) body.timezone = patch.timezone;
   if (patch.meetingUrl !== undefined) body.meetingUrl = patch.meetingUrl || null;
   if (patch.meetingSettings !== undefined) body.meetingSettings = patch.meetingSettings;
+  if (patch.blissMeetingId !== undefined) body.blissMeetingId = patch.blissMeetingId || null;
 
   apiFetch(`/v1/tasks/events/${id}`, { method: 'PATCH', body: JSON.stringify(body) })
     .then(() => { if (needsReload) reloadEvents(); })
@@ -541,6 +556,9 @@ export function updateTodo(id: string, patch: Partial<Omit<Todo, 'assigneeId'>> 
   if (patch.hourlyRate !== undefined) body.hourlyRate = patch.hourlyRate;
   if (patch.subjectType !== undefined) body.subjectType = patch.subjectType || null;
   if (patch.subjectId !== undefined) body.subjectId = patch.subjectId || null;
+  if (patch.meetingUrl !== undefined) body.meetingUrl = patch.meetingUrl || null;
+  if (patch.meetingSettings !== undefined) body.meetingSettings = patch.meetingSettings || {};
+  if (patch.blissMeetingId !== undefined) body.blissMeetingId = patch.blissMeetingId || null;
   apiFetch(`/v1/tasks/items/${id}`, { method: 'PATCH', body: JSON.stringify(body) }).catch(reportSyncFailure);
 }
 

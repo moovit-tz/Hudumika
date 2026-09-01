@@ -8,6 +8,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { ReminderPicker } from '../components/ReminderPicker.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { EntityPicker, type PickerItem } from '../components/EntityPicker.js';
+import { MeetingLinkPanel } from '../components/MeetingLinkPanel.js';
 import { showAlert } from '../lib/alert.js';
 import { apiFetch, apiFetchBlob } from '../lib/api.js';
 import { fetchPeople, type Person } from '../lib/identity.js';
@@ -166,6 +167,7 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
   const [showDrawingModal, setShowDrawingModal] = useState(false);
   const [showSharePanel, setShowSharePanel] = useState(false);
   const [showHistoryPanel, setShowHistoryPanel] = useState(false);
+  const [showMeetingPanel, setShowMeetingPanel] = useState(false);
 
   const composerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -723,7 +725,7 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
 
       {/* ── Note Edit Modal ── */}
       {editingNote && (
-        <div className="notes-drawing-modal" onClick={() => { flushAllPendingSaves(); setEditingNote(null); setShowSharePanel(false); setShowHistoryPanel(false); }}>
+        <div className="notes-drawing-modal" onClick={() => { flushAllPendingSaves(); setEditingNote(null); setShowSharePanel(false); setShowHistoryPanel(false); setShowMeetingPanel(false); }}>
           <div className={`notes-drawing-card keep-color-${editingNote.color}`} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <input
@@ -872,6 +874,14 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
                       open={activeCategoryPopover === editingNote.id}
                       onOpenChange={o => setActiveCategoryPopover(o ? editingNote.id : null)}
                     />
+                    <button
+                      type="button"
+                      className={`notes-icon-btn${editingNote.meetingUrl ? ' active' : ''}`}
+                      onClick={() => setShowMeetingPanel(v => !v)}
+                      title={editingNote.meetingUrl ? 'Video call attached' : 'Add video call'}
+                    >
+                      <Icon name="video" size={16} />
+                    </button>
                   </>
                 )}
                 {editingNote.isOwner && (
@@ -890,7 +900,7 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
                 )}
               </div>
 
-              <button type="button" className="notes-done-btn" onClick={() => { flushAllPendingSaves(); setEditingNote(null); setShowSharePanel(false); setShowHistoryPanel(false); }}>
+              <button type="button" className="notes-done-btn" onClick={() => { flushAllPendingSaves(); setEditingNote(null); setShowSharePanel(false); setShowHistoryPanel(false); setShowMeetingPanel(false); }}>
                 Close
               </button>
             </div>
@@ -912,6 +922,20 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
                 onClose={() => setShowHistoryPanel(false)}
                 onRestored={restored => setEditingNote(restored)}
               />
+            )}
+
+            {showMeetingPanel && (
+              <div style={{ padding: '12px 20px' }}>
+                <MeetingLinkPanel
+                  title={editingNote.title || 'Meeting'}
+                  value={{ meetingUrl: editingNote.meetingUrl ?? null, blissMeetingId: editingNote.blissMeetingId ?? null }}
+                  disabled={!editingNote.canEdit}
+                  onChange={next => {
+                    updateNote(editingNote.id, { meetingUrl: next.meetingUrl, blissMeetingId: next.blissMeetingId });
+                    setEditingNote(prev => prev ? { ...prev, meetingUrl: next.meetingUrl, blissMeetingId: next.blissMeetingId ?? null } : prev);
+                  }}
+                />
+              </div>
             )}
           </div>
         </div>
@@ -937,7 +961,7 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
       <div
         key={note.id}
         className={`note-card keep-color-${note.color}`}
-        onClick={() => { setEditingNote(note); setShowSharePanel(false); setShowHistoryPanel(false); }}
+        onClick={() => { setEditingNote(note); setShowSharePanel(false); setShowHistoryPanel(false); setShowMeetingPanel(false); }}
       >
         <button
           type="button"

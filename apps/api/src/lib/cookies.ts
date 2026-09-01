@@ -18,6 +18,11 @@ export const COOKIE_NAMES = {
   orgRefresh: 'hudumika_org_refresh',
   superAccess: 'hudumika_super_access',
   superRefresh: 'hudumika_super_refresh',
+  // A Bliss meeting guest's short-lived token (calls.routes.ts's
+  // calls-public routes) — a distinct name from `access`, never the same
+  // slot, so a guest joining a public meeting link in a browser tab that
+  // also holds a real staff session can never clobber it (or vice versa).
+  guestAccess: 'hudumika_guest_access',
 } as const;
 
 function baseOpts(maxAgeSeconds: number) {
@@ -80,6 +85,18 @@ export function clearSuperCookies(reply: FastifyReply): void {
   const clearOpts = { path: '/' };
   reply.clearCookie(COOKIE_NAMES.superAccess, clearOpts);
   reply.clearCookie(COOKIE_NAMES.superRefresh, clearOpts);
+}
+
+/** Sets the guest meeting token as its own cookie — httpOnly, but no CSRF
+ *  cookie alongside it: nothing under /v1/calls-public goes through
+ *  authenticate()'s CSRF check (they're public routes with no preHandler at
+ *  all), so there is nothing for one to protect. */
+export function setGuestCookie(reply: FastifyReply, token: string, maxAgeSeconds: number): void {
+  reply.setCookie(COOKIE_NAMES.guestAccess, token, baseOpts(maxAgeSeconds));
+}
+
+export function clearGuestCookie(reply: FastifyReply): void {
+  reply.clearCookie(COOKIE_NAMES.guestAccess, { path: '/' });
 }
 
 /**

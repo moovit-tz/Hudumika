@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { requireEntitlement } from '../middleware/entitlement.js';
-import { withTenant } from '../db/client.js';
-import { COOKIE_NAMES } from '../lib/cookies.js';
+import { withTenant, dbPlatform } from '../db/client.js';
+import { COOKIE_NAMES, setGuestCookie } from '../lib/cookies.js';
 import { env } from '../config/env.js';
 import { sql } from 'kysely';
 import crypto from 'crypto';
@@ -38,7 +38,7 @@ import { callAI } from './ai.routes.js';
 
 // key = `${tenantId}:${userId}` → the set of that user's live sockets.
 const registry = new Map<string, Set<any>>();
-const meta = new WeakMap<any, { tenantId: string; userId: string; name: string; rooms: Set<string> }>();
+const meta = new WeakMap<any, { tenantId: string; userId: string; name: string; rooms: Set<string>; guestMeetingId: string | null }>();
 const rkey = (t: string, u: string) => `${t}:${u}`;
 
 function sendTo(tenantId: string, userId: string, payload: unknown) {
@@ -54,7 +54,11 @@ function onlineUserIds(tenantId: string): string[] {
   const ids: string[] = [];
   for (const key of registry.keys()) {
     const [t, u] = key.split(':');
-    if (t === tenantId) ids.push(u);
+    // A guest occupies a real registry key (needed for the signaling relay
+    // to reach them) under a synthetic `guest:<uuid>` id — not a colleague
+    // to surface in a staff-facing "who's online" list, and there's no
+    // users row behind it for a click-through to resolve anyway.
+    if (t === tenantId && u !== 'guest') ids.push(u);
   }
   return ids;
 }
@@ -106,6 +110,19 @@ const ROOM_BROADCAST_TYPES = new Set([
   // breakout room's own key (see the routes below), not relayed by a client.
   'breakout-assigned', 'breakout-broadcast', 'breakout-closed',
 ]);
+
+// What a guest connection (calls-public routes) may actually send — a small
+// subset of each set above. offer/answer/ice is the real mesh negotiation a
+// guest legitimately needs with whichever peers show up in their own room's
+// roster; room-chat/room-reaction/room-status is the core meeting
+// experience. Everything else in RELAY_TYPES is 1:1-call or host-control
+// semantics that make no sense coming from an anonymous guest, and
+// everything else in ROOM_BROADCAST_TYPES is a meeting-tool/host-control
+// "go re-fetch" ping a guest has no legitimate reason to originate — both
+// are real (if low-severity) forgery/griefing surface otherwise, since nothing
+// else here checks who is allowed to send a given message type.
+const GUEST_RELAY_TYPES = new Set(['offer', 'answer', 'ice']);
+const GUEST_ROOM_BROADCAST_TYPES = new Set(['room-chat', 'room-reaction', 'room-status']);
 
 // Breakout rooms reuse the exact same room registry/signaling as the main
 // meeting, just under a different room-key string — see the module comment
@@ -184,27 +201,46 @@ export async function callsRoutes(fastify: FastifyInstance) {
     }
 
     let claims: any;
+    let isGuestToken = false;
     try {
-      const token = req.cookies?.[COOKIE_NAMES.access] || req.cookies?.[COOKIE_NAMES.orgAccess] || '';
-      claims = fastify.jwt.verify(token);
+      const staffToken = req.cookies?.[COOKIE_NAMES.access] || req.cookies?.[COOKIE_NAMES.orgAccess] || '';
+      if (staffToken) {
+        claims = fastify.jwt.verify(staffToken);
+      } else {
+        // No staff session on this connection at all — the one other
+        // credential this endpoint accepts is a Bliss meeting-guest token
+        // (calls-public routes), scoped to exactly one meeting below.
+        const guestToken = req.cookies?.[COOKIE_NAMES.guestAccess] || '';
+        claims = fastify.jwt.verify(guestToken);
+        isGuestToken = true;
+      }
     } catch {
       try { socket.close(4001, 'unauthorized'); } catch { /* ignore */ }
       return;
     }
     if (!claims?.sub || !claims?.tenant_id || claims.typ === 'refresh') { try { socket.close(4001, 'unauthorized'); } catch {} return; }
+    // A guest token must actually be one (not a staff token replayed through
+    // the guest branch by omitting cookies some other way) and must carry
+    // the one meeting it's scoped to — see the GUEST role / JWTPayload.typ
+    // comments in @hudumika/types.
+    if (isGuestToken && (claims.typ !== 'guest' || !claims.meetingId)) { try { socket.close(4001, 'unauthorized'); } catch {} return; }
+    const isGuest = isGuestToken && claims.typ === 'guest';
 
     const tenantId = String(claims.tenant_id);
     const userId = String(claims.sub);
     const name = String(claims.name || '');
+    const guestMeetingId = isGuest ? String(claims.meetingId) : null;
     const key = rkey(tenantId, userId);
 
     const wasOffline = !registry.has(key);
     if (!registry.has(key)) registry.set(key, new Set());
     registry.get(key)!.add(socket);
-    meta.set(socket, { tenantId, userId, name, rooms: new Set() });
-    if (wasOffline) broadcastPresence(tenantId, userId, true);
+    meta.set(socket, { tenantId, userId, name, rooms: new Set(), guestMeetingId });
+    // A guest isn't a colleague to announce as "online" tenant-wide — that
+    // presence list is an internal-staff concept (NexusHR directory, chat).
+    if (wasOffline && !isGuest) broadcastPresence(tenantId, userId, true);
 
-    socket.send(JSON.stringify({ type: 'ready', online: onlineUserIds(tenantId) }));
+    socket.send(JSON.stringify({ type: 'ready', online: isGuest ? [] : onlineUserIds(tenantId) }));
 
     function leaveRoom(meetingId: string) {
       const rk = roomKey(tenantId, meetingId);
@@ -227,6 +263,10 @@ export async function callsRoutes(fastify: FastifyInstance) {
       if (m.type === 'join-room') {
         const meetingId = String(m.meetingId || '');
         if (!meetingId) return;
+        // A guest may only ever join the one meeting their token names —
+        // otherwise a guest link to meeting A could be replayed to walk
+        // into any other meeting in the tenant just by guessing its id.
+        if (isGuest && meetingId !== guestMeetingId) return;
         const rk = roomKey(tenantId, meetingId);
         if (!rooms.has(rk)) rooms.set(rk, new Map());
         const members = rooms.get(rk)!;
@@ -243,13 +283,16 @@ export async function callsRoutes(fastify: FastifyInstance) {
         return;
       }
       if (ROOM_BROADCAST_TYPES.has(m.type)) {
+        if (isGuest && !GUEST_ROOM_BROADCAST_TYPES.has(m.type)) return;
         const meetingId = String(m.meetingId || '');
         if (!meetingId) return;
+        if (isGuest && meetingId !== guestMeetingId) return;
         broadcastToRoom(tenantId, meetingId, { ...m, from: userId, fromName: name }, userId);
         return;
       }
 
       if (!RELAY_TYPES.has(m.type)) return;
+      if (isGuest && !GUEST_RELAY_TYPES.has(m.type)) return;
       const to = String(m.to || '');
       if (!to) return;
       // Same-tenant only: the target is looked up in this tenant's registry, so
@@ -261,7 +304,7 @@ export async function callsRoutes(fastify: FastifyInstance) {
       const set = registry.get(key);
       if (set) {
         set.delete(socket);
-        if (set.size === 0) { registry.delete(key); broadcastPresence(tenantId, userId, false); }
+        if (set.size === 0) { registry.delete(key); if (!isGuest) broadcastPresence(tenantId, userId, false); }
       }
       for (const meetingId of Array.from(meta.get(socket)?.rooms || [])) leaveRoom(meetingId);
       meta.delete(socket);
@@ -350,7 +393,7 @@ export async function callsRoutes(fastify: FastifyInstance) {
         .innerJoin('users as host', 'host.id', 'm.host_id')
         .select(['m.id', 'm.title', 'm.join_code', 'm.kind', 'm.status', 'm.scheduled_at',
                  'm.started_at', 'm.ended_at', 'm.locked', 'm.host_id', 'host.name as host_name',
-                 'm.password_hash', 'm.waiting_room_enabled'])
+                 'm.password_hash', 'm.waiting_room_enabled', 'm.guest_join_enabled'])
         .where('m.tenant_id', '=', user.tenant_id)
         .where('m.status', '!=', 'CANCELLED')
         .orderBy(sql`COALESCE(m.scheduled_at, m.started_at, m.created_at)`, 'desc')
@@ -378,7 +421,8 @@ export async function callsRoutes(fastify: FastifyInstance) {
         .innerJoin('users as host', 'host.id', 'm.host_id')
         .select(['m.id', 'm.title', 'm.join_code', 'm.kind', 'm.status', 'm.scheduled_at',
                  'm.started_at', 'm.ended_at', 'm.locked', 'm.host_id', 'host.name as host_name',
-                 'm.password_hash', 'm.waiting_room_enabled', 'm.chat_disabled', 'm.screen_share_disabled'])
+                 'm.password_hash', 'm.waiting_room_enabled', 'm.chat_disabled', 'm.screen_share_disabled',
+                 'm.guest_join_enabled'])
         .where('m.id', '=', id).where('m.tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!m) return reply.status(404).send({ error: 'Meeting not found' });
       const { password_hash, ...rest } = m;
@@ -413,6 +457,11 @@ export async function callsRoutes(fastify: FastifyInstance) {
         scheduled_at: scheduledAt, started_at: isInstant ? new Date() : null,
         password_hash: password ? hashPassword(password) : null,
         waiting_room_enabled: !!b.waiting_room_enabled,
+        // Lets a meeting created FROM Calendar/Tasks/Notes (calendarApp.tsx's
+        // "Add video call", and the same MeetingLinkPanel used by tasks/
+        // notes) come into being with guest access already configured,
+        // rather than requiring a second PATCH from inside the room.
+        guest_join_enabled: !!b.guest_join_enabled,
       }).returningAll().executeTakeFirstOrThrow();
     });
   });
@@ -440,6 +489,7 @@ export async function callsRoutes(fastify: FastifyInstance) {
     if (b.waiting_room_enabled !== undefined) patch.waiting_room_enabled = !!b.waiting_room_enabled;
     if (b.chat_disabled !== undefined) patch.chat_disabled = !!b.chat_disabled;
     if (b.screen_share_disabled !== undefined) patch.screen_share_disabled = !!b.screen_share_disabled;
+    if (b.guest_join_enabled !== undefined) patch.guest_join_enabled = !!b.guest_join_enabled;
     return withTenant(user.tenant_id, async (trx) => {
       const updated = await trx.updateTable('bliss_meetings').set(patch as any)
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id).where('host_id', '=', user.sub)
@@ -549,8 +599,11 @@ export async function callsRoutes(fastify: FastifyInstance) {
         await trx.updateTable('bliss_meeting_participants').set({ left_at: new Date(), duration_seconds: durationSeconds }).where('id', '=', row.id).execute();
         // Sent directly to each participant (not just broadcast to the main
         // room key) so it still reaches anyone currently inside a breakout
-        // room, which lives under its own separate room key.
-        sendTo(user.tenant_id, row.user_id, { type: 'meeting-ended', meetingId: id });
+        // room, which lives under its own separate room key. A guest row
+        // (migration 368) has no user_id to target this way — harmless,
+        // since a guest never has breakout access and broadcastToRoom below
+        // already reaches them through the main room roster.
+        if (row.user_id) sendTo(user.tenant_id, row.user_id, { type: 'meeting-ended', meetingId: id });
       }
       broadcastToRoom(user.tenant_id, id, { type: 'meeting-ended', meetingId: id });
       return meeting;
@@ -880,6 +933,10 @@ export async function callsRoutes(fastify: FastifyInstance) {
     });
   });
 
+  // :userId also accepts a waiting-room row's own id — a guest row (migration
+  // 368) has no user_id to match on at all, so the host UI passes whichever
+  // identifier the row actually has (see the guest_name fallback rendering
+  // in MeetingRoom.tsx's waiting-room panel).
   fastify.post('/meetings/:id/waiting-room/:userId/admit', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any, reply) => {
     const user = req.user;
     const { id, userId } = req.params as any;
@@ -887,10 +944,14 @@ export async function callsRoutes(fastify: FastifyInstance) {
       const host = await requireHostOrCoHost(trx, user.tenant_id, id, user.sub);
       if (!host.ok) return reply.status(host.status).send({ error: host.error });
       const updated = await trx.updateTable('bliss_meeting_waiting_room').set({ status: 'ADMITTED', decided_at: new Date() })
-        .where('meeting_id', '=', id).where('user_id', '=', userId).where('tenant_id', '=', user.tenant_id).where('status', '=', 'PENDING')
+        .where('meeting_id', '=', id).where('tenant_id', '=', user.tenant_id).where('status', '=', 'PENDING')
+        .where((eb) => eb.or([eb('user_id', '=', userId), eb('id', '=', userId)]))
         .returningAll().executeTakeFirst();
       if (!updated) return reply.status(404).send({ error: 'No pending request found for that person' });
-      sendTo(user.tenant_id, userId, { type: 'waiting-room-admitted', meetingId: id });
+      // A guest isn't connected to the signaling socket yet — their own
+      // client discovers admission by polling calls-public's status route,
+      // not this push (which only reaches a real, already-authenticated user).
+      if (updated.user_id) sendTo(user.tenant_id, updated.user_id, { type: 'waiting-room-admitted', meetingId: id });
       return { ok: true };
     });
   });
@@ -902,10 +963,11 @@ export async function callsRoutes(fastify: FastifyInstance) {
       const host = await requireHostOrCoHost(trx, user.tenant_id, id, user.sub);
       if (!host.ok) return reply.status(host.status).send({ error: host.error });
       const updated = await trx.updateTable('bliss_meeting_waiting_room').set({ status: 'REJECTED', decided_at: new Date() })
-        .where('meeting_id', '=', id).where('user_id', '=', userId).where('tenant_id', '=', user.tenant_id).where('status', '=', 'PENDING')
+        .where('meeting_id', '=', id).where('tenant_id', '=', user.tenant_id).where('status', '=', 'PENDING')
+        .where((eb) => eb.or([eb('user_id', '=', userId), eb('id', '=', userId)]))
         .returningAll().executeTakeFirst();
       if (!updated) return reply.status(404).send({ error: 'No pending request found for that person' });
-      sendTo(user.tenant_id, userId, { type: 'waiting-room-rejected', meetingId: id });
+      if (updated.user_id) sendTo(user.tenant_id, updated.user_id, { type: 'waiting-room-rejected', meetingId: id });
       return { ok: true };
     });
   });
@@ -919,7 +981,7 @@ export async function callsRoutes(fastify: FastifyInstance) {
       const pending = await trx.updateTable('bliss_meeting_waiting_room').set({ status: 'ADMITTED', decided_at: new Date() })
         .where('meeting_id', '=', id).where('tenant_id', '=', user.tenant_id).where('status', '=', 'PENDING')
         .returningAll().execute();
-      for (const row of pending) sendTo(user.tenant_id, row.user_id, { type: 'waiting-room-admitted', meetingId: id });
+      for (const row of pending) if (row.user_id) sendTo(user.tenant_id, row.user_id, { type: 'waiting-room-admitted', meetingId: id });
       return { ok: true, admitted: pending.length };
     });
   });
@@ -1161,5 +1223,146 @@ If the transcript is too short or unclear to extract something, use an empty arr
       }
       return { ok: true, listId, tasks: created };
     });
+  });
+}
+
+// ── Guest (no-account) meeting join ─────────────────────────────────────
+// Unauthenticated by design (no fastify.authenticate anywhere in this
+// function) — this is the whole point: a "join like Zoom/Meet/Teams" link
+// for someone with no Hudumika account at all. Looked up by the opaque
+// meeting id only, same reasoning sign.routes.ts's own module comment
+// gives for its public signing endpoints: there is no tenant to scope a
+// pre-login request to, so dbPlatform (BYPASSRLS, narrow and audited) is
+// used throughout rather than withTenant() — every query still carries an
+// explicit tenant_id/meeting_id .where() of its own, same as everywhere
+// else in this codebase. Registered at its own /v1/calls-public prefix
+// (index.ts) rather than folded into /v1/calls, so nothing here can ever
+// be reached by accidentally omitting a preHandler on a route meant to be
+// authenticated.
+async function mintGuestSession(fastify: FastifyInstance, reply: any, meeting: any, name: string) {
+  // A guest identity always looks like `guest:<uuid>` — never a real users.id
+  // — both so the WS registry/room roster can key on it exactly like a real
+  // user id (rkey/roomKey don't care what shape a userId string is) and so
+  // onlineUserIds() can cheaply recognize and exclude it (see that function).
+  const guestId = `guest:${crypto.randomUUID()}`;
+  // Deliberately short-lived and scoped to this one meeting only
+  // (meetingId claim, checked by the /signal WS handler) — a leaked guest
+  // link is worth at most a few hours of one meeting, never more.
+  const token = fastify.jwt.sign(
+    { sub: guestId, tenant_id: meeting.tenant_id, role: 'GUEST', email: '', name, typ: 'guest', meetingId: meeting.id } as any,
+    { expiresIn: '6h' },
+  );
+  setGuestCookie(reply, token, 6 * 3600);
+
+  const patch: Record<string, unknown> = { updated_at: new Date() };
+  if (meeting.status === 'SCHEDULED') { patch.status = 'ACTIVE'; patch.started_at = new Date(); }
+  const [updatedMeeting, participant] = await Promise.all([
+    Object.keys(patch).length > 1
+      ? dbPlatform.updateTable('bliss_meetings').set(patch as any).where('id', '=', meeting.id).returningAll().executeTakeFirstOrThrow()
+      : Promise.resolve(meeting),
+    dbPlatform.insertInto('bliss_meeting_participants').values({
+      tenant_id: meeting.tenant_id, meeting_id: meeting.id, user_id: null, guest_name: name, role: 'PARTICIPANT',
+    }).returningAll().executeTakeFirstOrThrow(),
+  ]);
+  const iceServers = await resolveIceServers(meeting.tenant_id);
+  // Same minimal-disclosure shape as the pre-join GET — tenant_id/host_id/
+  // join_code grant nothing extra to a guest already inside the room (the
+  // authenticated join-by-code route they'd resolve against is blocked to
+  // guest tokens anyway), but there's no reason to hand them over either.
+  const { password_hash, tenant_id, host_id, join_code, ...meetingSafe } = updatedMeeting as any;
+  return {
+    meeting: { ...meetingSafe, hasPassword: !!password_hash },
+    iceServers, role: 'PARTICIPANT', guestId, participantId: participant.id,
+  };
+}
+
+const GUEST_NAME_MAX = 80;
+
+export async function callsPublicRoutes(fastify: FastifyInstance) {
+  // Safe public info for the join screen — deliberately excludes anything
+  // an anonymous visitor shouldn't see (password itself, tenant_id, etc.).
+  fastify.get('/meetings/:id', async (req: any, reply) => {
+    const { id } = req.params as any;
+    const m = await dbPlatform.selectFrom('bliss_meetings as m')
+      .innerJoin('users as host', 'host.id', 'm.host_id')
+      .select(['m.id', 'm.title', 'm.kind', 'm.status', 'm.guest_join_enabled', 'm.locked',
+                'm.password_hash', 'm.waiting_room_enabled', 'm.chat_disabled', 'm.screen_share_disabled',
+                'host.name as host_name'])
+      .where('m.id', '=', id).executeTakeFirst();
+    if (!m || !m.guest_join_enabled) return reply.status(404).send({ error: 'This meeting link is not open to guests.' });
+    if (m.status === 'ENDED' || m.status === 'CANCELLED') {
+      return reply.status(410).send({ error: `This meeting has ${m.status === 'CANCELLED' ? 'been cancelled' : 'ended'}.` });
+    }
+    const { password_hash, ...rest } = m;
+    return { ...rest, hasPassword: !!password_hash };
+  });
+
+  fastify.post('/meetings/:id/join', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (req: any, reply) => {
+    const { id } = req.params as any;
+    const b = (req.body as any) || {};
+    const name = String(b.name || '').trim().slice(0, GUEST_NAME_MAX);
+    if (!name) return reply.status(400).send({ error: 'Enter your name to join.' });
+
+    const meeting = await dbPlatform.selectFrom('bliss_meetings').selectAll().where('id', '=', id).executeTakeFirst();
+    if (!meeting || !meeting.guest_join_enabled) return reply.status(404).send({ error: 'This meeting link is not open to guests.' });
+    if (meeting.status === 'ENDED' || meeting.status === 'CANCELLED') return reply.status(410).send({ error: 'This meeting has ended.' });
+    if (meeting.locked) return reply.status(403).send({ error: 'This meeting is locked.' });
+    if (meeting.password_hash) {
+      // 403, not 401 — mirrors the authenticated /join's own reasoning
+      // (this isn't a dead session, it's a wrong password for this one
+      // meeting), doubly relevant here since there's no session at all to
+      // protect from being misread as dead.
+      if (!b.password || !verifyPassword(String(b.password), meeting.password_hash)) {
+        return reply.status(403).send({ error: 'A password is required to join this meeting.', passwordRequired: true });
+      }
+    }
+
+    if (meeting.waiting_room_enabled) {
+      const guestToken = crypto.randomBytes(24).toString('hex');
+      await dbPlatform.insertInto('bliss_meeting_waiting_room').values({
+        tenant_id: meeting.tenant_id, meeting_id: id, user_id: null, guest_token: guestToken, user_name: name,
+      }).execute();
+      sendTo(meeting.tenant_id, meeting.host_id, { type: 'waiting-room-update', meetingId: id });
+      return { waiting: true, guestToken };
+    }
+
+    return mintGuestSession(fastify, reply, meeting, name);
+  });
+
+  // The guest client's only way to learn it's been admitted — it has no
+  // session to receive a push over (that only opens once actually in the
+  // room), same reasoning as the authenticated /waiting-room/my-status.
+  // Mints the real join payload itself once ADMITTED is seen, so the guest
+  // client needs exactly one more round trip, not a third endpoint.
+  fastify.get('/meetings/:id/waiting-room/status', async (req: any, reply) => {
+    const { id } = req.params as any;
+    const guestToken = String((req.query as any)?.guestToken || '');
+    if (!guestToken) return reply.status(400).send({ error: 'Missing guestToken' });
+    const row = await dbPlatform.selectFrom('bliss_meeting_waiting_room').selectAll()
+      .where('meeting_id', '=', id).where('guest_token', '=', guestToken).executeTakeFirst();
+    if (!row) return reply.status(404).send({ error: 'Not found' });
+    if (row.status !== 'ADMITTED') return { status: row.status };
+    const meeting = await dbPlatform.selectFrom('bliss_meetings').selectAll().where('id', '=', id).executeTakeFirst();
+    if (!meeting) return reply.status(404).send({ error: 'Meeting not found' });
+    const joined = await mintGuestSession(fastify, reply, meeting, row.user_name);
+    return { status: 'ADMITTED', ...joined };
+  });
+
+  // Best-effort attendance close-out — identified by the participant row id
+  // the join response handed back, not a session (guests have none once
+  // they leave; the WS 'close' handler already tears down live room state
+  // regardless of whether this call ever lands).
+  fastify.post('/meetings/:id/leave', async (req: any) => {
+    const { id } = req.params as any;
+    const b = (req.body as any) || {};
+    const participantId = String(b.participantId || '');
+    if (!participantId) return { ok: true };
+    const open = await dbPlatform.selectFrom('bliss_meeting_participants').select(['id', 'joined_at'])
+      .where('id', '=', participantId).where('meeting_id', '=', id).where('left_at', 'is', null).executeTakeFirst();
+    if (!open) return { ok: true };
+    const durationSeconds = Math.max(0, Math.round((Date.now() - new Date(open.joined_at).getTime()) / 1000));
+    await dbPlatform.updateTable('bliss_meeting_participants').set({ left_at: new Date(), duration_seconds: durationSeconds })
+      .where('id', '=', open.id).execute();
+    return { ok: true };
   });
 }

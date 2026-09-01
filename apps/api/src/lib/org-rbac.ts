@@ -27,6 +27,14 @@ export const ORG_PERMISSIONS = {
   API_KEYS_MANAGE: 'api_keys.manage',
   ORG_CHART_MANAGE: 'org_chart.manage',
   SSO_PROVIDERS_MANAGE: 'sso_providers.manage',
+  ACCESS_REVIEWS_MANAGE: 'access_reviews.manage',
+  ORG_TRUST_VIEW: 'org_trust.view',
+  AUTOMATION_MANAGE: 'automation.manage',
+  COMPLIANCE_REVIEW: 'compliance.review',
+  POLICIES_MANAGE: 'policies.manage',
+  ASSETS_MANAGE: 'assets.manage',
+  INTEGRATIONS_MANAGE: 'integrations.manage',
+  VISITORS_MANAGE: 'visitors.manage',
 } as const;
 export type OrgPermission = (typeof ORG_PERMISSIONS)[keyof typeof ORG_PERMISSIONS];
 

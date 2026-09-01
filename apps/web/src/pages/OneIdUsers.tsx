@@ -30,18 +30,6 @@ function fmt(iso: string | null): string {
   return new Date(iso).toLocaleDateString('en-TZ', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
-function getOrgUnit(role: string): string {
-  switch (role) {
-    case 'ADMIN': return '../Operations/Management';
-    case 'MANAGER': return '../HR/EmployeeRelations';
-    case 'FINANCE': return '../Finance/AccountsReceivable';
-    case 'SALES': return '../Sales/SMBClients';
-    case 'SENIOR': return '../Sales/CorporateClients';
-    case 'JUNIOR': return '../IT/Infrastructure';
-    default: return '../Marketing/ContentCreation';
-  }
-}
-
 function InviteModal({ onClose, onInvited }: { onClose: () => void; onInvited: () => void }) {
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('JUNIOR');
@@ -101,20 +89,22 @@ export const OneIdUsers: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showInvite, setShowInvite] = useState(false);
 
-  // Tabs: 'users', 'invites', 'google', 'settings' — the NexusHR "Invitations"
-  // nav item links straight to ?tab=invites now that its own page is gone,
-  // so the initial tab has to be readable from the URL, not just clicked into.
+  // Tabs: 'users', 'invites' — the NexusHR "Invitations" nav item links
+  // straight to ?tab=invites now that its own page is gone, so the initial
+  // tab has to be readable from the URL, not just clicked into. (A "Google
+  // Workspace" and a "Settings" tab used to live here too — both were pure
+  // fabricated UI with no backend at all, e.g. a hardcoded "120 Users" and
+  // toggle switches with no onChange handler — removed rather than kept as
+  // decoration; see M5 of the Ondi house-style plan.)
   const [searchParams] = useSearchParams();
   const initialTab = searchParams.get('tab');
-  const [activeTab, setActiveTab] = useState<'users' | 'invites' | 'google' | 'settings'>(
-    initialTab === 'invites' || initialTab === 'google' || initialTab === 'settings' ? initialTab : 'users'
+  const [activeTab, setActiveTab] = useState<'users' | 'invites'>(
+    initialTab === 'invites' ? initialTab : 'users'
   );
 
   // Search & Filter State
   const [search, setSearch] = useState('');
   const [filterPermission, setFilterPermission] = useState('All');
-  const [filterOrgUnit, setFilterOrgUnit] = useState('All');
-  const [filterSource, setFilterSource] = useState('All');
   const [filterStatus, setFilterStatus] = useState('All');
   const [filterRole, setFilterRole] = useState('All');
 
@@ -175,25 +165,13 @@ export const OneIdUsers: React.FC = () => {
       if (filterPermission === 'Member' && (u.role === 'ADMIN' || u.role === 'SUPER_ADMIN')) return false;
     }
 
-    // 3. Org Unit filter
-    if (filterOrgUnit !== 'All') {
-      const unit = getOrgUnit(u.role);
-      if (!unit.toLowerCase().includes(filterOrgUnit.toLowerCase())) return false;
-    }
-
-    // 4. Source filter
-    if (filterSource !== 'All') {
-      const source = (u.role === 'ADMIN' || u.role === 'MANAGER') ? 'Manual' : 'Google Sync';
-      if (source !== filterSource) return false;
-    }
-
-    // 5. Status filter
+    // 3. Status filter
     if (filterStatus !== 'All') {
       const status = u.active ? 'Seated' : 'Suspended';
       if (status !== filterStatus) return false;
     }
 
-    // 6. Role filter
+    // 4. Role filter
     if (filterRole !== 'All') {
       if (u.role !== filterRole) return false;
     }
@@ -224,14 +202,13 @@ export const OneIdUsers: React.FC = () => {
 
   // CSV Exporter
   function exportCSV() {
-    const headers = ['Name', 'Email', 'Status', 'Role', 'Updated', 'Organizational Unit'];
+    const headers = ['Name', 'Email', 'Status', 'Role', 'Updated'];
     const rows = filteredUsers.map(u => [
       u.name,
       u.email,
       u.active ? 'Seated' : 'Suspended',
       u.role,
       fmt(u.created_at),
-      getOrgUnit(u.role)
     ]);
     const csvContent = "data:text/csv;charset=utf-8,"
       + [headers.join(','), ...rows.map(e => e.map(val => `"${val}"`).join(','))].join('\n');
@@ -279,7 +256,7 @@ export const OneIdUsers: React.FC = () => {
         crumbs={['Ondi', 'Users']}
         titlePlain="User"
         titleEm="directory"
-        subtitle="Directory, roles, and integrations for this tenant."
+        subtitle="Every user in this tenant, their role, and pending invitations."
         actions={canManage ? (
           <button type="button" onClick={() => setShowInvite(true)}
             style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 16px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
@@ -292,8 +269,6 @@ export const OneIdUsers: React.FC = () => {
       <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', marginBottom: 20 }}>
         <button style={tabStyle('users')} onClick={() => setActiveTab('users')}>Users</button>
         <button style={tabStyle('invites')} onClick={() => setActiveTab('invites')}>Invites {invites.length > 0 ? `(${invites.length})` : ''}</button>
-        <button style={tabStyle('google')} onClick={() => setActiveTab('google')}>Google Workspace</button>
-        <button style={tabStyle('settings')} onClick={() => setActiveTab('settings')}>Settings</button>
       </div>
 
       {/* ── Tab 1: Users ───────────────────────────────────────────────── */}
@@ -324,23 +299,6 @@ export const OneIdUsers: React.FC = () => {
               <option value="Member">Members</option>
             </select>
 
-            <select value={filterOrgUnit} onChange={e => setFilterOrgUnit(e.target.value)} style={selectStyle}>
-              <option value="All">Organizational unit: All</option>
-              <option value="Finance">Finance</option>
-              <option value="HR">HR</option>
-              <option value="IT">IT</option>
-              <option value="Marketing">Marketing</option>
-              <option value="Sales">Sales</option>
-              <option value="Operations">Operations</option>
-              <option value="Legal">Legal</option>
-            </select>
-
-            <select value={filterSource} onChange={e => setFilterSource(e.target.value)} style={selectStyle}>
-              <option value="All">User source: All</option>
-              <option value="Manual">Manual Invitation</option>
-              <option value="Google Sync">Google Workspace Sync</option>
-            </select>
-
             <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={selectStyle}>
               <option value="All">Status: All</option>
               <option value="Seated">Seated (Active)</option>
@@ -361,7 +319,7 @@ export const OneIdUsers: React.FC = () => {
                   <th style={{ padding: '12px 14px', width: 40 }}>
                     <input type="checkbox" checked={selectedUsers.size === filteredUsers.length && filteredUsers.length > 0} onChange={toggleSelectAll} style={{ cursor: 'pointer', verticalAlign: 'middle' }} />
                   </th>
-                  {['Name ↑', 'Email', 'Status', 'Roles', 'Updated', 'Organizational unit', ''].map(h => (
+                  {['Name ↑', 'Email', 'Status', 'Roles', 'Updated', ''].map(h => (
                     <th key={h} style={{ padding: '12px 14px', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: 0.03 }}>{h}</th>
                   ))}
                 </tr>
@@ -369,7 +327,6 @@ export const OneIdUsers: React.FC = () => {
               <tbody>
                 {!loading && filteredUsers.map(u => {
                   const isSelected = selectedUsers.has(u.id);
-                  const orgUnitPath = getOrgUnit(u.role);
                   return (
                     <tr key={u.id} style={{ borderTop: '1px solid var(--border)', background: isSelected ? 'rgba(var(--teal-rgb), 0.04)' : 'transparent', transition: 'background 0.15s ease' }}>
                       <td style={{ padding: '12px 14px' }}>
@@ -393,7 +350,6 @@ export const OneIdUsers: React.FC = () => {
                       </td>
                       <td style={{ padding: '12px 14px', color: 'var(--ink2)' }}>{u.role}</td>
                       <td style={{ padding: '12px 14px', color: 'var(--ink3)' }}>{fmt(u.created_at)}</td>
-                      <td style={{ padding: '12px 14px', color: 'var(--ink3)', fontFamily: 'var(--mono)', fontSize: 11.5 }}>{orgUnitPath}</td>
                       <td style={{ padding: '12px 14px', textAlign: 'right' }}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -490,86 +446,6 @@ export const OneIdUsers: React.FC = () => {
         </SectionCard>
       )}
 
-      {/* ── Tab 3: Google Workspace Integration ─────────────────────────── */}
-      {activeTab === 'google' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 20 }}>
-          <SectionCard title="Google Workspace Directory Sync">
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: 6 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 9, padding: '12px 16px' }}>
-                <Icon name="checkCircle" size={20} style={{ color: '#16a34a' }} />
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: '#14532d' }}>Directory Connection Active</div>
-                  <div style={{ fontSize: 12, color: '#166534', marginTop: 1 }}>Ondi is actively synchronizing with your Google Workspace domain.</div>
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                <div style={{ border: '1px solid var(--border)', borderRadius: 9, padding: 14, background: 'var(--white)' }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Google Domain</div>
-                  <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)', marginTop: 4 }}>company.com</div>
-                </div>
-                <div style={{ border: '1px solid var(--border)', borderRadius: 9, padding: 14, background: 'var(--white)' }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Synced Users</div>
-                  <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)', marginTop: 4 }}>120 Users</div>
-                </div>
-              </div>
-
-              <div style={{ borderTop: '1px solid var(--border-soft)', paddingTop: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Auto-provisioning</div>
-                    <div style={{ fontSize: 12, color: 'var(--ink3)' }}>Create Ondi credentials when a user is added to Google Workspace.</div>
-                  </div>
-                  <input type="checkbox" defaultChecked style={{ cursor: 'pointer', width: 16, height: 16 }} />
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Auto-deprovisioning</div>
-                    <div style={{ fontSize: 12, color: 'var(--ink3)' }}>Suspend Ondi accounts if deleted or suspended in Google Admin.</div>
-                  </div>
-                  <input type="checkbox" defaultChecked style={{ cursor: 'pointer', width: 16, height: 16 }} />
-                </div>
-              </div>
-            </div>
-          </SectionCard>
-        </div>
-      )}
-
-      {/* ── Tab 4: Settings ────────────────────────────────────────────── */}
-      {activeTab === 'settings' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 20 }}>
-          <SectionCard title="User Access Policies">
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: 6 }}>
-              <div>
-                <label style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 6 }}>Default Session Duration</label>
-                <select defaultValue="8h" style={selectStyle}>
-                  <option value="1h">1 Hour</option>
-                  <option value="4h">4 Hours</option>
-                  <option value="8h">8 Hours</option>
-                  <option value="24h">24 Hours</option>
-                </select>
-              </div>
-
-              <div style={{ borderTop: '1px solid var(--border-soft)', paddingTop: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Enforce Multi-Factor Authentication (MFA)</div>
-                    <div style={{ fontSize: 12, color: 'var(--ink3)' }}>Require all users in this tenant to configure TOTP / WebAuthn.</div>
-                  </div>
-                  <input type="checkbox" defaultChecked style={{ cursor: 'pointer', width: 16, height: 16 }} />
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Allow self-registration (Invitation Only)</div>
-                    <div style={{ fontSize: 12, color: 'var(--ink3)' }}>When enabled, users must be explicitly invited to register.</div>
-                  </div>
-                  <input type="checkbox" defaultChecked style={{ cursor: 'pointer', width: 16, height: 16 }} />
-                </div>
-              </div>
-            </div>
-          </SectionCard>
-        </div>
-      )}
     </div>
   );
 };

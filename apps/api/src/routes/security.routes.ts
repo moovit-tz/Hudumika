@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { Redis } from 'ioredis';
 import { generateRegistrationOptions, verifyRegistrationResponse } from '@simplewebauthn/server';
 import { withTenant } from '../db/client.js';
@@ -8,6 +9,7 @@ import { recordAuthEvent, verifyAuditChain } from '../lib/audit-chain.js';
 import { computeTrustScore } from '../lib/trust-score.js';
 import { computeReliabilitySignals } from '../lib/reliability-signals.js';
 import { env } from '../config/env.js';
+import { encryptSecret, decryptSecret } from '../services/onsite-secrets.service.js';
 
 let redisClient: Redis | null = null;
 try {
@@ -335,6 +337,98 @@ export default async function securityRoutes(fastify: FastifyInstance) {
       ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
       return combined.slice(0, 100);
+    });
+  });
+
+  // ── Wallet — Ondi M3, Personal ▸ Wallet ──────────────────────────
+  // A small credential vault for the user's OWN third-party logins/notes/
+  // API keys — not read by any of this platform's own auth code (that's
+  // ondi_credentials, above). secret_cipher is never selected by the list
+  // route; only the single-item GET decrypts, and every reveal/add/update/
+  // delete is written to the tamper-evident audit chain since this is
+  // meaningfully more sensitive than a label/URL/username.
+
+  fastify.get('/wallet', async (request) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, trx => trx.selectFrom('ondi_wallet_items')
+      .select(['id', 'label', 'username', 'url', 'created_at', 'updated_at'])
+      .where('user_id', '=', user.sub)
+      .orderBy('label', 'asc')
+      .execute());
+  });
+
+  fastify.post<{ Body: { label: string; username?: string; url?: string; secret: string } }>('/wallet', async (request, reply) => {
+    const user = request.user;
+    const body = z.object({
+      label: z.string().trim().min(1).max(160),
+      username: z.string().trim().max(200).optional(),
+      url: z.string().trim().max(500).optional(),
+      secret: z.string().min(1).max(4000),
+    }).parse(request.body);
+
+    const created = await withTenant(user.tenant_id, trx => trx.insertInto('ondi_wallet_items').values({
+      tenant_id: user.tenant_id, user_id: user.sub,
+      label: body.label, username: body.username || null, url: body.url || null,
+      secret_cipher: encryptSecret(body.secret),
+    }).returning(['id', 'label', 'username', 'url', 'created_at', 'updated_at']).executeTakeFirstOrThrow());
+
+    await recordAuthEvent(user.tenant_id, user.sub, 'wallet_item_added', { metadata: { item_id: created.id, label: created.label } });
+    reply.status(201);
+    return created;
+  });
+
+  // Decrypts and returns the secret — the only route that ever does. Kept
+  // separate from the list/update responses so a page render or an edit
+  // save never puts the plaintext secret on the wire unless the user
+  // explicitly clicked "Reveal".
+  fastify.get<{ Params: { id: string } }>('/wallet/:id/reveal', async (request, reply) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const row = await trx.selectFrom('ondi_wallet_items').select(['id', 'label', 'secret_cipher'])
+        .where('id', '=', request.params.id).where('user_id', '=', user.sub).executeTakeFirst();
+      if (!row) { reply.status(404); return { error: 'Not found' }; }
+      let secret: string;
+      try { secret = decryptSecret(row.secret_cipher); }
+      catch { reply.status(500); return { error: 'Could not decrypt this item.' }; }
+      await recordAuthEvent(user.tenant_id, user.sub, 'wallet_item_viewed', { metadata: { item_id: row.id, label: row.label } });
+      return { secret };
+    });
+  });
+
+  fastify.patch<{ Params: { id: string }; Body: { label?: string; username?: string; url?: string; secret?: string } }>('/wallet/:id', async (request, reply) => {
+    const user = request.user;
+    const body = z.object({
+      label: z.string().trim().min(1).max(160).optional(),
+      username: z.string().trim().max(200).nullable().optional(),
+      url: z.string().trim().max(500).nullable().optional(),
+      secret: z.string().min(1).max(4000).optional(),
+    }).parse(request.body);
+
+    return withTenant(user.tenant_id, async (trx) => {
+      const patch: Record<string, unknown> = { updated_at: new Date() };
+      if (body.label !== undefined) patch.label = body.label;
+      if (body.username !== undefined) patch.username = body.username;
+      if (body.url !== undefined) patch.url = body.url;
+      if (body.secret !== undefined) patch.secret_cipher = encryptSecret(body.secret);
+
+      const updated = await trx.updateTable('ondi_wallet_items').set(patch)
+        .where('id', '=', request.params.id).where('user_id', '=', user.sub)
+        .returning(['id', 'label', 'username', 'url', 'created_at', 'updated_at']).executeTakeFirst();
+      if (!updated) { reply.status(404); return { error: 'Not found' }; }
+      await recordAuthEvent(user.tenant_id, user.sub, 'wallet_item_updated', { metadata: { item_id: updated.id, label: updated.label } });
+      return updated;
+    });
+  });
+
+  fastify.delete<{ Params: { id: string } }>('/wallet/:id', async (request, reply) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const deleted = await trx.deleteFrom('ondi_wallet_items')
+        .where('id', '=', request.params.id).where('user_id', '=', user.sub)
+        .returning(['id', 'label']).executeTakeFirst();
+      if (!deleted) { reply.status(404); return { error: 'Not found' }; }
+      await recordAuthEvent(user.tenant_id, user.sub, 'wallet_item_deleted', { metadata: { item_id: deleted.id, label: deleted.label } });
+      return { success: true };
     });
   });
 

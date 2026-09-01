@@ -62,3 +62,66 @@ export async function computeTrustScore(tenantId: string, userId: string): Promi
     return { score, tier, signals: { kycTierScore, phoneTenureScore, authConsistencyScore } };
   });
 }
+
+export interface OrgTrustMember { user_id: string; name: string; email: string; role: string; score: number; tier: TrustScoreResult['tier'] }
+export interface OrgTrustResult {
+  average: number; tier: TrustScoreResult['tier'];
+  distribution: { LOW: number; MEDIUM: number; HIGH: number };
+  members: OrgTrustMember[];
+}
+
+/**
+ * Enterprise ▸ Trust (Ondi M6, house-style expansion) — an aggregate over
+ * the same per-user formula above, not a second scoring model. Two queries
+ * total rather than looping computeTrustScore() once per member (which
+ * would be 2 queries × every user in the tenant): one for every user's
+ * verification_level/created_at, one for a generous recent slice of
+ * hr_login_history across the whole tenant, grouped by user_id in JS and
+ * capped at 50 per member — the same window the per-user version uses,
+ * just computed from one shared fetch instead of N.
+ */
+export async function computeOrgTrust(tenantId: string): Promise<OrgTrustResult> {
+  return withTenant(tenantId, async (trx) => {
+    const users = await trx.selectFrom('users')
+      .select(['id', 'name', 'email', 'role', 'verification_level', 'created_at'])
+      .where('tenant_id', '=', tenantId)
+      .where('active', '=', true)
+      .execute();
+
+    const logins = await trx.selectFrom('hr_login_history')
+      .select(['user_id', 'status', 'created_at'])
+      .where('tenant_id', '=', tenantId)
+      .orderBy('created_at', 'desc')
+      .limit(Math.min(users.length * 50, 5000))
+      .execute();
+
+    const loginsByUser = new Map<string, typeof logins>();
+    for (const l of logins) {
+      const arr = loginsByUser.get(l.user_id) ?? [];
+      if (arr.length < 50) arr.push(l);
+      loginsByUser.set(l.user_id, arr);
+    }
+
+    const members: OrgTrustMember[] = users.map(u => {
+      const kycTierScore = KYC_TIER_SCORE[u.verification_level] ?? 0;
+      const tenureMonths = Math.floor((Date.now() - u.created_at.getTime()) / (30 * 24 * 60 * 60 * 1000));
+      const phoneTenureScore = Math.min(tenureMonths, 60) / 60 * 100;
+      const recent = loginsByUser.get(u.id) ?? [];
+      const authConsistencyScore = recent.length > 0
+        ? Math.round((recent.filter(l => l.status === 'SUCCESS').length / recent.length) * 100)
+        : 70;
+      const raw = kycTierScore * WEIGHTS.kycTier + phoneTenureScore * WEIGHTS.phoneTenure + authConsistencyScore * WEIGHTS.authConsistency;
+      const score = Math.max(300, Math.min(850, Math.round(300 + (raw / 100) * 550)));
+      const tier: TrustScoreResult['tier'] = score >= 700 ? 'HIGH' : score >= 500 ? 'MEDIUM' : 'LOW';
+      return { user_id: u.id, name: u.name, email: u.email, role: u.role, score, tier };
+    });
+
+    const distribution = { LOW: 0, MEDIUM: 0, HIGH: 0 };
+    for (const m of members) distribution[m.tier]++;
+
+    const average = members.length > 0 ? Math.round(members.reduce((sum, m) => sum + m.score, 0) / members.length) : 300;
+    const tier: TrustScoreResult['tier'] = average >= 700 ? 'HIGH' : average >= 500 ? 'MEDIUM' : 'LOW';
+
+    return { average, tier, distribution, members: members.sort((a, b) => b.score - a.score) };
+  });
+}

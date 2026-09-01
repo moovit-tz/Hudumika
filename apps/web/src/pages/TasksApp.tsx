@@ -18,6 +18,7 @@ import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator,
 } from '../components/ui/dropdown-menu.js';
 import { EntityPicker, type PickerItem } from '../components/EntityPicker.js';
+import { MeetingLinkPanel } from '../components/MeetingLinkPanel.js';
 import { MentionInput, type MentionUser } from '../components/MentionInput.js';
 import { apiFetch } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.js';
@@ -1030,6 +1031,14 @@ function TaskRow({ todo, list, expanded, onToggleExpand, newSubtaskTitle, setNew
             disabled={trashed || readOnly}
             style={{ padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, resize: 'vertical', background: 'var(--white)', color: 'var(--ink)', fontFamily: 'var(--font)' }}
           />
+
+          {!trashed && !readOnly && (
+            <MeetingLinkPanel
+              title={todo.title}
+              value={{ meetingUrl: todo.meetingUrl ?? null, blissMeetingId: todo.blissMeetingId ?? null }}
+              onChange={next => updateTodo(todo.id, { meetingUrl: next.meetingUrl, blissMeetingId: next.blissMeetingId })}
+            />
+          )}
 
           {!trashed && (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>

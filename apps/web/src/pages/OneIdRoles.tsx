@@ -32,6 +32,14 @@ const PERMISSION_LABEL: Record<string, string> = {
   'api_keys.manage': 'Manage API keys',
   'org_chart.manage': 'Edit the org chart',
   'sso_providers.manage': 'Manage SSO provider config',
+  'access_reviews.manage': 'Run and decide access-review campaigns',
+  'org_trust.view': 'View org-wide trust score breakdown',
+  'automation.manage': 'Configure joiner/leaver automation',
+  'compliance.review': 'View the compliance posture dashboard',
+  'policies.manage': 'Configure org security policies',
+  'assets.manage': 'View company assets (NexusHR)',
+  'integrations.manage': 'Manage third-party app event access',
+  'visitors.manage': 'Log and manage front-desk visitors',
 };
 const ALL_PERMISSIONS = Object.keys(PERMISSION_LABEL);
 

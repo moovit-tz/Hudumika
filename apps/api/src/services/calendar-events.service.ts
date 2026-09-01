@@ -40,6 +40,9 @@ export interface EventInput {
   meetingUrl?: string | null;
   /** {startWithVideoMuted?, startWithAudioMuted?} applied at join time. */
   meetingSettings?: { startWithVideoMuted?: boolean; startWithAudioMuted?: boolean } | null;
+  /** Set when meetingUrl is a real Bliss meeting rather than the Jitsi
+   *  fallback (369_meeting_link_everywhere.sql) — null for a Jitsi link. */
+  blissMeetingId?: string | null;
 }
 
 export class EventNotFoundError extends Error {}
@@ -74,6 +77,7 @@ function mapOccurrence(master: any, occ: { start: Date; end: Date; originalDate:
     timezone: master.timezone ?? null,
     meeting_url: master.meeting_url ?? null,
     meeting_settings: master.meeting_settings ?? null,
+    bliss_meeting_id: master.bliss_meeting_id ?? null,
     tenant_id: master.tenant_id,
     user_id: master.user_id,
     created_at: master.created_at,
@@ -219,6 +223,7 @@ export async function createEvent(tenantId: string, userId: string, actorName: s
       reminder_offsets: input.reminderOffsets ?? [], timezone: input.timezone ?? null,
       meeting_url: input.meetingUrl ?? null,
       meeting_settings: input.meetingSettings ? JSON.stringify(input.meetingSettings) as unknown as any : null,
+      bliss_meeting_id: input.blissMeetingId ?? null,
     }).returningAll().executeTakeFirstOrThrow();
 
     if (input.guests?.length) await notifyGuests(tenantId, actorName, { id: row.id, title: row.title, start_at: new Date(row.start_at).toISOString() }, input.guests);
@@ -272,6 +277,7 @@ export async function updateEvent(
     if (input.timezone !== undefined) updates.timezone = input.timezone;
     if (input.meetingUrl !== undefined) updates.meeting_url = input.meetingUrl;
     if (input.meetingSettings !== undefined) updates.meeting_settings = input.meetingSettings ? JSON.stringify(input.meetingSettings) : null;
+    if (input.blissMeetingId !== undefined) updates.bliss_meeting_id = input.blissMeetingId;
 
     let newlyInvitedGuests: Guest[] = [];
     if (input.guests !== undefined) {

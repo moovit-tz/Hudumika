@@ -186,6 +186,17 @@ export const authPlugin = fp(async (fastify: FastifyInstance) => {
       return reply.status(401).send({ error: 'Unauthorized: refresh tokens cannot be used for API requests' });
     }
 
+    // A Bliss meeting-guest token (calls.routes.ts's calls-public routes,
+    // GUEST role comment in @hudumika/types) was never a real login and has
+    // zero legitimate REST surface — unlike ORG it gets no allowlist at all.
+    // Its only valid use is the /v1/calls/signal WebSocket, which verifies
+    // it separately, inline, and never goes through this decorator. Checked
+    // here, at the one chokepoint every authenticated route already passes
+    // through, so no individual route file can forget it.
+    if ((request.user as any).typ === 'guest') {
+      return reply.status(401).send({ error: 'Unauthorized: guest sessions cannot be used for API requests' });
+    }
+
     // See ORG_ALLOWED_ROUTES above — an org token has no tenant_id claim and
     // must never reach a route that assumes one.
     if ((request.user.role as string) === 'ORG') {
@@ -201,10 +212,33 @@ export const authPlugin = fp(async (fastify: FastifyInstance) => {
     if (request.user.device_id) {
       // Also structurally pre-tenant-context for this check — it exists to
       // catch a revoked session regardless of what the token itself claims.
-      const device = await dbPlatform.selectFrom('hr_devices').select('revoked_at')
+      const device = await dbPlatform.selectFrom('hr_devices').select(['revoked_at', 'last_used_at'])
         .where('id', '=', request.user.device_id).executeTakeFirst();
       if (device?.revoked_at) {
         return reply.status(401).send({ error: 'Unauthorized: Session has been signed out' });
+      }
+
+      // Session-timeout policy (Ondi M8, Enterprise ▸ Policies) — previously
+      // saved (tenant_settings.settings.sessionPolicy.timeoutMinutes) but
+      // never actually read back anywhere, so setting it did nothing. Wired
+      // in here rather than left decorative, using the exact same "re-check
+      // live on every request" shape the revocation check above already
+      // proved out. last_used_at is bumped at login and on every token
+      // refresh (auth.routes.ts) — a refresh only happens while the SPA is
+      // actively in use, so its age is a real idle-time signal, not always
+      // "now". A tenant with no policy configured enforces nothing (the
+      // untouched default), same as before this existed.
+      if (device?.last_used_at) {
+        const settingsRow = await dbPlatform.selectFrom('tenant_settings').select('settings')
+          .where('tenant_id', '=', request.user.tenant_id).executeTakeFirst();
+        const settings = settingsRow ? (typeof settingsRow.settings === 'string' ? JSON.parse(settingsRow.settings) : settingsRow.settings) : null;
+        const timeoutMinutes = settings?.sessionPolicy?.timeoutMinutes;
+        if (typeof timeoutMinutes === 'number' && timeoutMinutes > 0) {
+          const idleMs = Date.now() - new Date(device.last_used_at).getTime();
+          if (idleMs > timeoutMinutes * 60 * 1000) {
+            return reply.status(401).send({ error: 'Unauthorized: Session expired due to inactivity' });
+          }
+        }
       }
     }
 

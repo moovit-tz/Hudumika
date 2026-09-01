@@ -32,6 +32,11 @@ export interface NoteInput {
   labelIds?: string[];
   subjectType?: string | null;
   subjectId?: string | null;
+  // Real cross-app meeting linking (369_meeting_link_everywhere.sql) — same
+  // shape calendar_events'/tasks' own meeting_url/meeting_settings use.
+  meetingUrl?: string | null;
+  meetingSettings?: Record<string, unknown>;
+  blissMeetingId?: string | null;
   visibility?: NoteVisibility;
   /** Only meaningful (and only ever applied) when visibility is 'shared'. */
   shares?: NoteShareEntry[];
@@ -91,6 +96,9 @@ function mapNote(row: any, viewerId: string, shares: NoteShareEntry[] = []) {
     labelIds: row.label_ids ?? [],
     subjectType: row.subject_type ?? null,
     subjectId: row.subject_id ?? null,
+    meetingUrl: row.meeting_url ?? null,
+    meetingSettings: typeof row.meeting_settings === 'string' ? JSON.parse(row.meeting_settings) : (row.meeting_settings ?? {}),
+    blissMeetingId: row.bliss_meeting_id ?? null,
     visibility: row.visibility,
     shares,
     isOwner: row.created_by === viewerId,
@@ -244,6 +252,9 @@ export async function createNote(tenantId: string, userId: string, input: NoteIn
       label_ids: input.labelIds ?? [],
       subject_type: input.subjectType ?? null,
       subject_id: input.subjectId ?? null,
+      meeting_url: input.meetingUrl ?? null,
+      meeting_settings: JSON.stringify(input.meetingSettings ?? {}),
+      bliss_meeting_id: input.blissMeetingId ?? null,
       visibility,
       legal_hold: input.legalHold ?? false,
     }).returningAll().executeTakeFirstOrThrow();
@@ -320,6 +331,9 @@ export async function updateNote(tenantId: string, userId: string, id: string, i
     if (input.labelIds !== undefined) patch.label_ids = input.labelIds;
     if (input.subjectType !== undefined) patch.subject_type = input.subjectType;
     if (input.subjectId !== undefined) patch.subject_id = input.subjectId;
+    if (input.meetingUrl !== undefined) patch.meeting_url = input.meetingUrl;
+    if (input.meetingSettings !== undefined) patch.meeting_settings = JSON.stringify(input.meetingSettings);
+    if (input.blissMeetingId !== undefined) patch.bliss_meeting_id = input.blissMeetingId;
     if (input.legalHold !== undefined) patch.legal_hold = input.legalHold;
     if (input.visibility !== undefined) patch.visibility = input.visibility;
 

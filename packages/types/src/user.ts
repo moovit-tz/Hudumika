@@ -68,6 +68,18 @@ export type UserRole =
                       // organizations.routes.ts. Locked to an explicit route
                       // allowlist in middleware/auth.ts, not free to browse
                       // the rest of the API the way other roles are.
+  | 'GUEST'          // An external, no-account meeting guest (Bliss "join
+                      // like Zoom/Meet/Teams", calls.routes.ts's
+                      // calls-public routes). Never a real users row — the
+                      // token is minted straight off a name typed into a
+                      // public join form. Blocked outright by
+                      // middleware/auth.ts's authenticate() (via the JWT's
+                      // typ:'guest' claim, checked before role is ever
+                      // read) from every ordinary API route; the ONLY thing
+                      // it's valid for is the /v1/calls/signal WebSocket,
+                      // and even there it's scoped to the one meeting it
+                      // was issued for. Unlike ORG, not given any allowlist
+                      // at all — it has zero legitimate REST surface.
   // Legacy aliases kept for backward compatibility
   | 'TENANT_ADMIN'   // @deprecated — treated as ADMIN
   | 'OFFICER';       // @deprecated — treated as JUNIOR
@@ -298,6 +310,16 @@ export interface JWTPayload {
   // login. See isPlatformSuperAdmin() in middleware/rbac.ts.
   impersonated_by?: string;
   impersonated_by_name?: string;
+  // 'refresh' marks a refresh token (rejected as an API credential —
+  // middleware/auth.ts). 'guest' marks a Bliss meeting-guest token (rejected
+  // from every ordinary route the same way, for the opposite reason: it was
+  // never a real login at all — see the GUEST role comment above). Absent
+  // on every normal access token issued at real sign-in.
+  typ?: 'refresh' | 'guest';
+  // Guest tokens only — the one meeting this token is allowed to join-room
+  // into over the signaling socket. Checked in calls.routes.ts's WS handler
+  // so a guest link to meeting A can never be replayed to join meeting B.
+  meetingId?: string;
 }
 
 // ── Organization (platform-level identity, spans tenants) ──────

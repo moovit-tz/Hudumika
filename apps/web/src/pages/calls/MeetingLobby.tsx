@@ -9,11 +9,16 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { useMediaDevices } from '../../hooks/useMediaDevices.js';
 import { Popover, PopoverTrigger, PopoverContent } from '../../components/ui/popover.js';
 
-export function MeetingLobby({ title, kind, onJoin, onCancel }: {
+export function MeetingLobby({ title, kind, onJoin, onCancel, hideWorkspaceLinks }: {
   title: string;
   kind: 'VIDEO' | 'VOICE';
   onJoin: (opts: { audioEnabled: boolean; videoEnabled: boolean }) => void;
   onCancel: () => void;
+  /** Hides the "Cross-App Workspace Connections" card — NexusHR/Bliss
+      internal-workspace linking an anonymous guest (GuestMeetingJoin.tsx)
+      has no access to and can't meaningfully use. Purely additive; the
+      authenticated flow (MeetingSession.tsx) is unaffected. */
+  hideWorkspaceLinks?: boolean;
 }) {
   const devices = useMediaDevices();
   const [audioEnabled, setAudioEnabled] = useState(true);
@@ -285,6 +290,7 @@ export function MeetingLobby({ title, kind, onJoin, onCancel }: {
             )}
 
             {/* Cross-app workspace connections */}
+            {!hideWorkspaceLinks && (
             <SectionCard title="Cross-App Workspace Connections">
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {/* CRM Candidate Link */}
@@ -327,6 +333,7 @@ export function MeetingLobby({ title, kind, onJoin, onCancel }: {
                 </div>
               </div>
             </SectionCard>
+            )}
 
             {/* Action buttons */}
             <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 10, paddingTop: 10 }}>

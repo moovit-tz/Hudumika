@@ -197,8 +197,21 @@ export const CalendarApp: React.FC = () => {
   // Shown next to the link so a guest can also join via Calls' own
   // "Have a code? Enter it here" box instead of the link.
   const [eventMeetingJoinCode, setEventMeetingJoinCode] = useState<string | null>(null);
+  // Set only when eventMeetingUrl is a real Bliss meeting rather than the
+  // Jitsi fallback (369_meeting_link_everywhere.sql) — the FK persisted
+  // alongside the URL so other apps (Tasks/Notes carry the same pair) and
+  // the meeting room itself can resolve "what is this linked to" for real.
+  const [eventMeetingBlissId, setEventMeetingBlissId] = useState<string | null>(null);
   const [creatingMeeting, setCreatingMeeting] = useState(false);
   const [showMeetingOptionsModal, setShowMeetingOptionsModal] = useState(false);
+  // Access-control settings applied at the moment "Add Video Call" creates a
+  // Bliss meeting — the same password/waiting-room/guest-access controls the
+  // meeting room's own Host Controls panel offers, surfaced here so a host
+  // never has to open the room afterward just to lock down who can join.
+  const [showMeetingCreateOptions, setShowMeetingCreateOptions] = useState(false);
+  const [meetingCreatePassword, setMeetingCreatePassword] = useState('');
+  const [meetingCreateWaitingRoom, setMeetingCreateWaitingRoom] = useState(false);
+  const [meetingCreateGuestJoin, setMeetingCreateGuestJoin] = useState(false);
   const [eventMeetingSettings, setEventMeetingSettings] = useState<MeetingSettings>({});
   const [eventGuestPermissions, setEventGuestPermissions] = useState<GuestPermissions>({
     modifyEvent: false, inviteOthers: true, seeGuestList: true
@@ -406,6 +419,9 @@ export const CalendarApp: React.FC = () => {
     setEventTimezone('GMT+03:00 (East Africa Time)');
     setEventMeetingUrl('');
     setEventMeetingJoinCode(null);
+    setEventMeetingBlissId(null);
+    setShowMeetingCreateOptions(false);
+    setMeetingCreatePassword(''); setMeetingCreateWaitingRoom(false); setMeetingCreateGuestJoin(false);
     setEventMeetingSettings({});
     setEventGuestPermissions({ modifyEvent: false, inviteOthers: true, seeGuestList: true });
     setEventVisibility('default');
@@ -437,6 +453,9 @@ export const CalendarApp: React.FC = () => {
     setEventTimezone(ev.timezone || 'GMT+03:00 (East Africa Time)');
     setEventMeetingUrl(ev.meetingUrl || '');
     setEventMeetingJoinCode(null);
+    setEventMeetingBlissId(ev.blissMeetingId || null);
+    setShowMeetingCreateOptions(false);
+    setMeetingCreatePassword(''); setMeetingCreateWaitingRoom(false); setMeetingCreateGuestJoin(false);
     setEventMeetingSettings(ev.meetingSettings || {});
     setEventGuestPermissions(ev.guestPermissions || { modifyEvent: false, inviteOthers: true, seeGuestList: true });
     setEventVisibility(ev.visibility || 'default');
@@ -450,22 +469,35 @@ export const CalendarApp: React.FC = () => {
    *  history, real WebRTC) over the disposable public Jitsi room, for any
    *  tenant actually entitled to Bliss. A tenant without Bliss — or a
    *  failed request, so the button never dead-ends — still gets the
-   *  Jitsi fallback that already worked before this existed. */
+   *  Jitsi fallback that already worked before this existed. Password/
+   *  waiting-room/guest-join (369_meeting_link_everywhere.sql) are applied
+   *  at creation when the host opened "Meeting options" first — the same
+   *  settings the meeting room's own Host Controls panel offers, just
+   *  reachable before the meeting exists rather than only after. */
   async function handleAddVideoCall() {
-    if (!hasBliss) { setEventMeetingUrl(newMeetingUrl()); setEventMeetingJoinCode(null); return; }
+    if (!hasBliss) { setEventMeetingUrl(newMeetingUrl()); setEventMeetingJoinCode(null); setEventMeetingBlissId(null); setShowMeetingCreateOptions(false); return; }
     setCreatingMeeting(true);
     try {
       const meeting = await apiFetch('/v1/calls/meetings', {
         method: 'POST',
-        body: JSON.stringify({ title: eventTitle.trim() || 'Meeting', kind: 'VIDEO' }),
+        body: JSON.stringify({
+          title: eventTitle.trim() || 'Meeting', kind: 'VIDEO',
+          password: meetingCreatePassword.trim() || undefined,
+          waiting_room_enabled: meetingCreateWaitingRoom,
+          guest_join_enabled: meetingCreateGuestJoin,
+        }),
       });
       setEventMeetingUrl(`${window.location.origin}/bliss/calls/meeting/${meeting.id}`);
       setEventMeetingJoinCode(meeting.join_code || null);
+      setEventMeetingBlissId(meeting.id);
     } catch {
       setEventMeetingUrl(newMeetingUrl());
       setEventMeetingJoinCode(null);
+      setEventMeetingBlissId(null);
     } finally {
       setCreatingMeeting(false);
+      setShowMeetingCreateOptions(false);
+      setMeetingCreatePassword(''); setMeetingCreateWaitingRoom(false); setMeetingCreateGuestJoin(false);
     }
   }
 
@@ -508,6 +540,7 @@ export const CalendarApp: React.FC = () => {
       timezone: eventTimezone,
       meetingUrl: eventMeetingUrl || null,
       meetingSettings: eventMeetingSettings,
+      blissMeetingId: eventMeetingBlissId,
       guestPermissions: eventGuestPermissions,
       visibility: eventVisibility,
       busyStatus: eventBusyStatus,
@@ -1324,17 +1357,47 @@ export const CalendarApp: React.FC = () => {
                           </Tip>
                         )}
                         <Tip label="Remove video call">
-                          <Button aria-label="Remove video call" variant="outline" size="xs" onClick={() => { setEventMeetingUrl(''); setEventMeetingJoinCode(null); }} style={{ color: 'var(--red)' }}>
+                          <Button aria-label="Remove video call" variant="outline" size="xs" onClick={() => { setEventMeetingUrl(''); setEventMeetingJoinCode(null); setEventMeetingBlissId(null); }} style={{ color: 'var(--red)' }}>
                             <Icon name="close" size={12} />
                           </Button>
                         </Tip>
                       </div>
                     ) : (
-                      <Button variant="default" size="xs" disabled={creatingMeeting} onClick={handleAddVideoCall}>
-                        {creatingMeeting ? <span className="auth-spinner" /> : 'Add Video Call'}
-                      </Button>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <Button variant="default" size="xs" disabled={creatingMeeting} onClick={handleAddVideoCall}>
+                          {creatingMeeting ? <span className="auth-spinner" /> : 'Add Video Call'}
+                        </Button>
+                        {hasBliss && (
+                          <Tip label="Meeting options — password, waiting room, guest access">
+                            <Button aria-label="Meeting options" variant="outline" size="xs" disabled={creatingMeeting} onClick={() => setShowMeetingCreateOptions(v => !v)}>
+                              <Icon name="settings" size={12} />
+                            </Button>
+                          </Tip>
+                        )}
+                      </div>
                     )}
                   </div>
+
+                  {/* Meeting access-control settings, applied at creation —
+                      same password/waiting-room/guest-access controls the
+                      meeting room's own Host Controls panel offers. */}
+                  {showMeetingCreateOptions && !eventMeetingUrl && hasBliss && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 12, borderRadius: 8, background: 'var(--bg)', border: '1px solid var(--border)' }}>
+                      <input
+                        value={meetingCreatePassword} onChange={e => setMeetingCreatePassword(e.target.value)}
+                        placeholder="Password (optional)"
+                        style={{ padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12.5, background: 'var(--white)', color: 'var(--ink)' }}
+                      />
+                      <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: 'var(--ink)', cursor: 'pointer' }}>
+                        <input type="checkbox" checked={meetingCreateWaitingRoom} onChange={e => setMeetingCreateWaitingRoom(e.target.checked)} />
+                        Waiting room — you admit each person before they join
+                      </label>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: 'var(--ink)', cursor: 'pointer' }}>
+                        <input type="checkbox" checked={meetingCreateGuestJoin} onChange={e => setMeetingCreateGuestJoin(e.target.checked)} />
+                        Allow guests without a Hudumika account
+                      </label>
+                    </div>
+                  )}
 
                   {/* Location Input */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

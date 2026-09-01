@@ -11,6 +11,7 @@ import { PlatformAdminService } from '../services/platform-admin.service.js';
 import { COOKIE_NAMES, setSessionCookies, clearSessionCookies, setSuperCookies, clearSuperCookies } from '../lib/cookies.js';
 import { verifyCsrf } from '../middleware/csrf.js';
 import { recordAuthEvent } from '../lib/audit-chain.js';
+import { emitDomainEvent } from '../services/domain-events.service.js';
 import type { LoginInput, CustomerOTPInput, CustomerVerifyInput, SafeUser, JWTPayload, OrgLoginInput, SafeOrgUser } from '@hudumika/types';
 
 // Simple in-memory storage for customer OTPs in dev
@@ -294,6 +295,17 @@ export async function authRoutes(fastify: FastifyInstance) {
       }).returningAll().executeTakeFirstOrThrow();
 
       await trx.updateTable('hr_invitations').set({ status: 'ACCEPTED' }).where('id', '=', invite.id).execute();
+
+      // No actor — this is the new user's own action, not something done to
+      // them by someone else (see DomainEvent.actorId's own doc comment on
+      // that distinction). Ondi's joiner automation (subscribers/
+      // ondi.subscribers.ts) listens for this to grant a configured default
+      // role, same as leaver automation already reacts to hr.staff_deactivated.
+      await emitDomainEvent(trx, invite.tenant_id, {
+        type: 'user.joined', sourceApp: 'auth', entityType: 'user', entityId: newUser.id,
+        payload: { userId: newUser.id, name: newUser.name, email: newUser.email, role: newUser.role },
+      });
+
       return { newUser };
     });
 

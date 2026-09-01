@@ -49,7 +49,7 @@ import { consignmentRoutes } from './routes/consignments.routes.js';
 import { ocrRoutes } from './routes/ocr.routes.js';
 import { hrRoutes } from './routes/hr.routes.js';
 import { presenceRoutes } from './routes/presence.routes.js';
-import { callsRoutes } from './routes/calls.routes.js';
+import { callsRoutes, callsPublicRoutes } from './routes/calls.routes.js';
 import { payrollRoutes } from './routes/payroll.routes.js';
 import { identityRoutes } from './routes/identity.routes.js';
 import { calendarRoutes } from './routes/calendar.routes.js';
@@ -391,6 +391,10 @@ async function main() {
     // Calls (1:1 + group meetings) moved to Bliss, matching chatRoutes/supportRoutes'
     // own topic-based prefix convention rather than an app-namespaced one.
     await server.register(callsRoutes, { prefix: '/v1/calls' });
+    // Guest ("join like Zoom/Meet/Teams") meeting access — genuinely
+    // unauthenticated, its own prefix so it can never inherit a preHandler
+    // meant for /v1/calls's authenticated routes.
+    await server.register(callsPublicRoutes, { prefix: '/v1/calls-public' });
     await server.register(payrollRoutes, { prefix: '/v1/payroll' });
     // Shared across every app: who a person is, and whether the country is open.
     await server.register(identityRoutes, { prefix: '/v1/identity' });

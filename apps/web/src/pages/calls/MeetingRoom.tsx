@@ -21,7 +21,11 @@ interface PollRow { id: string; question: string; options: string[]; tally: numb
 interface QuestionRow { id: string; text: string; user_name: string; upvoteCount: number; myUpvote: boolean; answered: boolean; created_at: string; }
 interface TranscriptLine { id: string; user_name: string; text: string; created_at?: string; }
 interface AiTurn { role: 'user' | 'assistant'; text: string; }
-interface WaitingRow { user_id: string; user_name: string; requested_at: string; }
+// user_id is null for a guest row (migration 368) — user_name already
+// carries their typed display name either way, so nothing downstream needs
+// a separate guest_name fallback; id (the row's own key, not user_id) is
+// what admit/reject actually act on, since a guest has no user_id to key by.
+interface WaitingRow { id: string; user_id: string | null; user_name: string; requested_at: string; }
 interface BreakoutRoom { id: string; name: string; assignments: { user_id: string; user_name: string }[]; liveCount: number; }
 interface MeetingSummary { executiveSummary: string; keyPoints: string[]; decisions: string[]; actionItems: { text: string; assignee: string | null }[]; questions: string[]; followUps: string[]; }
 interface Stroke { id: string; points: { x: number; y: number }[]; color: string; }
@@ -71,7 +75,7 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
   // signaling socket) ──
   const [myRole, setMyRole] = useState<'HOST' | 'CO_HOST' | 'PARTICIPANT'>(isHost ? 'HOST' : 'PARTICIPANT');
   const canModerate = myRole === 'HOST' || myRole === 'CO_HOST';
-  const [hostSettings, setHostSettings] = useState({ locked: false, chatDisabled: false, screenShareDisabled: false, hasPassword: false, waitingRoomEnabled: false });
+  const [hostSettings, setHostSettings] = useState({ locked: false, chatDisabled: false, screenShareDisabled: false, hasPassword: false, waitingRoomEnabled: false, guestJoinEnabled: false });
   const [hostPasswordInput, setHostPasswordInput] = useState('');
   const [waitingRoomList, setWaitingRoomList] = useState<WaitingRow[]>([]);
   const [chatBlocked, setChatBlocked] = useState(false);
@@ -154,7 +158,7 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
 
   useEffect(() => {
     apiFetch(`/v1/calls/meetings/${meetingId}`).then(m => {
-      setHostSettings({ locked: !!m.locked, chatDisabled: !!m.chat_disabled, screenShareDisabled: !!m.screen_share_disabled, hasPassword: !!m.hasPassword, waitingRoomEnabled: !!m.waiting_room_enabled });
+      setHostSettings({ locked: !!m.locked, chatDisabled: !!m.chat_disabled, screenShareDisabled: !!m.screen_share_disabled, hasPassword: !!m.hasPassword, waitingRoomEnabled: !!m.waiting_room_enabled, guestJoinEnabled: !!m.guest_join_enabled });
     }).catch(() => { /* */ });
   }, [meetingId]);
 
@@ -543,7 +547,7 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
   const updateHostSetting = async (patch: Record<string, unknown>) => {
     try {
       const updated = await apiFetch(`/v1/calls/meetings/${meetingId}`, { method: 'PATCH', body: JSON.stringify(patch) });
-      setHostSettings(prev => ({ ...prev, locked: !!updated.locked, chatDisabled: !!updated.chat_disabled, screenShareDisabled: !!updated.screen_share_disabled, hasPassword: !!updated.hasPassword }));
+      setHostSettings(prev => ({ ...prev, locked: !!updated.locked, chatDisabled: !!updated.chat_disabled, screenShareDisabled: !!updated.screen_share_disabled, hasPassword: !!updated.hasPassword, guestJoinEnabled: !!updated.guest_join_enabled }));
     } catch (e: any) { setError(e?.message || 'Could not update meeting settings.'); }
   };
 
@@ -962,11 +966,12 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                       {waitingRoomList.map(w => (
-                        <div key={w.user_id} style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#2d2f31', borderRadius: 10, padding: '8px 10px' }}>
-                          <PersonAvatar name={w.user_name} size={26} />
+                        <div key={w.id} style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#2d2f31', borderRadius: 10, padding: '8px 10px' }}>
+                          <PersonAvatar name={w.user_name} size={26} userId={w.user_id} />
                           <span style={{ flex: 1, fontSize: 12.5, color: '#f1f5f9', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{w.user_name}</span>
-                          <button onClick={() => admitWaiting(w.user_id)} title="Admit" style={{ width: 26, height: 26, borderRadius: '50%', background: '#10b981', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="check" size={13} /></button>
-                          <button onClick={() => rejectWaiting(w.user_id)} title="Reject" style={{ width: 26, height: 26, borderRadius: '50%', background: '#3c4043', border: 'none', color: '#fca5a5', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="x" size={13} /></button>
+                          {!w.user_id && <span style={{ fontSize: 10, fontWeight: 700, color: '#93c5fd', background: 'rgba(147,197,253,0.12)', border: '1px solid rgba(147,197,253,0.3)', borderRadius: 6, padding: '1px 6px' }}>GUEST</span>}
+                          <button onClick={() => admitWaiting(w.id)} title="Admit" style={{ width: 26, height: 26, borderRadius: '50%', background: '#10b981', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="check" size={13} /></button>
+                          <button onClick={() => rejectWaiting(w.id)} title="Reject" style={{ width: 26, height: 26, borderRadius: '50%', background: '#3c4043', border: 'none', color: '#fca5a5', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="x" size={13} /></button>
                         </div>
                       ))}
                     </div>
@@ -1000,6 +1005,28 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
                         {hostSettings.hasPassword && <button onClick={() => { setHostPasswordInput(''); updateHostSetting({ password: '' }); }} style={{ fontSize: 11.5, background: 'none', border: '1px solid #3c4043', borderRadius: 8, padding: '0 10px', color: '#cbd5e1', cursor: 'pointer' }}>Clear</button>}
                       </div>
                     </div>
+
+                    <div style={{ height: 1, background: '#3c4043', margin: '2px 0' }} />
+
+                    {/* Guest ("join like Zoom/Meet/Teams") access — off by
+                        default; the meeting's own password/waiting-room
+                        controls above are what actually locks it once on. */}
+                    <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
+                      <span style={{ fontSize: 12.5, color: '#f1f5f9' }}>Allow guests without an account</span>
+                      <input type="checkbox" checked={hostSettings.guestJoinEnabled} onChange={e => updateHostSetting({ guest_join_enabled: e.target.checked })} style={{ accentColor: '#8ab4f8' }} />
+                    </label>
+                    {hostSettings.guestJoinEnabled && (
+                      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                        <input
+                          readOnly value={`${window.location.origin}/meet/${meetingId}`}
+                          style={{ flex: 1, height: 32, background: '#2d2f31', border: '1px solid #3c4043', borderRadius: 8, padding: '0 10px', color: '#cbd5e1', fontSize: 11.5, outline: 'none' }}
+                        />
+                        <button
+                          onClick={() => { navigator.clipboard?.writeText(`${window.location.origin}/meet/${meetingId}`); }}
+                          style={{ fontSize: 11.5, fontWeight: 700, background: '#8ab4f8', color: '#202124', border: 'none', borderRadius: 8, padding: '0 12px', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                        >Copy guest link</button>
+                      </div>
+                    )}
                   </>
                 ) : (
                   <div style={{ fontSize: 12, color: '#94a3b8' }}>Meeting-wide settings (lock, password, chat/screen-share disable) can only be changed by the host. As a co-host you can still admit the waiting room and moderate participants.</div>

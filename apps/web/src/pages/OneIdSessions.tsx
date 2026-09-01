@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
@@ -9,35 +10,28 @@ interface Device {
   trusted: boolean; last_used_at: string; user_name: string;
 }
 
+interface ChainStatus { valid: boolean; broken_at?: string; checked: number }
+
 export const OneIdSessions: React.FC = () => {
-  const [timeout_, setTimeout_] = useState(60);
-  const [mfaRequired, setMfaRequired] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
   const [devices, setDevices] = useState<Device[]>([]);
+  const [chainStatus, setChainStatus] = useState<ChainStatus | null>(null);
+  const [checkingChain, setCheckingChain] = useState(false);
 
   useEffect(() => {
-    apiFetch('/v1/settings').then(res => {
-      const policy = res?.settings?.sessionPolicy;
-      if (policy) {
-        setTimeout_(policy.timeoutMinutes ?? 60);
-        setMfaRequired(!!policy.mfaRequired);
-      }
-    }).catch(() => {});
     apiFetch('/v1/oneid/devices').then(setDevices).catch(() => setDevices([]));
   }, []);
 
-  async function save() {
-    setSaving(true);
-    try {
-      await apiFetch('/v1/settings', {
-        method: 'PATCH',
-        body: JSON.stringify({ sessionPolicy: { timeoutMinutes: timeout_, mfaRequired } }),
-      });
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
-    } finally { setSaving(false); }
+  // Enterprise Security consolidation (Ondi M6) — the audit-chain integrity
+  // check already existed (/v1/security/audit/verify-chain, Ondi M3) but had
+  // no UI anywhere; this is that UI, folded into the existing Sessions &
+  // Security page rather than given its own nav item.
+  async function checkChain() {
+    setCheckingChain(true);
+    try { setChainStatus(await apiFetch('/v1/security/audit/verify-chain')); }
+    catch { setChainStatus(null); }
+    finally { setCheckingChain(false); }
   }
+  useEffect(() => { checkChain(); }, []);
 
   async function toggleTrusted(d: Device) {
     const trusted = !d.trusted;
@@ -45,55 +39,59 @@ export const OneIdSessions: React.FC = () => {
     apiFetch(`/v1/oneid/devices/${d.id}`, { method: 'PATCH', body: JSON.stringify({ trusted }) }).catch(() => {});
   }
 
-  const inputStyle: React.CSSProperties = {
-    width: '100%',
-    padding: '8px 12px',
-    borderRadius: 'var(--r-sm, 6px)',
-    border: '1px solid var(--border)',
-    fontFamily: 'var(--font)',
-    fontSize: 13,
-    background: 'var(--bg)',
-    color: 'var(--ink)',
-    boxSizing: 'border-box',
-    maxWidth: 240
-  };
-
   return (
     <div style={{ maxWidth: 760 }}>
       <PageHeader
         crumbs={['Ondi', 'Sessions']}
         titlePlain="Sessions &"
         titleEm="security"
-        subtitle="Session policy and known devices for this tenant."
+        subtitle="Known devices and audit log integrity for this tenant."
+        actions={
+          <Link to="/ondi/policies" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '8px 14px', textDecoration: 'none' }}>
+            <Icon name="settings" size={14} /> Session &amp; MFA policy
+          </Link>
+        }
       />
 
-      {/* Card 1: Session Policy Configuration */}
+      {/* Card 0: Audit Log Integrity */}
       <div style={{ marginBottom: 24 }}>
-        <SectionCard title="Session Policy">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '4px 6px' }}>
-            <div>
-              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 6 }}>
-                Session Timeout (Minutes)
-              </label>
-              <input type="number" min={5} value={timeout_} onChange={e => setTimeout_(Number(e.target.value))} style={inputStyle} />
+        <SectionCard title="Audit Log Integrity">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '4px 6px' }}>
+            <div style={{
+              width: 40, height: 40, borderRadius: 10, flexShrink: 0,
+              background: chainStatus?.valid ? 'var(--green-l)' : chainStatus ? 'var(--red-l)' : 'var(--bg)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <Icon name={chainStatus?.valid ? 'checkCircle' : chainStatus ? 'alertTriangle' : 'shield'} size={19}
+                color={chainStatus?.valid ? 'var(--green)' : chainStatus ? 'var(--red)' : 'var(--ink3)'} />
             </div>
-
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--ink)', cursor: 'pointer', marginTop: 4 }}>
-              <input type="checkbox" checked={mfaRequired} onChange={e => setMfaRequired(e.target.checked)} style={{ cursor: 'pointer' }} />
-              Enforce Multi-Factor Authentication (MFA) for all tenant logins
-            </label>
-
-            <div style={{ marginTop: 8 }}>
-              <button type="button" onClick={save} disabled={saving}
-                style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13, opacity: saving ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-                {saving ? 'Saving…' : saved ? 'Saved ✓' : 'Save Policy'}
-              </button>
+            <div style={{ flex: 1 }}>
+              {checkingChain ? (
+                <div style={{ fontSize: 13, color: 'var(--ink3)' }}>Checking…</div>
+              ) : chainStatus ? (
+                <>
+                  <div style={{ fontSize: 13.5, fontWeight: 700, color: chainStatus.valid ? 'var(--green)' : 'var(--red)' }}>
+                    {chainStatus.valid ? 'Audit log intact' : 'Tampering detected'}
+                  </div>
+                  <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>
+                    {chainStatus.valid
+                      ? `${chainStatus.checked.toLocaleString()} events verified, hash chain unbroken.`
+                      : `Chain breaks at event ${chainStatus.broken_at} — ${chainStatus.checked.toLocaleString()} events checked.`}
+                  </div>
+                </>
+              ) : (
+                <div style={{ fontSize: 13, color: 'var(--ink3)' }}>Could not run the check.</div>
+              )}
             </div>
+            <button type="button" onClick={checkChain} disabled={checkingChain}
+              style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 14px', cursor: checkingChain ? 'default' : 'pointer', opacity: checkingChain ? 0.6 : 1 }}>
+              Re-check
+            </button>
           </div>
         </SectionCard>
       </div>
 
-      {/* Card 2: Known Devices Directory (Responsive Cards) */}
+      {/* Known Devices Directory (Responsive Cards) */}
       <SectionCard title="Known Devices">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '4px 6px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12 }}>

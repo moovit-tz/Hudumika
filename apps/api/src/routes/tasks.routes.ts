@@ -100,6 +100,11 @@ const taskPatchSchema = z.object({
   subjectType: z.string().max(50).nullable().optional(),
   subjectId: uuidSchema.nullable().optional(),
   recurrenceRule: recurrenceRuleSchema.nullable().optional(),
+  // Real cross-app meeting linking (369_meeting_link_everywhere.sql) — same
+  // shape MeetingLinkPanel.tsx writes for calendar events and notes too.
+  meetingUrl: z.string().max(2000).nullable().optional(),
+  meetingSettings: z.record(z.any()).optional(),
+  blissMeetingId: uuidSchema.nullable().optional(),
 });
 const collaboratorAddSchema = z.object({
   userId: uuidSchema,
@@ -175,6 +180,9 @@ const eventCreateSchema = z.object({
   timezone: z.string().max(100).nullable().optional(), // IANA name, e.g. 'Africa/Dar_es_Salaam' — display label only, see calendar-events.service.ts
   meetingUrl: meetingUrlSchema.nullable().optional(),
   meetingSettings: meetingSettingsSchema.nullable().optional(),
+  // Real cross-app meeting linking (369_meeting_link_everywhere.sql) — set
+  // when meetingUrl is a real Bliss meeting, null for the Jitsi fallback.
+  blissMeetingId: uuidSchema.nullable().optional(),
 });
 const eventPatchSchema = z.object({
   title: z.string().trim().min(1).max(500).optional(),
@@ -191,6 +199,7 @@ const eventPatchSchema = z.object({
   timezone: z.string().max(100).nullable().optional(),
   meetingUrl: meetingUrlSchema.nullable().optional(),
   meetingSettings: meetingSettingsSchema.nullable().optional(),
+  blissMeetingId: uuidSchema.nullable().optional(),
   // Which occurrence this edit applies to — omitted/'all' means the whole
   // series (or the only occurrence, for a non-recurring event).
   scope: z.enum(['all', 'this']).optional(),
@@ -776,6 +785,9 @@ export async function tasksRoutes(fastify: FastifyInstance) {
       if (body.hourlyRate !== undefined) updates.hourly_rate = body.hourlyRate != null ? String(body.hourlyRate) : null;
       if (body.subjectType !== undefined) updates.subject_type = body.subjectType;
       if (body.subjectId !== undefined) updates.subject_id = body.subjectId;
+      if (body.meetingUrl !== undefined) updates.meeting_url = body.meetingUrl;
+      if (body.meetingSettings !== undefined) updates.meeting_settings = JSON.stringify(body.meetingSettings);
+      if (body.blissMeetingId !== undefined) updates.bliss_meeting_id = body.blissMeetingId;
       if (body.reminderAt !== undefined) {
         updates.reminder_at = body.reminderAt || null;
         // Changing (or clearing) the reminder re-arms it — same reasoning as
@@ -1274,7 +1286,7 @@ export async function tasksRoutes(fastify: FastifyInstance) {
         title: body.title, start: body.start, end: body.end, description: body.description, location: body.location,
         category: body.category, guests: body.guests as CalendarEvents.Guest[] | undefined, allDay: body.allDay,
         color: body.color, recurrence: body.recurrence, reminderOffsets: body.reminderOffsets, timezone: body.timezone,
-        meetingUrl: body.meetingUrl, meetingSettings: body.meetingSettings,
+        meetingUrl: body.meetingUrl, meetingSettings: body.meetingSettings, blissMeetingId: body.blissMeetingId,
       });
       reply.status(201);
       return { data: row };
@@ -1294,7 +1306,7 @@ export async function tasksRoutes(fastify: FastifyInstance) {
           title: body.title, start: body.start, end: body.end, description: body.description, location: body.location,
           category: body.category, guests: body.guests as CalendarEvents.Guest[] | undefined, allDay: body.allDay,
           color: body.color, recurrence: body.recurrence, reminderOffsets: body.reminderOffsets, timezone: body.timezone,
-          meetingUrl: body.meetingUrl, meetingSettings: body.meetingSettings,
+          meetingUrl: body.meetingUrl, meetingSettings: body.meetingSettings, blissMeetingId: body.blissMeetingId,
         },
         body.scope ?? 'all', body.occurrenceDate,
       );

@@ -96,6 +96,7 @@ import { SignShell } from './shells/SignShell.js';
 import { SignPublicPage } from './pages/sign/SignPublicPage.js';
 import { SignVerifyPage } from './pages/sign/SignVerifyPage.js';
 import { BookingPublicPage } from './pages/BookingPublicPage.js';
+import { GuestMeetingJoin } from './pages/calls/GuestMeetingJoin.js';
 import { AppHeader }    from './components/AppHeader.js';
 import { WorkspaceHome } from './pages/WorkspaceHome.js';
 import { AgenticHome } from './pages/AgenticHome.js';
@@ -352,6 +353,13 @@ const AppContentBody: React.FC = () => {
       <Route path="/sign/verify"         element={<SignVerifyPage />} />
       {/* Calendly-style booking pages — anyone with the link can book, no account needed */}
       <Route path="/book/:slug"          element={<BookingPublicPage />} />
+      {/* Bliss "join like Zoom/Meet/Teams" guest meeting link — no Hudumika
+          account needed, gated by the host's own password/waiting-room
+          controls instead (calls-public routes). Mounted here AND in the
+          signed-in tree below so a staff member's own active session in the
+          same browser doesn't get in the way of a guest link they were
+          personally sent. */}
+      <Route path="/meet/:id"            element={<GuestMeetingJoin />} />
       <Route path="/ondi/login"          element={<OndiLogin />} />
       {/* Always the password page, unconditionally — the one stable target
           for OndiLogin's "Sign in with password instead" link. Without this,
@@ -395,6 +403,7 @@ const AppContentBody: React.FC = () => {
           <Route path="/site/:tenantSlug"           element={<OneSitePublic />} />
           <Route path="/site/:tenantSlug/:pageSlug" element={<OneSitePublic />} />
           <Route path="/book/:slug"                 element={<BookingPublicPage />} />
+          <Route path="/meet/:id"                   element={<GuestMeetingJoin />} />
           <Route path="/subscription" element={<Navigate to="/workspace/billing" replace />} />
 
           {/* Full-viewport apps — no page-layout (manage their own height/overflow) */}

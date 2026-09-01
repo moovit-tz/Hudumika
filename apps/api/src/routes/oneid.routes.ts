@@ -10,6 +10,9 @@ import { MinioIntegration } from '../integrations/minio.js';
 import { extractKycDocument, extractKybDocument } from '../lib/kyc-ocr.js';
 import { recordAuthEvent } from '../lib/audit-chain.js';
 import { requireRoleOrOrgPermission, hasOrgPermission, ORG_PERMISSIONS } from '../lib/org-rbac.js';
+import { computeOrgTrust } from '../lib/trust-score.js';
+import { computeComplianceRollup } from '../lib/compliance-rollup.js';
+import { emitDomainEvent } from '../services/domain-events.service.js';
 
 const kybSubmitSchema = z.object({
   image_base64: z.string().min(1),
@@ -24,6 +27,14 @@ const orgRoleSchema = z.object({
     ORG_PERMISSIONS.API_KEYS_MANAGE,
     ORG_PERMISSIONS.ORG_CHART_MANAGE,
     ORG_PERMISSIONS.SSO_PROVIDERS_MANAGE,
+    ORG_PERMISSIONS.ACCESS_REVIEWS_MANAGE,
+    ORG_PERMISSIONS.ORG_TRUST_VIEW,
+    ORG_PERMISSIONS.AUTOMATION_MANAGE,
+    ORG_PERMISSIONS.COMPLIANCE_REVIEW,
+    ORG_PERMISSIONS.POLICIES_MANAGE,
+    ORG_PERMISSIONS.ASSETS_MANAGE,
+    ORG_PERMISSIONS.INTEGRATIONS_MANAGE,
+    ORG_PERMISSIONS.VISITORS_MANAGE,
   ])).default([]),
 });
 
@@ -81,15 +92,33 @@ export async function oneidRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.patch('/users/:id/status', { preHandler: requireRole('ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  // Was ADMIN/TENANT_ADMIN-only (missing SUPER_ADMIN, unlike every other
+  // admin gate in this file) — fixed while touching this route to add the
+  // deactivation event below, since a SUPER_ADMIN using Ondi's own Users
+  // page couldn't otherwise deactivate anyone.
+  fastify.patch('/users/:id/status', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     const { id } = req.params as { id: string };
     const { active } = z.object({ active: z.boolean() }).parse(req.body);
     return withTenant(user.tenant_id, async (trx) => {
-      return trx.updateTable('users').set({ active, updated_at: new Date() })
+      const updated = await trx.updateTable('users').set({ active, updated_at: new Date() })
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
         .returning(['id', 'name', 'active'])
         .executeTakeFirstOrThrow();
+
+      // hr.routes.ts's own /staff/:id/status already emits this same event
+      // type for the NexusHR path — reusing it here (not a second event
+      // type) so Ondi's leaver automation (subscribers/ondi.subscribers.ts)
+      // reacts the same way regardless of which app someone was deactivated from.
+      if (!active) {
+        await emitDomainEvent(trx, user.tenant_id, {
+          type: 'hr.staff_deactivated', sourceApp: 'oneid', entityType: 'user', entityId: updated.id,
+          payload: { userId: updated.id, name: updated.name, active: updated.active, changedBy: user.sub },
+          actorId: user.sub,
+        }).catch(err => console.error('[Ondi] staff_deactivated emit failed:', err?.message));
+      }
+
+      return updated;
     });
   });
 
@@ -774,5 +803,407 @@ export async function oneidRoutes(fastify: FastifyInstance) {
     if (!result) return reply.status(404).send({ error: 'Request not found or already reviewed' });
     await recordAuthEvent(user.tenant_id, result.user_id, 'access_request_denied', { metadata: { request_id: id, role_id: result.role_id, reviewed_by: user.sub } });
     return { success: true };
+  });
+
+  // ── Access review campaigns (Ondi M5) ───────────────────────────
+  // The sweep-and-reattest counterpart to access-requests above: instead
+  // of waiting for someone to ask for a role, a reviewer periodically
+  // walks every CURRENT grant and re-confirms it's still warranted.
+
+  fastify.get('/org/access-reviews', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.ACCESS_REVIEWS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+    const user = req.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const campaigns = await trx.selectFrom('ondi_access_review_campaigns as c')
+        .leftJoin('users as u', 'u.id', 'c.created_by')
+        .select(['c.id', 'c.name', 'c.status', 'c.created_at', 'c.completed_at', 'u.name as created_by_name'])
+        .orderBy('c.created_at', 'desc')
+        .execute();
+      if (campaigns.length === 0) return [];
+
+      const ids = campaigns.map(c => c.id);
+      const items = await trx.selectFrom('ondi_access_review_items')
+        .select(['campaign_id', 'decision'])
+        .where('campaign_id', 'in', ids)
+        .execute();
+      const counts = new Map<string, { total: number; pending: number; approved: number; revoked: number }>();
+      for (const it of items) {
+        const c = counts.get(it.campaign_id) ?? { total: 0, pending: 0, approved: 0, revoked: 0 };
+        c.total++; c[it.decision as 'pending' | 'approved' | 'revoked']++;
+        counts.set(it.campaign_id, c);
+      }
+      return campaigns.map(c => ({ ...c, ...( counts.get(c.id) ?? { total: 0, pending: 0, approved: 0, revoked: 0 }) }));
+    });
+  });
+
+  // Snapshots every currently-active (non-expired) role grant into a fresh
+  // set of review items — the campaign is a point-in-time sweep, not a live
+  // view, so a grant made after this only appears in the *next* campaign.
+  fastify.post('/org/access-reviews', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.ACCESS_REVIEWS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
+    const user = req.user;
+    const body = z.object({ name: z.string().trim().min(1).max(160) }).parse(req.body);
+
+    return withTenant(user.tenant_id, async (trx) => {
+      const campaign = await trx.insertInto('ondi_access_review_campaigns').values({
+        tenant_id: user.tenant_id, name: body.name, created_by: user.sub,
+      }).returningAll().executeTakeFirstOrThrow();
+
+      const grants = await trx.selectFrom('ondi_org_role_members as m')
+        .innerJoin('ondi_org_roles as r', 'r.id', 'm.role_id')
+        .select(['m.id as role_member_id', 'm.user_id', 'm.role_id', 'r.name as role_name'])
+        .where('m.tenant_id', '=', user.tenant_id)
+        .where(eb => eb.or([eb('m.expires_at', 'is', null), eb('m.expires_at', '>', new Date())]))
+        .execute();
+
+      if (grants.length > 0) {
+        await trx.insertInto('ondi_access_review_items').values(
+          grants.map(g => ({
+            tenant_id: user.tenant_id, campaign_id: campaign.id,
+            role_member_id: g.role_member_id, user_id: g.user_id, role_id: g.role_id, role_name: g.role_name,
+          })),
+        ).execute();
+      }
+
+      await recordAuthEvent(user.tenant_id, user.sub, 'access_review_campaign_started', { metadata: { campaign_id: campaign.id, name: campaign.name, item_count: grants.length } });
+      reply.status(201);
+      return { ...campaign, total: grants.length, pending: grants.length, approved: 0, revoked: 0 };
+    });
+  });
+
+  fastify.get<{ Params: { id: string } }>('/org/access-reviews/:id', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.ACCESS_REVIEWS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
+    const user = req.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const campaign = await trx.selectFrom('ondi_access_review_campaigns')
+        .selectAll().where('id', '=', req.params.id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!campaign) { reply.status(404); return { error: 'Campaign not found' }; }
+
+      const items = await trx.selectFrom('ondi_access_review_items as i')
+        .innerJoin('users as u', 'u.id', 'i.user_id')
+        .leftJoin('users as d', 'd.id', 'i.decided_by')
+        .select(['i.id', 'i.role_id', 'i.role_name', 'i.decision', 'i.decided_at', 'i.created_at',
+          'i.user_id', 'u.name as user_name', 'u.email as user_email', 'd.name as decided_by_name'])
+        .where('i.campaign_id', '=', campaign.id)
+        .orderBy('u.name', 'asc')
+        .execute();
+
+      return { campaign, items };
+    });
+  });
+
+  fastify.post<{ Params: { id: string; itemId: string }; Body: { decision: 'approved' | 'revoked' } }>(
+    '/org/access-reviews/:id/items/:itemId/decide',
+    { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.ACCESS_REVIEWS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') },
+    async (req, reply) => {
+      const user = req.user;
+      const body = z.object({ decision: z.enum(['approved', 'revoked']) }).parse(req.body);
+
+      return withTenant(user.tenant_id, async (trx) => {
+        const item = await trx.selectFrom('ondi_access_review_items')
+          .selectAll()
+          .where('id', '=', req.params.itemId).where('campaign_id', '=', req.params.id).where('tenant_id', '=', user.tenant_id)
+          .executeTakeFirst();
+        if (!item) { reply.status(404); return { error: 'Review item not found' }; }
+
+        const updated = await trx.updateTable('ondi_access_review_items')
+          .set({ decision: body.decision, decided_by: user.sub, decided_at: new Date() })
+          .where('id', '=', item.id)
+          .returningAll().executeTakeFirstOrThrow();
+
+        // "Revoked" has a real effect, not just a record — deletes the
+        // underlying grant, same as manually removing a role member would.
+        if (body.decision === 'revoked' && item.role_member_id) {
+          await trx.deleteFrom('ondi_org_role_members').where('id', '=', item.role_member_id).execute();
+        }
+
+        await recordAuthEvent(user.tenant_id, item.user_id, body.decision === 'revoked' ? 'access_review_item_revoked' : 'access_review_item_approved',
+          { metadata: { campaign_id: req.params.id, item_id: item.id, role_name: item.role_name, decided_by: user.sub } });
+        return updated;
+      });
+    },
+  );
+
+  // Bulk variant of the single-item decide route above, for reviewing a
+  // whole page of grants at once rather than one click per row.
+  fastify.post<{ Params: { id: string }; Body: { item_ids: string[]; decision: 'approved' | 'revoked' } }>(
+    '/org/access-reviews/:id/bulk-decide',
+    { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.ACCESS_REVIEWS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') },
+    async (req, reply) => {
+      const user = req.user;
+      const body = z.object({ item_ids: z.array(z.string().uuid()).min(1).max(500), decision: z.enum(['approved', 'revoked']) }).parse(req.body);
+
+      return withTenant(user.tenant_id, async (trx) => {
+        const items = await trx.selectFrom('ondi_access_review_items')
+          .selectAll()
+          .where('id', 'in', body.item_ids).where('campaign_id', '=', req.params.id).where('tenant_id', '=', user.tenant_id)
+          .where('decision', '=', 'pending')
+          .execute();
+        if (items.length === 0) return { decided: 0 };
+
+        await trx.updateTable('ondi_access_review_items')
+          .set({ decision: body.decision, decided_by: user.sub, decided_at: new Date() })
+          .where('id', 'in', items.map(i => i.id))
+          .execute();
+
+        if (body.decision === 'revoked') {
+          const memberIds = items.map(i => i.role_member_id).filter((x): x is string => !!x);
+          if (memberIds.length > 0) await trx.deleteFrom('ondi_org_role_members').where('id', 'in', memberIds).execute();
+        }
+
+        for (const item of items) {
+          await recordAuthEvent(user.tenant_id, item.user_id, body.decision === 'revoked' ? 'access_review_item_revoked' : 'access_review_item_approved',
+            { metadata: { campaign_id: req.params.id, item_id: item.id, role_name: item.role_name, decided_by: user.sub, bulk: true } });
+        }
+        return { decided: items.length };
+      });
+    },
+  );
+
+  fastify.post<{ Params: { id: string } }>('/org/access-reviews/:id/complete', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.ACCESS_REVIEWS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
+    const user = req.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const updated = await trx.updateTable('ondi_access_review_campaigns')
+        .set({ status: 'completed', completed_at: new Date() })
+        .where('id', '=', req.params.id).where('tenant_id', '=', user.tenant_id).where('status', '=', 'active')
+        .returning(['id', 'name']).executeTakeFirst();
+      if (!updated) { reply.status(404); return { error: 'Campaign not found or already closed' }; }
+      await recordAuthEvent(user.tenant_id, user.sub, 'access_review_campaign_completed', { metadata: { campaign_id: updated.id, name: updated.name } });
+      return { success: true };
+    });
+  });
+
+  // ── Org-wide Trust (Ondi M6) ─────────────────────────────────────
+  // Aggregate over the same per-user formula OneIdPersonal.tsx/OneIdTrust.tsx
+  // already show individually — see trust-score.ts's computeOrgTrust().
+  fastify.get('/org/trust', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.ORG_TRUST_VIEW, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+    const user = req.user;
+    return computeOrgTrust(user.tenant_id);
+  });
+
+  // ── Enterprise Activity feed (Ondi M6) ────────────────────────────
+  // ondi_auth_events already existed (M0/M3's hash-chained audit log) but
+  // only had a tamper-verify endpoint (/v1/security/audit/verify-chain) —
+  // nothing let an admin actually browse it. This is that browsable feed,
+  // tenant-wide. Same role gate as the existing /login-history above.
+  // ── Automation (Ondi M7) ──────────────────────────────────────────
+  // Configuration for subscribers/ondi.subscribers.ts's joiner/leaver
+  // rules — the default-role setting lives in tenant_settings (same JSONB
+  // blob Session Policy already uses), read directly here rather than
+  // through /v1/settings so this page doesn't need its own separate fetch
+  // of the whole settings object just for one nested field.
+  fastify.get('/org/automation', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.AUTOMATION_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+    const user = req.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const [settingsRow, roles, log] = await Promise.all([
+        trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', user.tenant_id).executeTakeFirst(),
+        trx.selectFrom('ondi_org_roles').select(['id', 'name']).where('tenant_id', '=', user.tenant_id).orderBy('name').execute(),
+        trx.selectFrom('ondi_automation_log as l')
+          .innerJoin('users as u', 'u.id', 'l.user_id')
+          .select(['l.id', 'l.rule', 'l.summary', 'l.created_at', 'u.name as user_name'])
+          .where('l.tenant_id', '=', user.tenant_id)
+          .orderBy('l.created_at', 'desc')
+          .limit(100)
+          .execute(),
+      ]);
+      const settings = settingsRow ? (typeof settingsRow.settings === 'string' ? JSON.parse(settingsRow.settings) : settingsRow.settings) : {};
+      return { default_role_id: settings?.automation?.defaultRoleId ?? null, available_roles: roles, log };
+    });
+  });
+
+  fastify.patch<{ Body: { default_role_id: string | null } }>('/org/automation', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.AUTOMATION_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+    const user = req.user;
+    const body = z.object({ default_role_id: z.string().uuid().nullable() }).parse(req.body);
+    return withTenant(user.tenant_id, async (trx) => {
+      const existing = await trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      const settings = existing ? (typeof existing.settings === 'string' ? JSON.parse(existing.settings) : existing.settings) : {};
+      settings.automation = { ...(settings.automation ?? {}), defaultRoleId: body.default_role_id };
+
+      await trx.insertInto('tenant_settings').values({ tenant_id: user.tenant_id, settings: JSON.stringify(settings) })
+        .onConflict(oc => oc.column('tenant_id').doUpdateSet({ settings: JSON.stringify(settings) }))
+        .execute();
+      return { success: true };
+    });
+  });
+
+  // ── Compliance (Ondi M8) ──────────────────────────────────────────
+  fastify.get('/org/compliance', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.COMPLIANCE_REVIEW, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+    const user = req.user;
+    return computeComplianceRollup(user.tenant_id);
+  });
+
+  // ── Policies (Ondi M8) — the same tenant_settings.sessionPolicy
+  // OneIdSessions.tsx's "Session Policy" card already read/wrote, moved
+  // here so it has its own permission gate and its own full page rather
+  // than living inside "Sessions & Security". Same storage, same shape.
+  fastify.get('/org/policies', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.POLICIES_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+    const user = req.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const row = await trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      const settings = row ? (typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings) : {};
+      return {
+        timeout_minutes: settings?.sessionPolicy?.timeoutMinutes ?? 60,
+        mfa_required: !!settings?.sessionPolicy?.mfaRequired,
+      };
+    });
+  });
+
+  fastify.patch<{ Body: { timeout_minutes: number; mfa_required: boolean } }>('/org/policies', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.POLICIES_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+    const user = req.user;
+    const body = z.object({ timeout_minutes: z.number().int().min(5).max(1440), mfa_required: z.boolean() }).parse(req.body);
+    return withTenant(user.tenant_id, async (trx) => {
+      const existing = await trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      const settings = existing ? (typeof existing.settings === 'string' ? JSON.parse(existing.settings) : existing.settings) : {};
+      settings.sessionPolicy = { timeoutMinutes: body.timeout_minutes, mfaRequired: body.mfa_required };
+      await trx.insertInto('tenant_settings').values({ tenant_id: user.tenant_id, settings: JSON.stringify(settings) })
+        .onConflict(oc => oc.column('tenant_id').doUpdateSet({ settings: JSON.stringify(settings) }))
+        .execute();
+      return { success: true };
+    });
+  });
+
+  // ── Integrations (Ondi M9) ────────────────────────────────────────
+  // Governs which apps this tenant has already installed (Store's own
+  // store_installed_apps) may actually RECEIVE live domain-event webhooks
+  // — tenant_marketplace_installs (migration 156) already existed and
+  // domain-events.service.ts already dispatches to it, but nothing ever
+  // wrote to it: there was no way for a tenant to turn delivery on for an
+  // app they installed. This is that missing write path, not a second
+  // app browser (that's Store) — Store owns discovery/installing, this
+  // owns "can this installed app actually receive our events."
+  fastify.get('/org/integrations', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.INTEGRATIONS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+    const user = req.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const installed = await trx.selectFrom('store_installed_apps as si')
+        .innerJoin('marketplace_apps as a', 'a.id', 'si.app_id')
+        .select(['a.id', 'a.name', 'a.developer_name', 'a.category', 'a.icon_url', 'a.webhook_url', 'si.installed_at'])
+        .where('si.tenant_id', '=', user.tenant_id)
+        .orderBy('a.name')
+        .execute();
+      if (installed.length === 0) return [];
+
+      const grants = await trx.selectFrom('tenant_marketplace_installs')
+        .select(['app_id', 'events_enabled', 'revoked_at', 'installed_at'])
+        .where('tenant_id', '=', user.tenant_id)
+        .where('app_id', 'in', installed.map(a => a.id))
+        .execute();
+      const grantByApp = new Map(grants.map(g => [g.app_id, g]));
+
+      return installed.map(app => {
+        const grant = grantByApp.get(app.id);
+        return {
+          ...app,
+          webhook_capable: !!app.webhook_url,
+          events_enabled: !!grant && !grant.revoked_at && grant.events_enabled,
+          granted_at: grant && !grant.revoked_at ? grant.installed_at : null,
+        };
+      });
+    });
+  });
+
+  fastify.post<{ Params: { appId: string } }>('/org/integrations/:appId/enable', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.INTEGRATIONS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
+    const user = req.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const app = await trx.selectFrom('store_installed_apps as si')
+        .innerJoin('marketplace_apps as a', 'a.id', 'si.app_id')
+        .select(['a.id', 'a.webhook_url'])
+        .where('si.tenant_id', '=', user.tenant_id).where('si.app_id', '=', req.params.appId)
+        .executeTakeFirst();
+      if (!app) { reply.status(404); return { error: 'Install this app from Store first.' }; }
+      if (!app.webhook_url) { reply.status(400); return { error: 'This app has no webhook endpoint to deliver events to.' }; }
+
+      // tenant_marketplace_installs' own uniqueness (migration 156) is a
+      // PARTIAL index — unique only among non-revoked rows, precisely so a
+      // revoke-then-re-enable can leave the old row as history rather than
+      // overwrite it — so a plain ON CONFLICT (tenant_id, app_id) doesn't
+      // match it at the Postgres level ("no unique or exclusion constraint
+      // matching the ON CONFLICT specification", caught live while testing
+      // this exact route). Check-then-branch instead, matching what the
+      // partial index actually models: at most one *active* row per app.
+      const existing = await trx.selectFrom('tenant_marketplace_installs').select('id')
+        .where('tenant_id', '=', user.tenant_id).where('app_id', '=', app.id).where('revoked_at', 'is', null)
+        .executeTakeFirst();
+      if (existing) {
+        await trx.updateTable('tenant_marketplace_installs').set({ events_enabled: true }).where('id', '=', existing.id).execute();
+      } else {
+        const webhookSecret = crypto.randomBytes(32).toString('hex');
+        await trx.insertInto('tenant_marketplace_installs').values({
+          tenant_id: user.tenant_id, app_id: app.id, webhook_secret: webhookSecret,
+          events_enabled: true, installed_by: user.sub,
+        }).execute();
+      }
+      return { success: true };
+    });
+  });
+
+  fastify.patch<{ Params: { appId: string }; Body: { events_enabled: boolean } }>('/org/integrations/:appId', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.INTEGRATIONS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
+    const user = req.user;
+    const body = z.object({ events_enabled: z.boolean() }).parse(req.body);
+    return withTenant(user.tenant_id, async (trx) => {
+      const updated = await trx.updateTable('tenant_marketplace_installs').set({ events_enabled: body.events_enabled })
+        .where('tenant_id', '=', user.tenant_id).where('app_id', '=', req.params.appId).where('revoked_at', 'is', null)
+        .returning('id').executeTakeFirst();
+      if (!updated) { reply.status(404); return { error: 'Not enabled yet' }; }
+      return { success: true };
+    });
+  });
+
+  fastify.delete<{ Params: { appId: string } }>('/org/integrations/:appId', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.INTEGRATIONS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+    const user = req.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      await trx.updateTable('tenant_marketplace_installs').set({ revoked_at: new Date() })
+        .where('tenant_id', '=', user.tenant_id).where('app_id', '=', req.params.appId).execute();
+      return { success: true };
+    });
+  });
+
+  // ── Visitors (Ondi M9) ─────────────────────────────────────────────
+  fastify.get('/org/visitors', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.VISITORS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+    const user = req.user;
+    return withTenant(user.tenant_id, trx => trx.selectFrom('ondi_visitors as v')
+      .leftJoin('users as h', 'h.id', 'v.host_user_id')
+      .select(['v.id', 'v.name', 'v.company', 'v.purpose', 'v.badge_code', 'v.checked_in_at', 'v.checked_out_at', 'v.host_user_id', 'h.name as host_name'])
+      .where('v.tenant_id', '=', user.tenant_id)
+      .orderBy('v.checked_in_at', 'desc')
+      .limit(200)
+      .execute());
+  });
+
+  fastify.post<{ Body: { name: string; company?: string; purpose?: string; host_user_id?: string } }>('/org/visitors', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.VISITORS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
+    const user = req.user;
+    const body = z.object({
+      name: z.string().trim().min(1).max(160),
+      company: z.string().trim().max(160).optional(),
+      purpose: z.string().trim().max(300).optional(),
+      host_user_id: z.string().uuid().optional(),
+    }).parse(req.body);
+
+    const badgeCode = crypto.randomBytes(4).toString('hex').toUpperCase();
+    const created = await withTenant(user.tenant_id, trx => trx.insertInto('ondi_visitors').values({
+      tenant_id: user.tenant_id, name: body.name, company: body.company || null, purpose: body.purpose || null,
+      host_user_id: body.host_user_id || null, badge_code: badgeCode, created_by: user.sub,
+    }).returningAll().executeTakeFirstOrThrow());
+    reply.status(201);
+    return created;
+  });
+
+  fastify.post<{ Params: { id: string } }>('/org/visitors/:id/check-out', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.VISITORS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
+    const user = req.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const updated = await trx.updateTable('ondi_visitors').set({ checked_out_at: new Date() })
+        .where('id', '=', req.params.id).where('tenant_id', '=', user.tenant_id).where('checked_out_at', 'is', null)
+        .returning('id').executeTakeFirst();
+      if (!updated) { reply.status(404); return { error: 'Not found or already checked out' }; }
+      return { success: true };
+    });
+  });
+
+  fastify.get('/org/activity', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+    const user = req.user;
+    const { limit } = req.query as { limit?: string };
+    return withTenant(user.tenant_id, trx => trx.selectFrom('ondi_auth_events as e')
+      .leftJoin('users as u', 'u.id', 'e.user_id')
+      .select(['e.id', 'e.event_type', 'e.ip', 'e.user_agent', 'e.metadata', 'e.created_at', 'e.user_id', 'u.name as user_name'])
+      .where('e.tenant_id', '=', user.tenant_id)
+      .orderBy('e.created_at', 'desc')
+      .limit(Math.min(Number(limit) || 200, 500))
+      .execute());
   });
 }

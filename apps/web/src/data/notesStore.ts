@@ -54,6 +54,11 @@ export interface NoteItem {
   /** Optional link to a record in another app (e.g. subjectType:'shipment') — see 265_notes_app.sql. */
   subjectType?: string | null;
   subjectId?: string | null;
+  // Real cross-app meeting linking (369_meeting_link_everywhere.sql) — same
+  // shape a calendar event's/task's own meetingUrl/blissMeetingId use.
+  meetingUrl?: string | null;
+  meetingSettings?: Record<string, unknown>;
+  blissMeetingId?: string | null;
   /** 'team' (default — visible/editable tenant-wide, the only behaviour
    *  before 282_notes_enterprise.sql) | 'private' (creator only) | 'shared'
    *  (creator + `shares`, each with their own view/edit permission). */
@@ -135,6 +140,9 @@ function fromApiNote(r: any): NoteItem {
     reminder: r.reminderAt ?? null,
     subjectType: r.subjectType ?? null,
     subjectId: r.subjectId ?? null,
+    meetingUrl: r.meetingUrl ?? null,
+    meetingSettings: r.meetingSettings ?? {},
+    blissMeetingId: r.blissMeetingId ?? null,
     visibility: r.visibility ?? 'team',
     shares: r.shares ?? [],
     canEdit: r.canEdit ?? true,
@@ -161,6 +169,9 @@ function toApiInput(patch: Partial<NoteItem> & { expectedUpdatedAt?: string }): 
   if (patch.labels !== undefined) out.labelIds = patch.labels;
   if (patch.subjectType !== undefined) out.subjectType = patch.subjectType;
   if (patch.subjectId !== undefined) out.subjectId = patch.subjectId;
+  if (patch.meetingUrl !== undefined) out.meetingUrl = patch.meetingUrl;
+  if (patch.meetingSettings !== undefined) out.meetingSettings = patch.meetingSettings;
+  if (patch.blissMeetingId !== undefined) out.blissMeetingId = patch.blissMeetingId;
   if (patch.visibility !== undefined) out.visibility = patch.visibility;
   if (patch.shares !== undefined) out.shares = patch.shares;
   if (patch.legalHold !== undefined) out.legalHold = patch.legalHold;
