@@ -10,9 +10,10 @@ import { HolidaysService } from '../services/holidays.service.js';
 import { workingDaysBetween } from '../services/holiday-calendar.service.js';
 import { checkRequest as checkLeaveRequest, splitPayDays, computeBalances as computeLeaveBalances } from '../services/leave-entitlement.service.js';
 import { env } from '../config/env.js';
-import { settleEntry } from '../services/time-entry.service.js';
+import { settleEntry, MIN_SHIFT_MINUTES } from '../services/time-entry.service.js';
 import { callAI } from './ai.routes.js';
 import { recordAuthEvent } from '../lib/audit-chain.js';
+import { computeAttendance, type Shift } from '../services/attendance.service.js';
 
 /**
  * YYYY-MM-DD from a `date` column, whatever the driver hands back.
@@ -88,7 +89,7 @@ async function ensureAttendanceSessionOpen(trx: any, tenantId: string, userId: s
     total_break_minutes: 0,
   }).execute();
 
-  await syncAttendanceFromSessions(trx, tenantId, userId, dateStr, userId, 'PRESENT');
+  await syncAttendanceFromSessions(trx, tenantId, userId, dateStr, userId);
 }
 
 async function closeAttendanceSessionIfIdle(trx: any, tenantId: string, userId: string, now: Date) {
@@ -166,20 +167,45 @@ async function closeOpenTimeEntries(trx: any, tenantId: string, userId: string, 
   }
 }
 
+/** The day's shift for LATE detection: an explicit hr_shift_assignments row
+ *  for that user/date, else the tenant's one `is_default` hr_shifts row,
+ *  else a bare fallback for a tenant that hasn't configured shifts at all. */
+async function resolveShiftFor(trx: any, tenantId: string, userId: string, dateStr: string): Promise<Shift> {
+  const assigned = await trx.selectFrom('hr_shift_assignments as a')
+    .innerJoin('hr_shifts as s', 's.id', 'a.shift_id')
+    .select(['s.start_time', 's.end_time', 's.break_minutes', 's.grace_minutes'])
+    .where('a.tenant_id', '=', tenantId).where('a.user_id', '=', userId).where('a.date', '=', dateStr)
+    .executeTakeFirst();
+  const row = assigned ?? await trx.selectFrom('hr_shifts')
+    .select(['start_time', 'end_time', 'break_minutes', 'grace_minutes'])
+    .where('tenant_id', '=', tenantId).where('is_default', '=', true)
+    .executeTakeFirst();
+  if (!row) return { startTime: '08:00', endTime: '17:00', breakMinutes: 0, graceMinutes: 10 };
+  return { startTime: row.start_time, endTime: row.end_time, breakMinutes: row.break_minutes, graceMinutes: row.grace_minutes };
+}
+
 /**
  * Recomputes an hr_attendance row's clock_in/clock_out/worked_minutes from
  * every hr_clock_sessions row that date, instead of whichever single
  * session most recently wrote to it. A day genuinely can hold more than one
  * session — a real clock session plus a manual backfill, a missed
  * clock-out fixed by clocking in again, lunch taken outside the in-session
- * break button — and hr_attendance is one row per day, so without this the
- * admin Attendance dashboard's number is whichever session happened to
- * write last, not the employee's real total. Called after every write to
- * hr_clock_sessions for that user/date (start, stop, manual).
+ * break button, or now a biometric device punch pair (source='DEVICE',
+ * 379_attendance_devices.sql) — and hr_attendance is one row per day, so
+ * without this the admin Attendance dashboard's number is whichever session
+ * happened to write last, not the employee's real total. Called after every
+ * write to hr_clock_sessions for that user/date (start, stop, manual, device).
+ *
+ * Status is now genuinely derived via computeAttendance() (attendance.
+ * service.ts) against the day's real shift, instead of the caller always
+ * passing 'PRESENT' — that made every previous call site's LATE detection
+ * dead code: clock-in forced 'PRESENT' immediately, and clock-out passed no
+ * override at all, so nothing ever revisited it. An explicit statusOverride
+ * (a manual HR mark: ON_LEAVE, ABSENT, ...) still always wins.
  */
-async function syncAttendanceFromSessions(trx: any, tenantId: string, userId: string, dateStr: string, actorId: string, statusOverride?: string) {
+export async function syncAttendanceFromSessions(trx: any, tenantId: string, userId: string, dateStr: string, actorId: string, statusOverride?: string) {
   const sessions = await trx.selectFrom('hr_clock_sessions')
-    .select(['clock_in_at', 'clock_out_at', 'worked_minutes', 'status'])
+    .select(['clock_in_at', 'clock_out_at', 'worked_minutes', 'status', 'source'])
     .where('tenant_id', '=', tenantId).where('user_id', '=', userId).where('date', '=', dateStr)
     .execute();
   if (sessions.length === 0) return;
@@ -188,9 +214,13 @@ async function syncAttendanceFromSessions(trx: any, tenantId: string, userId: st
   let earliestIn: Date | null = null;
   let latestOut: Date | null = null;
   let totalWorked = 0;
+  let hasDevice = false;
+  let hasWeb = false;
   for (const s of sessions) {
     const inAt = new Date(s.clock_in_at as any);
     if (!earliestIn || inAt < earliestIn) earliestIn = inAt;
+    if (s.source === 'DEVICE') hasDevice = true;
+    else if (s.source !== 'MANUAL') hasWeb = true; // WEB, or the pre-migration default
     if (s.status === 'COMPLETED') {
       totalWorked += (s.worked_minutes as number) || 0;
       if (s.clock_out_at) {
@@ -200,6 +230,15 @@ async function syncAttendanceFromSessions(trx: any, tenantId: string, userId: st
     }
   }
 
+  // computeAttendance requires both times to classify PRESENT/LATE — pass
+  // earliestIn for both when nobody has clocked out yet. lateBy/status don't
+  // depend on outM once inM is non-null, so this is safe; it just means the
+  // worked/overtime figures it also returns aren't meaningful mid-shift,
+  // which is fine since totalWorked (summed from real sessions) is used
+  // instead of computeAttendance's own gap-based total.
+  const shift = await resolveShiftFor(trx, tenantId, userId, dateStr);
+  const computed = computeAttendance(fmt(earliestIn as Date), fmt(latestOut ?? (earliestIn as Date)), shift);
+
   const existing = await trx.selectFrom('hr_attendance').select('id')
     .where('tenant_id', '=', tenantId).where('user_id', '=', userId).where('date', '=', dateStr)
     .executeTakeFirst();
@@ -208,15 +247,18 @@ async function syncAttendanceFromSessions(trx: any, tenantId: string, userId: st
     clock_in: earliestIn ? fmt(earliestIn) : null,
     clock_out: latestOut ? fmt(latestOut) : null,
     worked_minutes: totalWorked,
+    status: statusOverride ?? computed.status,
+    // A day mixing sources (rare) counts as BIOMETRIC/WEB over MANUAL — the
+    // more automated source is the more trustworthy record of what happened.
+    method: hasDevice ? 'BIOMETRIC' : hasWeb ? 'WEB' : 'MANUAL',
     recorded_by: actorId,
     updated_at: new Date(),
   };
-  if (statusOverride) patch.status = statusOverride;
   if (existing) {
     await trx.updateTable('hr_attendance').set(patch).where('id', '=', existing.id).execute();
   } else {
     await trx.insertInto('hr_attendance').values({
-      tenant_id: tenantId, user_id: userId, date: dateStr, status: statusOverride || 'PRESENT', ...patch,
+      tenant_id: tenantId, user_id: userId, date: dateStr, ...patch,
     }).execute();
   }
 }
@@ -670,7 +712,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
         total_break_minutes: 0,
       }).returningAll().executeTakeFirstOrThrow();
 
-      await syncAttendanceFromSessions(trx, user.tenant_id, user.sub, dateStr, user.sub, 'PRESENT');
+      await syncAttendanceFromSessions(trx, user.tenant_id, user.sub, dateStr, user.sub);
 
       // Also open a header time entry so the top-bar check-in widget reflects it.
       await ensureTimeEntryOpen(trx, user.tenant_id, user.sub, now);
@@ -737,6 +779,51 @@ export async function hrRoutes(fastify: FastifyInstance) {
 
         return { ok: true, session: updated, breakStatus: 'ACTIVE' };
       }
+    });
+  });
+
+  // Read-only preview of what /clock-in/stop would record right now — the
+  // pre-clock-out confirmation dialog's data source (AttendanceStatusBanner
+  // and, wherever else a header check-in wraps a clock session, the same
+  // confirm step). Mirrors that handler's own worked-minutes and
+  // tasks-completed computation exactly, just against `now` instead of a
+  // real clock_out_at, and writes nothing.
+  fastify.get('/clock-in/preview', async (req, reply) => {
+    const user = req.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const session = await trx.selectFrom('hr_clock_sessions')
+        .selectAll()
+        .where('tenant_id', '=', user.tenant_id)
+        .where('user_id', '=', user.sub)
+        .where('status', 'in', ['ACTIVE', 'ON_BREAK'])
+        .orderBy('created_at', 'desc')
+        .executeTakeFirst();
+      if (!session) return reply.status(400).send({ error: 'No active clock-in session found' });
+
+      const now = new Date();
+      let totalBreak = session.total_break_minutes || 0;
+      if (session.status === 'ON_BREAK') {
+        const openBreak = await trx.selectFrom('hr_clock_breaks').select('start_at')
+          .where('tenant_id', '=', user.tenant_id).where('session_id', '=', session.id).where('end_at', 'is', null)
+          .executeTakeFirst();
+        if (openBreak) totalBreak += Math.max(1, Math.round((now.getTime() - new Date(openBreak.start_at).getTime()) / 60000));
+      }
+      const workedMins = Math.max(0, Math.round((now.getTime() - new Date(session.clock_in_at).getTime()) / 60000) - totalBreak);
+
+      const finishedTasks = await trx.selectFrom('tasks')
+        .select(['id', 'title', 'completed_at'])
+        .where('tenant_id', '=', user.tenant_id).where('deleted_at', 'is', null).where('completed', '=', true)
+        .where('completed_at', '>=', session.clock_in_at).where('completed_at', '<=', now)
+        .where((eb: any) => eb.or([eb('user_id', '=', user.sub), eb('assignee_id', '=', user.sub)]))
+        .orderBy('completed_at', 'asc')
+        .execute();
+
+      return {
+        worked_minutes: workedMins,
+        clock_in_at: session.clock_in_at,
+        tasks_completed_count: finishedTasks.length,
+        tasks_completed: finishedTasks.map(t => ({ id: t.id, title: t.title, completed_at: t.completed_at })),
+      };
     });
   });
 
@@ -832,6 +919,10 @@ export async function hrRoutes(fastify: FastifyInstance) {
           clock_out_at: now,
           tasks_completed_count: finishedTasks.length,
           tasks_completed: finishedTasks.map(t => ({ id: t.id, title: t.title, completed_at: t.completed_at })),
+          // Flagged, never blocked or altered — a stray double-click is the
+          // person's own record and their own call to fix (a real 90-second
+          // errand exists too), so this is a note for the UI, not a rule.
+          is_short_shift: workedMins < MIN_SHIFT_MINUTES,
         },
       };
     });
@@ -962,6 +1053,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
         status: 'COMPLETED',
         total_break_minutes: breakMins,
         worked_minutes: workedMins,
+        source: 'MANUAL',
       }).returningAll().executeTakeFirstOrThrow();
 
       // Same fix as /clock-in/stop: a day can already hold a real clocked

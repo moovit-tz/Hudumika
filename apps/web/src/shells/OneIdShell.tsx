@@ -16,6 +16,7 @@ import { OneIdSessions } from '../pages/OneIdSessions.js';
 import { OneIdLoginActivity } from '../pages/OneIdLoginActivity.js';
 import { OneIdKyc } from '../pages/OneIdKyc.js';
 import { OneIdRoles } from '../pages/OneIdRoles.js';
+import { OneIdGroups } from '../pages/OneIdGroups.js';
 import { OneIdPersonal } from '../pages/OneIdPersonal.js';
 import { OneIdSecuritySettings } from '../pages/OneIdSecuritySettings.js';
 import { OneIdVault } from '../pages/OneIdVault.js';
@@ -33,8 +34,8 @@ import { OneIdAutomation } from '../pages/OneIdAutomation.js';
 import { OneIdCompliance } from '../pages/OneIdCompliance.js';
 import { OneIdPolicies } from '../pages/OneIdPolicies.js';
 import { OneIdIntegrations } from '../pages/OneIdIntegrations.js';
-import { OneIdVisitors } from '../pages/OneIdVisitors.js';
 import { OneIdBusinessVerification } from '../pages/OneIdBusinessVerification.js';
+import { OneIdItAdmin } from '../pages/OneIdItAdmin.js';
 import { OndiAuthorize } from '../pages/OndiAuthorize.js';
 
 const ADMIN_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'] as const;
@@ -53,7 +54,7 @@ const PERSONAL_NAV: SidebarSection[] = [
     title: 'YOU',
     items: [
       { label: 'Trust',    icon: 'trendingUp',  path: '/ondi/personal/trust' },
-      { label: 'Wallet',   icon: 'key',         path: '/ondi/personal/wallet' },
+      { label: 'Credentials', icon: 'key',      path: '/ondi/personal/wallet' },
       { label: 'Devices',  icon: 'smartphone',  path: '/ondi/personal/devices' },
       { label: 'Activity', icon: 'activity',    path: '/ondi/personal/activity' },
     ],
@@ -61,7 +62,7 @@ const PERSONAL_NAV: SidebarSection[] = [
   {
     title: 'ACCOUNT',
     items: [
-      { label: 'Documents',        icon: 'fileText', path: '/ondi/personal/documents' },
+      { label: 'ID Documents',     icon: 'fileText', path: '/ondi/personal/documents' },
       { label: 'Privacy',          icon: 'shield',   path: '/ondi/personal/privacy' },
       { label: 'Security Settings', icon: 'lock',     path: '/ondi/personal/security' },
     ],
@@ -194,7 +195,7 @@ export function OneIdShell() {
   const hasPoliciesPermission = isAdmin || !!user?.org_permissions?.includes('policies.manage');
   const hasAssetsPermission = isAdmin || !!user?.org_permissions?.includes('assets.manage');
   const hasIntegrationsPermission = isAdmin || !!user?.org_permissions?.includes('integrations.manage');
-  const hasVisitorsPermission = isAdmin || !!user?.org_permissions?.includes('visitors.manage');
+  const hasGroupsPermission = isAdmin || !!user?.org_permissions?.includes('groups.manage');
 
   const businessNavItems: SidebarNavItem[] = [
     { label: 'Users',          icon: 'users' as const,    path: '/ondi', exact: true },
@@ -206,6 +207,10 @@ export function OneIdShell() {
   }
 
   businessNavItems.push({ label: 'Roles & Access', icon: 'userCheck' as const, path: '/ondi/roles' });
+
+  if (hasGroupsPermission) {
+    businessNavItems.push({ label: 'Groups', icon: 'users' as const, path: '/ondi/groups' });
+  }
 
   if (hasAccessReviewsPermission) {
     businessNavItems.push({ label: 'Access Reviews', icon: 'clipboard' as const, path: '/ondi/access-reviews' });
@@ -233,10 +238,6 @@ export function OneIdShell() {
     businessNavItems.push({ label: 'Integrations', icon: 'grid' as const, path: '/ondi/integrations' });
   }
 
-  if (hasVisitorsPermission) {
-    businessNavItems.push({ label: 'Visitors', icon: 'userPlus' as const, path: '/ondi/visitors' });
-  }
-
   if (hasSsoPermission) {
     businessNavItems.push({ label: 'SSO & Providers', icon: 'key' as const,     path: '/ondi/sso' });
   }
@@ -246,6 +247,7 @@ export function OneIdShell() {
   }
 
   if (isAdmin) {
+    businessNavItems.push({ label: 'IT Admin', icon: 'barChart2' as const, path: '/ondi/it-admin' });
     businessNavItems.push({ label: 'Sessions & Security', icon: 'lock' as const, path: '/ondi/sessions' });
     businessNavItems.push({ label: 'Activity', icon: 'activity' as const,    path: '/ondi/activity' });
     businessNavItems.push({ label: 'Login Activity', icon: 'clock' as const,    path: '/ondi/login-activity' });
@@ -287,11 +289,16 @@ export function OneIdShell() {
                 <Route path="compliance" element={<RequireRoles roles={[...ADMIN_ROLES]} permissions={['compliance.review']}><OneIdCompliance /></RequireRoles>} />
                 <Route path="policies" element={<RequireRoles roles={[...ADMIN_ROLES]} permissions={['policies.manage']}><OneIdPolicies /></RequireRoles>} />
                 <Route path="integrations" element={<RequireRoles roles={[...ADMIN_ROLES]} permissions={['integrations.manage']}><OneIdIntegrations /></RequireRoles>} />
-                <Route path="visitors" element={<RequireRoles roles={[...ADMIN_ROLES]} permissions={['visitors.manage']}><OneIdVisitors /></RequireRoles>} />
+                {/* Moved to NexusHR (front-desk sign-in, not an
+                    authentication moment — see HrVisitors.tsx's own header
+                    comment). */}
+                <Route path="visitors" element={<Navigate to="/nexushr/visitors" replace />} />
                 <Route path="kyc" element={<RequireRoles roles={[...ADMIN_ROLES]} permissions={['kyc.review']}><OneIdKyc /></RequireRoles>} />
                 <Route path="roles" element={<OneIdRoles />} />
+                <Route path="groups" element={<RequireRoles roles={[...ADMIN_ROLES]} permissions={['groups.manage']}><OneIdGroups /></RequireRoles>} />
                 <Route path="authorize" element={<OndiAuthorize />} />
                 <Route path="sso" element={<RequireRoles roles={[...ADMIN_ROLES]} permissions={['sso_providers.manage']}><OneIdSSO /></RequireRoles>} />
+                <Route path="it-admin" element={<RequireRoles roles={[...ADMIN_ROLES]}><OneIdItAdmin /></RequireRoles>} />
                 <Route path="sessions" element={<RequireRoles roles={[...ADMIN_ROLES]}><OneIdSessions /></RequireRoles>} />
                 <Route path="activity" element={<RequireRoles roles={[...ADMIN_ROLES]}><OneIdOrgActivity /></RequireRoles>} />
                 <Route path="trust" element={<RequireRoles roles={[...ADMIN_ROLES]} permissions={['org_trust.view']}><OneIdOrgTrust /></RequireRoles>} />

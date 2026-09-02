@@ -13,6 +13,8 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from '../components/ui/dropdown-menu.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { SingleSelectFilter } from '../components/ui/filter-dropdown.js';
 
 interface OneIdUser {
   id: string; name: string; email: string; phone: string | null;
@@ -64,9 +66,12 @@ function InviteModal({ onClose, onInvited }: { onClose: () => void; onInvited: (
           </div>
           <div>
             <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Role</label>
-            <select value={role} onChange={e => setRole(e.target.value)} style={{ ...inputStyle, cursor: 'pointer' }}>
-              {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
-            </select>
+            <Select value={role} onValueChange={setRole}>
+              <SelectTrigger style={inputStyle}><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {ROLES.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
           {error && <div style={{ fontSize: 12, color: 'var(--red)' }}>{error}</div>}
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
@@ -235,19 +240,6 @@ export const OneIdUsers: React.FC = () => {
     transition: 'all 0.15s ease'
   });
 
-  const selectStyle: React.CSSProperties = {
-    background: 'var(--bg)',
-    border: '1px solid var(--border)',
-    borderRadius: 'var(--r-sm, 6px)',
-    padding: '6px 12px',
-    fontSize: 12.5,
-    fontWeight: 600,
-    color: 'var(--ink2)',
-    cursor: 'pointer',
-    fontFamily: 'var(--font)',
-    outline: 'none',
-  };
-
   return (
     <div>
       {showInvite && <InviteModal onClose={() => setShowInvite(false)} onInvited={reload} />}
@@ -293,22 +285,32 @@ export const OneIdUsers: React.FC = () => {
                 style={{ width: '100%', padding: '6px 10px 6px 30px', fontSize: 13, border: '1px solid var(--border)', borderRadius: 'var(--r-sm, 6px)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', boxSizing: 'border-box' }} />
             </div>
 
-            <select value={filterPermission} onChange={e => setFilterPermission(e.target.value)} style={selectStyle}>
-              <option value="All">Permissions: All</option>
-              <option value="Admin">Admins</option>
-              <option value="Member">Members</option>
-            </select>
+            <SingleSelectFilter
+              label="Permissions"
+              value={filterPermission === 'All' ? null : filterPermission}
+              onChange={v => setFilterPermission(v ?? 'All')}
+              options={[
+                { value: 'Admin', label: 'Admins' },
+                { value: 'Member', label: 'Members' },
+              ]}
+            />
 
-            <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={selectStyle}>
-              <option value="All">Status: All</option>
-              <option value="Seated">Seated (Active)</option>
-              <option value="Suspended">Suspended (Inactive)</option>
-            </select>
+            <SingleSelectFilter
+              label="Status"
+              value={filterStatus === 'All' ? null : filterStatus}
+              onChange={v => setFilterStatus(v ?? 'All')}
+              options={[
+                { value: 'Seated', label: 'Seated (Active)' },
+                { value: 'Suspended', label: 'Suspended (Inactive)' },
+              ]}
+            />
 
-            <select value={filterRole} onChange={e => setFilterRole(e.target.value)} style={selectStyle}>
-              <option value="All">Role: All</option>
-              {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
-            </select>
+            <SingleSelectFilter
+              label="Role"
+              value={filterRole === 'All' ? null : filterRole}
+              onChange={v => setFilterRole(v ?? 'All')}
+              options={ROLES.map(r => ({ value: r, label: r }))}
+            />
           </div>
 
           {/* Table */}

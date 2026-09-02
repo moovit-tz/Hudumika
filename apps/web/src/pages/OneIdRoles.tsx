@@ -6,6 +6,8 @@ import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { Checkbox } from '../components/ui/checkbox.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { Combobox, type ComboboxOption } from '../components/ui/combobox.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 
@@ -40,6 +42,7 @@ const PERMISSION_LABEL: Record<string, string> = {
   'assets.manage': 'View company assets (NexusHR)',
   'integrations.manage': 'Manage third-party app event access',
   'visitors.manage': 'Log and manage front-desk visitors',
+  'groups.manage': 'Create and manage org groups',
 };
 const ALL_PERMISSIONS = Object.keys(PERMISSION_LABEL);
 
@@ -167,19 +170,6 @@ export const OneIdRoles: React.FC = () => {
     setNewRolePerms(prev => prev.includes(perm) ? prev.filter(p => p !== perm) : [...prev, perm]);
   }
 
-  const selectStyle = {
-    background: 'var(--bg)',
-    border: '1px solid var(--border)',
-    borderRadius: 'var(--r-sm, 6px)',
-    padding: '8px 12px',
-    fontSize: 13,
-    color: 'var(--ink)',
-    fontFamily: 'var(--font)',
-    cursor: 'pointer',
-    outline: 'none',
-    boxSizing: 'border-box' as const
-  };
-
   const inputStyle = {
     background: 'var(--bg)',
     border: '1px solid var(--border)',
@@ -207,10 +197,13 @@ export const OneIdRoles: React.FC = () => {
         <SectionCard title="Request access">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'stretch' }}>
-              <select value={requestRoleId} onChange={e => setRequestRoleId(e.target.value)} style={{ ...selectStyle, flex: 1, minWidth: 150 }}>
-                <option value="">Choose a role…</option>
-                {availableRoles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-              </select>
+              <Select value={requestRoleId || '__none__'} onValueChange={v => setRequestRoleId(v === '__none__' ? '' : v)}>
+                <SelectTrigger style={{ flex: 1, minWidth: 150 }}><SelectValue placeholder="Choose a role…" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__" disabled>Choose a role…</SelectItem>
+                  {availableRoles.map(r => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
               <button type="button" onClick={submitAccessRequest} disabled={!requestRoleId || requesting}
                 style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontWeight: 600, cursor: 'pointer', fontSize: 13, opacity: (!requestRoleId || requesting) ? 0.6 : 1, minHeight: 'var(--ctl-h)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 {requesting ? 'Sending…' : 'Request'}
@@ -225,12 +218,15 @@ export const OneIdRoles: React.FC = () => {
             {breakGlass && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--ink3)' }}>
                 Expires after
-                <select value={breakGlassHours} onChange={e => setBreakGlassHours(e.target.value)} style={{ ...selectStyle, padding: '6px 10px', fontSize: 12 }}>
-                  <option value="1">1 hour</option>
-                  <option value="4">4 hours</option>
-                  <option value="12">12 hours</option>
-                  <option value="24">24 hours</option>
-                </select>
+                <Select value={breakGlassHours} onValueChange={setBreakGlassHours}>
+                  <SelectTrigger style={{ height: 30, fontSize: 12 }}><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1 hour</SelectItem>
+                    <SelectItem value="4">4 hours</SelectItem>
+                    <SelectItem value="12">12 hours</SelectItem>
+                    <SelectItem value="24">24 hours</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             )}
 
@@ -389,19 +385,23 @@ export const OneIdRoles: React.FC = () => {
 
                 {/* Add member select box */}
                 <div style={{ borderTop: '1px solid var(--border-soft)', paddingTop: 10, marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <select value={pendingExpiry[r.id] ?? ''} onChange={e => setPendingExpiry(prev => ({ ...prev, [r.id]: e.target.value }))}
-                    style={{ ...selectStyle, width: '100%', padding: '6px 10px', fontSize: 12 }}>
-                    <option value="">Expires: Never</option>
-                    <option value="24">Expires in 24 hours</option>
-                    <option value="168">Expires in 7 days</option>
-                    <option value="720">Expires in 30 days</option>
-                  </select>
-                  <select defaultValue="" onChange={e => { addMember(r.id, e.target.value); e.target.value = ''; }} style={{ ...selectStyle, width: '100%', padding: '6px 10px', fontSize: 12 }}>
-                    <option value="">Add user to this role…</option>
-                    {staff.filter(s => !r.members.some(m => m.user_id === s.id)).map(s => (
-                      <option key={s.id} value={s.id}>{s.name} ({s.email})</option>
-                    ))}
-                  </select>
+                  <Select value={pendingExpiry[r.id] || '__never__'} onValueChange={v => setPendingExpiry(prev => ({ ...prev, [r.id]: v === '__never__' ? '' : v }))}>
+                    <SelectTrigger style={{ width: '100%', height: 30, fontSize: 12 }}><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__never__">Expires: Never</SelectItem>
+                      <SelectItem value="24">Expires in 24 hours</SelectItem>
+                      <SelectItem value="168">Expires in 7 days</SelectItem>
+                      <SelectItem value="720">Expires in 30 days</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Combobox
+                    value=""
+                    onChange={v => addMember(r.id, v)}
+                    placeholder="Add user to this role…"
+                    searchPlaceholder="Search staff…"
+                    emptyText="No staff found"
+                    options={staff.filter(s => !r.members.some(m => m.user_id === s.id)).map((s): ComboboxOption => ({ value: s.id, label: `${s.name} (${s.email})` }))}
+                  />
                 </div>
 
               </div>

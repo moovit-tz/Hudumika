@@ -109,6 +109,7 @@ export interface UserProfileFields {
   cover_position?: { x: number; y: number }; // background-position percentages, drag-to-reposition
   landing_style?: 'advanced' | 'basic'; // overrides the tenant's default at Settings > Landing Experience
   hide_presence?: boolean; // opt out of the online/clocked-in status dot being shown to colleagues (Profile > Personal Info > Privacy)
+  timesheet_exempt?: boolean; // HR-admin-set (NexusHR > Staff > this person) — hides the clock-in prompt everywhere for someone genuinely not measured by a timesheet
 
   // HR/Staff Fields
   employee_code?: string;

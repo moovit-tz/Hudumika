@@ -17,7 +17,6 @@
 
 [data-theme="dark"] .app-main {
   background: #111218;
-  border-radius: 9px 0 0 9px;
 }
 
 /* ── Main column (header + content) ── */
@@ -244,7 +243,13 @@ html[data-expanded="true"] .app-sidebar {
   line-height: 1;
 }
 
-/* ── Nav items — Ngao-style rounded pill with brand color active ── */
+/* ── Nav items — Ngao-style rounded pill with brand color active ──
+   This is the platform's one canonical selected-menu-item treatment — the
+   tint (--nav-active-tint / -dark) and shape (--nav-item-r) are design
+   tokens in index.css, not local numbers, specifically so every left-nav
+   menu in the platform stays this same shape/color instead of drifting
+   into a private variant. Any new sidebar-style menu should render its
+   active item through these same two tokens rather than inventing its own. */
 .app-sb-item {
   display: flex;
   align-items: center;
@@ -262,7 +267,7 @@ html[data-expanded="true"] .app-sidebar {
   text-align: left;
   text-decoration: none;
   padding: 0 14px;
-  border-radius: 8px;
+  border-radius: var(--nav-item-r);
   transition: background 0.1s ease, color 0.1s ease;
   overflow: hidden;
   white-space: nowrap;
@@ -275,7 +280,7 @@ html[data-expanded="true"] .app-sidebar {
 }
 
 .app-sb-item--active {
-  background: color-mix(in srgb, var(--sb-color, #64748b) 14%, transparent);
+  background: color-mix(in srgb, var(--sb-color, #64748b) var(--nav-active-tint), transparent);
   color: var(--sb-color, #64748b);
   font-weight: 600;
 }
@@ -364,7 +369,7 @@ html[data-expanded="true"] .app-sidebar {
 }
 
 .app-sb-children-group .app-sb-item--child.app-sb-item--active {
-  background: color-mix(in srgb, var(--sb-color, #64748b) 14%, transparent);
+  background: color-mix(in srgb, var(--sb-color, #64748b) var(--nav-active-tint), transparent);
   color: var(--sb-color, #64748b);
   font-weight: 600;
 }
@@ -571,12 +576,11 @@ html[data-expanded="true"] .app-sidebar {
    read as visibly darker than the content beside it. */
 [data-theme="dark"] .app-sidebar {
   background: var(--white);
-  border-right: none;
-  border-radius: 0 9px 9px 0;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 [data-theme="dark"] .app-sb-brand {
-  border-bottom-color: rgba(255, 255, 255, 0.06);
+  border-bottom-color: rgba(255, 255, 255, 0.08);
 }
 
 [data-theme="dark"] .app-sb-item {
@@ -589,7 +593,7 @@ html[data-expanded="true"] .app-sidebar {
 }
 
 [data-theme="dark"] .app-sb-item--active {
-  background: color-mix(in srgb, var(--sb-color, #64748b) 22%, transparent);
+  background: color-mix(in srgb, var(--sb-color, #64748b) var(--nav-active-tint-dark), transparent);
   color: var(--sb-color, #64748b);
 }
 

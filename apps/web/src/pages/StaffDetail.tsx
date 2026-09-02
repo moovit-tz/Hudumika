@@ -579,7 +579,7 @@ export const StaffDetail: React.FC = () => {
     }
   };
 
-  const updateProfileField = (key: keyof UserProfileFields, value: string) => {
+  const updateProfileField = (key: keyof UserProfileFields, value: string | boolean) => {
     setEditForm(prev => ({
       ...prev,
       profile: { ...prev.profile, [key]: value }
@@ -775,7 +775,7 @@ export const StaffDetail: React.FC = () => {
         </div>
 
         {/* Horizontal Tabs */}
-        <div className="ds-tabs-list" data-variant="segmented" style={{ margin: '0 32px' }}>
+        <div className="ds-tabs-list" data-variant="segmented" style={{ margin: '14px 32px 16px' }}>
           {TABS.map(t => (
             <button
               key={t}
@@ -1330,6 +1330,14 @@ export const StaffDetail: React.FC = () => {
                     <input value={editForm.profile.employment_type || ''} onChange={e => updateProfileField('employment_type', e.target.value)} style={inputSt} />
                   </div>
                 </div>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 14, fontSize: 12.5, color: 'var(--ink2)', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={!!editForm.profile.timesheet_exempt}
+                    onChange={e => updateProfileField('timesheet_exempt', e.target.checked)}
+                  />
+                  Exempt from timesheets — hides the clock-in prompt for this person everywhere (header, ESS hub card)
+                </label>
               </div>
 
               <div>

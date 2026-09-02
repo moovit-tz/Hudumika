@@ -773,15 +773,18 @@ export function AppHeader({
                 >
                   {/* Shared with every other app. The picture is fetched once
                       from the identity endpoint and cached, rather than being
-                      carried as a 548KB data URI in the session. */}
+                      carried as a 548KB data URI in the session. PersonAvatar
+                      already draws the real, live presence dot itself
+                      (offline/online/clocked-in — lib/presence.ts) — a second,
+                      hardcoded-green dot used to be layered on top of it here,
+                      left over from before that system existed, which is why
+                      this corner never matched the ESS card's own dot. */}
                   <PersonAvatar
                     userId={(user as any)?.id}
                     name={user?.name ?? 'User'}
                     size={36}
                     style={{ border: '1px solid var(--border)' }}
                   />
-                  {/* Green status indicator dot */}
-                  <span style={{ position: 'absolute', bottom: 0, right: 0, width: 10, height: 10, borderRadius: '50%', background: 'var(--green)', border: '2px solid var(--white)' }} />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-64 p-3 rounded-xl shadow-2xl border border-slate-200/80 dark:border-slate-800 text-slate-900 dark:text-slate-100" style={{ background: 'var(--white)', zIndex: 99999 }}>
@@ -794,7 +797,6 @@ export function AppHeader({
                       size={38}
                       style={{ border: '1px solid var(--border)' }}
                     />
-                    <span style={{ position: 'absolute', bottom: 0, right: 0, width: 9, height: 9, borderRadius: '50%', background: 'var(--green)', border: '1.5px solid var(--white)' }} />
                   </div>
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.2 }}>

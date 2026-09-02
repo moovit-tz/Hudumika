@@ -10,6 +10,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { Popover, PopoverAnchor, PopoverContent } from '../components/ui/popover.js';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '../components/ui/dropdown-menu.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
+import { Badge } from '../components/ui/badge.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { showAlert } from '../lib/alert.js';
 
@@ -497,9 +498,7 @@ export function Contacts() {
                   {activeContact.labels.length > 0 ? (
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 20 }}>
                       {activeContact.labels.map(l => (
-                        <span key={l.id} style={{ fontSize: 11, padding: '3px 10px', borderRadius: 12, background: 'var(--cts-accent-bg)', color: 'var(--cts-accent)', fontWeight: 600 }}>
-                          {l.name}
-                        </span>
+                        <Badge key={l.id} variant="brand">{l.name}</Badge>
                       ))}
                     </div>
                   ) : (
@@ -931,9 +930,7 @@ export function Contacts() {
                               <td style={{ padding: '8px 16px' }}>
                                 <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                                   {contact.labels.map(l => (
-                                    <span key={l.id} style={{ fontSize: 11, padding: '2px 8px', borderRadius: 10, background: 'var(--bg)', color: 'var(--ink2)', fontWeight: 500 }}>
-                                      {l.name}
-                                    </span>
+                                    <Badge key={l.id} variant="gray">{l.name}</Badge>
                                   ))}
                                 </div>
                               </td>
@@ -1138,7 +1135,7 @@ export function Contacts() {
                       <img src={formAvatarUrl} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     ) : (
                       <div style={{
-                        width: '100%', height: '100%', background: 'var(--cts-accent)', color: '#fff',
+                        width: '100%', height: '100%', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         fontWeight: 700, fontSize: 28
                       }}>
@@ -1418,9 +1415,9 @@ export function Contacts() {
                   type="button"
                   onClick={handleCreateLabelInline}
                   style={{
-                    padding: '0 12px', height: 32, borderRadius: 'var(--r)', border: 'none',
-                    background: 'var(--cts-accent)', color: '#fff', fontSize: 12, fontWeight: 600,
-                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyItems: 'center'
+                    padding: '0 12px', minHeight: 'var(--ctl-h-sm)', borderRadius: 'var(--r)', border: 'none',
+                    background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 12, fontWeight: 600,
+                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyItems: 'center', boxSizing: 'border-box'
                   }}
                 >
                   Create Label

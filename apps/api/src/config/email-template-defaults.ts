@@ -29,6 +29,25 @@ export const EMAIL_TEMPLATE_DEFAULTS: Record<string, EmailTemplateDefault> = {
       <p>This link expires in 1 hour. If you didn't request this, you can safely ignore this email.</p>
     `,
   },
+  'auth.magic_link': {
+    category: 'account',
+    subject: 'Your Hudumika sign-in link',
+    body: `
+      <p>Click below to sign in to Hudumika — no password needed.</p>
+      <p><a href="{{magicLinkUrl}}" style="background:#0d7a6b;color:#ffffff;padding:10px 18px;text-decoration:none;border-radius:6px;display:inline-block;">Sign in</a></p>
+      <p>This link expires in 15 minutes and can only be used once. If you didn't request this, you can safely ignore this email.</p>
+    `,
+  },
+  'auth.recovery_request': {
+    category: 'account',
+    subject: '{{requesterName}} named you as a recovery contact — action needed',
+    body: `
+      <p><strong>{{requesterName}}</strong> ({{requesterEmail}}) has lost access to their Hudumika account and is asking you, as one of their trusted recovery contacts, to vouch for them.</p>
+      <p>Log in to your own Hudumika account and open <strong>Ondi ▸ Security Settings ▸ Recovery requests</strong> to review and approve or decline this request.</p>
+      <p>If you approve, there is still a cooldown period before {{requesterName}} regains access — if this wasn't really them, they can cancel it just by logging in normally in the meantime.</p>
+      <p>If you don't recognise this request, decline it or simply ignore this email.</p>
+    `,
+  },
 
   'customers.claim_code': {
     category: 'account',

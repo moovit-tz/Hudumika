@@ -104,7 +104,15 @@ const envSchema = z.object({
   PUBLIC_APP_URL: z.string().url().optional(),
 
   OPS_BOARD_URL: z.string().url().default('http://localhost:5173'),
-  
+
+  /** This API's own externally-resolvable base URL. Unlike PUBLIC_APP_URL
+   *  above (the web app, used for links a person clicks), this is for a
+   *  machine-to-machine callback: SAML's Assertion Consumer Service URL and
+   *  SP entity ID have to be a stable address an external IdP is configured
+   *  in advance to trust and POST back to — there was no existing "what is
+   *  my own address" setting to reuse for that. */
+  API_BASE_URL: z.string().url().default('http://localhost:3001'),
+
   AIS_API_KEY: z.string().optional(),
 
   /**

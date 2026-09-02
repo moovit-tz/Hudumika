@@ -1,8 +1,13 @@
-// ─── OneIdVisitors.tsx — Ondi Enterprise · Visitors ───────────────
-// Front-desk sign-in — the one genuinely novel concept in M9 (Assets links
-// out to NexusHR's existing real page; Integrations governs an
-// already-existing table). Real check-in/check-out, a real (if simple)
-// badge code, no invented QR/kiosk hardware integration.
+// ─── HrVisitors.tsx — NexusHR · Front desk ─────────────────────────
+// Front-desk sign-in — real check-in/check-out, a real (if simple) badge
+// code, no invented QR/kiosk hardware integration.
+//
+// Moved here from Ondi (was OneIdVisitors.tsx at /ondi/visitors) — a
+// physical front-desk log isn't an authentication moment, so it never fit
+// Ondi's own "appears at the moment of authentication, almost nowhere else"
+// rule; this belongs with NexusHR's other people/records surfaces instead.
+// Backend endpoint kept as-is (/v1/oneid/org/visitors) — only the page/nav
+// moved, not the API.
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { PageHeader } from '../components/PageHeader.js';
@@ -22,7 +27,7 @@ function fmtTime(d: string): string {
   return new Date(d).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
 }
 
-export const OneIdVisitors: React.FC = () => {
+export const HrVisitors: React.FC = () => {
   const [visitors, setVisitors] = useState<Visitor[] | null>(null);
   const [showNew, setShowNew] = useState(false);
   const [name, setName] = useState('');
@@ -39,8 +44,8 @@ export const OneIdVisitors: React.FC = () => {
 
   // EntityPicker takes a search callback, not a built-in entity registry —
   // the staff list is small enough on this platform's typical tenant size
-  // to fetch once and filter client-side, same pattern OneIdApps.tsx and
-  // others already use rather than standing up a new /search endpoint.
+  // to fetch once and filter client-side, same pattern used elsewhere
+  // rather than standing up a new /search endpoint.
   const searchStaff = useCallback(async (query: string): Promise<PickerItem[]> => {
     if (!staffCache.current) {
       const users = await apiFetch('/v1/oneid/users').catch(() => []);
@@ -79,7 +84,7 @@ export const OneIdVisitors: React.FC = () => {
   return (
     <div>
       <PageHeader
-        crumbs={['Ondi', 'Enterprise']}
+        crumbs={['NexusHR', 'Records']}
         titlePlain="Front desk"
         titleEm="visitors"
         subtitle="Who's on-site right now, and who's been in recently."
@@ -170,4 +175,4 @@ export const OneIdVisitors: React.FC = () => {
   );
 };
 
-export default OneIdVisitors;
+export default HrVisitors;

@@ -28,13 +28,17 @@ export interface TrustScoreResult {
   score: number;
   tier: 'LOW' | 'MEDIUM' | 'HIGH';
   signals: { kycTierScore: number; phoneTenureScore: number; authConsistencyScore: number };
+  /** Raw verification_level, alongside the derived kycTierScore signal — the
+   *  authz-check policy engine needs the actual tier string (e.g. to require
+   *  "id_verified or above"), not just its numeric contribution to the score. */
+  verificationLevel: string;
 }
 
 export async function computeTrustScore(tenantId: string, userId: string): Promise<TrustScoreResult> {
   return withTenant(tenantId, async (trx) => {
     const user = await trx.selectFrom('users').select(['verification_level', 'created_at'])
       .where('id', '=', userId).executeTakeFirst();
-    if (!user) return { score: 300, tier: 'LOW' as const, signals: { kycTierScore: 0, phoneTenureScore: 0, authConsistencyScore: 0 } };
+    if (!user) return { score: 300, tier: 'LOW' as const, signals: { kycTierScore: 0, phoneTenureScore: 0, authConsistencyScore: 0 }, verificationLevel: 'unverified' };
 
     const recentLogins = await trx.selectFrom('hr_login_history').select('status')
       .where('user_id', '=', userId).orderBy('created_at', 'desc').limit(50).execute();
@@ -59,7 +63,7 @@ export async function computeTrustScore(tenantId: string, userId: string): Promi
     const score = Math.max(300, Math.min(850, Math.round(300 + (raw / 100) * 550)));
     const tier: TrustScoreResult['tier'] = score >= 700 ? 'HIGH' : score >= 500 ? 'MEDIUM' : 'LOW';
 
-    return { score, tier, signals: { kycTierScore, phoneTenureScore, authConsistencyScore } };
+    return { score, tier, signals: { kycTierScore, phoneTenureScore, authConsistencyScore }, verificationLevel: user.verification_level };
   });
 }
 

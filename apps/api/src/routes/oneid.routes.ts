@@ -14,6 +14,14 @@ import { computeOrgTrust } from '../lib/trust-score.js';
 import { computeComplianceRollup } from '../lib/compliance-rollup.js';
 import { emitDomainEvent } from '../services/domain-events.service.js';
 
+// Ondi feature-gap pass (M5) — same escaping convention hr.routes.ts's own
+// timesheet export already uses; kept local rather than newly shared, same
+// as that file's own copy.
+const csvCell = (v: unknown) => {
+  const s = v == null ? '' : String(v);
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+};
+
 const kybSubmitSchema = z.object({
   image_base64: z.string().min(1),
   media_type: z.enum(['image/jpeg', 'image/png', 'image/webp']).default('image/jpeg'),
@@ -236,7 +244,7 @@ export async function oneidRoutes(fastify: FastifyInstance) {
   // ── SSO providers (config registry — see migration 053 header comment:
   //    this is NOT a working SAML/OIDC federation implementation) ────────
 
-  fastify.get('/sso-providers', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.SSO_PROVIDERS_MANAGE, 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.get('/sso-providers', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.SSO_PROVIDERS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     return withTenant(user.tenant_id, async (trx) => {
       return trx.selectFrom('sso_providers')
@@ -247,7 +255,7 @@ export async function oneidRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/sso-providers', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.SSO_PROVIDERS_MANAGE, 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.post('/sso-providers', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.SSO_PROVIDERS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     const body = req.body as { provider_type: string; name: string; config?: Record<string, any> };
     return withTenant(user.tenant_id, async (trx) => {
@@ -261,7 +269,7 @@ export async function oneidRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.patch('/sso-providers/:id', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.SSO_PROVIDERS_MANAGE, 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.patch('/sso-providers/:id', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.SSO_PROVIDERS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     const { id } = req.params as { id: string };
     const body = req.body as { name?: string; config?: Record<string, any>; enabled?: boolean };
@@ -276,7 +284,7 @@ export async function oneidRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.delete('/sso-providers/:id', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.SSO_PROVIDERS_MANAGE, 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.delete('/sso-providers/:id', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.SSO_PROVIDERS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     const { id } = req.params as { id: string };
     return withTenant(user.tenant_id, async (trx) => {
@@ -288,14 +296,14 @@ export async function oneidRoutes(fastify: FastifyInstance) {
 
   // ── Outbound SSO Clients (Ondi M6) ───────────────────────────
 
-  fastify.get('/oauth-clients', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.SSO_PROVIDERS_MANAGE, 'ADMIN', 'TENANT_ADMIN') }, async () => {
+  fastify.get('/oauth-clients', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.SSO_PROVIDERS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async () => {
     return dbPlatform.selectFrom('ondi_oauth_clients')
       .selectAll()
       .orderBy('created_at', 'desc')
       .execute();
   });
 
-  fastify.post('/oauth-clients', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.SSO_PROVIDERS_MANAGE, 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.post('/oauth-clients', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.SSO_PROVIDERS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const body = z.object({
       client_id: z.string().trim().min(3).max(80),
       name: z.string().trim().min(1).max(100),
@@ -317,7 +325,7 @@ export async function oneidRoutes(fastify: FastifyInstance) {
     }).returningAll().executeTakeFirstOrThrow();
   });
 
-  fastify.patch('/oauth-clients/:id', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.SSO_PROVIDERS_MANAGE, 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.patch('/oauth-clients/:id', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.SSO_PROVIDERS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const { id } = req.params as { id: string };
     const body = z.object({
       name: z.string().trim().min(1).max(100).optional(),
@@ -343,7 +351,7 @@ export async function oneidRoutes(fastify: FastifyInstance) {
       .executeTakeFirstOrThrow();
   });
 
-  fastify.delete('/oauth-clients/:id', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.SSO_PROVIDERS_MANAGE, 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.delete('/oauth-clients/:id', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.SSO_PROVIDERS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const { id } = req.params as { id: string };
     await dbPlatform.deleteFrom('ondi_oauth_clients').where('id', '=', id).execute();
     return { ok: true };
@@ -658,6 +666,268 @@ export async function oneidRoutes(fastify: FastifyInstance) {
       await recordAuthEvent(user.tenant_id, userId, 'org_role_revoked', { metadata: { role_id: id, revoked_by: user.sub } });
       return { success: true };
     });
+  });
+
+  // ── Org groups — dynamic/rule-based membership ──────────────────
+  // Ondi feature-gap pass, continued. A group is: a name, a membership list
+  // (typed by hand, or computed from a rule), and zero or more roles
+  // attached to it. Attaching a role to a group, or a person joining one
+  // (by hand or by rule match), writes ordinary ondi_org_role_members rows
+  // — the exact same table/shape a direct grant above already uses — just
+  // tagged with granted_via_group_id so it can be cleanly un-done later.
+  // hasOrgPermission() itself (org-rbac.ts) never learns a new concept.
+
+  const GROUP_RULE_ATTRIBUTES = ['role', 'active'] as const;
+  const groupRuleSchema = z.object({
+    attribute: z.enum(GROUP_RULE_ATTRIBUTES),
+    operator: z.enum(['equals', 'in']),
+    value: z.union([z.string(), z.array(z.string())]),
+  });
+  const orgGroupFields = z.object({
+    name: z.string().trim().min(1).max(120),
+    description: z.string().trim().max(500).optional(),
+    membership_type: z.enum(['static', 'dynamic']).default('static'),
+    rule: groupRuleSchema.optional(),
+  });
+  const orgGroupSchema = orgGroupFields.refine(v => v.membership_type === 'static' || !!v.rule, { message: 'A dynamic group needs a rule.' });
+  const orgGroupUpdateSchema = orgGroupFields.partial();
+
+  /** Users currently matching a dynamic group's rule — deliberately just the
+   *  one condition, one attribute (role / location_id / active), no AND/OR
+   *  composition yet. Every attribute here is a real, directly-queryable
+   *  `users` column; nothing speculative like a department field this
+   *  platform doesn't reliably capture for every tenant. */
+  async function evaluateGroupRule(tenantId: string, rule: { attribute: string; operator: string; value: string | string[] }): Promise<string[]> {
+    return withTenant(tenantId, async (trx) => {
+      let q = trx.selectFrom('users').select('id').where('tenant_id', '=', tenantId);
+      const col = rule.attribute as 'role' | 'active';
+      if (rule.operator === 'in' && Array.isArray(rule.value)) {
+        q = q.where(col, 'in', rule.value as any);
+      } else {
+        const v = Array.isArray(rule.value) ? rule.value[0] : rule.value;
+        q = q.where(col, '=', (col === 'active' ? v === 'true' : v) as any);
+      }
+      const rows = await q.execute();
+      return rows.map(r => r.id);
+    });
+  }
+
+  /** Reconciles ondi_org_role_members against a group's CURRENT member list
+   *  for every role attached to the group: grants the role (source-tagged)
+   *  to members who don't already have it from anywhere, and revokes only
+   *  the grants this exact group is responsible for, for people no longer
+   *  in memberUserIds. A grant that already existed for another reason
+   *  (direct, or via a different group) is never touched — ON CONFLICT DO
+   *  NOTHING on the way in, and the DELETE below only ever matches rows
+   *  this group itself created. */
+  async function syncGroupRoleGrants(tenantId: string, groupId: string, memberUserIds: string[]): Promise<void> {
+    await withTenant(tenantId, async (trx) => {
+      const roleLinks = await trx.selectFrom('ondi_org_group_roles').select('role_id').where('group_id', '=', groupId).execute();
+      for (const { role_id } of roleLinks) {
+        if (memberUserIds.length > 0) {
+          await trx.insertInto('ondi_org_role_members')
+            .values(memberUserIds.map(user_id => ({
+              tenant_id: tenantId, role_id, user_id, granted_by: null, expires_at: null, granted_via_group_id: groupId,
+            })))
+            .onConflict(oc => oc.columns(['role_id', 'user_id']).doNothing())
+            .execute();
+        }
+        let del = trx.deleteFrom('ondi_org_role_members')
+          .where('role_id', '=', role_id).where('granted_via_group_id', '=', groupId);
+        if (memberUserIds.length > 0) del = del.where('user_id', 'not in', memberUserIds);
+        await del.execute();
+      }
+    });
+  }
+
+  fastify.get('/org/groups', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.GROUPS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+    const user = req.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const groups = await trx.selectFrom('ondi_org_groups').selectAll().where('tenant_id', '=', user.tenant_id).orderBy('name').execute();
+      const memberCounts = await trx.selectFrom('ondi_org_group_members').select(['group_id', trx.fn.countAll().as('count')])
+        .where('tenant_id', '=', user.tenant_id).groupBy('group_id').execute();
+      const roleLinks = await trx.selectFrom('ondi_org_group_roles as gr')
+        .innerJoin('ondi_org_roles as r', 'r.id', 'gr.role_id')
+        .select(['gr.group_id', 'r.id as role_id', 'r.name as role_name'])
+        .where('gr.tenant_id', '=', user.tenant_id).execute();
+      return groups.map(g => ({
+        ...g,
+        member_count: Number(memberCounts.find(m => m.group_id === g.id)?.count ?? 0),
+        roles: roleLinks.filter(r => r.group_id === g.id).map(r => ({ id: r.role_id, name: r.role_name })),
+      }));
+    });
+  });
+
+  fastify.get('/org/groups/:id', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.GROUPS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
+    const user = req.user;
+    const { id } = req.params as { id: string };
+    return withTenant(user.tenant_id, async (trx) => {
+      const group = await trx.selectFrom('ondi_org_groups').selectAll().where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!group) { reply.status(404); return { error: 'Not found' }; }
+      const members = await trx.selectFrom('ondi_org_group_members as m')
+        .innerJoin('users as u', 'u.id', 'm.user_id')
+        .select(['m.user_id', 'u.name as user_name', 'u.email as user_email', 'm.source', 'm.added_at'])
+        .where('m.group_id', '=', id).orderBy('u.name').execute();
+      const roles = await trx.selectFrom('ondi_org_group_roles as gr')
+        .innerJoin('ondi_org_roles as r', 'r.id', 'gr.role_id')
+        .select(['r.id', 'r.name', 'r.description']).where('gr.group_id', '=', id).execute();
+      return { ...group, members, roles };
+    });
+  });
+
+  fastify.post('/org/groups', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.GROUPS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
+    const user = req.user;
+    const body = orgGroupSchema.parse(req.body);
+    try {
+      const group = await withTenant(user.tenant_id, trx => trx.insertInto('ondi_org_groups').values({
+        tenant_id: user.tenant_id, name: body.name, description: body.description ?? null,
+        membership_type: body.membership_type, rule: body.rule ? JSON.stringify(body.rule) : null, created_by: user.sub,
+      }).returningAll().executeTakeFirstOrThrow());
+      await recordAuthEvent(user.tenant_id, user.sub, 'org_group_created', { metadata: { group_id: group.id, name: group.name } });
+      reply.status(201);
+      return group;
+    } catch (err: any) {
+      if (String(err.message || '').includes('unique')) return reply.status(409).send({ error: 'A group with this name already exists.' });
+      throw err;
+    }
+  });
+
+  fastify.patch('/org/groups/:id', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.GROUPS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
+    const user = req.user;
+    const { id } = req.params as { id: string };
+    const body = orgGroupUpdateSchema.parse(req.body);
+    return withTenant(user.tenant_id, async (trx) => {
+      const patch: Record<string, unknown> = { updated_at: new Date() };
+      if (body.name !== undefined) patch.name = body.name;
+      if (body.description !== undefined) patch.description = body.description;
+      if (body.membership_type !== undefined) patch.membership_type = body.membership_type;
+      if (body.rule !== undefined) patch.rule = JSON.stringify(body.rule);
+      const updated = await trx.updateTable('ondi_org_groups').set(patch)
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).returningAll().executeTakeFirst();
+      if (!updated) { reply.status(404); return { error: 'Not found' }; }
+      await recordAuthEvent(user.tenant_id, user.sub, 'org_group_updated', { metadata: { group_id: id } });
+      return updated;
+    });
+  });
+
+  fastify.delete('/org/groups/:id', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.GROUPS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
+    const user = req.user;
+    const { id } = req.params as { id: string };
+    return withTenant(user.tenant_id, async (trx) => {
+      // The FK on ondi_org_role_members.granted_via_group_id is ON DELETE
+      // CASCADE — deleting the group also revokes every grant it made,
+      // in one statement, with no orphaned access left behind.
+      const deleted = await trx.deleteFrom('ondi_org_groups').where('id', '=', id).where('tenant_id', '=', user.tenant_id).returning(['id', 'name']).executeTakeFirst();
+      if (!deleted) { reply.status(404); return { error: 'Not found' }; }
+      await recordAuthEvent(user.tenant_id, user.sub, 'org_group_deleted', { metadata: { group_id: id, name: deleted.name } });
+      return { success: true };
+    });
+  });
+
+  fastify.post('/org/groups/:id/members', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.GROUPS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
+    const user = req.user;
+    const { id } = req.params as { id: string };
+    const { user_id } = z.object({ user_id: z.string().uuid() }).parse(req.body);
+    const memberIds = await withTenant(user.tenant_id, async (trx) => {
+      const group = await trx.selectFrom('ondi_org_groups').select('id').where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!group) return null;
+      await trx.insertInto('ondi_org_group_members').values({ tenant_id: user.tenant_id, group_id: id, user_id, source: 'manual' })
+        .onConflict(oc => oc.columns(['group_id', 'user_id']).doUpdateSet({ source: 'manual' })).execute();
+      const rows = await trx.selectFrom('ondi_org_group_members').select('user_id').where('group_id', '=', id).execute();
+      return rows.map(r => r.user_id);
+    });
+    if (memberIds === null) { reply.status(404); return { error: 'Not found' }; }
+    await syncGroupRoleGrants(user.tenant_id, id, memberIds);
+    await recordAuthEvent(user.tenant_id, user_id, 'org_group_member_added', { metadata: { group_id: id, added_by: user.sub } });
+    return { success: true };
+  });
+
+  fastify.delete('/org/groups/:id/members/:userId', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.GROUPS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+    const user = req.user;
+    const { id, userId } = req.params as { id: string; userId: string };
+    const memberIds = await withTenant(user.tenant_id, async (trx) => {
+      await trx.deleteFrom('ondi_org_group_members').where('group_id', '=', id).where('user_id', '=', userId).where('tenant_id', '=', user.tenant_id).execute();
+      const rows = await trx.selectFrom('ondi_org_group_members').select('user_id').where('group_id', '=', id).execute();
+      return rows.map(r => r.user_id);
+    });
+    await syncGroupRoleGrants(user.tenant_id, id, memberIds);
+    await recordAuthEvent(user.tenant_id, userId, 'org_group_member_removed', { metadata: { group_id: id, removed_by: user.sub } });
+    return { success: true };
+  });
+
+  fastify.post('/org/groups/:id/roles', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.GROUPS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
+    const user = req.user;
+    const { id } = req.params as { id: string };
+    const { role_id } = z.object({ role_id: z.string().uuid() }).parse(req.body);
+    const memberIds = await withTenant(user.tenant_id, async (trx) => {
+      const group = await trx.selectFrom('ondi_org_groups').select('id').where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!group) return null;
+      await trx.insertInto('ondi_org_group_roles').values({ tenant_id: user.tenant_id, group_id: id, role_id })
+        .onConflict(oc => oc.columns(['group_id', 'role_id']).doNothing()).execute();
+      const rows = await trx.selectFrom('ondi_org_group_members').select('user_id').where('group_id', '=', id).execute();
+      return rows.map(r => r.user_id);
+    });
+    if (memberIds === null) { reply.status(404); return { error: 'Not found' }; }
+    await syncGroupRoleGrants(user.tenant_id, id, memberIds);
+    await recordAuthEvent(user.tenant_id, user.sub, 'org_group_role_attached', { metadata: { group_id: id, role_id } });
+    reply.status(201);
+    return { success: true };
+  });
+
+  fastify.delete('/org/groups/:id/roles/:roleId', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.GROUPS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+    const user = req.user;
+    const { id, roleId } = req.params as { id: string; roleId: string };
+    await withTenant(user.tenant_id, trx => trx.deleteFrom('ondi_org_group_roles')
+      .where('group_id', '=', id).where('role_id', '=', roleId).where('tenant_id', '=', user.tenant_id).execute());
+    // The role is no longer attached, so every grant this group made for it
+    // should go too — pass an empty member list so syncGroupRoleGrants'
+    // DELETE branch clears all of them (roleLinks below no longer includes
+    // this role, so nothing re-grants it on the same pass).
+    await withTenant(user.tenant_id, trx => trx.deleteFrom('ondi_org_role_members')
+      .where('role_id', '=', roleId).where('granted_via_group_id', '=', id).execute());
+    await recordAuthEvent(user.tenant_id, user.sub, 'org_group_role_detached', { metadata: { group_id: id, role_id: roleId } });
+    return { success: true };
+  });
+
+  // Re-evaluates a dynamic group's rule against real user data right now —
+  // deliberately on-demand (a button, not a background job on every users
+  // write) so this milestone doesn't have to reason about every place a
+  // user's role/location can change across the whole platform to stay
+  // correct; "stale until you ask" is honest, "silently wrong" would not be.
+  fastify.post('/org/groups/:id/recalculate', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.GROUPS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
+    const user = req.user;
+    const { id } = req.params as { id: string };
+    const group = await withTenant(user.tenant_id, trx => trx.selectFrom('ondi_org_groups').selectAll()
+      .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst());
+    if (!group) { reply.status(404); return { error: 'Not found' }; }
+    if (group.membership_type !== 'dynamic' || !group.rule) { reply.status(400); return { error: 'Not a dynamic group.' }; }
+
+    const rule = typeof group.rule === 'string' ? JSON.parse(group.rule) : group.rule;
+    const matchedUserIds = await evaluateGroupRule(user.tenant_id, rule);
+
+    const memberIds = await withTenant(user.tenant_id, async (trx) => {
+      const current = await trx.selectFrom('ondi_org_group_members').select(['user_id', 'source']).where('group_id', '=', id).execute();
+      const currentRuleIds = new Set(current.filter(m => m.source === 'rule').map(m => m.user_id));
+      const currentManualIds = new Set(current.filter(m => m.source === 'manual').map(m => m.user_id));
+
+      const toAdd = matchedUserIds.filter(uid => !currentRuleIds.has(uid) && !currentManualIds.has(uid));
+      const toRemove = [...currentRuleIds].filter(uid => !matchedUserIds.includes(uid));
+
+      if (toAdd.length > 0) {
+        await trx.insertInto('ondi_org_group_members').values(toAdd.map(user_id => ({
+          tenant_id: user.tenant_id, group_id: id, user_id, source: 'rule',
+        }))).onConflict(oc => oc.columns(['group_id', 'user_id']).doNothing()).execute();
+      }
+      if (toRemove.length > 0) {
+        await trx.deleteFrom('ondi_org_group_members').where('group_id', '=', id).where('source', '=', 'rule').where('user_id', 'in', toRemove).execute();
+      }
+      const rows = await trx.selectFrom('ondi_org_group_members').select('user_id').where('group_id', '=', id).execute();
+      return rows.map(r => r.user_id);
+    });
+
+    await syncGroupRoleGrants(user.tenant_id, id, memberIds);
+    await recordAuthEvent(user.tenant_id, user.sub, 'org_group_recalculated', { metadata: { group_id: id, member_count: memberIds.length } });
+    return { member_count: memberIds.length };
   });
 
   // ── Self-service access requests (Ondi M5) ──────────────────────
@@ -1195,15 +1465,39 @@ export async function oneidRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.get('/org/activity', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.get('/org/activity', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
     const user = req.user;
-    const { limit } = req.query as { limit?: string };
-    return withTenant(user.tenant_id, trx => trx.selectFrom('ondi_auth_events as e')
+    const { limit, format } = req.query as { limit?: string; format?: string };
+    // Ondi feature-gap pass (M5): the org activity/audit feed was on-screen
+    // only — the fork's own benchmark doc lists CSV export as real. PDF is
+    // deliberately dropped from scope: this is already tabular rows, not a
+    // layout worth a new PDF dependency for.
+    const rowLimit = format === 'csv' ? 2000 : Math.min(Number(limit) || 200, 500);
+    const rows = await withTenant(user.tenant_id, trx => trx.selectFrom('ondi_auth_events as e')
       .leftJoin('users as u', 'u.id', 'e.user_id')
       .select(['e.id', 'e.event_type', 'e.ip', 'e.user_agent', 'e.metadata', 'e.created_at', 'e.user_id', 'u.name as user_name'])
       .where('e.tenant_id', '=', user.tenant_id)
       .orderBy('e.created_at', 'desc')
-      .limit(Math.min(Number(limit) || 200, 500))
+      .limit(rowLimit)
       .execute());
+
+    if (format !== 'csv') return rows;
+
+    const lines = ['Timestamp,Event,User,IP,User Agent,Metadata'];
+    for (const r of rows) {
+      lines.push([
+        new Date(r.created_at).toISOString(),
+        r.event_type,
+        r.user_name ?? '',
+        r.ip ?? '',
+        r.user_agent ?? '',
+        r.metadata ? JSON.stringify(r.metadata) : '',
+      ].map(csvCell).join(','));
+    }
+
+    reply
+      .header('Content-Type', 'text/csv; charset=utf-8')
+      .header('Content-Disposition', `attachment; filename="ondi_activity_${new Date().toISOString().slice(0, 10)}.csv"`);
+    return lines.join('\n');
   });
 }

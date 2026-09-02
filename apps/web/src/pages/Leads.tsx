@@ -565,7 +565,7 @@ export const Leads: React.FC = () => {
           </div>
 
           {/* Tabs */}
-          <div className="ds-tabs-list" data-variant="segmented" style={{ margin: '0 28px' }}>
+          <div className="ds-tabs-list" data-variant="segmented" style={{ margin: '14px 28px 16px' }}>
             {PROF_TABS.map(tab => {
               const isActive = profileTab === tab.key;
               return (

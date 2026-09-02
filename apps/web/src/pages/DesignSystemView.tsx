@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   useDesignSystem, DesignTokens, NeutralSet, SemanticSet, DesignSystemVersion,
   FONT_IDS, FONT_LABELS, DENSITY_IDS, DENSITY_LABELS, SHADOW_IDS, SHADOW_LABELS,
   SHADOW_PRESETS, generateFromSeed, PLATFORM_THEMES,
 } from '../hooks/useDesignSystem.js';
-import { useBranding, pushBranding } from '../hooks/useBranding.js';
+import { pushBranding } from '../hooks/useBranding.js';
 import { ALL_APP_IDS } from '@hudumika/types';
 import './DesignSystemView.css';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
@@ -13,10 +14,11 @@ import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { APP_PALETTE_SLOT } from '../shells/WorkspaceApp.js';
-import { APP_REGISTRY } from '../lib/appRegistry.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { BrandingIdentitySection, BrandingAppsSection, BrandingLoginSection } from './BrandingView.js';
+import ComponentShowcase from './ComponentShowcase.js';
 
-const SECTIONS: { id: string; group: 'theming' | 'layout'; label: string; icon: IconName }[] = [
+const SECTIONS: { id: string; group: 'theming' | 'layout' | 'platform'; label: string; icon: IconName }[] = [
   { id: 'themes',     group: 'theming', label: 'Themes',           icon: 'sparkle' },
   { id: 'brand',      group: 'theming', label: 'Brand & Neutral',  icon: 'sun' },
   { id: 'semantic',   group: 'theming', label: 'Semantic',         icon: 'tag' },
@@ -26,7 +28,6 @@ const SECTIONS: { id: string; group: 'theming' | 'layout'; label: string; icon: 
   { id: 'elevation',  group: 'theming', label: 'Elevation',        icon: 'layers' },
   { id: 'density',    group: 'theming', label: 'Density',          icon: 'grid3' },
   { id: 'motion',     group: 'theming', label: 'Motion',           icon: 'zap' },
-  { id: 'apps',       group: 'theming', label: 'Per-App Colors',   icon: 'grid' },
   { id: 'menu',       group: 'layout',  label: 'Menu',             icon: 'sidebar' },
   { id: 'navbar',     group: 'layout',  label: 'Navbar Type',      icon: 'layoutDashboard' },
   { id: 'content',    group: 'layout',  label: 'Content',          icon: 'maximize' },
@@ -34,13 +35,23 @@ const SECTIONS: { id: string; group: 'theming' | 'layout'; label: string; icon: 
   { id: 'semidark',   group: 'layout',  label: 'Semi Dark',        icon: 'moon' },
   { id: 'direction',  group: 'layout',  label: 'Direction',        icon: 'compass' },
   { id: 'mobile',     group: 'layout',  label: 'Mobile',           icon: 'smartphone' },
+  // Platform group — merged in from the former standalone /admin/branding and
+  // /admin/components pages (see BrandingView.tsx's and ComponentShowcase.tsx's
+  // header comments). 'apps' used to be a theming-group "Per-App Colors" tab
+  // with just a color swatch grid; it's now the fuller per-app editor (name,
+  // color, slogan, icon) that used to live only on the Branding page — one
+  // editor instead of two writing the same data from two places.
+  { id: 'identity',   group: 'platform', label: 'Identity',         icon: 'image' },
+  { id: 'apps',       group: 'platform', label: 'Apps',             icon: 'grid' },
+  { id: 'login',      group: 'platform', label: 'Login Screen',     icon: 'logIn' },
+  { id: 'components', group: 'platform', label: 'Components',      icon: 'layers' },
 ];
 
-// Every app defaults to the single brand accent (matches WorkspaceApp.tsx's
-// APP_COLORS / BrandingView.tsx's APP_META_BRAND) rather than its own hue —
-// this list is only the *fallback* shown until a SuperAdmin picks a custom
-// per-app color here.
-const DEFAULT_APP_COLOR = '#0b1e3a';
+/** Sections with no meaningful "live token preview" — Identity/Apps/Login/
+ *  Components are content editors and a component catalog, not token tuning,
+ *  so the preview rail (built for buttons/badges/cards reacting to color and
+ *  shape tokens) is dropped and the panel takes the freed width instead. */
+const PANEL_ONLY_SECTIONS = new Set(['identity', 'apps', 'login', 'components']);
 
 const NEUTRAL_LABELS: Record<keyof NeutralSet, string> = {
   ink: 'Text (primary)', ink2: 'Text (secondary)', ink3: 'Text (muted)',
@@ -87,7 +98,6 @@ export function DesignSystemView() {
   const { tokens, updateTokens, resetToDefaults, designSystemVersion, updateDesignSystemVersion } = useDesignSystem();
   const [v2ColorDraft, setV2ColorDraft] = useState(designSystemVersion.v2Color);
   React.useEffect(() => setV2ColorDraft(designSystemVersion.v2Color), [designSystemVersion.v2Color]);
-  const branding = useBranding();
   const isMobileNow = useIsMobile();
 
   const [themeTab, setThemeTab] = useState<'light' | 'dark'>('light');
@@ -95,7 +105,16 @@ export function DesignSystemView() {
   const [seed, setSeed] = useState(tokens.brand.primary);
   const [saveErrors, setSaveErrors] = useState<Record<string, string | undefined>>({});
   const [savedFlash, setSavedFlash] = useState<string | null>(null);
-  const [activeSection, setActiveSection] = useState('themes');
+  // Deep-linkable so the redirects from the former /admin/branding and
+  // /admin/components routes (SuperAdminShell.tsx) land on the right section
+  // instead of always opening on Themes.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialSection = SECTIONS.some(s => s.id === searchParams.get('section')) ? searchParams.get('section')! : 'themes';
+  const [activeSection, setActiveSectionState] = useState(initialSection);
+  function setActiveSection(id: string) {
+    setActiveSectionState(id);
+    setSearchParams(prev => { const next = new URLSearchParams(prev); next.set('section', id); return next; }, { replace: true });
+  }
 
   const activeTheme = PLATFORM_THEMES.find(
     t => t.tokens.brand?.primary?.toLowerCase() === tokens.brand.primary.toLowerCase()
@@ -109,21 +128,6 @@ export function DesignSystemView() {
       window.setTimeout(() => setSavedFlash(f => (f === section ? null : f)), 1400);
     } catch (err: any) {
       setSaveErrors(e => ({ ...e, [section]: err?.message || 'Failed to save' }));
-    }
-  }
-
-  async function saveAppColor(appId: string, color: string) {
-    // Update the local cache + notify same-tab listeners immediately (same
-    // pattern as BrandingView.tsx's saveApp) — otherwise the swatch and every
-    // other reader of branding.getAppColor() only pick up the change on the
-    // next full page load, when useBranding() re-fetches from the server.
-    localStorage.setItem(`hudumika_app_color_${appId}`, color);
-    window.dispatchEvent(new CustomEvent('hudumika-brand-updated'));
-    try {
-      await pushBranding({ apps: { [appId]: { color } } });
-      setSaveErrors(e => ({ ...e, apps: undefined }));
-    } catch (err: any) {
-      setSaveErrors(e => ({ ...e, apps: err?.message || 'Failed to save' }));
     }
   }
 
@@ -262,11 +266,13 @@ export function DesignSystemView() {
         crumbs={['Admin', 'Design System']}
         titlePlain="Design"
         titleEm="system"
-        subtitle="Controls the real CSS tokens every app renders from — Bliss, ClearOS, FinOps and the rest. Changes apply live and persist for every tenant."
-        actions={<button type="button" className="btn btn-secondary" onClick={() => resetToDefaults()}>Reset to defaults</button>}
+        subtitle="Tokens, per-app identity and the component library every app renders from — Bliss, ClearOS, FinOps and the rest. Changes apply live and persist for every tenant."
+        actions={!PANEL_ONLY_SECTIONS.has(activeSection)
+          ? <button type="button" className="btn btn-secondary" onClick={() => resetToDefaults()}>Reset to defaults</button>
+          : undefined}
       />
 
-      <div className="ds-layout">
+      <div className={`ds-layout${PANEL_ONLY_SECTIONS.has(activeSection) ? ' ds-layout--full' : ''}`}>
         <nav className="ds-rail">
           <div className="ds-rail-group-label">Theming</div>
           {SECTIONS.filter(s => s.group === 'theming').map(s => (
@@ -279,6 +285,15 @@ export function DesignSystemView() {
           ))}
           <div className="ds-rail-group-label">Layout</div>
           {SECTIONS.filter(s => s.group === 'layout').map(s => (
+            <button key={s.id} type="button"
+              className={`ds-rail-item${activeSection === s.id ? ' ds-rail-item--active' : ''}`}
+              onClick={() => setActiveSection(s.id)}>
+              <Icon name={s.icon} size={15} />
+              {s.label}
+            </button>
+          ))}
+          <div className="ds-rail-group-label">Platform</div>
+          {SECTIONS.filter(s => s.group === 'platform').map(s => (
             <button key={s.id} type="button"
               className={`ds-rail-item${activeSection === s.id ? ' ds-rail-item--active' : ''}`}
               onClick={() => setActiveSection(s.id)}>
@@ -564,25 +579,29 @@ export function DesignSystemView() {
           </section>
           )}
 
-          {/* Per-app accents */}
+          {/* ── Platform group — merged in from the former standalone
+              Branding and Components admin pages. ── */}
+          {activeSection === 'identity' && (
+          <section className="ds-section">
+            <BrandingIdentitySection />
+          </section>
+          )}
+
           {activeSection === 'apps' && (
-          <section className="card ds-section">
-            <h2 className="ds-section-title">Per-App Accent Colors</h2>
-            <p className="ds-section-hint">
-              Pick a theme on the Themes tab to prefill every app's color at once, or edit any app
-              individually here.
-            </p>
-            <div className="ds-app-grid">
-              {APP_REGISTRY.map(app => (
-                <div key={app.id} className="ds-app-cell">
-                  <input type="color" className="ds-swatch" value={branding.getAppColor(app.id, DEFAULT_APP_COLOR)}
-                    onChange={e => saveAppColor(app.id, e.target.value)} />
-                  <span className="ds-app-name">{branding.getAppName(app.id, app.name)}</span>
-                </div>
-              ))}
-            </div>
-            {saveErrors.apps && <p className="ds-error">{saveErrors.apps}</p>}
-            {savedFlash === 'apps' && <p className="ds-saved">Saved</p>}
+          <section className="ds-section">
+            <BrandingAppsSection />
+          </section>
+          )}
+
+          {activeSection === 'login' && (
+          <section className="ds-section">
+            <BrandingLoginSection />
+          </section>
+          )}
+
+          {activeSection === 'components' && (
+          <section className="ds-section">
+            <ComponentShowcase />
           </section>
           )}
 
@@ -709,7 +728,10 @@ export function DesignSystemView() {
 
         </div>
 
-        {/* Live preview */}
+        {/* Live preview — only for the token-tuning sections. Identity/Apps/
+            Login/Components are content editors and a component catalog, not
+            color/shape tuning, so there's nothing here for them to preview. */}
+        {!PANEL_ONLY_SECTIONS.has(activeSection) && (
         <div className="ds-preview" data-theme={previewTheme === 'dark' ? 'dark' : undefined}>
           <div className="ds-preview-bar">
             <span className="ds-preview-label">Live preview</span>
@@ -764,6 +786,7 @@ export function DesignSystemView() {
             </div>
           </div>
         </div>
+        )}
       </div>
     </div>
   );

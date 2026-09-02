@@ -20,8 +20,11 @@ interface AuthContextType {
   isImpersonating: boolean;
   login: (email: string, password: string) => Promise<SafeUser>;
   requestOtpLogin: (phone: string) => Promise<{ success: boolean; message: string }>;
+  requestMagicLink: (email: string) => Promise<{ ok: boolean; message: string }>;
   verifyOtpLogin: (phone: string, code: string) => Promise<SafeUser>;
   loginWithTotp: (email: string, code: string) => Promise<SafeUser>;
+  verifyMagicLink: (token: string, totp?: string) => Promise<SafeUser | { requires_2fa: true }>;
+  resumeSession: () => Promise<SafeUser | null>;
   requestPasskeyLoginOptions: (email: string) => Promise<any>;
   verifyPasskeyLogin: (email: string, response: any) => Promise<SafeUser>;
   loginWithGoogle: (credential: string) => Promise<SafeUser>;
@@ -157,6 +160,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       body: JSON.stringify({ email, code }),
     });
     return completeLogin(res);
+  };
+
+  const requestMagicLink = async (email: string) => {
+    return apiFetch('/v1/ondi/auth/magic-link/request', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  };
+
+  // Mirrors /auth/login's own requires_2fa shape rather than blindly calling
+  // completeLogin: a magic link only proves inbox access, so an account that
+  // opted into TOTP still has to prove that separately before a session is
+  // actually issued (see ondi-auth.routes.ts's own doc comment on this).
+  const verifyMagicLink = async (token: string, totp?: string): Promise<SafeUser | { requires_2fa: true }> => {
+    const res = await apiFetch('/v1/ondi/auth/magic-link/verify', {
+      method: 'POST',
+      body: JSON.stringify({ token, ...(totp ? { totp } : {}) }),
+    });
+    if (res.requires_2fa) return { requires_2fa: true };
+    return completeLogin(res);
+  };
+
+  // For a session that started with a real browser navigation rather than a
+  // fetch() call — SAML's Assertion Consumer Service sets real session
+  // cookies but has no JS context to write localStorage from (see
+  // ondi-saml.routes.ts's /acs and SsoCompletePage.tsx). Landing on '/' with
+  // no stored user would otherwise look logged-out despite a valid cookie,
+  // since the init effect above only hydrates from the server when a stored
+  // user already exists. Reuses /v1/identity/me, the same "who am I" call
+  // hydrateIdentityFromServer already trusts for a live-session refresh.
+  const resumeSession = async (): Promise<SafeUser | null> => {
+    try {
+      const me = await apiFetch('/v1/identity/me');
+      if (!me?.id) return null;
+      return completeLogin({ user: me });
+    } catch {
+      return null;
+    }
   };
 
   const requestPasskeyLoginOptions = async (email: string) => {
@@ -332,7 +373,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, isImpersonating, login, requestOtpLogin, verifyOtpLogin, loginWithTotp, requestPasskeyLoginOptions, verifyPasskeyLogin, loginWithGoogle, loginWithMicrosoft, completeOnboarding, logout, impersonate, impersonateCustomer, stopImpersonating, updateUser, loading }}>
+    <AuthContext.Provider value={{ user, isImpersonating, login, requestOtpLogin, requestMagicLink, verifyOtpLogin, loginWithTotp, verifyMagicLink, resumeSession, requestPasskeyLoginOptions, verifyPasskeyLogin, loginWithGoogle, loginWithMicrosoft, completeOnboarding, logout, impersonate, impersonateCustomer, stopImpersonating, updateUser, loading }}>
       {children}
     </AuthContext.Provider>
   );

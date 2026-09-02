@@ -47,6 +47,24 @@ export async function agencyManagedOnsiteGrant(tenantId: string, featureKey: str
   return !!managed;
 }
 /**
+ * Does this tenant hold an active, purchased add-on that grants this
+ * feature? (376_package_addons.sql) — a join, not two separate lookups,
+ * so a deactivated add-on (package_addons.is_active=false) stops granting
+ * access even if a tenant's own tenant_addons row is still 'active'.
+ */
+async function hasActiveAddonGrant(tenantId: string, featureKey: string): Promise<boolean> {
+  const grant = await dbPlatform.selectFrom('tenant_addons')
+    .innerJoin('package_addons', 'package_addons.code', 'tenant_addons.addon_code')
+    .select('tenant_addons.id')
+    .where('tenant_addons.tenant_id', '=', tenantId)
+    .where('tenant_addons.status', '=', 'active')
+    .where('package_addons.feature_key', '=', featureKey)
+    .where('package_addons.is_active', '=', true)
+    .executeTakeFirst();
+  return !!grant;
+}
+
+/**
  * The actual entitlement check for one feature key, factored out so both
  * requireEntitlement() (single key) and requireAnyEntitlement() (OR across
  * keys) share one implementation. Returns null when access is granted, or
@@ -117,7 +135,13 @@ async function checkEntitlement(
     .where('package_code', '=', tenantCheck.plan)
     .where('feature_key', '=', featureKey)
     .executeTakeFirst();
-  if (!grant) {
+
+  // A purchased add-on (376_package_addons.sql — e.g. Onsite) grants the
+  // same real entitlement a base package's own feature list would,
+  // independent of which package the tenant is actually on.
+  const addonGrant = grant ? null : await hasActiveAddonGrant(user.tenant_id, featureKey);
+
+  if (!grant && !addonGrant) {
     return { status: 403, body: { error: 'Your current plan does not include this feature.', code: 'PLAN_UPGRADE_REQUIRED' } };
   }
 
@@ -178,7 +202,9 @@ export async function tenantHasEntitlement(tenantId: string, featureKey: string)
     .where('package_code', '=', tenantCheck.plan)
     .where('feature_key', '=', featureKey)
     .executeTakeFirst();
-  return !!grant;
+  if (grant) return true;
+
+  return hasActiveAddonGrant(tenantId, featureKey);
 }
 
 export function requireEntitlement(featureKey: string) {

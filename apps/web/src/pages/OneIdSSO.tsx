@@ -1,6 +1,6 @@
 // ─── OneIdSSO.tsx — Perfected Ondi SSO, Benchmark, Flow & Feature Map ──
 import React, { useState, useEffect, useCallback } from 'react';
-import { apiFetch } from '../lib/api.js';
+import { apiFetch, BASE_URL } from '../lib/api.js';
 import { Icon, type IconName } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
@@ -103,15 +103,30 @@ function AddProviderModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
   const [clientId, setClientId] = useState('');
   const [clientSecret, setClientSecret] = useState('');
   const [metadataUrl, setMetadataUrl] = useState('');
+  // SAML — a distinct field set from the OAuth-shaped ones above: this is
+  // real assertion handling now (ondi-saml.routes.ts), not config-only, so
+  // it needs the IdP's actual entity ID / SSO redirect URL / signing
+  // certificate rather than an OAuth client id/secret that means nothing
+  // for this protocol.
+  const [idpEntityId, setIdpEntityId] = useState('');
+  const [idpSsoUrl, setIdpSsoUrl] = useState('');
+  const [idpCertificate, setIdpCertificate] = useState('');
   const [saving, setSaving] = useState(false);
+
+  const isSaml = type === 'SAML';
+  const canSubmit = name.trim() && (!isSaml || (idpEntityId.trim() && idpSsoUrl.trim() && idpCertificate.trim()));
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (!canSubmit) return;
     setSaving(true);
     try {
+      const config = isSaml
+        ? { idpEntityId: idpEntityId.trim(), idpSsoUrl: idpSsoUrl.trim(), idpCertificate: idpCertificate.trim() }
+        : { client_id: clientId, client_secret: clientSecret, metadata_url: metadataUrl };
       await apiFetch('/v1/oneid/sso-providers', {
         method: 'POST',
-        body: JSON.stringify({ provider_type: type, name, config: { client_id: clientId, client_secret: clientSecret, metadata_url: metadataUrl } }),
+        body: JSON.stringify({ provider_type: type, name, config }),
       });
       onAdded();
       onClose();
@@ -125,7 +140,11 @@ function AddProviderModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ background: 'var(--white)', borderRadius: 9, padding: 28, width: 460, maxWidth: '92vw', boxShadow: 'var(--elev-lg)' }}>
         <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Add identity provider</div>
-        <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 18 }}>Configuration only — connecting this provider to real sign-in is a follow-on step.</div>
+        <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 18 }}>
+          {isSaml
+            ? 'Real assertion handling — once saved and enabled, staff can sign in through this IdP.'
+            : 'Configuration only — connecting this provider to real sign-in is a follow-on step.'}
+        </div>
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div>
             <label style={labelStyle}>Provider type</label>
@@ -138,27 +157,91 @@ function AddProviderModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
           </div>
           <div>
             <label style={labelStyle}>Display name</label>
-            <input required value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Company Google Workspace" style={inputStyle} />
+            <input required value={name} onChange={e => setName(e.target.value)} placeholder={isSaml ? 'e.g. Company Okta' : 'e.g. Company Google Workspace'} style={inputStyle} />
           </div>
-          <div>
-            <label style={labelStyle}>Client ID</label>
-            <input value={clientId} onChange={e => setClientId(e.target.value)} style={inputStyle} />
-          </div>
-          <div>
-            <label style={labelStyle}>Client secret</label>
-            <input type="password" value={clientSecret} onChange={e => setClientSecret(e.target.value)} style={inputStyle} />
-          </div>
-          <div>
-            <label style={labelStyle}>Metadata URL (SAML/OIDC)</label>
-            <input value={metadataUrl} onChange={e => setMetadataUrl(e.target.value)} placeholder="https://…" style={inputStyle} />
-          </div>
+          {isSaml ? (
+            <>
+              <div>
+                <label style={labelStyle}>IdP Entity ID</label>
+                <input required value={idpEntityId} onChange={e => setIdpEntityId(e.target.value)} placeholder="https://your-idp.example.com/entity" style={inputStyle} />
+              </div>
+              <div>
+                <label style={labelStyle}>IdP SSO URL</label>
+                <input required value={idpSsoUrl} onChange={e => setIdpSsoUrl(e.target.value)} placeholder="https://your-idp.example.com/sso" style={inputStyle} />
+              </div>
+              <div>
+                <label style={labelStyle}>IdP signing certificate (X.509, PEM)</label>
+                <textarea required value={idpCertificate} onChange={e => setIdpCertificate(e.target.value)} placeholder="-----BEGIN CERTIFICATE-----…" style={{ ...inputStyle, height: 90, resize: 'vertical', fontFamily: 'var(--mono)', fontSize: 11.5 }} />
+              </div>
+              <div style={{ background: 'var(--bg)', border: '1px solid var(--border-soft)', borderRadius: 8, padding: '8px 10px', fontSize: 11.5, color: 'var(--ink3)' }}>
+                Your SP metadata and ACS URL appear on this provider's row after you save it — hand those to your IdP admin to finish the other side of the trust.
+              </div>
+            </>
+          ) : (
+            <>
+              <div>
+                <label style={labelStyle}>Client ID</label>
+                <input value={clientId} onChange={e => setClientId(e.target.value)} style={inputStyle} />
+              </div>
+              <div>
+                <label style={labelStyle}>Client secret</label>
+                <input type="password" value={clientSecret} onChange={e => setClientSecret(e.target.value)} style={inputStyle} />
+              </div>
+              <div>
+                <label style={labelStyle}>Metadata URL (OIDC)</label>
+                <input value={metadataUrl} onChange={e => setMetadataUrl(e.target.value)} placeholder="https://…" style={inputStyle} />
+              </div>
+            </>
+          )}
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
             <button type="button" onClick={onClose} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', cursor: 'pointer', fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
-            <button type="submit" disabled={saving} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13, opacity: saving ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+            <button type="submit" disabled={saving || !canSubmit} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13, opacity: (saving || !canSubmit) ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
               {saving ? 'Saving…' : 'Add provider'}
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  );
+}
+
+/** The SP-side URLs a tenant's IT admin needs to finish wiring their IdP —
+ *  computed from the same :providerId ondi-saml.routes.ts itself keys off,
+ *  not stored anywhere (there's nothing to get out of sync). */
+function CopyRow({ label, value }: { label: string; value: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)' }}>{label}</label>
+      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+        <code style={{ flex: 1, fontFamily: 'var(--mono)', fontSize: 11.5, background: 'var(--bg)', padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border-soft)', overflow: 'auto', whiteSpace: 'nowrap' }}>{value}</code>
+        <button type="button" title="Copy" onClick={() => { navigator.clipboard.writeText(value); setCopied(true); setTimeout(() => setCopied(false), 1500); }}
+          style={{ border: '1px solid var(--border)', background: 'var(--bg)', borderRadius: 'var(--r)', padding: '6px 8px', cursor: 'pointer', color: copied ? 'var(--teal)' : 'var(--ink3)', flexShrink: 0, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box' }}>
+          <Icon name={copied ? 'check' : 'copy'} size={13} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function SamlDetailsModal({ provider, onClose }: { provider: SsoProvider; onClose: () => void }) {
+  const metadataUrl = `${BASE_URL}/v1/ondi/auth/saml/${provider.id}/metadata`;
+  const acsUrl = `${BASE_URL}/v1/ondi/auth/saml/${provider.id}/acs`;
+  const loginUrl = `${BASE_URL}/v1/ondi/auth/saml/${provider.id}/login`;
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ background: 'var(--white)', borderRadius: 9, padding: 28, width: 520, maxWidth: '92vw', boxShadow: 'var(--elev-lg)' }}>
+        <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>{provider.name} — SP details</div>
+        <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 18 }}>Hand these to whoever manages your IdP (Okta, Entra ID, …) to finish the trust in both directions.</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <CopyRow label="SP Entity ID / Metadata URL" value={metadataUrl} />
+          <CopyRow label="ACS (Assertion Consumer Service) URL" value={acsUrl} />
+          <CopyRow label="SP-initiated login URL" value={loginUrl} />
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 20 }}>
+          <button type="button" onClick={onClose} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', cursor: 'pointer', fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Close</button>
+        </div>
       </div>
     </div>
   );
@@ -170,8 +253,9 @@ export const OneIdSSO: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [loadingClients, setLoadingClients] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
+  const [viewSamlProvider, setViewSamlProvider] = useState<SsoProvider | null>(null);
   const [showAddClient, setShowAddClient] = useState(false);
-  const [activeTab, setActiveTab] = useState<'registry' | 'benchmark' | 'flow' | 'feature-map'>('registry');
+  const [activeTab, setActiveTab] = useState<'registry' | 'flow'>('registry');
   const [subTab, setSubTab] = useState<'idps' | 'clients'>('idps');
 
   const reload = useCallback(() => {
@@ -231,12 +315,13 @@ export const OneIdSSO: React.FC = () => {
     <div>
       {showAdd && <AddProviderModal onClose={() => setShowAdd(false)} onAdded={reload} />}
       {showAddClient && <AddClientModal onClose={() => setShowAddClient(false)} onAdded={reloadClients} />}
+      {viewSamlProvider && <SamlDetailsModal provider={viewSamlProvider} onClose={() => setViewSamlProvider(null)} />}
 
       <PageHeader
         crumbs={['Ondi', 'SSO & Providers']}
         titlePlain="SSO"
         titleEm="architecture"
-        subtitle="Identity provider setup, architectural benchmarking against Okta/Entra ID, and OIDC sign-in flow."
+        subtitle="Identity provider registry and OIDC sign-in flow."
         actions={activeTab === 'registry' ? (
           subTab === 'idps' ? (
             <button type="button" onClick={() => setShowAdd(true)}
@@ -255,9 +340,7 @@ export const OneIdSSO: React.FC = () => {
       {/* Tabs Header Navigation */}
       <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', marginBottom: 20 }}>
         <button style={tabStyle('registry')} onClick={() => setActiveTab('registry')}>Identity Providers</button>
-        <button style={tabStyle('benchmark')} onClick={() => setActiveTab('benchmark')}>SSO Benchmark</button>
         <button style={tabStyle('flow')} onClick={() => setActiveTab('flow')}>Sign-In Flow</button>
-        <button style={tabStyle('feature-map')} onClick={() => setActiveTab('feature-map')}>3-Surface Map</button>
       </div>
 
       {/* ── Tab 1: Provider Registry ────────────────────────────────────── */}
@@ -297,7 +380,7 @@ export const OneIdSSO: React.FC = () => {
             <>
               <div style={{ background: 'var(--gold-l)', border: '1px solid #fde68a', borderRadius: 9, padding: '10px 14px', fontSize: 12, color: '#854d0e', display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                 <Icon name="alertTriangle" size={15} style={{ flexShrink: 0 }} />
-                <span>This registry stores provider configuration. Redirecting authorization flows (Google OAuth redirection, SAML assertion signing) executes against Ondi Auth Server routes. Enforcing a configuration here enables OIDC callback handlers.</span>
+                <span>Google, Microsoft and SAML providers here connect to real sign-in against Ondi Auth Server routes once enabled. A generic OIDC provider is still config-only — that federation still needs building.</span>
               </div>
 
               <SectionCard padded={false}>
@@ -322,10 +405,18 @@ export const OneIdSSO: React.FC = () => {
                         </td>
                         <td style={{ padding: '10px 14px', color: 'var(--ink3)' }}>{new Date(p.created_at).toLocaleDateString()}</td>
                         <td style={{ padding: '10px 14px', textAlign: 'right' }}>
-                          <button type="button" title="Remove" onClick={() => remove(p.id)}
-                            style={{ border: '1px solid var(--border)', background: 'var(--bg)', borderRadius: 'var(--r)', padding: '6px 8px', cursor: 'pointer', color: 'var(--red)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
-                            <Icon name="trash" size={13} />
-                          </button>
+                          <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                            {p.provider_type === 'SAML' && (
+                              <button type="button" title="View SP metadata & ACS URL" onClick={() => setViewSamlProvider(p)}
+                                style={{ border: '1px solid var(--border)', background: 'var(--bg)', borderRadius: 'var(--r)', padding: '6px 8px', cursor: 'pointer', color: 'var(--teal)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                                <Icon name="link" size={13} />
+                              </button>
+                            )}
+                            <button type="button" title="Remove" onClick={() => remove(p.id)}
+                              style={{ border: '1px solid var(--border)', background: 'var(--bg)', borderRadius: 'var(--r)', padding: '6px 8px', cursor: 'pointer', color: 'var(--red)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                              <Icon name="trash" size={13} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -409,56 +500,7 @@ export const OneIdSSO: React.FC = () => {
         </div>
       )}
 
-      {/* ── Tab 2: SSO Architecture Benchmark ────────────────────────────── */}
-      {activeTab === 'benchmark' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-          {/* Pitch card */}
-          <div style={{ background: '#f8fafc', border: '1px solid var(--border)', borderRadius: 12, padding: 18, fontSize: 13, color: 'var(--ink2)' }}>
-            Ondi runs Google's pattern — it's Hudumika's own Identity Provider (IdP) for Hudumika's own product suite (Gmail, Workspace style) — but layers in the org-level role governance machinery Okta charges separately for, and adds identity assurance neither of them offers natively.
-          </div>
-
-          <SectionCard title="Ondi vs. Industry Leaders Identity Matrix" padded={false}>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 700 }}>
-                <thead>
-                  <tr style={{ background: 'var(--bg)', textAlign: 'left' }}>
-                    <th style={{ padding: '12px 14px', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Capability Dimension</th>
-                    <th style={{ padding: '12px 14px', fontSize: 12, fontWeight: 800, color: 'var(--teal)' }}>Ondi (Hudumika ID)</th>
-                    <th style={{ padding: '12px 14px', fontSize: 12, fontWeight: 700, color: '#7a4a1f' }}>Okta Cloud</th>
-                    <th style={{ padding: '12px 14px', fontSize: 12, fontWeight: 700, color: '#475569' }}>Entra ID (Azure)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {[
-                    ['Protocol Standards', 'OAuth2/OIDC (PKCE) + SAML 2.0 signed assertions', 'OAuth2/OIDC + SAML 2.0', 'OAuth2/OIDC + SAML 2.0'],
-                    ['SSO Destinations', 'Hudumika suite (ClearOS, ComplyOS, Bliss, Petti)', 'Third-party apps Switchboard (Slack, Salesforce)', 'Microsoft Graph ecosystem + custom apps'],
-                    ['Identity Assurance (KYC)', 'Real KYC: biometric liveness & document OCR (L2)', 'None — relies entirely on employer AD directories', 'None — AD domain identity only'],
-                    ['Continuous Trust score', 'Yes — persistent score (300–850) carried in tokens', 'Login risk checks only (session-scoped)', 'Identity Protection risk signals only'],
-                    ['Multi-Tenant model', 'Native org membership resolution per session', 'One directory tenant per Okta instance', 'Complex multi-tenant directory settings'],
-                    ['Integrations Catalog', 'Registry-level connectors (Registry only, no OAuth store)', '7,000+ connectors in Okta Integration Network', 'Microsoft Azure AD Marketplace connectors'],
-                    ['Audit Log Security', 'Hash-chained audit log with verify-chain cryptography', 'Standard append-only activity table', 'Standard Azure Event Hub audit streams'],
-                    ['Pricing Model', 'Owned — $0 marginal infrastructure cost', 'Per-user monthly subscription ($6 - $17/mo)', 'Per-user license ($6 - $9/mo for Premium)'],
-                  ].map(([dim, ondi, okta, entra], idx) => (
-                    <tr key={idx} style={{ borderTop: '1px solid var(--border-soft)' }}>
-                      <td style={{ padding: '12px 14px', fontWeight: 700, color: 'var(--ink)' }}>{dim}</td>
-                      <td style={{ padding: '12px 14px', color: 'var(--ink2)' }}>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: ondi.includes('Yes') || ondi.includes('Real') || ondi.includes('PKCE') || ondi.includes('Owned') ? 'var(--teal)' : 'var(--ink2)', fontWeight: ondi.includes('Yes') || ondi.includes('Real') || ondi.includes('PKCE') || ondi.includes('Owned') ? '700' : '400' }}>
-                          <span style={{ width: 6, height: 6, borderRadius: '50%', background: ondi.includes('Yes') || ondi.includes('Real') || ondi.includes('PKCE') || ondi.includes('Owned') ? 'var(--teal)' : '#64748b' }} />
-                          {ondi}
-                        </span>
-                      </td>
-                      <td style={{ padding: '12px 14px', color: '#64748b' }}>{okta}</td>
-                      <td style={{ padding: '12px 14px', color: '#64748b' }}>{entra}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </SectionCard>
-        </div>
-      )}
-
-      {/* ── Tab 3: Sign-In Flow ─────────────────────────────────────────── */}
+      {/* ── Tab 2: Sign-In Flow ─────────────────────────────────────────── */}
       {activeTab === 'flow' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
           {/* Flow steps diagram */}
@@ -491,9 +533,9 @@ export const OneIdSSO: React.FC = () => {
                   </p>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <h4 style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Federated Session Identity</h4>
+                  <h4 style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Session Identity</h4>
                   <p style={{ fontSize: 12.5, color: 'var(--ink3)', lineHeight: 1.4 }}>
-                    Ondi maintains unified <code style={{ fontSize: 11 }}>ondiUserId</code> mappings. An active session maps to an <code style={{ fontSize: 11 }}>ondiOrgId</code> representing a verified BRELA business registry profile.
+                    Every issued token carries <code style={{ fontSize: 11 }}>sub</code> (the signed-in user) and <code style={{ fontSize: 11 }}>tenant_id</code> (their workspace) — the same claims a session cookie and an OAuth client's access token both resolve to. A workspace's own registration can be verified separately under Business Verification (KYB).
                   </p>
                 </div>
               </div>
@@ -502,61 +544,6 @@ export const OneIdSSO: React.FC = () => {
         </div>
       )}
 
-      {/* ── Tab 4: 3-Surface Feature Map ────────────────────────────────── */}
-      {activeTab === 'feature-map' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
-          {/* Lane 1: Personal */}
-          <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderTop: '3px solid var(--teal)', borderRadius: 12, padding: 18, boxShadow: 'var(--elev-sm)', display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 800, color: 'var(--teal)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--teal)' }} />
-              Personal Surface
-            </div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)' }}>For One Person</div>
-            <div style={{ fontSize: 12, color: 'var(--ink3)', borderBottom: '1px solid var(--border-soft)', paddingBottom: 10 }}>One unified ID maps account details across products.</div>
-            <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 8, fontSize: 12.5, color: 'var(--ink2)' }}>
-              <li>🔒 WebAuthn / Passkey registrations</li>
-              <li>🛡️ KYC Level Assurance (L2 Verified)</li>
-              <li>🚀 Real-time credit events scoring</li>
-              <li>🔑 Client-Side RSA-OAEP E2EE Vault</li>
-              <li>📱 QR Cross-device pairing session</li>
-            </ul>
-          </div>
-
-          {/* Lane 2: Enterprise */}
-          <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderTop: '3px solid #7a4a1f', borderRadius: 12, padding: 18, boxShadow: 'var(--elev-sm)', display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 800, color: '#7a4a1f', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#7a4a1f' }} />
-              Enterprise Surface
-            </div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)' }}>For Running an Org</div>
-            <div style={{ fontSize: 12, color: 'var(--ink3)', borderBottom: '1px solid var(--border-soft)', paddingBottom: 10 }}>Workforce administration dashboard controls and roles.</div>
-            <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 8, fontSize: 12.5, color: 'var(--ink2)' }}>
-              <li>🏢 BRELA Tanzanian registry verification</li>
-              <li>👥 Group static mappings & Role assignments</li>
-              <li>🔄 Joiner/mover/leaver automation scripts</li>
-              <li>📋 PDPA processing activities logs</li>
-              <li>📆 Access reviews campaign scheduler</li>
-            </ul>
-          </div>
-
-          {/* Lane 3: Mobile */}
-          <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderTop: '3px solid #475569', borderRadius: 12, padding: 18, boxShadow: 'var(--elev-sm)', display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#475569' }} />
-              Mobile Surface
-            </div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)' }}>In Your Pocket</div>
-            <div style={{ fontSize: 12, color: 'var(--ink3)', borderBottom: '1px solid var(--border-soft)', paddingBottom: 10 }}>Native Flutter apps (Ondi Wallet and Ondi Auth).</div>
-            <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 8, fontSize: 12.5, color: 'var(--ink2)' }}>
-              <li>🤳 On-device KYC document OCR scanner</li>
-              <li>🧠 MobileFaceNet local liveness computation</li>
-              <li>🔔 Push-based authentication approvals</li>
-              <li>🎟️ Digital front-desk QR visitor sign-in</li>
-              <li>📱 TOTP codes generator utility</li>
-            </ul>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

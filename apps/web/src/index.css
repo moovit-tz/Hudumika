@@ -211,6 +211,17 @@
   --r:    9px;
   --r-lg: 9px;
 
+  /* Selected sidebar-menu-item — the "Contacts"-style tinted pill: a soft
+     color-mix tint of the active app's own accent (--sb-color, set per-app
+     by WorkspaceApp) behind the label, at this corner radius. Kept as its
+     own token rather than reusing --r/--r-sm so this exact, approved shape
+     survives independently of the general shape scale. Consumed by
+     AppSidebar.css; any other primary left-nav should read the same pair
+     rather than hardcoding its own tint/radius. */
+  --nav-item-r: 8px;
+  --nav-active-tint: 14%;
+  --nav-active-tint-dark: 22%;
+
   /* The single page gutter — see .app-shell-content. Matches what
      /clearos/customs-tools/history already used (24px 32px), which is the
      page this was standardised against. */
@@ -2442,12 +2453,13 @@ select.input-field { cursor: pointer; }
   width: 100%;
 }
 
-/* Primary content column. Horizontal padding only — .cc-page-header,
-   .cc-pipeline and .cc-toolbar-row all deliberately zero their own
+/* Primary content column. Horizontal padding, plus a small top padding so
+   PageHeader's breadcrumb doesn't sit flush against .cc-shell's own visible
+   1px border — the same "sits right on the line" gap that motivated the
+   horizontal padding below never got a vertical counterpart. .cc-page-header,
+   .cc-pipeline and .cc-toolbar-row still deliberately zero their own
    left/right padding/margin so they line up with each other (and with the
-   board/list body below them); without it here, all of that content sits
-   flush against .cc-shell's visible 1px border/10px radius with no
-   breathing room at all. */
+   board/list body below them). */
 .cc-main {
   flex: 1;
   display: flex;
@@ -2456,7 +2468,7 @@ select.input-field { cursor: pointer; }
   overflow: hidden;
   min-width: 0;
   width: 100%;
-  padding: 0 20px;
+  padding: 16px 20px 0;
 }
 
 /* ── Page Header ── */

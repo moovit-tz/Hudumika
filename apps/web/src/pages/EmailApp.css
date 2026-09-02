@@ -56,7 +56,9 @@
   gap: 16px;
   width: 100%;
   padding: 10px 12px 10px 24px;
-  border-radius: 0 22px 22px 0;
+  /* Same selected-item shape every other app's sidebar uses (AppSidebar.css's
+     .app-sb-item — --nav-item-r), not a bespoke Gmail-style right-only pill. */
+  border-radius: var(--nav-item-r, 8px);
   border: none;
   background: transparent;
   color: var(--ink);
@@ -108,7 +110,7 @@
   align-items: center;
   gap: 16px;
   padding: 9px 12px 9px 24px;
-  border-radius: 0 22px 22px 0;
+  border-radius: var(--nav-item-r, 8px);
   cursor: pointer;
   font-size: 13.5px;
   color: var(--ink);

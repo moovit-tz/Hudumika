@@ -150,7 +150,18 @@ export default async function billingRoutes(fastify: FastifyInstance) {
       const seatRow = await trx.selectFrom('users').select(({ fn }) => fn.countAll<number>().as('c'))
         .where('tenant_id', '=', user.tenant_id).where('active', '=', true).executeTakeFirst();
       const seats = Number(seatRow?.c ?? 1);
-      const amount = pkg.price_per_seat != null ? pkg.price_per_seat * seats : pkg.monthly_price;
+      const planAmount = pkg.price_per_seat != null ? pkg.price_per_seat * seats : pkg.monthly_price;
+
+      // Fold in real active add-ons (376_package_addons.sql) — a purchased
+      // add-on (e.g. Onsite) is billed alongside the plan itself.
+      const addonRows = await trx.selectFrom('tenant_addons')
+        .innerJoin('package_addons', 'package_addons.code', 'tenant_addons.addon_code')
+        .select('package_addons.monthly_price')
+        .where('tenant_addons.tenant_id', '=', user.tenant_id)
+        .where('tenant_addons.status', '=', 'active')
+        .execute();
+      const addonsAmount = addonRows.reduce((sum, r) => sum + Number(r.monthly_price), 0);
+      const amount = planAmount + addonsAmount;
 
       const now = new Date();
       const periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -174,6 +185,7 @@ export default async function billingRoutes(fastify: FastifyInstance) {
         seats,
         currency: 'USD',
         amount,
+        addons_amount: addonsAmount,
         period_start: periodStart.toISOString().slice(0, 10),
         period_end: periodEnd.toISOString().slice(0, 10),
         due_date: dueDate.toISOString().slice(0, 10),

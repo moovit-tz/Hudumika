@@ -64,6 +64,10 @@ export const ForgotPassword: React.FC = () => {
               <Link to="/auth/login" className="auth-btn-primary" style={{ display: 'block', textAlign: 'center', marginTop: 24, textDecoration: 'none' }}>
                 Back to sign in
               </Link>
+              <p className="auth-switch-link" style={{ marginTop: 12 }}>
+                Lost access to this email too?{' '}
+                <Link to="/auth/recovery" className="auth-link">Recover via a trusted contact</Link>
+              </p>
             </div>
           ) : (
             <>

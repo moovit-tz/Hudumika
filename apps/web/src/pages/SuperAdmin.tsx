@@ -34,6 +34,19 @@ type PayMethod = 'card' | 'bank' | 'mpesa' | 'paypal';
 interface Company { id:string; name:string; email:string; phone:string; plan:PlanId; users:number; status:CoStatus; domain:string; created:string; owner:string; country:string; color:string; logoUrl?:string; }
 interface Subscription { id:string; companyId:string; plan:PlanId; start:string; end:string; amount:number; billing:'monthly'|'annual'; status:SubStatus; }
 interface Package { id:string; code:string; name:string; monthly:number; annual:number; maxUsers:number; monthlyItemLimit:number|null; storageLimitGb:number|null; features:string[]; active:number; color:string; popular?:boolean; }
+/** Purchasable independent of which base Package a tenant is on
+ *  (376_package_addons.sql) — Onsite's real home now, not a fourth
+ *  competing base package. */
+interface Addon { id:string; code:string; name:string; description:string; featureKey:string; monthly:number; annual:number; color:string; activeCompanies:number; }
+/** Module-level so both PackagesView (catalog management) and CompaniesView
+ *  (per-tenant grant/revoke) can shape the same GET /v1/addons response. */
+function mapAddonFromApi(a: { id:string; code:string; name:string; description:string; featureKey:string; monthlyPrice:number; annualPrice:number; color:string|null; activeCompanies?:number }): Addon {
+  return {
+    id: a.id, code: a.code, name: a.name, description: a.description, featureKey: a.featureKey,
+    monthly: a.monthlyPrice, annual: a.annualPrice, color: a.color || '#e8461a',
+    activeCompanies: a.activeCompanies ?? 0,
+  };
+}
 interface Domain { id:string; domain:string; companyId:string; status:DomainStatus; ssl:boolean; created:string; }
 interface Transaction { id:string; txRef:string; companyId:string; plan:PlanId; amount:number; date:string; method:PayMethod; status:TxStatus; }
 
@@ -530,6 +543,12 @@ export function CompaniesView() {
   const [editForm, setEditForm] = useState<CoForm>(CO_FORM_DEFAULT);
   const [selectedCoId, setSelectedCoId] = useState<string|null>(null);
   const [editEnabledApps, setEditEnabledApps] = useState<Record<string, boolean>>({});
+  const [addonsCatalog, setAddonsCatalog] = useState<Addon[]>([]);
+  const [editAddonGrants, setEditAddonGrants] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    apiFetch('/v1/addons').then(res => setAddonsCatalog((res.data as any[]).map(mapAddonFromApi))).catch(() => {});
+  }, []);
 
   const [customersCo, setCustomersCo] = useState<Company|null>(null);
   const [tenantCustomers, setTenantCustomers] = useState<TenantCustomer[]>([]);
@@ -660,8 +679,10 @@ export function CompaniesView() {
       country: co.country
     });
     setEditEnabledApps({});
+    setEditAddonGrants({});
     setShowEdit(true);
     apiFetch(`/v1/superadmin/tenants/${co.id}/apps`).then((r: any) => setEditEnabledApps(r.enabledApps || {})).catch(() => {});
+    apiFetch(`/v1/superadmin/tenants/${co.id}/addons`).then((r: any) => setEditAddonGrants(r.addonGrants || {})).catch(() => {});
   }
 
   async function saveEditCompany() {
@@ -677,6 +698,10 @@ export function CompaniesView() {
       await apiFetch(`/v1/superadmin/tenants/${selectedCoId}/apps`, {
         method: 'PATCH',
         body: JSON.stringify({ enabledApps: editEnabledApps }),
+      });
+      await apiFetch(`/v1/superadmin/tenants/${selectedCoId}/addons`, {
+        method: 'PATCH',
+        body: JSON.stringify({ addonGrants: editAddonGrants }),
       });
       await load();
       setShowEdit(false);
@@ -699,7 +724,7 @@ export function CompaniesView() {
   return (
     <div>
       <PageHdr
-        title="Companies"
+        title="All Companies"
         sub={apiLoaded ? `${displayed.length} registered ${apiError ? '(mock — API offline)' : 'companies'}` : 'Loading…'}
         action={
           <div className="sa-toolbar-actions">
@@ -853,6 +878,27 @@ export function CompaniesView() {
                 })}
               </div>
             </div>
+
+            {/* Add-ons (376_package_addons.sql) — granted independent of the
+                plan above, e.g. Onsite for an agency/web-host/IT-provider
+                tenant. Mirrors the Enabled Apps grid exactly. */}
+            {addonsCatalog.length > 0 && (
+              <div style={{ marginTop: 16 }}>
+                <label style={{ fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:8 }}>Add-ons</label>
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6, padding:12, background:'var(--bg)', borderRadius:8, border:'1px solid var(--border)' }}>
+                  {addonsCatalog.map(addon => {
+                    const granted = editAddonGrants[addon.code] === true;
+                    return (
+                      <label key={addon.code} style={{ display:'flex', alignItems:'center', gap:7, fontSize:12.5, color:'var(--ink)', cursor:'pointer', padding:'3px 0' }}>
+                        <input type="checkbox" checked={granted}
+                          onChange={e => setEditAddonGrants(p => ({ ...p, [addon.code]: e.target.checked }))} />
+                        {addon.name} <span style={{ color:'var(--ink3)' }}>(${addon.monthly}/mo)</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             <div style={{ display:'flex', gap:10, justifyContent:'flex-end', marginTop:22 }}>
               <button type="button" title="Cancel" onClick={()=>setShowEdit(false)} className="btn btn-secondary btn-sm">Cancel</button>
@@ -1197,6 +1243,8 @@ export function PackagesView() {
   const [editing, setEditing] = useState<Package|null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [newPkg, setNewPkg] = useState({ name:'', monthly:0, annual:0, maxUsers:10 });
+  const [addons, setAddons] = useState<Addon[]>([]);
+  const [editingAddon, setEditingAddon] = useState<Addon|null>(null);
 
   // Load the canonical catalog from the API — falls back to PACKAGES defaults on failure.
   // Edit/Create/Deactivate below are wired to real endpoints (packages.routes.ts POST/PATCH/DELETE,
@@ -1231,7 +1279,11 @@ export function PackagesView() {
     }).catch(() => { /* keep current/fallback list */ });
   }
 
-  useEffect(() => { reload(); }, []);
+  function reloadAddons() {
+    apiFetch('/v1/addons').then(res => setAddons((res.data as any[]).map(mapAddonFromApi))).catch(() => { /* keep current list */ });
+  }
+
+  useEffect(() => { reload(); reloadAddons(); }, []);
 
   return (
     <div>
@@ -1293,6 +1345,119 @@ export function PackagesView() {
           </div>
         ))}
       </div>
+
+      {/* Get more with add-ons — purchasable independent of which of the
+          three base packages a tenant is on (376_package_addons.sql),
+          the same idea as Google Workspace selling AI access or extra
+          storage next to its own plan tiers rather than as a competing
+          tier. Onsite lives here now instead of being a fourth package —
+          it's for a narrow slice of tenants (agencies, web hosts/cloud
+          infra teams, IT providers), not a general-audience tier. */}
+      {addons.length > 0 && (
+        <div style={{ marginTop:36 }}>
+          <div style={{ fontSize:16, fontWeight:800, color:'var(--ink)', marginBottom:4 }}>Get more with add-ons</div>
+          <div style={{ fontSize:12.5, color:'var(--ink3)', marginBottom:16 }}>Purchasable on top of any package above — not a separate tier.</div>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(300px,1fr))', gap:14 }}>
+            {addons.map(addon => (
+              <div key={addon.id} className="card" style={{ padding:'18px 20px', display:'flex', gap:14, alignItems:'flex-start' }}>
+                <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:36, height:36, borderRadius:9, background:`${addon.color}18`, flexShrink:0 }}>
+                  <Icon name="globe" size={16} color={addon.color} />
+                </span>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', gap:10 }}>
+                    <span style={{ fontSize:14, fontWeight:800, color:'var(--ink)' }}>{addon.name}</span>
+                    <span style={{ fontSize:15, fontWeight:800, color:addon.color, whiteSpace:'nowrap' }}>
+                      ${billing==='monthly'?addon.monthly:addon.annual}<span style={{ fontSize:11, fontWeight:600, color:'var(--ink3)' }}>/{billing==='monthly'?'mo':'yr'}</span>
+                    </span>
+                  </div>
+                  <p style={{ fontSize:12, color:'var(--ink2)', margin:'4px 0 10px', lineHeight:1.5 }}>{addon.description}</p>
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10 }}>
+                    <span style={{ fontSize:11.5, color:'var(--ink3)' }}><strong style={{ color:'var(--ink)' }}>{addon.activeCompanies}</strong> active {addon.activeCompanies===1?'company':'companies'}</span>
+                    <button onClick={()=>setEditingAddon(addon)} className="btn btn-secondary btn-sm" style={{ gap:5 }}>
+                      <Icon name="edit" size={12} />Edit
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Add-on edit modal — pricing/description only; an add-on has no
+          user/storage tiers of its own to configure. */}
+      <Dialog open={!!editingAddon} onOpenChange={o => { if (!o) setEditingAddon(null); }}>
+        <DialogContent className="sm:max-w-md">
+          {editingAddon && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Edit Add-on — {editingAddon.name}</DialogTitle>
+              </DialogHeader>
+
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
+                <div>
+                  <label style={{ fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:5 }}>Monthly Price ($)</label>
+                  <Input type="number" value={editingAddon.monthly} onChange={e=>setEditingAddon(p=>p?({...p,monthly:Number(e.target.value)}):p)} />
+                </div>
+                <div>
+                  <label style={{ fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:5 }}>Annual Price ($)</label>
+                  <Input type="number" value={editingAddon.annual} onChange={e=>setEditingAddon(p=>p?({...p,annual:Number(e.target.value)}):p)} />
+                </div>
+              </div>
+              <div style={{ marginTop:14 }}>
+                <label style={{ fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:5 }}>Description — who this is for</label>
+                <textarea
+                  value={editingAddon.description}
+                  onChange={e=>setEditingAddon(p=>p?({...p,description:e.target.value}):p)}
+                  rows={3}
+                  style={{ width:'100%', padding:'9px 12px', border:'1px solid var(--border)', borderRadius:9, fontSize:13, fontFamily:'var(--font)', color:'var(--ink)', resize:'vertical', boxSizing:'border-box' }}
+                />
+              </div>
+
+              <DialogFooter className="sm:justify-between">
+                <Button
+                  type="button" variant="destructive" size="sm"
+                  onClick={async () => {
+                    if (!(await showConfirm(`Deactivate the ${editingAddon.name} add-on? It will stop appearing to new signups.`, { variant: 'warning', confirmLabel: 'Deactivate' }))) return;
+                    try {
+                      await apiFetch(`/v1/addons/${editingAddon.code}`, { method: 'DELETE' });
+                      setAddons(a => a.filter(x => x.id !== editingAddon.id));
+                      setEditingAddon(null);
+                    } catch (err: any) {
+                      showAlert(`Failed to deactivate: ${err?.message ?? 'Unknown error'}`);
+                    }
+                  }}
+                >
+                  Deactivate
+                </Button>
+                <div style={{ display:'flex', gap:8 }}>
+                  <Button type="button" variant="outline" size="sm" onClick={()=>setEditingAddon(null)}>Cancel</Button>
+                  <Button
+                    type="button" size="sm"
+                    onClick={async () => {
+                      try {
+                        const updated = await apiFetch(`/v1/addons/${editingAddon.code}`, {
+                          method: 'PATCH',
+                          body: JSON.stringify({
+                            monthlyPrice: editingAddon.monthly, annualPrice: editingAddon.annual,
+                            description: editingAddon.description,
+                          }),
+                        });
+                        setAddons(a => a.map(x => x.id === editingAddon.id ? mapAddonFromApi({ ...updated, activeCompanies: editingAddon.activeCompanies }) : x));
+                        setEditingAddon(null);
+                      } catch (err: any) {
+                        showAlert(`Failed to save: ${err?.message ?? 'Unknown error'}`);
+                      }
+                    }}
+                  >
+                    Save Changes
+                  </Button>
+                </div>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Edit modal — one scrollable dialog body (not two nested mini-scroll
           boxes), sticky title + footer, so Save/Deactivate are always
@@ -2543,6 +2708,104 @@ export function AppStatusView() {
             );
           })}
         </div>
+      )}
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════
+   DEVICES — cross-tenant Device Management oversight
+   (379_attendance_devices.sql). Read-only: "monitor,
+   troubleshoot, audit", same stance this console already
+   takes toward tenant attendance/leave data — never a
+   write action on another tenant's device from here.
+══════════════════════════════════════════════════ */
+interface PlatformDevice {
+  id:string; name:string; provider:string; serial_number:string; status:string;
+  location:string|null; last_heartbeat_at:string|null; last_sync_at:string|null; created_at:string;
+  tenant_id:string; tenant_name:string; event_count:number;
+}
+const DEVICE_STATUS_TINT: Record<string,{bg:string;color:string;label:string}> = {
+  online:       { bg:'var(--green-l)', color:'#059669', label:'Online' },
+  offline:      { bg:'var(--bg)',      color:'var(--ink3)', label:'Offline' },
+  unregistered: { bg:'var(--bg)',      color:'var(--ink3)', label:'Awaiting first sync' },
+  error:        { bg:'var(--red-l)',   color:'var(--red)', label:'Error' },
+};
+function PlatformDeviceStatusBadge({ status }: { status:string }) {
+  const s = DEVICE_STATUS_TINT[status] ?? DEVICE_STATUS_TINT.unregistered;
+  return <span style={{ padding:'2px 10px', borderRadius:20, fontSize:11, fontWeight:700, background:s.bg, color:s.color, whiteSpace:'nowrap' }}>{s.label}</span>;
+}
+function relTimeShort(iso: string|null): string {
+  if (!iso) return 'Never';
+  const min = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+  if (min < 1) return 'Just now';
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  return `${Math.floor(hr / 24)}d ago`;
+}
+
+export function DevicesView() {
+  const [devices, setDevices] = useState<PlatformDevice[]>([]);
+  const [loaded, setLoaded] = useState(false);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all'|string>('all');
+
+  useEffect(() => {
+    apiFetch('/v1/superadmin/devices')
+      .then((res: any) => { setDevices(res?.data ?? []); setLoaded(true); })
+      .catch(() => setLoaded(true));
+  }, []);
+
+  const filtered = devices.filter(d => {
+    if (statusFilter !== 'all' && d.status !== statusFilter) return false;
+    if (search && !d.name.toLowerCase().includes(search.toLowerCase()) && !d.tenant_name.toLowerCase().includes(search.toLowerCase()) && !d.serial_number.toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
+  });
+
+  return (
+    <div>
+      <PageHdr
+        title="Attendance Devices"
+        sub={loaded ? `${devices.length} biometric terminal(s) registered across every tenant` : 'Loading…'}
+      />
+
+      <div style={{ display:'flex', gap:10, marginBottom:16, flexWrap:'wrap' }}>
+        <div style={{ position:'relative', flex:'1 1 260px', maxWidth:340 }}>
+          <Icon name="search" size={14} style={{ position:'absolute', left:12, top:'50%', transform:'translateY(-50%)', color:'var(--ink3)' } as React.CSSProperties} />
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search device, tenant, serial…" className="input-field" style={{ width:'100%', paddingLeft:34 }} />
+        </div>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="input-field" style={{ width:190 }}><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All statuses</SelectItem>
+            <SelectItem value="online">Online</SelectItem>
+            <SelectItem value="offline">Offline</SelectItem>
+            <SelectItem value="unregistered">Awaiting first sync</SelectItem>
+            <SelectItem value="error">Error</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {loaded && devices.length === 0 ? (
+        <div style={{ padding:'60px 0', textAlign:'center', color:'var(--ink3)', fontSize:13 }}>
+          No tenant has registered an attendance device yet.
+        </div>
+      ) : (
+        <DataTable headers={['Device','Tenant','Provider','Serial','Location','Status','Last Sync','Punches']}>
+          {filtered.map(d => (
+            <TR key={d.id}>
+              <TD nowrap>{d.name}</TD>
+              <TD nowrap>{d.tenant_name}</TD>
+              <TD nowrap>{d.provider}</TD>
+              <TD nowrap><span style={{ fontFamily:'var(--mono)', fontSize:12, color:'var(--ink3)' }}>{d.serial_number}</span></TD>
+              <TD>{d.location || '—'}</TD>
+              <TD><PlatformDeviceStatusBadge status={d.status} /></TD>
+              <TD nowrap>{relTimeShort(d.last_sync_at)}</TD>
+              <TD right>{d.event_count}</TD>
+            </TR>
+          ))}
+        </DataTable>
       )}
     </div>
   );

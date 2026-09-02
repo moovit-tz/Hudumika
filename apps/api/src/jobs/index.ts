@@ -3,7 +3,7 @@ import { Redis } from 'ioredis';
 import { env } from '../config/env.js';
 import { runRiskScanJob } from './risk-scan.job.js';
 import { runDailyStatusJob } from './daily-status.job.js';
-import { sweepStaleCheckIns } from '../services/time-entry.service.js';
+import { sweepStaleCheckIns, sweepStaleClockSessions } from '../services/time-entry.service.js';
 import { runMissingDocReminderJob } from './reminder.job.js';
 import { runComplyRenewalJob, runComplyExpiryReminderJob } from './comply-renewal.job.js';
 import { runTRAZReportJob } from './tra-zreport.job.js';
@@ -231,6 +231,8 @@ function startBullMQ(): void {
         } else if (job.name === 'stale-checkin') {
           const { closed } = await sweepStaleCheckIns();
           if (closed) console.log(`⏱️  Closed ${closed} check-in(s) left running past a full working day.`);
+          const { closed: closedSessions } = await sweepStaleClockSessions();
+          if (closedSessions) console.log(`⏱️  Closed ${closedSessions} ESS clock-in session(s) left running past a full working day.`);
         } else if (job.name === 'daily-status') {
           await runDailyStatusJob();
         } else if (job.name === 'comply-renewal') {

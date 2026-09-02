@@ -219,7 +219,7 @@ export function WorkspaceHome({ externalSearch }: WorkspaceHomeProps) {
           )}
 
           {/* ── Section: My Workspaces ── */}
-          <section className="wh-new-section wh-new-section--workspaces" style={{ marginTop: 24 }}>
+          <section className="wh-new-section wh-new-section--workspaces">
             <div className="wh-workspace-toolbar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <h2 className="wh-section-title">{t('hub.myWorkspaces')}</h2>
 

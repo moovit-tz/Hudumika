@@ -29,10 +29,10 @@
   max-width: 100%;
   width: 100%;
   margin: 0 auto;
-  padding: 36px 40px 60px;
+  padding: var(--space-md) 40px 60px;
   display: flex;
   flex-direction: column;
-  gap: 36px;
+  gap: var(--space-md);
 }
 
 /* ── SECTION HEADER ── */
@@ -739,7 +739,11 @@
   color: var(--ink3);
 }
 
-.wh-new-section--workspaces { margin-top: 12px; }
+/* No extra margin-top here — spacing between sections comes from
+   .wh-new-container's own gap so every section stays evenly spaced. Used to
+   double up with an inline marginTop on top of this, and this rule's own
+   12px, for a visibly bigger gap above "My Workspaces" than anywhere else
+   on the page. */
 .wh-th-center { text-align: center !important; }
 .wh-td-center { text-align: center !important; }
 
@@ -995,7 +999,7 @@
 /* Responsive */
 @media (max-width: 900px) {
   .wh-new-container {
-    padding: 24px 20px 48px;
+    padding: var(--space-sm) 20px 48px;
   }
 
   .wh-workspace-toolbar {
@@ -1022,7 +1026,7 @@
 
 @media (max-width: 600px) {
   .wh-new-container {
-    padding: 20px 16px 40px;
+    padding: var(--space-sm) 16px 40px;
   }
 
   .wh-toggle-btn {

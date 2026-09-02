@@ -50,7 +50,13 @@ export const CheckInWidget: React.FC = () => {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Skip widget for CUSTOMER role
-  const isStaff = user && user.role !== 'CUSTOMER';
+  // Some roles/people genuinely aren't measured by a timesheet at all — a
+  // platform SUPER_ADMIN overseeing tenants they don't do billable work in,
+  // or anyone an HR admin has explicitly marked exempt (StaffDetail.tsx's
+  // own "Exempt from timesheets" toggle, profile.timesheet_exempt). Showing
+  // the check-in prompt to someone who was never meant to use it isn't a
+  // safe default to fall back on — it's a real nag with no correct action.
+  const isStaff = user && user.role !== 'CUSTOMER' && !user.profile?.timesheet_exempt;
 
   // ── Load tasks and shipments ──
   useEffect(() => {

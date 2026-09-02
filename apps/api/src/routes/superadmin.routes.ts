@@ -36,6 +36,9 @@ const tenantPatchSchema = z.object({
 const tenantAppsPatchSchema = z.object({
   enabledApps: z.record(z.string(), z.boolean()),
 });
+const tenantAddonsPatchSchema = z.object({
+  addonGrants: z.record(z.string(), z.boolean()),
+});
 // Platform settings is a genuinely free-form JSONB blob (branding, SMTP,
 // feature flags, ...), so this only guards it's a plain object — Object.keys()
 // below would throw on null/an array, and the merge would silently corrupt
@@ -460,6 +463,89 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
       metadata: { enabledApps },
     });
     return { enabledApps: settings['enabled-apps'] || {} };
+  });
+
+  // 5c-2. GET /v1/superadmin/tenants/:id/addons — which add-ons (376_package_addons.sql)
+  // this tenant currently holds. Mirrors 5b's GET .../apps exactly.
+  fastify.get('/tenants/:id/addons', async (request) => {
+    const { id } = request.params as { id: string };
+    const rows = await dbPlatform.selectFrom('tenant_addons')
+      .select('addon_code')
+      .where('tenant_id', '=', id)
+      .where('status', '=', 'active')
+      .execute();
+    const addonGrants: Record<string, boolean> = {};
+    for (const r of rows) addonGrants[r.addon_code] = true;
+    return { addonGrants };
+  });
+
+  // 5c-3. PATCH /v1/superadmin/tenants/:id/addons — grant/revoke specific
+  // add-ons for this tenant. A SuperAdmin action, so it upserts tenant_addons
+  // directly via dbPlatform rather than the tenant self-service purchase/cancel
+  // endpoints in addons.routes.ts — same relationship 5c's apps endpoint has to
+  // a hypothetical tenant-facing module toggle.
+  fastify.patch('/tenants/:id/addons', async (request) => {
+    const { id } = request.params as { id: string };
+    const { addonGrants } = tenantAddonsPatchSchema.parse(request.body);
+
+    for (const [addonCode, grant] of Object.entries(addonGrants)) {
+      if (grant) {
+        const existing = await dbPlatform.selectFrom('tenant_addons').select('id')
+          .where('tenant_id', '=', id).where('addon_code', '=', addonCode).executeTakeFirst();
+        if (existing) {
+          await dbPlatform.updateTable('tenant_addons')
+            .set({ status: 'active', cancelled_at: null, updated_at: new Date() })
+            .where('id', '=', existing.id).execute();
+        } else {
+          await dbPlatform.insertInto('tenant_addons')
+            .values({ tenant_id: id, addon_code: addonCode, status: 'active' }).execute();
+        }
+      } else {
+        await dbPlatform.updateTable('tenant_addons')
+          .set({ status: 'cancelled', cancelled_at: new Date(), updated_at: new Date() })
+          .where('tenant_id', '=', id).where('addon_code', '=', addonCode).execute();
+      }
+    }
+
+    const tenant = await dbPlatform.selectFrom('tenants').select('name').where('id', '=', id).executeTakeFirst();
+    const on = Object.entries(addonGrants).filter(([, v]) => v).map(([k]) => k);
+    await PlatformAdminService.recordActivity({
+      ...actor(request), category: 'system',
+      action: `Set add-ons to ${on.length ? on.join(', ') : 'none'}`,
+      targetType: 'tenant', targetId: id, targetName: tenant?.name ?? null, tenantId: id,
+      metadata: { addonGrants },
+    });
+
+    const rows = await dbPlatform.selectFrom('tenant_addons').select('addon_code')
+      .where('tenant_id', '=', id).where('status', '=', 'active').execute();
+    const result: Record<string, boolean> = {};
+    for (const r of rows) result[r.addon_code] = true;
+    return { addonGrants: result };
+  });
+
+  // 5c-4. GET /v1/superadmin/devices — cross-tenant, read-only Device
+  // Management oversight (379_attendance_devices.sql). Platform-owner
+  // "monitor, troubleshoot, audit" over HR data, not manage it — matches the
+  // same view/support-only stance this file already takes toward tenant
+  // leave/attendance, never a write action on another tenant's devices.
+  fastify.get('/devices', async () => {
+    const rows = await dbPlatform.selectFrom('attendance_devices as d')
+      .innerJoin('tenants as t', 't.id', 'd.tenant_id')
+      .select([
+        'd.id', 'd.name', 'd.provider', 'd.serial_number', 'd.status', 'd.location',
+        'd.last_heartbeat_at', 'd.last_sync_at', 'd.created_at',
+        't.id as tenant_id', 't.name as tenant_name',
+      ])
+      .orderBy('d.created_at', 'desc')
+      .execute();
+
+    const eventCounts = await dbPlatform.selectFrom('attendance_device_events')
+      .select(['device_id', ({ fn }) => fn.countAll<number>().as('count')])
+      .groupBy('device_id')
+      .execute();
+    const countByDevice = new Map(eventCounts.map(c => [c.device_id, Number(c.count)]));
+
+    return { data: rows.map(r => ({ ...r, event_count: countByDevice.get(r.id) ?? 0 })) };
   });
 
   // 5d. GET /v1/superadmin/tenants/:id/customers — for the "Login As Customer"

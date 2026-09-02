@@ -19,6 +19,27 @@ export interface Package {
   sort_order: number;
 }
 
+/** Purchasable independent of which base Package a tenant is on (376_package_addons.sql)
+ *  — Onsite's real home, instead of being a fourth competing base package. */
+export interface Addon {
+  id: string;
+  code: string;
+  name: string;
+  description: string;
+  featureKey: string;
+  monthlyPrice: number;
+  annualPrice: number;
+  color: string | null;
+  isActive: boolean;
+  sortOrder: number;
+  /** Real count of tenants currently holding this add-on — active tenant_addons
+   *  rows, not a fabricated number. */
+  activeCompanies?: number;
+  /** Does the requesting user's own tenant currently hold this add-on? Set on
+   *  every GET /v1/addons response (SuperAdmin and tenant callers alike). */
+  purchased?: boolean;
+}
+
 export type PaymentMethod = 'card' | 'mpesa';
 
 export interface OnboardingAccountInput {

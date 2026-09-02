@@ -1,0 +1,206 @@
+/* ── Ondi's own login front door — a distinct visual identity, not a
+   Login.tsx clone. Everything here is scoped under .ondi-login (added
+   alongside the existing .login-page class on the root div, which keeps
+   Login.css's shared classes — .login-input, .login-submit-btn,
+   .login-error, .login-social-btn, .login-form — doing exactly what they
+   already do for Login.tsx/OnboardingWizard.tsx/Register). This file only
+   ever adds new rules or *raises specificity* on top of those (e.g.
+   `.ondi-login .login-input`), never edits Login.css itself, so those other
+   pages are provably unaffected by anything below.
+
+   Brand colors (#4253d1 / #4e76e5) are lifted directly from the real mark —
+   apps/web/public/ondi-logo-full.svg (the actual lockup file, light-on-dark
+   text version at -full-white.svg) — not approximated. They're used only
+   for Ondi's own static brand furniture (glow, inactive method icons). The
+   actual call-to-action (submit button, links, the active method icon)
+   still reads `--lp-accent`, i.e. the tenant's own configured brand color
+   (useBranding().accentColor) — Ondi's login is reachable per-tenant and
+   already white-labels that way; a redesign that hardcoded Ondi's indigo
+   over the submit button would quietly remove working tenant theming, not
+   just restyle a component. */
+
+.ondi-login {
+  --ondi-1: #4253d1;
+  --ondi-2: #4e76e5;
+  /* Kept deliberately faint — an early pass had this loud enough to read as
+     a glowing halo rather than ambient light. */
+  --ondi-glow: color-mix(in srgb, var(--ondi-1) 14%, transparent);
+}
+
+/* Ambient brand glow behind the card, independent of whatever page
+   background the tenant has chosen (LOGIN_BG_MAP) — sits under the card via
+   z-index, doesn't fight the tenant's own background color/style. */
+.ondi-login::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(520px 360px at 50% -14%, var(--ondi-glow), transparent 65%);
+}
+/* Only the card needs raising above .ondi-login::before's fixed, z-index:0
+   ambient glow — .login-toggle already carries its own `position: absolute`
+   from Login.css (positioned relative to .login-page); overriding it to
+   `relative` here (an earlier version of this rule did) knocked it out of
+   its top-right corner placement and left the card intercepting its clicks. */
+.ondi-login .login-card {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Card — no accent stripe/rail across the top (the one thing that read
+   as templated rather than designed — a colored bar is one of the most
+   common AI-generated-card tells). The brand comes through in the elevation
+   itself instead: a hairline edge tinted a whisper of Ondi indigo (mixed
+   into the theme-correct --lp-card-border, so this one rule is right in
+   both themes with no separate dark override) and a shadow that's tinted
+   indigo rather than neutral black — the card reads as lit by its own
+   brand color, not labeled by it. ── */
+.ondi-login .login-card {
+  border-radius: 22px;
+  padding: 30px 28px 26px;
+  border-color: color-mix(in srgb, var(--ondi-1) 14%, var(--lp-card-border));
+  box-shadow:
+    0 1px 2px rgba(16, 24, 60, 0.04),
+    0 14px 28px -18px rgba(30, 41, 110, 0.14);
+}
+.ondi-login[data-theme="dark"] .login-card {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.4),
+    0 8px 20px -8px rgba(0, 0, 0, 0.55),
+    0 20px 40px -24px rgba(66, 83, 209, 0.2),
+    0 0 0 1px rgba(78, 118, 229, 0.1);
+}
+
+/* ── Brand header — the real lockup (icon + wordmark in one file, the
+   actual brand asset, not typeset text standing in for it). Two source
+   files, swapped by theme: ondi-logo-full.svg sets its wordmark in near-
+   black for a light card, ondi-logo-full-white.svg sets it in white for a
+   dark one — same reason OndiLogo.tsx already ships an icon-only 'white'
+   variant for use on a dark/colored surface. ── */
+.ondi-login .login-brand-hdr { gap: 18px; }
+.ondi-login .ondi-logo-full {
+  height: 30px;
+  width: auto;
+  display: block;
+}
+
+.ondi-login .login-headline {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.ondi-login .login-subtext {
+  font-size: 12.5px;
+  margin-top: 5px;
+}
+/* A small "how this works" eyebrow — passwordless is the one thing worth
+   saying before anything else on an identity product's own sign-in page.
+   Outline, not filled: a filled tint sits close enough to the card's own
+   dark surface tone to read as a dull grey blob rather than a chip — a
+   crisp border reads clearly against either theme's ground without needing
+   two different fill colors tuned separately. */
+.ondi-login .ondi-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ondi-1);
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--ondi-1) 38%, transparent);
+  border-radius: 20px;
+  padding: 4px 10px 4px 8px;
+  margin-bottom: 2px;
+}
+.ondi-login[data-theme="dark"] .ondi-eyebrow {
+  color: #a9b6ff;
+  border-color: color-mix(in srgb, #a9b6ff 45%, transparent);
+}
+
+/* ── Method selector — five equal-width icon buttons instead of a
+   text-pill row (five labels genuinely don't scan quickly as flat text;
+   an icon strip does, and reads more like a real authenticator app's
+   method picker). The active method's name still appears as a single
+   caption under the row — nothing is lost, just said once instead of five
+   times at once. Same onClick handlers as before; only presentation and a
+   per-tab icon changed in the component. ── */
+/* Own tokens, not a reuse of Login.css's --lp-tabs-* pair — those were
+   tuned for the old flat white-pill-on-light-grey text tab and read as
+   near-invisible here in dark mode (both the row and the "active" pill sat
+   within a few percent of the page's own near-black, so the control read as
+   a flat blob with faint icons rather than a defined surface). Deriving the
+   row from --lp-ink instead fixes both themes with one rule: mixing a small
+   amount of a *dark* ink color into transparent gives a light recessed
+   panel in light mode, and mixing a small amount of a *light* ink color
+   into transparent gives a frosted, translucent panel in dark mode —
+   --lp-ink already flips between those two automatically. */
+.ondi-login .ondi-method-row {
+  display: flex;
+  gap: 6px;
+  background: color-mix(in srgb, var(--lp-ink, #1f1f1f) 5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--lp-ink, #1f1f1f) 11%, transparent);
+  border-radius: 14px;
+  padding: 6px;
+}
+.ondi-login .ondi-method-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--lp-ink3, #5f6368);
+  cursor: pointer;
+  outline: none;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+}
+.ondi-login .ondi-method-btn:hover:not(.ondi-method-btn--active) {
+  color: var(--lp-ink, #1f1f1f);
+  background: color-mix(in srgb, var(--lp-ink, #1f1f1f) 9%, transparent);
+}
+/* Active pill is tinted with the tenant's own --lp-accent mixed into the
+   card's real surface color, not a flat white/grey fill — it reads as
+   "selected, in this tenant's brand color" in both themes automatically,
+   since --lp-card-bg already flips white/near-black on its own. */
+.ondi-login .ondi-method-btn--active {
+  background: color-mix(in srgb, var(--lp-accent) 16%, var(--lp-card-bg, #fff));
+  color: var(--lp-accent);
+  border-color: color-mix(in srgb, var(--lp-accent) 22%, transparent);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+/* The tenant's own accent has no contrast guarantee (same fact Login.css's
+   --lp-link-accent comment makes) — a tenant on a dark navy accent produces
+   a dark icon on this page's own dark card, close to unreadable at 16% mix.
+   Blending it toward white (not just raising the mix %) fixes that at any
+   accent lightness: it lifts a dark accent into a legible tint while a
+   brand color that was already light barely moves. */
+.ondi-login[data-theme="dark"] .ondi-method-btn--active {
+  background: color-mix(in srgb, var(--lp-accent) 30%, var(--lp-card-bg, #1e1e1f));
+  color: color-mix(in srgb, var(--lp-accent) 65%, white);
+  border-color: color-mix(in srgb, var(--lp-accent) 40%, transparent);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+.ondi-login .ondi-method-caption {
+  text-align: center;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--lp-ink2, #444746);
+  margin-top: 9px;
+}
+
+/* ── Inputs/submit — same shared elements Login.css already styles, raised
+   corners to match this page's rounder card language. Colors (border,
+   background, accent focus ring) are untouched — still fully theme- and
+   tenant-aware via the --lp-* variables OndiLogin.tsx already computes. ── */
+.ondi-login .login-input   { border-radius: 11px; padding: 12px 14px; }
+.ondi-login .login-submit-btn,
+.ondi-login .login-social-btn { border-radius: 11px; }
+.ondi-login .login-error { border-radius: 12px; }
+
+.ondi-login .login-create-p { margin-top: 2px; }

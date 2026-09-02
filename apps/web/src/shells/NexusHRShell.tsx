@@ -16,17 +16,17 @@ import { OrgChart }    from '../pages/OrgChart.js';
 import { EmploymentRecords } from '../pages/EmploymentRecords.js';
 import { Performance }  from '../pages/Performance.js';
 import { HrDocuments }  from '../pages/HrDocuments.js';
+import { HrVisitors }   from '../pages/HrVisitors.js';
 import { OvertimePage } from '../pages/Overtime.js';
 import { HrAssets }     from '../pages/HrAssets.js';
 import { ClockInPage }  from '../pages/ClockInPage.js';
 import { MyHubPage }    from '../pages/MyHub.js';
 import { RecruitmentPage } from '../pages/Recruitment.js';
-import { ITAdminDashboard } from '../pages/ITAdminDashboard.js';
 // Calls (1:1 + group meetings) moved to Bliss, matching Team Chat's own
 // precedent — see BlissShell.tsx. The nav item below now just links out.
 import {
   HrmDashboard, EmployeesPage, DepartmentsPage, DesignationsPage, TeamsPage,
-  AttendancePage, LeavesPage, ShiftsPage, HolidaysPage,
+  AttendancePage, LeavesPage, ShiftsPage, HolidaysPage, DevicesPage,
   PayrollPage, MyPayslipsPage,
   RolesPage, ActivityLogsPage, DeleteRequestsPage,
   AnnouncementsPage,
@@ -58,6 +58,7 @@ const NAV: SidebarSection[] = [
     items: [
       { label: 'Clock-in & Timesheets', icon: 'clock', path: '/nexushr/clock-in' },
       { label: 'Attendance',     icon: 'check',    path: '/nexushr/attendance' },
+      { label: 'Attendance Devices', icon: 'fingerprint', path: '/nexushr/devices' },
       { label: 'Leave Requests', icon: 'calendar', path: '/nexushr/leaves'     },
       { label: 'Shift Roster',   icon: 'timer',    path: '/nexushr/shifts'     },
       { label: 'Overtime',       icon: 'zap',      path: '/nexushr/overtime'   },
@@ -75,6 +76,7 @@ const NAV: SidebarSection[] = [
     items: [
       { label: 'Documents', icon: 'fileText', path: '/nexushr/documents' },
       { label: 'Assets',    icon: 'package',  path: '/nexushr/assets'    },
+      { label: 'Visitors',  icon: 'userPlus', path: '/nexushr/visitors'  },
     ],
   },
   {
@@ -87,7 +89,6 @@ const NAV: SidebarSection[] = [
   {
     title: 'ACCESS & SECURITY',
     items: [
-      { label: 'IT Admin',            icon: 'barChart2',  path: '/nexushr/it-admin'          },
       { label: 'Roles & Permissions', icon: 'shield',     path: '/nexushr/roles'             },
       { label: 'Activity Logs',       icon: 'activity',   path: '/nexushr/activity-logs'     },
       // These three are the same users/hr_invitations/hr_login_history/hr_devices
@@ -131,7 +132,9 @@ export function NexusHRShell() {
               <Route path="invitations"       element={<Navigate to="/ondi?tab=invites" replace />} />
               <Route path="staff-directory"   element={<Navigate to="/nexushr/employees" replace />} />
               <Route path="staff/:id"         element={<RequireSelfOrRoles roles={MGMT_ROLES}><StaffDetail /></RequireSelfOrRoles>} />
-              <Route path="it-admin"          element={<RequireRoles roles={['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN']}><ITAdminDashboard /></RequireRoles>} />
+              {/* Moved to Ondi Business (same devices/login-history data Ondi
+                  already owns — see OneIdItAdmin.tsx's own header comment). */}
+              <Route path="it-admin"          element={<Navigate to="/ondi/it-admin" replace />} />
               <Route path="activity-logs"     element={<RequireRoles roles={MGMT_ROLES}><ActivityLogsPage /></RequireRoles>} />
               <Route path="login-history"     element={<Navigate to="/ondi/login-activity" replace />} />
               <Route path="device-management" element={<Navigate to="/ondi/sessions" replace />} />
@@ -139,6 +142,7 @@ export function NexusHRShell() {
               <Route path="clock-in"          element={<ClockInPage />} />
               <Route path="leaves"            element={<RequireRoles roles={MGMT_ROLES}><LeavesPage /></RequireRoles>} />
               <Route path="attendance"        element={<RequireRoles roles={MGMT_ROLES}><AttendancePage /></RequireRoles>} />
+              <Route path="devices"           element={<RequireRoles roles={MGMT_ROLES}><DevicesPage /></RequireRoles>} />
               <Route path="shifts"            element={<RequireRoles roles={MGMT_ROLES}><ShiftsPage /></RequireRoles>} />
               <Route path="overtime"          element={<RequireRoles roles={MGMT_ROLES}><OvertimePage /></RequireRoles>} />
               <Route path="holidays"          element={<RequireRoles roles={MGMT_ROLES}><HolidaysPage /></RequireRoles>} />
@@ -151,6 +155,7 @@ export function NexusHRShell() {
               <Route path="recruitment"       element={<RequireRoles roles={MGMT_ROLES}><RecruitmentPage /></RequireRoles>} />
               <Route path="performance"       element={<RequireRoles roles={MGMT_ROLES}><Performance /></RequireRoles>} />
               <Route path="documents"         element={<RequireRoles roles={MGMT_ROLES}><HrDocuments /></RequireRoles>} />
+              <Route path="visitors"          element={<RequireRoles roles={MGMT_ROLES}><HrVisitors /></RequireRoles>} />
               <Route path="assets"            element={<RequireRoles roles={MGMT_ROLES}><HrAssets /></RequireRoles>} />
               {/* Permission Matrix merged into the Roles & Permissions page itself (a view toggle there now). */}
               <Route path="permissions"       element={<Navigate to="/nexushr/roles" replace />} />

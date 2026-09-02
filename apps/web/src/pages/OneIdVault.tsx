@@ -84,12 +84,12 @@ export const OneIdVault: React.FC = () => {
     <div>
       <PageHeader
         crumbs={['Ondi', 'Personal']}
-        titlePlain="Your"
+        titlePlain="Your ID"
         titleEm="documents"
         subtitle="Your own identity documents, stored in your personal Drive folder."
       />
 
-      <SectionCard title="My Documents" padded={false}>
+      <SectionCard title="My ID Documents" padded={false}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 9, padding: '12px 14px', fontSize: 12.5, color: 'var(--ink2)', margin: 16 }}>
           <Icon name="shield" size={15} style={{ flexShrink: 0, color: 'var(--teal)' } as React.CSSProperties} />
           <span>Stored in your own Drive folder, visible only to you and your workspace admins — the same access rules as every other document in this workspace.</span>

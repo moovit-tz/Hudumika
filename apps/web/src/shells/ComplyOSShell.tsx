@@ -6,6 +6,8 @@ import { AppSidebar } from '../components/AppSidebar.js';
 import type { SidebarSection } from '../components/AppSidebar.js';
 import { AppHeader } from '../components/AppHeader.js';
 import { PageLayout } from '../components/PageLayout.js';
+import { RequireRoles } from '../components/RequireRoles.js';
+import { MGMT_ROLES } from '../lib/permissions.js';
 import { ComplyDashboard }    from '../pages/ComplyDashboard.js';
 import { ComplyApplications, NewApplicationPage } from '../pages/ComplyApplications.js';
 import { ComplyObligations, AddObligationPage }   from '../pages/ComplyObligations.js';
@@ -63,27 +65,27 @@ export function ComplyOSShell() {
           <div className="app-shell-content">
           <Routes>
             <Route element={<PageLayout />}>
-              <Route index                        element={<ComplyDashboard />}         />
-              <Route path="applications"          element={<ComplyApplications />}      />
-              <Route path="applications/new"      element={<NewApplicationPage />}      />
-              <Route path="obligations"           element={<ComplyObligations />}       />
-              <Route path="obligations/new"       element={<AddObligationPage />}       />
-              <Route path="obligation-scan"       element={<ComplyObligationScanPage />} />
-              <Route path="vault"                 element={<ComplyVault />}             />
-              <Route path="vault/new"             element={<AddCertificatePage />}      />
-              <Route path="calendar"              element={<ComplyCalendar />}          />
-              <Route path="calendar/new-reminder" element={<AddReminderPage />}         />
-              <Route path="legal"                 element={<ComplyLegal />}             />
-              <Route path="legal/engage/:firmId"  element={<EngageFirmPage />}          />
-              <Route path="agencies"              element={<ComplyAgencies />}          />
-              <Route path="workflows"             element={<ComplyWorkflows />}         />
-              <Route path="brela-search"          element={<ComplyBrelaSearch />}       />
-              <Route path="brela-search/history"  element={<ComplyBrelaHistory />}      />
-              <Route path="companies"             element={<ComplyCompanyDirectory />}  />
-              <Route path="license-catalog"           element={<ComplyLicenseCatalog />} />
-              <Route path="license-catalog/apply/:catalogId" element={<ComplyLicenseApply />} />
-              <Route path="tra-extract"               element={<ComplyTraExtract />} />
-              <Route path="license-automation"        element={<ComplyLicenseAutomation />} />
+              <Route index                        element={<RequireRoles roles={MGMT_ROLES} permissions={['comply.manage']}><ComplyDashboard /></RequireRoles>}         />
+              <Route path="applications"          element={<RequireRoles roles={MGMT_ROLES} permissions={['comply.manage']}><ComplyApplications /></RequireRoles>}      />
+              <Route path="applications/new"      element={<RequireRoles roles={MGMT_ROLES} permissions={['comply.manage']}><NewApplicationPage /></RequireRoles>}      />
+              <Route path="obligations"           element={<RequireRoles roles={MGMT_ROLES} permissions={['comply.manage']}><ComplyObligations /></RequireRoles>}       />
+              <Route path="obligations/new"       element={<RequireRoles roles={MGMT_ROLES} permissions={['comply.manage']}><AddObligationPage /></RequireRoles>}       />
+              <Route path="obligation-scan"       element={<RequireRoles roles={MGMT_ROLES} permissions={['comply.manage']}><ComplyObligationScanPage /></RequireRoles>} />
+              <Route path="vault"                 element={<RequireRoles roles={MGMT_ROLES} permissions={['comply.manage']}><ComplyVault /></RequireRoles>}             />
+              <Route path="vault/new"             element={<RequireRoles roles={MGMT_ROLES} permissions={['comply.manage']}><AddCertificatePage /></RequireRoles>}      />
+              <Route path="calendar"              element={<RequireRoles roles={MGMT_ROLES} permissions={['comply.manage']}><ComplyCalendar /></RequireRoles>}          />
+              <Route path="calendar/new-reminder" element={<RequireRoles roles={MGMT_ROLES} permissions={['comply.manage']}><AddReminderPage /></RequireRoles>}         />
+              <Route path="legal"                 element={<RequireRoles roles={MGMT_ROLES} permissions={['comply.manage']}><ComplyLegal /></RequireRoles>}             />
+              <Route path="legal/engage/:firmId"  element={<RequireRoles roles={MGMT_ROLES} permissions={['comply.manage']}><EngageFirmPage /></RequireRoles>}          />
+              <Route path="agencies"              element={<RequireRoles roles={MGMT_ROLES} permissions={['comply.manage']}><ComplyAgencies /></RequireRoles>}          />
+              <Route path="workflows"             element={<RequireRoles roles={MGMT_ROLES} permissions={['comply.manage']}><ComplyWorkflows /></RequireRoles>}         />
+              <Route path="brela-search"          element={<RequireRoles roles={MGMT_ROLES} permissions={['comply.manage']}><ComplyBrelaSearch /></RequireRoles>}       />
+              <Route path="brela-search/history"  element={<RequireRoles roles={MGMT_ROLES} permissions={['comply.manage']}><ComplyBrelaHistory /></RequireRoles>}      />
+              <Route path="companies"             element={<RequireRoles roles={MGMT_ROLES} permissions={['comply.manage']}><ComplyCompanyDirectory /></RequireRoles>}  />
+              <Route path="license-catalog"           element={<RequireRoles roles={MGMT_ROLES} permissions={['comply.manage']}><ComplyLicenseCatalog /></RequireRoles>} />
+              <Route path="license-catalog/apply/:catalogId" element={<RequireRoles roles={MGMT_ROLES} permissions={['comply.manage']}><ComplyLicenseApply /></RequireRoles>} />
+              <Route path="tra-extract"               element={<RequireRoles roles={MGMT_ROLES} permissions={['comply.manage']}><ComplyTraExtract /></RequireRoles>} />
+              <Route path="license-automation"        element={<RequireRoles roles={MGMT_ROLES} permissions={['comply.manage']}><ComplyLicenseAutomation /></RequireRoles>} />
             </Route>
           </Routes>
           </div>

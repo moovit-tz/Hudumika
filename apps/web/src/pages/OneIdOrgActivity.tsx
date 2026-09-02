@@ -5,7 +5,7 @@
 // nothing ever let an admin actually read it; only a tamper-verify
 // endpoint existed. Backed by the new GET /v1/oneid/org/activity.
 import React, { useEffect, useState } from 'react';
-import { apiFetch } from '../lib/api.js';
+import { apiFetch, apiDownload } from '../lib/api.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Icon, type IconName } from '../components/Icon.js';
@@ -37,8 +37,14 @@ const EVENT_LABEL: Record<string, string> = {
   oauth_consent_revoked: 'Revoked an authorized app', account_deactivation_requested: 'Requested account deactivation',
   wallet_item_added: 'Added a wallet item', wallet_item_viewed: 'Revealed a wallet secret',
   wallet_item_updated: 'Updated a wallet item', wallet_item_deleted: 'Deleted a wallet item',
+  wallet_item_shared: 'Shared a wallet item', wallet_item_share_revoked: 'Revoked a shared wallet item',
   access_review_campaign_started: 'Started an access-review campaign', access_review_campaign_completed: 'Completed an access-review campaign',
   access_review_item_approved: 'Approved a role grant', access_review_item_revoked: 'Revoked a role grant',
+  recovery_contact_added: 'Added a recovery contact', recovery_contact_responded: 'Responded to a recovery-contact request',
+  recovery_contact_removed: 'Removed a recovery contact',
+  recovery_requested: 'Requested account recovery', recovery_request_approved: 'Approved a recovery request',
+  recovery_request_declined: 'Declined a recovery request', recovery_request_cancelled: 'Recovery request cancelled',
+  recovery_completed: 'Completed account recovery',
 };
 
 const FAILURE_EVENTS = new Set(['login_failed', 'access_denied', 'kyc_rejected', 'kyb_rejected', 'access_request_denied', 'access_review_item_revoked']);
@@ -62,10 +68,20 @@ function fmt(d: string): string {
 export const OneIdOrgActivity: React.FC = () => {
   const [events, setEvents] = useState<ActivityEvent[] | null>(null);
   const [err, setErr] = useState('');
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     apiFetch('/v1/oneid/org/activity').then(setEvents).catch((e: any) => setErr(e?.message ?? 'Could not load activity.'));
   }, []);
+
+  // Ondi feature-gap pass (M5): was on-screen only before — GET
+  // /v1/oneid/org/activity?format=csv is the same query, just wider
+  // (2000 rows) and rendered as a real download instead of JSON.
+  async function exportCsv() {
+    setExporting(true);
+    try { await apiDownload('/v1/oneid/org/activity?format=csv', `ondi_activity_${new Date().toISOString().slice(0, 10)}.csv`); }
+    finally { setExporting(false); }
+  }
 
   return (
     <div>
@@ -74,6 +90,12 @@ export const OneIdOrgActivity: React.FC = () => {
         titlePlain="Org"
         titleEm="activity"
         subtitle="Every security event across this tenant, most recent first."
+        actions={
+          <button type="button" disabled={exporting} onClick={exportCsv}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--white)', color: 'var(--ink)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 16px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', opacity: exporting ? 0.6 : 1 }}>
+            <Icon name="download" size={15} /> {exporting ? 'Exporting…' : 'Export CSV'}
+          </button>
+        }
       />
 
       <SectionCard padded={false}>

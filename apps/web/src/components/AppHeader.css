@@ -15,6 +15,10 @@
   z-index: 10;
 }
 
+[data-theme="dark"] .app-header {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
 /* ── Navbar type — set from /admin/design-system's Layout Customizer ── */
 [data-navbar="sticky"] .app-header { position: sticky; top: 0; }
 [data-navbar="hidden"] .app-header { display: none; }

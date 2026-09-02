@@ -9,7 +9,14 @@ import { SectionCard } from '../components/SectionCard.js';
 // IT-admin / security overview. Composes the existing security endpoints
 // (devices, login history, activity log, staff) into one real dashboard — no
 // new aggregate endpoint, no invented figures.
-export function ITAdminDashboard() {
+//
+// Moved here from NexusHR (was ITAdminDashboard.tsx at /nexushr/it-admin) —
+// it reads the exact same devices/login-history data NexusHR's own sidebar
+// already says was consolidated into Ondi ("now one home (Ondi)... this nav
+// just points there instead of rendering a second copy"); this dashboard
+// was that second copy in aggregate form. Sits alongside Sessions & Security
+// / Activity / Login Activity, same isAdmin gate, no new permission needed.
+export function OneIdItAdmin() {
   const [devices, setDevices] = useState<any[]>([]);
   const [logins, setLogins] = useState<any[]>([]);
   const [activity, setActivity] = useState<any[]>([]);
@@ -43,8 +50,8 @@ export function ITAdminDashboard() {
   };
 
   const kpis: { label: string; value: number; sub: string; icon: IconName; variant: any; to: string }[] = [
-    { label: 'Devices', value: devices.length, sub: `${trusted} trusted`, icon: 'smartphone', variant: 'brand', to: '/nexushr/device-management' },
-    { label: 'Sign-ins (7d)', value: recentLogins.length, sub: `${failed} failed`, icon: 'lock', variant: failed > 0 ? 'warning' : 'success', to: '/nexushr/login-history' },
+    { label: 'Devices', value: devices.length, sub: `${trusted} trusted`, icon: 'smartphone', variant: 'brand', to: '/ondi/sessions' },
+    { label: 'Sign-ins (7d)', value: recentLogins.length, sub: `${failed} failed`, icon: 'lock', variant: failed > 0 ? 'warning' : 'success', to: '/ondi/login-activity' },
     { label: 'Activity events', value: activity.length, sub: 'recent', icon: 'activity', variant: 'info', to: '/nexushr/activity-logs' },
     { label: 'Staff accounts', value: staff.length, sub: `${byRole.length} roles`, icon: 'users', variant: 'gray', to: '/nexushr/employees' },
   ];
@@ -56,7 +63,7 @@ export function ITAdminDashboard() {
 
   return (
     <div style={{ flex: 1, overflowY: 'auto' }}>
-      <PageHeader crumbs={['NexusHR', 'Access & Security']} titlePlain="IT admin" titleEm="dashboard"
+      <PageHeader crumbs={['Ondi', 'Enterprise']} titlePlain="IT admin" titleEm="dashboard"
         subtitle="Devices, sign-ins, activity and accounts across the workspace." />
 
       {/* KPI row */}
@@ -90,7 +97,7 @@ export function ITAdminDashboard() {
         </SectionCard>
 
         {/* Recent sign-ins */}
-        <SectionCard title="Recent sign-ins" action={cardAction('/nexushr/login-history', 'View all')}>
+        <SectionCard title="Recent sign-ins" action={cardAction('/ondi/login-activity', 'View all')}>
             {logins.length === 0 ? <div style={{ fontSize: 12.5, color: 'var(--ink3)', padding: '8px' }}>No sign-in history.</div> : logins.slice(0, 8).map(l => {
               const ok = String(l.status).toUpperCase() === 'SUCCESS';
               return (
@@ -120,3 +127,5 @@ export function ITAdminDashboard() {
     </div>
   );
 }
+
+export default OneIdItAdmin;

@@ -21,11 +21,10 @@ import {
   ActivityView,
   SettingsView,
   AppStatusView,
+  DevicesView,
 } from '../pages/SuperAdmin.js';
-import { BrandingView } from '../pages/BrandingView.js';
 import { DesignSystemView } from '../pages/DesignSystemView.js';
 import { SeoAnalyticsView } from '../pages/SeoAnalyticsView.js';
-import ComponentShowcase from '../pages/ComponentShowcase.js';
 import { AdminCMSPages } from '../pages/AdminCMSPages.js';
 import { SuperAdminIssues } from '../pages/SuperAdminIssues.js';
 import { SuperAdminReferrals } from '../pages/SuperAdminReferrals.js';
@@ -54,11 +53,10 @@ const NAV: SidebarSection[] = [
       { label: 'Referral Commissions', icon: 'link', path: '/admin/referrals'    },
       { label: 'Announcements',     icon: 'bell',      path: '/admin/announcements' },
       { label: 'App Status',        icon: 'shield',   path: '/admin/app-status'     },
+      { label: 'Attendance Devices', icon: 'fingerprint', path: '/admin/devices'   },
       { label: 'CMS Pages',         icon: 'fileText', path: '/admin/cms-pages'      },
-      { label: 'Branding',          icon: 'image',    path: '/admin/branding'       },
       { label: 'Design System',     icon: 'sliders',  path: '/admin/design-system'  },
       { label: 'SEO & Analytics',   icon: 'trendingUp', path: '/admin/seo'          },
-      { label: 'Components',        icon: 'layers',   path: '/admin/components'     },
       { label: 'Platform Settings', icon: 'settings', path: '/admin/settings'       },
       { label: 'Signing Certificate', icon: 'lock', path: '/admin/signing-cert'     },
     ],
@@ -84,16 +82,22 @@ function AdminContent() {
           <Route path="finance"       element={<FinanceView />} />
           <Route path="domains"       element={<DomainsView />} />
           <Route path="activity"      element={<ActivityView />} />
+          <Route path="devices"       element={<DevicesView />} />
           <Route path="issues"        element={<SuperAdminIssues />} />
           <Route path="kyb"           element={<SuperAdminKyb />} />
           <Route path="referrals"     element={<SuperAdminReferrals />} />
           <Route path="announcements" element={<SuperAdminAnnouncements />} />
           <Route path="app-status"    element={<AppStatusView />} />
           <Route path="cms-pages"     element={<AdminCMSPages />} />
-          <Route path="branding"       element={<BrandingView />} />
+          {/* Branding and Components used to be their own pages — both moved
+              into Design System's rail (Identity/Apps/Login/Components
+              sections) since Branding's per-app editor and Design System's
+              old "Per-App Colors" tab were editing the same data from two
+              separate UIs. These keep old bookmarks/links working. */}
+          <Route path="branding"       element={<Navigate to="/admin/design-system?section=identity" replace />} />
           <Route path="design-system" element={<DesignSystemView />} />
           <Route path="seo"           element={<SeoAnalyticsView />} />
-          <Route path="components"    element={<ComponentShowcase />} />
+          <Route path="components"    element={<Navigate to="/admin/design-system?section=components" replace />} />
           <Route path="settings"      element={<SettingsView />} />
           <Route path="signing-cert"  element={<SuperAdminSigningCert />} />
         </Route>

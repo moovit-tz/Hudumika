@@ -20,6 +20,9 @@ import { MaintenancePage } from './pages/MaintenancePage.js';
 import { OnboardingWizard } from './pages/onboarding/OnboardingWizard.js';
 import { ForgotPassword }  from './pages/ForgotPassword.js';
 import { ResetPassword }   from './pages/ResetPassword.js';
+import { RecoveryPage }    from './pages/RecoveryPage.js';
+import { MagicLinkPage }   from './pages/MagicLinkPage.js';
+import { SsoCompletePage } from './pages/SsoCompletePage.js';
 import { AcceptInvite }    from './pages/AcceptInvite.js';
 import { VerifyEmail }     from './pages/VerifyEmail.js';
 import { ComplyOSSales }   from './pages/ComplyOSSales.js';
@@ -335,6 +338,16 @@ const AppContentBody: React.FC = () => {
       <Route path="/auth/register"        element={<Navigate to="/signup" replace />} />
       <Route path="/auth/forgot-password" element={<ForgotPassword />} />
       <Route path="/auth/reset-password"  element={<ResetPassword />} />
+      {/* Ondi feature-gap pass (M4): mutual-consent recovery via a trusted
+          contact, for when email access is lost too — not just a copy edit
+          of ForgotPassword, a genuinely separate flow (see RecoveryPage.tsx). */}
+      <Route path="/auth/recovery"        element={<RecoveryPage />} />
+      {/* Passwordless email sign-in — a new entry point alongside the
+          password form, not a change to it (see MagicLinkPage.tsx). */}
+      <Route path="/auth/magic-link"      element={<MagicLinkPage />} />
+      {/* Lands a real browser navigation (SAML's ACS redirect, not a fetch
+          call) — see SsoCompletePage.tsx's own header comment. */}
+      <Route path="/auth/sso-complete"    element={<SsoCompletePage />} />
       <Route path="/accept-invite"        element={<AcceptInvite />} />
       <Route path="/auth/verify-email"    element={<VerifyEmail />} />
       <Route path="/terms"                element={<TermsOfService />} />

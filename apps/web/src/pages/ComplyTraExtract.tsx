@@ -23,9 +23,12 @@ export function ComplyTraExtract() {
 
   // Form State — TRA has no public API and this tool does not perform a live
   // portal login, so it never asks for (or needs) the taxpayer's real portal
-  // password. It only takes the two fields that actually shape the preview.
+  // password. Uploading a real TRA portal screenshot/statement (optional)
+  // runs real Gemini OCR extraction, same as the Tausi tool's own upload —
+  // with no file, this stays the bare-TIN simulated preview it always was.
   const [tin, setTin] = useState('108-449-012');
   const [region, setRegion] = useState('Mainland');
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
 
   // Execution State
   const [status, setStatus] = useState<'idle' | 'running' | 'completed'>('idle');
@@ -60,10 +63,12 @@ export function ComplyTraExtract() {
   };
 
   // TRA's taxpayer portal has no public API, so this does not establish a
-  // live authenticated session — it looks up a sample compliance profile for
-  // the given TIN so you can see the shape of the data before it's real.
-  // Nothing here is a bypass of any real security control; the log lines
-  // below describe what ComplyOS is actually doing, not a fake login.
+  // live authenticated session. With an uploaded document it runs real
+  // Gemini OCR extraction on it (same as the Tausi tool); with no document
+  // it falls back to a sample compliance profile shaped like a real one so
+  // you can see the shape of the data. Every log line below describes what
+  // ComplyOS is actually doing — nothing here is a fake login or a canned
+  // delay standing in for real work.
   const handleStartExtraction = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!tin.trim()) {
@@ -77,25 +82,38 @@ export function ComplyTraExtract() {
     setTccSaved(false);
     setObligationsSaved(false);
 
-    addLog('Generating a simulated taxpayer preview — TRA has no public API, so this is not a live portal session.', 'info');
-    setTimeout(() => addLog(`Looking up sample profile shape for TIN ${tin} (${region === 'Mainland' ? 'TRA Mainland' : 'ZRA Zanzibar'})...`, 'info'), 500);
-    setTimeout(() => addLog('Building demo taxpayer profile, obligations, TCC and filing history...', 'info'), 1200);
-
-    setTimeout(async () => {
-      try {
-        const res = await apiFetch('/v1/comply/tra-extract', {
-          method: 'POST',
-          body: JSON.stringify({ tin }),
+    try {
+      let image_base64: string | undefined;
+      let media_type: string | undefined;
+      if (uploadFile) {
+        addLog(`Document received: ${uploadFile.name}`, 'info');
+        addLog('Reading document with ComplyOS AI extraction...', 'info');
+        const dataUrl: string = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = ev => resolve(ev.target?.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(uploadFile);
         });
-        setResultData(res);
-        setSimulated(res?.simulated !== false);
-        addLog('Preview ready.', 'success');
-        setStatus('completed');
-      } catch (err: any) {
-        addLog(`Error building TRA preview: ${err.message}`, 'error');
-        setStatus('idle');
+        image_base64 = dataUrl.split(',')[1];
+        media_type = uploadFile.type || 'image/jpeg';
+      } else {
+        addLog(`Looking up sample profile shape for TIN ${tin} (${region === 'Mainland' ? 'TRA Mainland' : 'ZRA Zanzibar'}) — no document uploaded.`, 'info');
       }
-    }, 1900);
+
+      const res = await apiFetch('/v1/comply/tra-extract', {
+        method: 'POST',
+        body: JSON.stringify({ tin, image_base64, media_type }),
+      });
+      if (res.simulated) addLog('Simulated data — no document was uploaded, or OCR isn\'t configured for this platform.', 'warn');
+      else addLog('Real extraction complete from the uploaded document.', 'success');
+      setResultData(res);
+      setSimulated(res?.simulated !== false);
+      addLog('Preview ready.', 'success');
+      setStatus('completed');
+    } catch (err: any) {
+      addLog(`Error building TRA preview: ${err.message}`, 'error');
+      setStatus('idle');
+    }
   };
 
   const handleImportTcc = async () => {
@@ -187,6 +205,21 @@ export function ComplyTraExtract() {
                   />
                 </div>
 
+                <div>
+                  <label className="comply-label" style={{ fontWeight: 600, display: 'block', marginBottom: 6 }}>
+                    Portal screenshot / statement (optional)
+                  </label>
+                  <label htmlFor="tra-upload" className="comply-upload-zone" style={status !== 'idle' ? { cursor: 'default', opacity: 0.7 } : undefined}>
+                    <Icon name="upload" size={22} color="var(--comply)" />
+                    <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)' }}>{uploadFile ? uploadFile.name : 'Click to upload your TRA portal screenshot / PDF'}</div>
+                    <div style={{ fontSize: 11, color: 'var(--ink3)' }}>Runs real extraction on it — leave empty for a shape-only preview</div>
+                    <input
+                      id="tra-upload" type="file" accept="image/*,application/pdf" style={{ display: 'none' }} disabled={status !== 'idle'}
+                      onChange={ev => setUploadFile(ev.target.files?.[0] ?? null)}
+                    />
+                  </label>
+                </div>
+
                 <div className="comply-note comply-note--info" style={{ margin: 0 }}>
                   <Icon name="info" size={14} />
                   <span>This tool never asks for your TRA portal username or password — it doesn't perform a live login.</span>
@@ -247,21 +280,34 @@ export function ComplyTraExtract() {
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <h2 className="comply-card-title" style={{ fontSize: 18, fontWeight: 900 }}>{resultData.taxpayer.name}</h2>
-                  <span className="comply-badge comply-badge--pending" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                    <Icon name="alertTriangle" style={{ width: 12, height: 12 }} /> Simulated Preview
-                  </span>
+                  {simulated ? (
+                    <span className="comply-badge comply-badge--pending" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      <Icon name="alertTriangle" style={{ width: 12, height: 12 }} /> Simulated Preview
+                    </span>
+                  ) : (
+                    <span className="comply-badge comply-badge--active" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      <Icon name="checkCircle" style={{ width: 12, height: 12 }} /> Extracted from document
+                    </span>
+                  )}
                 </div>
-                <p className="comply-page-sub" style={{ margin: '4px 0 0' }}>TIN: {resultData.taxpayer.tin} · Demo data — not a live TRA record</p>
+                <p className="comply-page-sub" style={{ margin: '4px 0 0' }}>TIN: {resultData.taxpayer.tin} · {simulated ? 'Demo data — not a live TRA record' : 'From your uploaded document'}</p>
               </div>
-              <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={() => setStatus('idle')}>
+              <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={() => { setStatus('idle'); setUploadFile(null); }}>
                 <Icon name="refresh" style={{ marginRight: 6 }} /> New Preview
               </button>
             </div>
 
-            <div className="comply-note comply-note--warning comply-note--icon" style={{ margin: '16px 24px 0' }}>
-              <Icon name="alertTriangle" size={15} />
-              <span><strong>Simulated data.</strong> TRA has no public API for ComplyOS to query, so the profile, obligations, TCC and filing history below are a fixed demo dataset for previewing this feature — not a live extraction for this specific TIN. Verify anything you import against your actual TRA records.</span>
-            </div>
+            {simulated ? (
+              <div className="comply-note comply-note--warning comply-note--icon" style={{ margin: '16px 24px 0' }}>
+                <Icon name="alertTriangle" size={15} />
+                <span><strong>Simulated data.</strong> TRA has no public API for ComplyOS to query, and no document was uploaded (or OCR isn't configured for this platform) — the profile, obligations, TCC and filing history below are a fixed demo dataset for previewing this feature, not a live extraction for this specific TIN. Verify anything you import against your actual TRA records.</span>
+              </div>
+            ) : (
+              <div className="comply-note comply-note--info comply-note--icon" style={{ margin: '16px 24px 0' }}>
+                <Icon name="info" size={15} />
+                <span><strong>Extracted from your uploaded document.</strong> Verify the figures below before relying on them — OCR can misread a low-quality screenshot.</span>
+              </div>
+            )}
 
             {/* Results Navigation Tabs */}
             <div className="ds-tabs-list" data-variant="segmented" style={{ padding: '0 24px', marginTop: 16 }}>

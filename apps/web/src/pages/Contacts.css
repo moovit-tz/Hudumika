@@ -1,11 +1,12 @@
-/* Contacts brand color — set dynamically by WorkspaceApp via useBranding() */
+/* Contacts brand color — aliased to --teal/--teal-l, the real per-app accent
+ * WorkspaceApp computes (light AND dark, already theme-aware) from this
+ * app's configured color (default: Google's own blue — see APP_COLORS.contacts
+ * in WorkspaceApp.tsx). Used to be a hardcoded hex pair here despite this
+ * comment already claiming it was dynamic — a SuperAdmin recolouring
+ * Contacts from Branding had no effect on this page at all. */
 .app-shell[data-contacts] {
-  --cts-accent: #1a73e8;
-  --cts-accent-bg: #e8f0fe;
-}
-[data-theme="dark"] .app-shell[data-contacts] {
-  --cts-accent: #7aafff;
-  --cts-accent-bg: #1a3460;
+  --cts-accent: var(--teal);
+  --cts-accent-bg: var(--teal-l);
 }
 
 /* ── Larger class-based buttons ─────────────────────────────────── */
@@ -51,6 +52,10 @@
 .csb-nav {
   display: flex;
   flex-direction: column;
+  /* Density-aware breathing room between items — same in the folded
+     (icon-only) state, since collapsing only hides the label text inside
+     each button, not this container's layout. */
+  gap: var(--space-xs);
   padding: 4px 8px 0;
   flex-shrink: 0;
 }
@@ -59,7 +64,10 @@
   align-items: center;
   gap: 14px;
   padding: 9px 12px;
-  border-radius: 0 20px 20px 0;
+  /* Same selected-item shape every other app's sidebar uses
+     (AppSidebar.css's .app-sb-item — --nav-item-r, 8px all round), not a
+     bespoke Gmail-style right-only pill this one page had grown on its own. */
+  border-radius: var(--nav-item-r, 8px);
   border: none;
   cursor: pointer;
   background: transparent;
@@ -72,8 +80,8 @@
 }
 .csb-nav-item:hover { background: var(--bg); }
 .csb-nav-item--on {
-  background: var(--blue-l);
-  color: #1a73e8;
+  background: var(--cts-accent-bg);
+  color: var(--cts-accent);
   font-weight: 600;
 }
 .csb-nav-icon {
@@ -128,16 +136,16 @@
 }
 .csb-labels-add:hover { background: var(--bg); color: var(--ink); }
 
-.csb-labels-list { display: flex; flex-direction: column; }
+.csb-labels-list { display: flex; flex-direction: column; gap: var(--space-xs); }
 .csb-label-row {
   display: flex;
   align-items: center;
-  border-radius: 0 20px 20px 0;
+  border-radius: var(--nav-item-r, 8px);
   padding-right: 10px;
   transition: background .12s;
 }
 .csb-label-row:hover { background: var(--bg); }
-.csb-label-row--on { background: var(--blue-l); }
+.csb-label-row--on { background: var(--cts-accent-bg); }
 .csb-label-btn {
   flex: 1;
   display: flex;
@@ -152,7 +160,7 @@
   padding: var(--ds-btn-py-sm) 4px 6px 20px;
   text-align: left;
 }
-.csb-label-row--on .csb-label-btn { color: #1a73e8; font-weight: 600; }
+.csb-label-row--on .csb-label-btn { color: var(--cts-accent); font-weight: 600; }
 .csb-label-name {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -173,6 +181,9 @@
 
 /* System links */
 .csb-sys {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
   margin-top: auto;
   border-top: 1px solid var(--border);
   padding-top: 6px;
@@ -185,6 +196,7 @@
   width: 100%;
   padding: 9px 12px 9px 20px;
   border: none;
+  border-radius: var(--nav-item-r, 8px);
   background: none;
   cursor: pointer;
   color: var(--ink2);
@@ -194,7 +206,7 @@
   transition: background .12s;
 }
 .csb-sys-item:hover { background: var(--bg); }
-.csb-sys-item--on   { background: var(--blue-l); color: #1a73e8; }
+.csb-sys-item--on   { background: var(--cts-accent-bg); color: var(--cts-accent); }
 .csb-sys-item--icon { padding: 9px 12px; justify-content: center; gap: 0; }
 .csb-file-input     { display: none; }
 
@@ -351,9 +363,9 @@
 }
 .cts-chip:hover { background: #f1f3f4; }
 .cts-chip--on {
-  background: var(--blue-l);
-  border-color: #1a73e8;
-  color: #1a73e8;
+  background: var(--cts-accent-bg);
+  border-color: var(--cts-accent);
+  color: var(--cts-accent);
   font-weight: 600;
 }
 .cts-chip--clear {
@@ -364,7 +376,12 @@
 
 /* ── active indicator on header filter button ── */
 .app-header-icon-btn--active {
-  color: var(--sb-color, #1a73e8);
+  /* Not --sb-color: that variable is set on the sidebar DOM node itself
+     (AppSidebar.tsx), so it never reaches the header — a sibling, not a
+     descendant. It silently fell back to the hardcoded hex every time.
+     --teal is written to document.documentElement too, so it's actually
+     reachable here. */
+  color: var(--cts-accent);
 }
 
 /* ══════════════════════════════════════════════════
@@ -421,8 +438,8 @@
 .cts-list-bar-badge:hover { opacity: .75; }
 
 .cts-list-bar-badge--label {
-  background: var(--blue-l);
-  color: #1a73e8;
+  background: var(--cts-accent-bg);
+  color: var(--cts-accent);
 }
 
 .cts-list-bar-badge--search {
@@ -453,7 +470,6 @@
   background: hsl(var(--muted));
   color: var(--ink3, #64748b);
 }
-[data-theme="dark"] .cts-list-bar-badge--label { background: #1a3460; color: #7aafff; }
 [data-theme="dark"] .cts-list-bar-badge--search {
   background: hsl(var(--muted));
   color: var(--ink2, #94a3b8);
@@ -478,19 +494,15 @@
 }
 [data-theme="dark"] .csb-nav-item { color: var(--ink2, #94a3b8); }
 [data-theme="dark"] .csb-nav-item:hover { background: var(--bg); }
-[data-theme="dark"] .csb-nav-item--on { background: #1a3460; color: #7aafff; }
 [data-theme="dark"] .csb-labels { border-top-color: var(--border, #334155); }
 [data-theme="dark"] .csb-labels-title { color: var(--ink3, #64748b); }
 [data-theme="dark"] .csb-labels-add { color: var(--ink3, #64748b); }
 [data-theme="dark"] .csb-labels-add:hover { background: var(--bg); color: var(--ink, #e2e8f0); }
 [data-theme="dark"] .csb-label-row:hover { background: var(--bg); }
-[data-theme="dark"] .csb-label-row--on { background: #1a3460; }
 [data-theme="dark"] .csb-label-btn { color: var(--ink2, #94a3b8); }
-[data-theme="dark"] .csb-label-row--on .csb-label-btn { color: #7aafff; }
 [data-theme="dark"] .csb-sys { border-top-color: var(--border, #334155); }
 [data-theme="dark"] .csb-sys-item { color: var(--ink2, #94a3b8); }
 [data-theme="dark"] .csb-sys-item:hover { background: var(--bg); }
-[data-theme="dark"] .csb-sys-item--on { background: #1a3460; color: #7aafff; }
 [data-theme="dark"] .csb-modal { background: var(--white); color: var(--ink, #e2e8f0); }
 [data-theme="dark"] .csb-modal-title { color: var(--ink, #e2e8f0); }
 
@@ -500,7 +512,6 @@
 [data-theme="dark"] .cts-filter-section-label { color: var(--ink3, #64748b); }
 [data-theme="dark"] .cts-chip { background: var(--bg); border-color: var(--border, #334155); color: var(--ink2, #94a3b8); }
 [data-theme="dark"] .cts-chip:hover { background: hsl(var(--muted)); }
-[data-theme="dark"] .cts-chip--on { background: #1a3460; border-color: #3d6bce; color: #7aafff; }
 [data-theme="dark"] .cts-chip--clear { border-color: var(--red); color: var(--red); }
 [data-theme="dark"] .cts-chip--clear:hover { background: color-mix(in srgb, var(--red) 18%, transparent); }
 

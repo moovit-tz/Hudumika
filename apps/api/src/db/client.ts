@@ -3302,6 +3302,37 @@ export interface PackagesTable {
   updated_at: Generated<Date>;
 }
 
+/** Purchasable independent of which base package a tenant is on
+ *  (376_package_addons.sql) — Onsite's real home now, instead of being a
+ *  fourth competing base package. */
+export interface PackageAddonsTable {
+  id: Generated<string>;
+  code: string;
+  name: string;
+  description: Generated<string>;
+  feature_key: string;
+  monthly_price: number;
+  annual_price: number;
+  color: string | null;
+  is_active: Generated<boolean>;
+  sort_order: Generated<number>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+/** A tenant's own add-on purchases/grants — checked in
+ *  middleware/entitlement.ts alongside package_features. */
+export interface TenantAddonsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  addon_code: string;
+  status: Generated<string>; // 'active' | 'cancelled'
+  started_at: Generated<Date>;
+  cancelled_at: Date | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
 export interface TenantUsageCountersTable {
   tenant_id: string;
   period: string;   // 'YYYY-MM'
@@ -4563,6 +4594,10 @@ export interface Database {
   hr_attendance: HrAttendanceTable;
   hr_clock_sessions: HrClockSessionsTable;
   hr_clock_breaks: HrClockBreaksTable;
+  attendance_devices: AttendanceDevicesTable;
+  attendance_device_enrollments: AttendanceDeviceEnrollmentsTable;
+  attendance_device_events: AttendanceDeviceEventsTable;
+  attendance_device_sync_logs: AttendanceDeviceSyncLogsTable;
   user_presence: UserPresenceTable;
   hr_timesheet_approvals: HrTimesheetApprovalsTable;
   hr_job_openings: HrJobOpeningsTable;
@@ -4676,6 +4711,8 @@ export interface Database {
   query_builder_runs: QueryBuilderRunsTable;
   // Signup / Onboarding
   packages: PackagesTable;
+  package_addons: PackageAddonsTable;
+  tenant_addons: TenantAddonsTable;
   tenant_usage_counters: TenantUsageCountersTable;
   package_app_quotas: PackageAppQuotasTable;
   tenant_app_usage_counters: TenantAppUsageCountersTable;
@@ -4752,6 +4789,9 @@ export interface Database {
   ondi_org_kyb: OndiOrgKybTable;
   ondi_org_roles: OndiOrgRolesTable;
   ondi_org_role_members: OndiOrgRoleMembersTable;
+  ondi_org_groups: OndiOrgGroupsTable;
+  ondi_org_group_members: OndiOrgGroupMembersTable;
+  ondi_org_group_roles: OndiOrgGroupRolesTable;
   ondi_org_access_requests: OndiOrgAccessRequestsTable;
   ondi_org_access_request_approvals: OndiOrgAccessRequestApprovalsTable;
   ondi_access_review_campaigns: OndiAccessReviewCampaignsTable;
@@ -4764,6 +4804,10 @@ export interface Database {
   ondi_oauth_clients: OndiOauthClientsTable;
   ondi_oauth_consents: OndiOauthConsentsTable;
   ondi_wallet_items: OndiWalletItemsTable;
+  ondi_wallet_shares: OndiWalletSharesTable;
+  ondi_recovery_contacts: OndiRecoveryContactsTable;
+  ondi_recovery_requests: OndiRecoveryRequestsTable;
+  ondi_trust_score_snapshots: OndiTrustScoreSnapshotsTable;
   workflow_studio_apps: WorkflowStudioAppsTable;
   workflow_studio_runs: WorkflowStudioRunsTable;
   announcements: AnnouncementsTable;
@@ -6314,6 +6358,40 @@ export interface OndiOrgRoleMembersTable {
   // row is never auto-deleted, so it stays as a real record of who held
   // the permission and until when.
   expires_at: Date | null;
+  // Provenance (migration 378) — NULL means directly/manually granted, same
+  // as every row before this column existed. Non-null means this exact row
+  // exists because of that group's membership, and disappears if the
+  // person leaves the group or the group is deleted.
+  granted_via_group_id: string | null;
+}
+
+export interface OndiOrgGroupsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  name: string;
+  description: string | null;
+  membership_type: Generated<string>;
+  rule: unknown | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface OndiOrgGroupMembersTable {
+  id: Generated<string>;
+  tenant_id: string;
+  group_id: string;
+  user_id: string;
+  source: Generated<string>;
+  added_at: Generated<Date>;
+}
+
+export interface OndiOrgGroupRolesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  group_id: string;
+  role_id: string;
+  created_at: Generated<Date>;
 }
 
 export interface OndiOrgAccessRequestsTable {
@@ -6485,6 +6563,49 @@ export interface OndiWalletItemsTable {
   updated_at: Generated<Date>;
 }
 
+export interface OndiWalletSharesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  item_id: string;
+  owner_id: string;
+  grantee_user_id: string;
+  permission: string;
+  created_at: Generated<Date>;
+  revoked_at: Date | null;
+}
+
+export interface OndiRecoveryContactsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  user_id: string;
+  contact_user_id: string;
+  status: Generated<string>;
+  created_at: Generated<Date>;
+  responded_at: Date | null;
+}
+
+export interface OndiRecoveryRequestsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  user_id: string;
+  contact_id: string;
+  status: Generated<string>;
+  token: string;
+  requested_at: Generated<Date>;
+  responded_at: Date | null;
+  cooldown_ends_at: Date | null;
+  completed_at: Date | null;
+}
+
+export interface OndiTrustScoreSnapshotsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  user_id: string;
+  score: number;
+  tier: string;
+  created_at: Generated<Date>;
+}
+
 /** SHA-256 hash-chain audit log (Ondi M0/M3) — schema only until M3 adds a
  *  writer; see 358_ondi_identity_foundation.sql's own header comment. */
 export interface OndiAuthEventsTable {
@@ -6522,6 +6643,10 @@ export interface SubscriptionInvoicesTable {
   seats: number;
   currency: Generated<string>;
   amount: number;
+  /** Portion of `amount` from active add-ons (376_package_addons.sql /
+   *  377_subscription_invoice_addons.sql), broken out so the Billing tab can
+   *  show "Plan" + "Add-ons" as two real lines instead of one unexplained total. */
+  addons_amount: Generated<number>;
   period_start: string;
   period_end: string;
   due_date: string;
@@ -7989,6 +8114,11 @@ export interface HrClockSessionsTable {
   status: Generated<string>;
   total_break_minutes: Generated<number>;
   worked_minutes: number | null;
+  /** WEB (default, ESS clock-in) | MANUAL (HR-entered) | DEVICE (biometric,
+   *  see 379_attendance_devices.sql) — syncAttendanceFromSessions() in
+   *  hr.routes.ts aggregates all three the same way. */
+  source: Generated<string>;
+  device_id: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -8001,6 +8131,61 @@ export interface HrClockBreaksTable {
   end_at: Date | null;
   duration_minutes: number | null;
   created_at: Generated<Date>;
+}
+
+/** Device Management (379_attendance_devices.sql) — the registry. */
+export interface AttendanceDevicesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  provider: Generated<string>;
+  name: string;
+  serial_number: string;
+  push_token: string;
+  location: string | null;
+  status: Generated<string>;
+  last_heartbeat_at: Date | null;
+  last_sync_at: Date | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+/** Employee ↔ device-local-PIN links, one per device a person is enrolled on. */
+export interface AttendanceDeviceEnrollmentsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  device_id: string;
+  user_id: string;
+  external_pin: string;
+  method: Generated<string>;
+  created_by: string | null;
+  created_at: Generated<Date>;
+}
+
+/** Raw punch log — written before reconciliation, kept as the audit trail of
+ *  exactly what a device sent. user_id is null for an unmatched/orphan punch. */
+export interface AttendanceDeviceEventsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  device_id: string;
+  external_pin: string;
+  user_id: string | null;
+  punched_at: Date;
+  raw_status: string | null;
+  processed: Generated<boolean>;
+  created_at: Generated<Date>;
+}
+
+export interface AttendanceDeviceSyncLogsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  device_id: string;
+  started_at: Generated<Date>;
+  finished_at: Date | null;
+  records_received: Generated<number>;
+  records_matched: Generated<number>;
+  status: Generated<string>;
+  error: string | null;
 }
 
 export interface UserPresenceTable {

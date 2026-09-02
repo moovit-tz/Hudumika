@@ -6,8 +6,16 @@ import { GoogleGenAI } from '@google/genai';
 import { ComplyService } from '../services/comply.service.js';
 import { AGENCY_ADAPTERS } from '../integrations/comply-agencies.js';
 import { withTenant, dbPlatform } from '../db/client.js';
+import { requireRoleOrOrgPermission, ORG_PERMISSIONS } from '../lib/org-rbac.js';
+import type { UserRole } from '@hudumika/types';
 
 const GLOBAL_TENANT_ID = '00000000-0000-0000-0000-000000000000';
+
+// Same role set as comply-renewal.job.ts's own COMPLY_MGMT_ROLES and the
+// frontend's MGMT_ROLES (apps/web/src/lib/permissions.ts) — kept local
+// rather than shared since every other route file in this codebase
+// declares its own copy of this same constant (see api-keys.routes.ts).
+const MGMT_ROLES: UserRole[] = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER'];
 
 const renewalCreateSchema = z.object({
   cert_id: z.string().min(1),
@@ -29,8 +37,13 @@ const brelaSearchSchema = z.object({
 // that shape asked the frontend to solicit the user's real TRA portal
 // password into a Hudumika-hosted form for a value that was thrown away,
 // which is exactly the input shape a credential-harvesting form would have.
+// image_base64/media_type are optional, mirroring tausiImportSchema: the
+// user can upload their own TRA portal screenshot/statement for real OCR
+// extraction instead of the always-fake canned profile.
 const traExtractSchema = z.object({
   tin: z.string().trim().min(1),
+  image_base64: z.string().optional(),
+  media_type: z.string().max(100).optional(),
 });
 const tausiImportSchema = z.object({
   image_base64: z.string().optional(),
@@ -64,6 +77,24 @@ Rules:
 - Use empty string / 0 / empty array for anything not visible or not legible.
 - "flags" is an array of short strings for anything unusual (e.g. "ILLEGIBLE", "PARTIAL_DOCUMENT", "NOT_A_TAUSI_DOCUMENT").
 - Monetary values (cost, amount) must be plain numbers without currency symbols or commas.
+`;
+
+const TRA_SYSTEM_PROMPT = `You are a document-extraction specialist for Tanzania Revenue Authority (TRA) taxpayer portal exports. A user has logged into their own TRA account directly on the government site, exported or screenshotted their taxpayer profile / obligations / Tax Compliance Certificate / filing history, and uploaded that document here for ComplyOS to file automatically.
+
+Return ONLY valid JSON matching this exact schema — no markdown, no explanation:
+{
+  "taxpayer": { "name": "", "tin": "", "vrn": "", "incorporation_date": "YYYY-MM-DD or ''", "registered_office": "", "region": "", "district": "", "tax_office": "", "email": "", "phone": "", "nida": "" },
+  "obligations": [ { "name": "", "status": "Active | Inactive | ''", "type": "Annual | Monthly | ''" } ],
+  "tcc": { "reference": "", "issued_date": "YYYY-MM-DD or ''", "expiry_date": "YYYY-MM-DD or ''", "status": "Compliant | Non-Compliant | ''" },
+  "filing_history": [ { "year": 0, "return_type": "", "filed_date": "YYYY-MM-DD or ''", "status": "Assessed | Pending | ''", "tax_due": 0, "tax_paid": 0 } ],
+  "flags": []
+}
+
+Rules:
+- Only extract data that is actually visible in the uploaded document — never invent a TIN, VRN, TCC reference, or monetary amounts.
+- Use empty string / 0 / empty array for anything not visible or not legible.
+- "flags" is an array of short strings for anything unusual (e.g. "ILLEGIBLE", "PARTIAL_DOCUMENT", "NOT_A_TRA_DOCUMENT").
+- Monetary values (tax_due, tax_paid) must be plain numbers without currency symbols or commas.
 `;
 
 // Deterministic, template-based next-step suggestions derived from the
@@ -105,6 +136,12 @@ function buildTausiWorkflows(licenses: any[], levies: any[]) {
 export async function complyRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('complyos'));
+  // Previously nothing beyond the entitlement check — any authenticated
+  // tenant user could reach license applications, the legal document vault,
+  // and BRELA/TRA lookups regardless of role. Matches how every other
+  // sensitive module in this platform (Ondi, NexusHR, api-keys) already
+  // gates itself.
+  fastify.addHook('preHandler', requireRoleOrOrgPermission(ORG_PERMISSIONS.COMPLY_MANAGE, ...MGMT_ROLES));
 
   // ── Dashboard ────────────────────────────────────────────────────────────────
   fastify.get('/dashboard', async (request: any, reply) => {
@@ -559,54 +596,63 @@ export async function complyRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // ── TRA Taxpayer Portal Preview ─────────────────────────────────────────────
+  // ── TRA Taxpayer Portal Extraction ──────────────────────────────────────────
   // TRA has no public API (same constraint documented on /brela-search above),
-  // and this endpoint does not attempt a live scrape/login the way
-  // /brela-search does with its best-effort fetch — it always returns a fixed
-  // demo profile so ComplyOS can preview the shape of a taxpayer compliance
-  // record. `simulated: true` is always set (mirrors the OCR/tausi-import
-  // routes' honest simulated flag) so the frontend never presents this as a
-  // live TRA extraction.
+  // and this never performs a live scrape/login. It used to always return the
+  // same fixed demo profile regardless of the TIN searched — good for
+  // previewing the shape of a taxpayer compliance record, but the same
+  // "KILIMANJARO LOGISTICS" fake company for every real search. Now mirrors
+  // /tausi-import exactly: when the user uploads their own TRA portal
+  // screenshot/export, real Gemini OCR extracts it; with no key configured or
+  // no image (the bare-TIN preview path), it falls back to the same honestly-
+  // labeled simulated profile as before.
   fastify.post('/tra-extract', async (request: any, reply) => {
-    const { tin } = traExtractSchema.parse(request.body);
-    try {
-      return {
-        success: true,
-        simulated: true,
-        taxpayer: {
-          name: 'KILIMANJARO LOGISTICS & FREIGHT LTD',
-          tin: tin,
-          vrn: '40082910-K',
-          incorporation_date: '2018-07-22',
-          registered_office: 'Bandari Road, Yard 12, Kurasini',
-          region: 'Dar es Salaam',
-          district: 'Temeke',
-          tax_office: 'Temeke Tax Office',
-          email: 'tax@kilimanjarologistics.co.tz',
-          phone: '+255 715 901 283',
-          nida: '20180722-11102-00001-26',
-        },
-        obligations: [
-          { name: 'Income Tax (Corporation)', status: 'Active', type: 'Annual' },
-          { name: 'Value Added Tax (VAT)', status: 'Active', type: 'Monthly' },
-          { name: 'Pay As You Earn (PAYE)', status: 'Active', type: 'Monthly' },
-          { name: 'Skills Development Levy (SDL)', status: 'Inactive', type: 'Monthly' },
-        ],
-        tcc: {
-          reference: 'TCC-2026-00918-B',
-          issued_date: '2026-01-15',
-          expiry_date: '2026-12-31',
-          status: 'Compliant',
-        },
-        filing_history: [
-          { year: 2025, return_type: 'Income Tax (Corporation)', filed_date: '2026-06-15', status: 'Assessed', tax_due: 4200000, tax_paid: 4200000 },
-          { year: 2024, return_type: 'Income Tax (Corporation)', filed_date: '2025-06-20', status: 'Assessed', tax_due: 3800000, tax_paid: 3800000 },
-          { year: 2026, return_type: 'VAT - June', filed_date: '2026-07-18', status: 'Pending', tax_due: 1250000, tax_paid: 1250000 },
-        ]
-      };
-    } catch (err: any) {
-      return reply.status(500).send({ error: err.message });
+    const { tin, image_base64, media_type = 'image/jpeg' } = traExtractSchema.parse(request.body);
+
+    const apiKey = await getGeminiApiKey();
+    let extracted: any;
+    let simulated: boolean;
+
+    if (!apiKey || !image_base64) {
+      simulated = true;
+      extracted = buildSimulatedTraResult(tin);
+    } else {
+      try {
+        const ai = new GoogleGenAI({ apiKey });
+        const response = await ai.models.generateContent({
+          model: 'gemini-flash-latest',
+          contents: [
+            {
+              role: 'user',
+              parts: [
+                { inlineData: { mimeType: media_type, data: image_base64 } },
+                { text: 'Extract the taxpayer profile, obligations, Tax Compliance Certificate and filing history visible in this TRA portal document/screenshot and return only the JSON.' },
+              ],
+            },
+          ],
+          config: {
+            systemInstruction: TRA_SYSTEM_PROMPT,
+            responseMimeType: 'application/json',
+          },
+        });
+        const raw = (response.text ?? '{}').trim();
+        extracted = JSON.parse(raw);
+        simulated = false;
+      } catch (err: any) {
+        fastify.log.error(err, 'TRA document extraction failed');
+        return reply.status(500).send({ error: err.message || 'Document extraction failed' });
+      }
     }
+
+    return {
+      success: true,
+      simulated,
+      taxpayer: extracted.taxpayer,
+      obligations: extracted.obligations || [],
+      tcc: extracted.tcc,
+      filing_history: extracted.filing_history || [],
+      flags: extracted.flags || [],
+    };
   });
 
   // ── Tausi TAMISEMI Portal Import ────────────────────────────────────────────
@@ -665,6 +711,45 @@ export async function complyRoutes(fastify: FastifyInstance) {
       flags: extracted.flags || [],
     };
   });
+}
+
+// Same fixed demo profile /tra-extract always returned before this milestone
+// — kept verbatim as the honest no-key/no-image fallback (bare-TIN preview),
+// just extracted into its own function to sit alongside the real OCR path.
+function buildSimulatedTraResult(tin: string) {
+  return {
+    taxpayer: {
+      name: 'KILIMANJARO LOGISTICS & FREIGHT LTD',
+      tin,
+      vrn: '40082910-K',
+      incorporation_date: '2018-07-22',
+      registered_office: 'Bandari Road, Yard 12, Kurasini',
+      region: 'Dar es Salaam',
+      district: 'Temeke',
+      tax_office: 'Temeke Tax Office',
+      email: 'tax@kilimanjarologistics.co.tz',
+      phone: '+255 715 901 283',
+      nida: '20180722-11102-00001-26',
+    },
+    obligations: [
+      { name: 'Income Tax (Corporation)', status: 'Active', type: 'Annual' },
+      { name: 'Value Added Tax (VAT)', status: 'Active', type: 'Monthly' },
+      { name: 'Pay As You Earn (PAYE)', status: 'Active', type: 'Monthly' },
+      { name: 'Skills Development Levy (SDL)', status: 'Inactive', type: 'Monthly' },
+    ],
+    tcc: {
+      reference: 'TCC-2026-00918-B',
+      issued_date: '2026-01-15',
+      expiry_date: '2026-12-31',
+      status: 'Compliant',
+    },
+    filing_history: [
+      { year: 2025, return_type: 'Income Tax (Corporation)', filed_date: '2026-06-15', status: 'Assessed', tax_due: 4200000, tax_paid: 4200000 },
+      { year: 2024, return_type: 'Income Tax (Corporation)', filed_date: '2025-06-20', status: 'Assessed', tax_due: 3800000, tax_paid: 3800000 },
+      { year: 2026, return_type: 'VAT - June', filed_date: '2026-07-18', status: 'Pending', tax_due: 1250000, tax_paid: 1250000 },
+    ],
+    flags: [],
+  };
 }
 
 function buildSimulatedTausiResult() {

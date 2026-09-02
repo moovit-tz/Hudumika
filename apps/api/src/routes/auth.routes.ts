@@ -36,6 +36,11 @@ const resetPasswordSchema = z.object({
   token: z.string().min(1).max(500),
   password: z.string().min(8).max(200),
 });
+const recoveryRequestSchema = z.object({ email: z.string().trim().email().max(320) });
+const recoveryCompleteSchema = z.object({
+  token: z.string().min(1).max(500),
+  password: z.string().min(8).max(200),
+});
 const customerOtpSchema = z.object({ phone_wa: z.string().trim().min(5).max(30) });
 const customerVerifySchema = z.object({
   phone_wa: z.string().trim().min(5).max(30),
@@ -107,6 +112,21 @@ export async function recordLogin(tenantId: string, userId: string, status: 'SUC
     });
   } catch { /* login/device tracking must never block auth */ }
   return null;
+}
+
+// Ondi feature-gap pass (M4) — a real, successful login is the anti-abuse
+// backstop for recovery-contact recovery: it's direct proof the account
+// isn't actually locked out, so any request still 'pending' (awaiting the
+// contact) or 'approved' (in its cooldown) for this user is stale and gets
+// cancelled outright. Same "never block auth" contract as recordLogin.
+export async function cancelPendingRecoveryRequests(tenantId: string, userId: string): Promise<void> {
+  try {
+    await withTenant(tenantId, trx => trx.updateTable('ondi_recovery_requests')
+      .set({ status: 'cancelled', responded_at: new Date() })
+      .where('user_id', '=', userId)
+      .where('status', 'in', ['pending', 'approved'])
+      .execute());
+  } catch { /* best-effort */ }
 }
 
 // Gives an impersonation session the same hr_devices row a real login gets,
@@ -234,6 +254,12 @@ export async function authRoutes(fastify: FastifyInstance) {
     }
 
     const deviceId = await recordLogin(user.tenant_id, user.id, 'SUCCESS', ip, userAgent);
+
+    // Ondi feature-gap pass (M4): a real, normal login is exactly the proof
+    // that the account isn't actually locked out — cancel any recovery
+    // request still pending/approved for this user rather than leaving it
+    // to complete after its cooldown regardless. Never blocks login itself.
+    cancelPendingRecoveryRequests(user.tenant_id, user.id).catch(() => { /* best-effort */ });
 
     // Generate JWT
     const payload: Omit<JWTPayload, 'iat' | 'exp'> = {
@@ -368,6 +394,92 @@ export async function authRoutes(fastify: FastifyInstance) {
       .where('id', '=', row.user_id).execute();
     await dbPlatform.updateTable('password_reset_tokens').set({ used_at: new Date() }).where('id', '=', row.id).execute();
 
+    return { ok: true };
+  });
+
+  /**
+   * POST /auth/recovery/request — Ondi feature-gap pass (M4)
+   * An alternative to /forgot-password for when email access is also lost:
+   * ask each of the account's ACCEPTED recovery contacts to vouch for it.
+   * Same enumeration-safety convention as /forgot-password — always a
+   * generic success message, whether or not the email matched an account
+   * or that account has any accepted contacts.
+   */
+  fastify.post('/recovery/request', { config: { rateLimit: { max: 5, timeWindow: '1 minute' } } }, async (request) => {
+    const { email } = recoveryRequestSchema.parse(request.body);
+
+    const user = await dbPlatform.selectFrom('users').selectAll()
+      .where('email', '=', email).where('active', '=', true).executeTakeFirst();
+
+    if (user) {
+      const contactLinks = await dbPlatform.selectFrom('ondi_recovery_contacts')
+        .select(['id', 'contact_user_id'])
+        .where('user_id', '=', user.id)
+        .where('status', '=', 'accepted')
+        .execute();
+
+      let notified = 0;
+      for (const link of contactLinks) {
+        const contactUser = await dbPlatform.selectFrom('users').select(['email', 'name'])
+          .where('id', '=', link.contact_user_id).executeTakeFirst();
+        if (!contactUser) continue;
+        const token = crypto.randomBytes(32).toString('hex');
+        await dbPlatform.insertInto('ondi_recovery_requests').values({
+          tenant_id: user.tenant_id, user_id: user.id, contact_id: link.id, token,
+        }).execute();
+        await MailService.enqueueTemplated(user.tenant_id, 'auth.recovery_request', contactUser.email, {
+          requesterName: user.name, requesterEmail: user.email,
+        }, 'auth').catch(() => { /* request row still exists; contact can still find it in-app */ });
+        notified++;
+      }
+      if (notified > 0) {
+        await recordAuthEvent(user.tenant_id, user.id, 'recovery_requested', { metadata: { contactsNotified: notified } });
+      }
+    }
+
+    return { ok: true, message: 'If that email is registered and has recovery contacts set up, they have been notified.' };
+  });
+
+  /**
+   * GET /auth/recovery/status/:token — Ondi feature-gap pass (M4)
+   * Lets the (still unauthenticated) requester's own recovery page poll
+   * whether a contact has approved yet, and whether the cooldown has
+   * elapsed — same pre-tenant token-lookup boundary as password reset.
+   */
+  fastify.get<{ Params: { token: string } }>('/recovery/status/:token', async (request, reply) => {
+    const row = await dbPlatform.selectFrom('ondi_recovery_requests').selectAll()
+      .where('token', '=', request.params.token).executeTakeFirst();
+    if (!row) { reply.status(404); return { error: 'Not found' }; }
+    return {
+      status: row.status,
+      cooldownEndsAt: row.cooldown_ends_at,
+      readyToComplete: row.status === 'approved' && !!row.cooldown_ends_at && new Date(row.cooldown_ends_at) <= new Date(),
+    };
+  });
+
+  /**
+   * POST /auth/recovery/complete — Ondi feature-gap pass (M4)
+   * Sets a new password once a contact has approved AND the cooldown has
+   * elapsed — the whole point of the cooldown (real owner still has a
+   * window to cancel it just by logging in normally, see
+   * cancelPendingRecoveryRequests above) would be void without both checks.
+   */
+  fastify.post('/recovery/complete', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (request, reply) => {
+    const { token, password } = recoveryCompleteSchema.parse(request.body);
+    const row = await dbPlatform.selectFrom('ondi_recovery_requests').selectAll()
+      .where('token', '=', token).executeTakeFirst();
+    if (!row) return reply.status(404).send({ error: 'Invalid or expired recovery link' });
+    if (row.status !== 'approved') return reply.status(400).send({ error: 'This recovery request has not been approved yet, or is no longer valid.' });
+    if (!row.cooldown_ends_at || new Date(row.cooldown_ends_at) > new Date()) return reply.status(400).send({ error: 'The cooldown period has not elapsed yet — check back later.' });
+
+    await dbPlatform.updateTable('users').set({ password_hash: hashPassword(password), updated_at: new Date() })
+      .where('id', '=', row.user_id).execute();
+    await dbPlatform.updateTable('ondi_recovery_requests').set({ status: 'completed', completed_at: new Date() })
+      .where('id', '=', row.id).execute();
+    await dbPlatform.updateTable('ondi_recovery_requests').set({ status: 'cancelled', responded_at: new Date() })
+      .where('user_id', '=', row.user_id).where('status', 'in', ['pending', 'approved']).where('id', '!=', row.id).execute();
+
+    await recordAuthEvent(row.tenant_id, row.user_id, 'recovery_completed', { metadata: { request_id: row.id } });
     return { ok: true };
   });
 

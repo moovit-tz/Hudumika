@@ -5,7 +5,6 @@ import {
   Flag, CircleDot, GripVertical, Upload, AlertTriangle, ShieldCheck, Bell, XCircle,
   Eye, Send, Download,
 } from 'lucide-react';
-import { PageHeader } from '../components/PageHeader.js';
 import { Tip } from '../components/ui/tooltip.js';
 import {
   Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
@@ -69,6 +68,9 @@ function WorkspaceAvatar({ color, size = 28 }: { color: string; size?: number })
   );
 }
 
+// Embedded as Design System's "Components" section (DesignSystemView.tsx) —
+// used to be its own routed page with its own PageHeader; that chrome is now
+// the parent's, so this renders just the catalog grid.
 export default function ComponentShowcase() {
   const [mode, setMode] = useState<string>('SEA');
   const [comboOpen, setComboOpen] = useState(false);
@@ -84,15 +86,12 @@ export default function ComponentShowcase() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
   return (
-    <div style={{ padding: '0 0 48px' }}>
-      <PageHeader
-        crumbs={['Admin', 'Design System']}
-        titlePlain="Component"
-        titleEm="showcase"
-        subtitle="Themed Select / DropdownMenu / Popover / Filter / Date picker / Accordion primitives — use the sidebar's theme toggle to review in dark mode."
-      />
+    <div>
+      <p className="mb-6 text-sm text-muted-foreground max-w-prose">
+        Themed Select / DropdownMenu / Popover / Filter / Date picker / Accordion primitives — use the theme toggle to review in dark mode.
+      </p>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2" style={{ marginTop: 24 }}>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
 
         {/* Select + Combobox */}
         <section className={SECTION}>

@@ -1,15 +1,23 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { startAuthentication } from '@simplewebauthn/browser';
 import { useAuth } from '../hooks/useAuth.js';
 import { useBranding } from '../hooks/useBranding.js';
 import { Icon } from '../components/Icon.js';
 import { toggleThemeWithAnimation } from '../lib/theme.js';
-import { apiFetch } from '../lib/api.js';
+import { apiFetch, BASE_URL } from '../lib/api.js';
 import { GoogleSignInButton } from '../components/GoogleSignInButton.js';
 import { MicrosoftSignInButton } from '../components/MicrosoftSignInButton.js';
-import { OndiLogo } from '../components/OndiLogo.js';
 import './Login.css';
+import './OndiLogin.css';
+
+const METHOD_META: Record<'phone' | 'totp' | 'passkey' | 'magic-link' | 'company-sso', { icon: 'phone' | 'shield' | 'fingerprint' | 'mail' | 'building'; label: string }> = {
+  'phone':       { icon: 'phone',       label: 'Sign in with a phone code' },
+  'totp':        { icon: 'shield',      label: 'Sign in with an authenticator app' },
+  'passkey':     { icon: 'fingerprint', label: 'Sign in with a passkey' },
+  'magic-link':  { icon: 'mail',        label: 'Sign in with an email link' },
+  'company-sso': { icon: 'building',    label: "Sign in with your company's SSO" },
+};
 
 const LOGIN_BG_MAP: Record<string, string> = {
   navy: '#0e1f3d', teal: '#0d7a6b',
@@ -27,8 +35,9 @@ const LOGIN_BG_MAP: Record<string, string> = {
  * account that has already registered one from Workspace ▸ Security.
  */
 export const OndiLogin: React.FC = () => {
-  const { requestOtpLogin, verifyOtpLogin, loginWithTotp, requestPasskeyLoginOptions, verifyPasskeyLogin, loginWithGoogle, loginWithMicrosoft } = useAuth();
+  const { requestOtpLogin, verifyOtpLogin, loginWithTotp, requestMagicLink, requestPasskeyLoginOptions, verifyPasskeyLogin, loginWithGoogle, loginWithMicrosoft } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const rootRef = useRef<HTMLDivElement>(null);
   const branding = useBranding();
 
@@ -93,7 +102,7 @@ export const OndiLogin: React.FC = () => {
     el.style.setProperty('--lp-error-text', d ? '#fca5a5' : '#c2410c');
   }, [isDark, isBgDark, pageBg, accent]);
 
-  const [mode, setMode] = useState<'phone' | 'totp' | 'passkey'>('phone');
+  const [mode, setMode] = useState<'phone' | 'totp' | 'passkey' | 'magic-link' | 'company-sso'>('phone');
 
   // Phone + OTP
   const [phone, setPhone] = useState('');
@@ -108,6 +117,14 @@ export const OndiLogin: React.FC = () => {
   // Passkey
   const [passkeyEmail, setPasskeyEmail] = useState('');
 
+  // Email magic link
+  const [magicEmail, setMagicEmail] = useState('');
+  const [magicLinkSent, setMagicLinkSent] = useState(false);
+
+  // Company SSO (SAML)
+  const [ssoEmail, setSsoEmail] = useState('');
+  const [ssoChecking, setSsoChecking] = useState(false);
+
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -117,6 +134,18 @@ export const OndiLogin: React.FC = () => {
     const t = setTimeout(() => setResendIn(s => s - 1), 1000);
     return () => clearTimeout(t);
   }, [resendIn]);
+
+  // ondi-saml.routes.ts's /acs redirects failures here as ?samlError=1 (it
+  // has no JS context of its own to show an error from). Same "drop the
+  // marker once consumed" pattern as Login.tsx's own ?expired=.
+  useEffect(() => {
+    if (searchParams.get('samlError')) {
+      setMode('company-sso');
+      setError("Your company sign-on didn't complete. Try again, or check with your IT administrator.");
+      setSearchParams(params => { params.delete('samlError'); return params; }, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const sendCode = async () => {
     if (!phone.trim()) { setError('Enter your phone number.'); return; }
@@ -155,8 +184,41 @@ export const OndiLogin: React.FC = () => {
     } finally { setLoading(false); }
   };
 
-  const switchMode = (next: 'phone' | 'totp' | 'passkey') => {
+  const switchMode = (next: 'phone' | 'totp' | 'passkey' | 'magic-link' | 'company-sso') => {
     setMode(next); setError(null); setInfo(null);
+  };
+
+  const checkCompanySso = async (ev: React.FormEvent) => {
+    ev.preventDefault();
+    if (!ssoEmail.trim()) { setError('Enter your work email.'); return; }
+    setError(null); setInfo(null); setSsoChecking(true);
+    try {
+      const res = await apiFetch(`/v1/ondi/auth/saml/lookup?email=${encodeURIComponent(ssoEmail.trim())}`);
+      if (res.found) {
+        // A real cross-origin navigation to the IdP, not a fetch — SAML
+        // can't be driven through the SPA's own request layer.
+        window.location.href = `${BASE_URL}/v1/ondi/auth/saml/${res.providerId}/login`;
+      } else {
+        setError('No company sign-on found for that email. Check with your IT administrator, or use another sign-in method.');
+        setSsoChecking(false);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Could not look up your company sign-on. Try again.');
+      setSsoChecking(false);
+    }
+  };
+
+  const sendMagicLink = async (ev: React.FormEvent) => {
+    ev.preventDefault();
+    if (!magicEmail.trim()) { setError('Enter your email.'); return; }
+    setError(null); setInfo(null); setLoading(true);
+    try {
+      const res = await requestMagicLink(magicEmail.trim());
+      setMagicLinkSent(true);
+      setInfo(res.message || 'If that email is registered, a sign-in link has been sent.');
+    } catch (err: any) {
+      setError(err.message || 'Could not send the link. Try again.');
+    } finally { setLoading(false); }
   };
 
   const submitPasskey = async (ev: React.FormEvent) => {
@@ -194,7 +256,7 @@ export const OndiLogin: React.FC = () => {
   };
 
   return (
-    <div ref={rootRef} className="login-page" data-theme={theme}>
+    <div ref={rootRef} className="login-page ondi-login" data-theme={theme}>
       <button
         type="button"
         onClick={e => {
@@ -210,38 +272,35 @@ export const OndiLogin: React.FC = () => {
 
       <div className="login-card">
         <div className="login-brand-hdr">
-          <div className="login-brand-row">
-            <OndiLogo size={28} />
-            <span className="g-brand-name">Ondi</span>
-          </div>
+          <img
+            src={isDark ? '/ondi-logo-full-white.svg' : '/ondi-logo-full.svg'}
+            alt="Ondi"
+            className="ondi-logo-full"
+          />
           <div className="login-header-left">
+            <span className="ondi-eyebrow"><Icon name="shield" size={11} /> Passwordless</span>
             <h1 className="login-headline">Sign in</h1>
             <p className="login-subtext">Your Hudumika identity — no password needed.</p>
           </div>
         </div>
 
-        <div className="login-toplevel-tabs">
-          <button
-            type="button"
-            onClick={() => switchMode('phone')}
-            className={`login-toplevel-tab${mode === 'phone' ? ' login-toplevel-tab--active' : ''}`}
-          >
-            Phone code
-          </button>
-          <button
-            type="button"
-            onClick={() => switchMode('totp')}
-            className={`login-toplevel-tab${mode === 'totp' ? ' login-toplevel-tab--active' : ''}`}
-          >
-            Authenticator
-          </button>
-          <button
-            type="button"
-            onClick={() => switchMode('passkey')}
-            className={`login-toplevel-tab${mode === 'passkey' ? ' login-toplevel-tab--active' : ''}`}
-          >
-            Passkey
-          </button>
+        <div>
+          <div className="ondi-method-row">
+            {(Object.keys(METHOD_META) as Array<keyof typeof METHOD_META>).map(key => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => switchMode(key)}
+                className={`ondi-method-btn${mode === key ? ' ondi-method-btn--active' : ''}`}
+                title={METHOD_META[key].label}
+                aria-label={METHOD_META[key].label}
+                aria-pressed={mode === key}
+              >
+                <Icon name={METHOD_META[key].icon} size={17} />
+              </button>
+            ))}
+          </div>
+          <div className="ondi-method-caption">{METHOD_META[mode].label}</div>
         </div>
 
         <GoogleSignInButton onCredential={handleGoogleCredential} onError={setError} />
@@ -357,6 +416,60 @@ export const OndiLogin: React.FC = () => {
             </div>
             <button type="submit" disabled={loading} className="login-submit-btn login-submit-btn--full">
               {loading ? 'Please wait…' : 'Continue with passkey'}
+            </button>
+          </form>
+        )}
+
+        {mode === 'magic-link' && (
+          magicLinkSent ? (
+            <div className="login-form">
+              <p className="login-subtext" style={{ textAlign: 'center' }}>
+                Check <strong>{magicEmail}</strong> for a one-click sign-in link. It expires in 15 minutes and works once.
+              </p>
+              <button
+                type="button"
+                onClick={() => { setMagicLinkSent(false); setInfo(null); }}
+                className="login-back-btn"
+                style={{ margin: '0 auto' }}
+              >
+                Use a different email
+              </button>
+            </div>
+          ) : (
+            <form onSubmit={sendMagicLink} noValidate className="login-form">
+              <div className="login-field">
+                <input
+                  type="email"
+                  placeholder="Email"
+                  value={magicEmail}
+                  onChange={e => setMagicEmail(e.target.value)}
+                  className="login-input"
+                  autoComplete="username"
+                  disabled={loading}
+                />
+              </div>
+              <button type="submit" disabled={loading} className="login-submit-btn login-submit-btn--full">
+                {loading ? 'Please wait…' : 'Send sign-in link'}
+              </button>
+            </form>
+          )
+        )}
+
+        {mode === 'company-sso' && (
+          <form onSubmit={checkCompanySso} noValidate className="login-form">
+            <div className="login-field">
+              <input
+                type="email"
+                placeholder="you@yourcompany.com"
+                value={ssoEmail}
+                onChange={e => setSsoEmail(e.target.value)}
+                className="login-input"
+                autoComplete="username"
+                disabled={ssoChecking}
+              />
+            </div>
+            <button type="submit" disabled={ssoChecking} className="login-submit-btn login-submit-btn--full">
+              {ssoChecking ? 'Redirecting…' : 'Continue'}
             </button>
           </form>
         )}

@@ -7,6 +7,7 @@ import { issueTokens } from '../services/token.service.js';
 import { withTenant, dbPlatform } from '../db/client.js';
 import { verifyTotp } from '../lib/totp.js';
 import { SmsService } from '../services/sms.service.js';
+import { MailService } from '../services/mail.service.js';
 import { env } from '../config/env.js';
 import { setSessionCookies } from '../lib/cookies.js';
 import { recordLogin } from './auth.routes.js';
@@ -51,6 +52,8 @@ try {
 const otpRequestSchema = z.object({ phone: z.string().trim().min(5).max(30) });
 const otpVerifySchema = z.object({ phone: z.string().trim().min(5).max(30), code: z.string().trim().length(6) });
 const totpLoginSchema = z.object({ email: z.string().trim().email().max(320), code: z.string().trim().length(6) });
+const magicLinkRequestSchema = z.object({ email: z.string().trim().email().max(320) });
+const magicLinkVerifySchema = z.object({ token: z.string().trim().min(32).max(128), totp: z.string().trim().length(6).optional() });
 const passkeyOptionsSchema = z.object({ email: z.string().trim().email().max(320) });
 const passkeyVerifySchema = z.object({ email: z.string().trim().email().max(320), response: z.any() });
 const googleVerifySchema = z.object({ credential: z.string().trim().min(1).max(4000) });
@@ -61,6 +64,13 @@ const OTP_MAX_ATTEMPTS = 5;
 const otpKey = (userId: string) => `ondi:otp:${userId}`;
 const otpAttemptsKey = (userId: string) => `ondi:otp:attempts:${userId}`;
 const passkeyLoginChallengeKey = (email: string) => `ondi:webauthn:login:${email.toLowerCase()}`;
+// Short-lived and single-use by design — possession of the emailed link is
+// the whole security model, same reasoning as password_reset_tokens' 1-hour
+// window, just tighter (15 min) since this one signs the holder straight in
+// rather than only unlocking a password change. Redis, not Postgres, for the
+// same reason OTP codes are: no retention value once consumed or expired.
+const MAGIC_LINK_TTL_SECONDS = 15 * 60;
+const magicLinkKey = (token: string) => `ondi:magiclink:${token}`;
 
 function buildSafeUser(user: any): SafeUser {
   return {
@@ -234,6 +244,93 @@ export async function ondiAuthRoutes(fastify: FastifyInstance) {
 
     const session = await issueSessionFor(fastify, reply, user, ip, userAgent);
     return { ...session, risk: { score: risk.riskScore, factors: risk.factors } };
+  });
+
+  /**
+   * POST /v1/ondi/auth/magic-link/request
+   * Emails a one-click sign-in link. Enumeration-safe like /forgot-password
+   * and /recovery/request in auth.routes.ts — always the same generic
+   * response, whether or not the email matched an active account, since this
+   * (like those) is an unauthenticated, account-takeover-adjacent flow keyed
+   * on an inbox rather than a typed secret. Deliberately not folded into
+   * /forgot-password itself: that endpoint hands back a password-*change*
+   * link, this one hands back a link that signs you straight in.
+   */
+  fastify.post('/magic-link/request', { config: { rateLimit: { max: 5, timeWindow: '1 minute' } } }, async (request, reply) => {
+    const { email } = magicLinkRequestSchema.parse(request.body);
+
+    if (!redisClient) {
+      return reply.status(503).send({ error: 'Sign-in links are temporarily unavailable. Try again shortly.' });
+    }
+
+    const user = await dbPlatform.selectFrom('users').selectAll()
+      .where('email', '=', email).where('active', '=', true).executeTakeFirst();
+
+    if (user) {
+      const token = crypto.randomBytes(32).toString('hex');
+      await redisClient.set(magicLinkKey(token), user.id, 'EX', MAGIC_LINK_TTL_SECONDS);
+
+      const magicLinkUrl = `${env.OPS_BOARD_URL}/auth/magic-link?token=${token}`;
+      await MailService.enqueueTemplated(user.tenant_id, 'auth.magic_link', user.email, { magicLinkUrl }, 'auth')
+        .catch(() => { /* link still exists in Redis; user can request again */ });
+
+      await recordAuthEvent(user.tenant_id, user.id, 'magic_link_requested', {
+        ip: request.ip, userAgent: String(request.headers['user-agent'] || ''),
+      });
+    }
+
+    return { ok: true, message: 'If that email is registered, a sign-in link has been sent.' };
+  });
+
+  /**
+   * POST /v1/ondi/auth/magic-link/verify
+   * Consumes the token from the emailed link and issues a real session —
+   * same requires_2fa shape as /auth/login: a user with TOTP enabled still
+   * has to prove it, since a magic link only proves inbox access (the "have"
+   * factor most users already get from the password login they're used to),
+   * not the "know" factor they explicitly opted into with an authenticator.
+   * The token is only actually consumed (deleted from Redis) once a session
+   * is really about to be issued — a 2FA-required response leaves it valid
+   * so the same link can be resubmitted with a code, the same way a correct
+   * password isn't "used up" by a wrong or missing TOTP at /auth/login.
+   */
+  fastify.post('/magic-link/verify', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (request, reply) => {
+    const { token, totp } = magicLinkVerifySchema.parse(request.body);
+
+    if (!redisClient) {
+      return reply.status(503).send({ error: 'Sign-in links are temporarily unavailable. Try again shortly.' });
+    }
+
+    const userId = await redisClient.get(magicLinkKey(token));
+    if (!userId) {
+      return reply.status(400).send({ error: 'This sign-in link is invalid or has expired.' });
+    }
+
+    const user = await dbPlatform.selectFrom('users').selectAll()
+      .where('id', '=', userId).where('active', '=', true).executeTakeFirst();
+    if (!user) {
+      await redisClient.del(magicLinkKey(token));
+      return reply.status(401).send({ error: 'This sign-in link is invalid or has expired.' });
+    }
+
+    const ip = request.ip;
+    const userAgent = String(request.headers['user-agent'] || '');
+
+    const totpRow = await withTenant(user.tenant_id, trx => trx.selectFrom('user_totp').select(['secret', 'enabled'])
+      .where('user_id', '=', user.id).executeTakeFirst());
+    if (totpRow?.enabled) {
+      if (!totp) {
+        return { requires_2fa: true };
+      }
+      if (!verifyTotp(totpRow.secret, totp)) {
+        await recordAuthEvent(user.tenant_id, user.id, 'login_failed', { ip, userAgent, metadata: { via: 'magic_link' } });
+        return reply.status(401).send({ error: 'Invalid authentication code' });
+      }
+    }
+
+    await redisClient.del(magicLinkKey(token));
+    await recordAuthEvent(user.tenant_id, user.id, 'magic_link_login', { ip, userAgent });
+    return issueSessionFor(fastify, reply, user, ip, userAgent);
   });
 
   /**

@@ -2180,7 +2180,7 @@ export const Customers: React.FC = () => {
         </div>
 
         {/* Horizontal tabs */}
-        <div className="ds-tabs-list" data-variant="segmented" style={{ margin: '0 28px' }}>
+        <div className="ds-tabs-list" data-variant="segmented" style={{ margin: '14px 28px 16px' }}>
           {MAIN_TABS.map(tab => {
             const active = mainTab === tab.key;
             return (

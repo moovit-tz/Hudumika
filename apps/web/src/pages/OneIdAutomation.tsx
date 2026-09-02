@@ -10,6 +10,7 @@ import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Icon } from '../components/Icon.js';
 import { showAlert } from '../lib/alert.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 
 interface AutomationData {
   default_role_id: string | null;
@@ -59,11 +60,13 @@ export const OneIdAutomation: React.FC = () => {
           {data === null ? (
             <div style={{ fontSize: 13, color: 'var(--ink3)' }}>Loading…</div>
           ) : (
-            <select value={data.default_role_id ?? ''} onChange={e => updateDefaultRole(e.target.value || null)} disabled={saving}
-              style={{ padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontFamily: 'var(--font)', fontSize: 13, color: 'var(--ink)', background: 'var(--white)', minWidth: 260, cursor: saving ? 'default' : 'pointer' }}>
-              <option value="">No default role</option>
-              {data.available_roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-            </select>
+            <Select value={data.default_role_id ?? '__none__'} onValueChange={v => updateDefaultRole(v === '__none__' ? null : v)} disabled={saving}>
+              <SelectTrigger style={{ minWidth: 260 }}><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">No default role</SelectItem>
+                {data.available_roles.map(r => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
           )}
         </SectionCard>
 

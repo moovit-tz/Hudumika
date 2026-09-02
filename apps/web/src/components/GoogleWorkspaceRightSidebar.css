@@ -42,7 +42,7 @@
 
 [data-theme="dark"] .gws-rail {
   background: var(--white);
-  border-left: none;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 /* Continues AppHeader's own 57px/border-bottom line across the rail column,
@@ -58,7 +58,7 @@
 }
 
 [data-theme="dark"] .gws-rail-header {
-  border-bottom-color: rgba(255, 255, 255, 0.06);
+  border-bottom-color: rgba(255, 255, 255, 0.08);
 }
 
 /* Collapse / expand toggle — floats on the rail's left edge, mirroring
@@ -250,7 +250,7 @@
 
 [data-theme="dark"] .gws-drawer {
   background: var(--white);
-  border-left: none;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 @keyframes gwsDrawerSlideIn {

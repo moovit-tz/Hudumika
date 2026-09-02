@@ -14,6 +14,7 @@ import { useEntitlements, resetEntitlementsCache } from '../hooks/useEntitlement
 import { APP_META } from './Utilities.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
+import type { Addon } from '@hudumika/types';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -417,7 +418,7 @@ function BillingTab({ tenant, onNavigateTab }: { tenant: any; onNavigateTab: (t:
 
   function fmtAmount(inv: any) { return `${inv.currency} ${Number(inv.amount).toFixed(2)}`; }
   function planNameFor(code: string) { return plans[code as PlanKey]?.name ?? code; }
-  function descFor(inv: any) { return `${planNameFor(inv.plan_code)} Plan — ${fmtDate(inv.period_start)}`; }
+  function descFor(inv: any) { return `${planNameFor(inv.plan_code)} Plan${Number(inv.addons_amount ?? 0) > 0 ? ' + add-ons' : ''} — ${fmtDate(inv.period_start)}`; }
 
   async function payInvoice(id: string) {
     if (!defaultMethod) {
@@ -475,6 +476,11 @@ function BillingTab({ tenant, onNavigateTab }: { tenant: any; onNavigateTab: (t:
               <div style={{ textAlign: 'right' }}>
                 <div style={{ fontSize: 22, fontWeight: 800, color: plan.color }}>{priceMonthlyTotal}</div>
                 <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>per month</div>
+                {Number(current?.addons_amount ?? 0) > 0 && (
+                  <div style={{ fontSize: 11, color: 'var(--teal)', fontWeight: 600, marginTop: 2 }}>
+                    + {current.currency} {Number(current.addons_amount).toFixed(2)} in add-ons
+                  </div>
+                )}
               </div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
@@ -818,6 +824,84 @@ const COMPARE_ROWS: [string, string, string, string][] = [
   ['SLA uptime', '99%', '99.5%', '99.99%'],
 ];
 
+/** Real add-ons catalog (376_package_addons.sql) — "Get more with add-ons",
+ *  the same purchasable-independent-of-plan concept SuperAdmin's own Packages
+ *  page shows (there for catalog management; here for the tenant's own
+ *  purchase/cancel action). Onsite lives here now instead of being a fourth
+ *  competing base plan. */
+function useAddons() {
+  const [addons, setAddons] = useState<Addon[] | null>(null);
+  const reload = useCallback(async () => {
+    try { setAddons((await apiFetch('/v1/addons')).data); } catch { setAddons([]); }
+  }, []);
+  useEffect(() => { reload(); }, [reload]);
+  return { addons, reload };
+}
+
+function AddonsSection() {
+  const { addons, reload } = useAddons();
+  const [busyCode, setBusyCode] = useState<string | null>(null);
+
+  async function purchase(code: string) {
+    setBusyCode(code);
+    try {
+      await apiFetch(`/v1/addons/${code}/purchase`, { method: 'POST' });
+      await reload();
+    } catch (err: any) {
+      showAlert(`Failed to add: ${err.message}`);
+    } finally {
+      setBusyCode(null);
+    }
+  }
+
+  async function cancel(code: string, name: string) {
+    if (!(await showConfirm(`Remove the ${name} add-on from your subscription?`, { variant: 'warning', confirmLabel: 'Remove' }))) return;
+    setBusyCode(code);
+    try {
+      await apiFetch(`/v1/addons/${code}/cancel`, { method: 'POST' });
+      await reload();
+    } catch (err: any) {
+      showAlert(`Failed to remove: ${err.message}`);
+    } finally {
+      setBusyCode(null);
+    }
+  }
+
+  if (!addons || addons.length === 0) return null; // still loading, or nothing purchasable configured
+
+  return (
+    <Card style={{ marginTop: 20 }}>
+      <CardHead title="Get more with add-ons" sub="Purchasable on top of your plan — not a separate tier." />
+      <div style={{ padding: 20, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 14 }}>
+        {addons.map(addon => (
+          <div key={addon.id} style={{ border: '1px solid var(--border)', borderRadius: 9, padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+              <span style={{ width: 36, height: 36, borderRadius: 9, background: `${addon.color ?? '#e8461a'}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Icon name="globe" size={16} strokeWidth={1.75} style={{ color: addon.color ?? 'var(--teal)' } as React.CSSProperties} />
+              </span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--navy)' }}>{addon.name}</span>
+                  {addon.purchased && <span style={{ padding: '1px 8px', borderRadius: 20, background: 'var(--green-l)', color: '#059669', fontSize: 10, fontWeight: 700 }}>Active</span>}
+                </div>
+                <div style={{ fontSize: 15, fontWeight: 800, color: addon.color ?? 'var(--navy)', marginTop: 2 }}>
+                  ${addon.monthlyPrice}<span style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink3)' }}>/mo</span>
+                </div>
+              </div>
+            </div>
+            <p style={{ fontSize: 12, color: 'var(--ink2)', margin: 0, lineHeight: 1.5, flex: 1 }}>{addon.description}</p>
+            {addon.purchased ? (
+              <Btn label={busyCode === addon.code ? 'Removing…' : 'Remove'} variant="danger" onClick={() => cancel(addon.code, addon.name)} disabled={busyCode === addon.code} />
+            ) : (
+              <Btn label={busyCode === addon.code ? 'Adding…' : 'Add to Plan'} icon="plus" variant="primary" onClick={() => purchase(addon.code)} disabled={busyCode === addon.code} />
+            )}
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
 function PlansTab({ tenant, onReload }: { tenant: any; onReload: () => Promise<void> }) {
   const plans = usePlans();
   const [billing, setBilling] = useState<'monthly' | 'yearly'>('yearly');
@@ -935,6 +1019,8 @@ function PlansTab({ tenant, onReload }: { tenant: any; onReload: () => Promise<v
       <div className="sub-enterprise-note">
         Need something custom? <a className="sub-contact-link" href="mailto:sales@hudumika.tz">Talk to sales</a>
       </div>
+
+      <AddonsSection />
 
       {/* Feature comparison table */}
       <Card style={{ marginTop: 28 }}>

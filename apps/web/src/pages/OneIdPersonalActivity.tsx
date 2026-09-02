@@ -29,13 +29,21 @@ const EVENT_LABEL: Record<string, string> = {
   org_role_granted: 'Org role granted to you', org_role_revoked: 'Org role revoked from you',
   access_request_submitted: 'Access request submitted', access_request_approved: 'Access request approved', access_request_denied: 'Access request denied',
   password_changed: 'Password changed', email_changed: 'Email address changed',
+  wallet_item_added: 'Added a wallet item', wallet_item_viewed: 'Revealed a wallet secret',
+  wallet_item_updated: 'Updated a wallet item', wallet_item_deleted: 'Deleted a wallet item',
+  wallet_item_shared: 'Shared a wallet item', wallet_item_share_revoked: 'Revoked a shared wallet item',
+  recovery_contact_added: 'Added a recovery contact', recovery_contact_responded: 'Responded to a recovery-contact request',
+  recovery_contact_removed: 'Removed a recovery contact',
+  recovery_requested: 'Requested account recovery', recovery_request_approved: 'Approved a recovery request',
+  recovery_request_declined: 'Declined a recovery request', recovery_request_cancelled: 'Recovery request cancelled',
+  recovery_completed: 'Completed account recovery',
 };
 
 const EVENT_ICON: Record<string, IconName> = {
   login: 'logIn', otp: 'smartphone', totp: 'shield', passkey: 'key',
   google: 'globe', microsoft: 'globe', device: 'smartphone', session: 'lock',
   access: 'shield', kyc: 'fingerprint', kyb: 'building', org: 'userCheck',
-  password: 'lock', email: 'mail',
+  password: 'lock', email: 'mail', wallet: 'key', recovery: 'userCheck',
 };
 
 function iconFor(row: ActivityRow): IconName {

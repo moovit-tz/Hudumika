@@ -31,7 +31,7 @@ export const APP_LABELS: Record<AppId, string> = {
   complyos:  'ComplyOS',
   bliss:     'Bliss',
   nexushr:     'NexusHR',
-  onesite:   'oneSite',
+  onesite:   'CMS',
   onsite:    'Onsite',
   oneid:     'Ondi',
   tracking:  'HuduFreight',
@@ -69,11 +69,22 @@ export const APP_COLORS: Record<AppId, string> = {
   lens:      '#475569',
   studio:    '#4361ee',
   clearos: DEFAULT_APP_COLOR, finops: DEFAULT_APP_COLOR, complyos: DEFAULT_APP_COLOR,
-  bliss: DEFAULT_APP_COLOR, nexushr: DEFAULT_APP_COLOR, onesite: DEFAULT_APP_COLOR,
+  bliss: DEFAULT_APP_COLOR, nexushr: DEFAULT_APP_COLOR,
+  // CMS ('onesite') gets its own hue rather than the shared default — it and
+  // Onsite ('onsite') are two real, separate apps one letter apart in their id,
+  // and both defaulting to the same navy made them indistinguishable on
+  // BrandingView's app cards (reported as looking like a duplicate entry).
+  onesite: '#06b6d4',
   oneid: DEFAULT_APP_COLOR, tracking: DEFAULT_APP_COLOR, cloud: DEFAULT_APP_COLOR,
   onsite: DEFAULT_APP_COLOR,
   ai: DEFAULT_APP_COLOR, workspace: DEFAULT_APP_COLOR, admin: DEFAULT_APP_COLOR,
-  email: DEFAULT_APP_COLOR, crm: DEFAULT_APP_COLOR, contacts: DEFAULT_APP_COLOR,
+  email: DEFAULT_APP_COLOR, crm: DEFAULT_APP_COLOR,
+  // Contacts' whole visual language (the multicolour "+" mark, the nav
+  // shape) already deliberately echoes Google Contacts — this keeps its
+  // accent that same blue by default instead of silently going navy, now
+  // that Contacts.css reads it live via --teal rather than its own
+  // hardcoded hex (see Contacts.css's header comment).
+  contacts: '#1a73e8',
   store: DEFAULT_APP_COLOR, calendar: DEFAULT_APP_COLOR, tasks: DEFAULT_APP_COLOR, notes: DEFAULT_APP_COLOR,
   sign: '#1a56db',
   demurrage: DEFAULT_APP_COLOR, cargotracker: DEFAULT_APP_COLOR, seal: DEFAULT_APP_COLOR,

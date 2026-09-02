@@ -48,6 +48,8 @@ import { rateCardRoutes } from './routes/rate-card.routes.js';
 import { consignmentRoutes } from './routes/consignments.routes.js';
 import { ocrRoutes } from './routes/ocr.routes.js';
 import { hrRoutes } from './routes/hr.routes.js';
+import { attendanceDevicesRoutes } from './routes/attendance-devices.routes.js';
+import { deviceIngestRoutes } from './routes/device-ingest.routes.js';
 import { presenceRoutes } from './routes/presence.routes.js';
 import { callsRoutes, callsPublicRoutes } from './routes/calls.routes.js';
 import { payrollRoutes } from './routes/payroll.routes.js';
@@ -74,6 +76,7 @@ import { vatPeriodRoutes } from './routes/vat-periods.routes.js';
 import { lensRoutes } from './routes/lens.routes.js';
 import { oneidRoutes }    from './routes/oneid.routes.js';
 import { ondiAuthRoutes } from './routes/ondi-auth.routes.js';
+import { ondiSamlRoutes } from './routes/ondi-saml.routes.js';
 import { ondiOauthRoutes } from './routes/ondi-oauth.routes.js';
 import { oidcDiscoveryRoutes } from './routes/oidc-discovery.routes.js';
 import { trackingRoutes } from './routes/tracking.routes.js';
@@ -145,6 +148,7 @@ import { intelligenceRoutes } from './routes/intelligence.routes.js';
 import { queryBuilderRoutes } from './routes/query-builder.routes.js';
 import { onboardingRoutes } from './routes/onboarding.routes.js';
 import { packagesRoutes } from './routes/packages.routes.js';
+import { addonsRoutes } from './routes/addons.routes.js';
 import { traRoutes } from './routes/tra.routes.js';
 import { customsRoutes } from './routes/customs.routes.js';
 import { advancedCalculatorRoutes } from './routes/advanced-calculators.routes.js';
@@ -387,6 +391,17 @@ async function main() {
     await server.register(queryBuilderRoutes, { prefix: '/v1/superadmin/query-builder' });
     await server.register(ocrRoutes, { prefix: '/v1/ocr' });
     await server.register(hrRoutes, { prefix: '/v1/hr' });
+    // Own sub-prefix, not bare /v1/hr — hr.routes.ts's GET /devices is a
+    // different, pre-existing concept (login/session device tracking,
+    // hr_devices/040_hr_teams_invites_audit.sql), and registering the same
+    // path twice under one prefix is a Fastify boot-time duplicate-route error.
+    await server.register(attendanceDevicesRoutes, { prefix: '/v1/hr/attendance-devices' });
+    // Device-facing ADMS push endpoints — genuinely unauthenticated (a
+    // biometric terminal carries no JWT), device-authenticated instead by
+    // serial+token (device-ingest.routes.ts). Bare /iclock, not /v1/... —
+    // real ZKTeco firmware in Cloud/ADMS mode always appends /iclock/... to
+    // whatever base "Server URL" a tenant types into the unit's own menu.
+    await server.register(deviceIngestRoutes, { prefix: '/iclock' });
     await server.register(presenceRoutes, { prefix: '/v1/presence' });
     // Calls (1:1 + group meetings) moved to Bliss, matching chatRoutes/supportRoutes'
     // own topic-based prefix convention rather than an app-namespaced one.
@@ -422,6 +437,7 @@ async function main() {
     await server.register(lensRoutes, { prefix: '/v1/lens' });
     await server.register(oneidRoutes,    { prefix: '/v1/oneid' });
     await server.register(ondiAuthRoutes, { prefix: '/v1/ondi/auth' });
+    await server.register(ondiSamlRoutes, { prefix: '/v1/ondi/auth/saml' });
     await server.register(ondiOauthRoutes, { prefix: '/v1/ondi/oauth' });
     await server.register(oidcDiscoveryRoutes);
     await server.register(trackingRoutes, { prefix: '/v1/tracking' });
@@ -483,6 +499,7 @@ async function main() {
     await server.register(complyLegalRoutes, { prefix: '/v1/comply/legal' });
     await server.register(onboardingRoutes, { prefix: '/v1/onboarding' });
     await server.register(packagesRoutes, { prefix: '/v1/packages' });
+    await server.register(addonsRoutes, { prefix: '/v1/addons' });
     await server.register(traRoutes, { prefix: '/v1/tra' });
     await server.register(customsRoutes, { prefix: '/v1/customs' });
     await server.register(advancedCalculatorRoutes, { prefix: '/v1/customs' });

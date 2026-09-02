@@ -21,6 +21,15 @@ import { dbPlatform, withTenant } from '../db/client.js';
  */
 export const MAX_SHIFT_MINUTES = 12 * 60;
 
+/**
+ * The opposite anomaly — a session closed almost as soon as it opened is far
+ * more often a mis-click or a double-tap than nine seconds of real work.
+ * Never silently altered (a stray click is the person's own record and their
+ * own call to fix or leave), just flagged in the /clock-in/stop response so
+ * the UI can surface it — see hr.routes.ts's own use of this constant.
+ */
+export const MIN_SHIFT_MINUTES = 2;
+
 export interface SettledEntry {
   ended_at: Date;
   duration_minutes: number | null;
@@ -73,6 +82,49 @@ export async function sweepStaleCheckIns(now = new Date()): Promise<{ closed: nu
                notes: settled.notes, updated_at: new Date() })
         .where('id', '=', e.id)
         .where('tenant_id', '=', e.tenant_id)
+        .execute());
+  }
+  return { closed: stale.length };
+}
+
+/**
+ * The same forgotten-clock-out protection as sweepStaleCheckIns, for the
+ * other side of the bridge (hr_clock_sessions — the ESS "My HR"/hub card's
+ * own backing table, hr.routes.ts's /clock-in/*). Before this, a session
+ * opened directly (or bridged open by /time/start) had no cap at all: the
+ * header's own hr_time_entries row got auto-settled by the sweep above every
+ * hour, but the matching hr_clock_sessions row stayed ACTIVE forever, so the
+ * ESS card kept ticking a live "you are clocked in" timer for a shift that
+ * ended, unnoticed, days ago — the two surfaces disagreeing is exactly the
+ * kind of desync the presence/clock-in sync work exists to prevent.
+ *
+ * project_name doubles as the flag: hr_clock_sessions has no notes column of
+ * its own, and this is the one field already surfaced wherever a session is
+ * listed, so a real HR reviewer sees *why* worked_minutes is blank without a
+ * schema change. hr_attendance is deliberately left unsynced here (that would
+ * need hr.routes.ts's own syncAttendanceFromSessions, and importing a route
+ * file into a service would invert the dependency direction the rest of this
+ * codebase keeps) — the next real write for that date recomputes it anyway.
+ */
+export async function sweepStaleClockSessions(now = new Date()): Promise<{ closed: number }> {
+  const cutoff = new Date(now.getTime() - MAX_SHIFT_MINUTES * 60000);
+  const stale = await dbPlatform
+    .selectFrom('hr_clock_sessions')
+    .select(['id', 'tenant_id', 'clock_in_at'])
+    .where('status', 'in', ['ACTIVE', 'ON_BREAK'])
+    .where('clock_in_at', '<', cutoff)
+    .execute();
+
+  for (const s of stale) {
+    const hours = Math.round((now.getTime() - new Date(s.clock_in_at).getTime()) / 3600000);
+    await withTenant(s.tenant_id, trx =>
+      trx.updateTable('hr_clock_sessions')
+        .set({
+          status: 'COMPLETED', clock_out_at: now, worked_minutes: null, updated_at: now,
+          project_name: `Auto-closed after ${hours}h — no clock-out was recorded, so the time worked is not known and has been left blank rather than guessed. Needs HR review.`,
+        })
+        .where('id', '=', s.id)
+        .where('tenant_id', '=', s.tenant_id)
         .execute());
   }
   return { closed: stale.length };

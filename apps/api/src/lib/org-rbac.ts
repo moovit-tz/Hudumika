@@ -35,6 +35,8 @@ export const ORG_PERMISSIONS = {
   ASSETS_MANAGE: 'assets.manage',
   INTEGRATIONS_MANAGE: 'integrations.manage',
   VISITORS_MANAGE: 'visitors.manage',
+  GROUPS_MANAGE: 'groups.manage',
+  COMPLY_MANAGE: 'comply.manage',
 } as const;
 export type OrgPermission = (typeof ORG_PERMISSIONS)[keyof typeof ORG_PERMISSIONS];
 

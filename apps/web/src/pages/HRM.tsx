@@ -16,9 +16,12 @@ import { Combobox } from '../components/ui/combobox.js';
 import { MultiSelectFilter } from '../components/ui/filter-dropdown.js';
 import { DatePicker } from '../components/ui/date-picker.js';
 import { Popover, PopoverAnchor, PopoverContent } from '../components/ui/popover.js';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '../components/ui/dropdown-menu.js';
 import { PageHeader as SharedPageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { PersonLink } from '../components/PersonLink.js';
+import { showAlert } from '../lib/alert.js';
+import { showConfirm } from '../lib/confirm.js';
 
 function mapAttStatus(s: string): AttendanceStatus {
   switch (s) {
@@ -36,8 +39,6 @@ function toAttStatusApi(s: AttendanceStatus): string { return s.toUpperCase().re
 type LeaveStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
 type AttStatus  = 'PRESENT' | 'ABSENT' | 'LATE' | 'HALF_DAY' | 'ON_LEAVE';
 
-/* -- Mock data -- */
-
 const LEAVE_TYPES = ['Annual Leave','Sick Leave','Casual Leave','Maternity Leave','Emergency Leave'];
 
 // Colour a leave by its entitlement code, so the same type reads the same on
@@ -48,26 +49,6 @@ const LEAVE_TYPE_COLORS: Record<string, string> = {
   EMERGENCY: 'var(--red)', UNPAID: 'var(--ink3)',
 };
 const leaveTypeColor = (code: string) => LEAVE_TYPE_COLORS[String(code || '').toUpperCase()] || 'var(--teal)';
-
-const ATT = [
-  { emp:'Amina Hassan',  date:'2026-06-14', in:'08:02', out:'17:05', hrs:9.1, status:'PRESENT' as AttStatus },
-  { emp:'John Baraka',   date:'2026-06-14', in:'07:58', out:'17:00', hrs:9.0, status:'PRESENT' as AttStatus },
-  { emp:'Grace Mwamba',  date:'2026-06-14', in:'-',     out:'-',     hrs:0,   status:'ON_LEAVE' as AttStatus },
-  { emp:'Said Ali',      date:'2026-06-14', in:'09:22', out:'17:00', hrs:7.6, status:'LATE'    as AttStatus },
-  { emp:'Fatuma Juma',   date:'2026-06-14', in:'08:00', out:'17:02', hrs:9.0, status:'PRESENT' as AttStatus },
-  { emp:'David Mlay',    date:'2026-06-14', in:'08:10', out:'17:05', hrs:8.9, status:'PRESENT' as AttStatus },
-  { emp:'Rose Kimaro',   date:'2026-06-14', in:'07:55', out:'17:00', hrs:9.1, status:'PRESENT' as AttStatus },
-  { emp:'Omar Shariff',  date:'2026-06-14', in:'-',     out:'-',     hrs:0,   status:'ABSENT'  as AttStatus },
-];
-
-const SHIFTS = [
-  { name:'Morning Shift',   start:'06:00', end:'14:00', break:'30 min', employees:12 },
-  { name:'Day Shift',       start:'08:00', end:'17:00', break:'60 min', employees:24 },
-  { name:'Afternoon Shift', start:'14:00', end:'22:00', break:'30 min', employees:8  },
-  { name:'Night Shift',     start:'22:00', end:'06:00', break:'60 min', employees:4  },
-];
-
-
 
 /* -- Shared helpers -- */
 const AVATAR_COLORS = ['#e8461a','#0891b2','#7c3aed','#059669','#d97706','#9333ea'];
@@ -1439,14 +1420,17 @@ export function LeavesPage() {
               />
             </div>
 
-            <Button variant="outline" size="sm" style={{ height: 34, fontSize: 12, borderRadius: 8, borderColor: '#cbd5e1' }}>
+            <Button variant="outline" size="sm" style={{ height: 34, fontSize: 12, borderRadius: 8, borderColor: 'var(--border)' }}>
               Download Report
             </Button>
 
-            <select style={{ height: 34, padding: '0 10px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 12, background: '#fff', color: '#0f172a', fontWeight: 600 }}>
-              <option value="2026">2026 ∨</option>
-              <option value="2025">2025</option>
-            </select>
+            <Select defaultValue="2026">
+              <SelectTrigger style={{ height: 34, borderRadius: 'var(--r-sm)', fontSize: 12, fontWeight: 600 }}><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="2026">2026</SelectItem>
+                <SelectItem value="2025">2025</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
@@ -1643,7 +1627,7 @@ export function AttendancePage() {
         <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: 16, fontWeight: 700, color: '#0f172a' }}>Attendance Rate</span>
-            <Button variant="outline" size="sm" style={{ height: 32, fontSize: 12, borderRadius: 8, borderColor: '#cbd5e1' }}>
+            <Button variant="outline" size="sm" style={{ height: 32, fontSize: 12, borderRadius: 8, borderColor: 'var(--border)' }}>
               Download Report
             </Button>
           </div>
@@ -1719,14 +1703,17 @@ export function AttendancePage() {
               />
             </div>
 
-            <Button variant="outline" size="sm" style={{ height: 34, fontSize: 12, borderRadius: 8, borderColor: '#cbd5e1' }}>
+            <Button variant="outline" size="sm" style={{ height: 34, fontSize: 12, borderRadius: 8, borderColor: 'var(--border)' }}>
               Download Report
             </Button>
 
-            <select style={{ height: 34, padding: '0 10px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 12, background: '#fff', color: '#0f172a', fontWeight: 600 }}>
-              <option value="2026">2026 ∨</option>
-              <option value="2025">2025</option>
-            </select>
+            <Select defaultValue="2026">
+              <SelectTrigger style={{ height: 34, borderRadius: 'var(--r-sm)', fontSize: 12, fontWeight: 600 }}><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="2026">2026</SelectItem>
+                <SelectItem value="2025">2025</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
@@ -1948,6 +1935,377 @@ export function AttendancePage() {
   );
 }
 
+/* ── Attendance Devices — Device Management (379_attendance_devices.sql) ── */
+
+interface AttDevice {
+  id: string; name: string; provider: string; serial_number: string; status: string;
+  location: string | null; last_heartbeat_at: string | null; last_sync_at: string | null; created_at: string;
+}
+interface AttDeviceEnrollment {
+  id: string; external_pin: string; method: string; user_id: string; user_name: string; created_at: string;
+}
+interface AttDeviceEvent {
+  id: string; external_pin: string; user_id: string | null; user_name: string | null;
+  punched_at: string; raw_status: string | null; processed: boolean;
+}
+interface AttDeviceSyncLog {
+  id: string; started_at: string; finished_at: string | null;
+  records_received: number; records_matched: number; status: string; error: string | null;
+}
+
+const DEVICE_STATUS_STYLE: Record<string, { bg: string; color: string; label: string }> = {
+  online:       { bg: 'rgba(16,185,129,.12)', color: 'var(--green)', label: 'Online' },
+  offline:      { bg: 'rgba(148,163,184,.15)', color: 'var(--ink3)', label: 'Offline' },
+  unregistered: { bg: 'rgba(148,163,184,.15)', color: 'var(--ink3)', label: 'Awaiting first sync' },
+  error:        { bg: 'rgba(239,68,68,.12)',  color: 'var(--red)',  label: 'Error' },
+};
+function DeviceStatusBadge({ status }: { status: string }) {
+  const s = DEVICE_STATUS_STYLE[status] ?? DEVICE_STATUS_STYLE.unregistered;
+  return <span style={{ padding: '2px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: s.bg, color: s.color, whiteSpace: 'nowrap' }}>{s.label}</span>;
+}
+function relTime(iso: string | null): string {
+  if (!iso) return 'Never';
+  const ms = Date.now() - new Date(iso).getTime();
+  const min = Math.floor(ms / 60000);
+  if (min < 1) return 'Just now';
+  if (min < 60) return `${min} min ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr} hr ago`;
+  return `${Math.floor(hr / 24)} day(s) ago`;
+}
+
+export function DevicesPage() {
+  const [devices, setDevices] = useState<AttDevice[]>([]);
+  const [staff, setStaff] = useState<{ id: string; name: string }[]>([]);
+  const [showRegister, setShowRegister] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newLocation, setNewLocation] = useState('');
+  const [justRegistered, setJustRegistered] = useState<{ name: string; serial_number: string; push_token: string; serverUrl: string } | null>(null);
+  const [manageDevice, setManageDevice] = useState<AttDevice | null>(null);
+
+  const loadDevices = useCallback(async () => {
+    try { const res = await apiFetch('/v1/hr/attendance-devices'); if (Array.isArray(res)) setDevices(res); } catch { /* empty */ }
+  }, []);
+  const loadStaff = useCallback(async () => {
+    try {
+      const data = await apiFetch('/v1/hr/staff');
+      if (Array.isArray(data)) setStaff(data.map((u: any) => ({ id: u.id, name: u.name })));
+    } catch { /* empty */ }
+  }, []);
+  useEffect(() => { loadDevices(); loadStaff(); }, [loadDevices, loadStaff]);
+
+  async function registerDevice() {
+    if (!newName.trim()) return;
+    try {
+      const res = await apiFetch('/v1/hr/attendance-devices', {
+        method: 'POST',
+        body: JSON.stringify({ name: newName.trim(), provider: 'zkteco', location: newLocation.trim() || undefined }),
+      });
+      setJustRegistered(res);
+      setNewName(''); setNewLocation('');
+      loadDevices();
+    } catch (err: any) {
+      showAlert(`Failed to register device: ${err?.message ?? 'Unknown error'}`);
+    }
+  }
+
+  async function removeDevice(d: AttDevice) {
+    if (!(await showConfirm(`Remove "${d.name}"? Its enrollments and punch history will be deleted.`, { variant: 'danger', confirmLabel: 'Remove' }))) return;
+    try {
+      await apiFetch(`/v1/hr/attendance-devices/${d.id}`, { method: 'DELETE' });
+      if (manageDevice?.id === d.id) setManageDevice(null);
+      loadDevices();
+    } catch (err: any) {
+      showAlert(`Failed to remove device: ${err?.message ?? 'Unknown error'}`);
+    }
+  }
+
+  return (
+    <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 20, paddingBottom: 40 }}>
+      <PageHeader title="Attendance Devices" sub="Biometric terminals pushing real punches into Attendance — register a unit, enroll employees on it, and resolve unmatched punches.">
+        <PrimaryBtn label="Register Device" icon="plus" onClick={() => { setJustRegistered(null); setShowRegister(true); }} />
+      </PageHeader>
+
+      <Wrap>
+        <thead>
+          <tr>
+            <TH>Device</TH><TH>Provider</TH><TH>Serial</TH><TH>Location</TH><TH>Status</TH><TH>Last Sync</TH><TH right>Actions</TH>
+          </tr>
+        </thead>
+        <tbody>
+          {devices.length === 0 && (
+            <tr><td colSpan={7} style={{ padding: 24, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>
+              No devices registered yet. Register one to get its push URL for a real ZKTeco unit's Server URL setting.
+            </td></tr>
+          )}
+          {devices.map(d => (
+            <tr key={d.id} className="hover-bg">
+              <TD bold>{d.name}</TD>
+              <TD>{d.provider}</TD>
+              <TD mono muted>{d.serial_number}</TD>
+              <TD muted>{d.location || '—'}</TD>
+              <TD><DeviceStatusBadge status={d.status} /></TD>
+              <TD muted>{relTime(d.last_sync_at)}</TD>
+              <TD right>
+                <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                  <button type="button" className="btn btn-secondary btn-xs" onClick={() => setManageDevice(d)}>Manage</button>
+                  <button type="button" className="btn btn-secondary btn-xs" style={{ color: 'var(--red)' }} onClick={() => removeDevice(d)}>Remove</button>
+                </div>
+              </TD>
+            </tr>
+          ))}
+        </tbody>
+      </Wrap>
+
+      {/* Register Device drawer */}
+      {showRegister && (
+        <>
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 1000 }} onClick={() => setShowRegister(false)} />
+          <div style={{ position: 'fixed', right: 0, top: 0, bottom: 0, width: 420, background: 'var(--white)', zIndex: 1001, boxShadow: '-4px 0 24px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--navy)' }}>Register Device</div>
+              <button type="button" onClick={() => setShowRegister(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}><Icon name="x" size={20} /></button>
+            </div>
+            <div style={{ padding: 24, flex: 1, overflowY: 'auto' }}>
+              {justRegistered ? (
+                <div>
+                  <div style={{ padding: 14, borderRadius: 9, background: 'rgba(16,185,129,.10)', border: '1px solid rgba(16,185,129,.3)', marginBottom: 18, fontSize: 12.5, color: 'var(--ink)' }}>
+                    <strong>{justRegistered.name}</strong> is registered. Enter these into the physical unit's own menu (Comm → Cloud Server / ADMS) — the push token is shown only this once.
+                  </div>
+                  {([
+                    ['Server URL', justRegistered.serverUrl],
+                    ['Serial Number', justRegistered.serial_number],
+                    ['Push Token', justRegistered.push_token],
+                  ] as const).map(([label, val]) => (
+                    <div key={label} style={{ marginBottom: 14 }}>
+                      <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>{label}</label>
+                      <div style={{ padding: '9px 12px', borderRadius: 8, background: 'var(--bg)', border: '1px solid var(--border)', fontFamily: 'var(--mono)', fontSize: 12.5, wordBreak: 'break-all' }}>{val}</div>
+                    </div>
+                  ))}
+                  <button type="button" className="btn btn-primary" style={{ width: '100%', marginTop: 8 }} onClick={() => setShowRegister(false)}>Done</button>
+                </div>
+              ) : (
+                <form onSubmit={e => { e.preventDefault(); registerDevice(); }}>
+                  <div style={{ marginBottom: 16 }}>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Device Name</label>
+                    <input className="input-field" value={newName} onChange={e => setNewName(e.target.value)} placeholder="Head Office Gate" required style={{ width: '100%' }} />
+                  </div>
+                  <div style={{ marginBottom: 16 }}>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Provider</label>
+                    <Select value="zkteco" onValueChange={() => {}}>
+                      <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
+                      <SelectContent><SelectItem value="zkteco">ZKTeco (ADMS push)</SelectItem></SelectContent>
+                    </Select>
+                  </div>
+                  <div style={{ marginBottom: 24 }}>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Location (optional)</label>
+                    <input className="input-field" value={newLocation} onChange={e => setNewLocation(e.target.value)} placeholder="Head Office — Main Gate" style={{ width: '100%' }} />
+                  </div>
+                  <button type="submit" className="btn btn-primary" style={{ width: '100%' }} disabled={!newName.trim()}>Register Device</button>
+                </form>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+
+      {manageDevice && (
+        <DeviceManageDrawer
+          device={manageDevice}
+          staff={staff}
+          onClose={() => setManageDevice(null)}
+          onDeviceChanged={loadDevices}
+        />
+      )}
+    </div>
+  );
+}
+
+function DeviceManageDrawer({ device, staff, onClose, onDeviceChanged }: {
+  device: AttDevice; staff: { id: string; name: string }[]; onClose: () => void; onDeviceChanged: () => void;
+}) {
+  const [enrollments, setEnrollments] = useState<AttDeviceEnrollment[]>([]);
+  const [events, setEvents] = useState<AttDeviceEvent[]>([]);
+  const [syncLogs, setSyncLogs] = useState<AttDeviceSyncLog[]>([]);
+  const [enrollUserId, setEnrollUserId] = useState('');
+  const [enrollPin, setEnrollPin] = useState('');
+  const [simulatePin, setSimulatePin] = useState('');
+  const [simulating, setSimulating] = useState(false);
+  const [assigningEventId, setAssigningEventId] = useState<string | null>(null);
+  const [assignUserId, setAssignUserId] = useState('');
+
+  const load = useCallback(async () => {
+    try { const r = await apiFetch(`/v1/hr/attendance-devices/${device.id}/enrollments`); if (Array.isArray(r)) setEnrollments(r); } catch { /* empty */ }
+    try { const r = await apiFetch(`/v1/hr/attendance-devices/${device.id}/events`); if (Array.isArray(r)) setEvents(r); } catch { /* empty */ }
+    try { const r = await apiFetch(`/v1/hr/attendance-devices/${device.id}/sync-logs`); if (Array.isArray(r)) setSyncLogs(r); } catch { /* empty */ }
+  }, [device.id]);
+  useEffect(() => { load(); }, [load]);
+
+  async function addEnrollment() {
+    if (!enrollUserId || !enrollPin.trim()) return;
+    try {
+      await apiFetch(`/v1/hr/attendance-devices/${device.id}/enrollments`, {
+        method: 'POST', body: JSON.stringify({ userId: enrollUserId, externalPin: enrollPin.trim(), method: 'fingerprint' }),
+      });
+      setEnrollUserId(''); setEnrollPin('');
+      load();
+    } catch (err: any) {
+      showAlert(`Failed to enroll: ${err?.message ?? 'Unknown error'}`);
+    }
+  }
+
+  async function removeEnrollment(e: AttDeviceEnrollment) {
+    if (!(await showConfirm(`Remove ${e.user_name}'s enrollment (PIN ${e.external_pin})?`, { variant: 'danger', confirmLabel: 'Remove' }))) return;
+    try {
+      await apiFetch(`/v1/hr/attendance-devices/${device.id}/enrollments/${e.id}`, { method: 'DELETE' });
+      load();
+    } catch (err: any) {
+      showAlert(`Failed to remove enrollment: ${err?.message ?? 'Unknown error'}`);
+    }
+  }
+
+  async function assignOrphan(eventId: string) {
+    if (!assignUserId) return;
+    try {
+      await apiFetch(`/v1/hr/attendance-devices/${device.id}/events/${eventId}/assign`, { method: 'PATCH', body: JSON.stringify({ userId: assignUserId }) });
+      setAssigningEventId(null); setAssignUserId('');
+      load();
+    } catch (err: any) {
+      showAlert(`Failed to assign punch: ${err?.message ?? 'Unknown error'}`);
+    }
+  }
+
+  async function simulatePunch() {
+    if (!simulatePin.trim()) return;
+    setSimulating(true);
+    try {
+      await apiFetch(`/v1/hr/attendance-devices/${device.id}/simulate-punch`, { method: 'POST', body: JSON.stringify({ externalPin: simulatePin.trim() }) });
+      load();
+      onDeviceChanged();
+    } catch (err: any) {
+      showAlert(`Simulated punch failed: ${err?.message ?? 'Unknown error'}`);
+    } finally {
+      setSimulating(false);
+    }
+  }
+
+  const staffOptions = staff.map(s => ({ value: s.id, label: s.name }));
+
+  return (
+    <>
+      <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 1000 }} onClick={onClose} />
+      <div style={{ position: 'fixed', right: 0, top: 0, bottom: 0, width: 520, background: 'var(--white)', zIndex: 1001, boxShadow: '-4px 0 24px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--navy)' }}>{device.name}</div>
+            <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>Serial {device.serial_number} · <DeviceStatusBadge status={device.status} /></div>
+          </div>
+          <button type="button" onClick={onClose} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}><Icon name="x" size={20} /></button>
+        </div>
+
+        <div style={{ padding: 24, flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 22 }}>
+          {/* Simulate punch — no physical hardware reachable here, so this drives
+              one real synthetic punch through the exact same pipeline a genuine
+              device push uses (attendance-device.service.ts). */}
+          <div>
+            <div style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--navy)', marginBottom: 8 }}>Simulate a Punch</div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input className="input-field" value={simulatePin} onChange={e => setSimulatePin(e.target.value)} placeholder="Enrolled PIN" style={{ flex: 1 }} />
+              <button type="button" className="btn btn-secondary btn-sm" disabled={!simulatePin.trim() || simulating} onClick={simulatePunch}>
+                {simulating ? 'Sending…' : 'Send Punch'}
+              </button>
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 6 }}>Stands in for a real terminal — runs the punch through the same reconciliation as a genuine device push.</div>
+          </div>
+
+          {/* Enrollments */}
+          <div>
+            <div style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--navy)', marginBottom: 8 }}>Enrolled Employees</div>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+              <div style={{ flex: 1 }}>
+                <Combobox options={staffOptions} value={enrollUserId} onChange={setEnrollUserId} placeholder="Select employee…" />
+              </div>
+              <input className="input-field" value={enrollPin} onChange={e => setEnrollPin(e.target.value)} placeholder="Device PIN" style={{ width: 110 }} />
+              <button type="button" className="btn btn-secondary btn-sm" disabled={!enrollUserId || !enrollPin.trim()} onClick={addEnrollment}>Add</button>
+            </div>
+            {enrollments.length === 0 ? (
+              <div style={{ fontSize: 12, color: 'var(--ink3)' }}>No employees enrolled on this device yet.</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {enrollments.map(e => (
+                  <div key={e.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 10px', borderRadius: 8, border: '1px solid var(--border)' }}>
+                    <PersonAvatar userId={e.user_id} name={e.user_name} size={26} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)' }}>{e.user_name}</div>
+                      <div style={{ fontSize: 11, color: 'var(--ink3)' }}>PIN {e.external_pin} · {e.method}</div>
+                    </div>
+                    <button type="button" className="btn btn-secondary btn-xs" style={{ color: 'var(--red)' }} onClick={() => removeEnrollment(e)}>Remove</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Raw punch events — including unmatched/orphan punches to resolve */}
+          <div>
+            <div style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--navy)', marginBottom: 8 }}>Recent Punches</div>
+            {events.length === 0 ? (
+              <div style={{ fontSize: 12, color: 'var(--ink3)' }}>No punches received from this device yet.</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {events.slice(0, 30).map(ev => (
+                  <div key={ev.id} style={{ padding: '7px 10px', borderRadius: 8, border: '1px solid var(--border)', background: ev.user_id ? 'transparent' : 'rgba(245,158,11,.06)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                      <div style={{ fontSize: 12.5, color: 'var(--ink)' }}>
+                        {ev.user_name ?? <span style={{ color: 'var(--gold)', fontWeight: 700 }}>Unmatched PIN {ev.external_pin}</span>}
+                      </div>
+                      <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{new Date(ev.punched_at).toLocaleString()}</div>
+                    </div>
+                    {!ev.user_id && (
+                      assigningEventId === ev.id ? (
+                        <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+                          <div style={{ flex: 1 }}>
+                            <Combobox options={staffOptions} value={assignUserId} onChange={setAssignUserId} placeholder="Assign to…" />
+                          </div>
+                          <button type="button" className="btn btn-primary btn-xs" disabled={!assignUserId} onClick={() => assignOrphan(ev.id)}>Save</button>
+                          <button type="button" className="btn btn-secondary btn-xs" onClick={() => setAssigningEventId(null)}>Cancel</button>
+                        </div>
+                      ) : (
+                        <button type="button" className="btn btn-secondary btn-xs" style={{ marginTop: 6 }} onClick={() => { setAssigningEventId(ev.id); setAssignUserId(''); }}>
+                          Assign to employee
+                        </button>
+                      )
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Sync history */}
+          <div>
+            <div style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--navy)', marginBottom: 8 }}>Sync History</div>
+            {syncLogs.length === 0 ? (
+              <div style={{ fontSize: 12, color: 'var(--ink3)' }}>No sync attempts yet.</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {syncLogs.map(log => (
+                  <div key={log.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '6px 10px', borderRadius: 8, border: '1px solid var(--border)' }}>
+                    <span style={{ color: 'var(--ink)' }}>{new Date(log.started_at).toLocaleString()}</span>
+                    <span style={{ color: log.status === 'error' ? 'var(--red)' : 'var(--ink3)' }}>
+                      {log.records_matched}/{log.records_received} matched{log.status === 'error' ? ` — ${log.error}` : ''}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
 export function ShiftsPage() {
   const isMobile = useIsMobile();
   // Start empty and fill from the API — never seed with the sample fixtures,
@@ -2104,7 +2462,7 @@ export function ShiftsPage() {
               <tr key={emp.id} style={{ borderBottom: '1px solid var(--border)' }}>
                 <td style={{ padding: '10px 16px', borderRight: '1px solid var(--border)', background: 'var(--white)', position: 'sticky', left: 0, zIndex: 5 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ width: 32, height: 32, borderRadius: 9, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{emp.avatar}</div>
+                    <PersonAvatar userId={emp.id} name={emp.name} size={32} />
                     <div>
                       <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)' }}>{emp.name}</div>
                       <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{emp.role}</div>
@@ -2523,7 +2881,7 @@ export function DesignationsPage() {
   );
 }
 
-type PayRun = { id: string; name: string; period_month: number; period_year: number; status: string; total_employer_cost?: any; total_remitted?: any; total_net?: any };
+type PayRun = { id: string; name: string; period_month: number; period_year: number; status: string; employee_count?: any; total_gross?: any; total_employee_deductions?: any; total_employer_cost?: any; total_remitted?: any; total_net?: any };
 type Payslip = { id: string; user_id: string; name: string; email?: string; basic_pay: any; gross_pay: any; taxable_pay: any; income_tax: any; employee_contributions: any; other_deductions: any; total_deductions: any; employer_contributions: any; net_pay: any; lines?: any };
 
 const RUN_STATUS_STYLE: Record<string, { bg: string; fg: string }> = {
@@ -2552,6 +2910,8 @@ export function PayrollPage() {
   const [search, setSearch] = useState('');
   const [showPay, setShowPay] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [payrollYear, setPayrollYear] = useState<number | null>(null);
+  const [viewing, setViewing] = useState<Payslip | null>(null);
 
   const loadRuns = useCallback(async () => {
     try {
@@ -2597,6 +2957,67 @@ export function PayrollPage() {
     }
   };
 
+  // Real overtime paid on a slip — the calculate step (payroll.routes.ts)
+  // adds one earning line per rate with a code of the form OT_<KIND>, so
+  // summing those (rather than a hardcoded figure) is the actual amount.
+  const overtimePaid = (slip: Payslip): number => {
+    const lines: any[] = Array.isArray(slip.lines) ? slip.lines : [];
+    return lines.filter(l => String(l?.code || '').startsWith('OT_')).reduce((s, l) => s + payNum(l.amount), 0);
+  };
+
+  // Real per-run totals, calculated the same way summariseRun() on the
+  // backend does — total_gross/total_net/total_employer_cost/
+  // total_employee_deductions are real columns on payroll_runs, set once a
+  // run is calculated (draft/uncalculated runs report 0, honestly, rather
+  // than nothing rendering).
+  const availableYears = Array.from(new Set(runs.map(r => r.period_year))).sort((a, b) => b - a);
+  const effectiveYear = payrollYear ?? availableYears[0] ?? now.getFullYear();
+  const yearRuns = runs
+    .filter(r => r.period_year === effectiveYear)
+    .sort((a, b) => a.period_month - b.period_month);
+
+  const runCost = (r: PayRun) => {
+    const net = payNum(r.total_net);
+    const other = Math.max(0, payNum(r.total_gross) + payNum(r.total_employer_cost) - net);
+    return { net, other, total: net + other };
+  };
+  const maxRunTotal = Math.max(1, ...yearRuns.map(r => runCost(r).total));
+
+  const yearTotals = yearRuns.reduce((acc, r) => ({
+    net: acc.net + payNum(r.total_net),
+    deductions: acc.deductions + payNum(r.total_employee_deductions),
+    employerCost: acc.employerCost + payNum(r.total_employer_cost),
+  }), { net: 0, deductions: 0, employerCost: 0 });
+  const yearGrandTotal = Math.max(1, yearTotals.net + yearTotals.deductions + yearTotals.employerCost);
+  const donutSlices = [
+    { label: 'Net pay', value: yearTotals.net, color: '#2563eb' },
+    { label: 'Employee deductions', value: yearTotals.deductions, color: '#f97316' },
+    { label: 'Employer contributions', value: yearTotals.employerCost, color: '#10b981' },
+  ].map(s => ({ ...s, pct: Math.round((s.value / yearGrandTotal) * 100) }));
+  let donutCursor = 0;
+  const donutGradient = donutSlices.map(s => {
+    const from = donutCursor;
+    donutCursor += (s.value / yearGrandTotal) * 360;
+    return `${s.color} ${from}deg ${donutCursor}deg`;
+  }).join(', ');
+
+  const MONTH_ABBR = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  function downloadPayslipsCsv() {
+    const header = ['Name', 'Email', 'Gross pay', 'Overtime', 'Net pay', 'Status'];
+    const rows = filteredSlips.map(p => [
+      p.name, p.email || '', payNum(p.gross_pay), overtimePaid(p), payNum(p.net_pay), (p as any).status || 'PAID',
+    ]);
+    const csv = [header, ...rows].map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `payslips-${detail?.run?.name || 'run'}.csv`.replace(/[^a-z0-9.-]+/gi, '-');
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 20, paddingBottom: 40 }}>
       {/* 🌟 Header Bar matching WorkDo Image 4 */}
@@ -2621,67 +3042,80 @@ export function PayrollPage() {
         </div>
       </div>
 
-      {/* 📊 Top Charts Row (Payroll Summary + Company Pay Donut) */}
+      {/* 📊 Top Charts Row (Payroll Summary + Company Pay Donut) — both real,
+          computed from payroll_runs' own stored totals (set once a run is
+          calculated), not a formula. Replaces a mock that generated bar
+          heights from `50 + (idx % 4) * 10` and a donut whose 5 hardcoded
+          percentages didn't even sum to 100. */}
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 20 }}>
-        {/* Left Card: Payroll Summary Bar & Line Graph */}
+        {/* Left Card: Payroll Summary Bar Chart */}
         <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: 16, fontWeight: 700, color: '#0f172a' }}>Payroll Summary</span>
-            <select style={{ height: 30, padding: '0 8px', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 11.5, background: '#fff' }}>
-              <option value="yearly">Yearly ∨</option>
-              <option value="monthly">Monthly</option>
-            </select>
+            {availableYears.length > 0 && (
+              <Select value={String(effectiveYear)} onValueChange={v => setPayrollYear(Number(v))}>
+                <SelectTrigger style={{ height: 30, borderRadius: 'var(--r-sm)', fontSize: 11.5 }}><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {availableYears.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            )}
           </div>
 
-          {/* Bar & Line Chart Mock */}
-          <div style={{ height: 160, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8, padding: '10px 0', borderBottom: '1px solid #f1f5f9', position: 'relative' }}>
-            {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((m, idx) => {
-              const h1 = 50 + (idx % 4) * 10;
-              const h2 = 30 + (idx % 3) * 8;
-              return (
-                <div key={m} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, height: '100%', justifyContent: 'flex-end' }}>
-                  <div style={{ width: 12, borderRadius: 3, overflow: 'hidden', display: 'flex', flexDirection: 'column-reverse', height: '100%', maxHeight: 120 }}>
-                    <div style={{ height: `${h1}%`, background: '#f97316' }} />
-                    <div style={{ height: `${h2}%`, background: '#2563eb' }} />
+          {yearRuns.length === 0 ? (
+            <div style={{ height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: 13 }}>
+              No calculated payroll runs for {effectiveYear} yet.
+            </div>
+          ) : (
+            <div style={{ height: 160, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8, padding: '10px 0', borderBottom: '1px solid #f1f5f9', position: 'relative' }}>
+              {yearRuns.map(r => {
+                const { net, other, total } = runCost(r);
+                const heightPct = (total / maxRunTotal) * 100;
+                return (
+                  <div key={r.id} title={`${payMoney(total)} total cost`} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, height: '100%', justifyContent: 'flex-end' }}>
+                    <div style={{ width: 16, borderRadius: 3, overflow: 'hidden', display: 'flex', flexDirection: 'column-reverse', height: `${heightPct}%`, maxHeight: '100%' }}>
+                      <div style={{ height: total > 0 ? `${(net / total) * 100}%` : '0%', background: '#2563eb' }} />
+                      <div style={{ height: total > 0 ? `${(other / total) * 100}%` : '0%', background: '#f97316' }} />
+                    </div>
+                    <span style={{ fontSize: 10, color: '#64748b' }}>{MONTH_ABBR[r.period_month - 1]}</span>
                   </div>
-                  <span style={{ fontSize: 10, color: '#64748b' }}>{m}</span>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
 
           <div style={{ display: 'flex', justifyContent: 'center', gap: 20, fontSize: 12, color: '#64748b' }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: '#f97316' }} /> Gross Salary</span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: '#2563eb' }} /> Net Salary</span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: '#0ea5e9' }} /> Tax Dedication</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: '#2563eb' }} /> Net pay</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: '#f97316' }} /> Deductions &amp; employer cost</span>
           </div>
         </div>
 
         {/* Right Card: Company Pay Donut Chart */}
         <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 16, fontWeight: 700, color: '#0f172a' }}>Company Pay</span>
-            <select style={{ height: 28, padding: '0 6px', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 11, background: '#fff' }}>
-              <option value="2024">2024 ∨</option>
-            </select>
-          </div>
+          <span style={{ fontSize: 16, fontWeight: 700, color: '#0f172a' }}>Company Pay — {effectiveYear}</span>
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', margin: '14px 0' }}>
-            <div style={{ width: 100, height: 100, borderRadius: '50%', border: '10px solid #2563eb', borderRightColor: '#f97316', borderBottomColor: '#10b981', borderLeftColor: '#0ea5e9', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ fontSize: 18, fontWeight: 800, color: '#0f172a' }}>7433</span>
-              <span style={{ fontSize: 9, color: '#94a3b8' }}>Total Data</span>
+            <div style={{
+              width: 100, height: 100, borderRadius: '50%',
+              background: yearGrandTotal > 1 ? `conic-gradient(${donutGradient})` : '#e2e8f0',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <div style={{ width: 62, height: 62, borderRadius: '50%', background: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                <span style={{ fontSize: 13, fontWeight: 800, color: '#0f172a' }}>{yearRuns.reduce((s, r) => s + payNum(r.employee_count), 0)}</span>
+                <span style={{ fontSize: 8, color: '#94a3b8' }}>Employees paid</span>
+              </div>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 11.5, fontWeight: 600 }}>
-              <span style={{ color: '#ef4444' }}>● 15% <span style={{ color: '#64748b', fontWeight: 400 }}>Salary</span></span>
-              <span style={{ color: '#10b981' }}>● 08% <span style={{ color: '#64748b', fontWeight: 400 }}>Bonus</span></span>
-              <span style={{ color: '#0ea5e9' }}>● 20% <span style={{ color: '#64748b', fontWeight: 400 }}>Commission</span></span>
-              <span style={{ color: '#f97316' }}>● 11% <span style={{ color: '#64748b', fontWeight: 400 }}>Overtime</span></span>
-              <span style={{ color: '#2563eb' }}>● 28% <span style={{ color: '#64748b', fontWeight: 400 }}>Reimbursement</span></span>
+              {donutSlices.map(s => (
+                <span key={s.label} style={{ color: s.color }}>
+                  ● {s.pct}% <span style={{ color: '#64748b', fontWeight: 400 }}>{s.label}</span>
+                </span>
+              ))}
             </div>
           </div>
 
-          <Button variant="outline" size="sm" style={{ height: 32, fontSize: 12, borderRadius: 8, borderColor: '#cbd5e1', width: '100%' }}>
+          <Button variant="outline" size="sm" onClick={downloadPayslipsCsv} disabled={filteredSlips.length === 0} style={{ height: 32, fontSize: 12, borderRadius: 8, borderColor: 'var(--border)', width: '100%' }}>
             Download Report
           </Button>
         </div>
@@ -2705,14 +3139,9 @@ export function PayrollPage() {
               />
             </div>
 
-            <Button variant="outline" size="sm" style={{ height: 34, fontSize: 12, borderRadius: 8, borderColor: '#cbd5e1' }}>
+            <Button variant="outline" size="sm" onClick={downloadPayslipsCsv} disabled={filteredSlips.length === 0} style={{ height: 34, fontSize: 12, borderRadius: 8, borderColor: 'var(--border)' }}>
               Download Report
             </Button>
-
-            <select style={{ height: 34, padding: '0 10px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 12, background: '#fff', color: '#0f172a', fontWeight: 600 }}>
-              <option value="2026">2026 ∨</option>
-              <option value="2025">2025</option>
-            </select>
           </div>
         </div>
 
@@ -2721,54 +3150,37 @@ export function PayrollPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#f0f5ff', borderBottom: '1px solid #e2e8f0' }}>
-                <th style={{ padding: '12px 16px', width: 40 }}>
-                  <input type="checkbox" style={{ borderRadius: 4 }} />
-                </th>
-                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: '#334155' }}>Name ⇅</th>
-                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: '#334155' }}>Department ⇅</th>
-                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: '#334155' }}>Total Days ⇅</th>
-                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: '#334155' }}>Working Day ⇅</th>
-                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: '#334155' }}>Total Salary ⇅</th>
-                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: '#334155' }}>Over Time ⇅</th>
-                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: '#334155' }}>Status ⇅</th>
-                <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: 12, fontWeight: 700, color: '#334155' }}>Action ⇅</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: '#334155' }}>Name</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: '#334155' }}>Total Salary</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: '#334155' }}>Over Time</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: '#334155' }}>Status</th>
+                <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: 12, fontWeight: 700, color: '#334155' }}>Action</th>
               </tr>
             </thead>
             <tbody>
               {filteredSlips.length === 0 ? (
                 <tr>
-                  <td colSpan={9} style={{ padding: 30, textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
+                  <td colSpan={5} style={{ padding: 30, textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
                     No payroll slips found in this run.
                   </td>
                 </tr>
               ) : (
                 filteredSlips.map(p => {
                   const st = getStatusBadge((p as any).status || 'PAID');
+                  const ot = overtimePaid(p);
                   return (
                     <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      <td style={{ padding: '12px 16px' }}>
-                        <input type="checkbox" style={{ borderRadius: 4 }} />
-                      </td>
                       <td style={{ padding: '12px 16px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                           <PersonAvatar name={p.name} size={30} userId={p.user_id} />
                           <span style={{ fontSize: 13, fontWeight: 600, color: '#0f172a' }}>{p.name}</span>
                         </div>
                       </td>
-                      <td style={{ padding: '12px 16px', fontSize: 13, color: '#475569' }}>
-                        {(p as any).department || 'Engineering'}
-                      </td>
-                      <td style={{ padding: '12px 16px', fontSize: 13, color: '#0f172a' }}>
-                        30 Days
-                      </td>
-                      <td style={{ padding: '12px 16px', fontSize: 13, color: '#0f172a' }}>
-                        27 Days
-                      </td>
                       <td style={{ padding: '12px 16px', fontSize: 13, fontWeight: 700, color: '#0f172a', fontFamily: 'var(--mono)' }}>
                         {payMoney(p.gross_pay)}
                       </td>
                       <td style={{ padding: '12px 16px', fontSize: 13, color: '#475569', fontFamily: 'var(--mono)' }}>
-                        {payMoney(1500)}
+                        {ot > 0 ? payMoney(ot) : '—'}
                       </td>
                       <td style={{ padding: '12px 16px' }}>
                         <span style={{ fontSize: 11.5, fontWeight: 700, padding: '4px 10px', borderRadius: 6, background: st.bg, color: st.color }}>
@@ -2776,7 +3188,17 @@ export function PayrollPage() {
                         </span>
                       </td>
                       <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                        <Icon name="moreHorizontal" size={18} color="#94a3b8" style={{ cursor: 'pointer' }} />
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
+                              <Icon name="moreHorizontal" size={18} color="#94a3b8" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onSelect={() => setViewing(p)}>View payslip</DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => printPayslipPdf({ ...p, run_name: detail?.run?.name })}>Download PDF</DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </td>
                     </tr>
                   );
@@ -2786,14 +3208,15 @@ export function PayrollPage() {
           </table>
         </div>
 
-        {/* Pagination Footer */}
-        <div style={{ padding: '12px 20px', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, color: '#64748b' }}>
-          <span>Showing 1 to {filteredSlips.length} of {payslips.length} entries</span>
-          <div style={{ display: 'flex', gap: 4 }}>
-            <button style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer' }}>»</button>
-          </div>
+        {/* Every loaded payslip for this run renders above — nothing is
+            truncated, so this states that plainly rather than pairing it
+            with a page-number control that has no second page to go to. */}
+        <div style={{ padding: '12px 20px', borderTop: '1px solid #f1f5f9', fontSize: 12, color: '#64748b' }}>
+          Showing all {filteredSlips.length} of {payslips.length} entries
         </div>
       </div>
+
+      {viewing && <PayslipDetailModal slip={viewing} runName={detail?.run?.name ?? ''} onClose={() => setViewing(null)} />}
     </div>
   );
 }
@@ -3760,11 +4183,12 @@ export function HrmDashboard() {
             { label:'Org Chart',       icon:'layers'     as IconName, path:'/nexushr/org-chart',   color:'var(--teal)', bg:'var(--teal-l)' },
             { label:'Recruitment',     icon:'userPlus'   as IconName, path:'/nexushr/recruitment', color:'var(--purple)', bg:'var(--purple-l)' },
             { label:'Performance',     icon:'target'     as IconName, path:'/nexushr/performance', color:'var(--green)', bg:'var(--green-l)' },
-            { label:'IT Admin',        icon:'barChart2'  as IconName, path:'/nexushr/it-admin',    color:'var(--red)', bg:'var(--red-l)' },
+            { label:'IT Admin',        icon:'barChart2'  as IconName, path:'/ondi/it-admin',       color:'var(--red)', bg:'var(--red-l)' },
             { label:'Announcements',   icon:'volume2'    as IconName, path:'/nexushr/announcements',color:'var(--ink3)',bg:'rgba(100,116,139,0.08)' },
             { label:'Roles & Security',icon:'shield'     as IconName, path:'/nexushr/roles',       color:'var(--red)', bg:'var(--red-l)' },
             { label:'HR Documents',    icon:'fileText'   as IconName, path:'/nexushr/documents',   color:'var(--blue)', bg:'var(--blue-l)' },
             { label:'Asset Tracking',  icon:'package'    as IconName, path:'/nexushr/assets',      color:'var(--teal)', bg:'var(--teal-l)' },
+            { label:'Visitors',        icon:'userPlus'   as IconName, path:'/nexushr/visitors',    color:'var(--purple)', bg:'var(--purple-l)' },
           ].map(m => (
             <Link key={m.path} to={m.path}
               style={{
