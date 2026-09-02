@@ -19,6 +19,21 @@ const METHOD_META: Record<'phone' | 'totp' | 'passkey' | 'magic-link' | 'company
   'company-sso': { icon: 'building',    label: "Sign in with your company's SSO" },
 };
 
+// Off for now, by request — the plan is to bring passkey sign-in back once
+// it can be offered platform-wide (every app's own login, not just Ondi's),
+// rather than only here. The whole flow underneath (submitPasskey,
+// requestPasskeyLoginOptions/verifyPasskeyLogin in useAuth.tsx, the real
+// WebAuthn ceremony) is untouched — this only hides the entry point, so
+// flipping it back to `true` is the entire re-enable.
+const PASSKEY_LOGIN_ENABLED = false;
+// Same story, same pattern — off until needed. sendMagicLink,
+// requestMagicLink in useAuth.tsx, and the real /v1/ondi/auth/magic-link/*
+// backend are all untouched; only this entry point is hidden.
+const MAGIC_LINK_LOGIN_ENABLED = false;
+const VISIBLE_METHODS = (Object.keys(METHOD_META) as Array<keyof typeof METHOD_META>)
+  .filter(key => key !== 'passkey' || PASSKEY_LOGIN_ENABLED)
+  .filter(key => key !== 'magic-link' || MAGIC_LINK_LOGIN_ENABLED);
+
 const LOGIN_BG_MAP: Record<string, string> = {
   navy: '#0e1f3d', teal: '#0d7a6b',
   gradient: 'linear-gradient(135deg,#0e1f3d 0%,#0d7a6b 100%)', white: '#f0f4f9',
@@ -172,9 +187,24 @@ export const OndiLogin: React.FC = () => {
     } finally { setLoading(false); }
   };
 
+  // Two-step, like the phone tab's send-code/enter-code split — but the
+  // email step disappears once it's done rather than staying on screen
+  // next to the code field. loginWithTotp still genuinely needs the email
+  // (it's how the server knows whose TOTP secret to check the code
+  // against — a 6-digit code alone can't identify an account), so this
+  // step doesn't call the API; it just confirms who's signing in before
+  // asking for the one thing that actually matters here, the code.
+  const [totpStep, setTotpStep] = useState<'email' | 'code'>('email');
+
+  const continueTotpEmail = (ev: React.FormEvent) => {
+    ev.preventDefault();
+    if (!email.trim()) { setError('Enter your email.'); return; }
+    setError(null); setTotpStep('code');
+  };
+
   const submitTotp = async (ev: React.FormEvent) => {
     ev.preventDefault();
-    if (!email.trim() || totpCode.trim().length !== 6) { setError('Enter your email and 6-digit code.'); return; }
+    if (totpCode.trim().length !== 6) { setError('Enter the 6-digit code.'); return; }
     setError(null); setLoading(true);
     try {
       await loginWithTotp(email.trim(), totpCode.trim());
@@ -185,7 +215,7 @@ export const OndiLogin: React.FC = () => {
   };
 
   const switchMode = (next: 'phone' | 'totp' | 'passkey' | 'magic-link' | 'company-sso') => {
-    setMode(next); setError(null); setInfo(null);
+    setMode(next); setError(null); setInfo(null); setTotpStep('email');
   };
 
   const checkCompanySso = async (ev: React.FormEvent) => {
@@ -286,7 +316,7 @@ export const OndiLogin: React.FC = () => {
 
         <div>
           <div className="ondi-method-row">
-            {(Object.keys(METHOD_META) as Array<keyof typeof METHOD_META>).map(key => (
+            {VISIBLE_METHODS.map(key => (
               <button
                 key={key}
                 type="button"
@@ -371,34 +401,54 @@ export const OndiLogin: React.FC = () => {
         )}
 
         {mode === 'totp' && (
-          <form onSubmit={submitTotp} noValidate className="login-form">
-            <div className="login-field">
-              <input
-                type="email"
-                placeholder="Email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                className="login-input"
-                autoComplete="username"
-                disabled={loading}
-              />
-            </div>
-            <div className="login-field">
-              <input
-                type="text"
-                inputMode="numeric"
-                placeholder="6-digit authenticator code"
-                value={totpCode}
-                onChange={e => setTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                className="login-input"
-                autoComplete="one-time-code"
-                disabled={loading}
-              />
-            </div>
-            <button type="submit" disabled={loading} className="login-submit-btn login-submit-btn--full">
-              {loading ? 'Please wait…' : 'Verify & sign in'}
-            </button>
-          </form>
+          totpStep === 'email' ? (
+            <form onSubmit={continueTotpEmail} noValidate className="login-form">
+              <div className="login-field">
+                <input
+                  type="email"
+                  placeholder="Email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  className="login-input"
+                  autoComplete="username"
+                  disabled={loading}
+                  autoFocus
+                />
+              </div>
+              <button type="submit" disabled={loading || !email.trim()} className="login-submit-btn login-submit-btn--full">
+                Continue
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={submitTotp} noValidate className="login-form">
+              <div className="login-field">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="6-digit authenticator code"
+                  value={totpCode}
+                  onChange={e => setTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  className="login-input"
+                  autoComplete="one-time-code"
+                  disabled={loading}
+                  autoFocus
+                />
+              </div>
+              <div className="login-form-actions">
+                <button
+                  type="button"
+                  onClick={() => { setTotpStep('email'); setTotpCode(''); setError(null); }}
+                  disabled={loading}
+                  className="login-back-btn"
+                >
+                  Use a different email
+                </button>
+                <button type="submit" disabled={loading} className="login-submit-btn">
+                  {loading ? 'Please wait…' : 'Verify & sign in'}
+                </button>
+              </div>
+            </form>
+          )
         )}
 
         {mode === 'passkey' && (
