@@ -17,47 +17,24 @@ export async function orgChartRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('nexushr'));
 
-  // GET /org-chart — returns all nodes for the tenant
+  // GET /org-chart — returns all nodes for the tenant. Used to silently
+  // seed a fictional CEO/COO/CFO demo hierarchy the first time a tenant had
+  // zero real nodes, so a brand-new tenant's first look at Org Chart was a
+  // fabricated company with user_id: null throughout. A genuinely empty
+  // chart is a real state now — OrgChart.tsx's own empty view (Sync Staff /
+  // Add first role) is the honest starting point, not a fake org someone
+  // has to notice and delete. POST /org-chart/reset still offers the same
+  // sample structure, but only as an explicit, named action a user asked
+  // for ("Reset org chart to default sample structure?").
   fastify.get('/', async (req) => {
     const user = req.user;
-    return withTenant(user.tenant_id, async (trx) => {
-      let nodes = await trx.selectFrom('org_chart_nodes')
+    return withTenant(user.tenant_id, async (trx) =>
+      trx.selectFrom('org_chart_nodes')
         .selectAll()
         .where('tenant_id', '=', user.tenant_id)
         .orderBy('created_at')
-        .execute();
-
-      // Seed default chart if empty
-      if (nodes.length === 0) {
-        const seeds = SEED_NODES(user.tenant_id);
-        const inserted: any[] = [];
-        // CEO first
-        const ceo = await trx.insertInto('org_chart_nodes').values({
-          tenant_id: user.tenant_id, ...seeds[0], user_id: null, email: null, phone: null, parent_id: null,
-        }).returningAll().executeTakeFirstOrThrow();
-        inserted.push(ceo);
-
-        // Direct reports to CEO
-        const [coo, cfo] = await Promise.all([
-          trx.insertInto('org_chart_nodes').values({ tenant_id: user.tenant_id, ...seeds[1], user_id: null, email: null, phone: null, parent_id: ceo.id }).returningAll().executeTakeFirstOrThrow(),
-          trx.insertInto('org_chart_nodes').values({ tenant_id: user.tenant_id, ...seeds[2], user_id: null, email: null, phone: null, parent_id: ceo.id }).returningAll().executeTakeFirstOrThrow(),
-        ]);
-        inserted.push(coo, cfo);
-
-        // Level 3
-        await Promise.all([
-          trx.insertInto('org_chart_nodes').values({ tenant_id: user.tenant_id, ...seeds[3], user_id: null, email: null, phone: null, parent_id: coo.id }).returningAll().executeTakeFirstOrThrow(),
-          trx.insertInto('org_chart_nodes').values({ tenant_id: user.tenant_id, ...seeds[4], user_id: null, email: null, phone: null, parent_id: coo.id }).returningAll().executeTakeFirstOrThrow(),
-          trx.insertInto('org_chart_nodes').values({ tenant_id: user.tenant_id, ...seeds[5], user_id: null, email: null, phone: null, parent_id: cfo.id }).returningAll().executeTakeFirstOrThrow(),
-          trx.insertInto('org_chart_nodes').values({ tenant_id: user.tenant_id, ...seeds[6], user_id: null, email: null, phone: null, parent_id: cfo.id }).returningAll().executeTakeFirstOrThrow(),
-        ]);
-
-        nodes = await trx.selectFrom('org_chart_nodes').selectAll()
-          .where('tenant_id', '=', user.tenant_id).orderBy('created_at').execute();
-      }
-
-      return nodes;
-    });
+        .execute()
+    );
   });
 
   // POST /org-chart — create a node

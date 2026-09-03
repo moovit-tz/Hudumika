@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { PersonAvatar, CompanyAvatar } from '../components/PersonAvatar.js';
@@ -8,8 +8,11 @@ import { apiFetch } from '../lib/api.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import './SuperAdmin.css';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { SingleSelectFilter } from '../components/ui/filter-dropdown.js';
+import { FeatureToggleRow } from '../components/ui/list-item-row.js';
+import { SectionCard } from '../components/SectionCard.js';
 import { Switch } from '../components/ui/switch.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog.js';
@@ -31,7 +34,7 @@ type DomainStatus = 'active' | 'pending' | 'failed';
 type TxStatus = 'completed' | 'pending' | 'failed' | 'refunded';
 type PayMethod = 'card' | 'bank' | 'mpesa' | 'paypal';
 
-interface Company { id:string; name:string; email:string; phone:string; plan:PlanId; users:number; status:CoStatus; domain:string; created:string; owner:string; country:string; color:string; logoUrl?:string; }
+interface Company { id:string; name:string; email:string; phone:string; plan:PlanId; users:number; status:CoStatus; domain:string; created:string; owner:string; country:string; color:string; logoUrl?:string; founderPersonalEmailDomain?:string|null; }
 interface Subscription { id:string; companyId:string; plan:PlanId; start:string; end:string; amount:number; billing:'monthly'|'annual'; status:SubStatus; }
 interface Package { id:string; code:string; name:string; monthly:number; annual:number; maxUsers:number; monthlyItemLimit:number|null; storageLimitGb:number|null; features:string[]; active:number; color:string; popular?:boolean; }
 /** Purchasable independent of which base Package a tenant is on
@@ -298,8 +301,8 @@ function PageHdr({ title, sub, action }: { title:string; sub:string; action?:Rea
 /* ── Table wrapper ── */
 function DataTable({ headers, children }: { headers:string[]; children:React.ReactNode }) {
   return (
-    <div className="rtbl-wrap" style={{ overflowX:'auto' }}>
-      <table className="rtbl" style={{ borderCollapse:'collapse', background:'var(--white)', borderRadius: 9, border:'1px solid var(--border)' }}>
+    <div className="rtbl-wrap">
+      <table className="rtbl">
         <thead>
           <tr style={{ background:'var(--bg)' }}>
             {headers.map(h=>(
@@ -378,7 +381,7 @@ export function DashboardView() {
   if (loading) return <div style={{ textAlign:'center', padding:'48px 0', color:'var(--ink3)' }}>Loading dashboard statistics…</div>;
   if (error || !stats) return <div style={{ textAlign:'center', padding:'48px 0', color:'var(--ink3)' }}>Error loading dashboard stats. Check server connection.</div>;
 
-  const { kpis, planDist, spark, monthlyRev, transactions } = stats;
+  const { kpis, planDist, spark, monthlyRev, transactions, platformInsights } = stats;
   // Below two months of history a sparkline is a straight line, so the cards
   // show the number and say why there is no trend beside it.
   const noHistory = (stats.monthsWithData ?? 0) < 2 ? 'not enough history yet' : undefined;
@@ -483,7 +486,42 @@ export function DashboardView() {
             renews in exactly 30 days. `tenants` has no expiry or renewal column
             and there is no subscriptions table, so there is nothing to show —
             the panel is gone rather than filled with a date nobody committed to.
-            Plan distribution takes the slot. */}
+            Rollup cards for the two domain "Insights" layers relocated out of
+            this shell (Decompose SuperAdmin M1/M3) take the slot instead — a
+            real number, linking straight to where the detail now lives. */}
+        <div className="card" style={{ padding:'20px 22px' }}>
+          <div style={{ fontSize:13, fontWeight:700, color:'var(--ink)', marginBottom:14 }}>Platform Insights</div>
+          <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+            <Link to="/lens" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 12px', borderRadius:'var(--r)', border:'1px solid var(--border)', textDecoration:'none', color:'inherit' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                <Icon name="alertCircle" size={16} color={platformInsights.lens.critical > 0 ? 'var(--red)' : 'var(--ink3)'} />
+                <div>
+                  <div style={{ fontSize:12.5, fontWeight:600, color:'var(--ink)' }}>Lens — open engineering items</div>
+                  <div style={{ fontSize:11, color:'var(--ink3)' }}>
+                    {platformInsights.lens.critical > 0 ? `${platformInsights.lens.critical} critical · ` : ''}across every part of the platform
+                  </div>
+                </div>
+              </div>
+              <div style={{ fontSize:18, fontWeight:800, color:'var(--ink)' }}>{platformInsights.lens.openTotal}</div>
+            </Link>
+            <Link to="/nexushr/platform-devices" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 12px', borderRadius:'var(--r)', border:'1px solid var(--border)', textDecoration:'none', color:'inherit' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                <Icon name="fingerprint" size={16} color={platformInsights.devices.error > 0 ? 'var(--red)' : 'var(--ink3)'} />
+                <div>
+                  <div style={{ fontSize:12.5, fontWeight:600, color:'var(--ink)' }}>Attendance devices — all tenants</div>
+                  <div style={{ fontSize:11, color:'var(--ink3)' }}>
+                    {platformInsights.devices.online} online · {platformInsights.devices.offline} offline
+                    {platformInsights.devices.error > 0 ? ` · ${platformInsights.devices.error} error` : ''}
+                  </div>
+                </div>
+              </div>
+              <div style={{ fontSize:18, fontWeight:800, color:'var(--ink)' }}>{platformInsights.devices.total}</div>
+            </Link>
+            <div style={{ fontSize:11, color:'var(--ink3)', textAlign:'center' }}>
+              Filterable, exportable detail for devices is in <Link to="/hudubi/reports" style={{ color:'var(--teal)', fontWeight:600 }}>HuduBI Reports</Link> — "Attendance devices by status".
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -492,7 +530,7 @@ export function DashboardView() {
 /* ══════════════════════════════════════════════════
    COMPANIES VIEW
 ══════════════════════════════════════════════════ */
-interface ApiTenant { id:string; name:string; slug:string; plan:string; active:boolean; created_at:string; logo_url?:string; primary_color?:string; users?:number; }
+interface ApiTenant { id:string; name:string; slug:string; plan:string; active:boolean; created_at:string; logo_url?:string; primary_color?:string; users?:number; founder_personal_email_domain?:string|null; }
 interface CoForm { name:string; email:string; phone:string; plan:PlanId; owner:string; country:string; }
 const CO_FORM_DEFAULT: CoForm = { name:'', email:'', phone:'', plan:'starter', owner:'', country:'Tanzania' };
 
@@ -511,7 +549,7 @@ const TENANT_APPS: { id: string; name: string }[] = [
   { id: 'contacts',  name: 'Contacts' },
   { id: 'ai',        name: 'AI' },
   { id: 'store',     name: 'Store' },
-  { id: 'oneid',     name: 'Ondi' },
+  { id: 'ondi',      name: 'Ondi' },
   { id: 'tracking',  name: 'Tracking' },
   { id: 'workspace', name: 'Admin' },
   { id: 'demurrage',     name: 'Demurrage' },
@@ -589,6 +627,7 @@ export function CompaniesView() {
         country: mock?.country ?? 'Tanzania',
         color:   t.primary_color ?? avColor(t.name),
         logoUrl: t.logo_url,
+        founderPersonalEmailDomain: t.founder_personal_email_domain ?? null,
       } satisfies Company;
     });
   }, [tenants, apiError]);
@@ -764,19 +803,28 @@ export function CompaniesView() {
                 <div style={{ display:'flex', alignItems:'center', gap:10 }}>
                   <CoAv co={co} />
                   <div>
-                    <div style={{ fontWeight:600 }}>{co.name}</div>
+                    <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                      <span style={{ fontWeight:600 }}>{co.name}</span>
+                      {co.founderPersonalEmailDomain && (
+                        <span
+                          title={`Signed up with a personal email (${co.founderPersonalEmailDomain}), not a verified work domain`}
+                          style={{ fontSize:10, fontWeight:700, borderRadius:20, padding:'2px 7px', color:'var(--gold)', background:'var(--gold-l)', whiteSpace:'nowrap' }}>
+                          Personal email
+                        </span>
+                      )}
+                    </div>
                     <div style={{ fontSize:11, color:'var(--ink3)', fontFamily:'var(--mono)' }}>{co.id.length > 10 ? co.id.slice(0,8)+'…' : co.id}</div>
                   </div>
                 </div>
               </TD>
               <TD>
-                <div style={{ fontSize:12 }}>{co.email}</div>
+                <div className="rtbl-truncate" style={{ fontSize:12, maxWidth:160 }} title={co.email}>{co.email}</div>
                 <div style={{ fontSize:11, color:'var(--ink3)' }}>{co.phone || co.owner}</div>
               </TD>
               <TD><Badge cfg={PLAN_CFG[co.plan]} /></TD>
               <TD><span style={{ fontWeight:600 }}>{co.users}</span></TD>
               <TD><Badge cfg={CO_CFG[co.status]} /></TD>
-              <TD><span style={{ fontSize:12, color:'var(--ink3)', fontFamily:'var(--mono)' }}>{co.domain}</span></TD>
+              <TD><span className="rtbl-truncate" style={{ fontSize:12, color:'var(--ink3)', fontFamily:'var(--mono)' }} title={co.domain}>{co.domain}</span></TD>
               <TD nowrap><span style={{ fontSize:12, color:'var(--ink3)' }}>{fmtDate(co.created)}</span></TD>
               <TD>
                 <div style={{ display:'flex', gap:6, alignItems:'center' }}>
@@ -1043,15 +1091,14 @@ export function SubscriptionsView() {
    PACKAGES VIEW
 ══════════════════════════════════════════════════ */
 const ALL_FEATURE_KEYS = [
-  'ai', 'clearos', 'cloud', 'complyos', 'contacts', 'email', 'finops', 'oneid', 'nexushr', 'tracking',
+  'ai', 'clearos', 'cloud', 'complyos', 'contacts', 'email', 'finops', 'ondi', 'nexushr', 'tracking',
   'tracking.cargo-loading', 'tracking.warehouse', 'tracking.analytics', 'tracking.reports',
   'demurrage', 'cargotracker', 'petti', 'notes', 'sign', 'sms',
 ];
 
 // Same id → display-name map every app launcher tile and sidebar already
 // reads (LauncherApps.tsx) — reused here instead of a second, hand-guessed
-// label set that would drift from it (e.g. 'oneid' is branded "Ondi", not
-// "OneID"; a naive capitalize() would get that wrong).
+// label set that would drift from it.
 const APP_NAME_BY_ID: Record<string, string> = Object.fromEntries(LAUNCHER_APPS.map(a => [a.id, a.name]));
 function humanize(s: string): string {
   return s.split(/[-_]/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
@@ -2131,6 +2178,17 @@ export function ActivityView() {
 /* ══════════════════════════════════════════════════
    SETTINGS VIEW
 ══════════════════════════════════════════════════ */
+const SETTINGS_SECTIONS: { id: string; label: string; icon: IconName }[] = [
+  { id: 'security', label: 'Security & Sessions', icon: 'lock' },
+  { id: 'smtp',      label: 'Email / SMTP',        icon: 'mail' },
+  { id: 'ocr',       label: 'OCR',                 icon: 'zap' },
+  { id: 'ondiSso',   label: 'Ondi SSO',             icon: 'key' },
+  { id: 'api',       label: 'API & Webhooks',       icon: 'terminal' },
+  { id: 'modules-pointer', label: 'Modules & Plan Features', icon: 'package' },
+  { id: 'cron',      label: 'Cron Jobs',            icon: 'clock' },
+  { id: 'server',    label: 'System & Server Info', icon: 'monitor' },
+];
+
 export function SettingsView() {
   const [saved, setSaved] = useState<string|null>(null);
   const [maintenance, setMaintenance] = useState(false);
@@ -2139,7 +2197,7 @@ export function SettingsView() {
   const [api, setApi] = useState({ rateLimit:'120', corsOrigins:'*', webhookSecret:'whs_live_••••••••••••••••', keyRotationDays:'90' });
   const [showWebhookSecret, setShowWebhookSecret] = useState(false);
   const [ocr, setOcr] = useState({ geminiApiKey:'' });
-  const [ondiSso, setOndiSso] = useState({ enabled: false });
+  const [ondiSso, setOndiSso] = useState<{ enabled: boolean; googleClientId?: string; microsoftClientId?: string }>({ enabled: false });
   const [loading, setLoading] = useState(true);
   const [testingSmtp, setTestingSmtp] = useState(false);
   const [smtpTested, setSmtpTested] = useState(false);
@@ -2147,6 +2205,21 @@ export function SettingsView() {
   const [ocrTested, setOcrTested] = useState(false);
   const [jobs, setJobs] = useState<{ connected: boolean; jobs: { name: string; schedule: string; fallbackOnly?: boolean }[] }>({ connected: false, jobs: [] });
   const [serverInfo, setServerInfo] = useState<Record<string, string | number> | null>(null);
+
+  // 8 sections in one long scroll with no way to jump to one — tabbed instead,
+  // same ?section= deep-link convention DesignSystemView already established
+  // (Navigate to="/admin/design-system?section=identity" etc. in
+  // SuperAdminShell.tsx) so a bookmark/link to one settings section works the
+  // same way a link to one design-system section already does.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialTab = SETTINGS_SECTIONS.some(s => s.id === searchParams.get('section'))
+    ? searchParams.get('section')!
+    : SETTINGS_SECTIONS[0].id;
+  const [activeTab, setActiveTabState] = useState(initialTab);
+  const setActiveTab = (id: string) => {
+    setActiveTabState(id);
+    setSearchParams(prev => { prev.set('section', id); return prev; }, { replace: true });
+  };
 
   useEffect(() => {
     apiFetch('/v1/superadmin/settings')
@@ -2301,6 +2374,17 @@ export function SettingsView() {
         </div>
       </div>
 
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList>
+          {SETTINGS_SECTIONS.map(s => (
+            <TabsTrigger key={s.id} value={s.id}>
+              <Icon name={s.icon} size={13} />
+              {s.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+
+        <TabsContent value="security">
       {/* ── Security & Sessions ── */}
       <SectionCard title="Security & Sessions" sub="Password policy, session management, and access controls" section="security">
         <div style={{ display:'flex', alignItems:'center', gap:8, fontSize:12, color:'var(--gold)', background:'var(--gold-l)', border:'1px solid var(--gold)', borderRadius:8, padding:'8px 12px', marginBottom:16 }}>
@@ -2340,7 +2424,9 @@ export function SettingsView() {
           </Field>
         </div>
       </SectionCard>
+        </TabsContent>
 
+        <TabsContent value="smtp">
       {/* ── Email / SMTP ── */}
       <SectionCard title="Email / SMTP" sub="Outgoing email server configuration for notifications, alerts, and billing" section="smtp">
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))', gap:16 }}>
@@ -2377,7 +2463,9 @@ export function SettingsView() {
           </div>
         </div>
       </SectionCard>
+        </TabsContent>
 
+        <TabsContent value="ocr">
       {/* ── OCR / Document Scanning ── */}
       <SectionCard title="OCR / Document Scanning" sub="Google Gemini API key used to extract structured data from scanned BLs, invoices, and TANSAD documents in ClearOS" section="ocr">
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))', gap:16 }}>
@@ -2395,7 +2483,9 @@ export function SettingsView() {
           {ocr.geminiApiKey ? <span style={{ color:'var(--teal)' }}>● Live — scans use Gemini vision extraction</span> : <span>○ Simulated — no key configured, scans return demo data</span>}
         </div>
       </SectionCard>
+        </TabsContent>
 
+        <TabsContent value="ondiSso">
       {/* ── Ondi SSO (M7 dark-launch flag) ── */}
       <SectionCard title="Ondi SSO" sub="Default sign-in experience for every tenant — phone/authenticator/passkey/Google first, or password first" section="ondiSso">
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:24 }}>
@@ -2407,10 +2497,41 @@ export function SettingsView() {
                 : 'Off — visitors land on the password sign-in page first, same as today. Ondi is reachable via its own link, but is not the default.'}
             </div>
           </div>
-          <SAToggle value={ondiSso.enabled} onChange={v => setOndiSso({ enabled: v })} label="Ondi SSO default" />
+          <SAToggle value={ondiSso.enabled} onChange={v => setOndiSso(p => ({ ...p, enabled: v }))} label="Ondi SSO default" />
+        </div>
+
+        {/* Social sign-in is platform-wide, not per-tenant: the sign-in page
+            runs before anyone has identified themselves, so there is no
+            tenant whose credentials could be looked up. A Client ID is not a
+            secret — the browser sends it to Google on every sign-in — and
+            this flow uses no client secret at all. */}
+        <div style={{ borderTop:'1px solid var(--border)', marginTop:18, paddingTop:18 }}>
+          <div style={{ fontSize:13, fontWeight:600, color:'var(--ink)', marginBottom:3 }}>Social sign-in</div>
+          <div style={{ fontSize:12, color:'var(--ink3)', marginBottom:14 }}>
+            Paste a Client ID to switch Google or Microsoft sign-in on for every tenant. Leave blank to hide that button.
+            Add this app's URL as an authorized JavaScript origin in the provider's console, or the button renders but fails on click.
+            The Client ID/Secret under a workspace's Settings ▸ Integrations ▸ Google is a different setting — it drives Contacts sync, not sign-in.
+          </div>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))', gap:16 }}>
+            <Field label="Google Client ID" hint="From console.cloud.google.com — ends in .apps.googleusercontent.com">
+              <input title="Google Client ID" placeholder="1234567890-abc123.apps.googleusercontent.com" value={ondiSso.googleClientId ?? ''}
+                onChange={e => setOndiSso(p => ({ ...p, googleClientId: e.target.value }))} className="input-field" style={{ width:'100%' }} />
+            </Field>
+            <Field label="Microsoft Client ID" hint="The Application (client) ID from your Azure AD app registration.">
+              <input title="Microsoft Client ID" placeholder="00000000-0000-0000-0000-000000000000" value={ondiSso.microsoftClientId ?? ''}
+                onChange={e => setOndiSso(p => ({ ...p, microsoftClientId: e.target.value }))} className="input-field" style={{ width:'100%' }} />
+            </Field>
+          </div>
+          <div style={{ fontSize:11, color:'var(--ink3)', marginTop:2 }}>
+            {ondiSso.googleClientId?.trim()
+              ? <span style={{ color:'var(--teal)' }}>● Google sign-in is live on the sign-in page</span>
+              : <span>○ Google sign-in hidden — no Client ID configured</span>}
+          </div>
         </div>
       </SectionCard>
+        </TabsContent>
 
+        <TabsContent value="api">
       {/* ── API & Webhooks ── */}
       <SectionCard title="API & Webhooks" sub="Rate limiting, CORS, and webhook security for platform APIs" section="api">
         <div style={{ display:'flex', alignItems:'center', gap:8, fontSize:12, color:'var(--gold)', background:'var(--gold-l)', border:'1px solid var(--gold)', borderRadius:8, padding:'8px 12px', marginBottom:16 }}>
@@ -2445,7 +2566,9 @@ export function SettingsView() {
           </Field>
         </div>
       </SectionCard>
+        </TabsContent>
 
+        <TabsContent value="modules-pointer">
       {/* ── Modules & Plan Features ── */}
       {/* This used to be two separate panels (Feature Flags, Storage Quotas)
           whose toggles/fields saved to a settings key nothing ever read —
@@ -2466,7 +2589,9 @@ export function SettingsView() {
           </Link>
         </div>
       </SectionCard>
+        </TabsContent>
 
+        <TabsContent value="cron">
       {/* ── Cron Jobs ── */}
       <SectionCard title="Cron Jobs" sub="Every background job actually registered by this server — name and schedule, read live" section="cron" readOnly>
         <div style={{ display:'flex', alignItems:'center', gap:8, fontSize:12, color: jobs.connected ? 'var(--green)' : 'var(--gold)', background: jobs.connected ? 'var(--green-l)' : 'var(--gold-l)', border: `1px solid ${jobs.connected ? 'var(--green)' : 'var(--gold)'}`, borderRadius:8, padding:'8px 12px', marginBottom:16 }}>
@@ -2504,7 +2629,9 @@ export function SettingsView() {
           </table>
         </div>
       </SectionCard>
+        </TabsContent>
 
+        <TabsContent value="server">
       {/* ── System & Server Info ── */}
       <SectionCard title="System & Server Info" sub="Read-only platform infrastructure and runtime details, read live from the running process" section="server" readOnly>
         <div className="sa-server-grid">
@@ -2529,6 +2656,8 @@ export function SettingsView() {
           )}
         </div>
       </SectionCard>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
@@ -2538,14 +2667,14 @@ export function SettingsView() {
 ══════════════════════════════════════════════════ */
 const APP_LABELS: Record<string, string> = {
   ai: 'AI', clearos: 'ClearOS', cloud: 'Cloud', complyos: 'ComplyOS',
-  contacts: 'Contacts', email: 'Email', finops: 'FinOps', oneid: 'Ondi',
+  contacts: 'Contacts', email: 'Email', finops: 'FinOps', ondi: 'Ondi',
   nexushr: 'NexusHR', tracking: 'Tracking', demurrage: 'Demurrage', cargotracker: 'CargoTracker',
   petti: 'Petti', notes: 'Notes', sign: 'eSign', sms: 'SMS',
 };
 
 const APP_ICONS: Record<string, IconName> = {
   ai: 'sparkle', clearos: 'ship', cloud: 'folder', complyos: 'shield',
-  contacts: 'contact', email: 'mail', finops: 'dollarSign', oneid: 'key',
+  contacts: 'contact', email: 'mail', finops: 'dollarSign', ondi: 'key',
   nexushr: 'users', tracking: 'truck', demurrage: 'timer', cargotracker: 'container',
   petti: 'wallet', notes: 'fileText', sign: 'stamp', sms: 'messageSquare',
 };
@@ -2555,7 +2684,6 @@ interface AppStatusRow { app_id: string; status: 'active' | 'maintenance'; messa
 type AppStatusSort = 'name' | 'status' | 'updated';
 
 export function AppStatusView() {
-  const isMobile = useIsMobile();
   const [rows, setRows] = useState<AppStatusRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
@@ -2563,6 +2691,13 @@ export function AppStatusView() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<AppStatusSort>('name');
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>(() =>
+    (localStorage.getItem('hudumika_appstatus_view_mode') as 'list' | 'grid') || 'list');
+
+  const handleViewChange = (mode: 'list' | 'grid') => {
+    setViewMode(mode);
+    localStorage.setItem('hudumika_appstatus_view_mode', mode);
+  };
 
   useEffect(() => {
     apiFetch('/v1/superadmin/app-status')
@@ -2625,7 +2760,7 @@ export function AppStatusView() {
         }
       />
 
-      {/* Toolbar: search + status filter + sort */}
+      {/* Toolbar: search + status filter + sort + view toggle */}
       <div style={{ display:'flex', flexWrap:'wrap', gap:10, marginBottom:18 }}>
         <div style={{ position:'relative', flex:'1 1 240px', minWidth:200 }}>
           <Icon name="search" size={14} color="var(--ink3)" style={{ position:'absolute', left:12, top:'50%', transform:'translateY(-50%)' }} />
@@ -2654,44 +2789,83 @@ export function AppStatusView() {
             {SORT_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
           </SelectContent>
         </Select>
+        <div style={{ display:'flex', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden', flexShrink:0 }}>
+          <button
+            type="button"
+            title="List view"
+            onClick={() => handleViewChange('list')}
+            style={{ padding:'0 14px', height:'var(--ctl-h-sm)', boxSizing:'border-box', display:'inline-flex', alignItems:'center', gap:6, fontSize:13, fontWeight:600, background: viewMode === 'list' ? 'var(--bg)' : 'transparent', border:'none', cursor:'pointer', lineHeight:1.25 }}
+          >
+            <Icon name="list" size={14} />
+          </button>
+          <button
+            type="button"
+            title="Grid view"
+            onClick={() => handleViewChange('grid')}
+            style={{ padding:'0 14px', height:'var(--ctl-h-sm)', boxSizing:'border-box', display:'inline-flex', alignItems:'center', gap:6, fontSize:13, fontWeight:600, background: viewMode === 'grid' ? 'var(--bg)' : 'transparent', border:'none', cursor:'pointer', lineHeight:1.25 }}
+          >
+            <Icon name="grid" size={14} />
+          </button>
+        </div>
       </div>
 
       {visibleRows.length === 0 ? (
         <div style={{ textAlign:'center', padding:'48px 0', color:'var(--ink3)' }}>No apps match your search.</div>
-      ) : (
-        <div style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap:14 }}>
+      ) : viewMode === 'list' ? (
+        <SectionCard padded={false}>
           {visibleRows.map(row => {
             const inMaintenance = row.status === 'maintenance';
             const label = APP_LABELS[row.app_id] ?? row.app_id;
             const busy = savingId === row.app_id;
             return (
+              <div key={row.app_id} style={{ padding: '0 18px', opacity: busy ? 0.6 : 1 }}>
+                <FeatureToggleRow
+                  icon={<Icon name={APP_ICONS[row.app_id] ?? 'layers'} size={18} />}
+                  title={label}
+                  description={inMaintenance ? 'All tenants are blocked from this app.' : 'Accessible per each tenant’s plan.'}
+                  checked={!inMaintenance}
+                  onCheckedChange={() => toggle(row)}
+                  disabled={busy}
+                  action={inMaintenance && (
+                    <input
+                      title="Maintenance message shown to tenants"
+                      placeholder="Optional message shown to tenants while in maintenance…"
+                      value={drafts[row.app_id] ?? row.message ?? ''}
+                      onChange={e => setDrafts(prev => ({ ...prev, [row.app_id]: e.target.value }))}
+                      className="input-field"
+                      style={{ width:'100%', maxWidth: 420, boxSizing:'border-box', fontSize:12 }}
+                    />
+                  )}
+                />
+              </div>
+            );
+          })}
+        </SectionCard>
+      ) : (
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(260px, 1fr))', gap:14 }}>
+          {visibleRows.map(row => {
+            const inMaintenance = row.status === 'maintenance';
+            const label = APP_LABELS[row.app_id] ?? row.app_id;
+            const busy = savingId === row.app_id;
+            const muted = busy || inMaintenance;
+            return (
               <div
                 key={row.app_id}
-                className="card list-row-accent"
-                data-variant={inMaintenance ? 'error' : 'success'}
-                style={{ padding:'16px 18px', display:'flex', flexDirection:'column', gap:10 }}
+                style={{ background:'var(--white)', border:'1px solid var(--border)', borderRadius:'var(--r)', padding:16, display:'flex', flexDirection:'column', gap:10, opacity: busy ? 0.6 : 1 }}
               >
                 <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:10 }}>
                   <div style={{ display:'flex', alignItems:'center', gap:10, minWidth:0 }}>
-                    <FeaturedIcon variant={inMaintenance ? 'error' : 'success'} size="md">
+                    <FeaturedIcon variant={muted ? 'gray' : 'brand'} shape="circle" size="md">
                       <Icon name={APP_ICONS[row.app_id] ?? 'layers'} size={18} />
                     </FeaturedIcon>
-                    <div style={{ minWidth:0 }}>
-                      <div style={{ fontSize:14, fontWeight:700, color:'var(--ink)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{label}</div>
-                      <Badge cfg={inMaintenance
-                        ? { label:'Maintenance', color:'var(--red)', bg:'var(--red-l)' }
-                        : { label:'Live', color:'var(--green)', bg:'var(--green-l)' }} />
-                    </div>
+                    <div style={{ fontSize:14, fontWeight:700, color: muted ? 'var(--ink3)' : 'var(--ink)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{label}</div>
                   </div>
-                  <Switch
-                    checked={!inMaintenance}
-                    disabled={busy}
-                    title={`Toggle ${label}`}
-                    onCheckedChange={() => toggle(row)}
-                    style={{ flexShrink:0, opacity: busy ? 0.6 : 1 }}
-                  />
+                  <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
+                    <span style={{ fontSize:11, fontWeight:600, color: inMaintenance ? 'var(--ink3)' : 'var(--teal)' }}>{inMaintenance ? 'Off' : 'On'}</span>
+                    <Switch size="lg" showCheckIcon checked={!inMaintenance} disabled={busy} title={`Toggle ${label}`} onCheckedChange={() => toggle(row)} />
+                  </div>
                 </div>
-                <div style={{ fontSize:12, color:'var(--ink3)' }}>
+                <div style={{ fontSize:12, color:'var(--ink3)', opacity: muted ? 0.7 : 1 }}>
                   {inMaintenance ? 'All tenants are blocked from this app.' : 'Accessible per each tenant’s plan.'}
                 </div>
                 {inMaintenance && (
@@ -2720,97 +2894,6 @@ export function AppStatusView() {
    takes toward tenant attendance/leave data — never a
    write action on another tenant's device from here.
 ══════════════════════════════════════════════════ */
-interface PlatformDevice {
-  id:string; name:string; provider:string; serial_number:string; status:string;
-  location:string|null; last_heartbeat_at:string|null; last_sync_at:string|null; created_at:string;
-  tenant_id:string; tenant_name:string; event_count:number;
-}
-const DEVICE_STATUS_TINT: Record<string,{bg:string;color:string;label:string}> = {
-  online:       { bg:'var(--green-l)', color:'#059669', label:'Online' },
-  offline:      { bg:'var(--bg)',      color:'var(--ink3)', label:'Offline' },
-  unregistered: { bg:'var(--bg)',      color:'var(--ink3)', label:'Awaiting first sync' },
-  error:        { bg:'var(--red-l)',   color:'var(--red)', label:'Error' },
-};
-function PlatformDeviceStatusBadge({ status }: { status:string }) {
-  const s = DEVICE_STATUS_TINT[status] ?? DEVICE_STATUS_TINT.unregistered;
-  return <span style={{ padding:'2px 10px', borderRadius:20, fontSize:11, fontWeight:700, background:s.bg, color:s.color, whiteSpace:'nowrap' }}>{s.label}</span>;
-}
-function relTimeShort(iso: string|null): string {
-  if (!iso) return 'Never';
-  const min = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
-  if (min < 1) return 'Just now';
-  if (min < 60) return `${min}m ago`;
-  const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}h ago`;
-  return `${Math.floor(hr / 24)}d ago`;
-}
-
-export function DevicesView() {
-  const [devices, setDevices] = useState<PlatformDevice[]>([]);
-  const [loaded, setLoaded] = useState(false);
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all'|string>('all');
-
-  useEffect(() => {
-    apiFetch('/v1/superadmin/devices')
-      .then((res: any) => { setDevices(res?.data ?? []); setLoaded(true); })
-      .catch(() => setLoaded(true));
-  }, []);
-
-  const filtered = devices.filter(d => {
-    if (statusFilter !== 'all' && d.status !== statusFilter) return false;
-    if (search && !d.name.toLowerCase().includes(search.toLowerCase()) && !d.tenant_name.toLowerCase().includes(search.toLowerCase()) && !d.serial_number.toLowerCase().includes(search.toLowerCase())) return false;
-    return true;
-  });
-
-  return (
-    <div>
-      <PageHdr
-        title="Attendance Devices"
-        sub={loaded ? `${devices.length} biometric terminal(s) registered across every tenant` : 'Loading…'}
-      />
-
-      <div style={{ display:'flex', gap:10, marginBottom:16, flexWrap:'wrap' }}>
-        <div style={{ position:'relative', flex:'1 1 260px', maxWidth:340 }}>
-          <Icon name="search" size={14} style={{ position:'absolute', left:12, top:'50%', transform:'translateY(-50%)', color:'var(--ink3)' } as React.CSSProperties} />
-          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search device, tenant, serial…" className="input-field" style={{ width:'100%', paddingLeft:34 }} />
-        </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="input-field" style={{ width:190 }}><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All statuses</SelectItem>
-            <SelectItem value="online">Online</SelectItem>
-            <SelectItem value="offline">Offline</SelectItem>
-            <SelectItem value="unregistered">Awaiting first sync</SelectItem>
-            <SelectItem value="error">Error</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {loaded && devices.length === 0 ? (
-        <div style={{ padding:'60px 0', textAlign:'center', color:'var(--ink3)', fontSize:13 }}>
-          No tenant has registered an attendance device yet.
-        </div>
-      ) : (
-        <DataTable headers={['Device','Tenant','Provider','Serial','Location','Status','Last Sync','Punches']}>
-          {filtered.map(d => (
-            <TR key={d.id}>
-              <TD nowrap>{d.name}</TD>
-              <TD nowrap>{d.tenant_name}</TD>
-              <TD nowrap>{d.provider}</TD>
-              <TD nowrap><span style={{ fontFamily:'var(--mono)', fontSize:12, color:'var(--ink3)' }}>{d.serial_number}</span></TD>
-              <TD>{d.location || '—'}</TD>
-              <TD><PlatformDeviceStatusBadge status={d.status} /></TD>
-              <TD nowrap>{relTimeShort(d.last_sync_at)}</TD>
-              <TD right>{d.event_count}</TD>
-            </TR>
-          ))}
-        </DataTable>
-      )}
-    </div>
-  );
-}
-
 /* ══════════════════════════════════════════════════
    MAIN COMPONENT
 ══════════════════════════════════════════════════ */

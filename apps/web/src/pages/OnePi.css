@@ -59,3 +59,29 @@
   flex-wrap: wrap;
   margin-bottom: 16px;
 }
+
+/* ── Cross-tenant SUPER_ADMIN banner — same look as HuduBIShell's own
+   .hb-platform-banner, HuduBI being the other shell with this same "mostly
+   tenant-facing, a few SUPER_ADMIN-only cross-tenant routes" shape. ── */
+.nhr-platform-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px;
+  border-radius: 8px;
+  background: rgba(239, 68, 68, 0.06);
+  border: 1px solid rgba(239, 68, 68, 0.14);
+  margin: 0 0 20px;
+  flex-wrap: wrap;
+}
+.nhr-platform-banner-label {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--red);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.nhr-platform-banner-desc {
+  font-size: 11px;
+  color: var(--ink3);
+}

@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { db, withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
+import { requireRoleOrOrgPermission, ORG_PERMISSIONS } from '../lib/org-rbac.js';
 import { Redis } from 'ioredis';
 import { sql } from 'kysely';
 import { env } from '../config/env.js';
@@ -44,7 +45,7 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
    * GET /v1/analytics/kpi
    * Command Center live KPI stats. Cached 60 seconds in Redis.
    */
-  fastify.get('/kpi', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SENIOR', 'SALES') }, async (request, reply) => {
+  fastify.get('/kpi', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.REPORTS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SENIOR', 'SALES') }, async (request, reply) => {
     const user = request.user;
     const cacheKey = `tenant:${user.tenant_id}:kpis`;
 
@@ -208,7 +209,7 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
    * GET /v1/analytics/bottlenecks
    * Analyzes stage history durations to identify high cycle times
    */
-  fastify.get('/bottlenecks', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'SENIOR') }, async (request, reply) => {
+  fastify.get('/bottlenecks', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.REPORTS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'SENIOR') }, async (request, reply) => {
     const user = request.user;
 
     return withTenant(user.tenant_id, async (trx) => {
@@ -304,7 +305,7 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
    * GET /v1/analytics/officers
    * Track performance metrics across operational clearing officers
    */
-  fastify.get('/officers', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') }, async (request, reply) => {
+  fastify.get('/officers', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.REPORTS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') }, async (request, reply) => {
     const user = request.user;
 
     return withTenant(user.tenant_id, async (trx) => {

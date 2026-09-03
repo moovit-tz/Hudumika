@@ -82,7 +82,7 @@ import { EmailShell }   from './shells/EmailShell.js';
 import { CRMShell }     from './shells/CRMShell.js';
 import { ContactsShell } from './shells/ContactsShell.js';
 import { StoreShell }    from './shells/StoreShell.js';
-import { OneIdShell }    from './shells/OneIdShell.js';
+import { OndiShell }     from './shells/OndiShell.js';
 import { TrackingShell } from './shells/TrackingShell.js';
 import { CargoTrackerShell } from './shells/CargoTrackerShell.js';
 import { PettiShell } from './shells/PettiShell.js';
@@ -450,7 +450,7 @@ const AppContentBody: React.FC = () => {
           <Route path="/crm/*"      element={<CRMShell />} />
           <Route path="/contacts/*"  element={<ContactsShell />} />
           <Route path="/store/*"     element={<StoreShell />} />
-          <Route path="/ondi/*"      element={<OneIdShell />} />
+          <Route path="/ondi/*"      element={<OndiShell />} />
           {/* Ondi moved from /oneid to /ondi; the old path stays as a
               redirect so existing bookmarks and links keep working. */}
           <Route path="/oneid/*"     element={<Navigate to="/ondi" replace />} />

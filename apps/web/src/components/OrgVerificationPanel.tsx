@@ -15,7 +15,7 @@ export function OrgVerificationPanel() {
   const [isDragOver, setIsDragOver] = useState(false);
 
   const reloadKyb = useCallback(async () => {
-    try { setKyb(await apiFetch('/v1/oneid/org/kyb/status')); } catch { setKyb(null); }
+    try { setKyb(await apiFetch('/v1/ondi/org/kyb/status')); } catch { setKyb(null); }
   }, []);
 
   useEffect(() => { reloadKyb(); }, [reloadKyb]);
@@ -31,7 +31,7 @@ export function OrgVerificationPanel() {
       });
       const [meta, base64] = dataUrl.split(',');
       const media_type = /data:(.*);base64/.exec(meta)?.[1] || file.type || 'image/jpeg';
-      const res = await apiFetch('/v1/oneid/org/kyb/submit', { method: 'POST', body: JSON.stringify({ image_base64: base64, media_type }) });
+      const res = await apiFetch('/v1/ondi/org/kyb/submit', { method: 'POST', body: JSON.stringify({ image_base64: base64, media_type }) });
       showAlert(`Submitted. We read "${res.extracted.companyName || 'this document'}" — a Hudumika reviewer will verify it.`, { variant: 'success', title: 'Submitted for review' });
       await reloadKyb();
     } catch (err: any) {

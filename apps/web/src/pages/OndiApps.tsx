@@ -1,4 +1,4 @@
-// ─── OneIdApps.tsx — Ondi Personal · Apps ─────────────────────────
+// ─── OndiApps.tsx — Ondi Personal · Apps ─────────────────────────
 // Every app this user has granted OAuth access to, backed by the real
 // consent rows the working M6 OAuth provider already writes
 // (ondi_oauth_consents) — see GET/DELETE /v1/ondi/oauth/consents
@@ -26,7 +26,7 @@ function fmtDate(d: string): string {
   return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-export const OneIdApps: React.FC = () => {
+export const OndiApps: React.FC = () => {
   const [consents, setConsents] = useState<Consent[] | null>(null);
   const [revoking, setRevoking] = useState<string | null>(null);
 
@@ -85,4 +85,4 @@ export const OneIdApps: React.FC = () => {
   );
 };
 
-export default OneIdApps;
+export default OndiApps;

@@ -34,7 +34,7 @@ export default
     "bliss": "Support & Assistance",
     "nexushr": "Personnel & RH",
     "onesite": "Web & CMS",
-    "oneid": "Identité & Accès",
+    "ondi": "Identité & Accès",
     "tracking": "Suivi de flotte GPS",
     "cloud": "Stockage de fichiers",
     "ai": "Intelligence artificielle",
@@ -67,7 +67,7 @@ export default
   "login": {
     "createAccount": "Créer un compte",
     "emailAddressLabel": "Adresse e-mail",
-    "emailPlaceholder": "E-mail ou téléphone",
+    "emailPlaceholder": "you@company.com",
     "passwordLabel": "Mot de passe",
     "passwordPlaceholder": "Entrez votre mot de passe",
     "forgotPassword": "Mot de passe oublié ?",

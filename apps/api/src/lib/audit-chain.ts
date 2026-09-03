@@ -33,6 +33,7 @@ export type OndiEventType =
   | 'kyb_submitted' | 'kyb_verified' | 'kyb_rejected'
   | 'org_role_created' | 'org_role_deleted' | 'org_role_granted' | 'org_role_revoked'
   | 'access_request_submitted' | 'access_request_approved' | 'access_request_denied'
+  | 'join_request_submitted' | 'join_request_approved' | 'join_request_denied'
   | 'password_changed' | 'email_changed'
   | 'oauth_consent_revoked' | 'account_deactivation_requested'
   | 'wallet_item_added' | 'wallet_item_viewed' | 'wallet_item_updated' | 'wallet_item_deleted'

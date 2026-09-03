@@ -30,6 +30,17 @@ function handleUnauthorized() {
   const hadSession = !!localStorage.getItem('hudumika_user');
   localStorage.removeItem('hudumika_user');
   if (!hadSession) return;
+  // A died session's tenant — its logo/name/accent, cached by useBranding.ts
+  // under this prefix for synchronous reads — must not keep painting the
+  // /login page this redirects to. This is the far more common way that
+  // page ends up showing someone else's workspace branding: a session
+  // expiring naturally (here) rather than the sign-out button (useAuth.tsx's
+  // own identical cleanup), since this is what actually fires right before
+  // the redirect below.
+  for (let i = localStorage.length - 1; i >= 0; i--) {
+    const key = localStorage.key(i);
+    if (key?.startsWith('hudumika_tenant_')) localStorage.removeItem(key);
+  }
   // A session that just died 401'd is not "still locked" — the next login
   // (even in this same tab, no reload) must start with a clean idle clock,
   // not re-apply whatever lock state this session happened to be in.

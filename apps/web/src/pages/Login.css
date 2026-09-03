@@ -1,26 +1,24 @@
-/* ── Brand header elements ── */
+/* ══════════════════════════════════════════════════════════════════════
+   PRE-LOGIN CONTROL STANDARD — applies to every pre-auth page that imports
+   this file (Login.tsx, OndiLogin.tsx, OnboardingWizard.tsx/StepAccount.tsx,
+   OrgLogin.tsx): every field-shaped control — .login-input, .login-submit-
+   btn, .login-social-btn, .ondi-pill* (OndiLogin.css) — is border-radius:
+   14px and min-height: 52px (a floor, not padding math — see CLAUDE.md's
+   own identical lesson for the authenticated app's --ctl-h tokens: the
+   exact same "sum of padding+font+line-height+border" bug bites here too,
+   and a floor is the only fix that can't drift). This was Ondi's own pill
+   design (OndiLogin.css's .ondi-pill) and is now the pre-login baseline,
+   not a page-specific look — a new pre-login control should match this
+   without needing to be told twice.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── Brand header elements ──
+   The four-square mark that used to live here was built from Google's own
+   brand colours (#ea4335/#4285f4/#fbbc05/#34a853) as a stand-in while this
+   page was styled after Google's sign-in. Every brand header now renders
+   the real Hudumika logo (useBranding's BRAND_LOGO_* static assets), so the
+   stand-in and its wordmark are gone. */
 .g-brand-logo-img { height: 44px; object-fit: contain; }
-
-.g-brand-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 2px;
-  width: 22px;
-  height: 22px;
-  flex-shrink: 0;
-}
-.g-brand-sq         { border-radius: 2px; }
-.g-brand-sq--r      { background: #ea4335; }
-.g-brand-sq--b      { background: #4285f4; }
-.g-brand-sq--y      { background: #fbbc05; }
-.g-brand-sq--g      { background: #34a853; }
-
-.g-brand-name {
-  font-size: 18px;
-  font-weight: 800;
-  color: var(--lp-ink, #1f1f1f);
-  letter-spacing: -0.5px;
-}
 
 /* ── Page shell ──
    index.css sets `body { overflow: hidden }` for the authenticated app
@@ -167,8 +165,10 @@
   border-bottom: 1px solid var(--lp-list-border, #e0e2e6);
 }
 .login-method-tab {
+  flex: 1;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   border: none;
   background: transparent;
@@ -189,7 +189,7 @@
 /* ── Labeled fields ── */
 .login-label     { font-size: 12.5px; font-weight: 700; color: var(--lp-ink, #1f1f1f); }
 .login-label-row { display: flex; justify-content: space-between; align-items: center; }
-.login-forgot-link { font-size: 12px; font-weight: 600; color: var(--lp-link-accent, var(--lp-accent, #0d7a6b)); text-decoration: none; }
+.login-forgot-link { font-size: 12px; font-weight: 600; color: var(--lp-link-accent, var(--lp-accent, #0b1e3a)); text-decoration: none; }
 
 /* ── Error banner ── */
 .login-error {
@@ -214,8 +214,10 @@
   max-width: 320px;
   margin: 0 auto 16px;
   padding: 10px 12px;
+  min-height: 52px;
+  box-sizing: border-box;
   border: 1px solid var(--lp-input-border, #747775);
-  border-radius: var(--r-sm, 4px);
+  border-radius: 14px;
   background: var(--lp-input-bg, #fff);
   color: var(--lp-ink2, #444746);
   font-size: 13px;
@@ -298,13 +300,25 @@
 .login-page[data-theme="light"] .login-demo-btn .auth-spinner { border-color: var(--lp-ink3, #5f6368); }
 .login-page[data-theme="dark"]  .login-demo-btn .auth-spinner { border-color: var(--lp-ink3, #9aa0a6); }
 
-/* ── Create account ── */
+/* ── Create account ──
+   Two unrelated actions ("sign in with password instead" / "start a new
+   workspace") used to share one line as two fully-bold links joined by a
+   middot — indistinguishable from each other and from a single sentence,
+   and "New company? Create a workspace" broke mid-phrase onto its own line
+   at this card's width, splitting one link's own label across two lines.
+   Stacked rows fix the wrap; a plain lead-in + short bold CTA (matching
+   the question+link pattern the rest of the auth-page family already uses,
+   e.g. ForgotPassword's "Remember your password? Back to sign in") fixes
+   the "wall of bold text" read by giving only the actual action weight. */
+.login-create-links { display: flex; flex-direction: column; gap: 4px; }
 /* margin-top: 0, not a standalone value — this paragraph sits inside
    .login-card's own `gap: 16px` flex column, so any margin here stacked on
    top of that gap instead of replacing it, opening a visibly bigger gap
    above this link than the matching one below it before the divider. */
 .login-create-p    { text-align: center; margin: 0; font-size: 12.5px; color: var(--lp-ink3, #5f6368); }
-.login-create-link { font-weight: 700; color: var(--lp-link-accent, var(--lp-accent, #0d7a6b)); text-decoration: none; }
+.login-create-lead { color: var(--lp-ink3, #5f6368); }
+.login-create-link { font-weight: 700; color: var(--lp-link-accent, var(--lp-accent, #0b1e3a)); text-decoration: none; }
+.login-create-link:hover { text-decoration: underline; }
 
 /* ── Credentials form ── */
 .login-form           { display: flex; flex-direction: column; gap: 16px; }
@@ -322,8 +336,10 @@
    page's own theme state always wins inside its own scope now. */
 .login-page .login-input {
   width: 100%;
-  padding: 11px 14px;
-  border-radius: var(--r-sm, 4px);
+  min-height: 52px;
+  box-sizing: border-box;
+  padding: 11px 16px;
+  border-radius: 14px;
   border: 1px solid var(--lp-input-border, #747775);
   background: var(--lp-input-bg, #fff);
   color: var(--lp-ink, #1f1f1f);
@@ -363,6 +379,63 @@
 
 .login-field-err { font-size: 11.5px; color: #ea4335; display: flex; align-items: center; gap: 4px; }
 
+/* Inline availability indicator inside a .login-field-pw input (the email
+   check in StepAccount.tsx) — same absolute-positioned slot as
+   .login-pw-toggle above, so the icon sits inside the field instead of
+   wrapping onto its own line below it, which is what a bare, unstyled
+   <span> did here before (no rule for .ob-field-status existed at all). */
+.ob-field-status {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  font-size: 11.5px;
+  pointer-events: none;
+}
+.ob-field-status--checking { color: var(--lp-ink3, #5f6368); }
+.ob-field-status--ok       { color: #1e8e3e; }
+.ob-field-status--bad      { color: #ea4335; }
+
+/* A soft, non-blocking heads-up (e.g. "this looks like a personal email") —
+   distinct amber from .login-field-err's red so it never reads as a hard
+   validation failure blocking submission. */
+.ob-field-hint { font-size: 11.5px; display: flex; align-items: flex-start; gap: 5px; line-height: 1.4; }
+.ob-field-hint--warn { color: #a15c00; }
+.ob-field-hint--warn svg { flex-shrink: 0; margin-top: 1px; color: #d97706; }
+
+/* Auto-join-by-domain offer card — appears inline under the email field
+   once check-email resolves a domain match, same non-modal convention as
+   every other multi-step form in this codebase. */
+.ob-join-offer {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  background: var(--lp-input-bg, #fff);
+  border: 1px solid var(--lp-accent, #0b1e3a);
+  border-radius: var(--r, 8px);
+  padding: 12px 14px;
+  margin-top: -2px;
+}
+.ob-join-offer > svg { flex-shrink: 0; color: var(--lp-accent, #0b1e3a); margin-top: 1px; }
+.ob-join-offer-body  { display: flex; flex-direction: column; gap: 3px; }
+.ob-join-offer-title { font-size: 13px; font-weight: 700; color: var(--lp-ink, #1f1f1f); }
+.ob-join-offer-sub   { font-size: 12px; line-height: 1.5; color: var(--lp-ink2, #444746); }
+.ob-join-offer-error { font-size: 12px; color: #d93025; margin-top: 4px; }
+.ob-join-offer-actions .login-submit-btn { background: var(--lp-accent-surface, var(--lp-accent, #0b1e3a)); }
+.ob-join-offer-skip {
+  background: none;
+  border: none;
+  color: var(--lp-ink3, #5f6368);
+  font-size: 12px;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+  align-self: center;
+  margin-top: -4px;
+}
+
 /* ── Form footer (back + submit) ── */
 .login-form-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; }
 
@@ -372,7 +445,7 @@
   /* Same reasoning as .login-create-link — the raw tenant accent has no
      contrast guarantee and can read as near-invisible text on a dark
      page when the accent itself is a dark tone (e.g. navy). */
-  color: var(--lp-link-accent, var(--lp-accent, #0d7a6b));
+  color: var(--lp-link-accent, var(--lp-accent, #0b1e3a));
   font-weight: 600;
   font-size: 13px;
   cursor: pointer;
@@ -384,11 +457,17 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  background: var(--lp-accent, #0d7a6b);
-  color: #fff;
+  /* --lp-accent-surface/-fg (Login.tsx's effect), not the raw --lp-accent:
+     a dark tenant colour used unadjusted as a full solid fill on an
+     already-dark page reads as a heavy, undifferentiated block even though
+     white text on it still passes WCAG — see that effect's own comment. */
+  background: var(--lp-accent-surface, var(--lp-accent, #0b1e3a));
+  color: var(--lp-accent-surface-fg, #fff);
   border: none;
-  border-radius: var(--r, 8px);
-  padding: var(--ds-btn-py) 24px;
+  border-radius: 14px;
+  min-height: 52px;
+  box-sizing: border-box;
+  padding: 0 24px;
   font-size: 13.5px;
   font-weight: 700;
   cursor: pointer;
@@ -418,40 +497,182 @@
 }
 .login-lang-trigger:hover { color: var(--lp-page-link, #5f6368); }
 
-/* ── Shared auth components (AuthBrand, AuthAlert, AuthSuccess, AuthField) ── */
-.auth-brand         { display: none; }
+/* ══════════════════════════════════════════════════════════════════════
+   Shared auth components — AuthCard, AuthAlert, AuthSuccess, AuthField —
+   the whole secondary auth-page family (ForgotPassword, ResetPassword,
+   VerifyEmail, AcceptInvite, RecoveryPage, MagicLinkPage, SsoCompletePage).
+   These pages used to live in a completely separate two-panel design
+   (.auth-shell/.auth-brand in index.css — a left brand panel + right form
+   panel, 42px/9px controls) that never got the pass Login.tsx/OndiLogin.tsx
+   got. AuthCard (Login.tsx) now wraps every one of them in the exact same
+   .login-page/.login-card chrome those two already use, and everything
+   below restyles the pages' own existing classes (unchanged in their JSX)
+   to match — same --lp-* tokens, same 52px/14px control floor as the
+   pre-login standard banner at the top of this file. ══════════════════ */
 
+/* Centered, not left — matches every other auth-page icon+headline block
+   (OndiLogin's .ondi-idle-header/-icon) rather than sitting flush against
+   the card's left edge under a logo that's centered above it. */
+.auth-form-hdr { text-align: center; }
+.auth-back-icon, .auth-sent-icon {
+  background: color-mix(in srgb, var(--lp-accent-surface, #0b1e3a) 14%, var(--lp-card-bg, #fff));
+  color: var(--lp-accent-surface, #0b1e3a);
+}
+.auth-back-icon {
+  width: 44px; height: 44px;
+  border-radius: var(--r, 14px);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 16px;
+}
+.auth-form-title {
+  font-size: 19px; font-weight: 700; color: var(--lp-ink, #1f1f1f);
+  margin: 0 0 6px; letter-spacing: -0.2px;
+}
+.auth-form-sub {
+  font-size: 12.5px; color: var(--lp-ink2, #444746); margin: 0; line-height: 1.55;
+}
+
+/* Alert banners — same --lp-error-* / --lp-success-* pair the rest of the
+   page family already uses (.login-error), not a separate hardcoded red. */
 .auth-alert {
-  background: #fdf2f2;
-  border: 1px solid #fde2e2;
-  border-radius: 8px;
-  padding: 12px 16px;
-  color: #c2410c;
-  font-size: 12.5px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 16px;
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 12px 16px; border-radius: var(--r, 8px);
+  font-size: 12.5px; line-height: 1.45;
+  background: var(--lp-error-bg, #fdf2f2);
+  border: 1px solid var(--lp-error-border, #fde2e2);
+  color: var(--lp-error-text, #c2410c);
 }
 .auth-alert-ok {
-  background: var(--green-l);
-  border-color: #d1fae5;
-  color: var(--green);
+  background: var(--lp-success-bg, #f0fdf4);
+  border-color: var(--lp-success-border, #dcfce7);
+  color: var(--lp-success-text, #166534);
 }
 
-.auth-field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-bottom: 16px;
-}
+/* Form */
+.auth-form { display: flex; flex-direction: column; gap: 16px; }
+.auth-field { display: flex; flex-direction: column; gap: 6px; }
+.auth-field.has-error .auth-input { border-color: #ea4335; }
 .auth-field-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
-.auth-field-label { font-size: 12.5px; font-weight: 700; color: #1f1f1f; }
-.auth-field-error { font-size: 11.5px; color: #d93025; }
+.auth-field-label { font-size: 12.5px; font-weight: 700; color: var(--lp-ink, #1f1f1f); }
+.auth-field-right { font-size: 12.5px; color: var(--lp-ink3, #5f6368); }
+.auth-field-error { font-size: 11.5px; color: #ea4335; margin-top: 5px; display: flex; align-items: center; gap: 4px; }
+
+/* Inputs — same floor as .login-input (52px / 14px), not a smaller,
+   page-specific size. */
+.auth-input {
+  width: 100%; min-height: 52px; box-sizing: border-box;
+  padding: 11px 16px;
+  background: var(--lp-input-bg, #fff);
+  border: 1px solid var(--lp-input-border, #747775);
+  border-radius: var(--r, 14px);
+  font-size: 13.5px; color: var(--lp-ink, #1f1f1f);
+  font-family: var(--font);
+  transition: border-color 0.15s, box-shadow 0.15s;
+  outline: none;
+}
+.auth-input:focus { border-color: var(--lp-accent); box-shadow: inset 0 0 0 1px var(--lp-accent); }
+.auth-input-err { border-color: #ea4335 !important; box-shadow: none !important; }
+.auth-input::placeholder { color: var(--lp-ink3, #5f6368); }
+.auth-input-wrap { position: relative; }
+.auth-input-icon-r { padding-right: 42px; }
+.auth-input:-webkit-autofill,
+.auth-input:-webkit-autofill:hover,
+.auth-input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--lp-ink, #1f1f1f);
+  -webkit-box-shadow: 0 0 0 1000px var(--lp-input-bg, #fff) inset;
+  box-shadow: 0 0 0 1000px var(--lp-input-bg, #fff) inset;
+  caret-color: var(--lp-ink, #1f1f1f);
+}
+.auth-eye-btn {
+  position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+  background: none; border: none; cursor: pointer; padding: 4px;
+  color: var(--lp-ink3, #5f6368); display: flex; align-items: center;
+  border-radius: 4px;
+}
+.auth-eye-btn:hover { color: var(--lp-ink, #1f1f1f); }
+
+/* Password strength */
+.auth-strength { display: flex; align-items: center; gap: 8px; margin-top: 7px; }
+.auth-strength-bars { display: flex; gap: 4px; flex: 1; }
+.auth-strength-seg { flex: 1; height: 3px; border-radius: 2px; transition: background 0.2s; }
+.auth-strength-label { font-size: 11px; font-weight: 600; min-width: 36px; text-align: right; }
+
+/* Primary button — identical treatment to .login-submit-btn, including the
+   --lp-accent-surface/-fg derivation (never the raw --lp-accent as a solid
+   fill — see that rule's own comment above). */
+.auth-btn-primary {
+  width: 100%; min-height: 52px; box-sizing: border-box;
+  background: var(--lp-accent-surface, var(--lp-accent, #0b1e3a));
+  color: var(--lp-accent-surface-fg, #fff);
+  border: none; border-radius: var(--r, 14px);
+  font-size: 13.5px; font-weight: 700;
+  cursor: pointer; font-family: var(--font);
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  transition: opacity 0.15s;
+}
+.auth-btn-primary:hover:not(:disabled) { opacity: 0.88; }
+.auth-btn-primary:disabled { opacity: 0.7; cursor: not-allowed; }
+/* currentColor, not a hardcoded white ring — --lp-accent-surface-fg picks
+   whichever of near-white/dark-navy actually clears contrast, so a spinner
+   hardcoded to white would go invisible on the (rarer, but real) light-fg
+   case for a very light tenant accent. */
+.auth-btn-primary .auth-spinner {
+  border-color: color-mix(in srgb, currentColor 30%, transparent);
+  border-top-color: currentColor;
+  color: inherit;
+}
+
+/* Secondary button — outline pill, same look as .login-social-btn. */
+.auth-btn-secondary {
+  width: 100%; min-height: 52px; box-sizing: border-box;
+  background: var(--lp-input-bg, #fff); color: var(--lp-ink, #1f1f1f);
+  border: 1px solid var(--lp-input-border, #747775); border-radius: var(--r, 14px);
+  font-size: 13.5px; font-weight: 700;
+  cursor: pointer; font-family: var(--font);
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s;
+  text-decoration: none;
+}
+.login-page[data-theme="light"] .auth-btn-secondary:hover { background: #f8fafc; }
+.login-page[data-theme="dark"]  .auth-btn-secondary:hover { background: #2d2f31; }
+
+/* Links */
+.auth-link { color: var(--lp-link-accent, var(--lp-accent, #0b1e3a)); text-decoration: none; font-weight: 600; }
+.auth-link:hover { text-decoration: underline; }
+.auth-link-sm { font-size: 12.5px; }
+.auth-switch-link { text-align: center; font-size: 12.5px; color: var(--lp-ink3, #5f6368); margin: 0; }
+
+/* Success / info state — a single child of .login-card (not a gap-managed
+   sibling group), so its own paragraphs keep their inline spacing. */
+.auth-sent-state { text-align: center; padding: 8px 0; }
+.auth-sent-icon {
+  width: 64px; height: 64px;
+  border: none;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 20px;
+}
+.auth-sent-icon-ok  { background: var(--lp-success-bg, #f0fdf4); color: var(--lp-success-text, #166534); }
+.auth-sent-icon-err { background: var(--lp-error-bg,   #fdf2f2); color: var(--lp-error-text,   #c2410c); }
+
+/* Email verification steps */
+.auth-verify-steps { display: flex; flex-direction: column; gap: 10px; text-align: left; margin-bottom: 4px; }
+.auth-verify-step {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 13px; color: var(--lp-ink2, #444746);
+  background: var(--lp-row-bg, #fff); border: 1px solid var(--lp-row-border, #f0f2f5);
+  border-radius: var(--r, 9px); padding: 10px 14px;
+}
+.auth-verify-num {
+  width: 20px; height: 20px; flex-shrink: 0;
+  background: var(--lp-accent-surface, #0b1e3a); color: var(--lp-accent-surface-fg, #fff);
+  border-radius: 50%; font-size: 11px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
 
 /* ── Register-specific ── */
 .reg-label { font-size: 12px; font-weight: 700; color: var(--lp-ink, #334155); }
@@ -468,10 +689,10 @@
 .reg-terms-row  { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
 .reg-terms-label { display: flex; align-items: flex-start; gap: 8px; cursor: pointer; font-size: 12.5px; color: var(--lp-ink2, #475569); line-height: 1.4; }
 .reg-terms-checkbox { margin-top: 2px; }
-.reg-terms-link { color: var(--lp-accent, #0d7a6b); font-weight: 600; text-decoration: none; }
+.reg-terms-link { color: var(--lp-accent, #0b1e3a); font-weight: 600; text-decoration: none; }
 
 .reg-signin-p    { text-align: center; margin: 0; font-size: 12.5px; color: var(--lp-ink3, #64748b); }
-.reg-signin-link { font-weight: 700; color: var(--lp-accent, #0d7a6b); text-decoration: none; }
+.reg-signin-link { font-weight: 700; color: var(--lp-accent, #0b1e3a); text-decoration: none; }
 
 /* Register card is slightly wider to accommodate more fields */
 .login-card--reg { max-width: 396px; }

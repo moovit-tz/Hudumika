@@ -10,6 +10,7 @@ import './cargotracker.subscribers.js';
 import './hudufreight.subscribers.js';
 import './hrm.subscribers.js';
 import './ondi.subscribers.js';
+import './hr-checklists.subscribers.js';
 // Scores the landed-cost estimate against what was actually spent — the one
 // handler that reacts to a comparison between two apps rather than to a
 // single app's own event.

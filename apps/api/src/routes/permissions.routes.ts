@@ -1,6 +1,5 @@
 import type { FastifyInstance } from 'fastify';
 import { withTenant } from '../db/client.js';
-import { requireRole } from '../middleware/rbac.js';
 
 const RESOURCES = ['shipments','clearance','finance','hr','sales','crm','documents','reports','settings'] as const;
 const ACTIONS   = ['view','create','edit','delete','approve','export'] as const;
@@ -119,22 +118,17 @@ export async function permissionsRoutes(fastify: FastifyInstance) {
     },
   }));
 
-  // PATCH /permissions — bulk upsert [{role, resource, action, allowed}]
-  fastify.patch('/', { preHandler: requireRole('ADMIN', 'TENANT_ADMIN', 'SUPER_ADMIN') }, async (req) => {
-    const user = req.user;
-    const body = req.body as { permissions: Perm[] };
-    return withTenant(user.tenant_id, async (trx) => {
-      await Promise.all(
-        (body.permissions ?? []).map(p =>
-          trx.insertInto('org_permissions')
-            .values({ tenant_id: user.tenant_id, role: p.role, resource: p.resource, action: p.action, allowed: p.allowed })
-            .onConflict(oc => oc.columns(['tenant_id','role','resource','action']).doUpdateSet({ allowed: p.allowed, updated_at: new Date() }))
-            .execute()
-        )
-      );
-      return { saved: (body.permissions ?? []).length };
-    });
-  });
+  // PATCH /permissions is gone. org_permissions was never read by any
+  // route's actual auth check — a save here toggled a checkbox that changed
+  // nothing (see org-rbac.ts's own header comment, which documents the
+  // mistake so it isn't repeated). Real, enforced role/permission
+  // management is Ondi's Roles & Access (/v1/ondi/org/roles). 410 rather
+  // than 404 so an old client is told where it went, not that it never
+  // existed.
+  fastify.patch('/', async (_request, reply) =>
+    reply.status(410).send({
+      error: 'This permission grid was never enforced by any route. Use Ondi ▸ Roles & Access instead.',
+    }));
 
   // GET /permissions/users-by-role — count of users per role
   fastify.get('/users-by-role', async (req) => {

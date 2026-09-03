@@ -21,41 +21,43 @@ interface HudumikaApp {
   color: string;
   superAdminOnly?: boolean;
   status: 'Live' | 'Beta' | 'Coming Soon';
-  userCount?: number;
-  dataSize?: string;
-  appServicesCount?: number;
-  tags?: string[];
 }
 
-// Card copy (description/category/tags/status) for each app in LAUNCHER_APPS —
+// Card copy (description/category/status) for each app in LAUNCHER_APPS —
 // id/name/color/path come from LAUNCHER_APPS itself (the same list the header
 // launcher renders) so this grid can't drift into showing a different set of
 // apps, a stale display name, or a wrong route than the launcher does.
-const APP_META: Record<string, Pick<HudumikaApp, 'desc' | 'category' | 'status' | 'userCount' | 'dataSize' | 'appServicesCount' | 'tags'>> = {
-  clearos:      { desc: 'Customs clearance platform & TANCIS integration', category: 'Logistics', status: 'Live', userCount: 12, dataSize: '33 GB', appServicesCount: 4, tags: ['TANCIS', 'EAC CET', 'PVoC'] },
-  finops:       { desc: 'Financial accounts, TRA EFD integration & payroll ledger', category: 'Finance', status: 'Live', userCount: 5, dataSize: '45 GB', appServicesCount: 3, tags: ['Ledger', 'EFD', 'VAT'] },
-  nexushr:        { desc: 'People operations, payroll & shift rosters', category: 'HR', status: 'Live', userCount: 15, dataSize: '08 GB', appServicesCount: 2, tags: ['Payroll', 'NSSF', 'WCF'] },
-  bliss:        { desc: 'Omnichannel customer helpdesk & ticketing system', category: 'Support', status: 'Live', userCount: 8, dataSize: '24 GB', appServicesCount: 3, tags: ['Helpdesk', 'Tickets', 'SLA'] },
-  complyos:     { desc: 'Compliance tracking, BRELA business search, permits & audit logs', category: 'Compliance', status: 'Live', userCount: 3, dataSize: '12 GB', appServicesCount: 1, tags: ['BRELA', 'Permits', 'Audit'] },
-  crm:          { desc: 'Customer relationships, leads & sales pipeline', category: 'Sales', status: 'Live', userCount: 6, dataSize: '18 GB', appServicesCount: 2, tags: ['Pipeline', 'Deals', 'KADABRA'] },
-  cloud:        { desc: 'Enterprise document storage & cloud drive', category: 'Storage', status: 'Live', userCount: 18, dataSize: '120 GB', appServicesCount: 4, tags: ['Drive', 'Storage', 'Encrypted'] },
-  email:        { desc: 'Team inbox and email workspace', category: 'Communication', status: 'Live', userCount: 10, dataSize: '06 GB', appServicesCount: 1, tags: ['Inbox', 'Mail'] },
-  contacts:     { desc: 'Shared customer, vendor and partner contact directory', category: 'Directory', status: 'Live', userCount: 13, dataSize: '03 GB', appServicesCount: 1, tags: ['Directory', 'CRM Sync'] },
-  ai:           { desc: 'Automated intelligence, document OCR & predictive analytics', category: 'AI', status: 'Live', userCount: 14, dataSize: '28 GB', appServicesCount: 4, tags: ['AI', 'OCR', 'Copilot'] },
-  store:        { desc: 'B2B Procurement & equipment marketplace', category: 'Procurement', status: 'Live', userCount: 4, dataSize: '05 GB', appServicesCount: 2, tags: ['Procurement', 'B2B', 'Suppliers'] },
-  oneid:        { desc: 'SSO, identity verification & biometric access control', category: 'Identity', status: 'Live', userCount: 24, dataSize: '02 GB', appServicesCount: 5, tags: ['SSO', 'KYC', 'Biometrics'] },
-  tracking:     { desc: 'Fleet, vehicle and driver tracking — GPS positions, geofence alerts & trip history', category: 'Logistics', status: 'Live', userCount: 9, dataSize: '19 GB', appServicesCount: 3, tags: ['GPS', 'Fleet', 'Geofencing'] },
-  workspace:    { desc: 'Organization settings and configuration', category: 'Admin', status: 'Live', userCount: 2, dataSize: '50 GB', appServicesCount: 6, tags: ['Settings', 'Security', 'Billing'] },
-  onsite:       { desc: 'Domains, DNS, hosting, deployments & cloud infrastructure', category: 'Infrastructure', status: 'Live', userCount: 0, dataSize: '—', appServicesCount: 0, tags: ['Domains', 'DNS', 'Deployments'] },
-  calendar:     { desc: 'Scheduling & team calendar', category: 'Productivity', status: 'Live', userCount: 20, dataSize: '01 GB', appServicesCount: 1, tags: ['Scheduling', 'Meetings'] },
-  tasks:        { desc: 'To-dos & team task tracking', category: 'Productivity', status: 'Live', userCount: 16, dataSize: '01 GB', appServicesCount: 1, tags: ['To-dos', 'Tracking'] },
-  cargotracker: { desc: 'AWB and Bill of Lading shipment tracking', category: 'Logistics', status: 'Live', userCount: 7, dataSize: '15 GB', appServicesCount: 3, tags: ['AWB', 'BL', 'Demurrage'] },
-  seal:         { desc: 'Bonded warehouse ledger — customs status, storage clocks & audit-chained movements', category: 'Logistics', status: 'Beta', userCount: 1, dataSize: '0 GB', appServicesCount: 1, tags: ['Bonded', 'Customs', 'Ledger'] },
-  inventory:    { desc: 'General multi-warehouse stock control — items, batches, units of measure & reorder alerts', category: 'Logistics', status: 'Beta', userCount: 0, dataSize: '0 GB', appServicesCount: 1, tags: ['Stock', 'Warehousing', 'Inventory'] },
-  hudubi:       { desc: 'Data layer, executive BI analytics, board KPIs & predictive intelligence', category: 'Analytics', status: 'Live', userCount: 18, dataSize: '85 GB', appServicesCount: 6, tags: ['BI', 'Executive', 'AI Analytics', 'Board KPIs'] },
-  petti:        { desc: 'Tenant petty-cash wallets — deposits, request/approve/disburse withdrawals', category: 'Finance', status: 'Beta', userCount: 0, dataSize: '0 GB', appServicesCount: 1, tags: ['Wallet', 'Petty Cash', 'Approvals'] },
-  sign:         { desc: 'Secure electronic document signatures, approvals & audit-chained events', category: 'Productivity', status: 'Beta', userCount: 0, dataSize: '0 GB', appServicesCount: 1, tags: ['eSign', 'Signatures', 'Stamping', 'Approvals'] },
-  sms:          { desc: 'Bulk & transactional SMS — quick send, groups, templates, scheduled campaigns', category: 'Communication', status: 'Beta', userCount: 0, dataSize: '0 GB', appServicesCount: 1, tags: ['SMS', 'Campaigns', 'Templates', 'Gateways'] },
+//
+// Deliberately no per-app user-count/data-size/service-count figures here —
+// this used to carry hardcoded placeholder numbers (e.g. "ClearOS · 12 users
+// · 33 GB") that were identical for every tenant on the platform, not real
+// usage. Removed rather than wired up, since no per-tenant, per-app metering
+// exists yet to back them honestly.
+const APP_META: Record<string, Pick<HudumikaApp, 'desc' | 'category' | 'status'>> = {
+  clearos:      { desc: 'Customs clearance platform & TANCIS integration', category: 'Logistics', status: 'Live' },
+  finops:       { desc: 'Financial accounts, TRA EFD integration & payroll ledger', category: 'Finance', status: 'Live' },
+  nexushr:        { desc: 'People operations, payroll & shift rosters', category: 'HR', status: 'Live' },
+  bliss:        { desc: 'Omnichannel customer helpdesk & ticketing system', category: 'Support', status: 'Live' },
+  complyos:     { desc: 'Compliance tracking, BRELA business search, permits & audit logs', category: 'Compliance', status: 'Live' },
+  crm:          { desc: 'Customer relationships, leads & sales pipeline', category: 'Sales', status: 'Live' },
+  cloud:        { desc: 'Enterprise document storage & cloud drive', category: 'Storage', status: 'Live' },
+  email:        { desc: 'Team inbox and email workspace', category: 'Communication', status: 'Live' },
+  contacts:     { desc: 'Shared customer, vendor and partner contact directory', category: 'Directory', status: 'Live' },
+  ai:           { desc: 'Automated intelligence, document OCR & predictive analytics', category: 'AI', status: 'Live' },
+  store:        { desc: 'B2B Procurement & equipment marketplace', category: 'Procurement', status: 'Live' },
+  ondi:         { desc: 'SSO, identity verification & biometric access control', category: 'Identity', status: 'Live' },
+  tracking:     { desc: 'Fleet, vehicle and driver tracking — GPS positions, geofence alerts & trip history', category: 'Logistics', status: 'Live' },
+  workspace:    { desc: 'Organization settings and configuration', category: 'Admin', status: 'Live' },
+  onsite:       { desc: 'Domains, DNS, hosting, deployments & cloud infrastructure', category: 'Infrastructure', status: 'Live' },
+  calendar:     { desc: 'Scheduling & team calendar', category: 'Productivity', status: 'Live' },
+  tasks:        { desc: 'To-dos & team task tracking', category: 'Productivity', status: 'Live' },
+  cargotracker: { desc: 'AWB and Bill of Lading shipment tracking', category: 'Logistics', status: 'Live' },
+  seal:         { desc: 'Bonded warehouse ledger — customs status, storage clocks & audit-chained movements', category: 'Logistics', status: 'Beta' },
+  inventory:    { desc: 'General multi-warehouse stock control — items, batches, units of measure & reorder alerts', category: 'Logistics', status: 'Beta' },
+  hudubi:       { desc: 'Data layer, executive BI analytics, board KPIs & predictive intelligence', category: 'Analytics', status: 'Live' },
+  petti:        { desc: 'Tenant petty-cash wallets — deposits, request/approve/disburse withdrawals', category: 'Finance', status: 'Beta' },
+  sign:         { desc: 'Secure electronic document signatures, approvals & audit-chained events', category: 'Productivity', status: 'Beta' },
+  sms:          { desc: 'Bulk & transactional SMS — quick send, groups, templates, scheduled campaigns', category: 'Communication', status: 'Beta' },
 };
 
 const apps: HudumikaApp[] = [
@@ -97,7 +99,10 @@ export function WorkspaceHome({ externalSearch }: WorkspaceHomeProps) {
 
   const tMap: Record<string, string> = {
     'hub.recentlyViewed': 'Recently Viewed',
-    'hub.myWorkspaces': 'My Workspaces',
+    // Was "My Workspaces" — every row here is one of this tenant's own
+    // enabled app modules (ClearOS, FinOps, ...), not a separate client
+    // workspace in the AgencyHost sense that label implied.
+    'hub.myWorkspaces': 'My Apps',
   };
   const t = (k: string) => tMap[k] ?? k;
 
@@ -308,13 +313,6 @@ export function WorkspaceHome({ externalSearch }: WorkspaceHomeProps) {
                           <Icon name="star" size={16} duotone={isStarred} />
                         </button>
                       </div>
-
-                      <div className="wh-grid-card-footer">
-                        <div className="wh-grid-stats">
-                          <span className="wh-grid-stat"><Icon name="users" size={12} /> {String(app.userCount ?? 5).padStart(2, '0')}</span>
-                          <span className="wh-grid-stat"><Icon name="package" size={12} /> {app.dataSize ?? '10 GB'}</span>
-                        </div>
-                      </div>
                     </Link>
                   );
                 })}
@@ -326,11 +324,8 @@ export function WorkspaceHome({ externalSearch }: WorkspaceHomeProps) {
                   <thead>
                     <tr>
                       <th className="wh-th-center" style={{ width: 40 }}></th>
-                      <th>WORKSPACE</th>
-                      <th>LINE OF BUSINESS</th>
-                      <th className="wh-th-center">USER COUNT</th>
-                      <th className="wh-th-center">APP & SERVICES</th>
-                      <th style={{ textAlign: 'right' }}>DATA & ASSETS</th>
+                      <th>APP</th>
+                      <th>CATEGORY</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -363,24 +358,6 @@ export function WorkspaceHome({ externalSearch }: WorkspaceHomeProps) {
                           </td>
                           <td>
                             <span className="wh-badge-lob">{app.category}</span>
-                          </td>
-                          <td className="wh-td-center">
-                            <span className="wh-stat-cell">
-                              <Icon name="users" size={13} style={{ opacity: 0.6 }} />
-                              {String(app.userCount ?? 5).padStart(2, '0')}
-                            </span>
-                          </td>
-                          <td className="wh-td-center">
-                            <span className="wh-stat-cell">
-                              <Icon name="grid" size={13} style={{ opacity: 0.6 }} />
-                              {String(app.appServicesCount ?? 2).padStart(2, '0')}
-                            </span>
-                          </td>
-                          <td style={{ textAlign: 'right' }}>
-                            <span className="wh-stat-cell">
-                              <Icon name="folder" size={13} style={{ opacity: 0.6 }} />
-                              {app.dataSize ?? '10 GB'}
-                            </span>
                           </td>
                         </tr>
                       );

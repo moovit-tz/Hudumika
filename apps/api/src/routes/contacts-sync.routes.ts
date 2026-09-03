@@ -8,6 +8,7 @@ import {
   getGoogleAccountEmail, fetchAllGoogleContacts, type GoogleContact,
 } from '../integrations/google-contacts.js';
 import { env } from '../config/env.js';
+import { decryptSecret } from '../services/onsite-secrets.service.js';
 
 const GOOGLE_REDIRECT_URI = `${env.OPS_BOARD_URL}/contacts/google/callback`;
 
@@ -16,7 +17,18 @@ async function getGoogleCreds(tenantId: string): Promise<{ clientId: string; cli
   const settings = row ? (typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings) : {};
   const g = settings?.['int-google'];
   if (!g?.oauthId || !g?.oauthSecret) return null;
-  return { clientId: g.oauthId, clientSecret: g.oauthSecret };
+  // oauthSecret is stored encrypted (settings.routes.ts's SECRET_FIELDS_BY_KEY);
+  // this read used to hand the ciphertext straight to Google as the client
+  // secret, so every OAuth exchange here failed with an "invalid_client" that
+  // looked like a wrong credential rather than a missing decrypt. recaptcha.ts
+  // and calendar-external-sync.job.ts already decrypt their own equivalents.
+  //
+  // The ID is trimmed of the surrounding quotes a paste out of a Google
+  // credentials JSON leaves behind — Google rejects those, and nothing in the
+  // UI would ever show why.
+  const clientId = String(g.oauthId).trim().replace(/^["']|["']$/g, '').trim();
+  if (!clientId) return null;
+  return { clientId, clientSecret: decryptSecret(g.oauthSecret) };
 }
 
 /** Ensures the connection's access token is valid, refreshing it first if it has expired. */

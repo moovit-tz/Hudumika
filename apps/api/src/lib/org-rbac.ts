@@ -14,7 +14,7 @@ import { withTenant } from '../db/client.js';
  *
  * Deliberately still excluded: anything that lets a holder create/delete
  * custom roles or grant/revoke role membership (POST/DELETE
- * /org/roles*, in oneid.routes.ts). Gating those with a custom-role
+ * /org/roles*, in ondi.routes.ts). Gating those with a custom-role
  * permission would let a non-admin holder mint a new role carrying any
  * permission — including that same one — and grant it to themselves or
  * anyone else, a straightforward self-escalation path. Role
@@ -37,6 +37,17 @@ export const ORG_PERMISSIONS = {
   VISITORS_MANAGE: 'visitors.manage',
   GROUPS_MANAGE: 'groups.manage',
   COMPLY_MANAGE: 'comply.manage',
+  // Delegated admin roles (Workspace/Admin app) — each narrows one of that
+  // app's four surfaces (Settings, Team, Billing, Reports) rather than
+  // handing out the flat MGMT_ROLES gate those routes used to be all-or-
+  // nothing behind. Purely additive: every existing MGMT_ROLES holder keeps
+  // exactly the access they had — this only lets a TENANT_ADMIN grant ONE
+  // of these four to someone who isn't already SUPER_ADMIN/ADMIN/
+  // TENANT_ADMIN/MANAGER, without making them a full admin.
+  SETTINGS_MANAGE: 'settings.manage',
+  TEAM_MANAGE: 'team.manage',
+  BILLING_MANAGE: 'billing.manage',
+  REPORTS_MANAGE: 'reports.manage',
 } as const;
 export type OrgPermission = (typeof ORG_PERMISSIONS)[keyof typeof ORG_PERMISSIONS];
 

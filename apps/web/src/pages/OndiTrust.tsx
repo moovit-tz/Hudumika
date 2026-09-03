@@ -1,5 +1,5 @@
-// ─── OneIdTrust.tsx — Ondi Personal · Trust ───────────────────────
-// Own nav item + page for what OneIdPersonal.tsx's "My Profile" only shows
+// ─── OndiTrust.tsx — Ondi Personal · Trust ───────────────────────
+// Own nav item + page for what OndiPersonal.tsx's "My Profile" only shows
 // a snapshot of — same real endpoints (/v1/security/trust-score and
 // /reliability-signals), just given room of its own to match the house-
 // style mockup's "Trust" entry rather than being folded into the identity
@@ -69,7 +69,7 @@ const Sparkline: React.FC<{ points: TrustScoreSnapshot[] }> = ({ points }) => {
   );
 };
 
-export const OneIdTrust: React.FC = () => {
+export const OndiTrust: React.FC = () => {
   const [trust, setTrust] = useState<TrustScore | null>(null);
   const [reliability, setReliability] = useState<ReliabilitySignals | null>(null);
   const [history, setHistory] = useState<TrustScoreSnapshot[] | null>(null);
@@ -138,4 +138,4 @@ export const OneIdTrust: React.FC = () => {
   );
 };
 
-export default OneIdTrust;
+export default OndiTrust;

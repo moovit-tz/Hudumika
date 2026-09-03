@@ -12,7 +12,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
-import { AuthBrand, AuthAlert, AuthSuccess, AuthField } from './Login.js';
+import { AuthCard, AuthAlert, AuthField } from './Login.js';
 
 function RequestStage() {
   const [email, setEmail] = useState('');
@@ -47,7 +47,6 @@ function RequestStage() {
   return (
     <>
       <div className="auth-form-hdr">
-        <div className="auth-back-icon"><Icon name="users" size={22} strokeWidth={1.5} /></div>
         <h2 className="auth-form-title">Recover via a trusted contact</h2>
         <p className="auth-form-sub">Lost your password and can't access your email either? A colleague you've named as a recovery contact can vouch for you instead.</p>
       </div>
@@ -148,7 +147,6 @@ function TokenStage({ token }: { token: string }) {
   return (
     <>
       <div className="auth-form-hdr">
-        <div className="auth-back-icon"><Icon name="lock" size={22} strokeWidth={1.5} /></div>
         <h2 className="auth-form-title">Set a new password</h2>
         <p className="auth-form-sub">Your recovery contact approved this, and the cooldown has passed.</p>
       </div>
@@ -173,14 +171,9 @@ export const RecoveryPage: React.FC = () => {
   const token = params.get('token');
 
   return (
-    <div className="auth-shell">
-      <AuthBrand />
-      <div className="auth-form-panel">
-        <div className="auth-form-wrap">
-          {token ? <TokenStage token={token} /> : <RequestStage />}
-        </div>
-      </div>
-    </div>
+    <AuthCard>
+      {token ? <TokenStage token={token} /> : <RequestStage />}
+    </AuthCard>
   );
 };
 

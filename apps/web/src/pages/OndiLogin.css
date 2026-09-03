@@ -1,12 +1,21 @@
-/* ── Ondi's own login front door — a distinct visual identity, not a
-   Login.tsx clone. Everything here is scoped under .ondi-login (added
-   alongside the existing .login-page class on the root div, which keeps
-   Login.css's shared classes — .login-input, .login-submit-btn,
-   .login-error, .login-social-btn, .login-form — doing exactly what they
-   already do for Login.tsx/OnboardingWizard.tsx/Register). This file only
-   ever adds new rules or *raises specificity* on top of those (e.g.
-   `.ondi-login .login-input`), never edits Login.css itself, so those other
-   pages are provably unaffected by anything below.
+/* ── Ondi — two things live in this file, scoped differently on purpose.
+   .ondi-login is /ondi/login's own PAGE chrome (ambient glow, the tinted
+   card border/shadow, the centered icon/headline) — that page-level look
+   stays exclusive to the dedicated page, so it's still scoped under
+   .ondi-login (the class OndiLogin.tsx puts on its own root, alongside
+   .login-page, which keeps Login.css's shared classes — .login-input,
+   .login-submit-btn, .login-error, .login-form — doing exactly what they
+   already do for Login.tsx/OnboardingWizard.tsx).
+   .ondi-panel is the actual method picker (pills, the more-options reveal,
+   every mode's form) — OndiSignInPanel.tsx's own wrapper div, and *that*
+   class is what these rules key off, not .ondi-login. This is what lets
+   the identical picker render standalone on /ondi/login AND inline as a
+   tab on Login.tsx/StepAccount.tsx: those host pages never get, or need,
+   the .ondi-login page chrome, but .ondi-panel's own div is always there
+   wherever <OndiSignInPanel/> is mounted, so its rules always resolve. This
+   file only ever adds new rules or *raises specificity* on top of
+   Login.css's, never edits it directly, so those other pages are provably
+   unaffected by anything below.
 
    Brand colors (#4253d1 / #4e76e5) are lifted directly from the real mark —
    apps/web/public/ondi-logo-full.svg (the actual lockup file, light-on-dark
@@ -73,19 +82,14 @@
     0 0 0 1px rgba(78, 118, 229, 0.1);
 }
 
-/* ── Brand header — the real lockup (icon + wordmark in one file, the
-   actual brand asset, not typeset text standing in for it). Two source
-   files, swapped by theme: ondi-logo-full.svg sets its wordmark in near-
-   black for a light card, ondi-logo-full-white.svg sets it in white for a
-   dark one — same reason OndiLogo.tsx already ships an icon-only 'white'
-   variant for use on a dark/colored surface. ── */
-.ondi-login .login-brand-hdr { gap: 18px; }
-.ondi-login .ondi-logo-full {
-  height: 30px;
-  width: auto;
-  display: block;
-}
-
+/* ── Brand header — centered badge (the real gradient icon, ondi-icon.svg —
+   see OndiLogo.tsx's own comment on why this is the actual asset file, not
+   typeset text standing in for it), headline and tagline, replacing the
+   earlier left-aligned wordmark-lockup + "Passwordless" eyebrow. The
+   eyebrow's job (say "passwordless" before anything else) is now implicit
+   in "Your identity. Your access. Your control." + the pill choices below
+   it, rather than a separate chip. ── */
+.ondi-login .login-brand-hdr { gap: 0; }
 .ondi-login .login-headline {
   font-size: 20px;
   font-weight: 800;
@@ -94,31 +98,6 @@
 .ondi-login .login-subtext {
   font-size: 12.5px;
   margin-top: 5px;
-}
-/* A small "how this works" eyebrow — passwordless is the one thing worth
-   saying before anything else on an identity product's own sign-in page.
-   Outline, not filled: a filled tint sits close enough to the card's own
-   dark surface tone to read as a dull grey blob rather than a chip — a
-   crisp border reads clearly against either theme's ground without needing
-   two different fill colors tuned separately. */
-.ondi-login .ondi-eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: var(--ondi-1);
-  background: transparent;
-  border: 1px solid color-mix(in srgb, var(--ondi-1) 38%, transparent);
-  border-radius: 20px;
-  padding: 4px 10px 4px 8px;
-  margin-bottom: 2px;
-}
-.ondi-login[data-theme="dark"] .ondi-eyebrow {
-  color: #a9b6ff;
-  border-color: color-mix(in srgb, #a9b6ff 45%, transparent);
 }
 
 /* ── Method selector — five equal-width icon buttons instead of a
@@ -138,7 +117,7 @@
    panel in light mode, and mixing a small amount of a *light* ink color
    into transparent gives a frosted, translucent panel in dark mode —
    --lp-ink already flips between those two automatically. */
-.ondi-login .ondi-method-row {
+.ondi-panel .ondi-method-row {
   display: flex;
   gap: 6px;
   background: color-mix(in srgb, var(--lp-ink, #1f1f1f) 5%, transparent);
@@ -146,7 +125,7 @@
   border-radius: 14px;
   padding: 6px;
 }
-.ondi-login .ondi-method-btn {
+.ondi-panel .ondi-method-btn {
   flex: 1;
   display: flex;
   align-items: center;
@@ -160,7 +139,7 @@
   outline: none;
   transition: background 0.15s, color 0.15s, box-shadow 0.15s;
 }
-.ondi-login .ondi-method-btn:hover:not(.ondi-method-btn--active) {
+.ondi-panel .ondi-method-btn:hover:not(.ondi-method-btn--active) {
   color: var(--lp-ink, #1f1f1f);
   background: color-mix(in srgb, var(--lp-ink, #1f1f1f) 9%, transparent);
 }
@@ -168,7 +147,7 @@
    card's real surface color, not a flat white/grey fill — it reads as
    "selected, in this tenant's brand color" in both themes automatically,
    since --lp-card-bg already flips white/near-black on its own. */
-.ondi-login .ondi-method-btn--active {
+.ondi-panel .ondi-method-btn--active {
   background: color-mix(in srgb, var(--lp-accent) 16%, var(--lp-card-bg, #fff));
   color: var(--lp-accent);
   border-color: color-mix(in srgb, var(--lp-accent) 22%, transparent);
@@ -179,14 +158,18 @@
    a dark icon on this page's own dark card, close to unreadable at 16% mix.
    Blending it toward white (not just raising the mix %) fixes that at any
    accent lightness: it lifts a dark accent into a legible tint while a
-   brand color that was already light barely moves. */
-.ondi-login[data-theme="dark"] .ondi-method-btn--active {
+   brand color that was already light barely moves.
+   Scoped to .login-page[data-theme=...] (present on every host: Login.tsx,
+   OndiLogin.tsx, OnboardingWizard.tsx all carry it on the same root as
+   .login-page), not .ondi-login[data-theme=...] — .ondi-panel has no
+   .ondi-login ancestor when embedded inline on those other pages. */
+.login-page[data-theme="dark"] .ondi-panel .ondi-method-btn--active {
   background: color-mix(in srgb, var(--lp-accent) 30%, var(--lp-card-bg, #1e1e1f));
   color: color-mix(in srgb, var(--lp-accent) 65%, white);
   border-color: color-mix(in srgb, var(--lp-accent) 40%, transparent);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
-.ondi-login .ondi-method-caption {
+.ondi-panel .ondi-method-caption {
   text-align: center;
   font-size: 11.5px;
   font-weight: 700;
@@ -194,13 +177,120 @@
   margin-top: 9px;
 }
 
-/* ── Inputs/submit — same shared elements Login.css already styles, raised
-   corners to match this page's rounder card language. Colors (border,
-   background, accent focus ring) are untouched — still fully theme- and
-   tenant-aware via the --lp-* variables OndiLogin.tsx already computes. ── */
-.ondi-login .login-input   { border-radius: 11px; padding: 12px 14px; }
-.ondi-login .login-submit-btn,
-.ondi-login .login-social-btn { border-radius: 11px; }
-.ondi-login .login-error { border-radius: 12px; }
+.ondi-login .login-create-links { margin-top: 2px; }
 
-.ondi-login .login-create-p { margin-top: 2px; }
+/* ── Idle view — the first thing shown, before any method is picked. A
+   centered badge/headline/tagline (the real ondi-icon.svg gradient badge,
+   not a smaller inline lockup) replaces the old left-aligned brand row, and
+   two full-width pills — Google, then phone — replace the plain "Sign in"
+   copy as the actual first decision. Reachable methods that used to be
+   equal-weight icon tabs (authenticator, company SSO, Microsoft) move under
+   a collapsed "More ways to sign in" toggle so the primary choice reads
+   clearly instead of five equal options at once.
+   .ondi-idle-header/-icon stay .ondi-login-scoped (only the dedicated page
+   renders that centered badge/headline at all); the pills/toggle below are
+   .ondi-panel-scoped like everything else in this section, and now also
+   *are* the platform's pre-login control standard — see Login.css's own
+   PRE-LOGIN CONTROL STANDARD banner: .login-input/.login-submit-btn/
+   .login-social-btn match this size, not the other way around. ── */
+.ondi-login .ondi-idle-header { text-align: center; margin-bottom: 6px; }
+.ondi-login .ondi-idle-icon { width: 60px; height: 60px; margin: 0 auto 18px; display: block; }
+.ondi-login .ondi-idle-header .login-headline,
+.ondi-login .ondi-idle-header .login-subtext { text-align: center; }
+
+/* .ondi-panel itself (OndiSignInPanel.tsx's own wrapper div) had no layout
+   rule at all — its children (the Google pill, the phone pill, the "more
+   options" toggle, the revealed method row) were plain block elements with
+   no margin of their own, so they rendered stacked flush against each
+   other with zero gap. Every other vertical stack in this same page family
+   (.login-card, .login-form) already uses gap: 16px; this just brings
+   .ondi-panel in line with that instead of inventing a new spacing value. */
+.ondi-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.ondi-panel .ondi-pill {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 52px;
+  border-radius: 14px;
+  font-size: 13.5px;
+  font-weight: 700;
+  font-family: var(--font);
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: opacity 0.15s, background-color 0.15s;
+}
+
+/* "Continue with phone number" — same --lp-accent-surface/-fg treatment as
+   .login-submit-btn (each host page's own effect derives it via the
+   platform's own --primary dark-mode logic, not the raw --lp-accent, so a
+   dark tenant colour doesn't read as a heavy block on an already-dark page). */
+.ondi-panel .ondi-pill--phone {
+  background: var(--lp-accent-surface, var(--lp-accent, #0b1e3a));
+  color: var(--lp-accent-surface-fg, #fff);
+  border: none;
+}
+.ondi-panel .ondi-pill--phone:hover { opacity: 0.9; }
+
+/* Google's real, policy-compliant button rendered fully transparent and
+   stacked over the visual pill below (GoogleSignInButton's variant="pill")
+   — this wrapper only sizes the stack; it never itself receives the click.
+   It carries the same background/border as .ondi-pill--google-visual below
+   because the visual pill's children are only appended once two network
+   round-trips finish (GET /v1/ondi/auth/config, then Google's external
+   gsi/client script) — until then this div is empty. Without its own
+   themed fill, that gap rendered as a plain borderless box (transparent
+   background) — invisible against a dark page, meaning the whole "Continue
+   with Google" row briefly read as a hole in the layout on any load slow
+   enough to notice, cold Google-script fetches included. */
+.ondi-panel .ondi-google-pill {
+  position: relative;
+  width: 100%;
+  height: 52px;
+  border-radius: 14px;
+  background: var(--lp-card-bg, #fff);
+  border: 1px solid var(--lp-input-border, #dadce0);
+  box-sizing: border-box;
+}
+.ondi-panel .ondi-pill--google-visual {
+  background: var(--lp-card-bg, #fff);
+  border: 1px solid var(--lp-input-border, #dadce0);
+  color: var(--lp-ink, #1f1f1f);
+}
+.ondi-panel .ondi-pill--google-visual.ondi-pill--google-hover {
+  background: color-mix(in srgb, var(--lp-ink, #000) 4%, var(--lp-card-bg, #fff));
+}
+.ondi-panel .ondi-google-real { position: absolute; inset: 0; opacity: 0; overflow: hidden; }
+
+.ondi-panel .ondi-more-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  background: none;
+  border: none;
+  color: var(--lp-ink3, #5f6368);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 6px 4px 2px;
+  font-family: var(--font);
+}
+.ondi-panel .ondi-more-toggle:hover { color: var(--lp-ink, #1f1f1f); }
+
+/* The method-choice form area, once a method has been picked — a small
+   "back to all sign-in options" affordance above the form, reusing
+   .login-back-btn's existing look rather than a new one. */
+.ondi-panel .ondi-form-back {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 2px;
+}

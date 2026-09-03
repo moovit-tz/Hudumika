@@ -2,8 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../../lib/api.js';
 import { Icon } from '../../components/Icon.js';
+import { OndiLogo } from '../../components/OndiLogo.js';
+import { OndiSignInPanel } from '../../components/OndiSignInPanel.js';
+import { Tip } from '../../components/ui/tooltip.js';
 import type { StepProps } from './types.js';
-import type { EmailCheckResponse } from '@hudumika/types';
+import { PERSONAL_EMAIL_DOMAINS } from '@hudumika/types';
+import type { EmailCheckResponse, MatchedTenant } from '@hudumika/types';
 
 function passStrength(pw: string): 0 | 1 | 2 | 3 {
   if (!pw) return 0;
@@ -15,12 +19,34 @@ function passStrength(pw: string): 0 | 1 | 2 | 3 {
 }
 const STRENGTH_LABEL = ['', 'Weak', 'Fair', 'Strong'];
 
-export const StepAccount: React.FC<StepProps> = ({ draft, update, onNext }) => {
+// The field is labeled "Work email" — this flags the well-known free
+// consumer providers so a personal address gets a clear, honest heads-up
+// instead of silently being accepted as if it were a company domain. A
+// warning, not a hard block: a real small business genuinely running on a
+// gmail.com address is exactly this platform's own target market, and
+// refusing the signup outright would turn away a legitimate customer over
+// a guess about their domain.
+const PERSONAL_EMAIL_DOMAIN_SET = new Set(PERSONAL_EMAIL_DOMAINS);
+function personalEmailDomain(email: string): string | null {
+  const at = email.lastIndexOf('@');
+  if (at === -1) return null;
+  const domain = email.slice(at + 1).trim().toLowerCase();
+  return PERSONAL_EMAIL_DOMAIN_SET.has(domain) ? domain : null;
+}
+
+export const StepAccount: React.FC<StepProps> = ({ draft, update, onNext, onRequestJoin, joinRequestSubmitting, joinRequestError }) => {
   const navigate = useNavigate();
+  // Details vs Ondi — was a navigation to /ondi/login; moved inline (same
+  // fix, same reasoning, as Login.tsx's own method tabs).
+  const [mode, setMode] = useState<'details' | 'ondi'>('details');
   const [showPass, setShowPass]       = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [fieldErr, setFieldErr]       = useState<Record<string, string | undefined>>({});
   const [emailStatus, setEmailStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
+  // Auto-join-by-domain — set only when the (available) email's domain
+  // matches an existing tenant's real, active staff. Personal-provider
+  // domains never populate this (check-email never returns one for them).
+  const [matchedTenant, setMatchedTenant] = useState<MatchedTenant | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -28,6 +54,7 @@ export const StepAccount: React.FC<StepProps> = ({ draft, update, onNext }) => {
     const email = draft.email;
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setEmailStatus('idle');
+      setMatchedTenant(null);
       return;
     }
     setEmailStatus('checking');
@@ -35,8 +62,10 @@ export const StepAccount: React.FC<StepProps> = ({ draft, update, onNext }) => {
       try {
         const res: EmailCheckResponse = await apiFetch(`/v1/onboarding/check-email?value=${encodeURIComponent(email)}`);
         setEmailStatus(res.available ? 'available' : 'taken');
+        setMatchedTenant(res.matched_tenant ?? null);
       } catch {
         setEmailStatus('idle');
+        setMatchedTenant(null);
       }
     }, 400);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
@@ -66,10 +95,39 @@ export const StepAccount: React.FC<StepProps> = ({ draft, update, onNext }) => {
     onNext();
   };
 
+  const handleRequestJoin = (ev: React.MouseEvent) => {
+    ev.preventDefault();
+    if (!validate() || !matchedTenant || !onRequestJoin) return;
+    onRequestJoin(matchedTenant.id);
+  };
+
   const strength = passStrength(draft.password);
+  const personalDomain = personalEmailDomain(draft.email);
+  const showJoinOffer = !!matchedTenant && emailStatus === 'available';
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="login-form">
+    <>
+      {/* Same choice, same relocation as the sign-in page: Ondi's own page
+          already handles "does this email belong to a company already on
+          Hudumika" via its Google button (allowJoinRequest — instant join
+          request, no form to fill in at all) — a company that's genuinely
+          new still needs this form (name/plan/payment have nowhere else to
+          come from), but a colleague joining an existing one doesn't. */}
+      <div className="login-method-tabs">
+        <button type="button" onClick={() => setMode('ondi')} className={`login-method-tab${mode === 'ondi' ? ' login-method-tab--active' : ''}`}>
+          <OndiLogo size={14} />
+          <span>Ondi</span>
+        </button>
+        <button type="button" onClick={() => setMode('details')} className={`login-method-tab${mode === 'details' ? ' login-method-tab--active' : ''}`}>
+          <Icon name="user" size={14} />
+          <span>Details</span>
+        </button>
+      </div>
+
+      {mode === 'ondi' && <OndiSignInPanel />}
+
+      {mode === 'details' && (
+      <form onSubmit={handleSubmit} noValidate className="login-form">
       <div className="login-field">
         <label className="reg-label">Full name</label>
         <input
@@ -98,8 +156,29 @@ export const StepAccount: React.FC<StepProps> = ({ draft, update, onNext }) => {
           {emailStatus === 'available' && <span className="ob-field-status ob-field-status--ok"><Icon name="checkCircle" size={14} /></span>}
           {emailStatus === 'taken' && <span className="ob-field-status ob-field-status--bad"><Icon name="xCircle" size={14} /></span>}
         </div>
+        {personalDomain && !fieldErr.email && (
+          <span className="ob-field-hint ob-field-hint--warn">
+            <Icon name="alertTriangle" size={13} />
+            {personalDomain} is a personal email provider, not a work domain — you can still continue with it.
+          </span>
+        )}
         {fieldErr.email && <span className="login-field-err">{fieldErr.email}</span>}
       </div>
+
+      {showJoinOffer && matchedTenant && (
+        <div className="ob-join-offer">
+          <Icon name="building" size={18} />
+          <div className="ob-join-offer-body">
+            <div className="ob-join-offer-title">{matchedTenant.name} is already on Hudumika</div>
+            <div className="ob-join-offer-sub">
+              Your email domain matches an existing company workspace. Fill in your name and a password below, then
+              request to join it instead of setting up a brand new one — an admin at {matchedTenant.name} will need
+              to approve you.
+            </div>
+            {joinRequestError && <div className="ob-join-offer-error">{joinRequestError}</div>}
+          </div>
+        </div>
+      )}
 
       <div className="login-field">
         <label className="reg-label">Password</label>
@@ -112,9 +191,11 @@ export const StepAccount: React.FC<StepProps> = ({ draft, update, onNext }) => {
             className={`login-input${fieldErr.password ? ' login-input--error' : ''}`}
             autoComplete="new-password"
           />
-          <button type="button" onClick={() => setShowPass(p => !p)} className="login-pw-toggle" title={showPass ? 'Hide password' : 'Show password'}>
-            <Icon name={showPass ? 'eyeOff' : 'eye'} size={15} />
-          </button>
+          <Tip label={showPass ? 'Hide password' : 'Show password'}>
+            <button type="button" onClick={() => setShowPass(p => !p)} className="login-pw-toggle">
+              <Icon name={showPass ? 'eyeOff' : 'eye'} size={15} />
+            </button>
+          </Tip>
         </div>
         {strength > 0 && (
           <div className="reg-strength" data-strength={strength}>
@@ -140,17 +221,40 @@ export const StepAccount: React.FC<StepProps> = ({ draft, update, onNext }) => {
             className={`login-input${fieldErr.confirm ? ' login-input--error' : ''}`}
             autoComplete="new-password"
           />
-          <button type="button" onClick={() => setShowConfirm(p => !p)} className="login-pw-toggle" title={showConfirm ? 'Hide password' : 'Show password'}>
-            <Icon name={showConfirm ? 'eyeOff' : 'eye'} size={15} />
-          </button>
+          <Tip label={showConfirm ? 'Hide password' : 'Show password'}>
+            <button type="button" onClick={() => setShowConfirm(p => !p)} className="login-pw-toggle">
+              <Icon name={showConfirm ? 'eyeOff' : 'eye'} size={15} />
+            </button>
+          </Tip>
         </div>
         {fieldErr.confirm && <span className="login-field-err">{fieldErr.confirm}</span>}
       </div>
 
-      <div className="login-form-actions">
-        <button type="button" onClick={() => navigate('/login')} className="login-back-btn">Back to sign in</button>
-        <button type="submit" className="login-submit-btn">Continue</button>
-      </div>
-    </form>
+      {showJoinOffer ? (
+        <div className="login-form-actions ob-join-offer-actions">
+          <button type="button" onClick={() => navigate('/login')} className="login-back-btn">Back to sign in</button>
+          <button
+            type="button"
+            onClick={handleRequestJoin}
+            disabled={joinRequestSubmitting}
+            className="login-submit-btn"
+          >
+            {joinRequestSubmitting ? 'Sending request…' : `Request to join ${matchedTenant!.name}`}
+          </button>
+        </div>
+      ) : (
+        <div className="login-form-actions">
+          <button type="button" onClick={() => navigate('/login')} className="login-back-btn">Back to sign in</button>
+          <button type="submit" className="login-submit-btn">Continue</button>
+        </div>
+      )}
+      {showJoinOffer && (
+        <button type="submit" className="ob-join-offer-skip">
+          Set up a new, separate workspace instead
+        </button>
+      )}
+      </form>
+      )}
+    </>
   );
 };

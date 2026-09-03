@@ -96,14 +96,6 @@
    Modules section
 ══════════════════════════════════════════════════════════ */
 .s-mods-desc    { font-size: 13px; color: var(--ink3); margin: 0 0 20px; }
-.s-mods-grid    { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px,1fr)); gap: 16px; }
-.s-mod-card     { display: flex; align-items: flex-start; gap: 14px; padding: 18px; border-radius: 10px; border: 1px solid var(--border); background: var(--white); transition: border-color .15s; }
-.s-mod-card--on { border-color: var(--teal); border-width: 1.5px; }
-.s-mod-icon     { width: 44px; height: 44px; border-radius: 9px; background: var(--bg); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background .15s, border-color .15s; }
-.s-mod-icon--on { background: var(--teal-l); border-color: var(--teal-m, #2dd4bf); }
-.s-mod-body     { flex: 1; }
-.s-mod-name     { font-weight: 700; font-size: 14px; color: var(--ink); }
-.s-mod-desc     { font-size: 12px; color: var(--ink3); margin-top: 3px; margin-bottom: 10px; }
 
 /* ══════════════════════════════════════════════════════════
    Generic / placeholder section

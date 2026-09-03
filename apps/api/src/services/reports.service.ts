@@ -23,6 +23,7 @@ export const METRICS: MetricDef[] = [
   { app_id: 'finops',   key: 'expenses_by_category',   label: 'Expenses by category',    table: 'finance_expenses',     dimension: 'category', agg: 'sum', sumColumn: 'amount' },
   { app_id: 'nexushr',    key: 'headcount_by_role',      label: 'Headcount by role',       table: 'users',                dimension: 'role',     agg: 'count' },
   { app_id: 'nexushr',    key: 'payroll_by_status',      label: 'Payroll runs by status',  table: 'hr_payroll',           dimension: 'status',   agg: 'count' },
+  { app_id: 'nexushr',    key: 'attendance_devices_by_status', label: 'Attendance devices by status', table: 'attendance_devices', dimension: 'status', agg: 'count' },
   { app_id: 'tracking', key: 'vehicles_by_status',     label: 'Vehicles by status',      table: 'vehicles',             dimension: 'status',   agg: 'count' },
   { app_id: 'tracking', key: 'trips_by_status',        label: 'Trips by status',         table: 'trips',                dimension: 'status',   agg: 'count' },
   { app_id: 'complyos', key: 'certificates_by_status', label: 'Certificates by status',  table: 'comply_certificates',  dimension: 'status',   agg: 'count' },

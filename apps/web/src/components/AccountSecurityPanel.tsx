@@ -93,6 +93,15 @@ export function AccountSecurityPanel() {
   const [confirmPw, setConfirmPw] = useState('');
   const [pwSaving, setPwSaving] = useState(false);
 
+  // Non-blocking rotation reminder — Ondi ▸ Policies' maxAgeDays, if the
+  // tenant set one. Never a login gate; see security.routes.ts's own
+  // comment on why.
+  const [pwStatus, setPwStatus] = useState<{ expired: boolean; days_remaining: number | null } | null>(null);
+  const loadPwStatus = useCallback(() => {
+    apiFetch('/v1/security/password-status').then(setPwStatus).catch(() => setPwStatus(null));
+  }, []);
+  useEffect(() => { loadPwStatus(); }, [loadPwStatus]);
+
   async function updatePassword() {
     if (newPw.length < 8) { showAlert('New password must be at least 8 characters.'); return; }
     if (newPw !== confirmPw) { showAlert('New password and confirmation do not match.'); return; }
@@ -101,6 +110,7 @@ export function AccountSecurityPanel() {
       await apiFetch('/auth/change-password', { method: 'POST', body: JSON.stringify({ current_password: currentPw, new_password: newPw }) });
       showAlert('Password updated.', { variant: 'success', title: 'Success' });
       setCurrentPw(''); setNewPw(''); setConfirmPw('');
+      loadPwStatus();
     } catch (err: any) {
       showAlert(err.message);
     } finally {
@@ -256,7 +266,7 @@ export function AccountSecurityPanel() {
   const [kycBusy, setKycBusy] = useState(false);
 
   const reloadKyc = useCallback(async () => {
-    try { setKycStatus(await apiFetch('/v1/oneid/kyc/status')); } catch { setKycStatus(null); }
+    try { setKycStatus(await apiFetch('/v1/ondi/kyc/status')); } catch { setKycStatus(null); }
   }, []);
   useEffect(() => { reloadKyc(); }, [reloadKyc]);
 
@@ -271,7 +281,7 @@ export function AccountSecurityPanel() {
       });
       const [meta, base64] = dataUrl.split(',');
       const media_type = /data:(.*);base64/.exec(meta)?.[1] || file.type || 'image/jpeg';
-      const res = await apiFetch('/v1/oneid/kyc/submit', {
+      const res = await apiFetch('/v1/ondi/kyc/submit', {
         method: 'POST',
         body: JSON.stringify({ document_type: kycDocType, image_base64: base64, media_type }),
       });
@@ -294,6 +304,16 @@ export function AccountSecurityPanel() {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 20 }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        {pwStatus && (pwStatus.expired || (pwStatus.days_remaining !== null && pwStatus.days_remaining <= 14)) && (
+          <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: 12, background: pwStatus.expired ? '#fef2f2' : '#fffbeb', border: `1px solid ${pwStatus.expired ? '#fecaca' : '#fde68a'}`, borderRadius: 9 }}>
+            <Icon name="alertTriangle" size={15} color={pwStatus.expired ? '#dc2626' : '#b45309'} style={{ marginTop: 1, flexShrink: 0 }} />
+            <div style={{ fontSize: 12.5, color: pwStatus.expired ? '#991b1b' : '#92400e', lineHeight: 1.5 }}>
+              {pwStatus.expired
+                ? "Your password is past this workspace's rotation policy — change it below when you get a chance."
+                : `Your password will be due for a change in ${pwStatus.days_remaining} day${pwStatus.days_remaining === 1 ? '' : 's'}, per this workspace's policy.`}
+            </div>
+          </div>
+        )}
         {/* Change password */}
         <Card>
           <CardHead title="Change Password" sub="Use a strong password that you don't use elsewhere." />

@@ -1,4 +1,4 @@
-// ─── OneIdVault.tsx — Ondi Personal · Document Vault ──────────────
+// ─── OndiVault.tsx — Ondi Personal · Document Vault ──────────────
 // Real document storage, wired to this platform's existing Drive/Cloud
 // file system (files.routes.ts) — the previous version of this page
 // simulated encryption with setTimeout()s and downloaded a hardcoded fake
@@ -26,7 +26,7 @@ function fmtDate(d: string): string {
   return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-export const OneIdVault: React.FC = () => {
+export const OndiVault: React.FC = () => {
   const { user } = useAuth();
   const [folder, setFolder] = useState<{ id: string; drive_id: string } | null>(null);
   const [files, setFiles] = useState<VaultFile[] | null>(null);
@@ -129,4 +129,4 @@ export const OneIdVault: React.FC = () => {
   );
 };
 
-export default OneIdVault;
+export default OndiVault;

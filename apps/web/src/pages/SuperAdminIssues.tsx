@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader.js';
 import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
@@ -44,6 +45,8 @@ export const SuperAdminIssues: React.FC = () => {
   const [reply, setReply] = useState('');
   const [resolution, setResolution] = useState('');
   const [saving, setSaving] = useState(false);
+  const [sendingToLens, setSendingToLens] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const load = useCallback(async () => {
     setLoading(true); setError('');
@@ -65,6 +68,20 @@ export const SuperAdminIssues: React.FC = () => {
   }, [q, kind, status, app, sort, dir]);
 
   useEffect(() => { const t = setTimeout(load, q ? 300 : 0); return () => clearTimeout(t); }, [load, q]);
+
+  // Deep-link from a Lens card's "hudumika_issue" back-link
+  // (?ticket=<ref_number>) — open the matching issue once the queue has
+  // loaded, then drop the param so a refresh doesn't re-trigger it.
+  useEffect(() => {
+    const ref = searchParams.get('ticket');
+    if (!ref || rows.length === 0) return;
+    const match = rows.find(r => r.ref_number === ref);
+    if (match) {
+      openIssue(match.id);
+      setSearchParams(p => { p.delete('ticket'); return p; }, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows]);
 
   async function openIssue(id: string) {
     try {
@@ -95,6 +112,16 @@ export const SuperAdminIssues: React.FC = () => {
       await openIssue(open.id);
     } catch (e: any) { setError(e?.message ?? 'The reply did not send.'); }
     setSaving(false);
+  }
+
+  async function sendToLens() {
+    if (!open) return;
+    setSendingToLens(true);
+    try {
+      const res: any = await apiFetch(`/v1/superadmin/issues/${open.id}/send-to-lens`, { method: 'POST' });
+      setOpen((o: any) => o && { ...o, lens_ref: res.ref });
+    } catch (e: any) { setError(e?.message ?? 'Could not send this to Lens.'); }
+    setSendingToLens(false);
   }
 
   const counts = STATUSES.map(s => ({ s, n: rows.filter(r => r.status === s).length }));
@@ -218,6 +245,11 @@ export const SuperAdminIssues: React.FC = () => {
                             <Icon name="paperclip" size={11} color="var(--ink3)" />{r.attachment_count}
                           </span>
                         )}
+                        {r.lens_ref && (
+                          <span title={`Tracked in Lens as ${r.lens_ref}`} style={{ fontSize: 11, color: 'var(--teal)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                            <Icon name="externalLink" size={11} color="var(--teal)" />{r.lens_ref}
+                          </span>
+                        )}
                       </div>
                       <div style={{ fontWeight: 600, color: 'var(--ink)', lineHeight: 1.45 }}>{r.subject}</div>
                       <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>{r.category} · {r.reporter_name ?? r.reporter_email ?? 'unknown reporter'}</div>
@@ -267,6 +299,22 @@ export const SuperAdminIssues: React.FC = () => {
                     {['LOW', 'NORMAL', 'HIGH', 'URGENT'].map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div style={{ marginBottom: 16 }}>
+                {open.lens_ref ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12.5 }}>
+                    <Icon name="checkCircle" size={14} color="var(--teal)" />
+                    <span style={{ color: 'var(--ink2)' }}>Sent to Lens as</span>
+                    <span style={{ fontFamily: 'var(--mono, monospace)', fontWeight: 700, color: 'var(--teal)' }}>{open.lens_ref}</span>
+                  </div>
+                ) : (
+                  <button type="button" className="btn btn-secondary" disabled={sendingToLens}
+                    style={{ fontSize: 13, gap: 6 }} onClick={sendToLens}>
+                    <Icon name="externalLink" size={13} />
+                    {sendingToLens ? 'Sending…' : 'Send to Lens'}
+                  </button>
+                )}
               </div>
 
               {(open.messages ?? []).map((m: any) => (

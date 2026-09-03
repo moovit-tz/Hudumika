@@ -78,6 +78,34 @@ export async function getUsageSummary(tenantId: string): Promise<{ used: number;
   return { used, limit, period: currentPeriod() };
 }
 
+/** The `months` most recent calendar periods, oldest first, ending at the
+ *  current one — e.g. months=3, run in 2026-09, gives ['2026-07','2026-08','2026-09']. */
+function recentPeriods(months: number): string[] {
+  const out: string[] = [];
+  const now = new Date();
+  for (let i = months - 1; i >= 0; i--) {
+    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
+    out.push(`${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`);
+  }
+  return out;
+}
+
+/** Last `months` calendar months of real usage, oldest first — for
+ *  Subscription.tsx's usage-history chart. A month with no
+ *  tenant_usage_counters row genuinely had zero metered requests
+ *  (incrementUsage only ever inserts on first use), so it's filled with a
+ *  real 0 rather than omitted, giving the frontend a contiguous series. */
+export async function getUsageHistory(tenantId: string, months = 12): Promise<{ period: string; count: number }[]> {
+  const periods = recentPeriods(months);
+  const rows = await withTenant(tenantId, trx => trx.selectFrom('tenant_usage_counters')
+    .select(['period', 'count'])
+    .where('tenant_id', '=', tenantId)
+    .where('period', 'in', periods)
+    .execute());
+  const byPeriod = new Map(rows.map(r => [r.period, r.count]));
+  return periods.map(period => ({ period, count: byPeriod.get(period) ?? 0 }));
+}
+
 // ── Per-app quotas ───────────────────────────────────────────────────────
 // A genuine per-app tier, layered on top of the blanket monthly_item_limit
 // above — package_app_quotas (migration 280) is global platform config

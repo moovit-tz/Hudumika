@@ -12,13 +12,13 @@ interface Device {
 
 interface ChainStatus { valid: boolean; broken_at?: string; checked: number }
 
-export const OneIdSessions: React.FC = () => {
+export const OndiSessions: React.FC = () => {
   const [devices, setDevices] = useState<Device[]>([]);
   const [chainStatus, setChainStatus] = useState<ChainStatus | null>(null);
   const [checkingChain, setCheckingChain] = useState(false);
 
   useEffect(() => {
-    apiFetch('/v1/oneid/devices').then(setDevices).catch(() => setDevices([]));
+    apiFetch('/v1/ondi/devices').then(setDevices).catch(() => setDevices([]));
   }, []);
 
   // Enterprise Security consolidation (Ondi M6) — the audit-chain integrity
@@ -36,7 +36,7 @@ export const OneIdSessions: React.FC = () => {
   async function toggleTrusted(d: Device) {
     const trusted = !d.trusted;
     setDevices(prev => prev.map(x => x.id === d.id ? { ...x, trusted } : x));
-    apiFetch(`/v1/oneid/devices/${d.id}`, { method: 'PATCH', body: JSON.stringify({ trusted }) }).catch(() => {});
+    apiFetch(`/v1/ondi/devices/${d.id}`, { method: 'PATCH', body: JSON.stringify({ trusted }) }).catch(() => {});
   }
 
   return (
@@ -134,4 +134,4 @@ export const OneIdSessions: React.FC = () => {
   );
 };
 
-export default OneIdSessions;
+export default OndiSessions;

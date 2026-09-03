@@ -4,6 +4,7 @@ import { issueTokens, durationSeconds } from '../services/token.service.js';
 import crypto from 'crypto';
 import { withTenant, dbPlatform } from '../db/client.js';
 import { hashPassword, verifyPassword, needsRehash } from '../lib/password.js';
+import { enforcePasswordPolicy } from '../lib/password-policy.js';
 import { verifyTotp } from '../lib/totp.js';
 import { MailService } from '../services/mail.service.js';
 import { env } from '../config/env.js';
@@ -308,13 +309,18 @@ export async function authRoutes(fastify: FastifyInstance) {
       return reply.status(400).send({ error: 'Invitation has expired' });
     }
 
-    // The invite's own tenant is now known — everything past this point is
-    // that tenant's own data.
+    // The invite's own tenant is now known — its password policy applies
+    // from here on, same as any other password this tenant's staff sets.
+    const policyCheck = await enforcePasswordPolicy(invite.tenant_id, password);
+    if (!policyCheck.ok) return reply.status(400).send({ error: policyCheck.reason });
+
+    // Everything past this point is that tenant's own data.
     const { newUser } = await withTenant(invite.tenant_id, async (trx) => {
       const newUser = await trx.insertInto('users').values({
         tenant_id: invite.tenant_id,
         email: invite.email,
         password_hash: hashPassword(password),
+        password_changed_at: new Date(),
         role: invite.role as any,
         name,
         active: true,
@@ -390,7 +396,12 @@ export async function authRoutes(fastify: FastifyInstance) {
     if (row.used_at) return reply.status(400).send({ error: 'This reset link has already been used' });
     if (new Date(row.expires_at) < new Date()) return reply.status(400).send({ error: 'This reset link has expired' });
 
-    await dbPlatform.updateTable('users').set({ password_hash: hashPassword(password), updated_at: new Date() })
+    const resetUser = await dbPlatform.selectFrom('users').select('tenant_id').where('id', '=', row.user_id).executeTakeFirst();
+    if (!resetUser) return reply.status(404).send({ error: 'Account not found' });
+    const policyCheck = await enforcePasswordPolicy(resetUser.tenant_id, password);
+    if (!policyCheck.ok) return reply.status(400).send({ error: policyCheck.reason });
+
+    await dbPlatform.updateTable('users').set({ password_hash: hashPassword(password), password_changed_at: new Date(), updated_at: new Date() })
       .where('id', '=', row.user_id).execute();
     await dbPlatform.updateTable('password_reset_tokens').set({ used_at: new Date() }).where('id', '=', row.id).execute();
 
@@ -472,7 +483,10 @@ export async function authRoutes(fastify: FastifyInstance) {
     if (row.status !== 'approved') return reply.status(400).send({ error: 'This recovery request has not been approved yet, or is no longer valid.' });
     if (!row.cooldown_ends_at || new Date(row.cooldown_ends_at) > new Date()) return reply.status(400).send({ error: 'The cooldown period has not elapsed yet — check back later.' });
 
-    await dbPlatform.updateTable('users').set({ password_hash: hashPassword(password), updated_at: new Date() })
+    const policyCheck = await enforcePasswordPolicy(row.tenant_id, password);
+    if (!policyCheck.ok) return reply.status(400).send({ error: policyCheck.reason });
+
+    await dbPlatform.updateTable('users').set({ password_hash: hashPassword(password), password_changed_at: new Date(), updated_at: new Date() })
       .where('id', '=', row.user_id).execute();
     await dbPlatform.updateTable('ondi_recovery_requests').set({ status: 'completed', completed_at: new Date() })
       .where('id', '=', row.id).execute();
@@ -961,9 +975,9 @@ export async function authRoutes(fastify: FastifyInstance) {
     if (!current_password || !new_password) {
       return reply.status(400).send({ error: 'current_password and new_password are required' });
     }
-    if (new_password.length < 8) {
-      return reply.status(400).send({ error: 'New password must be at least 8 characters' });
-    }
+
+    const policyCheck = await enforcePasswordPolicy(actor.tenant_id, new_password);
+    if (!policyCheck.ok) return reply.status(400).send({ error: policyCheck.reason });
 
     return withTenant(actor.tenant_id, async (trx) => {
       const user = await trx.selectFrom('users').selectAll().where('id', '=', actor.sub).executeTakeFirst();
@@ -980,7 +994,7 @@ export async function authRoutes(fastify: FastifyInstance) {
 
       const new_hash = hashPassword(new_password);
 
-      await trx.updateTable('users').set({ password_hash: new_hash, updated_at: new Date() }).where('id', '=', actor.sub).execute();
+      await trx.updateTable('users').set({ password_hash: new_hash, password_changed_at: new Date(), updated_at: new Date() }).where('id', '=', actor.sub).execute();
 
       await recordAuthEvent(actor.tenant_id, actor.sub, 'password_changed', {
         ip: request.ip, userAgent: String(request.headers['user-agent'] || ''),

@@ -1,8 +1,8 @@
-// ─── OneIdPersonalActivity.tsx — Ondi Personal · Activity ─────────
+// ─── OndiPersonalActivity.tsx — Ondi Personal · Activity ─────────
 // Backed by GET /v1/security/activity (new — see security.routes.ts),
 // which merges hr_login_history and ondi_auth_events for the current user
 // only. Tenant-wide equivalents of both already existed as admin views
-// (oneid.routes.ts /login-history, /v1/security/audit/verify-chain) but
+// (ondi.routes.ts /login-history, /v1/security/audit/verify-chain) but
 // neither had a self-scoped feed for a personal Activity page to read.
 import React, { useEffect, useState } from 'react';
 import { apiFetch } from '../lib/api.js';
@@ -56,7 +56,7 @@ function fmt(dateStr: string): string {
   return new Date(dateStr).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
-export const OneIdPersonalActivity: React.FC = () => {
+export const OndiPersonalActivity: React.FC = () => {
   const [rows, setRows] = useState<ActivityRow[] | null>(null);
   const [err, setErr] = useState('');
 
@@ -101,4 +101,4 @@ export const OneIdPersonalActivity: React.FC = () => {
   );
 };
 
-export default OneIdPersonalActivity;
+export default OndiPersonalActivity;

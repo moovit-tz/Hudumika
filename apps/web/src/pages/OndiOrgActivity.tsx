@@ -1,9 +1,9 @@
-// ─── OneIdOrgActivity.tsx — Ondi Enterprise · Activity ────────────
+// ─── OndiOrgActivity.tsx — Ondi Enterprise · Activity ────────────
 // A browsable feed over ondi_auth_events (the same hash-chained audit log
 // the Sessions & Security page can now verify the integrity of) — that
 // table already existed and was being written to since Ondi M0/M3, but
 // nothing ever let an admin actually read it; only a tamper-verify
-// endpoint existed. Backed by the new GET /v1/oneid/org/activity.
+// endpoint existed. Backed by the new GET /v1/ondi/org/activity.
 import React, { useEffect, useState } from 'react';
 import { apiFetch, apiDownload } from '../lib/api.js';
 import { PageHeader } from '../components/PageHeader.js';
@@ -16,7 +16,7 @@ interface ActivityEvent {
   metadata: unknown; created_at: string; user_id: string | null; user_name: string | null;
 }
 
-// Same human labels OneIdPersonalActivity.tsx uses for the personal feed —
+// Same human labels OndiPersonalActivity.tsx uses for the personal feed —
 // kept in sync rather than imported, since that file's copy is scoped to
 // the subset of events a personal feed actually needs and this one covers
 // the full tenant-wide set.
@@ -65,21 +65,21 @@ function fmt(d: string): string {
   return new Date(d).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
-export const OneIdOrgActivity: React.FC = () => {
+export const OndiOrgActivity: React.FC = () => {
   const [events, setEvents] = useState<ActivityEvent[] | null>(null);
   const [err, setErr] = useState('');
   const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
-    apiFetch('/v1/oneid/org/activity').then(setEvents).catch((e: any) => setErr(e?.message ?? 'Could not load activity.'));
+    apiFetch('/v1/ondi/org/activity').then(setEvents).catch((e: any) => setErr(e?.message ?? 'Could not load activity.'));
   }, []);
 
   // Ondi feature-gap pass (M5): was on-screen only before — GET
-  // /v1/oneid/org/activity?format=csv is the same query, just wider
+  // /v1/ondi/org/activity?format=csv is the same query, just wider
   // (2000 rows) and rendered as a real download instead of JSON.
   async function exportCsv() {
     setExporting(true);
-    try { await apiDownload('/v1/oneid/org/activity?format=csv', `ondi_activity_${new Date().toISOString().slice(0, 10)}.csv`); }
+    try { await apiDownload('/v1/ondi/org/activity?format=csv', `ondi_activity_${new Date().toISOString().slice(0, 10)}.csv`); }
     finally { setExporting(false); }
   }
 
@@ -126,4 +126,4 @@ export const OneIdOrgActivity: React.FC = () => {
   );
 };
 
-export default OneIdOrgActivity;
+export default OndiOrgActivity;

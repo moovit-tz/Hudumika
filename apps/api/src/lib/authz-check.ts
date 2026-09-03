@@ -6,7 +6,7 @@ import { computeTrustScore } from './trust-score.js';
  * A real, callable policy-decision point — "the fork's benchmark doc calls
  * out `POST /authz/check` (ALLOW/DENY/STEP_UP) as a real differentiator";
  * the only trace of it in the integrated system before this was UI *copy*
- * in OneIdSSO.tsx describing the idea, never a working endpoint. This is
+ * in OndiSSO.tsx describing the idea, never a working endpoint. This is
  * that endpoint's real logic, plus the one thing that keeps a policy check
  * from being decorative: an actual caller. Wallet reveal (security.routes.ts
  * GET /wallet/:id/reveal) calls evaluateAccess() with requireFreshAuth,

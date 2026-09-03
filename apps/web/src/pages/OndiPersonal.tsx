@@ -1,4 +1,4 @@
-// ─── OneIdPersonal.tsx — Ondi Personal · My Profile ───────────────
+// ─── OndiPersonal.tsx — Ondi Personal · My Profile ───────────────
 // Real identity snapshot only — no simulated encryption, no fabricated
 // credit-scoring events (this platform has no credit-scoring engine
 // anywhere). See lib/landingStyle.ts-adjacent Ondi memory for why: this
@@ -37,14 +37,14 @@ function roleLabel(role?: string): string {
   return role.split('_').map(w => w[0] + w.slice(1).toLowerCase()).join(' ');
 }
 
-export const OneIdPersonal: React.FC = () => {
+export const OndiPersonal: React.FC = () => {
   const { user } = useAuth();
   const [kyc, setKyc] = useState<KycStatus | null>(null);
   const [trust, setTrust] = useState<TrustScore | null>(null);
   const [reliability, setReliability] = useState<ReliabilitySignals | null>(null);
 
   useEffect(() => {
-    apiFetch('/v1/oneid/kyc/status').then(setKyc).catch(() => setKyc(null));
+    apiFetch('/v1/ondi/kyc/status').then(setKyc).catch(() => setKyc(null));
     apiFetch('/v1/security/trust-score').then(setTrust).catch(() => setTrust(null));
     apiFetch('/v1/security/reliability-signals').then(setReliability).catch(() => setReliability(null));
   }, []);
@@ -160,4 +160,4 @@ const SignalTile: React.FC<{ label: string; value: string; hint: string }> = ({ 
   </div>
 );
 
-export default OneIdPersonal;
+export default OndiPersonal;

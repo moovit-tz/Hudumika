@@ -415,57 +415,11 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
     });
   });
 
-  /**
-   * GET /v1/shipments/:id/linked
-   * Real cross-app data tied to this shipment: sales invoices (finance),
-   * demurrage containers, AWB/BL tracker snapshots, and the HuduFreight
-   * transport trip — each app's own table, joined here by shipment_id (or
-   * ref_number for invoices, which link by text ref rather than FK).
-   * Every sub-query is wrapped since a tenant may not have that app
-   * provisioned at all.
-   */
-  fastify.get('/:id/linked', async (request, reply) => {
-    const user = request.user;
-    const { id } = request.params as { id: string };
-
-    return withTenant(user.tenant_id, async (trx) => {
-      const shipment = await trx.selectFrom('shipment_cases')
-        .select(['id', 'ref_number'])
-        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).where('deleted_at', 'is', null)
-        .executeTakeFirst();
-      if (!shipment) return reply.status(404).send({ error: 'Shipment not found' });
-
-      const [invoices, containers, trackerSnapshots, trips] = await Promise.all([
-        trx.selectFrom('sales_invoices')
-          .select(['id', 'invoice_number', 'status', 'due_date', 'tra_total_incl'])
-          .where('tenant_id', '=', user.tenant_id)
-          .where('shipment_ref', '=', shipment.ref_number)
-          .orderBy('created_at', 'desc')
-          .execute().catch(() => []),
-        trx.selectFrom('container_tracking')
-          .select(['id', 'container_number', 'demurrage_days', 'demurrage_cost', 'demurrage_currency', 'status'])
-          .where('tenant_id', '=', user.tenant_id)
-          .where('shipment_id', '=', id).where('tenant_id', '=', user.tenant_id)
-          .execute().catch(() => []),
-        trx.selectFrom('tracking_snapshots')
-          .select(['id', 'tracking_type', 'tracking_number', 'status', 'eta', 'progress_pct'])
-          .where('tenant_id', '=', user.tenant_id)
-          .where('shipment_id', '=', id).where('tenant_id', '=', user.tenant_id)
-          .execute().catch(() => []),
-        trx.selectFrom('trips')
-          .leftJoin('vehicles', 'vehicles.id', 'trips.vehicle_id')
-          .leftJoin('drivers', 'drivers.id', 'trips.driver_id')
-          .select(['trips.id', 'trips.status', 'trips.job_type', 'trips.scheduled_start', 'trips.actual_start',
-                    'vehicles.name as vehicle_name', 'vehicles.plate_number', 'drivers.name as driver_name'])
-          .where('trips.tenant_id', '=', user.tenant_id)
-          .where('trips.shipment_id', '=', id)
-          .orderBy('trips.created_at', 'desc')
-          .execute().catch(() => []),
-      ]);
-
-      return { invoices, demurrage_containers: containers, tracker_snapshots: trackerSnapshots, transport_trips: trips };
-    });
-  });
+  // GET /:id/linked used to live here — migrated to the generalized
+  // GET /v1/related/shipment/:id (related-records.ts/related-records.
+  // routes.ts), its only caller (ShipmentDetail.tsx's LinkedAppsPanel,
+  // since renamed RelatedRecordsPanel) moved over, and this route had no
+  // other callers.
 
   /**
    * GET /v1/shipments/:id/report.pdf

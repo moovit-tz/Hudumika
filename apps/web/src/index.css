@@ -463,244 +463,20 @@ body {
   overflow: hidden;
 }
 
-/* ── AUTH PAGES ── */
-.auth-shell {
-  display: flex;
-  min-height: 100vh;
-  background: var(--white);
-}
+/* ── AUTH PAGES ──
+   Component styling (icon badge, alert banners, fields, inputs, buttons,
+   sent/verify states) for the seven secondary auth pages (ForgotPassword,
+   ResetPassword, VerifyEmail, AcceptInvite, RecoveryPage, MagicLinkPage,
+   SsoCompletePage) lives in Login.css now, not here — it needs the same
+   --lp-* tokens the shared <AuthCard> shell computes, and Login.css is
+   guaranteed to be loaded wherever AuthCard is (all seven import it from
+   Login.tsx). The old two-panel .auth-shell/.auth-brand split-screen layout
+   those rules used to belong to is gone entirely, replaced by AuthCard's
+   single centered .login-card — same chrome Login.tsx and OndiLogin.tsx
+   already use. */
 
-/* Left brand panel */
-.auth-brand {
-  width: 420px;
-  flex-shrink: 0;
-  background: var(--navy);
-  background-image:
-    radial-gradient(ellipse at 20% 80%, rgba(232,70,26,0.28) 0%, transparent 55%),
-    radial-gradient(ellipse at 85% 15%, rgba(232,70,26,0.14) 0%, transparent 50%);
-  padding: 44px 40px;
-  display: flex;
-  flex-direction: column;
-  color: #fff;
-  position: relative;
-  overflow: hidden;
-}
-.auth-brand::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image: radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px);
-  background-size: 28px 28px;
-  pointer-events: none;
-}
-
-/* Brand logo row */
-.auth-brand-logo {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 56px;
-  position: relative;
-  z-index: 1;
-}
-.auth-logo-mark {
-  width: 38px; height: 38px;
-  background: var(--teal);
-  border-radius: 9px;
-  display: flex; align-items: center; justify-content: center;
-  font-weight: 800; font-size: 15px; color: #fff;
-  letter-spacing: -0.5px;
-}
-.auth-logo-word {
-  font-size: 20px; font-weight: 700; color: #fff; letter-spacing: -0.3px;
-}
-
-/* Brand body */
-.auth-brand-body { flex: 1; position: relative; z-index: 1; }
-.auth-brand-hl {
-  font-size: 22px; font-weight: 700; line-height: 1.3;
-  color: #fff; margin: 0 0 16px;
-  letter-spacing: -0.3px;
-}
-.auth-brand-sub {
-  font-size: 13.5px; line-height: 1.6; color: rgba(255,255,255,0.6);
-  margin: 0 0 32px;
-}
-.auth-brand-feats { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 12px; }
-.auth-brand-feat {
-  display: flex; align-items: flex-start; gap: 10px;
-  font-size: 13px; color: rgba(255,255,255,0.82); line-height: 1.4;
-}
-.auth-feat-tick {
-  width: 18px; height: 18px; flex-shrink: 0; margin-top: 1px;
-  background: rgba(232,70,26,0.2);
-  border: 1px solid rgba(232,70,26,0.45);
-  border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  color: #4dd9c7;
-}
-
-/* Brand badges */
-.auth-brand-badges {
-  display: flex; flex-wrap: wrap; gap: 6px;
-  margin-top: 36px; margin-bottom: 24px;
-  position: relative; z-index: 1;
-}
-.auth-badge {
-  font-size: var(--badge-fs-sm); font-weight: 600;
-  padding: var(--badge-py-sm) var(--badge-px-sm); border-radius: 20px;
-  background: rgba(255,255,255,0.07);
-  border: 1px solid rgba(255,255,255,0.14);
-  color: rgba(255,255,255,0.55);
-  letter-spacing: 0.03em;
-}
-.auth-brand-foot {
-  font-size: 11px; color: rgba(255,255,255,0.3);
-  position: relative; z-index: 1;
-}
-
-/* Right form panel */
-.auth-form-panel {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 48px 40px;
-  overflow-y: auto;
-  background: var(--bg);
-}
-.auth-form-wrap {
-  width: 100%;
-  max-width: 100%;
-}
-
-/* Form header */
-.auth-form-hdr { margin-bottom: 28px; }
-.auth-back-icon {
-  width: 44px; height: 44px;
-  background: var(--teal-l);
-  border-radius: 9px;
-  display: flex; align-items: center; justify-content: center;
-  color: var(--teal);
-  margin-bottom: 16px;
-}
-.auth-form-title {
-  font-size: 22px; font-weight: 700; color: var(--navy);
-  margin: 0 0 6px; letter-spacing: -0.3px;
-}
-.auth-form-sub {
-  font-size: 13.5px; color: var(--ink3); margin: 0; line-height: 1.55;
-}
-
-/* Alert banners */
-.auth-alert {
-  display: flex; align-items: flex-start; gap: 8px;
-  padding: 11px 14px; border-radius: 9px; margin-bottom: 20px;
-  font-size: 13px; line-height: 1.45;
-  background: rgba(225,29,72,0.07);
-  border: 1px solid rgba(225,29,72,0.2);
-  color: #9f1239;
-}
-.auth-alert-ok {
-  background: rgba(22,163,74,0.07);
-  border-color: rgba(22,163,74,0.2);
-  color: #166534;
-}
-
-/* Form */
-.auth-form { display: flex; flex-direction: column; gap: 18px; }
-.auth-field { display: flex; flex-direction: column; gap: 0; }
-.auth-field.has-error .auth-input { border-color: #e11d48; }
-.auth-field-row {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 6px;
-}
-.auth-field-label {
-  font-size: 12.5px; font-weight: 600;
-  color: var(--ink2); letter-spacing: 0.01em;
-}
-.auth-field-right { font-size: 12.5px; }
-.auth-field-error {
-  font-size: 11.5px; color: #e11d48; margin-top: 5px;
-  display: flex; align-items: center; gap: 4px;
-}
-
-/* Inputs */
-.auth-input {
-  width: 100%; height: 40px; box-sizing: border-box;
-  padding: 0 12px;
-  background: var(--white);
-  border: 1.5px solid var(--border);
-  border-radius: 9px;
-  font-size: 13.5px; color: var(--ink);
-  font-family: var(--font);
-  transition: border-color 0.15s, box-shadow 0.15s;
-  outline: none;
-}
-.auth-input:focus {
-  border-color: var(--teal);
-  box-shadow: 0 0 0 3px rgba(232,70,26,0.12);
-}
-.auth-input-err { border-color: #e11d48 !important; }
-.auth-input::placeholder { color: var(--ink3); }
-.auth-input-wrap { position: relative; }
-.auth-input-icon-r { padding-right: 40px; }
-.auth-eye-btn {
-  position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
-  background: none; border: none; cursor: pointer; padding: 4px;
-  color: var(--ink3); display: flex; align-items: center;
-  border-radius: 4px;
-}
-.auth-eye-btn:hover { color: var(--ink2); }
-
-/* Password strength */
-.auth-strength {
-  display: flex; align-items: center; gap: 8px; margin-top: 7px;
-}
-.auth-strength-bars { display: flex; gap: 4px; flex: 1; }
-.auth-strength-seg {
-  flex: 1; height: 3px; border-radius: 2px;
-  transition: background 0.2s;
-}
-.auth-strength-label { font-size: 11px; font-weight: 600; min-width: 36px; text-align: right; }
-
-/* Checkbox */
-.auth-check {
-  display: flex; align-items: flex-start; gap: 9px;
-  font-size: 13px; color: var(--ink2); cursor: pointer;
-  -webkit-user-select: none; user-select: none;
-  line-height: 1.45;
-}
-.auth-check input[type=checkbox] { margin-top: 2px; flex-shrink: 0; accent-color: var(--teal); width: 15px; height: 15px; }
-
-/* Primary button */
-.auth-btn-primary {
-  width: 100%; height: 42px;
-  background: hsl(var(--primary)); color: hsl(var(--primary-foreground));
-  border: none; border-radius: 9px;
-  font-size: 14px; font-weight: 600;
-  cursor: pointer; font-family: var(--font);
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-  transition: background 0.15s, box-shadow 0.15s;
-  margin-top: 4px;
-}
-.auth-btn-primary:hover:not(:disabled) { background: #c73b15; box-shadow: var(--elev); }
-.auth-btn-primary:disabled { opacity: 0.65; cursor: not-allowed; }
-
-/* Secondary button */
-.auth-btn-secondary {
-  width: 100%; height: 42px;
-  background: var(--white); color: var(--navy);
-  border: 1.5px solid var(--border); border-radius: 9px;
-  font-size: 14px; font-weight: 600;
-  cursor: pointer; font-family: var(--font);
-  display: flex; align-items: center; justify-content: center;
-  transition: border-color 0.15s, background 0.15s;
-  text-decoration: none;
-}
-.auth-btn-secondary:hover { border-color: var(--border2); background: var(--bg); }
-
-/* Loading spinner */
+/* Loading spinner — also used outside the auth-page family (CalendarApp),
+   so this one stays generic/shared here rather than moving to Login.css. */
 .auth-spinner {
   width: 14px; height: 14px;
   border: 2px solid rgba(255,255,255,0.3);
@@ -711,53 +487,6 @@ body {
   flex-shrink: 0;
 }
 @keyframes auth-spin { to { rotate: 1turn; } }
-
-/* Links */
-.auth-link { color: var(--teal); text-decoration: none; font-weight: 500; }
-.auth-link:hover { text-decoration: underline; }
-.auth-link-sm { font-size: 12.5px; }
-.auth-switch-link {
-  text-align: center; font-size: 13px; color: var(--ink3);
-  margin-top: 24px;
-}
-
-/* Success / info state */
-.auth-sent-state { text-align: center; padding: 8px 0; }
-.auth-sent-icon {
-  width: 64px; height: 64px;
-  background: rgba(232,70,26,0.08);
-  border: 1.5px solid rgba(232,70,26,0.2);
-  border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  color: var(--teal);
-  margin: 0 auto 20px;
-}
-.auth-sent-icon-ok { background: rgba(22,163,74,0.09); border-color: rgba(22,163,74,0.2); color: #16a34a; }
-.auth-sent-icon-err { background: rgba(225,29,72,0.08); border-color: rgba(225,29,72,0.2); color: #e11d48; }
-
-/* Email verification steps */
-.auth-verify-steps {
-  display: flex; flex-direction: column; gap: 10px;
-  text-align: left; margin-bottom: 4px;
-}
-.auth-verify-step {
-  display: flex; align-items: center; gap: 10px;
-  font-size: 13px; color: var(--ink2);
-  background: var(--white); border: 1px solid var(--border);
-  border-radius: 9px; padding: 10px 14px;
-}
-.auth-verify-num {
-  width: 20px; height: 20px; flex-shrink: 0;
-  background: hsl(var(--primary)); color: hsl(var(--primary-foreground));
-  border-radius: 50%; font-size: 11px; font-weight: 700;
-  display: flex; align-items: center; justify-content: center;
-}
-
-/* Responsive — hide brand panel on small screens */
-@media (max-width: 768px) {
-  .auth-brand { display: none; }
-  .auth-form-panel { padding: 32px 24px; background: var(--white); }
-}
 
 /* ── FILTER BAR ── */
 .filter-bar {
@@ -3790,6 +3519,17 @@ html:not([data-theme="dark"]) .page-layout {
   font-weight: 700;
   color: var(--teal);
 }
+/* Arabic/Chinese locales — the italic Latin serif above was never going to
+   render as designed (no true italic in either script, so it silently
+   collapses to one flat weight in a fallback face). This keeps the same
+   two-tone hierarchy and the same --teal brand thread, just without the
+   Latin-only device. See PageHeader.tsx's `nonLatin` check. */
+.page-header-title.ph-cjk em {
+  font-family: var(--font);
+  font-style: normal;
+  font-weight: 600;
+  color: var(--teal);
+}
 .page-header-title .ph-dot {
   font-style: normal;
   font-family: var(--font);
@@ -3813,17 +3553,44 @@ html:not([data-theme="dark"]) .page-layout {
   .page-header { padding: 0; margin-bottom: 8px; }
 }
 
-/* ── Responsive tables ── */
+/* ── Responsive tables ──
+   Border + radius live on the wrapper, not the <table> — border-radius on a
+   table with border-collapse: collapse is unreliable across browsers (the
+   collapsed border model routinely ignores or clips it wrong), and a table
+   element carrying its own border let a caller duplicate one right back onto
+   the <table> in JS (redundant, and the two boxes could drift). One flat
+   rectangular table, clipped clean by a plain div's overflow + radius, has
+   no such quirk. overflow-x: auto still lets a table narrower than its
+   min-width scroll under real content on small viewports; per spec, setting
+   only overflow-x already computes overflow-y to auto too, so the rounded
+   corners clip on both axes without a second property. */
 .rtbl-wrap {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+  border: 1px solid var(--border);
   border-radius: 9px;
+  background: var(--white);
 }
 .rtbl {
   width: 100%;
   min-width: 520px;
   border-collapse: collapse;
   font-size: 13px;
+}
+/* A single unbroken identifier (a domain, a long slug-derived email) has no
+   wrap point, so without a cap it forces its own column — and the whole
+   table — wider than the page around it. Auto-generated test tenants
+   (review-test-co-1788338945126.clearos.app) are exactly what surfaces
+   this: an ordinary "curl-test-co.clearos.app" never would have. Truncate
+   with an ellipsis and keep the full value in `title`, rather than letting
+   one long value blow out every row's alignment. */
+.rtbl-truncate {
+  display: inline-block;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
 }
 .rtbl th {
   padding: 9px 13px;

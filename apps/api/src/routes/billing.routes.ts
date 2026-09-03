@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { db, withTenant } from '../db/client.js';
-import { requireRole } from '../middleware/rbac.js';
+import { requireRoleOrOrgPermission, ORG_PERMISSIONS } from '../lib/org-rbac.js';
 import { PaymentsIntegration } from '../integrations/payments.js';
 
 const MGMT = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER'] as const;
@@ -44,7 +44,7 @@ export default async function billingRoutes(fastify: FastifyInstance) {
 
   fastify.post<{
     Body: { type?: 'card' | 'mobile_money' | 'bank'; card_number?: string; card_expiry?: string; card_cvc?: string; label?: string; phone?: string; provider?: string }
-  }>('/payment-methods', { preHandler: requireRole(...MGMT) }, async (request, reply) => {
+  }>('/payment-methods', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.BILLING_MANAGE, ...MGMT) }, async (request, reply) => {
     const user = request.user;
     const b = request.body;
     const type = b.type ?? 'card';
@@ -100,7 +100,7 @@ export default async function billingRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.patch<{ Params: { id: string } }>('/payment-methods/:id/default', { preHandler: requireRole(...MGMT) }, async (request) => {
+  fastify.patch<{ Params: { id: string } }>('/payment-methods/:id/default', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.BILLING_MANAGE, ...MGMT) }, async (request) => {
     const user = request.user;
     return withTenant(user.tenant_id, async (trx) => {
       await trx.updateTable('payment_methods').set({ is_default: false }).where('tenant_id', '=', user.tenant_id).execute();
@@ -110,7 +110,7 @@ export default async function billingRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.delete<{ Params: { id: string } }>('/payment-methods/:id', { preHandler: requireRole(...MGMT) }, async (request, reply) => {
+  fastify.delete<{ Params: { id: string } }>('/payment-methods/:id', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.BILLING_MANAGE, ...MGMT) }, async (request, reply) => {
     const user = request.user;
     return withTenant(user.tenant_id, async (trx) => {
       await trx.deleteFrom('payment_methods').where('id', '=', request.params.id).where('tenant_id', '=', user.tenant_id).execute();
@@ -134,7 +134,7 @@ export default async function billingRoutes(fastify: FastifyInstance) {
   // Ensures the current billing period has a real invoice row, generated from
   // the tenant's actual plan + active seat count (packages.price_per_seat) —
   // idempotent, so calling it on every Billing tab load is safe.
-  fastify.post('/invoices/generate', { preHandler: requireRole(...MGMT) }, async (request, reply) => {
+  fastify.post('/invoices/generate', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.BILLING_MANAGE, ...MGMT) }, async (request, reply) => {
     const user = request.user;
     return withTenant(user.tenant_id, async (trx) => {
       const tenant = await trx.selectFrom('tenants').select('plan').where('id', '=', user.tenant_id).executeTakeFirst();
@@ -199,7 +199,7 @@ export default async function billingRoutes(fastify: FastifyInstance) {
 
   fastify.post<{ Params: { id: string }; Body: { payment_method_id: string } }>(
     '/invoices/:id/pay',
-    { preHandler: requireRole(...MGMT) },
+    { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.BILLING_MANAGE, ...MGMT) },
     async (request, reply) => {
       const user = request.user;
       return withTenant(user.tenant_id, async (trx) => {

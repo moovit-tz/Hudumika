@@ -51,9 +51,9 @@ registerSubscriber('user.joined', async (tenantId, event) => {
 });
 
 // Leaver: deactivating a user (from either hr.routes.ts's own status route
-// or oneid.routes.ts's, which now both emit this event) revokes standing
+// or ondi.routes.ts's, which now both emit this event) revokes standing
 // access rather than leaving it live against a deactivated account —
-// mirrors what a manual access-review revoke already does (oneid.routes.ts
+// mirrors what a manual access-review revoke already does (ondi.routes.ts
 // POST /org/access-reviews/:id/items/:itemId/decide), just triggered by
 // deactivation instead of a reviewer's decision.
 registerSubscriber('hr.staff_deactivated', async (tenantId, event) => {

@@ -7,6 +7,7 @@ import { recordLogin } from './auth.routes.js';
 import { recordAuthEvent } from '../lib/audit-chain.js';
 import { setSessionCookies } from '../lib/cookies.js';
 import { issueTokens } from '../services/token.service.js';
+import { tenantHasEntitlement } from '../middleware/entitlement.js';
 import type { JWTPayload } from '@hudumika/types';
 
 /**
@@ -113,6 +114,18 @@ async function loadProvider(providerId: string) {
   return { row, config };
 }
 
+/**
+ * Gating the admin config UI alone (ondi.routes.ts's sso-providers CRUD)
+ * isn't enough: a tenant could configure a provider while entitled, then
+ * cancel the add-on/downgrade, and this SP-side login flow would keep
+ * accepting real assertions forever with no re-check. So every actual
+ * sign-in attempt re-verifies the owning tenant still holds
+ * 'ondi.governance', not just whether the row exists and is enabled.
+ */
+async function isGovernanceEntitled(tenantId: string): Promise<boolean> {
+  return tenantHasEntitlement(tenantId, 'ondi.governance');
+}
+
 function buildEntities(providerId: string, config: SamlProviderConfig) {
   const spEntityId = `${env.API_BASE_URL}/v1/ondi/auth/saml/${providerId}/metadata`;
   const acsUrl = `${env.API_BASE_URL}/v1/ondi/auth/saml/${providerId}/acs`;
@@ -175,6 +188,9 @@ export async function ondiSamlRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     const found = await loadProvider(request.params.providerId);
     if (!found) return reply.status(404).send({ error: 'Unknown or disabled SAML provider.' });
+    if (!(await isGovernanceEntitled(found.row.tenant_id))) {
+      return reply.status(402).send({ error: 'SSO is not active for this organization.', code: 'PLAN_UPGRADE_REQUIRED' });
+    }
 
     const { sp, idp } = buildEntities(found.row.id, found.config);
     const { context: redirectUrl, id } = sp.createLoginRequest(idp, 'redirect') as { context: string; id: string };
@@ -210,6 +226,10 @@ export async function ondiSamlRoutes(fastify: FastifyInstance) {
 
     const found = await loadProvider(request.params.providerId);
     if (!found) return reply.redirect(failUrl);
+    if (!(await isGovernanceEntitled(found.row.tenant_id))) {
+      await recordAuthEvent(found.row.tenant_id, null, 'login_failed', { ip, userAgent, metadata: { via: 'saml', reason: 'entitlement_lapsed', providerId: found.row.id } });
+      return reply.redirect(failUrl);
+    }
     const { sp, idp, spEntityId } = buildEntities(found.row.id, found.config);
 
     let extract: Record<string, any>;

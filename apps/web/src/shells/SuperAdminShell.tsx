@@ -21,7 +21,6 @@ import {
   ActivityView,
   SettingsView,
   AppStatusView,
-  DevicesView,
 } from '../pages/SuperAdmin.js';
 import { DesignSystemView } from '../pages/DesignSystemView.js';
 import { SeoAnalyticsView } from '../pages/SeoAnalyticsView.js';
@@ -53,7 +52,6 @@ const NAV: SidebarSection[] = [
       { label: 'Referral Commissions', icon: 'link', path: '/admin/referrals'    },
       { label: 'Announcements',     icon: 'bell',      path: '/admin/announcements' },
       { label: 'App Status',        icon: 'shield',   path: '/admin/app-status'     },
-      { label: 'Attendance Devices', icon: 'fingerprint', path: '/admin/devices'   },
       { label: 'CMS Pages',         icon: 'fileText', path: '/admin/cms-pages'      },
       { label: 'Design System',     icon: 'sliders',  path: '/admin/design-system'  },
       { label: 'SEO & Analytics',   icon: 'trendingUp', path: '/admin/seo'          },
@@ -82,7 +80,11 @@ function AdminContent() {
           <Route path="finance"       element={<FinanceView />} />
           <Route path="domains"       element={<DomainsView />} />
           <Route path="activity"      element={<ActivityView />} />
-          <Route path="devices"       element={<DevicesView />} />
+          {/* Moved to NexusHR (biometric attendance hardware is a NexusHR-
+              domain concept, not a platform-ops one) — kept as a redirect so
+              old links/bookmarks still land somewhere real, same convention
+              NexusHRShell.tsx itself already uses for its own moved routes. */}
+          <Route path="devices"       element={<Navigate to="/nexushr/platform-devices" replace />} />
           <Route path="issues"        element={<SuperAdminIssues />} />
           <Route path="kyb"           element={<SuperAdminKyb />} />
           <Route path="referrals"     element={<SuperAdminReferrals />} />

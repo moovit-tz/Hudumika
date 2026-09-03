@@ -116,7 +116,7 @@ export function PettiWalletDetail() {
 
   useEffect(() => {
     apiFetch('/v1/petti/workflows').then(res => setWorkflows(res.data || [])).catch(() => setWorkflows([]));
-    apiFetch('/v1/oneid/users').then(setStaff).catch(() => setStaff([]));
+    apiFetch('/v1/ondi/users').then(setStaff).catch(() => setStaff([]));
     apiFetch('/v1/petti/wallets').then(res => setAllWallets(res.data || [])).catch(() => setAllWallets([]));
   }, []);
 

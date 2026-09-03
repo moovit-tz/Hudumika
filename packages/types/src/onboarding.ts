@@ -98,6 +98,53 @@ export interface SubdomainCheckResponse {
   reason?: string;
 }
 
+/**
+ * Well-known free consumer email providers — shared between StepAccount.tsx
+ * (the "this looks like a personal address" warning) and
+ * onboarding.service.ts (auto-join-by-domain matching, which must never
+ * treat gmail.com/outlook.com/etc as if they identified one company).
+ * A plain array, not a Set, so it survives JSON/type-only import boundaries
+ * identically on both sides — each caller builds its own Set from it.
+ */
+export const PERSONAL_EMAIL_DOMAINS: string[] = [
+  'gmail.com', 'googlemail.com',
+  'yahoo.com', 'yahoo.co.uk', 'ymail.com',
+  'outlook.com', 'hotmail.com', 'live.com', 'msn.com',
+  'icloud.com', 'me.com', 'mac.com',
+  'aol.com', 'protonmail.com', 'proton.me',
+  'gmx.com', 'mail.com', 'yandex.com',
+];
+
+/** An existing, active tenant whose staff already use the same (non-personal)
+ *  email domain as the address just typed into step 1 — the auto-join-by-
+ *  domain candidate. */
+export interface MatchedTenant {
+  id: string;
+  name: string;
+  subdomain: string;
+}
+
 export interface EmailCheckResponse {
   available: boolean;
+  /** Present only when `available` is true and the domain matches an
+   *  existing tenant's real staff — the "request to join" prompt reads this. */
+  matched_tenant?: MatchedTenant | null;
+}
+
+/** POST /v1/onboarding/request-join — bypasses company/package/domain/
+ *  payment/configuration entirely; the requester is joining a workspace
+ *  that's already been through all of that, not creating a new one. */
+export interface JoinRequestInput {
+  name: string;
+  email: string;
+  password: string;
+  /** The tenant the requester believes they're joining, from the
+   *  check-email response — the backend independently re-derives the match
+   *  from the email's own domain and only ever acts on its own answer. */
+  tenant_id: string;
+}
+
+export interface JoinRequestSubmitResponse {
+  success: true;
+  tenant_name: string;
 }

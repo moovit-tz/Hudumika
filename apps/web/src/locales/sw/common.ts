@@ -34,7 +34,7 @@ export default
     "bliss": "Msaada na Huduma kwa Wateja",
     "nexushr": "Watu na Rasilimali Watu",
     "onesite": "Wavuti na CMS",
-    "oneid": "Utambulisho na Ufikiaji",
+    "ondi": "Utambulisho na Ufikiaji",
     "tracking": "Ufuatiliaji wa Magari",
     "cloud": "Uhifadhi wa Faili",
     "ai": "Akili Bandia",
@@ -67,7 +67,7 @@ export default
   "login": {
     "createAccount": "Fungua akaunti",
     "emailAddressLabel": "Barua pepe",
-    "emailPlaceholder": "Barua pepe au simu",
+    "emailPlaceholder": "you@company.com",
     "passwordLabel": "Nenosiri",
     "passwordPlaceholder": "Weka nenosiri lako",
     "forgotPassword": "Umesahau nenosiri?",

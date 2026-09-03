@@ -2,7 +2,7 @@ import { withTenant } from '../db/client.js';
 
 /**
  * Internal workplace-reliability signal — the real, buildable slice of the
- * OneID vision docs' "credit-scoring engine." This is deliberately NOT a
+ * Ondi vision docs' "credit-scoring engine." This is deliberately NOT a
  * credit-bureau score: trust-score.ts's own header comment already
  * documents that no lending/loan feature exists anywhere in this platform,
  * and that remains true here — nothing below predicts loan repayment or

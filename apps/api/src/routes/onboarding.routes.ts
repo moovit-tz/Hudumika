@@ -1,13 +1,22 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import type { SubdomainCheckResponse, EmailCheckResponse } from '@hudumika/types';
+import type { SubdomainCheckResponse, EmailCheckResponse, JoinRequestInput, JoinRequestSubmitResponse } from '@hudumika/types';
 import {
   OnboardingService,
   OnboardingError,
   validateSubdomain,
   isSubdomainAvailable,
   isEmailAvailable,
+  findTenantByEmailDomain,
+  createJoinRequest,
 } from '../services/onboarding.service.js';
+
+const joinRequestSchema = z.object({
+  name: z.string().trim().min(1).max(200),
+  email: z.string().trim().email().max(320),
+  password: z.string().min(8).max(200),
+  tenant_id: z.string().uuid(),
+});
 
 // The one genuinely public, unauthenticated route in this file that writes
 // real data (a whole new tenant) — the route previously only checked that a
@@ -76,9 +85,34 @@ export async function onboardingRoutes(fastify: FastifyInstance) {
     const { value } = request.query as { value?: string };
     if (!value) return reply.status(400).send({ error: 'value is required' });
 
-    const available = await isEmailAvailable(value.trim().toLowerCase());
-    const res: EmailCheckResponse = { available };
+    const email = value.trim().toLowerCase();
+    const available = await isEmailAvailable(email);
+    // Only worth resolving a domain match when the email itself is still
+    // free — an already-registered address gets the plain "taken" answer,
+    // not a join offer for an account it can't use anyway.
+    const matched_tenant = available ? await findTenantByEmailDomain(email) : null;
+    const res: EmailCheckResponse = { available, matched_tenant };
     return res;
+  });
+
+  /**
+   * POST /v1/onboarding/request-join
+   * Public — auto-join-by-domain's request side (380_tenant_join_requests.sql).
+   * Queues a review request for the matched tenant's admins; never creates a
+   * live session or a `users` row on its own.
+   */
+  fastify.post('/request-join', async (request, reply) => {
+    const input: JoinRequestInput = joinRequestSchema.parse(request.body);
+    try {
+      const result: JoinRequestSubmitResponse = await createJoinRequest(input);
+      return reply.status(201).send(result);
+    } catch (err) {
+      if (err instanceof OnboardingError) {
+        return reply.status(err.status).send({ error: err.message });
+      }
+      fastify.log.error(err);
+      return reply.status(500).send({ error: 'Failed to submit join request' });
+    }
   });
 
   /**

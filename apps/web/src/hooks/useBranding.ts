@@ -2,6 +2,15 @@ import { useState, useEffect } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { setTitleSuffix } from '../lib/seo.js';
 import { readDesignSystemVersion } from './useDesignSystem.js';
+import { useAuth } from './useAuth.js';
+
+/** Hudumika's own brand marks and accent, served statically from
+ *  apps/web/public/brand. These are the defaults every branding getter falls
+ *  back to — never a placeholder, always the real thing. */
+export const BRAND_LOGO_LIGHT = '/brand/hudumika-logo-light.png';
+export const BRAND_LOGO_DARK  = '/brand/hudumika-logo-dark.png';
+export const BRAND_ICON       = '/brand/hudumika-icon.png';
+export const BRAND_ACCENT     = '#0b1e3a';
 
 export interface BrandingState {
   platformName:  string;
@@ -42,23 +51,44 @@ export function applyWorkspaceBranding(state: BrandingState): void {
   }
 }
 
-function readBranding(): BrandingState {
+/**
+ * platformOnly: skips every `hudumika_tenant_*` lookup for identity fields
+ * (name/logo/favicon) — used by every pre-auth page (see PLATFORM-ONLY
+ * BRANDING RULE below). Without this flag, a currently-valid tenant session
+ * (or a tenant-branding key that outlived one — see login_pages hudumika_
+ * tenant_* logout-cleanup fix) makes the *shared* sign-in/sign-up/forgot-
+ * password/etc. surface show one specific company's logo instead of the
+ * platform's own — wrong even when the cleanup is working correctly,
+ * because a still-logged-in tenant admin visiting /auth/forgot-password
+ * has a perfectly valid session, and would see their own logo there by
+ * design if this flag didn't exist.
+ */
+function readBranding(platformOnly = false): BrandingState {
   return {
-    // A tenant's workspace name wins inside their workspace; the platform name
-    // remains the fallback and still owns the login screen, which is shared.
-    platformName:    localStorage.getItem('hudumika_tenant_name')
+    // A tenant's workspace name wins inside their workspace; the platform
+    // name remains the fallback there. Pre-auth pages never see the tenant
+    // value at all — see the platformOnly comment above.
+    platformName:    (platformOnly ? null : localStorage.getItem('hudumika_tenant_name'))
                      ?? localStorage.getItem('hudumika_platform_name')    ?? 'Hudumika',
     platformTagline: localStorage.getItem('hudumika_platform_tagline') ?? 'Smart Business, Simplified.',
-    logoLight:       localStorage.getItem('hudumika_tenant_logo_light')
-                     ?? localStorage.getItem('hudumika_brand_logo_light') ?? '',
-    logoDark:        localStorage.getItem('hudumika_tenant_logo_dark')
-                     ?? localStorage.getItem('hudumika_brand_logo_dark')  ?? '',
-    favicon:         localStorage.getItem('hudumika_tenant_favicon')
-                     ?? localStorage.getItem('hudumika_brand_favicon')    ?? '',
+    // The real brand marks ship as static assets so a cold load — an
+    // incognito window, a cleared cache, an unreachable API — paints
+    // Hudumika's own logo immediately, instead of nothing (or, as it used
+    // to, a stand-in built from Google's four brand colours). The stored
+    // branding still wins the moment it arrives, so a tenant/SuperAdmin
+    // logo is unaffected — for a page not marked platformOnly, that is.
+    logoLight:       (platformOnly ? null : localStorage.getItem('hudumika_tenant_logo_light'))
+                     ?? localStorage.getItem('hudumika_brand_logo_light') ?? BRAND_LOGO_LIGHT,
+    logoDark:        (platformOnly ? null : localStorage.getItem('hudumika_tenant_logo_dark'))
+                     ?? localStorage.getItem('hudumika_brand_logo_dark')  ?? BRAND_LOGO_DARK,
+    favicon:         (platformOnly ? null : localStorage.getItem('hudumika_tenant_favicon'))
+                     ?? localStorage.getItem('hudumika_brand_favicon')    ?? BRAND_ICON,
     loginHeadline:   localStorage.getItem('hudumika_login_headline')   ?? 'Welcome back',
-    loginSubtext:    localStorage.getItem('hudumika_login_subtext')    ?? 'Sign in to your workspace',
+    loginSubtext:    localStorage.getItem('hudumika_login_subtext')    ?? 'Sign in to your Hudumika workspace',
     loginBgStyle:    (localStorage.getItem('hudumika_login_bg') as 'navy'|'teal'|'gradient'|'white') ?? 'white',
-    accentColor:     localStorage.getItem('hudumika_email_accent')     ?? '#0d7a6b',
+    // Hudumika navy — the platform's real accent, and what the stored
+    // branding record holds. Was a teal (#0d7a6b) that matched nothing.
+    accentColor:     localStorage.getItem('hudumika_email_accent')     ?? BRAND_ACCENT,
     supportEmail:    localStorage.getItem('hudumika_support_email')    ?? '',
     /**
      * Resolution order: design system v2's ("Mellon" in the SuperAdmin UI —
@@ -125,14 +155,40 @@ export async function pushTenantBranding(
   window.dispatchEvent(new Event('hudumika-brand-updated'));
 }
 
-export function useBranding(): BrandingState {
-  const [state, setState] = useState<BrandingState>(readBranding);
+/**
+ * ══════════════════════════════════════════════════════════════════════
+ * PLATFORM-ONLY BRANDING RULE — every pre-auth page (Login.tsx's Login and
+ * AuthCard, OndiLogin.tsx, OnboardingWizard.tsx, and any new sign-in/sign-
+ * up/forgot-password/reset/accept-invite/verify page added later) must call
+ * `useBranding(true)`, never bare `useBranding()`. These pages are the
+ * platform's own shared front door — reachable before anyone has identified
+ * a workspace, and by someone who *is* mid-session in one — so they show
+ * Hudumika's own logo/name (SuperAdmin's platform branding, or the real
+ * static BRAND_LOGO_* / BRAND_ICON assets if even that's unset), never a
+ * tenant's own uploaded logo. A page inside the authenticated workspace
+ * shell (where a tenant's own white-label branding is the *correct*, wanted
+ * behavior) is the only place bare `useBranding()` belongs.
+ * ══════════════════════════════════════════════════════════════════════
+ *
+ * SUPER_ADMIN is a platform operator, not a member of any one company (see
+ * UserRole's own "Platform operator — all tenants" comment) — its user row
+ * still carries a real tenant_id for referential-integrity reasons, but that
+ * tenant's white-labeling is not this session's identity. So a SUPER_ADMIN
+ * session is treated as platformOnly everywhere, regardless of what each
+ * call site passes, the same way every pre-auth page already is — this is
+ * what stops a SuperAdmin's own hub header/favicon from showing whatever
+ * logo the one tenant their account happens to sit under has uploaded.
+ */
+export function useBranding(platformOnly = false): BrandingState {
+  const { user } = useAuth();
+  const effectivePlatformOnly = platformOnly || user?.role === 'SUPER_ADMIN';
+  const [state, setState] = useState<BrandingState>(() => readBranding(effectivePlatformOnly));
 
   useEffect(() => {
     applyWorkspaceBranding(state);
-    
+
     const handler = () => {
-      const newState = readBranding();
+      const newState = readBranding(effectivePlatformOnly);
       setState(newState);
       applyWorkspaceBranding(newState);
     };
@@ -175,38 +231,49 @@ export function useBranding(): BrandingState {
     }).catch(() => {});
 
     /**
-     * The workspace's own branding, layered on top.
+     * The workspace's own branding, layered on top — skipped entirely for a
+     * platformOnly caller (every pre-auth page). Not just "fetched but
+     * ignored": a page that has declared it will never show tenant
+     * branding has no reason to hold an authenticated session's identity
+     * fields in memory at all, and skipping the call outright means a
+     * still-logged-in tenant admin's browser never even writes
+     * hudumika_tenant_* here from this page — nothing for a later
+     * *non*-platformOnly page in the same tab to accidentally inherit
+     * stale-but-technically-fresh.
      *
      * Written to its own key namespace rather than over the platform's, so the
      * two stay distinguishable: clearing a tenant logo falls back to the
      * platform's rather than to nothing. Fetched separately because the platform
      * call above is public and this one needs a session.
      */
-    apiFetch('/v1/settings/branding').then((t: any) => {
-      if (!t || typeof t !== 'object') return;
-      const put = (key: string, value: unknown) => {
-        if (value) localStorage.setItem(key, String(value));
-        else localStorage.removeItem(key);
-      };
-      put('hudumika_tenant_name', t.workspaceName);
-      put('hudumika_tenant_logo_light', t.logoLight);
-      put('hudumika_tenant_logo_dark', t.logoDark);
-      put('hudumika_tenant_favicon', t.favicon);
-      put('hudumika_tenant_accent', t.accentColor);
-      for (const [appId, cfg] of Object.entries((t.apps ?? {}) as Record<string, { color?: string }>)) {
-        put(`hudumika_tenant_app_color_${appId}`, cfg?.color);
-      }
-      handler();
-    }).catch(() => {
-      // A workspace with no branding of its own is the ordinary case, and an
-      // unreachable API must not blank the platform's.
-    });
+    if (!effectivePlatformOnly) {
+      apiFetch('/v1/settings/branding').then((t: any) => {
+        if (!t || typeof t !== 'object') return;
+        const put = (key: string, value: unknown) => {
+          if (value) localStorage.setItem(key, String(value));
+          else localStorage.removeItem(key);
+        };
+        put('hudumika_tenant_name', t.workspaceName);
+        put('hudumika_tenant_logo_light', t.logoLight);
+        put('hudumika_tenant_logo_dark', t.logoDark);
+        put('hudumika_tenant_favicon', t.favicon);
+        put('hudumika_tenant_accent', t.accentColor);
+        for (const [appId, cfg] of Object.entries((t.apps ?? {}) as Record<string, { color?: string }>)) {
+          put(`hudumika_tenant_app_color_${appId}`, cfg?.color);
+        }
+        handler();
+      }).catch(() => {
+        // A workspace with no branding of its own is the ordinary case, and an
+        // unreachable API must not blank the platform's.
+      });
+    }
 
     return () => {
       window.removeEventListener('hudumika-brand-updated', handler);
       window.removeEventListener('storage', storageHandler);
     };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [effectivePlatformOnly]);
 
   return state;
 }

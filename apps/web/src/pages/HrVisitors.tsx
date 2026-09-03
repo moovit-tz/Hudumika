@@ -6,7 +6,7 @@
 // physical front-desk log isn't an authentication moment, so it never fit
 // Ondi's own "appears at the moment of authentication, almost nowhere else"
 // rule; this belongs with NexusHR's other people/records surfaces instead.
-// Backend endpoint kept as-is (/v1/oneid/org/visitors) — only the page/nav
+// Backend endpoint kept as-is (/v1/ondi/org/visitors) — only the page/nav
 // moved, not the API.
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { apiFetch } from '../lib/api.js';
@@ -38,7 +38,7 @@ export const HrVisitors: React.FC = () => {
   const staffCache = useRef<PickerItem[] | null>(null);
 
   const reload = useCallback(async () => {
-    try { setVisitors(await apiFetch('/v1/oneid/org/visitors')); } catch { setVisitors([]); }
+    try { setVisitors(await apiFetch('/v1/ondi/org/visitors')); } catch { setVisitors([]); }
   }, []);
   useEffect(() => { reload(); }, [reload]);
 
@@ -48,7 +48,7 @@ export const HrVisitors: React.FC = () => {
   // rather than standing up a new /search endpoint.
   const searchStaff = useCallback(async (query: string): Promise<PickerItem[]> => {
     if (!staffCache.current) {
-      const users = await apiFetch('/v1/oneid/users').catch(() => []);
+      const users = await apiFetch('/v1/ondi/users').catch(() => []);
       staffCache.current = users.map((u: any) => ({ id: u.id, label: u.name, sublabel: u.email }));
     }
     const q = query.trim().toLowerCase();
@@ -62,7 +62,7 @@ export const HrVisitors: React.FC = () => {
     if (!name.trim()) { showAlert('A name is required.'); return; }
     setSaving(true);
     try {
-      await apiFetch('/v1/oneid/org/visitors', {
+      await apiFetch('/v1/ondi/org/visitors', {
         method: 'POST',
         body: JSON.stringify({ name: name.trim(), company: company.trim() || undefined, purpose: purpose.trim() || undefined, host_user_id: host?.id }),
       });
@@ -72,7 +72,7 @@ export const HrVisitors: React.FC = () => {
   }
 
   async function checkOut(v: Visitor) {
-    try { await apiFetch(`/v1/oneid/org/visitors/${v.id}/check-out`, { method: 'POST' }); await reload(); }
+    try { await apiFetch(`/v1/ondi/org/visitors/${v.id}/check-out`, { method: 'POST' }); await reload(); }
     catch (err: any) { showAlert(err.message); }
   }
 

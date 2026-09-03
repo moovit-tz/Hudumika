@@ -15,7 +15,7 @@ export type AppId =
                  // declaring appId="onesite", so both apps resolved to one
                  // identity — same colour, same label, same entitlement — and
                  // Onsite appeared in neither the launcher nor the hub.
-  | 'oneid'      // Identity & Access
+  | 'ondi'       // Identity & Access
   | 'tracking'   // Vehicle GPS & Geospatial Tracking
   | 'cloud'      // File Storage
   | 'ai'         // AI Assistant
@@ -42,7 +42,7 @@ export type AppId =
 
 export const ALL_APP_IDS: AppId[] = [
   'clearos', 'finops', 'complyos', 'bliss',
-  'nexushr', 'onesite', 'onsite', 'oneid', 'tracking', 'cloud', 'ai', 'workspace', 'admin', 'email', 'crm', 'contacts', 'store',
+  'nexushr', 'onesite', 'onsite', 'ondi', 'tracking', 'cloud', 'ai', 'workspace', 'admin', 'email', 'crm', 'contacts', 'store',
   'calendar', 'tasks', 'notes', 'sign', 'sms',
   'demurrage', 'cargotracker', 'seal', 'inventory', 'studio', 'hudubi', 'petti', 'projects',
   // Internal tooling. Present so the app shell and design system can resolve it

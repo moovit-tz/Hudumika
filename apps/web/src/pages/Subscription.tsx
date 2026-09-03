@@ -3,8 +3,6 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.js';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
-import { AccountSecurityPanel } from '../components/AccountSecurityPanel.js';
-import { OrgVerificationPanel } from '../components/OrgVerificationPanel.js';
 import { apiFetch, apiDownload } from '../lib/api.js';
 import './Subscription.css';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
@@ -15,10 +13,11 @@ import { APP_META } from './Utilities.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import type { Addon } from '@hudumika/types';
+import { AreaSparkline } from '../components/MetricCard.js';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type SubTab = 'company' | 'billing' | 'payments' | 'security' | 'plans' | 'modules' | 'reports' | 'support';
+type SubTab = 'company' | 'billing' | 'payments' | 'plans' | 'modules' | 'reports' | 'support';
 type PlanKey = 'starter' | 'growth' | 'scale' | 'enterprise';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -324,8 +323,6 @@ function CompanyInfoTab({ tenant }: { tenant: any }) {
           </div>
         </Card>
 
-        {/* Business verification (KYB) — shared with Ondi's own "Business" mode */}
-        <OrgVerificationPanel />
       </div>
 
       {/* Right: plan summary + logo */}
@@ -1094,10 +1091,14 @@ function ReportsTab() {
   const usage = entitlements?.usage;
   const modulesOn = entitlements ? Object.values(entitlements.features).filter(Boolean).length : null;
 
+  const history = usage?.history ?? [];
+  // getUsageHistory zero-fills every month in range, so this is only ever
+  // empty/short while /v1/entitlements is still loading — never a real
+  // "less than a year old" tenant getting a fabricated flat line.
+  const hasHistory = history.length > 1;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      {/* Current-period usage — no historical activity log exists on the backend, so this
-          shows only the real current period rather than fabricating months of history. */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
         <Card>
           <div style={{ padding: '16px 18px' }}>
@@ -1124,6 +1125,22 @@ function ReportsTab() {
           </div>
         </Card>
       </div>
+
+      {hasHistory && (
+        <Card>
+          <div style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 20 }}>
+            <div style={{ flexShrink: 0 }}>
+              <div style={{ fontSize: 11, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Usage — last {history.length} months</div>
+              <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>
+                {history[0].period} <Icon name="arrowRight" size={10} style={{ verticalAlign: 'middle', margin: '0 3px' }} /> {history[history.length - 1].period}
+              </div>
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <AreaSparkline data={history.map(h => h.count)} color="var(--teal)" id="subscription-usage-history" />
+            </div>
+          </div>
+        </Card>
+      )}
     </div>
   );
 }
@@ -1363,11 +1380,15 @@ function SupportTab() {
 //   Main Component
 // ═══════════════════════════════════════════════════════════════════════════════
 
+// Security used to be a tab here (rendering AccountSecurityPanel — password/
+// 2FA/passkeys/sessions for the signed-in admin's own account). Removed: the
+// exact same panel already lives on /profile and Ondi's own Security
+// Settings page, and personal 2FA is not something anyone thinks to look
+// for inside Billing.
 const TABS: { id: SubTab; label: string; icon: IconName }[] = [
   { id: 'company',  label: 'Company Info', icon: 'building'    },
   { id: 'billing',  label: 'Billing',      icon: 'fileText'    },
   { id: 'payments', label: 'Payments',     icon: 'creditCard'  },
-  { id: 'security', label: 'Security',     icon: 'lock'        },
   { id: 'plans',    label: 'Plans',        icon: 'layers'      },
   { id: 'modules',  label: 'Modules',      icon: 'package'     },
   { id: 'reports',  label: 'Reports',      icon: 'barChart'    },
@@ -1454,7 +1475,6 @@ export const Subscription: React.FC = () => {
         {tab === 'company'  && <CompanyInfoTab tenant={tenant} />}
         {tab === 'billing'  && <BillingTab tenant={tenant} onNavigateTab={setTab} />}
         {tab === 'payments' && <PaymentsTab tenant={tenant} onNavigateTab={setTab} />}
-        {tab === 'security' && <AccountSecurityPanel />}
         {tab === 'plans'    && <PlansTab tenant={tenant} onReload={load} />}
         {tab === 'modules'  && <ModulesTab />}
         {tab === 'reports'  && <ReportsTab />}

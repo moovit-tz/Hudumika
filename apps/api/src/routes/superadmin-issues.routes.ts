@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import { sql } from 'kysely';
 import { dbPlatform } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 
@@ -61,6 +62,21 @@ export async function superAdminIssuesRoutes(fastify: FastifyInstance) {
           .selectFrom('platform_support_attachments as a')
           .select(eb2 => eb2.fn.countAll<string>().as('n'))
           .whereRef('a.ticket_id', '=', 't.id').as('attachment_count'))
+        // Same lens_links → lens_items lookup GET /issues/:id already does,
+        // pulled into the list too — without it the list has no way to show
+        // which rows already have a Lens card short of opening each one.
+        // lens_links.external_id is varchar (it stores a github issue number
+        // or a jira key just as often as a ticket id), t.id is uuid — an
+        // explicit cast, not whereRef, since Postgres won't compare the two
+        // types directly (unlike attachment_count's join two lines up, where
+        // both sides really are uuid).
+        .select(eb => eb
+          .selectFrom('lens_links as ll')
+          .innerJoin('lens_items as li', 'li.id', 'll.item_id')
+          .select('li.ref')
+          .where('ll.provider', '=', 'hudumika_issue')
+          .where(sql<boolean>`ll.external_id = t.id::text`)
+          .as('lens_ref'))
         .orderBy(sort as any, dir)
         .limit(limit).offset(offset)
         .execute(),
@@ -90,7 +106,7 @@ export async function superAdminIssuesRoutes(fastify: FastifyInstance) {
       .executeTakeFirst();
     if (!ticket) return reply.status(404).send({ error: 'Issue not found.' });
 
-    const [messages, attachments, record] = await Promise.all([
+    const [messages, attachments, record, lensLink] = await Promise.all([
       dbPlatform.selectFrom('platform_support_messages').selectAll()
         .where('ticket_id', '=', ticket.id).orderBy('created_at', 'asc').execute(),
       dbPlatform.selectFrom('platform_support_attachments')
@@ -99,8 +115,14 @@ export async function superAdminIssuesRoutes(fastify: FastifyInstance) {
       ticket.record_id
         ? dbPlatform.selectFrom('landed_cost_records').selectAll().where('id', '=', ticket.record_id).executeTakeFirst()
         : Promise.resolve(undefined),
+      dbPlatform.selectFrom('lens_links')
+        .innerJoin('lens_items', 'lens_items.id', 'lens_links.item_id')
+        .select(['lens_items.ref'])
+        .where('lens_links.provider', '=', 'hudumika_issue')
+        .where('lens_links.external_id', '=', ticket.id)
+        .executeTakeFirst(),
     ]);
-    return { ...ticket, messages, attachments, record: record ?? null };
+    return { ...ticket, messages, attachments, record: record ?? null, lens_ref: lensLink?.ref ?? null };
   });
 
   // ── PATCH /v1/superadmin/issues/:id ───────────────────────────────────────
@@ -148,6 +170,91 @@ export async function superAdminIssuesRoutes(fastify: FastifyInstance) {
       .where('id', '=', ticket.id).execute();
     reply.status(201);
     return message;
+  });
+
+  // ── POST /v1/superadmin/issues/:id/send-to-lens ───────────────────────────
+  // Milestone 1 of decomposing SuperAdmin's "god admin" pages into per-domain
+  // insights layers: this is the one genuinely clean mapping of the six —
+  // Lens (apps/api/src/routes/lens.routes.ts) is where the platform team
+  // actually tracks bugs, so a tenant-reported issue that needs real
+  // engineering work should live there, not only in this triage queue.
+  // One-directional (issue → card) on purpose — a Lens card's own status
+  // syncing back to auto-update the ticket is a separate, later decision.
+  // Idempotent: lens_links' (item_id, provider, external_id) unique index
+  // means a second click finds the existing card via the lookup below
+  // instead of creating a duplicate.
+  fastify.post<{ Params: { id: string } }>('/issues/:id/send-to-lens', async (request, reply) => {
+    const user = request.user as any;
+
+    const existing = await dbPlatform.selectFrom('lens_links')
+      .innerJoin('lens_items', 'lens_items.id', 'lens_links.item_id')
+      .select(['lens_items.ref'])
+      .where('lens_links.provider', '=', 'hudumika_issue')
+      .where('lens_links.external_id', '=', request.params.id)
+      .executeTakeFirst();
+    if (existing) return { ref: existing.ref, already_linked: true };
+
+    const ticket = await dbPlatform.selectFrom('platform_support_tickets as t')
+      .leftJoin('tenants as tn', 'tn.id', 't.tenant_id')
+      .leftJoin('users as u', 'u.id', 't.created_by')
+      .select(['t.id', 't.ref_number', 't.subject', 't.app', 't.priority', 't.category',
+                'tn.name as tenant_name', 'u.name as reporter_name', 'u.email as reporter_email'])
+      .where('t.id', '=', request.params.id).executeTakeFirst();
+    if (!ticket) return reply.status(404).send({ error: 'Issue not found.' });
+
+    const SEVERITY: Record<string, 'CRITICAL' | 'HIGH' | 'NORMAL' | 'LOW'> = {
+      URGENT: 'CRITICAL', HIGH: 'HIGH', NORMAL: 'NORMAL', LOW: 'LOW',
+    };
+
+    // Best-effort match against Lens's own area list (lens_areas.id is a
+    // lowercase app slug, e.g. 'clearos', 'nexushr') — falls back to 'admin'
+    // ("Tenant and SuperAdmin consoles") rather than leaving it unassigned,
+    // since every one of these did arrive through a SuperAdmin queue even
+    // when the reporting app doesn't have its own Lens area yet.
+    const appSlug = String(ticket.app ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const area = appSlug
+      ? await dbPlatform.selectFrom('lens_areas').select('id').where('id', '=', appSlug).executeTakeFirst()
+      : undefined;
+
+    const next = await dbPlatform.selectNoFrom(
+      eb => eb.fn<number>('nextval', [eb.val('lens_item_ref_seq')]).as('n')).executeTakeFirstOrThrow();
+
+    const item = await dbPlatform.insertInto('lens_items').values({
+      ref: `LENS-${next.n}`,
+      kind: 'BUG',
+      title: ticket.subject,
+      body: [
+        `Reported by ${ticket.reporter_name ?? ticket.reporter_email ?? 'unknown'} at ${ticket.tenant_name ?? 'unknown tenant'}.`,
+        ticket.category ? `Category: ${ticket.category}` : null,
+        ticket.app ? `App: ${ticket.app}` : null,
+        `Original ticket: ${ticket.ref_number}`,
+      ].filter(Boolean).join('\n'),
+      area_id: area?.id ?? 'admin',
+      severity: SEVERITY[ticket.priority] ?? 'NORMAL',
+      // A real user hit this and described it — not a reading of the code.
+      confidence: 'CONFIRMED',
+      created_by: user.sub ?? null,
+    }).returningAll().executeTakeFirstOrThrow();
+
+    await dbPlatform.insertInto('lens_events').values({
+      item_id: item.id, kind: 'created',
+      detail: `Sent from SuperAdmin issue ${ticket.ref_number}`,
+      actor_id: user.sub ?? null, actor_name: user.name ?? user.email ?? null,
+    }).execute();
+
+    await dbPlatform.insertInto('lens_links').values({
+      item_id: item.id,
+      provider: 'hudumika_issue',
+      kind: 'issue',
+      external_id: ticket.id,
+      url: `/admin/issues?ticket=${encodeURIComponent(ticket.ref_number)}`,
+      title: ticket.subject,
+      external_status: null,
+      synced_at: new Date(),
+    }).onConflict(oc => oc.columns(['item_id', 'provider', 'external_id']).doNothing()).execute();
+
+    reply.status(201);
+    return { ref: item.ref, already_linked: false };
   });
 
   // ── GET /v1/superadmin/calculations ───────────────────────────────────────

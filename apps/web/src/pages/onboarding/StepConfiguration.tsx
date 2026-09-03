@@ -1,14 +1,16 @@
-import React, { useState } from 'react';
+import React from 'react';
 import type { StepProps } from './types.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
 
 const TIMEZONES = ['Africa/Dar_es_Salaam', 'Africa/Nairobi', 'Africa/Kampala', 'Africa/Kigali', 'Africa/Lusaka'];
 const CURRENCIES = ['TZS', 'KES', 'UGX', 'RWF', 'ZMW', 'USD'];
 
-export const StepConfiguration: React.FC<StepProps> = ({ draft, update, onNext, onBack, packages, submitting, submitError }) => {
-  const [localErr, setLocalErr] = useState<string | null>(null);
-  const error = localErr ?? submitError ?? null;
-
+// submitError isn't read here — it's already shown as a real banner at the
+// top of the wizard card (OnboardingWizard.tsx). It's a whole-submission
+// failure (the POST /v1/onboarding/complete call), not something specific
+// to this step, so this step used to render it a second time under the
+// Headquarters-city field as if it were that field's own validation error.
+export const StepConfiguration: React.FC<StepProps> = ({ draft, update, onNext, onBack, packages, submitting }) => {
   const pkg = packages.find(p => p.code === draft.package_code);
   const price = pkg ? (draft.billing_cycle === 'annual' ? pkg.annual_price : pkg.monthly_price) : null;
   const maskedCard = draft.payment.method === 'card' && draft.payment.card_number
@@ -17,10 +19,16 @@ export const StepConfiguration: React.FC<StepProps> = ({ draft, update, onNext, 
 
   const handleSubmit = (ev: React.FormEvent) => {
     ev.preventDefault();
-    if (!draft.hq_city.trim()) { setLocalErr('HQ city is required'); return; }
-    setLocalErr(null);
     // The wizard shell owns the actual API call (POST /v1/onboarding/complete)
     // and login — for this last step, onNext() triggers the real submit.
+    // hq_city/hq_country are genuinely optional on the backend
+    // (OnboardingCompleteInput.configuration — packages/types/src/
+    // onboarding.ts) and settable later from workspace settings; this used
+    // to hard-block on an empty city, which combined with the field's own
+    // "Dar es Salaam" placeholder (easy to mistake for a real filled value
+    // rather than a hint) meant a visitor could reach the final review
+    // screen — payment details entered, workspace name already reserved —
+    // and be stuck unable to finish for a field the account doesn't need.
     onNext();
   };
 
@@ -53,10 +61,9 @@ export const StepConfiguration: React.FC<StepProps> = ({ draft, update, onNext, 
           type="text"
           placeholder="Dar es Salaam"
           value={draft.hq_city}
-          onChange={e => { update({ hq_city: e.target.value }); setLocalErr(null); }}
-          className={`login-input${error ? ' login-input--error' : ''}`}
+          onChange={e => update({ hq_city: e.target.value })}
+          className="login-input"
         />
-        {error && <span className="login-field-err">{error}</span>}
       </div>
 
       <div className="ob-review">

@@ -16,6 +16,7 @@ import { recordAuthEvent } from '../lib/audit-chain.js';
 import { verifyMicrosoftIdToken } from '../lib/microsoft-oidc.js';
 import { computeTrustScore } from '../lib/trust-score.js';
 import { assessRisk } from '../lib/risk-engine.js';
+import { createJoinRequestForFederatedIdentity } from '../services/onboarding.service.js';
 import type { SafeUser, JWTPayload } from '@hudumika/types';
 
 /**
@@ -56,8 +57,13 @@ const magicLinkRequestSchema = z.object({ email: z.string().trim().email().max(3
 const magicLinkVerifySchema = z.object({ token: z.string().trim().min(32).max(128), totp: z.string().trim().length(6).optional() });
 const passkeyOptionsSchema = z.object({ email: z.string().trim().email().max(320) });
 const passkeyVerifySchema = z.object({ email: z.string().trim().email().max(320), response: z.any() });
-const googleVerifySchema = z.object({ credential: z.string().trim().min(1).max(4000) });
-const microsoftVerifySchema = z.object({ credential: z.string().trim().min(1).max(4000) });
+// allowJoinRequest: only OndiLogin.tsx's own Google/Microsoft buttons set
+// this — the plain password Login page's Google tab (same credential flow,
+// same endpoint) sends neither, and stays exactly the login-only surface it
+// always was. See createJoinRequestForFederatedIdentity's own header for
+// what "join request" means here (never a silent tenant creation).
+const googleVerifySchema = z.object({ credential: z.string().trim().min(1).max(4000), allowJoinRequest: z.boolean().optional() });
+const microsoftVerifySchema = z.object({ credential: z.string().trim().min(1).max(4000), allowJoinRequest: z.boolean().optional() });
 
 const OTP_TTL_SECONDS = 5 * 60;
 const OTP_MAX_ATTEMPTS = 5;
@@ -104,6 +110,48 @@ async function issueSessionFor(fastify: FastifyInstance, reply: any, user: any, 
   return { ...tokens, user: buildSafeUser(user) };
 }
 
+const PLATFORM_SETTINGS_ID = '00000000-0000-0000-0000-000000000000';
+
+async function readPlatformSettings(): Promise<any> {
+  const row = await dbPlatform.selectFrom('tenant_settings').select('settings')
+    .where('tenant_id', '=', PLATFORM_SETTINGS_ID).executeTakeFirst();
+  return row ? (typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings) : {};
+}
+
+/**
+ * The social-sign-in client IDs, resolved once for every route that needs
+ * them. SuperAdmin's stored value (Platform Settings → Ondi SSO) wins; the
+ * env var stays as the deployment-level fallback so an existing install
+ * keeps working untouched.
+ *
+ * Deliberately one helper rather than each route reading its own source:
+ * /config decides whether the button renders at all, while /google/verify
+ * checks the returned token's `aud` against the same ID. If those two ever
+ * read different places, the button appears and then every sign-in through
+ * it fails with "Invalid Google credential" — which is exactly the class of
+ * bug that hid this feature in the first place (the admin UI wrote one
+ * store, the login page read another).
+ *
+ * A stored ID is trimmed, and stripped of the surrounding quotes a paste
+ * out of a JSON credentials file leaves behind — a client_id Google will
+ * reject for a reason nothing in the UI would ever surface.
+ */
+function cleanClientId(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim().replace(/^["']|["']$/g, '').trim();
+  return trimmed || null;
+}
+
+async function resolveOAuthClientIds(): Promise<{ google: string | null; microsoft: string | null; settings: any }> {
+  const settings = await readPlatformSettings();
+  const sso = settings?.ondiSso ?? {};
+  return {
+    google:    cleanClientId(sso.googleClientId)    ?? cleanClientId(env.GOOGLE_OAUTH_CLIENT_ID),
+    microsoft: cleanClientId(sso.microsoftClientId) ?? cleanClientId(env.MICROSOFT_OAUTH_CLIENT_ID),
+    settings,
+  };
+}
+
 export async function ondiAuthRoutes(fastify: FastifyInstance) {
   /**
    * GET /v1/ondi/auth/config
@@ -126,12 +174,10 @@ export async function ondiAuthRoutes(fastify: FastifyInstance) {
    * path, only changes which one a visitor sees first.
    */
   fastify.get('/config', async () => {
-    const row = await dbPlatform.selectFrom('tenant_settings').select('settings')
-      .where('tenant_id', '=', '00000000-0000-0000-0000-000000000000').executeTakeFirst();
-    const settings = row ? (typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings) : {};
+    const { google, microsoft, settings } = await resolveOAuthClientIds();
     return {
-      google_client_id: env.GOOGLE_OAUTH_CLIENT_ID || null,
-      microsoft_client_id: env.MICROSOFT_OAUTH_CLIENT_ID || null,
+      google_client_id: google,
+      microsoft_client_id: microsoft,
       sso_enabled: !!settings?.ondiSso?.enabled,
     };
   });
@@ -162,7 +208,7 @@ export async function ondiAuthRoutes(fastify: FastifyInstance) {
     const result = await SmsService.sendNow(user.tenant_id, user.id, {
       to: phone,
       body: `${code} is your Hudumika sign-in code. It expires in 5 minutes. Never share this code.`,
-      sourceApp: 'oneid',
+      sourceApp: 'ondi',
     });
     if (!result.success) {
       return reply.status(502).send({ error: result.error || 'Could not send the SMS code. Try again shortly.' });
@@ -454,14 +500,16 @@ export async function ondiAuthRoutes(fastify: FastifyInstance) {
 
   /**
    * POST /v1/ondi/auth/google/verify
-   * Login-only, not registration — mirrors /totp/verify's constraint: the
-   * Google email must already match an active users row (see M1's own note
-   * on why self-service registration is out of scope until there's a real
-   * tenant-creation story to attach it to).
+   * Login by default — mirrors /totp/verify's constraint: the Google email
+   * must already match an active users row. With allowJoinRequest (Ondi's
+   * own Google button only), an email with no matching user but a domain
+   * match against a real existing tenant gets queued as a join request
+   * instead of a bare 404 — see createJoinRequestForFederatedIdentity.
    */
   fastify.post('/google/verify', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (request, reply) => {
-    const { credential } = googleVerifySchema.parse(request.body);
-    if (!env.GOOGLE_OAUTH_CLIENT_ID) {
+    const { credential, allowJoinRequest } = googleVerifySchema.parse(request.body);
+    const { google: googleClientId } = await resolveOAuthClientIds();
+    if (!googleClientId) {
       return reply.status(503).send({ error: 'Google sign-in is not configured for this platform yet.' });
     }
 
@@ -469,14 +517,23 @@ export async function ondiAuthRoutes(fastify: FastifyInstance) {
     if (!res.ok) return reply.status(401).send({ error: 'Invalid Google credential.' });
     const data: any = await res.json().catch(() => ({}));
 
-    if (data.aud !== env.GOOGLE_OAUTH_CLIENT_ID) return reply.status(401).send({ error: 'Invalid Google credential.' });
+    if (data.aud !== googleClientId) return reply.status(401).send({ error: 'Invalid Google credential.' });
     if (data.email_verified !== 'true' && data.email_verified !== true) {
       return reply.status(401).send({ error: 'Your Google account email is not verified.' });
     }
 
     const user = await dbPlatform.selectFrom('users').selectAll()
       .where('email', '=', data.email).where('active', '=', true).executeTakeFirst();
-    if (!user) return reply.status(404).send({ error: 'No active account found for this Google email.' });
+    if (!user) {
+      if (allowJoinRequest) {
+        const joinResult = await createJoinRequestForFederatedIdentity(data.name || '', data.email);
+        if (joinResult) return reply.status(202).send({ join_request: joinResult });
+      }
+      return reply.status(404).send({
+        error: 'No active account found for this Google email.',
+        code: 'NO_MATCHING_WORKSPACE',
+      });
+    }
 
     await recordAuthEvent(user.tenant_id, user.id, 'google_login', { ip: request.ip, userAgent: String(request.headers['user-agent'] || '') });
     return issueSessionFor(fastify, reply, user, request.ip, String(request.headers['user-agent'] || ''));
@@ -484,20 +541,21 @@ export async function ondiAuthRoutes(fastify: FastifyInstance) {
 
   /**
    * POST /v1/ondi/auth/microsoft/verify
-   * Login-only, not registration — same constraint as /google/verify just
-   * above, for the same reason. `email` falls back to `preferred_username`
+   * Same login-first / join-request-with-allowJoinRequest shape as
+   * /google/verify above. `email` falls back to `preferred_username`
    * because Azure AD v2 id_tokens don't reliably populate a distinct
    * `email` claim for work/school accounts unless the tenant's directory
    * has one configured — `preferred_username` is the account's UPN, which
    * is email-shaped and present on every token this flow will see.
    */
   fastify.post('/microsoft/verify', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (request, reply) => {
-    const { credential } = microsoftVerifySchema.parse(request.body);
-    if (!env.MICROSOFT_OAUTH_CLIENT_ID) {
+    const { credential, allowJoinRequest } = microsoftVerifySchema.parse(request.body);
+    const { microsoft: microsoftClientId } = await resolveOAuthClientIds();
+    if (!microsoftClientId) {
       return reply.status(503).send({ error: 'Microsoft sign-in is not configured for this platform yet.' });
     }
 
-    const data = await verifyMicrosoftIdToken(credential, env.MICROSOFT_OAUTH_CLIENT_ID);
+    const data = await verifyMicrosoftIdToken(credential, microsoftClientId);
     if (!data) return reply.status(401).send({ error: 'Invalid Microsoft credential.' });
 
     const email = data.email || data.preferred_username;
@@ -505,7 +563,16 @@ export async function ondiAuthRoutes(fastify: FastifyInstance) {
 
     const user = await dbPlatform.selectFrom('users').selectAll()
       .where('email', '=', email).where('active', '=', true).executeTakeFirst();
-    if (!user) return reply.status(404).send({ error: 'No active account found for this Microsoft email.' });
+    if (!user) {
+      if (allowJoinRequest) {
+        const joinResult = await createJoinRequestForFederatedIdentity(data.name || '', email);
+        if (joinResult) return reply.status(202).send({ join_request: joinResult });
+      }
+      return reply.status(404).send({
+        error: 'No active account found for this Microsoft email.',
+        code: 'NO_MATCHING_WORKSPACE',
+      });
+    }
 
     await recordAuthEvent(user.tenant_id, user.id, 'microsoft_login', { ip: request.ip, userAgent: String(request.headers['user-agent'] || '') });
     return issueSessionFor(fastify, reply, user, request.ip, String(request.headers['user-agent'] || ''));

@@ -1,11 +1,15 @@
 import { useState, useEffect } from 'react';
 import { apiFetch } from '../lib/api.js';
+import type { TenantEntitlements, TenantUsage } from '@hudumika/types';
 
-export interface Entitlements {
-  features: Record<string, boolean>;
-  appStatus: Record<string, 'active' | 'maintenance'>;
-  usage: { used: number; limit: number | null; period: string } | null;
-}
+/** Re-exported under its long-established local name — every call site
+ *  already imports `Entitlements` from here. Now just an alias for the
+ *  canonical shared shape instead of an independently hand-typed copy that
+ *  had drifted from it (this one never knew about `usage.history` until
+ *  TenantEntitlements gained it). */
+export type Entitlements = TenantEntitlements;
+
+const EMPTY_USAGE: TenantUsage = { used: 0, limit: null, period: '', history: [] };
 
 let cache: Entitlements | null = null;
 let inflight: Promise<Entitlements> | null = null;
@@ -14,8 +18,11 @@ async function fetchEntitlements(): Promise<Entitlements> {
   if (cache) return cache;
   if (!inflight) {
     inflight = apiFetch('/v1/entitlements')
-      .then((r: any) => { cache = { features: r?.features || {}, appStatus: r?.appStatus || {}, usage: r?.usage || null }; return cache!; })
-      .catch(() => ({ features: {}, appStatus: {}, usage: null }))
+      .then((r: any) => {
+        cache = { features: r?.features || {}, appStatus: r?.appStatus || {}, usage: r?.usage || EMPTY_USAGE };
+        return cache!;
+      })
+      .catch(() => ({ features: {}, appStatus: {}, usage: EMPTY_USAGE }))
       .finally(() => { inflight = null; });
   }
   return inflight;

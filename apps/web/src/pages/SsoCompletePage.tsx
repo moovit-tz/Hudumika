@@ -9,7 +9,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.js';
-import { AuthBrand, AuthAlert } from './Login.js';
+import { AuthCard, AuthAlert } from './Login.js';
 
 export const SsoCompletePage: React.FC = () => {
   const { resumeSession } = useAuth();
@@ -24,18 +24,13 @@ export const SsoCompletePage: React.FC = () => {
   }, []);
 
   return (
-    <div className="auth-shell">
-      <AuthBrand />
-      <div className="auth-form-panel">
-        <div className="auth-form-wrap">
-          {failed ? (
-            <AuthAlert message="Your sign-in didn't come through. Try again from your company's sign-in page." />
-          ) : (
-            <p className="auth-form-sub">Signing you in…</p>
-          )}
-        </div>
-      </div>
-    </div>
+    <AuthCard>
+      {failed ? (
+        <AuthAlert message="Your sign-in didn't come through. Try again from your company's sign-in page." />
+      ) : (
+        <p className="auth-form-sub">Signing you in…</p>
+      )}
+    </AuthCard>
   );
 };
 

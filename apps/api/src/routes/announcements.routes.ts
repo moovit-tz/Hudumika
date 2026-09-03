@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { withTenant, dbPlatform } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
+import { requireRoleOrOrgPermission, ORG_PERMISSIONS } from '../lib/org-rbac.js';
 
 /**
  * Announcements for the header pill.
@@ -79,7 +80,12 @@ export async function announcementRoutes(fastify: FastifyInstance) {
  */
 export async function tenantAnnouncementRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
-  fastify.addHook('preHandler', requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'));
+  // MANAGER included alongside the platform-admin roles — Team.tsx's own
+  // frontend gate (AdminShell.tsx) already let MANAGER into the Notices
+  // tab; this route hadn't, so posting/editing a notice 403'd silently for
+  // a MANAGER until now. team.manage additionally lets a delegated
+  // non-manager in without making them a full MANAGER.
+  fastify.addHook('preHandler', requireRoleOrOrgPermission(ORG_PERMISSIONS.TEAM_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER'));
 
   fastify.get('/', async (request) => {
     const user = request.user;

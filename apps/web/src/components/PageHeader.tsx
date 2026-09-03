@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useLocale } from '../hooks/useLocale.js';
 
 /** A crumb is a bare label, or a label with an explicit destination when the
  *  one derived from the URL would be wrong. */
@@ -42,6 +43,17 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
     em = (words.length > 1 ? words.pop()! : title).toLowerCase();
     plain = words.join(' ');
   }
+
+  // The italic-serif accent (Cormorant Garamond) is a Latin-only device —
+  // Arabic and CJK type families carry no true italic, so the browser either
+  // fake-obliques an unrelated fallback face or just ignores font-style
+  // entirely, and the crafted two-tone signature quietly collapses into one
+  // flat weight. .ph-cjk keeps the *hierarchy* (still a weight jump) and the
+  // *brand thread* (still --teal) for these locales, just without the one
+  // device that was never going to render as designed. See the Title
+  // Treatment Audit for the full before/after.
+  const { language } = useLocale();
+  const nonLatin = language === 'ar' || language === 'zh';
   /**
    * Crumbs carry no path of their own — 153 call sites pass bare strings —
    * so a destination is derived from the URL: crumb i maps to the first i+1
@@ -86,7 +98,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
 
     {/* Title row */}
     <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-      <h1 className="page-header-title">
+      <h1 className={`page-header-title${nonLatin ? ' ph-cjk' : ''}`}>
         {plain} <em>{em}</em><span className="ph-dot">.</span>
       </h1>
       {actions && <div style={{ flexShrink: 0, minWidth: 0, maxWidth: '100%', paddingBottom: 6 }}>{actions}</div>}

@@ -1,10 +1,10 @@
-// ─── OneIdGroups.tsx — Ondi Enterprise · Groups ───────────────────
+// ─── OndiGroups.tsx — Ondi Enterprise · Groups ───────────────────
 // Ondi feature-gap pass, continued. The benchmark doc's own gap list flags
 // static-only group membership as "an explicitly documented follow-up" in
 // the fork's org-groups.ts — but that file, and the group concept itself,
 // only exist in the disconnected fork (services/ondi-api). The real
 // integrated system had no group concept at all before this: only
-// per-user custom-role grants (OneIdRoles.tsx). This is a group primitive
+// per-user custom-role grants (OndiRoles.tsx). This is a group primitive
 // built fresh on top of that existing role system — a group carries a
 // static or rule-based member list, and zero or more roles; being in the
 // group grants those roles, tracked separately from a direct grant so
@@ -42,7 +42,7 @@ function fmtDate(d: string): string {
   return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-export const OneIdGroups: React.FC = () => {
+export const OndiGroups: React.FC = () => {
   const [groups, setGroups] = useState<GroupSummary[] | null>(null);
   const [availableRoles, setAvailableRoles] = useState<AvailableRole[]>([]);
   const [detail, setDetail] = useState<Record<string, GroupDetail>>({});
@@ -65,10 +65,10 @@ export const OneIdGroups: React.FC = () => {
   const [rolePick, setRolePick] = useState<Record<string, string>>({});
 
   const reload = useCallback(async () => {
-    try { setGroups(await apiFetch('/v1/oneid/org/groups')); } catch { setGroups([]); }
-    try { setAvailableRoles(await apiFetch('/v1/oneid/org/roles/available')); } catch { setAvailableRoles([]); }
+    try { setGroups(await apiFetch('/v1/ondi/org/groups')); } catch { setGroups([]); }
+    try { setAvailableRoles(await apiFetch('/v1/ondi/org/roles/available')); } catch { setAvailableRoles([]); }
     try {
-      const users = await apiFetch('/v1/oneid/users');
+      const users = await apiFetch('/v1/ondi/users');
       staffCache.current = users.map((u: any) => ({ id: u.id, label: u.name, sublabel: u.email }));
       const roleSet: string[] = [...new Set<string>(users.map((u: any) => u.role as string))].sort();
       setKnownRoles(roleSet);
@@ -89,7 +89,7 @@ export const OneIdGroups: React.FC = () => {
     if (membershipType === 'dynamic' && !ruleValue) { showAlert('Pick a value for the rule.'); return; }
     setCreating(true);
     try {
-      await apiFetch('/v1/oneid/org/groups', {
+      await apiFetch('/v1/ondi/org/groups', {
         method: 'POST',
         body: JSON.stringify({
           name: name.trim(), description: description.trim() || undefined, membership_type: membershipType,
@@ -103,7 +103,7 @@ export const OneIdGroups: React.FC = () => {
 
   async function deleteGroup(g: GroupSummary) {
     if (!(await showConfirm(`Delete "${g.name}"? Anyone who holds a role only because of this group loses it.`, { variant: 'danger', confirmLabel: 'Delete' }))) return;
-    try { await apiFetch(`/v1/oneid/org/groups/${g.id}`, { method: 'DELETE' }); if (expandedId === g.id) setExpandedId(null); await reload(); }
+    try { await apiFetch(`/v1/ondi/org/groups/${g.id}`, { method: 'DELETE' }); if (expandedId === g.id) setExpandedId(null); await reload(); }
     catch (err: any) { showAlert(err.message); }
   }
 
@@ -111,7 +111,7 @@ export const OneIdGroups: React.FC = () => {
     if (expandedId === g.id) { setExpandedId(null); return; }
     setExpandedId(g.id);
     if (!detail[g.id]) {
-      try { const d = await apiFetch(`/v1/oneid/org/groups/${g.id}`); setDetail(prev => ({ ...prev, [g.id]: d })); }
+      try { const d = await apiFetch(`/v1/ondi/org/groups/${g.id}`); setDetail(prev => ({ ...prev, [g.id]: d })); }
       catch (err: any) { showAlert(err.message); }
     }
   }
@@ -119,7 +119,7 @@ export const OneIdGroups: React.FC = () => {
   async function refreshDetail(groupId: string) {
     try { setDetail(prev => ({ ...prev, [groupId]: prev[groupId] ? { ...prev[groupId] } : prev[groupId] })); } catch { /* noop */ }
     try {
-      const [d, list] = await Promise.all([apiFetch(`/v1/oneid/org/groups/${groupId}`), apiFetch('/v1/oneid/org/groups')]);
+      const [d, list] = await Promise.all([apiFetch(`/v1/ondi/org/groups/${groupId}`), apiFetch('/v1/ondi/org/groups')]);
       setDetail(prev => ({ ...prev, [groupId]: d }));
       setGroups(list);
     } catch { /* keep stale view rather than clearing it */ }
@@ -129,14 +129,14 @@ export const OneIdGroups: React.FC = () => {
     const picked = memberPick[groupId];
     if (!picked) { showAlert('Pick a colleague first.'); return; }
     try {
-      await apiFetch(`/v1/oneid/org/groups/${groupId}/members`, { method: 'POST', body: JSON.stringify({ user_id: picked.id }) });
+      await apiFetch(`/v1/ondi/org/groups/${groupId}/members`, { method: 'POST', body: JSON.stringify({ user_id: picked.id }) });
       setMemberPick(prev => ({ ...prev, [groupId]: null }));
       await refreshDetail(groupId);
     } catch (err: any) { showAlert(err.message); }
   }
 
   async function removeMember(groupId: string, userId: string) {
-    try { await apiFetch(`/v1/oneid/org/groups/${groupId}/members/${userId}`, { method: 'DELETE' }); await refreshDetail(groupId); }
+    try { await apiFetch(`/v1/ondi/org/groups/${groupId}/members/${userId}`, { method: 'DELETE' }); await refreshDetail(groupId); }
     catch (err: any) { showAlert(err.message); }
   }
 
@@ -144,21 +144,21 @@ export const OneIdGroups: React.FC = () => {
     const roleId = rolePick[groupId];
     if (!roleId) { showAlert('Pick a role first.'); return; }
     try {
-      await apiFetch(`/v1/oneid/org/groups/${groupId}/roles`, { method: 'POST', body: JSON.stringify({ role_id: roleId }) });
+      await apiFetch(`/v1/ondi/org/groups/${groupId}/roles`, { method: 'POST', body: JSON.stringify({ role_id: roleId }) });
       setRolePick(prev => ({ ...prev, [groupId]: '' }));
       await refreshDetail(groupId);
     } catch (err: any) { showAlert(err.message); }
   }
 
   async function detachRole(groupId: string, roleId: string) {
-    try { await apiFetch(`/v1/oneid/org/groups/${groupId}/roles/${roleId}`, { method: 'DELETE' }); await refreshDetail(groupId); }
+    try { await apiFetch(`/v1/ondi/org/groups/${groupId}/roles/${roleId}`, { method: 'DELETE' }); await refreshDetail(groupId); }
     catch (err: any) { showAlert(err.message); }
   }
 
   async function recalculate(groupId: string) {
     setRecalculating(groupId);
     try {
-      const res = await apiFetch(`/v1/oneid/org/groups/${groupId}/recalculate`, { method: 'POST' });
+      const res = await apiFetch(`/v1/ondi/org/groups/${groupId}/recalculate`, { method: 'POST' });
       await refreshDetail(groupId);
       showAlert(`Membership recalculated — ${res.member_count} member${res.member_count === 1 ? '' : 's'} now match.`, { variant: 'success', title: 'Recalculated' });
     } catch (err: any) { showAlert(err.message); } finally { setRecalculating(null); }
@@ -365,4 +365,4 @@ export const OneIdGroups: React.FC = () => {
   );
 };
 
-export default OneIdGroups;
+export default OndiGroups;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, createContext, useContext } from 'react';
+import React, { useState, useEffect, useRef, useCallback, createContext, useContext } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { Icon } from '../components/Icon.js';
@@ -14,10 +14,13 @@ import type { SupportedLocale } from '../i18n/index.js';
 import './Settings.css';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Badge } from '../components/ui/badge.js';
+import { FeatureToggleRow } from '../components/ui/list-item-row.js';
+import { SectionCard } from '../components/SectionCard.js';
 import { EntityPicker } from '../components/EntityPicker.js';
 import { Button } from '../components/ui/button.js';
 import { SignaturePad } from '../components/SignaturePad.js';
 import { showAlert } from '../lib/alert.js';
+import { UpgradeNotice } from '../components/UpgradeNotice.js';
 import { showConfirm } from '../lib/confirm.js';
 import { useEntitlements, resetEntitlementsCache } from '../hooks/useEntitlements.js';
 import { useAuth } from '../hooks/useAuth.js';
@@ -109,7 +112,12 @@ export const NAV: Array<{ group: string; icon: IconName; items: Array<{ key: str
   ]},
   { group: 'Developer', icon: 'key', items: [
     { key: 'developer-api',      label: 'API Keys',             icon: 'key'           },
-    { key: 'siem-export',        label: 'SIEM Export',          icon: 'activity'      },
+    // SIEM Export moved off this sidebar — it streams Ondi's own security
+    // audit chain (ondi_auth_events), so Ondi's own nav is where a security
+    // engineer configuring it actually looks, not tenant billing settings.
+    // The section itself (SiemExportSection below) didn't move — same
+    // /v1/settings-backed key, still reachable at ?s=siem-export — only the
+    // sidebar entry did. See OndiShell.tsx's Business nav.
   ]},
 ];
 
@@ -448,6 +456,10 @@ const SiemExportSection: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const hydratedExtra = useRef(false);
+  const entitlements = useEntitlements();
+  // undefined while loading — default to entitled so this doesn't flash an
+  // upgrade prompt before /v1/entitlements resolves.
+  const governanceEntitled = entitlements ? entitlements.features['ondi.governance'] !== false : true;
 
   useEffect(() => {
     if (hydratedExtra.current) return;
@@ -463,17 +475,26 @@ const SiemExportSection: React.FC = () => {
   return (
     <>
       <Card title="SIEM Export" desc="Send every Ondi security event (logins, KYC decisions, role grants, credential changes) to your own SIEM or log collector as a signed webhook, in real time.">
-        <ToggleRow label="Enable SIEM export" value={on} onChange={setOn} />
-        {on && <>
-          <Field label="Webhook URL" full hint="Ondi POSTs a JSON event here as it happens.">
-            <input className="input-field" type="url" placeholder="https://your-siem.example.com/ingest" value={f.webhookUrl} onChange={e => set('webhookUrl', e.target.value)} />
-          </Field>
-          <Field label="Signing Secret" full hint="Verify the X-Ondi-Signature header: HMAC-SHA256 of the raw request body, hex-encoded, using this secret.">
-            <input className="input-field" type="password" value={f.secret} onChange={e => set('secret', e.target.value)} />
-          </Field>
-        </>}
+        {!governanceEntitled ? (
+          <UpgradeNotice
+            title="Enterprise Identity & Governance"
+            message="SIEM/webhook export needs this add-on, alongside SAML SSO and time-boxed role grants."
+          />
+        ) : (
+          <>
+            <ToggleRow label="Enable SIEM export" value={on} onChange={setOn} />
+            {on && <>
+              <Field label="Webhook URL" full hint="Ondi POSTs a JSON event here as it happens.">
+                <input className="input-field" type="url" placeholder="https://your-siem.example.com/ingest" value={f.webhookUrl} onChange={e => set('webhookUrl', e.target.value)} />
+              </Field>
+              <Field label="Signing Secret" full hint="Verify the X-Ondi-Signature header: HMAC-SHA256 of the raw request body, hex-encoded, using this secret.">
+                <input className="input-field" type="password" value={f.secret} onChange={e => set('secret', e.target.value)} />
+              </Field>
+            </>}
+          </>
+        )}
       </Card>
-      <SaveRow saving={saving} saved={saved} onSave={handleSave} />
+      {governanceEntitled && <SaveRow saving={saving} saved={saved} onSave={handleSave} />}
     </>
   );
 };
@@ -1884,6 +1905,7 @@ const ModulesSection: React.FC = () => {
   const entitlements = useEntitlements();
   const [overrides, setOverrides] = useState<Record<string, boolean> | null>(null);
   const [moduleSaving, setModuleSaving] = useState<string | null>(null);
+  const [licenseAppId, setLicenseAppId] = useState<string | null>(null);
 
   useEffect(() => {
     apiFetch('/v1/settings').then(res => setOverrides(res.settings?.['enabled-apps'] || {})).catch(() => setOverrides({}));
@@ -1928,29 +1950,162 @@ const ModulesSection: React.FC = () => {
       {!entitlements || overrides === null ? (
         <p style={{ fontSize: 12.5, color: 'var(--ink3)' }}>Loading modules…</p>
       ) : (
-        <div className="s-mods-grid">
+        <SectionCard padded={false}>
           {moduleKeys.map(key => {
             const meta = APP_META[key];
             const on = overrides[key] ?? entitlements.features[key] ?? true;
             const maintenance = entitlements.appStatus[key] === 'maintenance';
             return (
-              <div key={key} className={`s-mod-card${on ? ' s-mod-card--on' : ''}`} style={{ opacity: maintenance ? 0.6 : 1 }}>
-                <div className={`s-mod-icon${on ? ' s-mod-icon--on' : ''}`}>
-                  <Icon name={meta.icon} size={20} strokeWidth={1.8} color={on ? 'var(--teal)' : 'var(--ink3)'} />
-                </div>
-                <div className="s-mod-body">
-                  <div className="s-mod-name">{meta.name}</div>
-                  <div className="s-mod-desc">{maintenance ? 'Under maintenance' : meta.desc}</div>
-                  <Toggle value={on} onChange={v => toggleModule(key, v)} disabled={!canManageModules || maintenance || moduleSaving === key} />
-                </div>
+              <div key={key} style={{ padding: '0 18px' }}>
+                <FeatureToggleRow
+                  icon={<Icon name={meta.icon} size={18} />}
+                  title={meta.name}
+                  description={maintenance ? 'Under maintenance' : meta.desc}
+                  checked={on}
+                  onCheckedChange={v => toggleModule(key, v)}
+                  disabled={!canManageModules || maintenance || moduleSaving === key}
+                  action={canManageModules && on && (
+                    <button type="button" onClick={() => setLicenseAppId(key)}
+                      style={{ background: 'none', border: 'none', color: 'var(--teal)', fontSize: 11.5, fontWeight: 600, cursor: 'pointer', padding: 0, textAlign: 'left' }}>
+                      Who has access
+                    </button>
+                  )}
+                />
               </div>
             );
           })}
-        </div>
+        </SectionCard>
+      )}
+      {licenseAppId && (
+        <AppLicensePanel appId={licenseAppId} appName={APP_META[licenseAppId]?.name ?? licenseAppId} onClose={() => setLicenseAppId(null)} />
       )}
     </div>
   );
 };
+
+/**
+ * Per-seat license assignment — narrows a tenant-enabled app to specific
+ * people. Off (the default) means every active user in the tenant can use
+ * the app, exactly as before this existed; nothing changes until an admin
+ * opts an app into restricted mode here.
+ */
+function AppLicensePanel({ appId, appName, onClose }: { appId: string; appName: string; onClose: () => void }) {
+  const [restricted, setRestricted] = useState(false);
+  const [grants, setGrants] = useState<{ user_id: string; user_name: string; user_email: string }[]>([]);
+  const [staff, setStaff] = useState<{ id: string; name: string; email: string }[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [addUserId, setAddUserId] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const load = useCallback(() => {
+    setLoading(true);
+    Promise.all([
+      apiFetch('/v1/settings/app-licenses'),
+      apiFetch('/v1/hr/staff').catch(() => []),
+    ]).then(([lic, s]) => {
+      setRestricted(!!lic.restricted?.[appId]);
+      setGrants((lic.grants ?? []).filter((g: any) => g.app_id === appId).map((g: any) => ({ user_id: g.user_id, user_name: g.user_name, user_email: g.user_email })));
+      setStaff(Array.isArray(s) ? s : (s?.data ?? []));
+    }).finally(() => setLoading(false));
+  }, [appId]);
+  useEffect(() => { load(); }, [load]);
+
+  async function toggleRestricted(next: boolean) {
+    setSaving(true);
+    try {
+      await apiFetch(`/v1/settings/app-licenses/${appId}`, { method: 'PATCH', body: JSON.stringify({ restricted: next }) });
+      setRestricted(next);
+    } catch (err: any) {
+      showAlert(err.message || 'Could not update that setting.', { variant: 'error' });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function addPerson() {
+    if (!addUserId) return;
+    setSaving(true);
+    try {
+      await apiFetch(`/v1/settings/app-licenses/${appId}/grant`, { method: 'POST', body: JSON.stringify({ user_id: addUserId }) });
+      setAddUserId('');
+      load();
+    } catch (err: any) {
+      showAlert(err.message || 'Could not grant access.', { variant: 'error' });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function removePerson(userId: string) {
+    setSaving(true);
+    try {
+      await apiFetch(`/v1/settings/app-licenses/${appId}/grant/${userId}`, { method: 'DELETE' });
+      load();
+    } catch (err: any) {
+      showAlert(err.message || 'Could not remove access.', { variant: 'error' });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const unlicensedStaff = staff.filter(s => !grants.some(g => g.user_id === s.id));
+
+  return (
+    <div style={{ marginTop: 16, border: '1px solid var(--border)', borderRadius: 10, padding: 18, background: 'var(--white)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{appName} — who has access</div>
+          <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>By default every active person in the workspace can open an enabled app.</div>
+        </div>
+        <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}><Icon name="x" size={16} /></button>
+      </div>
+
+      {loading ? (
+        <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>Loading…</div>
+      ) : (
+        <>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', marginBottom: 14 }}>
+            <input type="checkbox" checked={restricted} disabled={saving} onChange={e => toggleRestricted(e.target.checked)} style={{ cursor: 'pointer' }} />
+            <span style={{ fontSize: 13, color: 'var(--ink)' }}>Restrict {appName} to specific people</span>
+          </label>
+
+          {restricted && (
+            <>
+              <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                <Select value={addUserId} onValueChange={setAddUserId}>
+                  <SelectTrigger style={{ maxWidth: 300 }}><SelectValue placeholder="Add a person…" /></SelectTrigger>
+                  <SelectContent>
+                    {unlicensedStaff.map(s => <SelectItem key={s.id} value={s.id}>{s.name} — {s.email}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <Button size="sm" onClick={addPerson} disabled={!addUserId || saving}>Grant access</Button>
+              </div>
+
+              {grants.length === 0 ? (
+                <div style={{ fontSize: 12.5, color: 'var(--ink3)', padding: '12px 0' }}>Nobody has been granted access yet — this app is invisible to everyone until you add someone.</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {grants.map(g => (
+                    <div key={g.user_id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: 'var(--bg)', borderRadius: 8 }}>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{g.user_name}</div>
+                        <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>{g.user_email}</div>
+                      </div>
+                      <button type="button" onClick={() => removePerson(g.user_id)} disabled={saving}
+                        style={{ background: 'none', border: 'none', color: 'var(--red)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
 
 // -- section: Notifications --------------------------------------------------
 const NotificationsSection: React.FC = () => {
@@ -2049,7 +2204,7 @@ const FreightSection: React.FC = () => {
 
 // -- API Keys (developer / partner access) -----------------------------------
 const API_SCOPE_OPTIONS = [
-  'ai', 'clearos', 'cloud', 'complyos', 'contacts', 'email', 'finops', 'oneid', 'nexushr', 'tracking',
+  'ai', 'clearos', 'cloud', 'complyos', 'contacts', 'email', 'finops', 'ondi', 'nexushr', 'tracking',
 ];
 
 interface ApiKeyRow {

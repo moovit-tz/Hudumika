@@ -1,8 +1,8 @@
-// ─── OneIdOrgTrust.tsx — Ondi Enterprise · Trust ──────────────────
+// ─── OndiOrgTrust.tsx — Ondi Enterprise · Trust ──────────────────
 // An aggregate over the same per-user Trust Score every personal profile
 // already shows (trust-score.ts's computeTrustScore) — not a second
 // scoring model, see computeOrgTrust()'s own header comment. Backed by
-// GET /v1/oneid/org/trust, gated by the new org_trust.view permission.
+// GET /v1/ondi/org/trust, gated by the new org_trust.view permission.
 import React, { useEffect, useState } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { PageHeader } from '../components/PageHeader.js';
@@ -16,11 +16,11 @@ interface OrgTrust { average: number; tier: 'LOW' | 'MEDIUM' | 'HIGH'; distribut
 const TIER_COLOR: Record<string, string> = { LOW: '#dc2626', MEDIUM: '#d97706', HIGH: '#059669' };
 const TIER_BADGE: Record<string, 'error' | 'warning' | 'success'> = { LOW: 'error', MEDIUM: 'warning', HIGH: 'success' };
 
-export const OneIdOrgTrust: React.FC = () => {
+export const OndiOrgTrust: React.FC = () => {
   const [data, setData] = useState<OrgTrust | null>(null);
 
   useEffect(() => {
-    apiFetch('/v1/oneid/org/trust').then(setData).catch(() => setData(null));
+    apiFetch('/v1/ondi/org/trust').then(setData).catch(() => setData(null));
   }, []);
 
   const total = data ? data.distribution.LOW + data.distribution.MEDIUM + data.distribution.HIGH : 0;
@@ -91,4 +91,4 @@ export const OneIdOrgTrust: React.FC = () => {
   );
 };
 
-export default OneIdOrgTrust;
+export default OndiOrgTrust;

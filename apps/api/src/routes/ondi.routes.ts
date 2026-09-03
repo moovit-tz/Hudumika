@@ -1,4 +1,4 @@
-import { requireEntitlement } from '../middleware/entitlement.js';
+import { requireEntitlement, tenantHasEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import crypto from 'crypto';
@@ -11,6 +11,8 @@ import { extractKycDocument, extractKybDocument } from '../lib/kyc-ocr.js';
 import { recordAuthEvent } from '../lib/audit-chain.js';
 import { requireRoleOrOrgPermission, hasOrgPermission, ORG_PERMISSIONS } from '../lib/org-rbac.js';
 import { computeOrgTrust } from '../lib/trust-score.js';
+import { DEFAULT_PASSWORD_POLICY } from '../lib/password-policy.js';
+import { webauthnOrigin } from '../lib/webauthn-config.js';
 import { computeComplianceRollup } from '../lib/compliance-rollup.js';
 import { emitDomainEvent } from '../services/domain-events.service.js';
 
@@ -43,6 +45,19 @@ const orgRoleSchema = z.object({
     ORG_PERMISSIONS.ASSETS_MANAGE,
     ORG_PERMISSIONS.INTEGRATIONS_MANAGE,
     ORG_PERMISSIONS.VISITORS_MANAGE,
+    // GROUPS_MANAGE and COMPLY_MANAGE existed in ORG_PERMISSIONS already but
+    // were never added here, so a custom role could never actually be
+    // granted either — the permission exists and is checked, but nothing
+    // could hand it out. Found while adding the delegated-admin-roles set
+    // below.
+    ORG_PERMISSIONS.GROUPS_MANAGE,
+    ORG_PERMISSIONS.COMPLY_MANAGE,
+    // Delegated admin roles — Workspace/Admin app (see org-rbac.ts's own
+    // comment on these four for what each narrows).
+    ORG_PERMISSIONS.SETTINGS_MANAGE,
+    ORG_PERMISSIONS.TEAM_MANAGE,
+    ORG_PERMISSIONS.BILLING_MANAGE,
+    ORG_PERMISSIONS.REPORTS_MANAGE,
   ])).default([]),
 });
 
@@ -64,9 +79,9 @@ const STAFF_ROLES = ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'FINANCE', 'SALES', 'SEN
 // that doesn't exist anywhere else. See hr.routes.ts for the underlying HR-facing
 // endpoints this mirrors; kept separate rather than migrated to avoid regressing
 // the working HR module.
-export async function oneidRoutes(fastify: FastifyInstance) {
+export async function ondiRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
-  fastify.addHook('preHandler', requireEntitlement('oneid'));
+  fastify.addHook('preHandler', requireEntitlement('ondi'));
 
   // ── Users ────────────────────────────────────────────────────
 
@@ -120,7 +135,7 @@ export async function oneidRoutes(fastify: FastifyInstance) {
       // reacts the same way regardless of which app someone was deactivated from.
       if (!active) {
         await emitDomainEvent(trx, user.tenant_id, {
-          type: 'hr.staff_deactivated', sourceApp: 'oneid', entityType: 'user', entityId: updated.id,
+          type: 'hr.staff_deactivated', sourceApp: 'ondi', entityType: 'user', entityId: updated.id,
           payload: { userId: updated.id, name: updated.name, active: updated.active, changedBy: user.sub },
           actorId: user.sub,
         }).catch(err => console.error('[Ondi] staff_deactivated emit failed:', err?.message));
@@ -166,7 +181,7 @@ export async function oneidRoutes(fastify: FastifyInstance) {
       const acceptUrl = `${env.OPS_BOARD_URL}/accept-invite?token=${token}`;
       // Same template key HR's own /invitations uses (hr.routes.ts) — this
       // was byte-identical duplicated HTML before; one template, two callers.
-      await MailService.enqueueTemplated(user.tenant_id, 'hr.staff_invitation', body.email, { role: body.role, acceptUrl }, 'oneid')
+      await MailService.enqueueTemplated(user.tenant_id, 'hr.staff_invitation', body.email, { role: body.role, acceptUrl }, 'ondi')
         .catch(() => { /* invite row exists regardless; can still be resent below */ });
 
       return invite;
@@ -184,7 +199,7 @@ export async function oneidRoutes(fastify: FastifyInstance) {
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!invite) throw Object.assign(new Error('Invitation not found'), { statusCode: 404 });
       const acceptUrl = `${env.OPS_BOARD_URL}/accept-invite?token=${invite.token}`;
-      await MailService.enqueueTemplated(user.tenant_id, 'hr.staff_invitation_reminder', invite.email, { acceptUrl }, 'oneid')
+      await MailService.enqueueTemplated(user.tenant_id, 'hr.staff_invitation_reminder', invite.email, { acceptUrl }, 'ondi')
         .catch(() => {});
       return { ok: true };
     });
@@ -241,9 +256,16 @@ export async function oneidRoutes(fastify: FastifyInstance) {
     });
   });
 
-  // ── SSO providers (config registry — see migration 053 header comment:
-  //    this is NOT a working SAML/OIDC federation implementation) ────────
+  // ── SSO providers (this CRUD is the registry; the SAML rows it manages
+  //    are real now — genuine XML-DSig assertion verification, audience
+  //    restriction, replay protection — see ondi-saml.routes.ts. OIDC rows
+  //    are still config-only; that federation isn't built.) ────────
 
+  // GET stays readable on every plan — an admin whose Enterprise Identity
+  // add-on lapsed should still see what's configured (and that it's now
+  // dormant, per the SAML login-path check in ondi-saml.routes.ts), not
+  // lose visibility into their own setup. Only the writes below require
+  // the entitlement.
   fastify.get('/sso-providers', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.SSO_PROVIDERS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     return withTenant(user.tenant_id, async (trx) => {
@@ -255,7 +277,7 @@ export async function oneidRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/sso-providers', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.SSO_PROVIDERS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.post('/sso-providers', { preHandler: [requireRoleOrOrgPermission(ORG_PERMISSIONS.SSO_PROVIDERS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'), requireEntitlement('ondi.governance')] }, async (req) => {
     const user = req.user;
     const body = req.body as { provider_type: string; name: string; config?: Record<string, any> };
     return withTenant(user.tenant_id, async (trx) => {
@@ -269,7 +291,7 @@ export async function oneidRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.patch('/sso-providers/:id', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.SSO_PROVIDERS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.patch('/sso-providers/:id', { preHandler: [requireRoleOrOrgPermission(ORG_PERMISSIONS.SSO_PROVIDERS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'), requireEntitlement('ondi.governance')] }, async (req) => {
     const user = req.user;
     const { id } = req.params as { id: string };
     const body = req.body as { name?: string; config?: Record<string, any>; enabled?: boolean };
@@ -284,7 +306,7 @@ export async function oneidRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.delete('/sso-providers/:id', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.SSO_PROVIDERS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.delete('/sso-providers/:id', { preHandler: [requireRoleOrOrgPermission(ORG_PERMISSIONS.SSO_PROVIDERS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'), requireEntitlement('ondi.governance')] }, async (req) => {
     const user = req.user;
     const { id } = req.params as { id: string };
     return withTenant(user.tenant_id, async (trx) => {
@@ -303,7 +325,7 @@ export async function oneidRoutes(fastify: FastifyInstance) {
       .execute();
   });
 
-  fastify.post('/oauth-clients', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.SSO_PROVIDERS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.post('/oauth-clients', { preHandler: [requireRoleOrOrgPermission(ORG_PERMISSIONS.SSO_PROVIDERS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'), requireEntitlement('ondi.governance')] }, async (req) => {
     const body = z.object({
       client_id: z.string().trim().min(3).max(80),
       name: z.string().trim().min(1).max(100),
@@ -325,7 +347,7 @@ export async function oneidRoutes(fastify: FastifyInstance) {
     }).returningAll().executeTakeFirstOrThrow();
   });
 
-  fastify.patch('/oauth-clients/:id', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.SSO_PROVIDERS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.patch('/oauth-clients/:id', { preHandler: [requireRoleOrOrgPermission(ORG_PERMISSIONS.SSO_PROVIDERS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'), requireEntitlement('ondi.governance')] }, async (req) => {
     const { id } = req.params as { id: string };
     const body = z.object({
       name: z.string().trim().min(1).max(100).optional(),
@@ -351,7 +373,7 @@ export async function oneidRoutes(fastify: FastifyInstance) {
       .executeTakeFirstOrThrow();
   });
 
-  fastify.delete('/oauth-clients/:id', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.SSO_PROVIDERS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.delete('/oauth-clients/:id', { preHandler: [requireRoleOrOrgPermission(ORG_PERMISSIONS.SSO_PROVIDERS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'), requireEntitlement('ondi.governance')] }, async (req) => {
     const { id } = req.params as { id: string };
     await dbPlatform.deleteFrom('ondi_oauth_clients').where('id', '=', id).execute();
     return { ok: true };
@@ -646,6 +668,14 @@ export async function oneidRoutes(fastify: FastifyInstance) {
       user_id: z.string().uuid(),
       expires_in_hours: z.number().positive().max(24 * 365).optional(),
     }).parse(req.body);
+    // A time-boxed (JIT) grant is the premium behavior; a permanent grant
+    // (expires_in_hours omitted) is base RBAC and must keep working on
+    // every plan — so this checks the entitlement only when it's actually
+    // being used, rather than gating the whole route (which predates JIT).
+    if (expires_in_hours && user.role !== 'SUPER_ADMIN' && !(await tenantHasEntitlement(user.tenant_id, 'ondi.governance'))) {
+      reply.status(403);
+      return { error: 'Time-boxed role grants require the Enterprise Identity & Governance add-on.', code: 'PLAN_UPGRADE_REQUIRED' };
+    }
     const expiresAt = expires_in_hours ? new Date(Date.now() + expires_in_hours * 3600_000) : null;
     return withTenant(user.tenant_id, async (trx) => {
       const role = await trx.selectFrom('ondi_org_roles').select('id').where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
@@ -1075,6 +1105,102 @@ export async function oneidRoutes(fastify: FastifyInstance) {
     return { success: true };
   });
 
+  // ── Auto-join-by-domain: tenant admin review queue ──────────────
+  // Request side is public (onboarding.routes.ts POST /request-join) —
+  // this half is the approve/deny queue, reusing ACCESS_REQUESTS_REVIEW
+  // (the existing "review requests to gain access" permission) rather than
+  // inventing a new one for what is, semantically, the same kind of gate.
+  // Unlike ondi_org_access_requests this flow notifies (see
+  // onboarding.service.ts's createJoinRequest and the two calls below) —
+  // that gap in the older flow was deliberate, not repeated here.
+  fastify.get('/org/join-requests', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.ACCESS_REQUESTS_REVIEW, 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+    const user = req.user;
+    return withTenant(user.tenant_id, (trx) =>
+      trx.selectFrom('tenant_join_requests')
+        .select(['id', 'name', 'email', 'status', 'created_at', 'reviewed_at', 'deny_reason'])
+        .where('tenant_id', '=', user.tenant_id)
+        .where('status', '=', 'pending')
+        .orderBy('created_at', 'asc')
+        .execute()
+    );
+  });
+
+  const joinRequestRoleSchema = z.object({
+    role: z.enum(['ADMIN', 'MANAGER', 'FINANCE', 'SALES', 'SENIOR', 'JUNIOR', 'CUSTOMER']).default('JUNIOR'),
+  });
+
+  fastify.post('/org/join-requests/:id/approve', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.ACCESS_REQUESTS_REVIEW, 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
+    const user = req.user;
+    const { id } = req.params as { id: string };
+    // The requester never chooses their own role — the admin picks it here,
+    // at approval time, so a join request can't be used to self-escalate.
+    const { role } = joinRequestRoleSchema.parse(req.body ?? {});
+
+    const outcome = await withTenant(user.tenant_id, async (trx) => {
+      const request = await trx.selectFrom('tenant_join_requests').selectAll()
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).where('status', '=', 'pending')
+        .executeTakeFirst();
+      if (!request) return { kind: 'not_found' as const };
+
+      const stillFree = await trx.selectFrom('users').select('id').where('email', '=', request.email).executeTakeFirst();
+      if (stillFree) return { kind: 'email_taken' as const };
+
+      const now = new Date();
+      const newUser = await trx.insertInto('users').values({
+        tenant_id: user.tenant_id,
+        email: request.email,
+        password_hash: request.password_hash,
+        role,
+        name: request.name,
+        active: true,
+        created_at: now,
+        updated_at: now,
+      }).returningAll().executeTakeFirstOrThrow();
+
+      await trx.updateTable('tenant_join_requests')
+        .set({ status: 'approved', reviewed_by: user.sub, reviewed_at: now, created_user_id: newUser.id })
+        .where('id', '=', id).execute();
+
+      return { kind: 'final' as const, request, newUser };
+    });
+
+    if (outcome.kind === 'not_found') return reply.status(404).send({ error: 'Request not found or already reviewed' });
+    if (outcome.kind === 'email_taken') {
+      return reply.status(409).send({ error: 'This email registered elsewhere while the request was pending — deny it instead.' });
+    }
+
+    await recordAuthEvent(user.tenant_id, outcome.newUser.id, 'join_request_approved', {
+      metadata: { request_id: id, reviewed_by: user.sub, role },
+    });
+    const tenant = await dbPlatform.selectFrom('tenants').select('name').where('id', '=', user.tenant_id).executeTakeFirst();
+    await MailService.enqueueTemplated(user.tenant_id, 'onboarding.join_approved', outcome.request.email, {
+      tenantName: tenant?.name ?? 'your workspace', loginUrl: `${webauthnOrigin()}/login`,
+    }, 'onboarding').catch(() => {});
+    return { success: true };
+  });
+
+  fastify.post('/org/join-requests/:id/deny', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.ACCESS_REQUESTS_REVIEW, 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
+    const user = req.user;
+    const { id } = req.params as { id: string };
+    const { reason } = z.object({ reason: z.string().trim().max(300).optional() }).parse(req.body ?? {});
+
+    const result = await withTenant(user.tenant_id, async (trx) => {
+      const updated = await trx.updateTable('tenant_join_requests')
+        .set({ status: 'denied', reviewed_by: user.sub, reviewed_at: new Date(), deny_reason: reason ?? null })
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).where('status', '=', 'pending')
+        .returning(['email']).executeTakeFirst();
+      return updated ?? null;
+    });
+    if (!result) return reply.status(404).send({ error: 'Request not found or already reviewed' });
+
+    await recordAuthEvent(user.tenant_id, null, 'join_request_denied', { metadata: { request_id: id, reviewed_by: user.sub, reason } });
+    const tenant = await dbPlatform.selectFrom('tenants').select('name').where('id', '=', user.tenant_id).executeTakeFirst();
+    await MailService.enqueueTemplated(user.tenant_id, 'onboarding.join_denied', result.email, {
+      tenantName: tenant?.name ?? 'that workspace', reasonSuffix: reason ? ` (${reason})` : '',
+    }, 'onboarding').catch(() => {});
+    return { success: true };
+  });
+
   // ── Access review campaigns (Ondi M5) ───────────────────────────
   // The sweep-and-reattest counterpart to access-requests above: instead
   // of waiting for someone to ask for a role, a reviewer periodically
@@ -1241,7 +1367,7 @@ export async function oneidRoutes(fastify: FastifyInstance) {
   });
 
   // ── Org-wide Trust (Ondi M6) ─────────────────────────────────────
-  // Aggregate over the same per-user formula OneIdPersonal.tsx/OneIdTrust.tsx
+  // Aggregate over the same per-user formula OndiPersonal.tsx/OndiTrust.tsx
   // already show individually — see trust-score.ts's computeOrgTrust().
   fastify.get('/org/trust', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.ORG_TRUST_VIEW, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
@@ -1300,7 +1426,7 @@ export async function oneidRoutes(fastify: FastifyInstance) {
   });
 
   // ── Policies (Ondi M8) — the same tenant_settings.sessionPolicy
-  // OneIdSessions.tsx's "Session Policy" card already read/wrote, moved
+  // OndiSessions.tsx's "Session Policy" card already read/wrote, moved
   // here so it has its own permission gate and its own full page rather
   // than living inside "Sessions & Security". Same storage, same shape.
   fastify.get('/org/policies', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.POLICIES_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
@@ -1308,20 +1434,44 @@ export async function oneidRoutes(fastify: FastifyInstance) {
     return withTenant(user.tenant_id, async (trx) => {
       const row = await trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       const settings = row ? (typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings) : {};
+      const pw = { ...DEFAULT_PASSWORD_POLICY, ...(settings?.passwordPolicy ?? {}) };
       return {
         timeout_minutes: settings?.sessionPolicy?.timeoutMinutes ?? 60,
         mfa_required: !!settings?.sessionPolicy?.mfaRequired,
+        password_min_length: pw.minLength,
+        password_require_mixed_case: pw.requireMixedCase,
+        password_require_number: pw.requireNumber,
+        password_require_symbol: pw.requireSymbol,
+        password_check_breached: pw.checkBreached,
+        password_max_age_days: pw.maxAgeDays,
       };
     });
   });
 
-  fastify.patch<{ Body: { timeout_minutes: number; mfa_required: boolean } }>('/org/policies', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.POLICIES_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.patch<{ Body: {
+    timeout_minutes: number; mfa_required: boolean;
+    password_min_length?: number; password_require_mixed_case?: boolean; password_require_number?: boolean;
+    password_require_symbol?: boolean; password_check_breached?: boolean; password_max_age_days?: number | null;
+  } }>('/org/policies', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.POLICIES_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
-    const body = z.object({ timeout_minutes: z.number().int().min(5).max(1440), mfa_required: z.boolean() }).parse(req.body);
+    const body = z.object({
+      timeout_minutes: z.number().int().min(5).max(1440), mfa_required: z.boolean(),
+      password_min_length: z.number().int().min(8).max(128).default(8),
+      password_require_mixed_case: z.boolean().default(false),
+      password_require_number: z.boolean().default(false),
+      password_require_symbol: z.boolean().default(false),
+      password_check_breached: z.boolean().default(false),
+      password_max_age_days: z.number().int().min(30).max(3650).nullable().default(null),
+    }).parse(req.body);
     return withTenant(user.tenant_id, async (trx) => {
       const existing = await trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       const settings = existing ? (typeof existing.settings === 'string' ? JSON.parse(existing.settings) : existing.settings) : {};
       settings.sessionPolicy = { timeoutMinutes: body.timeout_minutes, mfaRequired: body.mfa_required };
+      settings.passwordPolicy = {
+        minLength: body.password_min_length, requireMixedCase: body.password_require_mixed_case,
+        requireNumber: body.password_require_number, requireSymbol: body.password_require_symbol,
+        checkBreached: body.password_check_breached, maxAgeDays: body.password_max_age_days,
+      };
       await trx.insertInto('tenant_settings').values({ tenant_id: user.tenant_id, settings: JSON.stringify(settings) })
         .onConflict(oc => oc.column('tenant_id').doUpdateSet({ settings: JSON.stringify(settings) }))
         .execute();
@@ -1422,6 +1572,119 @@ export async function oneidRoutes(fastify: FastifyInstance) {
         .where('tenant_id', '=', user.tenant_id).where('app_id', '=', req.params.appId).execute();
       return { success: true };
     });
+  });
+
+  /**
+   * GET /org/integrations/overview — a read-only rollup, not a new source of
+   * truth. Five real, working, structurally-similar integration registries
+   * exist in this codebase (sms_gateways, accounting_integrations,
+   * calendar_sync_connections, tenant_marketplace_installs above, plus
+   * lens_integrations) and none of them know about each other — a tenant
+   * admin has no single place to see everything actually connected.
+   * Unifying the underlying tables would be a large, risky, multi-system
+   * migration that was never what this needed; this just aggregates a
+   * status row from each existing table (each still owned and managed by
+   * its own real page — Settings/SMS, FinOps, Calendar, this same
+   * Integrations page above) so there's finally one place to *see* it all.
+   * lens_integrations is deliberately excluded: it has no tenant_id at all
+   * (platform-wide, SUPER_ADMIN-only internal tooling — see
+   * packages/types/src/entitlements.ts's own comment on why Lens has no
+   * entitlement key), so surfacing it here would leak Hudumika's own
+   * internal integration status to a TENANT_ADMIN who has no business
+   * seeing it.
+   */
+  fastify.get('/org/integrations/overview', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.INTEGRATIONS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+    const user = req.user;
+    const rows: Array<{
+      category: 'sms' | 'accounting' | 'calendar' | 'marketplace';
+      provider: string; label: string; status: 'connected' | 'disconnected' | 'error';
+      detail?: string; lastActivityAt: string | null; lastError: string | null; manageHref: string;
+    }> = [];
+
+    await withTenant(user.tenant_id, async (trx) => {
+      // Each block wrapped independently, same convention as
+      // /v1/shipments/:id/linked — one missing table/app for this tenant
+      // must never break the rest of the rollup.
+      try {
+        const sms = await trx.selectFrom('sms_gateways')
+          .select(['provider', 'label', 'active', 'last_used_at', 'last_error'])
+          .where('tenant_id', '=', user.tenant_id).execute();
+        for (const g of sms) {
+          rows.push({
+            category: 'sms', provider: g.provider, label: g.label,
+            status: g.active ? 'connected' : 'disconnected',
+            lastActivityAt: g.last_used_at as any, lastError: g.last_error,
+            manageHref: '/sms/gateways',
+          });
+        }
+      } catch { /* SMS not provisioned for this tenant */ }
+
+      try {
+        const acc = await trx.selectFrom('accounting_integrations')
+          .select(['provider', 'status', 'last_sync_at'])
+          .where('tenant_id', '=', user.tenant_id).execute();
+        for (const a of acc) {
+          rows.push({
+            category: 'accounting', provider: a.provider, label: a.provider,
+            status: a.status === 'CONNECTED' ? 'connected' : a.status === 'ERROR' ? 'error' : 'disconnected',
+            lastActivityAt: a.last_sync_at as any, lastError: null,
+            manageHref: '/finops/integrations',
+          });
+        }
+      } catch { /* Accounting integrations not provisioned for this tenant */ }
+
+      try {
+        const cal = await trx.selectFrom('calendar_sync_connections')
+          .select(['provider', 'status', 'last_synced_at', 'last_error'])
+          .where('tenant_id', '=', user.tenant_id).execute();
+        // Summarized per provider across all staff — an admin rollup, not a
+        // per-user connection list (that belongs to each person's own
+        // settings, not this screen).
+        const byProvider = new Map<string, { connected: number; total: number; lastSync: Date | null; lastError: string | null }>();
+        for (const c of cal) {
+          const e = byProvider.get(c.provider) ?? { connected: 0, total: 0, lastSync: null, lastError: null };
+          e.total += 1;
+          if (c.status === 'authorized') e.connected += 1;
+          if (c.last_synced_at && (!e.lastSync || c.last_synced_at > e.lastSync)) e.lastSync = c.last_synced_at;
+          if (c.status === 'error' && c.last_error) e.lastError = c.last_error;
+          byProvider.set(c.provider, e);
+        }
+        for (const [provider, e] of byProvider) {
+          rows.push({
+            category: 'calendar', provider, label: provider === 'google' ? 'Google Calendar' : 'Outlook Calendar',
+            status: e.connected > 0 ? 'connected' : 'disconnected',
+            detail: `${e.connected} of ${e.total} staff connected`,
+            lastActivityAt: e.lastSync as any, lastError: e.lastError,
+            manageHref: '/calendar',
+          });
+        }
+      } catch { /* Calendar sync not provisioned for this tenant */ }
+
+      try {
+        const installed = await trx.selectFrom('store_installed_apps as si')
+          .innerJoin('marketplace_apps as a', 'a.id', 'si.app_id')
+          .select(['a.id', 'a.name'])
+          .where('si.tenant_id', '=', user.tenant_id).execute();
+        if (installed.length > 0) {
+          const grants = await trx.selectFrom('tenant_marketplace_installs')
+            .select(['app_id', 'events_enabled', 'revoked_at', 'installed_at'])
+            .where('tenant_id', '=', user.tenant_id).where('app_id', 'in', installed.map(a => a.id)).execute();
+          const byApp = new Map(grants.map(g => [g.app_id, g]));
+          for (const app of installed) {
+            const grant = byApp.get(app.id);
+            const active = !!grant && !grant.revoked_at && grant.events_enabled;
+            rows.push({
+              category: 'marketplace', provider: app.name, label: app.name,
+              status: active ? 'connected' : 'disconnected',
+              lastActivityAt: (grant && !grant.revoked_at ? grant.installed_at : null) as any, lastError: null,
+              manageHref: '/ondi/integrations',
+            });
+          }
+        }
+      } catch { /* Marketplace apps not provisioned for this tenant */ }
+    });
+
+    return rows;
   });
 
   // ── Visitors (Ondi M9) ─────────────────────────────────────────────

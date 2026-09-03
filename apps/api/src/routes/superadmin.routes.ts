@@ -209,6 +209,28 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
       [...tenants, ...txRows].map(r => monthKey((r as any).created_at)).filter(Boolean),
     ).size;
 
+    // Rollup cards for the two domain "Insights" layers moved out of this
+    // shell so far (Decompose SuperAdmin, M1/M3) — a real number here that
+    // links through to where the detail actually lives now (/lens,
+    // /nexushr/platform-devices), rather than SuperAdmin re-querying each
+    // domain's tables in full the way this file used to for Devices/Issues
+    // directly. Deliberately not a generalized plugin registry yet — the
+    // reports.service.ts METRICS array already covers attendance_devices
+    // (has tenant_id, groups cleanly); lens_items has none by design
+    // (platform-scoped, not tenant data), so it can't share that shape and
+    // gets its own small direct count instead of a forced-fit abstraction.
+    const [deviceCounts, lensCounts] = await Promise.all([
+      dbPlatform.selectFrom('attendance_devices')
+        .select(['status', ({ fn }) => fn.countAll<number>().as('n')])
+        .groupBy('status').execute(),
+      dbPlatform.selectFrom('lens_items')
+        .select(['severity', ({ fn }) => fn.countAll<number>().as('n')])
+        .where('status', 'in', ['OPEN', 'IN_PROGRESS', 'BLOCKED'])
+        .groupBy('severity').execute(),
+    ]);
+    const deviceByStatus = Object.fromEntries(deviceCounts.map(r => [r.status, Number(r.n)]));
+    const lensBySeverity = Object.fromEntries(lensCounts.map(r => [r.severity, Number(r.n)]));
+
     return {
       kpis: {
         totalCompanies: totalTenants,
@@ -227,6 +249,18 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
       // How many distinct months this platform has any history in. The UI uses
       // it to decide whether a trend line means anything yet.
       monthsWithData,
+      platformInsights: {
+        devices: {
+          total: deviceCounts.reduce((s, r) => s + Number(r.n), 0),
+          online: deviceByStatus.online ?? 0,
+          offline: deviceByStatus.offline ?? 0,
+          error: deviceByStatus.error ?? 0,
+        },
+        lens: {
+          openTotal: lensCounts.reduce((s, r) => s + Number(r.n), 0),
+          critical: lensBySeverity.CRITICAL ?? 0,
+        },
+      },
     };
   });
 
@@ -325,7 +359,8 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
         logo_url: t.logo_url,
         primary_color: t.primary_color,
         created_at: t.created_at,
-        users: Number(userCountRow?.count ?? 0)
+        users: Number(userCountRow?.count ?? 0),
+        founder_personal_email_domain: t.founder_personal_email_domain,
       };
     }));
 

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { apiFetch } from '../lib/api.js';
-import type { SafeUser, OnboardingCompleteResponse } from '@hudumika/types';
+import type { SafeUser, OnboardingCompleteResponse, JoinRequestSubmitResponse } from '@hudumika/types';
 import { resetEnabledAppsCache } from './useEnabledApps.js';
 import { hydrateCompanyFromServer, resetCompanyCache } from '../data/companyStore.js';
 import { hydrateTasksFromServer, resetTasksCache } from '../data/calendarStore.js';
@@ -18,7 +18,7 @@ const KEYS = {
 interface AuthContextType {
   user: SafeUser | null;
   isImpersonating: boolean;
-  login: (email: string, password: string) => Promise<SafeUser>;
+  login: (email: string, password: string, totp?: string) => Promise<SafeUser | { requires_2fa: true }>;
   requestOtpLogin: (phone: string) => Promise<{ success: boolean; message: string }>;
   requestMagicLink: (email: string) => Promise<{ ok: boolean; message: string }>;
   verifyOtpLogin: (phone: string, code: string) => Promise<SafeUser>;
@@ -27,8 +27,8 @@ interface AuthContextType {
   resumeSession: () => Promise<SafeUser | null>;
   requestPasskeyLoginOptions: (email: string) => Promise<any>;
   verifyPasskeyLogin: (email: string, response: any) => Promise<SafeUser>;
-  loginWithGoogle: (credential: string) => Promise<SafeUser>;
-  loginWithMicrosoft: (credential: string) => Promise<SafeUser>;
+  loginWithGoogle: (credential: string, allowJoinRequest?: boolean) => Promise<SafeUser | { join_request: JoinRequestSubmitResponse }>;
+  loginWithMicrosoft: (credential: string, allowJoinRequest?: boolean) => Promise<SafeUser | { join_request: JoinRequestSubmitResponse }>;
   completeOnboarding: (res: OnboardingCompleteResponse) => void;
   logout: () => void;
   impersonate: (tenantId: string) => Promise<void>;
@@ -131,11 +131,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return res.user;
   };
 
-  const login = async (email: string, password: string) => {
+  // Mirrors verifyMagicLink's own requires_2fa handling — /auth/login
+  // already implements real password+authenticator-code 2FA server-side
+  // (a request with no totp gets {requires_2fa: true} back, status 200,
+  // once the account has enabled it from Workspace ▸ Security), but this
+  // function used to always call completeLogin() unconditionally, so an
+  // account with 2FA enabled couldn't actually sign in here at all — the
+  // response had no real user/tokens in it, just the 2FA flag.
+  const login = async (email: string, password: string, totp?: string) => {
     const res = await apiFetch('/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, password, ...(totp ? { totp } : {}) }),
     });
+    if (res.requires_2fa) return { requires_2fa: true as const };
     return completeLogin(res);
   };
 
@@ -215,19 +223,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return completeLogin(res);
   };
 
-  const loginWithGoogle = async (credential: string) => {
+  // allowJoinRequest: only OndiLogin.tsx's own Google/Microsoft buttons pass
+  // true — see google/verify's own comment. An email with no matching user
+  // comes back as { join_request } (202) rather than a session when the
+  // backend queued one; every other caller (the plain Login page's Google
+  // tab) never sends the flag and keeps getting a plain 404 on no match, so
+  // its behavior is unchanged.
+  const loginWithGoogle = async (credential: string, allowJoinRequest?: boolean) => {
     const res = await apiFetch('/v1/ondi/auth/google/verify', {
       method: 'POST',
-      body: JSON.stringify({ credential }),
+      body: JSON.stringify({ credential, ...(allowJoinRequest ? { allowJoinRequest: true } : {}) }),
     });
+    if (res && typeof res === 'object' && 'join_request' in res) return res as { join_request: JoinRequestSubmitResponse };
     return completeLogin(res);
   };
 
-  const loginWithMicrosoft = async (credential: string) => {
+  const loginWithMicrosoft = async (credential: string, allowJoinRequest?: boolean) => {
     const res = await apiFetch('/v1/ondi/auth/microsoft/verify', {
       method: 'POST',
-      body: JSON.stringify({ credential }),
+      body: JSON.stringify({ credential, ...(allowJoinRequest ? { allowJoinRequest: true } : {}) }),
     });
+    if (res && typeof res === 'object' && 'join_request' in res) return res as { join_request: JoinRequestSubmitResponse };
     return completeLogin(res);
   };
 
@@ -246,6 +262,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
    */
   const clearSessionLocally = () => {
     for (const k of Object.values(KEYS)) localStorage.removeItem(k);
+    // useBranding.ts caches this workspace's own name/logo/accent (and a
+    // hudumika_tenant_app_color_<appId> entry per app) under this prefix so
+    // its getters stay synchronous — logout used to leave every one of them
+    // behind, so the shared pre-login page kept showing this workspace's
+    // branding (someone's own logo standing in for the platform's) to
+    // whoever used this browser next, indefinitely, until they happened to
+    // sign into a tenant with different branding. The platform's own
+    // defaults (hudumika_brand_*, and useBranding's static BRAND_* fallback
+    // before that even loads) are a separate prefix, untouched here.
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const key = localStorage.key(i);
+      if (key?.startsWith('hudumika_tenant_')) localStorage.removeItem(key);
+    }
     clearIdleLockState();
     resetEnabledAppsCache();
     resetCompanyCache();

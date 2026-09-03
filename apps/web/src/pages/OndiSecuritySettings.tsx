@@ -1,4 +1,4 @@
-// ─── OneIdSecuritySettings.tsx — Ondi Personal · Security Settings ───
+// ─── OndiSecuritySettings.tsx — Ondi Personal · Security Settings ───
 // Its own sidebar page rather than a tab, so it's directly linkable — the
 // content itself (password/email/2FA/passkeys/sessions/KYC/trust score)
 // is all real, already built this session's Ondi program: AccountSecurityPanel.
@@ -36,7 +36,7 @@ function RecoveryContactsSection() {
 
   const searchStaff = useCallback(async (query: string): Promise<PickerItem[]> => {
     if (!staffCache.current) {
-      const users = await apiFetch('/v1/oneid/users').catch(() => []);
+      const users = await apiFetch('/v1/ondi/users').catch(() => []);
       staffCache.current = users.map((u: any) => ({ id: u.id, label: u.name, sublabel: u.email }));
     }
     const q = query.trim().toLowerCase();
@@ -187,7 +187,7 @@ function RecoveryContactsSection() {
   );
 }
 
-export const OneIdSecuritySettings: React.FC = () => (
+export const OndiSecuritySettings: React.FC = () => (
   <div>
     <PageHeader
       crumbs={['Ondi', 'Personal']}
@@ -200,4 +200,4 @@ export const OneIdSecuritySettings: React.FC = () => (
   </div>
 );
 
-export default OneIdSecuritySettings;
+export default OndiSecuritySettings;

@@ -26,7 +26,7 @@ export const ALL_FEATURE_KEYS = [
   'contacts',
   'email',
   'finops',
-  'oneid',
+  'ondi',
   'nexushr',
   'onsite',
   'tracking',
@@ -80,6 +80,13 @@ export const ALL_FEATURE_KEYS = [
   // silently a no-op even though the backend genuinely enforces it.
   'sign',
   'sms',
+  // Enterprise Identity & Governance (migration 387) — a sub-feature key
+  // sitting alongside its parent 'ondi', same dotted convention as
+  // tracking.*: SAML SSO federation, JIT-expiring role grants, and SIEM
+  // export are gated by this independently of base 'ondi' identity/login,
+  // which stays free on every tier. Bundled free into 'enterprise' via
+  // package_features; purchasable as an add-on everywhere else.
+  'ondi.governance',
 ] as const;
 
 /** Feature keys correspond 1:1 with the appId strings the API gates on. */
@@ -100,8 +107,22 @@ export interface AppStatus {
   updated_at: string;
 }
 
-/** What GET /v1/entitlements returns to the frontend for the current tenant. */
+export interface TenantUsage {
+  used: number;
+  limit: number | null; // null = unlimited
+  period: string; // 'YYYY-MM', current calendar month
+  /** Last 12 calendar months, oldest first, zero-filled for months with no
+   *  metered activity — see getUsageHistory() in apps/api/src/lib/usage.ts. */
+  history: { period: string; count: number }[];
+}
+
+/** What GET /v1/entitlements returns to the frontend for the current tenant.
+ *  `usage` used to exist only as two independently hand-typed shapes (one in
+ *  apps/api/src/lib/usage.ts's return type, one in
+ *  apps/web/src/hooks/useEntitlements.ts) that had already drifted — the
+ *  frontend one didn't know about `history` until this field existed here. */
 export interface TenantEntitlements {
   features: Record<string, boolean>;
   appStatus: Record<string, AppStatusValue>;
+  usage: TenantUsage;
 }

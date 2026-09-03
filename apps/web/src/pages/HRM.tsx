@@ -1326,11 +1326,24 @@ export function LeavesPage() {
     try { setLeaveTypes(await apiFetch('/v1/hr/leave-types') ?? []); } catch { setLeaveTypes([]); }
     try { setEveryBalance(await apiFetch('/v1/hr/leave-balances/all') ?? []); } catch { setEveryBalance([]); }
   }, []);
-  const loadSummary = useCallback(async () => {
-    try { setLeaveSummary(await apiFetch('/v1/hr/leaves/summary')); } catch { setLeaveSummary(null); }
-  }, []);
+  const [summaryYear, setSummaryYear] = useState(() => String(new Date().getFullYear()));
+  const loadSummary = useCallback(async (year?: string) => {
+    try { setLeaveSummary(await apiFetch(`/v1/hr/leaves/summary?year=${year ?? summaryYear}`)); } catch { setLeaveSummary(null); }
+  }, [summaryYear]);
 
   useEffect(() => { loadLeaves(); loadStaff(); loadEntitlement(); loadSummary(); }, [loadLeaves, loadStaff, loadEntitlement, loadSummary]);
+
+  function downloadLeavesCsv() {
+    const headers = ['Employee', 'Leave type', 'Days', 'Start', 'End', 'Status'];
+    const csvRows = rows.map(l => [l.emp, l.type, l.days, l.from, l.to, l.status]);
+    const csv = [headers, ...csvRows].map(row => row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `leaves_${summaryYear}.csv`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  }
 
   async function handleStatus(id: string, status: LeaveStatus) {
     setLeaves(prev => prev.map(l => l.id === id ? { ...l, status } : l));
@@ -1384,13 +1397,17 @@ export function LeavesPage() {
         </div>
       </div>
 
-      {/* 📊 Top Donut KPI Cards Row */}
+      {/* Real KPI row — reads leaves/summary (year, pending_count,
+          approved_count, on_leave_today, days_taken_ytd), a real endpoint
+          this page was already calling and never rendering. Used to
+          hardcode "Today Presents 94%", "Planned Leaves 12", "Unplanned
+          Leaves 04", with Pending Requests falling back to a literal || 3. */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
         {[
-          { title: 'Today Presents', count: '94%', color: '#2563eb' },
-          { title: 'Planned Leaves', count: '12', color: '#f59e0b' },
-          { title: 'Unplanned Leaves', count: '04', color: '#06b6d4' },
-          { title: 'Pending Requests', count: String(leaves.filter(l => l.status === 'PENDING').length || 3), color: '#f97316' },
+          { title: 'On leave today', count: String(leaveSummary?.on_leave_today ?? '—'), color: '#2563eb' },
+          { title: `Approved (${summaryYear})`, count: String(leaveSummary?.approved_count ?? '—'), color: '#f59e0b' },
+          { title: `Days taken (${summaryYear})`, count: String(leaveSummary?.days_taken_ytd ?? '—'), color: '#06b6d4' },
+          { title: 'Pending requests', count: String(leaveSummary?.pending_count ?? leaves.filter(l => l.status === 'PENDING').length), color: '#f97316' },
         ].map((k, i) => (
           <div key={i} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
             <div>
@@ -1420,15 +1437,17 @@ export function LeavesPage() {
               />
             </div>
 
-            <Button variant="outline" size="sm" style={{ height: 34, fontSize: 12, borderRadius: 8, borderColor: 'var(--border)' }}>
+            <Button variant="outline" size="sm" onClick={downloadLeavesCsv} style={{ height: 34, fontSize: 12, borderRadius: 8, borderColor: 'var(--border)' }}>
               Download Report
             </Button>
 
-            <Select defaultValue="2026">
+            <Select value={summaryYear} onValueChange={(y: string) => { setSummaryYear(y); loadSummary(y); }}>
               <SelectTrigger style={{ height: 34, borderRadius: 'var(--r-sm)', fontSize: 12, fontWeight: 600 }}><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="2026">2026</SelectItem>
-                <SelectItem value="2025">2025</SelectItem>
+                {[0, 1, 2].map(back => {
+                  const y = String(new Date().getFullYear() - back);
+                  return <SelectItem key={y} value={y}>{y}</SelectItem>;
+                })}
               </SelectContent>
             </Select>
           </div>
@@ -1441,7 +1460,11 @@ export function LeavesPage() {
               <tr style={{ background: '#f0f5ff', borderBottom: '1px solid #e2e8f0' }}>
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: '#334155' }}>Name ⇅</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: '#334155' }}>Leave Type ⇅</th>
-                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: '#334155' }}>Department ⇅</th>
+                {/* Department column removed — /v1/hr/staff hardcodes dept:
+                    '' (no user→department assignment exists anywhere in the
+                    schema), so this rendered the fixed string "Software
+                    Engineering" for every row. Same root cause, same fix, as
+                    the earlier Payroll department column removal. */}
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: '#334155' }}>Days ⇅</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: '#334155' }}>Start ⇅</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: '#334155' }}>End ⇅</th>
@@ -1452,7 +1475,7 @@ export function LeavesPage() {
             <tbody>
               {rows.length === 0 ? (
                 <tr>
-                  <td colSpan={8} style={{ padding: 30, textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
+                  <td colSpan={7} style={{ padding: 30, textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
                     No leave applications found.
                   </td>
                 </tr>
@@ -1469,9 +1492,6 @@ export function LeavesPage() {
                       </td>
                       <td style={{ padding: '12px 16px', fontSize: 13, fontWeight: 600, color: getLeaveTypeColor(l.type) }}>
                         {l.type}
-                      </td>
-                      <td style={{ padding: '12px 16px', fontSize: 13, color: '#475569' }}>
-                        Software Engineering
                       </td>
                       <td style={{ padding: '12px 16px', fontSize: 13, fontWeight: 600, color: '#0f172a' }}>
                         {l.days} Days
@@ -1587,6 +1607,46 @@ export function AttendancePage() {
 
   const memberEmp = selectedEmpId ? employees.find(e => e.id === selectedEmpId) : filteredEmps[0];
 
+  // Real per-day breakdown for the visible month — replaces a chart that
+  // used to draw 12 fake bars from an index formula (40 + (idx % 3) * 15,
+  // not attendance data at all). records isn't date-filtered by the fetch
+  // itself, so this month's window is applied here.
+  const monthRecords = records.filter(r => r.date >= monthFrom && r.date <= monthTo);
+  const dailyBreakdown = days.map(d => {
+    const dayStr = getDayFormat(d);
+    const dayRecords = monthRecords.filter(r => r.date === dayStr);
+    return {
+      day: d.getDate(),
+      present: dayRecords.filter(r => r.status === 'Present').length,
+      late: dayRecords.filter(r => r.status === 'Late').length,
+      absent: dayRecords.filter(r => r.status === 'Absent').length,
+    };
+  });
+  const maxDailyTotal = Math.max(1, ...dailyBreakdown.map(d => d.present + d.late + d.absent));
+
+  // Same real records, cut by status instead of by day — replaces the old
+  // "Employee Type" donut, which hardcoded 800 Onsite / 105 Remote / 301
+  // Hybrid with no such field anywhere in the schema.
+  const statusCounts: Record<AttendanceStatus, number> = { Present: 0, Absent: 0, Late: 0, 'Half-Day': 0, 'On Leave': 0 };
+  monthRecords.forEach(r => { statusCounts[r.status] = (statusCounts[r.status] ?? 0) + 1; });
+  const totalMarked = monthRecords.length;
+  const presentPct = totalMarked ? Math.round((statusCounts.Present / totalMarked) * 100) : 0;
+
+  function downloadAttendanceCsv() {
+    const headers = ['Employee', 'Date', 'Status', 'Clock in', 'Clock out'];
+    const rows = monthRecords.map(r => {
+      const emp = employees.find(e => e.id === r.employeeId);
+      return [emp?.name || r.employeeId, r.date, r.status, r.clockIn || '', r.clockOut || ''];
+    });
+    const csv = [headers, ...rows].map(row => row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `attendance_${year}-${String(month + 1).padStart(2, '0')}.csv`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  }
+
   const getStatusIcon = (s: AttendanceStatus) => {
     switch(s) {
       case 'Present': return 'check';
@@ -1623,64 +1683,67 @@ export function AttendancePage() {
 
       {/* 📊 Top Charts & KPI Row (Attendance Rate + Employee Type Donut) */}
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 20 }}>
-        {/* Left Card: Attendance Rate Stacked Bar Chart */}
+        {/* Left Card: real daily Present/Late/Absent for the visible month */}
         <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 16, fontWeight: 700, color: '#0f172a' }}>Attendance Rate</span>
-            <Button variant="outline" size="sm" style={{ height: 32, fontSize: 12, borderRadius: 8, borderColor: 'var(--border)' }}>
-              Download Report
+            <span style={{ fontSize: 16, fontWeight: 700, color: '#0f172a' }}>Attendance rate — {date.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}</span>
+            <Button variant="outline" size="sm" onClick={downloadAttendanceCsv} style={{ height: 32, fontSize: 12, borderRadius: 8, borderColor: 'var(--border)' }}>
+              Download report
             </Button>
           </div>
 
-          {/* Bar Chart Visual Mock */}
-          <div style={{ height: 160, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12, padding: '10px 0', borderBottom: '1px solid #f1f5f9' }}>
-            {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((m, idx) => {
-              const h1 = 40 + (idx % 3) * 15;
-              const h2 = 20 + (idx % 4) * 10;
-              const h3 = 15 + (idx % 2) * 8;
+          <div style={{ height: 160, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 3, padding: '10px 0', borderBottom: '1px solid #f1f5f9', overflowX: 'auto' }}>
+            {dailyBreakdown.map(d => {
+              const total = d.present + d.late + d.absent;
+              const scale = total ? (total / maxDailyTotal) * 130 : 0;
+              const h1 = total ? (d.present / total) * scale : 0;
+              const h2 = total ? (d.late / total) * scale : 0;
+              const h3 = total ? (d.absent / total) * scale : 0;
               return (
-                <div key={m} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, height: '100%', justifyContent: 'flex-end' }}>
-                  <div style={{ width: 14, borderRadius: 4, overflow: 'hidden', display: 'flex', flexDirection: 'column-reverse', height: '100%', maxHeight: 130 }}>
-                    <div style={{ height: `${h1}%`, background: '#2563eb' }} />
-                    <div style={{ height: `${h2}%`, background: '#f97316' }} />
-                    <div style={{ height: `${h3}%`, background: '#94a3b8' }} />
+                <div key={d.day} title={`${d.day}: ${d.present} present, ${d.late} late, ${d.absent} absent`}
+                  style={{ flex: '1 0 auto', minWidth: 8, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, height: '100%', justifyContent: 'flex-end' }}>
+                  <div style={{ width: 8, borderRadius: 3, overflow: 'hidden', display: 'flex', flexDirection: 'column-reverse', height: `${Math.max(scale, 2)}px` }}>
+                    <div style={{ height: `${h1}px`, background: '#2563eb' }} />
+                    <div style={{ height: `${h2}px`, background: '#f97316' }} />
+                    <div style={{ height: `${h3}px`, background: '#94a3b8' }} />
                   </div>
-                  <span style={{ fontSize: 11, color: '#64748b' }}>{m}</span>
+                  <span style={{ fontSize: 9, color: '#94a3b8' }}>{d.day}</span>
                 </div>
               );
             })}
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'center', gap: 20, fontSize: 12, color: '#64748b' }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: '#2563eb' }} /> One Time</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: '#2563eb' }} /> Present</span>
             <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: '#f97316' }} /> Late</span>
             <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: '#94a3b8' }} /> Absent</span>
           </div>
         </div>
 
-        {/* Right Card: Employee Type Semicircle Donut */}
+        {/* Right Card: real status breakdown for the same month — replaces a
+            donut that hardcoded 800 Onsite / 105 Remote / 301 Hybrid against
+            a field ("work location") that doesn't exist anywhere in the schema. */}
         <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 16, fontWeight: 700, color: '#0f172a' }}>Employee Type</span>
-            <Icon name="moreHorizontal" size={18} color="#94a3b8" />
+            <span style={{ fontSize: 16, fontWeight: 700, color: '#0f172a' }}>Attendance status</span>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative', margin: '20px 0' }}>
-            {/* SVG Semicircle Donut */}
             <svg width="180" height="100" viewBox="0 0 180 100">
-              <path d="M 20 90 A 70 70 0 0 1 160 90" fill="none" stroke="#2563eb" strokeWidth="22" strokeLinecap="round" />
-              <path d="M 20 90 A 70 70 0 0 1 70 25" fill="none" stroke="#f97316" strokeWidth="22" strokeLinecap="round" />
+              <path d="M 20 90 A 70 70 0 0 1 160 90" fill="none" stroke="#e2e8f0" strokeWidth="22" strokeLinecap="round" />
+              <path d="M 20 90 A 70 70 0 0 1 160 90" fill="none" stroke="#2563eb" strokeWidth="22" strokeLinecap="round"
+                strokeDasharray={`${(presentPct / 100) * 220} 220`} />
             </svg>
             <div style={{ position: 'absolute', bottom: 10, textAlign: 'center' }}>
-              <div style={{ fontSize: 24, fontWeight: 800, color: '#0f172a' }}>{employees.length || 1000}</div>
-              <div style={{ fontSize: 11, color: '#94a3b8' }}>Employee</div>
+              <div style={{ fontSize: 24, fontWeight: 800, color: '#0f172a' }}>{presentPct}%</div>
+              <div style={{ fontSize: 11, color: '#94a3b8' }}>Present</div>
             </div>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 14, fontSize: 12, fontWeight: 600 }}>
-            <span style={{ color: '#2563eb' }}>● 800 <span style={{ color: '#64748b', fontWeight: 400 }}>Onsite</span></span>
-            <span style={{ color: '#f97316' }}>● 105 <span style={{ color: '#64748b', fontWeight: 400 }}>Remote</span></span>
-            <span style={{ color: '#0ea5e9' }}>● 301 <span style={{ color: '#64748b', fontWeight: 400 }}>Hybrid</span></span>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 14, fontSize: 12, fontWeight: 600, flexWrap: 'wrap' }}>
+            <span style={{ color: '#2563eb' }}>● {statusCounts.Present} <span style={{ color: '#64748b', fontWeight: 400 }}>Present</span></span>
+            <span style={{ color: '#f97316' }}>● {statusCounts.Late} <span style={{ color: '#64748b', fontWeight: 400 }}>Late</span></span>
+            <span style={{ color: '#94a3b8' }}>● {statusCounts.Absent} <span style={{ color: '#64748b', fontWeight: 400 }}>Absent</span></span>
           </div>
         </div>
       </div>

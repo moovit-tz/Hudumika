@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
-  useDesignSystem, DesignTokens, NeutralSet, SemanticSet, DesignSystemVersion,
+  useDesignSystem, DesignTokens, NeutralSet, SemanticSet, DesignSystemVersion, DensityId,
   FONT_IDS, FONT_LABELS, DENSITY_IDS, DENSITY_LABELS, SHADOW_IDS, SHADOW_LABELS,
   SHADOW_PRESETS, generateFromSeed, PLATFORM_THEMES,
 } from '../hooks/useDesignSystem.js';
@@ -18,77 +18,175 @@ import { PageHeader } from '../components/PageHeader.js';
 import { BrandingIdentitySection, BrandingAppsSection, BrandingLoginSection } from './BrandingView.js';
 import ComponentShowcase from './ComponentShowcase.js';
 
-const SECTIONS: { id: string; group: 'theming' | 'layout' | 'platform'; label: string; icon: IconName }[] = [
-  { id: 'themes',     group: 'theming', label: 'Themes',           icon: 'sparkle' },
-  { id: 'brand',      group: 'theming', label: 'Brand & Neutral',  icon: 'sun' },
-  { id: 'semantic',   group: 'theming', label: 'Semantic',         icon: 'tag' },
-  { id: 'typography', group: 'theming', label: 'Typography',       icon: 'fileText' },
-  { id: 'shape',      group: 'theming', label: 'Shape',            icon: 'shapes' },
-  { id: 'tabs',       group: 'theming', label: 'Tabs',             icon: 'layoutDashboard' },
-  { id: 'elevation',  group: 'theming', label: 'Elevation',        icon: 'layers' },
-  { id: 'density',    group: 'theming', label: 'Density',          icon: 'grid3' },
-  { id: 'motion',     group: 'theming', label: 'Motion',           icon: 'zap' },
-  { id: 'menu',       group: 'layout',  label: 'Menu',             icon: 'sidebar' },
-  { id: 'navbar',     group: 'layout',  label: 'Navbar Type',      icon: 'layoutDashboard' },
-  { id: 'content',    group: 'layout',  label: 'Content',          icon: 'maximize' },
-  { id: 'skin',       group: 'layout',  label: 'Skin',             icon: 'image' },
-  { id: 'semidark',   group: 'layout',  label: 'Semi Dark',        icon: 'moon' },
-  { id: 'direction',  group: 'layout',  label: 'Direction',        icon: 'compass' },
-  { id: 'mobile',     group: 'layout',  label: 'Mobile',           icon: 'smartphone' },
-  // Platform group — merged in from the former standalone /admin/branding and
-  // /admin/components pages (see BrandingView.tsx's and ComponentShowcase.tsx's
-  // header comments). 'apps' used to be a theming-group "Per-App Colors" tab
-  // with just a color swatch grid; it's now the fuller per-app editor (name,
-  // color, slogan, icon) that used to live only on the Branding page — one
-  // editor instead of two writing the same data from two places.
-  { id: 'identity',   group: 'platform', label: 'Identity',         icon: 'image' },
-  { id: 'apps',       group: 'platform', label: 'Apps',             icon: 'grid' },
-  { id: 'login',      group: 'platform', label: 'Login Screen',     icon: 'logIn' },
-  { id: 'components', group: 'platform', label: 'Components',      icon: 'layers' },
+const SECTIONS: { id: string; group: 'theming' | 'layout' | 'platform'; label: string; icon: IconName; desc: string }[] = [
+  { id: 'themes',     group: 'theming', label: 'Themes',           icon: 'sparkle',          desc: 'Global color presets & version engine' },
+  { id: 'brand',      group: 'theming', label: 'Brand & Neutral',  icon: 'sun',              desc: 'Brand primary & neutral surface scales' },
+  { id: 'semantic',   group: 'theming', label: 'Semantic',         icon: 'tag',              desc: 'Status, alert & feedback colors' },
+  { id: 'typography', group: 'theming', label: 'Typography',       icon: 'fileText',         desc: 'Font family & type scale ladder' },
+  { id: 'shape',      group: 'theming', label: 'Shape & Radius',   icon: 'shapes',           desc: 'Corner radii, borders & icon weights' },
+  { id: 'tabs',       group: 'theming', label: 'Tabs & Strips',    icon: 'layoutDashboard',  desc: 'Tab variants, track styling & sizes' },
+  { id: 'elevation',  group: 'theming', label: 'Elevation',        icon: 'layers',           desc: 'Layered shadow & depth scales' },
+  { id: 'density',    group: 'theming', label: 'Density',          icon: 'grid3',            desc: 'Component compact & comfortable scale' },
+  { id: 'motion',     group: 'theming', label: 'Motion',           icon: 'zap',              desc: 'Transition durations & easing curves' },
+  { id: 'menu',       group: 'layout',  label: 'Menu Behavior',    icon: 'sidebar',          desc: 'Sidebar initial collapse & expansion' },
+  { id: 'navbar',     group: 'layout',  label: 'Navbar Mode',      icon: 'layoutDashboard',  desc: 'Sticky, static or hidden top navigation' },
+  { id: 'content',    group: 'layout',  label: 'Content Width',    icon: 'maximize',         desc: 'Boxed compact vs full-bleed wide layout' },
+  { id: 'skin',       group: 'layout',  label: 'Surface Skin',     icon: 'image',            desc: 'Default sleek vs high-contrast bordered' },
+  { id: 'semidark',   group: 'layout',  label: 'Semi Dark',        icon: 'moon',             desc: 'Dark sidebar navigation in light mode' },
+  { id: 'direction',  group: 'layout',  label: 'Text Direction',   icon: 'compass',          desc: 'Left-to-Right and RTL text flow' },
+  { id: 'mobile',     group: 'layout',  label: 'Responsive Break', icon: 'smartphone',       desc: 'Adaptive mobile viewport breakpoint' },
+  { id: 'identity',   group: 'platform', label: 'Identity & Brand', icon: 'image',            desc: 'Nomenclature, logos, favicons & assets' },
+  { id: 'apps',       group: 'platform', label: 'App Configurator', icon: 'grid',             desc: 'Per-app names, accents, slogans & icons' },
+  { id: 'login',      group: 'platform', label: 'Login Screen',     icon: 'logIn',            desc: 'Authentication screen themes & headers' },
+  { id: 'components', group: 'platform', label: 'Component Catalog', icon: 'layers',         desc: 'Live interactive Radix component showcase' },
 ];
 
-/** Sections with no meaningful "live token preview" — Identity/Apps/Login/
- *  Components are content editors and a component catalog, not token tuning,
- *  so the preview rail (built for buttons/badges/cards reacting to color and
- *  shape tokens) is dropped and the panel takes the freed width instead. */
+/** Sections with no separate "live token preview" rail. */
 const PANEL_ONLY_SECTIONS = new Set(['identity', 'apps', 'login', 'components']);
 
-const NEUTRAL_LABELS: Record<keyof NeutralSet, string> = {
-  ink: 'Text (primary)', ink2: 'Text (secondary)', ink3: 'Text (muted)',
-  bg: 'Page background', white: 'Surface', cardSunken: 'Card background',
-  border: 'Border', border2: 'Border (strong)',
+const NEUTRAL_LABELS: Record<keyof NeutralSet, { title: string; desc: string }> = {
+  ink:        { title: 'Text Primary',      desc: 'Main headings and primary reading copy' },
+  ink2:       { title: 'Text Secondary',    desc: 'Supporting body text, labels and metadata' },
+  ink3:       { title: 'Text Muted',        desc: 'Placeholders, subtle timestamps and hints' },
+  bg:         { title: 'Page Background',   desc: 'Underlying canvas and scaffold surface' },
+  white:      { title: 'Card / Surface',    desc: 'Panels, popovers and elevated surfaces' },
+  cardSunken: { title: 'Sunken Surface',    desc: 'Card headers, code blocks and detail insets' },
+  border:     { title: 'Border Default',    desc: 'Subtle separators and input perimeters' },
+  border2:    { title: 'Border Strong',     desc: 'Focused states and emphasized cards' },
 };
 
-const SEMANTIC_LABELS: Record<keyof SemanticSet, string> = {
-  gold: 'Warning', red: 'Danger', green: 'Success', blue: 'Info', purple: 'Accent',
-  navy: 'Navy', navy2: 'Navy (alt)',
+const SEMANTIC_CONFIG: Record<keyof SemanticSet, { title: string; desc: string; sample: string }> = {
+  gold:   { title: 'Warning',   desc: 'Pending actions, caution alerts and review banners', sample: 'Pending' },
+  red:    { title: 'Danger',    desc: 'Destructive actions, error badges and overdue items', sample: 'Overdue' },
+  green:  { title: 'Success',   desc: 'Completed transactions, active states and clearance', sample: 'Approved' },
+  blue:   { title: 'Info',      desc: 'Informational toasts, notes and status indicators', sample: 'In Transit' },
+  purple: { title: 'Accent',    desc: 'Special highlights, AI recommendations and milestones', sample: 'Premium' },
+  navy:   { title: 'Navy Deep', desc: 'Contrasting solid surfaces and dark banners', sample: 'Platform' },
+  navy2:  { title: 'Navy Alt',  desc: 'Secondary dark containers and header chrome', sample: 'System' },
 };
 
-function ColorField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+function ColorField({
+  label,
+  value,
+  onChange,
+  description,
+  badgeText,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  description?: string;
+  badgeText?: string;
+}) {
   const [local, setLocal] = useState(value);
-  React.useEffect(() => setLocal(value), [value]);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    setLocal(value);
+  }, [value]);
+
+  const handleCopy = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(local);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1200);
+    }
+  };
+
+  const isValidHex = /^#[0-9a-f]{6}$/i.test(local);
+
   return (
-    <div className="ds-field">
-      <span className="ds-field-label">{label}</span>
-      <div className="ds-color-row">
-        <input type="color" className="ds-swatch" value={/^#[0-9a-f]{6}$/i.test(local) ? local : '#888888'}
-          onChange={e => { setLocal(e.target.value); onChange(e.target.value); }} />
-        <input type="text" className="input-field ds-color-text" value={local}
-          onChange={e => setLocal(e.target.value)}
-          onBlur={() => onChange(local)} />
+    <div className="ds-field-card">
+      <div className="ds-field-info">
+        <div className="ds-field-title-row">
+          <span className="ds-field-label">{label}</span>
+          {badgeText && <span className="ds-field-badge">{badgeText}</span>}
+        </div>
+        {description && <span className="ds-field-desc">{description}</span>}
+      </div>
+
+      <div className="ds-color-control">
+        <div
+          className="ds-swatch-box"
+          style={{ backgroundColor: isValidHex ? local : '#888888' }}
+          title="Click to pick color"
+        >
+          <input
+            type="color"
+            className="ds-swatch-native"
+            value={isValidHex ? local : '#888888'}
+            onChange={e => {
+              setLocal(e.target.value);
+              onChange(e.target.value);
+            }}
+          />
+        </div>
+
+        <div className="ds-color-input-wrap">
+          <span className="ds-color-hash">#</span>
+          <input
+            type="text"
+            className="ds-color-text-input"
+            value={local.replace(/^#/, '')}
+            onChange={e => {
+              const val = '#' + e.target.value.replace(/[^0-9a-fA-F]/g, '').slice(0, 6);
+              setLocal(val);
+            }}
+            onBlur={() => {
+              if (isValidHex) onChange(local);
+            }}
+          />
+          <button
+            type="button"
+            className="ds-color-copy-btn"
+            onClick={handleCopy}
+            title={copied ? 'Copied!' : 'Copy Hex'}
+          >
+            <Icon name={copied ? 'check' : 'copy'} size={12} />
+          </button>
+        </div>
       </div>
     </div>
   );
 }
 
-function NumberField({ label, value, onChange, suffix, step, min }: { label: string; value: number; onChange: (v: number) => void; suffix?: string; step?: number; min?: number }) {
+function NumberField({
+  label,
+  value,
+  onChange,
+  suffix,
+  step = 1,
+  min = 0,
+  max,
+  description,
+}: {
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+  suffix?: string;
+  step?: number;
+  min?: number;
+  max?: number;
+  description?: string;
+}) {
   return (
-    <div className="ds-field">
-      <span className="ds-field-label">{label}</span>
-      <div className="ds-number-row">
-        <input type="number" className="input-field ds-number-input" value={value} step={step} min={min}
-          onChange={e => onChange(Number(e.target.value) || 0)} />
-        {suffix && <span className="ds-number-suffix">{suffix}</span>}
+    <div className="ds-number-field-card">
+      <div className="ds-number-info">
+        <span className="ds-number-label">{label}</span>
+        {description && <span className="ds-number-desc">{description}</span>}
+      </div>
+      <div className="ds-number-input-group">
+        <input
+          type="number"
+          className="ds-number-input"
+          value={value}
+          step={step}
+          min={min}
+          max={max}
+          onChange={e => onChange(Number(e.target.value) || 0)}
+        />
+        {suffix && <span className="ds-number-unit">{suffix}</span>}
       </div>
     </div>
   );
@@ -97,7 +195,7 @@ function NumberField({ label, value, onChange, suffix, step, min }: { label: str
 export function DesignSystemView() {
   const { tokens, updateTokens, resetToDefaults, designSystemVersion, updateDesignSystemVersion } = useDesignSystem();
   const [v2ColorDraft, setV2ColorDraft] = useState(designSystemVersion.v2Color);
-  React.useEffect(() => setV2ColorDraft(designSystemVersion.v2Color), [designSystemVersion.v2Color]);
+  useEffect(() => setV2ColorDraft(designSystemVersion.v2Color), [designSystemVersion.v2Color]);
   const isMobileNow = useIsMobile();
 
   const [themeTab, setThemeTab] = useState<'light' | 'dark'>('light');
@@ -105,15 +203,21 @@ export function DesignSystemView() {
   const [seed, setSeed] = useState(tokens.brand.primary);
   const [saveErrors, setSaveErrors] = useState<Record<string, string | undefined>>({});
   const [savedFlash, setSavedFlash] = useState<string | null>(null);
-  // Deep-linkable so the redirects from the former /admin/branding and
-  // /admin/components routes (SuperAdminShell.tsx) land on the right section
-  // instead of always opening on Themes.
+
+  // Motion test trigger state
+  const [motionTrigger, setMotionTrigger] = useState(0);
+
   const [searchParams, setSearchParams] = useSearchParams();
   const initialSection = SECTIONS.some(s => s.id === searchParams.get('section')) ? searchParams.get('section')! : 'themes';
   const [activeSection, setActiveSectionState] = useState(initialSection);
+
   function setActiveSection(id: string) {
     setActiveSectionState(id);
-    setSearchParams(prev => { const next = new URLSearchParams(prev); next.set('section', id); return next; }, { replace: true });
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      next.set('section', id);
+      return next;
+    }, { replace: true });
   }
 
   const activeTheme = PLATFORM_THEMES.find(
@@ -125,9 +229,9 @@ export function DesignSystemView() {
       await updateTokens(partial);
       setSaveErrors(e => ({ ...e, [section]: undefined }));
       setSavedFlash(section);
-      window.setTimeout(() => setSavedFlash(f => (f === section ? null : f)), 1400);
+      window.setTimeout(() => setSavedFlash(f => (f === section ? null : f)), 1600);
     } catch (err: any) {
-      setSaveErrors(e => ({ ...e, [section]: err?.message || 'Failed to save' }));
+      setSaveErrors(e => ({ ...e, [section]: err?.message || 'Failed to save configuration' }));
     }
   }
 
@@ -135,23 +239,11 @@ export function DesignSystemView() {
     await save('brand', generateFromSeed(seed));
   }
 
-  /** One click applies a full platform theme: the shared brand.primary +
-   *  semantic tokens (design-tokens endpoint) AND every app's accent color
-   *  cycled from the theme's palette AND the platform accent color used by
-   *  documents/login (branding endpoint, batched into one PUT instead of
-   *  19+1 — the backend already merges apps.{id} keys independently, see
-   *  platform.routes.ts). Branding's own Accent Color field can be edited
-   *  afterward as a later write to the same key, which naturally overrides
-   *  this default — the same last-write-wins model per-app colors already use. */
   async function applyPlatformTheme(themeId: string) {
     const theme = PLATFORM_THEMES.find(t => t.id === themeId);
     if (!theme) return;
     const apps: Record<string, { color: string }> = {};
     ALL_APP_IDS.forEach((appId) => {
-      // Declared slot, not list position — see APP_PALETTE_SLOT. Falls back to
-      // slot 0 only if an app was added without choosing one, which keeps the
-      // apply working while making the omission visible rather than silently
-      // shifting every other app's colour.
       const slot = APP_PALETTE_SLOT[appId] ?? 0;
       const color = theme.palette[slot % theme.palette.length];
       apps[appId] = { color };
@@ -165,9 +257,9 @@ export function DesignSystemView() {
       ]);
       setSaveErrors(e => ({ ...e, theme: undefined, apps: undefined }));
       setSavedFlash('theme');
-      window.setTimeout(() => setSavedFlash(f => (f === 'theme' ? null : f)), 1400);
+      window.setTimeout(() => setSavedFlash(f => (f === 'theme' ? null : f)), 1600);
     } catch (err: any) {
-      setSaveErrors(e => ({ ...e, theme: err?.message || 'Failed to save' }));
+      setSaveErrors(e => ({ ...e, theme: err?.message || 'Failed to apply theme preset' }));
     }
   }
 
@@ -176,9 +268,9 @@ export function DesignSystemView() {
       await updateDesignSystemVersion({ version });
       setSaveErrors(e => ({ ...e, version: undefined }));
       setSavedFlash('version');
-      window.setTimeout(() => setSavedFlash(f => (f === 'version' ? null : f)), 1400);
+      window.setTimeout(() => setSavedFlash(f => (f === 'version' ? null : f)), 1600);
     } catch (err: any) {
-      setSaveErrors(e => ({ ...e, version: err?.message || 'Failed to save' }));
+      setSaveErrors(e => ({ ...e, version: err?.message || 'Failed to update version' }));
     }
   }
 
@@ -187,20 +279,17 @@ export function DesignSystemView() {
     try {
       await updateDesignSystemVersion({ v2Color: v2ColorDraft });
       setSaveErrors(e => ({ ...e, version: undefined }));
+      setSavedFlash('version');
+      window.setTimeout(() => setSavedFlash(f => (f === 'version' ? null : f)), 1600);
     } catch (err: any) {
-      setSaveErrors(e => ({ ...e, version: err?.message || 'Failed to save' }));
+      setSaveErrors(e => ({ ...e, version: err?.message || 'Failed to update Mellon color' }));
     }
   }
 
   const neutralKeys: (keyof NeutralSet)[] = ['ink', 'ink2', 'ink3', 'bg', 'white', 'cardSunken', 'border', 'border2'];
   const semanticKeys: (keyof SemanticSet)[] = ['gold', 'red', 'green', 'blue', 'purple', 'navy', 'navy2'];
 
-  // ── Layout Customizer ──────────────────────────────────────────────────
-  // Global (not per-user) prefs, same model as the color theming above —
-  // AppHeader.tsx applies these as <html> attributes on mount (see the
-  // "Layout Customizer prefs" effect there); menu default additionally fans
-  // out to every app's own per-app collapsed key so it takes effect the
-  // first time any app is opened, not just the one active right now.
+  // Layout customizer states
   const [menuDefault, setMenuDefaultState] = useState<'expanded' | 'collapsed'>(
     () => (localStorage.getItem('menu-default') === 'collapsed' ? 'collapsed' : 'expanded')
   );
@@ -260,533 +349,1159 @@ export function DesignSystemView() {
     setDirectionState(dir);
   }
 
+  const currentSectionMeta = SECTIONS.find(s => s.id === activeSection);
+
   return (
     <div className="ds-root">
+      {/* Studio Header */}
       <PageHeader
-        crumbs={['Admin', 'Design System']}
+        crumbs={['Platform Admin', 'Design System']}
         titlePlain="Design"
-        titleEm="system"
-        subtitle="Tokens, per-app identity and the component library every app renders from — Bliss, ClearOS, FinOps and the rest. Changes apply live and persist for every tenant."
-        actions={!PANEL_ONLY_SECTIONS.has(activeSection)
-          ? <button type="button" className="btn btn-secondary" onClick={() => resetToDefaults()}>Reset to defaults</button>
-          : undefined}
+        titleEm="studio"
+        subtitle="Manage platform-wide design tokens, tenant theming engines, layout parameters, and the shared component design system."
+        actions={
+          <div className="ds-header-actions">
+            {!PANEL_ONLY_SECTIONS.has(activeSection) && (
+              <button
+                type="button"
+                className="btn btn-secondary ds-btn-reset"
+                onClick={() => resetToDefaults()}
+              >
+                <Icon name="refresh" size={14} />
+                <span>Reset to defaults</span>
+              </button>
+            )}
+            <div className="ds-version-chip">
+              <span className="ds-version-dot" />
+              <span>{designSystemVersion.version === 'v2' ? 'Mellon Brand' : 'v1 Standard'}</span>
+            </div>
+          </div>
+        }
       />
 
+      {/* Main Studio Grid */}
       <div className={`ds-layout${PANEL_ONLY_SECTIONS.has(activeSection) ? ' ds-layout--full' : ''}`}>
-        <nav className="ds-rail">
-          <div className="ds-rail-group-label">Theming</div>
-          {SECTIONS.filter(s => s.group === 'theming').map(s => (
-            <button key={s.id} type="button"
-              className={`ds-rail-item${activeSection === s.id ? ' ds-rail-item--active' : ''}`}
-              onClick={() => setActiveSection(s.id)}>
-              <Icon name={s.icon} size={15} />
-              {s.label}
-            </button>
-          ))}
-          <div className="ds-rail-group-label">Layout</div>
-          {SECTIONS.filter(s => s.group === 'layout').map(s => (
-            <button key={s.id} type="button"
-              className={`ds-rail-item${activeSection === s.id ? ' ds-rail-item--active' : ''}`}
-              onClick={() => setActiveSection(s.id)}>
-              <Icon name={s.icon} size={15} />
-              {s.label}
-            </button>
-          ))}
-          <div className="ds-rail-group-label">Platform</div>
-          {SECTIONS.filter(s => s.group === 'platform').map(s => (
-            <button key={s.id} type="button"
-              className={`ds-rail-item${activeSection === s.id ? ' ds-rail-item--active' : ''}`}
-              onClick={() => setActiveSection(s.id)}>
-              <Icon name={s.icon} size={15} />
-              {s.label}
-            </button>
-          ))}
-        </nav>
+        
+        {/* Navigation Rail */}
+        <aside className="ds-rail">
+          <div className="ds-rail-header">
+            <span className="ds-rail-title">STUDIO SECTIONS</span>
+            <span className="ds-rail-badge">{SECTIONS.length}</span>
+          </div>
 
-        <div className="ds-panel">
+          <div className="ds-rail-group">
+            <div className="ds-rail-group-label">Theming Engine</div>
+            {SECTIONS.filter(s => s.group === 'theming').map(s => {
+              const isActive = activeSection === s.id;
+              return (
+                <button
+                  key={s.id}
+                  type="button"
+                  className={`ds-rail-item${isActive ? ' ds-rail-item--active' : ''}`}
+                  onClick={() => setActiveSection(s.id)}
+                >
+                  <div className="ds-rail-icon-wrap">
+                    <Icon name={s.icon} size={15} />
+                  </div>
+                  <div className="ds-rail-text">
+                    <span className="ds-rail-label">{s.label}</span>
+                  </div>
+                  {isActive && <span className="ds-rail-active-dot" />}
+                </button>
+              );
+            })}
+          </div>
 
-          {/* Themes */}
+          <div className="ds-rail-group">
+            <div className="ds-rail-group-label">Layout &amp; Shell</div>
+            {SECTIONS.filter(s => s.group === 'layout').map(s => {
+              const isActive = activeSection === s.id;
+              return (
+                <button
+                  key={s.id}
+                  type="button"
+                  className={`ds-rail-item${isActive ? ' ds-rail-item--active' : ''}`}
+                  onClick={() => setActiveSection(s.id)}
+                >
+                  <div className="ds-rail-icon-wrap">
+                    <Icon name={s.icon} size={15} />
+                  </div>
+                  <div className="ds-rail-text">
+                    <span className="ds-rail-label">{s.label}</span>
+                  </div>
+                  {isActive && <span className="ds-rail-active-dot" />}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="ds-rail-group">
+            <div className="ds-rail-group-label">Platform &amp; Brand</div>
+            {SECTIONS.filter(s => s.group === 'platform').map(s => {
+              const isActive = activeSection === s.id;
+              return (
+                <button
+                  key={s.id}
+                  type="button"
+                  className={`ds-rail-item${isActive ? ' ds-rail-item--active' : ''}`}
+                  onClick={() => setActiveSection(s.id)}
+                >
+                  <div className="ds-rail-icon-wrap">
+                    <Icon name={s.icon} size={15} />
+                  </div>
+                  <div className="ds-rail-text">
+                    <span className="ds-rail-label">{s.label}</span>
+                  </div>
+                  {isActive && <span className="ds-rail-active-dot" />}
+                </button>
+              );
+            })}
+          </div>
+        </aside>
+
+        {/* Configuration Panel */}
+        <main className="ds-panel">
+          
+          {/* Active Section Banner */}
+          {currentSectionMeta && (
+            <div className="ds-section-hero">
+              <div className="ds-hero-icon-box">
+                <Icon name={currentSectionMeta.icon} size={20} />
+              </div>
+              <div className="ds-hero-text">
+                <h2 className="ds-hero-title">{currentSectionMeta.label}</h2>
+                <p className="ds-hero-desc">{currentSectionMeta.desc}</p>
+              </div>
+              {savedFlash && (
+                <div className="ds-hero-toast">
+                  <Icon name="check" size={13} />
+                  <span>Changes saved live</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 1. Themes */}
           {activeSection === 'themes' && (
-          <section className="card ds-section">
-            <h2 className="ds-section-title">Themes</h2>
-            <p className="ds-section-hint">
-              Switch the whole platform to a pre-designed color bundle in one click — sets the shared
-              accent (buttons, links, focus states) and every app's individual color together, instead
-              of picking each one separately. You can still fine-tune any value afterward, and it flows
-              through to Branding's Accent Color as the default there too.
-            </p>
+            <section className="ds-card-section">
+              <div className="ds-section-header-block">
+                <h3 className="ds-section-heading">Platform Theme Presets</h3>
+                <p className="ds-section-sub">
+                  One-click application of a cohesive brand palette and coordinated per-app accent colors across all tenant workspaces.
+                </p>
+              </div>
 
-            <div className="ds-field" style={{ marginBottom: 20, paddingBottom: 20, borderBottom: '1px solid var(--border)' }}>
-              <span className="ds-field-label">Design system version</span>
-              <p className="ds-section-hint" style={{ margin: '2px 0 10px' }}>
-                v1 keeps everything below — the theme grid, per-app colors, tenant overrides — exactly as it works today.
-                Mellon locks every app and every tenant to one fixed brand color, ignoring the theme/per-app settings entirely.
-                v3 is reserved for a future version and behaves like v1 until one is built.
-              </p>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                {(['v1', 'v2', 'v3'] as DesignSystemVersion[]).map(v => (
-                  <button key={v} type="button"
-                    className={`ds-theme-card${designSystemVersion.version === v ? ' ds-theme-card--active' : ''}`}
-                    style={{ padding: '10px 18px', minHeight: 0 }}
-                    onClick={() => setVersion(v)}>
-                    {designSystemVersion.version === v && <span className="ds-theme-check"><Icon name="check" size={11} /></span>}
-                    <span className="ds-theme-name">{v === 'v1' ? 'v1 — Per-app colors' : v === 'v2' ? 'Mellon — Unified brand color' : 'v3 — Reserved'}</span>
-                  </button>
-                ))}
+              {/* Version Selector */}
+              <div className="ds-engine-card">
+                <div className="ds-engine-header">
+                  <div className="ds-engine-title-wrap">
+                    <span className="ds-engine-badge">ENGINE MODE</span>
+                    <h4 className="ds-engine-title">Design System Architecture Version</h4>
+                  </div>
+                </div>
+
+                <div className="ds-version-grid">
+                  {[
+                    { id: 'v1', title: 'v1 — Per-App Colors', desc: 'Active multi-hue palette with unique colors per application.' },
+                    { id: 'v2', title: 'Mellon — Unified Brand', desc: 'Locks all applications to a single unified corporate brand color.' },
+                    { id: 'v3', title: 'v3 — Next Gen', desc: 'Reserved next-generation token engine (runs standard v1 fallback).' },
+                  ].map(ver => {
+                    const isSelected = designSystemVersion.version === ver.id;
+                    return (
+                      <button
+                        key={ver.id}
+                        type="button"
+                        className={`ds-version-card${isSelected ? ' ds-version-card--active' : ''}`}
+                        onClick={() => setVersion(ver.id as DesignSystemVersion)}
+                      >
+                        <div className="ds-version-top">
+                          <span className="ds-version-name">{ver.title}</span>
+                          {isSelected && (
+                            <span className="ds-version-check">
+                              <Icon name="check" size={12} />
+                            </span>
+                          )}
+                        </div>
+                        <p className="ds-version-desc">{ver.desc}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+
                 {designSystemVersion.version === 'v2' && (
-                  <div className="ds-color-row" style={{ marginLeft: 8 }}>
-                    <input type="color" className="ds-swatch" value={/^#[0-9a-f]{6}$/i.test(v2ColorDraft) ? v2ColorDraft : '#141e33'}
-                      onChange={e => { setV2ColorDraft(e.target.value); updateDesignSystemVersion({ v2Color: e.target.value }); }} />
-                    <input type="text" className="input-field ds-color-text" value={v2ColorDraft}
-                      onChange={e => setV2ColorDraft(e.target.value)} onBlur={commitV2Color} />
+                  <div className="ds-v2-picker-row">
+                    <span className="ds-v2-label">Mellon Global Brand Color:</span>
+                    <div className="ds-color-control">
+                      <div className="ds-swatch-box" style={{ backgroundColor: v2ColorDraft }}>
+                        <input
+                          type="color"
+                          className="ds-swatch-native"
+                          value={v2ColorDraft}
+                          onChange={e => {
+                            setV2ColorDraft(e.target.value);
+                            updateDesignSystemVersion({ v2Color: e.target.value });
+                          }}
+                        />
+                      </div>
+                      <div className="ds-color-input-wrap">
+                        <span className="ds-color-hash">#</span>
+                        <input
+                          type="text"
+                          className="ds-color-text-input"
+                          value={v2ColorDraft.replace(/^#/, '')}
+                          onChange={e => setV2ColorDraft('#' + e.target.value.replace(/[^0-9a-fA-F]/g, '').slice(0, 6))}
+                          onBlur={commitV2Color}
+                        />
+                      </div>
+                    </div>
                   </div>
                 )}
+                {saveErrors.version && <p className="ds-alert-error">{saveErrors.version}</p>}
               </div>
-              {saveErrors.version && <p className="ds-error">{saveErrors.version}</p>}
-              {savedFlash === 'version' && <p className="ds-saved">Saved</p>}
-            </div>
 
-            <div className="ds-theme-grid">
-              {PLATFORM_THEMES.map(theme => {
-                const isActive = activeTheme === theme.id;
-                return (
-                  <button
-                    key={theme.id}
-                    type="button"
-                    className={`ds-theme-card${isActive ? ' ds-theme-card--active' : ''}`}
-                    onClick={() => applyPlatformTheme(theme.id)}
-                  >
-                    {isActive && <span className="ds-theme-check"><Icon name="check" size={11} /></span>}
-                    <span className="ds-theme-swatch" style={{ background: theme.tokens.brand?.primary }} />
-                    <span className="ds-theme-dots">
-                      {(theme.palette.length > 1 ? theme.palette : [theme.palette[0], theme.palette[0], theme.palette[0]]).slice(0, 6).map((c, i) => (
-                        <span key={i} className="ds-theme-dot" style={{ background: c }} />
-                      ))}
-                    </span>
-                    <span className="ds-theme-name">{theme.name}</span>
-                    <span className="ds-theme-desc">{theme.description}</span>
-                  </button>
-                );
-              })}
-            </div>
-            {saveErrors.theme && <p className="ds-error">{saveErrors.theme}</p>}
-            {savedFlash === 'theme' && <p className="ds-saved">Saved</p>}
-          </section>
+              {/* Theme Grid */}
+              <div className="ds-theme-grid">
+                {PLATFORM_THEMES.map(theme => {
+                  const isActive = activeTheme === theme.id;
+                  return (
+                    <button
+                      key={theme.id}
+                      type="button"
+                      className={`ds-theme-card${isActive ? ' ds-theme-card--active' : ''}`}
+                      onClick={() => applyPlatformTheme(theme.id)}
+                    >
+                      <div className="ds-theme-card-top">
+                        <div className="ds-theme-avatar-wrap">
+                          <span className="ds-theme-swatch" style={{ background: theme.tokens.brand?.primary }} />
+                          <span className="ds-theme-swatch-ring" style={{ borderColor: theme.tokens.brand?.primary }} />
+                        </div>
+                        {isActive && (
+                          <span className="ds-theme-active-tag">
+                            <Icon name="check" size={11} />
+                            <span>Active</span>
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="ds-theme-info">
+                        <span className="ds-theme-name">{theme.name}</span>
+                        <span className="ds-theme-desc">{theme.description}</span>
+                      </div>
+
+                      <div className="ds-theme-palette-bar">
+                        {(theme.palette.length > 1 ? theme.palette : [theme.palette[0], theme.palette[0], theme.palette[0]]).slice(0, 6).map((c, i) => (
+                          <span key={i} className="ds-theme-palette-dot" style={{ background: c }} title={c} />
+                        ))}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+              {saveErrors.theme && <p className="ds-alert-error">{saveErrors.theme}</p>}
+            </section>
           )}
 
-          {/* Brand & Neutral */}
+          {/* 2. Brand & Neutral */}
           {activeSection === 'brand' && (
-          <section className="card ds-section">
-            <h2 className="ds-section-title">Brand &amp; Neutral Colors</h2>
-            <p className="ds-section-hint">
-              Pick a seed color to auto-generate a cohesive neutral scale (Material 3 tonal palette
-              algorithm), or edit each value directly.
-            </p>
-            <div className="ds-seed-row">
-              <input type="color" className="ds-swatch" value={seed} onChange={e => setSeed(e.target.value)} />
-              <input type="text" className="input-field ds-color-text" value={seed} onChange={e => setSeed(e.target.value)} />
-              <button type="button" className="btn btn-primary btn-sm" onClick={handleGenerateFromSeed}>Generate</button>
-            </div>
-
-            <ColorField label="Brand primary" value={tokens.brand.primary}
-              onChange={v => save('brand', { brand: { primary: v } })} />
-
-            <div className="ds-tabs">
-              <button type="button" className={`ds-tab${themeTab === 'light' ? ' ds-tab--active' : ''}`} onClick={() => setThemeTab('light')}>Light mode</button>
-              <button type="button" className={`ds-tab${themeTab === 'dark' ? ' ds-tab--active' : ''}`} onClick={() => setThemeTab('dark')}>Dark mode</button>
-            </div>
-
-            {neutralKeys.map(key => (
-              <ColorField key={key} label={NEUTRAL_LABELS[key]} value={tokens.neutral[themeTab][key] ?? ''}
-                onChange={v => save('neutral', { neutral: { ...tokens.neutral, [themeTab]: { ...tokens.neutral[themeTab], [key]: v } } })} />
-            ))}
-            {(saveErrors.brand || saveErrors.neutral) && <p className="ds-error">{saveErrors.brand || saveErrors.neutral}</p>}
-            {(savedFlash === 'brand' || savedFlash === 'neutral') && <p className="ds-saved">Saved</p>}
-          </section>
-          )}
-
-          {/* Semantic */}
-          {activeSection === 'semantic' && (
-          <section className="card ds-section">
-            <h2 className="ds-section-title">Semantic Colors</h2>
-            <p className="ds-section-hint">Status colors used for badges, pills, and alerts — editing {themeTab} mode.</p>
-            {semanticKeys.map(key => (
-              <ColorField key={key} label={SEMANTIC_LABELS[key]} value={tokens.semantic[themeTab][key]}
-                onChange={v => save('semantic', { semantic: { ...tokens.semantic, [themeTab]: { ...tokens.semantic[themeTab], [key]: v } } })} />
-            ))}
-            {saveErrors.semantic && <p className="ds-error">{saveErrors.semantic}</p>}
-            {savedFlash === 'semantic' && <p className="ds-saved">Saved</p>}
-          </section>
-          )}
-
-          {/* Typography */}
-          {activeSection === 'typography' && (
-          <section className="card ds-section">
-            <h2 className="ds-section-title">Typography</h2>
-            <div className="ds-field">
-              <span className="ds-field-label">Base font family</span>
-              <Select value={tokens.typography.font}
-                onValueChange={v => save('typography', { typography: { ...tokens.typography, font: v as any } })}>
-                <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {FONT_IDS.map(id => <SelectItem key={id} value={id}>{FONT_LABELS[id]}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="ds-scale-grid">
-              {(Object.keys(tokens.typography.scale) as (keyof typeof tokens.typography.scale)[]).map(key => (
-                <NumberField key={key} label={key.toUpperCase()} suffix="px" value={tokens.typography.scale[key]}
-                  onChange={v => save('typography', { typography: { ...tokens.typography, scale: { ...tokens.typography.scale, [key]: v } } })} />
-              ))}
-            </div>
-            {saveErrors.typography && <p className="ds-error">{saveErrors.typography}</p>}
-            {savedFlash === 'typography' && <p className="ds-saved">Saved</p>}
-          </section>
-          )}
-
-          {/* Tabs */}
-          {activeSection === 'tabs' && (
-          <section className="card ds-section">
-            <h2 className="ds-section-title">Tabs</h2>
-            <p className="ds-section-hint">
-              Applies to every tab strip on the platform. The variant changes layout, so it is set here rather than
-              per page — an individual screen can still override it when it genuinely needs to.
-            </p>
-            <div className="ds-preset-row">
-              {(['underline', 'pill', 'segmented'] as const).map(v => (
-                <button key={v} type="button"
-                  className={`ds-preset-btn ${tokens.tabs.variant === v ? 'ds-preset-btn--active' : ''}`}
-                  onClick={() => save('tabs', { tabs: { ...tokens.tabs, variant: v } })}>
-                  {v[0].toUpperCase() + v.slice(1)}
-                </button>
-              ))}
-            </div>
-            <div className="ds-scale-grid" style={{ marginTop: 16 }}>
-              <NumberField label="Corner radius" suffix="px" min={0} value={tokens.tabs.radius}
-                onChange={v => save('tabs', { tabs: { ...tokens.tabs, radius: v } })} />
-              <NumberField label="Height" suffix="px" min={24} value={tokens.tabs.height}
-                onChange={v => save('tabs', { tabs: { ...tokens.tabs, height: v } })} />
-              <NumberField label="Label size" suffix="px" step={0.5} min={9} value={tokens.tabs.size}
-                onChange={v => save('tabs', { tabs: { ...tokens.tabs, size: v } })} />
-            </div>
-            <div style={{ marginTop: 18 }}>
-              <div className="ds-preview-label">Live preview</div>
-              <Tabs defaultValue="one">
-                <TabsList>
-                  <TabsTrigger value="one">Overview</TabsTrigger>
-                  <TabsTrigger value="two">Activity</TabsTrigger>
-                  <TabsTrigger value="three">Settings</TabsTrigger>
-                </TabsList>
-                <TabsContent value="one">This panel is the active tab's content.</TabsContent>
-                <TabsContent value="two">Second panel.</TabsContent>
-                <TabsContent value="three">Third panel.</TabsContent>
-              </Tabs>
-            </div>
-          </section>
-          )}
-
-          {/* Shape */}
-          {activeSection === 'shape' && (
-          <section className="card ds-section">
-            <h2 className="ds-section-title">Shape</h2>
-            <div className="ds-scale-grid">
-              <NumberField label="Small radius" suffix="px" value={tokens.shape.rSm} onChange={v => save('shape', { shape: { ...tokens.shape, rSm: v } })} />
-              <NumberField label="Base radius" suffix="px" value={tokens.shape.r} onChange={v => save('shape', { shape: { ...tokens.shape, r: v } })} />
-              <NumberField label="Large radius" suffix="px" value={tokens.shape.rLg} onChange={v => save('shape', { shape: { ...tokens.shape, rLg: v } })} />
-              <NumberField label="Badge radius" suffix="px" value={tokens.shape.badgeRadius} onChange={v => save('shape', { shape: { ...tokens.shape, badgeRadius: v } })} />
-              <NumberField label="Border width" suffix="px" step={0.5} min={0} value={tokens.shape.borderWidth} onChange={v => save('shape', { shape: { ...tokens.shape, borderWidth: v } })} />
-              <NumberField label="Icon stroke weight" step={0.25} min={1} value={tokens.shape.iconStrokeWidth} onChange={v => save('shape', { shape: { ...tokens.shape, iconStrokeWidth: v } })} />
-              <NumberField label="Breadcrumb size" suffix="px" step={0.5} min={8} value={tokens.shape.breadcrumbSize} onChange={v => save('shape', { shape: { ...tokens.shape, breadcrumbSize: v } })} />
-            </div>
-            <div className="ds-shape-preview">
-              <div className="ds-shape-swatch" style={{ borderRadius: tokens.shape.rSm }} />
-              <div className="ds-shape-swatch" style={{ borderRadius: tokens.shape.r }} />
-              <div className="ds-shape-swatch" style={{ borderRadius: tokens.shape.rLg }} />
-              <div className="ds-shape-swatch" style={{ borderRadius: tokens.shape.badgeRadius }} />
-              <div className="ds-shape-swatch" style={{ borderRadius: tokens.shape.r, border: `${tokens.shape.borderWidth}px solid var(--teal)` }} />
-              <div className="ds-shape-swatch" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Icon name="shapes" size={22} strokeWidth={tokens.shape.iconStrokeWidth} color="var(--teal)" />
+            <section className="ds-card-section">
+              {/* Seed Generator Hero */}
+              <div className="ds-generator-hero">
+                <div className="ds-generator-content">
+                  <div className="ds-generator-title-row">
+                    <Icon name="sparkle" size={16} />
+                    <span className="ds-generator-title">Material 3 Tonal Palette Generator</span>
+                  </div>
+                  <p className="ds-generator-desc">
+                    Pick a seed brand color to mathematically derive a balanced neutral scale and primary tokens automatically.
+                  </p>
+                  <div className="ds-seed-control-group">
+                    <div className="ds-color-control">
+                      <div className="ds-swatch-box" style={{ backgroundColor: seed }}>
+                        <input
+                          type="color"
+                          className="ds-swatch-native"
+                          value={seed}
+                          onChange={e => setSeed(e.target.value)}
+                        />
+                      </div>
+                      <div className="ds-color-input-wrap">
+                        <span className="ds-color-hash">#</span>
+                        <input
+                          type="text"
+                          className="ds-color-text-input"
+                          value={seed.replace(/^#/, '')}
+                          onChange={e => setSeed('#' + e.target.value.replace(/[^0-9a-fA-F]/g, '').slice(0, 6))}
+                        />
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-primary ds-btn-generate"
+                      onClick={handleGenerateFromSeed}
+                    >
+                      <Icon name="sparkle" size={14} />
+                      <span>Generate Tonal Scale</span>
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
-            <p className="ds-hint">
-              Border width applies to inputs, buttons and cards platform-wide. The
-              "active" border color on a focused input already tracks your brand
-              primary color (Brand &amp; Neutral tab) — no separate setting needed,
-              it's the same teal swatch shown in the border-width preview square.
-              Icon stroke weight is the default every icon uses unless a specific
-              spot in the app deliberately asks for a bolder or thinner one (e.g.
-              an active nav icon). Breadcrumb size controls the small uppercase
-              trail at the top of every page header (Dashboard &gt; Operations).
-            </p>
-            {saveErrors.shape && <p className="ds-error">{saveErrors.shape}</p>}
-            {savedFlash === 'shape' && <p className="ds-saved">Saved</p>}
-          </section>
+
+              {/* Primary Color Field */}
+              <div className="ds-subgroup-title">Primary Brand Token</div>
+              <ColorField
+                label="Brand Primary Accent"
+                description="The global anchor hue used for primary action buttons, active tabs, focus rings, and accents."
+                badgeText="Essential"
+                value={tokens.brand.primary}
+                onChange={v => save('brand', { brand: { primary: v } })}
+              />
+
+              {/* Light / Dark Mode Toggle */}
+              <div className="ds-palette-tabs-header">
+                <span className="ds-subgroup-title">Neutral Palette Scales</span>
+                <div className="ds-mode-tabs">
+                  <button
+                    type="button"
+                    className={`ds-mode-tab${themeTab === 'light' ? ' ds-mode-tab--active' : ''}`}
+                    onClick={() => setThemeTab('light')}
+                  >
+                    <Icon name="sun" size={13} />
+                    <span>Light Mode</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={`ds-mode-tab${themeTab === 'dark' ? ' ds-mode-tab--active' : ''}`}
+                    onClick={() => setThemeTab('dark')}
+                  >
+                    <Icon name="moon" size={13} />
+                    <span>Dark Mode</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Neutral Tokens Grid */}
+              <div className="ds-tokens-grid">
+                {neutralKeys.map(key => (
+                  <ColorField
+                    key={key}
+                    label={NEUTRAL_LABELS[key]?.title ?? key}
+                    description={NEUTRAL_LABELS[key]?.desc}
+                    value={tokens.neutral[themeTab][key] ?? ''}
+                    onChange={v =>
+                      save('neutral', {
+                        neutral: {
+                          ...tokens.neutral,
+                          [themeTab]: { ...tokens.neutral[themeTab], [key]: v },
+                        },
+                      })
+                    }
+                  />
+                ))}
+              </div>
+
+              {(saveErrors.brand || saveErrors.neutral) && (
+                <p className="ds-alert-error">{saveErrors.brand || saveErrors.neutral}</p>
+              )}
+            </section>
           )}
 
-          {/* Elevation */}
+          {/* 3. Semantic */}
+          {activeSection === 'semantic' && (
+            <section className="ds-card-section">
+              <div className="ds-palette-tabs-header">
+                <div>
+                  <h3 className="ds-section-heading">Semantic &amp; Status Colors</h3>
+                  <p className="ds-section-sub">Colors governing badges, alerts, system notifications and workflow statuses.</p>
+                </div>
+                <div className="ds-mode-tabs">
+                  <button
+                    type="button"
+                    className={`ds-mode-tab${themeTab === 'light' ? ' ds-mode-tab--active' : ''}`}
+                    onClick={() => setThemeTab('light')}
+                  >
+                    <Icon name="sun" size={13} />
+                    <span>Light Mode</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={`ds-mode-tab${themeTab === 'dark' ? ' ds-mode-tab--active' : ''}`}
+                    onClick={() => setThemeTab('dark')}
+                  >
+                    <Icon name="moon" size={13} />
+                    <span>Dark Mode</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="ds-tokens-grid">
+                {semanticKeys.map(key => {
+                  const cfg = SEMANTIC_CONFIG[key];
+                  return (
+                    <div key={key} className="ds-semantic-card-wrap">
+                      <ColorField
+                        label={cfg?.title ?? key}
+                        description={cfg?.desc}
+                        badgeText={cfg?.sample}
+                        value={tokens.semantic[themeTab][key]}
+                        onChange={v =>
+                          save('semantic', {
+                            semantic: {
+                              ...tokens.semantic,
+                              [themeTab]: { ...tokens.semantic[themeTab], [key]: v },
+                            },
+                          })
+                        }
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+
+              {saveErrors.semantic && <p className="ds-alert-error">{saveErrors.semantic}</p>}
+            </section>
+          )}
+
+          {/* 4. Typography */}
+          {activeSection === 'typography' && (
+            <section className="ds-card-section">
+              <div className="ds-section-header-block">
+                <h3 className="ds-section-heading">Font Family &amp; Type Hierarchy</h3>
+                <p className="ds-section-sub">Base font stack used platform-wide alongside precise font size scale step mappings.</p>
+              </div>
+
+              <div className="ds-form-group-card">
+                <div className="ds-field-title-row">
+                  <span className="ds-field-label">Base Font Family</span>
+                  <span className="ds-field-badge">Active: {FONT_LABELS[tokens.typography.font]}</span>
+                </div>
+                <p className="ds-field-desc">Primary sans-serif typeface loaded across all shells and document interfaces.</p>
+                <div className="ds-font-select-wrap">
+                  <Select
+                    value={tokens.typography.font}
+                    onValueChange={v => save('typography', { typography: { ...tokens.typography, font: v as any } })}
+                  >
+                    <SelectTrigger className="ds-select-trigger">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {FONT_IDS.map(id => (
+                        <SelectItem key={id} value={id}>
+                          {FONT_LABELS[id]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="ds-subgroup-title">Type Scale Steps (px)</div>
+              <div className="ds-numbers-grid">
+                {(Object.keys(tokens.typography.scale) as (keyof typeof tokens.typography.scale)[]).map(key => (
+                  <NumberField
+                    key={key}
+                    label={`Step ${key.toUpperCase()}`}
+                    suffix="px"
+                    min={8}
+                    max={96}
+                    value={tokens.typography.scale[key]}
+                    onChange={v =>
+                      save('typography', {
+                        typography: {
+                          ...tokens.typography,
+                          scale: { ...tokens.typography.scale, [key]: v },
+                        },
+                      })
+                    }
+                  />
+                ))}
+              </div>
+
+              {saveErrors.typography && <p className="ds-alert-error">{saveErrors.typography}</p>}
+            </section>
+          )}
+
+          {/* 5. Shape & Radius */}
+          {activeSection === 'shape' && (
+            <section className="ds-card-section">
+              <div className="ds-section-header-block">
+                <h3 className="ds-section-heading">Shape, Radius &amp; Strokes</h3>
+                <p className="ds-section-sub">Corner curvatures, border thickness, breadcrumb typography, and Lucide icon stroke weights.</p>
+              </div>
+
+              <div className="ds-numbers-grid">
+                <NumberField
+                  label="Small Radius (sm)"
+                  description="Badges, mini buttons & chips"
+                  suffix="px"
+                  value={tokens.shape.rSm}
+                  onChange={v => save('shape', { shape: { ...tokens.shape, rSm: v } })}
+                />
+                <NumberField
+                  label="Base Radius (default)"
+                  description="Inputs, standard buttons & dialogs"
+                  suffix="px"
+                  value={tokens.shape.r}
+                  onChange={v => save('shape', { shape: { ...tokens.shape, r: v } })}
+                />
+                <NumberField
+                  label="Large Radius (lg)"
+                  description="Cards, panels & major containers"
+                  suffix="px"
+                  value={tokens.shape.rLg}
+                  onChange={v => save('shape', { shape: { ...tokens.shape, rLg: v } })}
+                />
+                <NumberField
+                  label="Badge Radius"
+                  description="Status indicators & count pills"
+                  suffix="px"
+                  value={tokens.shape.badgeRadius}
+                  onChange={v => save('shape', { shape: { ...tokens.shape, badgeRadius: v } })}
+                />
+                <NumberField
+                  label="Border Width"
+                  description="Input and card outline thickness"
+                  suffix="px"
+                  step={0.5}
+                  min={0}
+                  value={tokens.shape.borderWidth}
+                  onChange={v => save('shape', { shape: { ...tokens.shape, borderWidth: v } })}
+                />
+                <NumberField
+                  label="Icon Stroke Weight"
+                  description="Default SVG stroke thickness"
+                  step={0.25}
+                  min={1}
+                  max={3.5}
+                  value={tokens.shape.iconStrokeWidth}
+                  onChange={v => save('shape', { shape: { ...tokens.shape, iconStrokeWidth: v } })}
+                />
+                <NumberField
+                  label="Breadcrumb Size"
+                  description="Header uppercase breadcrumb trail"
+                  suffix="px"
+                  step={0.5}
+                  min={8}
+                  value={tokens.shape.breadcrumbSize}
+                  onChange={v => save('shape', { shape: { ...tokens.shape, breadcrumbSize: v } })}
+                />
+              </div>
+
+              {/* Dynamic Shape Swatches Preview */}
+              <div className="ds-shape-demo-box">
+                <span className="ds-preview-mini-label">LIVE SHAPE MORPHING</span>
+                <div className="ds-shape-swatch-row">
+                  <div className="ds-shape-specimen" style={{ borderRadius: `${tokens.shape.rSm}px` }}>
+                    <span>sm ({tokens.shape.rSm}px)</span>
+                  </div>
+                  <div className="ds-shape-specimen" style={{ borderRadius: `${tokens.shape.r}px` }}>
+                    <span>base ({tokens.shape.r}px)</span>
+                  </div>
+                  <div className="ds-shape-specimen" style={{ borderRadius: `${tokens.shape.rLg}px` }}>
+                    <span>lg ({tokens.shape.rLg}px)</span>
+                  </div>
+                  <div className="ds-shape-specimen" style={{ borderRadius: `${tokens.shape.badgeRadius}px` }}>
+                    <span>badge ({tokens.shape.badgeRadius}px)</span>
+                  </div>
+                  <div
+                    className="ds-shape-specimen ds-shape-specimen--stroke"
+                    style={{
+                      borderRadius: `${tokens.shape.r}px`,
+                      borderWidth: `${tokens.shape.borderWidth}px`,
+                    }}
+                  >
+                    <Icon name="shapes" size={20} strokeWidth={tokens.shape.iconStrokeWidth} color="var(--teal)" />
+                  </div>
+                </div>
+              </div>
+
+              {saveErrors.shape && <p className="ds-alert-error">{saveErrors.shape}</p>}
+            </section>
+          )}
+
+          {/* 6. Tabs */}
+          {activeSection === 'tabs' && (
+            <section className="ds-card-section">
+              <div className="ds-section-header-block">
+                <h3 className="ds-section-heading">Tabs &amp; Navigation Strips</h3>
+                <p className="ds-section-sub">Configure platform tab styling variants, corner radius, track height, and typography.</p>
+              </div>
+
+              <div className="ds-variant-cards-grid">
+                {[
+                  { id: 'underline', title: 'Underline Rule', desc: 'Minimalist active border line under the selected tab.' },
+                  { id: 'pill', title: 'Soft Pill', desc: 'Rounded background tint highlighting the active tab on a clean track.' },
+                  { id: 'segmented', title: 'Segmented Control', desc: 'Raised surface card on an inset sunken background track.' },
+                ].map(v => {
+                  const isSelected = tokens.tabs.variant === v.id;
+                  return (
+                    <button
+                      key={v.id}
+                      type="button"
+                      className={`ds-variant-card${isSelected ? ' ds-variant-card--active' : ''}`}
+                      onClick={() => save('tabs', { tabs: { ...tokens.tabs, variant: v.id as any } })}
+                    >
+                      <div className="ds-variant-top">
+                        <span className="ds-variant-title">{v.title}</span>
+                        {isSelected && <span className="ds-version-check"><Icon name="check" size={11} /></span>}
+                      </div>
+                      <p className="ds-variant-desc">{v.desc}</p>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="ds-numbers-grid" style={{ marginTop: 20 }}>
+                <NumberField
+                  label="Corner Radius"
+                  suffix="px"
+                  min={0}
+                  value={tokens.tabs.radius}
+                  onChange={v => save('tabs', { tabs: { ...tokens.tabs, radius: v } })}
+                />
+                <NumberField
+                  label="Track Height"
+                  suffix="px"
+                  min={24}
+                  value={tokens.tabs.height}
+                  onChange={v => save('tabs', { tabs: { ...tokens.tabs, height: v } })}
+                />
+                <NumberField
+                  label="Label Font Size"
+                  suffix="px"
+                  step={0.5}
+                  min={9}
+                  value={tokens.tabs.size}
+                  onChange={v => save('tabs', { tabs: { ...tokens.tabs, size: v } })}
+                />
+              </div>
+
+              <div className="ds-interactive-preview-card">
+                <span className="ds-preview-mini-label">LIVE TAB COMPONENT RENDERING</span>
+                <Tabs defaultValue="one" className="ds-preview-tab-wrapper">
+                  <TabsList>
+                    <TabsTrigger value="one">Overview</TabsTrigger>
+                    <TabsTrigger value="two">Declarations</TabsTrigger>
+                    <TabsTrigger value="three">Audit History</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="one" className="ds-tab-content-box">
+                    <p>Tab panel for <strong>Overview</strong> demonstrating active token variant and height.</p>
+                  </TabsContent>
+                  <TabsContent value="two" className="ds-tab-content-box">
+                    <p>Declarations data stream view panel.</p>
+                  </TabsContent>
+                  <TabsContent value="three" className="ds-tab-content-box">
+                    <p>Audit history records table preview.</p>
+                  </TabsContent>
+                </Tabs>
+              </div>
+            </section>
+          )}
+
+          {/* 7. Elevation */}
           {activeSection === 'elevation' && (
-          <section className="card ds-section">
-            <h2 className="ds-section-title">Elevation</h2>
-            <div className="ds-preset-row">
-              {SHADOW_IDS.map(id => (
-                <button key={id} type="button"
-                  className={`ds-preset-btn${tokens.elevation === id ? ' ds-preset-btn--active' : ''}`}
-                  onClick={() => save('elevation', { elevation: id })}>
-                  <span className="ds-preset-swatch" style={{ boxShadow: SHADOW_PRESETS[id][previewTheme].base }} />
-                  {SHADOW_LABELS[id]}
-                </button>
-              ))}
-            </div>
-            {saveErrors.elevation && <p className="ds-error">{saveErrors.elevation}</p>}
-            {savedFlash === 'elevation' && <p className="ds-saved">Saved</p>}
-          </section>
+            <section className="ds-card-section">
+              <div className="ds-section-header-block">
+                <h3 className="ds-section-heading">Elevation &amp; Shadows</h3>
+                <p className="ds-section-sub">Choose the active platform-wide shadow and depth profile.</p>
+              </div>
+
+              <div className="ds-shadow-cards-grid">
+                {SHADOW_IDS.map(id => {
+                  const isSelected = tokens.elevation === id;
+                  const shadowCss = SHADOW_PRESETS[id][previewTheme]?.base || 'none';
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      className={`ds-shadow-card${isSelected ? ' ds-shadow-card--active' : ''}`}
+                      onClick={() => save('elevation', { elevation: id })}
+                    >
+                      <div className="ds-shadow-sample" style={{ boxShadow: shadowCss }} />
+                      <div className="ds-shadow-meta">
+                        <span className="ds-shadow-title">{SHADOW_LABELS[id]}</span>
+                        {isSelected && <span className="ds-theme-check-mini"><Icon name="check" size={10} /></span>}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+              {saveErrors.elevation && <p className="ds-alert-error">{saveErrors.elevation}</p>}
+            </section>
           )}
 
-          {/* Density */}
+          {/* 8. Density */}
           {activeSection === 'density' && (
-          <section className="card ds-section">
-            <h2 className="ds-section-title">Spacing &amp; Density</h2>
-            <div className="ds-preset-row">
-              {DENSITY_IDS.map(id => (
-                <button key={id} type="button"
-                  className={`ds-preset-btn${tokens.density === id ? ' ds-preset-btn--active' : ''}`}
-                  onClick={() => save('density', { density: id })}>
-                  {DENSITY_LABELS[id]}
-                </button>
-              ))}
-            </div>
-            {saveErrors.density && <p className="ds-error">{saveErrors.density}</p>}
-            {savedFlash === 'density' && <p className="ds-saved">Saved</p>}
-          </section>
+            <section className="ds-card-section">
+              <div className="ds-section-header-block">
+                <h3 className="ds-section-heading">Spacing &amp; Density</h3>
+                <p className="ds-section-sub">Control padding, button sizes, and information density across tables, forms, and toolbars.</p>
+              </div>
+
+              <div className="ds-variant-cards-grid">
+                {DENSITY_IDS.map(id => {
+                  const isSelected = tokens.density === id;
+                  const descMap: Record<DensityId, string> = {
+                    compact: 'High data density for heavy analytical and operational tables (~28-32px rows).',
+                    default: 'Balanced ergonomic spacing optimized for general business SaaS screens.',
+                    comfortable: 'Spacious layout with generous touch targets and relaxed padding (~44-48px).',
+                  };
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      className={`ds-variant-card${isSelected ? ' ds-variant-card--active' : ''}`}
+                      onClick={() => save('density', { density: id })}
+                    >
+                      <div className="ds-variant-top">
+                        <span className="ds-variant-title">{DENSITY_LABELS[id]}</span>
+                        {isSelected && <span className="ds-version-check"><Icon name="check" size={11} /></span>}
+                      </div>
+                      <p className="ds-variant-desc">{descMap[id]}</p>
+                    </button>
+                  );
+                })}
+              </div>
+              {saveErrors.density && <p className="ds-alert-error">{saveErrors.density}</p>}
+            </section>
           )}
 
-          {/* Motion */}
+          {/* 9. Motion */}
           {activeSection === 'motion' && (
-          <section className="card ds-section">
-            <h2 className="ds-section-title">Motion</h2>
-            <div className="ds-scale-grid">
-              <NumberField label="Fast" suffix="ms" value={tokens.motion.durFast} onChange={v => save('motion', { motion: { ...tokens.motion, durFast: v } })} />
-              <NumberField label="Base" suffix="ms" value={tokens.motion.dur} onChange={v => save('motion', { motion: { ...tokens.motion, dur: v } })} />
-              <NumberField label="Slow" suffix="ms" value={tokens.motion.durSlow} onChange={v => save('motion', { motion: { ...tokens.motion, durSlow: v } })} />
-            </div>
-            <div className="ds-field">
-              <span className="ds-field-label">Easing</span>
-              <input type="text" className="input-field" value={tokens.motion.ease}
-                onChange={e => save('motion', { motion: { ...tokens.motion, ease: e.target.value } })} />
-            </div>
-            {saveErrors.motion && <p className="ds-error">{saveErrors.motion}</p>}
-            {savedFlash === 'motion' && <p className="ds-saved">Saved</p>}
-          </section>
+            <section className="ds-card-section">
+              <div className="ds-section-header-block">
+                <h3 className="ds-section-heading">Animation &amp; Transitions</h3>
+                <p className="ds-section-sub">Durations and bezier easing curves for micro-interactions, modal flyouts, and dropdowns.</p>
+              </div>
+
+              <div className="ds-numbers-grid">
+                <NumberField
+                  label="Fast Duration"
+                  description="Hovers & toggle switches"
+                  suffix="ms"
+                  value={tokens.motion.durFast}
+                  onChange={v => save('motion', { motion: { ...tokens.motion, durFast: v } })}
+                />
+                <NumberField
+                  label="Base Duration"
+                  description="Dropdowns & popovers"
+                  suffix="ms"
+                  value={tokens.motion.dur}
+                  onChange={v => save('motion', { motion: { ...tokens.motion, dur: v } })}
+                />
+                <NumberField
+                  label="Slow Duration"
+                  description="Page transitions & slideouts"
+                  suffix="ms"
+                  value={tokens.motion.durSlow}
+                  onChange={v => save('motion', { motion: { ...tokens.motion, durSlow: v } })}
+                />
+              </div>
+
+              <div className="ds-form-group-card" style={{ marginTop: 16 }}>
+                <span className="ds-field-label">Easing Curve (CSS timing-function)</span>
+                <input
+                  type="text"
+                  className="input-field ds-easing-input"
+                  value={tokens.motion.ease}
+                  onChange={e => save('motion', { motion: { ...tokens.motion, ease: e.target.value } })}
+                />
+              </div>
+
+              {/* Interactive Motion Sandbox */}
+              <div className="ds-interactive-preview-card" style={{ marginTop: 20 }}>
+                <div className="ds-motion-sandbox-top">
+                  <span className="ds-preview-mini-label">LIVE ANIMATION SANDBOX</span>
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm"
+                    onClick={() => setMotionTrigger(c => c + 1)}
+                  >
+                    <Icon name="zap" size={13} />
+                    <span>Trigger Animation Test</span>
+                  </button>
+                </div>
+
+                <div className="ds-motion-sandbox-track">
+                  <div
+                    key={motionTrigger}
+                    className="ds-motion-ball"
+                    style={{
+                      transition: `all ${tokens.motion.dur}ms ${tokens.motion.ease}`,
+                      transform: motionTrigger % 2 === 1 ? 'translateX(280px)' : 'translateX(0)',
+                    }}
+                  >
+                    <Icon name="sparkle" size={16} />
+                  </div>
+                </div>
+              </div>
+
+              {saveErrors.motion && <p className="ds-alert-error">{saveErrors.motion}</p>}
+            </section>
           )}
 
-          {/* ── Platform group — merged in from the former standalone
-              Branding and Components admin pages. ── */}
+          {/* 10. Menu */}
+          {activeSection === 'menu' && (
+            <section className="ds-card-section">
+              <div className="ds-section-header-block">
+                <h3 className="ds-section-heading">Sidebar Menu Default State</h3>
+                <p className="ds-section-sub">Choose whether the navigation sidebar opens expanded or collapsed into icon-only mode.</p>
+              </div>
+
+              <div className="ds-layout-options-grid">
+                {[
+                  { id: 'expanded', title: 'Expanded Sidebar', desc: 'Full width navigation with labels and section groups visible.' },
+                  { id: 'collapsed', title: 'Collapsed Sidebar', desc: 'Compact icon-only rail maximizing horizontal workspace area.' },
+                ].map(opt => {
+                  const isSelected = menuDefault === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      className={`ds-layout-option-card${isSelected ? ' ds-layout-option-card--active' : ''}`}
+                      onClick={() => setMenuDefault(opt.id as any)}
+                    >
+                      <div className="ds-layout-option-top">
+                        <span className="ds-layout-option-title">{opt.title}</span>
+                        {isSelected && <span className="ds-version-check"><Icon name="check" size={11} /></span>}
+                      </div>
+                      <p className="ds-layout-option-desc">{opt.desc}</p>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+          {/* 11. Navbar Mode */}
+          {activeSection === 'navbar' && (
+            <section className="ds-card-section">
+              <div className="ds-section-header-block">
+                <h3 className="ds-section-heading">Top Navigation Bar Type</h3>
+                <p className="ds-section-sub">Choose the header anchoring behavior across all applications.</p>
+              </div>
+
+              <div className="ds-layout-options-grid">
+                {[
+                  { id: 'sticky', title: 'Sticky Topbar', desc: 'Stays pinned at the top while the viewport content scrolls underneath.' },
+                  { id: 'static', title: 'Static Topbar', desc: 'Scrolls naturally with the page content body.' },
+                  { id: 'hidden', title: 'Hidden Header', desc: 'Compact mode hiding topbar chrome for full screen immersive flows.' },
+                ].map(opt => {
+                  const isSelected = navbarType === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      className={`ds-layout-option-card${isSelected ? ' ds-layout-option-card--active' : ''}`}
+                      onClick={() => setNavbarType(opt.id as any)}
+                    >
+                      <div className="ds-layout-option-top">
+                        <span className="ds-layout-option-title">{opt.title}</span>
+                        {isSelected && <span className="ds-version-check"><Icon name="check" size={11} /></span>}
+                      </div>
+                      <p className="ds-layout-option-desc">{opt.desc}</p>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+          {/* 12. Content Width */}
+          {activeSection === 'content' && (
+            <section className="ds-card-section">
+              <div className="ds-section-header-block">
+                <h3 className="ds-section-heading">Canvas Content Width</h3>
+                <p className="ds-section-sub">Standardize max-width bounds for page layouts.</p>
+              </div>
+
+              <div className="ds-layout-options-grid">
+                {[
+                  { id: 'compact', title: 'Compact (Boxed)', desc: 'Constrained centered layout with optimal ergonomic reading line lengths.' },
+                  { id: 'wide', title: 'Wide (Full Bleed)', desc: 'Spans the entire available browser width for dense data dashboards.' },
+                ].map(opt => {
+                  const isSelected = contentWidth === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      className={`ds-layout-option-card${isSelected ? ' ds-layout-option-card--active' : ''}`}
+                      onClick={() => setContentWidth(opt.id as any)}
+                    >
+                      <div className="ds-layout-option-top">
+                        <span className="ds-layout-option-title">{opt.title}</span>
+                        {isSelected && <span className="ds-version-check"><Icon name="check" size={11} /></span>}
+                      </div>
+                      <p className="ds-layout-option-desc">{opt.desc}</p>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+          {/* 13. Skin */}
+          {activeSection === 'skin' && (
+            <section className="ds-card-section">
+              <div className="ds-section-header-block">
+                <h3 className="ds-section-heading">Surface Skin Styling</h3>
+                <p className="ds-section-sub">Toggle between soft elevated card surfaces or crisp bordered structural perimeters.</p>
+              </div>
+
+              <div className="ds-layout-options-grid">
+                {[
+                  { id: 'default', title: 'Default (Elevated)', desc: 'Clean cards with subtle layered shadows and soft background tone.' },
+                  { id: 'bordered', title: 'Bordered (High Contrast)', desc: 'Explicit outline borders around every card, panel, and toolbar element.' },
+                ].map(opt => {
+                  const isSelected = skin === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      className={`ds-layout-option-card${isSelected ? ' ds-layout-option-card--active' : ''}`}
+                      onClick={() => setSkin(opt.id as any)}
+                    >
+                      <div className="ds-layout-option-top">
+                        <span className="ds-layout-option-title">{opt.title}</span>
+                        {isSelected && <span className="ds-version-check"><Icon name="check" size={11} /></span>}
+                      </div>
+                      <p className="ds-layout-option-desc">{opt.desc}</p>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+          {/* 14. Semi Dark */}
+          {activeSection === 'semidark' && (
+            <section className="ds-card-section">
+              <div className="ds-section-header-block">
+                <h3 className="ds-section-heading">Semi-Dark Navigation Mode</h3>
+                <p className="ds-section-sub">Maintains a sleek dark sidebar navigation aesthetic even when light mode is active on pages.</p>
+              </div>
+
+              <div className="ds-layout-options-grid">
+                {[
+                  { id: false, title: 'Disabled (Matched Theme)', desc: 'Sidebar adapts to the active light/dark theme automatically.' },
+                  { id: true, title: 'Enabled (Always Dark Sidebar)', desc: 'Sidebar stays dark navy regardless of light mode setting.' },
+                ].map(opt => {
+                  const isSelected = semiDark === opt.id;
+                  return (
+                    <button
+                      key={String(opt.id)}
+                      type="button"
+                      className={`ds-layout-option-card${isSelected ? ' ds-layout-option-card--active' : ''}`}
+                      onClick={() => setSemiDark(opt.id)}
+                    >
+                      <div className="ds-layout-option-top">
+                        <span className="ds-layout-option-title">{opt.title}</span>
+                        {isSelected && <span className="ds-version-check"><Icon name="check" size={11} /></span>}
+                      </div>
+                      <p className="ds-layout-option-desc">{opt.desc}</p>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+          {/* 15. Direction */}
+          {activeSection === 'direction' && (
+            <section className="ds-card-section">
+              <div className="ds-section-header-block">
+                <h3 className="ds-section-heading">Text Flow &amp; Direction</h3>
+                <p className="ds-section-sub">Configure standard Left-to-Right (LTR) or Right-to-Left (RTL) document direction flow.</p>
+              </div>
+
+              <div className="ds-layout-options-grid">
+                {[
+                  { id: 'ltr', title: 'Left to Right (LTR)', desc: 'Standard Latin and international left-to-right text orientation.' },
+                  { id: 'rtl', title: 'Right to Left (RTL)', desc: 'Mirrored text direction for Arabic and Hebrew language locales.' },
+                ].map(opt => {
+                  const isSelected = direction === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      className={`ds-layout-option-card${isSelected ? ' ds-layout-option-card--active' : ''}`}
+                      onClick={() => setDirection(opt.id as any)}
+                    >
+                      <div className="ds-layout-option-top">
+                        <span className="ds-layout-option-title">{opt.title}</span>
+                        {isSelected && <span className="ds-version-check"><Icon name="check" size={11} /></span>}
+                      </div>
+                      <p className="ds-layout-option-desc">{opt.desc}</p>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+          {/* 16. Mobile Breakpoint */}
+          {activeSection === 'mobile' && (
+            <section className="ds-card-section">
+              <div className="ds-section-header-block">
+                <h3 className="ds-section-heading">Responsive Viewport Breakpoint</h3>
+                <p className="ds-section-sub">
+                  The unified screen threshold (px) utilized across the platform (42+ components via useIsMobile) to transition between desktop and adaptive mobile layouts.
+                </p>
+              </div>
+
+              <div className="ds-numbers-grid">
+                <NumberField
+                  label="Adaptive Breakpoint"
+                  description="Threshold width for mobile drawer / bottom bar switch"
+                  suffix="px"
+                  step={1}
+                  min={320}
+                  max={1200}
+                  value={tokens.responsive.breakpoint}
+                  onChange={v => save('responsive', { responsive: { breakpoint: v } })}
+                />
+              </div>
+
+              <div className="ds-live-breakpoint-status">
+                <span className="ds-breakpoint-label">Current Viewport State:</span>
+                <span className={`badge ${isMobileNow ? 'badge-gold' : 'badge-teal'}`}>
+                  {isMobileNow ? '📱 Mobile Layout Active' : '🖥️ Desktop Layout Active'}
+                </span>
+              </div>
+
+              {saveErrors.responsive && <p className="ds-alert-error">{saveErrors.responsive}</p>}
+            </section>
+          )}
+
+          {/* 17-20: Platform sections */}
           {activeSection === 'identity' && (
-          <section className="ds-section">
-            <BrandingIdentitySection />
-          </section>
+            <section className="ds-platform-section">
+              <BrandingIdentitySection />
+            </section>
           )}
 
           {activeSection === 'apps' && (
-          <section className="ds-section">
-            <BrandingAppsSection />
-          </section>
+            <section className="ds-platform-section">
+              <BrandingAppsSection />
+            </section>
           )}
 
           {activeSection === 'login' && (
-          <section className="ds-section">
-            <BrandingLoginSection />
-          </section>
+            <section className="ds-platform-section">
+              <BrandingLoginSection />
+            </section>
           )}
 
           {activeSection === 'components' && (
-          <section className="ds-section">
-            <ComponentShowcase />
-          </section>
+            <section className="ds-platform-section">
+              <ComponentShowcase />
+            </section>
           )}
 
-          {/* Menu */}
-          {activeSection === 'menu' && (
-          <section className="card ds-section">
-            <h2 className="ds-section-title">Menu (Navigation)</h2>
-            <p className="ds-section-hint">Default sidebar state the first time any app is opened.</p>
-            <div className="ds-preset-row">
-              {(['expanded', 'collapsed'] as const).map(mode => (
-                <button key={mode} type="button"
-                  className={`ds-preset-btn${menuDefault === mode ? ' ds-preset-btn--active' : ''}`}
-                  onClick={() => setMenuDefault(mode)}>
-                  {mode === 'expanded' ? 'Expanded' : 'Collapsed'}
-                </button>
-              ))}
-            </div>
-          </section>
-          )}
+        </main>
 
-          {/* Navbar type */}
-          {activeSection === 'navbar' && (
-          <section className="card ds-section">
-            <h2 className="ds-section-title">Navbar Type</h2>
-            <div className="ds-preset-row">
-              {(['sticky', 'static', 'hidden'] as const).map(type => (
-                <button key={type} type="button"
-                  className={`ds-preset-btn${navbarType === type ? ' ds-preset-btn--active' : ''}`}
-                  onClick={() => setNavbarType(type)}>
-                  {type.charAt(0).toUpperCase() + type.slice(1)}
-                </button>
-              ))}
-            </div>
-          </section>
-          )}
-
-          {/* Content width */}
-          {activeSection === 'content' && (
-          <section className="card ds-section">
-            <h2 className="ds-section-title">Content</h2>
-            <div className="ds-preset-row">
-              {(['compact', 'wide'] as const).map(mode => (
-                <button key={mode} type="button"
-                  className={`ds-preset-btn${contentWidth === mode ? ' ds-preset-btn--active' : ''}`}
-                  onClick={() => setContentWidth(mode)}>
-                  {mode === 'compact' ? 'Compact' : 'Wide'}
-                </button>
-              ))}
-            </div>
-          </section>
-          )}
-
-          {/* Skin */}
-          {activeSection === 'skin' && (
-          <section className="card ds-section">
-            <h2 className="ds-section-title">Skin</h2>
-            <div className="ds-preset-row">
-              {(['default', 'bordered'] as const).map(s => (
-                <button key={s} type="button"
-                  className={`ds-preset-btn${skin === s ? ' ds-preset-btn--active' : ''}`}
-                  onClick={() => setSkin(s)}>
-                  {s === 'default' ? 'Default' : 'Bordered'}
-                </button>
-              ))}
-            </div>
-          </section>
-          )}
-
-          {/* Semi Dark */}
-          {activeSection === 'semidark' && (
-          <section className="card ds-section">
-            <h2 className="ds-section-title">Semi Dark</h2>
-            <p className="ds-section-hint">Keeps the sidebar dark regardless of the page's own light/dark theme.</p>
-            <div className="ds-preset-row">
-              <button type="button" className={`ds-preset-btn${!semiDark ? ' ds-preset-btn--active' : ''}`} onClick={() => setSemiDark(false)}>Off</button>
-              <button type="button" className={`ds-preset-btn${semiDark ? ' ds-preset-btn--active' : ''}`} onClick={() => setSemiDark(true)}>On</button>
-            </div>
-          </section>
-          )}
-
-          {/* Direction */}
-          {activeSection === 'direction' && (
-          <section className="card ds-section">
-            <h2 className="ds-section-title">Direction</h2>
-            <p className="ds-section-hint">
-              Sets the page's text direction. Note: layout mirroring is partial today — most of the platform's
-              CSS doesn't yet have RTL-aware rules, so switching this flips text direction but won't fully
-              re-mirror every layout. Full RTL support is separate, larger follow-up work.
-            </p>
-            <div className="ds-preset-row">
-              <button type="button" className={`ds-preset-btn${direction === 'ltr' ? ' ds-preset-btn--active' : ''}`} onClick={() => setDirection('ltr')}>Left to Right</button>
-              <button type="button" className={`ds-preset-btn${direction === 'rtl' ? ' ds-preset-btn--active' : ''}`} onClick={() => setDirection('rtl')}>Right to Left</button>
-            </div>
-          </section>
-          )}
-
-          {/* Mobile */}
-          {activeSection === 'mobile' && (
-          <section className="card ds-section">
-            <h2 className="ds-section-title">Mobile</h2>
-            <p className="ds-section-hint">
-              The single breakpoint every adaptive page in the platform reads from
-              (useIsMobile() — 42 files, ~90 call sites). Below this width, pages
-              switch to their mobile layout live, no reload. A handful of raw CSS
-              media queries (scrollbars, a couple of layout edge cases) are fixed
-              at their own values and don't follow this — CSS can't reference a
-              custom property inside @media, only JavaScript-driven layout can.
-            </p>
-            <div className="ds-scale-grid">
-              <NumberField label="Breakpoint" suffix="px" step={1} min={320}
-                value={tokens.responsive.breakpoint}
-                onChange={v => save('responsive', { responsive: { breakpoint: v } })} />
-            </div>
-            <div className="ds-field" style={{ marginTop: 4 }}>
-              <span className="ds-field-label">This browser window right now</span>
-              <span className={`badge ${isMobileNow ? 'badge-gold' : 'badge-teal'}`}>
-                {isMobileNow ? 'Mobile layout' : 'Desktop layout'}
-              </span>
-            </div>
-            {saveErrors.responsive && <p className="ds-error">{saveErrors.responsive}</p>}
-            {savedFlash === 'responsive' && <p className="ds-saved">Saved</p>}
-          </section>
-          )}
-
-        </div>
-
-        {/* Live preview — only for the token-tuning sections. Identity/Apps/
-            Login/Components are content editors and a component catalog, not
-            color/shape tuning, so there's nothing here for them to preview. */}
+        {/* 3. Studio Live Preview Pane (For theming & layout sections) */}
         {!PANEL_ONLY_SECTIONS.has(activeSection) && (
-        <div className="ds-preview" data-theme={previewTheme === 'dark' ? 'dark' : undefined}>
-          <div className="ds-preview-bar">
-            <span className="ds-preview-label">Live preview</span>
-            <div className="ds-preview-toggle">
-              <button type="button" className={`ds-tab${previewTheme === 'light' ? ' ds-tab--active' : ''}`} onClick={() => setPreviewTheme('light')}>Light</button>
-              <button type="button" className={`ds-tab${previewTheme === 'dark' ? ' ds-tab--active' : ''}`} onClick={() => setPreviewTheme('dark')}>Dark</button>
-            </div>
-          </div>
-
-          <div className="ds-preview-body">
-            <div className="ds-preview-row">
-              <button type="button" className="btn btn-primary">Filled</button>
-              <button type="button" className="btn btn-secondary">Secondary</button>
-              <button type="button" className="btn btn-ghost">Ghost</button>
-              <button type="button" className="btn btn-danger">Danger</button>
-            </div>
-
-            <div className="ds-preview-row">
-              <span className="badge badge-teal">Teal</span>
-              <span className="badge badge-gold">Warning</span>
-              <span className="badge badge-red">Danger</span>
-              <span className="badge badge-green">Success</span>
-              <span className="badge badge-blue">Info</span>
-              <span className="badge badge-purple">Accent</span>
-            </div>
-
-            <div className="ds-preview-row">
-              <span className="status-pill spl-teal">Active</span>
-              <span className="status-pill spl-amber">Pending</span>
-              <span className="status-pill spl-red">Overdue</span>
-              <span className="status-pill spl-green">Done</span>
+          <aside className="ds-preview" data-theme={previewTheme === 'dark' ? 'dark' : undefined}>
+            <div className="ds-preview-bar">
+              <div className="ds-preview-header-left">
+                <span className="ds-preview-status-dot" />
+                <span className="ds-preview-title">STUDIO PLAYGROUND</span>
+              </div>
+              <div className="ds-preview-toggle">
+                <button
+                  type="button"
+                  className={`ds-tab${previewTheme === 'light' ? ' ds-tab--active' : ''}`}
+                  onClick={() => setPreviewTheme('light')}
+                >
+                  <Icon name="sun" size={12} />
+                  <span>Light</span>
+                </button>
+                <button
+                  type="button"
+                  className={`ds-tab${previewTheme === 'dark' ? ' ds-tab--active' : ''}`}
+                  onClick={() => setPreviewTheme('dark')}
+                >
+                  <Icon name="moon" size={12} />
+                  <span>Dark</span>
+                </button>
+              </div>
             </div>
 
-            <div className="card ds-preview-card">
-              <h3 className="ds-preview-card-title">Card title</h3>
-              <p className="ds-preview-card-body">
-                This card uses the app's real <code>.card</code> class — background, border,
-                radius and shadow all come straight from the tokens on the left.
-              </p>
-              <div className="ds-preview-nav-item">Navigation item</div>
-            </div>
+            <div className="ds-preview-body">
+              
+              {/* Buttons Playground */}
+              <div className="ds-playground-block">
+                <span className="ds-playground-label">BUTTON PRIMITIVES</span>
+                <div className="ds-preview-row">
+                  <button type="button" className="btn btn-primary">Primary</button>
+                  <button type="button" className="btn btn-secondary">Secondary</button>
+                  <button type="button" className="btn btn-ghost">Ghost</button>
+                  <button type="button" className="btn btn-danger">Danger</button>
+                </div>
+              </div>
 
-            <div className="ds-preview-type-scale">
-              <div style={{ fontSize: 'var(--text-3xl)' }}>Heading 3XL</div>
-              <div style={{ fontSize: 'var(--text-2xl)' }}>Heading 2XL</div>
-              <div style={{ fontSize: 'var(--text-xl)' }}>Heading XL</div>
-              <div style={{ fontSize: 'var(--text-lg)' }}>Heading LG</div>
-              <div style={{ fontSize: 'var(--text-md)' }}>Body MD</div>
-              <div style={{ fontSize: 'var(--text-base)' }}>Body base</div>
-              <div style={{ fontSize: 'var(--text-sm)' }}>Caption SM</div>
-              <div style={{ fontSize: 'var(--text-xs)' }}>Caption XS</div>
+              {/* Status Badges */}
+              <div className="ds-playground-block">
+                <span className="ds-playground-label">SEMANTIC BADGES</span>
+                <div className="ds-preview-row">
+                  <span className="badge badge-teal">Teal Brand</span>
+                  <span className="badge badge-gold">Warning</span>
+                  <span className="badge badge-red">Danger</span>
+                  <span className="badge badge-green">Success</span>
+                  <span className="badge badge-blue">Info</span>
+                  <span className="badge badge-purple">Accent</span>
+                </div>
+              </div>
+
+              {/* Status Pills */}
+              <div className="ds-playground-block">
+                <span className="ds-playground-label">STATUS PILLS</span>
+                <div className="ds-preview-row">
+                  <span className="status-pill spl-teal">Active</span>
+                  <span className="status-pill spl-amber">Pending</span>
+                  <span className="status-pill spl-red">Overdue</span>
+                  <span className="status-pill spl-green">Cleared</span>
+                </div>
+              </div>
+
+              {/* Live Specimen Dashboard Card */}
+              <div className="card ds-preview-card">
+                <div className="ds-preview-card-header">
+                  <div className="ds-preview-card-title-group">
+                    <span className="ds-preview-card-badge">LIVE METRICS</span>
+                    <h4 className="ds-preview-card-title">Customs Operational Hub</h4>
+                  </div>
+                  <span className="status-pill spl-green">Synced</span>
+                </div>
+                <p className="ds-preview-card-body">
+                  Real-time component demonstration reacting live to active brand primary, neutral tonal scales, corner radius, and elevation tokens.
+                </p>
+                <div className="ds-preview-card-footer">
+                  <div className="ds-preview-nav-item">
+                    <Icon name="sparkle" size={13} />
+                    <span>Active Workspace</span>
+                  </div>
+                  <span className="ds-preview-card-stat">99.8% Compliance</span>
+                </div>
+              </div>
+
+              {/* Type Hierarchy Specimen */}
+              <div className="ds-playground-block">
+                <span className="ds-playground-label">TYPE SPECIMEN SCALE</span>
+                <div className="ds-preview-type-scale">
+                  <div style={{ fontSize: 'var(--text-3xl)', fontWeight: 700 }}>Heading 3XL</div>
+                  <div style={{ fontSize: 'var(--text-2xl)', fontWeight: 700 }}>Heading 2XL</div>
+                  <div style={{ fontSize: 'var(--text-xl)', fontWeight: 600 }}>Heading XL</div>
+                  <div style={{ fontSize: 'var(--text-lg)', fontWeight: 600 }}>Heading LG</div>
+                  <div style={{ fontSize: 'var(--text-md)' }}>Body MD Regular Text</div>
+                  <div style={{ fontSize: 'var(--text-sm)', color: 'var(--ink2)' }}>Caption SM Muted Metadata</div>
+                </div>
+              </div>
+
             </div>
-          </div>
-        </div>
+          </aside>
         )}
+
       </div>
     </div>
   );

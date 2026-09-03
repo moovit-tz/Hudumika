@@ -33,7 +33,7 @@ export const APP_LABELS: Record<AppId, string> = {
   nexushr:     'NexusHR',
   onesite:   'CMS',
   onsite:    'Onsite',
-  oneid:     'Ondi',
+  ondi:     'Ondi',
   tracking:  'HuduFreight',
   cloud:     'Cloud',
   ai:        'AI',
@@ -75,7 +75,7 @@ export const APP_COLORS: Record<AppId, string> = {
   // and both defaulting to the same navy made them indistinguishable on
   // BrandingView's app cards (reported as looking like a duplicate entry).
   onesite: '#06b6d4',
-  oneid: DEFAULT_APP_COLOR, tracking: DEFAULT_APP_COLOR, cloud: DEFAULT_APP_COLOR,
+  ondi: DEFAULT_APP_COLOR, tracking: DEFAULT_APP_COLOR, cloud: DEFAULT_APP_COLOR,
   onsite: DEFAULT_APP_COLOR,
   ai: DEFAULT_APP_COLOR, workspace: DEFAULT_APP_COLOR, admin: DEFAULT_APP_COLOR,
   email: DEFAULT_APP_COLOR, crm: DEFAULT_APP_COLOR,
@@ -126,7 +126,7 @@ export const APP_PALETTE_SLOT: Record<AppId, number> = {
   // 6 — support, comms & relationships
   bliss: 6, email: 6, crm: 6, contacts: 6, sms: 6,
   // 7 — platform, identity & tooling
-  admin: 7, oneid: 7, onesite: 7, onsite: 7, workspace: 7,
+  admin: 7, ondi: 7, onesite: 7, onsite: 7, workspace: 7,
   studio: 7, ai: 7, calendar: 7, tasks: 7, cloud: 7, hudubi: 7, projects: 7,
   sign: 2,  // compliance & legal slot — signatures belong here
 };

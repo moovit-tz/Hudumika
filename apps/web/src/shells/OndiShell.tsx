@@ -10,32 +10,32 @@ import { PageLayout } from '../components/PageLayout.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { Icon } from '../components/Icon.js';
 
-import { OneIdUsers } from '../pages/OneIdUsers.js';
-import { OneIdSSO } from '../pages/OneIdSSO.js';
-import { OneIdSessions } from '../pages/OneIdSessions.js';
-import { OneIdLoginActivity } from '../pages/OneIdLoginActivity.js';
-import { OneIdKyc } from '../pages/OneIdKyc.js';
-import { OneIdRoles } from '../pages/OneIdRoles.js';
-import { OneIdGroups } from '../pages/OneIdGroups.js';
-import { OneIdPersonal } from '../pages/OneIdPersonal.js';
-import { OneIdSecuritySettings } from '../pages/OneIdSecuritySettings.js';
-import { OneIdVault } from '../pages/OneIdVault.js';
-import { OneIdTrust } from '../pages/OneIdTrust.js';
-import { OneIdPersonalDevices } from '../pages/OneIdPersonalDevices.js';
-import { OneIdPersonalActivity } from '../pages/OneIdPersonalActivity.js';
-import { OneIdApps } from '../pages/OneIdApps.js';
-import { OneIdPrivacy } from '../pages/OneIdPrivacy.js';
-import { OneIdWallet } from '../pages/OneIdWallet.js';
-import { OneIdCreateOrganization } from '../pages/OneIdCreateOrganization.js';
-import { OneIdAccessReviews, OneIdAccessReviewDetail } from '../pages/OneIdAccessReviews.js';
-import { OneIdOrgTrust } from '../pages/OneIdOrgTrust.js';
-import { OneIdOrgActivity } from '../pages/OneIdOrgActivity.js';
-import { OneIdAutomation } from '../pages/OneIdAutomation.js';
-import { OneIdCompliance } from '../pages/OneIdCompliance.js';
-import { OneIdPolicies } from '../pages/OneIdPolicies.js';
-import { OneIdIntegrations } from '../pages/OneIdIntegrations.js';
-import { OneIdBusinessVerification } from '../pages/OneIdBusinessVerification.js';
-import { OneIdItAdmin } from '../pages/OneIdItAdmin.js';
+import { OndiUsers } from '../pages/OndiUsers.js';
+import { OndiSSO } from '../pages/OndiSSO.js';
+import { OndiSessions } from '../pages/OndiSessions.js';
+import { OndiLoginActivity } from '../pages/OndiLoginActivity.js';
+import { OndiKyc } from '../pages/OndiKyc.js';
+import { OndiRoles } from '../pages/OndiRoles.js';
+import { OndiGroups } from '../pages/OndiGroups.js';
+import { OndiPersonal } from '../pages/OndiPersonal.js';
+import { OndiSecuritySettings } from '../pages/OndiSecuritySettings.js';
+import { OndiVault } from '../pages/OndiVault.js';
+import { OndiTrust } from '../pages/OndiTrust.js';
+import { OndiPersonalDevices } from '../pages/OndiPersonalDevices.js';
+import { OndiPersonalActivity } from '../pages/OndiPersonalActivity.js';
+import { OndiApps } from '../pages/OndiApps.js';
+import { OndiPrivacy } from '../pages/OndiPrivacy.js';
+import { OndiWallet } from '../pages/OndiWallet.js';
+import { OndiCreateOrganization } from '../pages/OndiCreateOrganization.js';
+import { OndiAccessReviews, OndiAccessReviewDetail } from '../pages/OndiAccessReviews.js';
+import { OndiOrgTrust } from '../pages/OndiOrgTrust.js';
+import { OndiOrgActivity } from '../pages/OndiOrgActivity.js';
+import { OndiAutomation } from '../pages/OndiAutomation.js';
+import { OndiCompliance } from '../pages/OndiCompliance.js';
+import { OndiPolicies } from '../pages/OndiPolicies.js';
+import { OndiIntegrations } from '../pages/OndiIntegrations.js';
+import { OndiBusinessVerification } from '../pages/OndiBusinessVerification.js';
+import { OndiItAdmin } from '../pages/OndiItAdmin.js';
 import { OndiAuthorize } from '../pages/OndiAuthorize.js';
 
 const ADMIN_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'] as const;
@@ -164,7 +164,7 @@ function ModeToggle({ mode, onChange, collapsed }: { mode: 'personal' | 'busines
   );
 }
 
-export function OneIdShell() {
+export function OndiShell() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -251,15 +251,20 @@ export function OneIdShell() {
     businessNavItems.push({ label: 'Sessions & Security', icon: 'lock' as const, path: '/ondi/sessions' });
     businessNavItems.push({ label: 'Activity', icon: 'activity' as const,    path: '/ondi/activity' });
     businessNavItems.push({ label: 'Login Activity', icon: 'clock' as const,    path: '/ondi/login-activity' });
+    // The webhook form itself still lives in Settings.tsx (same generic
+    // /v1/settings-backed pattern every other tenant setting uses) — this
+    // just points there directly, same "link out, don't rebuild" precedent
+    // as Assets above, since it's Ondi's own audit chain being exported.
+    businessNavItems.push({ label: 'SIEM Export', icon: 'send' as const, path: '/workspace/settings?s=siem-export' });
   }
 
   const sections: SidebarSection[] = mode === 'personal' ? PERSONAL_NAV : [{ items: businessNavItems }];
 
   return (
-    <WorkspaceApp appId="oneid">
-      <div className="app-shell" data-oneid="true">
+    <WorkspaceApp appId="ondi">
+      <div className="app-shell" data-ondi="true">
         <AppSidebar
-          appId="oneid"
+          appId="ondi"
           sections={sections}
           beforeNav={({ collapsed }) => <ModeToggle mode={mode} onChange={switchMode} collapsed={collapsed} />}
         />
@@ -268,41 +273,41 @@ export function OneIdShell() {
           <div className="app-shell-content">
             <Routes>
               <Route element={<PageLayout />}>
-                <Route index element={<OneIdUsers />} />
-                <Route path="personal" element={<OneIdPersonal />} />
-                <Route path="personal/trust" element={<OneIdTrust />} />
-                <Route path="personal/wallet" element={<OneIdWallet />} />
-                <Route path="personal/devices" element={<OneIdPersonalDevices />} />
-                <Route path="personal/activity" element={<OneIdPersonalActivity />} />
-                <Route path="personal/documents" element={<OneIdVault />} />
+                <Route index element={<OndiUsers />} />
+                <Route path="personal" element={<OndiPersonal />} />
+                <Route path="personal/trust" element={<OndiTrust />} />
+                <Route path="personal/wallet" element={<OndiWallet />} />
+                <Route path="personal/devices" element={<OndiPersonalDevices />} />
+                <Route path="personal/activity" element={<OndiPersonalActivity />} />
+                <Route path="personal/documents" element={<OndiVault />} />
                 {/* Documents used to be labeled/routed as "Vault" — kept as a
                     redirect so old links/bookmarks still land somewhere real. */}
                 <Route path="personal/vault" element={<Navigate to="/ondi/personal/documents" replace />} />
-                <Route path="personal/security" element={<OneIdSecuritySettings />} />
-                <Route path="personal/privacy" element={<OneIdPrivacy />} />
-                <Route path="personal/apps" element={<OneIdApps />} />
-                <Route path="personal/create-organization" element={<OneIdCreateOrganization />} />
-                <Route path="business" element={<OneIdBusinessVerification />} />
-                <Route path="access-reviews" element={<RequireRoles roles={[...ADMIN_ROLES]} permissions={['access_reviews.manage']}><OneIdAccessReviews /></RequireRoles>} />
-                <Route path="access-reviews/:id" element={<RequireRoles roles={[...ADMIN_ROLES]} permissions={['access_reviews.manage']}><OneIdAccessReviewDetail /></RequireRoles>} />
-                <Route path="automation" element={<RequireRoles roles={[...ADMIN_ROLES]} permissions={['automation.manage']}><OneIdAutomation /></RequireRoles>} />
-                <Route path="compliance" element={<RequireRoles roles={[...ADMIN_ROLES]} permissions={['compliance.review']}><OneIdCompliance /></RequireRoles>} />
-                <Route path="policies" element={<RequireRoles roles={[...ADMIN_ROLES]} permissions={['policies.manage']}><OneIdPolicies /></RequireRoles>} />
-                <Route path="integrations" element={<RequireRoles roles={[...ADMIN_ROLES]} permissions={['integrations.manage']}><OneIdIntegrations /></RequireRoles>} />
+                <Route path="personal/security" element={<OndiSecuritySettings />} />
+                <Route path="personal/privacy" element={<OndiPrivacy />} />
+                <Route path="personal/apps" element={<OndiApps />} />
+                <Route path="personal/create-organization" element={<OndiCreateOrganization />} />
+                <Route path="business" element={<OndiBusinessVerification />} />
+                <Route path="access-reviews" element={<RequireRoles roles={[...ADMIN_ROLES]} permissions={['access_reviews.manage']}><OndiAccessReviews /></RequireRoles>} />
+                <Route path="access-reviews/:id" element={<RequireRoles roles={[...ADMIN_ROLES]} permissions={['access_reviews.manage']}><OndiAccessReviewDetail /></RequireRoles>} />
+                <Route path="automation" element={<RequireRoles roles={[...ADMIN_ROLES]} permissions={['automation.manage']}><OndiAutomation /></RequireRoles>} />
+                <Route path="compliance" element={<RequireRoles roles={[...ADMIN_ROLES]} permissions={['compliance.review']}><OndiCompliance /></RequireRoles>} />
+                <Route path="policies" element={<RequireRoles roles={[...ADMIN_ROLES]} permissions={['policies.manage']}><OndiPolicies /></RequireRoles>} />
+                <Route path="integrations" element={<RequireRoles roles={[...ADMIN_ROLES]} permissions={['integrations.manage']}><OndiIntegrations /></RequireRoles>} />
                 {/* Moved to NexusHR (front-desk sign-in, not an
                     authentication moment — see HrVisitors.tsx's own header
                     comment). */}
                 <Route path="visitors" element={<Navigate to="/nexushr/visitors" replace />} />
-                <Route path="kyc" element={<RequireRoles roles={[...ADMIN_ROLES]} permissions={['kyc.review']}><OneIdKyc /></RequireRoles>} />
-                <Route path="roles" element={<OneIdRoles />} />
-                <Route path="groups" element={<RequireRoles roles={[...ADMIN_ROLES]} permissions={['groups.manage']}><OneIdGroups /></RequireRoles>} />
+                <Route path="kyc" element={<RequireRoles roles={[...ADMIN_ROLES]} permissions={['kyc.review']}><OndiKyc /></RequireRoles>} />
+                <Route path="roles" element={<OndiRoles />} />
+                <Route path="groups" element={<RequireRoles roles={[...ADMIN_ROLES]} permissions={['groups.manage']}><OndiGroups /></RequireRoles>} />
                 <Route path="authorize" element={<OndiAuthorize />} />
-                <Route path="sso" element={<RequireRoles roles={[...ADMIN_ROLES]} permissions={['sso_providers.manage']}><OneIdSSO /></RequireRoles>} />
-                <Route path="it-admin" element={<RequireRoles roles={[...ADMIN_ROLES]}><OneIdItAdmin /></RequireRoles>} />
-                <Route path="sessions" element={<RequireRoles roles={[...ADMIN_ROLES]}><OneIdSessions /></RequireRoles>} />
-                <Route path="activity" element={<RequireRoles roles={[...ADMIN_ROLES]}><OneIdOrgActivity /></RequireRoles>} />
-                <Route path="trust" element={<RequireRoles roles={[...ADMIN_ROLES]} permissions={['org_trust.view']}><OneIdOrgTrust /></RequireRoles>} />
-                <Route path="login-activity" element={<RequireRoles roles={[...ADMIN_ROLES]}><OneIdLoginActivity /></RequireRoles>} />
+                <Route path="sso" element={<RequireRoles roles={[...ADMIN_ROLES]} permissions={['sso_providers.manage']}><OndiSSO /></RequireRoles>} />
+                <Route path="it-admin" element={<RequireRoles roles={[...ADMIN_ROLES]}><OndiItAdmin /></RequireRoles>} />
+                <Route path="sessions" element={<RequireRoles roles={[...ADMIN_ROLES]}><OndiSessions /></RequireRoles>} />
+                <Route path="activity" element={<RequireRoles roles={[...ADMIN_ROLES]}><OndiOrgActivity /></RequireRoles>} />
+                <Route path="trust" element={<RequireRoles roles={[...ADMIN_ROLES]} permissions={['org_trust.view']}><OndiOrgTrust /></RequireRoles>} />
+                <Route path="login-activity" element={<RequireRoles roles={[...ADMIN_ROLES]}><OndiLoginActivity /></RequireRoles>} />
               </Route>
               <Route path="*" element={<Navigate to="/ondi" replace />} />
             </Routes>

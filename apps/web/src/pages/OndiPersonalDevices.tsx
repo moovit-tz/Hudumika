@@ -1,4 +1,4 @@
-// ─── OneIdPersonalDevices.tsx — Ondi Personal · Devices ───────────
+// ─── OndiPersonalDevices.tsx — Ondi Personal · Devices ───────────
 // Real hr_devices rows via the same self-service /v1/security/sessions*
 // endpoints AccountSecurityPanel's "Active Sessions" card already uses —
 // this is a dedicated page for it (matching the house-style mockup's own
@@ -31,7 +31,7 @@ function relTime(dateStr: string | null | undefined): string {
   return `${Math.floor(hr / 24)} days ago`;
 }
 
-export const OneIdPersonalDevices: React.FC = () => {
+export const OndiPersonalDevices: React.FC = () => {
   const { logout } = useAuth();
   const [devices, setDevices] = useState<DeviceRow[] | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
@@ -129,4 +129,4 @@ export const OneIdPersonalDevices: React.FC = () => {
   );
 };
 
-export default OneIdPersonalDevices;
+export default OndiPersonalDevices;

@@ -19,12 +19,21 @@ import { useAuth }           from '../hooks/useAuth.js';
 export function AdminShell() {
   const { user } = useAuth();
   const isAdmin = !!user && MGMT_ROLES.includes(user.role as any);
-  const hasApiKeysPermission = isAdmin || !!user?.org_permissions?.includes('api_keys.manage');
+  // Delegated admin roles — a TENANT_ADMIN can grant one of these four via
+  // Ondi ▸ Roles & Access without making someone a full MANAGER/ADMIN. Each
+  // widens exactly one of this app's four surfaces; isAdmin still sees
+  // everything, unchanged. See org-rbac.ts's own comment on the permission
+  // set for why these exist.
+  const hasApiKeysPermission  = isAdmin || !!user?.org_permissions?.includes('api_keys.manage');
+  const hasSettingsPermission = isAdmin || !!user?.org_permissions?.includes('settings.manage');
+  const hasTeamPermission     = isAdmin || !!user?.org_permissions?.includes('team.manage');
+  const hasBillingPermission  = isAdmin || !!user?.org_permissions?.includes('billing.manage');
+  const hasReportsPermission  = isAdmin || user?.role === 'FINANCE' || !!user?.org_permissions?.includes('reports.manage');
 
   const filteredSettingsNav = SETTINGS_NAV.map(g => {
     const items = g.items.filter(item => {
       if (item.key === 'developer-api') return hasApiKeysPermission;
-      return isAdmin;
+      return hasSettingsPermission;
     });
     if (items.length === 0) return null;
     return { ...g, items };
@@ -46,14 +55,16 @@ export function AdminShell() {
       title: 'MANAGEMENT',
       items: [
         ...settingsSidebarItems,
-        ...(isAdmin ? [
+        ...(hasTeamPermission ? [
           { label: 'Team',         icon: 'users' as const,     path: '/workspace/team'      },
+        ] : []),
+        ...(isAdmin ? [
           { label: 'Tools',        icon: 'tool' as const,      path: '/workspace/utilities' },
         ] : []),
-        ...((isAdmin || user?.role === 'FINANCE') ? [
+        ...(hasReportsPermission ? [
           { label: 'Reports',      icon: 'activity' as const,  path: '/workspace/reports'   },
         ] : []),
-        ...(isAdmin ? [
+        ...(hasBillingPermission ? [
           { label: 'Subscription', icon: 'creditCard' as const,path: '/workspace/billing'   },
         ] : []),
       ].filter(Boolean) as SidebarNavItem[],
@@ -78,11 +89,11 @@ export function AdminShell() {
                 first paint instead of no item matching the query-less URL. */}
             <Route index element={<Navigate to="/workspace/settings?s=company" replace />} />
             <Route element={<PageLayout />}>
-              <Route path="settings"  element={<RequireRoles roles={MGMT_ROLES} permissions={['api_keys.manage']}><Settings /></RequireRoles>} />
-              <Route path="team"      element={<RequireRoles roles={MGMT_ROLES}><Team /></RequireRoles>} />
+              <Route path="settings"  element={<RequireRoles roles={MGMT_ROLES} permissions={['api_keys.manage', 'settings.manage']}><Settings /></RequireRoles>} />
+              <Route path="team"      element={<RequireRoles roles={MGMT_ROLES} permissions={['team.manage']}><Team /></RequireRoles>} />
               <Route path="utilities" element={<RequireRoles roles={MGMT_ROLES}><Utilities /></RequireRoles>} />
-              <Route path="reports"   element={<RequireRoles roles={[...MGMT_ROLES, 'FINANCE']}><Reports /></RequireRoles>} />
-              <Route path="billing"   element={<RequireRoles roles={MGMT_ROLES}><Subscription /></RequireRoles>} />
+              <Route path="reports"   element={<RequireRoles roles={[...MGMT_ROLES, 'FINANCE']} permissions={['reports.manage']}><Reports /></RequireRoles>} />
+              <Route path="billing"   element={<RequireRoles roles={MGMT_ROLES} permissions={['billing.manage']}><Subscription /></RequireRoles>} />
             </Route>
             <Route path="*" element={<Navigate to="/workspace/settings?s=company" replace />} />
           </Routes>

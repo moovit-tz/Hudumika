@@ -32,7 +32,7 @@ const SLOGANS: Partial<Record<AppId, string>> = {
   store:        'B2B procurement & equipment marketplace',
   workspace:    'Organization settings and configuration',
   admin:        'Platform governance, tenants & query builder',
-  oneid:        'SSO, identity verification & biometrics',
+  ondi:         'SSO, identity verification & biometrics',
   onesite:      'Content management & company intranet',
   onsite:       'Domains, DNS, hosting, deployments & cloud infrastructure',
   tracking:     'GPS fleet tracking, telemetry & live map',

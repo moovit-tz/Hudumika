@@ -44,12 +44,28 @@
   position: fixed;
   top: 60px;
   right: 14px;
-  width: 320px;
+  /* Was 320px. At 4 columns that leaves ~68px per tile, narrower than the
+     max-content width of ordinary single-word app names ("NexusHR",
+     "CargoTracker") — every grid item's default min-width:auto refused to
+     shrink below that content width, so the grid's real (rendered) column
+     width exceeded its 1fr share and the 4th column spilled straight past
+     the panel's own edge with no ellipsis ever engaging. 344px plus the
+     min-width:0 fix below (which lets ellipsis actually do its job for the
+     genuinely long names — "Account & Security", "Inventory Control") is
+     the combination that fits everything else without truncation. */
+  width: 344px;
   max-height: calc(100dvh - 80px);
-  background: #ffffff;
-  border: 1px solid rgba(226, 232, 240, 0.8);
-  border-radius: 20px;
+  background: color-mix(in srgb, var(--white) 96%, transparent);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  /* Matches the visual bar every Radix popover in the platform shares
+     (PopoverContent/SelectContent/DropdownMenuContent — see CLAUDE.md):
+     layered shadow + a 1px inner ring, not just a flat border. */
   box-shadow: var(--elev-lg);
+  outline: 1px solid rgba(0, 0, 0, 0.05);
+  outline-offset: -1px;
   z-index: 1001;
   display: flex;
   flex-direction: column;
@@ -96,9 +112,9 @@
 .app-lnch-edit-toggle {
   height: 26px;
   padding: 0 9px;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-  background: #f8fafc;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+  background: var(--bg);
   color: var(--ink2);
   font-size: 11px;
   font-weight: 700;
@@ -112,20 +128,40 @@
 }
 
 .app-lnch-edit-toggle:hover {
-  background: #f1f5f9;
+  background: var(--card-sunken);
   color: var(--ink);
 }
 
+/* `--seal` was never defined anywhere in the platform's token set — every
+   use of it here silently fell through to its hardcoded fallback, which is
+   exactly the "hardcoded hex standing in for the app's own accent" trap
+   CLAUDE.md's design-system rule flags: it should track the current app's
+   real --teal (WorkspaceApp writes it to document.documentElement, so this
+   portalled panel already sees the right one — orange in ClearOS, pink in
+   NexusHR, etc.), not one fixed teal-green for every tenant and every app. */
 .app-lnch-edit-toggle--active {
-  background: rgba(15, 118, 110, 0.1);
-  border-color: var(--seal, #0f766e);
-  color: var(--seal, #0f766e);
+  background: var(--teal-l);
+  border-color: var(--teal);
+  color: var(--teal);
+}
+
+/* Genuinely pre-existing, just invisible until --seal's undefined fallback
+   made it moot: plain :hover (class + pseudo-class, specificity 0,2,0) beat
+   plain --active (single class, 0,1,0) on the `color` property regardless of
+   source order, so hovering the "Done" toggle silently fell back to the
+   base --ink2/--ink text color instead of staying teal. Needs its own
+   explicit hover state, not just a bigger selector, since "active and
+   hovered" is a real state worth its own (slightly deeper) look. */
+.app-lnch-edit-toggle--active:hover {
+  background: var(--teal-m);
+  border-color: var(--teal);
+  color: var(--teal);
 }
 
 .app-lnch-panel-close {
   width: 26px;
   height: 26px;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   border: none;
   background: transparent;
   color: var(--ink2);
@@ -137,7 +173,7 @@
 }
 
 .app-lnch-panel-close:hover {
-  background: #f1f5f9;
+  background: var(--card-sunken);
   color: var(--ink);
 }
 
@@ -147,9 +183,9 @@
   padding: 6px 12px;
   font-size: 10px;
   font-weight: 600;
-  color: var(--seal, #0f766e);
-  background: rgba(15, 118, 110, 0.08);
-  border-radius: 8px;
+  color: var(--teal);
+  background: var(--teal-l);
+  border-radius: var(--r-sm);
   text-align: center;
   font-family: var(--font);
   flex-shrink: 0;
@@ -169,7 +205,7 @@
 /* Section divider */
 .app-lnch-section-divider {
   height: 1px;
-  background: #f1f5f9;
+  background: var(--border);
   margin: 8px 0 10px;
 }
 
@@ -220,7 +256,7 @@
 
 .app-lnch-panel-scroll::-webkit-scrollbar { width: 4px; }
 .app-lnch-panel-scroll::-webkit-scrollbar-track { background: transparent; }
-.app-lnch-panel-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+.app-lnch-panel-scroll::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
 
 /* Adobe-style app grid — 4 columns (matches the Recently Viewed row above
    it) rather than 3, so the same app count settles into fewer rows without
@@ -240,16 +276,30 @@
   align-items: center;
   gap: 6px;
   padding: 7px 3px 6px 3px;
-  border-radius: 14px;
+  border-radius: var(--r);
   cursor: pointer;
   transition: background 0.15s ease, transform 0.15s ease;
   font-family: var(--font);
   text-decoration: none;
   color: inherit;
+  /* This is a grid item (both here and in the recently-viewed row). Its
+     default min-width is `auto`, which resolves to the max-content width of
+     its own children — so the nowrap app-name label refused to shrink
+     below its full unclipped text width no matter what overflow/ellipsis
+     rules were set on it. Each column silently grew to fit its widest
+     label, "1fr" stopped meaning "an equal quarter", and whatever fell in
+     the 4th column (NexusHR, ComplyOS, CargoTracker, Inventory Control,
+     Onsite, SMS, Account & Security, on any given panel width) rendered
+     partly or fully past the panel's own right edge with no ellipsis ever
+     engaging — this is what made those tiles look physically clipped.
+     min-width: 0 removes that content-based floor, so the grid track's 1fr
+     share actually constrains the item, and .app-lnch-panel-name's own
+     ellipsis rule (below) finally has something to truncate against. */
+  min-width: 0;
 }
 
 .app-lnch-panel-item:hover {
-  background: #f8fafc;
+  background: var(--card-sunken);
   transform: translateY(-2px);
 }
 
@@ -259,7 +309,7 @@
 }
 
 .app-lnch-panel-item--over {
-  background: rgba(15, 118, 110, 0.08) !important;
+  background: var(--teal-l) !important;
 }
 
 .app-lnch-panel-name {
@@ -304,8 +354,8 @@
 /* ── Adobe Bottom Card Footer ── */
 .app-lnch-adobe-footer-card {
   margin-top: 9px;
-  background: #f1f5f9;
-  border-radius: 14px;
+  background: var(--card-sunken);
+  border-radius: var(--r);
   padding: 7px 10px;
   display: flex;
   align-items: center;
@@ -322,12 +372,12 @@
   font-size: 12px;
   font-weight: 700;
   padding: 5px 8px;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   transition: background 0.15s ease, color 0.15s ease;
 }
 
 .app-lnch-adobe-footer-item:hover {
-  background: #e2e8f0;
+  background: var(--border2);
   color: var(--ink);
 }
 
@@ -348,82 +398,36 @@
 .app-lnch-adobe-footer-divider {
   width: 1px;
   height: 20px;
-  background: #cbd5e1;
+  background: var(--border2);
 }
 
-/* ── Dark mode — launcher panel ── */
+/* The one piece of the platform's shared popover "ring" that can't just be a
+   token read at both ends of the cascade — Radix's own dark:ring-white/10
+   literally flips white/black by theme, not lightness of one color. */
 [data-theme="dark"] .app-lnch-panel {
-  background: #18181b;
-  border-color: #27272a;
-  box-shadow: var(--elev-lg);
+  outline-color: rgba(255, 255, 255, 0.1);
 }
 
-[data-theme="dark"] .app-lnch-panel-title {
-  color: #f4f4f5;
-}
-
-[data-theme="dark"] .app-lnch-edit-toggle {
-  border-color: #3f3f46;
-  background: #27272a;
-  color: var(--ink3);
-}
-
-[data-theme="dark"] .app-lnch-edit-toggle:hover {
-  background: #3f3f46;
-  color: #f4f4f5;
-}
-
-[data-theme="dark"] .app-lnch-edit-toggle--active {
-  background: rgba(15, 118, 110, 0.2);
-  border-color: var(--seal, #0f766e);
-  color: var(--seal, #0f766e);
-}
-
-[data-theme="dark"] .app-lnch-panel-close {
-  color: var(--ink3);
-}
-
-[data-theme="dark"] .app-lnch-panel-close:hover {
-  background: #27272a;
-  color: #f4f4f5;
-}
-
-[data-theme="dark"] .app-lnch-edit-hint {
-  background: rgba(15, 118, 110, 0.15);
-}
-
-[data-theme="dark"] .app-lnch-panel-item:hover {
-  background: #27272a;
-}
-
-[data-theme="dark"] .app-lnch-panel-name {
-  color: #e4e4e7;
-}
-
+/* --ink3 (this label's token) is legible on the light card but fails AA
+   against the dark card's --white (~3.75:1, under the 4.5:1 floor for text
+   this small) — --ink2 clears it comfortably (~6.9:1). Genuinely needs the
+   theme-specific bump; not a leftover duplicate like the rest of the block
+   used to be. */
 [data-theme="dark"] .app-lnch-section-label {
   color: var(--ink2);
 }
 
-[data-theme="dark"] .app-lnch-section-divider {
-  background: #27272a;
-}
-
-[data-theme="dark"] .app-lnch-adobe-footer-card {
-  background: #27272a;
-}
-
-[data-theme="dark"] .app-lnch-adobe-footer-item {
-  color: #d4d4d8;
-}
-
-[data-theme="dark"] .app-lnch-adobe-footer-item:hover {
-  background: #3f3f46;
-  color: #ffffff;
-}
-
-[data-theme="dark"] .app-lnch-adobe-footer-divider {
-  background: #3f3f46;
-}
+/* ── Dark mode ──
+   No per-property overrides needed here anymore. Every rule above now reads
+   color from a real design-system token (--ink/--ink2/--ink3, --bg, --white,
+   --border/--border2, --card-sunken, --teal/--teal-l) instead of a raw hex,
+   and every one of those tokens is already redefined for dark mode once, at
+   the root, in index.css. This block used to carry a second, hand-picked
+   zinc palette (#18181b/#27272a/#3f3f46/...) in parallel with that — visibly
+   close to the real dark tokens but never quite them, and a second thing to
+   keep in sync by hand on every future change to this file. Retokenizing the
+   light-mode rules made the whole block redundant rather than something to
+   port forward. */
 
 /* ── Mobile — bottom sheet ── */
 @media (max-width: 600px) {

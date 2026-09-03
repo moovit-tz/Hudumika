@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import { useOrgAuth } from '../hooks/useOrgAuth.js';
+import { BRAND_LOGO_LIGHT, BRAND_LOGO_DARK } from '../hooks/useBranding.js';
 import './Login.css';
 
 /**
@@ -39,13 +40,11 @@ export const OrgLogin: React.FC = () => {
       <div className="login-card">
         <div className="login-brand-hdr">
           <div className="login-brand-row">
-            <div className="g-brand-grid">
-              <div className="g-brand-sq g-brand-sq--r" />
-              <div className="g-brand-sq g-brand-sq--b" />
-              <div className="g-brand-sq g-brand-sq--y" />
-              <div className="g-brand-sq g-brand-sq--g" />
-            </div>
-            <span className="g-brand-name">hudumika</span>
+            {/* Both marks render; index.css's [data-theme] rules show one.
+                This page sets none of Login.tsx's own --lp-* theme vars, so
+                it has no isDark of its own to branch on. */}
+            <img src={BRAND_LOGO_LIGHT} alt="Hudumika" className="g-brand-logo-img logo-light-only" />
+            <img src={BRAND_LOGO_DARK}  alt="Hudumika" className="g-brand-logo-img logo-dark-only" />
           </div>
           <h1 className="login-headline">Organization sign in</h1>
           <p className="login-subtext">Track every shipment across every agent handling them, in one place.</p>

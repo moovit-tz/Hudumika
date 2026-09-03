@@ -3,6 +3,7 @@ import { PageHeader } from '../components/PageHeader.js';
 import { Icon } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
 import { useBranding } from '../hooks/useBranding.js';
+import { useCompany } from '../data/companyStore.js';
 import { SectionCard } from '../components/SectionCard.js';
 
 interface CO2Record {
@@ -19,6 +20,7 @@ interface CO2Record {
 
 export const CarbonCreditsPage: React.FC = () => {
   const branding = useBranding();
+  const co = useCompany();
   const [loading, setLoading] = useState(true);
   const [totalCredits, setTotalCredits] = useState(0);
   const [totalEmissions, setTotalEmissions] = useState(0);
@@ -75,7 +77,7 @@ export const CarbonCreditsPage: React.FC = () => {
     const w = window.open('', '_blank');
     if (!w) return;
     
-    const logoSrc = branding.logoLight || branding.getAppLogo('clearos') || '';
+    const logoSrc = co.logoUrl || branding.getAppLogo('clearos') || '';
     const logoHtml = logoSrc ? `<img src="${logoSrc}" alt="Logo" style="height: 60px; margin-bottom: 20px;" />` : `<h1 style="color: #059669; margin-bottom: 20px;">${branding.platformName}</h1>`;
     
     w.document.write(`

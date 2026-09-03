@@ -34,7 +34,7 @@ export default
     "bliss": "支持与服务台",
     "nexushr": "人事与人力资源",
     "onesite": "网站与内容管理",
-    "oneid": "身份与访问管理",
+    "ondi": "身份与访问管理",
     "tracking": "车辆追踪",
     "cloud": "文件存储",
     "ai": "人工智能",
@@ -67,7 +67,7 @@ export default
   "login": {
     "createAccount": "创建账户",
     "emailAddressLabel": "电子邮箱",
-    "emailPlaceholder": "电子邮箱或电话",
+    "emailPlaceholder": "you@company.com",
     "passwordLabel": "密码",
     "passwordPlaceholder": "请输入密码",
     "forgotPassword": "忘记密码？",

@@ -58,6 +58,11 @@ export interface TenantsTable {
    *  reviewed by the platform SuperAdmin (a tenant can't self-certify its
    *  own business identity). See ondi_org_kyb. */
   kyb_status: Generated<'not_started' | 'pending' | 'verified' | 'rejected'>;
+  /** Migration 380 — set at signup when the founding admin's email domain
+   *  matched a recognized free consumer provider (e.g. 'gmail.com'). NULL
+   *  means a real work domain, or a tenant created before this column
+   *  existed — never a confirmation either way for older rows. */
+  founder_personal_email_domain: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -86,6 +91,9 @@ export interface UsersTable {
   profile: Generated<Record<string, any>>;
   active: Generated<boolean>;
   last_login_at: Date | null;
+  /** Migration 382 — backs the password-rotation reminder (Ondi ▸
+   *  Policies). Backfilled to created_at, never left null for a real row. */
+  password_changed_at: Date | null;
   /**
    * Payroll identity. These sit on the column rather than inside `profile`
    * because the payroll engine depends on them: residency alone switches the
@@ -2489,7 +2497,10 @@ export interface LensIntegrationsTable {
 export interface LensLinksTable {
   id: Generated<string>;
   item_id: string;
-  provider: 'github' | 'slack' | 'jira' | 'linear' | 'circleci';
+  /** 'hudumika_issue' — a same-backend link to a platform_support_tickets
+   *  row (SuperAdmin's "Send to Lens"), not a third-party integration; the
+   *  other five are. See migration 389. */
+  provider: 'github' | 'slack' | 'jira' | 'linear' | 'circleci' | 'hudumika_issue';
   kind: string;
   external_id: string;
   url: string | null;
@@ -4794,6 +4805,16 @@ export interface Database {
   ondi_org_group_roles: OndiOrgGroupRolesTable;
   ondi_org_access_requests: OndiOrgAccessRequestsTable;
   ondi_org_access_request_approvals: OndiOrgAccessRequestApprovalsTable;
+  tenant_join_requests: TenantJoinRequestsTable;
+  user_app_access: UserAppAccessTable;
+  hr_cases: HrCasesTable;
+  hr_case_notes: HrCaseNotesTable;
+  hr_checklist_templates: HrChecklistTemplatesTable;
+  hr_checklist_template_items: HrChecklistTemplateItemsTable;
+  hr_checklists: HrChecklistsTable;
+  hr_checklist_items: HrChecklistItemsTable;
+  hr_benefit_plans: HrBenefitPlansTable;
+  hr_benefit_enrollments: HrBenefitEnrollmentsTable;
   ondi_access_review_campaigns: OndiAccessReviewCampaignsTable;
   ondi_access_review_items: OndiAccessReviewItemsTable;
   ondi_automation_log: OndiAutomationLogTable;
@@ -6413,6 +6434,124 @@ export interface OndiOrgAccessRequestsTable {
   expires_in_hours: number | null;
 }
 
+/** Auto-join-by-domain request queue — migration 380. See that migration's
+ *  header for why this is a reviewed request, not a silent auto-join. */
+export interface TenantJoinRequestsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  name: string;
+  email: string;
+  password_hash: string;
+  status: Generated<'pending' | 'approved' | 'denied'>;
+  reviewed_by: string | null;
+  reviewed_at: Date | null;
+  deny_reason: string | null;
+  created_user_id: string | null;
+  created_at: Generated<Date>;
+}
+
+/** Benefits administration — migration 386. */
+export interface HrBenefitPlansTable {
+  id: Generated<string>;
+  tenant_id: string;
+  name: string;
+  type: 'health' | 'retirement' | 'life' | 'other';
+  provider: string | null;
+  description: string | null;
+  employee_cost: Generated<string>;
+  employer_cost: Generated<string>;
+  currency: Generated<string>;
+  active: Generated<boolean>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+export interface HrBenefitEnrollmentsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  employee_id: string;
+  plan_id: string;
+  status: Generated<'enrolled' | 'waived' | 'terminated'>;
+  dependents: Generated<number>;
+  notes: string | null;
+  enrolled_at: Generated<Date>;
+  terminated_at: Date | null;
+}
+
+/** Onboarding/offboarding checklists — migration 385. One editable
+ *  template per type per tenant; hr_checklists are real per-person copies
+ *  generated from it at join/deactivate time. */
+export interface HrChecklistTemplatesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  type: 'onboarding' | 'offboarding';
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+export interface HrChecklistTemplateItemsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  template_id: string;
+  label: string;
+  sort_order: Generated<number>;
+  created_at: Generated<Date>;
+}
+export interface HrChecklistsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  employee_id: string;
+  type: 'onboarding' | 'offboarding';
+  status: Generated<'in_progress' | 'completed'>;
+  created_at: Generated<Date>;
+  completed_at: Date | null;
+}
+export interface HrChecklistItemsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  checklist_id: string;
+  label: string;
+  sort_order: Generated<number>;
+  done: Generated<boolean>;
+  done_by: string | null;
+  done_at: Date | null;
+}
+
+/** Disciplinary/case management — migration 384. */
+export interface HrCasesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  employee_id: string;
+  case_type: 'verbal_warning' | 'written_warning' | 'pip' | 'suspension' | 'termination' | 'grievance' | 'other';
+  title: string;
+  description: string | null;
+  severity: Generated<'low' | 'medium' | 'high'>;
+  status: Generated<'open' | 'in_progress' | 'resolved' | 'closed'>;
+  opened_by: string | null;
+  resolution: string | null;
+  resolved_at: Date | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+export interface HrCaseNotesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  case_id: string;
+  author_id: string | null;
+  note: string;
+  created_at: Generated<Date>;
+}
+
+/** Per-seat license assignment — migration 383. Only meaningful for an app
+ *  the tenant has explicitly put into 'restricted-apps' mode; see
+ *  lib/app-license.ts. */
+export interface UserAppAccessTable {
+  id: Generated<string>;
+  tenant_id: string;
+  user_id: string;
+  app_id: string;
+  granted_by: string | null;
+  created_at: Generated<Date>;
+}
+
 /** One row per distinct approver's decision — see migration 365's header.
  *  UNIQUE(request_id, approver_id) is the actual dual-control enforcement. */
 export interface OndiOrgAccessRequestApprovalsTable {
@@ -7206,6 +7345,9 @@ export interface HrSurveyResponsesTable {
   tenant_id: string;
   instance_id: string;
   answers: Generated<Record<string, any>>;
+  /** Migration 381 — only ever set for a non-anonymous template's response;
+   *  an anonymous submission writes NULL here regardless of who signed in. */
+  user_id: string | null;
   created_at: Generated<Date>;
 }
 

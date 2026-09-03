@@ -258,7 +258,7 @@ export const NAV_CONFIGS: Record<AppId, NavCategory[]> = {
   crm:       crmNav,
   complyos:  [],
   onesite:   [],
-  oneid:     [],
+  ondi:      [],
   tracking:  [],
   ai:        [],
   admin:     [],

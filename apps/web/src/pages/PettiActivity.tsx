@@ -38,7 +38,7 @@ export function PettiActivity() {
 
   useEffect(() => {
     apiFetch('/v1/petti/wallets').then(res => setWallets(res.data || [])).catch(() => setWallets([]));
-    apiFetch('/v1/oneid/users').then(setStaff).catch(() => setStaff([]));
+    apiFetch('/v1/ondi/users').then(setStaff).catch(() => setStaff([]));
   }, []);
 
   useEffect(() => { setPage(1); }, [walletId, actorId, range]);

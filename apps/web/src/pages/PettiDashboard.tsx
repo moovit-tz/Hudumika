@@ -101,7 +101,7 @@ export function PettiDashboard() {
       apiFetch('/v1/petti/wallets').then(res => res.data || []).catch(() => []),
       apiFetch('/v1/petti/deposits').then(res => res.data || []).catch(() => []),
       apiFetch('/v1/petti/withdrawals').then(res => res.data || []).catch(() => []),
-      apiFetch('/v1/oneid/users').catch(() => []),
+      apiFetch('/v1/ondi/users').catch(() => []),
       apiFetch('/v1/petti/flags?status=open').then(res => res.data || []).catch(() => []),
     ]).then(([w, d, wd, s, flgs]) => {
       setWallets(w); setDeposits(d); setWithdrawals(wd); setStaff(s); setOpenFlagCount(flgs.length);

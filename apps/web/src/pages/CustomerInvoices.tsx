@@ -4,7 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
-import { useBranding } from '../hooks/useBranding.js';
+import { useCompany } from '../data/companyStore.js';
 import {
   type Invoice, type Status,
   invoiceTotals, STATUS_STYLE, mapApiInvoice, fmtTZS,
@@ -118,7 +118,7 @@ function DisputeModal({ inv, onClose, onSubmit }: {
 
 /* ── Invoice detail (read-only) ── */
 function InvoiceDetail({ inv, onBack }: { inv: Invoice; onBack: () => void }) {
-  const branding = useBranding();
+  const co = useCompany();
   const navigate   = useNavigate();
   const [disputing, setDisputing] = useState(false);
   const [disputed, setDisputed]   = useState(false);
@@ -153,10 +153,10 @@ function InvoiceDetail({ inv, onBack }: { inv: Invoice; onBack: () => void }) {
       <div style={{ padding: '20px 16px 0' }}>
         {/* Branding Logo */}
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: 20 }}>
-          {branding.logoLight ? (
-            <img src={branding.logoLight} alt={branding.platformName} style={{ height: 40, objectFit: 'contain' }} />
+          {co.logoUrl ? (
+            <img src={co.logoUrl} alt={co.name} style={{ height: 40, objectFit: 'contain' }} />
           ) : (
-            <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--ink)' }}>{branding.platformName}</div>
+            <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--ink)' }}>{co.name}</div>
           )}
           {inv.traStatus === 'submitted' && inv.traAckCode === 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '12px', border: '1px solid var(--border)', borderRadius: 9, background: '#e6f4ea', marginLeft: 'auto' }}>

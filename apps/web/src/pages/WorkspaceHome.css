@@ -481,14 +481,6 @@
 .tag-plugins { background: #fbf7ff; color: #6d28d9; }
 .tag-system { background: #f8fafc; color: var(--ink2); }
 
-.wh-stat-cell {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--ink2);
-  font-weight: 600;
-}
-
 /* ── GRID VIEW ── */
 .wh-grid-container {
   display: grid;
@@ -568,30 +560,6 @@
 .wh-grid-workspace-sub {
   font-size: 12.5px;
   color: var(--ink3);
-}
-
-.wh-grid-card-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-top: 0.5px solid var(--border);
-  padding-top: 16px;
-  margin-top: 4px;
-}
-
-.wh-grid-stats {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.wh-grid-stat {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 12.5px;
-  color: var(--ink2);
-  font-weight: 600;
 }
 
 .wh-page-box {
@@ -844,10 +812,6 @@
     ) border-box;
 }
 
-[data-theme="dark"] .wh-grid-card-footer {
-  border-top-color: #3c4043;
-}
-
 [data-theme="dark"] .wh-badge-lob {
   background: #2d2f31;
   color: #c4c7c5;
@@ -915,16 +879,6 @@
 }
 [data-theme="dark"] .wh-star-btn[data-starred="true"] {
   color: var(--gold);
-}
-
-/* Stat cells */
-[data-theme="dark"] .wh-stat-cell {
-  color: rgba(255, 255, 255, 0.45);
-}
-
-/* Grid stat */
-[data-theme="dark"] .wh-grid-stat {
-  color: rgba(255, 255, 255, 0.45);
 }
 
 /* Empty states */

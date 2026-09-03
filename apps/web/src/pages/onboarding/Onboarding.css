@@ -7,8 +7,8 @@
   background: var(--lp-row-border, #e2e8f0);
   transition: background 0.2s, transform 0.2s;
 }
-.ob-step-dot--done   { background: var(--lp-accent, #0d7a6b); }
-.ob-step-dot--active { background: var(--lp-accent, #0d7a6b); transform: scale(1.3); }
+.ob-step-dot--done   { background: var(--lp-accent-surface, var(--lp-accent, #0b1e3a)); }
+.ob-step-dot--active { background: var(--lp-accent-surface, var(--lp-accent, #0b1e3a)); transform: scale(1.3); }
 
 /* Wider card for steps with richer content (package grid, review) */
 .login-card.ob-card--wide {
@@ -182,18 +182,19 @@
   text-align: center;
 }
 
-/* Text stays white, unguarded, same as .login-submit-btn's identical
-   pattern elsewhere in this page family — the --lp-* accent has no
-   contrast-floor guarantee (see CLAUDE.md's --primary/--teal note); this
-   is an existing platform-wide limitation, not a new risk introduced here. */
+/* --lp-accent-surface/-fg (OnboardingWizard.tsx's effect), not the raw
+   --lp-accent: fixed platform-wide via useDesignSystem.ts's own --primary
+   dark-mode derivation (lighten 45% before the contrast floor), closing
+   the gap this rule used to excuse as "an existing platform-wide
+   limitation, not a new risk introduced here". */
 .ob-pkg-btn--solid {
-  background: var(--lp-accent, #9333ea);
-  color: #ffffff;
+  background: var(--lp-accent-surface, var(--lp-accent, #9333ea));
+  color: var(--lp-accent-surface-fg, #ffffff);
   border: none;
-  box-shadow: 0 4px 14px color-mix(in srgb, var(--lp-accent, #9333ea) 35%, transparent);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--lp-accent-surface, var(--lp-accent, #9333ea)) 35%, transparent);
 }
 .ob-pkg-btn--solid:hover {
-  background: color-mix(in srgb, var(--lp-accent, #9333ea) 85%, black);
+  background: color-mix(in srgb, var(--lp-accent-surface, var(--lp-accent, #9333ea)) 85%, black);
 }
 
 .ob-pkg-btn--outline {
@@ -344,7 +345,7 @@
 .ob-matrix-toggle {
   background: none;
   border: none;
-  color: var(--lp-link-accent, var(--lp-accent, #0d7a6b));
+  color: var(--lp-link-accent, var(--lp-accent, #0b1e3a));
   font-size: 13.5px;
   font-weight: 700;
   cursor: pointer;

@@ -12,6 +12,7 @@ import { evaluateAccess } from '../lib/authz-check.js';
 import { computeReliabilitySignals } from '../lib/reliability-signals.js';
 import { env } from '../config/env.js';
 import { encryptSecret, decryptSecret } from '../services/onsite-secrets.service.js';
+import { getPasswordPolicy } from '../lib/password-policy.js';
 
 let redisClient: Redis | null = null;
 try {
@@ -40,6 +41,26 @@ export default async function securityRoutes(fastify: FastifyInstance) {
     const row = await withTenant(user.tenant_id, trx => trx.selectFrom('user_totp').select(['enabled', 'enabled_at'])
       .where('user_id', '=', user.sub).executeTakeFirst());
     return { enabled: !!row?.enabled, enabled_at: row?.enabled_at ?? null };
+  });
+
+  // A non-blocking rotation signal, not a login gate — the tenant's own
+  // maxAgeDays policy (Ondi ▸ Policies) has no effect until read here.
+  // Deliberately never used to force a password change at sign-in: a
+  // mis-set policy or a lapsed reminder must never lock someone out of
+  // their own account.
+  fastify.get('/password-status', async (request) => {
+    const user = request.user;
+    const [row, policy] = await Promise.all([
+      withTenant(user.tenant_id, trx => trx.selectFrom('users').select('password_changed_at').where('id', '=', user.sub).executeTakeFirst()),
+      getPasswordPolicy(user.tenant_id),
+    ]);
+    const changedAt = row?.password_changed_at ?? null;
+    if (!policy.maxAgeDays || !changedAt) {
+      return { changed_at: changedAt, max_age_days: policy.maxAgeDays, expired: false, days_remaining: null };
+    }
+    const ageDays = (Date.now() - new Date(changedAt).getTime()) / 86_400_000;
+    const daysRemaining = Math.ceil(policy.maxAgeDays - ageDays);
+    return { changed_at: changedAt, max_age_days: policy.maxAgeDays, expired: daysRemaining <= 0, days_remaining: daysRemaining };
   });
 
   // Generates (or regenerates) a pending secret and returns the otpauth:// URI
@@ -321,7 +342,7 @@ export default async function securityRoutes(fastify: FastifyInstance) {
 
   // A real, callable policy-decision point — ALLOW / DENY / STEP_UP — other
   // Hudumika services can call before a sensitive action, instead of the
-  // idea existing only as descriptive copy on OneIdSSO.tsx. See
+  // idea existing only as descriptive copy on OndiSSO.tsx. See
   // lib/authz-check.ts's header for the full reasoning. GET /wallet/:id/reveal
   // below is the first real caller.
   fastify.post<{ Body: { action: string; minScore?: number; minVerificationLevel?: 'phone_verified' | 'id_verified' | 'enhanced'; requireFreshAuth?: boolean; freshAuthTotp?: string } }>('/authz/check', async (request) => {
@@ -359,7 +380,7 @@ export default async function securityRoutes(fastify: FastifyInstance) {
   });
 
   // ── Personal activity feed — Ondi M1 (house-style expansion) ────
-  // hr_login_history already has a tenant-wide admin view (oneid.routes.ts
+  // hr_login_history already has a tenant-wide admin view (ondi.routes.ts
   // GET /login-history) and ondi_auth_events already has a tamper-verify
   // endpoint above, but neither had a self-scoped "what has my own account
   // actually done" feed for the personal Activity page to read. Merges both
@@ -406,7 +427,7 @@ export default async function securityRoutes(fastify: FastifyInstance) {
   // Ondi feature-gap pass (M3): returns items this user shared TO other
   // people alongside items others shared WITH them — two arrays rather than
   // one flat list, since "Shared with me" and "My items" read as genuinely
-  // different sections in the UI (OneIdWallet.tsx), not one merged table.
+  // different sections in the UI (OndiWallet.tsx), not one merged table.
   fastify.get('/wallet', async (request) => {
     const user = request.user;
     return withTenant(user.tenant_id, async (trx) => {

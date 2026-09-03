@@ -1,4 +1,4 @@
-// ─── OneIdCreateOrganization.tsx — Ondi Personal · Create Organization ────
+// ─── OndiCreateOrganization.tsx — Ondi Personal · Create Organization ────
 // Honest about a real platform limit rather than pretending around it: this
 // codebase's whole multi-tenant model is one `users` row = one `tenant_id`
 // (see the Ondi SSO program's own "Tenant model" decision) — one login
@@ -17,7 +17,7 @@ import { SectionCard } from '../components/SectionCard.js';
 import { Icon } from '../components/Icon.js';
 import { useAuth } from '../hooks/useAuth.js';
 
-export const OneIdCreateOrganization: React.FC = () => {
+export const OndiCreateOrganization: React.FC = () => {
   const { user } = useAuth();
 
   return (
@@ -59,4 +59,4 @@ export const OneIdCreateOrganization: React.FC = () => {
   );
 };
 
-export default OneIdCreateOrganization;
+export default OndiCreateOrganization;

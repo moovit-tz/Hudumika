@@ -967,7 +967,7 @@ export class NexusHRService {
     }).returningAll().executeTakeFirstOrThrow());
   }
 
-  static async getSurveys(tenantId: string) {
+  static async getSurveys(tenantId: string, userId: string) {
     return withTenant(tenantId, async (trx) => {
       const instances = await trx
         .selectFrom('hr_survey_instances')
@@ -976,29 +976,140 @@ export class NexusHRService {
           'hr_survey_instances.id',
           'hr_survey_instances.status',
           'hr_survey_instances.ends_at',
+          'hr_survey_instances.created_at',
           'hr_survey_templates.title',
           'hr_survey_templates.description',
           'hr_survey_templates.questions',
-          'hr_survey_templates.is_anonymous'
+          'hr_survey_templates.is_anonymous',
         ])
         .where('hr_survey_instances.tenant_id', '=', tenantId)
+        .orderBy('hr_survey_instances.created_at', 'desc')
         .execute();
 
-      return instances;
+      // Real response counts per instance, plus whether the CALLING user
+      // already answered a non-anonymous one — anonymous instances never
+      // recorded who responded (migration 381), so that half of the flag
+      // stays false for those regardless of actual history.
+      const ids = instances.map(i => i.id);
+      const responses = ids.length
+        ? await trx.selectFrom('hr_survey_responses')
+            .select(['instance_id', 'user_id'])
+            .where('instance_id', 'in', ids)
+            .execute()
+        : [];
+
+      return instances.map(i => ({
+        ...i,
+        response_count: responses.filter(r => r.instance_id === i.id).length,
+        already_responded: responses.some(r => r.instance_id === i.id && r.user_id === userId),
+      }));
     });
   }
 
-  static async submitSurvey(tenantId: string, instanceId: string, answers: any) {
+  static async submitSurvey(tenantId: string, instanceId: string, userId: string, answers: any) {
     return withTenant(tenantId, async (trx) => {
-      await trx
-        .insertInto('hr_survey_responses')
-        .values({
+      const instance = await trx.selectFrom('hr_survey_instances as i')
+        .innerJoin('hr_survey_templates as t', 't.id', 'i.template_id')
+        .select(['i.status', 't.is_anonymous'])
+        .where('i.id', '=', instanceId).where('i.tenant_id', '=', tenantId)
+        .executeTakeFirst();
+      if (!instance) throw new Error('Survey not found.');
+      if (instance.status !== 'OPEN') throw new Error('This survey is closed.');
+
+      try {
+        await trx.insertInto('hr_survey_responses').values({
           tenant_id: tenantId,
           instance_id: instanceId,
-          answers: JSON.stringify(answers) as any
-        })
-        .execute();
+          // Anonymous stays anonymous at the storage layer, not just in the
+          // UI — an anonymous template's response never carries user_id,
+          // regardless of who is actually signed in when they submit it.
+          user_id: instance.is_anonymous ? null : userId,
+          answers: JSON.stringify(answers) as any,
+        }).execute();
+      } catch (err: any) {
+        if (String(err.message || '').includes('idx_hr_survey_responses_one_per_user')) {
+          throw new Error('You already responded to this survey.');
+        }
+        throw err;
+      }
       return { success: true };
+    });
+  }
+
+  /** Create-and-launch in one step: a template plus its one live instance. */
+  static async createSurvey(tenantId: string, data: any) {
+    const title = String(data?.title || '').trim();
+    if (!title) throw new Error('Title is required.');
+    const questions = Array.isArray(data?.questions) ? data.questions : [];
+    if (questions.length === 0) throw new Error('At least one question is required.');
+
+    return withTenant(tenantId, async (trx) => {
+      const template = await trx.insertInto('hr_survey_templates').values({
+        tenant_id: tenantId,
+        title,
+        description: data?.description ? String(data.description).trim() : null,
+        questions: JSON.stringify(questions) as any,
+        is_anonymous: data?.is_anonymous !== false,
+      }).returningAll().executeTakeFirstOrThrow();
+
+      const instance = await trx.insertInto('hr_survey_instances').values({
+        tenant_id: tenantId,
+        template_id: template.id,
+        status: 'OPEN',
+        ends_at: data?.ends_at ? new Date(data.ends_at) : null,
+      }).returningAll().executeTakeFirstOrThrow();
+
+      return { ...instance, title: template.title, description: template.description, questions: template.questions, is_anonymous: template.is_anonymous };
+    });
+  }
+
+  static async closeSurvey(tenantId: string, instanceId: string) {
+    return withTenant(tenantId, async (trx) => {
+      const updated = await trx.updateTable('hr_survey_instances')
+        .set({ status: 'CLOSED', updated_at: new Date() })
+        .where('id', '=', instanceId).where('tenant_id', '=', tenantId)
+        .returningAll().executeTakeFirst();
+      if (!updated) throw new Error('Survey not found.');
+      return updated;
+    });
+  }
+
+  /** Aggregate results only. For an anonymous template every response's
+   *  user_id is NULL by construction (migration 381) — there is nothing to
+   *  redact per-row because identity was never recorded, not because it's
+   *  filtered out here. */
+  static async getSurveyResults(tenantId: string, instanceId: string) {
+    return withTenant(tenantId, async (trx) => {
+      const instance = await trx.selectFrom('hr_survey_instances as i')
+        .innerJoin('hr_survey_templates as t', 't.id', 'i.template_id')
+        .select(['i.id', 'i.status', 't.title', 't.questions', 't.is_anonymous'])
+        .where('i.id', '=', instanceId).where('i.tenant_id', '=', tenantId)
+        .executeTakeFirst();
+      if (!instance) throw new Error('Survey not found.');
+
+      const responses = await trx.selectFrom('hr_survey_responses')
+        .select(['id', 'answers', 'user_id', 'created_at'])
+        .where('instance_id', '=', instanceId)
+        .execute();
+
+      let respondents: { user_id: string; name: string }[] = [];
+      if (!instance.is_anonymous) {
+        const userIds = [...new Set(responses.map(r => r.user_id).filter((v): v is string => !!v))];
+        if (userIds.length) {
+          const users = await trx.selectFrom('users').select(['id', 'name']).where('id', 'in', userIds).execute();
+          respondents = users.map(u => ({ user_id: u.id, name: u.name }));
+        }
+      }
+
+      return {
+        ...instance,
+        response_count: responses.length,
+        answers: responses.map(r => ({
+          answers: r.answers,
+          created_at: r.created_at,
+          respondent: instance.is_anonymous ? null : (respondents.find(p => p.user_id === r.user_id)?.name ?? null),
+        })),
+      };
     });
   }
 }

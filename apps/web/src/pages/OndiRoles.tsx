@@ -10,6 +10,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { Combobox, type ComboboxOption } from '../components/ui/combobox.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
+import { useEntitlements } from '../hooks/useEntitlements.js';
 
 interface OrgRole {
   id: string; name: string; description: string | null; permissions: string[];
@@ -25,7 +26,7 @@ interface MyRequest {
   id: string; status: string; reason: string | null; created_at: string; reviewed_at: string | null; role_name: string;
   break_glass: boolean; required_approvals: number; approvals_count: number;
 }
-interface OneIdUser { id: string; name: string; email: string }
+interface OndiUser { id: string; name: string; email: string }
 
 const ADMIN_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'];
 const PERMISSION_LABEL: Record<string, string> = {
@@ -46,7 +47,7 @@ const PERMISSION_LABEL: Record<string, string> = {
 };
 const ALL_PERMISSIONS = Object.keys(PERMISSION_LABEL);
 
-export const OneIdRoles: React.FC = () => {
+export const OndiRoles: React.FC = () => {
   const { user } = useAuth();
   const isAdmin = !!user && ADMIN_ROLES.includes(user.role);
   const canReviewRequests = isAdmin || !!user?.org_permissions?.includes('access_requests.review');
@@ -55,7 +56,7 @@ export const OneIdRoles: React.FC = () => {
   const [availableRoles, setAvailableRoles] = useState<{ id: string; name: string; description: string | null }[]>([]);
   const [myRequests, setMyRequests] = useState<MyRequest[]>([]);
   const [queue, setQueue] = useState<AccessRequestRow[] | null>(null);
-  const [staff, setStaff] = useState<OneIdUser[]>([]);
+  const [staff, setStaff] = useState<OndiUser[]>([]);
 
   const [newRoleName, setNewRoleName] = useState('');
   const [newRoleDesc, setNewRoleDesc] = useState('');
@@ -73,15 +74,18 @@ export const OneIdRoles: React.FC = () => {
   // dropdown doesn't affect any other.
   const [pendingExpiry, setPendingExpiry] = useState<Record<string, string>>({});
 
+  const entitlements = useEntitlements();
+  const governanceEntitled = entitlements ? entitlements.features['ondi.governance'] !== false : true;
+
   const reload = useCallback(() => {
-    apiFetch('/v1/oneid/org/roles/available').then(setAvailableRoles).catch(() => setAvailableRoles([]));
-    apiFetch('/v1/oneid/org/access-requests/mine').then(setMyRequests).catch(() => setMyRequests([]));
+    apiFetch('/v1/ondi/org/roles/available').then(setAvailableRoles).catch(() => setAvailableRoles([]));
+    apiFetch('/v1/ondi/org/access-requests/mine').then(setMyRequests).catch(() => setMyRequests([]));
     if (canReviewRequests) {
-      apiFetch('/v1/oneid/org/access-requests').then(setQueue).catch(() => setQueue([]));
+      apiFetch('/v1/ondi/org/access-requests').then(setQueue).catch(() => setQueue([]));
     }
     if (isAdmin) {
-      apiFetch('/v1/oneid/org/roles').then(setRoles).catch(() => setRoles([]));
-      apiFetch('/v1/oneid/users').then(setStaff).catch(() => setStaff([]));
+      apiFetch('/v1/ondi/org/roles').then(setRoles).catch(() => setRoles([]));
+      apiFetch('/v1/ondi/users').then(setStaff).catch(() => setStaff([]));
     }
   }, [isAdmin, canReviewRequests]);
   
@@ -91,7 +95,7 @@ export const OneIdRoles: React.FC = () => {
     if (!newRoleName.trim()) return;
     setCreating(true);
     try {
-      await apiFetch('/v1/oneid/org/roles', {
+      await apiFetch('/v1/ondi/org/roles', {
         method: 'POST',
         body: JSON.stringify({ name: newRoleName.trim(), description: newRoleDesc.trim() || undefined, permissions: newRolePerms }),
       });
@@ -104,7 +108,7 @@ export const OneIdRoles: React.FC = () => {
 
   async function deleteRole(id: string, name: string) {
     if (!(await showConfirm(`Delete the "${name}" role? Anyone who holds it loses its permissions.`, { variant: 'danger', confirmLabel: 'Delete' }))) return;
-    try { await apiFetch(`/v1/oneid/org/roles/${id}`, { method: 'DELETE' }); reload(); }
+    try { await apiFetch(`/v1/ondi/org/roles/${id}`, { method: 'DELETE' }); reload(); }
     catch (err: any) { showAlert(err.message); }
   }
 
@@ -112,7 +116,7 @@ export const OneIdRoles: React.FC = () => {
     if (!userId) return;
     const expiresInHours = pendingExpiry[roleId] ? Number(pendingExpiry[roleId]) : undefined;
     try {
-      await apiFetch(`/v1/oneid/org/roles/${roleId}/members`, {
+      await apiFetch(`/v1/ondi/org/roles/${roleId}/members`, {
         method: 'POST',
         body: JSON.stringify({ user_id: userId, ...(expiresInHours ? { expires_in_hours: expiresInHours } : {}) }),
       });
@@ -130,7 +134,7 @@ export const OneIdRoles: React.FC = () => {
   }
 
   async function removeMember(roleId: string, userId: string) {
-    try { await apiFetch(`/v1/oneid/org/roles/${roleId}/members/${userId}`, { method: 'DELETE' }); reload(); }
+    try { await apiFetch(`/v1/ondi/org/roles/${roleId}/members/${userId}`, { method: 'DELETE' }); reload(); }
     catch (err: any) { showAlert(err.message); }
   }
 
@@ -138,7 +142,7 @@ export const OneIdRoles: React.FC = () => {
     if (!requestRoleId) return;
     setRequesting(true);
     try {
-      await apiFetch('/v1/oneid/org/access-requests', {
+      await apiFetch('/v1/ondi/org/access-requests', {
         method: 'POST',
         body: JSON.stringify({
           role_id: requestRoleId, reason: requestReason.trim() || undefined,
@@ -158,7 +162,7 @@ export const OneIdRoles: React.FC = () => {
 
   async function decide(id: string, approve: boolean) {
     try {
-      const res = await apiFetch(`/v1/oneid/org/access-requests/${id}/${approve ? 'approve' : 'deny'}`, { method: 'POST' });
+      const res = await apiFetch(`/v1/ondi/org/access-requests/${id}/${approve ? 'approve' : 'deny'}`, { method: 'POST' });
       if (approve && res && res.finalized === false) {
         showAlert(`Your approval was recorded (${res.approvals} of ${res.required}). Waiting for another admin before this takes effect.`, { variant: 'success', title: 'Partial approval' });
       }
@@ -389,9 +393,9 @@ export const OneIdRoles: React.FC = () => {
                     <SelectTrigger style={{ width: '100%', height: 30, fontSize: 12 }}><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="__never__">Expires: Never</SelectItem>
-                      <SelectItem value="24">Expires in 24 hours</SelectItem>
-                      <SelectItem value="168">Expires in 7 days</SelectItem>
-                      <SelectItem value="720">Expires in 30 days</SelectItem>
+                      <SelectItem value="24" disabled={!governanceEntitled}>Expires in 24 hours{!governanceEntitled ? ' (add-on required)' : ''}</SelectItem>
+                      <SelectItem value="168" disabled={!governanceEntitled}>Expires in 7 days{!governanceEntitled ? ' (add-on required)' : ''}</SelectItem>
+                      <SelectItem value="720" disabled={!governanceEntitled}>Expires in 30 days{!governanceEntitled ? ' (add-on required)' : ''}</SelectItem>
                     </SelectContent>
                   </Select>
                   <Combobox
@@ -414,4 +418,4 @@ export const OneIdRoles: React.FC = () => {
   );
 };
 
-export default OneIdRoles;
+export default OndiRoles;

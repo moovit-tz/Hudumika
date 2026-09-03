@@ -443,7 +443,7 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
   fastify.get('/surveys', async (request: any, reply) => {
     try {
       const tenantId = request.user.tenant_id;
-      return await NexusHRService.getSurveys(tenantId);
+      return await NexusHRService.getSurveys(tenantId, request.user.sub);
     } catch (err: any) {
       return reply.status(500).send({ error: err.message });
     }
@@ -453,7 +453,45 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
     try {
       const tenantId = request.user.tenant_id;
       const { id } = request.params as { id: string };
-      return await NexusHRService.submitSurvey(tenantId, id, request.body);
+      return await NexusHRService.submitSurvey(tenantId, id, request.user.sub, request.body);
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message });
+    }
+  });
+
+  // A survey used to be readable and submittable with no way to actually
+  // create one — GET/POST here were the only two routes; every "survey"
+  // ever seen was created by hand in the database. This is the missing
+  // authoring half: create-and-launch in one step (a template plus its one
+  // live instance), matching how an HR admin actually thinks about it
+  // rather than a separate template library nobody asked for.
+  fastify.post('/surveys', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') }, async (request: any, reply) => {
+    try {
+      const tenantId = request.user.tenant_id;
+      return reply.status(201).send(await NexusHRService.createSurvey(tenantId, request.body));
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message });
+    }
+  });
+
+  fastify.patch('/surveys/:id/close', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') }, async (request: any, reply) => {
+    try {
+      const tenantId = request.user.tenant_id;
+      const { id } = request.params as { id: string };
+      return await NexusHRService.closeSurvey(tenantId, id);
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message });
+    }
+  });
+
+  // Aggregate only — never a list of raw per-person answers next to a name
+  // for an is_anonymous template, since user_id is never recorded for one
+  // in the first place (see migration 381).
+  fastify.get('/surveys/:id/results', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') }, async (request: any, reply) => {
+    try {
+      const tenantId = request.user.tenant_id;
+      const { id } = request.params as { id: string };
+      return await NexusHRService.getSurveyResults(tenantId, id);
     } catch (err: any) {
       return reply.status(400).send({ error: err.message });
     }

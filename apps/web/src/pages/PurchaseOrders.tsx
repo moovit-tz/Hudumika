@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Icon } from '../components/Icon.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
-import { useBranding } from '../hooks/useBranding.js';
+import { useCompany } from '../data/companyStore.js';
 import { useCurrency } from '../hooks/useCurrency.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { PageHeader } from '../components/PageHeader.js';
@@ -239,7 +239,7 @@ const formatUSD = (amount: number) => {
 };
 
 export const PurchaseOrders: React.FC = () => {
-  const branding = useBranding();
+  const co = useCompany();
   const isMobile = useIsMobile();
   const { fmt } = useCurrency();
   const formatUSD = (amount: number) => fmt(amount, 'USD');
@@ -1518,10 +1518,10 @@ export const PurchaseOrders: React.FC = () => {
                 <div>
                   {/* Branding Logo */}
                   <div style={{ marginBottom: 16 }}>
-                    {branding.logoLight ? (
-                      <img src={branding.logoLight} alt={branding.platformName} style={{ height: 32, objectFit: 'contain' }} />
+                    {co.logoUrl ? (
+                      <img src={co.logoUrl} alt={co.name} style={{ height: 32, objectFit: 'contain' }} />
                     ) : (
-                      <div style={{ fontSize: 18, fontWeight: 900, color: 'var(--ink)' }}>{branding.platformName}</div>
+                      <div style={{ fontSize: 18, fontWeight: 900, color: 'var(--ink)' }}>{co.name}</div>
                     )}
                   </div>
                   <span style={{ fontSize: 13, fontWeight: 700, fontFamily: 'monospace', color: 'var(--ink3)' }}>

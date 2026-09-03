@@ -8,12 +8,12 @@ interface LoginEvent {
   status: 'SUCCESS' | 'FAILED'; created_at: string; user_name: string;
 }
 
-export const OneIdLoginActivity: React.FC = () => {
+export const OndiLoginActivity: React.FC = () => {
   const [events, setEvents] = useState<LoginEvent[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    apiFetch('/v1/oneid/login-history').then(setEvents).catch(() => setEvents([])).finally(() => setLoading(false));
+    apiFetch('/v1/ondi/login-history').then(setEvents).catch(() => setEvents([])).finally(() => setLoading(false));
   }, []);
 
   return (
@@ -66,4 +66,4 @@ export const OneIdLoginActivity: React.FC = () => {
   );
 };
 
-export default OneIdLoginActivity;
+export default OndiLoginActivity;

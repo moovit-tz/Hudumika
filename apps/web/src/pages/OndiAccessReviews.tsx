@@ -1,9 +1,9 @@
-// ─── OneIdAccessReviews.tsx — Ondi Enterprise · Access Reviews ────
-// The periodic sweep-and-reattest counterpart to OneIdRoles.tsx's ad-hoc
+// ─── OndiAccessReviews.tsx — Ondi Enterprise · Access Reviews ────
+// The periodic sweep-and-reattest counterpart to OndiRoles.tsx's ad-hoc
 // access-request queue: instead of waiting for someone to ask for a role,
 // a reviewer starts a campaign that snapshots every current grant and
 // walks through each one, approve (keep) or revoke (remove, immediately —
-// see oneid.routes.ts). Backed by ondi_access_review_campaigns/_items
+// see ondi.routes.ts). Backed by ondi_access_review_campaigns/_items
 // (migration 369), gated by the new access_reviews.manage permission.
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
@@ -28,7 +28,7 @@ function fmtDate(d: string): string {
 
 // ── List: every campaign, past and present ─────────────────────────
 
-export const OneIdAccessReviews: React.FC = () => {
+export const OndiAccessReviews: React.FC = () => {
   const navigate = useNavigate();
   const [campaigns, setCampaigns] = useState<Campaign[] | null>(null);
   const [showNew, setShowNew] = useState(false);
@@ -36,7 +36,7 @@ export const OneIdAccessReviews: React.FC = () => {
   const [creating, setCreating] = useState(false);
 
   const reload = useCallback(async () => {
-    try { setCampaigns(await apiFetch('/v1/oneid/org/access-reviews')); } catch { setCampaigns([]); }
+    try { setCampaigns(await apiFetch('/v1/ondi/org/access-reviews')); } catch { setCampaigns([]); }
   }, []);
   useEffect(() => { reload(); }, [reload]);
 
@@ -44,7 +44,7 @@ export const OneIdAccessReviews: React.FC = () => {
     if (!name.trim()) return;
     setCreating(true);
     try {
-      const campaign = await apiFetch('/v1/oneid/org/access-reviews', { method: 'POST', body: JSON.stringify({ name: name.trim() }) });
+      const campaign = await apiFetch('/v1/ondi/org/access-reviews', { method: 'POST', body: JSON.stringify({ name: name.trim() }) });
       navigate(`/ondi/access-reviews/${campaign.id}`);
     } catch (err: any) {
       showAlert(err.message);
@@ -132,7 +132,7 @@ interface ReviewItem {
   decided_at: string | null; decided_by_name: string | null;
 }
 
-export const OneIdAccessReviewDetail: React.FC = () => {
+export const OndiAccessReviewDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [items, setItems] = useState<ReviewItem[] | null>(null);
@@ -142,7 +142,7 @@ export const OneIdAccessReviewDetail: React.FC = () => {
   const reload = useCallback(async () => {
     if (!id) return;
     try {
-      const res = await apiFetch(`/v1/oneid/org/access-reviews/${id}`);
+      const res = await apiFetch(`/v1/ondi/org/access-reviews/${id}`);
       setCampaign(res.campaign);
       setItems(res.items);
       setSelected(new Set());
@@ -162,7 +162,7 @@ export const OneIdAccessReviewDetail: React.FC = () => {
   async function decideOne(itemId: string, decision: 'approved' | 'revoked') {
     if (decision === 'revoked' && !(await showConfirm('Revoke this role grant? It will be removed immediately.', { variant: 'warning', confirmLabel: 'Revoke' }))) return;
     try {
-      await apiFetch(`/v1/oneid/org/access-reviews/${id}/items/${itemId}/decide`, { method: 'POST', body: JSON.stringify({ decision }) });
+      await apiFetch(`/v1/ondi/org/access-reviews/${id}/items/${itemId}/decide`, { method: 'POST', body: JSON.stringify({ decision }) });
       await reload();
     } catch (err: any) { showAlert(err.message); }
   }
@@ -172,7 +172,7 @@ export const OneIdAccessReviewDetail: React.FC = () => {
     if (decision === 'revoked' && !(await showConfirm(`Revoke ${selected.size} role grant${selected.size === 1 ? '' : 's'}? They'll be removed immediately.`, { variant: 'warning', confirmLabel: 'Revoke All' }))) return;
     setBusy(true);
     try {
-      await apiFetch(`/v1/oneid/org/access-reviews/${id}/bulk-decide`, { method: 'POST', body: JSON.stringify({ item_ids: Array.from(selected), decision }) });
+      await apiFetch(`/v1/ondi/org/access-reviews/${id}/bulk-decide`, { method: 'POST', body: JSON.stringify({ item_ids: Array.from(selected), decision }) });
       await reload();
     } catch (err: any) { showAlert(err.message); } finally { setBusy(false); }
   }
@@ -180,7 +180,7 @@ export const OneIdAccessReviewDetail: React.FC = () => {
   async function complete() {
     if (!(await showConfirm('Mark this campaign complete? Any remaining pending grants will stay as-is.', { confirmLabel: 'Complete Campaign' }))) return;
     try {
-      await apiFetch(`/v1/oneid/org/access-reviews/${id}/complete`, { method: 'POST' });
+      await apiFetch(`/v1/ondi/org/access-reviews/${id}/complete`, { method: 'POST' });
       await reload();
     } catch (err: any) { showAlert(err.message); }
   }
@@ -264,4 +264,4 @@ export const OneIdAccessReviewDetail: React.FC = () => {
   );
 };
 
-export default OneIdAccessReviews;
+export default OndiAccessReviews;

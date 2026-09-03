@@ -3,11 +3,12 @@ import { z } from 'zod';
 import { withTenant } from '../db/client.js';
 import nodeCrypto from 'node:crypto';
 import { sql } from 'kysely';
-import { requireRole } from '../middleware/rbac.js';
+import { requireRoleOrOrgPermission, ORG_PERMISSIONS } from '../lib/org-rbac.js';
 import { emitDomainEvent } from '../services/domain-events.service.js';
 import { getDocSequence, setDocSequence, type DocType } from '../lib/doc-numbering.js';
 import { buildSmtpTransporter } from '../integrations/email.js';
 import { encryptSecret, MASKED_VALUE } from '../services/onsite-secrets.service.js';
+import { tenantHasEntitlement } from '../middleware/entitlement.js';
 
 const DOC_TYPES: DocType[] = ['invoice', 'quotation', 'purchase_order'];
 
@@ -158,11 +159,15 @@ export async function settingsRoutes(fastify: FastifyInstance) {
   const MANAGER_WRITABLE = new Set(['notifications', 'freight']);
 
   // PATCH /v1/settings
-  fastify.patch('/', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') }, async (request, reply) => {
+  fastify.patch('/', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.SETTINGS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') }, async (request, reply) => {
     const user = request.user;
     const { $replace, ...updates } = settingsPatchSchema.parse(request.body);
 
-    if (user.role === 'MANAGER') {
+    // Same restricted set MANAGER always had — a delegated settings.manage
+    // holder is never more trusted than a real MANAGER, only ever as
+    // trusted. Real ADMIN/TENANT_ADMIN/SUPER_ADMIN are the only roles that
+    // skip this.
+    if (!['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'].includes(user.role)) {
       const forbidden = Object.keys(updates).filter(k => !MANAGER_WRITABLE.has(k));
       if (forbidden.length > 0) {
         return reply.status(403).send({
@@ -223,6 +228,21 @@ export async function settingsRoutes(fastify: FastifyInstance) {
 
         return applySettingsPatch(trx, user.tenant_id, updates, replaceKeys, user.sub);
       });
+    }
+
+    // Same "never let this generic endpoint self-grant a paid feature" rule
+    // as the enabled-apps guard above, for the one other settings section
+    // that's plan-gated: SIEM/webhook export (migration 385) requires the
+    // Enterprise Identity & Governance add-on. Uses tenantHasEntitlement
+    // (not a raw package_features lookup) because this one is meant to be
+    // purchasable as an add-on on non-Enterprise tiers, not just bundled.
+    if (updates.siemExport?.enabled === true && user.role !== 'SUPER_ADMIN') {
+      if (!(await tenantHasEntitlement(user.tenant_id, 'ondi.governance'))) {
+        return reply.status(403).send({
+          error: 'SIEM/webhook export requires the Enterprise Identity & Governance add-on.',
+          code: 'PLAN_UPGRADE_REQUIRED',
+        });
+      }
     }
 
     return withTenant(user.tenant_id, (trx) => applySettingsPatch(trx, user.tenant_id, updates, replaceKeys, user.sub));
@@ -345,7 +365,7 @@ export async function settingsRoutes(fastify: FastifyInstance) {
   });
 
   fastify.put('/branding', {
-    preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'),
+    preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.SETTINGS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'),
   }, async (request, reply) => {
     const user = request.user;
     const body = (request.body ?? {}) as Record<string, any>;
@@ -384,7 +404,7 @@ export async function settingsRoutes(fastify: FastifyInstance) {
   });
 
   // POST /v1/settings/cron/run  — trigger a named cron job immediately
-  fastify.post('/cron/run', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (request, reply) => {
+  fastify.post('/cron/run', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.SETTINGS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (request, reply) => {
     const { jobId, jobName } = cronRunSchema.parse(request.body);
 
     // Dispatch to built-in job handlers
@@ -408,7 +428,7 @@ export async function settingsRoutes(fastify: FastifyInstance) {
   });
 
   // POST /v1/settings/email/test  — verify SMTP and send a test message
-  fastify.post('/email/test', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') }, async (request, reply) => {
+  fastify.post('/email/test', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.SETTINGS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') }, async (request, reply) => {
     const { host, port, user, pass, enc, fromName, fromEmail } = emailTestSchema.parse(request.body);
     if (pass === MASKED_VALUE) return reply.status(400).send({ ok: false, error: 'Re-enter the password to test — the saved value is masked here for display, not sent back to the browser.' });
 
@@ -455,7 +475,7 @@ export async function settingsRoutes(fastify: FastifyInstance) {
 
   fastify.patch<{ Params: { docType: string }; Body: { prefix?: string; pad_length?: number; next_number?: number } }>(
     '/numbering/:docType',
-    { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') },
+    { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.SETTINGS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') },
     async (request, reply) => {
       const user = request.user;
       if (!DOC_TYPES.includes(request.params.docType as DocType)) return reply.status(400).send({ error: 'Unknown document type' });
@@ -471,7 +491,7 @@ export async function settingsRoutes(fastify: FastifyInstance) {
   // here rather than fabricating a "Connected" result.
   fastify.post<{ Params: { id: string }; Body: Record<string, string> }>(
     '/payment-gateways/:id/test',
-    { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') },
+    { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.SETTINGS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') },
     async (request, reply) => {
       const { id } = request.params;
       const v = request.body || {};
@@ -602,6 +622,83 @@ export async function settingsRoutes(fastify: FastifyInstance) {
       } catch (e: any) {
         return reply.status(502).send({ ok: false, message: `Could not reach the provider: ${e.message}` });
       }
+    }
+  );
+
+  // ── Per-seat license assignment (migration 383) ────────────────────
+  // Settings ▸ Modules already toggles an app on/off for the whole tenant;
+  // this narrows a tenant-enabled app to specific people. See
+  // lib/app-license.ts for the enforcement side (checkEntitlement,
+  // GET /v1/entitlements) this configures.
+
+  fastify.get('/app-licenses', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.SETTINGS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') }, async (request) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const settingsRow = await trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      const settings = settingsRow ? (typeof settingsRow.settings === 'string' ? JSON.parse(settingsRow.settings) : settingsRow.settings) : {};
+      const restricted = (settings['restricted-apps'] as Record<string, boolean> | undefined) ?? {};
+
+      const grants = await trx.selectFrom('user_app_access as a')
+        .innerJoin('users as u', 'u.id', 'a.user_id')
+        .select(['a.app_id', 'a.user_id', 'u.name as user_name', 'u.email as user_email'])
+        .where('a.tenant_id', '=', user.tenant_id)
+        .execute();
+
+      return { restricted, grants };
+    });
+  });
+
+  fastify.patch<{ Params: { appId: string }; Body: { restricted: boolean } }>(
+    '/app-licenses/:appId',
+    { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.SETTINGS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') },
+    async (request) => {
+      const user = request.user;
+      const { appId } = request.params;
+      const { restricted } = z.object({ restricted: z.boolean() }).parse(request.body);
+      return withTenant(user.tenant_id, async (trx) => {
+        const settingsRow = await trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+        const settings = settingsRow ? (typeof settingsRow.settings === 'string' ? JSON.parse(settingsRow.settings) : settingsRow.settings) : {};
+        const restrictedApps = { ...((settings['restricted-apps'] as Record<string, boolean> | undefined) ?? {}) };
+        if (restricted) restrictedApps[appId] = true; else delete restrictedApps[appId];
+        settings['restricted-apps'] = restrictedApps;
+        await trx.insertInto('tenant_settings').values({ tenant_id: user.tenant_id, settings: JSON.stringify(settings) })
+          .onConflict(oc => oc.column('tenant_id').doUpdateSet({ settings: JSON.stringify(settings) }))
+          .execute();
+        return { success: true };
+      });
+    }
+  );
+
+  fastify.post<{ Params: { appId: string }; Body: { user_id: string } }>(
+    '/app-licenses/:appId/grant',
+    { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.SETTINGS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') },
+    async (request, reply) => {
+      const user = request.user;
+      const { appId } = request.params;
+      const { user_id } = z.object({ user_id: z.string().uuid() }).parse(request.body);
+      return withTenant(user.tenant_id, async (trx) => {
+        const target = await trx.selectFrom('users').select('id').where('id', '=', user_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+        if (!target) return reply.status(404).send({ error: 'User not found in this workspace.' });
+        await trx.insertInto('user_app_access').values({ tenant_id: user.tenant_id, user_id, app_id: appId, granted_by: user.sub })
+          .onConflict(oc => oc.columns(['tenant_id', 'user_id', 'app_id']).doNothing())
+          .execute();
+        return { success: true };
+      });
+    }
+  );
+
+  fastify.delete<{ Params: { appId: string; userId: string } }>(
+    '/app-licenses/:appId/grant/:userId',
+    { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.SETTINGS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') },
+    async (request) => {
+      const user = request.user;
+      const { appId, userId } = request.params;
+      return withTenant(user.tenant_id, async (trx) => {
+        await trx.deleteFrom('user_app_access')
+          .where('tenant_id', '=', user.tenant_id).where('app_id', '=', appId).where('user_id', '=', userId)
+          .execute();
+        return { success: true };
+      });
     }
   );
 }

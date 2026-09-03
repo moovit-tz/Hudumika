@@ -12,7 +12,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.js';
 import { Icon } from '../components/Icon.js';
-import { AuthBrand, AuthAlert, AuthField } from './Login.js';
+import { AuthCard, AuthAlert, AuthField } from './Login.js';
 
 function TokenStage({ token }: { token: string }) {
   const { verifyMagicLink } = useAuth();
@@ -46,7 +46,6 @@ function TokenStage({ token }: { token: string }) {
     return (
       <>
         <div className="auth-form-hdr">
-          <div className="auth-back-icon"><Icon name="shield" size={22} strokeWidth={1.5} /></div>
           <h2 className="auth-form-title">Enter your authenticator code</h2>
           <p className="auth-form-sub">This account has two-factor authentication enabled — the link alone isn't enough.</p>
         </div>
@@ -81,23 +80,18 @@ export const MagicLinkPage: React.FC = () => {
   const token = params.get('token');
 
   return (
-    <div className="auth-shell">
-      <AuthBrand />
-      <div className="auth-form-panel">
-        <div className="auth-form-wrap">
-          {token ? <TokenStage token={token} /> : (
-            <div className="auth-sent-state">
-              <div className="auth-sent-icon"><Icon name="zap" size={32} strokeWidth={1.5} /></div>
-              <h2 className="auth-form-title">Sign-in link</h2>
-              <p className="auth-form-sub" style={{ marginBottom: 24 }}>
-                This page is meant to be opened from the link we email you. Request one from the sign-in page.
-              </p>
-              <Link to="/ondi/login" className="auth-btn-primary" style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>Go to sign in</Link>
-            </div>
-          )}
+    <AuthCard>
+      {token ? <TokenStage token={token} /> : (
+        <div className="auth-sent-state">
+          <div className="auth-sent-icon"><Icon name="zap" size={32} strokeWidth={1.5} /></div>
+          <h2 className="auth-form-title">Sign-in link</h2>
+          <p className="auth-form-sub" style={{ marginBottom: 24 }}>
+            This page is meant to be opened from the link we email you. Request one from the sign-in page.
+          </p>
+          <Link to="/ondi/login" className="auth-btn-primary" style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>Go to sign in</Link>
         </div>
-      </div>
-    </div>
+      )}
+    </AuthCard>
   );
 };
 

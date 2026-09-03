@@ -4,6 +4,7 @@ import {
   Copy, Archive, Trash2, Pencil, Share2, FolderKanban, Layers,
   Flag, CircleDot, GripVertical, Upload, AlertTriangle, ShieldCheck, Bell, XCircle,
   Eye, Send, Download,
+  Sparkles, ShoppingBag, BarChart3, Wallet, FileCheck2,
 } from 'lucide-react';
 import { Tip } from '../components/ui/tooltip.js';
 import {
@@ -19,7 +20,7 @@ import {
   DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuLabel,
 } from '../components/ui/dropdown-menu.js';
 import { SingleSelectFilter, MultiSelectFilter, FilterOption } from '../components/ui/filter-dropdown.js';
-import { CheckboxRow, SwitchRow } from '../components/ui/list-item-row.js';
+import { CheckboxRow, SwitchRow, FeatureToggleRow } from '../components/ui/list-item-row.js';
 import { DatePicker, DateRangePicker } from '../components/ui/date-picker.js';
 import type { DateRange } from 'react-day-picker';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '../components/ui/accordion.js';
@@ -82,6 +83,10 @@ export default function ComponentShowcase() {
   const [notifySms, setNotifySms] = useState(false);
   const [twoFactor, setTwoFactor] = useState(true);
   const [autoAssign, setAutoAssign] = useState(false);
+  const [featAi, setFeatAi] = useState(true);
+  const [featShop, setFeatShop] = useState(true);
+  const [featAnalytics, setFeatAnalytics] = useState(true);
+  const [featPayments, setFeatPayments] = useState(false);
   const [singleDate, setSingleDate] = useState<Date | undefined>(new Date());
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
@@ -317,6 +322,39 @@ export default function ComponentShowcase() {
                 checked={autoAssign} onCheckedChange={setAutoAssign}
               />
             </div>
+          </div>
+        </section>
+
+        {/* Feature toggle rows */}
+        <section className={`${SECTION} lg:col-span-2`}>
+          <div className={SECTION_TITLE}>Feature toggle rows</div>
+          <div className={SECTION_DESC}>Icon-leading remote kill-switches — mobile-app feature flags, per-tenant module switches. Disabled rows (e.g. a not-yet-available feature) grey out the icon and switch together.</div>
+          <div>
+            <FeatureToggleRow
+              icon={<Sparkles className="h-5 w-5" />}
+              title="Nemo AI" description="The AI assistant / conversational-action screen."
+              checked={featAi} onCheckedChange={setFeatAi}
+            />
+            <FeatureToggleRow
+              icon={<ShoppingBag className="h-5 w-5" />}
+              title="Nemo Shop" description="Wholesale ordering marketplace."
+              checked={featShop} onCheckedChange={setFeatShop}
+            />
+            <FeatureToggleRow
+              icon={<BarChart3 className="h-5 w-5" />}
+              title="Analytics" description="Business analytics screen."
+              checked={featAnalytics} onCheckedChange={setFeatAnalytics}
+            />
+            <FeatureToggleRow
+              icon={<Wallet className="h-5 w-5" />}
+              title="Payments" description="Payment methods screen."
+              checked={featPayments} onCheckedChange={setFeatPayments}
+            />
+            <FeatureToggleRow
+              icon={<FileCheck2 className="h-5 w-5" />}
+              title="Compliance" description="Tax and regulatory compliance checklist."
+              checked={false} onCheckedChange={() => {}} disabled
+            />
           </div>
         </section>
       </div>

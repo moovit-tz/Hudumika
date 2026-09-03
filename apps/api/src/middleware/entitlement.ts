@@ -1,6 +1,7 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import { dbPlatform, withTenant } from '../db/client.js';
 import { checkAppUsageLimit } from '../lib/usage.js';
+import { isLicensedForApp } from '../lib/app-license.js';
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -52,7 +53,7 @@ export async function agencyManagedOnsiteGrant(tenantId: string, featureKey: str
  * so a deactivated add-on (package_addons.is_active=false) stops granting
  * access even if a tenant's own tenant_addons row is still 'active'.
  */
-async function hasActiveAddonGrant(tenantId: string, featureKey: string): Promise<boolean> {
+export async function hasActiveAddonGrant(tenantId: string, featureKey: string): Promise<boolean> {
   const grant = await dbPlatform.selectFrom('tenant_addons')
     .innerJoin('package_addons', 'package_addons.code', 'tenant_addons.addon_code')
     .select('tenant_addons.id')
@@ -126,9 +127,9 @@ async function checkEntitlement(
   });
 
   if (tenantCheck.outcome === 'fail') return tenantCheck.failure;
-  if (tenantCheck.outcome === 'pass') return null;
+  if (tenantCheck.outcome === 'pass') return checkSeatLicense(user.tenant_id, user.sub, featureKey);
 
-  if (await agencyManagedOnsiteGrant(user.tenant_id, featureKey)) return null;
+  if (await agencyManagedOnsiteGrant(user.tenant_id, featureKey)) return checkSeatLicense(user.tenant_id, user.sub, featureKey);
 
   const grant = await dbPlatform.selectFrom('package_features')
     .select('feature_key')
@@ -159,7 +160,22 @@ async function checkEntitlement(
     }
   }
 
-  return null;
+  return checkSeatLicense(user.tenant_id, user.sub, featureKey);
+}
+
+/**
+ * Per-seat license assignment (migration 383) — layered after every other
+ * grant path above has already decided the tenant is entitled to this app
+ * at all. An app nobody has put into 'restricted-apps' mode always passes
+ * here immediately (isLicensedForApp short-circuits), so this is a no-op
+ * for the overwhelming majority of apps/tenants.
+ */
+async function checkSeatLicense(tenantId: string, userId: string, featureKey: string): Promise<{ status: number; body: Record<string, unknown> } | null> {
+  if (await isLicensedForApp(tenantId, userId, featureKey)) return null;
+  return {
+    status: 403,
+    body: { error: "You don't have a license for this app. Ask your workspace admin to grant you access.", code: 'SEAT_LICENSE_REQUIRED' },
+  };
 }
 
 /**

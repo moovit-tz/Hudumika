@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Icon } from '../components/Icon.js';
-import { pushBranding } from '../hooks/useBranding.js';
+import { pushBranding, BRAND_ACCENT } from '../hooks/useBranding.js';
 import { LauncherAppSvg } from '../components/LauncherApps.js';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
 
@@ -49,7 +49,7 @@ export function BrandingIdentitySection() {
     supportEmail: localStorage.getItem('hudumika_support_email')     ?? 'support@hudumika.tz',
     supportUrl:   localStorage.getItem('hudumika_support_url')       ?? 'https://support.hudumika.tz',
     websiteUrl:   localStorage.getItem('hudumika_website_url')       ?? 'https://hudumika.tz',
-    accentColor:  localStorage.getItem('hudumika_email_accent')      ?? '#0d7a6b',
+    accentColor:  localStorage.getItem('hudumika_email_accent')      ?? BRAND_ACCENT,
   });
   const [logoLight, setLogoLight] = useState<string>(localStorage.getItem('hudumika_brand_logo_light') ?? '');
   const [logoDark,  setLogoDark]  = useState<string>(localStorage.getItem('hudumika_brand_logo_dark')  ?? '');
@@ -65,7 +65,7 @@ export function BrandingIdentitySection() {
         supportEmail: localStorage.getItem('hudumika_support_email')     ?? 'support@hudumika.tz',
         supportUrl:   localStorage.getItem('hudumika_support_url')       ?? 'https://support.hudumika.tz',
         websiteUrl:   localStorage.getItem('hudumika_website_url')       ?? 'https://hudumika.tz',
-        accentColor:  localStorage.getItem('hudumika_email_accent')      ?? '#0d7a6b',
+        accentColor:  localStorage.getItem('hudumika_email_accent')      ?? BRAND_ACCENT,
       });
       setLogoLight(localStorage.getItem('hudumika_brand_logo_light') ?? '');
       setLogoDark(localStorage.getItem('hudumika_brand_logo_dark') ?? '');

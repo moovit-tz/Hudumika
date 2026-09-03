@@ -1,4 +1,4 @@
-// ─── OneIdWallet.tsx — Ondi Personal · Credentials ────────────────
+// ─── OndiWallet.tsx — Ondi Personal · Credentials ────────────────
 // A small credential vault for the user's own third-party logins — secrets
 // are encrypted at rest server-side (AES-256-GCM, onsite-secrets.service.ts)
 // and never sent to the browser except when explicitly revealed. Not the
@@ -6,7 +6,7 @@
 // deferred; this is real server-side encryption with a modest threat
 // model, honestly labeled as such below.
 //
-// Renamed from "Wallet" to "Credentials" (nav label in OneIdShell.tsx, and
+// Renamed from "Wallet" to "Credentials" (nav label in OndiShell.tsx, and
 // the page title below) — a real feature-gap pass found this one word away
 // from Petti's own "Wallets" (money/petty-cash) in the same app switcher,
 // and "Credentials" is the more accurate name for what this page actually
@@ -70,7 +70,7 @@ function EditableFields({ label, setLabel, username, setUsername, url, setUrl, s
   );
 }
 
-export const OneIdWallet: React.FC = () => {
+export const OndiWallet: React.FC = () => {
   const [owned, setOwned] = useState<WalletItem[] | null>(null);
   const [sharedWithMe, setSharedWithMe] = useState<SharedWalletItem[] | null>(null);
   const [showNew, setShowNew] = useState(false);
@@ -94,7 +94,7 @@ export const OneIdWallet: React.FC = () => {
 
   const searchStaff = useCallback(async (query: string): Promise<PickerItem[]> => {
     if (!staffCache.current) {
-      const users = await apiFetch('/v1/oneid/users').catch(() => []);
+      const users = await apiFetch('/v1/ondi/users').catch(() => []);
       staffCache.current = users.map((u: any) => ({ id: u.id, label: u.name, sublabel: u.email }));
     }
     const q = query.trim().toLowerCase();
@@ -390,4 +390,4 @@ export const OneIdWallet: React.FC = () => {
   );
 };
 
-export default OneIdWallet;
+export default OndiWallet;

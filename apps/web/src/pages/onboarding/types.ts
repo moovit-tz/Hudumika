@@ -49,6 +49,11 @@ export interface StepProps {
   packages: Package[];
   submitting?: boolean;
   submitError?: string | null;
+  // Auto-join-by-domain (step 1 / StepAccount only) — an alternative to
+  // onNext when the email's domain matches an existing tenant's real staff.
+  onRequestJoin?: (tenantId: string) => void;
+  joinRequestSubmitting?: boolean;
+  joinRequestError?: string | null;
 }
 
 export const STEP_LABELS = ['Account', 'Company', 'Package', 'Domain', 'Payment', 'Configuration'];

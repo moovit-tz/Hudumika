@@ -1,4 +1,4 @@
-// ─── OneIdAutomation.tsx — Ondi Enterprise · Automation ───────────
+// ─── OndiAutomation.tsx — Ondi Enterprise · Automation ───────────
 // Two real, hardcoded joiner/leaver rules (subscribers/ondi.subscribers.ts)
 // — not a generic workflow engine, that's Studio. This page configures the
 // one thing that's actually configurable (which role new joiners get) and
@@ -22,19 +22,19 @@ function fmt(d: string): string {
   return new Date(d).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
-export const OneIdAutomation: React.FC = () => {
+export const OndiAutomation: React.FC = () => {
   const [data, setData] = useState<AutomationData | null>(null);
   const [saving, setSaving] = useState(false);
 
   const reload = useCallback(async () => {
-    try { setData(await apiFetch('/v1/oneid/org/automation')); } catch { setData(null); }
+    try { setData(await apiFetch('/v1/ondi/org/automation')); } catch { setData(null); }
   }, []);
   useEffect(() => { reload(); }, [reload]);
 
   async function updateDefaultRole(roleId: string | null) {
     setSaving(true);
     try {
-      await apiFetch('/v1/oneid/org/automation', { method: 'PATCH', body: JSON.stringify({ default_role_id: roleId }) });
+      await apiFetch('/v1/ondi/org/automation', { method: 'PATCH', body: JSON.stringify({ default_role_id: roleId }) });
       await reload();
     } catch (err: any) {
       showAlert(err.message);
@@ -101,4 +101,4 @@ export const OneIdAutomation: React.FC = () => {
   );
 };
 
-export default OneIdAutomation;
+export default OndiAutomation;

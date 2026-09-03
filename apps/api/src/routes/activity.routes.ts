@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { withTenant } from '../db/client.js';
-import { requireRole } from '../middleware/rbac.js';
+import { requireRoleOrOrgPermission, ORG_PERMISSIONS } from '../lib/org-rbac.js';
 
 /**
  * One activity trail, for any record in the platform.
@@ -48,11 +48,13 @@ export async function activityRoutes(fastify: FastifyInstance) {
    *
    * Restricted to administrators, because a full workspace feed names who
    * touched what across every app; that is a governance view, not a general
-   * one.
+   * one. MANAGER included alongside the platform-admin roles — Team.tsx's
+   * own frontend gate (AdminShell.tsx) already let MANAGER into this page;
+   * this route hadn't, so a MANAGER's Activity tab 403'd silently until now.
    */
   fastify.get<{
     Querystring: { limit?: string; before?: string; type?: string; entity?: string; source_app?: string };
-  }>('/', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (request) => {
+  }>('/', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.TEAM_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') }, async (request) => {
     const user = request.user;
     const limit = Math.min(Math.max(Number(request.query.limit) || 50, 1), 200);
     const { before, type, entity, source_app } = request.query;

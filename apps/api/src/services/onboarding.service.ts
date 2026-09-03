@@ -1,12 +1,51 @@
 import { sql } from 'kysely';
+import crypto from 'crypto';
 import { dbPlatform } from '../db/client.js';
 import { hashPassword } from '../lib/password.js';
 import { PaymentsIntegration } from '../integrations/payments.js';
 import { GLService } from './gl.service.js';
 import { DefaultWorkflowService } from './default-workflow.service.js';
 import { computeAndRecordCommission } from './referral.service.js';
+import { NotificationService } from './notification.service.js';
+import { MailService } from './mail.service.js';
+import { recordAuthEvent } from '../lib/audit-chain.js';
+import { enforcePasswordPolicy } from '../lib/password-policy.js';
+import { PERSONAL_EMAIL_DOMAINS, type MatchedTenant, type JoinRequestInput, type JoinRequestSubmitResponse } from '@hudumika/types';
 import type { OnboardingCompleteInput, OnboardingCompleteResponse, TenantPlan, JWTPayload } from '@hudumika/types';
 import type { FastifyInstance } from 'fastify';
+
+const PERSONAL_EMAIL_DOMAIN_SET = new Set(PERSONAL_EMAIL_DOMAINS);
+
+function domainOf(email: string): string | null {
+  const at = email.lastIndexOf('@');
+  if (at === -1) return null;
+  const domain = email.slice(at + 1).trim().toLowerCase();
+  return domain || null;
+}
+
+/**
+ * Auto-join-by-domain: does an existing, active tenant already have real,
+ * active staff on this same email domain? Personal-provider domains
+ * (gmail.com etc.) never count as a match — they don't identify a company.
+ * Matched against `users.email` directly (no schema for tenants to declare
+ * their domain up front) so this reflects who's *actually* there, not a
+ * self-reported claim.
+ */
+export async function findTenantByEmailDomain(email: string): Promise<MatchedTenant | null> {
+  const domain = domainOf(email);
+  if (!domain || PERSONAL_EMAIL_DOMAIN_SET.has(domain)) return null;
+
+  const row = await dbPlatform.selectFrom('users as u')
+    .innerJoin('tenants as t', 't.id', 'u.tenant_id')
+    .select(['t.id', 't.name', 't.subdomain', 't.slug'])
+    .where('u.active', '=', true)
+    .where('t.active', '=', true)
+    .where(sql<boolean>`lower(split_part(u.email, '@', 2)) = ${domain}`)
+    .orderBy('t.created_at', 'asc')
+    .executeTakeFirst();
+
+  return row ? { id: row.id, name: row.name, subdomain: row.subdomain || row.slug } : null;
+}
 
 const RESERVED_SUBDOMAINS = new Set([
   'www', 'api', 'admin', 'app', 'mail', 'static', 'assets', 'cdn',
@@ -59,6 +98,129 @@ export async function isEmailAvailable(email: string): Promise<boolean> {
   return !existing;
 }
 
+/**
+ * Auto-join-by-domain, request side. Deliberately NOT a silent auto-join —
+ * this only ever queues a request a tenant admin has to actually approve
+ * (see 380_tenant_join_requests.sql's header). Runs entirely on `dbPlatform`
+ * like the rest of this file: there is no tenant session to open yet, the
+ * requester isn't a member of anything until an admin says so.
+ */
+export async function createJoinRequest(input: JoinRequestInput): Promise<JoinRequestSubmitResponse> {
+  const email = input.email.trim().toLowerCase();
+  const name = input.name.trim();
+
+  if (!name) throw new OnboardingError(400, 'Full name is required');
+  if (!input.password || input.password.length < 8) {
+    throw new OnboardingError(400, 'Password must be at least 8 characters');
+  }
+  if (!(await isEmailAvailable(email))) {
+    throw new OnboardingError(409, 'An account with this email already exists');
+  }
+
+  // Re-derive the match from the email's own domain — the client-supplied
+  // tenant_id is just the hint the UI already showed the requester, never
+  // trusted on its own to decide whose queue this lands in.
+  const matched = await findTenantByEmailDomain(email);
+  if (!matched || matched.id !== input.tenant_id) {
+    throw new OnboardingError(400, 'No matching workspace found for this email domain.');
+  }
+
+  // The target tenant's own password policy (Ondi ▸ Policies), not just the
+  // 8-char floor above — a request that lands in a tenant with a stricter
+  // policy configured must be held to it, same as every other password-set
+  // path in auth.routes.ts.
+  const policyCheck = await enforcePasswordPolicy(matched.id, input.password);
+  if (!policyCheck.ok) {
+    throw new OnboardingError(400, policyCheck.reason);
+  }
+
+  return submitJoinRequest(matched, name, email, hashPassword(input.password));
+}
+
+/**
+ * Google/Microsoft sign-in on Ondi's own login (OndiLogin.tsx), for an email
+ * with no active user yet. Deliberately narrower than the full onboarding
+ * wizard: it can only ever land someone in an *existing* tenant whose real
+ * staff already share this email's domain (findTenantByEmailDomain) — there
+ * is no company name/subdomain/plan/payment to hand it a brand-new tenant
+ * to create, and a federated identity is exactly as unverified as a typed
+ * one for deciding that. `null` means no match, so the caller can send the
+ * visitor to full signup instead — never a silent tenant creation.
+ *
+ * No password policy check: there is no user-supplied password to check —
+ * the account is created sign-in-by-Google-only, secured by a random hash
+ * nobody, including the eventual admin who approves it, ever sees or needs.
+ * `enforcePasswordPolicy`'s complexity rules exist to keep a *typed*
+ * password strong; they have nothing to check here.
+ */
+export async function createJoinRequestForFederatedIdentity(
+  name: string, email: string,
+): Promise<JoinRequestSubmitResponse | null> {
+  const cleanEmail = email.trim().toLowerCase();
+  const cleanName = name.trim() || cleanEmail.split('@')[0];
+  if (!(await isEmailAvailable(cleanEmail))) return null;
+
+  const matched = await findTenantByEmailDomain(cleanEmail);
+  if (!matched) return null;
+
+  const randomPasswordHash = hashPassword(crypto.randomUUID() + crypto.randomUUID());
+  return submitJoinRequest(matched, cleanName, cleanEmail, randomPasswordHash);
+}
+
+/** Shared by createJoinRequest and createJoinRequestForFederatedIdentity —
+ *  the actual queue insert plus the admin notification (in-app + email).
+ *  See createJoinRequest's own header for why this is a reviewed request,
+ *  never a silent auto-join, regardless of which caller reached it. */
+async function submitJoinRequest(
+  matched: MatchedTenant, name: string, email: string, passwordHash: string,
+): Promise<JoinRequestSubmitResponse> {
+  let created;
+  try {
+    created = await dbPlatform.insertInto('tenant_join_requests').values({
+      tenant_id: matched.id,
+      name,
+      email,
+      password_hash: passwordHash,
+    }).returningAll().executeTakeFirstOrThrow();
+  } catch (err: any) {
+    if (String(err.message || '').includes('idx_tenant_join_requests_pending_email')) {
+      throw new OnboardingError(409, 'A join request for this email is already pending review.');
+    }
+    throw err;
+  }
+
+  // Same MGMT-role convention as comply-renewal.job.ts's notifyComplyManagers
+  // — every admin-capable user in the target tenant hears about it, in-app
+  // and by email. ondi_org_access_requests (the closest existing precedent
+  // for a request/approve queue) ships with no notification at all;
+  // deliberately not repeating that gap here.
+  const admins = await dbPlatform.selectFrom('users')
+    .select(['id', 'email'])
+    .where('tenant_id', '=', matched.id)
+    .where('role', 'in', ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER'])
+    .where('active', '=', true)
+    .execute();
+
+  await recordAuthEvent(matched.id, null, 'join_request_submitted', {
+    metadata: { request_id: created.id, email, requester_name: name },
+  });
+
+  const link = '/ondi/users?tab=join-requests';
+  await Promise.all(admins.map(async (a) => {
+    await NotificationService.createNotification({
+      tenantId: matched.id, userId: a.id, app: 'ondi', type: 'join_request',
+      title: 'New workspace join request',
+      message: `${name} (${email}) wants to join ${matched.name}.`,
+      link, entityType: 'tenant_join_request', entityId: created.id, entityLabel: email,
+    });
+    await MailService.enqueueTemplated(matched.id, 'onboarding.join_request', a.email, {
+      requesterName: name, requesterEmail: email, tenantName: matched.name, link,
+    }, 'onboarding').catch(() => {});
+  }));
+
+  return { success: true, tenant_name: matched.name };
+}
+
 export class OnboardingService {
   static async completeOnboarding(
     fastify: FastifyInstance,
@@ -109,6 +271,7 @@ export class OnboardingService {
     const slug = await uniqueSlug(input.company.name);
 
     const { tenant, admin } = await dbPlatform.transaction().execute(async (trx) => {
+      const founderDomain = domainOf(email);
       const tenant = await trx.insertInto('tenants').values({
         name: input.company.name,
         slug,
@@ -116,6 +279,7 @@ export class OnboardingService {
         plan: pkg.code as TenantPlan,
         active: true,
         referred_by_tenant_id: referredByTenantId,
+        founder_personal_email_domain: founderDomain && PERSONAL_EMAIL_DOMAIN_SET.has(founderDomain) ? founderDomain : null,
         created_at: now,
         updated_at: now,
       }).returningAll().executeTakeFirstOrThrow();

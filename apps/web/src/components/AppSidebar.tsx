@@ -52,7 +52,7 @@ const APP_ICONS: Record<AppId, IconName> = {
   nexushr:     'users',
   onesite:   'globe',
   onsite:    'terminal',
-  oneid:     'lock',
+  ondi:     'lock',
   tracking:  'mapPin',
   cloud:     'folder',
   ai:        'sparkle',
@@ -84,7 +84,7 @@ const APP_SUBTITLES: Partial<Record<AppId, string>> = {
   bliss:     'Support & Helpdesk',
   nexushr:     'People & HR',
   onesite:   'Web & CMS',
-  oneid:     'Identity & Access',
+  ondi:     'Identity & Access',
   tracking:  'Vehicle & Fleet Tracking',
   cloud:     'File Storage',
   ai:        'AI Intelligence',
@@ -280,7 +280,7 @@ export function AppSidebar({ appId, sections, beforeNav, fillNav, afterNav, load
           <div className="app-sb-brand-icon">
             {branding.getAppLogo(appId) ? (
               <img src={branding.getAppLogo(appId)} alt={appLabel} className="app-sb-brand-logo-img" />
-            ) : appId === 'oneid' ? (
+            ) : appId === 'ondi' ? (
               // Ondi's real mark (white-glyph variant — .app-sb-brand-icon
               // already draws its own --sb-color square behind whatever
               // renders here, same as every other app's plain line icon;

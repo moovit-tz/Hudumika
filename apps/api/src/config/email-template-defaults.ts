@@ -49,6 +49,33 @@ export const EMAIL_TEMPLATE_DEFAULTS: Record<string, EmailTemplateDefault> = {
     `,
   },
 
+  'onboarding.join_request': {
+    category: 'account',
+    subject: '{{requesterName}} wants to join {{tenantName}} on Hudumika',
+    body: `
+      <p><strong>{{requesterName}}</strong> ({{requesterEmail}}) signed up with an email on your company's domain and is asking to join <strong>{{tenantName}}</strong>'s existing workspace instead of starting a new one.</p>
+      <p>Log in and open <strong>Ondi ▸ Users ▸ Join requests</strong> to approve or deny this request.</p>
+      <p>If you don't recognise this person, you can safely deny it.</p>
+    `,
+  },
+  'onboarding.join_approved': {
+    category: 'account',
+    subject: "You're in — {{tenantName}} approved your request",
+    body: `
+      <p>Good news — <strong>{{tenantName}}</strong> approved your request to join their Hudumika workspace.</p>
+      <p><a href="{{loginUrl}}" style="background:#0d7a6b;color:#ffffff;padding:10px 18px;text-decoration:none;border-radius:6px;display:inline-block;">Sign in</a></p>
+      <p>Use the email and password you submitted with your request.</p>
+    `,
+  },
+  'onboarding.join_denied': {
+    category: 'account',
+    subject: 'Your request to join {{tenantName}} was not approved',
+    body: `
+      <p>Your request to join <strong>{{tenantName}}</strong>'s Hudumika workspace was not approved{{reasonSuffix}}.</p>
+      <p>If you believe this is a mistake, reach out to your company's Hudumika admin directly.</p>
+    `,
+  },
+
   'customers.claim_code': {
     category: 'account',
     subject: 'Your Hudumika organization link code',

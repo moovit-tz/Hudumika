@@ -43,6 +43,18 @@ export function AppLauncher({ renderTrigger }: AppLauncherProps) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const [moreBelow, setMoreBelow] = useState(false);
 
+  // Backdrop click already dismisses the panel; Escape is the other half of
+  // that same expectation and every other dismissible surface in the app
+  // (Radix popovers/dialogs) already honors it. This one didn't.
+  useEffect(() => {
+    if (!launcherOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { setLauncherOpen(false); setEditMode(false); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [launcherOpen]);
+
   useEffect(() => {
     const el = scrollRef.current;
     if (!launcherOpen || !el) return;

@@ -1,38 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate, useSearchParams, Link } from 'react-router-dom';
-import { startAuthentication } from '@simplewebauthn/browser';
-import { useAuth } from '../hooks/useAuth.js';
+import { Link } from 'react-router-dom';
 import { useBranding } from '../hooks/useBranding.js';
 import { Icon } from '../components/Icon.js';
 import { toggleThemeWithAnimation } from '../lib/theme.js';
-import { apiFetch, BASE_URL } from '../lib/api.js';
-import { GoogleSignInButton } from '../components/GoogleSignInButton.js';
-import { MicrosoftSignInButton } from '../components/MicrosoftSignInButton.js';
+import { lightenHex, enforceContrastFloor, pickForegroundHsl } from '../lib/color.js';
+import { OndiSignInPanel } from '../components/OndiSignInPanel.js';
+import { Tip } from '../components/ui/tooltip.js';
 import './Login.css';
 import './OndiLogin.css';
-
-const METHOD_META: Record<'phone' | 'totp' | 'passkey' | 'magic-link' | 'company-sso', { icon: 'phone' | 'shield' | 'fingerprint' | 'mail' | 'building'; label: string }> = {
-  'phone':       { icon: 'phone',       label: 'Sign in with a phone code' },
-  'totp':        { icon: 'shield',      label: 'Sign in with an authenticator app' },
-  'passkey':     { icon: 'fingerprint', label: 'Sign in with a passkey' },
-  'magic-link':  { icon: 'mail',        label: 'Sign in with an email link' },
-  'company-sso': { icon: 'building',    label: "Sign in with your company's SSO" },
-};
-
-// Off for now, by request — the plan is to bring passkey sign-in back once
-// it can be offered platform-wide (every app's own login, not just Ondi's),
-// rather than only here. The whole flow underneath (submitPasskey,
-// requestPasskeyLoginOptions/verifyPasskeyLogin in useAuth.tsx, the real
-// WebAuthn ceremony) is untouched — this only hides the entry point, so
-// flipping it back to `true` is the entire re-enable.
-const PASSKEY_LOGIN_ENABLED = false;
-// Same story, same pattern — off until needed. sendMagicLink,
-// requestMagicLink in useAuth.tsx, and the real /v1/ondi/auth/magic-link/*
-// backend are all untouched; only this entry point is hidden.
-const MAGIC_LINK_LOGIN_ENABLED = false;
-const VISIBLE_METHODS = (Object.keys(METHOD_META) as Array<keyof typeof METHOD_META>)
-  .filter(key => key !== 'passkey' || PASSKEY_LOGIN_ENABLED)
-  .filter(key => key !== 'magic-link' || MAGIC_LINK_LOGIN_ENABLED);
 
 const LOGIN_BG_MAP: Record<string, string> = {
   navy: '#0e1f3d', teal: '#0d7a6b',
@@ -40,21 +15,18 @@ const LOGIN_BG_MAP: Record<string, string> = {
 };
 
 /**
- * Ondi's own login front door — phone+SMS-code and email+authenticator-code
- * (M1), plus passkey and Google sign-in (M2), all landing on the exact same
- * session /login issues. Reachable at /ondi/login, linked from the main
- * Login page; not yet the default (see ondi-auth.routes.ts's own header
- * comment) — that cutover is a later, separate, reversible milestone.
- * Google's button renders itself only when a real OAuth client is
- * configured (see GoogleSignInButton.tsx); passkey login only works for an
- * account that has already registered one from Workspace ▸ Security.
+ * Ondi's own dedicated login page — page chrome (theme toggle, centered
+ * icon/headline, the closing "sign in with password instead" links) around
+ * OndiSignInPanel, the actual method picker. The panel is the same
+ * component embedded inline as the "Ondi" tab on Login.tsx and on signup's
+ * Details/Ondi choice — see OndiSignInPanel.tsx's own header for why that
+ * split exists (one state machine, three hosts). Reachable at /ondi/login;
+ * not yet the default (see ondi-auth.routes.ts's own header comment) —
+ * that cutover is a later, separate, reversible milestone.
  */
 export const OndiLogin: React.FC = () => {
-  const { requestOtpLogin, verifyOtpLogin, loginWithTotp, requestMagicLink, requestPasskeyLoginOptions, verifyPasskeyLogin, loginWithGoogle, loginWithMicrosoft } = useAuth();
-  const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
   const rootRef = useRef<HTMLDivElement>(null);
-  const branding = useBranding();
+  const branding = useBranding(true);
 
   // Was `const [theme] = useState(...)` with no setter — the toggle button
   // below called toggleThemeWithAnimation directly (only ever meant for
@@ -115,418 +87,54 @@ export const OndiLogin: React.FC = () => {
     el.style.setProperty('--lp-error-bg', d ? '#2c1e1e' : '#fdf2f2');
     el.style.setProperty('--lp-error-border', d ? '#4b2e2e' : '#fde2e2');
     el.style.setProperty('--lp-error-text', d ? '#fca5a5' : '#c2410c');
+    // Button surface — same fix as Login.tsx's identical block, reusing
+    // useDesignSystem.ts's own --primary dark-mode derivation (lighten 45%
+    // before the contrast floor) rather than the raw accent, which passes
+    // WCAG against white text but still reads as a heavy, near-invisible
+    // block when the accent itself is dark and the page already is too.
+    const surfaceBase = d ? lightenHex(accent, 0.45) : accent;
+    const surface = enforceContrastFloor(surfaceBase).hex;
+    el.style.setProperty('--lp-accent-surface',    surface);
+    el.style.setProperty('--lp-accent-surface-fg', `hsl(${pickForegroundHsl(surface)})`);
   }, [isDark, isBgDark, pageBg, accent]);
-
-  const [mode, setMode] = useState<'phone' | 'totp' | 'passkey' | 'magic-link' | 'company-sso'>('phone');
-
-  // Phone + OTP
-  const [phone, setPhone] = useState('');
-  const [otpSent, setOtpSent] = useState(false);
-  const [otpCode, setOtpCode] = useState('');
-  const [resendIn, setResendIn] = useState(0);
-
-  // Email + authenticator
-  const [email, setEmail] = useState('');
-  const [totpCode, setTotpCode] = useState('');
-
-  // Passkey
-  const [passkeyEmail, setPasskeyEmail] = useState('');
-
-  // Email magic link
-  const [magicEmail, setMagicEmail] = useState('');
-  const [magicLinkSent, setMagicLinkSent] = useState(false);
-
-  // Company SSO (SAML)
-  const [ssoEmail, setSsoEmail] = useState('');
-  const [ssoChecking, setSsoChecking] = useState(false);
-
-  const [error, setError] = useState<string | null>(null);
-  const [info, setInfo] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (resendIn <= 0) return;
-    const t = setTimeout(() => setResendIn(s => s - 1), 1000);
-    return () => clearTimeout(t);
-  }, [resendIn]);
-
-  // ondi-saml.routes.ts's /acs redirects failures here as ?samlError=1 (it
-  // has no JS context of its own to show an error from). Same "drop the
-  // marker once consumed" pattern as Login.tsx's own ?expired=.
-  useEffect(() => {
-    if (searchParams.get('samlError')) {
-      setMode('company-sso');
-      setError("Your company sign-on didn't complete. Try again, or check with your IT administrator.");
-      setSearchParams(params => { params.delete('samlError'); return params; }, { replace: true });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const sendCode = async () => {
-    if (!phone.trim()) { setError('Enter your phone number.'); return; }
-    setError(null); setInfo(null); setLoading(true);
-    try {
-      const res = await requestOtpLogin(phone.trim());
-      setOtpSent(true);
-      setInfo(res.message || 'A sign-in code was sent by SMS.');
-      setResendIn(30);
-    } catch (err: any) {
-      setError(err.message || 'Could not send the code. Try again.');
-    } finally { setLoading(false); }
-  };
-
-  const submitOtp = async (ev: React.FormEvent) => {
-    ev.preventDefault();
-    if (otpCode.trim().length !== 6) { setError('Enter the 6-digit code.'); return; }
-    setError(null); setLoading(true);
-    try {
-      await verifyOtpLogin(phone.trim(), otpCode.trim());
-      navigate('/');
-    } catch (err: any) {
-      setError(err.message || 'Invalid or expired code.');
-    } finally { setLoading(false); }
-  };
-
-  // Two-step, like the phone tab's send-code/enter-code split — but the
-  // email step disappears once it's done rather than staying on screen
-  // next to the code field. loginWithTotp still genuinely needs the email
-  // (it's how the server knows whose TOTP secret to check the code
-  // against — a 6-digit code alone can't identify an account), so this
-  // step doesn't call the API; it just confirms who's signing in before
-  // asking for the one thing that actually matters here, the code.
-  const [totpStep, setTotpStep] = useState<'email' | 'code'>('email');
-
-  const continueTotpEmail = (ev: React.FormEvent) => {
-    ev.preventDefault();
-    if (!email.trim()) { setError('Enter your email.'); return; }
-    setError(null); setTotpStep('code');
-  };
-
-  const submitTotp = async (ev: React.FormEvent) => {
-    ev.preventDefault();
-    if (totpCode.trim().length !== 6) { setError('Enter the 6-digit code.'); return; }
-    setError(null); setLoading(true);
-    try {
-      await loginWithTotp(email.trim(), totpCode.trim());
-      navigate('/');
-    } catch (err: any) {
-      setError(err.message || 'Invalid email or code.');
-    } finally { setLoading(false); }
-  };
-
-  const switchMode = (next: 'phone' | 'totp' | 'passkey' | 'magic-link' | 'company-sso') => {
-    setMode(next); setError(null); setInfo(null); setTotpStep('email');
-  };
-
-  const checkCompanySso = async (ev: React.FormEvent) => {
-    ev.preventDefault();
-    if (!ssoEmail.trim()) { setError('Enter your work email.'); return; }
-    setError(null); setInfo(null); setSsoChecking(true);
-    try {
-      const res = await apiFetch(`/v1/ondi/auth/saml/lookup?email=${encodeURIComponent(ssoEmail.trim())}`);
-      if (res.found) {
-        // A real cross-origin navigation to the IdP, not a fetch — SAML
-        // can't be driven through the SPA's own request layer.
-        window.location.href = `${BASE_URL}/v1/ondi/auth/saml/${res.providerId}/login`;
-      } else {
-        setError('No company sign-on found for that email. Check with your IT administrator, or use another sign-in method.');
-        setSsoChecking(false);
-      }
-    } catch (err: any) {
-      setError(err.message || 'Could not look up your company sign-on. Try again.');
-      setSsoChecking(false);
-    }
-  };
-
-  const sendMagicLink = async (ev: React.FormEvent) => {
-    ev.preventDefault();
-    if (!magicEmail.trim()) { setError('Enter your email.'); return; }
-    setError(null); setInfo(null); setLoading(true);
-    try {
-      const res = await requestMagicLink(magicEmail.trim());
-      setMagicLinkSent(true);
-      setInfo(res.message || 'If that email is registered, a sign-in link has been sent.');
-    } catch (err: any) {
-      setError(err.message || 'Could not send the link. Try again.');
-    } finally { setLoading(false); }
-  };
-
-  const submitPasskey = async (ev: React.FormEvent) => {
-    ev.preventDefault();
-    if (!passkeyEmail.trim()) { setError('Enter your email.'); return; }
-    setError(null); setLoading(true);
-    try {
-      const options = await requestPasskeyLoginOptions(passkeyEmail.trim());
-      const response = await startAuthentication({ optionsJSON: options });
-      await verifyPasskeyLogin(passkeyEmail.trim(), response);
-      navigate('/');
-    } catch (err: any) {
-      setError(err.message || 'Could not sign in with that passkey.');
-    } finally { setLoading(false); }
-  };
-
-  const handleGoogleCredential = async (credential: string) => {
-    setError(null); setLoading(true);
-    try {
-      await loginWithGoogle(credential);
-      navigate('/');
-    } catch (err: any) {
-      setError(err.message || 'Could not sign in with Google.');
-    } finally { setLoading(false); }
-  };
-
-  const handleMicrosoftCredential = async (credential: string) => {
-    setError(null); setLoading(true);
-    try {
-      await loginWithMicrosoft(credential);
-      navigate('/');
-    } catch (err: any) {
-      setError(err.message || 'Could not sign in with Microsoft.');
-    } finally { setLoading(false); }
-  };
 
   return (
     <div ref={rootRef} className="login-page ondi-login" data-theme={theme}>
-      <button
-        type="button"
-        onClick={e => {
-          const next = theme === 'light' ? 'dark' : 'light';
-          setTheme(next);
-          toggleThemeWithAnimation(e, next === 'dark');
-        }}
-        className="login-toggle"
-        title="Toggle theme"
-      >
-        <Icon name={isDark ? 'sun' : 'moon'} size={18} />
-      </button>
+      <Tip label="Toggle theme">
+        <button
+          type="button"
+          onClick={e => {
+            const next = theme === 'light' ? 'dark' : 'light';
+            setTheme(next);
+            toggleThemeWithAnimation(e, next === 'dark');
+          }}
+          className="login-toggle"
+        >
+          <Icon name={isDark ? 'sun' : 'moon'} size={18} />
+        </button>
+      </Tip>
 
       <div className="login-card">
-        <div className="login-brand-hdr">
-          <img
-            src={isDark ? '/ondi-logo-full-white.svg' : '/ondi-logo-full.svg'}
-            alt="Ondi"
-            className="ondi-logo-full"
-          />
+        <div className="login-brand-hdr ondi-idle-header">
+          <img src="/ondi-icon.svg" alt="Ondi" className="ondi-idle-icon" />
           <div className="login-header-left">
-            <span className="ondi-eyebrow"><Icon name="shield" size={11} /> Passwordless</span>
-            <h1 className="login-headline">Sign in</h1>
-            <p className="login-subtext">Your Hudumika identity — no password needed.</p>
+            <h1 className="login-headline">Welcome to Ondi</h1>
+            <p className="login-subtext">Your identity. Your access. Your control.</p>
           </div>
         </div>
 
-        <div>
-          <div className="ondi-method-row">
-            {VISIBLE_METHODS.map(key => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => switchMode(key)}
-                className={`ondi-method-btn${mode === key ? ' ondi-method-btn--active' : ''}`}
-                title={METHOD_META[key].label}
-                aria-label={METHOD_META[key].label}
-                aria-pressed={mode === key}
-              >
-                <Icon name={METHOD_META[key].icon} size={17} />
-              </button>
-            ))}
-          </div>
-          <div className="ondi-method-caption">{METHOD_META[mode].label}</div>
+        <OndiSignInPanel />
+
+        <div className="login-create-links">
+          <p className="login-create-p">
+            <span className="login-create-lead">Prefer a password?</span>{' '}
+            <Link to="/login" className="login-create-link">Sign in instead</Link>
+          </p>
+          <p className="login-create-p">
+            <span className="login-create-lead">New company?</span>{' '}
+            <Link to="/signup" className="login-create-link">Create a workspace</Link>
+          </p>
         </div>
-
-        <GoogleSignInButton onCredential={handleGoogleCredential} onError={setError} />
-        <MicrosoftSignInButton onCredential={handleMicrosoftCredential} onError={setError} />
-
-        {error && (
-          <div className="login-error">
-            <Icon name="alertCircle" size={16} />
-            <span>{error}</span>
-          </div>
-        )}
-        {info && !error && (
-          <div className="login-error" style={{ background: 'var(--green-l, #ecfdf5)', borderColor: 'var(--green, #059669)', color: 'var(--green, #059669)' }}>
-            <Icon name="checkCircle" size={16} />
-            <span>{info}</span>
-          </div>
-        )}
-
-        {mode === 'phone' && (
-          <form onSubmit={otpSent ? submitOtp : (e) => { e.preventDefault(); sendCode(); }} noValidate className="login-form">
-            <div className="login-field">
-              <input
-                type="tel"
-                placeholder="Phone number"
-                value={phone}
-                onChange={e => { setPhone(e.target.value); setOtpSent(false); setOtpCode(''); }}
-                className="login-input"
-                autoComplete="tel"
-                disabled={loading}
-              />
-            </div>
-
-            {otpSent && (
-              <div className="login-field">
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  placeholder="6-digit code"
-                  value={otpCode}
-                  onChange={e => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  className="login-input"
-                  autoComplete="one-time-code"
-                  disabled={loading}
-                />
-              </div>
-            )}
-
-            {otpSent ? (
-              <div className="login-form-actions">
-                <button
-                  type="button"
-                  onClick={sendCode}
-                  disabled={loading || resendIn > 0}
-                  className="login-back-btn"
-                >
-                  {resendIn > 0 ? `Resend in ${resendIn}s` : 'Resend code'}
-                </button>
-                <button type="submit" disabled={loading} className="login-submit-btn">
-                  {loading ? 'Please wait…' : 'Verify & sign in'}
-                </button>
-              </div>
-            ) : (
-              <button type="submit" disabled={loading} className="login-submit-btn login-submit-btn--full">
-                {loading ? 'Please wait…' : 'Send code'}
-              </button>
-            )}
-          </form>
-        )}
-
-        {mode === 'totp' && (
-          totpStep === 'email' ? (
-            <form onSubmit={continueTotpEmail} noValidate className="login-form">
-              <div className="login-field">
-                <input
-                  type="email"
-                  placeholder="Email"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  className="login-input"
-                  autoComplete="username"
-                  disabled={loading}
-                  autoFocus
-                />
-              </div>
-              <button type="submit" disabled={loading || !email.trim()} className="login-submit-btn login-submit-btn--full">
-                Continue
-              </button>
-            </form>
-          ) : (
-            <form onSubmit={submitTotp} noValidate className="login-form">
-              <div className="login-field">
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  placeholder="6-digit authenticator code"
-                  value={totpCode}
-                  onChange={e => setTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  className="login-input"
-                  autoComplete="one-time-code"
-                  disabled={loading}
-                  autoFocus
-                />
-              </div>
-              <div className="login-form-actions">
-                <button
-                  type="button"
-                  onClick={() => { setTotpStep('email'); setTotpCode(''); setError(null); }}
-                  disabled={loading}
-                  className="login-back-btn"
-                >
-                  Use a different email
-                </button>
-                <button type="submit" disabled={loading} className="login-submit-btn">
-                  {loading ? 'Please wait…' : 'Verify & sign in'}
-                </button>
-              </div>
-            </form>
-          )
-        )}
-
-        {mode === 'passkey' && (
-          <form onSubmit={submitPasskey} noValidate className="login-form">
-            <div className="login-field">
-              <input
-                type="email"
-                placeholder="Email"
-                value={passkeyEmail}
-                onChange={e => setPasskeyEmail(e.target.value)}
-                className="login-input"
-                autoComplete="username webauthn"
-                disabled={loading}
-              />
-            </div>
-            <button type="submit" disabled={loading} className="login-submit-btn login-submit-btn--full">
-              {loading ? 'Please wait…' : 'Continue with passkey'}
-            </button>
-          </form>
-        )}
-
-        {mode === 'magic-link' && (
-          magicLinkSent ? (
-            <div className="login-form">
-              <p className="login-subtext" style={{ textAlign: 'center' }}>
-                Check <strong>{magicEmail}</strong> for a one-click sign-in link. It expires in 15 minutes and works once.
-              </p>
-              <button
-                type="button"
-                onClick={() => { setMagicLinkSent(false); setInfo(null); }}
-                className="login-back-btn"
-                style={{ margin: '0 auto' }}
-              >
-                Use a different email
-              </button>
-            </div>
-          ) : (
-            <form onSubmit={sendMagicLink} noValidate className="login-form">
-              <div className="login-field">
-                <input
-                  type="email"
-                  placeholder="Email"
-                  value={magicEmail}
-                  onChange={e => setMagicEmail(e.target.value)}
-                  className="login-input"
-                  autoComplete="username"
-                  disabled={loading}
-                />
-              </div>
-              <button type="submit" disabled={loading} className="login-submit-btn login-submit-btn--full">
-                {loading ? 'Please wait…' : 'Send sign-in link'}
-              </button>
-            </form>
-          )
-        )}
-
-        {mode === 'company-sso' && (
-          <form onSubmit={checkCompanySso} noValidate className="login-form">
-            <div className="login-field">
-              <input
-                type="email"
-                placeholder="you@yourcompany.com"
-                value={ssoEmail}
-                onChange={e => setSsoEmail(e.target.value)}
-                className="login-input"
-                autoComplete="username"
-                disabled={ssoChecking}
-              />
-            </div>
-            <button type="submit" disabled={ssoChecking} className="login-submit-btn login-submit-btn--full">
-              {ssoChecking ? 'Redirecting…' : 'Continue'}
-            </button>
-          </form>
-        )}
-
-        <p className="login-create-p">
-          <Link to="/login" className="login-create-link">Sign in with password instead</Link>
-        </p>
       </div>
     </div>
   );

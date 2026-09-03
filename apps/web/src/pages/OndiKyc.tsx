@@ -24,7 +24,7 @@ interface KycQueueRow {
 
 const DOC_LABEL: Record<string, string> = { national_id: 'National ID', passport: 'Passport', drivers_license: "Driver's License" };
 
-export const OneIdKyc: React.FC = () => {
+export const OndiKyc: React.FC = () => {
   const [queue, setQueue] = useState<KycQueueRow[] | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [selectedRow, setSelectedRow] = useState<KycQueueRow | null>(null);
@@ -33,7 +33,7 @@ export const OneIdKyc: React.FC = () => {
   const [previewLoading, setPreviewLoading] = useState(false);
 
   const reload = useCallback(() => {
-    apiFetch('/v1/oneid/kyc/queue').then(setQueue).catch(() => setQueue([]));
+    apiFetch('/v1/ondi/kyc/queue').then(setQueue).catch(() => setQueue([]));
   }, []);
   
   useEffect(() => { reload(); }, [reload]);
@@ -42,7 +42,7 @@ export const OneIdKyc: React.FC = () => {
     setPreviewLoading(true);
     setPreviewUrl(null);
     try {
-      const res = await apiFetchRaw(`/v1/oneid/kyc/${id}/document`);
+      const res = await apiFetchRaw(`/v1/ondi/kyc/${id}/document`);
       const blob = await res.blob();
       setPreviewUrl(URL.createObjectURL(blob));
     } catch {
@@ -61,7 +61,7 @@ export const OneIdKyc: React.FC = () => {
     if (!(await showConfirm(`Approve ${row.user_name}'s ${DOC_LABEL[row.document_type]}? This verifies their identity on Hudumika.`, { confirmLabel: 'Approve' }))) return;
     setBusyId(row.id);
     try {
-      await apiFetch(`/v1/oneid/kyc/${row.id}/approve`, { method: 'POST' });
+      await apiFetch(`/v1/ondi/kyc/${row.id}/approve`, { method: 'POST' });
       setQueue(prev => prev?.filter(r => r.id !== row.id) ?? null);
       if (selectedRow?.id === row.id) {
         setSelectedRow(null);
@@ -77,7 +77,7 @@ export const OneIdKyc: React.FC = () => {
     if (!reason || !reason.trim()) return;
     setBusyId(row.id);
     try {
-      await apiFetch(`/v1/oneid/kyc/${row.id}/reject`, { method: 'POST', body: JSON.stringify({ reason: reason.trim() }) });
+      await apiFetch(`/v1/ondi/kyc/${row.id}/reject`, { method: 'POST', body: JSON.stringify({ reason: reason.trim() }) });
       setQueue(prev => prev?.filter(r => r.id !== row.id) ?? null);
       if (selectedRow?.id === row.id) {
         setSelectedRow(null);
@@ -252,4 +252,4 @@ export const OneIdKyc: React.FC = () => {
   );
 };
 
-export default OneIdKyc;
+export default OndiKyc;

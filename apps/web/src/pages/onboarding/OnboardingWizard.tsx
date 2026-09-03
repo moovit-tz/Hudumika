@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { apiFetch } from '../../lib/api.js';
+import { lightenHex, enforceContrastFloor, pickForegroundHsl } from '../../lib/color.js';
 import { Icon } from '../../components/Icon.js';
-import { useBranding } from '../../hooks/useBranding.js';
+import { useBranding, BRAND_LOGO_LIGHT, BRAND_LOGO_DARK } from '../../hooks/useBranding.js';
 import { useAuth } from '../../hooks/useAuth.js';
 import { useLocale } from '../../hooks/useLocale.js';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '../../components/ui/dropdown-menu.js';
+import { Tip } from '../../components/ui/tooltip.js';
 import { EMPTY_DRAFT, STEP_LABELS } from './types.js';
 import type { OnboardingDraft } from './types.js';
 import { StepAccount } from './StepAccount.js';
@@ -15,7 +17,8 @@ import { StepDomain } from './StepDomain.js';
 import { StepPayment } from './StepPayment.js';
 import { StepConfiguration } from './StepConfiguration.js';
 import { StepSuccess } from './StepSuccess.js';
-import type { OnboardingCompleteInput, OnboardingCompleteResponse, Package } from '@hudumika/types';
+import { StepJoinRequestSent } from './StepJoinRequestSent.js';
+import type { OnboardingCompleteInput, OnboardingCompleteResponse, JoinRequestSubmitResponse, Package } from '@hudumika/types';
 import '../Login.css';
 import './Onboarding.css';
 
@@ -69,6 +72,11 @@ export const OnboardingWizard: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [success, setSuccess] = useState<OnboardingCompleteResponse | null>(null);
+  // Auto-join-by-domain — a separate terminal state from `success`: nothing
+  // was provisioned, there's no session to start, just a pending request.
+  const [joinRequestSubmitting, setJoinRequestSubmitting] = useState(false);
+  const [joinRequestError, setJoinRequestError] = useState<string | null>(null);
+  const [joinRequestSent, setJoinRequestSent] = useState<{ tenantName: string } | null>(null);
 
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     const saved = localStorage.getItem('hudumika_login_theme');
@@ -77,7 +85,7 @@ export const OnboardingWizard: React.FC = () => {
   });
   useEffect(() => { localStorage.setItem('hudumika_login_theme', theme); }, [theme]);
 
-  const branding = useBranding();
+  const branding = useBranding(true);
   const isDark   = theme === 'dark';
   const logo     = isDark ? (branding.logoDark || branding.logoLight) : branding.logoLight;
   const pageBg   = isDark ? '#131314' : (LOGIN_BG_MAP[branding.loginBgStyle] ?? '#f0f4f9');
@@ -108,11 +116,20 @@ export const OnboardingWizard: React.FC = () => {
     el.style.setProperty('--lp-page-text',       b ? 'rgba(255,255,255,0.65)' : d ? '#9aa0a6'  : '#5f6368');
     el.style.setProperty('--lp-page-link',       b ? 'rgba(255,255,255,0.85)' : d ? 'rgba(255,255,255,0.7)' : '#5f6368');
     // Same fix as Login.tsx's own copy of this effect: the tenant's raw
-    // accent has no contrast guarantee (it can be a dark tone), which is
-    // fine as a button fill (contrast is against white button text) but
-    // reads as near-invisible link text on a dark page. Google's dark-mode
-    // link blue is a safe, on-theme fallback for text specifically.
+    // accent has no contrast guarantee (it can be a dark tone) and reads as
+    // near-invisible link text on a dark page. Google's dark-mode link blue
+    // is a safe, on-theme fallback for text specifically.
     el.style.setProperty('--lp-link-accent',     d ? '#8ab4f8' : accent);
+    // Button surface: the raw accent as a solid fill passes WCAG against
+    // white text but still reads as a heavy, near-invisible block on a dark
+    // page when the accent itself is dark — same fix as Login.tsx's/
+    // OndiLogin.tsx's identical block, reusing useDesignSystem.ts's own
+    // --primary dark-mode derivation (lighten 45% before the contrast floor)
+    // instead of a third, page-local fix.
+    const surfaceBase = d ? lightenHex(accent, 0.45) : accent;
+    const surface = enforceContrastFloor(surfaceBase).hex;
+    el.style.setProperty('--lp-accent-surface',    surface);
+    el.style.setProperty('--lp-accent-surface-fg', `hsl(${pickForegroundHsl(surface)})`);
   }, [isDark, isBgDark, pageBg, accent]);
 
   useEffect(() => {
@@ -154,18 +171,38 @@ export const OnboardingWizard: React.FC = () => {
     }
   };
 
-  const stepProps = { draft, update, onNext: handleNext, onBack: handleBack, packages, submitting, submitError };
+  const handleRequestJoin = async (tenantId: string) => {
+    setJoinRequestSubmitting(true);
+    setJoinRequestError(null);
+    try {
+      const res: JoinRequestSubmitResponse = await apiFetch('/v1/onboarding/request-join', {
+        method: 'POST',
+        body: JSON.stringify({ name: draft.name, email: draft.email, password: draft.password, tenant_id: tenantId }),
+      });
+      setJoinRequestSent({ tenantName: res.tenant_name });
+    } catch (err: any) {
+      setJoinRequestError(err.message || 'Failed to submit join request. Please try again.');
+    } finally {
+      setJoinRequestSubmitting(false);
+    }
+  };
+
+  const stepProps = {
+    draft, update, onNext: handleNext, onBack: handleBack, packages, submitting, submitError,
+    onRequestJoin: handleRequestJoin, joinRequestSubmitting, joinRequestError,
+  };
 
   return (
     <div ref={rootRef} className="login-page" data-theme={theme}>
-      <button
-        type="button"
-        onClick={() => setTheme(prev => prev === 'light' ? 'dark' : 'light')}
-        className="login-toggle"
-        title="Toggle Theme"
-      >
-        <Icon name={isDark ? 'sun' : 'moon'} size={18} />
-      </button>
+      <Tip label="Toggle theme">
+        <button
+          type="button"
+          onClick={() => setTheme(prev => prev === 'light' ? 'dark' : 'light')}
+          className="login-toggle"
+        >
+          <Icon name={isDark ? 'sun' : 'moon'} size={18} />
+        </button>
+      </Tip>
 
       {/* Wide treatment is sized for step 3's 4-column pricing grid
           specifically — steps 4-6 are plain single-column forms (a domain
@@ -175,23 +212,17 @@ export const OnboardingWizard: React.FC = () => {
       <div className={`login-card login-card--reg${step === 3 ? ' ob-card--wide' : ''}`}>
         {success ? (
           <StepSuccess subdomain={draft.subdomain} />
+        ) : joinRequestSent ? (
+          <StepJoinRequestSent tenantName={joinRequestSent.tenantName} />
         ) : (
           <>
             <div className="login-brand-hdr">
               <div className="login-brand-row">
-                {logo ? (
-                  <img src={logo} alt={branding.platformName} className="g-brand-logo-img" />
-                ) : (
-                  <>
-                    <div className="g-brand-grid">
-                      <div className="g-brand-sq g-brand-sq--r" />
-                      <div className="g-brand-sq g-brand-sq--b" />
-                      <div className="g-brand-sq g-brand-sq--y" />
-                      <div className="g-brand-sq g-brand-sq--g" />
-                    </div>
-                    <span className="g-brand-name">{branding.platformName}</span>
-                  </>
-                )}
+                <img
+                  src={logo || (isDark ? BRAND_LOGO_DARK : BRAND_LOGO_LIGHT)}
+                  alt={branding.platformName}
+                  className="g-brand-logo-img"
+                />
               </div>
               <div>
                 <h1 className="login-headline">Set up your workspace</h1>
@@ -201,7 +232,9 @@ export const OnboardingWizard: React.FC = () => {
 
             <div className="ob-steps">
               {STEP_LABELS.map((label, i) => (
-                <div key={label} className={`ob-step-dot${i + 1 === step ? ' ob-step-dot--active' : ''}${i + 1 < step ? ' ob-step-dot--done' : ''}`} title={label} />
+                <Tip key={label} label={label}>
+                  <div className={`ob-step-dot${i + 1 === step ? ' ob-step-dot--active' : ''}${i + 1 < step ? ' ob-step-dot--done' : ''}`} />
+                </Tip>
               ))}
             </div>
 

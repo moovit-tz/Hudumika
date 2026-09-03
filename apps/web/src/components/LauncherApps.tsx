@@ -22,7 +22,7 @@ export const LAUNCHER_APPS: Array<{ id: string; name: string; color: string; pat
   { id: 'contacts',  name: 'Contacts', color: '#1a73e8', path: '/contacts'  },
   { id: 'ai',        name: 'AI',       color: '#6d28d9', path: '/ai'        },
   { id: 'store',     name: 'Store',    color: '#8b5cf6', path: '/store'     },
-  { id: 'oneid',     name: 'Account & Security', color: '#4253d1', path: '/ondi/personal' },
+  { id: 'ondi',     name: 'Account & Security', color: '#4253d1', path: '/ondi/personal' },
   { id: 'tracking',  name: 'HuduFreight', color: '#0891b2', path: '/tracking'  },
   { id: 'workspace', name: 'Admin',    color: '#64748b', path: '/workspace' },
   { id: 'calendar',  name: 'Calendar', color: '#db2777', path: '/calendar'  },
@@ -74,7 +74,7 @@ export const LAUNCHER_SVG_ICONS: Record<string, React.ReactElement> = {
   // Ondi's real glyph — the exact two paths from the source ondi-icon-white.svg
   // (a 0-3000 viewBox), scaled 40/3000 to fit this file's own 0-40 grid rather
   // than a hand-approximated stand-in for it.
-  oneid:    (<g transform="scale(0.0133333)" fill="white">
+  ondi:    (<g transform="scale(0.0133333)" fill="white">
     <path d="M1500,414.97c208.63,0,377.95,169.32,377.95,377.95s-169.32,377.95-377.95,377.95-377.95-169.32-377.95-377.95,169.32-377.95,377.95-377.95Z"/>
     <path d="M2203.95,2350.38c0,129.53-104.89,234.65-234.65,234.65s-234.65-105.12-234.65-234.65v-234.65c0-129.3-105.12-234.65-234.65-234.65s-234.65,105.37-234.65,234.65v234.65c0,129.53-104.89,234.65-234.65,234.65s-234.65-105.12-234.65-234.65v-234.65c0-388.12,315.85-703.97,703.97-703.97s703.97,315.85,703.97,703.97v234.65h-.02Z"/>
   </g>),

@@ -16,7 +16,7 @@ import { SectionCard } from '../components/SectionCard.js';
 // just points there instead of rendering a second copy"); this dashboard
 // was that second copy in aggregate form. Sits alongside Sessions & Security
 // / Activity / Login Activity, same isAdmin gate, no new permission needed.
-export function OneIdItAdmin() {
+export function OndiItAdmin() {
   const [devices, setDevices] = useState<any[]>([]);
   const [logins, setLogins] = useState<any[]>([]);
   const [activity, setActivity] = useState<any[]>([]);
@@ -128,4 +128,4 @@ export function OneIdItAdmin() {
   );
 }
 
-export default OneIdItAdmin;
+export default OndiItAdmin;

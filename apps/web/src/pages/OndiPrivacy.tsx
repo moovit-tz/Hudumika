@@ -1,4 +1,4 @@
-// ─── OneIdPrivacy.tsx — Ondi Personal · Privacy ───────────────────
+// ─── OndiPrivacy.tsx — Ondi Personal · Privacy ───────────────────
 // Two real, scoped actions rather than a fictional full PDPA rights suite:
 // exporting what this platform actually holds about you (GET
 // /v1/security/data-export — the same rows every other self-service page
@@ -22,7 +22,7 @@ function fmtDate(d: string): string {
   return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-export const OneIdPrivacy: React.FC = () => {
+export const OndiPrivacy: React.FC = () => {
   const { user } = useAuth();
   const [exporting, setExporting] = useState(false);
   const [requests, setRequests] = useState<DeleteRequest[] | null>(null);
@@ -128,4 +128,4 @@ export const OneIdPrivacy: React.FC = () => {
   );
 };
 
-export default OneIdPrivacy;
+export default OndiPrivacy;

@@ -7,6 +7,7 @@ import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { Icon } from '../components/Icon.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { RelatedRecordsPanel } from '../components/RelatedRecordsPanel.js';
 import { Tip } from '../components/ui/tooltip.js';
 import type { IconName } from '../components/Icon.js';
 import { apiFetch, apiDownload, apiViewBlob, apiFetchBlob } from '../lib/api.js';
@@ -2244,7 +2245,13 @@ function OverviewTab({ job, isMobile, isLive, onRefresh }: { job: ClearanceJob; 
 
           {/* Documents live on the Files tab now, not here. */}
 
-          <LinkedAppsPanel shipmentId={job.id} isMobile={isMobile} />
+          <RelatedRecordsPanel
+            entityType="shipment"
+            entityId={job.id}
+            title="Linked Apps"
+            isMobile={isMobile}
+            emptyText="No invoices, demurrage tracking, AWB/BL snapshots, or transport trips linked to this shipment yet."
+          />
         </div>
 
         {/* Right column */}
@@ -2284,110 +2291,6 @@ function OverviewTab({ job, isMobile, isLive, onRefresh }: { job: ClearanceJob; 
         </div>
       </div>
     </div>
-  );
-}
-
-// ─── Linked Apps panel — real cross-app data pulled by shipment_id ───────────
-// Invoices (Finance), Demurrage containers, AWB/BL tracker snapshots, and the
-// HuduFreight transport trip — every card links into that app's own real
-// page. Nothing here is computed locally; it's GET /v1/shipments/:id/linked.
-
-interface LinkedData {
-  invoices: { id: string; invoice_number: string; status: string; due_date: string | null; tra_total_incl: number | null }[];
-  demurrage_containers: { id: string; container_number: string; demurrage_days: number; demurrage_cost: number; demurrage_currency: string; status: string }[];
-  tracker_snapshots: { id: string; tracking_type: string; tracking_number: string; status: string | null; eta: string | null; progress_pct: number }[];
-  transport_trips: { id: string; status: string; job_type: string; scheduled_start: string | null; actual_start: string | null; vehicle_name: string | null; plate_number: string | null; driver_name: string | null }[];
-}
-
-function LinkedAppsPanel({ shipmentId, isMobile }: { shipmentId: string; isMobile: boolean }) {
-  const [data, setData] = useState<LinkedData | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!shipmentId) return;
-    setLoading(true);
-    apiFetch(`/v1/shipments/${shipmentId}/linked`)
-      .then(setData)
-      .catch(() => setData(null))
-      .finally(() => setLoading(false));
-  }, [shipmentId]);
-
-  if (loading || !data) return null;
-
-  const cards: { app: string; icon: IconName; color: string; href: string; body: React.ReactNode }[] = [];
-
-  if (data.invoices.length > 0) {
-    cards.push({
-      app: 'FinOps — Invoices', icon: 'dollarSign', color: '#0284c7', href: '/finance/invoices',
-      body: data.invoices.slice(0, 3).map(inv => (
-        <div key={inv.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '4px 0' }}>
-          <span style={{ fontFamily: 'var(--mono)', color: 'var(--ink)' }}>{inv.invoice_number}</span>
-          <span style={{ color: 'var(--ink3)' }}>{inv.status}{inv.tra_total_incl ? ` · TZS ${Number(inv.tra_total_incl).toLocaleString()}` : ''}</span>
-        </div>
-      )),
-    });
-  }
-  if (data.demurrage_containers.length > 0) {
-    cards.push({
-      app: 'Demurrage', icon: 'alertTriangle', color: 'var(--red)', href: '/demurrage',
-      body: data.demurrage_containers.slice(0, 3).map(c => (
-        <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '4px 0' }}>
-          <span style={{ fontFamily: 'var(--mono)', color: 'var(--ink)' }}>{c.container_number}</span>
-          <span style={{ color: c.demurrage_days > 0 ? 'var(--red)' : 'var(--ink3)', fontWeight: c.demurrage_days > 0 ? 700 : 400 }}>
-            {c.demurrage_days > 0 ? `${c.demurrage_days}d · ${c.demurrage_currency} ${Number(c.demurrage_cost).toLocaleString()}` : c.status}
-          </span>
-        </div>
-      )),
-    });
-  }
-  if (data.tracker_snapshots.length > 0) {
-    cards.push({
-      app: 'CargoTracker', icon: 'map', color: '#4f46e5', href: '/cargotracker',
-      body: data.tracker_snapshots.slice(0, 3).map(t => (
-        <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '4px 0' }}>
-          <span style={{ fontFamily: 'var(--mono)', color: 'var(--ink)' }}>{t.tracking_number}</span>
-          <span style={{ color: 'var(--ink3)' }}>{t.status ?? '—'}{t.progress_pct ? ` · ${t.progress_pct}%` : ''}</span>
-        </div>
-      )),
-    });
-  }
-  if (data.transport_trips.length > 0) {
-    cards.push({
-      app: 'HuduFreight — Transport', icon: 'truck', color: 'var(--blue)', href: '/tracking/trips',
-      body: data.transport_trips.slice(0, 3).map(t => (
-        <div key={t.id} style={{ fontSize: 12, padding: '4px 0' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ color: 'var(--ink)', fontWeight: 600 }}>{t.vehicle_name || 'Vehicle TBD'}{t.plate_number ? ` (${t.plate_number})` : ''}</span>
-            <span style={{ color: 'var(--ink3)' }}>{t.status}</span>
-          </div>
-          {t.driver_name && <div style={{ color: 'var(--ink3)' }}>Driver: {t.driver_name}</div>}
-        </div>
-      )),
-    });
-  }
-
-  if (cards.length === 0) {
-    return (
-      <Card title="Linked Apps">
-        <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>No invoices, demurrage tracking, AWB/BL snapshots, or transport trips linked to this shipment yet.</div>
-      </Card>
-    );
-  }
-
-  return (
-    <Card title="Linked Apps">
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: 10 }}>
-        {cards.map(c => (
-          <Link key={c.app} to={c.href} style={{ display: 'block', padding: '12px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', textDecoration: 'none' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 6 }}>
-              <Icon name={c.icon} size={13} color={c.color} />
-              <span style={{ fontSize: 11.5, fontWeight: 700, color: c.color }}>{c.app}</span>
-            </div>
-            {c.body}
-          </Link>
-        ))}
-      </div>
-    </Card>
   );
 }
 

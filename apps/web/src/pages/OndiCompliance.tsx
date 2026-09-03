@@ -1,5 +1,5 @@
-// ─── OneIdCompliance.tsx — Ondi Enterprise · Compliance ───────────
-// An identity/access posture rollup (GET /v1/oneid/org/compliance) — not
+// ─── OndiCompliance.tsx — Ondi Enterprise · Compliance ───────────
+// An identity/access posture rollup (GET /v1/ondi/org/compliance) — not
 // ComplyOS's regulatory/licensing compliance, a different product for a
 // different domain (filing deadlines, legal obligations). This only ever
 // reads tables Ondi itself already owns: KYC status, 2FA/passkey adoption,
@@ -47,11 +47,11 @@ const MetricCard: React.FC<{ title: string; value: string; sub: string; pct?: nu
   </SectionCard>
 );
 
-export const OneIdCompliance: React.FC = () => {
+export const OndiCompliance: React.FC = () => {
   const [data, setData] = useState<Compliance | null>(null);
 
   useEffect(() => {
-    apiFetch('/v1/oneid/org/compliance').then(setData).catch(() => setData(null));
+    apiFetch('/v1/ondi/org/compliance').then(setData).catch(() => setData(null));
   }, []);
 
   return (
@@ -127,4 +127,4 @@ export const OneIdCompliance: React.FC = () => {
   );
 };
 
-export default OneIdCompliance;
+export default OndiCompliance;
