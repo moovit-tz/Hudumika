@@ -13,6 +13,7 @@ import { refreshFxRates } from '../lib/currency.js';
 export interface CompanyInfo {
   name: string;
   logoUrl: string | null;     // null = use default / text fallback
+  logoUrlDark: string | null; // null = fall back to logoUrl — shown wherever a document/preview renders on a dark background (see readers in CustomerInvoices/PurchaseOrders/Billing/Quotations/TopBar)
   logoHistory: string[];      // previously set logos, newest first — local-only, not persisted to the server
   faviconUrl: string | null;  // null = use /favicon.png
   address: string;
@@ -43,6 +44,7 @@ const STORAGE_KEY = 'cls_company';
 const DEFAULTS: CompanyInfo = {
   name:        'Vihilox Logistics Ltd',
   logoUrl:     null,
+  logoUrlDark: null,
   logoHistory: [],
   faviconUrl:  null,
   address:     '14 Msasani Road, Kinondoni',
@@ -166,6 +168,7 @@ export async function hydrateCompanyFromServer(): Promise<void> {
     setCompany({
       name:        c.name ?? t.name ?? _company.name,
       logoUrl:     c.logoUrl ?? t.logo_url ?? _company.logoUrl,
+      logoUrlDark: c.logoUrlDark ?? _company.logoUrlDark,
       faviconUrl:  c.faviconUrl ?? _company.faviconUrl,
       address:     c.address ?? _company.address,
       city:        c.city ?? _company.city,

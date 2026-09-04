@@ -3,7 +3,8 @@ import { useIsMobile } from '../hooks/useIsMobile.js';
 import { MetricsRow } from '../components/MetricCard.js';
 import { Icon } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
-import { getCompany } from '../data/companyStore.js';
+import { getCompany, useCompany } from '../data/companyStore.js';
+import { useIsDarkMode } from '../hooks/useIsDarkMode.js';
 import { useCurrency } from '../hooks/useCurrency.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { FormPage } from '../components/FormPage.js';
@@ -632,7 +633,9 @@ function QuoteFormView({ mode, initial, customers, leads, onSave, onCancel, isMo
 }) {
   const { fmt } = useCurrency();
   const [saving, setSaving] = useState(false);
-  const co = getCompany();
+  const co = useCompany();
+  const isDark = useIsDarkMode();
+  const docLogoSrc = isDark ? (co.logoUrlDark || co.logoUrl) : co.logoUrl;
 
   const [f, setF] = useState<QuoteFormData>(()=>({
     title:            initial?.title            ?? '',
@@ -795,8 +798,8 @@ function QuoteFormView({ mode, initial, customers, leads, onSave, onCancel, isMo
           <div style={{ background:'var(--white)', border:'1px solid var(--border)', borderRadius: 9, overflow:'hidden' }}>
             <SHdr title="Company Branding"/>
             <div style={{ padding:16, display:'flex', alignItems:'center', gap:12 }}>
-              {co.logoUrl
-                ? <img src={co.logoUrl} alt={co.name} style={{ height:36, maxWidth:100, objectFit:'contain' }}/>
+              {docLogoSrc
+                ? <img src={docLogoSrc} alt={co.name} style={{ height:36, maxWidth:100, objectFit:'contain' }}/>
                 : <div style={{ width:40, height:36, background:'hsl(var(--primary))', borderRadius:6, display:'flex', alignItems:'center', justifyContent:'center', color:'hsl(var(--primary-foreground))', fontWeight:800, fontSize:11 }}>LOGO</div>
               }
               <div>

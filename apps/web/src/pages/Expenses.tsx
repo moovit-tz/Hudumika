@@ -484,6 +484,11 @@ export const Expenses: React.FC = () => {
         titlePlain="Expense "
         titleEm="tracking"
         subtitle="Costs and revenue across all shipments and operations — including fleet fuel, maintenance, and vehicle costs."
+        actions={
+          <Link to="/finance/expenses/categories" className="btn btn-secondary btn-sm" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <Icon name="tag" size={13} /> Manage Categories
+          </Link>
+        }
       />
 
       {/* KPI row directly below header (matching standard format) */}

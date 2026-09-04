@@ -34,6 +34,10 @@ const summariseSchema = z.object({
   text: z.string().trim().min(1),
   mode: z.enum(['brief', 'detailed']).optional(),
 });
+const extractTaskSchema = z.object({
+  subject: z.string().trim().max(500).optional(),
+  body: z.string().trim().min(1).max(8000),
+});
 const automationGenerateSchema = z.object({ prompt: z.string().trim().min(1) });
 const chatSchema = z.object({
   message: z.string().optional(),
@@ -238,6 +242,59 @@ Respond ONLY with a valid JSON object matching the appropriate structure. Nothin
         [{ role: 'user', content: `${instruction}\n\n${text.slice(0, 8000)}` }],
         512, 0.3);
       return { summary };
+    } catch (e: any) {
+      return reply.status(500).send({ error: e.message });
+    }
+  });
+
+  /**
+   * POST /v1/ai/extract-task
+   * Reads an email's subject/body and, if it genuinely implies an action
+   * item (a request, a deadline, something the recipient needs to do),
+   * returns a suggested task — same idea as Gmail's Gemini "Suggested task"
+   * banner. Returns { hasTask: false } rather than an error when nothing in
+   * the email warrants one; the caller (EmailApp.tsx) treats that as "show
+   * no banner", not a failure.
+   */
+  fastify.post('/extract-task', async (request, reply) => {
+    const user = request.user;
+    const { subject, body } = extractTaskSchema.parse(request.body);
+
+    const settings = await withTenant(user.tenant_id, async (trx) => {
+      const row = await trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      return row?.settings as any ?? {};
+    });
+
+    const aiCfg = settings['int-ai'] ?? {};
+    if (!aiCfg.on || !aiCfg.apiKey) return reply.status(400).send({ error: 'AI not configured.' });
+
+    const today = new Date().toISOString().slice(0, 10);
+    const systemPrompt = `You read one email and decide whether it genuinely implies a task the recipient needs to do — a request, a deadline, a document to send, something to review or approve. Most emails do not (newsletters, FYI notices, confirmations, casual replies) — only flag a real action item.
+
+Today's date is ${today}. Respond ONLY with valid JSON, nothing else, matching exactly:
+{"hasTask": true|false, "title": "short imperative task title, max 60 chars", "dueDate": "YYYY-MM-DD or null"}
+
+Rules:
+- hasTask is false for anything that isn't a real, actionable request — set title to "" and dueDate to null in that case.
+- title is written as something to DO ("Quote for PCB", "Send Q3 report"), not a restatement of the subject line.
+- dueDate is only set when the email states or clearly implies an actual deadline/date — never invent one. Relative phrases ("by Friday", "end of month") should be resolved against today's date above.`;
+
+    try {
+      const raw = await callAI(
+        aiCfg.apiKey, aiCfg.model || 'claude-sonnet-4-6', aiCfg.provider || 'anthropic',
+        [{ role: 'user', content: `${systemPrompt}\n\nSubject: ${subject || '(no subject)'}\n\nBody:\n${body}` }],
+        256, 0.1,
+      );
+      let parsed: any = {};
+      try { parsed = JSON.parse(raw.replace(/```json?/g, '').replace(/```/g, '').trim()); } catch {
+        return { hasTask: false };
+      }
+      if (!parsed.hasTask || !parsed.title) return { hasTask: false };
+      return {
+        hasTask: true,
+        title: String(parsed.title).slice(0, 60),
+        dueDate: typeof parsed.dueDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(parsed.dueDate) ? parsed.dueDate : null,
+      };
     } catch (e: any) {
       return reply.status(500).send({ error: e.message });
     }

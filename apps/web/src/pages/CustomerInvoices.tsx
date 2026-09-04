@@ -5,6 +5,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { useCompany } from '../data/companyStore.js';
+import { useIsDarkMode } from '../hooks/useIsDarkMode.js';
 import {
   type Invoice, type Status,
   invoiceTotals, STATUS_STYLE, mapApiInvoice, fmtTZS,
@@ -119,6 +120,8 @@ function DisputeModal({ inv, onClose, onSubmit }: {
 /* ── Invoice detail (read-only) ── */
 function InvoiceDetail({ inv, onBack }: { inv: Invoice; onBack: () => void }) {
   const co = useCompany();
+  const isDark = useIsDarkMode();
+  const logoSrc = isDark ? (co.logoUrlDark || co.logoUrl) : co.logoUrl;
   const navigate   = useNavigate();
   const [disputing, setDisputing] = useState(false);
   const [disputed, setDisputed]   = useState(false);
@@ -153,8 +156,8 @@ function InvoiceDetail({ inv, onBack }: { inv: Invoice; onBack: () => void }) {
       <div style={{ padding: '20px 16px 0' }}>
         {/* Branding Logo */}
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: 20 }}>
-          {co.logoUrl ? (
-            <img src={co.logoUrl} alt={co.name} style={{ height: 40, objectFit: 'contain' }} />
+          {logoSrc ? (
+            <img src={logoSrc} alt={co.name} style={{ height: 40, objectFit: 'contain' }} />
           ) : (
             <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--ink)' }}>{co.name}</div>
           )}

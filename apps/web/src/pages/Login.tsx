@@ -211,8 +211,7 @@ export const Login: React.FC = () => {
 
       <div className="login-card">
 
-        {/* Brand Header — logo only; headline/subtext moved below the
-            Sign in / Sign up toggle so they can read left-aligned. */}
+        {/* Brand Header — logo only. */}
         <div className="login-brand-hdr">
           <div className="login-brand-row">
             <img
@@ -223,6 +222,8 @@ export const Login: React.FC = () => {
           </div>
         </div>
 
+        <h1 className="login-headline">{branding.loginHeadline}</h1>
+
         {/* Sign in / Sign up — Sign up isn't rebuilt in-card since /signup
             is already a real, dedicated multi-step registration flow
             (OnboardingWizard); this pill just navigates there. */}
@@ -232,7 +233,6 @@ export const Login: React.FC = () => {
         </div>
 
         <div className="login-header-left">
-          <h1 className="login-headline">{branding.loginHeadline}</h1>
           <p className="login-subtext">{branding.loginSubtext}</p>
         </div>
 

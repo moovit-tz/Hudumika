@@ -39,49 +39,11 @@
   font-family: var(--font);
 }
 
-/* ── Hero ── */
-.sub-hero {
-  background: linear-gradient(135deg, var(--navy) 0%, #1e3a5f 100%);
-  padding: clamp(40px, 5vw, 72px) 0 clamp(32px, 4vw, 56px);
-  color: #fff;
-  text-align: center;
-}
-
-.sub-hero-inner {
-  max-width: 640px;
-  margin: 0 auto;
-  padding: 0 24px;
-}
-
-.sub-hero-eyebrow {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: rgba(255,255,255,0.5);
-  margin-bottom: 14px;
-}
-
-.sub-hero-title {
-  font-size: clamp(24px, 4vw, 38px);
-  font-weight: 300;
-  margin: 0 0 10px;
-  letter-spacing: -0.01em;
-  color: #fff;
-}
-
-.sub-hero-sub {
-  font-size: 14px;
-  color: rgba(255,255,255,0.6);
-  margin: 0 0 32px;
-  line-height: 1.6;
-}
-
 /* ── Billing toggle ── */
 .sub-billing-toggle {
   display: inline-flex;
-  background: rgba(255,255,255,0.08);
-  border: 1px solid rgba(255,255,255,0.15);
+  background: var(--bg);
+  border: 1.5px solid var(--border);
   border-radius: 10px;
   padding: 3px;
   gap: 2px;
@@ -92,7 +54,7 @@
   border-radius: 8px;
   border: none;
   background: transparent;
-  color: rgba(255,255,255,0.65);
+  color: var(--ink3);
   font-family: var(--font);
   font-size: 13px;
   font-weight: 600;
@@ -104,14 +66,14 @@
 }
 
 .sub-toggle-btn.active {
-  background: rgba(255,255,255,0.15);
-  color: #fff;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
 }
 
 .sub-toggle-badge {
   font-size: var(--badge-fs-sm);
   font-weight: 700;
-  background: #059669;
+  background: var(--green);
   color: #fff;
   padding: var(--badge-py-sm) var(--badge-px-sm);
   border-radius: 10px;
@@ -167,8 +129,8 @@
   top: -11px;
   left: 50%;
   transform: translateX(-50%);
-  background: var(--plan-color);
-  color: #fff;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
   font-size: var(--badge-fs);
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -199,7 +161,7 @@
   width: 38px;
   height: 38px;
   border-radius: 10px;
-  background: color-mix(in srgb, var(--plan-color) 10%, transparent);
+  background: var(--teal-l);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -269,7 +231,7 @@
   font-family: var(--font);
   font-size: 13.5px;
   font-weight: 700;
-  color: #fff;
+  color: hsl(var(--primary-foreground));
   cursor: pointer;
   transition: opacity 0.12s;
   margin-bottom: 20px;
@@ -315,7 +277,7 @@
   opacity: 0.6;
 }
 
-.sub-card-feat-check { color: #059669; flex-shrink: 0; margin-top: 1px; }
+.sub-card-feat-check { color: var(--green); flex-shrink: 0; margin-top: 1px; }
 .sub-card-feat-x     { color: var(--ink3); flex-shrink: 0; margin-top: 1px; }
 
 /* ── Enterprise note ── */
@@ -431,7 +393,7 @@
 }
 
 .sub-kv-total {
-  color: #7c3aed;
+  color: var(--purple);
   font-weight: 800;
   font-size: 14px;
 }
@@ -440,7 +402,7 @@
 .sub-badge-active {
   font-size: var(--badge-fs);
   font-weight: 800;
-  color: #059669;
+  color: var(--green);
   background: var(--green-l);
   padding: var(--badge-py) var(--badge-px);
   border-radius: 12px;
@@ -459,31 +421,9 @@
 
 .sub-license-fill {
   height: 100%;
-  background: #7c3aed;
+  background: var(--purple);
   border-radius: 3px;
   transition: width 0.3s;
-}
-
-/* ── Payment card display ── */
-.sub-card-payment {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.sub-card-payment-icon {
-  width: 48px;
-  height: 30px;
-  border-radius: 4px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 900;
-  color: #1e3a8a;
-  font-size: 10px;
-  flex-shrink: 0;
 }
 
 /* ── Small action buttons ── */
@@ -507,11 +447,11 @@
 
 .sub-sm-btn--danger {
   color: var(--red);
-  border-color: #fca5a5;
+  border-color: var(--red);
 }
 
 .sub-sm-btn--danger:hover {
-  background: #fff5f5;
+  background: var(--red-l);
 }
 
 /* ── Modals ── */
@@ -597,12 +537,36 @@
 
 /* ── Settings-page hero banner (used above the Company/Billing/Plans/… tabs,
    distinct from .sub-hero which is the marketing pricing page hero) ── */
+/* .app-shell-content and .page-layout are left completely at their design-
+   system defaults here — same white card, 1px border, bottom-rounded
+   corners, standard --page-pad-x/--space-lg padding, and standard row-gap
+   before the footer as every other page in the app. The hero band no longer
+   attempts to bleed edge-to-edge against the card's own border — several
+   attempts at that (negative margins compensating .page-layout's padding)
+   kept producing visible rendering glitches, so it now just sits as a
+   normal, fully-contained rounded banner inside the page's standard padded
+   area, same as any other section on the page. */
+.sub-account-root {
+  width: 100%;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
 .sub-hero2 {
-  padding: clamp(16px, 3vw, 24px) clamp(14px, 3vw, 28px) 0;
+  margin: 0 !important;
+  padding: clamp(20px, 3vw, 28px) clamp(20px, 3.5vw, 36px) 0 !important;
+  border-radius: var(--r, 10px) !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
 }
 
 .sub-tab-content {
-  padding: clamp(14px, 3vw, 24px) clamp(14px, 3vw, 28px);
+  padding: clamp(20px, 3vw, 28px) clamp(20px, 3.5vw, 36px) !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  background: var(--bg) !important;
+  flex: 1;
 }
 
 /* ── Plans tab head (title + Monthly/Yearly toggle) ── */
@@ -642,7 +606,7 @@
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 12px;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
 }
 
 @media (max-width: 640px) {

@@ -127,13 +127,42 @@ export default async function securityRoutes(fastify: FastifyInstance) {
     const user = request.user;
     return withTenant(user.tenant_id, async (trx) => {
       const rows = await trx.selectFrom('hr_devices')
-        .select(['id', 'device_label', 'device_type', 'user_agent', 'trusted', 'last_used_at', 'created_at', 'revoked_at'])
+        .select(['id', 'device_label', 'device_type', 'user_agent', 'trusted', 'last_used_at', 'created_at', 'revoked_at', 'client_hints'])
         .where('user_id', '=', user.sub)
         .where('tenant_id', '=', user.tenant_id)
         .orderBy('last_used_at', 'desc')
         .execute();
       return rows.map(r => ({ ...r, is_current: r.id === user.device_id, active: !r.revoked_at }));
     });
+  });
+
+  // Real platform/architecture telemetry, reported by the browser itself
+  // (User-Agent Client Hints — Chromium only, undefined elsewhere) rather
+  // than guessed by regex against the User-Agent string, which is what
+  // OndiPersonalDevices.tsx used to do and is largely fiction on modern
+  // Chrome (User-Agent Reduction strips this detail from the UA string
+  // itself). Fire-and-forget from the frontend once per session, keyed off
+  // the current JWT's device_id — never blocks or affects auth either way,
+  // same contract as recordLogin()'s own device tracking.
+  const clientHintsSchema = z.object({
+    platform: z.string().max(60).optional(),
+    platformVersion: z.string().max(60).optional(),
+    architecture: z.string().max(60).optional(),
+    bitness: z.string().max(20).optional(),
+    model: z.string().max(120).optional(),
+  });
+  fastify.patch('/sessions/current/client-hints', async (request, reply) => {
+    const user = request.user;
+    if (!user.device_id) return reply.status(204).send();
+    const hints = clientHintsSchema.parse(request.body);
+    await withTenant(user.tenant_id, trx =>
+      trx.updateTable('hr_devices')
+        .set({ client_hints: JSON.stringify(hints) as unknown as Record<string, unknown> })
+        .where('id', '=', user.device_id!)
+        .where('user_id', '=', user.sub)
+        .where('tenant_id', '=', user.tenant_id)
+        .execute());
+    return reply.status(204).send();
   });
 
   // Own-device rename — hr_devices.device_label already exists and is what

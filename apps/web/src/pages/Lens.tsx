@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { PageHeader } from '../components/PageHeader.js';
 import { MetricsRow } from '../components/MetricCard.js';
 import { Icon } from '../components/Icon.js';
@@ -88,6 +88,14 @@ export function Lens() {
   const [q, setQ] = useState('');
   const [showClosed, setShowClosed] = useState(false);
 
+  // List view only — the board doesn't paginate (a kanban column with a page
+  // boundary through it makes drag-and-drop nonsensical), so this drives
+  // /v1/lens/items alone, which the board's own /v1/lens/board call never
+  // touches.
+  const PAGE_SIZE = 25;
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+
   const [dragging, setDragging] = useState<Card | null>(null);
   const [over, setOver] = useState<string | null>(null);
   const [closing, setClosing] = useState<{ card: Card; status: string } | null>(null);
@@ -101,20 +109,27 @@ export function Lens() {
     if (fConfidence) params.set('confidence', fConfidence);
     if (q) params.set('q', q);
     if (showClosed) params.set('include_closed', '1');
+    const itemParams = new URLSearchParams(params);
+    itemParams.set('limit', String(PAGE_SIZE));
+    itemParams.set('offset', String((page - 1) * PAGE_SIZE));
     Promise.all([
-      apiFetch(`/v1/lens/items?${params}`),
+      apiFetch(`/v1/lens/items?${itemParams}`),
       apiFetch(`/v1/lens/board?${params}`),
       apiFetch('/v1/lens/areas'),
       apiFetch('/v1/lens/stats'),
     ])
-      .then(([i, b, a, s]: any[]) => { setItems(i ?? []); setColumns(b ?? []); setAreas(a ?? []); setStats(s ?? null); })
-      .catch(() => { setItems([]); setColumns([]); })
+      .then(([i, b, a, s]: any[]) => { setItems(i?.data ?? []); setTotal(i?.total ?? 0); setColumns(b ?? []); setAreas(a ?? []); setStats(s ?? null); })
+      .catch(() => { setItems([]); setTotal(0); setColumns([]); })
       .finally(() => setLoading(false));
 
     apiFetch('/v1/lens/ci').then(setCi).catch(() => setCi(null));
-  }, [fKind, fArea, fConfidence, q, showClosed]);
+  }, [fKind, fArea, fConfidence, q, showClosed, page]);
 
   useEffect(() => { load(); }, [load]);
+  // A filter/search change makes the current page number meaningless against
+  // the new result set — back to page 1 rather than showing a page that may
+  // no longer exist (or silently skipping matches on pages 1..n-1).
+  useEffect(() => { setPage(1); }, [fKind, fArea, fConfidence, q, showClosed]);
 
   async function open(ref: string) {
     try { setSelected(await apiFetch(`/v1/lens/items/${ref}`)); }
@@ -165,15 +180,6 @@ export function Lens() {
       setNotice({ kind: 'err', text: e?.message || 'Could not close it' });
     }
   }
-
-  const grouped = useMemo(() => {
-    const by = new Map<string, Item[]>();
-    for (const it of items) {
-      const k = it.area_name ?? 'Unassigned';
-      by.set(k, [...(by.get(k) ?? []), it]);
-    }
-    return [...by.entries()].sort((a, b) => b[1].length - a[1].length);
-  }, [items]);
 
   if (composing) {
     return <Compose areas={areas} onClose={() => setComposing(false)}
@@ -347,39 +353,61 @@ export function Lens() {
           ))}
         </div>
       ) : (
-        <div style={{ overflowY: 'auto', flex: 1, paddingRight: 8 }}>
-          {items.length === 0 ? (
-            <div style={{ ...card, padding: '48px 20px', textAlign: 'center', color: 'var(--ink3)' }}>
-              Nothing matches. {showClosed ? '' : 'Closed items are hidden — tick "Show closed" to include them.'}
-            </div>
-          ) : grouped.map(([area, list]) => (
-            <div key={area} style={{ marginBottom: 16 }}>
-            <SectionCard padded={false} title={`${area} · ${list.length}`}>
-              {list.map(it => (
-                <button key={it.id} type="button" onClick={() => open(it.ref)}
-                  style={{
-                    display: 'block', width: '100%', textAlign: 'left', background: 'none',
-                    border: 'none', borderBottom: '1px solid var(--border)', cursor: 'pointer',
-                    padding: '12px 16px', fontFamily: 'var(--font)',
-                  }}>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 4 }}>
-                    <span style={{ fontFamily: 'var(--mono)', fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)' }}>{it.ref}</span>
-                    <Badge variant={KIND_VARIANT[it.kind]}>{it.kind}</Badge>
-                    <Badge variant={CONFIDENCE_VARIANT[it.confidence]}>{it.confidence}</Badge>
-                    {it.status !== 'OPEN' && <Badge variant="gray">{it.status.replace('_', ' ')}</Badge>}
-                    {(it.severity === 'CRITICAL' || it.severity === 'HIGH') && (
-                      <span style={{ fontSize: 11, fontWeight: 700, color: SEVERITY_COLOR[it.severity] }}>{it.severity}</span>
+        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+          <div style={{ overflowY: 'auto', flex: 1, paddingRight: 8 }}>
+            {items.length === 0 ? (
+              <div style={{ ...card, padding: '48px 20px', textAlign: 'center', color: 'var(--ink3)' }}>
+                Nothing matches. {showClosed ? '' : 'Closed items are hidden — tick "Show closed" to include them.'}
+              </div>
+            ) : (
+              <SectionCard padded={false}>
+                {items.map(it => (
+                  <button key={it.id} type="button" onClick={() => open(it.ref)}
+                    style={{
+                      display: 'block', width: '100%', textAlign: 'left', background: 'none',
+                      border: 'none', borderBottom: '1px solid var(--border)', cursor: 'pointer',
+                      padding: '12px 16px', fontFamily: 'var(--font)',
+                    }}>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 4 }}>
+                      <span style={{ fontFamily: 'var(--mono)', fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)' }}>{it.ref}</span>
+                      <Badge variant={KIND_VARIANT[it.kind]}>{it.kind}</Badge>
+                      <Badge variant={CONFIDENCE_VARIANT[it.confidence]}>{it.confidence}</Badge>
+                      {it.status !== 'OPEN' && <Badge variant="gray">{it.status.replace('_', ' ')}</Badge>}
+                      {it.area_name && <Badge variant="info">{it.area_name}</Badge>}
+                      {(it.severity === 'CRITICAL' || it.severity === 'HIGH') && (
+                        <span style={{ fontSize: 11, fontWeight: 700, color: SEVERITY_COLOR[it.severity] }}>{it.severity}</span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)', lineHeight: 1.4 }}>{it.title}</div>
+                    {it.waiting_on && (
+                      <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 3 }}>Waiting on: {it.waiting_on}</div>
                     )}
-                  </div>
-                  <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)', lineHeight: 1.4 }}>{it.title}</div>
-                  {it.waiting_on && (
-                    <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 3 }}>Waiting on: {it.waiting_on}</div>
-                  )}
+                  </button>
+                ))}
+              </SectionCard>
+            )}
+          </div>
+
+          {total > PAGE_SIZE && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '12px 2px 2px', flexShrink: 0 }}>
+              <span style={{ fontSize: 12, color: 'var(--ink3)' }}>
+                {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)} of {total}
+              </span>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <button type="button" className="btn btn-secondary btn-sm" disabled={page <= 1}
+                  onClick={() => setPage(p => Math.max(1, p - 1))}>
+                  <Icon name="chevronLeft" size={14} /> Prev
                 </button>
-              ))}
-            </SectionCard>
+                <span style={{ fontSize: 12, color: 'var(--ink2)', fontWeight: 600 }}>
+                  Page {page} of {Math.max(1, Math.ceil(total / PAGE_SIZE))}
+                </span>
+                <button type="button" className="btn btn-secondary btn-sm" disabled={page * PAGE_SIZE >= total}
+                  onClick={() => setPage(p => p + 1)}>
+                  Next <Icon name="chevronRight" size={14} />
+                </button>
+              </div>
             </div>
-          ))}
+          )}
         </div>
       )}
 

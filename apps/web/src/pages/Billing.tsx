@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { Icon } from '../components/Icon.js';
 import { getCompany, subscribeCompany } from '../data/companyStore.js';
+import { useIsDarkMode } from '../hooks/useIsDarkMode.js';
 import { useCurrency } from '../hooks/useCurrency.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { apiFetch, apiDownload } from '../lib/api.js';
@@ -1032,6 +1033,8 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
   const { fmt } = useCurrency();
   const [co, setCo] = useState(getCompany);
   useEffect(() => subscribeCompany(() => setCo(getCompany())), []);
+  const isDark = useIsDarkMode();
+  const docLogoSrc = isDark ? (co.logoUrlDark || co.logoUrl) : co.logoUrl;
   const [tab, setTab]                 = useState<DetailTab>('invoice');
   const [showMore, setShowMore]       = useState(false);
   const [showPayment, setShowPayment] = useState(false);
@@ -1358,8 +1361,8 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
             {/* From */}
             <div>
               <div style={{ fontSize: 8, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--ink3)', marginBottom: 4 }}>From</div>
-              {co.logoUrl
-                ? <img src={co.logoUrl} alt={co.name} style={{ height: 40, maxWidth: 140, objectFit: 'contain', marginBottom: 8, display: 'block' }} />
+              {docLogoSrc
+                ? <img src={docLogoSrc} alt={co.name} style={{ height: 40, maxWidth: 140, objectFit: 'contain', marginBottom: 8, display: 'block' }} />
                 : <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)', marginBottom: 8 }}>{co.name}</div>
               }
               <div style={{ fontSize: 11, color: 'var(--ink2)', lineHeight: 1.8 }}>

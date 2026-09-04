@@ -1,0 +1,13 @@
+-- OndiPersonalDevices.tsx ("Hardware & Sessions") displayed an "architecture"
+-- (ARM64 / Apple Silicon / Intel x64 / 64-bit...) parsed by regex out of the
+-- User-Agent string alone. Modern Chromium browsers deliberately freeze/omit
+-- most of this from the UA string itself (User-Agent Reduction), so those
+-- labels were largely guesses dressed up as precise hardware telemetry —
+-- real data was never actually captured anywhere. This column holds it for
+-- real, reported by the browser's own User-Agent Client Hints API
+-- (navigator.userAgentData.getHighEntropyValues) once per session — see
+-- PATCH /v1/security/sessions/current/client-hints in security.routes.ts.
+-- Null for a device whose session predates this, or whose browser doesn't
+-- support Client Hints at all (Safari, Firefox) — the frontend must show
+-- "not reported" in that case, never fall back to guessing again.
+ALTER TABLE hr_devices ADD COLUMN IF NOT EXISTS client_hints JSONB;

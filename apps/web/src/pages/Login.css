@@ -90,9 +90,8 @@
   transition: all 0.2s ease;
 }
 
-/* ── Brand header (logo only — headline/subtext sit in their own
-   left-aligned block below the Sign in / Sign up toggle, not centered
-   under the logo the way the whole header used to be) ── */
+/* ── Brand header (logo only — the headline sits directly below it, above
+   the Sign in / Sign up toggle; the subtext stays below that toggle) ── */
 .login-brand-hdr {
   display: flex;
   flex-direction: column;
@@ -102,7 +101,7 @@
 }
 .login-brand-row   { display: flex; align-items: center; gap: 8px; }
 .login-header-left { text-align: center; }
-.login-headline    { font-size: 19px; font-weight: 700; color: var(--lp-ink, #1f1f1f); margin: 0; }
+.login-headline    { font-size: 19px; font-weight: 700; color: var(--lp-ink, #1f1f1f); margin: 0; text-align: center; }
 .login-subtext     { font-size: 12.5px; color: var(--lp-ink2, #444746); margin: 4px 0 0; }
 
 /* ── Segmented pill toggle — neutral grey↔white track, used both for the

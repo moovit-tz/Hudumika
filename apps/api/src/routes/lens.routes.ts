@@ -86,7 +86,7 @@ export async function lensRoutes(fastify: FastifyInstance) {
 
   // GET /v1/lens/items?status=&kind=&area=&confidence=&q=
   fastify.get('/items', async (request) => {
-    const { status, kind, area, confidence, q, include_closed } = request.query as Record<string, string>;
+    const { status, kind, area, confidence, q, include_closed, limit, offset } = request.query as Record<string, string>;
 
     let query = dbPlatform.selectFrom('lens_items as i')
       .leftJoin('lens_areas as a', 'a.id', 'i.area_id')
@@ -118,6 +118,16 @@ export async function lensRoutes(fastify: FastifyInstance) {
         (r.body ?? '').toLowerCase().includes(s) ||
         (r.evidence ?? '').toLowerCase().includes(s) ||
         r.ref.toLowerCase().includes(s));
+    }
+
+    // Pagination is opt-in, not a breaking change to this endpoint's shape —
+    // LensRoadmap.tsx calls this same route with no limit/offset and expects
+    // the bare array it always got; only a caller that asks for a page (the
+    // Lens list view) gets the {data, total} envelope back.
+    if (limit) {
+      const lim = Math.min(Math.max(parseInt(limit, 10) || 25, 1), 200);
+      const off = Math.max(parseInt(offset ?? '0', 10) || 0, 0);
+      return { data: rows.slice(off, off + lim), total: rows.length };
     }
     return rows;
   });

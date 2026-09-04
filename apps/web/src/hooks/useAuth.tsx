@@ -15,6 +15,41 @@ const KEYS = {
   user: 'hudumika_user',
 };
 
+const CLIENT_HINTS_REPORTED_KEY = 'hudumika_client_hints_reported';
+
+/**
+ * Real platform/architecture telemetry for OndiPersonalDevices.tsx ("Hardware
+ * & Sessions"), reported by the browser's own User-Agent Client Hints API —
+ * that page used to guess this by regex against the User-Agent string, which
+ * is largely fiction on modern Chrome (User-Agent Reduction deliberately
+ * strips this detail from the UA string itself). undefined on Safari/
+ * Firefox, which simply never had this data — the UI shows "not reported"
+ * there, it must never fall back to guessing again. Fires once per browser
+ * tab session (sessionStorage-guarded) so a page reload doesn't re-report on
+ * every load; fire-and-forget, same "never affects auth" contract every
+ * other device-tracking call in this file already has.
+ */
+function reportClientHints(): void {
+  try {
+    if (sessionStorage.getItem(CLIENT_HINTS_REPORTED_KEY)) return;
+    const uaData = (navigator as any).userAgentData;
+    if (!uaData?.getHighEntropyValues) return;
+    sessionStorage.setItem(CLIENT_HINTS_REPORTED_KEY, '1');
+    uaData.getHighEntropyValues(['architecture', 'bitness', 'model', 'platformVersion'])
+      .then((hints: any) => apiFetch('/v1/security/sessions/current/client-hints', {
+        method: 'PATCH',
+        body: JSON.stringify({
+          platform: uaData.platform,
+          platformVersion: hints.platformVersion,
+          architecture: hints.architecture,
+          bitness: hints.bitness,
+          model: hints.model,
+        }),
+      }))
+      .catch(() => {});
+  } catch { /* Client Hints unsupported or blocked — never affects auth */ }
+}
+
 interface AuthContextType {
   user: SafeUser | null;
   isImpersonating: boolean;
@@ -105,6 +140,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // anymore, so a dead session surfaces via this call's 401 (handled
         // globally in api.ts) rather than a synchronous local check.
         hydrateIdentityFromServer(setUser);
+        reportClientHints();
       } catch {
         localStorage.removeItem(KEYS.user);
       }
@@ -128,6 +164,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // is the first moment a new colleague sees the workspace, and it is exactly
     // when the workspace's own language should already be in place.
     hydrateIdentityFromServer(setUser);
+    reportClientHints();
     return res.user;
   };
 

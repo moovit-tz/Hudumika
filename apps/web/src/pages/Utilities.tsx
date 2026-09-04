@@ -93,15 +93,21 @@ export const Utilities: React.FC = () => {
   }
 
   /**
-   * What this workspace can take with it.
+   * What this workspace can take with it — for datasets that have nowhere
+   * else to export from.
    *
-   * Two exporters were hardcoded here — shipments and customers — out of the
-   * two dozen record types the platform holds, so "export my data" meant "some
-   * of it". This is a table instead: each dataset names its endpoint and the
-   * columns worth carrying, and adding one is a row.
-   *
-   * Only datasets whose list endpoint this workspace can actually reach appear;
-   * an export that 403s is worse than one that is not offered.
+   * Customers, Invoices and Leads used to be exported from here too, in
+   * parallel with a second, real "Export CSV" button each already has on
+   * its own real page (Customers.tsx /crm/customers, Billing.tsx
+   * /finance/invoices, Leads.tsx /crm/leads) — two ways to get the same
+   * file, one of them a generic re-fetch with no filters applied, the other
+   * respecting whatever the user actually has visible. Removed outright
+   * (not even a pointer card) — CRM and FinOps are where someone exporting
+   * their own customers/invoices/leads already is. Shipments, Declarations
+   * and People stay as real CSV buttons — checked against their current
+   * apps (/tracking/shipments, declarations live inside shipment records
+   * with no list view of their own, NexusHR's EmployeesPage) and none of
+   * the three has an export of its own to point at instead.
    */
   const DATASETS: {
     id: string;
@@ -120,38 +126,12 @@ export const Utilities: React.FC = () => {
       ],
     },
     {
-      id: 'customers', label: 'Customers', path: '/v1/customers',
-      desc: 'The customer directory, with contacts and tax identifiers.',
-      columns: [
-        ['Name', r => r.name], ['Email', r => r.email], ['Phone', r => r.phone ?? r.phone_wa],
-        ['TIN', r => r.tax_id ?? r.tin_number], ['Contact', r => r.contact_name ?? r.contact_person],
-        ['Country', r => r.country], ['Created', r => r.created_at?.slice(0, 10)],
-      ],
-    },
-    {
-      id: 'invoices', label: 'Invoices', path: '/v1/invoices',
-      desc: 'Issued invoices with their totals and status.',
-      columns: [
-        ['Number', r => r.invoice_number ?? r.number], ['Customer', r => r.customer_name],
-        ['Currency', r => r.currency], ['Total', r => r.total ?? r.total_amount],
-        ['Status', r => r.status], ['Issued', r => (r.issue_date ?? r.created_at)?.slice(0, 10)],
-      ],
-    },
-    {
       id: 'declarations', label: 'Declarations', path: '/v1/declarations',
       desc: 'Customs declarations with their assessment and status.',
       columns: [
         ['Reference', r => r.reference ?? r.tansad_number], ['Status', r => r.status],
         ['Regime', r => r.regime], ['Customer', r => r.customer_name],
         ['Created', r => r.created_at?.slice(0, 10)],
-      ],
-    },
-    {
-      id: 'leads', label: 'Leads', path: '/v1/leads',
-      desc: 'The sales pipeline, with stage and expected value.',
-      columns: [
-        ['Company', r => r.company], ['Contact', r => r.contact_name], ['Email', r => r.contact_email],
-        ['Stage', r => r.stage], ['Value', r => r.value], ['Source', r => r.source],
       ],
     },
     {

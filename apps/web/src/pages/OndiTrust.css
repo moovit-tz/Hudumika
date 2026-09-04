@@ -1,0 +1,460 @@
+/* ══════════════════════════════════════════════════════════
+   OndiTrust.css — Ondi Personal · Trust & Risk Intelligence
+   Enterprise-grade identity trust score & reliability suite.
+══════════════════════════════════════════════════════════ */
+
+.ot-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+}
+
+/* ── Top Hero Grid: Trust Score & Factor Attribution ── */
+.ot-hero-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 1.35fr;
+  gap: 20px;
+  align-items: stretch;
+}
+
+/* ── Base Card ── */
+.ot-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 22px 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: var(--elev-sm, 0 1px 3px rgba(0,0,0,0.04));
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  position: relative;
+}
+
+.ot-card:hover {
+  border-color: var(--border-hover, #cbd5e1);
+}
+
+.ot-card-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.ot-card-hdr-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ot-card-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0;
+}
+
+.ot-card-sub {
+  font-size: 12px;
+  color: var(--ink3);
+  margin: 0;
+}
+
+/* ── Score Dial Hero Card ── */
+.ot-score-hero-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 0 18px;
+  text-align: center;
+}
+
+.ot-dial-container {
+  position: relative;
+  width: 170px;
+  height: 98px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.ot-dial-svg {
+  width: 170px;
+  height: 98px;
+  overflow: visible;
+}
+
+.ot-dial-center-text {
+  position: absolute;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1;
+}
+
+.ot-dial-num {
+  font-size: 38px;
+  font-weight: 900;
+  font-family: var(--mono);
+  letter-spacing: -1.5px;
+  color: var(--ink);
+}
+
+.ot-dial-max {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink3);
+  margin-top: 2px;
+}
+
+.ot-tier-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 11.5px;
+  font-weight: 700;
+  margin-top: 8px;
+  letter-spacing: 0.3px;
+}
+
+.ot-score-desc {
+  font-size: 12.5px;
+  color: var(--ink2);
+  line-height: 1.5;
+  margin: 12px 0 0;
+  max-width: 320px;
+  text-align: center;
+}
+
+.ot-score-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--ink3);
+}
+
+/* ── Factor Attribution Card ── */
+.ot-factors-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ot-factor-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  transition: all 0.15s ease;
+}
+
+.ot-factor-row:hover {
+  background: var(--white);
+  border-color: var(--border-hover, #cbd5e1);
+}
+
+.ot-factor-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.ot-factor-info {
+  min-width: 0;
+}
+
+.ot-factor-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.ot-factor-desc {
+  font-size: 11.5px;
+  color: var(--ink3);
+  margin-top: 1px;
+}
+
+.ot-factor-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.ot-factor-points {
+  font-size: 12px;
+  font-weight: 700;
+  font-family: var(--mono);
+}
+
+/* ── Historical Trend & Sparkline Card ── */
+.ot-trend-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 22px 24px;
+  box-shadow: var(--elev-sm, 0 1px 3px rgba(0,0,0,0.04));
+}
+
+.ot-trend-stats-row {
+  display: flex;
+  align-items: baseline;
+  gap: 24px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.ot-trend-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ot-trend-stat-lbl {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--ink3);
+  letter-spacing: 0.4px;
+}
+
+.ot-trend-stat-val {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--ink);
+  font-family: var(--mono);
+}
+
+.ot-chart-wrap {
+  position: relative;
+  width: 100%;
+  height: 90px;
+  margin: 12px 0 8px;
+}
+
+.ot-sparkline-svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.ot-trend-dates {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--ink3);
+  font-weight: 500;
+}
+
+/* ── Organizational Reliability Suite ── */
+.ot-reliability-wrap {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 22px 24px;
+  box-shadow: var(--elev-sm, 0 1px 3px rgba(0,0,0,0.04));
+}
+
+.ot-rel-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.ot-rel-score-banner {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.ot-rel-score-num {
+  font-size: 28px;
+  font-weight: 900;
+  font-family: var(--mono);
+  color: var(--ink);
+  line-height: 1;
+}
+
+.ot-rel-score-max {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink3);
+}
+
+.ot-rel-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+
+.ot-rel-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.ot-rel-card:hover {
+  background: var(--white);
+  border-color: var(--border-hover, #cbd5e1);
+}
+
+.ot-rel-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ot-rel-card-lbl {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink3);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.ot-rel-card-val {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--ink);
+  line-height: 1.2;
+}
+
+.ot-rel-card-hint {
+  font-size: 11.5px;
+  color: var(--ink3);
+}
+
+.ot-rel-progress-bar {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.ot-rel-progress-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: var(--teal);
+  transition: width 0.3s ease;
+}
+
+/* ── Proactive Recommendations ── */
+.ot-recs-wrap {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 22px 24px;
+  box-shadow: var(--elev-sm, 0 1px 3px rgba(0,0,0,0.04));
+}
+
+.ot-recs-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.ot-rec-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 14px;
+  transition: border-color 0.15s, background 0.15s, transform 0.15s;
+}
+
+.ot-rec-card:hover {
+  background: var(--white);
+  border-color: var(--teal);
+  transform: translateY(-1px);
+}
+
+.ot-rec-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.ot-rec-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0;
+}
+
+.ot-rec-desc {
+  font-size: 12px;
+  color: var(--ink3);
+  margin: 3px 0 0;
+  line-height: 1.4;
+}
+
+.ot-rec-impact {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--green);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ══════════════════════════════════════════════════════════
+   Responsive Breakpoints
+══════════════════════════════════════════════════════════ */
+@media (max-width: 1024px) {
+  .ot-hero-grid {
+    grid-template-columns: 1fr;
+  }
+  .ot-rel-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .ot-recs-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .ot-hero-grid {
+    grid-template-columns: 1fr;
+  }
+  .ot-rel-grid {
+    grid-template-columns: 1fr;
+  }
+  .ot-recs-grid {
+    grid-template-columns: 1fr;
+  }
+  .ot-trend-stats-row {
+    gap: 14px;
+  }
+}

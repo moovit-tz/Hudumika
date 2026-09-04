@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, createContext, useContext } from 'react';
+import React, { useState, useEffect, useRef, useCallback, createContext, useContext, useMemo } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { Icon } from '../components/Icon.js';
@@ -6,18 +6,23 @@ import type { IconName } from '../components/Icon.js';
 import { getCompany, setCompany } from '../data/companyStore.js';
 import { apiFetch } from '../lib/api.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { MetricsRow } from '../components/MetricCard.js';
+import type { MetricCardProps } from '../components/MetricCard.js';
 import { refreshTenantLocale } from '../lib/tenantLocale.js';
-import { useBranding, pushTenantBranding } from '../hooks/useBranding.js';
-import { squareAvatarDataUrl } from '../lib/identity.js';
+import { pushTenantBranding, useBranding } from '../hooks/useBranding.js';
 import { useLocale } from '../hooks/useLocale.js';
 import type { SupportedLocale } from '../i18n/index.js';
 import './Settings.css';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { Combobox } from '../components/ui/combobox.js';
 import { Badge } from '../components/ui/badge.js';
+import { PersonAvatar } from '../components/PersonAvatar.js';
 import { FeatureToggleRow } from '../components/ui/list-item-row.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { EntityPicker } from '../components/EntityPicker.js';
 import { Button } from '../components/ui/button.js';
+import { Switch } from '../components/ui/switch.js';
+import { LauncherAppSvg, LAUNCHER_APPS } from '../components/LauncherApps.js';
 import { SignaturePad } from '../components/SignaturePad.js';
 import { showAlert } from '../lib/alert.js';
 import { UpgradeNotice } from '../components/UpgradeNotice.js';
@@ -46,9 +51,10 @@ export const NAV: Array<{ group: string; icon: IconName; items: Array<{ key: str
     { key: 'company',            label: 'Company Information',  icon: 'building'      },
     { key: 'localization',       label: 'Localization',         icon: 'globe'         },
     { key: 'landing-experience', label: 'Landing Experience',   icon: 'layoutDashboard' },
-    // Branding was mounted only in the platform console, so a tenant could not
-    // put their own logo or colour on the workspace they pay for.
-    { key: 'branding',           label: 'Branding',             icon: 'sparkle'       },
+    // 'branding' removed as its own nav entry — merged into Company
+    // Information's "Company Branding" card (workspace name/colour/logo/
+    // favicon, all in one place; see CompanySection). ?s=branding still
+    // resolves, via renderSection's redirect below, so old links don't 404.
     { key: 'modules',            label: 'Modules & Extensions', icon: 'grid'          },
     { key: 'email',              label: 'Email',                icon: 'mail'          },
     { key: 'notifications',      label: 'Notifications',        icon: 'bell'          },
@@ -59,11 +65,16 @@ export const NAV: Array<{ group: string; icon: IconName; items: Array<{ key: str
     // onboarding charge flow — see lib/payment-gateway.ts. Payment Modes
     // and e-Invoice were removed: no component, no backend, gated nothing.
     { key: 'payment-gateways',   label: 'Payment Gateways',     icon: 'creditCard'    },
-    { key: 'expenses-categories',label: 'Expenses Categories',  icon: 'tag'           },
     { key: 'invoices',           label: 'Invoices',             icon: 'fileText'      },
     // Tax rates, quotations, purchase orders and currencies each had a panel
     // here that saved to a key nothing read, while the real implementations
     // live in FinOps. One control per thing; this one points at it.
+    // Expense Categories used to be its own entry too — unlike its siblings
+    // it was genuinely live (FinanceExpenseNew.tsx really reads this key),
+    // so it moved rather than got deleted: FinOps ▸ Expenses ▸ Manage
+    // Categories (/finance/expenses/categories), same underlying data,
+    // reachable from where it's actually used. The row below still points
+    // there for anyone who lands here first.
     { key: 'elsewhere',          label: 'Finance setup',        icon: 'externalLink' },
     // Credit Notes and Subscriptions removed: no component, no backend —
     // real credit-note/subscription concepts live elsewhere (Customers,
@@ -210,8 +221,10 @@ const CompanySection: React.FC = () => {
     name: co.name, email: co.email, phone: co.phone,
     website: co.website, vat: co.taxId, address: co.address,
     city: co.city, state: '', zip: '', country: 'TZ', desc: co.tagline,
+    businessType: co.businessType, contactPerson: co.contactPerson,
   });
   const [logoUrl, setLogoUrl] = useState<string | null>(co.logoUrl);
+  const [logoUrlDark, setLogoUrlDark] = useState<string | null>(co.logoUrlDark);
   const [faviconUrl, setFaviconUrl] = useState<string | null>(co.faviconUrl);
   const [saved, setSaved] = useState(false);
 
@@ -227,11 +240,34 @@ const CompanySection: React.FC = () => {
     }).catch(() => {});
   }, []);
 
+  // Workspace name + accent colour used to live in a separate "Branding"
+  // section (pushTenantBranding/useBranding — feeds the in-app UI: sidebar,
+  // browser tab, per-app accent) while this card only ever covered the logo
+  // used on PDF documents. Two places to upload the same logo, easy to drift
+  // — folded here instead, so this one card is the actual single source and
+  // one Save writes both the document-branding store and the in-app one.
+  const [workspaceName, setWorkspaceName] = useState('');
+  const [accentColor, setAccentColor] = useState('');
+  useEffect(() => {
+    apiFetch('/v1/settings/branding').then((t: any) => {
+      setWorkspaceName(t?.workspaceName ?? '');
+      setAccentColor(t?.accentColor ?? '');
+    }).catch(() => { /* no workspace override yet is the norm */ });
+  }, []);
+
   function handleLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
     reader.onload = ev => { if (typeof ev.target?.result === 'string') setLogoUrl(ev.target.result); };
+    reader.readAsDataURL(file);
+  }
+
+  function handleLogoDarkChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => { if (typeof ev.target?.result === 'string') setLogoUrlDark(ev.target.result); };
     reader.readAsDataURL(file);
   }
 
@@ -245,8 +281,16 @@ const CompanySection: React.FC = () => {
 
   async function handleSave() {
     setSaving(true);
-    setCompany({ name: f.name, email: f.email, phone: f.phone, website: f.website, taxId: f.vat, address: f.address, city: f.city, tagline: f.desc, logoUrl, faviconUrl });
-    try { await apiSave('company', { name: f.name, email: f.email, phone: f.phone, website: f.website, vat: f.vat, address: f.address, city: f.city, state: f.state, zip: f.zip, country: f.country, desc: f.desc, logoUrl, faviconUrl, organizationId: linkedOrg?.id ?? null }); } catch {}
+    setCompany({ name: f.name, email: f.email, phone: f.phone, website: f.website, taxId: f.vat, address: f.address, city: f.city, tagline: f.desc, businessType: f.businessType, contactPerson: f.contactPerson, logoUrl, logoUrlDark, faviconUrl });
+    try { await apiSave('company', { name: f.name, email: f.email, phone: f.phone, website: f.website, vat: f.vat, address: f.address, city: f.city, state: f.state, zip: f.zip, country: f.country, desc: f.desc, businessType: f.businessType, contactPerson: f.contactPerson, logoUrl, logoUrlDark, faviconUrl, organizationId: linkedOrg?.id ?? null }); } catch {}
+    // Same logo/favicon, pushed to the in-app UI branding store too — one
+    // upload here is now the only place either gets set. Empty string clears
+    // an override and falls back to the platform default, same as
+    // pushTenantBranding's own contract, which is why logoUrl/faviconUrl are
+    // coerced to '' rather than omitted when unset. logoDark was already a
+    // supported field on that endpoint (TENANT_BRANDING_FIELDS in
+    // settings.routes.ts) — nothing on this page ever sent it until now.
+    try { await pushTenantBranding({ workspaceName: workspaceName.trim(), logoLight: logoUrl ?? '', logoDark: logoUrlDark ?? '', favicon: faviconUrl ?? '', accentColor: accentColor.trim() }); } catch {}
     setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -260,7 +304,8 @@ const CompanySection: React.FC = () => {
         <Field label="Email Address"><input className="input-field" type="email" value={f.email} onChange={e => set('email', e.target.value)} /></Field>
         <Field label="Phone Number"><input className="input-field" value={f.phone} onChange={e => set('phone', e.target.value)} /></Field>
         <Field label="Website"><input className="input-field" type="url" value={f.website} onChange={e => set('website', e.target.value)} /></Field>
-        <div />
+        <Field label="Business Type"><input className="input-field" value={f.businessType} onChange={e => set('businessType', e.target.value)} placeholder="e.g. Customs Clearing Agent" /></Field>
+        <Field label="Contact Person"><input className="input-field" value={f.contactPerson} onChange={e => set('contactPerson', e.target.value)} /></Field>
         <Field label="Street Address" full><input className="input-field" value={f.address} onChange={e => set('address', e.target.value)} /></Field>
         <Field label="City"><input className="input-field" value={f.city} onChange={e => set('city', e.target.value)} /></Field>
         <Field label="State / Region"><input className="input-field" value={f.state} onChange={e => set('state', e.target.value)} /></Field>
@@ -294,7 +339,18 @@ const CompanySection: React.FC = () => {
           />
         </Field>
       </Card>
-      <Card title="Document Branding" desc="Logo and favicon used on PDF invoices, quotes, and portal documents. Platform login and UI branding is managed separately by your platform administrator.">
+      <Card title="Company Branding" desc="Your workspace's name, colour, logo and favicon — used on PDF invoices, quotes and portal documents, and everywhere in the app your team signs into. The pre-authentication sign-in screen is shared by every workspace on the platform, so it isn't set here.">
+        <Field label="Workspace Name" hint="Shown in the browser tab and beside your logo in the app.">
+          <input className="input-field" value={workspaceName} onChange={e => setWorkspaceName(e.target.value)} placeholder={f.name || 'Your company name'} />
+        </Field>
+        <Field label="Brand Colour" hint="Used by apps that have no colour of their own — each app keeps its own by design.">
+          <div className="s-brand-colour">
+            <input type="color" value={/^#[0-9a-fA-F]{6}$/.test(accentColor) ? accentColor : '#0f766e'}
+              onChange={e => setAccentColor(e.target.value)} aria-label="Brand colour" />
+            <input className="input-field" value={accentColor} onChange={e => setAccentColor(e.target.value)} placeholder="#0f766e" />
+            {accentColor && <button type="button" className="s-brand-clear" onClick={() => setAccentColor('')}>Clear</button>}
+          </div>
+        </Field>
         <Field label="Company Logo" hint="Recommended: 400×100px PNG or SVG" full>
           <label className={`s-upload${logoUrl ? ' s-upload--on' : ''}`}>
             {logoUrl
@@ -311,6 +367,24 @@ const CompanySection: React.FC = () => {
               </button>
             )}
             <input type="file" accept="image/*" className="hidden" onChange={handleLogoChange} />
+          </label>
+        </Field>
+        <Field label="Dark Mode Logo" hint="Shown wherever this logo renders on a dark background — invoices, quotes and purchase orders viewed in dark mode, and the in-app header when dark mode is on. Optional: falls back to the logo above if not set." full>
+          <label className={`s-upload${logoUrlDark ? ' s-upload--on' : ''}`}>
+            {logoUrlDark
+              ? <div className="s-upload-preview-dark-wrap"><img src={logoUrlDark} alt="Dark mode logo preview" className="s-upload-preview" /></div>
+              : <div className="s-upload-ph s-upload-ph--lg">LOGO</div>
+            }
+            <div className="s-upload-info">
+              <div className={`s-upload-lbl${logoUrlDark ? ' s-upload-lbl--on' : ' s-upload-lbl--off'}`}>{logoUrlDark ? 'Dark-mode logo uploaded · click to change' : 'Click to upload a dark-mode variant'}</div>
+              <div className="s-upload-hint">PNG or SVG, ideally with a transparent background · max 2 MB</div>
+            </div>
+            {logoUrlDark && (
+              <button type="button" title="Remove dark-mode logo" onClick={e => { e.preventDefault(); setLogoUrlDark(null); }} className="s-upload-rm">
+                <Icon name="x" size={13} color="#dc2626" />
+              </button>
+            )}
+            <input type="file" accept="image/*" className="hidden" onChange={handleLogoDarkChange} />
           </label>
         </Field>
         {co.logoHistory.length > 0 && (
@@ -1442,59 +1516,6 @@ const PaymentGatewaysSection: React.FC = () => {
 };
 
 // -- section: Expenses Categories --------------------------------------------
-const ExpensesCategoriesSection: React.FC = () => {
-  const [cats, setCats] = useState([
-    { id: '1', name: 'Port Charges',       color: '#2563eb' },
-    { id: '2', name: 'Customs Clearance',  color: '#059669' },
-    { id: '3', name: 'Transport & Haulage',color: 'var(--gold)' },
-    { id: '4', name: 'Agency Fees',        color: '#7c3aed' },
-    { id: '5', name: 'Demurrage',          color: 'var(--red)' },
-    { id: '6', name: 'Office & Admin',     color: '#0891b2' },
-    { id: '7', name: 'Staff & Salaries',   color: '#059669' },
-    { id: '8', name: 'Miscellaneous',      color: 'var(--ink2)' },
-  ]);
-  const [adding, setAdding] = useState(false);
-  const [newName, setNewName] = useState('');
-  const [newColor, setNewColor] = useState('#2563eb');
-  const { s, save } = useContext(SettingsCtx);
-  const hydrated = useRef(false);
-
-  useEffect(() => {
-    if (hydrated.current) return;
-    if (s['expenses-categories']?.categories) { setCats(s['expenses-categories'].categories); hydrated.current = true; }
-  }, [s]);
-
-  const doAdd = () => {
-    if (newName) {
-      const next = [...cats, { id: Date.now().toString(), name: newName, color: newColor }];
-      setCats(next);
-      save('expenses-categories', { categories: next }).catch(() => {});
-      setNewName(''); setAdding(false);
-    }
-  };
-  return (
-    <Card title="Expense Categories" desc="Categories used to classify business expenses."
-      action={<button type="button" className="btn btn-primary btn-sm" onClick={() => setAdding(true)}>+ Add</button>}>
-      <div className="s-fld--full s-cats-grid">
-        {cats.map(c => (
-          <div key={c.id} className="s-cat">
-            <div className="s-cat-dot" style={{ background: c.color }} />
-            <div className="s-cat-name">{c.name}</div>
-            <button type="button" title={`Remove ${c.name}`} onClick={() => { const next = cats.filter(x => x.id !== c.id); setCats(next); save('expenses-categories', { categories: next }).catch(() => {}); }} className="s-cat-rm">×</button>
-          </div>
-        ))}
-        {adding && (
-          <div className="s-cat-add">
-            <input type="color" title="Pick category color" value={newColor} onChange={e => setNewColor(e.target.value)} className="s-color-picker" />
-            <input className="input-field s-cat-in" placeholder="Name" value={newName} onChange={e => setNewName(e.target.value)} onKeyDown={e => e.key === 'Enter' && doAdd()} />
-            <button type="button" className="btn btn-primary btn-sm" onClick={doAdd}>Add</button>
-          </div>
-        )}
-      </div>
-    </Card>
-  );
-};
-
 // -- section: Google ---------------------------------------------------------
 /**
  * Used to also carry "Google Analytics" (Measurement ID) and "Google Maps"
@@ -1894,28 +1915,100 @@ const TRASection: React.FC = () => {
   );
 };
 
-// -- section: Modules --------------------------------------------------------
-// Real module-enable system (same data source as Utilities.tsx's Modules
-// block): the tenant's actual entitled apps + the `enabled-apps` override map
-// fetched via GET /v1/settings, PATCHed back as a full override map and
-// followed by resetEntitlementsCache() so the nav picks up the change.
+// -- section: Modules & Extensions -------------------------------------------
+interface ModuleCatalogEntry {
+  name: string;
+  desc: string;
+  category: string;
+  color: string;
+  status: 'Live' | 'Beta';
+}
+
+const MODULE_CATALOG: Record<string, ModuleCatalogEntry> = {
+  clearos:      { name: 'ClearOS',       desc: 'Customs clearance platform, declarations & TANCIS integration.', category: 'Logistics & Trade', color: '#ea580c', status: 'Live' },
+  tracking:     { name: 'HuduFreight',   desc: 'Fleet, vehicle and driver tracking — live GPS positions & trips.', category: 'Logistics & Trade', color: '#0891b2', status: 'Live' },
+  cargotracker: { name: 'CargoTracker',  desc: 'AWB & Bill of Lading shipment tracking across sea & air carriers.', category: 'Logistics & Trade', color: '#4f46e5', status: 'Live' },
+  seal:         { name: 'SEAL',          desc: 'Bonded warehousing ledger, customs examination & storage clock.', category: 'Logistics & Trade', color: '#0f766e', status: 'Beta' },
+  inventory:    { name: 'Inventory',     desc: 'Stock control, multi-warehouse counts, batches & reorder alerts.', category: 'Logistics & Trade', color: '#0f766e', status: 'Beta' },
+  demurrage:    { name: 'Demurrage',     desc: 'Container dwell time and demurrage cost tracking.',               category: 'Logistics & Trade', color: '#f59e0b', status: 'Live' },
+  finops:       { name: 'FinOps',        desc: 'Financial accounts, TRA EFDMS integration, bills & ledgers.',     category: 'Finance & Accounts', color: '#0284c7', status: 'Live' },
+  petti:        { name: 'Petti',         desc: 'Tenant petty-cash wallets — deposit, request, approve & disburse.', category: 'Finance & Accounts', color: '#16a34a', status: 'Beta' },
+  complyos:     { name: 'ComplyOS',      desc: 'Compliance tracking, BRELA business search, permits & audits.',   category: 'Compliance & Legal', color: '#059669', status: 'Live' },
+  sign:         { name: 'eSign',         desc: 'Secure electronic document signatures, approvals & audit logs.',  category: 'Compliance & Legal', color: '#2563eb', status: 'Beta' },
+  nexushr:      { name: 'NexusHR',       desc: 'People operations, payroll, attendance & shift rosters.',         category: 'People & HR', color: '#0d9488', status: 'Live' },
+  contacts:     { name: 'Contacts',      desc: 'Shared customer, vendor and partner contact directory.',          category: 'People & HR', color: '#1a73e8', status: 'Live' },
+  crm:          { name: 'CRM',           desc: 'Customer relationships, sales pipeline & lead tracking.',         category: 'Communication & CRM', color: '#059669', status: 'Live' },
+  bliss:        { name: 'Bliss',         desc: 'Omnichannel customer helpdesk, ticketing & SLA reminders.',       category: 'Communication & CRM', color: '#7c3aed', status: 'Live' },
+  email:        { name: 'Email',         desc: 'Unified team inbox, webmail & shared email workspace.',           category: 'Communication & CRM', color: '#0078d4', status: 'Live' },
+  sms:          { name: 'SMS',           desc: 'Bulk and transactional SMS messaging campaigns & gateways.',      category: 'Communication & CRM', color: '#dc2626', status: 'Beta' },
+  ai:           { name: 'AI',            desc: 'Automated intelligence, document OCR & predictive insights.',     category: 'AI & Automation', color: '#6d28d9', status: 'Live' },
+  studio:       { name: 'Studio',        desc: 'Visual workflow builder and cross-app automations.',              category: 'AI & Automation', color: '#4361ee', status: 'Live' },
+  hudubi:       { name: 'HuduBI',        desc: 'Executive business intelligence, board KPIs & reports.',          category: 'AI & Automation', color: '#18181b', status: 'Live' },
+  cloud:        { name: 'Cloud',         desc: 'Enterprise cloud drive, file manager & secure storage.',          category: 'Productivity & Cloud', color: '#0369a1', status: 'Live' },
+  calendar:     { name: 'Calendar',      desc: 'Shared scheduling, video meetings & team calendars.',             category: 'Productivity & Cloud', color: '#db2777', status: 'Live' },
+  tasks:        { name: 'Tasks',         desc: 'Team task tracking, assignments & to-dos across apps.',           category: 'Productivity & Cloud', color: '#0f766e', status: 'Live' },
+  notes:        { name: 'Notes',         desc: 'Shared team notes, checklists, documents & sketches.',            category: 'Productivity & Cloud', color: '#fbbc04', status: 'Beta' },
+  store:        { name: 'Store',         desc: 'B2B procurement, equipment marketplace & catalog.',              category: 'Productivity & Cloud', color: '#8b5cf6', status: 'Live' },
+  onsite:       { name: 'Onsite',        desc: 'Domains, DNS, hosting, deployments & cloud infra.',               category: 'Infrastructure & Admin', color: '#0f172a', status: 'Live' },
+  onesite:      { name: 'oneSite',       desc: 'Content management, landing page & company intranet.',            category: 'Infrastructure & Admin', color: '#06b6d4', status: 'Live' },
+  ondi:         { name: 'Ondi',          desc: 'Single sign-on, identity verification & biometric security.',     category: 'Infrastructure & Admin', color: '#4253d1', status: 'Live' },
+  workspace:    { name: 'Workspace Admin', desc: 'Organization settings, branding & platform configuration.',      category: 'Infrastructure & Admin', color: '#64748b', status: 'Live' },
+};
+
+const MODULE_CATEGORIES = [
+  'All',
+  'Logistics & Trade',
+  'Finance & Accounts',
+  'Compliance & Legal',
+  'People & HR',
+  'Communication & CRM',
+  'AI & Automation',
+  'Productivity & Cloud',
+  'Infrastructure & Admin',
+] as const;
+
 const ModulesSection: React.FC = () => {
   const { user } = useAuth();
+  const branding = useBranding();
   const canManageModules = !!user && ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER'].includes(user.role);
   const entitlements = useEntitlements();
   const [overrides, setOverrides] = useState<Record<string, boolean> | null>(null);
   const [moduleSaving, setModuleSaving] = useState<string | null>(null);
+  const [savingBulk, setSavingBulk] = useState(false);
   const [licenseAppId, setLicenseAppId] = useState<string | null>(null);
+  const [licenseData, setLicenseData] = useState<{ restricted?: Record<string, boolean>; grants?: Array<{ app_id: string; user_id: string; user_name: string; user_email: string }> } | null>(null);
 
-  useEffect(() => {
-    apiFetch('/v1/settings').then(res => setOverrides(res.settings?.['enabled-apps'] || {})).catch(() => setOverrides({}));
+  // Search, filter & layout preferences
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [selectedStatus, setSelectedStatus] = useState<'all' | 'enabled' | 'disabled' | 'restricted'>('all');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
+    return (localStorage.getItem('hudumika_settings_modules_view') as 'grid' | 'list') || 'grid';
+  });
+
+  const handleViewChange = (mode: 'grid' | 'list') => {
+    setViewMode(mode);
+    localStorage.setItem('hudumika_settings_modules_view', mode);
+  };
+
+  const refreshLicenses = useCallback(() => {
+    apiFetch('/v1/settings/app-licenses')
+      .then((lic: any) => setLicenseData(lic || {}))
+      .catch(() => setLicenseData({ restricted: {}, grants: [] }));
   }, []);
 
-  const moduleKeys = entitlements ? Object.keys(entitlements.features).filter(k => k in APP_META) : [];
+  useEffect(() => {
+    apiFetch('/v1/settings')
+      .then(res => setOverrides(res.settings?.['enabled-apps'] || {}))
+      .catch(() => setOverrides({}));
+    refreshLicenses();
+  }, [refreshLicenses]);
+
+  const moduleKeys = entitlements
+    ? Object.keys(entitlements.features).filter(k => k in APP_META || k in MODULE_CATALOG)
+    : [];
 
   async function toggleModule(key: string, nextOn: boolean) {
-    // The settings PATCH replaces the whole 'enabled-apps' object rather than deep-merging it,
-    // so every save must include the full override map, not just the key that changed.
     const nextOverrides = { ...(overrides ?? {}), [key]: nextOn };
     const prevOverrides = overrides;
     setOverrides(nextOverrides);
@@ -1925,9 +2018,6 @@ const ModulesSection: React.FC = () => {
       resetEntitlementsCache();
     } catch (err: any) {
       setOverrides(prevOverrides);
-      // The API now answers 403 naming the feature and the plan when a
-      // module is not included, instead of scrubbing it to false behind a
-      // 200. That sentence is the whole message.
       showAlert(err.message || 'That module could not be changed.', {
         title: /plan/i.test(err.message || '') ? 'Not in your plan' : 'Could not update module',
         variant: /plan/i.test(err.message || '') ? 'warning' : 'error',
@@ -1937,65 +2027,454 @@ const ModulesSection: React.FC = () => {
     }
   }
 
+  async function enableAllModules() {
+    if (!entitlements) return;
+    const nextOverrides: Record<string, boolean> = {};
+    moduleKeys.forEach(k => { nextOverrides[k] = true; });
+    const prevOverrides = overrides;
+    setOverrides(nextOverrides);
+    setSavingBulk(true);
+    try {
+      await apiFetch('/v1/settings', { method: 'PATCH', body: JSON.stringify({ 'enabled-apps': nextOverrides }) });
+      resetEntitlementsCache();
+    } catch (err: any) {
+      setOverrides(prevOverrides);
+      showAlert(err.message || 'Failed to update modules.', { variant: 'error' });
+    } finally {
+      setSavingBulk(false);
+    }
+  }
+
+  async function resetModulesToDefault() {
+    const confirmed = await showConfirm(
+      'This will reset all module switches to match your subscription package entitlements.',
+      {
+        title: 'Reset Module Overrides?',
+        confirmLabel: 'Reset Defaults',
+      }
+    );
+    if (!confirmed) return;
+    const prevOverrides = overrides;
+    setOverrides({});
+    setSavingBulk(true);
+    try {
+      await apiFetch('/v1/settings', { method: 'PATCH', body: JSON.stringify({ 'enabled-apps': {} }) });
+      resetEntitlementsCache();
+    } catch (err: any) {
+      setOverrides(prevOverrides);
+      showAlert(err.message || 'Failed to reset module settings.', { variant: 'error' });
+    } finally {
+      setSavingBulk(false);
+    }
+  }
+
+  // Filtered keys
+  const filteredKeys = useMemo(() => {
+    return moduleKeys.filter(key => {
+      const meta = MODULE_CATALOG[key] || APP_META[key] || { name: key, desc: '', category: 'Other', color: '#64748b', status: 'Live' };
+      const name = meta.name.toLowerCase();
+      const desc = (meta.desc || '').toLowerCase();
+      const cat = (meta.category || '').toLowerCase();
+      const q = searchQuery.trim().toLowerCase();
+
+      const matchesSearch = !q || name.includes(q) || desc.includes(q) || cat.includes(q) || key.includes(q);
+      if (!matchesSearch) return false;
+
+      if (selectedCategory !== 'All' && meta.category !== selectedCategory) return false;
+
+      const isOn = overrides ? (overrides[key] ?? entitlements?.features[key] ?? true) : (entitlements?.features[key] ?? true);
+      const isRestricted = !!licenseData?.restricted?.[key];
+
+      if (selectedStatus === 'enabled' && !isOn) return false;
+      if (selectedStatus === 'disabled' && isOn) return false;
+      if (selectedStatus === 'restricted' && (!isOn || !isRestricted)) return false;
+
+      return true;
+    });
+  }, [moduleKeys, overrides, entitlements, licenseData, searchQuery, selectedCategory, selectedStatus]);
+
+  // Statistics
+  const totalCount = moduleKeys.length;
+  const enabledCount = moduleKeys.filter(k => (overrides ? (overrides[k] ?? entitlements?.features[k] ?? true) : (entitlements?.features[k] ?? true))).length;
+  const restrictedCount = moduleKeys.filter(k => !!licenseData?.restricted?.[k]).length;
+
+  // Statistics cards matching ClearOS design system
+  const statCards: MetricCardProps[] = [
+    {
+      title: 'TOTAL APPLICATIONS',
+      value: totalCount > 0 ? String(totalCount) : '—',
+      sub1Label: 'IN PLATFORM',
+      sub1Value: `${totalCount} Available`,
+      sub2Label: 'SUITE STATUS',
+      sub2Value: 'Enterprise Ready',
+      barHighlight: 'var(--teal)',
+      icon: 'grid',
+    },
+    {
+      title: 'ACTIVE MODULES',
+      value: String(enabledCount),
+      sub1Label: 'WORKSPACE STATUS',
+      sub1Value: 'Live & Operational',
+      sub2Label: 'COVERAGE',
+      sub2Value: totalCount > 0 ? `${Math.round((enabledCount / totalCount) * 100)}% Active` : '100%',
+      barHighlight: 'var(--green)',
+      icon: 'checkCircle',
+    },
+    {
+      title: 'SEAT RESTRICTIONS',
+      value: String(restrictedCount),
+      sub1Label: 'PER-SEAT ACCESS',
+      sub1Value: restrictedCount > 0 ? `${restrictedCount} Restricted` : 'Open Access',
+      sub2Label: 'POLICY',
+      sub2Value: restrictedCount > 0 ? 'Managed by Seat' : 'All Workspace Members',
+      barHighlight: 'var(--gold)',
+      icon: 'lock',
+    },
+  ];
+
   return (
-    <div>
-      <p className="s-mods-desc">
-        {canManageModules
-          // Was 'every plan includes every module'. That stopped being true with
-          // migration 213, which gave the eight ungated apps real feature keys —
-          // a plan can now genuinely exclude one, and the switch says so.
-          ? 'Turn applications on or off for everyone in this workspace. A module your plan does not include cannot be switched on here.'
-          : 'Apps enabled for this account. Ask an admin to change these.'}
-      </p>
+    <div className="s-mods-root">
+      {/* ── Overview Metrics Row ── */}
+      <MetricsRow cards={statCards} />
+
+      {/* ── Search, Filters, Category Tabs & Layout Controls ── */}
+      <div className="s-mods-toolbar">
+        <div className="s-mods-toolbar-top">
+          {/* Search Input */}
+          <div className="s-mods-search-wrap">
+            <div className="s-mods-search-icon">
+              <Icon name="search" size={15} />
+            </div>
+            <input
+              type="text"
+              placeholder="Search modules by name, category, or features…"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="s-mods-search-input"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                className="s-mods-search-clear"
+                onClick={() => setSearchQuery('')}
+                title="Clear search"
+              >
+                <Icon name="x" size={14} />
+              </button>
+            )}
+          </div>
+
+          {/* Right Action Controls */}
+          <div className="s-mods-toolbar-actions">
+            {/* Status Dropdown */}
+            <Select value={selectedStatus} onValueChange={v => setSelectedStatus(v as any)}>
+              <SelectTrigger style={{ width: 145, height: 38 }}>
+                <SelectValue placeholder="All Statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="enabled">Enabled Only</SelectItem>
+                <SelectItem value="disabled">Disabled Only</SelectItem>
+                <SelectItem value="restricted">Restricted Access</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* View Mode Toggle */}
+            <div className="s-mods-view-toggle">
+              <button
+                type="button"
+                className={`s-mods-view-btn ${viewMode === 'grid' ? 's-mods-view-btn--active' : ''}`}
+                onClick={() => handleViewChange('grid')}
+                title="Card Grid View"
+              >
+                <Icon name="grid" size={16} />
+              </button>
+              <button
+                type="button"
+                className={`s-mods-view-btn ${viewMode === 'list' ? 's-mods-view-btn--active' : ''}`}
+                onClick={() => handleViewChange('list')}
+                title="Table List View"
+              >
+                <Icon name="list" size={16} />
+              </button>
+            </div>
+
+            {/* Bulk Actions (Admin only) */}
+            {canManageModules && (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={enableAllModules}
+                  disabled={savingBulk}
+                  style={{ height: 38 }}
+                >
+                  <Icon name="check" size={13} style={{ marginRight: 5 }} />
+                  Enable All
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={resetModulesToDefault}
+                  disabled={savingBulk}
+                  style={{ height: 38, color: 'var(--ink3)' }}
+                >
+                  Reset Defaults
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Category Filter Chips */}
+        <div className="s-mods-cats-scroll">
+          {MODULE_CATEGORIES.map(cat => {
+            const count = cat === 'All'
+              ? moduleKeys.length
+              : moduleKeys.filter(k => (MODULE_CATALOG[k]?.category || 'Other') === cat).length;
+            if (count === 0 && cat !== 'All') return null;
+            const isActive = selectedCategory === cat;
+            return (
+              <button
+                key={cat}
+                type="button"
+                className={`s-mods-cat-chip ${isActive ? 's-mods-cat-chip--active' : ''}`}
+                onClick={() => setSelectedCategory(cat)}
+              >
+                <span>{cat}</span>
+                <span className="s-mods-cat-count">{count}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── Main Content Area: Grid or List ── */}
       {!entitlements || overrides === null ? (
-        <p style={{ fontSize: 12.5, color: 'var(--ink3)' }}>Loading modules…</p>
-      ) : (
-        <SectionCard padded={false}>
-          {moduleKeys.map(key => {
-            const meta = APP_META[key];
+        <div style={{ padding: '60px 0', textAlign: 'center', color: 'var(--ink3)' }}>
+          <Icon name="refresh" size={24} className="animate-spin" />
+          <div style={{ fontSize: 13, marginTop: 10, fontWeight: 500 }}>Loading workspace modules & entitlements…</div>
+        </div>
+      ) : filteredKeys.length === 0 ? (
+        <div style={{ padding: '60px 20px', textAlign: 'center', background: 'var(--white)', borderRadius: 14, border: '1px dashed var(--border)' }}>
+          <Icon name="search" size={32} color="var(--ink3)" style={{ margin: '0 auto 12px' }} />
+          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>No matching modules found</div>
+          <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 4 }}>
+            Try adjusting your search query, status filter, or category selection.
+          </div>
+          {(searchQuery || selectedCategory !== 'All' || selectedStatus !== 'all') && (
+            <Button
+              variant="outline"
+              size="sm"
+              style={{ marginTop: 14 }}
+              onClick={() => {
+                setSearchQuery('');
+                setSelectedCategory('All');
+                setSelectedStatus('all');
+              }}
+            >
+              Clear all filters
+            </Button>
+          )}
+        </div>
+      ) : viewMode === 'grid' ? (
+        /* ── Grid View ── */
+        <div className="s-mods-grid">
+          {filteredKeys.map(key => {
+            const catalog = MODULE_CATALOG[key];
+            const meta = catalog || APP_META[key] || { name: key, desc: '', category: 'Other', color: '#0d9488', status: 'Live' };
             const on = overrides[key] ?? entitlements.features[key] ?? true;
             const maintenance = entitlements.appStatus[key] === 'maintenance';
+            const isRestricted = !!licenseData?.restricted?.[key];
+            const grantCount = licenseData?.grants?.filter(g => g.app_id === key).length ?? 0;
+            const appColor = branding.getAppColor(key, catalog?.color || '#0d9488');
+            const logoUrl = branding.getAppLogo(key);
+            const isSaving = moduleSaving === key;
+
             return (
-              <div key={key} style={{ padding: '0 18px' }}>
-                <FeatureToggleRow
-                  icon={<Icon name={meta.icon} size={18} />}
-                  title={meta.name}
-                  description={maintenance ? 'Under maintenance' : meta.desc}
-                  checked={on}
-                  onCheckedChange={v => toggleModule(key, v)}
-                  disabled={!canManageModules || maintenance || moduleSaving === key}
-                  action={canManageModules && on && (
-                    <button type="button" onClick={() => setLicenseAppId(key)}
-                      style={{ background: 'none', border: 'none', color: 'var(--teal)', fontSize: 11.5, fontWeight: 600, cursor: 'pointer', padding: 0, textAlign: 'left' }}>
-                      Who has access
+              <div key={key} className={`s-mod-card ${!on ? 's-mod-card--disabled' : ''}`}>
+                <div>
+                  <div className="s-mod-card-top">
+                    <div className="s-mod-card-ident">
+                      <div className="s-mod-icon-box" style={{ background: `${appColor}15`, border: `1px solid ${appColor}30` }}>
+                        <LauncherAppSvg id={key} color={appColor} logoUrl={logoUrl} size={36} />
+                      </div>
+                      <div className="s-mod-card-meta">
+                        <div className="s-mod-title-row">
+                          <span className="s-mod-title">{branding.getAppName(key, meta.name)}</span>
+                          {meta.status === 'Beta' && <span className="s-mod-badge-beta">Beta</span>}
+                        </div>
+                        <div className="s-mod-category">{meta.category}</div>
+                      </div>
+                    </div>
+
+                    {/* Master Switch */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      {isSaving && <Icon name="refresh" size={14} className="animate-spin" color="var(--teal)" />}
+                      <Switch
+                        checked={on}
+                        disabled={!canManageModules || maintenance || isSaving}
+                        onCheckedChange={v => toggleModule(key, v)}
+                      />
+                    </div>
+                  </div>
+
+                  <p className="s-mod-card-desc">
+                    {maintenance ? 'Application currently undergoing scheduled maintenance.' : (branding.getAppSlogan(key, meta.desc) || meta.desc)}
+                  </p>
+                </div>
+
+                <div className="s-mod-card-footer">
+                  {on ? (
+                    <button
+                      type="button"
+                      className={`s-mod-access-tag ${isRestricted ? 's-mod-access-tag--locked' : 's-mod-access-tag--open'}`}
+                      onClick={() => canManageModules && setLicenseAppId(key)}
+                      disabled={!canManageModules}
+                    >
+                      <Icon name={isRestricted ? 'lock' : 'globe'} size={12} />
+                      {isRestricted ? `Restricted (${grantCount} ${grantCount === 1 ? 'user' : 'users'})` : 'Open to Everyone'}
+                    </button>
+                  ) : (
+                    <span style={{ fontSize: 11.5, color: 'var(--ink3)', fontWeight: 500 }}>
+                      Disabled in workspace
+                    </span>
+                  )}
+
+                  {canManageModules && on && (
+                    <button
+                      type="button"
+                      className="s-mod-access-btn"
+                      onClick={() => setLicenseAppId(key)}
+                    >
+                      <Icon name="users" size={13} />
+                      Manage Access
                     </button>
                   )}
-                />
+                </div>
               </div>
             );
           })}
-        </SectionCard>
+        </div>
+      ) : (
+        /* ── Table List View ── */
+        <div className="s-mods-table-wrap">
+          <table className="s-mods-table">
+            <thead>
+              <tr>
+                <th style={{ width: '28%' }}>Application</th>
+                <th style={{ width: '18%' }}>Category</th>
+                <th style={{ width: '30%' }}>Description</th>
+                <th style={{ width: '16%' }}>Access Permission</th>
+                <th style={{ width: '8%', textAlign: 'right' }}>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredKeys.map(key => {
+                const catalog = MODULE_CATALOG[key];
+                const meta = catalog || APP_META[key] || { name: key, desc: '', category: 'Other', color: '#0d9488', status: 'Live' };
+                const on = overrides[key] ?? entitlements.features[key] ?? true;
+                const maintenance = entitlements.appStatus[key] === 'maintenance';
+                const isRestricted = !!licenseData?.restricted?.[key];
+                const grantCount = licenseData?.grants?.filter(g => g.app_id === key).length ?? 0;
+                const appColor = branding.getAppColor(key, catalog?.color || '#0d9488');
+                const logoUrl = branding.getAppLogo(key);
+                const isSaving = moduleSaving === key;
+
+                return (
+                  <tr key={key} style={{ opacity: on ? 1 : 0.65 }}>
+                    <td>
+                      <div className="s-mods-table-app">
+                        <div className="s-mods-table-icon" style={{ background: `${appColor}15`, border: `1px solid ${appColor}30` }}>
+                          <LauncherAppSvg id={key} color={appColor} logoUrl={logoUrl} size={28} />
+                        </div>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span className="s-mods-table-name">{branding.getAppName(key, meta.name)}</span>
+                            {meta.status === 'Beta' && <span className="s-mod-badge-beta">Beta</span>}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <span className="s-mods-table-cat">{meta.category}</span>
+                    </td>
+                    <td>
+                      <div style={{ fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.4 }}>
+                        {maintenance ? 'Under maintenance' : (branding.getAppSlogan(key, meta.desc) || meta.desc)}
+                      </div>
+                    </td>
+                    <td>
+                      {on ? (
+                        <button
+                          type="button"
+                          className={`s-mod-access-tag ${isRestricted ? 's-mod-access-tag--locked' : 's-mod-access-tag--open'}`}
+                          onClick={() => canManageModules && setLicenseAppId(key)}
+                          disabled={!canManageModules}
+                        >
+                          <Icon name={isRestricted ? 'lock' : 'globe'} size={12} />
+                          {isRestricted ? `Restricted (${grantCount})` : 'Open to All'}
+                        </button>
+                      ) : (
+                        <span style={{ fontSize: 12, color: 'var(--ink3)' }}>Disabled</span>
+                      )}
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                        {isSaving && <Icon name="refresh" size={13} className="animate-spin" color="var(--teal)" />}
+                        <Switch
+                          checked={on}
+                          disabled={!canManageModules || maintenance || isSaving}
+                          onCheckedChange={v => toggleModule(key, v)}
+                        />
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
+
+      {/* ── Executive "Who Has Access" License Modal ── */}
       {licenseAppId && (
-        <AppLicensePanel appId={licenseAppId} appName={APP_META[licenseAppId]?.name ?? licenseAppId} onClose={() => setLicenseAppId(null)} />
+        <AppLicensePanel
+          appId={licenseAppId}
+          appName={MODULE_CATALOG[licenseAppId]?.name ?? APP_META[licenseAppId]?.name ?? licenseAppId}
+          appColor={branding.getAppColor(licenseAppId, MODULE_CATALOG[licenseAppId]?.color ?? '#0d9488')}
+          onClose={() => setLicenseAppId(null)}
+          onUpdated={refreshLicenses}
+        />
       )}
     </div>
   );
 };
 
 /**
- * Per-seat license assignment — narrows a tenant-enabled app to specific
- * people. Off (the default) means every active user in the tenant can use
- * the app, exactly as before this existed; nothing changes until an admin
- * opts an app into restricted mode here.
+ * Redesigned Executive App License Panel Modal
  */
-function AppLicensePanel({ appId, appName, onClose }: { appId: string; appName: string; onClose: () => void }) {
+function AppLicensePanel({
+  appId,
+  appName,
+  appColor = 'var(--teal)',
+  onClose,
+  onUpdated,
+}: {
+  appId: string;
+  appName: string;
+  appColor?: string;
+  onClose: () => void;
+  onUpdated?: () => void;
+}) {
   const [restricted, setRestricted] = useState(false);
   const [grants, setGrants] = useState<{ user_id: string; user_name: string; user_email: string }[]>([]);
   const [staff, setStaff] = useState<{ id: string; name: string; email: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [addUserId, setAddUserId] = useState('');
   const [saving, setSaving] = useState(false);
+  const [searchGrantQuery, setSearchGrantQuery] = useState('');
+  const branding = useBranding();
 
   const load = useCallback(() => {
     setLoading(true);
@@ -2008,15 +2487,26 @@ function AppLicensePanel({ appId, appName, onClose }: { appId: string; appName: 
       setStaff(Array.isArray(s) ? s : (s?.data ?? []));
     }).finally(() => setLoading(false));
   }, [appId]);
+
   useEffect(() => { load(); }, [load]);
+
+  // Close on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
   async function toggleRestricted(next: boolean) {
     setSaving(true);
     try {
       await apiFetch(`/v1/settings/app-licenses/${appId}`, { method: 'PATCH', body: JSON.stringify({ restricted: next }) });
       setRestricted(next);
+      onUpdated?.();
     } catch (err: any) {
-      showAlert(err.message || 'Could not update that setting.', { variant: 'error' });
+      showAlert(err.message || 'Could not update license restriction.', { variant: 'error' });
     } finally {
       setSaving(false);
     }
@@ -2029,6 +2519,7 @@ function AppLicensePanel({ appId, appName, onClose }: { appId: string; appName: 
       await apiFetch(`/v1/settings/app-licenses/${appId}/grant`, { method: 'POST', body: JSON.stringify({ user_id: addUserId }) });
       setAddUserId('');
       load();
+      onUpdated?.();
     } catch (err: any) {
       showAlert(err.message || 'Could not grant access.', { variant: 'error' });
     } finally {
@@ -2041,6 +2532,7 @@ function AppLicensePanel({ appId, appName, onClose }: { appId: string; appName: 
     try {
       await apiFetch(`/v1/settings/app-licenses/${appId}/grant/${userId}`, { method: 'DELETE' });
       load();
+      onUpdated?.();
     } catch (err: any) {
       showAlert(err.message || 'Could not remove access.', { variant: 'error' });
     } finally {
@@ -2049,63 +2541,158 @@ function AppLicensePanel({ appId, appName, onClose }: { appId: string; appName: 
   }
 
   const unlicensedStaff = staff.filter(s => !grants.some(g => g.user_id === s.id));
+  const filteredGrants = grants.filter(g => {
+    if (!searchGrantQuery.trim()) return true;
+    const q = searchGrantQuery.toLowerCase();
+    return g.user_name.toLowerCase().includes(q) || g.user_email.toLowerCase().includes(q);
+  });
 
   return (
-    <div style={{ marginTop: 16, border: '1px solid var(--border)', borderRadius: 10, padding: 18, background: 'var(--white)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-        <div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{appName} — who has access</div>
-          <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>By default every active person in the workspace can open an enabled app.</div>
+    <div className="s-lic-backdrop" onClick={onClose}>
+      <div className="s-lic-modal" onClick={e => e.stopPropagation()}>
+        {/* Modal Header */}
+        <div className="s-lic-header">
+          <div className="s-lic-hdr-left">
+            <div className="s-lic-hdr-icon">
+              <LauncherAppSvg id={appId} color={appColor} logoUrl={branding.getAppLogo(appId)} size={38} />
+            </div>
+            <div>
+              <h3 className="s-lic-hdr-title">{appName} · Access Control</h3>
+              <p className="s-lic-hdr-desc">Manage workspace permissions and per-seat license assignments</p>
+            </div>
+          </div>
+          <button type="button" className="s-lic-close-btn" onClick={onClose} title="Close (Esc)">
+            <Icon name="x" size={18} />
+          </button>
         </div>
-        <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}><Icon name="x" size={16} /></button>
-      </div>
 
-      {loading ? (
-        <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>Loading…</div>
-      ) : (
-        <>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', marginBottom: 14 }}>
-            <input type="checkbox" checked={restricted} disabled={saving} onChange={e => toggleRestricted(e.target.checked)} style={{ cursor: 'pointer' }} />
-            <span style={{ fontSize: 13, color: 'var(--ink)' }}>Restrict {appName} to specific people</span>
-          </label>
-
-          {restricted && (
+        {/* Modal Body */}
+        <div className="s-lic-body">
+          {loading ? (
+            <div style={{ padding: '30px 0', textAlign: 'center', color: 'var(--ink3)' }}>
+              <Icon name="refresh" size={20} className="animate-spin" />
+              <div style={{ fontSize: 13, marginTop: 8 }}>Loading access privileges…</div>
+            </div>
+          ) : (
             <>
-              <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-                <Select value={addUserId} onValueChange={setAddUserId}>
-                  <SelectTrigger style={{ maxWidth: 300 }}><SelectValue placeholder="Add a person…" /></SelectTrigger>
-                  <SelectContent>
-                    {unlicensedStaff.map(s => <SelectItem key={s.id} value={s.id}>{s.name} — {s.email}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-                <Button size="sm" onClick={addPerson} disabled={!addUserId || saving}>Grant access</Button>
+              {/* Access Mode Card */}
+              <div className="s-lic-restrict-card">
+                <div className="s-lic-restrict-info">
+                  <h4 className="s-lic-restrict-title">
+                    {restricted ? 'Restricted Access (Per-seat License)' : 'Open to All Members (Default)'}
+                  </h4>
+                  <p className="s-lic-restrict-desc">
+                    {restricted
+                      ? 'Only explicitly granted team members below can view, launch, and use this module.'
+                      : 'Every active member in this workspace can access this module without restrictions.'}
+                  </p>
+                </div>
+                <Switch
+                  checked={restricted}
+                  disabled={saving}
+                  onCheckedChange={toggleRestricted}
+                />
               </div>
 
-              {grants.length === 0 ? (
-                <div style={{ fontSize: 12.5, color: 'var(--ink3)', padding: '12px 0' }}>Nobody has been granted access yet — this app is invisible to everyone until you add someone.</div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {grants.map(g => (
-                    <div key={g.user_id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: 'var(--bg)', borderRadius: 8 }}>
-                      <div>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{g.user_name}</div>
-                        <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>{g.user_email}</div>
-                      </div>
-                      <button type="button" onClick={() => removePerson(g.user_id)} disabled={saving}
-                        style={{ background: 'none', border: 'none', color: 'var(--red)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
-                        Remove
-                      </button>
+              {restricted && (
+                <>
+                  {/* Add Member Row */}
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8 }}>
+                      Grant Access to Team Member
                     </div>
-                  ))}
-                </div>
-              )}
+                    <div className="s-lic-add-wrap">
+                      <Combobox
+                        triggerClassName="flex-1"
+                        value={addUserId}
+                        onChange={setAddUserId}
+                        placeholder={unlicensedStaff.length === 0 ? 'All staff members granted' : 'Select a team member…'}
+                        searchPlaceholder="Search staff by name or email…"
+                        emptyText="No matching staff."
+                        disabled={unlicensedStaff.length === 0}
+                        options={unlicensedStaff.map(s => ({ value: s.id, label: s.name, sublabel: s.email }))}
+                      />
+                      <Button
+                        size="sm"
+                        onClick={addPerson}
+                        disabled={!addUserId || saving}
+                      >
+                        <Icon name="plus" size={14} style={{ marginRight: 4 }} />
+                        Grant Access
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Granted Members List */}
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                        Granted Members ({grants.length})
+                      </div>
+                      {grants.length > 3 && (
+                        <input
+                          type="text"
+                          placeholder="Filter members…"
+                          value={searchGrantQuery}
+                          onChange={e => setSearchGrantQuery(e.target.value)}
+                          style={{ fontSize: 11.5, padding: '3px 8px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg)', width: 140 }}
+                        />
+                      )}
+                    </div>
+
+                    {grants.length === 0 ? (
+                      <div className="s-lic-empty-state">
+                        <div style={{ fontSize: 22, marginBottom: 4 }}>🔒</div>
+                        <div style={{ fontWeight: 600, color: 'var(--ink)' }}>No members granted access yet</div>
+                        <div style={{ fontSize: 11.5, marginTop: 2 }}>With restricted access active and no members added, this app will remain hidden for everyone. Select a member above to grant access.</div>
+                      </div>
+                    ) : (
+                      <div className="s-lic-grant-list">
+                        {filteredGrants.map(g => {
+                          return (
+                            <div key={g.user_id} className="s-lic-grant-row">
+                              <div className="s-lic-user-meta">
+                                <PersonAvatar userId={g.user_id} name={g.user_name} size={32} />
+                                <div>
+                                  <div className="s-lic-user-name">{g.user_name}</div>
+                                  <div className="s-lic-user-email">{g.user_email}</div>
+                                </div>
+                              </div>
+                                <button
+                                  type="button"
+                                  className="s-lic-remove-btn"
+                                  onClick={() => removePerson(g.user_id)}
+                                  disabled={saving}
+                                  title="Revoke access"
+                                >
+                                  Revoke
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
             </>
           )}
-        </>
-      )}
+        </div>
+
+        {/* Modal Footer */}
+        <div className="s-lic-footer">
+          <span className="s-lic-footer-hint">
+            {restricted ? `${grants.length} members with licensed access` : 'Shared workspace module'}
+          </span>
+          <Button variant="outline" size="sm" onClick={onClose}>
+            Done
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }
+
 
 // -- section: Notifications --------------------------------------------------
 const NotificationsSection: React.FC = () => {
@@ -2464,7 +3051,7 @@ const ElsewhereSection: React.FC = () => (
         { to: '/finance/tax-codes',       label: 'Tax codes & rates',  desc: 'Duty and VAT codes used by declarations, invoices and landed cost.' },
         { to: '/finance/quotations',      label: 'Quotations',         desc: 'Templates, numbering and validity for customer quotes.' },
         { to: '/finance/purchase-orders', label: 'Purchase orders',    desc: 'Approval flow and numbering for POs.' },
-        { to: '/finance/expenses',        label: 'Expense categories', desc: 'The categories expenses are booked against.' },
+        { to: '/finance/expenses/categories', label: 'Expense categories', desc: 'The categories expenses are booked against.' },
       ].map(item => (
         <Link key={item.to} to={item.to} className="s-elsewhere-row">
           <div>
@@ -2480,158 +3067,17 @@ const ElsewhereSection: React.FC = () => (
 
 
 /**
- * The workspace's own identity.
- *
- * Branding lived only in the platform console, so a tenant administrator could
- * not put their own logo or colour on the workspace they pay for — even though
- * the theming engine is explicitly built to be overridden per tenant.
- *
- * What is offered here is bounded on purpose. The login screen is not: it is
- * pre-authentication and shared by every tenant, so one workspace rebranding it
- * would rebrand it for everyone.
+ * Workspace branding — logo, name, colour, favicon — used to live in its own
+ * section here (key 'branding'), separate from "Document Branding" (Company
+ * Information's own logo/favicon card, used on PDFs). Two upload flows for
+ * what most tenants want to be one identity, easy to let drift. Merged into
+ * CompanySection's now-renamed "Company Branding" card — one upload, one
+ * Save, writing both the document-branding store and pushTenantBranding()
+ * (the in-app UI: sidebar, browser tab, per-app accent) together. See that
+ * component. The pre-auth sign-in screen still isn't covered by either —
+ * it's shared by every workspace on the platform, so it's set by Hudumika,
+ * not here.
  */
-const BrandingSection: React.FC = () => {
-  const branding = useBranding();
-  const [workspaceName, setWorkspaceName] = useState('');
-  const [logoLight, setLogoLight] = useState('');
-  const [favicon, setFavicon] = useState('');
-  const [accentColor, setAccentColor] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-
-  useEffect(() => {
-    apiFetch('/v1/settings/branding')
-      .then((t: any) => {
-        setWorkspaceName(t?.workspaceName ?? '');
-        setLogoLight(t?.logoLight ?? '');
-        setFavicon(t?.favicon ?? '');
-        setAccentColor(t?.accentColor ?? '');
-      })
-      .catch(() => { /* a workspace with no branding of its own is the norm */ })
-      .finally(() => setLoading(false));
-  }, []);
-
-  /** Downscaled through the same helper avatars use, so one idea of an image. */
-  async function pickImage(file: File, set: (v: string) => void) {
-    try {
-      set(await squareAvatarDataUrl(file));
-    } catch {
-      showAlert('That image could not be read.', { variant: 'error' });
-    }
-  }
-
-  async function save() {
-    setSaving(true);
-    try {
-      // Empty string clears the override and falls back to the platform's,
-      // which is why it is sent rather than omitted.
-      await pushTenantBranding({
-        workspaceName: workspaceName.trim(),
-        logoLight,
-        favicon,
-        accentColor: accentColor.trim(),
-      });
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2200);
-    } catch (e: any) {
-      showAlert(e?.message || 'That branding could not be saved.', { variant: 'error' });
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  if (loading) return <Card title="Workspace branding"><p className="s-muted">Loading…</p></Card>;
-
-  return (
-    <>
-      <Card
-        title="Workspace branding"
-        desc="Your logo, name and colour, as everyone in this workspace sees them. Leave a field empty to use the platform default."
-        action={
-          <button type="button" className="btn btn-primary" onClick={save} disabled={saving}>
-            {saving ? 'Saving…' : saved ? 'Saved' : 'Save branding'}
-          </button>
-        }
-      >
-        <Field label="Workspace name" hint="Shown in the browser tab and beside the logo.">
-          <input
-            className="input-field"
-            value={workspaceName}
-            onChange={e => setWorkspaceName(e.target.value)}
-            placeholder={branding.platformName}
-          />
-        </Field>
-
-        <Field label="Brand colour" hint="Used by apps that have no colour of their own. Apps keep their own colours by design.">
-          <div className="s-brand-colour">
-            <input
-              type="color"
-              value={/^#[0-9a-fA-F]{6}$/.test(accentColor) ? accentColor : '#0f766e'}
-              onChange={e => setAccentColor(e.target.value)}
-              aria-label="Brand colour"
-            />
-            <input
-              className="input-field"
-              value={accentColor}
-              onChange={e => setAccentColor(e.target.value)}
-              placeholder="#0f766e"
-            />
-            {accentColor && (
-              <button type="button" className="s-brand-clear" onClick={() => setAccentColor('')}>Clear</button>
-            )}
-          </div>
-        </Field>
-
-        <Field label="Logo" full>
-          <div className="s-brand-img">
-            {logoLight
-              ? <img src={logoLight} alt="Workspace logo" />
-              : <div className="s-brand-img-none">Using the platform logo</div>}
-            <div className="s-brand-img-actions">
-              <label className="btn btn-secondary btn-sm">
-                {logoLight ? 'Replace' : 'Upload'}
-                <input type="file" accept="image/*" hidden
-                  onChange={e => { const f = e.target.files?.[0]; if (f) pickImage(f, setLogoLight); }} />
-              </label>
-              {logoLight && (
-                <button type="button" className="s-brand-clear" onClick={() => setLogoLight('')}>Remove</button>
-              )}
-            </div>
-          </div>
-        </Field>
-
-        <Field label="Favicon" full>
-          <div className="s-brand-img">
-            {favicon
-              ? <img src={favicon} alt="Workspace favicon" className="s-brand-favicon" />
-              : <div className="s-brand-img-none">Using the platform favicon</div>}
-            <div className="s-brand-img-actions">
-              <label className="btn btn-secondary btn-sm">
-                {favicon ? 'Replace' : 'Upload'}
-                <input type="file" accept="image/*" hidden
-                  onChange={e => { const f = e.target.files?.[0]; if (f) pickImage(f, setFavicon); }} />
-              </label>
-              {favicon && (
-                <button type="button" className="s-brand-clear" onClick={() => setFavicon('')}>Remove</button>
-              )}
-            </div>
-          </div>
-        </Field>
-      </Card>
-
-      <Card title="What this does not change" desc="So nobody goes looking for a control that is deliberately absent.">
-        <p className="s-muted">
-          The sign-in screen is shared by every workspace on the platform, so its
-          logo and wording are set by Hudumika rather than here. Each app also keeps
-          its own colour — ClearOS orange, SEAL green — because telling them apart
-          at a glance is what those colours are for; your brand colour applies to
-          apps that have none.
-        </p>
-      </Card>
-    </>
-  );
-};
 
 
 /**
@@ -2703,7 +3149,8 @@ function renderSection(key: string): React.ReactNode {
   switch (key) {
     case 'company':             return <CompanySection />;
     case 'elsewhere':           return <ElsewhereSection />;
-    case 'branding':            return <BrandingSection />;
+    // Merged into Company Information's own "Company Branding" card.
+    case 'branding':            return <CompanySection />;
     case 'localization':        return <LocalizationSection />;
     case 'landing-experience':  return <LandingExperienceSection />;
     case 'email':               return <EmailSection />;
@@ -2716,7 +3163,9 @@ function renderSection(key: string): React.ReactNode {
     case 'tax-rates':           return <TaxRatesSection />;
     case 'currencies':          return <CurrenciesSection />;
     case 'payment-gateways':    return <PaymentGatewaysSection />;
-    case 'expenses-categories': return <ExpensesCategoriesSection />;
+    // Moved to FinOps ▸ Expenses ▸ Manage Categories (/finance/expenses/
+    // categories) — same underlying tenant_settings key, real page now.
+    case 'expenses-categories': return <ElsewhereSection />;
     case 'int-google':          return <GoogleSection />;
     case 'int-pusher':          return <PusherSection />;
     case 'int-shipsgo':         return <ShipsGoSection />;
@@ -2737,6 +3186,9 @@ function renderSection(key: string): React.ReactNode {
 
 function getSectionTitle(key: string): string {
   if (key === 'modules') return 'Modules & Extensions';
+  // No longer its own NAV entry — see renderSection's redirects.
+  if (key === 'branding') return 'Company Information';
+  if (key === 'expenses-categories') return 'Finance setup';
   return NAV.flatMap(g => g.items).find(i => i.key === key)?.label ?? 'Settings';
 }
 
@@ -2770,49 +3222,52 @@ export const Settings: React.FC = () => {
     setGlobalSettings(prev => ({ ...prev, [key]: data }));
   };
 
+  const sectionTitle = getSectionTitle(current);
+  const { plain, em } = splitTitle(sectionTitle);
+
+  const getSubtitle = (key: string): string => {
+    switch (key) {
+      case 'modules':
+        return 'Manage active applications, license assignments, and access policies for this workspace.';
+      case 'company':
+      case 'branding':
+        return 'Organization identity, profile, and branding configuration.';
+      case 'localization':
+        return 'Configure workspace timezone, language, and regional preferences.';
+      case 'landing-experience':
+        return 'Customize default landing app and initial workspace overview.';
+      case 'email':
+        return 'SMTP credentials and outbound email dispatch settings.';
+      case 'notifications':
+        return 'Alert rules, notification channels, and operational thresholds.';
+      case 'finance-general':
+        return 'Finance defaults, fiscal calendar, and accounting preferences.';
+      case 'payment-gateways':
+        return 'Online payment providers and direct gateway integrations.';
+      case 'invoices':
+        return 'Invoice prefixing, numbering sequences, and payment terms.';
+      case 'developer-api':
+        return 'API keys, webhooks, and developer authorization credentials.';
+      default:
+        return 'Configure organization preferences and workspace controls.';
+    }
+  };
+
   return (
     <SettingsCtx.Provider value={{ s: globalSettings, save: saveSection }}>
-    <div className="sett-root">
-
-      {/* Section navigation now lives in the main app sidebar (AdminShell.tsx
-          builds it straight from this file's own NAV export) — this page is
-          just its content pane, full width, no second inner sidebar. */}
-      <div className={isMobile ? 'sett-content sett-content--mob' : 'sett-content'}>
-
-        {/* Breadcrumb */}
-        {!isMobile && (
-          <div className="sett-bc">
-            <div className="sett-bc-root">
-              <Icon name="building" size={12} color="var(--ink3)" />
-              Organization Settings
-            </div>
-            <Icon name="chevronRight" size={12} color="var(--ink3)" />
-            <div className="sett-bc-cur">
-              {getSectionTitle(current)}
-            </div>
-          </div>
-        )}
-
-        {/* The strip that used to sit here reported v2.1.0, "4 / 8" active
-            modules, "0 live" integrations, "Healthy" and a last backup of
-            "Today" — every one of them hardcoded. The backup line was the worst
-            of it: this platform has no backup system, so it asserted something
-            that could not be true. What is left is the two figures that can be
-            counted for real. */}
-        {current === 'company' && <WorkspaceFacts />}
-
-        {/* The house header, driven by the selected section — the same split
-            HRM.tsx and SuperAdmin.tsx use, so this console reads like every
-            other page in the platform instead of hand-rolling an h1. */}
+      <div className="sett-page">
+        {/* The house header, driven by the selected section */}
         <PageHeader
           crumbs={['Workspace', 'Settings']}
-          titlePlain={splitTitle(getSectionTitle(current)).plain}
-          titleEm={splitTitle(getSectionTitle(current)).em}
+          titlePlain={plain}
+          titleEm={em}
+          subtitle={getSubtitle(current)}
         />
+
+        {current === 'company' && <WorkspaceFacts />}
+
         {renderSection(current)}
       </div>
-
-    </div>
     </SettingsCtx.Provider>
   );
 };

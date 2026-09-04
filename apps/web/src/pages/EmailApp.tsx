@@ -5,6 +5,7 @@ import { PersonAvatar } from '../components/PersonAvatar.js';
 import { apiFetch } from '../lib/api.js';
 import { MobileNavContext } from '../shells/WorkspaceApp.js';
 import { showAlert } from '../lib/alert.js';
+import { addTodo } from '../data/calendarStore.js';
 import './EmailApp.css';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -179,6 +180,17 @@ export const EmailApp: React.FC = () => {
   const [aiSummary, setAiSummary] = useState<string | null>(null);
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
 
+  // AI suggested task — same idea as Gmail's Gemini "Suggested task" banner.
+  // Runs automatically per email (Inbox only — a suggested task on something
+  // you sent or discarded makes no sense), cached per email id for the
+  // session so re-opening an already-checked email doesn't re-call the model.
+  interface TaskSuggestion { hasTask: boolean; title: string; dueDate: string | null }
+  const taskCache = useRef<Record<string, TaskSuggestion>>({});
+  const [taskSuggestion, setTaskSuggestion] = useState<TaskSuggestion | null>(null);
+  const [taskChecking, setTaskChecking] = useState(false);
+  const [taskAdded, setTaskAdded] = useState(false);
+  const [taskDismissed, setTaskDismissed] = useState(false);
+
   // ── Email fetching ────────────────────────────────────────────────────────────
 
   const loadEmails = useCallback(async () => {
@@ -218,6 +230,50 @@ export const EmailApp: React.FC = () => {
 
   const selectedEmail = emails.find(e => e.id === selectedId) ?? null;
 
+  // Inbox only — a "suggested task" on a message you sent or discarded
+  // doesn't make sense. Skips near-empty bodies too (nothing for the model
+  // to genuinely find an action item in). Silent no-op if AI isn't
+  // configured for this tenant (400) or the call otherwise fails — this
+  // runs automatically on every open, so it must never surface an error the
+  // way a user-triggered action (AI Summary) can.
+  useEffect(() => {
+    if (!selectedEmail || selectedEmail.folder !== 'inbox' || selectedEmail.body.trim().length < 20) {
+      setTaskSuggestion(null);
+      setTaskChecking(false);
+      return;
+    }
+    const cached = taskCache.current[selectedEmail.id];
+    if (cached) { setTaskSuggestion(cached); return; }
+
+    setTaskSuggestion(null);
+    setTaskChecking(true);
+    apiFetch('/v1/ai/extract-task', {
+      method: 'POST',
+      body: JSON.stringify({ subject: selectedEmail.subject, body: selectedEmail.body }),
+    }).then(res => {
+      const result: TaskSuggestion = res?.hasTask
+        ? { hasTask: true, title: res.title, dueDate: res.dueDate ?? null }
+        : { hasTask: false, title: '', dueDate: null };
+      taskCache.current[selectedEmail.id] = result;
+      setTaskSuggestion(result);
+    }).catch(() => {
+      // AI not configured, or the call failed — no banner, no error shown.
+      taskCache.current[selectedEmail.id] = { hasTask: false, title: '', dueDate: null };
+      setTaskSuggestion(null);
+    }).finally(() => setTaskChecking(false));
+  }, [selectedEmail]);
+
+  function addSuggestedTask() {
+    if (!taskSuggestion?.hasTask || !selectedEmail) return;
+    addTodo({
+      title: taskSuggestion.title,
+      due: taskSuggestion.dueDate ?? undefined,
+      subjectType: 'email',
+      subjectId: selectedEmail.id,
+    });
+    setTaskAdded(true);
+  }
+
   const allVisible = (() => {
     let list = emails.filter(e => {
       if (activeFolder === 'starred') return e.starred;
@@ -247,6 +303,8 @@ export const EmailApp: React.FC = () => {
     setReplyOpen(false);
     setAiSummary(null);
     setAiPanelOpen(false);
+    setTaskAdded(false);
+    setTaskDismissed(false);
     const em = emails.find(e => e.id === id);
     if (em && !em.read) {
       setEmails(prev => prev.map(e => e.id === id ? { ...e, read: true } : e));
@@ -515,6 +573,34 @@ export const EmailApp: React.FC = () => {
                   <span key={l} className="em-label-chip" style={{ background: `color-mix(in srgb, ${LABEL_COLORS[l]} 12%, transparent)`, color: LABEL_COLORS[l] }}>{l}</span>
                 ))}
               </h2>
+
+              {taskSuggestion?.hasTask && !taskDismissed && (
+                <div className="em-task-banner">
+                  <div className="em-task-banner-row">
+                    <div className="em-task-banner-icon">
+                      <Icon name="checkCircle" size={16} color="var(--teal)" />
+                    </div>
+                    <div className="em-task-banner-body">
+                      <div className="em-task-banner-lbl">Suggested task</div>
+                      <div className="em-task-banner-title">
+                        {taskSuggestion.title}
+                        {taskSuggestion.dueDate && (
+                          <span className="em-task-banner-due"> · Due {new Date(taskSuggestion.dueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
+                        )}
+                      </div>
+                    </div>
+                    {taskAdded ? (
+                      <span className="em-task-banner-added"><Icon name="check" size={13} /> Added to Tasks</span>
+                    ) : (
+                      <button type="button" className="em-task-banner-btn" onClick={addSuggestedTask}>Remind me</button>
+                    )}
+                    <button type="button" className="em-icon-btn em-icon-btn--ghost" title="Dismiss" onClick={() => setTaskDismissed(true)}>
+                      <Icon name="x" size={14} />
+                    </button>
+                  </div>
+                  <div className="em-task-banner-hint">AI-suggested from this email's content — double-check before relying on it.</div>
+                </div>
+              )}
 
               <div className="em-detail-from-row">
                 <PersonAvatar userId={selectedEmail.from.userId} name={selectedEmail.from.name} size={44} />

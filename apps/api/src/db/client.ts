@@ -2210,6 +2210,11 @@ export interface HrDevicesTable {
   last_used_at: Generated<Date>;
   created_at: Generated<Date>;
   revoked_at: Date | null;
+  /** Real platform/architecture telemetry reported by the browser's own
+   *  User-Agent Client Hints API (navigator.userAgentData) — see migration
+   *  390. Null until the frontend reports it once for this session, or
+   *  permanently for a browser that doesn't support Client Hints at all. */
+  client_hints: Record<string, unknown> | null;
 }
 
 export interface HrActivityLogTable {

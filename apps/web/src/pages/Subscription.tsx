@@ -7,6 +7,7 @@ import { apiFetch, apiDownload } from '../lib/api.js';
 import './Subscription.css';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Switch } from '../components/ui/switch.js';
+import { Badge } from '../components/ui/badge.js';
 import { useCompany, setCompany } from '../data/companyStore.js';
 import { useEntitlements, resetEntitlementsCache } from '../hooks/useEntitlements.js';
 import { APP_META } from './Utilities.js';
@@ -61,7 +62,7 @@ function usePlans(): Record<PlanKey, PlanDisplay> {
           next[pkg.code as PlanKey] = {
             name: pkg.name,
             color: pkg.color,
-            bg: PLAN_BG[pkg.code] ?? '#f4f5f7',
+            bg: PLAN_BG[pkg.code] ?? 'var(--teal-l)',
             pricePerSeat: pkg.price_per_seat,
             itemLimit: pkg.monthly_item_limit,
             badge: pkg.popular ? 'Most Popular' : undefined,
@@ -183,17 +184,17 @@ function StatusBadge({ status }: { status: string }) {
   // Keys are case-insensitive so this covers both the old display-cased fixture
   // strings (Paid/Open/High…) and the real API's UPPER_SNAKE enums (OPEN, IN_PROGRESS,
   // due/paid/overdue/cancelled) without needing two lookup tables.
-  const cfg: Record<string, { bg: string; color: string }> = {
-    PAID:     { bg: 'var(--green-l)', color: '#059669' }, DUE:        { bg: 'var(--gold-l)', color: 'var(--gold)' },
-    OVERDUE:  { bg: 'var(--red-l)', color: 'var(--red)' }, CANCELLED:  { bg: '#f1f5f9', color: 'var(--ink2)' },
-    OPEN:     { bg: 'var(--blue-l)', color: '#2563eb' }, IN_PROGRESS:{ bg: 'var(--gold-l)', color: 'var(--gold)' },
-    RESOLVED: { bg: 'var(--green-l)', color: '#059669' }, CLOSED:     { bg: '#f1f5f9', color: 'var(--ink2)' },
-    HIGH:     { bg: 'var(--red-l)', color: 'var(--red)' }, URGENT:     { bg: 'var(--red-l)', color: 'var(--red)' },
-    NORMAL:   { bg: 'var(--gold-l)', color: 'var(--gold)' }, MEDIUM:     { bg: 'var(--gold-l)', color: 'var(--gold)' }, LOW: { bg: '#f1f5f9', color: 'var(--ink2)' },
-    ACTIVE:   { bg: 'var(--green-l)', color: '#059669' },
+  const variants: Record<string, 'success' | 'warning' | 'error' | 'info' | 'gray'> = {
+    PAID: 'success', DUE: 'warning',
+    OVERDUE: 'error', CANCELLED: 'gray',
+    OPEN: 'info', IN_PROGRESS: 'warning',
+    RESOLVED: 'success', CLOSED: 'gray',
+    HIGH: 'error', URGENT: 'error',
+    NORMAL: 'warning', MEDIUM: 'warning', LOW: 'gray',
+    ACTIVE: 'success',
   };
-  const c = cfg[status.toUpperCase()] || cfg.LOW;
-  return <span style={{ padding: '2px 9px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: c.bg, color: c.color, whiteSpace: 'nowrap' }}>{status}</span>;
+  const variant = variants[status.toUpperCase()] || 'gray';
+  return <Badge variant={variant} style={{ whiteSpace: 'nowrap' }}>{status}</Badge>;
 }
 
 function Btn({ label, icon, onClick, variant = 'ghost', disabled = false }: { label: string; icon?: IconName; onClick?: () => void; variant?: 'primary' | 'ghost' | 'danger'; disabled?: boolean }) {
@@ -223,22 +224,10 @@ function FormRow({ label, children }: { label: string; children: React.ReactNode
 
 function CompanyInfoTab({ tenant }: { tenant: any }) {
   const co = useCompany();
-  const { user } = useAuth();
-  const [editingInfo, setEditingInfo] = useState(false);
   const [editingReg, setEditingReg] = useState(false);
-  const [infoForm, setInfoForm] = useState(co);
   const [regForm, setRegForm] = useState(co);
 
-  function startEditInfo() { setInfoForm(co); setEditingInfo(true); }
   function startEditReg() { setRegForm(co); setEditingReg(true); }
-  function saveInfo() {
-    setCompany({
-      name: infoForm.name, taxId: infoForm.taxId, businessType: infoForm.businessType,
-      contactPerson: infoForm.contactPerson, email: infoForm.email, phone: infoForm.phone,
-      address: infoForm.address, country: infoForm.country,
-    });
-    setEditingInfo(false);
-  }
   function saveReg() {
     setCompany({
       customsAgentLicence: regForm.customsAgentLicence, licenceExpiry: regForm.licenceExpiry,
@@ -258,44 +247,12 @@ function CompanyInfoTab({ tenant }: { tenant: any }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 20 }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-        {/* Company details */}
-        <Card>
-          <CardHead
-            title="Company Information"
-            sub="Details registered with Hudumika for this account — shared across Finance, ClearOS and every app that prints your company info."
-            right={
-              editingInfo ? (
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <Btn label="Cancel" onClick={() => setEditingInfo(false)} />
-                  <Btn label="Save Changes" icon="save" onClick={saveInfo} variant="primary" />
-                </div>
-              ) : (
-                <Btn label="Edit" icon="edit" onClick={startEditInfo} />
-              )
-            }
-          />
-          <div style={{ padding: '0 20px 20px' }}>
-            {([
-              ['Company Name', 'name'], ['TIN / Tax ID', 'taxId'], ['Business Type', 'businessType'],
-              ['Contact Person', 'contactPerson'], ['Email Address', 'email'], ['Phone', 'phone'],
-              ['Physical Address', 'address'], ['Country', 'country'],
-            ] as const).map(([label, key]) => (
-              <FormRow key={key} label={label}>
-                {editingInfo ? (
-                  <input value={infoForm[key]} onChange={e => setInfoForm(f => ({ ...f, [key]: e.target.value }))} className="input-field" style={{ fontSize: 13, padding: '7px 12px', width: '100%' }} />
-                ) : (
-                  <span style={{ fontSize: 13, color: 'var(--ink)' }}>{co[key] || '—'}</span>
-                )}
-              </FormRow>
-            ))}
-          </div>
-        </Card>
-
-        {/* Licence number */}
+        {/* Company name, logo, contact and address fields live in Settings > Company Info
+            (the single source for that data, shared across every app) — not duplicated here. */}
         <Card>
           <CardHead
             title="Regulatory Details"
-            sub="Customs authority credentials and clearance licence."
+            sub={`Customs authority credentials and clearance licence for ${co.name || 'this account'}. Company profile and logo are managed in Settings → Company Info.`}
             right={
               editingReg ? (
                 <div style={{ display: 'flex', gap: 8 }}>
@@ -325,7 +282,7 @@ function CompanyInfoTab({ tenant }: { tenant: any }) {
 
       </div>
 
-      {/* Right: plan summary + logo */}
+      {/* Right: plan summary */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Card>
           <CardHead title="Active Subscription" />
@@ -363,30 +320,6 @@ function CompanyInfoTab({ tenant }: { tenant: any }) {
                 )}
               </div>
             )}
-          </div>
-        </Card>
-
-        <Card>
-          <CardHead title="Company Logo" />
-          <div style={{ padding: '20px', textAlign: 'center' }}>
-            <div style={{ width: 80, height: 80, borderRadius: 9, background: 'var(--bg)', border: '2px dashed var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px', overflow: 'hidden' }}>
-              {co.logoUrl ? (
-                <img src={co.logoUrl} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-              ) : (
-                <Icon name="building" size={28} strokeWidth={1.5} style={{ color: 'var(--ink3)' } as React.CSSProperties} />
-              )}
-            </div>
-            <input type="file" id="logo-upload" style={{ display: 'none' }} accept="image/*" onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (!file) return;
-              const reader = new FileReader();
-              reader.onload = (ev) => {
-                setCompany({ logoUrl: ev.target?.result as string });
-              };
-              reader.readAsDataURL(file);
-            }} />
-            <Btn label="Upload Logo" icon="upload" onClick={() => document.getElementById('logo-upload')?.click()} />
-            <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 8 }}>PNG or SVG, max 2 MB</div>
           </div>
         </Card>
       </div>
@@ -492,7 +425,7 @@ function BillingTab({ tenant, onNavigateTab }: { tenant: any; onNavigateTab: (t:
                     <Icon name={item.icon} size={12} strokeWidth={2} style={{ color: 'var(--ink3)' } as React.CSSProperties} />
                     <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{item.label}</span>
                   </div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: item.green ? '#047857' : 'var(--ink)' }}>{item.value}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: item.green ? 'var(--green)' : 'var(--ink)' }}>{item.value}</div>
                 </div>
               ))}
             </div>
@@ -676,13 +609,13 @@ function PaymentsTab({ onNavigateTab }: { tenant?: any; onNavigateTab: (t: SubTa
             {methods?.length === 0 && !showAddForm && <div style={{ padding: '14px 0', fontSize: 12.5, color: 'var(--ink3)' }}>No payment methods yet — add one below.</div>}
             {methods?.map((m) => (
               <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 0', borderBottom: '1px solid var(--border)' }}>
-                <div style={{ width: 52, height: 36, borderRadius: 6, background: m.is_default ? '#1a3260' : 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <div style={{ width: 52, height: 36, borderRadius: 6, background: m.is_default ? 'var(--navy2)' : 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <Icon name={m.type === 'mobile_money' ? 'smartphone' : 'creditCard'} size={18} strokeWidth={1.75} style={{ color: m.is_default ? '#fff' : 'var(--ink3)' } as React.CSSProperties} />
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>
                     {m.label || m.brand}{m.last4 ? ` •••• ${m.last4}` : ''}
-                    {m.is_default && <span style={{ marginLeft: 8, padding: '1px 7px', borderRadius: 9, background: 'var(--green-l)', color: '#059669', fontSize: 10, fontWeight: 700 }}>Default</span>}
+                    {m.is_default && <span style={{ marginLeft: 8, padding: '1px 7px', borderRadius: 9, background: 'var(--green-l)', color: 'var(--green)', fontSize: 10, fontWeight: 700 }}>Default</span>}
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>{m.exp_month && m.exp_year ? `Expires ${String(m.exp_month).padStart(2, '0')}/${m.exp_year}` : (m.type === 'mobile_money' ? 'Mobile money' : '')}</div>
                 </div>
@@ -873,13 +806,13 @@ function AddonsSection() {
         {addons.map(addon => (
           <div key={addon.id} style={{ border: '1px solid var(--border)', borderRadius: 9, padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 10 }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-              <span style={{ width: 36, height: 36, borderRadius: 9, background: `${addon.color ?? '#e8461a'}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <span style={{ width: 36, height: 36, borderRadius: 9, background: addon.color ? `${addon.color}18` : 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Icon name="globe" size={16} strokeWidth={1.75} style={{ color: addon.color ?? 'var(--teal)' } as React.CSSProperties} />
               </span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                   <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--navy)' }}>{addon.name}</span>
-                  {addon.purchased && <span style={{ padding: '1px 8px', borderRadius: 20, background: 'var(--green-l)', color: '#059669', fontSize: 10, fontWeight: 700 }}>Active</span>}
+                  {addon.purchased && <span style={{ padding: '1px 8px', borderRadius: 20, background: 'var(--green-l)', color: 'var(--green)', fontSize: 10, fontWeight: 700 }}>Active</span>}
                 </div>
                 <div style={{ fontSize: 15, fontWeight: 800, color: addon.color ?? 'var(--navy)', marginTop: 2 }}>
                   ${addon.monthlyPrice}<span style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink3)' }}>/mo</span>
@@ -924,10 +857,9 @@ function PlansTab({ tenant, onReload }: { tenant: any; onReload: () => Promise<v
           <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--navy)' }}>Choose Your Plan</div>
           <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 3 }}>All plans include a 14-day free trial. Cancel anytime.</div>
         </div>
-        <div className="sub-billing-toggle" style={{ background: 'var(--bg)', border: '1.5px solid var(--border)' }}>
+        <div className="sub-billing-toggle">
           {(['monthly', 'yearly'] as const).map(b => (
             <button key={b} className={`sub-toggle-btn${billing === b ? ' active' : ''}`}
-               style={billing === b ? { background: 'var(--navy)', color: '#fff' } : { color: 'var(--ink3)' }}
                onClick={() => setBilling(b)}>
               {b.charAt(0).toUpperCase() + b.slice(1)}
               {b === 'yearly' && <span className="sub-toggle-badge">Save ~17%</span>}
@@ -984,14 +916,14 @@ function PlansTab({ tenant, onReload }: { tenant: any; onReload: () => Promise<v
                 <a
                   href="mailto:sales@hudumika.tz?subject=Enterprise%20Plan%20Inquiry"
                   className="sub-card-cta"
-                  style={{ background: 'var(--plan-color)', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                 >
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>Talk to Sales <Icon name="arrowRight" size={13} strokeWidth={2.5} /></span>
                 </a>
               ) : (
                 <button
                   className={`sub-card-cta${isCurrent ? ' sub-card-cta--current' : ''}`}
-                  style={isCurrent ? undefined : { background: 'var(--plan-color)' }}
+                  style={isCurrent ? undefined : { background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' }}
                   disabled={isCurrent}
                   onClick={() => handleSelectPlan(k)}
                 >
@@ -1040,7 +972,7 @@ function PlansTab({ tenant, onReload }: { tenant: any; onReload: () => Promise<v
               <div key={feat} style={{ display: 'grid', gridTemplateColumns: `1fr repeat(${PLAN_ORDER.length}, 150px)`, borderBottom: '1px solid var(--border)' }}>
                 <div style={{ padding: '11px 20px', fontSize: 13, color: 'var(--ink2)' }}>{feat}</div>
                 {vals.map((v, i) => (
-                  <div key={i} style={{ padding: '11px 14px', textAlign: 'center', borderLeft: '1px solid var(--border)', fontSize: 13, color: v === '—' ? 'var(--ink3)' : '#059669', fontWeight: v === '—' ? 400 : 600 }}>{v}</div>
+                  <div key={i} style={{ padding: '11px 14px', textAlign: 'center', borderLeft: '1px solid var(--border)', fontSize: 13, color: v === '—' ? 'var(--ink3)' : 'var(--green)', fontWeight: v === '—' ? 400 : 600 }}>{v}</div>
                 ))}
               </div>
             ))}
@@ -1328,13 +1260,13 @@ function SupportTab() {
           <CardHead title="Contact Us" />
           <div style={{ padding: '12px 20px 16px' }}>
             {[
-              { icon: 'headphones' as IconName, label: 'Priority Support', sub: 'Enterprise: 4h response SLA', color: '#6e40c9', href: undefined },
-              { icon: 'mail'       as IconName, label: 'Email Support',    sub: 'support@hudumika.tz',         color: 'var(--teal)', href: 'mailto:support@hudumika.tz' },
-              { icon: 'chatBubble' as IconName, label: 'WhatsApp Chat',    sub: '+255 800 123 456',            color: '#059669', href: 'https://wa.me/255800123456' },
+              { icon: 'headphones' as IconName, label: 'Priority Support', sub: 'Enterprise: 4h response SLA', color: 'var(--purple)', bg: 'var(--purple-l)', href: undefined },
+              { icon: 'mail'       as IconName, label: 'Email Support',    sub: 'support@hudumika.tz',         color: 'var(--teal)', bg: 'var(--teal-l)', href: 'mailto:support@hudumika.tz' },
+              { icon: 'chatBubble' as IconName, label: 'WhatsApp Chat',    sub: '+255 800 123 456',            color: 'var(--green)', bg: 'var(--green-l)', href: 'https://wa.me/255800123456' },
             ].map(c => {
               const row = (
                 <div style={{ display: 'flex', gap: 12, padding: '12px 0', borderBottom: '1px solid var(--border)', alignItems: 'center', cursor: c.href ? 'pointer' : 'default' }}>
-                  <div style={{ width: 38, height: 38, borderRadius: 9, background: c.color + '18', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <div style={{ width: 38, height: 38, borderRadius: 9, background: c.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <Icon name={c.icon} size={17} strokeWidth={1.75} style={{ color: c.color } as React.CSSProperties} />
                   </div>
                   <div>
@@ -1429,7 +1361,7 @@ export const Subscription: React.FC = () => {
   const planLabel = tenantPlan.charAt(0).toUpperCase() + tenantPlan.slice(1);
 
   return (
-    <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)', fontFamily: 'var(--font)' }}>
+    <div className="sub-account-root" style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)', fontFamily: 'var(--font)' }}>
 
       {/* ── Hero header ── */}
       <div className="sub-hero2" style={{ background: 'linear-gradient(135deg, #0f2942 0%, #1a4f8a 100%)', position: 'relative', overflow: 'hidden' }}>
@@ -1440,13 +1372,13 @@ export const Subscription: React.FC = () => {
         <div className="sub-hero-topline" style={{ position: 'relative', zIndex: 1 }}>
           <div>
             {/* breadcrumb */}
-            <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.5)', fontSize: 12, marginBottom: 10, padding: 0, fontFamily: 'var(--font)', textDecoration: 'none' }}>
+            <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.5)', fontSize: 12, marginBottom: 6, padding: 0, fontFamily: 'var(--font)', textDecoration: 'none' }}>
               <Icon name="chevronLeft" size={13} strokeWidth={2} /> Ops Command
             </Link>
-            <div style={{ fontSize: 22, fontWeight: 800, color: '#fff', marginBottom: 4 }}>Subscription & Account</div>
-            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>{tenantName} — {planLabel} Plan</div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: '#fff', marginBottom: 3 }}>Subscription & Account</div>
+            <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.6)' }}>{tenantName} — {planLabel} Plan</div>
           </div>
-          <div style={{ display: 'flex', gap: 8, paddingTop: 10 }}>
+          <div style={{ display: 'flex', gap: 8, paddingTop: 2 }}>
             <div style={{ padding: '5px 12px', borderRadius: 20, background: 'rgba(255,255,255,0.1)', color: '#fff', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
               <span style={{ width: 6, height: 6, borderRadius: '50%', background: tenant?.active ? '#4ade80' : '#ef4444', display: 'inline-block' }} /> {tenant?.active ? 'ACTIVE' : 'INACTIVE'}
             </div>
@@ -1457,12 +1389,12 @@ export const Subscription: React.FC = () => {
         <div className="sub-hero-tabbar">
           {TABS.map(t => (
             <button key={t.id} type="button" onClick={() => setTab(t.id)} style={{
-              display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px',
+              display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py-sm) 14px',
               border: 'none', borderBottom: `2px solid ${tab === t.id ? '#fff' : 'transparent'}`,
               background: 'none', cursor: 'pointer', fontFamily: 'var(--font)',
               fontSize: 13, fontWeight: tab === t.id ? 700 : 500,
               color: tab === t.id ? '#fff' : 'rgba(255,255,255,0.5)',
-              transition: 'all 0.15s', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+              transition: 'all 0.15s', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
               <Icon name={t.icon} size={13} strokeWidth={tab === t.id ? 2.5 : 2} />
               {t.label}
             </button>

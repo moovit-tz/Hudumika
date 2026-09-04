@@ -6,14 +6,21 @@ import { withTenant } from '../db/client.js';
  * version of that engine weighted signals (mobile-money score, AI graph
  * score, utility score) the branch had no real data source for, and it was
  * never actually called from anywhere. It was rewritten to only the signals
- * genuinely observed. Same move here, one level further: of that rewritten
- * engine's 5 signals, only 3 have a real source in this platform today —
- * `creditBehavior` (no lending feature exists) and `deviceRisk` (no
- * device-risk classification exists) are dropped rather than kept as
- * permanently-inert zero-weight code. Their combined weight (0.10 + 0.10)
- * is redistributed proportionally across the 3 real signals so the weights
- * still sum to 1.0: kycTier 0.45→0.5625, phoneTenure 0.15→0.1875,
- * authConsistency 0.20→0.25.
+ * genuinely observed.
+ *
+ * That rewrite dropped `creditBehavior` and `deviceRisk` (no lending feature,
+ * no device-risk classification existed at the time) and redistributed their
+ * weight across the remaining 3. Two of those gaps have since closed: MFA
+ * enrollment (`user_totp.enabled`) and passkey registration (`ondi_credentials`
+ * row count) are both real, already-captured signals — the OndiPersonal.tsx
+ * "Identity Trust Score" card was displaying them as if they already
+ * contributed points, when the formula silently ignored both. Restored to
+ * the original 5-signal weighting instead of inventing new numbers:
+ * kycTier 0.45, phoneTenure 0.15, authConsistency 0.20, mfaEnabled 0.10,
+ * passkeyRegistered 0.10 (sums to 1.0). This is a real behavior change, not
+ * just cosmetic — it feeds the login risk-engine gate (ondi-auth.routes.ts),
+ * so an account with no MFA/passkey now scores lower and may be asked for
+ * OTP/biometric step-up more readily than before.
  */
 const KYC_TIER_SCORE: Record<string, number> = {
   unverified: 0,
@@ -22,26 +29,60 @@ const KYC_TIER_SCORE: Record<string, number> = {
   enhanced: 100,
 };
 
-const WEIGHTS = { kycTier: 0.5625, phoneTenure: 0.1875, authConsistency: 0.25 };
+const WEIGHTS = { kycTier: 0.45, phoneTenure: 0.15, authConsistency: 0.20, mfaEnabled: 0.10, passkeyRegistered: 0.10 };
+/** The full 300–850 range is 550 points wide — a signal's max possible
+ *  contribution to the shown score is its weight × 550, used below to turn
+ *  each 0-100 signal score into an actual point value the UI can display
+ *  instead of a hardcoded, unrelated number. */
+const SCORE_RANGE = 550;
 
+export interface TrustSignal { score: number; weight: number; points: number }
 export interface TrustScoreResult {
   score: number;
   tier: 'LOW' | 'MEDIUM' | 'HIGH';
-  signals: { kycTierScore: number; phoneTenureScore: number; authConsistencyScore: number };
-  /** Raw verification_level, alongside the derived kycTierScore signal — the
+  signals: {
+    kycTier: TrustSignal;
+    phoneTenure: TrustSignal;
+    authConsistency: TrustSignal;
+    mfaEnabled: TrustSignal;
+    passkeyRegistered: TrustSignal;
+  };
+  /** Raw verification_level, alongside the derived kycTier signal — the
    *  authz-check policy engine needs the actual tier string (e.g. to require
    *  "id_verified or above"), not just its numeric contribution to the score. */
   verificationLevel: string;
+  /** Raw month count behind the phoneTenure signal (account age, capped at
+   *  60 for scoring purposes but not for display) — so a UI showing that
+   *  signal can say "14 months" instead of just its points contribution. */
+  accountTenureMonths: number;
+}
+
+function toSignal(rawScore: number, weight: number): TrustSignal {
+  return { score: Math.round(rawScore), weight, points: Math.round((rawScore / 100) * weight * SCORE_RANGE) };
+}
+
+function emptySignals(): TrustScoreResult['signals'] {
+  return {
+    kycTier: toSignal(0, WEIGHTS.kycTier),
+    phoneTenure: toSignal(0, WEIGHTS.phoneTenure),
+    authConsistency: toSignal(0, WEIGHTS.authConsistency),
+    mfaEnabled: toSignal(0, WEIGHTS.mfaEnabled),
+    passkeyRegistered: toSignal(0, WEIGHTS.passkeyRegistered),
+  };
 }
 
 export async function computeTrustScore(tenantId: string, userId: string): Promise<TrustScoreResult> {
   return withTenant(tenantId, async (trx) => {
     const user = await trx.selectFrom('users').select(['verification_level', 'created_at'])
       .where('id', '=', userId).executeTakeFirst();
-    if (!user) return { score: 300, tier: 'LOW' as const, signals: { kycTierScore: 0, phoneTenureScore: 0, authConsistencyScore: 0 }, verificationLevel: 'unverified' };
+    if (!user) return { score: 300, tier: 'LOW' as const, signals: emptySignals(), verificationLevel: 'unverified', accountTenureMonths: 0 };
 
-    const recentLogins = await trx.selectFrom('hr_login_history').select('status')
-      .where('user_id', '=', userId).orderBy('created_at', 'desc').limit(50).execute();
+    const [recentLogins, totp, credentials] = await Promise.all([
+      trx.selectFrom('hr_login_history').select('status')
+        .where('user_id', '=', userId).orderBy('created_at', 'desc').limit(50).execute(),
+      trx.selectFrom('user_totp').select('enabled').where('user_id', '=', userId).executeTakeFirst(),
+      trx.selectFrom('ondi_credentials').select(({ fn }) => fn.countAll().as('n')).where('user_id', '=', userId).executeTakeFirst(),
+    ]);
 
     const kycTierScore = KYC_TIER_SCORE[user.verification_level] ?? 0;
 
@@ -55,15 +96,31 @@ export async function computeTrustScore(tenantId: string, userId: string): Promi
       ? Math.round((recentLogins.filter(l => l.status === 'SUCCESS').length / recentLogins.length) * 100)
       : 70;
 
+    const mfaEnabledScore = totp?.enabled ? 100 : 0;
+    const passkeyRegisteredScore = Number(credentials?.n ?? 0) > 0 ? 100 : 0;
+
     const raw =
       kycTierScore * WEIGHTS.kycTier +
       phoneTenureScore * WEIGHTS.phoneTenure +
-      authConsistencyScore * WEIGHTS.authConsistency;
+      authConsistencyScore * WEIGHTS.authConsistency +
+      mfaEnabledScore * WEIGHTS.mfaEnabled +
+      passkeyRegisteredScore * WEIGHTS.passkeyRegistered;
 
     const score = Math.max(300, Math.min(850, Math.round(300 + (raw / 100) * 550)));
     const tier: TrustScoreResult['tier'] = score >= 700 ? 'HIGH' : score >= 500 ? 'MEDIUM' : 'LOW';
 
-    return { score, tier, signals: { kycTierScore, phoneTenureScore, authConsistencyScore }, verificationLevel: user.verification_level };
+    return {
+      score, tier,
+      signals: {
+        kycTier: toSignal(kycTierScore, WEIGHTS.kycTier),
+        phoneTenure: toSignal(phoneTenureScore, WEIGHTS.phoneTenure),
+        authConsistency: toSignal(authConsistencyScore, WEIGHTS.authConsistency),
+        mfaEnabled: toSignal(mfaEnabledScore, WEIGHTS.mfaEnabled),
+        passkeyRegistered: toSignal(passkeyRegisteredScore, WEIGHTS.passkeyRegistered),
+      },
+      verificationLevel: user.verification_level,
+      accountTenureMonths: tenureMonths,
+    };
   });
 }
 
@@ -76,13 +133,15 @@ export interface OrgTrustResult {
 
 /**
  * Enterprise ▸ Trust (Ondi M6, house-style expansion) — an aggregate over
- * the same per-user formula above, not a second scoring model. Two queries
+ * the same per-user formula above, not a second scoring model. Four queries
  * total rather than looping computeTrustScore() once per member (which
- * would be 2 queries × every user in the tenant): one for every user's
+ * would be 3 queries × every user in the tenant): one for every user's
  * verification_level/created_at, one for a generous recent slice of
- * hr_login_history across the whole tenant, grouped by user_id in JS and
- * capped at 50 per member — the same window the per-user version uses,
- * just computed from one shared fetch instead of N.
+ * hr_login_history across the whole tenant (grouped by user_id in JS, capped
+ * at 50 per member — the same window the per-user version uses), and one
+ * each for every tenant member's MFA-enabled flag and passkey count, so the
+ * same 5-signal weighting in computeTrustScore() above stays the single
+ * source of truth instead of drifting into a second, partial formula here.
  */
 export async function computeOrgTrust(tenantId: string): Promise<OrgTrustResult> {
   return withTenant(tenantId, async (trx) => {
@@ -92,12 +151,21 @@ export async function computeOrgTrust(tenantId: string): Promise<OrgTrustResult>
       .where('active', '=', true)
       .execute();
 
-    const logins = await trx.selectFrom('hr_login_history')
-      .select(['user_id', 'status', 'created_at'])
-      .where('tenant_id', '=', tenantId)
-      .orderBy('created_at', 'desc')
-      .limit(Math.min(users.length * 50, 5000))
-      .execute();
+    const [logins, totps, credentials] = await Promise.all([
+      trx.selectFrom('hr_login_history')
+        .select(['user_id', 'status', 'created_at'])
+        .where('tenant_id', '=', tenantId)
+        .orderBy('created_at', 'desc')
+        .limit(Math.min(users.length * 50, 5000))
+        .execute(),
+      trx.selectFrom('user_totp').select(['user_id', 'enabled']).where('tenant_id', '=', tenantId).execute(),
+      trx.selectFrom('ondi_credentials')
+        .select('user_id')
+        .select(({ fn }) => fn.countAll().as('n'))
+        .where('tenant_id', '=', tenantId)
+        .groupBy('user_id')
+        .execute(),
+    ]);
 
     const loginsByUser = new Map<string, typeof logins>();
     for (const l of logins) {
@@ -105,6 +173,8 @@ export async function computeOrgTrust(tenantId: string): Promise<OrgTrustResult>
       if (arr.length < 50) arr.push(l);
       loginsByUser.set(l.user_id, arr);
     }
+    const mfaByUser = new Map(totps.map(t => [t.user_id, t.enabled]));
+    const passkeyCountByUser = new Map(credentials.map(c => [c.user_id, Number(c.n)]));
 
     const members: OrgTrustMember[] = users.map(u => {
       const kycTierScore = KYC_TIER_SCORE[u.verification_level] ?? 0;
@@ -114,7 +184,14 @@ export async function computeOrgTrust(tenantId: string): Promise<OrgTrustResult>
       const authConsistencyScore = recent.length > 0
         ? Math.round((recent.filter(l => l.status === 'SUCCESS').length / recent.length) * 100)
         : 70;
-      const raw = kycTierScore * WEIGHTS.kycTier + phoneTenureScore * WEIGHTS.phoneTenure + authConsistencyScore * WEIGHTS.authConsistency;
+      const mfaEnabledScore = mfaByUser.get(u.id) ? 100 : 0;
+      const passkeyRegisteredScore = (passkeyCountByUser.get(u.id) ?? 0) > 0 ? 100 : 0;
+      const raw =
+        kycTierScore * WEIGHTS.kycTier +
+        phoneTenureScore * WEIGHTS.phoneTenure +
+        authConsistencyScore * WEIGHTS.authConsistency +
+        mfaEnabledScore * WEIGHTS.mfaEnabled +
+        passkeyRegisteredScore * WEIGHTS.passkeyRegistered;
       const score = Math.max(300, Math.min(850, Math.round(300 + (raw / 100) * 550)));
       const tier: TrustScoreResult['tier'] = score >= 700 ? 'HIGH' : score >= 500 ? 'MEDIUM' : 'LOW';
       return { user_id: u.id, name: u.name, email: u.email, role: u.role, score, tier };

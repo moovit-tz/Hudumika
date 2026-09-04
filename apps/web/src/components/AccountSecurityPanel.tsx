@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { startRegistration } from '@simplewebauthn/browser';
 import { useAuth } from '../hooks/useAuth.js';
@@ -196,6 +197,11 @@ export function AccountSecurityPanel() {
   }
 
   // ── Sessions ──────────────────────────────────────────────────
+  // Full list + rename + per-device sign-out now live at
+  // /ondi/personal/devices (tabulated, with a details dialog) — this used to
+  // be a second copy of the exact same hr_devices rows rendered as its own
+  // card list here, in OndiSecuritySettings.tsx and UserProfile.tsx alike.
+  // Only a live count survives here, for the at-a-glance summary below.
   const [sessions, setSessions] = useState<any[] | null>(null);
 
   const reloadSessions = useCallback(async () => {
@@ -203,16 +209,6 @@ export function AccountSecurityPanel() {
   }, []);
 
   useEffect(() => { reloadSessions(); }, [reloadSessions]);
-
-  async function signOutSession(id: string) {
-    try {
-      const res = await apiFetch(`/v1/security/sessions/${id}`, { method: 'DELETE' });
-      if (res.was_current) { logout(); return; }
-      await reloadSessions();
-    } catch (err: any) {
-      showAlert(err.message);
-    }
-  }
 
   async function signOutOthers() {
     if (!(await showConfirm('Sign out of every other session? Those devices will need to log in again.', { variant: 'warning', confirmLabel: 'Sign Out Others' }))) return;
@@ -469,27 +465,28 @@ export function AccountSecurityPanel() {
           </div>
         </Card>
 
-        {/* Active sessions */}
+        {/* Active sessions — a compact summary + pointer to the one real
+            place this list lives now (/ondi/personal/devices: tabulated,
+            with a details dialog for the full user agent, first-seen date,
+            and renaming), not a second render of the same rows. */}
         <Card>
           <CardHead title="Active Sessions" sub="All devices currently signed in." right={<Btn label="Sign Out Other Sessions" variant="danger" onClick={signOutOthers} />} />
-          <div>
-            {sessions === null && <div style={{ padding: '16px 20px', fontSize: 12.5, color: 'var(--ink3)' }}>Loading sessions…</div>}
-            {sessions?.length === 0 && <div style={{ padding: '16px 20px', fontSize: 12.5, color: 'var(--ink3)' }}>No sessions found.</div>}
-            {sessions?.filter(s => s.active).map((s, i, arr) => (
-              <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '13px 20px', borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none' }}>
-                <div style={{ width: 40, height: 40, borderRadius: 9, background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Icon name={s.device_type === 'mobile' ? 'smartphone' : 'monitor'} size={18} strokeWidth={1.75} style={{ color: 'var(--ink3)' } as React.CSSProperties} />
+          <div style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+            {sessions === null ? (
+              <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>Loading sessions…</div>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 9, background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Icon name="smartphone" size={16} strokeWidth={1.75} style={{ color: 'var(--ink3)' } as React.CSSProperties} />
                 </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>
-                    {s.device_label || s.user_agent || 'Unknown device'}
-                    {s.is_current && <span style={{ marginLeft: 8, padding: '1px 7px', borderRadius: 9, background: 'var(--green-l)', color: '#059669', fontSize: 10, fontWeight: 700 }}>This device</span>}
-                  </div>
-                  <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>Last active {relTime(s.last_used_at)}</div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>
+                  {sessions.filter(s => s.active).length} device{sessions.filter(s => s.active).length === 1 ? '' : 's'} signed in
                 </div>
-                <Btn label="Sign Out" variant="danger" onClick={() => signOutSession(s.id)} />
               </div>
-            ))}
+            )}
+            <Link to="/ondi/personal/devices" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--teal)', textDecoration: 'none' }}>
+              Manage devices <Icon name="arrowRight" size={14} />
+            </Link>
           </div>
         </Card>
 

@@ -408,7 +408,11 @@ function ClockInModal({ onClose, onConfirm }: {
 /* ── Moovit logo ── */
 function MoovitLogo({ isDark }: { isDark?: boolean }) {
   const co = useCompany();
-  if (co.logoUrl) return <img src={co.logoUrl} alt={co.name} style={{ height: 31, objectFit: 'contain' }} />;
+  // Dark-mode variant falls back to the light one when a tenant never
+  // uploaded one, so this never regresses to blank for anyone who set a
+  // logo before this field existed.
+  const tenantLogo = isDark ? (co.logoUrlDark || co.logoUrl) : co.logoUrl;
+  if (tenantLogo) return <img src={tenantLogo} alt={co.name} style={{ height: 31, objectFit: 'contain' }} />;
   return (
     <img src={isDark ? "/logo-dark.png" : "/logo-light.png"} alt="Moovit" style={{ height: 31, objectFit: 'contain' }} />
   );

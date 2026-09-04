@@ -85,6 +85,7 @@ import { Quotations }             from '../pages/Quotations.js';
 import { PurchaseOrders }         from '../pages/PurchaseOrders.js';
 import { Expenses }               from '../pages/Expenses.js';
 import { FinanceExpenseNew }      from '../pages/FinanceExpenseNew.js';
+import { FinanceExpenseCategories } from '../pages/FinanceExpenseCategories.js';
 import { Bills }                  from '../pages/Bills.js';
 import { FinanceVendors }         from '../pages/FinanceVendors.js';
 // One catalog, surfaced in both apps: /finance/products and /clearos/products
@@ -150,6 +151,7 @@ export function FinOpsShell() {
           <Route path="vendors"         element={<RequireRoles roles={FIN_ROLES}><FinanceVendors /></RequireRoles>} />
           <Route path="expenses"        element={<RequireRoles roles={FIN_ROLES}><Expenses /></RequireRoles>} />
           <Route path="expenses/new"    element={<RequireRoles roles={FIN_ROLES}><FinanceExpenseNew /></RequireRoles>} />
+          <Route path="expenses/categories" element={<RequireRoles roles={FIN_ROLES}><FinanceExpenseCategories /></RequireRoles>} />
 
           {/* Accounts */}
           <Route path="payments"  element={<RequireRoles roles={FIN_ROLES}><FinancePayments /></RequireRoles>} />
