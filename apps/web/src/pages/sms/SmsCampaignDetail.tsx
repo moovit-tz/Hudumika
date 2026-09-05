@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { PageHeader } from '../../components/PageHeader.js';
 import { SectionCard } from '../../components/SectionCard.js';
 import { Icon } from '../../components/Icon.js';
+import { SectionLoading } from '../../components/ui/spinner.js';
 import { Badge } from '../../components/ui/badge.js';
 import { Button } from '../../components/ui/button.js';
 import { FeaturedIcon } from '../../components/ui/featured-icon.js';
@@ -53,7 +54,7 @@ export function SmsCampaignDetail() {
     navigate('/sms/campaigns');
   }
 
-  if (loading) return <div style={{ padding: 60, textAlign: 'center', color: 'var(--ink3)' }}>Loading…</div>;
+  if (loading) return <SectionLoading />;
   if (!campaign) return <div style={{ padding: 60, textAlign: 'center', color: 'var(--ink3)' }}>Campaign not found. <Link to="/sms/campaigns">Back to campaigns</Link></div>;
 
   const counts = messages.reduce<Record<string, number>>((acc, m) => { acc[m.status] = (acc[m.status] ?? 0) + 1; return acc; }, {});

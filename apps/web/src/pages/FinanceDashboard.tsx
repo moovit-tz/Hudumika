@@ -2,6 +2,7 @@
 import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { MetricsRow, MiniBar } from '../components/MetricCard.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
@@ -227,17 +228,16 @@ export const FinanceDashboard: React.FC = () => {
             </div>
 
             {/* Tabs */}
-            <div className="ds-tabs-list" data-variant="segmented" style={{ marginBottom: 18 }}>
+            <Tabs value={overviewTab} onValueChange={(v) => setOverviewTab(v as any)} variant="segmented">
+            <TabsList style={{ marginBottom: 18 }}>
               {(['overview', 'year', 'alltime'] as const).map((tabKey, i) => {
                 const labels = [t('finance.tabOverview'), t('finance.tabThisYear'), t('finance.tabAllTime')];
                 return (
-                  <button key={tabKey} type="button" className="ds-tabs-trigger" data-variant="segmented"
-                    data-state={overviewTab === tabKey ? 'active' : 'inactive'} onClick={() => setOverviewTab(tabKey)}>
-                    {labels[i]}
-                  </button>
+                  <TabsTrigger key={tabKey} value={tabKey}>{labels[i]}</TabsTrigger>
                 );
               })}
-            </div>
+            </TabsList>
+            </Tabs>
 
             {/* Outstanding Invoices */}
             <div style={{ marginBottom: 20, paddingBottom: 20, borderBottom: '1px solid var(--border)' }}>
@@ -356,7 +356,7 @@ export const FinanceDashboard: React.FC = () => {
         {(snapshot?.approvals?.billsPendingApproval?.count > 0 || snapshot?.approvals?.expensesPendingApproval?.count > 0) && (
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
             {snapshot.approvals.billsPendingApproval.count > 0 && (
-              <div onClick={() => navigate('/finance/bills')} style={{ flex: '1 1 260px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 9, padding: '14px 16px' }}>
+              <div onClick={() => navigate('/finance/bills')} style={{ flex: '1 1 260px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 'var(--r)', padding: '14px 16px' }}>
                 <Icon name="clock" size={18} strokeWidth={1.75} style={{ color: 'var(--gold)', flexShrink: 0 } as React.CSSProperties} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)' }}>{snapshot.approvals.billsPendingApproval.count} bill{snapshot.approvals.billsPendingApproval.count !== 1 ? 's' : ''} awaiting approval</div>
@@ -366,7 +366,7 @@ export const FinanceDashboard: React.FC = () => {
               </div>
             )}
             {snapshot.approvals.expensesPendingApproval.count > 0 && (
-              <div onClick={() => navigate('/finance/expenses')} style={{ flex: '1 1 260px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 9, padding: '14px 16px' }}>
+              <div onClick={() => navigate('/finance/expenses')} style={{ flex: '1 1 260px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 'var(--r)', padding: '14px 16px' }}>
                 <Icon name="clock" size={18} strokeWidth={1.75} style={{ color: 'var(--gold)', flexShrink: 0 } as React.CSSProperties} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)' }}>{snapshot.approvals.expensesPendingApproval.count} expense claim{snapshot.approvals.expensesPendingApproval.count !== 1 ? 's' : ''} awaiting approval</div>
@@ -487,8 +487,8 @@ export const FinanceDashboard: React.FC = () => {
 
           {/* Fixed Assets + Period Close */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div onClick={() => navigate('/finance/accounts/fixed-assets')} style={{ cursor: 'pointer', background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '16px 18px', boxShadow: 'var(--elev-sm)', display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ width: 38, height: 38, borderRadius: 9, background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <div onClick={() => navigate('/finance/accounts/fixed-assets')} style={{ cursor: 'pointer', background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', padding: '16px 18px', boxShadow: 'var(--elev-sm)', display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 38, height: 38, borderRadius: 'var(--r)', background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Icon name="package" size={17} strokeWidth={1.75} style={{ color: 'var(--teal)' } as React.CSSProperties} />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -497,8 +497,8 @@ export const FinanceDashboard: React.FC = () => {
               </div>
               <Icon name="chevronRight" size={15} style={{ color: 'var(--ink3)' } as React.CSSProperties} />
             </div>
-            <div onClick={() => navigate('/finance/accounts/gl-periods')} style={{ cursor: 'pointer', background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '16px 18px', boxShadow: 'var(--elev-sm)', display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ width: 38, height: 38, borderRadius: 9, background: 'var(--blue-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <div onClick={() => navigate('/finance/accounts/gl-periods')} style={{ cursor: 'pointer', background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', padding: '16px 18px', boxShadow: 'var(--elev-sm)', display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 38, height: 38, borderRadius: 'var(--r)', background: 'var(--blue-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Icon name="lock" size={16} strokeWidth={1.75} style={{ color: 'var(--blue)' } as React.CSSProperties} />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>

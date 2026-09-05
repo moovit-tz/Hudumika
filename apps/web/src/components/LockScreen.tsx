@@ -4,6 +4,7 @@ import { useIdleLock } from '../hooks/useIdleLock.js';
 import { Icon } from './Icon.js';
 import { Input } from './ui/input.js';
 import { Button } from './ui/button.js';
+import { Banner } from './ui/alert.js';
 import { PersonAvatar } from './PersonAvatar.js';
 
 /**
@@ -71,15 +72,7 @@ export function LockScreen() {
         </div>
 
         {error && (
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 8,
-            background: 'var(--red-l)', color: 'var(--red)', border: '1px solid var(--red)',
-            borderRadius: 'var(--r-sm)', padding: '9px 12px', fontSize: 13, fontWeight: 500,
-            marginBottom: 14,
-          }}>
-            <Icon name="alertCircle" size={16} />
-            <span>{error}</span>
-          </div>
+          <div style={{ marginBottom: 14 }}><Banner variant="error">{error}</Banner></div>
         )}
 
         <form onSubmit={handleSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>

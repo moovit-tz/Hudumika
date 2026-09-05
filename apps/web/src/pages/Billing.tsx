@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { Icon } from '../components/Icon.js';
+import { Banner } from '../components/ui/alert.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { getCompany, subscribeCompany } from '../data/companyStore.js';
 import { useIsDarkMode } from '../hooks/useIsDarkMode.js';
 import { useCurrency } from '../hooks/useCurrency.js';
@@ -469,7 +471,7 @@ function ImportTimesheetsModal({ shipmentId, shipmentRef, sectionCurrency, onImp
       <div style={{ background: 'var(--white)', borderRadius: 12, width: '100%', maxWidth: 520, overflow: 'hidden', display: 'flex', flexDirection: 'column', maxHeight: '90vh', boxShadow: 'var(--elev-lg)' }}>
         <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg)' }}>
           <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)' }}>Import Timesheets</span>
-          <button type="button" onClick={onClose} style={{ border: 'none', background: 'none', cursor: 'pointer' }}><Icon name="x" size={16} color="var(--ink2)" /></button>
+          <button type="button" onClick={onClose} style={{ border: 'none', background: 'none', cursor: 'pointer' }} aria-label="Close"><Icon name="x" size={16} color="var(--ink2)" /></button>
         </div>
         <div style={{ padding: 20, overflowY: 'auto' }}>
           <div style={{ fontSize: 13, color: 'var(--ink2)', marginBottom: 4 }}>
@@ -568,7 +570,7 @@ function ChargeSectionEditor({ title, color, group, currency, items, onChange, c
     }]);
   }
 
-  const inpS: React.CSSProperties = { padding: '6px 8px', borderRadius: 5, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 12, fontFamily: 'var(--font)', outline: 'none', width: '100%', boxSizing: 'border-box' as const };
+  const inpS: React.CSSProperties = { padding: '6px 8px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 12, fontFamily: 'var(--font)', outline: 'none', width: '100%', boxSizing: 'border-box' as const };
 
   return (
     <div style={{ marginBottom: 22 }}>
@@ -863,7 +865,7 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
         </div>
 
         {/* Shipment details */}
-        <div style={{ background: 'var(--bg)', borderRadius: 9, padding: '12px 16px', marginBottom: 22, border: '1px solid var(--border)' }}>
+        <div style={{ background: 'var(--bg)', borderRadius: 'var(--r)', padding: '12px 16px', marginBottom: 22, border: '1px solid var(--border)' }}>
           <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--ink3)', marginBottom: 10 }}>Shipment Details</div>
           <div style={{ marginBottom: 10 }}>
             <EntityPicker
@@ -1306,15 +1308,15 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
           )}
         </div>
         <button type="button" onClick={() => { setShowPayment(v => !v); setPayAmt(String(Math.round(due))); }}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py-sm) 14px', borderRadius: 'var(--r)', border: 'none', background: showPayment ? 'var(--green)' : 'var(--green)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
+          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py-sm) 14px', borderRadius: 'var(--r)', border: 'none', background: 'var(--green)', color: 'hsl(var(--green-foreground))', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
           <Icon name="dollarSign" size={13} color="#fff" /> Payment
         </button>
       </div>
 
       {traError && (
-        <div style={{ padding: '8px 20px', background: 'var(--red-l)', color: 'var(--red)', fontSize: 12, fontWeight: 600, borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+        <Banner variant="error" className="rounded-none border-x-0 border-t-0" style={{ borderBottom: '1px solid var(--border)' }}>
           TRA submission failed: {traError}
-        </div>
+        </Banner>
       )}
 
       {/* Payment form */}
@@ -1342,7 +1344,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
           </div>
           <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 8 }}>Outstanding: <strong style={{ color: due > 0 ? 'var(--red)' : 'var(--green)', fontFamily: 'var(--mono)' }}>{fmt(due, 'TZS')}</strong></div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button type="button" onClick={submitPayment} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'var(--green)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Save Payment</button>
+            <button type="button" onClick={submitPayment} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'var(--green)', color: 'hsl(var(--green-foreground))', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Save Payment</button>
             <button type="button" onClick={() => setShowPayment(false)} style={tbBtn}>Cancel</button>
           </div>
         </div>
@@ -1372,7 +1374,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
 
             {/* QR Code — center. Once fiscalized, this must be the TRA verify-portal
                 URL (what a real EFD receipt prints), not an internal reference code. */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '12px', border: '1px solid var(--border)', borderRadius: 9, background: traFiscalized ? 'var(--green-l)' : 'var(--bg)', alignSelf: 'flex-start', minWidth: 116 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: traFiscalized ? 'var(--green-l)' : 'var(--bg)', alignSelf: 'flex-start', minWidth: 116 }}>
               <QRCodeSVG value={traFiscalized ? inv.traQrUrl! : qrData} size={88} level="M" />
               <div style={{ fontSize: 9, color: 'var(--ink3)', textAlign: 'center', lineHeight: 1.4 }}>
                 {traFiscalized ? (
@@ -1407,7 +1409,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
           </div>
 
           {/* Shipment details strip */}
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : '1fr 1fr 1fr 1fr', gap: 8, background: 'var(--bg)', borderRadius: 9, padding: '10px 14px', marginBottom: 20, border: '1px solid var(--border)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : '1fr 1fr 1fr 1fr', gap: 8, background: 'var(--bg)', borderRadius: 'var(--r)', padding: '10px 14px', marginBottom: 20, border: '1px solid var(--border)' }}>
             {[['BL / AWB', inv.blNumber], ['Mode', inv.mode], ['Origin', inv.origin], ['Destination', inv.destination]].map(([label, value]) => (
               <div key={label}>
                 <div style={{ fontSize: 9, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--ink3)', marginBottom: 3 }}>{label}</div>
@@ -1430,7 +1432,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
                   <span style={{ fontFamily: 'var(--mono)' }}>{fmtTZS(T.shippingTotal * inv.exchangeRate)}</span>
                 </div>
               )}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', borderRadius: 9, padding: '12px 16px', marginBottom: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', borderRadius: 'var(--r)', padding: '12px 16px', marginBottom: 8 }}>
                 <span style={{ fontSize: 13, fontWeight: 800 }}>TOTAL</span>
                 <span style={{ fontSize: 15, fontWeight: 900, fontFamily: 'var(--mono)' }}>{fmt(T.grandTotalTZS, 'TZS')}</span>
               </div>
@@ -1448,7 +1450,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
 
           {/* Carbon segment — live from the linked shipment, not a tradeable credit */}
           {inv.shipmentCarbon && (
-            <div style={{ background: 'var(--green-l)', border: '1px solid var(--green)', borderRadius: 9, padding: '16px 20px', marginBottom: 16 }}>
+            <div style={{ background: 'var(--green-l)', border: '1px solid var(--green)', borderRadius: 'var(--r)', padding: '16px 20px', marginBottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                 <Icon name="globe" size={15} color="var(--green)" strokeWidth={1.75} />
                 <span style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink3)' }}>Carbon Footprint (Estimate)</span>
@@ -1476,7 +1478,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
           )}
 
           {/* Payment Info */}
-          <div style={{ background: 'var(--bg)', borderRadius: 9, padding: '16px 20px', marginBottom: 24, border: '1px solid var(--border)' }}>
+          <div style={{ background: 'var(--bg)', borderRadius: 'var(--r)', padding: '16px 20px', marginBottom: 24, border: '1px solid var(--border)' }}>
             <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink3)', marginBottom: 12 }}>Payment Information</div>
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 24, fontSize: 13, color: 'var(--ink2)', lineHeight: 1.6 }}>
               <div>
@@ -1937,19 +1939,19 @@ export const Billing: React.FC = () => {
           <div className="inv-list-toolbar">
           <div className="inv-toolbar-scroll">
             {!isSplit && (
-              <div className="ds-tabs-list" data-variant="segmented">
-                {(['all', 'Draft', 'Unpaid', 'Partial', 'Paid', 'Overdue', 'Credited'] as FilterStatus[]).map(s => {
-                  const cnt = s === 'all' ? invoices.length : invoices.filter(i => i.status === s).length;
-                  const active = filterStatus === s;
-                  return (
-                    <button key={s} type="button" className="ds-tabs-trigger" data-variant="segmented"
-                      data-state={active ? 'active' : 'inactive'} onClick={() => setFilterStatus(s)}>
-                      {s === 'all' ? 'All' : STATUS_STYLE[s as Status].label}
-                      {cnt > 0 && <span className="inv-status-chip-count">{cnt}</span>}
-                    </button>
-                  );
-                })}
-              </div>
+              <Tabs value={filterStatus} onValueChange={v => setFilterStatus(v as FilterStatus)} variant="segmented">
+                <TabsList>
+                  {(['all', 'Draft', 'Unpaid', 'Partial', 'Paid', 'Overdue', 'Credited'] as FilterStatus[]).map(s => {
+                    const cnt = s === 'all' ? invoices.length : invoices.filter(i => i.status === s).length;
+                    return (
+                      <TabsTrigger key={s} value={s}>
+                        {s === 'all' ? 'All' : STATUS_STYLE[s as Status].label}
+                        {cnt > 0 && <span className="inv-status-chip-count">{cnt}</span>}
+                      </TabsTrigger>
+                    );
+                  })}
+                </TabsList>
+              </Tabs>
             )}
             <div className="inv-topbar-spacer" />
             <div className="inv-toolbar-actions">

@@ -7,6 +7,7 @@ import { apiFetch, apiDownload, apiUploadWithProgress } from '../lib/api.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { Button } from '../components/ui/button.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { showAlert } from '../lib/alert.js';
@@ -222,56 +223,13 @@ export const OndiVault: React.FC = () => {
                   )}
                 </div>
 
-                <div style={{ display: 'flex', gap: 6 }}>
-                  <button
-                    type="button"
-                    onClick={() => setTypeFilter('all')}
-                    style={{
-                      background: typeFilter === 'all' ? 'var(--teal)' : 'var(--bg)',
-                      color: typeFilter === 'all' ? '#ffffff' : 'var(--ink2)',
-                      border: '1px solid var(--border)',
-                      borderRadius: 'var(--r-sm, 7px)',
-                      padding: '5px 12px',
-                      fontSize: 12,
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    All
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setTypeFilter('pdf')}
-                    style={{
-                      background: typeFilter === 'pdf' ? 'var(--teal)' : 'var(--bg)',
-                      color: typeFilter === 'pdf' ? '#ffffff' : 'var(--ink2)',
-                      border: '1px solid var(--border)',
-                      borderRadius: 'var(--r-sm, 7px)',
-                      padding: '5px 12px',
-                      fontSize: 12,
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    PDFs
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setTypeFilter('img')}
-                    style={{
-                      background: typeFilter === 'img' ? 'var(--teal)' : 'var(--bg)',
-                      color: typeFilter === 'img' ? '#ffffff' : 'var(--ink2)',
-                      border: '1px solid var(--border)',
-                      borderRadius: 'var(--r-sm, 7px)',
-                      padding: '5px 12px',
-                      fontSize: 12,
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Images
-                  </button>
-                </div>
+                <Tabs value={typeFilter} onValueChange={v => setTypeFilter(v as typeof typeFilter)} variant="segmented">
+                  <TabsList>
+                    <TabsTrigger value="all">All</TabsTrigger>
+                    <TabsTrigger value="pdf">PDFs</TabsTrigger>
+                    <TabsTrigger value="img">Images</TabsTrigger>
+                  </TabsList>
+                </Tabs>
               </div>
 
               {/* Upload Dropzone */}

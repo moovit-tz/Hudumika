@@ -184,7 +184,7 @@ function OrgPersonNode({ id, data, selected }: NodeProps<FlowNode>) {
             style={{
               background: 'var(--white)',
               border: '1px solid var(--border)',
-              borderRadius: 5,
+              borderRadius: 'var(--r-sm)',
               padding: '2px 6px',
               fontSize: 10,
               fontWeight: 700,
@@ -713,7 +713,7 @@ export const OrgChart: React.FC = () => {
 
           {/* Department Filter & Stats Panel */}
           <Panel position="top-left">
-            <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)',
+            <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)',
               padding: '10px 14px', boxShadow: 'var(--elev)', maxWidth: 240 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                 <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
@@ -776,7 +776,7 @@ export const OrgChart: React.FC = () => {
           <div style={{ background: 'var(--white)', borderRadius: 14, padding: '24px 28px', width: 440,
             boxShadow: 'var(--elev-lg)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 9, background: addForm.color + '18',
+              <div style={{ width: 36, height: 36, borderRadius: 'var(--r)', background: addForm.color + '18',
                 display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Icon name="userPlus" size={17} color={addForm.color} />
               </div>

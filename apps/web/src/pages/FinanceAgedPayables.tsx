@@ -150,7 +150,7 @@ export const FinanceAgedPayables: React.FC = () => {
                       <td style={{ padding: '10px 16px', color: '#7c3aed',       fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>{fmtFull(s.days_90_plus)}</td>
                       <td style={{ padding: '10px 16px', color: 'var(--ink)',    fontWeight: 700, fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>{fmtFull(s.total)}</td>
                       <td style={{ padding: '10px 16px' }}>
-                        <span style={{ fontSize: 10, fontWeight: 700, color: badge.color, background: badge.bg, borderRadius: 5, padding: '2px 7px' }}>{badge.label}</span>
+                        <span style={{ fontSize: 10, fontWeight: 700, color: badge.color, background: badge.bg, borderRadius: 'var(--r-sm)', padding: '2px 7px' }}>{badge.label}</span>
                       </td>
                     </tr>
                   );

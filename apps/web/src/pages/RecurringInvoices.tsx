@@ -34,7 +34,7 @@ function mapApi(d: any): RecurringInvoice {
   };
 }
 
-const inp: React.CSSProperties = { width: '100%', padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 9, fontSize: 13, outline: 'none', background: 'var(--white)', boxSizing: 'border-box', color: 'var(--ink)', fontFamily: 'inherit' };
+const inp: React.CSSProperties = { width: '100%', padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13, outline: 'none', background: 'var(--white)', boxSizing: 'border-box', color: 'var(--ink)', fontFamily: 'inherit' };
 const lbl: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 };
 
 function RecurFormPanel({ initial, onSave, onClose }: { initial: RecurringInvoice | null; onSave: (data: any) => Promise<void>; onClose: () => void }) {
@@ -130,7 +130,7 @@ function RecurFormPanel({ initial, onSave, onClose }: { initial: RecurringInvoic
           </div>
           <div style={{ marginBottom: 14 }}><label style={lbl}>Payment terms</label><input type="text" value={paymentTerms} onChange={e => setPaymentTerms(e.target.value)} style={inp} /></div>
           <div style={{ marginBottom: 14 }}><label style={lbl}>Description</label><textarea rows={3} value={description} onChange={e => setDescription(e.target.value)} style={{ ...inp, resize: 'vertical' }} /></div>
-          <div style={{ padding: '12px 14px', background: 'var(--bg)', borderRadius: 9, fontSize: 13, color: 'var(--ink2)' }}>
+          <div style={{ padding: '12px 14px', background: 'var(--bg)', borderRadius: 'var(--r)', fontSize: 13, color: 'var(--ink2)' }}>
             Total per cycle: <strong style={{ color: 'var(--teal)' }}>{currency} {total.toLocaleString('en-US', { maximumFractionDigits: 2 })}</strong>
           </div>
         </div>
@@ -274,7 +274,7 @@ export function RecurringInvoices() {
                     </td>
                     <td style={{ padding: '12px 14px', textAlign: 'center', fontWeight: 700, color: 'var(--ink2)' }}>{r.invoices_generated}</td>
                     <td style={{ padding: '12px 14px' }}>
-                      <span style={{ padding: '2px 9px', borderRadius: 9, fontSize: 11, fontWeight: 700, background: r.state === 'ACTIVE' ? 'var(--green-l)' : r.state === 'PAUSED' ? 'var(--gold-l)' : 'var(--bg)', color: r.state === 'ACTIVE' ? 'var(--green)' : r.state === 'PAUSED' ? 'var(--gold)' : 'var(--ink3)' }}>{r.state}</span>
+                      <span style={{ padding: '2px 9px', borderRadius: 'var(--r)', fontSize: 11, fontWeight: 700, background: r.state === 'ACTIVE' ? 'var(--green-l)' : r.state === 'PAUSED' ? 'var(--gold-l)' : 'var(--bg)', color: r.state === 'ACTIVE' ? 'var(--green)' : r.state === 'PAUSED' ? 'var(--gold)' : 'var(--ink3)' }}>{r.state}</span>
                     </td>
                     <td style={{ padding: '12px 10px' }}>
                       <div style={{ display: 'flex', gap: 2 }}>

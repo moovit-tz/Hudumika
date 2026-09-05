@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Icon } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { useComplyRenewals } from '../hooks/useComply.js';
 import type { CompRenewal, CompRenewalStatus } from '@hudumika/types';
@@ -155,22 +156,25 @@ export function ComplyWorkflows() {
       {/* ── Main card ── */}
       <div className="comply-card">
 
-        {/* Filter tabs */}
-        <div className="wf-filter-bar">
-          {FILTER_TABS.map(t => (
-            <button
-              key={t.key}
-              type="button"
-              className={`wf-tab${tab === t.key ? ' wf-tab--active' : ''}`}
-              onClick={() => setTab(t.key)}
-            >
-              {t.label}
-              {t.key === 'active' && pendingCount > 0 && (
-                <span className="wf-tab-count">{pendingCount}</span>
-              )}
-            </button>
-          ))}
-        </div>
+        {/* Filter tabs — the shared segmented ds-tabs */}
+        <Tabs value={tab} onValueChange={v => setTab(v as typeof tab)} variant="boxed">
+          <TabsList>
+            {FILTER_TABS.map(t => {
+              const isActive = tab === t.key;
+              return (
+                <TabsTrigger
+                  key={t.key}
+                  value={t.key}
+                >
+                  {t.label}
+                  {t.key === 'active' && pendingCount > 0 && (
+                    <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 20, lineHeight: 1.5, background: isActive ? 'var(--teal-l)' : 'var(--bg)', color: isActive ? 'var(--teal)' : 'var(--ink3)' }}>{pendingCount}</span>
+                  )}
+                </TabsTrigger>
+              );
+            })}
+          </TabsList>
+        </Tabs>
 
         {/* Column headers */}
         {!loading && !error && rows.length > 0 && (

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { useComplyDashboard, useComplyApplications, useComplyProfile } from '../hooks/useComply.js';
 import './ComplyOS.css';
 import { PageHeader } from '../components/PageHeader.js';
@@ -165,7 +166,7 @@ export function ComplyDashboard() {
             </Link>
           </div>
           <div className="comply-deadline-list">
-            {loading && <div className="comply-empty-hint">Loading…</div>}
+            {loading && <SectionLoading />}
             {!loading && (data?.upcoming_deadlines ?? []).length === 0 && (
               <div className="comply-empty-hint">No deadlines in the next 90 days.</div>
             )}

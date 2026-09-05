@@ -142,7 +142,7 @@ export function BankReconciliation() {
           {statements.length === 0 && <div style={{ fontSize: 13, color: 'var(--ink3)', padding: '20px 0' }}>No statements imported yet.</div>}
           {statements.map(s => (
             <div key={s.id} onClick={() => setSelectedId(s.id)}
-              style={{ padding: '12px 14px', borderRadius: 9, cursor: 'pointer', border: selectedId === s.id ? '1.5px solid var(--teal)' : '1px solid var(--border)', background: selectedId === s.id ? 'var(--teal-l)' : 'var(--white)' }}>
+              style={{ padding: '12px 14px', borderRadius: 'var(--r)', cursor: 'pointer', border: selectedId === s.id ? '1.5px solid var(--teal)' : '1px solid var(--border)', background: selectedId === s.id ? 'var(--teal-l)' : 'var(--white)' }}>
               <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)' }}>{s.bank_name || 'Bank Account'}</div>
               <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>{new Date(s.statement_date_from).toLocaleDateString('en-GB')} – {new Date(s.statement_date_to).toLocaleDateString('en-GB')}</div>
               <div style={{ fontSize: 11.5, marginTop: 4, color: s.matched === s.total ? 'var(--green)' : 'var(--gold)', fontWeight: 700 }}>{s.matched}/{s.total} matched</div>
@@ -169,7 +169,7 @@ export function BankReconciliation() {
                   <div style={{ fontSize: 11, color: 'var(--ink3)', textTransform: 'uppercase', fontWeight: 700 }}>Unmatched Lines</div>
                   <div style={{ fontSize: 18, fontWeight: 800, color: unmatchedLines.length > 0 ? 'var(--red)' : 'var(--green)' }}>{unmatchedLines.length}</div>
                 </div>
-                <button type="button" onClick={() => handleDelete(selected)} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 9, color: 'var(--red)', cursor: 'pointer', padding: '0 14px' }}><Icon name="trash" size={14} /></button>
+                <button type="button" onClick={() => handleDelete(selected)} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', color: 'var(--red)', cursor: 'pointer', padding: '0 14px' }}><Icon name="trash" size={14} /></button>
               </div>
 
               <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
@@ -220,7 +220,7 @@ export function BankReconciliation() {
               <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 16 }}>CSV with Date, Description, and Amount (or separate Debit/Credit) columns.</div>
               <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 }}>Bank Name (optional)</label>
               <input value={bankName} onChange={e => setBankName(e.target.value)} placeholder="e.g. CRDB Bank"
-                style={{ width: '100%', padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 9, fontSize: 13, outline: 'none', boxSizing: 'border-box', marginBottom: 16 }} />
+                style={{ width: '100%', padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13, outline: 'none', boxSizing: 'border-box', marginBottom: 16 }} />
               <FileUploader accept=".csv" multiple={false} onUpload={handleUpload} uploadingFiles={importing ? [{ id: '1', name: 'Uploading…', size: 0, progress: 60, status: 'uploading' }] : []} onRemoveFile={() => {}} />
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
                 <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowImport(false)}>Cancel</button>

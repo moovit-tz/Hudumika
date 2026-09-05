@@ -5,6 +5,7 @@ import { useCompany } from '../data/companyStore.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { Badge } from '../components/ui/badge.js';
+import { Banner } from '../components/ui/alert.js';
 import { TAX_CODE_KIND_VARIANT, TAX_CODE_KIND_LABEL, type TaxCodeKind } from '../data/taxCodeData.js';
 
 /**
@@ -271,27 +272,19 @@ export const FinanceTaxReport: React.FC = () => {
           {/* Gaps, stated rather than absorbed into a total. */}
           {(data.unclassified.salesLines > 0 || data.unclassified.purchaseLines > 0 ||
             data.fxSkipped.invoices > 0 || data.fxSkipped.bills > 0) && (
-            <div style={{
-              display: 'flex', gap: 10, alignItems: 'flex-start', padding: '12px 14px',
-              background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 'var(--r)',
-              fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.55,
-            }}>
-              <Icon name="alertTriangle" size={16} color="var(--gold)" />
-              <div>
-                <strong style={{ color: 'var(--ink)' }}>This return is incomplete.</strong>
-                <ul style={{ margin: '6px 0 0', paddingLeft: 18 }}>
-                  {data.unclassified.salesLines > 0 && (
-                    <li>{data.unclassified.salesLines} sales line{data.unclassified.salesLines === 1 ? '' : 's'} carrying {fmt(data.unclassified.salesTax)} of tax {data.unclassified.salesLines === 1 ? 'has' : 'have'} no treatment recorded, so {data.unclassified.salesLines === 1 ? 'it cannot' : 'they cannot'} be placed in a box.</li>
-                  )}
-                  {data.unclassified.purchaseLines > 0 && (
-                    <li>{data.unclassified.purchaseLines} purchase line{data.unclassified.purchaseLines === 1 ? '' : 's'} carrying {fmt(data.unclassified.purchaseTax)} of tax {data.unclassified.purchaseLines === 1 ? 'has' : 'have'} no treatment recorded. That tax is <strong>not</strong> being claimed — an unrecorded treatment is not a claim.</li>
-                  )}
-                  {(data.fxSkipped.invoices > 0 || data.fxSkipped.bills > 0) && (
-                    <li>{data.fxSkipped.invoices + data.fxSkipped.bills} document line{data.fxSkipped.invoices + data.fxSkipped.bills === 1 ? '' : 's'} in another currency {data.fxSkipped.invoices + data.fxSkipped.bills === 1 ? 'was' : 'were'} excluded: no rate to {cur} is recorded, and a guessed rate on a tax claim is a wrong claim.</li>
-                  )}
-                </ul>
-              </div>
-            </div>
+            <Banner variant="warning" title="This return is incomplete.">
+              <ul style={{ margin: '6px 0 0', paddingLeft: 18 }}>
+                {data.unclassified.salesLines > 0 && (
+                  <li>{data.unclassified.salesLines} sales line{data.unclassified.salesLines === 1 ? '' : 's'} carrying {fmt(data.unclassified.salesTax)} of tax {data.unclassified.salesLines === 1 ? 'has' : 'have'} no treatment recorded, so {data.unclassified.salesLines === 1 ? 'it cannot' : 'they cannot'} be placed in a box.</li>
+                )}
+                {data.unclassified.purchaseLines > 0 && (
+                  <li>{data.unclassified.purchaseLines} purchase line{data.unclassified.purchaseLines === 1 ? '' : 's'} carrying {fmt(data.unclassified.purchaseTax)} of tax {data.unclassified.purchaseLines === 1 ? 'has' : 'have'} no treatment recorded. That tax is <strong>not</strong> being claimed — an unrecorded treatment is not a claim.</li>
+                )}
+                {(data.fxSkipped.invoices > 0 || data.fxSkipped.bills > 0) && (
+                  <li>{data.fxSkipped.invoices + data.fxSkipped.bills} document line{data.fxSkipped.invoices + data.fxSkipped.bills === 1 ? '' : 's'} in another currency {data.fxSkipped.invoices + data.fxSkipped.bills === 1 ? 'was' : 'were'} excluded: no rate to {cur} is recorded, and a guessed rate on a tax claim is a wrong claim.</li>
+                )}
+              </ul>
+            </Banner>
           )}
 
           <BucketTable title={`Sales — output tax (${data.from} to ${data.to})`} buckets={data.outputs} taxLabel="Output tax" />

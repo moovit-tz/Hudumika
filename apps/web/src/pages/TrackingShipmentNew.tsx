@@ -28,9 +28,9 @@ type JobType = 'CLEARANCE_LINKED' | 'TRANSPORT_ONLY';
 
 const STEPS = ['Shipment Type', 'Details', 'Vehicle & Cargo', 'Review'] as const;
 
-const inputStyle: React.CSSProperties = { width: '100%', padding: '9px 12px', borderRadius: 9, border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: 13, background: 'var(--bg)', color: 'var(--ink)', boxSizing: 'border-box' };
+const inputStyle: React.CSSProperties = { width: '100%', padding: '9px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: 13, background: 'var(--bg)', color: 'var(--ink)', boxSizing: 'border-box' };
 const labelStyle: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 };
-const cardStyle: React.CSSProperties = { background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: 24 };
+const cardStyle: React.CSSProperties = { background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 24 };
 
 function StepHeader({ step }: { step: number }) {
   return (
@@ -42,7 +42,7 @@ function StepHeader({ step }: { step: number }) {
           <React.Fragment key={label}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0, minWidth: 90 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={{ width: 30, height: 30, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: done || active ? 'var(--teal)' : 'var(--bg)', color: done || active ? '#fff' : 'var(--ink3)', border: active ? '2px solid var(--teal)' : '1px solid var(--border)', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
+                <div style={{ width: 30, height: 30, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: done || active ? 'hsl(var(--primary))' : 'var(--bg)', color: done || active ? 'hsl(var(--primary-foreground))' : 'var(--ink3)', border: active ? '2px solid var(--teal)' : '1px solid var(--border)', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
                   {done ? <Icon name="check" size={14} /> : String(n).padStart(2, '0')}
                 </div>
                 <span style={{ fontSize: 13, fontWeight: active ? 700 : 600, color: active ? 'var(--ink)' : 'var(--ink3)', whiteSpace: 'nowrap' }}>{label}</span>
@@ -182,7 +182,7 @@ export const TrackingShipmentNew: React.FC = () => {
             {searching && <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>Searching…</div>}
             {shipmentResults.map(s => (
               <div key={s.id} onClick={() => setSelectedShipment(s)}
-                style={{ padding: '12px 14px', borderRadius: 9, border: `1.5px solid ${selectedShipment?.id === s.id ? 'var(--teal)' : 'var(--border)'}`, cursor: 'pointer', background: selectedShipment?.id === s.id ? 'var(--teal-l)' : 'var(--white)' }}>
+                style={{ padding: '12px 14px', borderRadius: 'var(--r)', border: `1.5px solid ${selectedShipment?.id === s.id ? 'var(--teal)' : 'var(--border)'}`, cursor: 'pointer', background: selectedShipment?.id === s.id ? 'var(--teal-l)' : 'var(--white)' }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{s.ref_number} <span style={{ fontWeight: 400, color: 'var(--ink3)' }}>· {s.stage}</span></div>
                 <div style={{ fontSize: 12, color: 'var(--ink2)', marginTop: 2 }}>{s.customer_name || 'Unknown customer'} — {s.goods_desc}</div>
                 <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>{s.origin_port} → {s.dest_port}</div>

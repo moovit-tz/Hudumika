@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Icon } from '../components/Icon.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import type { IconName } from '../components/Icon.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { apiFetch } from '../lib/api.js';
@@ -155,8 +156,8 @@ export const FinanceSalesReport: React.FC = () => {
             { label: 'Total Unpaid',  value: fmtM(unpaid),     icon: 'clock',         color: 'var(--gold)',      bg: 'var(--gold-l)'       },
             { label: 'Total Overdue', value: fmtM(overdue),    icon: 'alertTriangle', color: 'var(--red)',   bg: 'var(--red-l)'       },
           ].map(s => (
-            <div key={s.label} style={{ flex: 1, background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
-              <div style={{ width: 42, height: 42, borderRadius: 9, background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <div key={s.label} style={{ flex: 1, background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
+              <div style={{ width: 42, height: 42, borderRadius: 'var(--r)', background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Icon name={s.icon as IconName} size={18} color={s.color} />
               </div>
               <div>
@@ -185,7 +186,7 @@ export const FinanceSalesReport: React.FC = () => {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={7} style={{ padding: '32px', textAlign: 'center', color: 'var(--ink3)' }}>Loading…</td></tr>
+                <tr><td colSpan={7} style={{ padding: '32px' }}><SectionLoading style={{ padding: 0 }} /></td></tr>
               ) : loadError ? (
                 <tr><td colSpan={7} style={{ padding: '32px', textAlign: 'center', color: 'var(--red)' }}>{loadError}</td></tr>
               ) : invoices.length === 0 ? (
@@ -201,7 +202,7 @@ export const FinanceSalesReport: React.FC = () => {
                     <td style={{ padding: '10px 16px', color: 'var(--ink)', fontWeight: 600, fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>{fmtFull(i.total)}</td>
                     <td style={{ padding: '10px 16px', color: i.dueAmt > 0 ? 'var(--red)' : 'var(--ink3)', fontWeight: i.dueAmt > 0 ? 600 : 400, fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>{fmtFull(i.dueAmt)}</td>
                     <td style={{ padding: '10px 16px' }}>
-                      <span style={{ fontSize: 10, fontWeight: 700, color: sc.color, background: sc.bg, borderRadius: 5, padding: '2px 8px' }}>{sc.label}</span>
+                      <span style={{ fontSize: 10, fontWeight: 700, color: sc.color, background: sc.bg, borderRadius: 'var(--r-sm)', padding: '2px 8px' }}>{sc.label}</span>
                     </td>
                   </tr>
                 );

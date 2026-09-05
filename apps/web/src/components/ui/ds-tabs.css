@@ -1,7 +1,8 @@
-/* Tabs — all three variants, driven by design-system tokens.
-   Sizing comes from --tab-height / --tab-radius / --tab-size, written by
-   useDesignSystem.ts. The variant is `data-tabs` on <html> (platform default)
-   or `data-variant` on the list/trigger (per-instance override). */
+/* Tabs — all six variants (underline, pill, segmented, boxed, outline,
+   lifted), driven by design-system tokens. Sizing comes from --tab-height /
+   --tab-radius / --tab-size, written by useDesignSystem.ts. The variant is
+   `data-tabs` on <html> (platform default) or `data-variant` on the
+   list/trigger (per-instance override). */
 
 .ds-tabs-list {
   display: flex;
@@ -133,6 +134,111 @@
   box-shadow: var(--elev-sm);
 }
 
+/* ── boxed ───────────────────────────────────────────────────────────
+   Discrete bordered chips on a plain background, not a shared track —
+   the active chip gets a tinted fill. Reads lighter-weight than pill/
+   segmented, for a row of independent filters (a status list, a category
+   picker) rather than a real content switcher. */
+:root[data-tabs="boxed"] .ds-tabs-list,
+.ds-tabs-list[data-variant="boxed"] {
+  gap: 6px;
+  background: transparent;
+  padding: 0;
+}
+:root[data-tabs="boxed"] .ds-tabs-trigger,
+.ds-tabs-trigger[data-variant="boxed"] {
+  height: calc(var(--tab-height, 38px) - 8px);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--white);
+}
+:root[data-tabs="boxed"] .ds-tabs-trigger:hover:not([data-state="active"]):not(:disabled),
+.ds-tabs-trigger[data-variant="boxed"]:hover:not([data-state="active"]):not(:disabled) {
+  background: var(--bg);
+  border-color: var(--ink3);
+}
+:root[data-tabs="boxed"] .ds-tabs-trigger[data-state="active"],
+.ds-tabs-trigger[data-variant="boxed"][data-state="active"] {
+  background: var(--teal-l);
+  border-color: var(--teal-m);
+  color: var(--teal);
+}
+
+/* ── outline ─────────────────────────────────────────────────────────
+   Discrete chips like boxed, but selection reads through the border
+   alone — no fill change — for contexts (a sort order, a display
+   preference) where a filled/tinted chip would overstate the choice. */
+:root[data-tabs="outline"] .ds-tabs-list,
+.ds-tabs-list[data-variant="outline"] {
+  gap: 6px;
+  background: transparent;
+  padding: 0;
+}
+:root[data-tabs="outline"] .ds-tabs-trigger,
+.ds-tabs-trigger[data-variant="outline"] {
+  height: calc(var(--tab-height, 38px) - 8px);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--white);
+}
+:root[data-tabs="outline"] .ds-tabs-trigger:hover:not([data-state="active"]):not(:disabled),
+.ds-tabs-trigger[data-variant="outline"]:hover:not([data-state="active"]):not(:disabled) {
+  border-color: var(--ink3);
+  color: var(--ink);
+}
+:root[data-tabs="outline"] .ds-tabs-trigger[data-state="active"],
+.ds-tabs-trigger[data-variant="outline"][data-state="active"] {
+  background: var(--white);
+  border: 1.5px solid var(--ink);
+  color: var(--ink);
+  font-weight: 700;
+}
+
+/* ── lifted ──────────────────────────────────────────────────────────
+   Classic browser-tab/folder-tab: a shared baseline rule, inactive tabs
+   sit a couple of pixels lower on a sunken fill, the active tab rises to
+   meet the panel below it and erases the baseline under itself. */
+:root[data-tabs="lifted"] .ds-tabs-list,
+.ds-tabs-list[data-variant="lifted"] {
+  gap: 2px;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+  align-items: flex-end;
+}
+:root[data-tabs="lifted"] .ds-tabs-trigger,
+.ds-tabs-trigger[data-variant="lifted"] {
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: var(--tab-radius, 8px) var(--tab-radius, 8px) 0 0;
+  background: var(--card-sunken);
+  transform: translateY(1px);
+}
+:root[data-tabs="lifted"] .ds-tabs-trigger:hover:not([data-state="active"]):not(:disabled),
+.ds-tabs-trigger[data-variant="lifted"]:hover:not([data-state="active"]):not(:disabled) {
+  background: var(--bg);
+}
+:root[data-tabs="lifted"] .ds-tabs-trigger[data-state="active"],
+.ds-tabs-trigger[data-variant="lifted"][data-state="active"] {
+  background: var(--card-bg, var(--white));
+  border-color: var(--border);
+  color: var(--ink);
+  transform: translateY(0);
+  box-shadow: var(--elev-sm);
+  position: relative;
+  z-index: 1;
+}
+
 @media (max-width: 560px) {
   .ds-tabs-trigger { padding: 0 11px; }
+
+  /* Icon+label composition (flyonui's "pills with icon" — an icon paired
+     with a text label, collapsing to icon-only on narrow screens) is opt-in:
+     wrap the label text in a `.ds-tabs-trigger-label` span and it collapses
+     here automatically, in any variant. A trigger with no such span (plain
+     text, or an icon with no wrapped label) is untouched — this never hides
+     the only content a trigger has. */
+  .ds-tabs-trigger-label { display: none; }
+  .ds-tabs-trigger:has(.ds-tabs-trigger-label) { padding: 0 9px; gap: 0; }
 }

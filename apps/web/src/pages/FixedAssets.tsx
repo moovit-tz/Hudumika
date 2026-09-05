@@ -19,7 +19,7 @@ interface Asset {
   accumulated_depreciation: number; net_book_value: number;
 }
 
-const inp: React.CSSProperties = { width: '100%', padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 9, fontSize: 13, outline: 'none', background: 'var(--white)', boxSizing: 'border-box', color: 'var(--ink)', fontFamily: 'inherit' };
+const inp: React.CSSProperties = { width: '100%', padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13, outline: 'none', background: 'var(--white)', boxSizing: 'border-box', color: 'var(--ink)', fontFamily: 'inherit' };
 const lbl: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 };
 
 function NewAssetPanel({ onSave, onClose }: { onSave: (data: any) => Promise<void>; onClose: () => void }) {
@@ -53,7 +53,7 @@ function NewAssetPanel({ onSave, onClose }: { onSave: (data: any) => Promise<voi
       <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: 460, background: 'var(--white)', zIndex: 401, display: 'flex', flexDirection: 'column', boxShadow: '-8px 0 40px rgba(0,0,0,0.14)' }}>
         <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ fontWeight: 800, fontSize: 15, color: 'var(--ink)' }}>New Fixed Asset</div>
-          <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', display: 'flex', padding: 4 }}><Icon name="x" size={18} /></button>
+          <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', display: 'flex', padding: 4 }} aria-label="Close"><Icon name="x" size={18} /></button>
         </div>
         <div style={{ flex: 1, overflowY: 'auto', padding: '18px 22px' }}>
           <div style={{ marginBottom: 14 }}><label style={lbl}>Asset Name *</label><input style={inp} value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Toyota Hilux — KDX 123A" /></div>
@@ -70,7 +70,7 @@ function NewAssetPanel({ onSave, onClose }: { onSave: (data: any) => Promise<voi
             <div><label style={lbl}>Salvage Value</label><input type="number" min={0} style={inp} value={salvageValue} onChange={e => setSalvageValue(parseFloat(e.target.value) || 0)} /></div>
           </div>
           <div style={{ marginBottom: 14 }}><label style={lbl}>Useful Life (months)</label><input type="number" min={1} style={inp} value={usefulLifeMonths} onChange={e => setUsefulLifeMonths(parseInt(e.target.value) || 0)} /></div>
-          <div style={{ padding: '12px 14px', background: 'var(--bg)', borderRadius: 9, fontSize: 13, color: 'var(--ink2)' }}>
+          <div style={{ padding: '12px 14px', background: 'var(--bg)', borderRadius: 'var(--r)', fontSize: 13, color: 'var(--ink2)' }}>
             Monthly depreciation: <strong style={{ color: 'var(--teal)' }}>{((cost - salvageValue) / (usefulLifeMonths || 1)).toLocaleString('en-US', { maximumFractionDigits: 2 })}</strong>
           </div>
         </div>

@@ -244,13 +244,13 @@ function RightPanel({wf, step, allSteps, customers, onUpdateStep, onDeleteStep, 
         <div className="wfb-panel-section">
           <div className="wfb-panel-section-title">Freight Modes</div>
           <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
-            {FREIGHT_MODES.map(m=><div key={m} className={`wfb-tag-pill ${wf.triggers.freightModes.includes(m)?'sel':''}`} style={{display:'inline-flex',alignItems:'center',gap:5}} onClick={()=>{const a=wf.triggers.freightModes;onUpdateWf({triggers:{...wf.triggers,freightModes:a.includes(m)?a.filter(x=>x!==m):[...a,m]}});}}><Icon name={FREIGHT_MODE_ICON[m]} size={12} /> {m}</div>)}
+            {FREIGHT_MODES.map(m=>{const toggle=()=>{const a=wf.triggers.freightModes;onUpdateWf({triggers:{...wf.triggers,freightModes:a.includes(m)?a.filter(x=>x!==m):[...a,m]}});};return <div key={m} className={`wfb-tag-pill ${wf.triggers.freightModes.includes(m)?'sel':''}`} style={{display:'inline-flex',alignItems:'center',gap:5}} onClick={toggle} role="button" tabIndex={0} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();toggle();}}}><Icon name={FREIGHT_MODE_ICON[m]} size={12} /> {m}</div>;})}
           </div>
         </div>
         <div className="wfb-panel-section">
           <div className="wfb-panel-section-title">Consignment Types</div>
           <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
-            {CONSIGNMENT_TYPES.map(c=><div key={c} className={`wfb-tag-pill ${wf.triggers.consignmentTypes.includes(c)?'sel':''}`} onClick={()=>{const a=wf.triggers.consignmentTypes;onUpdateWf({triggers:{...wf.triggers,consignmentTypes:a.includes(c)?a.filter(x=>x!==c):[...a,c]}});}}>{c}</div>)}
+            {CONSIGNMENT_TYPES.map(c=>{const toggle=()=>{const a=wf.triggers.consignmentTypes;onUpdateWf({triggers:{...wf.triggers,consignmentTypes:a.includes(c)?a.filter(x=>x!==c):[...a,c]}});};return <div key={c} className={`wfb-tag-pill ${wf.triggers.consignmentTypes.includes(c)?'sel':''}`} onClick={toggle} role="button" tabIndex={0} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();toggle();}}}>{c}</div>;})}
           </div>
         </div>
         <div className="wfb-panel-section">
@@ -311,7 +311,7 @@ function RightPanel({wf, step, allSteps, customers, onUpdateStep, onDeleteStep, 
 
         {/* BASICS */}
         <div className="wfb-acc">
-          <div className="wfb-acc-head" onClick={()=>tog('basics')}>
+          <div className="wfb-acc-head" onClick={()=>tog('basics')} role="button" tabIndex={0} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();tog('basics');}}}>
             <span className="wfb-acc-title">Step Details</span>
             <I n={isOpen('basics')?'chevUp':'chevDown'} s={13} c="var(--ink3)"/>
           </div>
@@ -330,7 +330,7 @@ function RightPanel({wf, step, allSteps, customers, onUpdateStep, onDeleteStep, 
             </div>
             <div className="wfb-field">
               <label className="wfb-label">Color</label>
-              <div className="wfb-color-row">{STEP_COLORS.map(c=><div key={c} className={`wfb-color-dot ${step.color===c?'sel':''}`} style={{background:c}} onClick={()=>onUpdateStep(step.id,{color:c})}/>)}</div>
+              <div className="wfb-color-row">{STEP_COLORS.map(c=><div key={c} className={`wfb-color-dot ${step.color===c?'sel':''}`} style={{background:c}} onClick={()=>onUpdateStep(step.id,{color:c})} role="button" tabIndex={0} aria-label={`Set step color to ${c}`} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();onUpdateStep(step.id,{color:c});}}}/>)}</div>
             </div>
             <div className="wfb-toggle-row">
               <div><div className="wfb-toggle-label">Start Step</div><div className="wfb-toggle-sub">First step in this workflow</div></div>
@@ -341,7 +341,7 @@ function RightPanel({wf, step, allSteps, customers, onUpdateStep, onDeleteStep, 
 
         {/* TRANSITIONS */}
         <div className="wfb-acc">
-          <div className="wfb-acc-head" onClick={()=>tog('transitions')}>
+          <div className="wfb-acc-head" onClick={()=>tog('transitions')} role="button" tabIndex={0} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();tog('transitions');}}}>
             <span className="wfb-acc-title">Transitions {step.nextStepIds.length>0&&<span className="wfb-acc-badge">{step.nextStepIds.length}</span>}</span>
             <I n={isOpen('transitions')?'chevUp':'chevDown'} s={13} c="var(--ink3)"/>
           </div>
@@ -349,7 +349,7 @@ function RightPanel({wf, step, allSteps, customers, onUpdateStep, onDeleteStep, 
             <div style={{fontSize:11,color:'var(--ink3)',marginBottom:6}}>Steps that can follow this one (select all valid transitions)</div>
             {others.length===0?(<div style={{fontSize:12,color:'var(--ink3)'}}>Add more steps to configure transitions.</div>):
               others.map(s=>{const sel=step.nextStepIds.includes(s.id); return (
-                <div key={s.id} className={`wfb-trans-item ${sel?'sel':''}`} onClick={()=>onUpdateStep(step.id,{nextStepIds:sel?step.nextStepIds.filter(n=>n!==s.id):[...step.nextStepIds,s.id]})}>
+                <div key={s.id} className={`wfb-trans-item ${sel?'sel':''}`} onClick={()=>onUpdateStep(step.id,{nextStepIds:sel?step.nextStepIds.filter(n=>n!==s.id):[...step.nextStepIds,s.id]})} role="button" tabIndex={0} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();onUpdateStep(step.id,{nextStepIds:sel?step.nextStepIds.filter(n=>n!==s.id):[...step.nextStepIds,s.id]});}}}>
                   <div className="wfb-trans-check">{sel&&<I n="check" s={9} c="white"/>}</div>
                   <span style={{width:8,height:8,borderRadius:'50%',background:s.color,display:'inline-block',flexShrink:0}}/>
                   <span style={{fontSize:12,fontWeight:600,color:'var(--navy)'}}>{s.name}</span>
@@ -361,7 +361,7 @@ function RightPanel({wf, step, allSteps, customers, onUpdateStep, onDeleteStep, 
 
         {/* ENTRY CONDITIONS */}
         <div className="wfb-acc">
-          <div className="wfb-acc-head" onClick={()=>tog('conditions')}>
+          <div className="wfb-acc-head" onClick={()=>tog('conditions')} role="button" tabIndex={0} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();tog('conditions');}}}>
             <span className="wfb-acc-title"><I n="lock" s={12} c="var(--ink3)"/>Entry Conditions {step.entryConditions.length>0&&<span className="wfb-acc-badge">{step.entryConditions.length}</span>}</span>
             <I n={isOpen('conditions')?'chevUp':'chevDown'} s={13} c="var(--ink3)"/>
           </div>
@@ -399,7 +399,7 @@ function RightPanel({wf, step, allSteps, customers, onUpdateStep, onDeleteStep, 
 
         {/* AUTO-COMMS */}
         <div className="wfb-acc">
-          <div className="wfb-acc-head" onClick={()=>tog('comms')}>
+          <div className="wfb-acc-head" onClick={()=>tog('comms')} role="button" tabIndex={0} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();tog('comms');}}}>
             <span className="wfb-acc-title"><I n="zap" s={12} c="var(--ink3)"/>Auto-Comms {step.autoComms.length>0&&<span className="wfb-acc-badge">{step.autoComms.length}</span>}</span>
             <I n={isOpen('comms')?'chevUp':'chevDown'} s={13} c="var(--ink3)"/>
           </div>

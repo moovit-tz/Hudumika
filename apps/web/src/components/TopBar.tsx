@@ -97,7 +97,7 @@ function AISearchModal({ onClose }: { onClose: () => void }) {
     >
       <div style={{
         width: '100%', maxWidth: 600,
-        background: 'var(--white)', borderRadius: 9,
+        background: 'var(--white)', borderRadius: 'var(--r)',
         border: '1px solid var(--border)',
         boxShadow: 'var(--elev-lg)',
         overflow: 'hidden',
@@ -105,7 +105,7 @@ function AISearchModal({ onClose }: { onClose: () => void }) {
         {/* Input row */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 18px', borderBottom: '1px solid var(--border)' }}>
           <div style={{
-            width: 32, height: 32, borderRadius: 9, flexShrink: 0,
+            width: 32, height: 32, borderRadius: 'var(--r)', flexShrink: 0,
             background: 'linear-gradient(135deg, #7c3aed 0%, var(--teal) 100%)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
@@ -136,7 +136,7 @@ function AISearchModal({ onClose }: { onClose: () => void }) {
           <kbd style={{
             fontSize: 10, fontFamily: 'var(--mono)', color: 'var(--ink3)',
             background: 'var(--bg)', border: '1px solid var(--border)',
-            borderRadius: 5, padding: '2px 6px', flexShrink: 0,
+            borderRadius: 'var(--r-sm)', padding: '2px 6px', flexShrink: 0,
           }}>ESC</kbd>
         </div>
 
@@ -171,7 +171,7 @@ function AISearchModal({ onClose }: { onClose: () => void }) {
                   onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
                   onMouseLeave={e => (e.currentTarget.style.background = '')}>
                   <div style={{
-                    width: 30, height: 30, borderRadius: 9, flexShrink: 0,
+                    width: 30, height: 30, borderRadius: 'var(--r)', flexShrink: 0,
                     background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>
                     <Icon name={s.icon} size={14} color="var(--teal)" strokeWidth={2} />
@@ -291,7 +291,7 @@ function ClockInModal({ onClose, onConfirm }: {
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 900, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
       onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ width: 520, background: 'var(--white)', borderRadius: 9, boxShadow: 'var(--elev-lg)', overflow: 'hidden' }}>
+      <div style={{ width: 520, background: 'var(--white)', borderRadius: 'var(--r)', boxShadow: 'var(--elev-lg)', overflow: 'hidden' }}>
 
         {/* Header */}
         <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--teal)' }}>
@@ -310,7 +310,7 @@ function ClockInModal({ onClose, onConfirm }: {
         <div style={{ display: 'flex', padding: '12px 20px', gap: 8, borderBottom: '1px solid var(--border)', background: 'var(--bg)' }}>
           {[1, 2].map(n => (
             <div key={n} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <div style={{ width: 22, height: 22, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, background: step >= n ? 'var(--teal)' : 'var(--border)', color: step >= n ? '#fff' : 'var(--ink3)' }}>{n}</div>
+              <div style={{ width: 22, height: 22, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, background: step >= n ? 'hsl(var(--primary))' : 'var(--border)', color: step >= n ? 'hsl(var(--primary-foreground))' : 'var(--ink3)' }}>{n}</div>
               <span style={{ fontSize: 12, fontWeight: 600, color: step >= n ? 'var(--ink)' : 'var(--ink3)' }}>{n === 1 ? 'Select Shipment' : 'Select Steps'}</span>
               {n < 2 && <Icon name="chevronRight" size={14} color="var(--ink3)" />}
             </div>
@@ -326,7 +326,7 @@ function ClockInModal({ onClose, onConfirm }: {
                 <Icon name="search" size={13} color="var(--ink3)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
                 <input value={jobSearch} onChange={e => setJobSearch(e.target.value)}
                   placeholder="Search by BL, shipment title or customer…"
-                  style={{ width: '100%', padding: '8px 10px 8px 32px', border: '1px solid var(--border)', borderRadius: 9, fontFamily: 'var(--font)', fontSize: 13, background: 'var(--white)', color: 'var(--ink)', boxSizing: 'border-box' as const }} />
+                  style={{ width: '100%', padding: '8px 10px 8px 32px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontFamily: 'var(--font)', fontSize: 13, background: 'var(--white)', color: 'var(--ink)', boxSizing: 'border-box' as const }} />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 280, overflowY: 'auto' }}>
                 {filtered.length === 0 && <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--ink3)', fontSize: 13 }}>No active shipments found.</div>}
@@ -336,7 +336,7 @@ function ClockInModal({ onClose, onConfirm }: {
                   return (
                     <button key={j.id} type="button" onClick={() => setSelectedJobId(j.id)}
                       style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 'var(--ds-btn-py-lg) 14px', borderRadius: 'var(--r)', border: `1.5px solid ${selected ? 'var(--teal)' : 'var(--border)'}`, background: selected ? 'var(--teal-l)' : 'var(--white)', cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font)', transition: 'all .12s', minHeight: 'var(--ctl-h-lg)', boxSizing: 'border-box', lineHeight: 1.25}}>
-                      <div style={{ width: 40, height: 40, borderRadius: 9, background: selected ? 'var(--teal)' : 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <div style={{ width: 40, height: 40, borderRadius: 'var(--r)', background: selected ? 'var(--teal)' : 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         <Icon name="ship" size={18} color={selected ? '#fff' : 'var(--ink3)'} />
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
@@ -346,14 +346,14 @@ function ClockInModal({ onClose, onConfirm }: {
                           {j.customer}
                         </div>
                       </div>
-                      <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 6, background: selected ? 'var(--teal)' : 'var(--bg)', color: selected ? '#fff' : 'var(--ink3)', whiteSpace: 'nowrap', flexShrink: 0 }}>{stageLabel}</span>
+                      <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 6, background: selected ? 'hsl(var(--primary))' : 'var(--bg)', color: selected ? 'hsl(var(--primary-foreground))' : 'var(--ink3)', whiteSpace: 'nowrap', flexShrink: 0 }}>{stageLabel}</span>
                     </button>
                   );
                 })}
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
                 <button type="button" disabled={!selectedJobId} onClick={() => setStep(2)}
-                  style={{ padding: 'var(--ds-btn-py) 20px', background: selectedJobId ? 'var(--teal)' : 'var(--border)', color: selectedJobId ? '#fff' : 'var(--ink3)', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: selectedJobId ? 'pointer' : 'default', display: 'flex', alignItems: 'center', gap: 7, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                  style={{ padding: 'var(--ds-btn-py) 20px', background: selectedJobId ? 'hsl(var(--primary))' : 'var(--border)', color: selectedJobId ? 'hsl(var(--primary-foreground))' : 'var(--ink3)', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: selectedJobId ? 'pointer' : 'default', display: 'flex', alignItems: 'center', gap: 7, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
                   Next <Icon name="arrowRight" size={14} color={selectedJobId ? '#fff' : 'var(--ink3)'} />
                 </button>
               </div>
@@ -363,7 +363,7 @@ function ClockInModal({ onClose, onConfirm }: {
           {/* ── Step 2: Select Steps ── */}
           {step === 2 && chosenJob && (
             <>
-              <div style={{ padding: '10px 14px', background: 'var(--teal-l)', borderRadius: 9, marginBottom: 14, fontSize: 12, color: 'var(--teal)', fontWeight: 600 }}>
+              <div style={{ padding: '10px 14px', background: 'var(--teal-l)', borderRadius: 'var(--r)', marginBottom: 14, fontSize: 12, color: 'var(--teal)', fontWeight: 600 }}>
                 Working on: <span style={{ fontFamily: 'var(--mono)' }}>{chosenJob.bl || chosenJob.id}</span> — {chosenJob.customer}
               </div>
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
@@ -538,7 +538,7 @@ export const TopBar: React.FC<TopBarProps> = ({ navCollapsed, onToggleNav, onMob
   /* ── icon button style helper ── */
   function ibStyle(active = false): React.CSSProperties {
     return {
-      width: 36, height: 36, borderRadius: 9, border: 'none', cursor: 'pointer',
+      width: 36, height: 36, borderRadius: 'var(--r)', border: 'none', cursor: 'pointer',
       display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
       background: active ? 'var(--teal-l)' : 'transparent',
       color: active ? 'var(--teal)' : 'var(--ink2)', transition: 'background .15s',
@@ -653,7 +653,7 @@ export const TopBar: React.FC<TopBarProps> = ({ navCollapsed, onToggleNav, onMob
             <DropdownMenuContent align="end" sideOffset={8} className="w-[270px] p-0 rounded-xl overflow-hidden">
               <div style={{ background: 'rgba(16,185,129,.08)', padding: '14px 16px', borderBottom: '1px solid var(--border)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 9, background: 'rgba(16,185,129,.15)', border: '1px solid rgba(16,185,129,.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 'var(--r)', background: 'rgba(16,185,129,.15)', border: '1px solid rgba(16,185,129,.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <Icon name="clock" size={18} color="var(--green)" strokeWidth={2} />
                   </div>
                   <div>
@@ -662,7 +662,7 @@ export const TopBar: React.FC<TopBarProps> = ({ navCollapsed, onToggleNav, onMob
                   </div>
                 </div>
                 {currentEntry.is_billable && (
-                  <div style={{ marginTop: 8, fontSize: 11, padding: '3px 8px', background: 'rgba(8,145,178,.1)', color: 'var(--teal)', borderRadius: 5, display: 'inline-block', fontWeight: 700 }}>Billable</div>
+                  <div style={{ marginTop: 8, fontSize: 11, padding: '3px 8px', background: 'rgba(8,145,178,.1)', color: 'var(--teal)', borderRadius: 'var(--r-sm)', display: 'inline-block', fontWeight: 700 }}>Billable</div>
                 )}
               </div>
               <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>

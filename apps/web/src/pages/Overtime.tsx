@@ -1,6 +1,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
+import { SectionLoading } from '../components/ui/spinner.js';
+import { Banner } from '../components/ui/alert.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { PersonLink } from '../components/PersonLink.js';
 import { Button } from '../components/ui/button.js';
@@ -146,10 +149,7 @@ export function OvertimePage() {
         </div>
       )}
       {error && (
-        <div style={{ margin: '0 0 14px', padding: '11px 14px', borderRadius: 8, fontSize: 13,
-                      background: 'var(--red-l)', border: '1px solid var(--red)', color: 'var(--ink)' }}>
-          {error}
-        </div>
+        <div style={{ margin: '0 0 14px' }}><Banner variant="error">{error}</Banner></div>
       )}
 
       {showNew && (
@@ -219,16 +219,17 @@ export function OvertimePage() {
         ))}
       </div>
 
-      <div className="ds-tabs-list" data-variant="segmented" style={{ marginBottom: 14, display: 'inline-flex' }}>
-        {[['', 'All'], ['PENDING', 'Pending'], ['APPROVED', 'Approved'], ['REJECTED', 'Rejected']].map(([v, l]) => (
-          <button key={v || 'all'} type="button" className="ds-tabs-trigger" data-variant="segmented"
-            data-state={filter === v ? 'active' : 'inactive'} onClick={() => setFilter(v)}>{l}</button>
-        ))}
-      </div>
+      <Tabs value={filter} onValueChange={setFilter} variant="segmented">
+        <TabsList style={{ marginBottom: 14, display: 'inline-flex' }}>
+          {[['', 'All'], ['PENDING', 'Pending'], ['APPROVED', 'Approved'], ['REJECTED', 'Rejected']].map(([v, l]) => (
+            <TabsTrigger key={v || 'all'} value={v}>{l}</TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
 
       <SectionCard padded={false}>
         {loading ? (
-          <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading…</div>
+          <SectionLoading />
         ) : shown.length === 0 ? (
           <div style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--ink3)' }}>
             {filter ? `No ${filter.toLowerCase()} claims.` : 'No overtime has been claimed yet.'}

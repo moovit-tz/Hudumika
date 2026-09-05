@@ -4,6 +4,7 @@ import {
 } from 'chart.js';
 import { apiFetch, apiDownload } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
+import { Banner } from '../components/ui/alert.js';
 import type { IconName } from '../components/Icon.js';
 import { MetricsRow } from '../components/MetricCard.js';
 import { exportCsv, ExportButton, StatTile, DataTable, ClickableBarChart } from '../components/AnalyticsKit.js';
@@ -304,7 +305,7 @@ export const ClearOSMetricsDashboard: React.FC = () => {
         display: 'flex', alignItems: 'center', gap: 12, minHeight: 60, padding: '10px 0',
         borderBottom: '1px solid var(--border)', flexShrink: 0,
       }}>
-        <div style={{ width: 34, height: 34, borderRadius: 9, background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <div style={{ width: 34, height: 34, borderRadius: 'var(--r)', background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <Icon name="barChart2" size={18} color="var(--teal)" strokeWidth={1.75} />
         </div>
         {/* A toolbar label, not a PageHeader. This component only ever renders
@@ -329,11 +330,7 @@ export const ClearOSMetricsDashboard: React.FC = () => {
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '16px 0 24px' }}>
         <div style={{ padding: 0 }}>
-        {error && (
-          <div style={{ padding: 16, background: 'var(--red-l)', border: '1px solid var(--red)', color: 'var(--red)', borderRadius: 6, marginBottom: 20 }}>
-            {error}
-          </div>
-        )}
+        {error && <Banner variant="error" className="mb-5">{error}</Banner>}
 
         {/* Tenant-wide command KPIs — deliberately distinct from the section stat tiles below
             (those cover stage-cycle-time and per-officer detail; this row covers volume,

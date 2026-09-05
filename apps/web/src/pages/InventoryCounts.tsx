@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { Button } from '../components/ui/button.js';
 import { Input } from '../components/ui/input.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
@@ -90,7 +91,7 @@ export function InventoryCounts() {
       <div className="inv-card">
         <div className="inv-card-body">
           {loading ? (
-            <div className="inv-empty">Loading…</div>
+            <SectionLoading />
           ) : sessions.length === 0 ? (
             <div className="inv-empty">No stock counts yet.</div>
           ) : (

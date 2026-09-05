@@ -61,7 +61,7 @@
   gap: 7px;
   padding: var(--ds-btn-py) 16px;
   font-size: 13px;
-  border-radius: 9px;
+  border-radius: var(--r);
   border: 1px solid var(--border);
   background: var(--white);
   color: var(--ink2);
@@ -152,7 +152,7 @@
   align-items: center;
   gap: 3px;
   padding: var(--badge-py-sm) var(--badge-px-sm);
-  border-radius: 9px;
+  border-radius: var(--r);
   font-size: var(--badge-fs-sm);
   font-weight: 700;
   border: 1px solid transparent;
@@ -342,7 +342,7 @@
   align-items: center;
   justify-content: center;
   padding: 0 5px;
-  border-radius: 9px;
+  border-radius: var(--r);
   background: var(--border);
   font-size: 11px;
   font-weight: 700;
@@ -397,7 +397,7 @@
   justify-content: center;
   width: 18px;
   height: 18px;
-  border-radius: 5px;
+  border-radius: var(--r-sm);
   border: none;
   background: none;
   color: var(--ink3);
@@ -553,7 +553,7 @@
   align-items: center;
   justify-content: center;
   border: 1px solid var(--border);
-  border-radius: 5px;
+  border-radius: var(--r-sm);
   background: var(--white);
   cursor: pointer;
   color: var(--ink2);
@@ -748,7 +748,7 @@
   margin-left: 39px;
   background: var(--white);
   border: 1px solid var(--border);
-  border-radius: 9px;
+  border-radius: var(--r);
   overflow: hidden;
   box-shadow: var(--elev-sm);
 }
@@ -961,7 +961,7 @@
   border: none;
   background: none;
   cursor: pointer;
-  border-radius: 5px;
+  border-radius: var(--r-sm);
   color: var(--ink3);
 }
 .spt-toolbar-btn:hover { background: var(--bg); }
@@ -977,7 +977,7 @@
   gap: 6px;
   padding: var(--ds-btn-py) 20px;
   border: none;
-  border-radius: 9px;
+  border-radius: var(--r);
   background: hsl(var(--primary));
   color: hsl(var(--primary-foreground));
   cursor: pointer;
@@ -1325,7 +1325,7 @@
 }
 .spt-modal {
   background: var(--white);
-  border-radius: 9px;
+  border-radius: var(--r);
   padding: 28px;
   width: 90%;
   max-width: 520px;
@@ -1348,7 +1348,7 @@
   width: 100%;
   padding: 8px 12px;
   border: 1.5px solid var(--border);
-  border-radius: 9px;
+  border-radius: var(--r);
   font-size: 13px;
   font-family: var(--font);
   color: var(--ink);
@@ -1367,7 +1367,7 @@
 .spt-modal-cancel {
   padding: 8px 18px;
   border: 1.5px solid var(--border);
-  border-radius: 9px;
+  border-radius: var(--r);
   background: var(--white);
   cursor: pointer;
   font-size: 13.5px;
@@ -1378,7 +1378,7 @@
 .spt-modal-submit {
   padding: 8px 20px;
   border: none;
-  border-radius: 9px;
+  border-radius: var(--r);
   background: hsl(var(--primary));
   color: hsl(var(--primary-foreground));
   cursor: pointer;

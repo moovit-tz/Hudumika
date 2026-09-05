@@ -617,6 +617,11 @@ export function DesignSystemView() {
   // Motion test trigger state
   const [motionTrigger, setMotionTrigger] = useState(0);
 
+  // Tabs section's filter-row-with-badges live example (below the plain
+  // 3-tab preview) — demonstrates the icon+label+count-badge composition
+  // every hand-rolled filter pill row in the app should use instead.
+  const [tabsBadgeDemo, setTabsBadgeDemo] = useState('all');
+
   const [searchParams, setSearchParams] = useSearchParams();
   const initialSection = SECTIONS.some(s => s.id === searchParams.get('section')) ? searchParams.get('section')! : 'themes';
   const [activeSection, setActiveSectionState] = useState(initialSection);
@@ -1444,6 +1449,9 @@ export function DesignSystemView() {
                   { id: 'underline', title: 'Underline Rule', desc: 'Minimalist active border line under the selected tab.' },
                   { id: 'pill', title: 'Soft Pill', desc: 'Rounded background tint highlighting the active tab on a clean track.' },
                   { id: 'segmented', title: 'Segmented Control', desc: 'Raised surface card on an inset sunken background track.' },
+                  { id: 'boxed', title: 'Boxed Chips', desc: 'Discrete bordered chips, not a shared track — the active chip gets a tinted fill.' },
+                  { id: 'outline', title: 'Outlined Chips', desc: 'Discrete chips where selection reads through the border alone, no fill change.' },
+                  { id: 'lifted', title: 'Lifted Tab', desc: 'Browser-tab style — the active tab rises to meet the panel below it.' },
                 ].map(v => {
                   const isSelected = tokens.tabs.variant === v.id;
                   return (
@@ -1505,6 +1513,40 @@ export function DesignSystemView() {
                   <TabsContent value="three" className="ds-tab-content-box">
                     <p>Audit history records table preview.</p>
                   </TabsContent>
+                </Tabs>
+              </div>
+
+              {/* Filter/category pill rows (Settings ▸ Modules, ComplyOS
+                  applications, Ondi Security, Contacts sort, Subscription's
+                  own top tab bar, ...) are this exact same control, not a
+                  page-local pill style — every one of those used to hand-roll
+                  its own "selected" look (solid dark, tinted, outlined),
+                  which is the inconsistency this example exists to close off
+                  by showing the one correct way to compose it: raw
+                  ds-tabs-list/ds-tabs-trigger with data-variant="segmented",
+                  icon optional, and a count badge as a plain child span. The
+                  label is wrapped in .ds-tabs-trigger-label, which is what
+                  makes it collapse to icon-only under 560px — resize the
+                  window (or view on a phone) to see it happen. */}
+              <div className="ds-interactive-preview-card">
+                <span className="ds-preview-mini-label">FILTER ROW WITH COUNT BADGES — SAME CONTROL, NOT A SEPARATE COMPONENT (RESIZE BELOW 560PX TO SEE THE LABEL COLLAPSE)</span>
+                <Tabs value={tabsBadgeDemo} onValueChange={setTabsBadgeDemo} variant="segmented">
+                  <TabsList>
+                    {[
+                      { key: 'all', icon: 'grid' as IconName, label: 'All', count: 27 },
+                      { key: 'logistics', icon: 'package' as IconName, label: 'Logistics & Trade', count: 6 },
+                      { key: 'finance', icon: 'dollarSign' as IconName, label: 'Finance & Accounts', count: 2 },
+                    ].map(t => (
+                      <TabsTrigger
+                        key={t.key}
+                        value={t.key}
+                      >
+                        <Icon name={t.icon} size={13} />
+                        <span className="ds-tabs-trigger-label">{t.label}</span>
+                        <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 20, lineHeight: 1.5, background: tabsBadgeDemo === t.key ? 'var(--teal-l)' : 'var(--bg)', color: tabsBadgeDemo === t.key ? 'var(--teal)' : 'var(--ink3)' }}>{t.count}</span>
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
                 </Tabs>
               </div>
             </section>

@@ -256,7 +256,7 @@ export const OndiRoles: React.FC = () => {
                 </SelectContent>
               </Select>
               <button type="button" onClick={submitAccessRequest} disabled={!requestRoleId || requesting}
-                style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: 'var(--teal)', color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: 13, opacity: (!requestRoleId || requesting) ? 0.6 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0, 181, 137, 0.3)' }}>
+                style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 700, cursor: 'pointer', fontSize: 13, opacity: (!requestRoleId || requesting) ? 0.6 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0, 181, 137, 0.3)' }}>
                 {requesting ? 'Sending…' : 'Request'}
               </button>
             </div>

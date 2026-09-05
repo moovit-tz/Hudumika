@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import './TrackingDriverDetail.css';
 import { PageHeader } from '../components/PageHeader.js';
 import { AvatarPicker } from '../components/AvatarPicker.js';
@@ -280,13 +281,13 @@ export const TrackingDriverDetail: React.FC = () => {
             </div>
           </div>
           
-          <div className="dd-tabs-header">
-            {['Courier Report', 'Delivery Route', 'Delivery Issue', 'Fleet Issue'].map(tab => (
-              <div key={tab} className={`dd-tab ${activeTab === tab ? 'active' : ''}`} onClick={() => setActiveTab(tab)}>
-                {tab}
-              </div>
-            ))}
-          </div>
+          <Tabs value={activeTab} onValueChange={setActiveTab} variant="segmented">
+            <TabsList>
+              {['Courier Report', 'Delivery Route', 'Delivery Issue', 'Fleet Issue'].map(tab => (
+                <TabsTrigger key={tab} value={tab}>{tab}</TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
 
           <div className="dd-report-list">
             {activeTab === 'Courier Report' && trips.length === 0 && <div style={{ color: 'var(--ink3)' }}>No recent deliveries found.</div>}

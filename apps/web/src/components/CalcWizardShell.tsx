@@ -121,7 +121,7 @@ export function WizardNavRow({ step, totalSteps, setStep, error, busy, onContinu
   return (
     <div style={{ marginTop: 28, paddingTop: 20, borderTop: '1px solid var(--border)' }}>
       {error && (
-        <div style={{ marginBottom: 14, padding: '10px 14px', borderRadius: 9, background: 'color-mix(in srgb, var(--red) 9%, transparent)', border: '1px solid color-mix(in srgb, var(--red) 25%, transparent)', color: 'var(--red)', fontSize: 12.5, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ marginBottom: 14, padding: '10px 14px', borderRadius: 'var(--r)', background: 'color-mix(in srgb, var(--red) 9%, transparent)', border: '1px solid color-mix(in srgb, var(--red) 25%, transparent)', color: 'var(--red)', fontSize: 12.5, display: 'flex', alignItems: 'center', gap: 8 }}>
           <Icon name="alertCircle" size={15} color="var(--red)" /> {error}
         </div>
       )}
@@ -136,7 +136,7 @@ export function WizardNavRow({ step, totalSteps, setStep, error, busy, onContinu
         {step < totalSteps
           ? <button type="button" disabled={!!error || busy}
               onClick={() => { if (!error) { if (onContinue) onContinue(); else setStep(step + 1); } }}
-              style={{ height: 'var(--ctl-h)', padding: '0 28px', borderRadius: 'var(--r-sm)', border: 'none', background: error ? 'var(--border)' : 'var(--teal)', color: error ? 'var(--ink3)' : '#fff', fontWeight: 700, fontSize: 14, cursor: error || busy ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8, boxShadow: error ? 'none' : '0 4px 16px color-mix(in srgb, var(--teal) 30%, transparent)' }}>
+              style={{ height: 'var(--ctl-h)', padding: '0 28px', borderRadius: 'var(--r-sm)', border: 'none', background: error ? 'var(--border)' : 'hsl(var(--primary))', color: error ? 'var(--ink3)' : 'hsl(var(--primary-foreground))', fontWeight: 700, fontSize: 14, cursor: error || busy ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8, boxShadow: error ? 'none' : '0 4px 16px color-mix(in srgb, var(--teal) 30%, transparent)' }}>
               {busy ? 'Calculating…' : (continueLabel ?? 'Continue')} {!busy && <Icon name="arrowRight" size={14} color={error ? 'var(--ink3)' : '#fff'} />}
             </button>
           : null

@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Icon } from './Icon.js';
+import { SectionLoading } from './ui/spinner.js';
 import { Badge } from './ui/badge.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from './ui/select.js';
 import { apiFetch } from '../lib/api.js';
@@ -127,7 +128,7 @@ export function SealDocumentPanel({ entityType, entityId }: { entityType: 'lot' 
         </div>
 
         {loading ? (
-          <div className="seal-empty">Loading…</div>
+          <SectionLoading />
         ) : docs.length === 0 ? (
           <div className="seal-empty">No documents uploaded yet.</div>
         ) : (

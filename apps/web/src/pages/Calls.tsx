@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { apiFetch, BASE_URL } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { Icon, IconName } from '../components/Icon.js';
+import { Banner } from '../components/ui/alert.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Button } from '../components/ui/button.js';
@@ -232,16 +235,17 @@ export function Calls() {
         subtitle="Call a colleague directly — peer-to-peer, with live presence and a record of every call."
         actions={<Button variant="outline" onClick={() => navigate('/bliss/calls/reports')}><Icon name="barChart" size={14} /> Reports</Button>} />
 
-      {error && <div style={{ fontSize: 12.5, color: 'var(--red)', background: 'var(--red-l)', borderRadius: 8, padding: '8px 12px' }}>{error}</div>}
+      {error && <Banner variant="error">{error}</Banner>}
 
-      <div className="ds-tabs-list" data-variant="segmented">
-        {([['directory', 'Direct calls'], ['meetings', 'Meetings']] as const).map(([key, label]) => (
-          <button key={key} type="button" className="ds-tabs-trigger" data-variant="segmented"
-            data-state={tab === key ? 'active' : 'inactive'} onClick={() => setTab(key)}>
-            {label}
-          </button>
-        ))}
-      </div>
+      <Tabs value={tab} onValueChange={v => setTab(v as typeof tab)} variant="segmented">
+        <TabsList>
+          {([['directory', 'Direct calls'], ['meetings', 'Meetings']] as const).map(([key, label]) => (
+            <TabsTrigger key={key} value={key}>
+              {label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
 
       {tab === 'directory' && (
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(320px, 100%), 1fr))', gap: 20 }}>
@@ -326,10 +330,13 @@ export function Calls() {
                   style={{ height: 36, borderRadius: 8, border: '1px solid var(--border)', padding: '0 10px', fontSize: 13, gridColumn: '1 / -1' }} />
                 <DatePicker date={schedDate} onChange={setSchedDate} placeholder="Date" />
                 <input type="time" value={schedTime} onChange={e => setSchedTime(e.target.value)} style={{ height: 36, borderRadius: 8, border: '1px solid var(--border)', padding: '0 10px', fontSize: 13 }} />
-                <select value={schedKind} onChange={e => setSchedKind(e.target.value as 'VIDEO' | 'VOICE')} style={{ height: 36, borderRadius: 8, border: '1px solid var(--border)', padding: '0 10px', fontSize: 13 }}>
-                  <option value="VIDEO">Video</option>
-                  <option value="VOICE">Voice only</option>
-                </select>
+                <Select value={schedKind} onValueChange={v => setSchedKind(v as 'VIDEO' | 'VOICE')}>
+                  <SelectTrigger style={{ height: 36 }}><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="VIDEO">Video</SelectItem>
+                    <SelectItem value="VOICE">Voice only</SelectItem>
+                  </SelectContent>
+                </Select>
                 <input value={schedPassword} onChange={e => setSchedPassword(e.target.value)} placeholder="Password (optional)"
                   style={{ height: 36, borderRadius: 8, border: '1px solid var(--border)', padding: '0 10px', fontSize: 13 }} />
               </div>
@@ -395,8 +402,8 @@ export function Calls() {
             <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 4, marginBottom: 24 }}>Incoming {kind === 'VIDEO' ? 'video' : 'voice'} call…</div>
             <div style={{ display: 'flex', gap: 14, justifyContent: 'center' }}>
               {/* TODO design-system: migrate to <Button variant="destructive"> once it can express a fixed-size circular icon button (paired with the plain --green accept button below, so only converting one half would leave the pair inconsistent). */}
-              <button type="button" onClick={declineCall} style={{ width: 58, height: 58, borderRadius: '50%', border: 'none', background: 'var(--red)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="x" size={22} color="#fff" /></button>
-              <button type="button" onClick={acceptCall} style={{ width: 58, height: 58, borderRadius: '50%', border: 'none', background: 'var(--green)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name={kind === 'VIDEO' ? 'camera' : 'phone'} size={22} color="#fff" /></button>
+              <button type="button" onClick={declineCall} aria-label="Decline call" style={{ width: 58, height: 58, borderRadius: '50%', border: 'none', background: 'var(--red)', color: 'hsl(var(--red-foreground))', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="x" size={22} color="hsl(var(--red-foreground))" /></button>
+              <button type="button" onClick={acceptCall} aria-label="Accept call" style={{ width: 58, height: 58, borderRadius: '50%', border: 'none', background: 'var(--green)', color: 'hsl(var(--green-foreground))', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name={kind === 'VIDEO' ? 'camera' : 'phone'} size={22} color="hsl(var(--green-foreground))" /></button>
             </div>
           </div>
         </div>
@@ -424,7 +431,7 @@ export function Calls() {
           <div style={{ display: 'flex', gap: 16, justifyContent: 'center', padding: '20px 0 30px', background: '#0b0b0f' }}>
             <button type="button" onClick={toggleMute} title={muted ? 'Unmute' : 'Mute'} style={ctrlBtn(muted)}><Icon name="volume2" size={20} color={muted ? '#111' : '#fff'} /></button>
             {kind === 'VIDEO' && <button type="button" onClick={toggleCam} title={camOff ? 'Camera on' : 'Camera off'} style={ctrlBtn(camOff)}><Icon name="camera" size={20} color={camOff ? '#111' : '#fff'} /></button>}
-            <button type="button" onClick={hangup} title="Hang up" style={{ ...ctrlBtn(false), background: 'var(--red)' }}><Icon name="x" size={20} color="#fff" /></button>
+            <button type="button" onClick={hangup} title="Hang up" style={{ ...ctrlBtn(false), background: 'var(--red)' }}><Icon name="x" size={20} color="hsl(var(--red-foreground))" /></button>
           </div>
         </div>
       )}

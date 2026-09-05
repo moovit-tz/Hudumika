@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { PageHeader } from '../../components/PageHeader.js';
 import { SectionCard } from '../../components/SectionCard.js';
 import { Icon } from '../../components/Icon.js';
+import { SectionLoading } from '../../components/ui/spinner.js';
 import { Button } from '../../components/ui/button.js';
 import { Input } from '../../components/ui/input.js';
 import { Textarea } from '../../components/ui/textarea.js';
@@ -81,7 +82,7 @@ export function SmsTemplates() {
 
       <SectionCard title="Templates" padded={false} collapsible={false}>
         {loading ? (
-          <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>Loading…</div>
+          <SectionLoading />
         ) : templates.length === 0 ? (
           <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>No templates yet.</div>
         ) : (

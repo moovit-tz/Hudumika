@@ -60,7 +60,7 @@ export const TrackingAlerts: React.FC = () => {
         {!loading && alerts.map(a => {
           const sc = SEVERITY_COLORS[a.severity] ?? SEVERITY_COLORS.INFO;
           return (
-            <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 14, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: '14px 18px', opacity: a.acknowledged ? 0.6 : 1 }}>
+            <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 14, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '14px 18px', opacity: a.acknowledged ? 0.6 : 1 }}>
               <div style={{ width: 34, height: 34, borderRadius: 10, background: sc.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Icon name="alertTriangle" size={16} color={sc.fg} />
               </div>
@@ -81,7 +81,7 @@ export const TrackingAlerts: React.FC = () => {
           );
         })}
         {!loading && alerts.length === 0 && (
-          <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: '40px 20px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>
+          <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '40px 20px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>
             No {showAcknowledged ? '' : 'unacknowledged '}alerts.
           </div>
         )}

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Icon } from '../components/Icon.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { Badge } from '../components/ui/badge.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
@@ -100,7 +101,7 @@ export function SealYardSlots() {
       <div className="seal-card">
         <div className="seal-card-body">
           {loading ? (
-            <div className="seal-empty">Loading…</div>
+            <SectionLoading />
           ) : slots.length === 0 ? (
             <div className="seal-empty">No yard slots defined yet.</div>
           ) : (

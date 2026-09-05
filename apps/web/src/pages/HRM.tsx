@@ -8,6 +8,9 @@ import { MetricsRow, type MetricCardProps } from '../components/MetricCard.js';
 import { apiFetch, apiDownload } from '../lib/api.js';
 import { Button } from '../components/ui/button.js';
 import { CheckboxRow } from '../components/ui/list-item-row.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
+import { Banner } from '../components/ui/alert.js';
+import { SectionLoading, PageLoading } from '../components/ui/spinner.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import type { EmpStatus, Employee } from '../data/staffData.js';
 import type { AttendanceStatus, AttendanceRecord, ShiftType, ShiftAssignment, Employee as ShiftEmployee } from '../data/hrmData.js';
@@ -124,7 +127,7 @@ function PageHeader({ icon, title, sub, children }: { icon?: IconName; title: st
 }
 
 function Card({ children, mb = 16 }: { children: React.ReactNode; mb?: number }) {
-  return <div style={{ background:'var(--white)', borderRadius: 9, border:'1px solid var(--border)', overflow:'hidden', marginBottom:mb }}>{children}</div>;
+  return <div style={{ background:'var(--white)', borderRadius: 'var(--r)', border:'1px solid var(--border)', overflow:'hidden', marginBottom:mb }}>{children}</div>;
 }
 
 const TH = ({ children, right }: { children: React.ReactNode; right?: boolean }) => (
@@ -242,15 +245,16 @@ export function EmployeesPage() {
       {/* -- Toolbar -- */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 14, alignItems: 'center', flexWrap: 'wrap' }}>
         {/* Status chips */}
-        <div className="ds-tabs-list" data-variant="segmented">
-          {STATUS_CHIPS.map(chip => (
-            <button key={chip.key} type="button" onClick={() => setStatusF(chip.key)}
-              className="ds-tabs-trigger" data-variant="segmented" data-state={statusF === chip.key ? 'active' : 'inactive'}>
-              {chip.label}
-              <span style={{ fontSize: 10, padding: '0 5px', borderRadius: 9, background: statusF === chip.key ? 'var(--teal-l)' : 'var(--border)', color: statusF === chip.key ? 'var(--teal)' : 'var(--ink3)' }}>{chip.count}</span>
-            </button>
-          ))}
-        </div>
+        <Tabs value={statusF} onValueChange={v => setStatusF(v as typeof statusF)} variant="segmented">
+          <TabsList>
+            {STATUS_CHIPS.map(chip => (
+              <TabsTrigger key={chip.key} value={chip.key}>
+                {chip.label}
+                <span style={{ fontSize: 10, padding: '0 5px', borderRadius: 'var(--r)', background: statusF === chip.key ? 'var(--teal-l)' : 'var(--border)', color: statusF === chip.key ? 'var(--teal)' : 'var(--ink3)' }}>{chip.count}</span>
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
 
         <div style={{ flex: 1 }} />
 
@@ -258,7 +262,7 @@ export function EmployeesPage() {
         <div style={{ position: 'relative', width: 260 }}>
           <Icon name="search" size={13} color="var(--ink3)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name or email—"
-            style={{ width: '100%', padding: '7px 10px 7px 32px', border: '1px solid var(--border)', borderRadius: 9, fontFamily: 'var(--font)', fontSize: 13, background: 'var(--white)', color: 'var(--ink)', boxSizing: 'border-box' as const }} />
+            style={{ width: '100%', padding: '7px 10px 7px 32px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontFamily: 'var(--font)', fontSize: 13, background: 'var(--white)', color: 'var(--ink)', boxSizing: 'border-box' as const }} />
         </div>
 
         {/* Dept filter */}
@@ -271,7 +275,7 @@ export function EmployeesPage() {
         </Select>
 
         {/* View toggle */}
-        <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 9, overflow: 'hidden' }}>
+        <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 'var(--r)', overflow: 'hidden' }}>
           {(['list', 'grid'] as const).map(mode => (
             <button key={mode} type="button" title={mode === 'list' ? 'List view' : 'Card grid view'} onClick={() => setViewMode(mode)}
               style={{ padding: 'var(--ds-btn-py) 11px', border: 'none', cursor: 'pointer', background: viewMode === mode ? 'hsl(var(--primary))' : 'var(--white)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .15s', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
@@ -292,7 +296,7 @@ export function EmployeesPage() {
           {rows.map(e => {
             const rCol = roleColor(e.role);
             return (
-              <Link key={e.id} to={'/nexushr/staff/' + e.id} style={{ display: 'block', background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', overflow: 'hidden', cursor: 'pointer', textDecoration: 'none', color: 'inherit' }}>
+              <Link key={e.id} to={'/nexushr/staff/' + e.id} style={{ display: 'block', background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', overflow: 'hidden', cursor: 'pointer', textDecoration: 'none', color: 'inherit' }}>
                 <div style={{ height: 3, background: statusBar(e.status) }} />
                 <div style={{ padding: '18px 16px 12px', textAlign: 'center' }}>
                   <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
@@ -362,7 +366,7 @@ export function EmployeesPage() {
       {/* -- Invite / Onboard Modal -- */}
       {showOnboard && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ background: 'var(--white)', borderRadius: 9, padding: 32, width: 460, maxWidth: '90%', maxHeight: '90vh', overflowY: 'auto' }}>
+          <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', padding: 32, width: 460, maxWidth: '90%', maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
               <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink)', margin: 0 }}>Invite New Staff</h2>
               <button type="button" title="Close" onClick={() => setShowOnboard(false)} style={{ border: 'none', background: 'none', cursor: 'pointer' }}><Icon name="x" size={20} color="var(--ink3)" /></button>
@@ -382,7 +386,7 @@ export function EmployeesPage() {
             }}>
               <div style={{ marginBottom: 16 }}>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Work Email</label>
-                <input name="email" type="email" required placeholder="john@company.com" style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 9, boxSizing: 'border-box' as const, fontFamily: 'var(--font)' }} />
+                <input name="email" type="email" required placeholder="john@company.com" style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', boxSizing: 'border-box' as const, fontFamily: 'var(--font)' }} />
               </div>
               <div style={{ marginBottom: 24 }}>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>System Role</label>
@@ -509,10 +513,12 @@ export function RolesPage() {
     <div style={{ flex: 1, overflowY: 'auto' }}>
       <PageHeader icon="shield" title="Roles & Permissions" sub="Manage access control for each role across all modules" backTo="/nexushr">
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div className="ds-tabs-list" data-variant="segmented">
-            <button type="button" onClick={() => setView('byRole')} className="ds-tabs-trigger" data-variant="segmented" data-state={view === 'byRole' ? 'active' : 'inactive'}>By role</button>
-            <button type="button" onClick={() => setView('matrix')} className="ds-tabs-trigger" data-variant="segmented" data-state={view === 'matrix' ? 'active' : 'inactive'}>Full matrix</button>
-          </div>
+          <Tabs value={view} onValueChange={v => setView(v as typeof view)} variant="segmented">
+            <TabsList>
+              <TabsTrigger value="byRole">By role</TabsTrigger>
+              <TabsTrigger value="matrix">Full matrix</TabsTrigger>
+            </TabsList>
+          </Tabs>
           {dirty && (
             <button type="button" onClick={save} disabled={saving}
               style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 16px', borderRadius:'var(--r)', border:'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight:700, fontSize:13, fontFamily:'var(--font)', cursor:'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
@@ -522,9 +528,8 @@ export function RolesPage() {
         </div>
       </PageHeader>
 
-      <div style={{ display:'flex', alignItems:'center', gap:8, fontSize:12.5, color:'var(--gold)', background:'var(--gold-l)', border:'1px solid var(--gold)', borderRadius:8, padding:'8px 12px', margin:'0 0 16px' }}>
-        <Icon name="alertTriangle" size={13} />
-        <span>This grid is not connected to any enforcement — toggling a switch here has no effect. Manage real role permissions from <Link to="/ondi/roles" style={{ color:'var(--gold)', fontWeight:700, textDecoration:'underline' }}>Ondi ▸ Roles &amp; Access</Link>.</span>
+      <div style={{ margin:'0 0 16px' }}>
+        <Banner variant="warning">This grid is not connected to any enforcement — toggling a switch here has no effect. Manage real role permissions from <Link to="/ondi/roles" style={{ color:'var(--gold)', fontWeight:700, textDecoration:'underline' }}>Ondi ▸ Roles &amp; Access</Link>.</Banner>
       </div>
 
       {view === 'matrix' ? (
@@ -796,7 +801,7 @@ function StampAccessCard() {
         Only these roles can apply the company stamp directly (Hudumika eSign, and any other app using the shared stamp API). Anyone else sees a "Request stamping" option instead, which tags a real person below to approve it.
       </div>
       {roles === null ? (
-        <div style={{ color:'var(--ink3)', fontSize:13 }}>Loading…</div>
+        <SectionLoading />
       ) : (
         <div style={{ display:'flex', flexDirection:'column', gap:2 }}>
           {STAMP_ROLE_OPTIONS.map(role => (
@@ -835,7 +840,7 @@ function StampRequestsCard() {
       <div style={{ fontSize:14, fontWeight:700, color:'var(--ink)', marginBottom:4 }}>Stamp requests</div>
       <div style={{ fontSize:12.5, color:'var(--ink3)', marginBottom:14 }}>People without direct stamp access who have tagged you as their approver.</div>
       {requests === null ? (
-        <div style={{ color:'var(--ink3)', fontSize:13 }}>Loading…</div>
+        <SectionLoading />
       ) : pending.length === 0 ? (
         <div style={{ color:'var(--ink3)', fontSize:13 }}>No pending requests.</div>
       ) : (
@@ -1104,7 +1109,7 @@ export function TeamsPage() {
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))', gap:16 }}>
         {teams.length === 0 && <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: 32, color: 'var(--ink3)' }}>No teams yet.</div>}
         {teams.map(t => (
-          <div key={t.id} style={{ background:'var(--white)', borderRadius: 9, border:'1px solid var(--border)', padding:18 }}>
+          <div key={t.id} style={{ background:'var(--white)', borderRadius: 'var(--r)', border:'1px solid var(--border)', padding:18 }}>
             <div style={{ fontWeight:700, fontSize:14, color:'var(--ink)', marginBottom:4 }}>{t.name}</div>
             <div style={{ fontSize:12, color:'var(--ink3)', marginBottom:12 }}>Lead: {t.lead_name || '—'} — {t.members.length} member{t.members.length!==1?'s':''}</div>
             <div style={{ display:'flex', flexDirection:'column', gap:6, marginBottom:12 }}>
@@ -1864,19 +1869,19 @@ export function AttendancePage() {
               const a = memberRecords.filter(r => r?.status === 'Absent').length;
               return (
                 <>
-                  <div style={{ flex: 1, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ flex: 1, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
                     <div style={{ width: 40, height: 40, borderRadius: 20, background: 'var(--blue-l)', color: 'var(--blue)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="calendar" size={20} /></div>
                     <div><div style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 600, textTransform: 'uppercase' }}>Working Days</div><div style={{ fontSize: 20, fontWeight: 800 }}>{wDays}</div></div>
                   </div>
-                  <div style={{ flex: 1, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ flex: 1, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
                     <div style={{ width: 40, height: 40, borderRadius: 20, background: 'var(--green-l)', color: 'var(--green)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="check" size={20} /></div>
                     <div><div style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 600, textTransform: 'uppercase' }}>Days Present</div><div style={{ fontSize: 20, fontWeight: 800 }}>{p}</div></div>
                   </div>
-                  <div style={{ flex: 1, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ flex: 1, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
                     <div style={{ width: 40, height: 40, borderRadius: 20, background: 'var(--gold-l)', color: 'var(--gold)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="clock" size={20} /></div>
                     <div><div style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 600, textTransform: 'uppercase' }}>Late</div><div style={{ fontSize: 20, fontWeight: 800 }}>{l}</div></div>
                   </div>
-                  <div style={{ flex: 1, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ flex: 1, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
                     <div style={{ width: 40, height: 40, borderRadius: 20, background: 'var(--red-l)', color: 'var(--red)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="x" size={20} /></div>
                     <div><div style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 600, textTransform: 'uppercase' }}>Absent</div><div style={{ fontSize: 20, fontWeight: 800 }}>{a}</div></div>
                   </div>
@@ -2146,7 +2151,7 @@ export function DevicesPage() {
             <div style={{ padding: 24, flex: 1, overflowY: 'auto' }}>
               {justRegistered ? (
                 <div>
-                  <div style={{ padding: 14, borderRadius: 9, background: 'rgba(16,185,129,.10)', border: '1px solid rgba(16,185,129,.3)', marginBottom: 18, fontSize: 12.5, color: 'var(--ink)' }}>
+                  <div style={{ padding: 14, borderRadius: 'var(--r)', background: 'rgba(16,185,129,.10)', border: '1px solid rgba(16,185,129,.3)', marginBottom: 18, fontSize: 12.5, color: 'var(--ink)' }}>
                     <strong>{justRegistered.name}</strong> is registered. Enter these into the physical unit's own menu (Comm → Cloud Server / ADMS) — the push token is shown only this once.
                   </div>
                   {([
@@ -2277,7 +2282,7 @@ function DeviceManageDrawer({ device, staff, onClose, onDeviceChanged }: {
             <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--navy)' }}>{device.name}</div>
             <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>Serial {device.serial_number} · <DeviceStatusBadge status={device.status} /></div>
           </div>
-          <button type="button" onClick={onClose} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}><Icon name="x" size={20} /></button>
+          <button type="button" onClick={onClose} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }} aria-label="Close"><Icon name="x" size={20} /></button>
         </div>
 
         <div style={{ padding: 24, flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 22 }}>
@@ -2468,7 +2473,7 @@ export function ShiftsPage() {
       </PageHeader>
 
       {/* Filters & Controls */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, background: 'var(--white)', padding: '12px 16px', borderRadius: 9, border: '1px solid var(--border)', flexWrap: 'wrap', gap: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, background: 'var(--white)', padding: '12px 16px', borderRadius: 'var(--r)', border: '1px solid var(--border)', flexWrap: 'wrap', gap: 12 }}>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
           <div style={{ width: 180 }}>
             <Combobox
@@ -3541,7 +3546,7 @@ export function MyPayslipsPage() {
     <div style={{ flex:1, overflowY:'auto' }}>
       <PageHeader icon="dollarSign" title="My Payslips" sub="Your approved payslips and pay history" backTo="/nexushr" />
       {loading ? (
-        <div style={{ padding:'40px', textAlign:'center', color:'var(--ink3)', fontSize:13 }}>Loading…</div>
+        <PageLoading />
       ) : slips.length === 0 ? (
         <div style={{ background:'var(--white)', border:'1px dashed var(--border)', borderRadius:12, padding:'48px 20px', textAlign:'center' }}>
           <div style={{ fontSize:14, fontWeight:700, color:'var(--navy)', marginBottom:6 }}>No payslips yet</div>
@@ -3658,7 +3663,7 @@ export function AnnouncementsPage() {
       )}
       <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
         {announcements.map(a => (
-          <div key={a.id} style={{ background:'var(--white)', borderRadius: 9, border:'1px solid var(--border)', padding:20 }}>
+          <div key={a.id} style={{ background:'var(--white)', borderRadius: 'var(--r)', border:'1px solid var(--border)', padding:20 }}>
             <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:16, marginBottom:10 }}>
               <div>
                 <span style={{ fontSize:11, fontWeight:700, padding:'2px 8px', borderRadius:4, background:catBg[a.category]||'var(--bg)', color:catColor[a.category]||'var(--ink2)', marginRight:8 }}>{a.category}</span>

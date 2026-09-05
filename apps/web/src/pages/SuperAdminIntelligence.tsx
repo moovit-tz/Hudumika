@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { PageHeader } from '../components/PageHeader.js';
 import { Icon } from '../components/Icon.js';
+import { Banner } from '../components/ui/alert.js';
 import { Badge } from '../components/ui/badge.js';
 import { apiFetch } from '../lib/api.js';
 
@@ -82,11 +83,7 @@ export const SuperAdminIntelligence: React.FC = () => {
         subtitle="What the apps have got right and wrong, aggregated across every tenant — for finding defects that no single workspace can see."
       />
 
-      {error && (
-        <div style={{ margin: '12px 0', padding: '12px 16px', borderRadius: 'var(--r)', background: 'var(--red-l)', border: '1px solid var(--red)', color: 'var(--red)', fontSize: 12.5, display: 'flex', gap: 8 }}>
-          <Icon name="alertCircle" size={15} color="var(--red)" /> {error}
-        </div>
-      )}
+      {error && <Banner variant="error" icon="alertCircle" className="my-3">{error}</Banner>}
 
       <div style={{ marginTop: 12, padding: '11px 15px', borderRadius: 'var(--r)', background: 'var(--teal-l)', border: '1px solid var(--teal-m, var(--teal-l))', display: 'flex', gap: 9, alignItems: 'flex-start' }}>
         <Icon name="shield" size={15} color="var(--teal)" style={{ flexShrink: 0, marginTop: 1 }} />

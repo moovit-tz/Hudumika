@@ -3,6 +3,7 @@ import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import { Icon } from './Icon.js';
+import { SectionLoading } from './ui/spinner.js';
 import { Badge } from './ui/badge.js';
 import { Button } from './ui/button.js';
 import { Textarea } from './ui/textarea.js';
@@ -122,7 +123,7 @@ export function ExaminationsQueue({ shipmentId }: { shipmentId: string }) {
       </div>
 
       {loading ? (
-        <div style={{ padding: '12px 0', color: 'var(--ink3)', fontSize: 12.5 }}>Loading…</div>
+        <SectionLoading />
       ) : visible.length === 0 ? (
         <div style={{ padding: '8px 0 12px', color: 'var(--ink3)', fontSize: 12.5, display: 'flex', alignItems: 'center', gap: 6 }}>
           <Icon name="checkCircle" size={14} /> No examinations waiting on an officer right now.

@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { apiFetch, apiDownload } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import type { IconName } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
@@ -121,12 +123,12 @@ export function StageBadge({ stage }: { stage: string }) {
 
 function SourceBadge({ source }: { source: string }) {
   const c = SOURCE_CFG[source] || { color: 'var(--ink3)', bg: 'var(--bg)' };
-  return <span style={{ padding: '2px 8px', borderRadius: 5, fontSize: 11, fontWeight: 600, background: c.bg, color: c.color }}>{source}</span>;
+  return <span style={{ padding: '2px 8px', borderRadius: 'var(--r-sm)', fontSize: 11, fontWeight: 600, background: c.bg, color: c.color }}>{source}</span>;
 }
 
 function PriBadge({ priority }: { priority: string }) {
   const c = PRIORITY_CFG[priority] || PRIORITY_CFG.LOW;
-  return <span style={{ padding: '2px 8px', borderRadius: 5, fontSize: 11, fontWeight: 600, background: c.bg, color: c.color }}>{c.label}</span>;
+  return <span style={{ padding: '2px 8px', borderRadius: 'var(--r-sm)', fontSize: 11, fontWeight: 600, background: c.bg, color: c.color }}>{c.label}</span>;
 }
 
 function Th({ children, align = 'left', width }: { children?: React.ReactNode; align?: 'left' | 'right' | 'center'; width?: number | string }) {
@@ -477,7 +479,7 @@ export const Leads: React.FC = () => {
 
   function setF(k: keyof FormState, v: string | number) { setAddForm(p => ({ ...p, [k]: v })); }
 
-  const btnS: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', border: '1px solid var(--border)', borderRadius: 9, background: 'var(--white)', color: 'var(--ink2)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)' };
+  const btnS: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)' };
 
   /* ══════════════════════
      PROFILE VIEW
@@ -565,19 +567,19 @@ export const Leads: React.FC = () => {
           </div>
 
           {/* Tabs */}
-          <div className="ds-tabs-list" data-variant="segmented" style={{ margin: '14px 28px 16px' }}>
+          <Tabs value={profileTab} onValueChange={(v) => { setProfileTab(v as any); setEditMode(false); }} variant="segmented">
+          <TabsList style={{ margin: '14px 28px 16px' }}>
             {PROF_TABS.map(tab => {
               const isActive = profileTab === tab.key;
               return (
-                <button key={tab.key} type="button" className="ds-tabs-trigger" data-variant="segmented"
-                  data-state={isActive ? 'active' : 'inactive'}
-                  onClick={() => { setProfileTab(tab.key); setEditMode(false); }}>
+                <TabsTrigger key={tab.key} value={tab.key}>
                   <Icon name={tab.icon} size={13} color={isActive ? 'var(--teal)' : 'var(--ink3)'} strokeWidth={1.75} />
                   {tab.label}
-                </button>
+                </TabsTrigger>
               );
             })}
-          </div>
+          </TabsList>
+          </Tabs>
         </div>
 
         {/* ── Tab content ── */}
@@ -617,8 +619,8 @@ export const Leads: React.FC = () => {
                     { label: 'Priority',         value: priCfg.label,           icon: 'alertCircle'as IconName, color: priCfg.color, bg: priCfg.bg },
                     { label: 'Lead Source',      value: sel.source,             icon: 'target'     as IconName, color: '#0d9488', bg: '#ccfbf1' },
                   ].map(kpi => (
-                    <div key={kpi.label} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: '16px 18px', display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                      <div style={{ width: 38, height: 38, borderRadius: 9, background: kpi.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <div key={kpi.label} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '16px 18px', display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                      <div style={{ width: 38, height: 38, borderRadius: 'var(--r)', background: kpi.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         <Icon name={kpi.icon} size={18} color={kpi.color} strokeWidth={1.75} />
                       </div>
                       <div>
@@ -791,7 +793,7 @@ export const Leads: React.FC = () => {
             <div style={{ padding: '24px 28px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
                 <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)' }}>Documents</span>
-                <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', border: '1.5px solid var(--teal)', borderRadius: 9, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 12.5, fontWeight: 600, cursor: fileUploading ? 'default' : 'pointer', fontFamily: 'var(--font)', opacity: fileUploading ? 0.7 : 1 }}>
+                <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', border: '1.5px solid var(--teal)', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 12.5, fontWeight: 600, cursor: fileUploading ? 'default' : 'pointer', fontFamily: 'var(--font)', opacity: fileUploading ? 0.7 : 1 }}>
                   <Icon name="upload" size={13} strokeWidth={2} />
                   {fileUploading ? 'Uploading…' : 'Upload File'}
                   <input type="file" multiple disabled={fileUploading} style={{ display: 'none' }}
@@ -804,7 +806,7 @@ export const Leads: React.FC = () => {
               </div>
 
               {filesLoading ? (
-                <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading…</div>
+                <SectionLoading />
               ) : linkedFiles.length > 0 ? (
                 <SectionCard collapsible={false} padded={false}>
                   {linkedFiles.map((f: any, i: number) => (
@@ -830,7 +832,7 @@ export const Leads: React.FC = () => {
                   ))}
                 </SectionCard>
               ) : (
-                <div style={{ border: '2px dashed var(--border)', borderRadius: 9, padding: '40px 24px', textAlign: 'center', color: 'var(--ink3)', background: 'var(--bg)' }}>
+                <div style={{ border: '2px dashed var(--border)', borderRadius: 'var(--r)', padding: '40px 24px', textAlign: 'center', color: 'var(--ink3)', background: 'var(--bg)' }}>
                   <Icon name="upload" size={28} strokeWidth={1.25} />
                   <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink2)', marginTop: 10 }}>No documents yet</div>
                   <div style={{ fontSize: 12, marginTop: 4 }}>Proposals, contracts, any documents for this lead</div>
@@ -843,7 +845,7 @@ export const Leads: React.FC = () => {
         {/* Add/Edit modal (reused from list) */}
         {showAdd && (
           <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowAdd(false)}>
-            <div className="card" style={{ width: '90%', maxWidth: 580, padding: 28, borderRadius: 9, boxShadow: 'var(--elev-lg)', maxHeight: '92vh', overflowY: 'auto' }}>
+            <div className="card" style={{ width: '90%', maxWidth: 580, padding: 28, borderRadius: 'var(--r)', boxShadow: 'var(--elev-lg)', maxHeight: '92vh', overflowY: 'auto' }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 22 }}>
                 <h2 style={{ fontSize: 17, fontWeight: 700, color: 'var(--navy)', margin: 0 }}>{editingId ? 'Edit Lead' : 'Add New Lead'}</h2>
                 <button type="button" className="dp-close" aria-label="Close" onClick={() => { setShowAdd(false); setAddForm({ ...EMPTY_FORM }); setEditingId(null); }}>×</button>
@@ -994,7 +996,7 @@ export const Leads: React.FC = () => {
               <Icon name="search" size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)', pointerEvents: 'none' } as React.CSSProperties} />
               <input type="text" placeholder="Search leads…" value={search}
                 onChange={e => { setSearch(e.target.value); setPage(1); }}
-                style={{ width: '100%', padding: '7px 10px 7px 32px', border: '1px solid var(--border)', borderRadius: 9, fontSize: 13, fontFamily: 'var(--font)', background: 'var(--bg)', color: 'var(--ink)', outline: 'none', boxSizing: 'border-box' }} />
+                style={{ width: '100%', padding: '7px 10px 7px 32px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13, fontFamily: 'var(--font)', background: 'var(--bg)', color: 'var(--ink)', outline: 'none', boxSizing: 'border-box' }} />
             </div>
           </div>
 
@@ -1117,7 +1119,7 @@ export const Leads: React.FC = () => {
       {/* Add/Edit modal */}
       {showAdd && (
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowAdd(false)}>
-          <div className="card" style={{ width: '90%', maxWidth: 580, padding: 28, borderRadius: 9, boxShadow: 'var(--elev-lg)', maxHeight: '92vh', overflowY: 'auto' }}>
+          <div className="card" style={{ width: '90%', maxWidth: 580, padding: 28, borderRadius: 'var(--r)', boxShadow: 'var(--elev-lg)', maxHeight: '92vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 22 }}>
               <div>
                 <h2 style={{ fontSize: 17, fontWeight: 700, color: 'var(--navy)', margin: 0 }}>{editingId ? 'Edit Lead' : 'Add New Lead'}</h2>

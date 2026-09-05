@@ -17,6 +17,7 @@ import { apiFetch } from '../../lib/api.js';
 import { usePdfDocument } from '../cloud/lib/usePdfDocument.js';
 import { PdfPageCanvas } from '../cloud/components/PdfPageCanvas.js';
 import { Icon } from '../../components/Icon.js';
+import { SectionLoading } from '../../components/ui/spinner.js';
 import { Button } from '../../components/ui/button.js';
 import { Badge } from '../../components/ui/badge.js';
 import { showAlert } from '../../lib/alert.js';
@@ -283,7 +284,7 @@ export function VersionHistoryPanel({ envelopeId, onRestore, onClose }: {
         {/* LEFT: version list */}
         <div style={{ width: 280, flexShrink: 0, borderRight: '1px solid var(--border)', overflowY: 'auto', padding: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
           {versions === null ? (
-            <div style={{ textAlign: 'center', color: 'var(--ink3)', fontSize: 13, marginTop: 40 }}>Loading…</div>
+            <SectionLoading />
           ) : versions.length === 0 ? (
             <div style={{ textAlign: 'center', color: 'var(--ink3)', fontSize: 13, marginTop: 40 }}>No saved versions yet.</div>
           ) : versions.map(v => (

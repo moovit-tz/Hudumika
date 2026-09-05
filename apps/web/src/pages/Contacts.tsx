@@ -11,6 +11,7 @@ import { Popover, PopoverAnchor, PopoverContent } from '../components/ui/popover
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '../components/ui/dropdown-menu.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { Badge } from '../components/ui/badge.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { showAlert } from '../lib/alert.js';
 
@@ -727,23 +728,23 @@ export function Contacts() {
             {/* Filter panel — header section (sort) + body section (labels) */}
             {filterOpen && (
               <div className="cts-filter-panel">
-                {/* Header section: Sort */}
+                {/* Header section: Sort — single-select, so the shared
+                    segmented ds-tabs (not the multi-select label chips below,
+                    which stay their own toggle-chip style). */}
                 <div className="cts-filter-section">
                   <span className="cts-filter-section-label">Sort</span>
-                  {([
-                    { key: 'name-asc',     label: 'Name A→Z' },
-                    { key: 'name-desc',    label: 'Name Z→A' },
-                    { key: 'created-desc', label: 'Newest first' },
-                    { key: 'created-asc',  label: 'Oldest first' },
-                  ] as { key: typeof sortBy; label: string }[]).map(opt => (
-                    <button
-                      key={opt.key}
-                      type="button"
-                      className={`cts-chip${sortBy === opt.key ? ' cts-chip--on' : ''}`}
-                      onClick={() => setSortBy(opt.key)}
-                      title={opt.label}
-                    >{opt.label}</button>
-                  ))}
+                  <Tabs value={sortBy} onValueChange={v => setSortBy(v as typeof sortBy)} variant="outline">
+                    <TabsList>
+                      {([
+                        { key: 'name-asc',     label: 'Name A→Z' },
+                        { key: 'name-desc',    label: 'Name Z→A' },
+                        { key: 'created-desc', label: 'Newest first' },
+                        { key: 'created-asc',  label: 'Oldest first' },
+                      ] as { key: typeof sortBy; label: string }[]).map(opt => (
+                        <TabsTrigger key={opt.key} value={opt.key} title={opt.label}>{opt.label}</TabsTrigger>
+                      ))}
+                    </TabsList>
+                  </Tabs>
                 </div>
 
                 {/* Body section: Label filters */}

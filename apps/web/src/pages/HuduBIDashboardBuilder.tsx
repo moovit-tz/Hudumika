@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Icon } from '../components/Icon.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { Button } from '../components/ui/button.js';
 import { Input } from '../components/ui/input.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
@@ -66,7 +67,7 @@ function WidgetCard({ widget, onDelete }: { widget: Widget; onDelete: (id: strin
       action={<Button size="icon" variant="ghost" onClick={() => onDelete(widget.id)}><Icon name="trash" size={14} /></Button>}
     >
       {loading ? (
-        <div style={{ padding: 16, textAlign: 'center', color: 'var(--ink3)', fontSize: 12.5 }}>Loading…</div>
+        <SectionLoading />
       ) : widget.chart_type === 'number' ? (
         <div style={{ fontSize: 30, fontWeight: 800, color: 'var(--ink)' }}>{(data?.[0]?.value ?? 0).toLocaleString()}</div>
       ) : (
@@ -191,10 +192,10 @@ export function HuduBIDashboardBuilder() {
             </div>
 
             {form.metricKey && (
-              <div style={{ padding: '12px 14px', borderRadius: 9, background: 'var(--bg)', marginBottom: 16 }}>
+              <div style={{ padding: '12px 14px', borderRadius: 'var(--r)', background: 'var(--bg)', marginBottom: 16 }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Preview</div>
                 {previewing ? (
-                  <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>Loading…</div>
+                  <SectionLoading />
                 ) : (form.chartType || selectedMetric?.defaultChartType) === 'number' ? (
                   <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--ink)' }}>{(preview?.[0]?.value ?? 0).toLocaleString()}</div>
                 ) : (
@@ -209,7 +210,7 @@ export function HuduBIDashboardBuilder() {
         )}
 
         {loading ? (
-          <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>Loading…</div>
+          <SectionLoading />
         ) : widgets.length === 0 ? (
           <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>No widgets saved yet — add one above.</div>
         ) : (

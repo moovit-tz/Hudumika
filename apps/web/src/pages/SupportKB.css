@@ -10,7 +10,7 @@
   background: hsl(var(--primary));
   color: hsl(var(--primary-foreground));
   border: none;
-  border-radius: 9px;
+  border-radius: var(--r);
   padding: var(--ds-btn-py) 16px;
   font-weight: 700;
   cursor: pointer;
@@ -41,7 +41,7 @@
 
 .skb-table-card {
   background: var(--white);
-  border-radius: 9px;
+  border-radius: var(--r);
   border: 1px solid var(--border);
 }
 

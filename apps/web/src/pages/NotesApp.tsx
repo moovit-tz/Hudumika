@@ -4,6 +4,7 @@ import { Icon } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { Popover, PopoverAnchor, PopoverContent } from '../components/ui/popover.js';
 import { Button } from '../components/ui/button.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { ReminderPicker } from '../components/ReminderPicker.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
@@ -1498,7 +1499,7 @@ const SharePanel: React.FC<{
     <div className="notes-share-panel" onClick={e => e.stopPropagation()}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
         <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Share &amp; visibility</div>
-        <button type="button" className="notes-icon-btn" onClick={onClose}><Icon name="close" size={14} /></button>
+        <button type="button" className="notes-icon-btn" onClick={onClose} aria-label="Close"><Icon name="close" size={14} /></button>
       </div>
 
       <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
@@ -1639,11 +1640,11 @@ const HistoryPanel: React.FC<{
     <div className="notes-share-panel" onClick={e => e.stopPropagation()}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
         <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Version history</div>
-        <button type="button" className="notes-icon-btn" onClick={onClose}><Icon name="close" size={14} /></button>
+        <button type="button" className="notes-icon-btn" onClick={onClose} aria-label="Close"><Icon name="close" size={14} /></button>
       </div>
 
       {revisions === null ? (
-        <div style={{ fontSize: 12.5, color: 'var(--ink3)', padding: '8px 0' }}>Loading…</div>
+        <SectionLoading />
       ) : revisions.length === 0 ? (
         <div style={{ fontSize: 12.5, color: 'var(--ink3)', padding: '8px 0' }}>No earlier versions yet — every edit from here on is saved here.</div>
       ) : (

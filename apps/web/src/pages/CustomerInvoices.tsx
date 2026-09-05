@@ -4,6 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { useCompany } from '../data/companyStore.js';
 import { useIsDarkMode } from '../hooks/useIsDarkMode.js';
 import {
@@ -105,7 +106,7 @@ function DisputeModal({ inv, onClose, onSubmit }: {
           value={reason}
           onChange={e => setReason(e.target.value)}
           rows={4}
-          style={{ width: '100%', resize: 'none', border: '1.5px solid var(--border)', borderRadius: 9, padding: '12px 14px', fontSize: 14, fontFamily: 'var(--font)', color: 'var(--ink)', background: 'var(--bg)', outline: 'none', lineHeight: 1.5, boxSizing: 'border-box' as const, marginBottom: 16 }}
+          style={{ width: '100%', resize: 'none', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', padding: '12px 14px', fontSize: 14, fontFamily: 'var(--font)', color: 'var(--ink)', background: 'var(--bg)', outline: 'none', lineHeight: 1.5, boxSizing: 'border-box' as const, marginBottom: 16 }}
         />
         <button type="button" title="Submit dispute" onClick={() => { if (reason.trim()) onSubmit(reason.trim()); }}
           disabled={!reason.trim()}
@@ -162,7 +163,7 @@ function InvoiceDetail({ inv, onBack }: { inv: Invoice; onBack: () => void }) {
             <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--ink)' }}>{co.name}</div>
           )}
           {inv.traStatus === 'submitted' && inv.traAckCode === 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '12px', border: '1px solid var(--border)', borderRadius: 9, background: '#e6f4ea', marginLeft: 'auto' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: '#e6f4ea', marginLeft: 'auto' }}>
               <QRCodeSVG value={inv.traQrUrl!} size={60} level="M" />
               <div style={{ fontSize: 9, color: 'var(--ink3)', textAlign: 'center', lineHeight: 1.4 }}>
                 <div style={{ fontWeight: 700, color: '#059669' }}>TRA Verified</div>
@@ -192,7 +193,7 @@ function InvoiceDetail({ inv, onBack }: { inv: Invoice; onBack: () => void }) {
         </div>
 
         {/* Shipment info */}
-        <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: 16, marginBottom: 16 }}>
+        <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', padding: 16, marginBottom: 16 }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.07em', marginBottom: 12 }}>SHIPMENT DETAILS</div>
           {[
             { label: 'BL / Reference', value: inv.blNumber },
@@ -210,7 +211,7 @@ function InvoiceDetail({ inv, onBack }: { inv: Invoice; onBack: () => void }) {
 
         {/* Carbon segment — live from the linked shipment, not a tradeable credit */}
         {inv.shipmentCarbon && (
-          <div style={{ background: 'var(--green-l)', borderRadius: 9, border: '1px solid #a7f3d0', padding: 16, marginBottom: 16 }}>
+          <div style={{ background: 'var(--green-l)', borderRadius: 'var(--r)', border: '1px solid #a7f3d0', padding: 16, marginBottom: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
               <Icon name="globe" size={13} color="#059669" />
               <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.07em' }}>CARBON FOOTPRINT</span>
@@ -233,7 +234,7 @@ function InvoiceDetail({ inv, onBack }: { inv: Invoice; onBack: () => void }) {
 
         {/* Line items — Clearing */}
         {cl.length > 0 && (
-          <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: 16, marginBottom: 12 }}>
+          <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', padding: 16, marginBottom: 12 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.07em', marginBottom: 12 }}>CLEARING CHARGES (TZS)</div>
             {cl.map((item, i) => (
               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8, paddingBottom: 8, borderBottom: i < cl.length - 1 ? '1px solid var(--bg)' : 'none' }}>
@@ -256,7 +257,7 @@ function InvoiceDetail({ inv, onBack }: { inv: Invoice; onBack: () => void }) {
 
         {/* Line items — Shipping */}
         {sh.length > 0 && (
-          <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: 16, marginBottom: 12 }}>
+          <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', padding: 16, marginBottom: 12 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.07em', marginBottom: 12 }}>SHIPPING CHARGES (USD)</div>
             {sh.map((item, i) => (
               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8, paddingBottom: 8, borderBottom: i < sh.length - 1 ? '1px solid var(--bg)' : 'none' }}>
@@ -279,7 +280,7 @@ function InvoiceDetail({ inv, onBack }: { inv: Invoice; onBack: () => void }) {
 
         {/* Line items — Other */}
         {ot.length > 0 && (
-          <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: 16, marginBottom: 12 }}>
+          <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', padding: 16, marginBottom: 12 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.07em', marginBottom: 12 }}>OTHER CHARGES (TZS)</div>
             {ot.map((item, i) => (
               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8, paddingBottom: 8, borderBottom: i < ot.length - 1 ? '1px solid var(--bg)' : 'none' }}>
@@ -301,7 +302,7 @@ function InvoiceDetail({ inv, onBack }: { inv: Invoice; onBack: () => void }) {
         )}
 
         {/* Grand total */}
-        <div style={{ background: 'var(--teal)', borderRadius: 9, padding: '16px', marginBottom: 20 }}>
+        <div style={{ background: 'var(--teal)', borderRadius: 'var(--r)', padding: '16px', marginBottom: 20 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.85)' }}>Grand Total</span>
             <span style={{ fontSize: 20, fontWeight: 800, color: '#fff' }}>{fmtTZS(grandTotalTZS)}</span>
@@ -323,7 +324,7 @@ function InvoiceDetail({ inv, onBack }: { inv: Invoice; onBack: () => void }) {
           Download
         </button>
         <Link to="/support/tickets" title="Get support for this invoice"
-          style={{ flex: 1, padding: '11px 0', border: '1.5px solid var(--teal)', borderRadius: 9, background: 'var(--white)', color: 'var(--teal)', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, textDecoration: 'none', boxSizing: 'border-box' }}>
+          style={{ flex: 1, padding: '11px 0', border: '1.5px solid var(--teal)', borderRadius: 'var(--r)', background: 'var(--white)', color: 'var(--teal)', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, textDecoration: 'none', boxSizing: 'border-box' }}>
           <Icon name="headphones" size={15} color="var(--teal)" />
           Support
         </Link>
@@ -337,7 +338,7 @@ function InvoiceDetail({ inv, onBack }: { inv: Invoice; onBack: () => void }) {
       </div>
 
       {disputed && (
-        <div style={{ position: 'fixed', bottom: 130, left: 16, right: 16, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', borderRadius: 9, padding: '12px 16px', fontSize: 13, fontWeight: 600, zIndex: 200, textAlign: 'center' }}>
+        <div style={{ position: 'fixed', bottom: 130, left: 16, right: 16, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', borderRadius: 'var(--r)', padding: '12px 16px', fontSize: 13, fontWeight: 600, zIndex: 200, textAlign: 'center' }}>
           Dispute submitted — opening support ticket…
         </div>
       )}
@@ -405,23 +406,24 @@ export const CustomerInvoices: React.FC = () => {
       </div>
 
       {/* Filter tabs */}
-      <div className="ds-tabs-list" data-variant="segmented" style={{ margin: '0 16px', marginBottom: 12 }}>
-        {FILTER_TABS.map(f => (
-          <button key={f.key} type="button" title={f.label} className="ds-tabs-trigger" data-variant="segmented"
-            data-state={filter === f.key ? 'active' : 'inactive'} onClick={() => setFilter(f.key)}>
-            {f.label}
-          </button>
-        ))}
-      </div>
+      <Tabs value={filter} onValueChange={v => setFilter(v as typeof filter)} variant="segmented" style={{ margin: '0 16px', marginBottom: 12 }}>
+        <TabsList>
+          {FILTER_TABS.map(f => (
+            <TabsTrigger key={f.key} value={f.key} title={f.label}>
+              {f.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
 
       {/* Invoice list */}
       <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
         {loading ? (
           Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: 16, height: 88 }} />
+            <div key={i} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 16, height: 88 }} />
           ))
         ) : loadError ? (
-          <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: '40px 20px', textAlign: 'center' }}>
+          <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '40px 20px', textAlign: 'center' }}>
             <Icon name="alertCircle" size={36} color="var(--red)" />
             <p style={{ color: 'var(--ink2)', fontSize: 14, margin: '12px 0 4px', fontWeight: 600 }}>Couldn't load your invoices</p>
             <p style={{ color: 'var(--ink3)', fontSize: 13, margin: '0 0 16px' }}>Check your connection and try again.</p>
@@ -430,7 +432,7 @@ export const CustomerInvoices: React.FC = () => {
             </button>
           </div>
         ) : filtered.length === 0 ? (
-          <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: '40px 20px', textAlign: 'center' }}>
+          <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '40px 20px', textAlign: 'center' }}>
             <Icon name="invoice" size={36} color="var(--ink3)" />
             <p style={{ color: 'var(--ink3)', fontSize: 14, margin: '12px 0 0' }}>
               {filter === 'ALL' ? 'No invoices yet' : `No ${filter.toLowerCase()} invoices`}

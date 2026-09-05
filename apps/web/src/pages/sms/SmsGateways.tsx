@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { PageHeader } from '../../components/PageHeader.js';
 import { SectionCard } from '../../components/SectionCard.js';
 import { Icon } from '../../components/Icon.js';
+import { SectionLoading } from '../../components/ui/spinner.js';
 import { Badge } from '../../components/ui/badge.js';
 import { Button } from '../../components/ui/button.js';
 import { Input } from '../../components/ui/input.js';
@@ -166,7 +167,7 @@ export function SmsGateways() {
 
       <SectionCard title="Gateways" padded={false} collapsible={false}>
         {loading ? (
-          <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>Loading…</div>
+          <SectionLoading />
         ) : gateways.length === 0 ? (
           <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>No gateways configured — SMS sends will fail until one is added.</div>
         ) : (

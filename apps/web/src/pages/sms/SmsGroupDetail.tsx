@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { PageHeader } from '../../components/PageHeader.js';
 import { SectionCard } from '../../components/SectionCard.js';
 import { Icon } from '../../components/Icon.js';
+import { SectionLoading } from '../../components/ui/spinner.js';
 import { Button } from '../../components/ui/button.js';
 import { Input } from '../../components/ui/input.js';
 import { Textarea } from '../../components/ui/textarea.js';
@@ -108,7 +109,7 @@ export function SmsGroupDetail() {
     navigate('/sms/groups');
   }
 
-  if (loading) return <div style={{ padding: 60, textAlign: 'center', color: 'var(--ink3)' }}>Loading…</div>;
+  if (loading) return <SectionLoading />;
   if (!group) return <div style={{ padding: 60, textAlign: 'center', color: 'var(--ink3)' }}>Group not found. <Link to="/sms/groups">Back to groups</Link></div>;
 
   return (

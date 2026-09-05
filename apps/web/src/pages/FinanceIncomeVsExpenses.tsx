@@ -133,8 +133,8 @@ export const FinanceIncomeVsExpenses: React.FC = () => {
             { label: 'Net Profit',     value: fmtM(netProfit),     color: 'var(--green)',  bg: 'var(--green-l)',       icon: 'dollarSign'  },
             { label: 'Profit Margin',  value: `${profitMargin}%`,  color: 'var(--purple)', bg: 'var(--purple-l)',       icon: 'percent'     },
           ].map(s => (
-            <div key={s.label} style={{ flex: 1, background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
-              <div style={{ width: 42, height: 42, borderRadius: 9, background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <div key={s.label} style={{ flex: 1, background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
+              <div style={{ width: 42, height: 42, borderRadius: 'var(--r)', background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Icon name={s.icon as IconName} size={18} color={s.color} />
               </div>
               <div>

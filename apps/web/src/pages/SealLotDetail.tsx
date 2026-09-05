@@ -4,6 +4,7 @@ import { Icon } from '../components/Icon.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { Badge } from '../components/ui/badge.js';
+import { SectionLoading, PageLoading } from '../components/ui/spinner.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
@@ -169,7 +170,7 @@ export function SealLotDetail() {
     }
   }
 
-  if (loading || !lot) return <div className="seal-page"><div className="seal-empty">Loading…</div></div>;
+  if (loading || !lot) return <div className="seal-page"><PageLoading /></div>;
 
   const runwayPct = lot.daysRemaining == null ? null : Math.max(0, Math.min(100, (lot.daysRemaining / 180) * 100));
   const legalActions = CUSTOMS_STATUS_TRANSITIONS[lot.customsStatus] ?? [];

@@ -1,0 +1,1566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<script>
+  // Sets lang/dir/data-lang on <html> synchronously, before the rest of the
+  // document parses, so a non-English or RTL visitor never sees a flash of
+  // English/LTR content that then flips once the main script runs on
+  // DOMContentLoaded. Keep the storage key and supported-language list in
+  // sync with LANG_KEY / translations in the main <script> below.
+  (function () {
+    var SUPPORTED = ['en', 'sw', 'fr', 'pt', 'ar', 'zh'];
+    var lang = null;
+    try { lang = localStorage.getItem('hudumika-calendar-lang'); } catch (e) {}
+    if (!lang || SUPPORTED.indexOf(lang) === -1) {
+      var nav = ((navigator.language || 'en').split('-')[0] || 'en').toLowerCase();
+      lang = SUPPORTED.indexOf(nav) !== -1 ? nav : 'en';
+    }
+    window.__initialLang = lang;
+    var html = document.documentElement;
+    html.setAttribute('lang', lang);
+    html.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
+    html.setAttribute('data-lang', lang);
+  })();
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>huduCalendar</title>
+<meta name="description" content="Scheduling for teams who are already busy. Share a booking link, sync Google and Outlook both ways, and hand every meeting a Bliss video room automatically.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&family=Cormorant+Garamond:ital,wght@1,600;1,700&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+Arabic:wght@400;600;700;800&family=Noto+Sans+SC:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* Google Sans Flex is Hudumika's in-app face, served from the platform's
+     own /fonts/ path — this loads it when the page is deployed alongside
+     the main app, and falls straight through to DM Sans (the documented
+     brand fallback) with no error anywhere else. */
+  @font-face {
+    font-family: 'Google Sans Flex';
+    src: url('/fonts/GoogleSansFlex.ttf') format('truetype');
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  :root {
+    --font: 'Google Sans Flex', 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    --serif: 'Cormorant Garamond', Georgia, serif;
+    --mono: 'JetBrains Mono', Menlo, monospace;
+
+    /* The platform's own light-theme tokens (index.css) — this page just
+       fixes the accent to ink-black instead of a per-tenant color, since
+       there's no signed-in tenant here to compute one for. */
+    --ink: #0d1117;
+    --ink2: #57606a;
+    --ink3: #8b949e;
+    --bg: #f7f5f0;
+    --white: #ffffff;
+    --border: #e1e4e8;
+    --green: #1a7f37;
+    --green-l: #dafbe1;
+
+    --r-sm: 5px;
+    --r: 9px;
+    --r-lg: 14px;
+
+    --elev-sm: 0 1px 2px rgba(13,17,23,0.05);
+    --elev: 0 4px 16px rgba(13,17,23,0.07);
+    --elev-lg: 0 20px 48px rgba(13,17,23,0.14);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: var(--font); background: var(--bg); color: var(--ink); line-height: 1.5;
+    -webkit-font-smoothing: antialiased; overflow-x: hidden;
+  }
+  h1, h2, h3, h4 { font-family: var(--font); color: var(--ink); letter-spacing: -0.02em; font-weight: 700; text-wrap: balance; }
+  em { font-family: var(--serif); font-style: italic; font-weight: 700; }
+  a { color: inherit; }
+  code { font-family: var(--mono); }
+
+  /* Cormorant Garamond and the DM Sans / Google Sans Flex stack have no
+     Arabic or CJK glyphs, so pages in those locales fall back to a script
+     that actually renders — the italic accent treatment is Latin-only by
+     nature and simply steps aside for those two languages. */
+  html[data-lang="ar"] body { font-family: 'Noto Sans Arabic', var(--font); }
+  html[data-lang="ar"] h1, html[data-lang="ar"] h2, html[data-lang="ar"] h3, html[data-lang="ar"] h4 { font-family: 'Noto Sans Arabic', var(--font); }
+  html[data-lang="ar"] em, html[data-lang="zh"] em { font-family: inherit; font-style: normal; font-weight: 800; }
+  html[data-lang="zh"] body { font-family: 'Noto Sans SC', var(--font); }
+  html[data-lang="zh"] h1, html[data-lang="zh"] h2, html[data-lang="zh"] h3, html[data-lang="zh"] h4 { font-family: 'Noto Sans SC', var(--font); }
+
+  .container { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+
+  #scroll-progress { position: fixed; top: 0; left: 0; height: 2px; background: var(--ink); z-index: 999; width: 0%; transition: width .1s linear; }
+
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes pulseDot { 0%,100% { box-shadow: 0 0 0 0 rgba(26,127,55,.35); } 70% { box-shadow: 0 0 0 7px rgba(26,127,55,0); } }
+  @keyframes drawCheck { to { stroke-dashoffset: 0; } }
+  @keyframes fadeScale { from { opacity: 0; transform: scale(.98) translateY(6px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+  @keyframes tickerIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+  .in { animation: fadeUp .7s cubic-bezier(.16,1,.3,1) both; }
+  .in-1 { animation-delay: .06s; } .in-2 { animation-delay: .14s; } .in-3 { animation-delay: .22s; } .in-4 { animation-delay: .3s; }
+
+  .reveal { opacity: 0; transform: translateY(24px); transition: opacity .7s cubic-bezier(.16,1,.3,1), transform .7s cubic-bezier(.16,1,.3,1); }
+  .reveal.active { opacity: 1; transform: translateY(0); }
+  .reveal-stagger.active > * { opacity: 1; transform: translateY(0); }
+  .reveal-stagger > * { opacity: 0; transform: translateY(18px); transition: opacity .6s cubic-bezier(.16,1,.3,1), transform .6s cubic-bezier(.16,1,.3,1); }
+  .reveal-stagger.active > *:nth-child(1) { transition-delay: 0s; }
+  .reveal-stagger.active > *:nth-child(2) { transition-delay: .08s; }
+  .reveal-stagger.active > *:nth-child(3) { transition-delay: .16s; }
+  .reveal-stagger.active > *:nth-child(4) { transition-delay: .24s; }
+  .reveal-stagger.active > *:nth-child(5) { transition-delay: .32s; }
+  .reveal-stagger.active > *:nth-child(6) { transition-delay: .4s; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .in, .reveal, .reveal-stagger > * { animation: none !important; transition: none !important; opacity: 1 !important; transform: none !important; }
+    .demo-cursor, .evt.b2, .evt.b3, .integrations-track, .tab-indicator, .nav, .mock, .btn::before { animation: none !important; transition: none !important; }
+    .demo-cursor { display: none !important; }
+    .integrations-track { transform: none !important; }
+    .mock { transform: none !important; }
+  }
+
+  /* ── Nav ── */
+  .nav { position: sticky; top: 0; z-index: 100; background: rgba(247,245,240,0.88); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-bottom: 1px solid var(--border); transition: box-shadow .25s ease; }
+  .nav.scrolled { box-shadow: var(--elev-sm); }
+  .nav-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; transition: padding .25s ease; }
+  .nav.scrolled .nav-row { padding: 10px 0; }
+  .brand { display: flex; align-items: center; gap: 9px; text-decoration: none; }
+  .brand-mark { width: 30px; height: 30px; border-radius: var(--r-sm); background: var(--ink); display: flex; align-items: center; justify-content: center; color: var(--white); flex-shrink: 0; }
+  .brand-name { font-size: 16.5px; font-weight: 700; color: var(--ink); letter-spacing: -0.01em; }
+  .nav-links { display: flex; align-items: center; gap: 28px; list-style: none; }
+  .nav-links a { text-decoration: none; color: var(--ink2); font-size: 13.5px; font-weight: 500; transition: color .15s; }
+  .nav-links a:hover { color: var(--ink); }
+  .nav-actions { display: flex; align-items: center; gap: 8px; }
+
+  .lang-switch { position: relative; }
+  .lang-trigger { display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: var(--r); border: 1px solid var(--border); background: var(--white); color: var(--ink2); font-family: var(--font); font-size: 12.5px; font-weight: 600; cursor: pointer; transition: border-color .15s, color .15s; }
+  .lang-trigger:hover { border-color: var(--ink); color: var(--ink); }
+  .lang-menu { position: absolute; top: calc(100% + 8px); right: 0; background: var(--white); border: 1px solid var(--border); border-radius: var(--r); box-shadow: var(--elev); padding: 6px; min-width: 160px; display: none; flex-direction: column; gap: 2px; z-index: 200; }
+  .lang-menu.open { display: flex; animation: fadeScale .15s cubic-bezier(.16,1,.3,1); }
+  .lang-option { text-align: left; background: none; border: none; padding: 8px 10px; border-radius: var(--r-sm); font-family: var(--font); font-size: 13px; font-weight: 500; color: var(--ink2); cursor: pointer; }
+  .lang-option:hover { background: var(--bg); color: var(--ink); }
+  .lang-option.active { color: var(--ink); font-weight: 700; background: var(--bg); }
+  html[dir="rtl"] .lang-menu { right: auto; left: 0; }
+  html[dir="rtl"] .lang-option { text-align: right; }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 10px 18px; border-radius: var(--r);
+    font-size: 13.5px; font-weight: 600; text-decoration: none; cursor: pointer; border: 1px solid transparent;
+    transition: transform .15s cubic-bezier(.16,1,.3,1), box-shadow .15s, background .15s, border-color .15s, color .15s;
+    font-family: var(--font); position: relative; overflow: hidden;
+  }
+  .btn::before {
+    content: ''; position: absolute; top: 0; left: -60%; width: 35%; height: 100%;
+    background: linear-gradient(115deg, transparent, rgba(255,255,255,.4), transparent);
+    transform: skewX(-18deg); transition: left .6s cubic-bezier(.16,1,.3,1); pointer-events: none;
+  }
+  .btn-ghost::before, .btn-solid-inverse::before { background: linear-gradient(115deg, transparent, rgba(13,17,23,.06), transparent); }
+  .btn:hover::before { left: 130%; }
+  .btn:active { transform: scale(.97); }
+  .btn-ghost { background: transparent; color: var(--ink2); border-color: var(--border); }
+  .btn-ghost:hover { background: var(--white); color: var(--ink); border-color: #c9cdd3; }
+  .btn-solid { background: var(--ink); color: var(--white); }
+  .btn-solid:hover { background: #23272e; box-shadow: var(--elev); transform: translateY(-1px); }
+  .btn-solid-inverse { background: var(--white); color: var(--ink); }
+  .btn-solid-inverse:hover { background: #f0f0f0; transform: translateY(-1px); }
+  .btn-lg { padding: 13px 24px; font-size: 14.5px; border-radius: var(--r); }
+
+  /* ── Hero ── */
+  .hero { padding: 76px 0 48px; text-align: center; position: relative; overflow: hidden; }
+  .hero::before {
+    content: ''; position: absolute; inset: -10%; z-index: 0; pointer-events: none;
+    background: radial-gradient(460px circle at var(--sx,50%) var(--sy,10%), rgba(13,17,23,.045), transparent 62%);
+  }
+  .hero > * { position: relative; z-index: 1; }
+  .eyebrow { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px 6px 10px; border-radius: 20px; background: var(--white); border: 1px solid var(--border); font-size: 12.5px; font-weight: 600; color: var(--ink2); margin-bottom: 22px; box-shadow: var(--elev-sm); }
+  .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: pulseDot 2.2s infinite; }
+  .hero h1 { font-size: 56px; line-height: 1.06; max-width: 780px; margin: 0 auto 18px; }
+  .hero p.sub { font-size: 18px; color: var(--ink2); max-width: 560px; margin: 0 auto 32px; line-height: 1.55; }
+  .hero-ctas { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 44px; flex-wrap: wrap; }
+  .trust-label { font-size: 11px; font-weight: 700; color: var(--ink3); text-transform: uppercase; letter-spacing: .09em; margin-bottom: 18px; }
+  .trust-row { display: flex; align-items: center; justify-content: center; gap: 34px; flex-wrap: wrap; opacity: .55; }
+  .trust-row span { font-weight: 700; font-size: 13px; letter-spacing: .03em; }
+
+  /* Live booking ticker — a small honest bit of motion in the corner of the
+     hero, cycling through a few real event types rather than one static
+     screenshot. */
+  .ticker {
+    position: fixed; left: 22px; bottom: 22px; z-index: 50;
+    background: var(--white); border: 1px solid var(--border); border-radius: var(--r);
+    box-shadow: var(--elev-lg); padding: 12px 16px; display: flex; align-items: center; gap: 10px;
+    font-size: 12.5px; font-weight: 600; max-width: 280px; opacity: 0;
+  }
+  .ticker.show { animation: tickerIn .5s cubic-bezier(.16,1,.3,1) forwards; }
+  .ticker .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+  .ticker .t2 { color: var(--ink3); font-weight: 500; display: block; font-size: 11px; margin-top: 1px; }
+  @media (max-width: 760px) { .ticker { display: none; } }
+
+  /* ── Product mockup ── */
+  .mock-wrap { max-width: 980px; margin: 0 auto; padding: 0 24px; position: relative; perspective: 1400px; }
+  .float-badge { position: absolute; z-index: 5; background: var(--white); border: 1px solid var(--border); padding: 9px 14px; border-radius: var(--r); box-shadow: var(--elev-lg); font-size: 12.5px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .fb-1 { top: -14px; right: 8%; }
+  .fb-2 { bottom: 30px; left: -18px; }
+  @media (max-width: 900px) { .float-badge { display: none; } }
+
+  .mock { background: var(--white); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--elev-lg); overflow: hidden; text-align: left; transition: transform .3s cubic-bezier(.16,1,.3,1); transform-style: preserve-3d; will-change: transform; }
+  .mock-bar { background: var(--bg); border-bottom: 1px solid var(--border); padding: 11px 16px; display: flex; align-items: center; justify-content: space-between; }
+  .mock-dots { display: flex; gap: 6px; }
+  .mock-dots span { width: 9px; height: 9px; border-radius: 50%; background: #d8dbe0; display: block; }
+  .mock-url { font-family: var(--mono); font-size: 11.5px; color: var(--ink2); background: var(--white); padding: 3px 12px; border-radius: 5px; border: 1px solid var(--border); }
+  .mock-live { font-size: 10.5px; font-weight: 600; color: var(--ink3); display: flex; align-items: center; gap: 5px; }
+  .mock-live span.d { width: 5px; height: 5px; border-radius: 50%; background: var(--green); }
+
+  .mock-grid { display: grid; grid-template-columns: 230px 1fr; min-height: 420px; }
+  .mock-side { background: var(--bg); border-right: 1px solid var(--border); padding: 18px; }
+  .mock-main { padding: 22px; background: var(--white); position: relative; }
+
+  /* Calendly-style looping "auto-booking" demo: a small marker travels to
+     each event row and pulses, as if picking a time, with no user input. */
+  .demo-cursor { position: absolute; width: 10px; height: 10px; border-radius: 50%; background: var(--ink); opacity: 0; z-index: 5; pointer-events: none; animation: cursorTour 7s cubic-bezier(.65,0,.35,1) infinite; }
+  .demo-cursor .ring { position: absolute; inset: -8px; border-radius: 50%; border: 1.5px solid var(--ink); opacity: 0; animation: ringPulse 7s ease-out infinite; }
+  @media (max-width: 760px) { .demo-cursor { display: none; } }
+  @keyframes cursorTour {
+    0%   { opacity: 0; transform: translate(600px, -6px); }
+    6%   { opacity: 1; transform: translate(600px, -6px); }
+    24%  { opacity: 1; transform: translate(600px, 133px); }
+    28%  { transform: translate(600px, 133px) scale(.8); }
+    32%  { transform: translate(600px, 133px) scale(1); }
+    52%  { opacity: 1; transform: translate(600px, 133px); }
+    68%  { opacity: 1; transform: translate(600px, 192px); }
+    72%  { transform: translate(600px, 192px) scale(.8); }
+    76%  { transform: translate(600px, 192px) scale(1); }
+    94%  { opacity: 1; transform: translate(600px, 192px); }
+    100% { opacity: 0; transform: translate(600px, -6px); }
+  }
+  @keyframes ringPulse {
+    0%, 25%, 68%, 100% { opacity: 0; transform: scale(1); }
+    28%, 72% { opacity: 1; transform: scale(1); }
+    34%, 78% { opacity: 0; transform: scale(1.8); }
+  }
+  @keyframes rowFlash2 {
+    0%, 26%, 40%, 100% { background-color: var(--white); box-shadow: none; }
+    30%, 34% { background-color: #f0f0ef; box-shadow: 0 0 0 3px rgba(13,17,23,.06); }
+  }
+  @keyframes rowFlash3 {
+    0%, 70%, 84%, 100% { background-color: var(--white); box-shadow: none; }
+    74%, 78% { background-color: #f0f0ef; box-shadow: 0 0 0 3px rgba(13,17,23,.06); }
+  }
+
+  .cal-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 2px; text-align: center; font-size: 11px; margin-top: 10px; }
+  .cal-grid .dow { font-weight: 700; color: var(--ink3); padding-bottom: 4px; }
+  .cal-day { padding: 6px 0; border-radius: var(--r-sm); color: var(--ink2); font-weight: 500; }
+  .cal-day.active { background: var(--ink); color: var(--white); font-weight: 700; }
+
+  .side-title { font-size: 11px; font-weight: 700; color: var(--ink3); text-transform: uppercase; letter-spacing: .06em; margin: 20px 0 8px; }
+  .cal-check { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--ink2); margin-bottom: 6px; }
+  .cal-check i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+
+  .day-hdr { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+  .day-hdr .date { font-size: 14.5px; font-weight: 700; }
+  .view-pills { display: flex; gap: 4px; }
+  .view-pills span { padding: 3px 9px; border-radius: 20px; font-size: 10.5px; font-weight: 600; background: var(--bg); color: var(--ink2); }
+  .view-pills span.on { background: var(--ink); color: var(--white); }
+
+  .evt { padding: 11px 14px; border-radius: var(--r); margin-bottom: 9px; border: 1px solid var(--border); background: var(--white); display: flex; align-items: center; justify-content: space-between; transition: border-color .15s, transform .15s; }
+  .evt:hover { border-color: var(--ink); transform: translateX(4px); }
+  .evt.b1 { border-left: 3px solid var(--ink); }
+  .evt.b2 { border-left: 3px solid var(--ink3); animation: rowFlash2 7s ease-in-out infinite; }
+  .evt.b3 { border-left: 3px solid var(--border); animation: rowFlash3 7s ease-in-out infinite; }
+  .evt-title { font-size: 12.5px; font-weight: 700; }
+  .evt-sub { font-size: 11px; color: var(--ink3); margin-top: 2px; }
+  .evt-tag { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: var(--r-sm); white-space: nowrap; margin-left: 10px; }
+  .evt-tag.solid { background: var(--ink); color: var(--white); }
+  .evt-tag.soft { background: var(--bg); color: var(--ink2); border: 1px solid var(--border); }
+
+  /* ── Section shell ── */
+  .section { padding: 88px 0; }
+  .section.dark { background: var(--ink); color: #e7e9ec; }
+  .section.dark h2, .section.dark .sec-eyebrow { color: var(--white); }
+  .sec-head { text-align: center; max-width: 620px; margin: 0 auto 44px; }
+  .sec-eyebrow { display: block; font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--ink3); margin-bottom: 10px; }
+  .section.dark .sec-eyebrow { color: #9198a1; }
+  .sec-title { font-size: 34px; line-height: 1.2; }
+
+  /* ── Meeting types ── */
+  .mtype-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; }
+  .mtype-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--r); padding: 28px 24px; transition: transform .2s cubic-bezier(.16,1,.3,1), box-shadow .2s; }
+  .mtype-card:hover { transform: translateY(-4px); box-shadow: var(--elev); }
+  .mtype-num { font-family: var(--mono); font-size: 12px; color: var(--ink3); font-weight: 600; margin-bottom: 14px; display: block; }
+  .mtype-card h3 { font-size: 18px; margin-bottom: 8px; }
+  .mtype-card p { font-size: 13.5px; color: var(--ink2); line-height: 1.6; }
+  .mtype-visual { display: flex; margin-top: 18px; }
+  .mtype-visual .av { width: 28px; height: 28px; border-radius: 50%; background: var(--ink); color: var(--white); display: flex; align-items: center; justify-content: center; font-size: 10.5px; font-weight: 700; border: 2px solid var(--white); margin-left: -8px; }
+  .mtype-visual .av:first-child { margin-left: 0; }
+  @media (max-width: 760px) { .mtype-grid { grid-template-columns: 1fr; } }
+
+  /* ── Showcase tabs (dark section) ── */
+  .tabs-row { display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 34px; flex-wrap: wrap; position: relative; }
+  .tab-indicator { position: absolute; top: 0; left: 0; height: 100%; background: var(--white); border-radius: 999px; transition: transform .35s cubic-bezier(.65,0,.35,1), width .35s cubic-bezier(.65,0,.35,1); z-index: 0; }
+  .tab-btn { position: relative; z-index: 1; background: transparent; border: 1px solid transparent; padding: 10px 18px; font-family: var(--font); font-size: 13.5px; font-weight: 600; color: #9198a1; cursor: pointer; border-radius: 999px; transition: color .18s; }
+  .tab-btn:hover { color: var(--white); }
+  .tab-btn.active { color: var(--ink); }
+  .tab-btn.active:hover { color: var(--ink); }
+
+  .showcase-panel { background: #16191f; border: 1px solid #262b33; border-radius: var(--r-lg); padding: 40px; min-height: 340px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; }
+  .tab-item { display: none; }
+  .tab-item.active { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; grid-column: 1 / -1; animation: fadeScale .4s cubic-bezier(.16,1,.3,1); }
+  .tab-item .kicker { font-size: 10.5px; font-weight: 700; color: #9198a1; text-transform: uppercase; letter-spacing: .08em; }
+  .tab-item h3 { color: var(--white); font-size: 24px; margin: 8px 0 12px; }
+  .tab-item p { font-size: 14px; color: #b3b8c0; line-height: 1.65; margin-bottom: 20px; }
+  .tab-visual { background: #1d2129; border: 1px solid #2b303a; border-radius: var(--r); padding: 20px; }
+  .tab-visual .h { font-size: 12.5px; font-weight: 700; color: var(--white); margin-bottom: 12px; }
+  .mini-row { display: flex; align-items: center; justify-content: space-between; background: #262b33; padding: 10px 12px; border-radius: var(--r-sm); margin-bottom: 8px; }
+  .mini-row:last-child { margin-bottom: 0; }
+  .mini-name { font-size: 12.5px; font-weight: 700; color: var(--white); }
+  .mini-sub { font-size: 10.5px; color: #8b919b; }
+  .mini-avatar { width: 26px; height: 26px; border-radius: 50%; background: #3a4150; color: var(--white); display: flex; align-items: center; justify-content: center; font-size: 10.5px; font-weight: 700; margin-right: 9px; }
+  .overlay-lane { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .overlay-lane .lane-label { width: 46px; font-size: 10px; color: #8b919b; font-weight: 700; flex-shrink: 0; }
+  .overlay-track { flex: 1; height: 20px; background: #262b33; border-radius: 5px; position: relative; overflow: hidden; }
+  .overlay-block { position: absolute; top: 0; bottom: 0; border-radius: 4px; }
+  @media (max-width: 760px) { .showcase-panel, .tab-item.active { grid-template-columns: 1fr; } }
+
+  /* ── Features ── */
+  .feat-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; }
+  .feat-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--r); padding: 26px 22px; transition: transform .2s cubic-bezier(.16,1,.3,1), box-shadow .2s, border-color .2s; }
+  .feat-card:hover { transform: translateY(-4px); border-color: var(--ink); box-shadow: var(--elev); }
+  .feat-icon { width: 38px; height: 38px; border-radius: var(--r-sm); background: var(--ink); color: var(--white); display: flex; align-items: center; justify-content: center; margin-bottom: 16px; }
+  .feat-card h3 { font-size: 16px; margin-bottom: 6px; }
+  .feat-card p { font-size: 13.5px; color: var(--ink2); line-height: 1.6; }
+  @media (max-width: 760px) { .feat-grid { grid-template-columns: 1fr; } }
+
+  /* ── Integrations ── */
+  .integrations-marquee { overflow: hidden; -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); }
+  .integrations-track { display: flex; align-items: center; gap: 14px; width: max-content; animation: marqueeScroll 26s linear infinite; }
+  .integrations-marquee:hover .integrations-track { animation-play-state: paused; }
+  @keyframes marqueeScroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  .integ-chip { display: flex; align-items: center; gap: 9px; background: var(--white); border: 1px solid var(--border); border-radius: 999px; padding: 10px 18px 10px 12px; font-size: 13px; font-weight: 600; color: var(--ink2); transition: border-color .15s, color .15s, transform .15s; white-space: nowrap; }
+  .integ-chip:hover { border-color: var(--ink); color: var(--ink); transform: translateY(-2px); }
+  .integ-chip .ic { width: 22px; height: 22px; border-radius: 5px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+
+  /* ── Booking demo ── */
+  .booking-shell { background: var(--white); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--elev); padding: 40px; }
+  .booking-grid { display: grid; grid-template-columns: 300px 1fr; gap: 36px; }
+  .booking-left { padding-right: 26px; border-right: 1px solid var(--border); }
+  .booking-host { font-size: 10.5px; font-weight: 700; color: var(--ink3); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; }
+  .booking-title { font-size: 21px; margin-bottom: 8px; }
+  .booking-desc { font-size: 13.5px; color: var(--ink2); line-height: 1.55; margin-bottom: 20px; }
+  .booking-meta { display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: var(--ink2); }
+  .booking-meta .row { display: flex; align-items: center; gap: 8px; }
+  .booking-meta svg { flex-shrink: 0; color: var(--ink3); }
+
+  .slot-row { display: flex; gap: 8px; margin-bottom: 9px; }
+  .slot-btn { flex: 1; padding: 11px 12px; border: 1px solid var(--border); border-radius: var(--r); background: var(--white); font-weight: 600; font-size: 13px; color: var(--ink); cursor: pointer; transition: all .15s; font-family: var(--font); }
+  .slot-btn:hover { border-color: var(--ink); }
+  .slot-btn.chosen { background: var(--ink); color: var(--white); border-color: var(--ink); }
+  .slot-confirm { display: none; padding: 11px 16px; background: var(--ink); color: var(--white); border-radius: var(--r); font-weight: 700; font-size: 12.5px; border: none; cursor: pointer; font-family: var(--font); animation: fadeScale .2s; }
+  .slot-row.open .slot-confirm { display: block; }
+
+  .book-form { display: none; flex-direction: column; gap: 11px; margin-top: 4px; }
+  .book-form input { padding: 11px 14px; border: 1px solid var(--border); border-radius: var(--r); font-size: 13.5px; width: 100%; font-family: var(--font); color: var(--ink); }
+  .book-form input:focus { outline: none; border-color: var(--ink); }
+  .book-confirm-note { font-size: 13px; font-weight: 700; }
+
+  .book-success { display: none; padding: 26px; border-radius: var(--r); background: var(--bg); border: 1px solid var(--border); text-align: center; }
+  .check-svg { width: 46px; height: 46px; margin: 0 auto 12px; display: block; }
+  .check-circle { stroke-dasharray: 158; stroke-dashoffset: 158; stroke-width: 3; stroke: var(--ink); animation: drawCheck .55s cubic-bezier(.65,0,.45,1) forwards; }
+  .check-mark { stroke-dasharray: 44; stroke-dashoffset: 44; stroke-width: 3.5; stroke: var(--ink); animation: drawCheck .3s cubic-bezier(.65,0,.45,1) .4s forwards; }
+  .book-success h4 { font-size: 17px; margin-bottom: 6px; }
+  .book-success p { font-size: 13px; color: var(--ink2); line-height: 1.5; }
+  @media (max-width: 760px) {
+    .booking-grid { grid-template-columns: 1fr; }
+    .booking-left { border-right: none; padding-right: 0; padding-bottom: 22px; border-bottom: 1px solid var(--border); }
+  }
+
+  /* ── FAQ ── */
+  .faq-list { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
+  .faq-item { background: var(--white); border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; }
+  .faq-q { width: 100%; text-align: left; background: none; border: none; padding: 18px 20px; font-family: var(--font); font-size: 14.5px; font-weight: 700; color: var(--ink); cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .faq-q .plus { width: 18px; height: 18px; flex-shrink: 0; position: relative; transition: transform .25s cubic-bezier(.16,1,.3,1); }
+  .faq-q .plus::before, .faq-q .plus::after { content: ''; position: absolute; background: var(--ink2); border-radius: 2px; }
+  .faq-q .plus::before { width: 100%; height: 2px; top: 50%; left: 0; transform: translateY(-50%); }
+  .faq-q .plus::after { height: 100%; width: 2px; left: 50%; top: 0; transform: translateX(-50%); transition: opacity .2s; }
+  .faq-item.open .plus { transform: rotate(45deg); }
+  .faq-a { max-height: 0; overflow: hidden; transition: max-height .3s cubic-bezier(.16,1,.3,1); }
+  .faq-a p { padding: 0 20px 18px; font-size: 13.5px; color: var(--ink2); line-height: 1.6; }
+  .faq-item.open .faq-a { max-height: 220px; }
+
+  /* ── Included-in-plan strip ── */
+  .plan-strip { background: var(--white); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 44px 40px; display: flex; align-items: center; justify-content: space-between; gap: 30px; flex-wrap: wrap; }
+  .plan-strip h3 { font-size: 22px; margin-bottom: 6px; }
+  .plan-strip p { font-size: 14px; color: var(--ink2); max-width: 460px; }
+  .plan-check-list { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 14px; }
+  .plan-check-list span { font-size: 12.5px; font-weight: 600; color: var(--ink2); display: flex; align-items: center; gap: 6px; }
+
+  /* ── Footer ── */
+  .footer { background: var(--ink); color: #9198a1; padding: 56px 0 26px; margin-top: 20px; }
+  .footer-grid { display: grid; grid-template-columns: 2fr repeat(3,1fr); gap: 36px; padding-bottom: 36px; border-bottom: 1px solid #262b33; }
+  .footer-brand { color: var(--white); font-size: 18px; font-weight: 700; margin-bottom: 10px; }
+  .footer p.desc { font-size: 13px; max-width: 280px; line-height: 1.55; }
+  .footer h4 { color: var(--white); font-size: 12.5px; margin-bottom: 14px; }
+  .footer ul { list-style: none; display: flex; flex-direction: column; gap: 9px; }
+  .footer a { color: #9198a1; text-decoration: none; font-size: 13px; transition: color .15s; }
+  .footer a:hover { color: var(--white); }
+  .footer-bottom { display: flex; align-items: center; justify-content: space-between; font-size: 12px; padding-top: 22px; flex-wrap: wrap; gap: 10px; }
+  @media (max-width: 760px) { .footer-grid { grid-template-columns: 1fr; gap: 26px; } }
+
+  @media (max-width: 760px) {
+    .hero h1 { font-size: 36px; }
+    .hero p.sub { font-size: 16px; }
+    .sec-title { font-size: 27px; }
+    .nav-links { display: none; }
+    .mock-grid { grid-template-columns: 1fr; }
+    .mock-side { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div id="scroll-progress"></div>
+
+<nav class="nav">
+  <div class="container nav-row">
+    <a href="/calendar" class="brand">
+      <span class="brand-mark">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+          <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+          <line x1="16" y1="2" x2="16" y2="6"></line>
+          <line x1="8" y1="2" x2="8" y2="6"></line>
+          <line x1="3" y1="10" x2="21" y2="10"></line>
+        </svg>
+      </span>
+      <span class="brand-name">huduCalendar</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="#meetings" data-i18n="nav.meetings">Meeting types</a></li>
+      <li><a href="#showcase" data-i18n="nav.showcase">How it works</a></li>
+      <li><a href="#features" data-i18n="nav.features">Features</a></li>
+      <li><a href="#booking" data-i18n="nav.booking">Try a demo</a></li>
+      <li><a href="#faq" data-i18n="nav.faq">FAQ</a></li>
+    </ul>
+    <div class="nav-actions">
+      <div class="lang-switch" id="langSwitch">
+        <button class="lang-trigger" id="langTrigger" onclick="toggleLangMenu()" aria-haspopup="listbox" aria-expanded="false">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 0 20 15.3 15.3 0 0 1 0-20z"/></svg>
+          <span id="langCode">EN</span>
+        </button>
+        <div class="lang-menu" id="langMenu" role="listbox">
+          <button type="button" class="lang-option active" data-lang="en" onclick="setLang('en')">English</button>
+          <button type="button" class="lang-option" data-lang="sw" onclick="setLang('sw')">Kiswahili</button>
+          <button type="button" class="lang-option" data-lang="fr" onclick="setLang('fr')">Français</button>
+          <button type="button" class="lang-option" data-lang="pt" onclick="setLang('pt')">Português</button>
+          <button type="button" class="lang-option" data-lang="ar" onclick="setLang('ar')">العربية</button>
+          <button type="button" class="lang-option" data-lang="zh" onclick="setLang('zh')">中文</button>
+        </div>
+      </div>
+      <a href="/login" class="btn btn-ghost" data-i18n="nav.signin">Sign in</a>
+      <a href="/calendar" class="btn btn-solid" data-i18n="nav.open">Open huduCalendar</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero container">
+  <div class="eyebrow in"><span class="live-dot"></span> <span data-i18n="hero.eyebrow">Now syncing bi-directionally with Google &amp; Outlook</span></div>
+  <h1 class="in in-1" data-i18n-html="hero.title">Scheduling that gets <em>out of the way</em>.</h1>
+  <p class="sub in in-2" data-i18n="hero.sub">Share one link. It reads your real availability, books straight onto your calendar, and hands every meeting a Bliss video room — nobody has to ask "does this time work?" again.</p>
+  <div class="hero-ctas in in-3">
+    <a href="/calendar" class="btn btn-solid btn-lg" data-i18n="hero.cta1">Open huduCalendar</a>
+    <a href="#booking" class="btn btn-ghost btn-lg" data-i18n="hero.cta2">See a live booking demo</a>
+  </div>
+  <div class="in in-4">
+    <div class="trust-label" data-i18n="hero.trustLabel">Built into the workspace you already use</div>
+    <div class="trust-row">
+      <span>SuperAdmin</span><span>ComplyOS</span><span>NexusHR</span><span>Ondi</span><span>Bliss</span>
+    </div>
+  </div>
+</header>
+
+<section class="mock-wrap in in-4" style="margin-top: 40px;">
+  <div class="float-badge fb-1"><span style="width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block;"></span> <span data-i18n="mock.badge1">Synced with Google Calendar</span></div>
+  <div class="float-badge fb-2">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+    <span data-i18n="mock.badge2">Bliss video room attached</span>
+  </div>
+  <div class="mock">
+    <div class="mock-bar">
+      <div class="mock-dots"><span></span><span></span><span></span></div>
+      <div class="mock-url">calendar.hudumika.tz</div>
+      <div class="mock-live"><span class="d"></span> Live</div>
+    </div>
+    <div class="mock-grid">
+      <div class="mock-side">
+        <div style="display:flex; justify-content:space-between; align-items:baseline; font-size:12.5px; font-weight:700;">
+          <span>September 2026</span><span style="font-size:10.5px; color:var(--ink3); font-weight:700;">Today</span>
+        </div>
+        <div class="cal-grid">
+          <div class="dow">S</div><div class="dow">M</div><div class="dow">T</div><div class="dow">W</div><div class="dow">T</div><div class="dow">F</div><div class="dow">S</div>
+          <div class="cal-day">31</div><div class="cal-day">1</div><div class="cal-day">2</div><div class="cal-day">3</div><div class="cal-day">4</div><div class="cal-day active">5</div><div class="cal-day">6</div>
+        </div>
+        <div class="side-title">My calendars</div>
+        <div class="cal-check"><i style="background:var(--ink);"></i> Work</div>
+        <div class="cal-check"><i style="background:var(--ink3);"></i> Client calls</div>
+        <div class="cal-check"><i style="background:var(--border);"></i> Product reviews</div>
+      </div>
+      <div class="mock-main">
+        <div class="demo-cursor" aria-hidden="true"><span class="ring"></span></div>
+        <div class="day-hdr">
+          <span class="date">Thursday, Sep 5</span>
+          <div class="view-pills"><span class="on">Day</span><span>Week</span><span>Month</span></div>
+        </div>
+        <div class="evt b1">
+          <div><div class="evt-title">09:00 — Quarterly Review</div><div class="evt-sub">Sarah Chen · Bliss video</div></div>
+          <span class="evt-tag solid">Join</span>
+        </div>
+        <div class="evt b2">
+          <div><div class="evt-title">11:30 — Client Onboarding</div><div class="evt-sub">Booked via /book/onboarding</div></div>
+          <span class="evt-tag soft">30 min</span>
+        </div>
+        <div class="evt b3">
+          <div><div class="evt-title">14:00 — Customs Workflow Sync</div><div class="evt-sub">ClearOS · synced from Outlook</div></div>
+          <span class="evt-tag soft">Synced</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section reveal" id="meetings">
+  <div class="container">
+    <div class="sec-head">
+      <span class="sec-eyebrow" data-i18n="meetings.eyebrow">Every kind of meeting</span>
+      <h2 class="sec-title" data-i18n-html="meetings.title">One link, however people need <em>to meet</em></h2>
+    </div>
+    <div class="mtype-grid reveal-stagger">
+      <div class="mtype-card">
+        <span class="mtype-num">01</span>
+        <h3 data-i18n="meetings.card1.title">One-on-one</h3>
+        <p data-i18n="meetings.card1.desc">A single guest picks a time from your real availability. The default, and the one most links are.</p>
+        <div class="mtype-visual"><div class="av">SC</div></div>
+      </div>
+      <div class="mtype-card">
+        <span class="mtype-num">02</span>
+        <h3 data-i18n="meetings.card2.title">Round-robin</h3>
+        <p data-i18n="meetings.card2.desc">A request lands with whoever on the team is free next, instead of piling onto one person's calendar.</p>
+        <div class="mtype-visual"><div class="av">SC</div><div class="av">AM</div><div class="av">JH</div></div>
+      </div>
+      <div class="mtype-card">
+        <span class="mtype-num">03</span>
+        <h3 data-i18n="meetings.card3.title">Group &amp; collective</h3>
+        <p data-i18n="meetings.card3.desc">Everyone who needs to be in the room joins the same booking — a panel review, a workshop, a full team sync.</p>
+        <div class="mtype-visual"><div class="av">SC</div><div class="av">AM</div><div class="av">JH</div><div class="av">+2</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section dark reveal" id="showcase">
+  <div class="container">
+    <div class="sec-head">
+      <span class="sec-eyebrow" data-i18n="showcase.eyebrow">How it works</span>
+      <h2 class="sec-title" data-i18n-html="showcase.title">From first link to <em>booked meeting</em></h2>
+    </div>
+    <div class="tabs-row" id="tabsRow">
+      <span class="tab-indicator" id="tabIndicator"></span>
+      <button type="button" class="tab-btn active" onclick="switchTab(0)" data-i18n="showcase.tab1">Free/busy overlay</button>
+      <button type="button" class="tab-btn" onclick="switchTab(1)" data-i18n="showcase.tab2">Reminders</button>
+      <button type="button" class="tab-btn" onclick="switchTab(2)" data-i18n="showcase.tab3">Smart routing</button>
+      <button type="button" class="tab-btn" onclick="switchTab(3)" data-i18n="showcase.tab4">Bliss video</button>
+    </div>
+
+    <div class="showcase-panel">
+      <div class="tab-item active" id="tab-0">
+        <div>
+          <span class="kicker" data-i18n="showcase.t1.kicker">01 · Availability</span>
+          <h3 data-i18n="showcase.t1.h3">See your day right next to theirs</h3>
+          <p data-i18n="showcase.t1.p">Before a guest picks a time, their calendar overlays yours — the only slots offered are ones that are actually free on both sides, not just yours.</p>
+          <a href="/calendar" class="btn btn-solid-inverse" data-i18n="showcase.t1.cta">See it on a real link →</a>
+        </div>
+        <div class="tab-visual">
+          <div class="h" data-i18n="showcase.t1.visualH">Thu, Sep 5 — 9 AM to 1 PM</div>
+          <div class="overlay-lane">
+            <span class="lane-label" data-i18n="showcase.t1.laneYou">You</span>
+            <div class="overlay-track">
+              <div class="overlay-block" style="left:8%; width:22%; background:#4b5563;"></div>
+              <div class="overlay-block" style="left:55%; width:18%; background:#4b5563;"></div>
+            </div>
+          </div>
+          <div class="overlay-lane">
+            <span class="lane-label" data-i18n="showcase.t1.laneGuest">Guest</span>
+            <div class="overlay-track">
+              <div class="overlay-block" style="left:0%; width:15%; background:#565d68;"></div>
+              <div class="overlay-block" style="left:70%; width:30%; background:#565d68;"></div>
+            </div>
+          </div>
+          <div class="overlay-lane">
+            <span class="lane-label" data-i18n="showcase.t1.laneOpen">Open</span>
+            <div class="overlay-track">
+              <div class="overlay-block" style="left:32%; width:20%; background:#3fb950;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-item" id="tab-1">
+        <div>
+          <span class="kicker" data-i18n="showcase.t2.kicker">02 · Automation</span>
+          <h3 data-i18n="showcase.t2.h3">Reminders that actually cut no-shows</h3>
+          <p data-i18n="showcase.t2.p">SMS, WhatsApp, and email confirmations go out on their own — a nudge the day before, the join link ten minutes ahead, and a follow-up once it's done.</p>
+          <a href="/studio" class="btn btn-solid-inverse" data-i18n="showcase.t2.cta">Open Workflow Studio →</a>
+        </div>
+        <div class="tab-visual">
+          <div class="h" data-i18n="showcase.t2.visualH">Active trigger</div>
+          <div class="mini-row" style="display:block;">
+            <div class="mini-name" data-i18n="showcase.t2.visualName">24 hours before</div>
+            <div class="mini-sub" data-i18n="showcase.t2.visualSub">SMS reminder + Bliss join link sent to the invitee</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-item" id="tab-2">
+        <div>
+          <span class="kicker" data-i18n="showcase.t3.kicker">03 · Qualification</span>
+          <h3 data-i18n="showcase.t3.h3">Route by who's actually asking</h3>
+          <p data-i18n="showcase.t3.p">A short intake form screens the request before a slot ever shows. Enterprise accounts land with a senior lead; everyone else books straight through.</p>
+          <a href="/calendar" class="btn btn-solid-inverse" data-i18n="showcase.t3.cta">Set up routing →</a>
+        </div>
+        <div class="tab-visual">
+          <div class="h" data-i18n="showcase.t3.visualH">Intake preview</div>
+          <div class="mini-row" style="display:block;">
+            <div class="mini-name" data-i18n="showcase.t3.visualName">Company size: 50–200</div>
+            <div class="mini-sub" data-i18n="showcase.t3.visualSub">Matched → Senior Enterprise Lead</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-item" id="tab-3">
+        <div>
+          <span class="kicker" data-i18n="showcase.t4.kicker">04 · Meetings</span>
+          <h3 data-i18n="showcase.t4.h3">A Bliss room, attached automatically</h3>
+          <p data-i18n="showcase.t4.p">No plugin, no separate link to hunt for. Every booked event carries its own HD Bliss video room, with host controls and a waiting room already on.</p>
+          <a href="/bliss/overview" class="btn btn-solid-inverse" data-i18n="showcase.t4.cta">Try Bliss video →</a>
+        </div>
+        <div class="tab-visual" style="text-align:center;">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--white)" stroke-width="2" style="margin:4px auto 10px; display:block;"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+          <div class="mini-name" data-i18n="showcase.t4.visualName">Bliss room active</div>
+          <div class="mini-sub" style="margin-top:2px;">bliss.hudumika.tz/call/sync-908</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section reveal" id="features">
+  <div class="container">
+    <div class="sec-head">
+      <span class="sec-eyebrow" data-i18n="features.eyebrow">What's underneath</span>
+      <h2 class="sec-title" data-i18n-html="features.title">Built for the way your <em>day</em> actually runs</h2>
+    </div>
+    <div class="feat-grid reveal-stagger">
+      <div class="feat-card">
+        <div class="feat-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></div>
+        <h3 data-i18n="feat1.title">Shareable booking links</h3>
+        <p data-i18n-html="feat1.desc">A public page at <code style="font-size:12.5px;">/book/your-slug</code> with your own durations, buffers, and working hours.</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div>
+        <h3 data-i18n="feat2.title">Bliss WebRTC video</h3>
+        <p data-i18n="feat2.desc">Every meeting gets a real video room, not a placeholder link — host controls, waiting room, and recording included.</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6"/><path d="M21.34 15.57a10 10 0 1 1-.57-8.38"/></svg></div>
+        <h3 data-i18n="feat3.title">Two-way sync</h3>
+        <p data-i18n="feat3.desc">Google Calendar, Microsoft Outlook, and iCal stay current in both directions — nothing double-booked, nothing stale.</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
+        <h3 data-i18n="feat4.title">Recurring events &amp; reminders</h3>
+        <p data-i18n="feat4.desc">Set a pattern once. Drag to reschedule, resize to adjust, and let reminders fire on their own from then on.</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 3 21 3 21 8"/><line x1="21" y1="3" x2="14" y2="10"/><path d="M9 21H3v-6"/><line x1="3" y1="21" x2="10" y2="14"/></svg></div>
+        <h3 data-i18n="feat5.title">Import &amp; export via ICS</h3>
+        <p data-i18n="feat5.desc">Bring events in from anywhere that speaks the standard calendar format, or hand yours to something else. Nothing's locked in.</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+        <h3 data-i18n="feat6.title">Tenant-isolated by design</h3>
+        <p data-i18n="feat6.desc">Every calendar sits behind the same row-level tenant isolation the rest of Hudumika runs on — nothing crosses between workspaces.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section reveal" style="padding-top: 0;">
+  <div class="container">
+    <div class="sec-head" style="margin-bottom: 30px;">
+      <span class="sec-eyebrow" data-i18n="integ.eyebrow">Plays well with others</span>
+      <h2 class="sec-title" style="font-size:26px;" data-i18n="integ.title">Connects to what you already use</h2>
+    </div>
+    <div class="integrations-marquee">
+      <div class="integrations-track">
+        <span class="integ-chip"><span class="ic" style="background:#4285F4;"><svg width="13" height="13" viewBox="0 0 24 24" fill="#fff"><path d="M22 5.5H2A2 2 0 000 7.5v11A2 2 0 002 20.5h20a2 2 0 002-2v-11a2 2 0 00-2-2z"/></svg></span> Google Calendar</span>
+        <span class="integ-chip"><span class="ic" style="background:#0078D4;"><svg width="13" height="13" viewBox="0 0 24 24" fill="#fff"><rect x="3" y="4" width="18" height="16" rx="2"/></svg></span> Microsoft Outlook</span>
+        <span class="integ-chip"><span class="ic" style="background:#111827;"><svg width="13" height="13" viewBox="0 0 24 24" fill="#fff"><path d="M12 2a10 10 0 100 20 10 10 0 000-20z"/></svg></span> Apple iCal</span>
+        <span class="integ-chip"><span class="ic" style="background:#111827;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></span> Bliss video</span>
+        <span class="integ-chip"><span class="ic" style="background:#4A154B;"><svg width="13" height="13" viewBox="0 0 24 24" fill="#fff"><circle cx="8" cy="8" r="3"/><circle cx="16" cy="16" r="3"/></svg></span> Slack notify</span>
+        <span class="integ-chip"><span class="ic" style="background:#111827;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6v6H9z"/></svg></span> Workflow Studio</span>
+        <span class="integ-chip" aria-hidden="true"><span class="ic" style="background:#4285F4;"><svg width="13" height="13" viewBox="0 0 24 24" fill="#fff"><path d="M22 5.5H2A2 2 0 000 7.5v11A2 2 0 002 20.5h20a2 2 0 002-2v-11a2 2 0 00-2-2z"/></svg></span> Google Calendar</span>
+        <span class="integ-chip" aria-hidden="true"><span class="ic" style="background:#0078D4;"><svg width="13" height="13" viewBox="0 0 24 24" fill="#fff"><rect x="3" y="4" width="18" height="16" rx="2"/></svg></span> Microsoft Outlook</span>
+        <span class="integ-chip" aria-hidden="true"><span class="ic" style="background:#111827;"><svg width="13" height="13" viewBox="0 0 24 24" fill="#fff"><path d="M12 2a10 10 0 100 20 10 10 0 000-20z"/></svg></span> Apple iCal</span>
+        <span class="integ-chip" aria-hidden="true"><span class="ic" style="background:#111827;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></span> Bliss video</span>
+        <span class="integ-chip" aria-hidden="true"><span class="ic" style="background:#4A154B;"><svg width="13" height="13" viewBox="0 0 24 24" fill="#fff"><circle cx="8" cy="8" r="3"/><circle cx="16" cy="16" r="3"/></svg></span> Slack notify</span>
+        <span class="integ-chip" aria-hidden="true"><span class="ic" style="background:#111827;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6v6H9z"/></svg></span> Workflow Studio</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section reveal" id="booking">
+  <div class="container">
+    <div class="sec-head">
+      <span class="sec-eyebrow" data-i18n="booking.eyebrow">Try it yourself</span>
+      <h2 class="sec-title" data-i18n="booking.title">This is the link your guests would see</h2>
+    </div>
+    <div class="booking-shell">
+      <div class="booking-grid">
+        <div class="booking-left">
+          <div class="booking-host" data-i18n="booking.host">Host: Hudumika Team</div>
+          <div class="booking-title" data-i18n="booking.demoTitle">30 Min Product Tour</div>
+          <p class="booking-desc" data-i18n="booking.desc">Pick a time below to walk through the two-step booking flow a real guest would use.</p>
+          <div class="booking-meta">
+            <div class="row"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> <span data-i18n="booking.meta1">30 minutes</span></div>
+            <div class="row"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg> <span data-i18n="booking.meta2">Bliss video link, generated automatically</span></div>
+            <div class="row"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 0 20 15.3 15.3 0 0 1 0-20z"/></svg> <span data-i18n="booking.meta3">East Africa Time (GMT+3)</span></div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:13.5px; font-weight:700; margin-bottom:12px;" data-i18n="booking.dateLabel">Thursday, September 5</div>
+          <div id="slots">
+            <div class="slot-row" data-time="09:00 AM">
+              <button type="button" class="slot-btn" onclick="pickSlot(this)">09:00 AM</button>
+              <button type="button" class="slot-confirm" onclick="confirmSlot(this)" data-i18n="booking.next">Next →</button>
+            </div>
+            <div class="slot-row" data-time="10:30 AM">
+              <button type="button" class="slot-btn" onclick="pickSlot(this)">10:30 AM</button>
+              <button type="button" class="slot-confirm" onclick="confirmSlot(this)" data-i18n="booking.next">Next →</button>
+            </div>
+            <div class="slot-row" data-time="02:00 PM">
+              <button type="button" class="slot-btn" onclick="pickSlot(this)">02:00 PM</button>
+              <button type="button" class="slot-confirm" onclick="confirmSlot(this)" data-i18n="booking.next">Next →</button>
+            </div>
+            <div class="slot-row" data-time="03:30 PM">
+              <button type="button" class="slot-btn" onclick="pickSlot(this)">03:30 PM</button>
+              <button type="button" class="slot-confirm" onclick="confirmSlot(this)" data-i18n="booking.next">Next →</button>
+            </div>
+          </div>
+          <div class="book-form" id="bookForm">
+            <div class="book-confirm-note" id="pickedNote">Selected: Thursday, Sep 5 at 10:30 AM</div>
+            <input type="text" data-i18n-placeholder="booking.namePlaceholder" placeholder="Your full name" value="Alex Morgan">
+            <input type="email" data-i18n-placeholder="booking.emailPlaceholder" placeholder="Your email" value="alex@example.com">
+            <button type="button" class="btn btn-solid" style="width:100%; padding:12px;" onclick="submitBooking()" data-i18n="booking.confirmBtn">Confirm booking</button>
+          </div>
+          <div class="book-success" id="bookSuccess">
+            <svg viewBox="0 0 52 52" class="check-svg"><circle cx="26" cy="26" r="24" fill="none" class="check-circle"/><path fill="none" d="M14 27l7 7 16-16" class="check-mark"/></svg>
+            <h4 data-i18n="booking.successTitle">You're scheduled</h4>
+            <p id="bookSuccessMsg">A calendar invite and Bliss video link were sent to <strong>alex@example.com</strong>.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section reveal" id="faq">
+  <div class="container">
+    <div class="sec-head">
+      <span class="sec-eyebrow" data-i18n="faq.eyebrow">Questions</span>
+      <h2 class="sec-title" data-i18n-html="faq.title">Before you <em>switch over</em></h2>
+    </div>
+    <div class="faq-list">
+      <div class="faq-item">
+        <button type="button" class="faq-q" onclick="toggleFaq(this)"><span data-i18n="faq1.q">Does this replace the calendar app I already use?</span><span class="plus"></span></button>
+        <div class="faq-a"><p data-i18n="faq1.a">No — it syncs with it. Google Calendar and Outlook stay in both directions, so an event made in either place shows up in the other. Nothing you already rely on has to move.</p></div>
+      </div>
+      <div class="faq-item">
+        <button type="button" class="faq-q" onclick="toggleFaq(this)"><span data-i18n="faq2.q">Do guests need a Hudumika account to book a slot?</span><span class="plus"></span></button>
+        <div class="faq-a"><p data-i18n="faq2.a">No. A booking link is a public page — anyone with it can see real availability and book, with just a name and email.</p></div>
+      </div>
+      <div class="faq-item">
+        <button type="button" class="faq-q" onclick="toggleFaq(this)"><span data-i18n="faq3.q">What happens if I move a synced Google event?</span><span class="plus"></span></button>
+        <div class="faq-a"><p data-i18n="faq3.a">The change comes back the same way it went out — reschedule or cancel it in Google Calendar and huduCalendar updates within moments, no manual re-sync.</p></div>
+      </div>
+      <div class="faq-item">
+        <button type="button" class="faq-q" onclick="toggleFaq(this)"><span data-i18n="faq4.q">Is video calling a separate product I have to pay for?</span><span class="plus"></span></button>
+        <div class="faq-a"><p data-i18n="faq4.a">No — Bliss video is part of the same workspace. A booked meeting gets a real HD video room automatically, with no separate app or license.</p></div>
+      </div>
+      <div class="faq-item">
+        <button type="button" class="faq-q" onclick="toggleFaq(this)"><span data-i18n="faq5.q">Can one calendar's data ever reach another company's workspace?</span><span class="plus"></span></button>
+        <div class="faq-a"><p data-i18n="faq5.a">No. Every tenant is isolated at the database row level, enforced by Postgres itself, not just application code — the same guarantee the rest of the Hudumika platform runs on.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section reveal" id="plan" style="padding-top: 0;">
+  <div class="container">
+    <div class="plan-strip">
+      <div>
+        <h3 data-i18n="plan.title">huduCalendar comes with every Hudumika workspace</h3>
+        <p data-i18n="plan.desc">No separate seat, no add-on to enable — booking links, Bliss video, and calendar sync are already part of your plan.</p>
+        <div class="plan-check-list">
+          <span data-i18n="plan.check1">✓ Unlimited booking links</span>
+          <span data-i18n="plan.check2">✓ Bliss video included</span>
+          <span data-i18n="plan.check3">✓ Google &amp; Outlook sync</span>
+        </div>
+      </div>
+      <a href="/pricing" class="btn btn-solid btn-lg" style="flex-shrink:0;" data-i18n="plan.cta">See workspace plans →</a>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <div class="footer-brand">huduCalendar</div>
+        <p class="desc" data-i18n="footer.desc">Scheduling and video meetings, built into the same workspace as your customs, HR, and finance tools.</p>
+      </div>
+      <div>
+        <h4 data-i18n="footer.product">Product</h4>
+        <ul>
+          <li><a href="/calendar" data-i18n="footer.calendar">huduCalendar</a></li>
+          <li><a href="#booking" data-i18n="footer.bookingLinks">Booking links</a></li>
+          <li><a href="/bliss/overview" data-i18n="footer.blissVideo">Bliss video</a></li>
+          <li><a href="/calendar" data-i18n="footer.sync">Google &amp; Outlook sync</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4 data-i18n="footer.platform">Platform</h4>
+        <ul>
+          <li><a href="/admin">SuperAdmin</a></li>
+          <li><a href="/complyos">ComplyOS</a></li>
+          <li><a href="/nexushr">NexusHR</a></li>
+          <li><a href="/studio" data-i18n="footer.studio">Workflow Studio</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4 data-i18n="footer.legal">Legal</h4>
+        <ul>
+          <li><a href="/legal/privacy" data-i18n="footer.privacy">Privacy policy</a></li>
+          <li><a href="/legal/terms" data-i18n="footer.terms">Terms of service</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div data-i18n="footer.copyright">© 2026 Hudumika Platform. All rights reserved.</div>
+      <div>calendar.hudumika.tz</div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Six languages, matching the platform's own real locale set
+  // (apps/web/src/locales/{ar,en,fr,pt,sw,zh}) rather than an arbitrary pick.
+  var translations = {
+    en: {
+      "nav.meetings": "Meeting types", "nav.showcase": "How it works", "nav.features": "Features",
+      "nav.booking": "Try a demo", "nav.faq": "FAQ", "nav.signin": "Sign in", "nav.open": "Open huduCalendar",
+      "hero.eyebrow": "Now syncing bi-directionally with Google & Outlook",
+      "hero.title": "Scheduling that gets <em>out of the way</em>.",
+      "hero.sub": "Share one link. It reads your real availability, books straight onto your calendar, and hands every meeting a Bliss video room — nobody has to ask “does this time work?” again.",
+      "hero.cta1": "Open huduCalendar", "hero.cta2": "See a live booking demo",
+      "hero.trustLabel": "Built into the workspace you already use",
+      "mock.badge1": "Synced with Google Calendar", "mock.badge2": "Bliss video room attached",
+      "meetings.eyebrow": "Every kind of meeting",
+      "meetings.title": "One link, however people need <em>to meet</em>",
+      "meetings.card1.title": "One-on-one",
+      "meetings.card1.desc": "A single guest picks a time from your real availability. The default, and the one most links are.",
+      "meetings.card2.title": "Round-robin",
+      "meetings.card2.desc": "A request lands with whoever on the team is free next, instead of piling onto one person's calendar.",
+      "meetings.card3.title": "Group &amp; collective",
+      "meetings.card3.desc": "Everyone who needs to be in the room joins the same booking — a panel review, a workshop, a full team sync.",
+      "showcase.eyebrow": "How it works", "showcase.title": "From first link to <em>booked meeting</em>",
+      "showcase.tab1": "Free/busy overlay", "showcase.tab2": "Reminders", "showcase.tab3": "Smart routing", "showcase.tab4": "Bliss video",
+      "showcase.t1.kicker": "01 · Availability", "showcase.t1.h3": "See your day right next to theirs",
+      "showcase.t1.p": "Before a guest picks a time, their calendar overlays yours — the only slots offered are ones that are actually free on both sides, not just yours.",
+      "showcase.t1.cta": "See it on a real link →", "showcase.t1.visualH": "Thu, Sep 5 — 9 AM to 1 PM",
+      "showcase.t1.laneYou": "You", "showcase.t1.laneGuest": "Guest", "showcase.t1.laneOpen": "Open",
+      "showcase.t2.kicker": "02 · Automation", "showcase.t2.h3": "Reminders that actually cut no-shows",
+      "showcase.t2.p": "SMS, WhatsApp, and email confirmations go out on their own — a nudge the day before, the join link ten minutes ahead, and a follow-up once it's done.",
+      "showcase.t2.cta": "Open Workflow Studio →", "showcase.t2.visualH": "Active trigger",
+      "showcase.t2.visualName": "24 hours before", "showcase.t2.visualSub": "SMS reminder + Bliss join link sent to the invitee",
+      "showcase.t3.kicker": "03 · Qualification", "showcase.t3.h3": "Route by who's actually asking",
+      "showcase.t3.p": "A short intake form screens the request before a slot ever shows. Enterprise accounts land with a senior lead; everyone else books straight through.",
+      "showcase.t3.cta": "Set up routing →", "showcase.t3.visualH": "Intake preview",
+      "showcase.t3.visualName": "Company size: 50–200", "showcase.t3.visualSub": "Matched → Senior Enterprise Lead",
+      "showcase.t4.kicker": "04 · Meetings", "showcase.t4.h3": "A Bliss room, attached automatically",
+      "showcase.t4.p": "No plugin, no separate link to hunt for. Every booked event carries its own HD Bliss video room, with host controls and a waiting room already on.",
+      "showcase.t4.cta": "Try Bliss video →", "showcase.t4.visualName": "Bliss room active",
+      "features.eyebrow": "What's underneath", "features.title": "Built for the way your <em>day</em> actually runs",
+      "feat1.title": "Shareable booking links",
+      "feat1.desc": "A public page at <code style=\"font-size:12.5px;\">/book/your-slug</code> with your own durations, buffers, and working hours.",
+      "feat2.title": "Bliss WebRTC video",
+      "feat2.desc": "Every meeting gets a real video room, not a placeholder link — host controls, waiting room, and recording included.",
+      "feat3.title": "Two-way sync",
+      "feat3.desc": "Google Calendar, Microsoft Outlook, and iCal stay current in both directions — nothing double-booked, nothing stale.",
+      "feat4.title": "Recurring events &amp; reminders",
+      "feat4.desc": "Set a pattern once. Drag to reschedule, resize to adjust, and let reminders fire on their own from then on.",
+      "feat5.title": "Import &amp; export via ICS",
+      "feat5.desc": "Bring events in from anywhere that speaks the standard calendar format, or hand yours to something else. Nothing's locked in.",
+      "feat6.title": "Tenant-isolated by design",
+      "feat6.desc": "Every calendar sits behind the same row-level tenant isolation the rest of Hudumika runs on — nothing crosses between workspaces.",
+      "integ.eyebrow": "Plays well with others", "integ.title": "Connects to what you already use",
+      "booking.eyebrow": "Try it yourself", "booking.title": "This is the link your guests would see",
+      "booking.host": "Host: Hudumika Team", "booking.demoTitle": "30 Min Product Tour",
+      "booking.desc": "Pick a time below to walk through the two-step booking flow a real guest would use.",
+      "booking.meta1": "30 minutes", "booking.meta2": "Bliss video link, generated automatically",
+      "booking.meta3": "East Africa Time (GMT+3)", "booking.dateLabel": "Thursday, September 5",
+      "booking.next": "Next →", "booking.pickedPrefix": "Selected: Thursday, Sep 5 at ",
+      "booking.namePlaceholder": "Your full name", "booking.emailPlaceholder": "Your email",
+      "booking.confirmBtn": "Confirm booking", "booking.successTitle": "You're scheduled",
+      "booking.successPrefix": "A calendar invite and Bliss video link were sent to ", "booking.successSuffix": ".",
+      "faq.eyebrow": "Questions", "faq.title": "Before you <em>switch over</em>",
+      "faq1.q": "Does this replace the calendar app I already use?",
+      "faq1.a": "No — it syncs with it. Google Calendar and Outlook stay in both directions, so an event made in either place shows up in the other. Nothing you already rely on has to move.",
+      "faq2.q": "Do guests need a Hudumika account to book a slot?",
+      "faq2.a": "No. A booking link is a public page — anyone with it can see real availability and book, with just a name and email.",
+      "faq3.q": "What happens if I move a synced Google event?",
+      "faq3.a": "The change comes back the same way it went out — reschedule or cancel it in Google Calendar and huduCalendar updates within moments, no manual re-sync.",
+      "faq4.q": "Is video calling a separate product I have to pay for?",
+      "faq4.a": "No — Bliss video is part of the same workspace. A booked meeting gets a real HD video room automatically, with no separate app or license.",
+      "faq5.q": "Can one calendar's data ever reach another company's workspace?",
+      "faq5.a": "No. Every tenant is isolated at the database row level, enforced by Postgres itself, not just application code — the same guarantee the rest of the Hudumika platform runs on.",
+      "plan.title": "huduCalendar comes with every Hudumika workspace",
+      "plan.desc": "No separate seat, no add-on to enable — booking links, Bliss video, and calendar sync are already part of your plan.",
+      "plan.check1": "✓ Unlimited booking links", "plan.check2": "✓ Bliss video included", "plan.check3": "✓ Google &amp; Outlook sync",
+      "plan.cta": "See workspace plans →",
+      "footer.desc": "Scheduling and video meetings, built into the same workspace as your customs, HR, and finance tools.",
+      "footer.product": "Product", "footer.calendar": "huduCalendar", "footer.bookingLinks": "Booking links",
+      "footer.blissVideo": "Bliss video", "footer.sync": "Google &amp; Outlook sync", "footer.platform": "Platform",
+      "footer.studio": "Workflow Studio", "footer.legal": "Legal", "footer.privacy": "Privacy policy",
+      "footer.terms": "Terms of service", "footer.copyright": "© 2026 Hudumika Platform. All rights reserved.",
+      "ticker.msg1.t1": "New booking · 30 Min Product Tour", "ticker.msg1.t2": "via calendar.hudumika.tz/book",
+      "ticker.msg2.t1": "Bliss video room attached", "ticker.msg2.t2": "Quarterly Review · 09:00",
+      "ticker.msg3.t1": "Synced from Google Calendar", "ticker.msg3.t2": "Customs Workflow Sync · 14:00",
+      "meta.title": "huduCalendar",
+      "meta.description": "Scheduling for teams who are already busy. Share a booking link, sync Google and Outlook both ways, and hand every meeting a Bliss video room automatically."
+    },
+    sw: {
+      "nav.meetings": "Aina za mikutano", "nav.showcase": "Jinsi inavyofanya kazi", "nav.features": "Vipengele",
+      "nav.booking": "Jaribu onyesho", "nav.faq": "Maswali", "nav.signin": "Ingia", "nav.open": "Fungua huduCalendar",
+      "hero.eyebrow": "Sasa inasawazisha pande zote na Google na Outlook",
+      "hero.title": "Upangaji ratiba <em>usiokusumbua</em>.",
+      "hero.sub": "Shiriki kiungo kimoja. Kinasoma muda wako halisi uliopo, kinaweka miadi moja kwa moja kwenye kalenda yako, na kinaambatisha chumba cha video cha Bliss kwa kila mkutano — hakuna haja ya mtu kuuliza tena “muda huu unafaa?”",
+      "hero.cta1": "Fungua huduCalendar", "hero.cta2": "Ona onyesho la moja kwa moja la uwekaji miadi",
+      "hero.trustLabel": "Imejengwa ndani ya nafasi ya kazi unayotumia tayari",
+      "mock.badge1": "Imesawazishwa na Google Calendar", "mock.badge2": "Chumba cha video cha Bliss kimeambatishwa",
+      "meetings.eyebrow": "Kila aina ya mkutano",
+      "meetings.title": "Kiungo kimoja, kwa jinsi watu wanavyohitaji <em>kukutana</em>",
+      "meetings.card1.title": "Mkutano wa mtu mmoja kwa mmoja",
+      "meetings.card1.desc": "Mgeni mmoja huchagua muda kutoka kwenye upatikanaji wako halisi. Ndiyo chaguo-msingi, na ndilo linalotumika zaidi.",
+      "meetings.card2.title": "Wa kupokezana",
+      "meetings.card2.desc": "Ombi hufika kwa yeyote katika timu aliye huru zaidi, badala ya kulundika kwenye kalenda ya mtu mmoja.",
+      "meetings.card3.title": "Wa kikundi",
+      "meetings.card3.desc": "Kila anayehitajika chumbani hujiunga na miadi hiyo hiyo — tathmini ya jopo, warsha, au mkutano mzima wa timu.",
+      "showcase.eyebrow": "Jinsi inavyofanya kazi", "showcase.title": "Kutoka kiungo cha kwanza hadi <em>mkutano ulioratibiwa</em>",
+      "showcase.tab1": "Muonekano wa upatikanaji", "showcase.tab2": "Vikumbusho", "showcase.tab3": "Uelekezaji mahiri", "showcase.tab4": "Video ya Bliss",
+      "showcase.t1.kicker": "01 · Upatikanaji", "showcase.t1.h3": "Ona siku yako kando kando na yake",
+      "showcase.t1.p": "Kabla mgeni hajachagua muda, kalenda yake huwekwa juu ya yako — nafasi zinazotolewa ni zile tu zilizo huru pande zote mbili, si zako tu.",
+      "showcase.t1.cta": "Iangalie kwenye kiungo halisi →", "showcase.t1.visualH": "Alh, Sep 5 — Saa 3 asubuhi hadi Saa 7 mchana",
+      "showcase.t1.laneYou": "Wewe", "showcase.t1.laneGuest": "Mgeni", "showcase.t1.laneOpen": "Huru",
+      "showcase.t2.kicker": "02 · Otomatiki", "showcase.t2.h3": "Vikumbusho vinavyopunguza kutohudhuria",
+      "showcase.t2.p": "Uthibitisho wa SMS, WhatsApp, na barua pepe hutumwa wenyewe — ukumbusho siku moja kabla, kiungo cha kujiunga dakika kumi kabla, na ufuatiliaji baada ya kukamilika.",
+      "showcase.t2.cta": "Fungua Workflow Studio →", "showcase.t2.visualH": "Kichocheo kinachotumika",
+      "showcase.t2.visualName": "Saa 24 kabla", "showcase.t2.visualSub": "Ukumbusho wa SMS + kiungo cha Bliss kimetumwa kwa aliyealikwa",
+      "showcase.t3.kicker": "03 · Uchunguzi", "showcase.t3.h3": "Elekeza kulingana na anayeuliza",
+      "showcase.t3.p": "Fomu fupi ya awali huchunguza ombi kabla ya nafasi yoyote kuonyeshwa. Akaunti kubwa hufikishwa kwa kiongozi mwandamizi; wengine wote huweka miadi moja kwa moja.",
+      "showcase.t3.cta": "Sanidi uelekezaji →", "showcase.t3.visualH": "Muhtasari wa fomu",
+      "showcase.t3.visualName": "Ukubwa wa kampuni: 50–200", "showcase.t3.visualSub": "Imeelekezwa → Kiongozi Mwandamizi wa Makampuni",
+      "showcase.t4.kicker": "04 · Mikutano", "showcase.t4.h3": "Chumba cha Bliss, kinaambatishwa kiotomatiki",
+      "showcase.t4.p": "Hakuna programu-jalizi, hakuna kiungo cha ziada cha kutafuta. Kila tukio lililoratibiwa lina chumba chake cha video cha Bliss cha HD, chenye udhibiti wa mwenyeji na chumba cha kusubiri kilichowashwa tayari.",
+      "showcase.t4.cta": "Jaribu video ya Bliss →", "showcase.t4.visualName": "Chumba cha Bliss kinatumika",
+      "features.eyebrow": "Kilicho ndani", "features.title": "Imejengwa kwa jinsi siku yako <em>halisi</em> inavyokwenda",
+      "feat1.title": "Viungo vya kushiriki vya uwekaji miadi",
+      "feat1.desc": "Ukurasa wa umma katika <code style=\"font-size:12.5px;\">/book/jina-lako</code> wenye muda, mapumziko, na saa zako za kazi.",
+      "feat2.title": "Video ya Bliss WebRTC",
+      "feat2.desc": "Kila mkutano hupata chumba halisi cha video, si kiungo cha kujaza tu — udhibiti wa mwenyeji, chumba cha kusubiri, na kurekodi vimejumuishwa.",
+      "feat3.title": "Usawazishaji wa pande zote",
+      "feat3.desc": "Google Calendar, Microsoft Outlook, na iCal hubaki sasa hivi pande zote mbili — hakuna kuwekwa miadi mara mbili, hakuna taarifa za zamani.",
+      "feat4.title": "Matukio yanayojirudia na vikumbusho",
+      "feat4.desc": "Weka mpangilio mara moja. Buruta ili kubadilisha muda, badilisha ukubwa ili kurekebisha, na acha vikumbusho vifanye kazi vyenyewe tangu hapo.",
+      "feat5.title": "Ingiza na hamisha kupitia ICS",
+      "feat5.desc": "Leta matukio kutoka popote panapotumia muundo wa kawaida wa kalenda, au kabidhi yako kwa kitu kingine. Hakuna kinachofungwa.",
+      "feat6.title": "Kila mteja ametengwa kwa muundo",
+      "feat6.desc": "Kila kalenda iko nyuma ya utengano ule ule wa kina cha safu ambao Hudumika nzima inatumia — hakuna kinachovuka kati ya nafasi za kazi.",
+      "integ.eyebrow": "Inaendana vizuri na mifumo mingine", "integ.title": "Inaunganishwa na unachotumia tayari",
+      "booking.eyebrow": "Jijaribie mwenyewe", "booking.title": "Huu ndio kiungo ambacho wageni wako wangeona",
+      "booking.host": "Mwenyeji: Timu ya Hudumika", "booking.demoTitle": "Ziara ya Bidhaa ya Dakika 30",
+      "booking.desc": "Chagua muda hapa chini kupitia mchakato wa hatua mbili wa uwekaji miadi ambao mgeni halisi angetumia.",
+      "booking.meta1": "Dakika 30", "booking.meta2": "Kiungo cha video cha Bliss, kinatengenezwa kiotomatiki",
+      "booking.meta3": "Saa za Afrika Mashariki (GMT+3)", "booking.dateLabel": "Alhamisi, Septemba 5",
+      "booking.next": "Endelea →", "booking.pickedPrefix": "Umechagua: Alhamisi, Sep 5 saa ",
+      "booking.namePlaceholder": "Jina lako kamili", "booking.emailPlaceholder": "Barua pepe yako",
+      "booking.confirmBtn": "Thibitisha miadi", "booking.successTitle": "Umepangiwa miadi",
+      "booking.successPrefix": "Mwaliko wa kalenda na kiungo cha video cha Bliss vimetumwa kwa ", "booking.successSuffix": ".",
+      "faq.eyebrow": "Maswali", "faq.title": "Kabla ya <em>kuhamia</em>",
+      "faq1.q": "Je, hii inachukua nafasi ya programu ya kalenda ninayotumia tayari?",
+      "faq1.a": "Hapana — inasawazishwa nayo. Google Calendar na Outlook hubaki pande zote mbili, hivyo tukio lililotengenezwa mahali popote huonekana kwa upande mwingine. Hakuna unachotegemea tayari kinachohitaji kuhamishwa.",
+      "faq2.q": "Je, wageni wanahitaji akaunti ya Hudumika kuweka miadi?",
+      "faq2.a": "Hapana. Kiungo cha uwekaji miadi ni ukurasa wa umma — yeyote mwenye kiungo hicho anaweza kuona upatikanaji halisi na kuweka miadi, kwa jina na barua pepe tu.",
+      "faq3.q": "Nini kinatokea nikibadilisha tukio la Google lililosawazishwa?",
+      "faq3.a": "Mabadiliko hurudi kwa njia ile ile yalivyotoka — badilisha muda au ghairi katika Google Calendar na huduCalendar husasishwa ndani ya muda mfupi, bila kusawazisha kwa mkono.",
+      "faq4.q": "Je, kupiga simu ya video ni bidhaa tofauti ninayopaswa kulipia?",
+      "faq4.a": "Hapana — video ya Bliss ni sehemu ya nafasi ile ile ya kazi. Mkutano ulioratibiwa hupata chumba halisi cha video cha HD kiotomatiki, bila programu au leseni ya ziada.",
+      "faq5.q": "Je, data ya kalenda moja inaweza kufikia nafasi ya kazi ya kampuni nyingine?",
+      "faq5.a": "Hapana. Kila mteja ametengwa katika kiwango cha safu ya hifadhidata, kinachotekelezwa na Postgres yenyewe, si msimbo wa programu tu — dhamana ile ile ambayo jukwaa lote la Hudumika linatumia.",
+      "plan.title": "huduCalendar inakuja na kila nafasi ya kazi ya Hudumika",
+      "plan.desc": "Hakuna nafasi ya ziada, hakuna nyongeza ya kuwasha — viungo vya uwekaji miadi, video ya Bliss, na usawazishaji wa kalenda tayari ni sehemu ya mpango wako.",
+      "plan.check1": "✓ Viungo visivyo na kikomo vya uwekaji miadi", "plan.check2": "✓ Video ya Bliss imejumuishwa", "plan.check3": "✓ Usawazishaji wa Google na Outlook",
+      "plan.cta": "Angalia mipango ya nafasi za kazi →",
+      "footer.desc": "Upangaji ratiba na mikutano ya video, imejengwa ndani ya nafasi ile ile ya kazi na zana zako za forodha, rasilimali watu, na fedha.",
+      "footer.product": "Bidhaa", "footer.calendar": "huduCalendar", "footer.bookingLinks": "Viungo vya uwekaji miadi",
+      "footer.blissVideo": "Video ya Bliss", "footer.sync": "Usawazishaji wa Google na Outlook", "footer.platform": "Jukwaa",
+      "footer.studio": "Workflow Studio", "footer.legal": "Kisheria", "footer.privacy": "Sera ya faragha",
+      "footer.terms": "Masharti ya huduma", "footer.copyright": "© 2026 Jukwaa la Hudumika. Haki zote zimehifadhiwa.",
+      "ticker.msg1.t1": "Miadi mpya · Ziara ya Bidhaa ya Dakika 30", "ticker.msg1.t2": "kupitia calendar.hudumika.tz/book",
+      "ticker.msg2.t1": "Chumba cha video cha Bliss kimeambatishwa", "ticker.msg2.t2": "Tathmini ya Robo Mwaka · 09:00",
+      "ticker.msg3.t1": "Imesawazishwa kutoka Google Calendar", "ticker.msg3.t2": "Uratibu wa Mchakato wa Forodha · 14:00",
+      "meta.title": "huduCalendar",
+      "meta.description": "Upangaji ratiba kwa timu zenye shughuli nyingi. Shiriki kiungo cha uwekaji miadi, sawazisha Google na Outlook pande zote mbili, na ambatisha chumba cha video cha Bliss kwa kila mkutano kiotomatiki."
+    },
+    fr: {
+      "nav.meetings": "Types de réunions", "nav.showcase": "Comment ça marche", "nav.features": "Fonctionnalités",
+      "nav.booking": "Voir une démo", "nav.faq": "FAQ", "nav.signin": "Connexion", "nav.open": "Ouvrir huduCalendar",
+      "hero.eyebrow": "Synchronisation bidirectionnelle avec Google et Outlook",
+      "hero.title": "Une planification qui <em>se fait oublier</em>.",
+      "hero.sub": "Partagez un seul lien. Il lit vos disponibilités réelles, réserve directement sur votre calendrier et attache une salle vidéo Bliss à chaque réunion — plus besoin de demander « est-ce que ce créneau vous convient ? ».",
+      "hero.cta1": "Ouvrir huduCalendar", "hero.cta2": "Voir une démo de réservation en direct",
+      "hero.trustLabel": "Intégré à l'espace de travail que vous utilisez déjà",
+      "mock.badge1": "Synchronisé avec Google Calendar", "mock.badge2": "Salle vidéo Bliss jointe",
+      "meetings.eyebrow": "Tous les types de réunions",
+      "meetings.title": "Un seul lien, quelle que soit la façon de <em>se réunir</em>",
+      "meetings.card1.title": "Individuel",
+      "meetings.card1.desc": "Un seul invité choisit un créneau parmi vos disponibilités réelles. Le mode par défaut, et le plus courant.",
+      "meetings.card2.title": "Tour de rôle",
+      "meetings.card2.desc": "Une demande arrive chez le premier membre de l'équipe disponible, au lieu de s'accumuler sur un seul agenda.",
+      "meetings.card3.title": "Groupe et collectif",
+      "meetings.card3.desc": "Tous ceux qui doivent être présents rejoignent la même réservation — un comité, un atelier, ou une réunion d'équipe complète.",
+      "showcase.eyebrow": "Comment ça marche", "showcase.title": "Du premier lien à la <em>réunion réservée</em>",
+      "showcase.tab1": "Superposition de disponibilités", "showcase.tab2": "Rappels", "showcase.tab3": "Routage intelligent", "showcase.tab4": "Vidéo Bliss",
+      "showcase.t1.kicker": "01 · Disponibilité", "showcase.t1.h3": "Voyez votre journée juste à côté de la sienne",
+      "showcase.t1.p": "Avant qu'un invité ne choisisse un créneau, son calendrier se superpose au vôtre — seuls les créneaux réellement libres des deux côtés sont proposés, pas seulement les vôtres.",
+      "showcase.t1.cta": "Voir sur un lien réel →", "showcase.t1.visualH": "Jeu. 5 sept. — 9h à 13h",
+      "showcase.t1.laneYou": "Vous", "showcase.t1.laneGuest": "Invité", "showcase.t1.laneOpen": "Libre",
+      "showcase.t2.kicker": "02 · Automatisation", "showcase.t2.h3": "Des rappels qui réduisent vraiment les absences",
+      "showcase.t2.p": "Les confirmations par SMS, WhatsApp et e-mail partent d'elles-mêmes — un rappel la veille, le lien de connexion dix minutes avant, et un suivi une fois la réunion terminée.",
+      "showcase.t2.cta": "Ouvrir Workflow Studio →", "showcase.t2.visualH": "Déclencheur actif",
+      "showcase.t2.visualName": "24 heures avant", "showcase.t2.visualSub": "Rappel SMS + lien Bliss envoyés à l'invité",
+      "showcase.t3.kicker": "03 · Qualification", "showcase.t3.h3": "Orientez selon qui vous contacte réellement",
+      "showcase.t3.p": "Un court formulaire d'accueil filtre la demande avant même d'afficher un créneau. Les grands comptes sont dirigés vers un responsable senior ; tous les autres réservent directement.",
+      "showcase.t3.cta": "Configurer le routage →", "showcase.t3.visualH": "Aperçu du formulaire",
+      "showcase.t3.visualName": "Taille de l'entreprise : 50–200", "showcase.t3.visualSub": "Associé → Responsable Grands Comptes Senior",
+      "showcase.t4.kicker": "04 · Réunions", "showcase.t4.h3": "Une salle Bliss, jointe automatiquement",
+      "showcase.t4.p": "Aucun plugin, aucun lien séparé à chercher. Chaque réunion réservée possède sa propre salle vidéo Bliss en HD, avec contrôles d'hôte et salle d'attente déjà activés.",
+      "showcase.t4.cta": "Essayer la vidéo Bliss →", "showcase.t4.visualName": "Salle Bliss active",
+      "features.eyebrow": "Sous le capot", "features.title": "Conçu pour le rythme réel de votre <em>journée</em>",
+      "feat1.title": "Liens de réservation partageables",
+      "feat1.desc": "Une page publique à <code style=\"font-size:12.5px;\">/book/votre-identifiant</code> avec vos propres durées, marges et horaires de travail.",
+      "feat2.title": "Vidéo Bliss WebRTC",
+      "feat2.desc": "Chaque réunion obtient une vraie salle vidéo, pas un lien vide — contrôles d'hôte, salle d'attente et enregistrement inclus.",
+      "feat3.title": "Synchronisation bidirectionnelle",
+      "feat3.desc": "Google Calendar, Microsoft Outlook et iCal restent à jour dans les deux sens — aucun double réservation, aucune donnée obsolète.",
+      "feat4.title": "Événements récurrents et rappels",
+      "feat4.desc": "Définissez un modèle une seule fois. Glissez pour reprogrammer, redimensionnez pour ajuster, et laissez les rappels se déclencher tout seuls ensuite.",
+      "feat5.title": "Import et export via ICS",
+      "feat5.desc": "Importez des événements depuis n'importe où utilisant le format calendrier standard, ou transférez les vôtres ailleurs. Rien n'est verrouillé.",
+      "feat6.title": "Isolation par client, par conception",
+      "feat6.desc": "Chaque calendrier repose sur la même isolation au niveau des lignes que le reste de Hudumika — rien ne traverse d'un espace de travail à l'autre.",
+      "integ.eyebrow": "Compatible avec vos autres outils", "integ.title": "Se connecte à ce que vous utilisez déjà",
+      "booking.eyebrow": "Essayez par vous-même", "booking.title": "Voici le lien que verraient vos invités",
+      "booking.host": "Hôte : Équipe Hudumika", "booking.demoTitle": "Visite du produit — 30 min",
+      "booking.desc": "Choisissez un créneau ci-dessous pour parcourir le processus de réservation en deux étapes qu'utiliserait un véritable invité.",
+      "booking.meta1": "30 minutes", "booking.meta2": "Lien vidéo Bliss généré automatiquement",
+      "booking.meta3": "Heure d'Afrique de l'Est (GMT+3)", "booking.dateLabel": "Jeudi 5 septembre",
+      "booking.next": "Suivant →", "booking.pickedPrefix": "Sélectionné : jeudi 5 sept. à ",
+      "booking.namePlaceholder": "Votre nom complet", "booking.emailPlaceholder": "Votre e-mail",
+      "booking.confirmBtn": "Confirmer la réservation", "booking.successTitle": "Vous êtes programmé",
+      "booking.successPrefix": "Une invitation calendrier et un lien vidéo Bliss ont été envoyés à ", "booking.successSuffix": ".",
+      "faq.eyebrow": "Questions", "faq.title": "Avant de <em>passer le cap</em>",
+      "faq1.q": "Est-ce que cela remplace l'application de calendrier que j'utilise déjà ?",
+      "faq1.a": "Non — il se synchronise avec elle. Google Calendar et Outlook restent liés dans les deux sens, donc un événement créé d'un côté apparaît de l'autre. Rien de ce sur quoi vous comptez déjà n'a besoin de changer.",
+      "faq2.q": "Les invités ont-ils besoin d'un compte Hudumika pour réserver un créneau ?",
+      "faq2.a": "Non. Un lien de réservation est une page publique — quiconque le possède peut voir les disponibilités réelles et réserver, avec juste un nom et un e-mail.",
+      "faq3.q": "Que se passe-t-il si je déplace un événement Google synchronisé ?",
+      "faq3.a": "Le changement revient de la même manière qu'il est parti — reprogrammez ou annulez dans Google Calendar et huduCalendar se met à jour en quelques instants, sans resynchronisation manuelle.",
+      "faq4.q": "La visioconférence est-elle un produit distinct à payer en plus ?",
+      "faq4.a": "Non — la vidéo Bliss fait partie du même espace de travail. Une réunion réservée obtient automatiquement une vraie salle vidéo HD, sans application ni licence séparée.",
+      "faq5.q": "Les données d'un calendrier peuvent-elles atteindre l'espace de travail d'une autre entreprise ?",
+      "faq5.a": "Non. Chaque client est isolé au niveau des lignes de la base de données, appliqué par Postgres lui-même, pas seulement par le code applicatif — la même garantie que le reste de la plateforme Hudumika.",
+      "plan.title": "huduCalendar est inclus dans chaque espace de travail Hudumika",
+      "plan.desc": "Pas de poste séparé, pas de module à activer — les liens de réservation, la vidéo Bliss et la synchronisation du calendrier font déjà partie de votre offre.",
+      "plan.check1": "✓ Liens de réservation illimités", "plan.check2": "✓ Vidéo Bliss incluse", "plan.check3": "✓ Synchronisation Google et Outlook",
+      "plan.cta": "Voir les offres d'espace de travail →",
+      "footer.desc": "Planification et réunions vidéo, intégrées au même espace de travail que vos outils de douane, RH et finance.",
+      "footer.product": "Produit", "footer.calendar": "huduCalendar", "footer.bookingLinks": "Liens de réservation",
+      "footer.blissVideo": "Vidéo Bliss", "footer.sync": "Synchronisation Google et Outlook", "footer.platform": "Plateforme",
+      "footer.studio": "Workflow Studio", "footer.legal": "Mentions légales", "footer.privacy": "Politique de confidentialité",
+      "footer.terms": "Conditions d'utilisation", "footer.copyright": "© 2026 Plateforme Hudumika. Tous droits réservés.",
+      "ticker.msg1.t1": "Nouvelle réservation · Visite du produit 30 min", "ticker.msg1.t2": "via calendar.hudumika.tz/book",
+      "ticker.msg2.t1": "Salle vidéo Bliss jointe", "ticker.msg2.t2": "Bilan trimestriel · 09:00",
+      "ticker.msg3.t1": "Synchronisé depuis Google Calendar", "ticker.msg3.t2": "Suivi du flux douanier · 14:00",
+      "meta.title": "huduCalendar",
+      "meta.description": "La planification pour les équipes déjà occupées. Partagez un lien de réservation, synchronisez Google et Outlook dans les deux sens, et attachez automatiquement une salle vidéo Bliss à chaque réunion."
+    },
+    pt: {
+      "nav.meetings": "Tipos de reunião", "nav.showcase": "Como funciona", "nav.features": "Funcionalidades",
+      "nav.booking": "Ver demonstração", "nav.faq": "Perguntas frequentes", "nav.signin": "Entrar", "nav.open": "Abrir huduCalendar",
+      "hero.eyebrow": "Sincronizando agora nos dois sentidos com Google e Outlook",
+      "hero.title": "Agendamento que <em>não atrapalha</em>.",
+      "hero.sub": "Compartilhe um único link. Ele lê sua disponibilidade real, agenda direto no seu calendário e anexa uma sala de vídeo Bliss a cada reunião — ninguém mais precisa perguntar “esse horário funciona?”.",
+      "hero.cta1": "Abrir huduCalendar", "hero.cta2": "Ver uma demonstração de agendamento ao vivo",
+      "hero.trustLabel": "Integrado ao espaço de trabalho que você já usa",
+      "mock.badge1": "Sincronizado com o Google Calendar", "mock.badge2": "Sala de vídeo Bliss anexada",
+      "meetings.eyebrow": "Todo tipo de reunião",
+      "meetings.title": "Um link, do jeito que as pessoas precisam <em>se encontrar</em>",
+      "meetings.card1.title": "Individual",
+      "meetings.card1.desc": "Um único convidado escolhe um horário dentro da sua disponibilidade real. O padrão, e o mais comum entre os links.",
+      "meetings.card2.title": "Rodízio",
+      "meetings.card2.desc": "Uma solicitação chega a quem estiver livre a seguir na equipe, em vez de se acumular na agenda de uma única pessoa.",
+      "meetings.card3.title": "Grupo e coletivo",
+      "meetings.card3.desc": "Todos que precisam estar presentes entram no mesmo agendamento — uma banca, uma oficina ou uma reunião completa da equipe.",
+      "showcase.eyebrow": "Como funciona", "showcase.title": "Do primeiro link à <em>reunião agendada</em>",
+      "showcase.tab1": "Sobreposição de disponibilidade", "showcase.tab2": "Lembretes", "showcase.tab3": "Roteamento inteligente", "showcase.tab4": "Vídeo Bliss",
+      "showcase.t1.kicker": "01 · Disponibilidade", "showcase.t1.h3": "Veja o seu dia lado a lado com o dele",
+      "showcase.t1.p": "Antes de um convidado escolher um horário, o calendário dele é sobreposto ao seu — só são oferecidos horários realmente livres dos dois lados, não apenas do seu.",
+      "showcase.t1.cta": "Ver em um link real →", "showcase.t1.visualH": "Qui, 5 de set — 9h às 13h",
+      "showcase.t1.laneYou": "Você", "showcase.t1.laneGuest": "Convidado", "showcase.t1.laneOpen": "Livre",
+      "showcase.t2.kicker": "02 · Automação", "showcase.t2.h3": "Lembretes que realmente reduzem faltas",
+      "showcase.t2.p": "Confirmações por SMS, WhatsApp e e-mail saem sozinhas — um aviso um dia antes, o link de acesso dez minutos antes, e um acompanhamento assim que termina.",
+      "showcase.t2.cta": "Abrir Workflow Studio →", "showcase.t2.visualH": "Gatilho ativo",
+      "showcase.t2.visualName": "24 horas antes", "showcase.t2.visualSub": "Lembrete por SMS + link do Bliss enviados ao convidado",
+      "showcase.t3.kicker": "03 · Qualificação", "showcase.t3.h3": "Direcione conforme quem está perguntando",
+      "showcase.t3.p": "Um breve formulário de admissão filtra a solicitação antes mesmo de mostrar um horário. Contas empresariais chegam a um responsável sênior; todos os demais agendam direto.",
+      "showcase.t3.cta": "Configurar roteamento →", "showcase.t3.visualH": "Prévia do formulário",
+      "showcase.t3.visualName": "Tamanho da empresa: 50–200", "showcase.t3.visualSub": "Direcionado → Responsável Sênior de Contas",
+      "showcase.t4.kicker": "04 · Reuniões", "showcase.t4.h3": "Uma sala Bliss, anexada automaticamente",
+      "showcase.t4.p": "Sem plugin, sem link separado para procurar. Todo evento agendado tem sua própria sala de vídeo Bliss em HD, com controles de anfitrião e sala de espera já ativados.",
+      "showcase.t4.cta": "Experimentar o vídeo Bliss →", "showcase.t4.visualName": "Sala Bliss ativa",
+      "features.eyebrow": "O que há por trás", "features.title": "Feito para o ritmo real do seu <em>dia</em>",
+      "feat1.title": "Links de agendamento compartilháveis",
+      "feat1.desc": "Uma página pública em <code style=\"font-size:12.5px;\">/book/seu-identificador</code> com suas próprias durações, intervalos e horários de trabalho.",
+      "feat2.title": "Vídeo Bliss WebRTC",
+      "feat2.desc": "Toda reunião ganha uma sala de vídeo real, não um link vazio — controles de anfitrião, sala de espera e gravação inclusos.",
+      "feat3.title": "Sincronização nos dois sentidos",
+      "feat3.desc": "Google Calendar, Microsoft Outlook e iCal permanecem atualizados nos dois sentidos — sem agendamentos duplicados, sem dados desatualizados.",
+      "feat4.title": "Eventos recorrentes e lembretes",
+      "feat4.desc": "Defina um padrão uma vez. Arraste para reagendar, redimensione para ajustar, e deixe os lembretes dispararem sozinhos a partir daí.",
+      "feat5.title": "Importação e exportação via ICS",
+      "feat5.desc": "Traga eventos de qualquer lugar que use o formato padrão de calendário, ou entregue os seus para outro sistema. Nada fica preso.",
+      "feat6.title": "Isolamento por cliente, por design",
+      "feat6.desc": "Cada calendário fica sob o mesmo isolamento em nível de linha que o restante da Hudumika utiliza — nada atravessa entre espaços de trabalho.",
+      "integ.eyebrow": "Funciona bem com outras ferramentas", "integ.title": "Conecta-se ao que você já usa",
+      "booking.eyebrow": "Experimente você mesmo", "booking.title": "Este é o link que seus convidados veriam",
+      "booking.host": "Anfitrião: Equipe Hudumika", "booking.demoTitle": "Tour do Produto de 30 Minutos",
+      "booking.desc": "Escolha um horário abaixo para percorrer o fluxo de agendamento em duas etapas que um convidado real usaria.",
+      "booking.meta1": "30 minutos", "booking.meta2": "Link de vídeo Bliss, gerado automaticamente",
+      "booking.meta3": "Horário da África Oriental (GMT+3)", "booking.dateLabel": "Quinta-feira, 5 de setembro",
+      "booking.next": "Próximo →", "booking.pickedPrefix": "Selecionado: quinta-feira, 5 de set às ",
+      "booking.namePlaceholder": "Seu nome completo", "booking.emailPlaceholder": "Seu e-mail",
+      "booking.confirmBtn": "Confirmar agendamento", "booking.successTitle": "Você está agendado",
+      "booking.successPrefix": "Um convite de calendário e um link de vídeo Bliss foram enviados para ", "booking.successSuffix": ".",
+      "faq.eyebrow": "Perguntas", "faq.title": "Antes de <em>trocar</em>",
+      "faq1.q": "Isso substitui o aplicativo de calendário que já uso?",
+      "faq1.a": "Não — ele se sincroniza com ele. Google Calendar e Outlook permanecem ligados nos dois sentidos, então um evento criado em qualquer um dos dois aparece no outro. Nada do que você já usa precisa mudar.",
+      "faq2.q": "Os convidados precisam de uma conta Hudumika para agendar um horário?",
+      "faq2.a": "Não. Um link de agendamento é uma página pública — qualquer pessoa com o link pode ver a disponibilidade real e agendar, apenas com nome e e-mail.",
+      "faq3.q": "O que acontece se eu mover um evento do Google sincronizado?",
+      "faq3.a": "A alteração retorna pelo mesmo caminho que saiu — reagende ou cancele no Google Calendar e o huduCalendar se atualiza em instantes, sem ressincronização manual.",
+      "faq4.q": "A videochamada é um produto separado que preciso pagar?",
+      "faq4.a": "Não — o vídeo Bliss faz parte do mesmo espaço de trabalho. Uma reunião agendada ganha automaticamente uma sala de vídeo HD real, sem aplicativo ou licença separados.",
+      "faq5.q": "Os dados de um calendário podem chegar ao espaço de trabalho de outra empresa?",
+      "faq5.a": "Não. Cada cliente é isolado no nível de linha do banco de dados, imposto pelo próprio Postgres, não apenas pelo código da aplicação — a mesma garantia que o restante da plataforma Hudumika utiliza.",
+      "plan.title": "O huduCalendar já vem incluído em todo espaço de trabalho Hudumika",
+      "plan.desc": "Sem assento separado, sem complemento para ativar — links de agendamento, vídeo Bliss e sincronização de calendário já fazem parte do seu plano.",
+      "plan.check1": "✓ Links de agendamento ilimitados", "plan.check2": "✓ Vídeo Bliss incluído", "plan.check3": "✓ Sincronização com Google e Outlook",
+      "plan.cta": "Ver planos de espaço de trabalho →",
+      "footer.desc": "Agendamento e reuniões por vídeo, integrados ao mesmo espaço de trabalho das suas ferramentas de aduana, RH e finanças.",
+      "footer.product": "Produto", "footer.calendar": "huduCalendar", "footer.bookingLinks": "Links de agendamento",
+      "footer.blissVideo": "Vídeo Bliss", "footer.sync": "Sincronização com Google e Outlook", "footer.platform": "Plataforma",
+      "footer.studio": "Workflow Studio", "footer.legal": "Jurídico", "footer.privacy": "Política de privacidade",
+      "footer.terms": "Termos de serviço", "footer.copyright": "© 2026 Plataforma Hudumika. Todos os direitos reservados.",
+      "ticker.msg1.t1": "Novo agendamento · Tour do Produto de 30 min", "ticker.msg1.t2": "via calendar.hudumika.tz/book",
+      "ticker.msg2.t1": "Sala de vídeo Bliss anexada", "ticker.msg2.t2": "Revisão Trimestral · 09:00",
+      "ticker.msg3.t1": "Sincronizado do Google Calendar", "ticker.msg3.t2": "Sincronização de Fluxo Aduaneiro · 14:00",
+      "meta.title": "huduCalendar",
+      "meta.description": "Agendamento para equipes que já estão ocupadas. Compartilhe um link de agendamento, sincronize Google e Outlook nos dois sentidos, e anexe automaticamente uma sala de vídeo Bliss a cada reunião."
+    },
+    ar: {
+      "nav.meetings": "أنواع الاجتماعات", "nav.showcase": "كيف يعمل", "nav.features": "الميزات",
+      "nav.booking": "شاهد عرضًا تجريبيًا", "nav.faq": "الأسئلة الشائعة", "nav.signin": "تسجيل الدخول", "nav.open": "فتح huduCalendar",
+      "hero.eyebrow": "المزامنة الآن في الاتجاهين مع Google وOutlook",
+      "hero.title": "جدولة <em>لا تقف في طريقك</em>.",
+      "hero.sub": "شارك رابطًا واحدًا. يقرأ توفرك الحقيقي، ويحجز مباشرة على تقويمك، ويرفق غرفة فيديو Bliss بكل اجتماع — لن يحتاج أحد لسؤالك مجددًا «هل هذا الوقت مناسب؟».",
+      "hero.cta1": "فتح huduCalendar", "hero.cta2": "شاهد عرضًا تجريبيًا حيًا للحجز",
+      "hero.trustLabel": "مدمج في مساحة العمل التي تستخدمها بالفعل",
+      "mock.badge1": "تمت المزامنة مع Google Calendar", "mock.badge2": "تم إرفاق غرفة فيديو Bliss",
+      "meetings.eyebrow": "كل نوع من الاجتماعات",
+      "meetings.title": "رابط واحد، مهما كانت طريقة <em>الاجتماع</em>",
+      "meetings.card1.title": "فردي",
+      "meetings.card1.desc": "يختار ضيف واحد وقتًا من توفرك الحقيقي. الخيار الافتراضي، والأكثر شيوعًا.",
+      "meetings.card2.title": "بالتناوب",
+      "meetings.card2.desc": "يصل الطلب إلى من هو متاح تاليًا في الفريق، بدلًا من التكدس على تقويم شخص واحد.",
+      "meetings.card3.title": "جماعي",
+      "meetings.card3.desc": "ينضم كل من يحتاج إلى الحضور إلى نفس الحجز — لجنة تقييم، ورشة عمل، أو اجتماع فريق كامل.",
+      "showcase.eyebrow": "كيف يعمل", "showcase.title": "من أول رابط إلى <em>اجتماع محجوز</em>",
+      "showcase.tab1": "تراكب التوفر", "showcase.tab2": "التذكيرات", "showcase.tab3": "التوجيه الذكي", "showcase.tab4": "فيديو Bliss",
+      "showcase.t1.kicker": "01 · التوفر", "showcase.t1.h3": "شاهد يومك بجانب يومهم مباشرة",
+      "showcase.t1.p": "قبل أن يختار الضيف وقتًا، يُعرض تقويمه فوق تقويمك — لا تُقترح إلا الأوقات المتاحة فعليًا لدى الطرفين، وليس لديك فقط.",
+      "showcase.t1.cta": "شاهدها على رابط حقيقي ←", "showcase.t1.visualH": "الخميس ٥ سبتمبر — ٩ص إلى ١م",
+      "showcase.t1.laneYou": "أنت", "showcase.t1.laneGuest": "الضيف", "showcase.t1.laneOpen": "متاح",
+      "showcase.t2.kicker": "02 · الأتمتة", "showcase.t2.h3": "تذكيرات تقلّل فعليًا من التغيّب",
+      "showcase.t2.p": "تُرسل تأكيدات الرسائل النصية وواتساب والبريد الإلكتروني تلقائيًا — تنبيه قبل يوم، ورابط الانضمام قبل عشر دقائق، ومتابعة بعد الانتهاء.",
+      "showcase.t2.cta": "فتح Workflow Studio ←", "showcase.t2.visualH": "المشغّل النشط",
+      "showcase.t2.visualName": "قبل ٢٤ ساعة", "showcase.t2.visualSub": "تم إرسال تذكير SMS + رابط Bliss إلى المدعو",
+      "showcase.t3.kicker": "03 · التأهيل", "showcase.t3.h3": "التوجيه حسب الجهة السائلة فعليًا",
+      "showcase.t3.p": "يفحص نموذج استقبال قصير الطلب قبل ظهور أي وقت. تصل الحسابات المؤسسية إلى مسؤول أول؛ ويحجز الجميع سواهم مباشرة.",
+      "showcase.t3.cta": "إعداد التوجيه ←", "showcase.t3.visualH": "معاينة نموذج الاستقبال",
+      "showcase.t3.visualName": "حجم الشركة: 50–200", "showcase.t3.visualSub": "تمت المطابقة ← مسؤول أول للحسابات المؤسسية",
+      "showcase.t4.kicker": "04 · الاجتماعات", "showcase.t4.h3": "غرفة Bliss، تُرفق تلقائيًا",
+      "showcase.t4.p": "بلا إضافة، وبلا رابط منفصل للبحث عنه. يحمل كل حدث محجوز غرفة فيديو Bliss عالية الدقة الخاصة به، مع أدوات تحكم للمضيف وغرفة انتظار مفعّلة مسبقًا.",
+      "showcase.t4.cta": "جرّب فيديو Bliss ←", "showcase.t4.visualName": "غرفة Bliss نشطة",
+      "features.eyebrow": "ما وراء الكواليس", "features.title": "مصمم لإيقاع <em>يومك</em> الحقيقي",
+      "feat1.title": "روابط حجز قابلة للمشاركة",
+      "feat1.desc": "صفحة عامة على <code style=\"font-size:12.5px;\">/book/معرّفك</code> بمدد وفواصل وساعات عمل خاصة بك.",
+      "feat2.title": "فيديو Bliss WebRTC",
+      "feat2.desc": "يحصل كل اجتماع على غرفة فيديو حقيقية، لا رابط فارغ — تشمل أدوات تحكم المضيف وغرفة الانتظار والتسجيل.",
+      "feat3.title": "مزامنة في الاتجاهين",
+      "feat3.desc": "يبقى Google Calendar وMicrosoft Outlook وiCal محدّثين في الاتجاهين — لا حجوزات مزدوجة، ولا بيانات قديمة.",
+      "feat4.title": "أحداث متكررة وتذكيرات",
+      "feat4.desc": "حدّد نمطًا مرة واحدة. اسحب لإعادة الجدولة، وغيّر الحجم للتعديل، ودع التذكيرات تُطلق نفسها من بعد ذلك.",
+      "feat5.title": "الاستيراد والتصدير عبر ICS",
+      "feat5.desc": "أحضر أحداثًا من أي مكان يستخدم صيغة التقويم القياسية، أو سلّم أحداثك لمكان آخر. لا شيء مقيّد هنا.",
+      "feat6.title": "عزل كل مستأجر بحكم التصميم",
+      "feat6.desc": "يقع كل تقويم خلف نفس العزل على مستوى الصفوف الذي تعمل به بقية منصة هدوميكا — لا شيء يعبر بين مساحات العمل.",
+      "integ.eyebrow": "يعمل جيدًا مع أدواتك الأخرى", "integ.title": "يتصل بما تستخدمه بالفعل",
+      "booking.eyebrow": "جرّب بنفسك", "booking.title": "هذا هو الرابط الذي سيراه ضيوفك",
+      "booking.host": "المضيف: فريق هدوميكا", "booking.demoTitle": "جولة في المنتج، ٣٠ دقيقة",
+      "booking.desc": "اختر وقتًا أدناه لتجربة مسار الحجز من خطوتين الذي سيستخدمه ضيف حقيقي.",
+      "booking.meta1": "٣٠ دقيقة", "booking.meta2": "رابط فيديو Bliss، يُنشأ تلقائيًا",
+      "booking.meta3": "توقيت شرق أفريقيا (GMT+3)", "booking.dateLabel": "الخميس، ٥ سبتمبر",
+      "booking.next": "التالي ←", "booking.pickedPrefix": "تم الاختيار: الخميس ٥ سبتمبر في ",
+      "booking.namePlaceholder": "اسمك الكامل", "booking.emailPlaceholder": "بريدك الإلكتروني",
+      "booking.confirmBtn": "تأكيد الحجز", "booking.successTitle": "تم تحديد موعدك",
+      "booking.successPrefix": "تم إرسال دعوة تقويم ورابط فيديو Bliss إلى ", "booking.successSuffix": ".",
+      "faq.eyebrow": "أسئلة", "faq.title": "قبل أن <em>تنتقل</em>",
+      "faq1.q": "هل يحل هذا محل تطبيق التقويم الذي أستخدمه بالفعل؟",
+      "faq1.a": "لا — إنه يتزامن معه. يبقى Google Calendar وOutlook مرتبطين في الاتجاهين، لذا يظهر أي حدث يُنشأ في أحدهما في الآخر. لا شيء تعتمد عليه بالفعل يحتاج إلى الانتقال.",
+      "faq2.q": "هل يحتاج الضيوف إلى حساب هدوميكا لحجز موعد؟",
+      "faq2.a": "لا. رابط الحجز صفحة عامة — يمكن لأي شخص لديه الرابط رؤية التوفر الحقيقي والحجز، بالاسم والبريد الإلكتروني فقط.",
+      "faq3.q": "ماذا يحدث إذا نقلت حدث Google متزامنًا؟",
+      "faq3.a": "يعود التغيير بنفس الطريقة التي خرج بها — أعد الجدولة أو ألغِ في Google Calendar، ويتحدث huduCalendar خلال لحظات، دون إعادة مزامنة يدوية.",
+      "faq4.q": "هل مكالمة الفيديو منتج منفصل يجب أن أدفع مقابله؟",
+      "faq4.a": "لا — فيديو Bliss جزء من نفس مساحة العمل. يحصل الاجتماع المحجوز تلقائيًا على غرفة فيديو حقيقية عالية الدقة، دون تطبيق أو ترخيص منفصل.",
+      "faq5.q": "هل يمكن لبيانات تقويم أن تصل إلى مساحة عمل شركة أخرى؟",
+      "faq5.a": "لا. كل مستأجر معزول على مستوى صفوف قاعدة البيانات، ويُفرض ذلك بواسطة Postgres نفسه، وليس فقط عبر كود التطبيق — نفس الضمان الذي تعمل به بقية منصة هدوميكا.",
+      "plan.title": "يأتي huduCalendar مع كل مساحة عمل في هدوميكا",
+      "plan.desc": "لا مقعد منفصل، ولا إضافة يجب تفعيلها — روابط الحجز وفيديو Bliss ومزامنة التقويم جزء بالفعل من خطتك.",
+      "plan.check1": "✓ روابط حجز غير محدودة", "plan.check2": "✓ فيديو Bliss مُضمّن", "plan.check3": "✓ مزامنة Google وOutlook",
+      "plan.cta": "عرض خطط مساحة العمل ←",
+      "footer.desc": "الجدولة واجتماعات الفيديو، مدمجة في نفس مساحة العمل مع أدوات الجمارك والموارد البشرية والمالية لديك.",
+      "footer.product": "المنتج", "footer.calendar": "huduCalendar", "footer.bookingLinks": "روابط الحجز",
+      "footer.blissVideo": "فيديو Bliss", "footer.sync": "مزامنة Google وOutlook", "footer.platform": "المنصة",
+      "footer.studio": "Workflow Studio", "footer.legal": "قانوني", "footer.privacy": "سياسة الخصوصية",
+      "footer.terms": "شروط الخدمة", "footer.copyright": "© 2026 منصة هدوميكا. جميع الحقوق محفوظة.",
+      "ticker.msg1.t1": "حجز جديد · جولة في المنتج ٣٠ دقيقة", "ticker.msg1.t2": "عبر calendar.hudumika.tz/book",
+      "ticker.msg2.t1": "تم إرفاق غرفة فيديو Bliss", "ticker.msg2.t2": "المراجعة الربع سنوية · ٠٩:٠٠",
+      "ticker.msg3.t1": "تمت المزامنة من Google Calendar", "ticker.msg3.t2": "تزامن سير عمل الجمارك · ١٤:٠٠",
+      "meta.title": "huduCalendar",
+      "meta.description": "جدولة للفرق المشغولة بالفعل. شارك رابط حجز، وزامن Google وOutlook في الاتجاهين، وأرفق غرفة فيديو Bliss تلقائيًا بكل اجتماع."
+    },
+    zh: {
+      "nav.meetings": "会议类型", "nav.showcase": "工作原理", "nav.features": "功能",
+      "nav.booking": "查看演示", "nav.faq": "常见问题", "nav.signin": "登录", "nav.open": "打开 huduCalendar",
+      "hero.eyebrow": "现已与 Google 和 Outlook 双向同步",
+      "hero.title": "让排期<em>不再碍事</em>。",
+      "hero.sub": "只需分享一个链接。它会读取您的真实空闲时间，直接预订到您的日历上，并为每场会议自动附上 Bliss 视频会议室——再也不用问“这个时间可以吗？”。",
+      "hero.cta1": "打开 huduCalendar", "hero.cta2": "查看实时预订演示",
+      "hero.trustLabel": "已集成到您正在使用的工作空间中",
+      "mock.badge1": "已与 Google 日历同步", "mock.badge2": "已附加 Bliss 视频会议室",
+      "meetings.eyebrow": "每一种会议类型",
+      "meetings.title": "一个链接，满足各种<em>会面</em>方式",
+      "meetings.card1.title": "一对一",
+      "meetings.card1.desc": "单个访客从您的真实空闲时间中选择一个时段。这是默认方式，也是最常见的链接类型。",
+      "meetings.card2.title": "轮流分配",
+      "meetings.card2.desc": "请求会分配给团队中接下来有空的人，而不是全部堆积在一个人的日历上。",
+      "meetings.card3.title": "小组与集体",
+      "meetings.card3.desc": "所有需要到场的人加入同一个预订——评审小组、工作坊，或整个团队的例会。",
+      "showcase.eyebrow": "工作原理", "showcase.title": "从第一个链接到<em>已预订的会议</em>",
+      "showcase.tab1": "空闲/繁忙叠加", "showcase.tab2": "提醒", "showcase.tab3": "智能路由", "showcase.tab4": "Bliss 视频",
+      "showcase.t1.kicker": "01 · 空闲时间", "showcase.t1.h3": "把您的日程和对方的并排显示",
+      "showcase.t1.p": "在访客选择时间之前，系统会将他们的日历叠加到您的日历上——只提供双方都真正空闲的时段，而不只是您空闲的时段。",
+      "showcase.t1.cta": "在真实链接上查看 →", "showcase.t1.visualH": "周四，9月5日 — 上午9点至下午1点",
+      "showcase.t1.laneYou": "您", "showcase.t1.laneGuest": "访客", "showcase.t1.laneOpen": "空闲",
+      "showcase.t2.kicker": "02 · 自动化", "showcase.t2.h3": "真正减少缺席的提醒",
+      "showcase.t2.p": "短信、WhatsApp 和邮件确认会自动发出——提前一天提醒，提前十分钟发送加入链接，结束后再进行一次跟进。",
+      "showcase.t2.cta": "打开 Workflow Studio →", "showcase.t2.visualH": "已启用的触发器",
+      "showcase.t2.visualName": "提前 24 小时", "showcase.t2.visualSub": "短信提醒 + Bliss 加入链接已发送给受邀人",
+      "showcase.t3.kicker": "03 · 资格筛选", "showcase.t3.h3": "根据实际发起人进行分流",
+      "showcase.t3.p": "一份简短的接入表单会在显示任何时段之前先筛选请求。企业客户会被转给高级负责人，其他人则可直接预订。",
+      "showcase.t3.cta": "设置路由规则 →", "showcase.t3.visualH": "接入表单预览",
+      "showcase.t3.visualName": "公司规模：50–200 人", "showcase.t3.visualSub": "已匹配 → 高级企业客户负责人",
+      "showcase.t4.kicker": "04 · 会议", "showcase.t4.h3": "自动附加的 Bliss 会议室",
+      "showcase.t4.p": "无需插件，也不用另外寻找链接。每个已预订的会议都自带一个高清 Bliss 视频会议室，主持人控制和候场室均已提前开启。",
+      "showcase.t4.cta": "试用 Bliss 视频 →", "showcase.t4.visualName": "Bliss 会议室已启用",
+      "features.eyebrow": "底层能力", "features.title": "为您真实的<em>一天</em>而打造",
+      "feat1.title": "可分享的预订链接",
+      "feat1.desc": "一个公开页面，地址为 <code style=\"font-size:12.5px;\">/book/您的标识</code>，可设置自己的时长、缓冲时间和工作时间。",
+      "feat2.title": "Bliss WebRTC 视频",
+      "feat2.desc": "每场会议都配有真正的视频会议室，而不是占位链接——包含主持人控制、候场室和录制功能。",
+      "feat3.title": "双向同步",
+      "feat3.desc": "Google 日历、Microsoft Outlook 和 iCal 保持双向实时更新——不会重复预订，也不会出现过期信息。",
+      "feat4.title": "重复事件与提醒",
+      "feat4.desc": "只需设置一次规律。拖动即可改期，调整大小即可修改时长，之后提醒会自动触发。",
+      "feat5.title": "通过 ICS 导入导出",
+      "feat5.desc": "从任何支持标准日历格式的地方导入事件，或将您的事件交给其他系统。没有任何锁定。",
+      "feat6.title": "按设计实现的租户隔离",
+      "feat6.desc": "每个日历都受到与 Hudumika 平台其余部分相同的行级租户隔离保护——数据不会跨工作空间流动。",
+      "integ.eyebrow": "与您现有工具良好协作", "integ.title": "连接您已经在使用的工具",
+      "booking.eyebrow": "亲自试试看", "booking.title": "这就是您的访客将看到的链接",
+      "booking.host": "主持人：Hudumika 团队", "booking.demoTitle": "30 分钟产品导览",
+      "booking.desc": "在下方选择一个时间，体验真实访客会使用的两步预订流程。",
+      "booking.meta1": "30 分钟", "booking.meta2": "自动生成的 Bliss 视频链接",
+      "booking.meta3": "东非时间（GMT+3）", "booking.dateLabel": "9月5日，星期四",
+      "booking.next": "下一步 →", "booking.pickedPrefix": "已选择：9月5日星期四 ",
+      "booking.namePlaceholder": "您的全名", "booking.emailPlaceholder": "您的邮箱",
+      "booking.confirmBtn": "确认预订", "booking.successTitle": "您已完成预订",
+      "booking.successPrefix": "日历邀请和 Bliss 视频链接已发送至 ", "booking.successSuffix": "。",
+      "faq.eyebrow": "常见问题", "faq.title": "在您<em>切换</em>之前",
+      "faq1.q": "这会取代我已经在用的日历应用吗？",
+      "faq1.a": "不会——它与其同步。Google 日历和 Outlook 会保持双向连接，因此在任一端创建的事件都会显示在另一端。您已经依赖的东西都无需改变。",
+      "faq2.q": "访客需要 Hudumika 账户才能预订时段吗？",
+      "faq2.a": "不需要。预订链接是一个公开页面——任何拥有链接的人都能看到真实的空闲时间并完成预订，只需填写姓名和邮箱。",
+      "faq3.q": "如果我移动了一个已同步的 Google 事件会怎样？",
+      "faq3.a": "更改会按原路返回——在 Google 日历中改期或取消，huduCalendar 会在片刻之间更新，无需手动重新同步。",
+      "faq4.q": "视频通话是需要另外付费的独立产品吗？",
+      "faq4.a": "不是——Bliss 视频是同一工作空间的一部分。已预订的会议会自动获得真正的高清视频会议室，无需另外的应用或许可证。",
+      "faq5.q": "一个日历的数据会不会传到另一家公司的工作空间？",
+      "faq5.a": "不会。每个租户都在数据库行级别被隔离，这一点由 Postgres 本身强制执行，而不仅仅依靠应用代码——这与 Hudumika 平台其余部分所遵循的保证完全一致。",
+      "plan.title": "每个 Hudumika 工作空间都自带 huduCalendar",
+      "plan.desc": "无需单独席位，无需开通附加功能——预订链接、Bliss 视频和日历同步已经包含在您的方案中。",
+      "plan.check1": "✓ 无限量预订链接", "plan.check2": "✓ 已包含 Bliss 视频", "plan.check3": "✓ Google 与 Outlook 同步",
+      "plan.cta": "查看工作空间方案 →",
+      "footer.desc": "排期与视频会议，集成在与您的海关、人力资源和财务工具相同的工作空间中。",
+      "footer.product": "产品", "footer.calendar": "huduCalendar", "footer.bookingLinks": "预订链接",
+      "footer.blissVideo": "Bliss 视频", "footer.sync": "Google 与 Outlook 同步", "footer.platform": "平台",
+      "footer.studio": "Workflow Studio", "footer.legal": "法律", "footer.privacy": "隐私政策",
+      "footer.terms": "服务条款", "footer.copyright": "© 2026 Hudumika 平台。保留所有权利。",
+      "ticker.msg1.t1": "新预订 · 30 分钟产品导览", "ticker.msg1.t2": "通过 calendar.hudumika.tz/book",
+      "ticker.msg2.t1": "已附加 Bliss 视频会议室", "ticker.msg2.t2": "季度回顾 · 09:00",
+      "ticker.msg3.t1": "已从 Google 日历同步", "ticker.msg3.t2": "海关流程同步 · 14:00",
+      "meta.title": "huduCalendar",
+      "meta.description": "为已经很忙碌的团队打造的排期工具。分享一个预订链接，双向同步 Google 与 Outlook，并自动为每场会议附加 Bliss 视频会议室。"
+    }
+  };
+
+  var LANG_KEY = 'hudumika-calendar-lang';
+  var currentLang = 'en';
+  var lastPickedTime = '10:30 AM';
+
+  function dict() { return translations[currentLang] || translations.en; }
+
+  function detectDefaultLang() {
+    // The <head> script already computed this before first paint (so the
+    // initial <html lang/dir> is correct with no flash); reuse its answer
+    // rather than recomputing so the two can't disagree.
+    if (window.__initialLang && translations[window.__initialLang]) return window.__initialLang;
+    var stored = null;
+    try { stored = localStorage.getItem(LANG_KEY); } catch (e) {}
+    if (stored && translations[stored]) return stored;
+    var navLang = ((navigator.language || 'en').split('-')[0] || 'en').toLowerCase();
+    return translations[navLang] ? navLang : 'en';
+  }
+
+  function updateBookingDynamicText() {
+    var d = dict();
+    var noteEl = document.getElementById('pickedNote');
+    if (noteEl) noteEl.textContent = (d['booking.pickedPrefix'] || '') + lastPickedTime;
+    var msgEl = document.getElementById('bookSuccessMsg');
+    if (msgEl) msgEl.innerHTML = (d['booking.successPrefix'] || '') + '<strong>alex@example.com</strong>' + (d['booking.successSuffix'] || '');
+  }
+
+  function applyTranslations(lang) {
+    currentLang = translations[lang] ? lang : 'en';
+    var d = dict();
+    document.querySelectorAll('[data-i18n]').forEach(function (el) {
+      var key = el.getAttribute('data-i18n');
+      if (d[key] != null) el.textContent = d[key];
+    });
+    document.querySelectorAll('[data-i18n-html]').forEach(function (el) {
+      var key = el.getAttribute('data-i18n-html');
+      if (d[key] != null) el.innerHTML = d[key];
+    });
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(function (el) {
+      var key = el.getAttribute('data-i18n-placeholder');
+      if (d[key] != null) el.setAttribute('placeholder', d[key]);
+    });
+    document.title = d['meta.title'] || 'huduCalendar';
+    var metaDesc = document.querySelector('meta[name="description"]');
+    if (metaDesc && d['meta.description']) metaDesc.setAttribute('content', d['meta.description']);
+    document.documentElement.setAttribute('lang', currentLang);
+    document.documentElement.setAttribute('dir', currentLang === 'ar' ? 'rtl' : 'ltr');
+    document.documentElement.setAttribute('data-lang', currentLang);
+    var codeEl = document.getElementById('langCode');
+    if (codeEl) codeEl.textContent = currentLang.toUpperCase();
+    document.querySelectorAll('.lang-option').forEach(function (b) {
+      b.classList.toggle('active', b.getAttribute('data-lang') === currentLang);
+    });
+    updateBookingDynamicText();
+    var activeTabBtn = document.querySelector('.tab-btn.active');
+    if (activeTabBtn) positionTabIndicator(activeTabBtn);
+  }
+
+  function setLang(lang) {
+    try { localStorage.setItem(LANG_KEY, lang); } catch (e) {}
+    applyTranslations(lang);
+    closeLangMenu();
+  }
+
+  function toggleLangMenu() {
+    var menu = document.getElementById('langMenu');
+    var trigger = document.getElementById('langTrigger');
+    var open = menu.classList.toggle('open');
+    trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+  function closeLangMenu() {
+    var menu = document.getElementById('langMenu');
+    var trigger = document.getElementById('langTrigger');
+    if (menu) menu.classList.remove('open');
+    if (trigger) trigger.setAttribute('aria-expanded', 'false');
+  }
+  document.addEventListener('click', function (e) {
+    var switcher = document.getElementById('langSwitch');
+    if (switcher && !switcher.contains(e.target)) closeLangMenu();
+  });
+
+  var navEl = document.querySelector('.nav');
+  window.addEventListener('scroll', function () {
+    var h = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+    var pct = h > 0 ? (window.scrollY / h) * 100 : 0;
+    document.getElementById('scroll-progress').style.width = pct + '%';
+    navEl.classList.toggle('scrolled', window.scrollY > 8);
+  });
+
+  var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var finePointer = window.matchMedia('(pointer: fine)').matches;
+
+  function positionTabIndicator(btn) {
+    var row = document.getElementById('tabsRow');
+    var indicator = document.getElementById('tabIndicator');
+    if (!row || !indicator || !btn) return;
+    var rowRect = row.getBoundingClientRect();
+    var btnRect = btn.getBoundingClientRect();
+    indicator.style.width = btnRect.width + 'px';
+    indicator.style.transform = 'translateX(' + (btnRect.left - rowRect.left) + 'px)';
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    applyTranslations(detectDefaultLang());
+
+    var obs = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) { if (e.isIntersecting) e.target.classList.add('active'); });
+    }, { threshold: 0.12 });
+    document.querySelectorAll('.reveal, .reveal-stagger').forEach(function (el) { obs.observe(el); });
+
+    positionTabIndicator(document.querySelector('.tab-btn.active'));
+
+    if (finePointer && !reducedMotion) {
+      var heroEl = document.querySelector('.hero');
+      if (heroEl) {
+        heroEl.addEventListener('mousemove', function (e) {
+          var r = heroEl.getBoundingClientRect();
+          heroEl.style.setProperty('--sx', ((e.clientX - r.left) / r.width * 100).toFixed(1) + '%');
+          heroEl.style.setProperty('--sy', ((e.clientY - r.top) / r.height * 100).toFixed(1) + '%');
+        });
+      }
+
+      var mockWrap = document.querySelector('.mock-wrap');
+      var mockEl = document.querySelector('.mock');
+      if (mockWrap && mockEl) {
+        mockWrap.addEventListener('mousemove', function (e) {
+          var r = mockWrap.getBoundingClientRect();
+          var px = (e.clientX - r.left) / r.width - 0.5;
+          var py = (e.clientY - r.top) / r.height - 0.5;
+          mockEl.style.transform = 'rotateX(' + (py * -4).toFixed(2) + 'deg) rotateY(' + (px * 6).toFixed(2) + 'deg)';
+        });
+        mockWrap.addEventListener('mouseleave', function () {
+          mockEl.style.transform = 'rotateX(0deg) rotateY(0deg)';
+        });
+      }
+    }
+
+    // Live booking ticker — cycles a couple of honest, generic examples;
+    // never claims a specific real customer's data. Pulls text from the
+    // active language's dictionary each time it fires, so a language
+    // switch takes effect on the next cycle without extra wiring.
+    var tickerEl = document.createElement('div');
+    tickerEl.className = 'ticker';
+    tickerEl.innerHTML = '<span class="dot"></span><span><span id="tickerT1"></span><span class="t2" id="tickerT2"></span></span>';
+    document.body.appendChild(tickerEl);
+    var ti = 0;
+    function showTicker() {
+      var d = dict();
+      var n = (ti % 3) + 1;
+      document.getElementById('tickerT1').textContent = d['ticker.msg' + n + '.t1'] || '';
+      document.getElementById('tickerT2').textContent = d['ticker.msg' + n + '.t2'] || '';
+      tickerEl.classList.remove('show');
+      void tickerEl.offsetWidth;
+      tickerEl.classList.add('show');
+      ti++;
+      setTimeout(function () { tickerEl.classList.remove('show'); }, 4200);
+    }
+    setTimeout(showTicker, 1800);
+    setInterval(showTicker, 7000);
+  });
+
+  function switchTab(i) {
+    var activeBtn = null;
+    document.querySelectorAll('.tab-btn').forEach(function (b, idx) {
+      b.classList.toggle('active', idx === i);
+      if (idx === i) activeBtn = b;
+    });
+    document.querySelectorAll('.tab-item').forEach(function (p, idx) { p.classList.toggle('active', idx === i); });
+    positionTabIndicator(activeBtn);
+  }
+
+  function pickSlot(btn) {
+    document.querySelectorAll('.slot-row').forEach(function (r) { r.classList.remove('open'); });
+    document.querySelectorAll('.slot-btn').forEach(function (b) { b.classList.remove('chosen'); });
+    btn.classList.add('chosen');
+    btn.closest('.slot-row').classList.add('open');
+  }
+
+  function confirmSlot(btn) {
+    var row = btn.closest('.slot-row');
+    lastPickedTime = row.getAttribute('data-time');
+    document.getElementById('slots').style.display = 'none';
+    document.getElementById('bookForm').style.display = 'flex';
+    updateBookingDynamicText();
+  }
+
+  function submitBooking() {
+    document.getElementById('bookForm').style.display = 'none';
+    document.getElementById('bookSuccess').style.display = 'block';
+    updateBookingDynamicText();
+  }
+
+  function toggleFaq(btn) {
+    var item = btn.closest('.faq-item');
+    var wasOpen = item.classList.contains('open');
+    document.querySelectorAll('.faq-item.open').forEach(function (i) { i.classList.remove('open'); });
+    if (!wasOpen) item.classList.add('open');
+  }
+</script>
+</body>
+</html>

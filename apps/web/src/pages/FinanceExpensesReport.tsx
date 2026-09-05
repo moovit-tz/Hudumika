@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Icon } from '../components/Icon.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import type { IconName } from '../components/Icon.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { apiFetch } from '../lib/api.js';
@@ -179,8 +180,8 @@ export const FinanceExpensesReport: React.FC = () => {
             { label: 'Largest Category',            value: largestCategory,          icon: 'package',  color: 'var(--purple)', bg: 'var(--purple-l)' },
             { label: 'This Month',                  value: fmtM(thisMonthTotal),      icon: 'calendar', color: 'var(--blue)',   bg: 'var(--blue-l)' },
           ].map(s => (
-            <div key={s.label} style={{ flex: 1, background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
-              <div style={{ width: 42, height: 42, borderRadius: 9, background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <div key={s.label} style={{ flex: 1, background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
+              <div style={{ width: 42, height: 42, borderRadius: 'var(--r)', background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Icon name={s.icon as IconName} size={18} color={s.color} />
               </div>
               <div>
@@ -238,7 +239,7 @@ export const FinanceExpensesReport: React.FC = () => {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={4} style={{ padding: '32px', textAlign: 'center', color: 'var(--ink3)' }}>Loading…</td></tr>
+                <tr><td colSpan={4} style={{ padding: '32px' }}><SectionLoading style={{ padding: 0 }} /></td></tr>
               ) : loadError ? (
                 <tr><td colSpan={4} style={{ padding: '32px', textAlign: 'center', color: 'var(--red)' }}>{loadError}</td></tr>
               ) : expenses.length === 0 ? (
@@ -247,7 +248,7 @@ export const FinanceExpensesReport: React.FC = () => {
                 <tr key={x.e.id} style={{ borderBottom: i < pagedExpenses.length - 1 ? '1px solid var(--border)' : 'none' }}>
                   <td style={{ padding: '10px 16px', color: 'var(--ink)', fontWeight: 500 }}>{x.e.name}</td>
                   <td style={{ padding: '10px 16px' }}>
-                    <span style={{ fontSize: 10, fontWeight: 700, color: catColor(x.e.category), background: catColor(x.e.category) + '1a', borderRadius: 5, padding: '2px 7px' }}>{catLabel(x.e.category)}</span>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: catColor(x.e.category), background: catColor(x.e.category) + '1a', borderRadius: 'var(--r-sm)', padding: '2px 7px' }}>{catLabel(x.e.category)}</span>
                   </td>
                   <td style={{ padding: '10px 16px', color: 'var(--ink2)', whiteSpace: 'nowrap' }}>{x.date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
                   <td style={{ padding: '10px 16px', color: 'var(--ink)', fontWeight: 700, fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>{fmtFull(x.e.amount)}</td>

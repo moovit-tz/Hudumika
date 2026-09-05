@@ -1711,28 +1711,28 @@
 .oscar-btn-lg  { padding: 10px 22px; font-size: 15px; }
 .oscar-btn-icon { width: 36px; height: 36px; padding: 0; border-radius: var(--r-sm); }
 
-.oscar-btn-primary   { background: var(--teal);   color: #fff; border-color: var(--teal);   }
+.oscar-btn-primary   { background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); border-color: hsl(var(--primary)); }
 .oscar-btn-primary:hover { filter: brightness(0.88); }
 .oscar-btn-secondary { background: var(--ink2);   color: #fff; border-color: var(--ink2);   }
 .oscar-btn-secondary:hover { filter: brightness(0.88); }
-.oscar-btn-success   { background: var(--green);  color: #fff; border-color: var(--green);  }
+.oscar-btn-success   { background: var(--green);  color: hsl(var(--green-foreground)); border-color: var(--green);  }
 .oscar-btn-success:hover { filter: brightness(0.88); }
-.oscar-btn-warning   { background: var(--gold);   color: #fff; border-color: var(--gold);   }
+.oscar-btn-warning   { background: var(--gold);   color: hsl(var(--gold-foreground)); border-color: var(--gold);   }
 .oscar-btn-warning:hover { filter: brightness(0.88); }
-.oscar-btn-danger    { background: var(--red);    color: #fff; border-color: var(--red);    }
+.oscar-btn-danger    { background: var(--red);    color: hsl(var(--red-foreground)); border-color: var(--red);    }
 .oscar-btn-danger:hover { filter: brightness(0.88); }
 .oscar-btn-ghost     { background: transparent;   color: var(--ink2); border-color: var(--border); }
 .oscar-btn-ghost:hover { background: var(--bg); color: var(--ink); }
 
 /* Soft (Oscar's "btn-soft" — semi-transparent tint) */
 .oscar-btn-soft-primary { background: var(--teal-l);   color: var(--teal);  border-color: var(--teal-m);  }
-.oscar-btn-soft-primary:hover  { background: var(--teal);  color: #fff; }
+.oscar-btn-soft-primary:hover  { background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }
 .oscar-btn-soft-success { background: var(--green-l);  color: var(--green); border-color: var(--green);  }
-.oscar-btn-soft-success:hover  { background: var(--green); color: #fff; }
+.oscar-btn-soft-success:hover  { background: var(--green); color: hsl(var(--green-foreground)); }
 .oscar-btn-soft-warning { background: var(--gold-l);   color: var(--gold);  border-color: var(--gold);   }
-.oscar-btn-soft-warning:hover  { background: var(--gold);  color: #fff; }
+.oscar-btn-soft-warning:hover  { background: var(--gold);  color: hsl(var(--gold-foreground)); }
 .oscar-btn-soft-danger  { background: var(--red-l);    color: var(--red);   border-color: var(--red);    }
-.oscar-btn-soft-danger:hover   { background: var(--red);   color: #fff; }
+.oscar-btn-soft-danger:hover   { background: var(--red);   color: hsl(var(--red-foreground)); }
 
 /* Outline */
 .oscar-btn-outline-primary { background: transparent; color: var(--teal); border-color: var(--teal); }
@@ -1755,12 +1755,12 @@
 .oscar-badge-lg { padding: 3px 12px; font-size: 13px; }
 
 /* Solid fill */
-.oscar-badge-solid-primary { background: var(--teal);   color: #fff; }
-.oscar-badge-solid-success { background: var(--green);  color: #fff; }
-.oscar-badge-solid-warning { background: var(--gold);   color: #fff; }
-.oscar-badge-solid-danger  { background: var(--red);    color: #fff; }
-.oscar-badge-solid-info    { background: var(--blue);   color: #fff; }
-.oscar-badge-solid-purple  { background: var(--purple); color: #fff; }
+.oscar-badge-solid-primary { background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }
+.oscar-badge-solid-success { background: var(--green);  color: hsl(var(--green-foreground)); }
+.oscar-badge-solid-warning { background: var(--gold);   color: hsl(var(--gold-foreground)); }
+.oscar-badge-solid-danger  { background: var(--red);    color: hsl(var(--red-foreground)); }
+.oscar-badge-solid-info    { background: var(--blue);   color: hsl(var(--blue-foreground)); }
+.oscar-badge-solid-purple  { background: var(--purple); color: hsl(var(--purple-foreground)); }
 
 /* Outline */
 .oscar-badge-outline-primary { color: var(--teal);   border-color: var(--teal);   }
@@ -2225,7 +2225,7 @@
 
 .oscar-page-btn:hover { background: var(--bg); color: var(--ink); }
 .oscar-page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-.oscar-page-btn--active { background: var(--teal); border-color: var(--teal); color: #fff; font-weight: 700; }
+.oscar-page-btn--active { background: hsl(var(--primary)); border-color: hsl(var(--primary)); color: hsl(var(--primary-foreground)); font-weight: 700; }
 
 /* ── Oscar FAB ── */
 .oscar-fab {
@@ -2687,7 +2687,7 @@
   border: none;
   color: var(--ink3);
   padding: 3px 9px;
-  border-radius: 5px;
+  border-radius: var(--r-sm);
   font-size: 11.5px;
   font-weight: 500;
   cursor: pointer;

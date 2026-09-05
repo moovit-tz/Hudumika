@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Icon } from '../components/Icon.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { Badge } from '../components/ui/badge.js';
 import { Button } from '../components/ui/button.js';
 import { Input } from '../components/ui/input.js';
@@ -195,7 +196,7 @@ export function DepotPage() {
 
           <SectionCard title="Equipment" padded={false} collapsible={false}>
             {loading ? (
-              <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>Loading…</div>
+              <SectionLoading />
             ) : equipment.length === 0 ? (
               <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>No equipment recorded at any depot yet.</div>
             ) : (
@@ -299,7 +300,7 @@ export function DepotPage() {
 
           <SectionCard title="Interchange receipts" padded={false} collapsible={false}>
             {loading ? (
-              <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>Loading…</div>
+              <SectionLoading />
             ) : receipts.length === 0 ? (
               <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>No interchange receipts yet.</div>
             ) : (

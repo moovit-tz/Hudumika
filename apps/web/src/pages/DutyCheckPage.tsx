@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
+import { Banner } from '../components/ui/alert.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { apiFetch } from '../lib/api.js';
@@ -246,9 +247,7 @@ export const DutyCheckPage: React.FC = () => {
               </div>
 
               {error && (
-                <div style={{ padding: '10px 14px', background: 'var(--red-l)', border: '1px solid var(--red)', borderRadius: 9, fontSize: 12.5, color: 'var(--red)' }}>
-                  {error}
-                </div>
+                <Banner variant="error">{error}</Banner>
               )}
 
               <button type="button" onClick={() => runCheck()} disabled={checking} className="btn btn-primary"
@@ -293,9 +292,7 @@ export const DutyCheckPage: React.FC = () => {
                 />
 
                 {suggestError && (
-                  <div style={{ marginTop: 8, padding: '8px 12px', background: 'var(--red-l)', border: '1px solid var(--red)', borderRadius: 9, fontSize: 12, color: 'var(--red)' }}>
-                    {suggestError}
-                  </div>
+                  <div style={{ marginTop: 8 }}><Banner variant="error">{suggestError}</Banner></div>
                 )}
 
                 <button type="button" onClick={fetchSuggestions} disabled={suggesting} className="btn btn-secondary"
@@ -325,9 +322,7 @@ export const DutyCheckPage: React.FC = () => {
                     {suggestions.length > 1 && (
                       <>
                         {aiPickError && (
-                          <div style={{ marginTop: 10, padding: '8px 12px', background: 'var(--red-l)', border: '1px solid var(--red)', borderRadius: 9, fontSize: 12, color: 'var(--red)' }}>
-                            {aiPickError}
-                          </div>
+                          <div style={{ marginTop: 10 }}><Banner variant="error">{aiPickError}</Banner></div>
                         )}
                         {!aiPick ? (
                           <button type="button" onClick={pickWithAI} disabled={aiPicking} className="btn btn-secondary"

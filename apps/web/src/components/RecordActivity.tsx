@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { PersonLink } from './PersonLink.js';
+import { SectionLoading } from './ui/spinner.js';
 
 /**
  * What happened to one record, drawn the same way everywhere.
@@ -83,7 +84,7 @@ export function RecordActivity({ entityType, entityId, limit = 50, emptyText }: 
   };
 
   if (loading) {
-    return <div style={{ ...shell, padding: '40px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading…</div>;
+    return <div style={shell}><SectionLoading /></div>;
   }
   if (error) {
     return (

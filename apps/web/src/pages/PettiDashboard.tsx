@@ -491,7 +491,7 @@ export function PettiDashboard() {
                               size="sm"
                               disabled={actionBusyId === w.id}
                               onClick={() => handleVoucherAction(w.id, 'approve')}
-                              style={{ background: 'var(--blue)', color: '#fff', fontSize: 11.5, height: 28, padding: '0 10px' }}
+                              style={{ background: 'var(--blue)', color: 'hsl(var(--blue-foreground))', fontSize: 11.5, height: 28, padding: '0 10px' }}
                             >
                               Approve
                             </Button>
@@ -511,7 +511,7 @@ export function PettiDashboard() {
                             size="sm"
                             disabled={actionBusyId === w.id}
                             onClick={() => handleVoucherAction(w.id, 'disburse')}
-                            style={{ background: 'var(--green)', color: '#fff', fontSize: 11.5, height: 28, padding: '0 10px' }}
+                            style={{ background: 'var(--green)', color: 'hsl(var(--green-foreground))', fontSize: 11.5, height: 28, padding: '0 10px' }}
                           >
                             Disburse Funds
                           </Button>
@@ -708,7 +708,7 @@ export function PettiDashboard() {
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 10 }}>
               <Button type="button" variant="outline" onClick={() => setRequestModalOpen(false)}>Cancel</Button>
-              <Button type="submit" disabled={requestSaving} style={{ background: 'var(--green)', color: '#fff' }}>
+              <Button type="submit" disabled={requestSaving} style={{ background: 'var(--green)', color: 'hsl(var(--green-foreground))' }}>
                 {requestSaving ? 'Submitting…' : 'Submit Request'}
               </Button>
             </div>

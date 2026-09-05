@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { Button } from '../components/ui/button.js';
 import { Badge } from '../components/ui/badge.js';
@@ -140,7 +142,7 @@ export const ContractDetail: React.FC = () => {
   }
 
   if (!contract) {
-    return <div style={{ padding: 32, color: 'var(--ink3)', fontSize: 14 }}>Loading…</div>;
+    return <SectionLoading />;
   }
 
   return (
@@ -180,15 +182,15 @@ export const ContractDetail: React.FC = () => {
           <div style={{ fontSize: 11.5, color: 'var(--green)', marginTop: 4 }}>Signed {new Date(contract.signed_at).toLocaleString()}</div>
         )}
 
-        <div className="ds-tabs-list" data-variant="segmented" style={{ marginTop: 18 }}>
-          {(['info', 'content', 'attachments', 'comments'] as const).map(t => (
-            <button key={t} type="button" className="ds-tabs-trigger" data-variant="segmented"
-              data-state={tab === t ? 'active' : 'inactive'} onClick={() => setTab(t)}
-              style={{ textTransform: 'capitalize' }}>
-              {t === 'info' ? 'Contract Information' : t}
-            </button>
-          ))}
-        </div>
+        <Tabs value={tab} onValueChange={(v) => setTab(v as any)} variant="segmented">
+          <TabsList style={{ marginTop: 18 }}>
+            {(['info', 'content', 'attachments', 'comments'] as const).map(t => (
+              <TabsTrigger key={t} value={t} style={{ textTransform: 'capitalize' }}>
+                {t === 'info' ? 'Contract Information' : t}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
       </div>
 
       <div style={{ padding: isMobile ? 16 : 32, maxWidth: 720 }}>
@@ -279,7 +281,7 @@ export const ContractDetail: React.FC = () => {
             <FileUploader onUpload={uploadFiles} multiple />
             {uploading && <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>Uploading…</div>}
             {files === null ? (
-              <div style={{ color: 'var(--ink3)', fontSize: 13 }}>Loading…</div>
+              <SectionLoading />
             ) : files.length === 0 ? (
               <div style={{ color: 'var(--ink3)', fontSize: 13 }}>No attachments yet.</div>
             ) : (
@@ -306,7 +308,7 @@ export const ContractDetail: React.FC = () => {
               <Button size="sm" onClick={postComment} disabled={!newComment.trim()}>Post</Button>
             </div>
             {comments === null ? (
-              <div style={{ color: 'var(--ink3)', fontSize: 13 }}>Loading…</div>
+              <SectionLoading />
             ) : comments.length === 0 ? (
               <div style={{ color: 'var(--ink3)', fontSize: 13 }}>No comments yet.</div>
             ) : (

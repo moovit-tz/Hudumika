@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { Button } from '../components/ui/button.js';
 import { Input } from '../components/ui/input.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
@@ -194,7 +195,7 @@ export function SealEquipment() {
       <SectionCard collapsible={false} padded={false}>
         <div className="seal-card-body">
           {loading ? (
-            <div className="seal-empty">Loading…</div>
+            <SectionLoading />
           ) : equipment.length === 0 ? (
             <div className="seal-empty">No equipment recorded yet.</div>
           ) : (

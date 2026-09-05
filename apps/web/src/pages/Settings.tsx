@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef, useCallback, createContext, useCont
 import { useSearchParams, Link } from 'react-router-dom';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { Icon } from '../components/Icon.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import type { IconName } from '../components/Icon.js';
 import { getCompany, setCompany } from '../data/companyStore.js';
 import { apiFetch } from '../lib/api.js';
@@ -1669,7 +1671,7 @@ const TRASection: React.FC = () => {
   }
 
   if (loading) {
-    return <Card title="TRA VFD / EFDMS"><div className="s-fld--full s-gen-sub">Loading…</div></Card>;
+    return <Card title="TRA VFD / EFDMS"><div className="s-fld--full"><SectionLoading /></div></Card>;
   }
 
   if (config?.isRegistered) {
@@ -1998,24 +2000,16 @@ const ModulesSection: React.FC = () => {
             </Select>
 
             {/* View Mode Toggle */}
-            <div className="s-mods-view-toggle">
-              <button
-                type="button"
-                className={`s-mods-view-btn ${viewMode === 'grid' ? 's-mods-view-btn--active' : ''}`}
-                onClick={() => handleViewChange('grid')}
-                title="Card Grid View"
-              >
-                <Icon name="grid" size={16} />
-              </button>
-              <button
-                type="button"
-                className={`s-mods-view-btn ${viewMode === 'list' ? 's-mods-view-btn--active' : ''}`}
-                onClick={() => handleViewChange('list')}
-                title="Table List View"
-              >
-                <Icon name="list" size={16} />
-              </button>
-            </div>
+            <Tabs value={viewMode} onValueChange={v => handleViewChange(v as typeof viewMode)} variant="segmented">
+              <TabsList>
+                <TabsTrigger value="grid" title="Card Grid View">
+                  <Icon name="grid" size={16} />
+                </TabsTrigger>
+                <TabsTrigger value="list" title="Table List View">
+                  <Icon name="list" size={16} />
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
 
             {/* Bulk Actions (Admin only) */}
             {canManageModules && (
@@ -2044,8 +2038,10 @@ const ModulesSection: React.FC = () => {
           </div>
         </div>
 
-        {/* Category Filter Chips */}
-        <div className="s-mods-cats-scroll">
+        {/* Category Filter Chips — the shared segmented ds-tabs (same control
+            as ShipmentDetail/Ops Command/NexusHR), not a one-off chip style. */}
+        <Tabs value={selectedCategory} onValueChange={setSelectedCategory} variant="segmented">
+        <TabsList style={{ maxWidth: '100%' }}>
           {MODULE_CATEGORIES.map(cat => {
             const count = cat === 'All'
               ? moduleKeys.length
@@ -2053,18 +2049,14 @@ const ModulesSection: React.FC = () => {
             if (count === 0 && cat !== 'All') return null;
             const isActive = selectedCategory === cat;
             return (
-              <button
-                key={cat}
-                type="button"
-                className={`s-mods-cat-chip ${isActive ? 's-mods-cat-chip--active' : ''}`}
-                onClick={() => setSelectedCategory(cat)}
-              >
-                <span>{cat}</span>
-                <span className="s-mods-cat-count">{count}</span>
-              </button>
+              <TabsTrigger key={cat} value={cat}>
+                {cat}
+                <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 20, lineHeight: 1.5, background: isActive ? 'var(--teal-l)' : 'var(--bg)', color: isActive ? 'var(--teal)' : 'var(--ink3)' }}>{count}</span>
+              </TabsTrigger>
             );
           })}
-        </div>
+        </TabsList>
+        </Tabs>
       </div>
 
       {/* ── Main Content Area: Grid or List ── */}
@@ -2657,7 +2649,7 @@ const EsignSection: React.FC = () => {
     <>
       <Card title="Company Stamp" desc="The one official stamp your team applies to documents through Hudumika eSign — visible on any envelope or cross-app document a person with stamp access signs on the company's behalf.">
         {stamp === undefined ? (
-          <div style={{ color: 'var(--ink3)', fontSize: 13 }}>Loading…</div>
+          <SectionLoading />
         ) : stamp && !showPad ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
             {/* Square, not the old 160×90 letterbox — a round or circular
@@ -2739,7 +2731,7 @@ const ApiKeysSection: React.FC = () => {
       }>
         <div className="s-fld--full">
           {loading ? (
-            <p style={{ color: 'var(--ink3)' }}>Loading…</p>
+            <SectionLoading />
           ) : keys.length === 0 ? (
             <p style={{ color: 'var(--ink3)' }}>No API keys yet. Create one to get started.</p>
           ) : (
@@ -2759,7 +2751,7 @@ const ApiKeysSection: React.FC = () => {
                     <td style={{ padding: '8px', color: 'var(--ink2)' }}>{k.scopes.join(', ')}</td>
                     <td style={{ padding: '8px', color: 'var(--ink3)' }}>{k.last_used_at ? new Date(k.last_used_at).toLocaleDateString() : 'Never'}</td>
                     <td style={{ padding: '8px' }}>
-                      <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 5, color: k.revoked_at ? 'var(--red)' : 'var(--green)', background: k.revoked_at ? '#fef2f2' : '#ecfdf5' }}>
+                      <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 'var(--r-sm)', color: k.revoked_at ? 'var(--red)' : 'var(--green)', background: k.revoked_at ? '#fef2f2' : '#ecfdf5' }}>
                         {k.revoked_at ? 'Revoked' : 'Active'}
                       </span>
                     </td>

@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useCMSPage } from '../hooks/useCMSPage.js';
 import { usePageSEO } from '../hooks/usePageSEO.js';
 import './LegalPages.css';
+import { SectionLoading } from '../components/ui/spinner.js';
 
 /**
  * why-complyos, fully converted to CMS content (same pattern as
@@ -71,7 +72,7 @@ export function ComplyOSSales() {
             </div>
           </div>
 
-          {loading && <div className="lp-body-text">Loading…</div>}
+          {loading && <SectionLoading />}
           {error && <div className="lp-body-text">Couldn't load this page right now ({error}). Please try again shortly.</div>}
           {page && (
             <div className="lp-cms-body" dangerouslySetInnerHTML={{ __html: page.content }} />

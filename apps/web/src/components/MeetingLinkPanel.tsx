@@ -96,7 +96,7 @@ export function MeetingLinkPanel({ title, value, onChange, disabled }: {
   if (value.meetingUrl) {
     const isBliss = isBlissUrl(value.meetingUrl);
     return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 9, background: 'var(--bg)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--bg)' }}>
         <Icon name="video" size={16} color="var(--teal)" />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)' }}>{isBliss ? 'Bliss video call' : 'Video call'}</div>

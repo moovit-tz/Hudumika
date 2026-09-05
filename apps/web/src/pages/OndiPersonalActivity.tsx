@@ -3,6 +3,7 @@ import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { Icon, type IconName } from '../components/Icon.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog.js';
 import './OndiPersonalActivity.css';
 
@@ -547,84 +548,55 @@ export const OndiPersonalActivity: React.FC = () => {
 
       {/* ── Filter Toolbar & View Mode Switcher ── */}
       <div className="opa-toolbar">
-        <div className="opa-toolbar-left">
-          {/* Category Filter Buttons */}
-          <button
-            type="button"
-            className={`opa-filter-btn ${filterCategory === 'all' ? 'active' : ''}`}
-            onClick={() => setFilterCategory('all')}
-          >
-            <span>All Activity</span>
-            <span className="opa-filter-count">{rows?.length ?? 0}</span>
-          </button>
-          <button
-            type="button"
-            className={`opa-filter-btn ${filterCategory === 'auth' ? 'active' : ''}`}
-            onClick={() => setFilterCategory('auth')}
-          >
-            <span>Sign-ins</span>
-            <span className="opa-filter-count">
-              {rows?.filter((r) => getEventCategory(r) === 'auth').length ?? 0}
-            </span>
-          </button>
-          <button
-            type="button"
-            className={`opa-filter-btn ${filterCategory === 'security' ? 'active' : ''}`}
-            onClick={() => setFilterCategory('security')}
-          >
-            <span>Security & MFA</span>
-            <span className="opa-filter-count">
-              {rows?.filter((r) => getEventCategory(r) === 'security').length ?? 0}
-            </span>
-          </button>
-          <button
-            type="button"
-            className={`opa-filter-btn ${filterCategory === 'identity' ? 'active' : ''}`}
-            onClick={() => setFilterCategory('identity')}
-          >
-            <span>Identity & KYC</span>
-            <span className="opa-filter-count">
-              {rows?.filter((r) => getEventCategory(r) === 'identity').length ?? 0}
-            </span>
-          </button>
-          <button
-            type="button"
-            className={`opa-filter-btn ${filterCategory === 'wallet' ? 'active' : ''}`}
-            onClick={() => setFilterCategory('wallet')}
-          >
-            <span>Vault</span>
-            <span className="opa-filter-count">
-              {rows?.filter((r) => getEventCategory(r) === 'wallet').length ?? 0}
-            </span>
-          </button>
-          {rows?.some((r) => getEventCategory(r) === 'failure') && (
-            <button
-              type="button"
-              className={`opa-filter-btn opa-filter-btn-danger ${filterCategory === 'failure' ? 'active' : ''}`}
-              onClick={() => setFilterCategory('failure')}
-            >
-              <span>Flagged / Failed</span>
-              <span className="opa-filter-count danger">
-                {rows?.filter((r) => getEventCategory(r) === 'failure').length ?? 0}
-              </span>
-            </button>
-          )}
-        </div>
+        <Tabs value={filterCategory} onValueChange={(v) => setFilterCategory(v as any)} variant="segmented">
+        <TabsList>
+          {([
+            ['all', 'All Activity', rows?.length ?? 0],
+            ['auth', 'Sign-ins', rows?.filter((r) => getEventCategory(r) === 'auth').length ?? 0],
+            ['security', 'Security & MFA', rows?.filter((r) => getEventCategory(r) === 'security').length ?? 0],
+            ['identity', 'Identity & KYC', rows?.filter((r) => getEventCategory(r) === 'identity').length ?? 0],
+            ['wallet', 'Vault', rows?.filter((r) => getEventCategory(r) === 'wallet').length ?? 0],
+          ] as const).map(([key, label, count]) => {
+            const isActive = filterCategory === key;
+            return (
+              <TabsTrigger key={key} value={key}>
+                {label}
+                <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 20, lineHeight: 1.5, background: isActive ? 'var(--teal-l)' : 'var(--bg)', color: isActive ? 'var(--teal)' : 'var(--ink3)' }}>{count}</span>
+              </TabsTrigger>
+            );
+          })}
+          {/* Flagged/Failed keeps the red semantic color even when selected,
+              same as every other danger badge/pill in the platform — the
+              shared teal "active" tint would hide the one filter that's
+              meant to read as a warning. */}
+          {rows?.some((r) => getEventCategory(r) === 'failure') && (() => {
+            const isActive = filterCategory === 'failure';
+            return (
+              <TabsTrigger
+                value="failure"
+                style={isActive ? { background: 'var(--red-l)', color: 'var(--red)' } : { color: 'var(--red)' }}
+              >
+                Flagged / Failed
+                <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 20, lineHeight: 1.5, background: isActive ? 'var(--white)' : 'var(--red-l)', color: 'var(--red)' }}>
+                  {rows?.filter((r) => getEventCategory(r) === 'failure').length ?? 0}
+                </span>
+              </TabsTrigger>
+            );
+          })()}
+        </TabsList>
+        </Tabs>
 
         <div className="opa-toolbar-right">
-          {/* Timeframe Presets */}
-          <div className="opa-timeframe-selector">
+          {/* Timeframe Presets — the shared segmented ds-tabs */}
+          <Tabs value={timeframe} onValueChange={(v) => setTimeframe(v as any)} variant="segmented">
+          <TabsList>
             {(['all', '24h', '7d', '30d'] as const).map((tf) => (
-              <button
-                key={tf}
-                type="button"
-                className={`opa-timeframe-btn ${timeframe === tf ? 'active' : ''}`}
-                onClick={() => setTimeframe(tf)}
-              >
+              <TabsTrigger key={tf} value={tf}>
                 {tf === 'all' ? 'All Time' : tf === '24h' ? '24 Hours' : tf === '7d' ? '7 Days' : '30 Days'}
-              </button>
+              </TabsTrigger>
             ))}
-          </div>
+          </TabsList>
+          </Tabs>
 
           {/* View Mode Toggle */}
           <div className="opa-view-toggle">

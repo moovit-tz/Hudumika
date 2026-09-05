@@ -7,6 +7,7 @@ import { SectionCard } from '../components/SectionCard.js';
 import { Icon } from '../components/Icon.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { Badge } from '../components/ui/badge.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { SwitchRow, FeatureToggleRow } from '../components/ui/list-item-row.js';
 import { showAlert } from '../lib/alert.js';
 import { useAuth } from '../hooks/useAuth.js';
@@ -546,44 +547,41 @@ export const OndiPolicies: React.FC = () => {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Category</label>
-                  <select
-                    value={newPolicyCategory}
-                    onChange={e => setNewPolicyCategory(e.target.value as any)}
-                    style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13 }}
-                  >
-                    <option value="identity">Identity &amp; Auth</option>
-                    <option value="network">Network &amp; IP</option>
-                    <option value="session">Session &amp; Limits</option>
-                    <option value="device">Device &amp; Endpoint</option>
-                  </select>
+                  <Select value={newPolicyCategory} onValueChange={v => setNewPolicyCategory(v as any)}>
+                    <SelectTrigger style={{ width: '100%' }}><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="identity">Identity &amp; Auth</SelectItem>
+                      <SelectItem value="network">Network &amp; IP</SelectItem>
+                      <SelectItem value="session">Session &amp; Limits</SelectItem>
+                      <SelectItem value="device">Device &amp; Endpoint</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Severity Level</label>
-                  <select
-                    value={newPolicySeverity}
-                    onChange={e => setNewPolicySeverity(e.target.value as any)}
-                    style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13 }}
-                  >
-                    <option value="strict">Strict (Blocking)</option>
-                    <option value="moderate">Moderate (Warning)</option>
-                    <option value="advisory">Advisory (Audit Only)</option>
-                  </select>
+                  <Select value={newPolicySeverity} onValueChange={v => setNewPolicySeverity(v as any)}>
+                    <SelectTrigger style={{ width: '100%' }}><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="strict">Strict (Blocking)</SelectItem>
+                      <SelectItem value="moderate">Moderate (Warning)</SelectItem>
+                      <SelectItem value="advisory">Advisory (Audit Only)</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
               <div>
                 <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Target Role Scope</label>
-                <select
-                  value={newPolicyRole}
-                  onChange={e => setNewPolicyRole(e.target.value)}
-                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13 }}
-                >
-                  <option value="ALL">All Workspace Members</option>
-                  <option value="SUPER_ADMIN">Super Admins Only</option>
-                  <option value="TENANT_ADMIN">Tenant Admins Only</option>
-                  <option value="STAFF">Staff &amp; Members Only</option>
-                </select>
+                <Select value={newPolicyRole} onValueChange={setNewPolicyRole}>
+                  <SelectTrigger style={{ width: '100%' }}><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">All Workspace Members</SelectItem>
+                    <SelectItem value="SUPER_ADMIN">Super Admins Only</SelectItem>
+                    <SelectItem value="TENANT_ADMIN">Tenant Admins Only</SelectItem>
+                    <SelectItem value="STAFF">Staff &amp; Members Only</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div>
@@ -608,7 +606,7 @@ export const OndiPolicies: React.FC = () => {
                 <button
                   type="submit"
                   disabled={!newPolicyName.trim()}
-                  style={{ padding: '9px 18px', borderRadius: 8, border: 'none', background: 'var(--teal)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', opacity: !newPolicyName.trim() ? 0.6 : 1 }}
+                  style={{ padding: '9px 18px', borderRadius: 8, border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 13, fontWeight: 700, cursor: 'pointer', opacity: !newPolicyName.trim() ? 0.6 : 1 }}
                 >
                   Create Policy Rule
                 </button>

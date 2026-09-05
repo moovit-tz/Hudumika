@@ -8,6 +8,7 @@ import '@xyflow/react/dist/style.css';
 import './studio.css';
 import { apiFetch } from '../../lib/api.js';
 import { Icon } from '../../components/Icon.js';
+import { Banner } from '../../components/ui/alert.js';
 import { Button } from '../../components/ui/button.js';
 import { Badge } from '../../components/ui/badge.js';
 import { Switch } from '../../components/ui/switch.js';
@@ -306,7 +307,7 @@ export function WorkflowEditor() {
       </div>
 
       {error && (
-        <div style={{ padding: '9px 16px', background: 'var(--red-l)', color: 'var(--red)', fontSize: 12.5, borderBottom: '1px solid var(--border)' }}>{error}</div>
+        <Banner variant="error" className="rounded-none border-x-0 border-t-0" style={{ borderBottom: '1px solid var(--border)' }}>{error}</Banner>
       )}
       {workflow.supersedes_subscriber && (
         <div style={{ padding: '8px 16px', background: 'var(--blue-l)', color: 'var(--ink2)', fontSize: 12, borderBottom: '1px solid var(--border)', display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -529,7 +530,7 @@ export function WorkflowEditor() {
                       a louder, more accurate error on the Trigger field above,
                       and two overlapping explanations help nobody. */}
                   {targetingIsSet && currentTrigger && !triggerCarriesShipment && (
-                    <div style={{ display: 'flex', gap: 8, padding: '9px 11px', borderRadius: 9, background: 'var(--gold-l)', border: '1px solid var(--gold-l)', fontSize: 11.5, color: 'var(--ink2)' }}>
+                    <div style={{ display: 'flex', gap: 8, padding: '9px 11px', borderRadius: 'var(--r)', background: 'var(--gold-l)', border: '1px solid var(--gold-l)', fontSize: 11.5, color: 'var(--ink2)' }}>
                       <Icon name="alertTriangle" size={14} color="var(--gold)" style={{ flexShrink: 0, marginTop: 1 }} />
                       <span>
                         <strong>{currentTrigger?.label ?? workflow.trigger_event}</strong> is not about a shipment, so these

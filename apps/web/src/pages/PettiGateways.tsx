@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Icon } from '../components/Icon.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { Badge } from '../components/ui/badge.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { apiFetch } from '../lib/api.js';
@@ -63,7 +64,7 @@ export function PettiGateways() {
 
       <SectionCard title="Connected Gateway" collapsible={false}>
         {loading ? (
-          <div style={{ padding: 20, color: 'var(--ink3)', fontSize: 13 }}>Loading…</div>
+          <SectionLoading />
         ) : status.configured ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px 18px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10 }}>
             <FeaturedIcon variant={status.chargeSupported ? 'success' : 'warning'} size="lg"><Icon name="creditCard" size={22} /></FeaturedIcon>
@@ -97,7 +98,7 @@ export function PettiGateways() {
 
       <SectionCard title="Available Channels" collapsible={false}>
         {loading ? (
-          <div style={{ padding: 20, color: 'var(--ink3)', fontSize: 13 }}>Loading…</div>
+          <SectionLoading />
         ) : (
           <>
           <p style={{ margin: '0 0 14px 0', fontSize: 12.5, color: 'var(--ink3)' }}>
@@ -105,7 +106,7 @@ export function PettiGateways() {
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 10 }}>
             {catalog.map(gw => (
-              <div key={gw.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 9 }}>
+              <div key={gw.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)' }}>
                 <FeaturedIcon variant={gw.enabled ? 'success' : gw.configured ? 'warning' : 'gray'} size="sm"><Icon name="creditCard" size={15} /></FeaturedIcon>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{gw.name}</div>

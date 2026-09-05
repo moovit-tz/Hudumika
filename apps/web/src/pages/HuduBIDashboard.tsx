@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { Icon, IconName } from '../components/Icon.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 
@@ -182,7 +183,7 @@ export function HuduBIDashboard() {
                   </div>
                 ))}
               </div>
-            ) : <div style={{ fontSize: 13, color: 'var(--ink3)' }}>Loading…</div>}
+            ) : <SectionLoading />}
           </div>
         </div>
       )}

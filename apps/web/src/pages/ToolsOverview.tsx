@@ -53,13 +53,13 @@ function KpiCard({ icon, iconBg, iconColor, value, label, sub, subUp, bars, barC
   return (
     <Wrapper {...(to ? { to } : {})} style={{
       flex: 1, minWidth: 0, position: 'relative', overflow: 'hidden',
-      background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)',
+      background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)',
       padding: '18px 18px 14px', cursor: to ? 'pointer' : 'default',
       textDecoration: 'none', color: 'inherit', boxSizing: 'border-box',
     }}>
       {bars && bars.length > 1 && <SparkBars data={bars} color={barColor} />}
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, position: 'relative' }}>
-        <div style={{ width: 44, height: 44, borderRadius: 9, background: iconBg, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ width: 44, height: 44, borderRadius: 'var(--r)', background: iconBg, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <Icon name={icon as IconName} size={20} color={iconColor} />
         </div>
         <div style={{ minWidth: 0 }}>
@@ -77,7 +77,7 @@ function KpiCard({ icon, iconBg, iconColor, value, label, sub, subUp, bars, barC
 
 function StatusCard({ label, value, pct, color, icon }: { label: string; value: string; pct: number; color: string; icon: string }) {
   return (
-    <div style={{ flex: 1, minWidth: 0, background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '16px 18px' }}>
+    <div style={{ flex: 1, minWidth: 0, background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', padding: '16px 18px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
         <Icon name={icon as IconName} size={14} color={color} />
         <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{label}</span>

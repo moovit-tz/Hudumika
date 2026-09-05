@@ -38,7 +38,7 @@
 .ah-header-icon-btn:hover { background: var(--bg); }
 .ah-header-badge {
   position: absolute; top: 2px; right: 2px; min-width: 15px; height: 15px; padding: 0 3px; border-radius: 999px;
-  background: var(--red); color: #fff; font-size: 9.5px; font-weight: 700; display: flex; align-items: center; justify-content: center;
+  background: var(--red); color: hsl(var(--red-foreground)); font-size: 9.5px; font-weight: 700; display: flex; align-items: center; justify-content: center;
 }
 .ah-header-avatar-btn { border: none; background: none; cursor: pointer; padding: 0; border-radius: 50%; display: flex; }
 .ah-notif-menu { width: 300px; max-height: 320px; overflow-y: auto; }
@@ -65,7 +65,7 @@
   display: flex; align-items: center; gap: 12px; margin: 16px 40px; padding: 14px 18px;
   border-radius: var(--r); box-shadow: var(--elev-sm);
 }
-.ah-headline-icon { width: 34px; height: 34px; border-radius: 9px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.ah-headline-icon { width: 34px; height: 34px; border-radius: var(--r); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .ah-headline-text { font-size: 13.5px; color: var(--ink); }
 
 .ah-stat-row {
@@ -95,7 +95,7 @@
 
 .ah-task-row { display: flex; align-items: center; gap: 10px; padding: 10px 18px; border-top: 1px solid var(--border); }
 .ah-task-row:first-child { border-top: none; }
-.ah-task-check { width: 17px; height: 17px; border-radius: 5px; border: 1.6px solid var(--border2, var(--border)); background: var(--white); flex-shrink: 0; padding: 0; cursor: pointer; }
+.ah-task-check { width: 17px; height: 17px; border-radius: var(--r-sm); border: 1.6px solid var(--border2, var(--border)); background: var(--white); flex-shrink: 0; padding: 0; cursor: pointer; }
 .ah-task-check:hover { border-color: var(--teal); background: var(--teal-l); }
 .ah-task-title { flex: 1; font-size: 13px; color: var(--ink); }
 

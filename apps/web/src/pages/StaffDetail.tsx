@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { apiFetch } from '../lib/api.js';
 import { BackButton } from '../components/ui/BackButton.js';
 import { PageHeader } from '../components/PageHeader.js';
@@ -206,7 +208,7 @@ function TabTable({ loading, rows, head, row, empty, summary }: {
   summary?: (rows: any[]) => string;
 }) {
   if (loading) {
-    return <SectionCard collapsible={false}><div style={{ textAlign: 'center', color: 'var(--ink3)' }}>Loading…</div></SectionCard>;
+    return <SectionCard collapsible={false}><SectionLoading /></SectionCard>;
   }
   if (rows.length === 0) {
     return <SectionCard collapsible={false}><div style={{ textAlign: 'center', color: 'var(--ink3)' }}>{empty}</div></SectionCard>;
@@ -276,7 +278,7 @@ function SignatureTab({ isSelf, stamps, loading, onChanged }: {
   }
 
   if (loading) {
-    return <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--ink3)', background: 'var(--white)', borderRadius: 10, border: '1px solid var(--border)' }}>Loading…</div>;
+    return <SectionLoading style={{ background: 'var(--white)', borderRadius: 10, border: '1px solid var(--border)' }} />;
   }
 
   return (
@@ -775,20 +777,15 @@ export const StaffDetail: React.FC = () => {
         </div>
 
         {/* Horizontal Tabs */}
-        <div className="ds-tabs-list" data-variant="segmented" style={{ margin: '14px 32px 16px' }}>
+        <Tabs value={tab} onValueChange={(v) => setTab(v as any)} variant="segmented">
+        <TabsList style={{ margin: '14px 32px 16px' }}>
           {TABS.map(t => (
-            <button
-              key={t}
-              type="button"
-              className="ds-tabs-trigger"
-              data-variant="segmented"
-              data-state={tab === t ? 'active' : 'inactive'}
-              onClick={() => setTab(t)}
-            >
+            <TabsTrigger key={t} value={t}>
               {t}
-            </button>
+            </TabsTrigger>
           ))}
-        </div>
+        </TabsList>
+        </Tabs>
       </div>
 
       {/* Main Content Area */}
@@ -1240,7 +1237,7 @@ export const StaffDetail: React.FC = () => {
 
         {tab === 'Permissions' && !tabDenied && (
           tabLoading ? (
-            <SectionCard collapsible={false}><div style={{ textAlign: 'center', color: 'var(--ink3)' }}>Loading…</div></SectionCard>
+            <SectionCard collapsible={false}><SectionLoading /></SectionCard>
           ) : (
             <SectionCard title="Permissions" padded={false}>
               <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', background: 'var(--bg)', fontSize: 12.5, color: 'var(--ink2)' }}>

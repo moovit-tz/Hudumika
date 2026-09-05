@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { MapContainer, Marker, Polyline, useMapEvents } from 'react-leaflet';
 import { Icon } from '../components/Icon.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { MapTileLayer } from '../components/MapTileLayer.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import type { MapVariant } from '../components/MapTileLayer.js';
@@ -286,10 +287,12 @@ export const TrackingRoutePlanner: React.FC = () => {
                 <>
                   <div className="rp-travel-est">travel estimate - {Math.floor(route.durationMin / 60)} Hours {Math.floor(route.durationMin % 60)} minutes ({route.distanceKm.toFixed(1)} km)</div>
 
-                  <div className="rp-tabs" style={{ marginBottom: '20px' }}>
-                    <div className={`rp-tab ${tab === 'fastest' ? 'active' : ''}`} onClick={() => setTab('fastest')}><Icon name="zap" size={12} style={{marginRight: 4}}/> Fastest Route</div>
-                    <div className={`rp-tab ${tab === 'regular' ? 'active' : ''}`} onClick={() => setTab('regular')}>Regular Route</div>
-                  </div>
+                  <Tabs value={tab} onValueChange={(v) => setTab(v as any)} variant="segmented">
+                    <TabsList style={{ marginBottom: '20px' }}>
+                      <TabsTrigger value="fastest"><Icon name="zap" size={12}/> Fastest Route</TabsTrigger>
+                      <TabsTrigger value="regular">Regular Route</TabsTrigger>
+                    </TabsList>
+                  </Tabs>
                 </>
               )}
 

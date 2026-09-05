@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { PageHeader } from '../../components/PageHeader.js';
 import { SectionCard } from '../../components/SectionCard.js';
 import { Icon } from '../../components/Icon.js';
+import { SectionLoading } from '../../components/ui/spinner.js';
 import { Badge } from '../../components/ui/badge.js';
 import { Input } from '../../components/ui/input.js';
 import { SingleSelectFilter } from '../../components/ui/filter-dropdown.js';
@@ -60,7 +61,7 @@ export function SmsReports() {
 
       <SectionCard title="Messages" padded={false} collapsible={false}>
         {loading ? (
-          <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>Loading…</div>
+          <SectionLoading />
         ) : messages.length === 0 ? (
           <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>No messages match this filter.</div>
         ) : (

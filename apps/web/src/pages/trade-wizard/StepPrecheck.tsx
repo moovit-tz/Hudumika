@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Icon } from '../../components/Icon.js';
+import { Banner } from '../../components/ui/alert.js';
 import { apiFetch } from '../../lib/api.js';
 import type { StepProps } from './types.js';
 
@@ -68,7 +69,7 @@ export function StepPrecheck({ draft, update, onNext, onBack }: StepProps) {
         </div>
       )}
 
-      {error && <div style={{ padding: '10px 14px', background: 'var(--red-l)', color: 'var(--red)', borderRadius: 9, fontSize: 13, marginBottom: 14 }}>{error}</div>}
+      {error && <Banner variant="error" className="mb-3.5">{error}</Banner>}
 
       <button type="button" className="btn btn-primary btn-lg" onClick={run} disabled={running}>
         {running ? 'Checking…' : 'Show me what I need'} <Icon name="arrowRight" size={15} />

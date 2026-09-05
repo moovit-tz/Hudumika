@@ -81,7 +81,7 @@ function EscCard({ esc, canResolve, onResolve }: {
   const cfg = STATUS_CFG[esc.status];
   return (
     <div style={{
-      background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9,
+      background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)',
       padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 8,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
@@ -94,12 +94,12 @@ function EscCard({ esc, canResolve, onResolve }: {
       </div>
       <div style={{ fontSize: 13, color: 'var(--ink2)' }}>{esc.goodsDesc}</div>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 12, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 9, padding: '2px 8px', color: 'var(--ink)' }}>
+        <span style={{ fontSize: 12, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '2px 8px', color: 'var(--ink)' }}>
           {esc.reason}
         </span>
       </div>
       {esc.note && (
-        <div style={{ fontSize: 12, color: 'var(--ink2)', background: 'var(--bg)', borderRadius: 9, padding: '6px 10px', borderLeft: '3px solid var(--teal)' }}>
+        <div style={{ fontSize: 12, color: 'var(--ink2)', background: 'var(--bg)', borderRadius: 'var(--r)', padding: '6px 10px', borderLeft: '3px solid var(--teal)' }}>
           {esc.note}
         </div>
       )}
@@ -153,7 +153,7 @@ function EscalateModal({ onClose, onSubmit }: {
       display: 'flex', alignItems: 'center', justifyContent: 'center',
     }}>
       <div style={{
-        background: 'var(--white)', borderRadius: 9, padding: 28, width: 460, maxWidth: '92vw',
+        background: 'var(--white)', borderRadius: 'var(--r)', padding: 28, width: 460, maxWidth: '92vw',
         boxShadow: 'var(--elev-lg)',
       }}>
         <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 20 }}>
@@ -179,7 +179,7 @@ function EscalateModal({ onClose, onSubmit }: {
           <div>
             <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Additional note</label>
             <textarea title="Add note" placeholder="Describe the issue…" value={note} onChange={e => setNote(e.target.value)} rows={3}
-              style={{ width: '100%', padding: '8px 10px', borderRadius: 9, border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: 13, background: 'var(--bg)', color: 'var(--ink)', resize: 'vertical', boxSizing: 'border-box' }} />
+              style={{ width: '100%', padding: '8px 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: 13, background: 'var(--bg)', color: 'var(--ink)', resize: 'vertical', boxSizing: 'border-box' }} />
           </div>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
             <button type="button" title="Cancel" onClick={onClose}
@@ -280,7 +280,7 @@ export const Escalations: React.FC = () => {
       {/* List */}
       {visible.length === 0 ? (
         <div style={{
-          background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9,
+          background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)',
           padding: '40px 20px', textAlign: 'center', color: 'var(--ink3)', fontSize: 14,
         }}>
           {items.length === 0

@@ -6,6 +6,9 @@ import { usePageSEO } from '../hooks/usePageSEO.js';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { Icon } from '../components/Icon.js';
+import { Spinner, PageLoading } from '../components/ui/spinner.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
+import { Banner } from '../components/ui/alert.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { RelatedRecordsPanel } from '../components/RelatedRecordsPanel.js';
 import { Tip } from '../components/ui/tooltip.js';
@@ -670,7 +673,7 @@ function StageStepper({ job }: { job: ClearanceJob }) {
         return (
           <React.Fragment key={s.id}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0, minWidth: 64 }}>
-              <div style={{ width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: active || done ? 'var(--teal)' : 'var(--border)', color: active || done ? '#fff' : 'var(--ink3)', fontSize: 11, fontWeight: 700, boxShadow: active ? '0 0 0 4px var(--teal-l)' : 'none', transition: 'all 0.2s' }}>
+              <div style={{ width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: active || done ? 'hsl(var(--primary))' : 'var(--border)', color: active || done ? 'hsl(var(--primary-foreground))' : 'var(--ink3)', fontSize: 11, fontWeight: 700, boxShadow: active ? '0 0 0 4px var(--teal-l)' : 'none', transition: 'all 0.2s' }}>
                 {done ? <Icon name="check" size={13} /> : <span>{i + 1}</span>}
               </div>
               <div style={{ fontSize: 9, fontWeight: active ? 700 : 500, color: active ? 'var(--teal)' : done ? 'var(--ink2)' : 'var(--ink3)', marginTop: 4, textAlign: 'center', lineHeight: 1.2, maxWidth: 60, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -887,7 +890,7 @@ function AdvanceStageModal({ job, onClose, onAdvance, embedded = false }: {
       <div style={embedded ? {} : { maxWidth: 560, margin: '0 auto' }}>
         <div style={{ padding: '16px 20px 0 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>Advance Stage</div>
-          <button type="button" onClick={onClose} style={{ background: 'var(--bg)', border: 'none', borderRadius: 'var(--r)', cursor: 'pointer', color: 'var(--ink3)', padding: 6, display: 'flex' }}><Icon name="x" size={16} /></button>
+          <button type="button" onClick={onClose} style={{ background: 'var(--bg)', border: 'none', borderRadius: 'var(--r)', cursor: 'pointer', color: 'var(--ink3)', padding: 6, display: 'flex' }} aria-label="Close"><Icon name="x" size={16} /></button>
         </div>
         <div style={{ padding: 20 }}>
           <div style={{ marginBottom: 14 }}>
@@ -942,7 +945,7 @@ function AdvanceStageModal({ job, onClose, onAdvance, embedded = false }: {
           </div>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
             <button type="button" onClick={onClose} style={{ padding: 'var(--ds-btn-py) 20px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
-            <button type="button" disabled={!selected} onClick={() => selected && onAdvance(selected, note, blocker, chans)} style={{ padding: 'var(--ds-btn-py) 20px', background: selected ? 'var(--teal)' : 'var(--border)', color: selected ? '#fff' : 'var(--ink3)', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: selected ? 'pointer' : 'default', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+            <button type="button" disabled={!selected} onClick={() => selected && onAdvance(selected, note, blocker, chans)} style={{ padding: 'var(--ds-btn-py) 20px', background: selected ? 'hsl(var(--primary))' : 'var(--border)', color: selected ? 'hsl(var(--primary-foreground))' : 'var(--ink3)', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: selected ? 'pointer' : 'default', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
               Update Stage →
             </button>
           </div>
@@ -1650,14 +1653,15 @@ function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Clearance
       {/* Sub-tab strip — the shared segmented ds-tabs, same as the shipment
           tabs (was a hand-rolled pill row on a --bg track, which flattened to
           white inside .page-layout). */}
-      <div className="ds-tabs-list" data-variant="segmented" style={{ marginBottom: 20, maxWidth: '100%' }}>
-        {SUB_TABS.map(t => (
-          <button key={t.key} type="button" className="ds-tabs-trigger" data-variant="segmented"
-            data-state={sub === t.key ? 'active' : 'inactive'} onClick={() => setSub(t.key)}>
-            {t.label}
-          </button>
-        ))}
-      </div>
+      <Tabs value={sub} onValueChange={v => setSub(v as typeof sub)} variant="segmented">
+        <TabsList style={{ marginBottom: 20, maxWidth: '100%' }}>
+          {SUB_TABS.map(t => (
+            <TabsTrigger key={t.key} value={t.key}>
+              {t.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
 
       {/* ── General ── */}
       {sub === 'general' && (
@@ -3326,7 +3330,7 @@ function FilesTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
             {stagedFiles.map(sf => (
-              <div key={sf.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 9, background: 'var(--bg)' }}>
+              <div key={sf.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 'var(--r)', background: 'var(--bg)' }}>
                 <Icon name={docIcon(sf.type.toLowerCase())} size={18} color="var(--teal)" />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sf.file.name}</div>
@@ -3497,11 +3501,11 @@ function CO2Tab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; shi
         )}
 
         {calcError && (
-          <div style={{ padding: '10px 14px', background: 'var(--red-l)', border: '1px solid var(--red)', borderRadius: 12, fontSize: 12.5, color: 'var(--red)', marginBottom: 14 }}>{calcError}</div>
+          <div style={{ marginBottom: 14 }}><Banner variant="error">{calcError}</Banner></div>
         )}
 
         <button type="button" onClick={handleCalculate} disabled={!canCalculate || calcSaving}
-          style={{ padding: 'var(--ds-btn-py) 22px', background: canCalculate ? 'var(--green)' : 'var(--border)', color: '#fff', border: 'none', borderRadius: 'var(--r)', fontSize: 14, fontWeight: 700, cursor: canCalculate && !calcSaving ? 'pointer' : 'default', opacity: calcSaving ? 0.7 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+          style={{ padding: 'var(--ds-btn-py) 22px', background: canCalculate ? 'var(--green)' : 'var(--border)', color: canCalculate ? 'hsl(var(--green-foreground))' : 'var(--ink3)', border: 'none', borderRadius: 'var(--r)', fontSize: 14, fontWeight: 700, cursor: canCalculate && !calcSaving ? 'pointer' : 'default', opacity: calcSaving ? 0.7 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
           {calcSaving ? 'Calculating…' : job.co2EmissionsKg !== undefined ? 'Recalculate CO₂' : 'Calculate CO₂'}
         </button>
 
@@ -4060,7 +4064,7 @@ function StaffPickerModal({ jobId, shipmentId, isLive, onRefresh, existing, onCl
         <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }}>
           {staffLoading && (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '32px 0', color: 'var(--ink3)', fontSize: 13 }}>
-              <div style={{ width: 18, height: 18, border: '2px solid var(--teal-l)', borderTopColor: 'var(--teal)', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+              <Spinner size={18} trackColor="var(--teal-l)" />
               Loading staff…
             </div>
           )}
@@ -4087,7 +4091,7 @@ function StaffPickerModal({ jobId, shipmentId, isLive, onRefresh, existing, onCl
                   <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 1 }}>{e.designation} · {e.dept}</div>
                 </div>
                 <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 6, background: STATUS_COLOR[e.status] ? `${STATUS_COLOR[e.status]}20` : 'var(--bg)', color: STATUS_COLOR[e.status] ?? 'var(--ink3)', flexShrink: 0 }}>{e.status === 'ON_LEAVE' ? 'On Leave' : 'Active'}</span>
-                <div style={{ width: 20, height: 20, borderRadius: 5, border: `2px solid ${on ? 'var(--teal)' : 'var(--border)'}`, background: on ? 'var(--teal)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <div style={{ width: 20, height: 20, borderRadius: 'var(--r-sm)', border: `2px solid ${on ? 'var(--teal)' : 'var(--border)'}`, background: on ? 'var(--teal)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   {on && <Icon name="check" size={11} color="#fff" />}
                 </div>
               </button>
@@ -4866,7 +4870,7 @@ function WorkflowCard({ job, shipmentId, isLive, onRefresh, canManage }: {
 
           <div style={{ display: 'flex', gap: 8 }}>
             <button type="button" onClick={() => { setOpen(false); setTarget(''); }} style={{ flex: 1, padding: 'var(--ds-btn-py-sm) 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }}>Cancel</button>
-            <button type="button" disabled={!target || saving} onClick={apply} style={{ flex: 1, padding: 'var(--ds-btn-py-sm) 12px', border: 'none', borderRadius: 'var(--r)', background: target && !saving ? 'var(--teal)' : 'var(--border)', color: target && !saving ? '#fff' : 'var(--ink3)', fontSize: 12, fontWeight: 700, cursor: target && !saving ? 'pointer' : 'default', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }}>{saving ? 'Applying…' : 'Apply'}</button>
+            <button type="button" disabled={!target || saving} onClick={apply} style={{ flex: 1, padding: 'var(--ds-btn-py-sm) 12px', border: 'none', borderRadius: 'var(--r)', background: target && !saving ? 'hsl(var(--primary))' : 'var(--border)', color: target && !saving ? 'hsl(var(--primary-foreground))' : 'var(--ink3)', fontSize: 12, fontWeight: 700, cursor: target && !saving ? 'pointer' : 'default', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }}>{saving ? 'Applying…' : 'Apply'}</button>
           </div>
         </div>
       )}
@@ -5072,12 +5076,7 @@ export function ShipmentDetail() {
   const job = liveJob || mockJob || null;
   const isMock = !liveJob && !!mockJob;
 
-  if (apiLoading) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', flexDirection: 'column', gap: 12 }}>
-      <div style={{ width: 32, height: 32, borderRadius: '50%', border: '3px solid var(--teal)', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
-      <div style={{ fontSize: 14, color: 'var(--ink3)' }}>Loading shipment…</div>
-    </div>
-  );
+  if (apiLoading) return <PageLoading label="Loading shipment…" size={32} />;
 
   if (!job) return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 12 }}>
@@ -5204,24 +5203,25 @@ export function ShipmentDetail() {
         {/* Tabs — the shared segmented ds-tabs (same control as Ops Command /
             NexusHR), scrolling horizontally when the row overflows its width. */}
         <div style={{ padding: isMobile ? '6px 10px' : '8px 14px', borderTop: '1px solid var(--border)', overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
-          <div className="ds-tabs-list" data-variant="segmented" style={{ width: '100%', flexWrap: 'nowrap' }}>
-            {TAB_CFG.filter(t => isStaff || CUSTOMER_TABS.has(t.id)).map(t => {
-              const badge =
-                t.id === 'tasks'      ? job.tasks.length :
-                t.id === 'timesheets' ? job.timeEntries.length :
-                t.id === 'updates'    ? job.thread.length :
-                t.id === 'files'      ? job.documents.length :
-                t.id === 'ledger'     ? job.ledger.length : undefined;
-              return (
-                <button key={t.id} type="button" className="ds-tabs-trigger" data-variant="segmented"
-                  data-state={tab === t.id ? 'active' : 'inactive'} onClick={() => setTab(t.id)}>
-                  <Icon name={t.icon} size={14} />
-                  {t.label}
-                  {badge !== undefined && <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 20, lineHeight: 1.5, background: tab === t.id ? 'var(--teal-l)' : 'var(--white)', color: tab === t.id ? 'var(--teal)' : 'var(--ink3)' }}>{badge}</span>}
-                </button>
-              );
-            })}
-          </div>
+          <Tabs value={tab} onValueChange={v => setTab(v as typeof tab)} variant="segmented">
+            <TabsList style={{ width: '100%', flexWrap: 'nowrap' }}>
+              {TAB_CFG.filter(t => isStaff || CUSTOMER_TABS.has(t.id)).map(t => {
+                const badge =
+                  t.id === 'tasks'      ? job.tasks.length :
+                  t.id === 'timesheets' ? job.timeEntries.length :
+                  t.id === 'updates'    ? job.thread.length :
+                  t.id === 'files'      ? job.documents.length :
+                  t.id === 'ledger'     ? job.ledger.length : undefined;
+                return (
+                  <TabsTrigger key={t.id} value={t.id}>
+                    <Icon name={t.icon} size={14} />
+                    <span className="ds-tabs-trigger-label">{t.label}</span>
+                    {badge !== undefined && <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 20, lineHeight: 1.5, background: tab === t.id ? 'var(--teal-l)' : 'var(--white)', color: tab === t.id ? 'var(--teal)' : 'var(--ink3)' }}>{badge}</span>}
+                  </TabsTrigger>
+                );
+              })}
+            </TabsList>
+          </Tabs>
         </div>
       </div>
 

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import './studio.css';
 import { apiFetch } from '../../lib/api.js';
 import { Icon } from '../../components/Icon.js';
+import { SectionLoading } from '../../components/ui/spinner.js';
 import { Badge } from '../../components/ui/badge.js';
 import { Input } from '../../components/ui/input.js';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui/tabs.js';
@@ -54,7 +55,7 @@ export function CatalogPage() {
         <Input value={q} onChange={e => setQ(e.target.value)} placeholder="Search triggers and actions…" />
       </div>
 
-      {loading && <div style={{ color: 'var(--ink3)', fontSize: 13, padding: 20 }}>Loading…</div>}
+      {loading && <SectionLoading />}
 
       <Tabs defaultValue="triggers">
         <TabsList>

@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { PageHeader } from '../components/PageHeader.js';
@@ -131,19 +133,14 @@ export const TrackingShipments: React.FC = () => {
       <div style={{ background: '#fff', borderRadius: 12, border: '1px solid var(--border)', boxShadow: 'var(--elev-sm)' }}>
         {/* Filters */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
-          <div className="ds-tabs-list" data-variant="segmented">
-            {['All', 'Shipped', 'In Transit', 'Delayed', 'Delivered'].map(f => (
-              <button
-                key={f}
-                type="button"
-                className="ds-tabs-trigger"
-                data-variant="segmented"
-                data-state={filter === f ? 'active' : 'inactive'}
-                onClick={() => setFilter(f)}
-              >
-                {f}
-              </button>
-            ))}
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <Tabs value={filter} onValueChange={setFilter} variant="segmented">
+              <TabsList>
+                {['All', 'Shipped', 'In Transit', 'Delayed', 'Delivered'].map(f => (
+                  <TabsTrigger key={f} value={f}>{f}</TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
             <button style={{ padding: 'var(--ds-btn-py-sm) 14px', borderRadius: 20, fontSize: 13, fontWeight: 600, cursor: 'pointer', border: '1px solid var(--border)', background: '#fff', color: 'var(--ink2)', display: 'flex', alignItems: 'center', gap: 4, marginLeft: 8, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
               <Icon name="filter" size={12} /> Filter
             </button>
@@ -254,7 +251,7 @@ export const TrackingShipments: React.FC = () => {
                           <h3 style={{ fontSize: 14, fontWeight: 700, margin: '0 0 16px 0', color: 'var(--ink)' }}>Expenses → Invoice</h3>
                           {(() => {
                             const rows = tripExpenses[s.id];
-                            if (!rows) return <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>Loading…</div>;
+                            if (!rows) return <SectionLoading />;
                             const unbilled = rows.filter(r => r.billable && !r.invoice_id);
                             const alreadyBilled = rows.filter(r => r.invoice_id).length;
                             const total = unbilled.reduce((sum, r) => sum + r.amount, 0);

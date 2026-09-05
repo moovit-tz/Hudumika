@@ -16,7 +16,7 @@
 
 .sa-brand-logo-card {
   border: 1px solid var(--border);
-  border-radius: 9px;
+  border-radius: var(--r);
   padding: 14px 16px;
   display: flex;
   flex-direction: column;
@@ -84,7 +84,7 @@
   gap: 7px;
   padding: 12px 8px;
   border: 1px solid var(--border);
-  border-radius: 9px;
+  border-radius: var(--r);
   background: var(--white);
 }
 
@@ -407,3 +407,73 @@
 
 .sa-server-value       { font-size: 13px; font-weight: 600; color: var(--ink); }
 .sa-server-value--mono { font-family: var(--mono); }
+
+/* ── App Status Single Row & Mobile Friendly Toolbar ── */
+.sa-app-status-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+  width: 100%;
+  flex-wrap: nowrap;
+}
+
+.sa-app-status-search {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 160px;
+}
+
+.sa-app-status-view-toggle {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+  height: 36px;
+  background: var(--white);
+}
+
+.sa-view-btn {
+  padding: 0 12px;
+  height: 36px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  background: transparent;
+  color: var(--ink3);
+  border: none;
+  cursor: pointer;
+  line-height: 1.25;
+  transition: all 0.15s ease;
+}
+
+.sa-view-btn.active {
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.sa-view-btn:hover:not(.active) {
+  background: rgba(0, 0, 0, 0.03);
+  color: var(--ink);
+}
+
+@media (max-width: 640px) {
+  .sa-app-status-toolbar {
+    overflow-x: auto;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .sa-app-status-toolbar::-webkit-scrollbar {
+    display: none;
+  }
+  .sa-app-status-search {
+    min-width: 140px;
+  }
+}
+

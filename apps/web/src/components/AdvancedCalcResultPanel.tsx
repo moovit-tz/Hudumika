@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Icon } from './Icon.js';
 import { SectionCard } from './SectionCard.js';
 import { FeaturedIcon } from './ui/featured-icon.js';
+import { Banner } from './ui/alert.js';
 import { apiFetch } from '../lib/api.js';
 import type { AdvancedCalcResult } from '../lib/advancedCalculators.js';
 import { groupBreakdown, fmt } from '../lib/advancedCalculators.js';
@@ -25,11 +26,7 @@ export function AdvancedCalcResultPanel({ result, loading, error, meta, onAmend,
   const navigate = useNavigate();
 
   if (error) {
-    return (
-      <div style={{ padding: '10px 14px', background: 'var(--red-l)', border: '1px solid var(--red)', borderRadius: 9, fontSize: 12.5, color: 'var(--red)' }}>
-        {error}
-      </div>
-    );
+    return <Banner variant="error">{error}</Banner>;
   }
 
   if (loading) {
@@ -205,9 +202,8 @@ function AiAnalysisCard({ result }: { result: AdvancedCalcResult }) {
         <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)' }}>Get an AI-powered read of this estimate</span>
       </div>
       {aiError && (
-        <div style={{ marginBottom: 14, padding: '11px 14px', background: 'var(--red-l)', border: '1px solid var(--red)', borderRadius: 9, fontSize: 12.5, color: 'var(--red)', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-          <Icon name="alertCircle" size={14} color="var(--red)" style={{ flexShrink: 0, marginTop: 1 }} />
-          <span>{aiError}{aiError.toLowerCase().includes('not configured') && ' Ask an admin to add an AI provider key under Settings → Integrations → AI Integration.'}</span>
+        <div style={{ marginBottom: 14 }}>
+          <Banner variant="error">{aiError}{aiError.toLowerCase().includes('not configured') && ' Ask an admin to add an AI provider key under Settings → Integrations → AI Integration.'}</Banner>
         </div>
       )}
       <button type="button" onClick={runAi} disabled={pending} className="btn btn-primary"

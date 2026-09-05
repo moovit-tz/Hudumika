@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { Button } from '../components/ui/button.js';
 import { Badge } from '../components/ui/badge.js';
@@ -162,7 +163,7 @@ export const Contracts: React.FC = () => {
         )}
 
         {rows === null ? (
-          <div style={{ color: 'var(--ink3)', fontSize: 14 }}>Loading…</div>
+          <SectionLoading />
         ) : filteredRows.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--ink3)', fontSize: 14 }}>
             {showTrash ? 'Trash is empty.' : 'No contracts yet.'}

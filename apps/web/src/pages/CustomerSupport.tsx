@@ -3,6 +3,7 @@ import { useAuth } from '../hooks/useAuth.js';
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import { Icon } from '../components/Icon.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { LiveChatWidget } from '../components/LiveChatWidget.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 
@@ -273,7 +274,7 @@ function TicketThread({ ticket, threadLoading, onBack, onReply }: {
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit(); } }}
             rows={2}
             style={{
-              flex: 1, resize: 'none', border: '1.5px solid var(--border)', borderRadius: 9,
+              flex: 1, resize: 'none', border: '1.5px solid var(--border)', borderRadius: 'var(--r)',
               padding: '10px 12px', fontSize: 14, fontFamily: 'var(--font)', color: 'var(--ink)',
               background: 'var(--bg)', outline: 'none',
               lineHeight: 1.5,
@@ -369,7 +370,7 @@ function NewTicketModal({ onClose, onCreate, creating }: {
               value={subject}
               onChange={e => setSubject(e.target.value)}
               style={{
-                width: '100%', border: '1.5px solid var(--border)', borderRadius: 9,
+                width: '100%', border: '1.5px solid var(--border)', borderRadius: 'var(--r)',
                 padding: '11px 14px', fontSize: 14, fontFamily: 'var(--font)', color: 'var(--ink)',
                 background: 'var(--bg)', outline: 'none', boxSizing: 'border-box',
               }}
@@ -388,7 +389,7 @@ function NewTicketModal({ onClose, onCreate, creating }: {
               onChange={e => setBody(e.target.value)}
               rows={4}
               style={{
-                width: '100%', resize: 'none', border: '1.5px solid var(--border)', borderRadius: 9,
+                width: '100%', resize: 'none', border: '1.5px solid var(--border)', borderRadius: 'var(--r)',
                 padding: '11px 14px', fontSize: 14, fontFamily: 'var(--font)', color: 'var(--ink)',
                 background: 'var(--bg)', outline: 'none', lineHeight: 1.5, boxSizing: 'border-box',
               }}
@@ -530,29 +531,24 @@ export const CustomerSupport: React.FC = () => {
       </div>
 
       {/* Filter tabs */}
-      <div className="ds-tabs-list" data-variant="segmented" style={{ margin: '0 16px', marginBottom: 16 }}>
-        {(['ALL', 'OPEN', 'RESOLVED'] as const).map(f => (
-          <button
-            key={f}
-            type="button"
-            title={f}
-            className="ds-tabs-trigger"
-            data-variant="segmented"
-            data-state={filter === f ? 'active' : 'inactive'}
-            onClick={() => setFilter(f)}>
-            {f === 'ALL' ? 'All' : f === 'OPEN' ? 'Open' : 'Resolved'}
-          </button>
-        ))}
-      </div>
+      <Tabs value={filter} onValueChange={(v) => setFilter(v as any)} variant="segmented">
+        <TabsList style={{ margin: '0 16px', marginBottom: 16 }}>
+          {(['ALL', 'OPEN', 'RESOLVED'] as const).map(f => (
+            <TabsTrigger key={f} value={f} title={f}>
+              {f === 'ALL' ? 'All' : f === 'OPEN' ? 'Open' : 'Resolved'}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
 
       {/* Card list */}
       <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
         {loading ? (
           Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, height: 120 }} />
+            <div key={i} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', height: 120 }} />
           ))
         ) : loadError ? (
-          <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: '40px 20px', textAlign: 'center' }}>
+          <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '40px 20px', textAlign: 'center' }}>
             <Icon name="alertCircle" size={36} color="var(--red)" />
             <p style={{ color: 'var(--ink2)', fontSize: 14, margin: '12px 0 4px', fontWeight: 600 }}>Couldn't load your tickets</p>
             <p style={{ color: 'var(--ink3)', fontSize: 13, margin: '0 0 16px' }}>Check your connection and try again.</p>
@@ -562,7 +558,7 @@ export const CustomerSupport: React.FC = () => {
           </div>
         ) : filtered.length === 0 ? (
           <div style={{
-            background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9,
+            background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)',
             padding: '40px 20px', textAlign: 'center',
           }}>
             <Icon name="headphones" size={36} color="var(--ink3)" />

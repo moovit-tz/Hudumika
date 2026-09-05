@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { useClockIn } from '../contexts/ClockInContext.js';
 import { Switch } from './ui/switch.js';
+import { Tabs, TabsList, TabsTrigger } from './ui/tabs.js';
 
 /* ── Types ── */
 interface Task  { id: string; name: string; category: string; is_billable: boolean; color: string }
@@ -215,18 +216,12 @@ export const CheckInWidget: React.FC = () => {
           {/* Mode toggle — hidden once auto-detected from a shipment/task page, so the type is locked but the specific item can still be changed below */}
           {!lockedMode && (
             <div style={{ padding: '0 24px 12px', display: 'flex', gap: 6 }}>
-              <div style={{ display: 'flex', background: 'var(--bg)', padding: 4, borderRadius: 10, width: '100%' }}>
-                <button type="button" onClick={() => setCheckInMode('shipment')}
-                  style={{ flex: 1, padding: 'var(--ds-btn-py) 0', border: 'none', borderRadius: 'var(--r)', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)', transition: 'all 0.2s',
-                    background: checkInMode === 'shipment' ? 'var(--white)' : 'transparent', color: checkInMode === 'shipment' ? 'var(--ink)' : 'var(--ink2)', boxShadow: checkInMode === 'shipment' ? 'var(--shadow-sm)' : 'none', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-                  By Shipment
-                </button>
-                <button type="button" onClick={() => setCheckInMode('task')}
-                  style={{ flex: 1, padding: 'var(--ds-btn-py) 0', border: 'none', borderRadius: 'var(--r)', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)', transition: 'all 0.2s',
-                    background: checkInMode === 'task' ? 'var(--white)' : 'transparent', color: checkInMode === 'task' ? 'var(--ink)' : 'var(--ink2)', boxShadow: checkInMode === 'task' ? 'var(--shadow-sm)' : 'none', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-                  By Task
-                </button>
-              </div>
+              <Tabs value={checkInMode} onValueChange={v => setCheckInMode(v as typeof checkInMode)} variant="segmented" style={{ width: '100%' }}>
+                <TabsList style={{ width: '100%' }}>
+                  <TabsTrigger value="shipment" style={{ flex: 1 }}>By Shipment</TabsTrigger>
+                  <TabsTrigger value="task" style={{ flex: 1 }}>By Task</TabsTrigger>
+                </TabsList>
+              </Tabs>
             </div>
           )}
 
@@ -239,7 +234,7 @@ export const CheckInWidget: React.FC = () => {
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder={checkInMode === 'shipment' ? 'Search shipments…' : 'Search tasks…'}
-                style={{ width: '100%', boxSizing: 'border-box', padding: '8px 12px 8px 32px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', fontSize: 13, outline: 'none' }}
+                style={{ width: '100%', boxSizing: 'border-box', padding: '8px 12px 8px 32px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', fontSize: 13, outline: 'none' }}
               />
             </div>
           </div>

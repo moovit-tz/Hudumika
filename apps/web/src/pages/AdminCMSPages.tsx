@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
+import { Banner } from '../components/ui/alert.js';
 import { RichTextEditor } from '../components/RichTextEditor.js';
 import type { CmsPage } from '@hudumika/types';
 import { showAlert } from '../lib/alert.js';
@@ -108,7 +109,7 @@ export function AdminCMSPages() {
         }
       />
 
-      {error && <div style={{ color: 'var(--red)', padding: 12, marginBottom: 16, background: 'var(--red-l)', borderRadius: 8 }}>{error}</div>}
+      {error && <Banner variant="error" className="mb-4">{error}</Banner>}
 
       {creating && (
         <div style={{ marginBottom: 20 }}>

@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth.js';
 import { Icon, type IconName } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
 import './LegalPages.css';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 
 const CATEGORIES = [
   'Billing & Subscription',
@@ -193,10 +194,13 @@ export const SupportTicket: React.FC = () => {
               <div className="st-field-row">
                 <div className="st-field">
                   <label className="st-label">Category <span className="st-required">*</span></label>
-                  <select className="st-select" value={form.category} onChange={e => handleChange('category', e.target.value)} required>
-                    <option value="">Select a category…</option>
-                    {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
+                  <Select value={form.category || '__none__'} onValueChange={v => handleChange('category', v === '__none__' ? '' : v)}>
+                    <SelectTrigger className="st-select"><SelectValue placeholder="Select a category…" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">Select a category…</SelectItem>
+                      {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="st-field">
                   <label className="st-label">Subject <span className="st-required">*</span></label>

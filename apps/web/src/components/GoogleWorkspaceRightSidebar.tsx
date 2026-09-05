@@ -3,6 +3,9 @@ import { Icon, type IconName } from './Icon.js';
 import { useTodos, addTodo, updateTodo, deleteTodo, useEvents, addEvent, useCurrentCalendarDate, setCurrentCalendarDate, useAppSettings, updateAppSettings } from '../data/calendarStore.js';
 import { PersonAvatar } from './PersonAvatar.js';
 import { Switch } from './ui/switch.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from './ui/select.js';
+import { DatePicker, parseDateOnly, toDateOnlyString } from './ui/date-picker.js';
+import { SectionLoading } from './ui/spinner.js';
 import { Button } from './ui/button.js';
 import { Tip } from './ui/tooltip.js';
 import { showAlert } from '../lib/alert.js';
@@ -814,7 +817,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                     placeholder="+ Add a task"
                     style={{ flex: 1, padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, background: 'var(--bg)', color: 'var(--ink)' }}
                   />
-                  <Button type="submit" size="xs" style={{ background: 'var(--teal)', color: '#fff' }}>Add</Button>
+                  <Button type="submit" size="xs">Add</Button>
                 </form>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -856,7 +859,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                   <form onSubmit={handleCreateEvent} style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)' }}>
                     <input autoFocus value={newEventTitle} onChange={e => setNewEventTitle(e.target.value)} placeholder="Event title" style={composerInputStyle} />
                     <div style={{ display: 'flex', gap: 8 }}>
-                      <input type="date" required value={newEventDate} onChange={e => setNewEventDate(e.target.value)} style={{ ...composerInputStyle, flex: 1 }} />
+                      <DatePicker date={parseDateOnly(newEventDate)} onChange={d => setNewEventDate(toDateOnlyString(d))} triggerClassName="flex-1" />
                       <input type="time" value={newEventTime} onChange={e => setNewEventTime(e.target.value)} style={{ ...composerInputStyle, flex: 1 }} />
                     </div>
                     <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--ink2)', cursor: 'pointer' }}>
@@ -864,7 +867,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                       <Icon name="bell" size={12} /> Remind me 10 min before
                     </label>
                     <div style={{ display: 'flex', gap: 8 }}>
-                      <Button type="submit" size="xs" style={{ background: 'var(--teal)', color: '#fff', flex: 1 }}>Create event</Button>
+                      <Button type="submit" size="xs" style={{ flex: 1 }}>Create event</Button>
                       <Button type="button" size="xs" variant="outline" onClick={() => setEventComposerOpen(false)}>Cancel</Button>
                     </div>
                   </form>
@@ -927,7 +930,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                 {newChannelOpen ? (
                   <form onSubmit={handleCreateChannel} style={{ display: 'flex', gap: 8, padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)' }}>
                     <input autoFocus value={newChannelName} onChange={e => setNewChannelName(e.target.value)} placeholder="Chat / channel name" style={{ ...composerInputStyle, flex: 1 }} />
-                    <Button type="submit" size="xs" style={{ background: 'var(--teal)', color: '#fff' }}>Start</Button>
+                    <Button type="submit" size="xs">Start</Button>
                   </form>
                 ) : (
                   <button type="button" onClick={() => setNewChannelOpen(true)} style={composerToggleStyle}>
@@ -940,7 +943,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                 </button>
                 {browseOpen && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {browseLoading && <div style={{ fontSize: 12, color: 'var(--ink3)', padding: '4px 2px' }}>Loading…</div>}
+                    {browseLoading && <SectionLoading style={{ padding: '4px 2px' }} />}
                     {!browseLoading && (browseChannels?.length ?? 0) === 0 && (
                       <div style={{ fontSize: 12, color: 'var(--ink3)', padding: '4px 2px' }}>You've already joined everything here.</div>
                     )}
@@ -1002,7 +1005,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                             </div>
                             <form onSubmit={handleSendReply} style={{ display: 'flex', gap: 6 }}>
                               <input autoFocus value={threadReply} onChange={e => setThreadReply(e.target.value)} placeholder="Reply…" style={{ ...composerInputStyle, flex: 1, padding: '6px 10px' }} />
-                              <Button type="submit" size="xs" disabled={!threadReply.trim()} style={{ background: 'var(--teal)', color: '#fff' }}>Reply</Button>
+                              <Button type="submit" size="xs" disabled={!threadReply.trim()}>Reply</Button>
                             </form>
                           </div>
                         )}
@@ -1069,7 +1072,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                     style={{ width: '100%', boxSizing: 'border-box', padding: 10, borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', fontSize: 13, color: 'var(--ink)', resize: 'vertical' }}
                   />
                   {noteComposerText.trim() && (
-                    <Button type="submit" size="xs" disabled={noteSaving} style={{ background: 'var(--teal)', color: '#fff', alignSelf: 'flex-end' }}>
+                    <Button type="submit" size="xs" disabled={noteSaving} style={{ alignSelf: 'flex-end' }}>
                       {noteSaving ? 'Saving…' : 'Save note'}
                     </Button>
                   )}
@@ -1109,7 +1112,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                     />
                     <textarea value={smsBody} onChange={e => setSmsBody(e.target.value)} placeholder="Message" rows={2} style={{ ...composerInputStyle, resize: 'vertical' }} />
                     <div style={{ display: 'flex', gap: 8 }}>
-                      <Button type="submit" size="xs" disabled={smsSending} style={{ background: 'var(--teal)', color: '#fff', flex: 1 }}>{smsSending ? 'Sending…' : 'Send'}</Button>
+                      <Button type="submit" size="xs" disabled={smsSending} style={{ flex: 1 }}>{smsSending ? 'Sending…' : 'Send'}</Button>
                       <Button type="button" size="xs" variant="outline" onClick={() => setSmsComposerOpen(false)}>Cancel</Button>
                     </div>
                   </form>
@@ -1145,7 +1148,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                     <input value={emailSubject} onChange={e => setEmailSubject(e.target.value)} placeholder="Subject" style={composerInputStyle} />
                     <textarea value={emailBody} onChange={e => setEmailBody(e.target.value)} placeholder="Write your message…" rows={4} style={{ ...composerInputStyle, resize: 'vertical' }} />
                     <div style={{ display: 'flex', gap: 8 }}>
-                      <Button type="submit" size="xs" disabled={emailSending} style={{ background: 'var(--teal)', color: '#fff', flex: 1 }}>{emailSending ? 'Sending…' : 'Send'}</Button>
+                      <Button type="submit" size="xs" disabled={emailSending} style={{ flex: 1 }}>{emailSending ? 'Sending…' : 'Send'}</Button>
                       <Button type="button" size="xs" variant="outline" onClick={() => setEmailComposerOpen(false)}>Cancel</Button>
                     </div>
                   </form>
@@ -1181,7 +1184,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                     <input autoFocus value={newContactName} onChange={e => setNewContactName(e.target.value)} placeholder="Name" style={composerInputStyle} />
                     <input value={newContactPhone} onChange={e => setNewContactPhone(e.target.value)} placeholder="Phone (optional)" style={composerInputStyle} />
                     <div style={{ display: 'flex', gap: 8 }}>
-                      <Button type="submit" size="xs" disabled={contactSaving} style={{ background: 'var(--teal)', color: '#fff', flex: 1 }}>{contactSaving ? 'Saving…' : 'Add contact'}</Button>
+                      <Button type="submit" size="xs" disabled={contactSaving} style={{ flex: 1 }}>{contactSaving ? 'Saving…' : 'Add contact'}</Button>
                       <Button type="button" size="xs" variant="outline" onClick={() => setContactComposerOpen(false)}>Cancel</Button>
                     </div>
                   </form>
@@ -1243,7 +1246,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                     <input value={invoiceDesc} onChange={e => setInvoiceDesc(e.target.value)} placeholder="Description" style={composerInputStyle} />
                     <input type="number" min="1" step="any" value={invoiceAmount} onChange={e => setInvoiceAmount(e.target.value)} placeholder="Amount" style={composerInputStyle} />
                     <div style={{ display: 'flex', gap: 8 }}>
-                      <Button type="submit" size="xs" disabled={invoiceSaving} style={{ background: 'var(--teal)', color: '#fff', flex: 1 }}>{invoiceSaving ? 'Creating…' : 'Create invoice'}</Button>
+                      <Button type="submit" size="xs" disabled={invoiceSaving} style={{ flex: 1 }}>{invoiceSaving ? 'Creating…' : 'Create invoice'}</Button>
                       <Button type="button" size="xs" variant="outline" onClick={() => setInvoiceComposerOpen(false)}>Cancel</Button>
                     </div>
                   </form>
@@ -1278,12 +1281,15 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 {depositComposerOpen ? (
                   <form onSubmit={handleQuickDeposit} style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)' }}>
-                    <select value={depositWalletId} onChange={e => setDepositWalletId(e.target.value)} style={{ ...composerInputStyle }}>
-                      {pettiWallets.map(w => <option key={w.id} value={w.id}>{w.name} ({w.currency})</option>)}
-                    </select>
+                    <Select value={depositWalletId} onValueChange={setDepositWalletId}>
+                      <SelectTrigger style={{ ...composerInputStyle }}><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {pettiWallets.map(w => <SelectItem key={w.id} value={w.id}>{w.name} ({w.currency})</SelectItem>)}
+                      </SelectContent>
+                    </Select>
                     <input type="number" min="1" step="any" autoFocus value={depositAmount} onChange={e => setDepositAmount(e.target.value)} placeholder="Amount" style={composerInputStyle} />
                     <div style={{ display: 'flex', gap: 8 }}>
-                      <Button type="submit" size="xs" disabled={depositSaving} style={{ background: 'var(--teal)', color: '#fff', flex: 1 }}>{depositSaving ? 'Depositing…' : 'Deposit'}</Button>
+                      <Button type="submit" size="xs" disabled={depositSaving} style={{ flex: 1 }}>{depositSaving ? 'Depositing…' : 'Deposit'}</Button>
                       <Button type="button" size="xs" variant="outline" onClick={() => setDepositComposerOpen(false)}>Cancel</Button>
                     </div>
                   </form>
@@ -1313,14 +1319,17 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                 {inviteComposerOpen ? (
                   <form onSubmit={handleSendInvite} style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)' }}>
                     <input autoFocus type="email" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} placeholder="Email to invite" style={composerInputStyle} />
-                    <select value={inviteRole} onChange={e => setInviteRole(e.target.value)} style={composerInputStyle}>
-                      <option value="OFFICER">Officer</option>
-                      <option value="MANAGER">Manager</option>
-                      <option value="FINANCE">Finance</option>
-                      <option value="ADMIN">Admin</option>
-                    </select>
+                    <Select value={inviteRole} onValueChange={setInviteRole}>
+                      <SelectTrigger style={composerInputStyle}><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="OFFICER">Officer</SelectItem>
+                        <SelectItem value="MANAGER">Manager</SelectItem>
+                        <SelectItem value="FINANCE">Finance</SelectItem>
+                        <SelectItem value="ADMIN">Admin</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <div style={{ display: 'flex', gap: 8 }}>
-                      <Button type="submit" size="xs" disabled={inviteSaving} style={{ background: 'var(--teal)', color: '#fff', flex: 1 }}>{inviteSaving ? 'Sending…' : 'Send invite'}</Button>
+                      <Button type="submit" size="xs" disabled={inviteSaving} style={{ flex: 1 }}>{inviteSaving ? 'Sending…' : 'Send invite'}</Button>
                       <Button type="button" size="xs" variant="outline" onClick={() => setInviteComposerOpen(false)}>Cancel</Button>
                     </div>
                   </form>
@@ -1512,7 +1521,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                     disabled={aiSending}
                     style={{ flex: 1, padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, background: 'var(--bg)', color: 'var(--ink)' }}
                   />
-                  <Button type="submit" size="xs" disabled={aiSending || !aiInput.trim()} style={{ background: 'var(--teal)', color: '#fff' }}>Send</Button>
+                  <Button type="submit" size="xs" disabled={aiSending || !aiInput.trim()}>Send</Button>
                 </form>
               </div>
             )}

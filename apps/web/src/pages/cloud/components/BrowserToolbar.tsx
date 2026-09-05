@@ -45,7 +45,7 @@ export function BrowserToolbar(props: {
   if (selectedCount > 0) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '10px 20px', background: 'rgba(13, 148, 136, 0.12)', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
-        <button onClick={onClearSelection} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--teal)', display: 'flex' }}><Icon name="x" size={18} color="var(--teal)" /></button>
+        <button onClick={onClearSelection} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--teal)', display: 'flex' }} aria-label="Clear selection"><Icon name="x" size={18} color="var(--teal)" /></button>
         <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--teal)' }}>{selectedCount} selected</span>
         <div style={{ display: 'flex', gap: 6, marginLeft: 'auto' }}>
           {isTrashView ? (
@@ -149,7 +149,7 @@ export function BrowserToolbar(props: {
                 key={m} onClick={() => setViewMode(m)} title={m === 'grid' ? 'Grid view' : 'List view'}
                 style={{
                   padding: '6px 12px', display: 'flex', alignItems: 'center', border: 'none', cursor: 'pointer',
-                  background: viewMode === m ? 'var(--teal)' : 'var(--card-bg)', color: viewMode === m ? '#fff' : 'var(--ink3)',
+                  background: viewMode === m ? 'hsl(var(--primary))' : 'var(--card-bg)', color: viewMode === m ? 'hsl(var(--primary-foreground))' : 'var(--ink3)',
                   minHeight: 34, boxSizing: 'border-box',
                 }}
               >

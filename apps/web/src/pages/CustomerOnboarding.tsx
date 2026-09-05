@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
+import { Banner } from '../components/ui/alert.js';
 import { apiFetch } from '../lib/api.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { PageHeader } from '../components/PageHeader.js';
@@ -94,7 +95,7 @@ export const CustomerOnboarding: React.FC = () => {
       <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', padding: '14px 24px', flexShrink: 0 }}>
         <Link
           to={backHref()}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer', textDecoration: 'none', marginBottom: 10 }}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer', textDecoration: 'none', marginBottom: 10 }}
         >
           <Icon name="chevronLeft" size={13} /> Back
         </Link>
@@ -110,11 +111,7 @@ export const CustomerOnboarding: React.FC = () => {
       <form onSubmit={handleSubmit} style={{ flex: 1, overflowY: 'auto', padding: '32px 24px' }}>
         <div style={{ maxWidth: 640, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-          {error && (
-            <div style={{ padding: '10px 14px', background: 'var(--red-l)', border: '1px solid var(--red)', color: 'var(--red)', borderRadius: 8, fontSize: 13 }}>
-              {error}
-            </div>
-          )}
+          {error && <Banner variant="error">{error}</Banner>}
 
           <SectionCard title="Company">
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 14 }}>

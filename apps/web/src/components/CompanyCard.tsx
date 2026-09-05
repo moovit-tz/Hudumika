@@ -12,7 +12,7 @@ export const CompanyCard: React.FC<CompanyCardProps> = ({ company, onEdit, onDel
     <div
       style={{
         background: 'rgba(255,255,255,0.08)',
-        borderRadius: '9px',
+        borderRadius: 'var(--r)',
         padding: '16px',
         backdropFilter: 'blur(8px)',
         color: '#fff',

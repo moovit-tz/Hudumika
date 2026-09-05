@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 
@@ -48,19 +49,20 @@ export const TrackingIssues: React.FC = () => {
           />
         </div>
         <Link to="/tracking/issues/new"
-          style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 9, padding: '9px 16px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: 'pointer', textDecoration: 'none' }}>
+          style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', padding: '9px 16px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: 'pointer', textDecoration: 'none' }}>
           <Icon name="plus" size={15} /> Report Issue
         </Link>
       </div>
 
-      <div className="ds-tabs-list" data-variant="segmented" style={{ marginBottom: 16 }}>
-        {STATUS_FILTERS.map(s => (
-          <button key={s} type="button" className="ds-tabs-trigger" data-variant="segmented"
-            data-state={statusFilter === s ? 'active' : 'inactive'} onClick={() => setStatusFilter(s)}>
-            {s === 'All' ? 'All' : s.replace('_', ' ')} <span style={{ fontWeight: 700 }}>{counts[s] ?? 0}</span>
-          </button>
-        ))}
-      </div>
+      <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)} variant="segmented">
+        <TabsList style={{ marginBottom: 16 }}>
+          {STATUS_FILTERS.map(s => (
+            <TabsTrigger key={s} value={s}>
+              {s === 'All' ? 'All' : s.replace('_', ' ')} <span style={{ fontWeight: 700 }}>{counts[s] ?? 0}</span>
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
 
       <SectionCard>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>

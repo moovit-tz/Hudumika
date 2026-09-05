@@ -48,7 +48,7 @@ export function FileCard({ item, selected, onClick, onDoubleClick, onContextMenu
           {/* Header Bar inside card */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', gap: 8 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22, borderRadius: 5, background: badgeColor, color: '#fff', flexShrink: 0 }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22, borderRadius: 'var(--r-sm)', background: badgeColor, color: '#fff', flexShrink: 0 }}>
                 <Icon name={cfg.icon} size={13} />
               </span>
               <span title={item.name} style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>

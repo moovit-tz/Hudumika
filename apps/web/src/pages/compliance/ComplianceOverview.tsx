@@ -7,6 +7,7 @@ import {
 import { Icon } from '../../components/Icon.js';
 import type { IconName } from '../../components/Icon.js';
 import { Badge } from '../../components/ui/badge.js';
+import { SectionLoading } from '../../components/ui/spinner.js';
 import { FeaturedIcon } from '../../components/ui/featured-icon.js';
 import { apiFetch } from '../../lib/api.js';
 import { useIsDarkMode } from '../../hooks/useIsDarkMode.js';
@@ -249,7 +250,7 @@ export function ComplianceOverview() {
         <SectionCard title="Activity — last 14 days">
           <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 8 }}>Quick checks vs. guided wizard runs, by day.</div>
           {loading ? (
-            <div style={{ height: 220, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink3)', fontSize: 12.5 }}>Loading…</div>
+            <SectionLoading />
           ) : !hasTrendData ? (
             <div style={{ height: 220, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink3)', fontSize: 12.5 }}>No activity in the last 14 days.</div>
           ) : (
@@ -292,7 +293,7 @@ export function ComplianceOverview() {
         <SectionCard title="Risk breakdown">
           <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 8 }}>All quick-check results, by risk level.</div>
           {loading ? (
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink3)', fontSize: 12.5 }}>Loading…</div>
+            <SectionLoading />
           ) : totalChecks === 0 ? (
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink3)', fontSize: 12.5, minHeight: 160 }}>No checks run yet.</div>
           ) : (
@@ -330,7 +331,7 @@ export function ComplianceOverview() {
         <SectionCard title="Wizard runs by type">
           <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 8 }}>What the team has been searching for.</div>
           {loading ? (
-            <div style={{ height: 150, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink3)', fontSize: 12.5 }}>Loading…</div>
+            <SectionLoading />
           ) : kindBreakdown.length === 0 ? (
             <div style={{ height: 150, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink3)', fontSize: 12.5 }}>No wizard runs yet.</div>
           ) : (
@@ -373,7 +374,7 @@ export function ComplianceOverview() {
               <div style={{ fontSize: 11, color: 'var(--ink4)', marginTop: 6 }}>{quotaPct}% of monthly quota used</div>
             </>
           ) : (
-            <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginTop: 8 }}>Loading…</div>
+            <SectionLoading />
           )}
         </SectionCard>
       </div>
@@ -385,7 +386,7 @@ export function ComplianceOverview() {
         action={<span style={{ fontSize: 11.5, color: 'var(--ink4)' }}>Click a row to reopen and customize it</span>}
       >
         {loading ? (
-          <div style={{ padding: 20, fontSize: 12.5, color: 'var(--ink3)' }}>Loading…</div>
+          <SectionLoading />
         ) : historyRows.length === 0 ? (
           <div style={{ padding: 20, fontSize: 12.5, color: 'var(--ink3)' }}>No compliance activity yet — run a Quick Check or the Advanced Wizard.</div>
         ) : (

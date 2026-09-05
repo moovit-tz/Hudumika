@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Icon } from '../components/Icon.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { Badge } from '../components/ui/badge.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { DatePicker, toDateOnlyString } from '../components/ui/date-picker.js';
 import { apiFetch } from '../lib/api.js';
@@ -142,7 +143,7 @@ export function SealStockAccount() {
       <div className="seal-card">
         <div className="seal-card-body">
           {loading ? (
-            <div className="seal-empty">Loading…</div>
+            <SectionLoading />
           ) : periods.length === 0 ? (
             <div className="seal-empty">No stock-account periods generated yet.</div>
           ) : (

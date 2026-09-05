@@ -3,6 +3,10 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { Button } from '../components/ui/button.js';
+import { Badge } from '../components/ui/badge.js';
+import { SectionLoading } from '../components/ui/spinner.js';
+import { SectionCard } from '../components/SectionCard.js';
+import { PersonAvatar } from '../components/PersonAvatar.js';
 import { useFullLayout } from '../hooks/useFullLayout.js';
 import { useSupportMetrics, PeriodSwitcher, KpiCard, SHdr, StatRow } from './SupportOverviewShared.js';
 import './SupportOverview.css';
@@ -24,6 +28,9 @@ export const SupportOverview: React.FC = () => {
   const dayBars: number[] = metrics?.dailyBars || [];
   const dayMax  = Math.max(...dayBars, 1);
 
+  // Recent open/urgent tickets for quick action table
+  const recentTickets = tickets.slice(0, 5);
+
   if (loading) {
     return <div className="sov-loading">Loading support overview…</div>;
   }
@@ -33,17 +40,17 @@ export const SupportOverview: React.FC = () => {
       <div className="sov-container" style={isFullLayout ? { maxWidth: 'none' } : undefined}>
 
         <PageHeader
-          crumbs={['Support', 'Overview']}
+          crumbs={['Bliss', 'Support']}
           titlePlain="Support"
           titleEm="overview"
           subtitle={`${total} total cases · ${urgent} urgent · ${resRate}% resolution rate`}
           actions={
             <div className="sov-actions">
               <PeriodSwitcher period={period} setPeriod={setPeriod} />
-              <Button variant="outline" onClick={() => navigate('/bliss/overview/analytics')}>
+              <Button variant="outline" size="sm" onClick={() => navigate('/bliss/overview/analytics')}>
                 <Icon name="barChart" size={14} /> Analytics
               </Button>
-              <Button variant="outline" onClick={() => navigate('/bliss/overview/team')}>
+              <Button variant="outline" size="sm" onClick={() => navigate('/bliss/overview/team')}>
                 <Icon name="users" size={14} /> Team
               </Button>
               <Link to="/bliss/tickets" className="sov-all-tickets-btn">
@@ -65,7 +72,7 @@ export const SupportOverview: React.FC = () => {
         <div className="sov-charts-row sov-charts-row--2">
           <div className="sov-card">
             <SHdr title="Daily Ticket Volume (last 14 days)" action="View tickets" to="/bliss/tickets" />
-            {metricsLoading ? <div className="sov-empty">Loading…</div> : dayBars.length === 0 ? <div className="sov-empty">No data for this period.</div> : (
+            {metricsLoading ? <SectionLoading /> : dayBars.length === 0 ? <div className="sov-empty">No data for this period.</div> : (
               <>
                 <div className="sov-daybars">
                   {dayBars.map((v: number, i: number) => (
@@ -106,6 +113,54 @@ export const SupportOverview: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* Recent Open & Active Tickets Table */}
+        <SectionCard padded={false} title={`Recent Support Tickets (${tickets.length})`}>
+          {tickets.length === 0 ? (
+            <div style={{ padding: 24, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No active support tickets.</div>
+          ) : (
+            <div className="rtbl-wrap" style={{ overflowX: 'auto' }}>
+              <table className="rtbl" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                <thead>
+                  <tr style={{ background: 'var(--bg)', textAlign: 'left' }}>
+                    {['Reference', 'Customer', 'Category', 'Priority', 'Status', 'Actions'].map(h => (
+                      <th key={h} style={{ padding: '12px 16px', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentTickets.map(t => (
+                    <tr key={t.id} style={{ borderTop: '1px solid var(--border)' }}>
+                      <td style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--teal)', fontFamily: 'var(--mono)' }}>#{t.ref}</td>
+                      <td style={{ padding: '12px 16px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <PersonAvatar name={t.customer} size={22} />
+                          <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{t.customer}</span>
+                        </div>
+                      </td>
+                      <td style={{ padding: '12px 16px', color: 'var(--ink2)' }}>{t.category || 'General'}</td>
+                      <td style={{ padding: '12px 16px' }}>
+                        <Badge variant={t.priority === 'URGENT' ? 'error' : t.priority === 'HIGH' ? 'warning' : 'gray'}>
+                          {t.priority}
+                        </Badge>
+                      </td>
+                      <td style={{ padding: '12px 16px' }}>
+                        <Badge variant={t.status === 'RESOLVED' || t.status === 'CLOSED' ? 'success' : t.status === 'IN_PROGRESS' ? 'info' : 'warning'}>
+                          {t.status}
+                        </Badge>
+                      </td>
+                      <td style={{ padding: '12px 16px' }}>
+                        <Button variant="outline" size="sm" onClick={() => navigate('/bliss/tickets')}>
+                          View Ticket
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </SectionCard>
 
       </div>
     </div>

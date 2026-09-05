@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { DateTimePicker } from '../components/ui/date-picker.js';
@@ -29,18 +30,18 @@ interface OccupancyLocation {
 }
 interface OccupancyZone { zone: string; locations: OccupancyLocation[] }
 
-const inputStyle: React.CSSProperties = { width: '100%', padding: '8px 10px', borderRadius: 9, border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: 13, background: 'var(--bg)', color: 'var(--ink)', boxSizing: 'border-box' };
+const inputStyle: React.CSSProperties = { width: '100%', padding: '8px 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: 13, background: 'var(--bg)', color: 'var(--ink)', boxSizing: 'border-box' };
 const labelStyle: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 };
-const cardStyle: React.CSSProperties = { background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, overflow: 'hidden' };
+const cardStyle: React.CSSProperties = { background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', overflow: 'hidden' };
 
 function UpgradeEmptyState({ feature }: { feature: string }) {
   return (
     <div style={{ padding: 24 }}>
-      <div style={{ background: 'var(--white)', border: '1px dashed var(--border)', borderRadius: 9, padding: '60px 20px', textAlign: 'center' }}>
+      <div style={{ background: 'var(--white)', border: '1px dashed var(--border)', borderRadius: 'var(--r)', padding: '60px 20px', textAlign: 'center' }}>
         <Icon name="lock" size={28} color="var(--ink3)" />
         <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginTop: 12 }}>{feature} is an Enterprise feature</div>
         <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 6 }}>Upgrade your plan to unlock this tool.</div>
-        <a href="/subscription" style={{ display: 'inline-block', marginTop: 16, padding: '9px 18px', borderRadius: 9, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 600, fontSize: 13, textDecoration: 'none' }}>
+        <a href="/subscription" style={{ display: 'inline-block', marginTop: 16, padding: '9px 18px', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 600, fontSize: 13, textDecoration: 'none' }}>
           View plans
         </a>
       </div>
@@ -69,7 +70,7 @@ function AddLocationModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ background: 'var(--white)', borderRadius: 9, padding: 28, width: 420, maxWidth: '92vw', boxShadow: 'var(--elev-lg)' }}>
+      <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', padding: 28, width: 420, maxWidth: '92vw', boxShadow: 'var(--elev-lg)' }}>
         <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 18 }}>Add a storage location</div>
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div style={{ display: 'flex', gap: 10 }}>
@@ -122,7 +123,7 @@ function AddAppointmentModal({ vehicles, onClose, onAdded }: { vehicles: Vehicle
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ background: 'var(--white)', borderRadius: 9, padding: 28, width: 440, maxWidth: '92vw', boxShadow: 'var(--elev-lg)' }}>
+      <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', padding: 28, width: 440, maxWidth: '92vw', boxShadow: 'var(--elev-lg)' }}>
         <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 18 }}>Schedule a dock appointment</div>
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div style={{ display: 'flex', gap: 10 }}>
@@ -236,11 +237,13 @@ export const TrackingWarehouse: React.FC = () => {
             subtitle="Storage locations &amp; dock scheduling"
           />
         </div>
-        <div className="ds-tabs-list" data-variant="segmented">
-          <button type="button" className="ds-tabs-trigger" data-variant="segmented" data-state={tab === 'locations' ? 'active' : 'inactive'} onClick={() => setTab('locations')}>Locations</button>
-          <button type="button" className="ds-tabs-trigger" data-variant="segmented" data-state={tab === 'dock' ? 'active' : 'inactive'} onClick={() => setTab('dock')}>Dock Schedule</button>
-          <button type="button" className="ds-tabs-trigger" data-variant="segmented" data-state={tab === 'map' ? 'active' : 'inactive'} onClick={() => setTab('map')}>Warehouse Map</button>
-        </div>
+        <Tabs value={tab} onValueChange={(v) => setTab(v as any)} variant="segmented">
+          <TabsList>
+            <TabsTrigger value="locations">Locations</TabsTrigger>
+            <TabsTrigger value="dock">Dock Schedule</TabsTrigger>
+            <TabsTrigger value="map">Warehouse Map</TabsTrigger>
+          </TabsList>
+        </Tabs>
       </div>
 
       {tab === 'locations' && (
@@ -347,7 +350,7 @@ export const TrackingWarehouse: React.FC = () => {
                     const bg = pct == null ? 'var(--bg)' : pct > 85 ? 'rgba(220,38,38,0.1)' : pct > 60 ? 'rgba(202,138,4,0.1)' : 'rgba(22,163,74,0.1)';
                     return (
                       <div key={loc.id} title={`${loc.name} — ${loc.occupied_units} occupied${loc.capacity_units != null ? ` / ${loc.capacity_units} capacity` : ''}`}
-                        style={{ border: `1.5px solid ${color}`, background: bg, borderRadius: 9, padding: '10px 8px', textAlign: 'center' }}>
+                        style={{ border: `1.5px solid ${color}`, background: bg, borderRadius: 'var(--r)', padding: '10px 8px', textAlign: 'center' }}>
                         <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--mono)' }}>{loc.code}</div>
                         <div style={{ fontSize: 15, fontWeight: 800, color, marginTop: 4 }}>{pct != null ? `${pct}%` : '—'}</div>
                         <div style={{ fontSize: 10, color: 'var(--ink3)', marginTop: 2 }}>{pct == null ? 'No capacity set' : `${loc.occupied_units}/${loc.capacity_units}`}</div>

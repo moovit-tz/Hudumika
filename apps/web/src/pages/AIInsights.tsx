@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Icon } from '../components/Icon.js';
+import { Banner } from '../components/ui/alert.js';
 import { apiFetch } from '../lib/api.js';
 import '../pages/AI.css';
 import { PageHeader } from '../components/PageHeader.js';
@@ -48,7 +49,7 @@ export const AIInsights: React.FC = () => {
       {loading ? (
         <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Generating digest…</div>
       ) : error ? (
-        <div style={{ padding: '20px', borderRadius: 9, background: 'var(--red-l)', color: 'var(--red)', fontSize: 13 }}>{error}</div>
+        <Banner variant="error">{error}</Banner>
       ) : data ? (
         <>
           <div className="card" style={{ padding: '20px 22px', marginBottom: 20, borderLeft: '3px solid #6d28d9' }}>
@@ -87,8 +88,8 @@ export const AIInsights: React.FC = () => {
                         <td>{s.customer}</td>
                         <td className="col-hide-sm">{s.stage}</td>
                         <td>
-                          {s.sla_breached && <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--red)', background: 'var(--red-l)', padding: '2px 7px', borderRadius: 5, marginRight: 4 }}>SLA</span>}
-                          {s.demurrage_risk && <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--gold)', background: 'var(--gold-l)', padding: '2px 7px', borderRadius: 5 }}>Demurrage</span>}
+                          {s.sla_breached && <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--red)', background: 'var(--red-l)', padding: '2px 7px', borderRadius: 'var(--r-sm)', marginRight: 4 }}>SLA</span>}
+                          {s.demurrage_risk && <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--gold)', background: 'var(--gold-l)', padding: '2px 7px', borderRadius: 'var(--r-sm)' }}>Demurrage</span>}
                         </td>
                       </tr>
                     ))}

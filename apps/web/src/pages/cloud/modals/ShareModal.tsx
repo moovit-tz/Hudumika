@@ -50,7 +50,7 @@ export function ShareModal({ item, onClose, onSave }: { item: CloudFile; onClose
       <div className="card" style={{ width: 440, padding: 24 }} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
           <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>Share "{item.name}"</span>
-          <button onClick={onClose} className="dp-close"><Icon name="close" size={16} /></button>
+          <button onClick={onClose} className="dp-close" aria-label="Close"><Icon name="close" size={16} /></button>
         </div>
         <p style={{ fontSize: 13, color: 'var(--ink3)', margin: '0 0 16px' }}>Add people and choose what they can do.</p>
 

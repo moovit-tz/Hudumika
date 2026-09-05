@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Icon } from '../components/Icon.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { useComplyCertificates, useComplyObligations } from '../hooks/useComply.js';
 import { apiFetch } from '../lib/api.js';
 import { getHudumikaFooterHtml } from '../lib/watermark.js';
@@ -242,7 +243,7 @@ export function ComplyLicenseAutomation() {
               </ol>
 
               <label htmlFor="tausi-upload" className="comply-upload-zone" style={uploading ? { cursor: 'default', opacity: 0.7 } : undefined}>
-                <span style={uploading ? { display: 'inline-flex', animation: 'spin 1s linear infinite' } : { display: 'inline-flex' }}>
+                <span style={uploading ? { display: 'inline-flex', animation: 'ds-spin 1s linear infinite' } : { display: 'inline-flex' }}>
                   <Icon name={uploading ? 'refresh' : 'upload'} size={24} color="var(--comply)" />
                 </span>
                 <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--ink)' }}>{uploading ? 'Extracting...' : fileName || 'Click to upload screenshot / PDF'}</div>
@@ -311,7 +312,7 @@ export function ComplyLicenseAutomation() {
                 disabled={uploading}
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
               >
-                <span style={uploading ? { display: 'inline-flex', animation: 'spin 1s linear infinite' } : { display: 'inline-flex' }}>
+                <span style={uploading ? { display: 'inline-flex', animation: 'ds-spin 1s linear infinite' } : { display: 'inline-flex' }}>
                   <Icon name={uploading ? 'refresh' : 'zap'} size={13} />
                 </span>
                 <span>{uploading ? 'Capturing...' : 'Capture & Sync'}</span>
@@ -358,26 +359,24 @@ export function ComplyLicenseAutomation() {
           </div>
 
           {/* Results Tabs */}
-          <div className="ds-tabs-list" data-variant="segmented" style={{ padding: '0 24px' }}>
-            {([
-              { key: 'licenses', label: 'Licenses Extracted', icon: 'fileText' },
-              { key: 'levies', label: 'Payments & Levies', icon: 'receipt' },
-              { key: 'profile', label: 'LGA Identity', icon: 'user' },
-              { key: 'workflows', label: 'Suggested Workflows', icon: 'zap' }
-            ] as const).map(tab => (
-              <button
-                key={tab.key}
-                type="button"
-                className="ds-tabs-trigger"
-                data-variant="segmented"
-                data-state={activeTab === tab.key ? 'active' : 'inactive'}
-                onClick={() => setActiveTab(tab.key)}
-              >
-                <Icon name={tab.icon as any} style={{ width: 14, height: 14 }} />
-                {tab.label}
-              </button>
-            ))}
-          </div>
+          <Tabs value={activeTab} onValueChange={v => setActiveTab(v as any)} variant="segmented" style={{ padding: '0 24px' }}>
+            <TabsList>
+              {([
+                { key: 'licenses', label: 'Licenses Extracted', icon: 'fileText' },
+                { key: 'levies', label: 'Payments & Levies', icon: 'receipt' },
+                { key: 'profile', label: 'LGA Identity', icon: 'user' },
+                { key: 'workflows', label: 'Suggested Workflows', icon: 'zap' }
+              ] as const).map(tab => (
+                <TabsTrigger
+                  key={tab.key}
+                  value={tab.key}
+                >
+                  <Icon name={tab.icon as any} style={{ width: 14, height: 14 }} />
+                  {tab.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
 
           {/* Tab Body */}
           <div style={{ padding: 24 }}>
@@ -564,7 +563,7 @@ export function ComplyLicenseAutomation() {
                   disabled={uploading}
                   style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
                 >
-                  <span style={uploading ? { display: 'inline-flex', animation: 'spin 1s linear infinite' } : { display: 'inline-flex' }}>
+                  <span style={uploading ? { display: 'inline-flex', animation: 'ds-spin 1s linear infinite' } : { display: 'inline-flex' }}>
                     <Icon name={uploading ? 'refresh' : 'zap'} size={13} />
                   </span>
                   <span>{uploading ? 'Capturing...' : 'Capture & Sync'}</span>

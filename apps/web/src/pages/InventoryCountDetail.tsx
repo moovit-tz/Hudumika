@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
+import { PageLoading } from '../components/ui/spinner.js';
 import { Button } from '../components/ui/button.js';
 import { Input } from '../components/ui/input.js';
 import { apiFetch } from '../lib/api.js';
@@ -75,7 +76,7 @@ export function InventoryCountDetail() {
     }
   }
 
-  if (loading || !session) return <div className="inv-page"><div className="inv-empty">Loading…</div></div>;
+  if (loading || !session) return <div className="inv-page"><PageLoading /></div>;
 
   const uncountedLines = session.lines.filter(l => l.countedQty == null).length;
   const varianceLines = session.lines.filter(l => l.countedQty != null && l.countedQty !== l.expectedQty).length;

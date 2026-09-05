@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import './studio.css';
 import { apiFetch } from '../../lib/api.js';
 import { Icon } from '../../components/Icon.js';
+import { Banner } from '../../components/ui/alert.js';
 import { Button } from '../../components/ui/button.js';
 import { Badge } from '../../components/ui/badge.js';
 import { Input } from '../../components/ui/input.js';
@@ -84,7 +85,7 @@ export function WorkflowNew() {
         Name it and choose what sets it off. You will add the steps next, on the canvas.
       </div>
 
-      {error && <div style={{ padding: '9px 13px', background: 'var(--red-l)', color: 'var(--red)', borderRadius: 9, fontSize: 12.5, marginBottom: 14 }}>{error}</div>}
+      {error && <Banner variant="error" className="mb-3.5">{error}</Banner>}
 
       <div className="studio-field">
         <label className="studio-field-label">Name <span className="studio-req">*</span></label>

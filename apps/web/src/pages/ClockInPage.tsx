@@ -556,7 +556,7 @@ export function ClockInPage() {
                   <button type="button" onClick={() => handleReview(a.id, 'reject')} disabled={reviewingId === a.id} style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--red)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
                     <Icon name="x" size={13} /> Reject
                   </button>
-                  <button type="button" onClick={() => handleReview(a.id, 'approve')} disabled={reviewingId === a.id} style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: 'var(--green)', color: '#fff', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <button type="button" onClick={() => handleReview(a.id, 'approve')} disabled={reviewingId === a.id} style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: 'var(--green)', color: 'hsl(var(--green-foreground))', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
                     <Icon name="check" size={13} /> {reviewingId === a.id ? '…' : 'Approve'}
                   </button>
                 </div>
@@ -599,7 +599,7 @@ export function ClockInPage() {
                     <span style={{ width: 8, height: 8, borderRadius: '50%', background: activeSession.status === 'ON_BREAK' ? 'var(--gold)' : 'var(--ink3)' }}></span>
                     {activeSession.status === 'ON_BREAK' ? 'Resume Work' : 'Break'}
                   </button>
-                  <button type="button" onClick={handleStopClockOut} style={{ padding: '8px 20px', borderRadius: 20, border: 'none', background: 'var(--red)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <button type="button" onClick={handleStopClockOut} style={{ padding: '8px 20px', borderRadius: 20, border: 'none', background: 'var(--red)', color: 'hsl(var(--red-foreground))', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
                     <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#fff' }}></span>
                     Clock-out
                   </button>
@@ -867,7 +867,7 @@ export function ClockInPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setRejectTarget(null)}>Cancel</Button>
             <Button
-              style={{ background: 'var(--red)', color: '#fff' }}
+              style={{ background: 'var(--red)', color: 'hsl(var(--red-foreground))' }}
               disabled={reviewingId === rejectTarget}
               onClick={() => {
                 if (rejectTarget) submitReview(rejectTarget, 'reject', rejectNote);

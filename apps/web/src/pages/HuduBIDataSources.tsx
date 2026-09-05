@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { PageHeader } from '../components/PageHeader.js';
 import { Icon } from '../components/Icon.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { apiFetch } from '../lib/api.js';
 import { SectionCard } from '../components/SectionCard.js';
 
@@ -38,7 +39,7 @@ export function HuduBIDataSources() {
         subtitle="The tables HuduBI reads to build your snapshot — scoped to this workspace, with live row counts."
       />
 
-      {loading && <SectionCard><div style={{ textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading…</div></SectionCard>}
+      {loading && <SectionCard><SectionLoading /></SectionCard>}
 
       {!loading && (
         <>

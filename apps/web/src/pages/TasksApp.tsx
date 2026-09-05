@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Icon, type IconName } from '../components/Icon.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import {
@@ -239,28 +240,16 @@ export const TasksApp: React.FC = () => {
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {/* Display Mode Switcher */}
-            <div className="ds-tabs-list" data-variant="segmented">
-              <button
-                type="button"
-                className="ds-tabs-trigger"
-                data-variant="segmented"
-                data-state={displayMode === 'list' ? 'active' : 'inactive'}
-                onClick={() => setDisplayMode('list')}
-                title="List View"
-              >
-                <Icon name="list" size={14} /> List
-              </button>
-              <button
-                type="button"
-                className="ds-tabs-trigger"
-                data-variant="segmented"
-                data-state={displayMode === 'kanban' ? 'active' : 'inactive'}
-                onClick={() => setDisplayMode('kanban')}
-                title="Kanban Board View"
-              >
-                <Icon name="layers" size={14} /> Kanban
-              </button>
-            </div>
+            <Tabs value={displayMode} onValueChange={(v) => setDisplayMode(v as any)} variant="segmented">
+              <TabsList>
+                <TabsTrigger value="list" title="List View">
+                  <Icon name="list" size={14} /> List
+                </TabsTrigger>
+                <TabsTrigger value="kanban" title="Kanban Board View">
+                  <Icon name="layers" size={14} /> Kanban
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
 
             <div style={{ position: 'relative', width: isMobile ? 160 : 220 }}>
               <Icon name="search" size={14} color="var(--ink3)" style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)' }} />

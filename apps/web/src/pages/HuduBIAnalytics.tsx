@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { PageHeader } from '../components/PageHeader.js';
 import { apiFetch } from '../lib/api.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 
 interface Analytics {
   topCustomers: { name: string; cases: number; cifUsd: number }[];
@@ -53,7 +54,7 @@ export function HuduBIAnalytics() {
         subtitle="Where your consignment value and volume concentrate — computed from your shipment and customer records."
       />
 
-      {loading && <SectionCard><div style={{ textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading…</div></SectionCard>}
+      {loading && <SectionCard><SectionLoading /></SectionCard>}
 
       {data && (
         <>

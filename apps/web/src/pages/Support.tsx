@@ -6,6 +6,8 @@ import { apiFetch } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { useMediaQuery } from '../hooks/useMediaQuery.js';
 import { Icon } from '../components/Icon.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
+import { PageLoading } from '../components/ui/spinner.js';
 import type { IconName } from '../components/Icon.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { Customer360Sidebar, CustomerContext } from '../components/Customer360Sidebar.js';
@@ -56,7 +58,7 @@ function SendToComplyOSModal({ ticket, onClose }: { ticket: Ticket; onClose: () 
             <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>Send to ComplyOS</div>
             <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>Opens a draft compliance application pre-filled from this ticket — {ticket.ref}.</div>
           </div>
-          <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }} onClick={onClose}><Icon name="x" size={16} /></button>
+          <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }} onClick={onClose} aria-label="Close"><Icon name="x" size={16} /></button>
         </div>
         <div style={{ padding: '18px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div>
@@ -712,22 +714,22 @@ function ThreadPanel({ ticket, onStatusChange, authorName, onClose, onOpenDetail
         </div>
       </div>
 
-      {/* ── Channel filter tabs ── */}
-      <div className="spt-ch-tabs">
-        {MSG_TABS.map(tab => {
-          const count  = msgCounts[tab.key];
-          const active = msgFilter === tab.key;
-          return (
-            <button key={tab.key} type="button"
-              className={`spt-ch-tab${active ? ' spt-ch-tab--active' : ''}`}
-              onClick={() => setMsgFilter(tab.key)}>
-              <span className="spt-ch-dot" />
-              {tab.label}
-              <span className="spt-ch-count">{count}</span>
-            </button>
-          );
-        })}
-      </div>
+      {/* ── Channel filter tabs — the shared segmented ds-tabs ── */}
+      <Tabs value={msgFilter} onValueChange={(v) => setMsgFilter(v as any)} variant="segmented">
+        <TabsList>
+          {MSG_TABS.map(tab => {
+            const count  = msgCounts[tab.key];
+            const active = msgFilter === tab.key;
+            return (
+              <TabsTrigger key={tab.key} value={tab.key}>
+                <span className="spt-ch-dot" />
+                {tab.label}
+                <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 20, lineHeight: 1.5, background: active ? 'var(--teal-l)' : 'var(--bg)', color: active ? 'var(--teal)' : 'var(--ink3)' }}>{count}</span>
+              </TabsTrigger>
+            );
+          })}
+        </TabsList>
+      </Tabs>
 
       {/* ── Message thread ── */}
       <div className="spt-msgs">
@@ -1438,7 +1440,7 @@ export const Support: React.FC = () => {
   const custNames = Array.from(new Set(tickets.map(t => t.customer))).sort();
 
   if (loading) return (
-    <div className="spt-shell spt-shell--loading">Loading…</div>
+    <div className="spt-shell spt-shell--loading"><PageLoading /></div>
   );
 
   return (

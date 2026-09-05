@@ -165,7 +165,7 @@ export function GlPeriods() {
               <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 16 }}>New Period</div>
               <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 }}>Name</label>
               <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. FY2026 or August 2026"
-                style={{ width: '100%', padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 9, fontSize: 13, outline: 'none', boxSizing: 'border-box', marginBottom: 14 }} />
+                style={{ width: '100%', padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13, outline: 'none', boxSizing: 'border-box', marginBottom: 14 }} />
               <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 }}>Type</label>
               <div style={{ marginBottom: 14 }}>
                 <Select value={periodType} onValueChange={v => setPeriodType(v as 'MONTH' | 'YEAR')}>
@@ -194,7 +194,7 @@ export function GlPeriods() {
               <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 14 }}>The original close remains on record — reopening doesn't erase it.</div>
               <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 }}>Reason (required)</label>
               <textarea value={reopenReason} onChange={e => setReopenReason(e.target.value)} rows={3}
-                style={{ width: '100%', padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 9, fontSize: 13, outline: 'none', boxSizing: 'border-box', resize: 'vertical' }} />
+                style={{ width: '100%', padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13, outline: 'none', boxSizing: 'border-box', resize: 'vertical' }} />
               <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 16 }}>
                 <button type="button" className="btn btn-secondary btn-sm" onClick={() => setReopening(null)}>Cancel</button>
                 <button type="button" className="btn btn-primary btn-sm" onClick={reopenPeriod}>Reopen</button>

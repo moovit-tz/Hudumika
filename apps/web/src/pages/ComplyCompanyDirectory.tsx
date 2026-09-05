@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { apiFetch } from '../lib/api.js';
 import { formatDashedDigits9 } from '../lib/complyBrelaFormat.js';
 import type { Customer } from '@hudumika/types';
@@ -187,7 +188,7 @@ export function ComplyCompanyDirectory() {
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={6} className="comply-empty-hint" style={{ textAlign: 'center' }}>Loading…</td></tr>
+                  <tr><td colSpan={6}><SectionLoading /></td></tr>
                 ) : companies.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="comply-empty-hint" style={{ textAlign: 'center' }}>

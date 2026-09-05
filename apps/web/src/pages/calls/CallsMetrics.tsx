@@ -39,7 +39,7 @@ function cssVar(name: string, fallback: string) {
 function StatCard({ label, value, icon }: { label: string; value: string; icon: string }) {
   return (
     <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
-      <div style={{ width: 36, height: 36, borderRadius: 9, background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+      <div style={{ width: 36, height: 36, borderRadius: 'var(--r)', background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
         <Icon name={icon as any} size={16} color="var(--teal)" />
       </div>
       <div>

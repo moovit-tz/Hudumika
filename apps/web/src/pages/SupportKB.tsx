@@ -3,6 +3,8 @@ import { PageHeader } from '../components/PageHeader.js';
 import { apiFetch } from '../lib/api.js';
 import './SupportKB.css';
 import { Combobox } from '../components/ui/combobox.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 
 interface KbCategory { id: string; name: string; description: string | null }
 interface KbArticle {
@@ -53,13 +55,15 @@ export const SupportKB: React.FC = () => {
         }
       />
 
-      <div className="skb-tabs">
-        <button onClick={() => setActiveTab('articles')} className={`skb-tab${activeTab === 'articles' ? ' skb-tab--active' : ''}`}>Articles</button>
-        <button onClick={() => setActiveTab('categories')} className={`skb-tab${activeTab === 'categories' ? ' skb-tab--active' : ''}`}>Categories</button>
-      </div>
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} variant="segmented">
+        <TabsList>
+          <TabsTrigger value="articles">Articles</TabsTrigger>
+          <TabsTrigger value="categories">Categories</TabsTrigger>
+        </TabsList>
+      </Tabs>
 
       {loading ? (
-        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading…</div>
+        <SectionLoading />
       ) : activeTab === 'articles' ? (
         <div className="skb-table-card">
           <div className="skb-table-wrap">

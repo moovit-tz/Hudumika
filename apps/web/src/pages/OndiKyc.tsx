@@ -8,7 +8,9 @@ import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
+import { Spinner } from '../components/ui/spinner.js';
 import { Badge } from '../components/ui/badge.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 
 interface KycQueueRow {
   id: string;
@@ -210,42 +212,24 @@ export const OndiKyc: React.FC = () => {
               </div>
 
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                <select
-                  value={docFilter}
-                  onChange={e => setDocFilter(e.target.value)}
-                  style={{
-                    padding: '6px 12px',
-                    fontSize: 12.5,
-                    border: '1px solid var(--border)',
-                    borderRadius: 'var(--r-sm, 6px)',
-                    background: 'var(--bg)',
-                    color: 'var(--ink)',
-                    fontWeight: 600
-                  }}
-                >
-                  <option value="all">All Documents</option>
-                  <option value="national_id">National ID</option>
-                  <option value="passport">Passport</option>
-                  <option value="drivers_license">Driver's License</option>
-                </select>
+                <Select value={docFilter} onValueChange={setDocFilter}>
+                  <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Documents</SelectItem>
+                    <SelectItem value="national_id">National ID</SelectItem>
+                    <SelectItem value="passport">Passport</SelectItem>
+                    <SelectItem value="drivers_license">Driver's License</SelectItem>
+                  </SelectContent>
+                </Select>
 
-                <select
-                  value={mrzFilter}
-                  onChange={e => setMrzFilter(e.target.value)}
-                  style={{
-                    padding: '6px 12px',
-                    fontSize: 12.5,
-                    border: '1px solid var(--border)',
-                    borderRadius: 'var(--r-sm, 6px)',
-                    background: 'var(--bg)',
-                    color: 'var(--ink)',
-                    fontWeight: 600
-                  }}
-                >
-                  <option value="all">All Checksums</option>
-                  <option value="valid">Valid MRZ</option>
-                  <option value="invalid">Invalid / Flagged</option>
-                </select>
+                <Select value={mrzFilter} onValueChange={setMrzFilter}>
+                  <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Checksums</SelectItem>
+                    <SelectItem value="valid">Valid MRZ</SelectItem>
+                    <SelectItem value="invalid">Invalid / Flagged</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
@@ -333,7 +317,7 @@ export const OndiKyc: React.FC = () => {
 
             {queue === null && (
               <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>
-                <div className="spinner" style={{ width: 24, height: 24, border: '3px solid var(--border)', borderTop: '3px solid var(--teal)', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 12px' }} />
+                <Spinner size={24} thickness={3} style={{ margin: '0 auto 12px' }} />
                 <span>Loading queue submissions…</span>
               </div>
             )}
@@ -384,7 +368,7 @@ export const OndiKyc: React.FC = () => {
             }}>
               {previewLoading && (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-                  <div className="spinner" style={{ width: 28, height: 28, border: '3px solid var(--border)', borderTop: '3px solid var(--teal)', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                  <Spinner size={28} thickness={3} />
                   <span style={{ fontSize: 12, color: 'var(--ink3)' }}>Loading scan image...</span>
                 </div>
               )}

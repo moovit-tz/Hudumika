@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { PageHeader } from '../components/PageHeader.js';
 import { Icon } from '../components/Icon.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { Button } from '../components/ui/button.js';
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
@@ -124,7 +125,7 @@ export function SuperAdminSigningCert() {
       <div style={{ marginTop: 20 }}>
       <SectionCard title="Currently signing with">
         {loading ? (
-          <div style={{ color: 'var(--ink3)', fontSize: 13 }}>Loading…</div>
+          <SectionLoading />
         ) : active ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--green-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>

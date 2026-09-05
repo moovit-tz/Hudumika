@@ -6,6 +6,7 @@ import { AppSidebar } from '../components/AppSidebar.js';
 import { AppHeader } from '../components/AppHeader.js';
 import { GoogleWorkspaceRightSidebar } from '../components/GoogleWorkspaceRightSidebar.js';
 import { PageLayout } from '../components/PageLayout.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { Contacts } from '../pages/Contacts.js';
 import { ContactsGoogleCallback } from '../pages/ContactsGoogleCallback.js';
 import { ContactsProvider, useContacts } from './contacts-context.js';
@@ -95,7 +96,7 @@ function GoogleSyncItem({ collapsed, onSynced }: { collapsed: boolean; onSynced:
       <PopoverContent align="start" side="right" className="w-72 p-3">
         <div className="text-sm font-semibold text-foreground mb-2">Google Contacts</div>
         {loading || !status ? (
-          <div className="text-xs text-muted-foreground">Loading…</div>
+          <SectionLoading />
         ) : !status.configured ? (
           <div className="text-xs text-muted-foreground leading-relaxed">
             Not set up yet — add a Google OAuth Client ID/Secret in

@@ -151,8 +151,8 @@ export const FinanceTrialBalance: React.FC = () => {
       />
 
       {/* Balance status banner */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 18px', borderRadius: 9, marginBottom: 20, background: balanced ? '#ecfdf5' : '#fef2f2', border: `1px solid ${balanced ? '#059669' : '#ef4444'}40` }}>
-        <div style={{ width: 32, height: 32, borderRadius: 9, background: balanced ? '#059669' : '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 18px', borderRadius: 'var(--r)', marginBottom: 20, background: balanced ? '#ecfdf5' : '#fef2f2', border: `1px solid ${balanced ? '#059669' : '#ef4444'}40` }}>
+        <div style={{ width: 32, height: 32, borderRadius: 'var(--r)', background: balanced ? '#059669' : '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <Icon name={balanced ? 'check' : 'alertTriangle'} size={16} color="#fff" />
         </div>
         <div>
@@ -272,7 +272,7 @@ export const FinanceTrialBalance: React.FC = () => {
                       <td style={{ fontFamily:'var(--mono)', color:'var(--ink3)', fontWeight:600 }}>{acc.account_code}</td>
                       <td style={{ color:'var(--ink)', fontWeight:500 }}>{acc.account_name}</td>
                       <td className="col-hide-sm">
-                        <span style={{ fontSize:10, fontWeight:700, color:cfg.color, background:cfg.bg, padding:'2px 7px', borderRadius: 9 }}>{cfg.label.slice(0,-1)}</span>
+                        <span style={{ fontSize:10, fontWeight:700, color:cfg.color, background:cfg.bg, padding:'2px 7px', borderRadius: 'var(--r)' }}>{cfg.label.slice(0,-1)}</span>
                       </td>
                       <td style={{ textAlign:'right', fontFamily:'var(--mono)', color: acc.closing_debit > 0 ? '#0891b2' : 'var(--ink3)', fontWeight: acc.closing_debit > 0 ? 600 : 400 }}>
                         {fmt(acc.closing_debit, cur)}

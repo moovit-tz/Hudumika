@@ -1,6 +1,7 @@
 // ─── MeetingLobby.tsx — pre-join device check & lobby ──────
 import React, { useEffect, useRef, useState } from 'react';
 import { Icon, type IconName } from '../../components/Icon.js';
+import { Banner } from '../../components/ui/alert.js';
 import { Button } from '../../components/ui/button.js';
 import { Badge } from '../../components/ui/badge.js';
 import { Checkbox } from '../../components/ui/checkbox.js';
@@ -171,7 +172,7 @@ export function MeetingLobby({ title, kind, onJoin, onCancel, hideWorkspaceLinks
                     <button
                       type="button"
                       onClick={() => setAudioEnabled(v => !v)}
-                      style={{ width: 40, height: 40, borderRadius: '50%', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: audioEnabled ? 'rgba(255,255,255,0.12)' : 'var(--red)', color: '#fff', transition: 'all 0.15s ease' }}
+                      style={{ width: 40, height: 40, borderRadius: '50%', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: audioEnabled ? 'rgba(255,255,255,0.12)' : 'var(--red)', color: audioEnabled ? '#fff' : 'hsl(var(--red-foreground))', transition: 'all 0.15s ease' }}
                     >
                       <Icon name={audioEnabled ? 'mic' : ('micOff' as IconName)} size={16} color="#ffffff" />
                     </button>
@@ -188,7 +189,7 @@ export function MeetingLobby({ title, kind, onJoin, onCancel, hideWorkspaceLinks
                       <button
                         type="button"
                         onClick={() => setVideoEnabled(v => !v)}
-                        style={{ width: 40, height: 40, borderRadius: '50%', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: videoEnabled ? 'rgba(255,255,255,0.12)' : 'var(--red)', color: '#fff', transition: 'all 0.15s ease' }}
+                        style={{ width: 40, height: 40, borderRadius: '50%', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: videoEnabled ? 'rgba(255,255,255,0.12)' : 'var(--red)', color: videoEnabled ? '#fff' : 'hsl(var(--red-foreground))', transition: 'all 0.15s ease' }}
                       >
                         <Icon name="camera" size={16} color="#ffffff" />
                       </button>
@@ -222,11 +223,7 @@ export function MeetingLobby({ title, kind, onJoin, onCancel, hideWorkspaceLinks
 
           {/* Right Column: Device Setup & Integrations Controls */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {error && (
-              <div style={{ fontSize: 12, color: 'var(--red)', background: 'var(--red-l)', border: '1px solid var(--red)', borderRadius: 'var(--r-lg)', padding: '10px 14px' }}>
-                {error}
-              </div>
-            )}
+            {error && <Banner variant="error">{error}</Banner>}
 
             {/* Selector: Microphone input */}
             <div>

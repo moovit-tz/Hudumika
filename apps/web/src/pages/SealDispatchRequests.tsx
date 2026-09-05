@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '../components/ui/badge.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { Button } from '../components/ui/button.js';
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
@@ -78,7 +79,7 @@ export function SealDispatchRequests() {
       <div className="seal-card">
         <div className="seal-card-body">
           {loading ? (
-            <div className="seal-empty">Loading…</div>
+            <SectionLoading />
           ) : requests.length === 0 ? (
             <div className="seal-empty">No dispatch requests yet.</div>
           ) : (

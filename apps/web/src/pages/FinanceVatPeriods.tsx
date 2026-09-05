@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { PageHeader } from '../components/PageHeader.js';
 import { MetricsRow } from '../components/MetricCard.js';
 import { Icon } from '../components/Icon.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { Badge } from '../components/ui/badge.js';
 import { apiFetch } from '../lib/api.js';
 import { useCompany } from '../data/companyStore.js';
@@ -231,7 +232,7 @@ export function FinanceVatPeriods() {
             </tr>
           </thead>
           <tbody>
-            {loading && <tr><td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: 'var(--ink3)' }}>Loading…</td></tr>}
+            {loading && <tr><td colSpan={6} style={{ padding: '40px' }}><SectionLoading style={{ padding: 0 }} /></td></tr>}
             {!loading && periods.length === 0 && (
               <tr><td colSpan={6} style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--ink3)' }}>
                 No filing periods yet. Create one above to file a return.

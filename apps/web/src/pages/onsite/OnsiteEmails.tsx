@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { PageHeader } from '../../components/PageHeader.js';
 import { apiFetch } from '../../lib/api.js';
 import { Icon } from '../../components/Icon.js';
+import { SectionLoading } from '../../components/ui/spinner.js';
 import type { OnsiteDomain } from '@hudumika/types';
 import './Onsite.css';
 
@@ -72,7 +73,7 @@ export function OnsiteEmails() {
       />
 
       {loading ? (
-        <div className="onsite-card"><p style={{ color: 'var(--ink2)' }}>Loading…</p></div>
+        <div className="onsite-card"><SectionLoading /></div>
       ) : (
         <>
           <div className="onsite-card" style={{ marginBottom: '1rem' }}>

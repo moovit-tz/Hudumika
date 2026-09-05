@@ -3,6 +3,9 @@ import { useIsMobile } from '../hooks/useIsMobile.js';
 import { MetricsRow } from '../components/MetricCard.js';
 import { FormPage } from '../components/FormPage.js';
 import { Icon } from '../components/Icon.js';
+import { Badge } from '../components/ui/badge.js';
+import { Banner } from '../components/ui/alert.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { getCompany } from '../data/companyStore.js';
 import { useCurrency } from '../hooks/useCurrency.js';
 import { apiFetch } from '../lib/api.js';
@@ -187,14 +190,21 @@ function newKey() { return Math.random().toString(36).slice(2, 9); }
 
 // ── StatusBadge ────────────────────────────────────────────────────────────────
 
+const STATUS_VARIANT: Record<BillStatus, 'gray' | 'info' | 'warning' | 'success' | 'error'> = {
+  DRAFT: 'gray', POSTED: 'info', PARTIAL: 'warning', PAID: 'success', OVERDUE: 'error', VOID: 'gray',
+};
 function StatusBadge({ status }: { status: BillStatus }) {
   const c = STATUS_CFG[status];
-  return <span style={{ display:'inline-flex', alignItems:'center', gap:4, padding:'2px 9px', borderRadius: 9, fontSize:11, fontWeight:700, background:c.bg, color:c.color, whiteSpace:'nowrap' }}><span style={{ width:5, height:5, borderRadius:'50%', background:c.color, flexShrink:0 }} />{c.label}</span>;
+  return (
+    <Badge variant={STATUS_VARIANT[status] ?? 'gray'} className="inline-flex items-center gap-1 whitespace-nowrap">
+      <span style={{ width:5, height:5, borderRadius:'50%', background:'currentColor', flexShrink:0 }} />{c.label}
+    </Badge>
+  );
 }
 
 function FreqBadge({ freq }: { freq: RecurFreq }) {
   const c = FREQ_CFG[freq];
-  return <span style={{ padding:'2px 9px', borderRadius: 9, fontSize:11, fontWeight:700, background:c.bg, color:c.color }}>{c.label}</span>;
+  return <span style={{ padding:'2px 9px', borderRadius: 'var(--r)', fontSize:11, fontWeight:700, background:c.bg, color:c.color }}>{c.label}</span>;
 }
 
 // ── Pay Modal ──────────────────────────────────────────────────────────────────
@@ -211,11 +221,11 @@ function PayModal({ bill, onPay, onClose }: {
   const [method, setMethod]   = useState('Bank Transfer');
   const [ref, setRef]         = useState('');
   const [note, setNote]       = useState('');
-  const inp: React.CSSProperties = { width:'100%', padding:'9px 12px', border:'1px solid var(--border)', borderRadius: 9, fontSize:13, outline:'none', background:'var(--white)', boxSizing:'border-box' as const, color:'var(--ink)', fontFamily:'inherit' };
+  const inp: React.CSSProperties = { width:'100%', padding:'9px 12px', border:'1px solid var(--border)', borderRadius: 'var(--r)', fontSize:13, outline:'none', background:'var(--white)', boxSizing:'border-box' as const, color:'var(--ink)', fontFamily:'inherit' };
   const lbl: React.CSSProperties = { fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:5 };
   return (
     <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', zIndex:1000, display:'flex', alignItems:'center', justifyContent:'center' }}>
-      <div style={{ background:'var(--white)', borderRadius: 9, padding:28, width:440, boxShadow: 'var(--elev-lg)' }}>
+      <div style={{ background:'var(--white)', borderRadius: 'var(--r)', padding:28, width:440, boxShadow: 'var(--elev-lg)' }}>
         <div style={{ fontSize:16, fontWeight:800, color:'var(--ink)', marginBottom:4 }}>Record Payment</div>
         <div style={{ fontSize:13, color:'var(--ink3)', marginBottom:20 }}>{bill.bill_number} · Balance: <strong>{fmt(balance, bill.currency)}</strong></div>
         <div style={{ marginBottom:14 }}>
@@ -385,7 +395,7 @@ function BillFormView({ initial, allBills, suppliers, onSupplierCreated, onSave,
           </div>
 
           <div style={sec}>Line Items</div>
-          <div style={{ border:'1px solid var(--border)', borderRadius: 9, overflow:'hidden', marginBottom:14 }}>
+          <div style={{ border:'1px solid var(--border)', borderRadius: 'var(--r)', overflow:'hidden', marginBottom:14 }}>
             <table style={{ width:'100%', borderCollapse:'collapse', fontSize:12.5 }}>
               <thead>
                 <tr style={{ background:'var(--bg)' }}>
@@ -513,7 +523,7 @@ function RecurFormView({ initial, suppliers, onSupplierCreated, onSave, onClose 
     setSupplierItem(item);
     set('supplier_id', item?.id ?? '');
   }
-  const inp: React.CSSProperties = { width:'100%', padding:'9px 12px', border:'1px solid var(--border)', borderRadius: 9, fontSize:13, outline:'none', background:'var(--white)', boxSizing:'border-box' as const, color:'var(--ink)', fontFamily:'inherit' };
+  const inp: React.CSSProperties = { width:'100%', padding:'9px 12px', border:'1px solid var(--border)', borderRadius: 'var(--r)', fontSize:13, outline:'none', background:'var(--white)', boxSizing:'border-box' as const, color:'var(--ink)', fontFamily:'inherit' };
   const lbl: React.CSSProperties = { fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:5 };
   const total = f.amount * (1 + f.tax_rate / 100);
   return (
@@ -570,7 +580,7 @@ function RecurFormView({ initial, suppliers, onSupplierCreated, onSave, onClose 
             <div><label style={lbl}>End Date (optional)</label><DatePicker date={parseDateOnly(f.end_date)} onChange={d => set('end_date', toDateOnlyString(d))} /></div>
           </div>
           <div style={{ marginBottom:14 }}><label style={lbl}>Payment Terms</label><Select value={f.payment_terms} onValueChange={v => set('payment_terms', v)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{['Net 15','Net 30','Net 45','Net 60','COD','Advance'].map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent></Select></div>
-          <div style={{ background:'var(--teal-l)', borderRadius: 9, padding:'14px 16px' }}>
+          <div style={{ background:'var(--teal-l)', borderRadius: 'var(--r)', padding:'14px 16px' }}>
             <div style={{ fontSize:11, fontWeight:700, color:'var(--teal)', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:8 }}>Preview</div>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
               <div><div style={{ fontWeight:700, color:'var(--ink)', fontSize:13 }}>{f.name || 'Template Name'}</div><div style={{ fontSize:11.5, color:'var(--ink3)', marginTop:2 }}>{supplierItem?.label ?? '—'} · {FREQ_CFG[f.frequency].label}</div></div>
@@ -638,7 +648,7 @@ function DetailView({ bill, payments, supplierMap, onBack, onEdit, onPay, onPost
             <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:4 }}>
               <span style={{ fontFamily:'var(--mono)', fontSize:18, fontWeight:800, color:'var(--teal)' }}>{bill.bill_number}</span>
               <StatusBadge status={bill.status} />
-              {bill.recurring_id && <span style={{ fontSize:11, fontWeight:700, color:'#6e40c9', background:'#f3eeff', padding:'2px 8px', borderRadius: 9 }}>Recurring</span>}
+              {bill.recurring_id && <span style={{ fontSize:11, fontWeight:700, color:'#6e40c9', background:'#f3eeff', padding:'2px 8px', borderRadius: 'var(--r)' }}>Recurring</span>}
             </div>
             <div style={{ fontSize:14, fontWeight:700, color:'var(--ink)', marginBottom:2 }}>{bill.supplier_name}</div>
             <div style={{ fontSize:12.5, color:'var(--ink3)' }}>Billed {fmtDate(bill.bill_date)} · Due {fmtDate(bill.due_date)}{over ? ` — ${daysOverdue(bill.due_date)} days overdue` : ''}</div>
@@ -651,7 +661,7 @@ function DetailView({ bill, payments, supplierMap, onBack, onEdit, onPay, onPost
             {bill.status !== 'VOID' && bill.status !== 'PAID' && <button type="button" title="Void bill" onClick={onVoid} style={{ padding:'var(--ds-btn-py) 10px', border:'1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--r)', background:'rgba(239,68,68,0.04)', color:'var(--red)', cursor:'pointer', fontWeight:600, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Void</button>}
           </div>
         </div>
-        {over && <div style={{ marginTop:12, padding:'10px 14px', background:'var(--red-l)', borderRadius: 9, fontSize:12.5, fontWeight:600, color:'var(--red)' }}>⚠ Payment overdue by {daysOverdue(bill.due_date)} days. Balance: {fmt(balance, bill.currency)}</div>}
+        {over && <Banner variant="error" className="mt-3">Payment overdue by {daysOverdue(bill.due_date)} days. Balance: {fmt(balance, bill.currency)}</Banner>}
       </div>
 
       <div style={{ flex:1, display:'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 300px', overflow:'hidden' }}>
@@ -692,7 +702,7 @@ function DetailView({ bill, payments, supplierMap, onBack, onEdit, onPay, onPost
           <div>
             <div style={{ fontSize:12, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:12 }}>Payment History</div>
             {myPmts.length === 0 ? (
-              <div style={{ padding:'24px', textAlign:'center', background:'var(--bg)', borderRadius: 9, fontSize:13, color:'var(--ink3)' }}>No payments recorded yet.</div>
+              <div style={{ padding:'24px', textAlign:'center', background:'var(--bg)', borderRadius: 'var(--r)', fontSize:13, color:'var(--ink3)' }}>No payments recorded yet.</div>
             ) : (
               <div style={{ display:'flex', flexDirection:'column', gap:0 }}>
                 {myPmts.map((p, i) => (
@@ -737,7 +747,7 @@ function DetailView({ bill, payments, supplierMap, onBack, onEdit, onPay, onPost
 
         {/* Right sidebar */}
         <div style={{ overflowY:'auto', padding:'22px 20px' }}>
-          <div style={{ background:'var(--bg)', borderRadius: 9, padding:'16px', marginBottom:14 }}>
+          <div style={{ background:'var(--bg)', borderRadius: 'var(--r)', padding:'16px', marginBottom:14 }}>
             <div style={{ fontSize:11, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:12 }}>Bill Summary</div>
             {[
               { l:'Supplier',   v: bill.supplier_name },
@@ -753,13 +763,13 @@ function DetailView({ bill, payments, supplierMap, onBack, onEdit, onPay, onPost
               </div>
             ))}
           </div>
-          <div style={{ background: over ? 'var(--red-l)' : balance === 0 ? 'var(--green-l)' : 'var(--gold-l)', borderRadius: 9, padding:'16px', textAlign:'center' }}>
+          <div style={{ background: over ? 'var(--red-l)' : balance === 0 ? 'var(--green-l)' : 'var(--gold-l)', borderRadius: 'var(--r)', padding:'16px', textAlign:'center' }}>
             <div style={{ fontSize:11, fontWeight:700, color: over ? 'var(--red)' : balance === 0 ? 'var(--green)' : 'var(--gold)', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:6 }}>{balance === 0 ? 'Fully Paid' : over ? 'OVERDUE' : 'Balance Due'}</div>
             <div style={{ fontSize:26, fontWeight:900, color: over ? 'var(--red)' : balance === 0 ? 'var(--green)' : 'var(--ink)', letterSpacing:'-0.5px' }}>{fmt(balance, bill.currency)}</div>
             <div style={{ fontSize:12, color:'var(--ink3)', marginTop:4 }}>of {fmt(bill.total, bill.currency)} total</div>
           </div>
           {bill.supplier_id && (
-            <div style={{ marginTop:14, padding:'12px 14px', border:'1px solid var(--border)', borderRadius: 9 }}>
+            <div style={{ marginTop:14, padding:'12px 14px', border:'1px solid var(--border)', borderRadius: 'var(--r)' }}>
               <div style={{ fontSize:11, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:8 }}>Supplier</div>
               <div style={{ fontWeight:700, fontSize:13, color:'var(--ink)', marginBottom:3 }}>{supplierMap[bill.supplier_id]?.name}</div>
               <div style={{ fontSize:12, color:'var(--teal)' }}>{supplierMap[bill.supplier_id]?.email}</div>
@@ -768,7 +778,7 @@ function DetailView({ bill, payments, supplierMap, onBack, onEdit, onPay, onPost
           )}
 
           {/* EFD/VFD receipt verification against the TRA verify portal */}
-          <div style={{ marginTop:14, padding:'12px 14px', border:'1px solid var(--border)', borderRadius: 9 }}>
+          <div style={{ marginTop:14, padding:'12px 14px', border:'1px solid var(--border)', borderRadius: 'var(--r)' }}>
             <div style={{ fontSize:11, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:8 }}>EFD/VFD Verification</div>
             {bill.efd_verified ? (
               <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:8 }}>
@@ -823,14 +833,14 @@ function RecurringTab({ recurring, onEdit, onToggle, onGenerate, onDelete, isMob
           { label:'Monthly Commitment', value:`$${totalMonthly.toFixed(0)}`, color:'var(--blue)', bg:'var(--blue-l)', icon:'dollarSign' as const },
           { label:'Bills Generated', value:String(recurring.reduce((a,r) => a+r.bills_generated,0)), color:'var(--green)', bg:'var(--green-l)', icon:'receipt' as const },
         ].map(c => (
-          <div key={c.label} style={{ background:c.bg, borderRadius: 9, padding:'16px 18px', display:'flex', alignItems:'center', gap:12 }}>
-            <div style={{ width:36, height:36, borderRadius: 9, background:c.color, display:'flex', alignItems:'center', justifyContent:'center' }}><Icon name={c.icon} size={16} color="#fff" /></div>
+          <div key={c.label} style={{ background:c.bg, borderRadius: 'var(--r)', padding:'16px 18px', display:'flex', alignItems:'center', gap:12 }}>
+            <div style={{ width:36, height:36, borderRadius: 'var(--r)', background:c.color, display:'flex', alignItems:'center', justifyContent:'center' }}><Icon name={c.icon} size={16} color="#fff" /></div>
             <div><div style={{ fontWeight:800, fontSize:20, color:c.color }}>{c.value}</div><div style={{ fontSize:12, color:'var(--ink3)', marginTop:1 }}>{c.label}</div></div>
           </div>
         ))}
       </div>
 
-      <div style={{ background:'var(--white)', borderRadius: 9, border:'1px solid var(--border)', overflow:'hidden' }}>
+      <div style={{ background:'var(--white)', borderRadius: 'var(--r)', border:'1px solid var(--border)', overflow:'hidden' }}>
         {recurring.length === 0 ? (
           <div style={{ padding:'64px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign:'center' }}>
             <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
@@ -859,7 +869,7 @@ function RecurringTab({ recurring, onEdit, onToggle, onGenerate, onDelete, isMob
                     <td style={{ padding:'12px 14px' }}><span style={{ fontSize:11, fontWeight:700, color:CAT_CFG[r.category].color }}>{CAT_CFG[r.category].label}</span></td>
                     <td style={{ padding:'12px 14px', color: dueSoon && r.state==='ACTIVE' ? 'var(--gold)' : 'var(--ink2)', fontWeight: dueSoon ? 700 : 400 }}>{fmtDate(r.next_due)}{dueSoon && r.state==='ACTIVE' && <span style={{ fontSize:10, display:'block', color:'var(--gold)' }}>Due soon</span>}</td>
                     <td style={{ padding:'12px 14px', textAlign:'center', fontWeight:700, color:'var(--ink2)' }}>{r.bills_generated}</td>
-                    <td style={{ padding:'12px 14px' }}><span style={{ padding:'2px 9px', borderRadius: 9, fontSize:11, fontWeight:700, background: r.state==='ACTIVE'?'var(--green-l)':r.state==='PAUSED'?'var(--gold-l)':'var(--bg)', color: r.state==='ACTIVE'?'var(--green)':r.state==='PAUSED'?'var(--gold)':'var(--ink3)' }}>{r.state}</span></td>
+                    <td style={{ padding:'12px 14px' }}><span style={{ padding:'2px 9px', borderRadius: 'var(--r)', fontSize:11, fontWeight:700, background: r.state==='ACTIVE'?'var(--green-l)':r.state==='PAUSED'?'var(--gold-l)':'var(--bg)', color: r.state==='ACTIVE'?'var(--green)':r.state==='PAUSED'?'var(--gold)':'var(--ink3)' }}>{r.state}</span></td>
                     <td style={{ padding:'12px 10px' }}>
                       <div style={{ display:'flex', gap:2 }}>
                         <button type="button" title="Generate bill now" onClick={() => onGenerate(r)} disabled={r.state !== 'ACTIVE'}
@@ -1110,7 +1120,7 @@ export const Bills: React.FC = () => {
       )}
       {voidTarget && (
         <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.4)', zIndex:1000, display:'flex', alignItems:'center', justifyContent:'center' }}>
-          <div style={{ background:'var(--white)', borderRadius: 9, padding:28, width:400 }}>
+          <div style={{ background:'var(--white)', borderRadius: 'var(--r)', padding:28, width:400 }}>
             <div style={{ fontSize:16, fontWeight:700, marginBottom:8 }}>Void Bill</div>
             <div style={{ fontSize:13, color:'var(--ink2)', marginBottom:20 }}>Void <strong>{voidTarget.bill_number}</strong>? This cannot be undone. Payments already recorded will remain.</div>
             <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
@@ -1158,14 +1168,13 @@ export const Bills: React.FC = () => {
               one row per CLAUDE.md's toolbar convention (was 3 stacked rows). */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', justifyContent: 'space-between', padding: '16px 0', marginBottom: 18 }}>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
-              <div className="ds-tabs-list" data-variant="segmented">
-                {([{k:'bills',l:'Bills'},{k:'recurring',l:`Recurring (${recurring.length})`}] as {k:MainTab;l:string}[]).map(t => (
-                  <button key={t.k} type="button" title={t.l} className="ds-tabs-trigger" data-variant="segmented"
-                    data-state={tab === t.k ? 'active' : 'inactive'} onClick={() => setTab(t.k)}>
-                    {t.l}
-                  </button>
-                ))}
-              </div>
+              <Tabs value={tab} onValueChange={v => setTab(v as MainTab)} variant="segmented">
+                <TabsList>
+                  {([{k:'bills',l:'Bills'},{k:'recurring',l:`Recurring (${recurring.length})`}] as {k:MainTab;l:string}[]).map(t => (
+                    <TabsTrigger key={t.k} value={t.k} title={t.l}>{t.l}</TabsTrigger>
+                  ))}
+                </TabsList>
+              </Tabs>
               {tab === 'bills' && (
                 <>
                   <SingleSelectFilter
@@ -1222,7 +1231,7 @@ export const Bills: React.FC = () => {
           ) : (
             <>
               {/* Bills Table */}
-              <div style={{ background:'var(--white)', borderRadius: 9, border:'1px solid var(--border)', overflow:'hidden' }}>
+              <div style={{ background:'var(--white)', borderRadius: 'var(--r)', border:'1px solid var(--border)', overflow:'hidden' }}>
                 {displayed.length === 0 ? (
                   <div style={{ padding:'64px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign:'center' }}>
                     <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>

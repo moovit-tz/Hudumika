@@ -12,7 +12,7 @@ import { SectionCard } from '../components/SectionCard.js';
 interface Geofence { id: string; name: string; zone_type: string; center_lat: number; center_lon: number; radius_km: number; active: boolean }
 
 const DEFAULT_CENTER: [number, number] = [-6.7924, 39.2083];
-const inputStyle: React.CSSProperties = { width: '100%', padding: '8px 10px', borderRadius: 9, border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: 13, background: 'var(--bg)', color: 'var(--ink)', boxSizing: 'border-box' };
+const inputStyle: React.CSSProperties = { width: '100%', padding: '8px 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: 13, background: 'var(--bg)', color: 'var(--ink)', boxSizing: 'border-box' };
 const labelStyle: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 };
 
 function ClickToSetCenter({ onPick }: { onPick: (pos: [number, number]) => void }) {
@@ -43,10 +43,10 @@ function AddGeofenceModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ background: 'var(--white)', borderRadius: 9, padding: 28, width: 520, maxWidth: '92vw', boxShadow: 'var(--elev-lg)' }}>
+      <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', padding: 28, width: 520, maxWidth: '92vw', boxShadow: 'var(--elev-lg)' }}>
         <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>Create a geofence</div>
         <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 14 }}>Click the map to set the center point</div>
-        <div style={{ height: 220, borderRadius: 9, overflow: 'hidden', border: '1px solid var(--border)', marginBottom: 14 }}>
+        <div style={{ height: 220, borderRadius: 'var(--r)', overflow: 'hidden', border: '1px solid var(--border)', marginBottom: 14 }}>
           <MapContainer center={center} zoom={11} style={{ height: '100%', width: '100%' }}>
             <MapTileLayer />
             <ClickToSetCenter onPick={setCenter} />
@@ -165,7 +165,7 @@ export const TrackingGeofences: React.FC = () => {
         </button>
       </div>
 
-      <div style={{ height: 320, borderRadius: 9, overflow: 'hidden', border: '1px solid var(--border)', marginBottom: 20 }}>
+      <div style={{ height: 320, borderRadius: 'var(--r)', overflow: 'hidden', border: '1px solid var(--border)', marginBottom: 20 }}>
         <MapContainer center={mapCenter} zoom={11} style={{ height: '100%', width: '100%' }}>
           <MapTileLayer />
           {geofences.map(g => (

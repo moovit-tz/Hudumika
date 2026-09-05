@@ -299,7 +299,7 @@ export const QuickComplianceCheck: React.FC = () => {
             </div>
 
             {error && (
-              <div style={{ padding: '10px 14px', background: 'color-mix(in srgb, var(--red) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--red) 25%, transparent)', borderRadius: 9, fontSize: 12.5, color: 'var(--red)' }}>
+              <div style={{ padding: '10px 14px', background: 'color-mix(in srgb, var(--red) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--red) 25%, transparent)', borderRadius: 'var(--r)', fontSize: 12.5, color: 'var(--red)' }}>
                 {error}
               </div>
             )}

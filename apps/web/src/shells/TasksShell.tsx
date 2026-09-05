@@ -4,6 +4,7 @@ import { WorkspaceApp } from './WorkspaceApp.js';
 import { AppSidebar } from '../components/AppSidebar.js';
 import { AppHeader } from '../components/AppHeader.js';
 import { Icon } from '../components/Icon.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { TasksApp } from '../pages/TasksApp.js';
 import { EntityPicker, type PickerItem } from '../components/EntityPicker.js';
 import { Popover, PopoverTrigger, PopoverContent } from '../components/ui/popover.js';
@@ -70,7 +71,7 @@ function SharePopover({ listId, listName }: { listId: string; listName: string }
       <PopoverContent align="start" style={{ width: 280 }} onClick={e => e.stopPropagation()}>
         <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>Share "{listName}"</div>
         {shares === null ? (
-          <div style={{ fontSize: 12, color: 'var(--ink3)' }}>Loading…</div>
+          <SectionLoading />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
             {shares.length === 0 && <div style={{ fontSize: 12, color: 'var(--ink3)' }}>Not shared with anyone yet.</div>}

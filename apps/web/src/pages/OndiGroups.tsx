@@ -163,7 +163,7 @@ export const OndiGroups: React.FC = () => {
         subtitle="Bulk-manage role access by group — static member assignments or dynamic rule-based evaluators."
         actions={!showNew ? (
           <button type="button" onClick={() => { setShowNew(true); resetForm(); }}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 18px', fontFamily: 'var(--font)', fontWeight: 700, fontSize: 13, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0, 181, 137, 0.3)' }}>
+            style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 8, padding: '8px 18px', fontFamily: 'var(--font)', fontWeight: 700, fontSize: 13, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0, 181, 137, 0.3)' }}>
             <Icon name="plus" size={15} /> New Group
           </button>
         ) : undefined}
@@ -263,7 +263,7 @@ export const OndiGroups: React.FC = () => {
               )}
               <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
                 <button type="button" disabled={creating} onClick={createGroup}
-                  style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: 'var(--teal)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', opacity: creating ? 0.6 : 1, boxShadow: '0 2px 8px rgba(0, 181, 137, 0.3)' }}>
+                  style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 700, fontSize: 13, cursor: 'pointer', opacity: creating ? 0.6 : 1, boxShadow: '0 2px 8px rgba(0, 181, 137, 0.3)' }}>
                   {creating ? 'Creating…' : 'Create Group'}
                 </button>
                 <button type="button" onClick={() => { setShowNew(false); resetForm(); }}
@@ -350,7 +350,7 @@ export const OndiGroups: React.FC = () => {
                             </Select>
                           </div>
                           <button type="button" onClick={() => attachRole(g.id)}
-                            style={{ fontSize: 12.5, fontWeight: 700, color: '#fff', background: 'var(--teal)', border: 'none', borderRadius: 8, padding: '0 16px', cursor: 'pointer' }}>
+                            style={{ fontSize: 12.5, fontWeight: 700, color: 'hsl(var(--primary-foreground))', background: 'hsl(var(--primary))', border: 'none', borderRadius: 8, padding: '0 16px', cursor: 'pointer' }}>
                             Attach
                           </button>
                         </div>

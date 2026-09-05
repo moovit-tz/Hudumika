@@ -6,6 +6,7 @@ import { useEnabledApps, isAppEnabled } from '../hooks/useEnabledApps.js';
 import { LauncherAppSvg as AppIcon, LAUNCHER_APPS } from '../components/LauncherApps.js';
 import { Icon } from '../components/Icon.js';
 import { SingleSelectFilter } from '../components/ui/filter-dropdown.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { SkeletonPage } from '../components/ui/skeleton.js';
 import { SetupGuideWidget } from '../components/SetupGuideWidget.js';
 import { AttendanceStatusBanner } from '../components/AttendanceStatusBanner.js';
@@ -230,26 +231,18 @@ export function WorkspaceHome({ externalSearch }: WorkspaceHomeProps) {
 
               <div className="wh-toolbar-actions" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 {/* List / Grid Toggle Buttons */}
-                <div className="wh-toggle-group" style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
-                  <button
-                    type="button"
-                    className={`wh-toggle-btn ${viewMode === 'list' ? 'active' : ''}`}
-                    onClick={() => handleViewChange('list')}
-                    style={{ padding: 'var(--ds-btn-py-sm) 14px', fontSize: 13, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6, background: viewMode === 'list' ? 'var(--bg, #f1f5f9)' : 'transparent', border: 'none', cursor: 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}
-                  >
-                    <Icon name="list" size={14} />
-                    <span>List View</span>
-                  </button>
-                  <button
-                    type="button"
-                    className={`wh-toggle-btn ${viewMode === 'grid' ? 'active' : ''}`}
-                    onClick={() => handleViewChange('grid')}
-                    style={{ padding: 'var(--ds-btn-py-sm) 14px', fontSize: 13, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6, background: viewMode === 'grid' ? 'var(--bg, #f1f5f9)' : 'transparent', border: 'none', cursor: 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}
-                  >
-                    <Icon name="grid" size={14} />
-                    <span>Grid View</span>
-                  </button>
-                </div>
+                <Tabs value={viewMode} onValueChange={v => handleViewChange(v as typeof viewMode)} variant="segmented">
+                  <TabsList>
+                    <TabsTrigger value="list">
+                      <Icon name="list" size={14} />
+                      <span>List View</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="grid">
+                      <Icon name="grid" size={14} />
+                      <span>Grid View</span>
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
 
                 {/* Filter Department */}
                 <SingleSelectFilter
@@ -347,7 +340,7 @@ export function WorkspaceHome({ externalSearch }: WorkspaceHomeProps) {
                           </td>
                           <td>
                             <Link to={app.path} onClick={() => handleAppClick(app)} style={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none' }}>
-                              <div style={{ width: 36, height: 36, borderRadius: 9, background: 'color-mix(in srgb, var(--card-color) 15%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                              <div style={{ width: 36, height: 36, borderRadius: 'var(--r)', background: 'color-mix(in srgb, var(--card-color) 15%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                                 <AppIcon id={app.id} color={appColor} logoUrl={branding.getAppLogo(app.id)} size={20} />
                               </div>
                               <div style={{ minWidth: 0 }}>

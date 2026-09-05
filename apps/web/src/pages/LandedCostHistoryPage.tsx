@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader.js';
 import { Icon } from '../components/Icon.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { PaginationBar } from '../components/PaginationBar.js';
 import { Badge } from '../components/ui/badge.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
@@ -401,7 +402,7 @@ export const LandedCostHistoryPage: React.FC = () => {
                 </tr>
               )}
               {loading && (
-                <tr><td colSpan={8} style={{ padding: '48px 18px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading…</td></tr>
+                <tr><td colSpan={8} style={{ padding: '48px 18px' }}><SectionLoading style={{ padding: 0 }} /></td></tr>
               )}
             </tbody>
           </table>
@@ -426,7 +427,7 @@ export const LandedCostHistoryPage: React.FC = () => {
             </SheetTitle>
           </SheetHeader>
           <div style={{ flex: 1, overflowY: 'auto', padding: 20, fontSize: 13 }}>
-            {detailLoading && <div style={{ color: 'var(--ink3)' }}>Loading…</div>}
+            {detailLoading && <SectionLoading />}
             {detail && !detailLoading && (
               <>
                 <div style={{ fontWeight: 800, fontSize: 15, color: 'var(--ink)', marginBottom: 2 }}>

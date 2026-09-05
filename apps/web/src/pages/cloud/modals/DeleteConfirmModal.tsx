@@ -13,7 +13,7 @@ export function DeleteConfirmModal({ item, isTrashView, onClose, onConfirm }: { 
       <div className="card" style={{ width: 380, padding: 24 }} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>{isTrashView ? 'Delete Forever' : `Move ${item.type === 'folder' ? 'Folder' : 'File'} to Trash`}</span>
-          <button onClick={onClose} className="dp-close"><Icon name="close" size={16} /></button>
+          <button onClick={onClose} className="dp-close" aria-label="Close"><Icon name="close" size={16} /></button>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 14, background: 'var(--bg)', borderRadius: 'var(--r)', marginBottom: 16 }}>
           {item.type === 'folder'

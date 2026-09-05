@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Icon } from '../../components/Icon.js';
+import { SectionLoading } from '../../components/ui/spinner.js';
+import { Tabs, TabsList, TabsTrigger } from '../../components/ui/tabs.js';
 import type { IconName } from '../../components/Icon.js';
 import { FeaturedIcon } from '../../components/ui/featured-icon.js';
 import { Badge } from '../../components/ui/badge.js';
@@ -204,7 +206,7 @@ export function PreviewPanel({ item, onClose, onStar, onDownload, onDelete, onSh
     <div style={{ width: 300, flexShrink: 0, borderLeft: '1px solid var(--border)', background: 'var(--white)', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderBottom: '1px solid var(--border)' }}>
         <span style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>Details</span>
-        <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, borderRadius: 'var(--r-sm)', color: 'var(--ink3)' }}><Icon name="close" size={16} /></button>
+        <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, borderRadius: 'var(--r-sm)', color: 'var(--ink3)' }} aria-label="Close"><Icon name="close" size={16} /></button>
       </div>
 
       <div style={{ padding: 24, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, borderBottom: '1px solid var(--border)', textAlign: 'center' }}>
@@ -251,14 +253,13 @@ export function PreviewPanel({ item, onClose, onStar, onDownload, onDelete, onSh
         </button>
       </div>
 
-      <div className="ds-tabs-list" data-variant="segmented">
-        {(['details', 'activity', 'comments'] as const).map(t => (
-          <button key={t} type="button" className="ds-tabs-trigger" data-variant="segmented"
-            data-state={tab === t ? 'active' : 'inactive'} onClick={() => setTab(t)}
-            style={{ flex: 1, textTransform: 'capitalize' }}
-          >{t}</button>
-        ))}
-      </div>
+      <Tabs value={tab} onValueChange={v => setTab(v as typeof tab)} variant="segmented">
+        <TabsList>
+          {(['details', 'activity', 'comments'] as const).map(t => (
+            <TabsTrigger key={t} value={t} style={{ flex: 1, textTransform: 'capitalize' }}>{t}</TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
 
       {tab === 'details' ? (
         <>
@@ -293,7 +294,7 @@ export function PreviewPanel({ item, onClose, onStar, onDownload, onDelete, onSh
                 <input ref={versionInputRef} type="file" onChange={handleVersionFileChosen} style={{ display: 'none' }} />
               </div>
               {versionsLoading && (
-                <div style={{ fontSize: 12, color: 'var(--ink3)' }}>Loading…</div>
+                <SectionLoading />
               )}
               {!versionsLoading && versions.length === 0 && (
                 <div style={{ fontSize: 12, color: 'var(--ink3)' }}>No prior versions — this is the only one on record.</div>
@@ -341,7 +342,7 @@ export function PreviewPanel({ item, onClose, onStar, onDownload, onDelete, onSh
       ) : tab === 'activity' ? (
         <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 16 }}>
           {activityLoading && (
-            <div style={{ fontSize: 12.5, color: 'var(--ink3)', textAlign: 'center', padding: '12px 0' }}>Loading…</div>
+            <SectionLoading />
           )}
           {!activityLoading && activity.length === 0 && (
             <div style={{ fontSize: 12.5, color: 'var(--ink3)', textAlign: 'center', padding: '12px 0' }}>No activity recorded yet</div>
@@ -366,7 +367,7 @@ export function PreviewPanel({ item, onClose, onStar, onDownload, onDelete, onSh
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
           <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
             {commentsLoading && (
-              <div style={{ fontSize: 12.5, color: 'var(--ink3)', textAlign: 'center', padding: '12px 0' }}>Loading…</div>
+              <SectionLoading />
             )}
             {!commentsLoading && comments.length === 0 && (
               <div style={{ fontSize: 12.5, color: 'var(--ink3)', textAlign: 'center', padding: '12px 0' }}>No comments yet</div>

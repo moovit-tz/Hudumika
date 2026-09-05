@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { AreaChart, Area, XAxis, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import './TrackingDrivers.css';
 import { PageHeader } from '../components/PageHeader.js';
@@ -86,12 +88,14 @@ export const TrackingDrivers: React.FC = () => {
       {/* ── Main Area ── */}
       <div className="drv-main">
         <div className="drv-filters-row">
-          <div className="drv-tabs">
-            <div className={`drv-tab ${filter === 'All' ? 'active' : ''}`} onClick={() => setFilter('All')}>All <span className="drv-tab-count">({stats.all})</span></div>
-            <div className={`drv-tab ${filter === 'Available' ? 'active' : ''}`} onClick={() => setFilter('Available')}>Available <span className="drv-tab-count">({stats.available})</span></div>
-            <div className={`drv-tab ${filter === 'On Route' ? 'active' : ''}`} onClick={() => setFilter('On Route')}>On Route <span className="drv-tab-count">({stats.onRoute})</span></div>
-            <div className={`drv-tab ${filter === 'Off Duty' ? 'active' : ''}`} onClick={() => setFilter('Off Duty')}>Off Duty <span className="drv-tab-count">({stats.offDuty})</span></div>
-          </div>
+          <Tabs value={filter} onValueChange={v => setFilter(v as typeof filter)} variant="segmented">
+            <TabsList>
+              <TabsTrigger value="All">All <span className="drv-tab-count">({stats.all})</span></TabsTrigger>
+              <TabsTrigger value="Available">Available <span className="drv-tab-count">({stats.available})</span></TabsTrigger>
+              <TabsTrigger value="On Route">On Route <span className="drv-tab-count">({stats.onRoute})</span></TabsTrigger>
+              <TabsTrigger value="Off Duty">Off Duty <span className="drv-tab-count">({stats.offDuty})</span></TabsTrigger>
+            </TabsList>
+          </Tabs>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             <div className="drv-search-bar">
               <Icon name="search" size={16} color="var(--ink3)" />
@@ -120,13 +124,15 @@ export const TrackingDrivers: React.FC = () => {
         </div>
 
         {loading ? (
-          <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>Loading drivers...</div>
+          <SectionLoading />
         ) : filteredDrivers.length === 0 ? (
           <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>No drivers match this filter.</div>
         ) : view === 'grid' ? (
           <div className="drv-grid">
             {filteredDrivers.map(d => (
-              <div key={d.id} className={`drv-card ${selectedDriver?.id === d.id ? 'selected' : ''}`} onClick={() => setSelectedDriver(d)}>
+              <div key={d.id} className={`drv-card ${selectedDriver?.id === d.id ? 'selected' : ''}`} onClick={() => setSelectedDriver(d)}
+                role="button" tabIndex={0}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedDriver(d); } }}>
                 <div className="drv-card-top">
                   <PersonAvatar userId={d.id} kind="drivers" name={d.name} size={44} style={{ marginBottom: 8, border: '2px solid var(--white)', boxShadow: 'var(--elev)' }} />
                   <div className="drv-name">{d.name}</div>

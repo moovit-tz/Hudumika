@@ -9,6 +9,8 @@ import { useIsMobile } from '../hooks/useIsMobile.js';
 import './SuperAdmin.css';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs.js';
+import { SectionLoading } from '../components/ui/spinner.js';
+import { Banner } from '../components/ui/alert.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { SingleSelectFilter } from '../components/ui/filter-dropdown.js';
 import { FeatureToggleRow } from '../components/ui/list-item-row.js';
@@ -250,7 +252,7 @@ function KPICard({ title, value, change, icon, color, spark, hint, emptyHint }: 
             <div style={{ fontSize:11, color:'var(--ink3)', marginTop:8 }}>{sub}</div>
           ) : null}
         </div>
-        <div style={{ width:46, height:46, borderRadius: 9, background:`${color}18`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+        <div style={{ width:46, height:46, borderRadius: 'var(--r)', background:`${color}18`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
           <Icon name={icon} size={21} color={color} />
         </div>
       </div>
@@ -1234,7 +1236,7 @@ function FeatureGatesEditor({ packageCode }: { packageCode: string }) {
         </Button>
       </div>
       {loading ? (
-        <div style={{ fontSize:12, color:'var(--ink3)', padding:'10px 0' }}>Loading…</div>
+        <SectionLoading />
       ) : (
         <DataTable headers={['Feature', 'Enabled']}>
           {ALL_FEATURE_KEYS.map(key => {
@@ -1322,7 +1324,7 @@ function AppQuotasEditor({ packageCode }: { packageCode: string }) {
         </Button>
       </div>
       {loading ? (
-        <div style={{ fontSize:12, color:'var(--ink3)', padding:'10px 0' }}>Loading…</div>
+        <SectionLoading />
       ) : (
         <DataTable headers={['App', 'Monthly limit']}>
           {ALL_FEATURE_KEYS.map(key => {
@@ -1437,7 +1439,7 @@ export function PackagesView() {
           <div style={{ display:'flex', gap:10, alignItems:'center' }}>
             <div style={{ display:'flex', border:'1px solid var(--border)', borderRadius:6, overflow:'hidden' }}>
               {(['monthly','annual'] as const).map(b=>(
-                <button key={b} onClick={()=>setBilling(b)} style={{ padding:'var(--ds-btn-py-sm) 14px', border:'none', cursor:'pointer', fontSize:12, fontWeight:600, background:billing===b?'var(--teal)':'var(--white)', color:billing===b?'#fff':'var(--ink3)', textTransform:'capitalize', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>{b}</button>
+                <button key={b} onClick={()=>setBilling(b)} style={{ padding:'var(--ds-btn-py-sm) 14px', border:'none', cursor:'pointer', fontSize:12, fontWeight:600, background:billing===b?'hsl(var(--primary))':'var(--white)', color:billing===b?'hsl(var(--primary-foreground))':'var(--ink3)', textTransform:'capitalize', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>{b}</button>
               ))}
             </div>
             <button onClick={()=>setShowAdd(true)} className="btn btn-primary btn-sm" style={{gap:6}}><Icon name="plus" size={13}/>New Package</button>
@@ -1467,7 +1469,7 @@ export function PackagesView() {
             )}
 
             <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:16 }}>
-              <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:40, height:40, borderRadius: 9, background:`${pkg.color}18` }}>
+              <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:40, height:40, borderRadius: 'var(--r)', background:`${pkg.color}18` }}>
                 <Icon name="package" size={18} color={pkg.color} />
               </span>
               <div>
@@ -2320,7 +2322,7 @@ export function ActivityView() {
           const cfg = ACT_CFG[a.category as ActivityType] ?? ACT_CFG.system;
           return (
             <div key={a.id} style={{ display:'flex', alignItems:'flex-start', gap:14, padding:'14px 22px', borderBottom: i < paged.length-1 ? '1px solid var(--border)' : 'none' }}>
-              <div style={{ width:34, height:34, borderRadius: 9, background:cfg.bg, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, marginTop:2 }}>
+              <div style={{ width:34, height:34, borderRadius: 'var(--r)', background:cfg.bg, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, marginTop:2 }}>
                 <Icon name={cfg.icon as any} size={16} color={cfg.color} />
               </div>
               <div style={{ flex:1 }}>
@@ -2330,7 +2332,7 @@ export function ActivityView() {
                   <span style={{ fontSize:13, color:'var(--ink2)' }}>{a.action}</span>
                 </div>
                 <div style={{ display:'flex', alignItems:'center', gap:10, marginTop:4, flexWrap:'wrap' }}>
-                  <span style={{ fontSize:11, fontWeight:600, color:cfg.color, background:cfg.bg, padding:'2px 8px', borderRadius: 9 }}>{TYPE_LABELS[a.category as ActivityType] ?? a.category}</span>
+                  <span style={{ fontSize:11, fontWeight:600, color:cfg.color, background:cfg.bg, padding:'2px 8px', borderRadius: 'var(--r)' }}>{TYPE_LABELS[a.category as ActivityType] ?? a.category}</span>
                   {a.target_name && <span style={{ fontSize:12, color:'var(--ink3)' }}>{a.target_name}</span>}
                   {/* The company as it is named now, when it still exists.
                       The snapshot above survives its deletion either way. */}
@@ -2591,7 +2593,7 @@ export function SettingsView() {
           </div>
           <button type="button" title="Toggle maintenance mode" onClick={toggleMaintenance}
             style={{ padding:'var(--ds-btn-py) 20px', borderRadius:'var(--r)', border:'none', cursor:'pointer', fontWeight:700, fontSize:13, flexShrink:0,
-              background: maintenance ? 'var(--red)' : 'var(--teal)', color:'#fff', fontFamily:'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+              background: maintenance ? 'var(--red)' : 'hsl(var(--primary))', color: maintenance ? 'hsl(var(--red-foreground))' : 'hsl(var(--primary-foreground))', fontFamily:'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
             {maintenance ? 'Disable Maintenance' : 'Enable Maintenance'}
           </button>
         </div>
@@ -2757,9 +2759,8 @@ export function SettingsView() {
         <TabsContent value="api">
       {/* ── API & Webhooks ── */}
       <SectionCard title="API & Webhooks" sub="Rate limiting, CORS, and webhook security for platform APIs" section="api">
-        <div style={{ display:'flex', alignItems:'center', gap:8, fontSize:12, color:'var(--gold)', background:'var(--gold-l)', border:'1px solid var(--gold)', borderRadius:8, padding:'8px 12px', marginBottom:16 }}>
-          <Icon name="alertTriangle" size={13} />
-          Rate limit and CORS origins are enforced platform-wide. Key rotation and the webhook secret below are saved but not yet acted on anywhere.
+        <div style={{ marginBottom:16 }}>
+          <Banner variant="warning">Rate limit and CORS origins are enforced platform-wide. Key rotation and the webhook secret below are saved but not yet acted on anywhere.</Banner>
         </div>
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))', gap:16 }}>
           <Field label="API Rate Limit" hint="Maximum requests per minute for a normal app session (partner API keys keep their own fixed 300/min)">
@@ -2846,7 +2847,7 @@ export function SettingsView() {
                 );
               })}
               {jobs.jobs.length === 0 && (
-                <tr><td colSpan={3} style={{ padding: 24, textAlign: 'center', color: 'var(--ink3)' }}>Loading…</td></tr>
+                <tr><td colSpan={3}><SectionLoading /></td></tr>
               )}
             </tbody>
           </table>
@@ -2875,7 +2876,7 @@ export function SettingsView() {
               <div className="sa-server-value sa-server-value--mono">{value}</div>
             </div>
           )) : (
-            <div style={{ padding: 24, textAlign: 'center', color: 'var(--ink3)' }}>Loading…</div>
+            <SectionLoading />
           )}
         </div>
       </SectionCard>
@@ -2983,16 +2984,16 @@ export function AppStatusView() {
         }
       />
 
-      {/* Toolbar: search + status filter + sort + view toggle */}
-      <div style={{ display:'flex', flexWrap:'wrap', gap:10, marginBottom:18 }}>
-        <div style={{ position:'relative', flex:'1 1 240px', minWidth:200 }}>
+      {/* Toolbar: single-row search + status filter + sort + view toggle */}
+      <div className="sa-app-status-toolbar">
+        <div className="sa-app-status-search">
           <Icon name="search" size={14} color="var(--ink3)" style={{ position:'absolute', left:12, top:'50%', transform:'translateY(-50%)' }} />
           <input
             className="input-field"
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search apps…"
-            style={{ width:'100%', boxSizing:'border-box', paddingLeft:34 }}
+            style={{ width:'100%', boxSizing:'border-box', paddingLeft:34, height:36 }}
           />
         </div>
         <SingleSelectFilter
@@ -3004,7 +3005,7 @@ export function AppStatusView() {
           allLabel="All statuses"
         />
         <Select value={sortBy} onValueChange={v => setSortBy(v as AppStatusSort)}>
-          <SelectTrigger style={{ minWidth:170 }}>
+          <SelectTrigger className="w-auto shrink-0" style={{ width:'auto', minWidth:140, height:36, flexShrink:0 }}>
             <Icon name="sliders" size={13} color="var(--ink3)" />
             <SelectValue />
           </SelectTrigger>
@@ -3012,12 +3013,12 @@ export function AppStatusView() {
             {SORT_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
           </SelectContent>
         </Select>
-        <div style={{ display:'flex', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden', flexShrink:0 }}>
+        <div className="sa-app-status-view-toggle">
           <button
             type="button"
             title="List view"
             onClick={() => handleViewChange('list')}
-            style={{ padding:'0 14px', height:'var(--ctl-h-sm)', boxSizing:'border-box', display:'inline-flex', alignItems:'center', gap:6, fontSize:13, fontWeight:600, background: viewMode === 'list' ? 'var(--bg)' : 'transparent', border:'none', cursor:'pointer', lineHeight:1.25 }}
+            className={`sa-view-btn ${viewMode === 'list' ? 'active' : ''}`}
           >
             <Icon name="list" size={14} />
           </button>
@@ -3025,7 +3026,7 @@ export function AppStatusView() {
             type="button"
             title="Grid view"
             onClick={() => handleViewChange('grid')}
-            style={{ padding:'0 14px', height:'var(--ctl-h-sm)', boxSizing:'border-box', display:'inline-flex', alignItems:'center', gap:6, fontSize:13, fontWeight:600, background: viewMode === 'grid' ? 'var(--bg)' : 'transparent', border:'none', cursor:'pointer', lineHeight:1.25 }}
+            className={`sa-view-btn ${viewMode === 'grid' ? 'active' : ''}`}
           >
             <Icon name="grid" size={14} />
           </button>

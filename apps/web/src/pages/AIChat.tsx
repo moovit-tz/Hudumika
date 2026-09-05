@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Icon } from '../components/Icon.js';
+import { Banner } from '../components/ui/alert.js';
 import { apiFetch } from '../lib/api.js';
 import '../pages/AI.css';
 
@@ -152,9 +153,7 @@ export const AIChat: React.FC = () => {
           </div>
         )}
 
-        {error && (
-          <div style={{ padding: '10px 14px', borderRadius: 9, background: 'var(--red-l)', color: 'var(--red)', fontSize: 12.5, marginBottom: 12 }}>{error}</div>
-        )}
+        {error && <Banner variant="error" className="mb-3">{error}</Banner>}
       </div>
 
       <div style={{ padding: '14px 20px', borderTop: '1px solid var(--border)', background: 'var(--white)' }}>

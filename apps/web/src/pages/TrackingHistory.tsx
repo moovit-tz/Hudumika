@@ -70,12 +70,12 @@ export const TrackingHistory: React.FC = () => {
       </div>
 
       {!loading && positions.length === 0 ? (
-        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: '40px 20px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>
+        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '40px 20px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>
           No position history for this vehicle yet.
         </div>
       ) : (
         <>
-          <div style={{ height: 380, borderRadius: 9, overflow: 'hidden', border: '1px solid var(--border)', marginBottom: 20 }}>
+          <div style={{ height: 380, borderRadius: 'var(--r)', overflow: 'hidden', border: '1px solid var(--border)', marginBottom: 20 }}>
             <MapContainer center={center} zoom={12} style={{ height: '100%', width: '100%' }}>
               <MapTileLayer />
               {trail.length > 1 && <Polyline positions={trail} pathOptions={{ color: '#0891b2', weight: 3 }} />}

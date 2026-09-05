@@ -101,7 +101,7 @@
 .wfb-topbar-name {
   background:none; border:none; font-size:13.5px; font-weight:700;
   color:var(--navy,#0f172a); font-family:inherit; cursor:text; padding:2px 4px;
-  outline:none; min-width:60px; max-width:220px; border-radius:5px;
+  outline:none; min-width:60px; max-width:220px; border-radius: var(--r-sm);
 }
 .wfb-topbar-name:focus { background:var(--bg,#f8fafc); border:1.5px solid var(--teal); padding:2px 8px; }
 .wfb-topbar-name::placeholder { color:var(--ink3); font-weight:400; }
@@ -187,7 +187,7 @@
 /* Zoom toolbar */
 .wfb-zoom-bar {
   position:absolute; bottom:16px; left:50%; transform:translateX(-50%);
-  background:var(--white); border:1px solid var(--border,#E2E8F0); border-radius:9px;
+  background:var(--white); border:1px solid var(--border,#E2E8F0); border-radius: var(--r);
   padding:4px 6px; display:flex; align-items:center; gap:2px;
   box-shadow: var(--elev); z-index:20; white-space:nowrap;
 }

@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
+import { SectionLoading } from '../components/ui/spinner.js';
+import { Banner } from '../components/ui/alert.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { MGMT_ROLES } from '../lib/permissions.js';
@@ -233,7 +235,7 @@ export const RateCardPage: React.FC = () => {
                         {isEditing ? (
                           <div style={{ display: 'flex', gap: 6 }}>
                             <button type="button" disabled={saving} onClick={() => saveEdit(row)} style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', width: 26, height: 26, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="check" size={13} /></button>
-                            <button type="button" onClick={cancelEdit} style={{ background: 'var(--bg)', color: 'var(--ink3)', border: '1px solid var(--border)', borderRadius: 'var(--r)', width: 26, height: 26, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="x" size={13} /></button>
+                            <button type="button" onClick={cancelEdit} aria-label="Cancel" style={{ background: 'var(--bg)', color: 'var(--ink3)', border: '1px solid var(--border)', borderRadius: 'var(--r)', width: 26, height: 26, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="x" size={13} /></button>
                           </div>
                         ) : (
                           <div style={{ display: 'flex', gap: 6 }}>
@@ -268,7 +270,7 @@ export const RateCardPage: React.FC = () => {
       />
 
       {!canEdit && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 9, fontSize: 12.5, color: 'var(--ink3)', marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 12.5, color: 'var(--ink3)', marginBottom: 16 }}>
           <Icon name="lock" size={13} />
           Only company management roles can edit the rate card. You can view current values below.
         </div>
@@ -311,9 +313,8 @@ export const RateCardPage: React.FC = () => {
         </div>
 
         {card === 'road' && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 9, fontSize: 12.5, color: 'var(--gold)', fontWeight: 600, marginBottom: 16 }}>
-            <Icon name="info" size={13} />
-            The Landed Cost Calculator doesn't have a road-freight mode yet, so this tab isn't read by it — populate it for your own reference until that's added.
+          <div style={{ marginBottom: 16 }}>
+            <Banner variant="warning">The Landed Cost Calculator doesn't have a road-freight mode yet, so this tab isn't read by it — populate it for your own reference until that's added.</Banner>
           </div>
         )}
 
@@ -326,7 +327,7 @@ export const RateCardPage: React.FC = () => {
         {CARDS.map(c => (
           <TabsContent key={c.key} value={c.key}>
             {loading ? (
-              <div style={{ padding: 24, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading…</div>
+              <SectionLoading />
             ) : (
               <>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 16 }}>

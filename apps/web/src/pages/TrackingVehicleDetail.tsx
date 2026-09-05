@@ -7,6 +7,7 @@ import {
 import { MapContainer, Marker } from 'react-leaflet';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import type { IconName } from '../components/Icon.js';
 import { MapTileLayer } from '../components/MapTileLayer.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
@@ -58,7 +59,7 @@ interface Detail {
   meter_readings: MeterReading[];
 }
 
-const cardStyle: React.CSSProperties = { background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: 20 };
+const cardStyle: React.CSSProperties = { background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 20 };
 const statLabel: React.CSSProperties = { fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.04em' };
 
 const TABS = ['Overview', 'Service History', 'Fuel', 'Documents', 'Issues', 'Expenses', 'Assignments', 'Load Plan', 'Sensor Snapshots'] as const;
@@ -207,14 +208,13 @@ export const TrackingVehicleDetail: React.FC = () => {
         </div>
       </div>
 
-      <div className="ds-tabs-list" data-variant="segmented" style={{ marginBottom: 20 }}>
-        {TABS.map(t => (
-          <button key={t} type="button" className="ds-tabs-trigger" data-variant="segmented"
-            data-state={tab === t ? 'active' : 'inactive'} onClick={() => setTab(t)}>
-            {t}
-          </button>
-        ))}
-      </div>
+      <Tabs value={tab} onValueChange={(v) => setTab(v as any)} variant="segmented">
+        <TabsList style={{ marginBottom: 20 }}>
+          {TABS.map(t => (
+            <TabsTrigger key={t} value={t}>{t}</TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
 
       {tab === 'Overview' && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
@@ -339,7 +339,7 @@ export const TrackingVehicleDetail: React.FC = () => {
 
           <SectionCard title="Last Known Location">
             {last_position ? (
-              <div style={{ height: 200, borderRadius: 9, overflow: 'hidden' }}>
+              <div style={{ height: 200, borderRadius: 'var(--r)', overflow: 'hidden' }}>
                 <MapContainer center={[last_position.latitude, last_position.longitude]} zoom={13} style={{ height: '100%', width: '100%' }}>
                   <MapTileLayer />
                   <Marker position={[last_position.latitude, last_position.longitude]} />
@@ -371,11 +371,11 @@ export const TrackingVehicleDetail: React.FC = () => {
             )}
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
-              <div style={{ background: 'var(--bg)', borderRadius: 9, padding: '10px 12px', textAlign: 'center' }}>
+              <div style={{ background: 'var(--bg)', borderRadius: 'var(--r)', padding: '10px 12px', textAlign: 'center' }}>
                 <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)' }}>{last_position?.speed ?? 0}</div>
                 <div style={{ fontSize: 10, color: 'var(--ink3)', textTransform: 'uppercase' }}>km/h</div>
               </div>
-              <div style={{ background: 'var(--bg)', borderRadius: 9, padding: '10px 12px', textAlign: 'center' }}>
+              <div style={{ background: 'var(--bg)', borderRadius: 'var(--r)', padding: '10px 12px', textAlign: 'center' }}>
                 <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)' }}>{last_position?.battery_pct != null ? `${last_position.battery_pct}%` : '—'}</div>
                 <div style={{ fontSize: 10, color: 'var(--ink3)', textTransform: 'uppercase' }}>Battery</div>
               </div>
@@ -818,7 +818,7 @@ function VehicleLoadPlanTab({ vehicleId }: { vehicleId: string }) {
             </button>
           ))}
         </div>
-        <div style={{ height: 480, borderRadius: 9, overflow: 'hidden', border: '1px solid var(--border)' }}>
+        <div style={{ height: 480, borderRadius: 'var(--r)', overflow: 'hidden', border: '1px solid var(--border)' }}>
           <CargoScene manifest={manifest} items={items} cameraPreset={cameraPreset} />
         </div>
       </div>

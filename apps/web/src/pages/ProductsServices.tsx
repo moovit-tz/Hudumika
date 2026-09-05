@@ -250,7 +250,7 @@ const PAGE_SIZE = 20;
 
 function CatBadge({ cat }: { cat: string }) {
   const c = CAT_CFG[cat] ?? CAT_CFG.OTHER;
-  return <span style={{ padding: '2px 9px', borderRadius: 9, fontSize: 11, fontWeight: 700, background: c.bg, color: c.color, whiteSpace: 'nowrap' }}>{c.label}</span>;
+  return <span style={{ padding: '2px 9px', borderRadius: 'var(--r)', fontSize: 11, fontWeight: 700, background: c.bg, color: c.color, whiteSpace: 'nowrap' }}>{c.label}</span>;
 }
 
 // -- Status toggle -------------------------------------------------------------
@@ -258,7 +258,7 @@ function CatBadge({ cat }: { cat: string }) {
 function StatusPill({ status }: { status: 'active' | 'inactive' }) {
   const isActive = status === 'active';
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '2px 9px', borderRadius: 9, fontSize: 11, fontWeight: 700, background: isActive ? 'var(--green-l)' : 'var(--bg)', color: isActive ? 'var(--green)' : 'var(--ink3)' }}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '2px 9px', borderRadius: 'var(--r)', fontSize: 11, fontWeight: 700, background: isActive ? 'var(--green-l)' : 'var(--bg)', color: isActive ? 'var(--green)' : 'var(--ink3)' }}>
       <span style={{ width: 6, height: 6, borderRadius: '50%', background: isActive ? 'var(--green)' : 'var(--ink3)', display: 'inline-block' }} />
       {isActive ? 'Active' : 'Inactive'}
     </span>
@@ -270,7 +270,7 @@ function StatusPill({ status }: { status: 'active' | 'inactive' }) {
 function DeleteModal({ name, onConfirm, onCancel }: { name: string; onConfirm: () => void; onCancel: () => void }) {
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ background: 'var(--white)', borderRadius: 9, padding: 28, width: 400, boxShadow: 'var(--elev-lg)' }}>
+      <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', padding: 28, width: 400, boxShadow: 'var(--elev-lg)' }}>
         <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>Delete Service</div>
         <div style={{ fontSize: 13, color: 'var(--ink2)', marginBottom: 20 }}>
           Are you sure you want to delete <strong>{name}</strong>? This cannot be undone and may affect invoices or quotations referencing this item.
@@ -363,7 +363,7 @@ function ProductForm({ initial, onSave, onClose, isMobile }: {
     } finally { setSaving(false); }
   }
 
-  const inp: React.CSSProperties = { width: '100%', padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 9, fontSize: 13, outline: 'none', background: 'var(--white)', boxSizing: 'border-box' as const, color: 'var(--ink)', fontFamily: 'inherit' };
+  const inp: React.CSSProperties = { width: '100%', padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13, outline: 'none', background: 'var(--white)', boxSizing: 'border-box' as const, color: 'var(--ink)', fontFamily: 'inherit' };
   const lbl: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 };
   const row: React.CSSProperties = { marginBottom: 16 };
 
@@ -420,7 +420,7 @@ function ProductForm({ initial, onSave, onClose, isMobile }: {
           </div>
 
           {/* Pricing */}
-          <div style={{ background: 'var(--bg)', borderRadius: 9, padding: 16, marginBottom: 16 }}>
+          <div style={{ background: 'var(--bg)', borderRadius: 'var(--r)', padding: 16, marginBottom: 16 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pricing</div>
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 12, marginBottom: 12 }}>
               <div>
@@ -467,7 +467,7 @@ function ProductForm({ initial, onSave, onClose, isMobile }: {
           </div>
 
           {/* Status */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'var(--bg)', borderRadius: 9, marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'var(--bg)', borderRadius: 'var(--r)', marginBottom: 16 }}>
             <div>
               <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Status</div>
               <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>Inactive services don't appear in the invoice line-item picker</div>
@@ -486,7 +486,7 @@ function ProductForm({ initial, onSave, onClose, isMobile }: {
           </div>
 
           {/* Customer-specific (contract) prices */}
-          <div style={{ marginBottom: 16, border: '1px solid var(--border)', borderRadius: 9, padding: 16, background: 'var(--bg)' }}>
+          <div style={{ marginBottom: 16, border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 16, background: 'var(--bg)' }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Customer-specific prices</div>
             <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 12, lineHeight: 1.5 }}>
               Agreed contract rates. When one of these customers is on an invoice, quotation or purchase order, their price for this service is triggered instead of the catalog price of{' '}
@@ -515,7 +515,7 @@ function ProductForm({ initial, onSave, onClose, isMobile }: {
           </div>
 
           {/* Live preview */}
-          <div style={{ background: 'var(--teal-l)', border: '1px solid var(--teal-m, var(--teal))', borderRadius: 9, padding: 14 }}>
+          <div style={{ background: 'var(--teal-l)', border: '1px solid var(--teal-m, var(--teal))', borderRadius: 'var(--r)', padding: 14 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--teal)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Preview</div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
@@ -559,7 +559,7 @@ function DetailPanel({ product, onEdit, onDelete, onToggleStatus, onClose }: {
 
         <div style={{ flex: 1, overflowY: 'auto', padding: 22 }}>
           {/* Pricing hero */}
-          <div style={{ background: 'var(--bg)', borderRadius: 9, padding: '18px 20px', marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ background: 'var(--bg)', borderRadius: 'var(--r)', padding: '18px 20px', marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Unit Price</div>
               <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--teal)', letterSpacing: '-0.5px' }}>{product.sale_price > 0 ? fmt(product.sale_price, product.currency) : '—'}</div>
@@ -591,7 +591,7 @@ function DetailPanel({ product, onEdit, onDelete, onToggleStatus, onClose }: {
           )}
 
           {product.notes && (
-            <div style={{ background: 'var(--gold-l)', borderRadius: 9, padding: 12 }}>
+            <div style={{ background: 'var(--gold-l)', borderRadius: 'var(--r)', padding: 12 }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 5 }}>Notes</div>
               <div style={{ fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.6 }}>{product.notes}</div>
             </div>

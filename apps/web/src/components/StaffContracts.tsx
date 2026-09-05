@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from './Icon.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from './ui/select.js';
+import { DatePicker, parseDateOnly, toDateOnlyString } from './ui/date-picker.js';
 import { showAlert } from '../lib/alert.js';
 
 /**
@@ -113,19 +114,19 @@ export function StaffContracts({ userId, canEdit }: { userId: string; canEdit: b
           </div>
           <div>
             <label style={{ fontSize: 11, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>Starts</label>
-            <input style={inp} type="date" value={form.start_date} onChange={e => setForm((f: any) => ({ ...f, start_date: e.target.value }))} />
+            <DatePicker date={parseDateOnly(form.start_date)} onChange={d => setForm((f: any) => ({ ...f, start_date: toDateOnlyString(d) }))} />
           </div>
           <div>
             <label style={{ fontSize: 11, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>
               Ends {openEnded && <span style={{ color: 'var(--ink4)' }}>— permanent, so none</span>}
             </label>
             {!openEnded && (
-              <input style={inp} type="date" value={form.end_date} onChange={e => setForm((f: any) => ({ ...f, end_date: e.target.value }))} />
+              <DatePicker date={parseDateOnly(form.end_date)} onChange={d => setForm((f: any) => ({ ...f, end_date: toDateOnlyString(d) }))} />
             )}
           </div>
           <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-end' }}>
             <button type="button" className="btn btn-primary btn-sm" disabled={saving || !form.start_date}
-              style={{ background: 'var(--teal)', borderColor: 'var(--teal)', color: '#fff' }} onClick={add}>
+              style={{ background: 'hsl(var(--primary))', borderColor: 'var(--teal)', color: 'hsl(var(--primary-foreground))' }} onClick={add}>
               {saving ? 'Saving…' : 'Add contract'}
             </button>
           </div>
@@ -236,7 +237,7 @@ export function StaffEmergencyContacts({ userId, canEdit }: { userId: string; ca
           </div>
           <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-end' }}>
             <button type="button" className="btn btn-primary btn-sm" disabled={saving || !form.name || !form.phone}
-              style={{ background: 'var(--teal)', borderColor: 'var(--teal)', color: '#fff' }} onClick={add}>
+              style={{ background: 'hsl(var(--primary))', borderColor: 'var(--teal)', color: 'hsl(var(--primary-foreground))' }} onClick={add}>
               {saving ? 'Saving…' : 'Add contact'}
             </button>
           </div>

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
+import { SectionLoading, PageLoading } from '../components/ui/spinner.js';
 import { Button } from '../components/ui/button.js';
 import { Input } from '../components/ui/input.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
@@ -109,7 +110,7 @@ export function SealFulfillmentDetail() {
     }
   }
 
-  if (loading || !order) return <div className="seal-page"><div className="seal-empty">Loading…</div></div>;
+  if (loading || !order) return <div className="seal-page"><PageLoading /></div>;
 
   const vehicle = vehicles.find(v => v.id === order.vehicleId);
 

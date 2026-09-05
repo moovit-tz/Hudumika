@@ -6,7 +6,10 @@ import { startRegistration } from '@simplewebauthn/browser';
 import { useAuth } from '../hooks/useAuth.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { Icon } from '../components/Icon.js';
+import { Banner } from '../components/ui/alert.js';
 import { Badge } from '../components/ui/badge.js';
 import { Button } from '../components/ui/button.js';
 import { EntityPicker, type PickerItem } from '../components/EntityPicker.js';
@@ -478,73 +481,29 @@ export const OndiSecuritySettings: React.FC = () => {
         </div>
       </div>
 
-      {/* ── Section Filter / Quick Jump Pills ── */}
-      <div className="oss-nav-strip">
-        <button
-          type="button"
-          className={`oss-nav-pill ${activeSection === 'all' ? 'active' : ''}`}
-          onClick={() => setActiveSection('all')}
-        >
-          <Icon name="sliders" size={13} />
-          <span>All Safeguards</span>
-        </button>
-        <button
-          type="button"
-          className={`oss-nav-pill ${activeSection === 'password' ? 'active' : ''}`}
-          onClick={() => setActiveSection('password')}
-        >
-          <Icon name="lock" size={13} />
-          <span>Password & Email</span>
-        </button>
-        <button
-          type="button"
-          className={`oss-nav-pill ${activeSection === 'mfa' ? 'active' : ''}`}
-          onClick={() => setActiveSection('mfa')}
-        >
-          <Icon name="shield" size={13} />
-          <span>Two-Factor Auth</span>
-        </button>
-        <button
-          type="button"
-          className={`oss-nav-pill ${activeSection === 'passkeys' ? 'active' : ''}`}
-          onClick={() => setActiveSection('passkeys')}
-        >
-          <Icon name="key" size={13} />
-          <span>Passkeys ({passkeys?.length ?? 0})</span>
-        </button>
-        <button
-          type="button"
-          className={`oss-nav-pill ${activeSection === 'phone' ? 'active' : ''}`}
-          onClick={() => setActiveSection('phone')}
-        >
-          <Icon name="phone" size={13} />
-          <span>Phone Number</span>
-        </button>
-        <button
-          type="button"
-          className={`oss-nav-pill ${activeSection === 'kyc' ? 'active' : ''}`}
-          onClick={() => setActiveSection('kyc')}
-        >
-          <Icon name="fingerprint" size={13} />
-          <span>Identity KYC</span>
-        </button>
-        <button
-          type="button"
-          className={`oss-nav-pill ${activeSection === 'recovery' ? 'active' : ''}`}
-          onClick={() => setActiveSection('recovery')}
-        >
-          <Icon name="users" size={13} />
-          <span>Recovery Contacts</span>
-        </button>
-        <button
-          type="button"
-          className={`oss-nav-pill ${activeSection === 'sessions' ? 'active' : ''}`}
-          onClick={() => setActiveSection('sessions')}
-        >
-          <Icon name="smartphone" size={13} />
-          <span>Sessions</span>
-        </button>
-      </div>
+      {/* ── Section Filter / Quick Jump Pills — the shared segmented ds-tabs ── */}
+      <Tabs value={activeSection} onValueChange={v => setActiveSection(v as typeof activeSection)} variant="segmented">
+        <TabsList>
+          {([
+            ['all', 'sliders', 'All Safeguards'],
+            ['password', 'lock', 'Password & Email'],
+            ['mfa', 'shield', 'Two-Factor Auth'],
+            ['passkeys', 'key', `Passkeys (${passkeys?.length ?? 0})`],
+            ['phone', 'phone', 'Phone Number'],
+            ['kyc', 'fingerprint', 'Identity KYC'],
+            ['recovery', 'users', 'Recovery Contacts'],
+            ['sessions', 'smartphone', 'Sessions'],
+          ] as const).map(([key, icon, label]) => (
+            <TabsTrigger
+              key={key}
+              value={key}
+            >
+              <Icon name={icon} size={13} />
+              <span className="ds-tabs-trigger-label">{label}</span>
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
 
       {/* ── Main Layout: Content & Sidebar ── */}
       <div className="oss-layout-grid">
@@ -1035,22 +994,18 @@ export const OndiSecuritySettings: React.FC = () => {
                 {(kycStatus?.kyc_status === 'not_started' || kycStatus?.kyc_status === 'rejected') && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                     {kycStatus?.kyc_status === 'rejected' && kycStatus.latest_submission?.rejection_reason && (
-                      <div style={{ padding: '10px 12px', background: 'var(--red-l)', border: '1px solid var(--red)', borderRadius: 8, color: 'var(--red)', fontSize: 12.5 }}>
-                        Previous document rejected: {kycStatus.latest_submission.rejection_reason}
-                      </div>
+                      <Banner variant="error">Previous document rejected: {kycStatus.latest_submission.rejection_reason}</Banner>
                     )}
 
                     <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-                      <select
-                        value={kycDocType}
-                        onChange={(e) => setKycDocType(e.target.value as any)}
-                        className="oss-select"
-                        disabled={kycBusy}
-                      >
-                        <option value="national_id">National Identity Card</option>
-                        <option value="passport">Government Passport</option>
-                        <option value="drivers_license">Driver's License</option>
-                      </select>
+                      <Select value={kycDocType} onValueChange={v => setKycDocType(v as any)} disabled={kycBusy}>
+                        <SelectTrigger className="oss-select"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="national_id">National Identity Card</SelectItem>
+                          <SelectItem value="passport">Government Passport</SelectItem>
+                          <SelectItem value="drivers_license">Driver's License</SelectItem>
+                        </SelectContent>
+                      </Select>
 
                       <label
                         style={{

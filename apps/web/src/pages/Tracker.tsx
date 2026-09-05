@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
+import { Badge } from '../components/ui/badge.js';
 import type { IconName } from '../components/Icon.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { PageHeader } from '../components/PageHeader.js';
@@ -348,7 +350,7 @@ export const SnapshotCard = React.forwardRef<HTMLDivElement, { result: TrackingR
           { icon: 'layers'   as IconName, label: 'Progress',   value: `${result.progress_pct}%` },
           { icon: 'activity' as IconName, label: 'Updates',    value: `${result.events.length} events` },
         ].map(m => (
-          <div key={m.label} style={{ background: 'rgba(255,255,255,.04)', borderRadius: 9, padding: '9px 11px', border: '1px solid rgba(255,255,255,.05)', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div key={m.label} style={{ background: 'rgba(255,255,255,.04)', borderRadius: 'var(--r)', padding: '9px 11px', border: '1px solid rgba(255,255,255,.05)', display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={{ width: 26, height: 26, borderRadius: 7, background: 'rgba(232,70,26,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <Icon name={m.icon} size={12} color={BRAND} />
             </div>
@@ -363,7 +365,7 @@ export const SnapshotCard = React.forwardRef<HTMLDivElement, { result: TrackingR
       {/* Footer */}
       <div style={{ borderTop: '1px solid rgba(255,255,255,.05)', paddingTop: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <div style={{ width: 18, height: 18, borderRadius: 5, background: `linear-gradient(135deg,${NAVY2},${BRAND})`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: 18, height: 18, borderRadius: 'var(--r-sm)', background: `linear-gradient(135deg,${NAVY2},${BRAND})`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Icon name="globe" size={9} color="#fff" />
           </div>
           <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink2)', letterSpacing: '.04em' }}>Hudumika ClearOS</span>
@@ -620,10 +622,10 @@ export const Tracker: React.FC = () => {
         titleEm="tracker"
         subtitle="Track air waybills and bills of lading · save snapshots · embed in shipment cards."
         actions={result?.source === 'mock' ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '7px 13px', background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 10, fontSize: 11, color: 'var(--gold)', fontWeight: 700 }}>
-            <Icon name="alertCircle" size={13} color="var(--gold)" />
+          <Badge variant="warning">
+            <Icon name="alertCircle" size={13} />
             Demo mode — add Ship24 key in Settings for live data
-          </div>
+          </Badge>
         ) : undefined}
       />
 
@@ -632,15 +634,16 @@ export const Tracker: React.FC = () => {
         {/* Left: input */}
         <div style={{ padding: isMobile ? '20px 18px' : '24px 28px' }}>
           {/* Mode toggle */}
-          <div className="ds-tabs-list" data-variant="segmented" style={{ marginBottom: 18, width: 'fit-content' }}>
-            {(['AWB', 'BL'] as const).map(t => (
-              <button key={t} type="button" className="ds-tabs-trigger" data-variant="segmented"
-                data-state={trackType === t ? 'active' : 'inactive'} onClick={() => setTrackType(t)}>
-                <Icon name={t === 'AWB' ? 'compass' : 'anchor'} size={12} color={trackType === t ? 'var(--teal)' : 'var(--ink3)'} />
-                {t === 'AWB' ? 'Air Waybill' : 'Bill of Lading'}
-              </button>
-            ))}
-          </div>
+          <Tabs value={trackType} onValueChange={(v) => setTrackType(v as any)} variant="segmented">
+            <TabsList style={{ marginBottom: 18, width: 'fit-content' }}>
+              {(['AWB', 'BL'] as const).map(t => (
+                <TabsTrigger key={t} value={t}>
+                  <Icon name={t === 'AWB' ? 'compass' : 'anchor'} size={12} color={trackType === t ? 'var(--teal)' : 'var(--ink3)'} />
+                  {t === 'AWB' ? 'Air Waybill' : 'Bill of Lading'}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
 
           {/* Input + button */}
           <div style={{ display: 'flex', gap: 10, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
@@ -819,7 +822,7 @@ export const Tracker: React.FC = () => {
                 <div style={{ position: 'absolute', left: 0, right: 0, height: 3, background: 'rgba(255,255,255,.07)', borderRadius: 3 }} />
                 <div style={{ position: 'absolute', left: 0, width: `${result.progress_pct}%`, height: 3, background: `linear-gradient(90deg,${NAVY2},${BRAND})`, borderRadius: 3, transition: 'width .9s cubic-bezier(.34,1.56,.64,1)' }} />
                 <div style={{ position: 'absolute', left: `calc(${result.progress_pct}% - 18px)`, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, transition: 'left .9s cubic-bezier(.34,1.56,.64,1)' }}>
-                  <div style={{ fontSize: 9, fontWeight: 700, color: BRAND, background: 'rgba(232,70,26,.15)', border: '1px solid rgba(232,70,26,.3)', borderRadius: 5, padding: '2px 7px', whiteSpace: 'nowrap', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <div style={{ fontSize: 9, fontWeight: 700, color: BRAND, background: 'rgba(232,70,26,.15)', border: '1px solid rgba(232,70,26,.3)', borderRadius: 'var(--r-sm)', padding: '2px 7px', whiteSpace: 'nowrap', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {result.current_location}
                   </div>
                   <div style={{ width: 36, height: 36, borderRadius: '50%', background: NAVY, border: `2.5px solid ${BRAND}`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 0 20px rgba(232,70,26,.45)` }}>
@@ -835,8 +838,8 @@ export const Tracker: React.FC = () => {
 
             {/* Progress bar */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-              <div style={{ flex: 1, height: 5, background: 'rgba(255,255,255,.07)', borderRadius: 5, overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${result.progress_pct}%`, background: `linear-gradient(90deg,${NAVY2},${BRAND})`, borderRadius: 5, transition: 'width .9s ease' }} />
+              <div style={{ flex: 1, height: 5, background: 'rgba(255,255,255,.07)', borderRadius: 'var(--r-sm)', overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${result.progress_pct}%`, background: `linear-gradient(90deg,${NAVY2},${BRAND})`, borderRadius: 'var(--r-sm)', transition: 'width .9s ease' }} />
               </div>
               <span style={{ fontSize: 13, fontWeight: 900, color: BRAND, fontFamily: 'var(--mono)', flexShrink: 0 }}>{result.progress_pct}%</span>
             </div>
@@ -1095,7 +1098,7 @@ export const Tracker: React.FC = () => {
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {demurrageContainers.map((c: any) => (
-                    <div key={c.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderRadius: 9, background: c.demurrage_days > 0 ? 'var(--red-l)' : 'var(--bg)', border: `1px solid ${c.demurrage_days > 0 ? '#fca5a5' : 'var(--border)'}` }}>
+                    <div key={c.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderRadius: 'var(--r)', background: c.demurrage_days > 0 ? 'var(--red-l)' : 'var(--bg)', border: `1px solid ${c.demurrage_days > 0 ? '#fca5a5' : 'var(--border)'}` }}>
                       <div>
                         <div style={{ fontSize: 12.5, fontWeight: 700, fontFamily: 'var(--mono)', color: 'var(--ink)' }}>{c.container_number}</div>
                         <div style={{ fontSize: 10.5, color: 'var(--ink3)', marginTop: 2 }}>{c.container_size} · {c.status}</div>
@@ -1167,7 +1170,7 @@ export const Tracker: React.FC = () => {
                     </div>
                   ) : (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10 }}>
-                      <div style={{ width: 32, height: 32, borderRadius: 9, background: 'rgba(232,70,26,.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <div style={{ width: 32, height: 32, borderRadius: 'var(--r)', background: 'rgba(232,70,26,.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <Icon name={snap.tracking_type === 'AWB' ? 'compass' : 'anchor'} size={15} color={BRAND} />
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>

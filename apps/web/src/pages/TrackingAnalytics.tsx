@@ -32,7 +32,7 @@ interface Analytics {
   };
 }
 
-const cardStyle: React.CSSProperties = { background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: 20 };
+const cardStyle: React.CSSProperties = { background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 20 };
 const BUCKET_COLORS: Record<string, string> = { Excellent: '#10b981', Good: '#84cc16', Fair: '#eab308', Poor: '#f97316', Critical: '#dc2626' };
 
 function HealthGauge({ score }: { score: number }) {
@@ -55,11 +55,11 @@ function HealthGauge({ score }: { score: number }) {
 function UpgradeEmptyState({ feature }: { feature: string }) {
   return (
     <div style={{ padding: '0 0 24px'}}>
-      <div style={{ background: 'var(--white)', border: '1px dashed var(--border)', borderRadius: 9, padding: '60px 20px', textAlign: 'center' }}>
+      <div style={{ background: 'var(--white)', border: '1px dashed var(--border)', borderRadius: 'var(--r)', padding: '60px 20px', textAlign: 'center' }}>
         <Icon name="lock" size={28} color="var(--ink3)" />
         <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginTop: 12 }}>{feature} is an Enterprise feature</div>
         <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 6 }}>Upgrade your plan to unlock this tool.</div>
-        <a href="/subscription" style={{ display: 'inline-block', marginTop: 16, padding: '9px 18px', borderRadius: 9, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 600, fontSize: 13, textDecoration: 'none' }}>
+        <a href="/subscription" style={{ display: 'inline-block', marginTop: 16, padding: '9px 18px', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 600, fontSize: 13, textDecoration: 'none' }}>
           View plans
         </a>
       </div>

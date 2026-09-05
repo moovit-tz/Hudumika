@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import { Icon } from '../components/Icon.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
@@ -257,12 +258,12 @@ function CaseDetailModal({ caseId, onClose, onChanged }: { caseId: string; onClo
     <div style={overlayStyle} onClick={onClose}>
       <div style={cardStyle} onClick={e => e.stopPropagation()}>
         {loading || !item ? (
-          <div style={{ padding: 20, textAlign: 'center', color: 'var(--ink3)' }}>Loading…</div>
+          <SectionLoading />
         ) : (
           <>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
               <div style={{ fontSize: 16, fontWeight: 700 }}>{item.title}</div>
-              <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}><Icon name="x" size={16} /></button>
+              <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }} aria-label="Close"><Icon name="x" size={16} /></button>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
               <PersonAvatar userId={item.employee_id} name={item.employee_name} size={22} />

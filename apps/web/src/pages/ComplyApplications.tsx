@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { useComplyApplications, useComplyCertificates } from '../hooks/useComply.js';
 import type { CompApplication } from '@hudumika/types';
@@ -181,14 +182,14 @@ export function ComplyApplications() {
         ))}
       </div>
 
-      {/* Filters */}
-      <div className="comply-filters">
-        {FILTERS.map(f => (
-          <button key={f.key} type="button" className={`comply-filter-btn${filter === f.key ? ' active' : ''}`} onClick={() => setFilter(f.key)}>
-            {f.label}
-          </button>
-        ))}
-      </div>
+      {/* Filters — the shared segmented ds-tabs, not a page-local pill style. */}
+      <Tabs value={filter} onValueChange={(v) => setFilter(v as any)} variant="boxed">
+        <TabsList style={{ marginBottom: 20 }}>
+          {FILTERS.map(f => (
+            <TabsTrigger key={f.key} value={f.key}>{f.label}</TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
 
       {/* Table */}
       <div className="comply-card">

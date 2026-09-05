@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { useComplyAgencyDirectory } from '../hooks/useComply.js';
 import type { CompAgencyDirectoryEntry } from '@hudumika/types';
 import './ComplyOS.css';
@@ -30,13 +31,13 @@ export function ComplyAgencies() {
         subtitle="All regulatory bodies relevant to business compliance in Tanzania"
       />
 
-      <div className="comply-filters">
-        {CATEGORIES.map(c => (
-          <button key={c} type="button" className={`comply-filter-btn${cat === c ? ' active' : ''}`} onClick={() => setCat(c)}>
-            {c}
-          </button>
-        ))}
-      </div>
+      <Tabs value={cat} onValueChange={setCat} variant="boxed">
+        <TabsList style={{ marginBottom: 20 }}>
+          {CATEGORIES.map(c => (
+            <TabsTrigger key={c} value={c}>{c}</TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
 
       <div className="comply-card">
         <div className="comply-card-body">

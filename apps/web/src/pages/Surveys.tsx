@@ -11,6 +11,7 @@ import { Button } from '../components/ui/button.js';
 import { Input } from '../components/ui/input.js';
 import { Textarea } from '../components/ui/textarea.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 
 /**
  * Employee surveys — pulse checks, engagement, exit/onboarding feedback.
@@ -194,7 +195,7 @@ function NewSurveyModal({ onClose, onCreated }: { onClose: () => void; onCreated
           <div style={{ display: 'flex', gap: 14 }}>
             <div style={{ flex: 1 }}>
               <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Ends (optional)</label>
-              <Input type="date" value={endsAt} onChange={e => setEndsAt(e.target.value)} />
+              <DatePicker date={parseDateOnly(endsAt)} onChange={d => setEndsAt(toDateOnlyString(d))} />
             </div>
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: 'var(--ink2)', paddingTop: 22 }}>
               <input type="checkbox" checked={isAnonymous} onChange={e => setIsAnonymous(e.target.checked)} />

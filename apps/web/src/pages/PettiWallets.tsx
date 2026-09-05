@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Icon } from '../components/Icon.js';
+import { SectionLoading } from '../components/ui/spinner.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { Badge } from '../components/ui/badge.js';
 import { Button } from '../components/ui/button.js';
 import { Input } from '../components/ui/input.js';
@@ -128,34 +130,16 @@ export function PettiWallets() {
         actions={
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             {/* View Switcher */}
-            <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--bg)', padding: 2 }}>
-              <button
-                type="button"
-                onClick={() => setViewMode('grid')}
-                title="Card Grid View"
-                style={{
-                  padding: '4px 8px', border: 'none', borderRadius: 6, cursor: 'pointer',
-                  background: viewMode === 'grid' ? 'var(--white)' : 'transparent',
-                  color: viewMode === 'grid' ? 'var(--teal)' : 'var(--ink3)',
-                  boxShadow: viewMode === 'grid' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
-                }}
-              >
-                <Icon name="grid" size={14} />
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('list')}
-                title="Table List View"
-                style={{
-                  padding: '4px 8px', border: 'none', borderRadius: 6, cursor: 'pointer',
-                  background: viewMode === 'list' ? 'var(--white)' : 'transparent',
-                  color: viewMode === 'list' ? 'var(--teal)' : 'var(--ink3)',
-                  boxShadow: viewMode === 'list' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
-                }}
-              >
-                <Icon name="list" size={14} />
-              </button>
-            </div>
+            <Tabs value={viewMode} onValueChange={v => setViewMode(v as typeof viewMode)} variant="segmented">
+              <TabsList>
+                <TabsTrigger value="grid" title="Card Grid View">
+                  <Icon name="grid" size={14} />
+                </TabsTrigger>
+                <TabsTrigger value="list" title="Table List View">
+                  <Icon name="list" size={14} />
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
 
             {canManage && (
               <Button onClick={() => setShowForm(s => !s)}>
@@ -278,7 +262,7 @@ export function PettiWallets() {
         /* List View Mode */
         <SectionCard title="Wallets Directory" padded={false} collapsible={false}>
           {loading ? (
-            <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>Loading…</div>
+            <SectionLoading />
           ) : filteredWallets.length === 0 ? (
             <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>No wallets found.</div>
           ) : (

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Badge } from '../components/ui/badge.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { apiFetch } from '../lib/api.js';
 import './Seal.css';
@@ -53,7 +54,7 @@ export function SealExaminations() {
       <div className="seal-card">
         <div className="seal-card-body">
           {loading ? (
-            <div className="seal-empty">Loading…</div>
+            <SectionLoading />
           ) : rows.length === 0 ? (
             <div className="seal-empty">No examinations match this filter.</div>
           ) : (

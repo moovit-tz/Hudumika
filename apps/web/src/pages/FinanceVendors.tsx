@@ -80,7 +80,7 @@ function VendorDetail({ vendor, bills, expenses, purchaseOrders, onClose, onEdit
         <div style={{ minWidth: 0 }}>
           <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--navy)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{vendor.name}</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
-            <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 5, fontWeight: 700, ...sc }}>{vendor.status.toUpperCase()}</span>
+            <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 'var(--r-sm)', fontWeight: 700, ...sc }}>{vendor.status.toUpperCase()}</span>
             <span style={{ fontSize: 11, color: 'var(--ink3)' }}>{VENDOR_CATEGORY_LABEL[vendor.category]}</span>
           </div>
         </div>
@@ -103,7 +103,7 @@ function VendorDetail({ vendor, bills, expenses, purchaseOrders, onClose, onEdit
             { label: 'Outstanding', value: fmt(vendor.balance), color: vendor.balance > 0 ? '#dc2626' : '#059669' },
             { label: 'Total Paid', value: fmt(vendor.totalPaid), color: 'var(--ink)' },
           ].map(c => (
-            <div key={c.label} style={{ padding: '14px 16px', background: 'var(--bg)', borderRadius: 9, border: '1px solid var(--border)' }}>
+            <div key={c.label} style={{ padding: '14px 16px', background: 'var(--bg)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>{c.label}</div>
               <div style={{ fontSize: 16, fontWeight: 800, color: c.color, fontFamily: 'var(--mono)' }}>{c.value}</div>
             </div>
@@ -170,7 +170,7 @@ function VendorDetail({ vendor, bills, expenses, purchaseOrders, onClose, onEdit
                     </div>
                     <div style={{ textAlign: 'right', flexShrink: 0 }}>
                       <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--mono)' }}>{fmt(Number(b.total) || 0, b.currency)}</div>
-                      <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 5, ...bc }}>{b.status}</span>
+                      <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 'var(--r-sm)', ...bc }}>{b.status}</span>
                     </div>
                   </div>
                 );
@@ -198,7 +198,7 @@ function VendorDetail({ vendor, bills, expenses, purchaseOrders, onClose, onEdit
                     </div>
                     <div style={{ textAlign: 'right', flexShrink: 0 }}>
                       <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--mono)' }}>{fmt(Number(po.total) || 0, po.currency)}</div>
-                      <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 5, ...pc }}>{po.status}</span>
+                      <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 'var(--r-sm)', ...pc }}>{po.status}</span>
                     </div>
                   </div>
                 );
@@ -599,7 +599,7 @@ export function FinanceVendors() {
                     <td style={{ padding: '12px 14px', color: 'var(--ink2)', whiteSpace: 'nowrap', fontFamily: 'var(--mono)', fontSize: 12 }}>{v.phone || '—'}</td>
                     <td style={{ padding: '12px 14px', fontWeight: 700, color: v.balance > 0 ? '#dc2626' : 'var(--ink3)', fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>{fmt(v.balance)}</td>
                     <td style={{ padding: '12px 14px' }}>
-                      <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 5, fontWeight: 700, ...sc }}>{v.status.toUpperCase()}</span>
+                      <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 'var(--r-sm)', fontWeight: 700, ...sc }}>{v.status.toUpperCase()}</span>
                     </td>
                     <td style={{ padding: '12px 10px', whiteSpace: 'nowrap' }}>
                       <button type="button" title="Edit" onClick={e => { e.stopPropagation(); setEditVendor(v); setShowForm(true); }}

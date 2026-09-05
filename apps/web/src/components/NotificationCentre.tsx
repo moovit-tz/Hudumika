@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Icon } from './Icon.js';
 import { useLocale } from '../hooks/useLocale.js';
 import { NotificationListItem } from './NotificationListItem.js';
+import { Tabs, TabsList, TabsTrigger } from './ui/tabs.js';
 import './NotificationCentre.css';
 
 // ── Props ─────────────────────────────────────────────────────
@@ -70,26 +71,21 @@ export const NotificationCentre: React.FC<NotificationCentreProps> = ({
           </div>
         </div>
 
-        {/* Filter tabs */}
-        <div className="notif-panel-tabs">
-          <button
-            type="button"
-            className={`notif-panel-tab${activeTab === 'all' ? ' notif-panel-tab--active' : ''}`}
-            onClick={() => setActiveTab('all')}
-          >
-            {/* This read `notifs.length` — one fetched page, 50 by default —
-                beside an unread count that was a true total, so the tabs said
-                "All (50)" and "Unread (112)", which cannot both be true. */}
-            {t('notif.all')} ({totalCount || notifs.length})
-          </button>
-          <button
-            type="button"
-            className={`notif-panel-tab${activeTab === 'unread' ? ' notif-panel-tab--active' : ''}`}
-            onClick={() => setActiveTab('unread')}
-          >
-            {t('notif.unread')} ({unreadCount})
-          </button>
-        </div>
+        {/* Filter tabs — the shared underline ds-tabs (this panel is too
+            narrow for the sunken-track segmented look most toolbars use). */}
+        <Tabs value={activeTab} onValueChange={v => setActiveTab(v as typeof activeTab)} variant="underline">
+          <TabsList className="notif-panel-tabs">
+            <TabsTrigger value="all">
+              {/* This read `notifs.length` — one fetched page, 50 by default —
+                  beside an unread count that was a true total, so the tabs said
+                  "All (50)" and "Unread (112)", which cannot both be true. */}
+              {t('notif.all')} ({totalCount || notifs.length})
+            </TabsTrigger>
+            <TabsTrigger value="unread">
+              {t('notif.unread')} ({unreadCount})
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
       </div>
 
       {/* ── Notification list ── */}

@@ -4,6 +4,7 @@ import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { showAlert } from '../lib/alert.js';
 import { CompanyAvatar } from '../components/PersonAvatar.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import type { OnsiteAgencyProfile, AgencyPricingTier } from '@hudumika/types';
 import './AgencyDirectory.css';
 
@@ -75,17 +76,23 @@ export function AgencyDirectory() {
             onChange={e => setQ(e.target.value)}
           />
         </div>
-        <select value={tier} onChange={e => setTier(e.target.value as AgencyPricingTier | '')} className="ad-filter-select">
-          <option value="">Any budget</option>
-          <option value="budget">Budget-friendly</option>
-          <option value="standard">Standard</option>
-          <option value="premium">Premium</option>
-        </select>
+        <Select value={tier || '__none__'} onValueChange={v => setTier(v === '__none__' ? '' : v as AgencyPricingTier)}>
+          <SelectTrigger className="ad-filter-select"><SelectValue placeholder="Any budget" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__none__">Any budget</SelectItem>
+            <SelectItem value="budget">Budget-friendly</SelectItem>
+            <SelectItem value="standard">Standard</SelectItem>
+            <SelectItem value="premium">Premium</SelectItem>
+          </SelectContent>
+        </Select>
         {regions.length > 0 && (
-          <select value={region} onChange={e => setRegion(e.target.value)} className="ad-filter-select">
-            <option value="">Any region</option>
-            {regions.map(r => <option key={r} value={r}>{r}</option>)}
-          </select>
+          <Select value={region || '__none__'} onValueChange={v => setRegion(v === '__none__' ? '' : v)}>
+            <SelectTrigger className="ad-filter-select"><SelectValue placeholder="Any region" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__">Any region</SelectItem>
+              {regions.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+            </SelectContent>
+          </Select>
         )}
         {serviceTag && (
           <button type="button" className="ad-filter-chip" onClick={() => setServiceTag('')}>
@@ -195,7 +202,7 @@ function InquiryModal({ profile, onClose }: { profile: OnsiteAgencyProfile; onCl
       <div className="ad-modal" onClick={e => e.stopPropagation()}>
         <div className="ad-modal-header">
           <h3>Contact {profile.tenant_name}</h3>
-          <button type="button" className="ad-modal-close" onClick={onClose}><Icon name="x" size={16} /></button>
+          <button type="button" className="ad-modal-close" onClick={onClose} aria-label="Close"><Icon name="x" size={16} /></button>
         </div>
         {sent ? (
           <div className="ad-modal-sent">

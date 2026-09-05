@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { Button } from '../components/ui/button.js';
 import { Input } from '../components/ui/input.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
@@ -149,7 +150,7 @@ export function InventoryTasks() {
       )}
 
       {loading ? (
-        <div className="inv-empty">Loading…</div>
+        <SectionLoading />
       ) : (
         <div className="inv-kanban">
           {COLUMNS.map(col => {

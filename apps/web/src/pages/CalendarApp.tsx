@@ -15,6 +15,8 @@ import {
 } from '../data/calendarStore.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '../components/ui/dropdown-menu.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { Switch } from '../components/ui/switch.js';
 import { Popover, PopoverAnchor, PopoverContent } from '../components/ui/popover.js';
 import { Button } from '../components/ui/button.js';
@@ -662,8 +664,44 @@ export const CalendarApp: React.FC = () => {
 
         </div>
 
-        {/* Right Section: Google Calendar Exact Top Layer Controls (Image 3) */}
+        {/* Right Section: Cal.com & Google Calendar Toolbar Controls */}
         <div className="cal-topbar-right">
+          {/* Quick Action: Cal.com style Booking Links */}
+          <button
+            type="button"
+            onClick={() => setBookingPagesOpen(true)}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px',
+              border: '1px solid var(--border)', borderRadius: 7, background: 'var(--white)',
+              fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer',
+              transition: 'all 0.15s ease', whiteSpace: 'nowrap'
+            }}
+            onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--teal)'}
+            onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
+            title="Manage Cal.com style booking pages & shareable links"
+          >
+            <Icon name="link" size={14} color="var(--teal)" />
+            <span>Booking Links</span>
+          </button>
+
+          {/* Quick Action: Calendar Sync */}
+          <button
+            type="button"
+            onClick={() => setCalendarSyncOpen(true)}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px',
+              border: '1px solid var(--border)', borderRadius: 7, background: 'var(--white)',
+              fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer',
+              transition: 'all 0.15s ease', whiteSpace: 'nowrap'
+            }}
+            onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--teal)'}
+            onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
+            title="Connect Google Calendar / Outlook sync"
+          >
+            <Icon name="globe" size={14} color="var(--teal)" />
+            <span>Sync</span>
+          </button>
+
           {/* 1. Help & Support */}
           <button
             type="button"
@@ -769,28 +807,16 @@ export const CalendarApp: React.FC = () => {
           </DropdownMenu>
 
           {/* 4. Dual View Switcher Pill: Calendar vs Tasks (Image 3) */}
-          <div className="ds-tabs-list" data-variant="segmented">
-            <button
-              type="button"
-              className="ds-tabs-trigger"
-              data-variant="segmented"
-              data-state={viewMode !== 'agenda' ? 'active' : 'inactive'}
-              onClick={() => setViewMode('month')}
-              title="Calendar View"
-            >
-              <Icon name="calendar" size={16} />
-            </button>
-            <button
-              type="button"
-              className="ds-tabs-trigger"
-              data-variant="segmented"
-              data-state={viewMode === 'agenda' ? 'active' : 'inactive'}
-              onClick={() => setViewMode('agenda')}
-              title="Tasks & Schedule View"
-            >
-              <Icon name="tasks" size={16} />
-            </button>
-          </div>
+          <Tabs value={viewMode === 'agenda' ? 'agenda' : 'calendar'} onValueChange={v => setViewMode(v === 'agenda' ? 'agenda' : 'month')} variant="segmented">
+            <TabsList>
+              <TabsTrigger value="calendar" title="Calendar View">
+                <Icon name="calendar" size={16} />
+              </TabsTrigger>
+              <TabsTrigger value="agenda" title="Tasks & Schedule View">
+                <Icon name="tasks" size={16} />
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
 
 
 
@@ -1335,7 +1361,7 @@ export const CalendarApp: React.FC = () => {
                     {eventMeetingUrl ? (
                       <div style={{ display: 'flex', gap: 6 }}>
                         <Tip label="Join this video call now">
-                          <Button aria-label="Join video call" variant="default" size="xs" onClick={() => window.open(buildJoinUrl(eventMeetingUrl, eventMeetingSettings), '_blank', 'noopener')} style={{ background: 'var(--teal)', color: '#fff' }}>
+                          <Button aria-label="Join video call" variant="default" size="xs" onClick={() => window.open(buildJoinUrl(eventMeetingUrl, eventMeetingSettings), '_blank', 'noopener')}>
                             <Icon name="video" size={12} /> Join
                           </Button>
                         </Tip>
@@ -1569,7 +1595,6 @@ export const CalendarApp: React.FC = () => {
                     aria-label="Join video call"
                     variant="default" size="xs"
                     onClick={() => window.open(buildJoinUrl(ev.meetingUrl!, ev.meetingSettings || {}), '_blank', 'noopener')}
-                    style={{ background: 'var(--teal)', color: '#fff' }}
                   >
                     <Icon name="video" size={12} /> Join
                   </Button>
@@ -1955,7 +1980,7 @@ const BookingPagesPanel: React.FC<{ isMobile: boolean; onClose: () => void }> = 
 
         {!creating && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {loading && <div style={{ fontSize: 13, color: 'var(--ink3)', padding: '12px 0' }}>Loading…</div>}
+            {loading && <SectionLoading />}
             {!loading && pages.length === 0 && (
               <div style={{ fontSize: 13, color: 'var(--ink3)', padding: '12px 0' }}>
                 No booking pages yet — create one to let people schedule time with you without going back and forth.
@@ -2137,14 +2162,14 @@ const CalendarSyncPanel: React.FC<{ isMobile: boolean; onClose: () => void }> = 
       <div style={{ background: 'var(--white)', borderRadius: 16, width: 'min(520px, 94vw)', maxHeight: '88vh', overflowY: 'auto', padding: isMobile ? 18 : 24, boxShadow: 'var(--elev-lg)' }} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
           <h2 style={{ fontSize: 18, fontWeight: 600 }}>Google/Outlook sync</h2>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', color: 'var(--ink3)' }}><Icon name="x" size={18} /></button>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', color: 'var(--ink3)' }} aria-label="Close"><Icon name="x" size={18} /></button>
         </div>
         <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 18 }}>
           One-way import — events on your Google or Outlook calendar show up here. Nothing is ever written back.
         </div>
 
         {loading ? (
-          <div style={{ fontSize: 13, color: 'var(--ink3)', padding: '12px 0' }}>Loading…</div>
+          <SectionLoading />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {(['google', 'outlook'] as const).map(provider => {

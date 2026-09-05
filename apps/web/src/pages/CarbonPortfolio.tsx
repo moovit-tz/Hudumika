@@ -6,6 +6,7 @@ import {
 import type { DateRange } from 'react-day-picker';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
+import { Banner } from '../components/ui/alert.js';
 import { Button } from '../components/ui/button.js';
 import { DateRangePicker } from '../components/ui/date-picker.js';
 import { MetricsRow } from '../components/MetricCard.js';
@@ -129,11 +130,7 @@ export const CarbonPortfolio: React.FC = () => {
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '16px 0' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          {error && (
-            <div style={{ padding: 16, background: 'var(--red-l)', border: '1px solid var(--red)', color: 'var(--red)', borderRadius: 'var(--r)' }}>
-              {error}
-            </div>
-          )}
+          {error && <Banner variant="error">{error}</Banner>}
 
           {/* Not-a-tradeable-credit disclosure — this is an internal GLEC-based estimate,
               not a Gold Standard/Verra registered offset. Shown once, up top, so it can't

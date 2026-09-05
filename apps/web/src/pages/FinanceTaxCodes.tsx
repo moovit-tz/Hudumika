@@ -4,6 +4,8 @@ import { MetricsRow } from '../components/MetricCard.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { FormPage, FormPageActions } from '../components/FormPage.js';
 import { Icon } from '../components/Icon.js';
+import { SectionLoading } from '../components/ui/spinner.js';
+import { Banner } from '../components/ui/alert.js';
 import { Badge } from '../components/ui/badge.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
@@ -166,16 +168,14 @@ function ComponentEditor({ taxCodeId, jurisdiction, zeroKind }: {
       </div>
 
       {err && (
-        <div style={{ padding: '9px 12px', background: 'var(--red-l)', border: '1px solid var(--red)',
-                      borderRadius: 'var(--r-sm)', color: 'var(--red)', fontSize: 12.5, fontWeight: 600, marginBottom: 12 }}>{err}</div>
+        <div style={{ marginBottom: 12 }}><Banner variant="error">{err}</Banner></div>
       )}
       {saved && !err && (
-        <div style={{ padding: '9px 12px', background: 'var(--green-l)', border: '1px solid var(--border)',
-                      borderRadius: 'var(--r-sm)', color: 'var(--green)', fontSize: 12.5, fontWeight: 600, marginBottom: 12 }}>{saved}</div>
+        <div style={{ marginBottom: 12 }}><Banner variant="success">{saved}</Banner></div>
       )}
 
       {loading ? (
-        <div style={{ fontSize: 13, color: 'var(--ink3)', padding: '12px 0' }}>Loading…</div>
+        <SectionLoading />
       ) : (
         <>
           {rows.length > 0 && (
@@ -341,9 +341,7 @@ function TaxCodeForm({ code, onClose, onSaved }: {
     >
       <div className="card" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
         {err && (
-          <div style={{ gridColumn: '1 / -1', padding: '9px 12px', background: 'var(--red-l)',
-                        border: '1px solid var(--red)', borderRadius: 'var(--r-sm)',
-                        color: 'var(--red)', fontSize: 12.5, fontWeight: 600 }}>{err}</div>
+          <div style={{ gridColumn: '1 / -1' }}><Banner variant="error">{err}</Banner></div>
         )}
 
         <F label="Treatment *" col2 hint={TAX_CODE_KIND_HINT[form.kind]}>
@@ -685,13 +683,9 @@ export function FinanceTaxCodes() {
 
           {/* A seeded test registration says so here rather than passing as real. */}
           {reg.status.notes && (
-            <div style={{
-              fontSize: 11.5, lineHeight: 1.55, marginTop: 10, padding: '8px 10px',
-              background: 'var(--gold-l)', border: '1px solid var(--gold)',
-              borderRadius: 'var(--r-sm)', color: 'var(--ink2)',
-            }}>
+            <Banner variant="warning" style={{ marginTop: 10 }}>
               {reg.status.notes}
-            </div>
+            </Banner>
           )}
 
           {/* Local reference figures, clearly dated — these change every budget,
@@ -715,15 +709,8 @@ export function FinanceTaxCodes() {
           are indistinguishable in the old data, and guessing one would be
           worse than showing the gap. */}
       {unclassified !== null && unclassified > 0 && (
-        <div style={{
-          display: 'flex', gap: 10, alignItems: 'flex-start',
-          padding: '12px 14px', margin: '0 0 16px',
-          background: 'var(--gold-l)', border: '1px solid var(--gold)',
-          borderRadius: 'var(--r)', fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.5,
-        }}>
-          <Icon name="alertTriangle" size={16} color="var(--gold)" />
-          <div>
-            <strong style={{ color: 'var(--ink)' }}>{unclassified} rows have no recorded treatment.</strong>{' '}
+        <div style={{ margin: '0 0 16px' }}>
+          <Banner variant="warning" title={`${unclassified} rows have no recorded treatment.`}>
             They were written before tax codes existed, when tax was only a percentage.
             A 0% row could have been zero-rated, exempt, reverse-charge or out of scope,
             and only one of those lets you recover input tax — so nothing was guessed on
@@ -734,7 +721,7 @@ export function FinanceTaxCodes() {
                 Work through them
               </a>
             </div>
-          </div>
+          </Banner>
         </div>
       )}
 

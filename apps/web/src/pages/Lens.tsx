@@ -3,6 +3,8 @@ import { PageHeader } from '../components/PageHeader.js';
 import { MetricsRow } from '../components/MetricCard.js';
 import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
+import { Banner } from '../components/ui/alert.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { apiFetch } from '../lib/api.js';
 import { SectionCard } from '../components/SectionCard.js';
@@ -279,7 +281,7 @@ export function Lens() {
       </div>
 
       {loading ? (
-        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading…</div>
+        <SectionLoading />
       ) : viewMode === 'board' ? (
         <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', overflowX: 'auto', paddingBottom: 8, flex: 1, height: 0 }}>
           {columns.map(col => (
@@ -298,7 +300,7 @@ export function Lens() {
                 <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)' }}>
                   {col.name}
                 </span>
-                <span style={{ fontSize: 11, fontWeight: 700, background: col.over_wip ? 'var(--red)' : 'var(--border)', color: col.over_wip ? '#fff' : 'var(--ink2)', padding: '2px 6px', borderRadius: 10 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, background: col.over_wip ? 'var(--red)' : 'var(--border)', color: col.over_wip ? 'hsl(var(--red-foreground))' : 'var(--ink2)', padding: '2px 6px', borderRadius: 10 }}>
                   {col.count}{col.wip_limit != null ? ` / ${col.wip_limit}` : ''}
                 </span>
               </div>
@@ -479,7 +481,7 @@ function Compose({ areas, onClose, onSaved }: {
 
       <div className="card" style={{ maxWidth: 760, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
         {err && (
-          <div style={{ gridColumn: '1 / -1', padding: '9px 12px', background: 'var(--red-l)', border: '1px solid var(--red)', borderRadius: 'var(--r-sm)', color: 'var(--red)', fontSize: 12.5, fontWeight: 600 }}>{err}</div>
+          <div style={{ gridColumn: '1 / -1' }}><Banner variant="error">{err}</Banner></div>
         )}
 
         <div style={{ gridColumn: '1 / -1' }}>

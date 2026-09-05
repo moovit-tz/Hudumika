@@ -2,6 +2,8 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { Icon } from '../components/Icon.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { showAlert } from '../lib/alert.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { SectionCard } from '../components/SectionCard.js';
@@ -77,7 +79,7 @@ export function ActivityMonitorPage() {
         action={
           <button type="button" onClick={toggleConsent} disabled={!settings?.enabled} style={{
             padding: 'var(--ds-btn-py-sm) 16px', borderRadius: 'var(--r)', border: '1px solid ' + (consent ? 'var(--red)' : 'var(--teal)'),
-            background: consent ? 'var(--white)' : 'var(--teal)', color: consent ? 'var(--red)' : '#fff', fontSize: 13, fontWeight: 700,
+            background: consent ? 'var(--white)' : 'hsl(var(--primary))', color: consent ? 'var(--red)' : 'hsl(var(--primary-foreground))', fontSize: 13, fontWeight: 700,
             cursor: settings?.enabled ? 'pointer' : 'not-allowed', opacity: settings?.enabled ? 1 : 0.5, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25,
           }}>{consent ? 'Opt out' : 'Opt in'}</button>
         }
@@ -111,10 +113,12 @@ export function ActivityMonitorPage() {
             ))}
             <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: 'var(--ink2)' }}>
               Flush interval
-              <select value={settings.intervalSeconds} disabled={saving || !settings.enabled} onChange={e => patchSettings({ intervalSeconds: Number(e.target.value) })}
-                style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg)', fontSize: 13 }}>
-                {[30, 60, 120, 300].map(s => <option key={s} value={s}>{s < 60 ? `${s}s` : `${s / 60}m`}</option>)}
-              </select>
+              <Select value={String(settings.intervalSeconds)} disabled={saving || !settings.enabled} onValueChange={v => patchSettings({ intervalSeconds: Number(v) })}>
+                <SelectTrigger style={{ width: 'auto' }}><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {[30, 60, 120, 300].map(s => <SelectItem key={s} value={String(s)}>{s < 60 ? `${s}s` : `${s / 60}m`}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </label>
           </div>
         </SectionCard>
@@ -125,12 +129,13 @@ export function ActivityMonitorPage() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
         <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--ink)' }}>Last 24 hours</div>
         {isLead && (
-          <div className="ds-tabs-list" data-variant="segmented">
-            {(['self', 'team'] as const).map(s => (
-              <button key={s} type="button" className="ds-tabs-trigger" data-variant="segmented"
-                data-state={scope === s ? 'active' : 'inactive'} onClick={() => setScope(s)}>{s === 'self' ? 'Me' : 'Team'}</button>
-            ))}
-          </div>
+          <Tabs value={scope} onValueChange={(v) => setScope(v as any)} variant="segmented">
+            <TabsList>
+              {(['self', 'team'] as const).map(s => (
+                <TabsTrigger key={s} value={s}>{s === 'self' ? 'Me' : 'Team'}</TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
         )}
       </div>
 

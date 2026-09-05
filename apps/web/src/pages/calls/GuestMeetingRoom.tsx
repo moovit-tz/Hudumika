@@ -227,7 +227,7 @@ export function GuestMeetingRoom({
       type="button" title={label} onClick={onClick} disabled={disabled}
       style={{
         width: 48, height: 48, borderRadius: '50%', border: 'none', cursor: disabled ? 'not-allowed' : 'pointer',
-        background: danger ? 'var(--red)' : active ? '#3c4043' : '#fff', color: danger || active ? '#fff' : '#202124',
+        background: danger ? 'var(--red)' : active ? '#3c4043' : '#fff', color: danger ? 'hsl(var(--red-foreground))' : active ? '#fff' : '#202124',
         display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: disabled ? 0.4 : 1,
       }}
     >

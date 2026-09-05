@@ -162,7 +162,7 @@
   right: -1px;
   min-width: 18px;
   height: 18px;
-  border-radius: 9px;
+  border-radius: var(--r);
   padding: 0 4px;
   display: flex;
   align-items: center;

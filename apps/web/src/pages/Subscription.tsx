@@ -9,6 +9,8 @@ import { PageHeader } from '../components/PageHeader.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Switch } from '../components/ui/switch.js';
 import { Badge } from '../components/ui/badge.js';
+import { Banner } from '../components/ui/alert.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { useCompany, setCompany } from '../data/companyStore.js';
 import { useEntitlements, resetEntitlementsCache } from '../hooks/useEntitlements.js';
 import { APP_META } from './Utilities.js';
@@ -234,7 +236,7 @@ function SectionHead({ title, sub, action }: { title: string; sub?: string; acti
 
 function Card({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
   return (
-    <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, overflow: 'hidden', ...style }}>
+    <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', overflow: 'hidden', ...style }}>
       {children}
     </div>
   );
@@ -361,7 +363,7 @@ function CompanyInfoTab({ tenant }: { tenant: any }) {
           <CardHead title="Active Subscription" />
           <div style={{ padding: '16px 20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-              <div style={{ width: 48, height: 48, borderRadius: 9, background: plan.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: 48, height: 48, borderRadius: 'var(--r)', background: plan.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Icon name="layers" size={22} strokeWidth={1.75} style={{ color: plan.color } as React.CSSProperties} />
               </div>
               <div>
@@ -485,7 +487,7 @@ function BillingTab({ tenant, onNavigateTab }: { tenant: any; onNavigateTab: (t:
           <CardHead title="Current Subscription" sub="Your active plan and renewal details." right={<Btn label="Change Plan" icon="layers" onClick={() => onNavigateTab('plans')} />} />
           <div style={{ padding: 20 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20 }}>
-              <div style={{ width: 52, height: 52, borderRadius: 9, background: plan.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: 52, height: 52, borderRadius: 'var(--r)', background: plan.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Icon name="layers" size={22} strokeWidth={1.75} style={{ color: plan.color } as React.CSSProperties} />
               </div>
               <div style={{ flex: 1 }}>
@@ -512,7 +514,7 @@ function BillingTab({ tenant, onNavigateTab }: { tenant: any; onNavigateTab: (t:
                 { label: 'Next Payment', value: priceMonthlyTotal, icon: 'creditCard' as IconName },
                 { label: 'Status',       value: tenant?.active ? 'Active' : 'Inactive', icon: 'check' as IconName, green: tenant?.active },
               ].map(item => (
-                <div key={item.label} style={{ padding: '10px 12px', background: 'var(--bg)', borderRadius: 9 }}>
+                <div key={item.label} style={{ padding: '10px 12px', background: 'var(--bg)', borderRadius: 'var(--r)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 5 }}>
                     <Icon name={item.icon} size={12} strokeWidth={2} style={{ color: 'var(--ink3)' } as React.CSSProperties} />
                     <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{item.label}</span>
@@ -547,7 +549,7 @@ function BillingTab({ tenant, onNavigateTab }: { tenant: any; onNavigateTab: (t:
                 {paying === current.id ? 'Processing…' : 'Pay Now'}
               </button>
             ) : (
-              <div style={{ width: '100%', marginTop: 16, padding: '10px 0', textAlign: 'center', borderRadius: 9, background: 'var(--teal-l)', color: 'var(--teal)', fontSize: 13.5, fontWeight: 700 }}>
+              <div style={{ width: '100%', marginTop: 16, padding: '10px 0', textAlign: 'center', borderRadius: 'var(--r)', background: 'var(--teal-l)', color: 'var(--teal)', fontSize: 13.5, fontWeight: 700 }}>
                 {current ? 'Paid' : 'No invoice yet'}
               </div>
             )}
@@ -607,6 +609,25 @@ const METHOD_TYPES: { value: 'card' | 'mobile_money' | 'petti_wallet'; label: st
 ];
 
 const MOBILE_MONEY_PROVIDERS = ['M-Pesa', 'Tigo Pesa', 'Airtel Money', 'HaloPesa', 'Other'];
+
+// Tanzania's mobile numbers carry the network in their prefix, so once
+// someone's typed enough digits there's no real ambiguity about which
+// wallet a payment will actually move through — asking them to also pick it
+// from a list is a second step for information the number already gave.
+const MOBILE_MONEY_PREFIX_MAP: Record<string, string> = {
+  '074': 'M-Pesa', '075': 'M-Pesa', '076': 'M-Pesa',       // Vodacom
+  '065': 'Tigo Pesa', '067': 'Tigo Pesa', '071': 'Tigo Pesa', // Tigo
+  '068': 'Airtel Money', '069': 'Airtel Money', '078': 'Airtel Money', // Airtel
+  '061': 'HaloPesa', '062': 'HaloPesa',                     // Halotel
+};
+
+function detectMobileMoneyProvider(phone: string): string | null {
+  let digits = phone.replace(/\D/g, '');
+  if (digits.startsWith('255')) digits = digits.slice(3);
+  else if (digits.startsWith('0')) digits = digits.slice(1);
+  if (digits.length < 2) return null;
+  return MOBILE_MONEY_PREFIX_MAP['0' + digits.slice(0, 2)] ?? null;
+}
 
 /** The tenant's own Petti wallets — for the "pay from wallet" payment
  *  method. Empty (not an error) if Petti isn't entitled for this tenant;
@@ -740,7 +761,7 @@ function PaymentsTab({ onNavigateTab }: { tenant?: any; onNavigateTab: (t: SubTa
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>
                     {m.label || m.brand}{m.last4 ? ` •••• ${m.last4}` : ''}
-                    {m.is_default && <span style={{ marginLeft: 8, padding: '1px 7px', borderRadius: 9, background: 'var(--green-l)', color: 'var(--green)', fontSize: 10, fontWeight: 700 }}>Default</span>}
+                    {m.is_default && <span style={{ marginLeft: 8, padding: '1px 7px', borderRadius: 'var(--r)', background: 'var(--green-l)', color: 'var(--green)', fontSize: 10, fontWeight: 700 }}>Default</span>}
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>
                     {m.type === 'petti_wallet'
@@ -780,7 +801,20 @@ function PaymentsTab({ onNavigateTab }: { tenant?: any; onNavigateTab: (t: SubTa
                   </>
                 ) : methodType === 'mobile_money' ? (
                   <>
-                    <FormRow label="Phone Number"><input value={phone} onChange={e => setPhone(e.target.value)} placeholder="0755 000 000" className="input-field" style={{ width: '100%', fontSize: 13, padding: '8px 12px' }} /></FormRow>
+                    <FormRow label="Phone Number">
+                      <input
+                        value={phone}
+                        onChange={e => {
+                          const next = e.target.value;
+                          setPhone(next);
+                          const detected = detectMobileMoneyProvider(next);
+                          if (detected) setProvider(detected);
+                        }}
+                        placeholder="0755 000 000"
+                        className="input-field"
+                        style={{ width: '100%', fontSize: 13, padding: '8px 12px' }}
+                      />
+                    </FormRow>
                     <FormRow label="Provider">
                       <Select value={provider} onValueChange={setProvider}>
                         <SelectTrigger className="input-field" style={{ width: '100%' }}><SelectValue placeholder="Choose a provider…" /></SelectTrigger>
@@ -866,9 +900,8 @@ function PaymentsTab({ onNavigateTab }: { tenant?: any; onNavigateTab: (t: SubTa
                   </div>
                 ))}
                 {walletLow && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 14, padding: '10px 12px', borderRadius: 'var(--r)', background: 'var(--gold-l)', border: '1px solid var(--gold)' }}>
-                    <Icon name="alertTriangle" size={14} strokeWidth={2} style={{ color: 'var(--gold)', flexShrink: 0 } as React.CSSProperties} />
-                    <span style={{ fontSize: 12, color: 'var(--ink2)', flex: 1 }}>Your wallet balance won't cover this invoice.</span>
+                  <div style={{ marginTop: 14 }}>
+                    <Banner variant="warning">Your wallet balance won't cover this invoice.</Banner>
                     <a href="/petti" style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', whiteSpace: 'nowrap' }}>Top up →</a>
                   </div>
                 )}
@@ -977,9 +1010,9 @@ function AddonsSection() {
       <CardHead title="Get more with add-ons" sub="Purchasable on top of your plan — not a separate tier. Adding one activates it immediately; there's no checkout, its cost is simply included on your next Billing invoice." />
       <div style={{ padding: 20, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 14 }}>
         {addons.map(addon => (
-          <div key={addon.id} style={{ border: '1px solid var(--border)', borderRadius: 9, padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div key={addon.id} style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 10 }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-              <span style={{ width: 36, height: 36, borderRadius: 9, background: addon.color ? `${addon.color}18` : 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <span style={{ width: 36, height: 36, borderRadius: 'var(--r)', background: addon.color ? `${addon.color}18` : 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Icon name="globe" size={16} strokeWidth={1.75} style={{ color: addon.color ?? 'var(--teal)' } as React.CSSProperties} />
               </span>
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -1467,7 +1500,7 @@ function SupportTab() {
             ].map(c => {
               const row = (
                 <div style={{ display: 'flex', gap: 12, padding: '12px 0', borderBottom: '1px solid var(--border)', alignItems: 'center', cursor: c.href ? 'pointer' : 'default' }}>
-                  <div style={{ width: 38, height: 38, borderRadius: 9, background: c.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <div style={{ width: 38, height: 38, borderRadius: 'var(--r)', background: c.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <Icon name={c.icon} size={17} strokeWidth={1.75} style={{ color: c.color } as React.CSSProperties} />
                   </div>
                   <div>
@@ -1589,23 +1622,17 @@ export const Subscription: React.FC = () => {
         }
       />
 
-      {/* ── Tab Bar Navigation ── */}
-      <div className="sub-hero-tabbar">
-        {TABS.map(t => {
-          const isActive = tab === t.id;
-          return (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => setTab(t.id)}
-              className={`sub-tab-pill ${isActive ? 'active' : ''}`}
-            >
+      {/* ── Tab Bar Navigation — the shared segmented ds-tabs ── */}
+      <Tabs value={tab} onValueChange={v => setTab(v as typeof tab)} variant="segmented">
+        <TabsList>
+          {TABS.map(t => (
+            <TabsTrigger key={t.id} value={t.id}>
               <Icon name={t.icon} size={14} />
-              <span>{t.label}</span>
-            </button>
-          );
-        })}
-      </div>
+              <span className="ds-tabs-trigger-label">{t.label}</span>
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
 
       {/* ── Tab content ── */}
       <div className="sub-tab-content">

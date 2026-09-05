@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { MapContainer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import { formatDistanceToNow } from 'date-fns';
@@ -351,23 +352,25 @@ export const TrackingVehicles: React.FC = () => {
         <div>
           <div className="trk-fleet-header">
             <div className="trk-fleet-header-controls">
-              <div className="trk-filter-pills">
-                {['All', 'In warehouse', 'On route', 'Loading', 'Maintenance'].map(f => (
-                  <div key={f} className={`trk-pill ${filter === f ? 'active' : 'inactive'}`} onClick={() => setFilter(f)}>
-                    {f}
-                  </div>
-                ))}
-              </div>
+              <Tabs value={filter} onValueChange={setFilter} variant="segmented">
+                <TabsList>
+                  {['All', 'In warehouse', 'On route', 'Loading', 'Maintenance'].map(f => (
+                    <TabsTrigger key={f} value={f}>{f}</TabsTrigger>
+                  ))}
+                </TabsList>
+              </Tabs>
             </div>
             <div style={{display: 'flex', gap: 10, alignItems: 'center', flexShrink: 0}}>
-              <div style={{display: 'flex', gap: 4, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 20, padding: 4}}>
-                <div onClick={() => setViewMode('grid')} style={{padding: '6px 10px', borderRadius: 16, cursor: 'pointer', background: viewMode === 'grid' ? 'var(--white)' : 'transparent', color: viewMode === 'grid' ? 'var(--ink)' : 'var(--ink3)'}}>
-                  <Icon name="grid" size={14} />
-                </div>
-                <div onClick={() => setViewMode('list')} style={{padding: '6px 10px', borderRadius: 16, cursor: 'pointer', background: viewMode === 'list' ? 'var(--white)' : 'transparent', color: viewMode === 'list' ? 'var(--ink)' : 'var(--ink3)'}}>
-                  <Icon name="list" size={14} />
-                </div>
-              </div>
+              <Tabs value={viewMode} onValueChange={v => setViewMode(v as typeof viewMode)} variant="segmented">
+                <TabsList>
+                  <TabsTrigger value="grid">
+                    <Icon name="grid" size={14} />
+                  </TabsTrigger>
+                  <TabsTrigger value="list">
+                    <Icon name="list" size={14} />
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
               <Link to="/tracking/vehicles/new" className="trk-icon-btn" title="Register a vehicle" style={{width: 'auto', padding: '0 14px'}}>
                 <Icon name="truck" size={15} />
               </Link>

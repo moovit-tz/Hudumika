@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import { Icon } from '../components/Icon.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
@@ -68,7 +69,7 @@ function ActiveChecklists() {
 
       <SectionCard padded={false}>
         {loading ? (
-          <div style={{ padding: 32, textAlign: 'center', color: 'var(--ink3)' }}>Loading…</div>
+          <SectionLoading />
         ) : rows.length === 0 ? (
           <div style={{ padding: 32, textAlign: 'center', color: 'var(--ink3)', fontSize: 13.5 }}>
             No checklists yet — one is created automatically the next time someone joins or is deactivated, as long as a template exists for that type.
@@ -137,7 +138,7 @@ function ChecklistDetailModal({ id, onClose, onChanged }: { id: string; onClose:
     <div style={overlayStyle} onClick={onClose}>
       <div style={cardStyle} onClick={e => e.stopPropagation()}>
         {!item ? (
-          <div style={{ padding: 20, textAlign: 'center', color: 'var(--ink3)' }}>Loading…</div>
+          <SectionLoading />
         ) : (
           <>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
@@ -145,7 +146,7 @@ function ChecklistDetailModal({ id, onClose, onChanged }: { id: string; onClose:
                 <div style={{ fontSize: 16, fontWeight: 700 }}>{item.employee_name}</div>
                 <div style={{ fontSize: 12, color: 'var(--ink3)' }}>{item.type === 'onboarding' ? 'Onboarding' : 'Offboarding'} checklist</div>
               </div>
-              <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}><Icon name="x" size={16} /></button>
+              <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }} aria-label="Close"><Icon name="x" size={16} /></button>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 16 }}>
               {item.items.map((i: any) => (
@@ -227,7 +228,7 @@ function Templates() {
             Every real person's checklist is a copy of this list at the moment they {type === 'onboarding' ? 'join' : 'leave'} — editing it later doesn't change checklists already in progress.
           </div>
           {loading ? (
-            <div style={{ color: 'var(--ink3)', fontSize: 13 }}>Loading…</div>
+            <SectionLoading />
           ) : (
             <>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>

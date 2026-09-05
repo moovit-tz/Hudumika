@@ -152,7 +152,7 @@ export function PettiRequest() {
               />
             </div>
 
-            <Button type="submit" disabled={saving} style={{ background: 'var(--green)', color: '#fff', padding: '12px', fontWeight: 700, fontSize: 14 }}>
+            <Button type="submit" disabled={saving} style={{ background: 'var(--green)', color: 'hsl(var(--green-foreground))', padding: '12px', fontWeight: 700, fontSize: 14 }}>
               <Icon name="fileText" size={16} /> {saving ? 'Submitting…' : 'Submit Voucher Request'}
             </Button>
           </form>

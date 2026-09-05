@@ -6,6 +6,7 @@ import { showAlert } from '../../lib/alert.js';
 import { showConfirm } from '../../lib/confirm.js';
 import { apiFetch } from '../../lib/api.js';
 import { Icon } from '../../components/Icon.js';
+import { SectionLoading, PageLoading } from '../../components/ui/spinner.js';
 import type {
   AgencyManagedClient, OnsiteDomain, OnsiteDnsRecord,
   OnsiteApplication, OnsiteDeployment, OnsiteHealthCheck,
@@ -32,7 +33,7 @@ export function OnsiteAgencyClientManage() {
   if (loading) {
     return (
       <div className="onsite-page">
-        <div className="onsite-card"><p style={{ color: 'var(--ink-muted)' }}>Loading…</p></div>
+        <div className="onsite-card"><PageLoading /></div>
       </div>
     );
   }
@@ -120,7 +121,7 @@ function BillingSection({ base }: { base: string }) {
       </div>
       <div className="onsite-card">
         {loading ? (
-          <p style={{ color: 'var(--ink-muted)', padding: '1rem' }}>Loading…</p>
+          <SectionLoading />
         ) : !customer ? (
           <div style={{ textAlign: 'center', padding: '1.5rem 1rem' }}>
             <p style={{ color: 'var(--ink-muted)', marginBottom: '1rem' }}>
@@ -178,7 +179,7 @@ function DomainsSection({ base }: { base: string }) {
       </div>
       <div className="onsite-card">
         {loading ? (
-          <p style={{ color: 'var(--ink-muted)', padding: '1rem' }}>Loading…</p>
+          <SectionLoading />
         ) : domains.length === 0 ? (
           <p style={{ color: 'var(--ink-muted)', padding: '1rem' }}>No domains attached yet.</p>
         ) : (
@@ -299,7 +300,7 @@ function DnsPanel({ base, domainId }: { base: string; domainId: string }) {
         </button>
       </div>
       {loading ? (
-        <p style={{ color: 'var(--ink-muted)' }}>Loading…</p>
+        <SectionLoading />
       ) : records.length === 0 ? (
         <p style={{ color: 'var(--ink-muted)' }}>No records yet.</p>
       ) : (
@@ -428,7 +429,7 @@ function DeploymentsSection({ base }: { base: string }) {
       </div>
       <div className="onsite-card">
         {loading ? (
-          <p style={{ color: 'var(--ink-muted)', padding: '1rem' }}>Loading…</p>
+          <SectionLoading />
         ) : apps.length === 0 ? (
           <p style={{ color: 'var(--ink-muted)', padding: '1rem' }}>No applications registered yet.</p>
         ) : (
@@ -565,7 +566,7 @@ function MonitoringSection({ base }: { base: string }) {
       </div>
       <div className="onsite-card">
         {loading ? (
-          <p style={{ color: 'var(--ink-muted)', padding: '1rem' }}>Loading…</p>
+          <SectionLoading />
         ) : checks.length === 0 ? (
           <p style={{ color: 'var(--ink-muted)', padding: '1rem' }}>No health checks yet.</p>
         ) : (

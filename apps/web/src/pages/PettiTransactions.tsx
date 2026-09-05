@@ -2,9 +2,11 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Badge } from '../components/ui/badge.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { Input } from '../components/ui/input.js';
 import { Button } from '../components/ui/button.js';
 import { Icon } from '../components/Icon.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { SingleSelectFilter } from '../components/ui/filter-dropdown.js';
 import { DateRangePicker } from '../components/ui/date-picker.js';
 import { PaginationBar } from '../components/PaginationBar.js';
@@ -197,32 +199,16 @@ export function PettiTransactions() {
         actions={
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             {/* View Mode Switcher */}
-            <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--bg)', padding: 2 }}>
-              <button
-                type="button"
-                onClick={() => setViewMode('list')}
-                title="Table List View"
-                style={{
-                  padding: '4px 8px', border: 'none', borderRadius: 6, cursor: 'pointer',
-                  background: viewMode === 'list' ? 'var(--white)' : 'transparent',
-                  color: viewMode === 'list' ? 'var(--teal)' : 'var(--ink3)'
-                }}
-              >
-                <Icon name="list" size={14} />
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('grid')}
-                title="Card Grid View"
-                style={{
-                  padding: '4px 8px', border: 'none', borderRadius: 6, cursor: 'pointer',
-                  background: viewMode === 'grid' ? 'var(--white)' : 'transparent',
-                  color: viewMode === 'grid' ? 'var(--teal)' : 'var(--ink3)'
-                }}
-              >
-                <Icon name="grid" size={14} />
-              </button>
-            </div>
+            <Tabs value={viewMode} onValueChange={v => setViewMode(v as typeof viewMode)} variant="segmented">
+              <TabsList>
+                <TabsTrigger value="list" title="Table List View">
+                  <Icon name="list" size={14} />
+                </TabsTrigger>
+                <TabsTrigger value="grid" title="Card Grid View">
+                  <Icon name="grid" size={14} />
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
 
             <Button variant="outline" size="sm" onClick={exportCSV}>
               <Icon name="fileText" size={14} /> Export CSV
@@ -246,7 +232,7 @@ export function PettiTransactions() {
       {viewMode === 'list' ? (
         <SectionCard title="Transactions List" padded={false} collapsible={false}>
           {loading ? (
-            <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>Loading…</div>
+            <SectionLoading />
           ) : rows.length === 0 ? (
             <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>No transactions match these filters.</div>
           ) : (
@@ -290,7 +276,7 @@ export function PettiTransactions() {
         /* Card Grid View Mode */
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16, marginBottom: 24 }}>
           {loading ? (
-            <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>Loading…</div>
+            <SectionLoading />
           ) : rows.length === 0 ? (
             <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>No transactions found.</div>
           ) : (

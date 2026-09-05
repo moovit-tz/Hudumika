@@ -4,6 +4,7 @@ import { RowLink } from '../components/RowLink.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { Icon } from '../components/Icon.js';
+import { Badge } from '../components/ui/badge.js';
 import {
   Chart as ChartJS,
   CategoryScale, LinearScale, BarElement, ArcElement,
@@ -688,7 +689,7 @@ export const ShipmentsList: React.FC = () => {
                 {atRisk.map(s => (
                   <Link key={s.id} to={`/clearos/clearance/${s.id}`} style={{
                     display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 12px',
-                    borderRadius: 9, background: 'var(--bg)', border: '1px solid var(--border)',
+                    borderRadius: 'var(--r)', background: 'var(--bg)', border: '1px solid var(--border)',
                     cursor: 'pointer', textDecoration: 'none', color: 'inherit',
                   }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
@@ -697,14 +698,9 @@ export const ShipmentsList: React.FC = () => {
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 3, alignItems: 'flex-end' }}>
                       {s.active_risk_types?.map(r => (
-                        <span key={r} style={{
-                          fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4,
-                          background: r === 'DEMURRAGE' ? 'var(--gold-l)' : 'var(--red-l)',
-                          color: r === 'DEMURRAGE' ? 'var(--gold)' : 'var(--red)',
-                          whiteSpace: 'nowrap',
-                        }}>
+                        <Badge key={r} variant={r === 'DEMURRAGE' ? 'warning' : 'error'} style={{ whiteSpace: 'nowrap' }}>
                           {r === 'DEMURRAGE' ? 'Demurrage' : r === 'SLA_BREACH' ? 'SLA' : r.replace('_', ' ')}
-                        </span>
+                        </Badge>
                       ))}
                     </div>
                   </Link>

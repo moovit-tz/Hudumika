@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { PageHeader } from '../../components/PageHeader.js';
 import { SectionCard } from '../../components/SectionCard.js';
 import { Icon } from '../../components/Icon.js';
+import { SectionLoading } from '../../components/ui/spinner.js';
 import { Badge } from '../../components/ui/badge.js';
 import { Button } from '../../components/ui/button.js';
 import { Input } from '../../components/ui/input.js';
@@ -191,7 +192,7 @@ export function SanctionsScreeningPage() {
           }
         >
           {loading ? (
-            <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>Loading…</div>
+            <SectionLoading />
           ) : rows.length === 0 ? (
             <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>
               <Icon name="checkCircle" size={28} style={{ marginBottom: 8 }} />
@@ -263,7 +264,7 @@ export function SanctionsScreeningPage() {
         <DialogContent>
           <DialogHeader><DialogTitle>Sanctions list entry</DialogTitle></DialogHeader>
           {entryLoading ? (
-            <div style={{ padding: 20, color: 'var(--ink3)' }}>Loading…</div>
+            <SectionLoading />
           ) : entryDetail && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4, fontSize: 13 }}>
               <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--ink)' }}>{entryDetail.primary_name}</div>

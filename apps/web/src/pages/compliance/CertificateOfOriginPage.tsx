@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { PageHeader } from '../../components/PageHeader.js';
 import { SectionCard } from '../../components/SectionCard.js';
 import { Icon } from '../../components/Icon.js';
+import { SectionLoading } from '../../components/ui/spinner.js';
 import { Badge } from '../../components/ui/badge.js';
 import { Button } from '../../components/ui/button.js';
 import { Input } from '../../components/ui/input.js';
@@ -200,7 +201,7 @@ export function CertificateOfOriginPage() {
             </div>
 
             {preview && (
-              <div style={{ padding: '12px 14px', borderRadius: 9, background: 'var(--bg)', marginBottom: 16, fontSize: 12.5 }}>
+              <div style={{ padding: '12px 14px', borderRadius: 'var(--r)', background: 'var(--bg)', marginBottom: 16, fontSize: 12.5 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                   <Badge variant={STATUS_VARIANT[preview.status] ?? 'gray'}>{preview.status.replace('_', ' ')}</Badge>
                   {preview.rule && <span style={{ color: 'var(--ink3)' }}>{preview.rule.sourceCitation}</span>}
@@ -256,7 +257,7 @@ export function CertificateOfOriginPage() {
 
         <SectionCard title="Certificates" padded={false} collapsible={false}>
           {loading ? (
-            <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>Loading…</div>
+            <SectionLoading />
           ) : rows.length === 0 ? (
             <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>No certificates of origin yet.</div>
           ) : (

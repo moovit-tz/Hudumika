@@ -516,7 +516,7 @@ export const Demurrage: React.FC = () => {
                           <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{t.free_days} days</td>
                           <td style={{ padding: '10px 14px' }}>
                             {tiers.map((tier, i) => (
-                              <span key={i} style={{ display: 'inline-block', marginRight: 8, marginBottom: 4, padding: '2px 8px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 5, fontSize: 11, color: 'var(--ink2)' }}>
+                              <span key={i} style={{ display: 'inline-block', marginRight: 8, marginBottom: 4, padding: '2px 8px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 11, color: 'var(--ink2)' }}>
                                 Day {tier.from_day}-{tier.to_day}: ${tier.daily_rate}/day
                               </span>
                             ))}

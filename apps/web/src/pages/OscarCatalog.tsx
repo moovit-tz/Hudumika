@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Icon } from '../components/Icon.js';
 import { TwotoneIcon } from '../components/ui/twotone-icon.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 
 // ── Style switcher (Hudumika ↔ Oscar) ─────────────────────────────────────
 function StyleSwitcher({
@@ -952,15 +953,14 @@ function AdvancedDataTablesDemo() {
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-2">
           <span className="text-xs font-semibold text-muted-foreground uppercase">Show</span>
-          <select
-            value={pageSize}
-            onChange={(e) => setPageSize(Number(e.target.value))}
-            className="h-8 px-2 rounded-lg bg-background border border-border text-xs font-medium text-foreground outline-none"
-          >
-            <option value={5}>5 entries</option>
-            <option value={10}>10 entries</option>
-            <option value={25}>25 entries</option>
-          </select>
+          <Select value={String(pageSize)} onValueChange={v => setPageSize(Number(v))}>
+            <SelectTrigger className="h-8 w-auto px-2 text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="5">5 entries</SelectItem>
+              <SelectItem value="10">10 entries</SelectItem>
+              <SelectItem value="25">25 entries</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="flex items-center gap-3">

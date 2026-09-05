@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Icon } from '../components/Icon.js';
 import { useCloud, DriveRole } from './cloud-context.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 
 const ROLE_OPTIONS: { value: DriveRole; label: string }[] = [
   { value: 'manager', label: 'Manager' },
@@ -32,7 +33,7 @@ export function DriveMembersModal({ driveId, driveName, onClose }: { driveId: st
       <div className="card" style={{ width: 460, padding: 24 }} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
           <span style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--ink)' }}>Members of "{driveName}"</span>
-          <button onClick={onClose} className="dp-close"><Icon name="close" size={16} /></button>
+          <button onClick={onClose} className="dp-close" aria-label="Close"><Icon name="close" size={16} /></button>
         </div>
         <p style={{ fontSize: 'var(--text-sm)', color: 'var(--ink3)', margin: '0 0 16px' }}>
           Everyone with access to this shared drive and what they can do in it.
@@ -59,7 +60,7 @@ export function DriveMembersModal({ driveId, driveName, onClose }: { driveId: st
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 280, overflowY: 'auto' }}>
           {driveMembersLoading && driveMembers.length === 0 && (
-            <div style={{ fontSize: 'var(--text-sm)', color: 'var(--ink3)', padding: '8px 0' }}>Loading…</div>
+            <SectionLoading />
           )}
           {!driveMembersLoading && driveMembers.length === 0 && (
             <div style={{ fontSize: 'var(--text-sm)', color: 'var(--ink3)', padding: '8px 0' }}>No members yet — add someone above.</div>

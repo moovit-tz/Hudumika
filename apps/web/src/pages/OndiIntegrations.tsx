@@ -192,7 +192,7 @@ export const OndiIntegrations: React.FC = () => {
               </div>
             ) : (
               <button type="button" disabled={busy === app.id} onClick={() => enable(app)}
-                style={{ fontSize: 12.5, fontWeight: 700, color: '#fff', background: 'var(--teal)', border: 'none', borderRadius: 8, padding: '8px 16px', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0, 181, 137, 0.3)' }}>
+                style={{ fontSize: 12.5, fontWeight: 700, color: 'hsl(var(--primary-foreground))', background: 'hsl(var(--primary))', border: 'none', borderRadius: 8, padding: '8px 16px', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0, 181, 137, 0.3)' }}>
                 {busy === app.id ? 'Enabling…' : 'Enable Webhook Delivery'}
               </button>
             )}

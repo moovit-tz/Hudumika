@@ -304,12 +304,18 @@
   flex-shrink: 0;
 }
 
-.comply-badge--active  { color: var(--comply); background: var(--comply-l); }
+/* --active/--issued mean "approved"/"issued" — a real success outcome, not
+   a brand mark — so these read var(--green), the same semantic token every
+   other app in the platform uses for "Approved" (Quotations.tsx, Sales.tsx).
+   They used to read var(--comply) (= var(--teal), the app's own tenant-
+   configurable accent), which meant "Approved" changed color by tenant
+   branding rather than communicating a stable status meaning. */
+.comply-badge--active  { color: var(--green); background: var(--green-l); }
 .comply-badge--pending { color: var(--gold); background: var(--gold-l); }
 .comply-badge--review  { color: var(--gov); background: var(--gov-l); }
 .comply-badge--expired { color: var(--red); background: var(--red-l); }
 .comply-badge--draft   { color: var(--ink3); background: var(--bg); border: 1px solid var(--border); }
-.comply-badge--issued  { color: var(--comply); background: var(--comply-l); }
+.comply-badge--issued  { color: var(--green); background: var(--green-l); }
 .comply-badge--rejected { color: var(--red); background: var(--red-l); }
 .comply-badge--legal   { color: var(--legal); background: var(--legal-l); }
 .comply-badge--ai      { color: var(--ai-purple); background: var(--ai-l); }
@@ -529,7 +535,7 @@
   align-items: center;
   background: var(--white);
   border: 1px solid var(--border);
-  border-radius: 9px;
+  border-radius: var(--r);
   padding: 3px;
   gap: 2px;
   flex-shrink: 0;
@@ -688,7 +694,7 @@
   font-size: var(--badge-fs);
   font-weight: 600;
   padding: var(--badge-py) var(--badge-px);
-  border-radius: 5px;
+  border-radius: var(--r-sm);
   background: var(--bg);
   color: var(--ink3);
   border: 1px solid var(--border);
@@ -715,7 +721,7 @@
   background: hsl(var(--primary));
   color: hsl(var(--primary-foreground));
   border: none;
-  border-radius: 9px;
+  border-radius: var(--r);
   font-family: var(--font);
   font-size: 13px;
   font-weight: 700;
@@ -734,7 +740,7 @@
   background: var(--white);
   color: var(--ink);
   border: 1px solid var(--border);
-  border-radius: 9px;
+  border-radius: var(--r);
   font-family: var(--font);
   font-size: 13px;
   font-weight: 600;
@@ -762,24 +768,8 @@
   margin-bottom: 20px;
 }
 
-.comply-filter-btn {
-  padding: var(--ds-btn-py-sm) 14px;
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  background: var(--white);
-  font-family: var(--font);
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ink3);
-  cursor: pointer;
-  transition: all 0.1s;
-}
-
-.comply-filter-btn.active {
-  background: var(--comply-l);
-  border-color: var(--comply-edge);
-  color: var(--comply);
-}
+/* .comply-filter-btn removed — these filter rows now render via the shared
+   ds-tabs-list/ds-tabs-trigger (data-variant="segmented"), see ds-tabs.css. */
 
 .comply-empty {
   text-align: center;
@@ -948,7 +938,7 @@
 .comply-oblig-icon {
   width: 36px;
   height: 36px;
-  border-radius: 9px;
+  border-radius: var(--r);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1060,7 +1050,7 @@
   align-items: center;
   justify-content: center;
   padding: 3px;
-  border-radius: 5px;
+  border-radius: var(--r-sm);
   flex-shrink: 0;
   line-height: 0;
 }
@@ -1567,7 +1557,7 @@
 .comply-escrow-note {
   background: rgba(5,150,105,0.06);
   border: 1px solid var(--comply-edge);
-  border-radius: 9px;
+  border-radius: var(--r);
   padding: 11px 14px;
   font-size: 12.5px;
   color: var(--ink2);
@@ -1907,7 +1897,7 @@
 .wf-notes {
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 9px;
+  border-radius: var(--r);
   padding: 11px 14px;
   font-size: 12.5px;
   color: var(--ink2);

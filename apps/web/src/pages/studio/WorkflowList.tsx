@@ -3,6 +3,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import './studio.css';
 import { apiFetch } from '../../lib/api.js';
 import { Icon } from '../../components/Icon.js';
+import { SectionLoading } from '../../components/ui/spinner.js';
+import { Banner } from '../../components/ui/alert.js';
 import { Button } from '../../components/ui/button.js';
 import { Badge } from '../../components/ui/badge.js';
 import { Switch } from '../../components/ui/switch.js';
@@ -145,10 +147,9 @@ export function WorkflowList() {
       </div>
 
       {counts.unrunnable > 0 && (
-        <div style={{ padding: '10px 14px', borderRadius: 10, background: 'var(--red-l)', border: '1px solid var(--red-l)', color: 'var(--ink2)', fontSize: 12.5, marginBottom: 16, display: 'flex', gap: 9, alignItems: 'flex-start' }}>
-          <Icon name="alertCircle" size={15} color="var(--red)" style={{ flexShrink: 0, marginTop: 1 }} />
-          <span>{counts.unrunnable} workflow{counts.unrunnable === 1 ? '' : 's'} reference a trigger no app emits, so {counts.unrunnable === 1 ? 'it' : 'they'} can never fire. Open one to pick a real trigger.</span>
-        </div>
+        <Banner variant="error" icon="alertCircle" className="mb-4">
+          {counts.unrunnable} workflow{counts.unrunnable === 1 ? '' : 's'} reference a trigger no app emits, so {counts.unrunnable === 1 ? 'it' : 'they'} can never fire. Open one to pick a real trigger.
+        </Banner>
       )}
 
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
@@ -168,8 +169,8 @@ export function WorkflowList() {
         />
       </div>
 
-      {error && <div style={{ padding: '9px 13px', background: 'var(--red-l)', color: 'var(--red)', borderRadius: 9, fontSize: 12.5, marginBottom: 12 }}>{error}</div>}
-      {loading && <div style={{ color: 'var(--ink3)', fontSize: 13, padding: 20 }}>Loading…</div>}
+      {error && <Banner variant="error" className="mb-3">{error}</Banner>}
+      {loading && <SectionLoading />}
       {!loading && visible.length === 0 && (
         <div style={{ padding: 36, textAlign: 'center', color: 'var(--ink3)', fontSize: 13, border: '1px dashed var(--border)', borderRadius: 12 }}>
           No workflows match.

@@ -88,7 +88,7 @@ export function FreightRateCardsPage() {
       />
 
       {activeCarriers.length === 0 && !loading && (
-        <div style={{ padding: '12px 18px', borderRadius: 9, background: 'rgba(184,121,28,0.08)', border: '1px solid rgba(184,121,28,0.25)', marginBottom: 20, fontSize: 12.5, color: 'var(--ink2)' }}>
+        <div style={{ padding: '12px 18px', borderRadius: 'var(--r)', background: 'rgba(184,121,28,0.08)', border: '1px solid rgba(184,121,28,0.25)', marginBottom: 20, fontSize: 12.5, color: 'var(--ink2)' }}>
           {carriers.length === 0
             ? 'Add a carrier first — rate cards belong to a carrier.'
             : 'No active carriers — activate one on the Carriers page before adding a rate card.'}

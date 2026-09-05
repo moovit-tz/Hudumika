@@ -42,7 +42,7 @@
   justify-content: center;
   width: 40px;
   height: 40px;
-  border-radius: 9px;
+  border-radius: var(--r);
   border: 1px solid var(--border);
   background: var(--white);
   color: var(--ink2);
@@ -60,7 +60,7 @@
   align-items: center;
   gap: 7px;
   padding: var(--ds-btn-py) 20px;
-  border-radius: 9px;
+  border-radius: var(--r);
   border: none;
   background: hsl(var(--primary));
   color: hsl(var(--primary-foreground));

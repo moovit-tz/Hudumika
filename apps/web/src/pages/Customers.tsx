@@ -4,6 +4,9 @@ import { useIsMobile } from '../hooks/useIsMobile.js';
 import { apiFetch, apiDownload } from '../lib/api.js';
 import { StatusPill } from '@hudumika/ui';
 import { Icon } from '../components/Icon.js';
+import { Badge } from '../components/ui/badge.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import type { IconName } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
@@ -203,18 +206,11 @@ function getPageNums(cur: number, total: number): (number | '…')[] {
 }
 
 /* ── Status badge ── */
-const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
-  Active:    { bg: 'var(--green-l)', color: 'var(--green)' },
-  Inactive:  { bg: 'var(--bg)', color: 'var(--ink2)' },
-  Suspended: { bg: 'var(--red-l)', color: 'var(--red)' },
+const STATUS_VARIANT: Record<string, 'success' | 'gray' | 'error'> = {
+  Active: 'success', Inactive: 'gray', Suspended: 'error',
 };
 function StatusBadge({ status }: { status: string }) {
-  const s = STATUS_STYLE[status] || STATUS_STYLE.Active;
-  return (
-    <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11.5, fontWeight: 700, background: s.bg, color: s.color, whiteSpace: 'nowrap' }}>
-      {status}
-    </span>
-  );
+  return <Badge variant={STATUS_VARIANT[status] ?? 'success'} className="whitespace-nowrap">{status}</Badge>;
 }
 
 /* ── TIN chip ── */
@@ -278,7 +274,7 @@ function ViewField({ label, value, mono }: { label: string; value?: string | nul
 function HeroStat({ icon, label, value, color, bg, muted }: { icon: IconName; label: string; value: string | number; color: string; bg: string; muted?: boolean }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-      <div style={{ width: 34, height: 34, borderRadius: 9, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+      <div style={{ width: 34, height: 34, borderRadius: 'var(--r)', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
         <Icon name={icon} size={16} color={color} strokeWidth={1.75} />
       </div>
       <div>
@@ -992,7 +988,7 @@ export const Customers: React.FC = () => {
         {/* Create modal */}
         {showCreate && (
           <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowCreate(false)}>
-            <div className="card" style={{ width: '90%', maxWidth: 480, padding: 24, borderRadius: 9, boxShadow: 'var(--elev-lg)' }}>
+            <div className="card" style={{ width: '90%', maxWidth: 480, padding: 24, borderRadius: 'var(--r)', boxShadow: 'var(--elev-lg)' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
                 <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--navy)', margin: 0 }}>New Customer</h2>
                 <button type="button" className="dp-close" onClick={() => setShowCreate(false)}>×</button>
@@ -1043,7 +1039,7 @@ export const Customers: React.FC = () => {
     { key: 'notes',      label: 'Notes',          icon: 'edit'       as IconName },
   ];
 
-  const btnS: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', border: '1px solid var(--border)', borderRadius: 9, background: 'var(--white)', color: 'var(--ink2)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)' };
+  const btnS: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)' };
 
   function renderTabContent() {
     /* ── Overview ── */
@@ -1063,7 +1059,7 @@ export const Customers: React.FC = () => {
               { label: 'Outstanding (TZS)',value: finLoading ? '…' : ovOutstanding.toLocaleString('en'), icon: 'alertCircle' as IconName, color: 'var(--red)', bg: 'var(--red-l)' },
             ].map(kpi => (
               <div key={kpi.label} className="crm-card" style={{ padding: '16px 18px', display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                <div style={{ width: 38, height: 38, borderRadius: 9, background: kpi.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <div style={{ width: 38, height: 38, borderRadius: 'var(--r)', background: kpi.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <Icon name={kpi.icon} size={18} color={kpi.color} strokeWidth={1.75} />
                 </div>
                 <div>
@@ -1084,7 +1080,7 @@ export const Customers: React.FC = () => {
             return (
               <div className="crm-card" style={{ padding: '16px 18px', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ width: 38, height: 38, borderRadius: 9, background: 'var(--green-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <div style={{ width: 38, height: 38, borderRadius: 'var(--r)', background: 'var(--green-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <Icon name="globe" size={18} color="var(--green)" strokeWidth={1.75} />
                   </div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)' }}>Carbon Footprint</div>
@@ -1131,7 +1127,7 @@ export const Customers: React.FC = () => {
                 <button type="button" onClick={() => setMainTab('shipments')} style={{ fontSize: 12, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font)', fontWeight: 600 }}>View all →</button>
               </div>
               {shipLoading ? (
-                <div style={{ padding: 24, textAlign: 'center', color: 'var(--ink3)', fontSize: 12.5 }}>Loading…</div>
+                <SectionLoading />
               ) : custShipments.length === 0 ? (
                 <div style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--ink3)' }}>
                   <Icon name="ship" size={28} strokeWidth={1.25} />
@@ -1140,7 +1136,7 @@ export const Customers: React.FC = () => {
               ) : custShipments.slice(0, 6).map(s => (
                 <Link key={s.id} to={`/clearos/clearance/${s.id}`} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 18px', borderBottom: '1px solid var(--border)', textDecoration: 'none', color: 'inherit' }}
                   onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-                  <div style={{ width: 32, height: 32, borderRadius: 9, background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 'var(--r)', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <Icon name="ship" size={14} color="var(--teal)" strokeWidth={1.75} />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -1184,7 +1180,7 @@ export const Customers: React.FC = () => {
                     { label: 'Record Payment',    icon: 'creditCard' as IconName, action: () => { setMainTab('finance'); setFinanceTab('payments'); } },
                     { label: 'Generate Statement',icon: 'barChart'   as IconName, action: () => { setMainTab('finance'); setFinanceTab('statement'); } },
                   ] as { label: string; icon: IconName; path?: string; action?: () => void }[]).map(action => {
-                    const itemStyle = { display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 9, background: 'var(--bg)', color: 'var(--ink)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', textAlign: 'left' as const, textDecoration: 'none' };
+                    const itemStyle = { display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', textAlign: 'left' as const, textDecoration: 'none' };
                     const hoverHandlers = {
                       onMouseEnter: (e: React.MouseEvent<HTMLElement>) => (e.currentTarget.style.background = 'var(--white)'),
                       onMouseLeave: (e: React.MouseEvent<HTMLElement>) => (e.currentTarget.style.background = 'var(--bg)'),
@@ -1465,7 +1461,7 @@ export const Customers: React.FC = () => {
           {/* Add / Edit Contact modal */}
           {showAddContact && (
             <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) { setShowAddContact(false); setContactForm({ name: '', email: '', phone: '', role: '' }); } }}>
-              <div className="card" style={{ width: '90%', maxWidth: 440, padding: 24, borderRadius: 9, boxShadow: 'var(--elev-lg)' }}>
+              <div className="card" style={{ width: '90%', maxWidth: 440, padding: 24, borderRadius: 'var(--r)', boxShadow: 'var(--elev-lg)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
                   <h2 style={{ fontSize: 15, fontWeight: 700, color: 'var(--navy)', margin: 0 }}>{contactForm.name ? 'Edit Contact' : 'Add Contact Person'}</h2>
                   <button type="button" className="dp-close" aria-label="Close" onClick={() => { setShowAddContact(false); setContactForm({ name: '', email: '', phone: '', role: '' }); }}>×</button>
@@ -1678,7 +1674,7 @@ export const Customers: React.FC = () => {
                   { label: 'Total Paid',     value: totalPaid,     color: 'var(--green)' },
                   { label: 'Outstanding',    value: outstanding,   color: outstanding > 0 ? 'var(--red)' : 'var(--green)' },
                 ].map(s => (
-                  <div key={s.label} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: '18px 20px' }}>
+                  <div key={s.label} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '18px 20px' }}>
                     <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>{s.label}</div>
                     <div style={{ fontSize: 22, fontWeight: 800, color: s.color, fontFamily: 'var(--mono)' }}>{s.value.toLocaleString()}</div>
                     <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>TZS</div>
@@ -1766,7 +1762,7 @@ export const Customers: React.FC = () => {
                       <div style={{ flex: 2, fontSize: 12.5, color: 'var(--ink2)' }}>{c.reason || '—'}</div>
                       <div style={{ flex: 1, fontFamily: 'var(--mono)', fontSize: 14, fontWeight: 700, color: 'var(--red)', textAlign: 'right' }}>-{total.toLocaleString()}</div>
                       <div style={{ flex: 1, textAlign: 'right' }}>
-                        <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 9, background: c.status === 'VOID' ? 'var(--red-l)' : 'var(--green-l)', color: c.status === 'VOID' ? 'var(--red)' : 'var(--green)' }}>{c.status}</span>
+                        <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 'var(--r)', background: c.status === 'VOID' ? 'var(--red-l)' : 'var(--green-l)', color: c.status === 'VOID' ? 'var(--red)' : 'var(--green)' }}>{c.status}</span>
                       </div>
                     </div>
                   );
@@ -1817,7 +1813,7 @@ export const Customers: React.FC = () => {
           <div>
             <SubTabBar tabs={SHIP_TABS} active={shipTab} onChange={setShipTab} />
             <div style={{ padding: '20px 28px' }}>
-              {shipLoading && <div style={{ textAlign: 'center', color: 'var(--ink3)', fontSize: 12.5 }}>Loading…</div>}
+              {shipLoading && <SectionLoading />}
               {!shipLoading && withDecl.length === 0 && <EmptyState icon="stamp" title="No declarations yet" sub="TANSAD / entry numbers will appear once registered" />}
               {!shipLoading && withDecl.map(s => (
                 <div key={s.id} className="decl-block">
@@ -1941,7 +1937,7 @@ export const Customers: React.FC = () => {
             </span>
           </div>
           {sealLoading ? (
-            <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading…</div>
+            <SectionLoading />
           ) : custSealLots.length === 0 ? (
             <EmptyState icon="package" title="No bonded lots" sub="Lots this customer owns in SEAL's bonded warehouse ledger will appear here" />
           ) : (
@@ -1988,14 +1984,14 @@ export const Customers: React.FC = () => {
             </div>
             <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
               <button type="button" onClick={openCustomerDrive} disabled={resolvingFolder}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', border: '1px solid var(--border)', borderRadius: 9, background: 'var(--white)', color: 'var(--ink2)', fontSize: 12.5, fontWeight: 600, fontFamily: 'var(--font)', cursor: resolvingFolder ? 'default' : 'pointer', opacity: resolvingFolder ? 0.6 : 1 }}>
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12.5, fontWeight: 600, fontFamily: 'var(--font)', cursor: resolvingFolder ? 'default' : 'pointer', opacity: resolvingFolder ? 0.6 : 1 }}>
                 <Icon name="externalLink" size={13} /> {resolvingFolder ? 'Opening…' : 'Open Drive'}
               </button>
               <button type="button" onClick={() => setShowLinkFileModal(true)}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', border: '1px solid var(--border)', borderRadius: 9, background: 'var(--white)', color: 'var(--ink2)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)' }}>
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)' }}>
                 <Icon name="link" size={13} /> Link Existing File
               </button>
-              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', border: '1.5px solid var(--teal)', borderRadius: 9, background: fileUploading ? 'var(--ink3)' : 'hsl(var(--primary))', borderColor: fileUploading ? 'var(--ink3)' : 'var(--teal)', color: fileUploading ? '#fff' : 'hsl(var(--primary-foreground))', fontSize: 12.5, fontWeight: 600, cursor: fileUploading ? 'default' : 'pointer', fontFamily: 'var(--font)' }}>
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', border: '1.5px solid var(--teal)', borderRadius: 'var(--r)', background: fileUploading ? 'var(--ink3)' : 'hsl(var(--primary))', borderColor: fileUploading ? 'var(--ink3)' : 'var(--teal)', color: fileUploading ? '#fff' : 'hsl(var(--primary-foreground))', fontSize: 12.5, fontWeight: 600, cursor: fileUploading ? 'default' : 'pointer', fontFamily: 'var(--font)' }}>
                 <Icon name="upload" size={13} strokeWidth={2} />
                 {fileUploading ? 'Uploading…' : 'Upload to Drive'}
                 <input type="file" multiple disabled={fileUploading} style={{ display: 'none' }}
@@ -2010,7 +2006,7 @@ export const Customers: React.FC = () => {
 
           {/* Drop zone */}
           <div
-            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', border: '2px dashed var(--border)', borderRadius: 9, padding: '28px 24px', textAlign: 'center', color: 'var(--ink3)', margin: '18px 0', background: 'var(--bg)' }}
+            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', border: '2px dashed var(--border)', borderRadius: 'var(--r)', padding: '28px 24px', textAlign: 'center', color: 'var(--ink3)', margin: '18px 0', background: 'var(--bg)' }}
             onDragOver={e => { e.preventDefault(); e.currentTarget.style.borderColor = 'var(--teal)'; e.currentTarget.style.background = 'var(--teal-l)'; }}
             onDragLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.background = 'var(--bg)'; }}
             onDrop={async e => {
@@ -2062,7 +2058,7 @@ export const Customers: React.FC = () => {
           {/* Link existing file modal */}
           {showLinkFileModal && (
             <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) { setShowLinkFileModal(false); setFileSearch(''); setFileSearchResults([]); } }}>
-              <div className="card" style={{ width: '90%', maxWidth: 480, padding: 24, borderRadius: 9, boxShadow: 'var(--elev-lg)' }}>
+              <div className="card" style={{ width: '90%', maxWidth: 480, padding: 24, borderRadius: 'var(--r)', boxShadow: 'var(--elev-lg)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
                   <h2 style={{ fontSize: 15, fontWeight: 700, color: 'var(--navy)', margin: 0 }}>Link a file from Drive</h2>
                   <button type="button" className="dp-close" aria-label="Close" onClick={() => { setShowLinkFileModal(false); setFileSearch(''); setFileSearchResults([]); }}>×</button>
@@ -2180,23 +2176,23 @@ export const Customers: React.FC = () => {
         </div>
 
         {/* Horizontal tabs */}
-        <div className="ds-tabs-list" data-variant="segmented" style={{ margin: '14px 28px 16px' }}>
-          {MAIN_TABS.map(tab => {
-            const active = mainTab === tab.key;
-            return (
-              <button key={tab.key} type="button" className="ds-tabs-trigger" data-variant="segmented"
-                data-state={active ? 'active' : 'inactive'}
-                onClick={() => { setMainTab(tab.key); setEditMode(false); }}>
-                <Icon name={tab.icon} size={13} color={active ? 'var(--teal)' : 'var(--ink3)'} strokeWidth={1.75} />
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
+        <Tabs value={mainTab} onValueChange={v => { setMainTab(v as typeof mainTab); setEditMode(false); }} variant="segmented" style={{ margin: '14px 28px 16px' }}>
+          <TabsList>
+            {MAIN_TABS.map(tab => {
+              const active = mainTab === tab.key;
+              return (
+                <TabsTrigger key={tab.key} value={tab.key}>
+                  <Icon name={tab.icon} size={13} color={active ? 'var(--teal)' : 'var(--ink3)'} strokeWidth={1.75} />
+                  {tab.label}
+                </TabsTrigger>
+              );
+            })}
+          </TabsList>
+        </Tabs>
       </div>
 
       {/* ── Tab content ── */}
-      <div style={{ flex: 1, overflowY: 'auto', background: mainTab === 'overview' ? 'var(--bg)' : 'var(--bg)' }}>
+      <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
         {renderTabContent()}
       </div>
     </div>
@@ -2230,7 +2226,7 @@ function SubTabBar({ tabs, active, onChange }: { tabs: { key: string; label: str
 function EmptyState({ icon, title, sub }: { icon: IconName; title: string; sub: string }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '48px 20px', color: 'var(--ink3)' }}>
-      <div style={{ width: 56, height: 56, borderRadius: 9, background: 'var(--bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 4 }}>
+      <div style={{ width: 56, height: 56, borderRadius: 'var(--r)', background: 'var(--bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 4 }}>
         <Icon name={icon} size={24} strokeWidth={1.25} />
       </div>
       <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink2)' }}>{title}</div>

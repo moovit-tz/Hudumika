@@ -4,6 +4,8 @@ import { Icon } from "../components/Icon.js";
 import { apiFetch } from "../lib/api.js";
 import { NOTIF_TYPE_CFG, notifRelTime } from "../components/NotificationListItem.js";
 import { PageHeader } from "../components/PageHeader.js";
+import { Tabs, TabsList, TabsTrigger } from "../components/ui/tabs.js";
+import { Spinner } from "../components/ui/spinner.js";
 import "./BlissNotifications.css";
 
 const PAGE_SIZE = 30;
@@ -167,21 +169,22 @@ export function BlissNotifications() {
               </button>
             )}
           </div>
-          <div className="ds-tabs-list bnc-chips" data-variant="segmented">
-            {FILTER_TABS.map(t => (
-              <button key={t.key} type="button" className="ds-tabs-trigger" data-variant="segmented"
-                data-state={tab === t.key ? 'active' : 'inactive'} onClick={() => switchTab(t.key)}>
-                <Icon name={t.icon as any} size={12} />
-                {t.label}
-              </button>
-            ))}
-          </div>
+          <Tabs value={tab} onValueChange={v => switchTab(v as typeof tab)} variant="segmented">
+            <TabsList className="bnc-chips">
+              {FILTER_TABS.map(t => (
+                <TabsTrigger key={t.key} value={t.key}>
+                  <Icon name={t.icon as any} size={12} />
+                  {t.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
         </div>
 
         <div className="bnc-list">
           {loading ? (
             <div className="bnc-empty">
-              <div className="bnc-empty-spin" />
+              <Spinner />
               <span className="bnc-empty-label">Loading…</span>
             </div>
           ) : displayed.length === 0 ? (

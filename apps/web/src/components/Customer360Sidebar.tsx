@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from './Icon.js';
+import { Badge } from './ui/badge.js';
 import type { IconName } from './Icon.js';
 import './Customer360Sidebar.css';
 
@@ -145,19 +146,19 @@ export function Customer360Sidebar({
         </div>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           {kyc_status && (
-            <span style={{ fontSize: 10, fontWeight: 700, color: kyc_status === 'VERIFIED' ? '#10b981' : '#f59e0b', background: kyc_status === 'VERIFIED' ? '#ecfdf5' : '#fef3c7', padding: '2px 8px', borderRadius: 10, display: 'flex', alignItems: 'center', gap: 4 }}>
+            <Badge variant={kyc_status === 'VERIFIED' ? 'success' : 'warning'}>
               <Icon name={kyc_status === 'VERIFIED' ? 'checkCircle' : 'alertTriangle'} size={11} /> KYC {kyc_status}
-            </span>
+            </Badge>
           )}
           {totalDue > 0 && (
-            <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--red)', background: 'var(--red-l)', padding: '2px 8px', borderRadius: 10 }}>
+            <Badge variant="error">
               ${(totalDue / 1000).toFixed(0)}K Due
-            </span>
+            </Badge>
           )}
           {shipments.some(s => s.stage !== 'CLOSED' && s.stage !== 'DELIVERED') && (
-            <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 700, color: '#3b82f6', background: 'var(--blue-l)', padding: '2px 8px', borderRadius: 10 }}>
+            <Badge variant="info">
               <Icon name="ship" size={11} /> Active Shipment
-            </span>
+            </Badge>
           )}
         </div>
       </div>
@@ -317,15 +318,15 @@ export function Customer360Sidebar({
                     know which one they're looking at. */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                   {aiIsMock ? (
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 700, color: '#92400e', background: '#fef3c7', padding: '2px 8px', borderRadius: 10 }}>
+                    <Badge variant="warning">
                       <Icon name="alertTriangle" size={11} />
                       Template reply — AI not configured
-                    </span>
+                    </Badge>
                   ) : (
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 700, color: '#10b981', background: '#ecfdf5', padding: '2px 8px', borderRadius: 10 }}>
+                    <Badge variant="success">
                       <Icon name="sparkle" size={11} />
                       AI-drafted reply
-                    </span>
+                    </Badge>
                   )}
                 </div>
 

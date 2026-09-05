@@ -158,23 +158,23 @@ export const SharedLandedCostReport: React.FC = () => {
 
         <label style={{ fontSize: 11, fontWeight: 700, color: '#5B646D', textTransform: 'uppercase', letterSpacing: '.5px', display: 'block', marginBottom: 5 }}>Email address *</label>
         <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="you@company.co.tz"
-          style={{ width: '100%', boxSizing: 'border-box', height: 44, fontSize: 14, padding: '0 13px', borderRadius: 9, border: '1px solid #E5E9EC', marginBottom: 13 }} />
+          style={{ width: '100%', boxSizing: 'border-box', height: 44, fontSize: 14, padding: '0 13px', borderRadius: 'var(--r)', border: '1px solid #E5E9EC', marginBottom: 13 }} />
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
           <div>
             <label style={{ fontSize: 11, fontWeight: 700, color: '#5B646D', textTransform: 'uppercase', letterSpacing: '.5px', display: 'block', marginBottom: 5 }}>Your name</label>
             <input value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Optional"
-              style={{ width: '100%', boxSizing: 'border-box', height: 42, fontSize: 13.5, padding: '0 13px', borderRadius: 9, border: '1px solid #E5E9EC' }} />
+              style={{ width: '100%', boxSizing: 'border-box', height: 42, fontSize: 13.5, padding: '0 13px', borderRadius: 'var(--r)', border: '1px solid #E5E9EC' }} />
           </div>
           <div>
             <label style={{ fontSize: 11, fontWeight: 700, color: '#5B646D', textTransform: 'uppercase', letterSpacing: '.5px', display: 'block', marginBottom: 5 }}>Company</label>
             <input value={company} onChange={e => setCompany(e.target.value)} placeholder="Optional"
-              style={{ width: '100%', boxSizing: 'border-box', height: 42, fontSize: 13.5, padding: '0 13px', borderRadius: 9, border: '1px solid #E5E9EC' }} />
+              style={{ width: '100%', boxSizing: 'border-box', height: 42, fontSize: 13.5, padding: '0 13px', borderRadius: 'var(--r)', border: '1px solid #E5E9EC' }} />
           </div>
         </div>
 
         {submitError && (
-          <div style={{ marginBottom: 14, padding: '11px 14px', borderRadius: 9, background: 'rgba(220,38,38,.07)', border: '1px solid rgba(220,38,38,.25)', color: 'var(--red)', fontSize: 13 }}>
+          <div style={{ marginBottom: 14, padding: '11px 14px', borderRadius: 'var(--r)', background: 'rgba(220,38,38,.07)', border: '1px solid rgba(220,38,38,.25)', color: 'var(--red)', fontSize: 13 }}>
             {submitError}
           </div>
         )}

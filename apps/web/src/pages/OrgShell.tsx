@@ -5,6 +5,9 @@ import { showAlert } from '../lib/alert.js';
 import { useOrgAuth, orgApiFetch, orgFetchRaw } from '../hooks/useOrgAuth.js';
 import { mapApiInvoice, invoiceTotals, fmtTZS, STATUS_STYLE } from './Billing.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 
 interface LinkedAgent {
   customer_id: string;
@@ -412,7 +415,7 @@ export const OrgShell: React.FC = () => {
             const isMe = msg.author_type === 'ORG';
             return (
               <div key={msg.id} style={{ display: 'flex', flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start' }}>
-                <div style={{ maxWidth: '82%', background: isMe ? 'var(--teal)' : 'var(--white)', color: isMe ? '#fff' : 'var(--ink)', borderRadius: isMe ? '14px 14px 4px 14px' : '14px 14px 14px 4px', padding: '10px 14px', fontSize: 14, lineHeight: 1.5, border: isMe ? 'none' : '1px solid var(--border)' }}>
+                <div style={{ maxWidth: '82%', background: isMe ? 'hsl(var(--primary))' : 'var(--white)', color: isMe ? 'hsl(var(--primary-foreground))' : 'var(--ink)', borderRadius: isMe ? '14px 14px 4px 14px' : '14px 14px 14px 4px', padding: '10px 14px', fontSize: 14, lineHeight: 1.5, border: isMe ? 'none' : '1px solid var(--border)' }}>
                   {msg.content}
                 </div>
                 <span style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4 }}>{isMe ? orgUser?.name : 'Support Agent'} · {fmtTime(msg.created_at)}</span>
@@ -427,10 +430,10 @@ export const OrgShell: React.FC = () => {
               onChange={e => setReply(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitReply(); } }}
               rows={2}
-              style={{ flex: 1, resize: 'none', border: '1.5px solid var(--border)', borderRadius: 9, padding: '10px 12px', fontSize: 14, fontFamily: 'var(--font)', color: 'var(--ink)', background: 'var(--bg)', outline: 'none', lineHeight: 1.5 }}
+              style={{ flex: 1, resize: 'none', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', padding: '10px 12px', fontSize: 14, fontFamily: 'var(--font)', color: 'var(--ink)', background: 'var(--bg)', outline: 'none', lineHeight: 1.5 }}
             />
             <button type="button" onClick={submitReply} disabled={!reply.trim() || sendingReply}
-              style={{ background: reply.trim() && !sendingReply ? 'var(--teal)' : 'var(--border)', color: '#fff', border: 'none', borderRadius: 9, width: 44, height: 44, cursor: reply.trim() && !sendingReply ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              style={{ background: reply.trim() && !sendingReply ? 'hsl(var(--primary))' : 'var(--border)', color: reply.trim() && !sendingReply ? 'hsl(var(--primary-foreground))' : 'var(--ink3)', border: 'none', borderRadius: 'var(--r)', width: 44, height: 44, cursor: reply.trim() && !sendingReply ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <Icon name="send" size={18} color="#fff" />
             </button>
           </div>
@@ -463,13 +466,13 @@ export const OrgShell: React.FC = () => {
 
       <div style={{ flex: 1, padding: '28px 24px', maxWidth: 1000, width: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--ink3)', fontSize: 13.5 }}>Loading…</div>
+          <SectionLoading />
         ) : loadError ? (
-          <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: '40px 20px', textAlign: 'center' }}>
+          <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '40px 20px', textAlign: 'center' }}>
             <Icon name="alertCircle" size={36} color="var(--red)" />
             <p style={{ color: 'var(--ink2)', fontSize: 14, margin: '12px 0 4px', fontWeight: 600 }}>Couldn't load your data</p>
             <p style={{ color: 'var(--ink3)', fontSize: 13, margin: '0 0 16px' }}>Check your connection and try again.</p>
-            <button type="button" onClick={load} style={{ padding: '10px 20px', borderRadius: 9, border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+            <button type="button" onClick={load} style={{ padding: '10px 20px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
               Retry
             </button>
           </div>
@@ -480,7 +483,7 @@ export const OrgShell: React.FC = () => {
                 Settings ▸ Company Information (separate credential, same
                 real-world company). */}
             {workspaces.length > 0 && (
-              <div style={{ marginBottom: 20, background: 'var(--teal-l)', border: '1px solid var(--teal-m, var(--teal))', borderRadius: 9, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+              <div style={{ marginBottom: 20, background: 'var(--teal-l)', border: '1px solid var(--teal-m, var(--teal))', borderRadius: 'var(--r)', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                 <Icon name="building" size={18} color="var(--teal)" />
                 <div style={{ flex: 1, minWidth: 200 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>
@@ -501,18 +504,18 @@ export const OrgShell: React.FC = () => {
                   Agents handling your business ({agents.length})
                 </div>
                 <button type="button" onClick={() => setShowLinkAgent(true)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)' }}>
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)' }}>
                   <Icon name="link" size={13} /> Link an Agent
                 </button>
               </div>
               {agents.length === 0 ? (
-                <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: '24px', color: 'var(--ink3)', fontSize: 13.5 }}>
+                <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '24px', color: 'var(--ink3)', fontSize: 13.5 }}>
                   No clearing agent has linked your organization to a customer record yet.
                 </div>
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
                   {agents.map(a => (
-                    <div key={a.tenant_id} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: '14px 16px' }}>
+                    <div key={a.tenant_id} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '14px 16px' }}>
                       <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{a.tenant_name}</div>
                       <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 3 }}>You're known there as {a.customer_name}</div>
                       <span style={{ display: 'inline-block', marginTop: 8, fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: a.account_status === 'Active' ? 'var(--green-l)' : 'var(--bg)', color: a.account_status === 'Active' ? 'var(--green)' : 'var(--ink3)' }}>
@@ -526,20 +529,21 @@ export const OrgShell: React.FC = () => {
 
             {/* Tabs + tenant filter */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
-              <div className="ds-tabs-list" data-variant="segmented">
-                {TABS.map(t => (
-                  <button key={t.key} type="button" className="ds-tabs-trigger" data-variant="segmented"
-                    data-state={tab === t.key ? 'active' : 'inactive'} onClick={() => setTab(t.key as any)}>
-                    <Icon name={t.icon} size={13} />
-                    {t.label}
-                  </button>
-                ))}
-              </div>
+              <Tabs value={tab} onValueChange={v => setTab(v as any)} variant="segmented">
+                <TabsList>
+                  {TABS.map(t => (
+                    <TabsTrigger key={t.key} value={t.key}>
+                      <Icon name={t.icon} size={13} />
+                      {t.label}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </Tabs>
               {tenantNames.length > 1 && (
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                   {['ALL', ...tenantNames].map(t => (
                     <button key={t} type="button" onClick={() => setFilterTenant(t as any)}
-                      style={{ padding: '5px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', border: `1.5px solid ${filterTenant === t ? 'var(--teal)' : 'var(--border)'}`, background: filterTenant === t ? 'var(--teal)' : 'var(--white)', color: filterTenant === t ? '#fff' : 'var(--ink2)' }}>
+                      style={{ padding: '5px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', border: `1.5px solid ${filterTenant === t ? 'hsl(var(--primary))' : 'var(--border)'}`, background: filterTenant === t ? 'hsl(var(--primary))' : 'var(--white)', color: filterTenant === t ? 'hsl(var(--primary-foreground))' : 'var(--ink2)' }}>
                       {t === 'ALL' ? 'All agents' : t}
                     </button>
                   ))}
@@ -550,7 +554,7 @@ export const OrgShell: React.FC = () => {
             {/* Shipments */}
             {tab === 'shipments' && (
               filteredShipments.length === 0 ? (
-                <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: '40px 20px', textAlign: 'center' }}>
+                <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '40px 20px', textAlign: 'center' }}>
                   <Icon name="ship" size={32} color="var(--ink3)" />
                   <p style={{ color: 'var(--ink3)', fontSize: 13.5, margin: '10px 0 0' }}>No shipments yet</p>
                 </div>
@@ -581,7 +585,7 @@ export const OrgShell: React.FC = () => {
             {/* Invoices */}
             {tab === 'invoices' && (
               filteredInvoices.length === 0 ? (
-                <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: '40px 20px', textAlign: 'center' }}>
+                <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '40px 20px', textAlign: 'center' }}>
                   <Icon name="fileText" size={32} color="var(--ink3)" />
                   <p style={{ color: 'var(--ink3)', fontSize: 13.5, margin: '10px 0 0' }}>No invoices yet</p>
                 </div>
@@ -613,7 +617,7 @@ export const OrgShell: React.FC = () => {
             {/* Documents */}
             {tab === 'documents' && (
               filteredDocuments.length === 0 ? (
-                <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: '40px 20px', textAlign: 'center' }}>
+                <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '40px 20px', textAlign: 'center' }}>
                   <Icon name="folder" size={32} color="var(--ink3)" />
                   <p style={{ color: 'var(--ink3)', fontSize: 13.5, margin: '10px 0 0' }}>No documents yet</p>
                 </div>
@@ -655,7 +659,7 @@ export const OrgShell: React.FC = () => {
             {/* Stored Goods */}
             {tab === 'goods' && (
               filteredSealLots.length === 0 ? (
-                <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: '40px 20px', textAlign: 'center' }}>
+                <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '40px 20px', textAlign: 'center' }}>
                   <Icon name="warehouse" size={32} color="var(--ink3)" />
                   <p style={{ color: 'var(--ink3)', fontSize: 13.5, margin: '10px 0 0' }}>Nothing stored on your behalf yet</p>
                 </div>
@@ -679,7 +683,7 @@ export const OrgShell: React.FC = () => {
                         </span>
                         <button type="button" disabled={available <= 0}
                           onClick={() => { setDispatchLot(lot); setDispatchQty(''); setDispatchNote(''); }}
-                          style={{ padding: '7px 14px', borderRadius: 9, border: 'none', background: available > 0 ? 'var(--teal)' : 'var(--border)', color: '#fff', fontSize: 12.5, fontWeight: 700, cursor: available > 0 ? 'pointer' : 'default', fontFamily: 'var(--font)', whiteSpace: 'nowrap' }}>
+                          style={{ padding: '7px 14px', borderRadius: 'var(--r)', border: 'none', background: available > 0 ? 'hsl(var(--primary))' : 'var(--border)', color: available > 0 ? 'hsl(var(--primary-foreground))' : 'var(--ink3)', fontSize: 12.5, fontWeight: 700, cursor: available > 0 ? 'pointer' : 'default', fontFamily: 'var(--font)', whiteSpace: 'nowrap' }}>
                           Request Dispatch
                         </button>
                       </div>
@@ -720,12 +724,12 @@ export const OrgShell: React.FC = () => {
               <>
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
                   <button type="button" onClick={() => setShowNewTicket(true)}
-                    style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 9, border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)' }}>
+                    style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)' }}>
                     <Icon name="plus" size={14} /> New Ticket
                   </button>
                 </div>
                 {filteredTickets.length === 0 ? (
-                  <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: '40px 20px', textAlign: 'center' }}>
+                  <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '40px 20px', textAlign: 'center' }}>
                     <Icon name="headphones" size={32} color="var(--ink3)" />
                     <p style={{ color: 'var(--ink3)', fontSize: 13.5, margin: '10px 0 0' }}>No tickets yet</p>
                   </div>
@@ -777,9 +781,9 @@ export const OrgShell: React.FC = () => {
             <input type="text" value={claimCode} onChange={e => setClaimCode(e.target.value)}
               placeholder="Paste your claim code…" autoFocus
               onKeyDown={e => { if (e.key === 'Enter') submitClaimCode(); }}
-              style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 9, padding: '10px 12px', fontSize: 14, fontFamily: 'var(--mono)', background: 'var(--bg)', boxSizing: 'border-box', marginBottom: 14 }} />
+              style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', padding: '10px 12px', fontSize: 14, fontFamily: 'var(--mono)', background: 'var(--bg)', boxSizing: 'border-box', marginBottom: 14 }} />
             <button type="button" onClick={submitClaimCode} disabled={!claimCode.trim() || claimingCode}
-              style={{ width: '100%', padding: '12px', borderRadius: 9, border: 'none', background: claimCode.trim() && !claimingCode ? 'var(--teal)' : 'var(--border)', color: '#fff', fontSize: 14, fontWeight: 700, cursor: claimCode.trim() && !claimingCode ? 'pointer' : 'default' }}>
+              style={{ width: '100%', padding: '12px', borderRadius: 'var(--r)', border: 'none', background: claimCode.trim() && !claimingCode ? 'hsl(var(--primary))' : 'var(--border)', color: claimCode.trim() && !claimingCode ? 'hsl(var(--primary-foreground))' : 'var(--ink3)', fontSize: 14, fontWeight: 700, cursor: claimCode.trim() && !claimingCode ? 'pointer' : 'default' }}>
               {claimingCode ? 'Linking…' : 'Link Agent'}
             </button>
           </div>
@@ -807,17 +811,17 @@ export const OrgShell: React.FC = () => {
                 <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 6 }}>Quantity ({dispatchLot.uom})</label>
                 <input type="number" min={0} max={Number(dispatchLot.qty_on_hand)} value={dispatchQty} onChange={e => setDispatchQty(e.target.value)}
                   placeholder="0" autoFocus
-                  style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 9, padding: '10px 12px', fontSize: 14, fontFamily: 'var(--font)', background: 'var(--bg)', boxSizing: 'border-box' }} />
+                  style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', padding: '10px 12px', fontSize: 14, fontFamily: 'var(--font)', background: 'var(--bg)', boxSizing: 'border-box' }} />
               </div>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 6 }}>Note (optional)</label>
                 <textarea value={dispatchNote} onChange={e => setDispatchNote(e.target.value)} rows={3}
                   placeholder="Delivery instructions, destination, etc."
-                  style={{ width: '100%', resize: 'none', border: '1.5px solid var(--border)', borderRadius: 9, padding: '10px 12px', fontSize: 14, fontFamily: 'var(--font)', background: 'var(--bg)', boxSizing: 'border-box', lineHeight: 1.5 }} />
+                  style={{ width: '100%', resize: 'none', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', padding: '10px 12px', fontSize: 14, fontFamily: 'var(--font)', background: 'var(--bg)', boxSizing: 'border-box', lineHeight: 1.5 }} />
               </div>
               <button type="button" onClick={submitDispatchRequest}
                 disabled={!dispatchQty || Number(dispatchQty) <= 0 || Number(dispatchQty) > Number(dispatchLot.qty_on_hand) || submittingDispatch}
-                style={{ padding: '12px', borderRadius: 9, border: 'none', background: dispatchQty && Number(dispatchQty) > 0 && Number(dispatchQty) <= Number(dispatchLot.qty_on_hand) && !submittingDispatch ? 'var(--teal)' : 'var(--border)', color: '#fff', fontSize: 14, fontWeight: 700, cursor: dispatchQty && Number(dispatchQty) > 0 && !submittingDispatch ? 'pointer' : 'default' }}>
+                style={{ padding: '12px', borderRadius: 'var(--r)', border: 'none', background: dispatchQty && Number(dispatchQty) > 0 && Number(dispatchQty) <= Number(dispatchLot.qty_on_hand) && !submittingDispatch ? 'hsl(var(--primary))' : 'var(--border)', color: dispatchQty && Number(dispatchQty) > 0 && Number(dispatchQty) <= Number(dispatchLot.qty_on_hand) && !submittingDispatch ? 'hsl(var(--primary-foreground))' : 'var(--ink3)', fontSize: 14, fontWeight: 700, cursor: dispatchQty && Number(dispatchQty) > 0 && !submittingDispatch ? 'pointer' : 'default' }}>
                 {submittingDispatch ? 'Sending…' : 'Send Request'}
               </button>
             </div>
@@ -847,7 +851,7 @@ export const OrgShell: React.FC = () => {
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {(shareDoc.shared ?? []).map((s, i) => (
-                  <div key={`${s.name}-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 9 }}>
+                  <div key={`${s.name}-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)' }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.name}</div>
                     </div>
@@ -880,26 +884,28 @@ export const OrgShell: React.FC = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 6 }}>Which agent?</label>
-                <select value={newTicketTenant} onChange={e => setNewTicketTenant(e.target.value)}
-                  style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 9, padding: '10px 12px', fontSize: 14, fontFamily: 'var(--font)', background: 'var(--bg)', boxSizing: 'border-box' }}>
-                  <option value="">Select an agent…</option>
-                  {agents.map(a => <option key={a.tenant_id} value={a.tenant_id}>{a.tenant_name}</option>)}
-                </select>
+                <Select value={newTicketTenant || '__none__'} onValueChange={v => setNewTicketTenant(v === '__none__' ? '' : v)}>
+                  <SelectTrigger style={{ width: '100%' }}><SelectValue placeholder="Select an agent…" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Select an agent…</SelectItem>
+                    {agents.map(a => <SelectItem key={a.tenant_id} value={a.tenant_id}>{a.tenant_name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 6 }}>Subject</label>
                 <input type="text" value={newTicketSubject} onChange={e => setNewTicketSubject(e.target.value)}
                   placeholder="Brief description of your issue"
-                  style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 9, padding: '10px 12px', fontSize: 14, fontFamily: 'var(--font)', background: 'var(--bg)', boxSizing: 'border-box' }} />
+                  style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', padding: '10px 12px', fontSize: 14, fontFamily: 'var(--font)', background: 'var(--bg)', boxSizing: 'border-box' }} />
               </div>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 6 }}>Message</label>
                 <textarea value={newTicketBody} onChange={e => setNewTicketBody(e.target.value)} rows={4}
                   placeholder="Provide as much detail as possible…"
-                  style={{ width: '100%', resize: 'none', border: '1.5px solid var(--border)', borderRadius: 9, padding: '10px 12px', fontSize: 14, fontFamily: 'var(--font)', background: 'var(--bg)', boxSizing: 'border-box', lineHeight: 1.5 }} />
+                  style={{ width: '100%', resize: 'none', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', padding: '10px 12px', fontSize: 14, fontFamily: 'var(--font)', background: 'var(--bg)', boxSizing: 'border-box', lineHeight: 1.5 }} />
               </div>
               <button type="button" onClick={submitNewTicket} disabled={!newTicketTenant || !newTicketSubject.trim() || !newTicketBody.trim() || creatingTicket}
-                style={{ padding: '12px', borderRadius: 9, border: 'none', background: newTicketTenant && newTicketSubject.trim() && newTicketBody.trim() && !creatingTicket ? 'var(--teal)' : 'var(--border)', color: '#fff', fontSize: 14, fontWeight: 700, cursor: newTicketTenant && newTicketSubject.trim() && newTicketBody.trim() && !creatingTicket ? 'pointer' : 'default' }}>
+                style={{ padding: '12px', borderRadius: 'var(--r)', border: 'none', background: newTicketTenant && newTicketSubject.trim() && newTicketBody.trim() && !creatingTicket ? 'hsl(var(--primary))' : 'var(--border)', color: newTicketTenant && newTicketSubject.trim() && newTicketBody.trim() && !creatingTicket ? 'hsl(var(--primary-foreground))' : 'var(--ink3)', fontSize: 14, fontWeight: 700, cursor: newTicketTenant && newTicketSubject.trim() && newTicketBody.trim() && !creatingTicket ? 'pointer' : 'default' }}>
                 {creatingTicket ? 'Submitting…' : 'Submit Ticket'}
               </button>
             </div>

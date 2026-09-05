@@ -4,6 +4,7 @@ import { SectionCard } from '../components/SectionCard.js';
 import { DateRangePicker } from '../components/ui/date-picker.js';
 import { Button } from '../components/ui/button.js';
 import { Icon } from '../components/Icon.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { exportCsv, ExportButton, StatTile, DataTable, ClickableBarChart, type ColumnDef } from '../components/AnalyticsKit.js';
 import { apiFetch } from '../lib/api.js';
 import type { DateRange } from 'react-day-picker';
@@ -181,7 +182,7 @@ export function PettiReports() {
       </div>
 
       {loading ? (
-        <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>Loading…</div>
+        <SectionLoading />
       ) : currencies.length === 0 ? (
         <SectionCard title="Spend" collapsible={false}>
           <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>No disbursements recorded yet.</div>

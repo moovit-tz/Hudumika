@@ -4,6 +4,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { apiFetch } from '../../lib/api.js';
 import { showAlert } from '../../lib/alert.js';
 import { Icon } from '../../components/Icon.js';
+import { SectionLoading } from '../../components/ui/spinner.js';
 import './Onsite.css';
 
 const CATEGORIES = ['Domain issue', 'Hosting / VPS issue', 'DNS / SSL issue', 'Deployment failure', 'Billing', 'Other'];
@@ -86,7 +87,7 @@ export function OnsiteSupport() {
       />
 
       {loading ? (
-        <div className="onsite-card"><p style={{ color: 'var(--ink2)' }}>Loading…</p></div>
+        <div className="onsite-card"><SectionLoading /></div>
       ) : tickets.length === 0 ? (
         <div className="onsite-card" style={{ textAlign: 'center', padding: '3rem 1.5rem' }}>
           <Icon name="helpCircle" size={32} style={{ color: 'var(--ink3)', marginBottom: '0.75rem' }} />

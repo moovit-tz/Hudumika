@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Icon } from '../../components/Icon.js';
+import { Banner } from '../../components/ui/alert.js';
 import { showConfirm } from '../../lib/confirm.js';
 import { useCloud, CloudFile, StorageProvider } from '../../shells/cloud-context.js';
 import { ProviderFilesPanel } from '../ProviderFilesPanel.js';
@@ -196,12 +197,7 @@ export const FileBrowser: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg)' }}>
-      {error && (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '10px 20px', background: 'var(--red-l)', borderBottom: '1px solid var(--red)', color: 'var(--red)', fontSize: 13 }}>
-          <span>{error}</span>
-          <button onClick={dismissError} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: 4 }}><Icon name="close" size={14} color="var(--red)" /></button>
-        </div>
-      )}
+      {error && <Banner variant="error" onDismiss={dismissError} className="rounded-none border-x-0 border-t-0">{error}</Banner>}
 
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         <div

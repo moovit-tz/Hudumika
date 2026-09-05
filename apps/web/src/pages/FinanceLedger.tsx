@@ -268,7 +268,7 @@ export const FinanceLedger: React.FC = () => {
                     <span style={{ fontSize:12, fontFamily:'var(--mono)', color:'#0891b2', textAlign:'right' }}>{acc.period_debit > 0 ? fmt(acc.period_debit) : '—'}</span>
                     <span style={{ fontSize:12, fontFamily:'var(--mono)', color:'#7c3aed', textAlign:'right' }}>{acc.period_credit > 0 ? fmt(acc.period_credit) : '—'}</span>
                     <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center' }}>
-                      <span style={{ fontSize:11, fontWeight:700, color: close < 0 ? '#7c3aed' : '#0891b2', background: close < 0 ? '#ede9fe' : '#ecfeff', padding:'2px 6px', borderRadius: 9, whiteSpace:'nowrap' }}>
+                      <span style={{ fontSize:11, fontWeight:700, color: close < 0 ? '#7c3aed' : '#0891b2', background: close < 0 ? '#ede9fe' : '#ecfeff', padding:'2px 6px', borderRadius: 'var(--r)', whiteSpace:'nowrap' }}>
                         {close < 0 ? 'Cr' : 'Dr'}
                       </span>
                     </span>
@@ -338,7 +338,7 @@ export const FinanceLedger: React.FC = () => {
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
           flexWrap: 'wrap', padding: '14px 16px', border: '1px solid var(--border)',
-          borderRadius: 9, background: 'var(--white)', fontSize: 12.5, color: 'var(--ink3)',
+          borderRadius: 'var(--r)', background: 'var(--white)', fontSize: 12.5, color: 'var(--ink3)',
         }}>
           <span>
             {offset + 1}–{Math.min(offset + PAGE_SIZE, filtered.length)} of {filtered.length} account{filtered.length === 1 ? '' : 's'}

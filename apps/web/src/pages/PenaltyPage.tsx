@@ -3,6 +3,7 @@ import { usePageSEO } from '../hooks/usePageSEO.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Icon, type IconName } from '../components/Icon.js';
+import { Banner } from '../components/ui/alert.js';
 import { apiFetch } from '../lib/api.js';
 
 interface PenResult {
@@ -406,13 +407,12 @@ export const PenaltyPage: React.FC = () => {
           )}
 
           {aiError && !summary && (
-            <div style={{ padding: '12px 16px', background: 'var(--red-l)', border: '1px solid var(--red)', borderRadius: 12, fontSize: 12.5, color: 'var(--red)', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-              <Icon name="alertCircle" size={14} color="var(--red)" style={{ flexShrink: 0, marginTop: 1 }} />
+            <Banner variant="error" icon="alertCircle">
               <span>
                 {aiError}
                 {aiError.toLowerCase().includes('not configured') && ' Ask an admin to add an AI provider key under Settings → Integrations → AI Integration.'}
               </span>
-            </div>
+            </Banner>
           )}
 
           {/* Bottom nav */}

@@ -4,6 +4,7 @@ import { Icon } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
 import { showConfirm } from '../lib/confirm.js';
 import { Badge } from '../components/ui/badge.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 
 /**
@@ -182,7 +183,7 @@ export const SuperAdminAnnouncements: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            {loading && <tr><td colSpan={5} style={{ padding: 36, textAlign: 'center', color: 'var(--ink3)' }}>Loading…</td></tr>}
+            {loading && <tr><td colSpan={5}><SectionLoading /></td></tr>}
             {!loading && rows.length === 0 && (
               <tr><td colSpan={5} style={{ padding: 36, textAlign: 'center', color: 'var(--ink3)' }}>Nothing published yet.</td></tr>
             )}

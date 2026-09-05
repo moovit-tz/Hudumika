@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { PageHeader } from '../components/PageHeader.js';
 import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
+import { Banner } from '../components/ui/alert.js';
 import { apiFetch } from '../lib/api.js';
 
 interface Check { name: string; ok: boolean; detail: string; remedy?: string; skipped?: boolean }
@@ -103,19 +104,12 @@ export function LensIntegrations() {
         actions={<a href="/lens" className="btn btn-secondary btn-sm">Back to board</a>}
       />
 
-      <div style={{
-        display: 'flex', gap: 12, alignItems: 'center', padding: '14px 18px', marginBottom: 24,
-        background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 'var(--r)',
-        boxShadow: '0 2px 8px rgba(245, 158, 11, 0.05)',
-      }}>
-        <div style={{ background: 'var(--white)', borderRadius: '50%', padding: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-          <Icon name="alertTriangle" size={16} color="var(--gold)" />
-        </div>
-        <div style={{ fontSize: 13, color: 'var(--ink2)', lineHeight: 1.5 }}>
-          <strong style={{ color: 'var(--ink)' }}>Live Account Warning:</strong> None of these has been called with real credentials yet.
-          The endpoints and payloads follow each provider's API, but nothing here has been proven against a live account. 
+      <div style={{ marginBottom: 24 }}>
+        <Banner variant="warning" title="Live Account Warning">
+          None of these has been called with real credentials yet.
+          The endpoints and payloads follow each provider's API, but nothing here has been proven against a live account.
           Saving a connection tests it instantly to verify its status.
-        </div>
+        </Banner>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingBottom: 64 }}>

@@ -3,6 +3,7 @@ import { PageHeader } from '../components/PageHeader.js';
 import { MetricsRow } from '../components/MetricCard.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Icon } from '../components/Icon.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { Badge } from '../components/ui/badge.js';
 import { Button } from '../components/ui/button.js';
 import { Input } from '../components/ui/input.js';
@@ -197,7 +198,7 @@ export function MultiEntityAccounting() {
 
           <SectionCard title="Entities" padded={false} collapsible={false}>
             {loading ? (
-              <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>Loading…</div>
+              <SectionLoading />
             ) : entities.length === 0 ? (
               <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>No branches/entities configured — this tenant's books are one consolidated set, as they always have been.</div>
             ) : (
@@ -276,7 +277,7 @@ export function MultiEntityAccounting() {
 
           <SectionCard title="Intercompany transactions" padded={false} collapsible={false}>
             {loading ? (
-              <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>Loading…</div>
+              <SectionLoading />
             ) : txns.length === 0 ? (
               <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>No intercompany transactions yet.</div>
             ) : (
@@ -320,7 +321,7 @@ export function MultiEntityAccounting() {
 
           <SectionCard title="P&L by entity" padded={false} collapsible={false}>
             {consolidatedLoading ? (
-              <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>Loading…</div>
+              <SectionLoading />
             ) : !consolidated ? (
               <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>No data for this period.</div>
             ) : (

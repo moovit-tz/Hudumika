@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
@@ -423,7 +424,7 @@ export function RecruitmentPage() {
         {/* Openings grid */}
         <SectionCard title="Job openings" padded={false}>
           {loading ? (
-            <div style={{ padding: 24, fontSize: 13, color: 'var(--ink3)' }}>Loading…</div>
+            <SectionLoading />
           ) : openings.length === 0 ? (
             <div style={{ padding: 32, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No job openings yet.</div>
           ) : (

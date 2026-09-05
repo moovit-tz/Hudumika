@@ -11,6 +11,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from './Icon.js';
 import { Button } from './ui/button.js';
+import { SectionLoading } from './ui/spinner.js';
 import { Badge } from './ui/badge.js';
 import { showAlert } from '../lib/alert.js';
 
@@ -104,7 +105,7 @@ export function TotpEnrollCard() {
       </div>
 
       <div style={bodyStyle}>
-        {twoFA === null && <div style={{ color: 'var(--ink3)', fontSize: 13 }}>Loading…</div>}
+        {twoFA === null && <SectionLoading />}
 
         {twoFA && !twoFA.enabled && !setupData && (
           <div>

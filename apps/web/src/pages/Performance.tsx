@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { Badge } from '../components/ui/badge.js';
 import { Button } from '../components/ui/button.js';
 import { Input } from '../components/ui/input.js';
@@ -449,7 +450,7 @@ function CycleInstances({ cycleId }: { cycleId: string }) {
   }, [cycleId]);
 
   if (err) return <div style={{ padding: '11px 15px', borderTop: '1px solid var(--border)', color: 'var(--red)', fontSize: 12 }}>{err}</div>;
-  if (rows === null) return <div style={{ padding: '11px 15px', borderTop: '1px solid var(--border)', fontSize: 12, color: 'var(--ink3)' }}>Loading…</div>;
+  if (rows === null) return <SectionLoading style={{ padding: '11px 15px' }} />;
 
   return (
     <div style={{ borderTop: '1px solid var(--border)', overflowX: 'auto' }}>

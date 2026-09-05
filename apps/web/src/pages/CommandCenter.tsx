@@ -774,7 +774,7 @@ export const CommandCenter: React.FC = () => {
                       <span style={{
                         fontSize: 10,
                         padding: '0 5px',
-                        borderRadius: 9,
+                        borderRadius: 'var(--r)',
                         background: selectedMetric === 'active' ? 'var(--teal-l)' : 'var(--border)',
                         color: selectedMetric === 'active' ? 'var(--teal)' : 'var(--ink3)',
                         fontWeight: 700
@@ -794,7 +794,7 @@ export const CommandCenter: React.FC = () => {
                       <span style={{
                         fontSize: 10,
                         padding: '0 5px',
-                        borderRadius: 9,
+                        borderRadius: 'var(--r)',
                         background: selectedMetric === 'checked_in' ? 'var(--teal-l)' : 'var(--border)',
                         color: selectedMetric === 'checked_in' ? 'var(--teal)' : 'var(--ink3)',
                         fontWeight: 700
@@ -814,7 +814,7 @@ export const CommandCenter: React.FC = () => {
                       <span style={{
                         fontSize: 10,
                         padding: '0 5px',
-                        borderRadius: 9,
+                        borderRadius: 'var(--r)',
                         background: selectedMetric === 'pending' ? 'var(--teal-l)' : 'var(--border)',
                         color: selectedMetric === 'pending' ? 'var(--teal)' : 'var(--ink3)',
                         fontWeight: 700

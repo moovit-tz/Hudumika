@@ -8,6 +8,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Icon } from '../../components/Icon.js';
 import { BASE_URL } from '../../lib/api.js';
 import { Button } from '../../components/ui/button.js';
+import { Tabs, TabsList, TabsTrigger } from '../../components/ui/tabs.js';
 import { SignaturePad } from '../../components/SignaturePad.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../../components/ui/date-picker.js';
 import { pickForegroundHsl } from '../../lib/color.js';
@@ -410,7 +411,7 @@ export function SignPublicPage() {
                 onKeyDown={e => { if (e.key === 'Enter') handleVerifyOtp(); }}
                 placeholder="6-digit code"
                 inputMode="numeric"
-                style={{ width: '100%', padding: '11px', borderRadius: 9, border: '1.5px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 18, letterSpacing: '0.3em', textAlign: 'center', boxSizing: 'border-box', marginBottom: 12 }}
+                style={{ width: '100%', padding: '11px', borderRadius: 'var(--r)', border: '1.5px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 18, letterSpacing: '0.3em', textAlign: 'center', boxSizing: 'border-box', marginBottom: 12 }}
               />
               <Button variant="default" onClick={handleVerifyOtp} disabled={otpVerifying || otpCode.length !== 6}
                 style={{ width: '100%', marginBottom: 10, ...(otpCode.length === 6 ? { background: accent, color: accentFg } : {}) }}>
@@ -486,32 +487,16 @@ export function SignPublicPage() {
 
       {/* Mobile Tab Switcher */}
       {isMobile && (
-        <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', background: 'var(--card-bg)', padding: '4px 8px', gap: 4 }}>
-          <button
-            type="button"
-            onClick={() => setMobileTab('doc')}
-            style={{
-              flex: 1, padding: '7px 10px', fontSize: 12, fontWeight: 600, border: 'none', borderRadius: 6,
-              background: mobileTab === 'doc' ? 'var(--teal-l)' : 'transparent',
-              color: mobileTab === 'doc' ? 'var(--teal)' : 'var(--ink2)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
-            }}
-          >
-            <Icon name="fileText" size={14} /> Document View
-          </button>
-          <button
-            type="button"
-            onClick={() => setMobileTab('panel')}
-            style={{
-              flex: 1, padding: '7px 10px', fontSize: 12, fontWeight: 600, border: 'none', borderRadius: 6,
-              background: mobileTab === 'panel' ? 'var(--teal-l)' : 'transparent',
-              color: mobileTab === 'panel' ? 'var(--teal)' : 'var(--ink2)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
-            }}
-          >
-            <Icon name="edit" size={14} /> Sign &amp; Submit ({completedCount}/{requiredFields.length})
-          </button>
-        </div>
+        <Tabs value={mobileTab} onValueChange={v => setMobileTab(v as typeof mobileTab)} variant="segmented">
+          <TabsList style={{ width: '100%' }}>
+            <TabsTrigger value="doc" style={{ flex: 1 }}>
+              <Icon name="fileText" size={14} /> Document View
+            </TabsTrigger>
+            <TabsTrigger value="panel" style={{ flex: 1 }}>
+              <Icon name="edit" size={14} /> Sign &amp; Submit ({completedCount}/{requiredFields.length})
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
       )}
 
       <div className="sign-public-body">
@@ -573,7 +558,7 @@ export function SignPublicPage() {
                   <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, color: '#9ca3af', fontSize: 13 }}>
                     {pdfError ? "Couldn't load this document" : (
                       <>
-                        <Icon name="clock" size={22} style={{ animation: 'spin 2s linear infinite', color: accent }} />
+                        <Icon name="clock" size={22} style={{ animation: 'ds-spin 2s linear infinite', color: accent }} />
                         Loading document…
                       </>
                     )}

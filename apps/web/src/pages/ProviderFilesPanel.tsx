@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Icon } from '../components/Icon.js';
+import { Banner } from '../components/ui/alert.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { apiFetch } from '../lib/api.js';
 import { useCloud, StorageProvider } from '../shells/cloud-context.js';
@@ -159,12 +160,7 @@ export function ProviderFilesPanel({ provider }: { provider: StorageProvider }) 
         </div>
       )}
 
-      {error && (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '10px 20px', background: 'var(--red-l)', borderBottom: '1px solid #fecaca', color: 'var(--red)', fontSize:'var(--text-base)' }}>
-          <span>{error}</span>
-          <button onClick={() => setError(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: 4 }}><Icon name="close" size={14} color="#991b1b" /></button>
-        </div>
-      )}
+      {error && <Banner variant="error" onDismiss={() => setError(null)} className="rounded-none border-x-0 border-t-0">{error}</Banner>}
 
       <div style={{ flex: 1, padding: 20, overflowY: 'auto' }}>
         {loading && (

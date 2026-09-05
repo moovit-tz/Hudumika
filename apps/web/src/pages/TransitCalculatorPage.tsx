@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { PageHeader } from '../components/PageHeader.js';
 import { Icon } from '../components/Icon.js';
+import { Banner } from '../components/ui/alert.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { AdvancedCalcResultPanel } from '../components/AdvancedCalcResultPanel.js';
@@ -223,7 +224,7 @@ export const TransitCalculatorPage: React.FC = () => {
                 </div>
               </div>
               {error && (
-                <div style={{ marginTop: 16, padding: '10px 14px', background: 'var(--red-l)', border: '1px solid var(--red)', borderRadius: 9, fontSize: 12.5, color: 'var(--red)' }}>{error}</div>
+                <Banner variant="error" className="mt-4">{error}</Banner>
               )}
               <WizardNavRow step={step} totalSteps={STEPS.length} setStep={setStep} error={stepError} busy={loading} onContinue={continueFromCargo} continueLabel="Calculate" />
             </SectionCard>
@@ -378,8 +379,8 @@ function RouteReferenceTable({ routes, onChanged }: { routes: TransitRoute[]; on
 function RowActions({ onSave, onCancel, saving }: { onSave: () => void; onCancel: () => void; saving: boolean }) {
   return (
     <>
-      <button type="button" onClick={onSave} disabled={saving} style={{ ...iconBtnStyle, color: 'var(--teal)' }}><Icon name="check" size={14} color="var(--teal)" /></button>
-      <button type="button" onClick={onCancel} style={iconBtnStyle}><Icon name="x" size={14} color="var(--ink3)" /></button>
+      <button type="button" onClick={onSave} disabled={saving} aria-label="Save" style={{ ...iconBtnStyle, color: 'var(--teal)' }}><Icon name="check" size={14} color="var(--teal)" /></button>
+      <button type="button" onClick={onCancel} aria-label="Cancel" style={iconBtnStyle}><Icon name="x" size={14} color="var(--ink3)" /></button>
     </>
   );
 }

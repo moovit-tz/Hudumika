@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { PageHeader } from '../../components/PageHeader.js';
 import { Icon } from '../../components/Icon.js';
+import { SectionLoading } from '../../components/ui/spinner.js';
 import { Badge } from '../../components/ui/badge.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
 import { apiFetch } from '../../lib/api.js';
@@ -116,7 +117,7 @@ export function SealExWarehouseEntryDetail() {
     } finally { setBusy(false); }
   }
 
-  if (loading || !entry) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>Loading…</div>;
+  if (loading || !entry) return <SectionLoading />;
   const c = entry.computation;
 
   return (

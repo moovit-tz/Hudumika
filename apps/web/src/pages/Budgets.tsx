@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { showAlert } from '../lib/alert.js';
 import { useCurrency } from '../hooks/useCurrency.js';
 import { PageHeader } from '../components/PageHeader.js';
@@ -156,15 +157,14 @@ export function Budgets() {
         </button>
       </div>
 
-      <div className="ds-tabs-list" data-variant="segmented" style={{ marginBottom: 20 }}>
-        {budgets.map(b => (
-          <button key={b.id} type="button" className="ds-tabs-trigger" data-variant="segmented"
-            data-state={selectedId === b.id ? 'active' : 'inactive'} onClick={() => setSelectedId(b.id)}>
-            {b.name} ({b.fiscal_year})
-          </button>
-        ))}
-        {budgets.length === 0 && <span style={{ fontSize: 13, color: 'var(--ink3)' }}>No budgets yet — create one to begin.</span>}
-      </div>
+      <Tabs value={selectedId ?? ''} onValueChange={setSelectedId} variant="segmented">
+        <TabsList style={{ marginBottom: 20 }}>
+          {budgets.map(b => (
+            <TabsTrigger key={b.id} value={b.id}>{b.name} ({b.fiscal_year})</TabsTrigger>
+          ))}
+          {budgets.length === 0 && <span style={{ fontSize: 13, color: 'var(--ink3)' }}>No budgets yet — create one to begin.</span>}
+        </TabsList>
+      </Tabs>
 
       {selectedBudget && (
         <>
@@ -202,7 +202,7 @@ export function Budgets() {
                         {r.amounts.map((v, i) => (
                           <td key={i} style={{ padding: 2 }}>
                             <input type="number" value={v || ''} placeholder="0" onChange={e => updateCell(r.account_code, i, parseFloat(e.target.value) || 0)}
-                              style={{ width: '100%', padding: '5px 6px', border: '1px solid var(--border)', borderRadius: 5, fontSize: 11.5, textAlign: 'right', outline: 'none', boxSizing: 'border-box' }} />
+                              style={{ width: '100%', padding: '5px 6px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 11.5, textAlign: 'right', outline: 'none', boxSizing: 'border-box' }} />
                           </td>
                         ))}
                         <td style={{ padding: '6px 10px', textAlign: 'right', fontWeight: 700, fontFamily: 'var(--mono)' }}>{fmt(r.amounts.reduce((a, b) => a + b, 0))}</td>
@@ -274,10 +274,10 @@ export function Budgets() {
               <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 16 }}>New Budget</div>
               <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 }}>Name</label>
               <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="e.g. FY2026 Operating Budget"
-                style={{ width: '100%', padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 9, fontSize: 13, outline: 'none', boxSizing: 'border-box', marginBottom: 14 }} />
+                style={{ width: '100%', padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13, outline: 'none', boxSizing: 'border-box', marginBottom: 14 }} />
               <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 }}>Fiscal Year</label>
               <input type="number" value={newYear} onChange={e => setNewYear(parseInt(e.target.value) || newYear)}
-                style={{ width: '100%', padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 9, fontSize: 13, outline: 'none', boxSizing: 'border-box' }} />
+                style={{ width: '100%', padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13, outline: 'none', boxSizing: 'border-box' }} />
               <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 18 }}>
                 <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowNew(false)}>Cancel</button>
                 <button type="button" className="btn btn-primary btn-sm" onClick={createBudget}>Create</button>

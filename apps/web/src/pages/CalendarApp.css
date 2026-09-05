@@ -224,3 +224,79 @@
     width: 100%;
   }
 }
+
+/* ── Cal.com & Morgen Inspired Event Block & Grid Styles ── */
+.cal-event-card {
+  position: absolute;
+  border-radius: 8px;
+  padding: 5px 8px;
+  box-sizing: border-box;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  border-left-width: 4px;
+  border-left-style: solid;
+  z-index: 10;
+}
+
+.cal-event-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.14);
+  z-index: 20;
+}
+
+.cal-now-indicator {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #ef4444;
+  z-index: 25;
+  pointer-events: none;
+}
+
+.cal-now-indicator::before {
+  content: '';
+  position: absolute;
+  left: -5px;
+  top: -4px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.25);
+  animation: pulse-red 2s infinite;
+}
+
+@keyframes pulse-red {
+  0% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+}
+
+/* Booking pages & Event Types Cal.com style cards */
+.cal-booking-type-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  background: var(--white);
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cal-booking-type-card:hover {
+  border-color: var(--teal);
+  box-shadow: 0 4px 14px rgba(13, 148, 136, 0.08);
+}
+

@@ -4,6 +4,7 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.js';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { MetricsRow } from '../components/MetricCard.js';
 import { AvatarPicker } from '../components/AvatarPicker.js';
 import { AccountSecurityPanel } from '../components/AccountSecurityPanel.js';
@@ -46,7 +47,7 @@ function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void 
 /* ── Section card ── */
 function Card({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   return (
-    <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', marginBottom: 16, overflow: 'hidden' }}>
+    <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', marginBottom: 16, overflow: 'hidden' }}>
       <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
         <div style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--navy)' }}>{title}</div>
         {subtitle && <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginTop: 3 }}>{subtitle}</div>}
@@ -67,7 +68,7 @@ function Field({ label, hint, children }: { label: string; hint?: React.ReactNod
   );
 }
 
-const INPUT = { width: '100%', padding: '9px 12px', border: '1.5px solid var(--border)', borderRadius: 9, fontSize: 13.5, fontFamily: 'var(--font)', color: 'var(--ink)', background: 'var(--white)', boxSizing: 'border-box' as const, outline: 'none' };
+const INPUT = { width: '100%', padding: '9px 12px', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13.5, fontFamily: 'var(--font)', color: 'var(--ink)', background: 'var(--white)', boxSizing: 'border-box' as const, outline: 'none' };
 const INPUT_DISABLED = { ...INPUT, background: 'var(--bg)', color: 'var(--ink3)', cursor: 'not-allowed' };
 
 /* ── Activity log row ── */
@@ -335,17 +336,18 @@ export const UserProfile: React.FC = () => {
 
         {/* Tab strip + account actions — one row */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', margin: '16px 28px 20px' }}>
-          <div className="ds-tabs-list" data-variant="segmented">
-            {TABS.map(t => (
-              <button key={t.key} type="button" className="ds-tabs-trigger" data-variant="segmented"
-                data-state={activeTab === t.key ? 'active' : 'inactive'} onClick={() => setTab(t.key)}>
-                <Icon name={t.icon} size={14} strokeWidth={activeTab === t.key ? 2.3 : 1.8} />
-                {t.label}
-              </button>
-            ))}
-          </div>
+          <Tabs value={activeTab} onValueChange={(v) => setTab(v as any)} variant="segmented">
+            <TabsList>
+              {TABS.map(t => (
+                <TabsTrigger key={t.key} value={t.key}>
+                  <Icon name={t.icon} size={14} strokeWidth={activeTab === t.key ? 2.3 : 1.8} />
+                  {t.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
           <div style={{ display: 'flex', gap: 8 }}>
-            <Link to="/subscription" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 16px', border: '1.5px solid var(--border)', borderRadius: 9, background: 'var(--white)', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)', color: 'var(--ink)', textDecoration: 'none' }}>
+            <Link to="/subscription" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 16px', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)', color: 'var(--ink)', textDecoration: 'none' }}>
               <Icon name="creditCard" size={13} strokeWidth={2} />
               Subscription
             </Link>
@@ -486,7 +488,7 @@ export const UserProfile: React.FC = () => {
               <button type="button" onClick={() => setForm(buildInitialForm())} style={{ padding: 'var(--ds-btn-py) 20px', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', fontSize: 14, fontWeight: 600, fontFamily: 'var(--font)', color: 'var(--ink)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
                 Discard
               </button>
-              <button type="submit" disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 22px', border: 'none', borderRadius: 'var(--r)', background: saved ? 'var(--green)' : 'var(--teal)', color: '#fff', cursor: 'pointer', fontSize: 14, fontWeight: 700, fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+              <button type="submit" disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 22px', border: 'none', borderRadius: 'var(--r)', background: saved ? 'var(--green)' : 'hsl(var(--primary))', color: saved ? 'hsl(var(--green-foreground))' : 'hsl(var(--primary-foreground))', cursor: 'pointer', fontSize: 14, fontWeight: 700, fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
                 {saved ? <><Icon name="check" size={14} strokeWidth={2.5} /> Saved!</> : saving ? 'Saving…' : 'Save Changes'}
               </button>
             </div>

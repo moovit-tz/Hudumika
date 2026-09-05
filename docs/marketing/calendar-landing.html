@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hudumika Calendar</title>
+<meta name="description" content="Scheduling for teams who are already busy. Share a booking link, sync Google and Outlook both ways, and hand every meeting a Bliss video room automatically.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&family=Cormorant+Garamond:ital,wght@1,600;1,700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* Google Sans Flex is Hudumika's in-app face, served from the platform's
+     own /fonts/ path — this loads it when the page is deployed alongside
+     the main app, and falls straight through to DM Sans (the documented
+     brand fallback) with no error anywhere else. */
+  @font-face {
+    font-family: 'Google Sans Flex';
+    src: url('/fonts/GoogleSansFlex.ttf') format('truetype');
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  :root {
+    --font: 'Google Sans Flex', 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    --serif: 'Cormorant Garamond', Georgia, serif;
+    --mono: 'JetBrains Mono', Menlo, monospace;
+
+    /* The platform's own light-theme tokens (index.css) — this page just
+       fixes the accent to ink-black instead of a per-tenant color, since
+       there's no signed-in tenant here to compute one for. */
+    --ink: #0d1117;
+    --ink2: #57606a;
+    --ink3: #8b949e;
+    --bg: #f7f5f0;
+    --white: #ffffff;
+    --border: #e1e4e8;
+    --green: #1a7f37;
+    --green-l: #dafbe1;
+
+    --r-sm: 5px;
+    --r: 9px;
+    --r-lg: 14px;
+
+    --elev-sm: 0 1px 2px rgba(13,17,23,0.05);
+    --elev: 0 4px 16px rgba(13,17,23,0.07);
+    --elev-lg: 0 20px 48px rgba(13,17,23,0.14);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3 { font-family: var(--font); color: var(--ink); letter-spacing: -0.02em; font-weight: 700; text-wrap: balance; }
+  em { font-family: var(--serif); font-style: italic; font-weight: 700; }
+  a { color: inherit; }
+
+  .container { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+
+  #scroll-progress {
+    position: fixed; top: 0; left: 0; height: 2px; background: var(--ink);
+    z-index: 999; width: 0%; transition: width .1s linear;
+  }
+
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes pulseDot { 0%,100% { box-shadow: 0 0 0 0 rgba(26,127,55,.35); } 70% { box-shadow: 0 0 0 7px rgba(26,127,55,0); } }
+  @keyframes drawCheck { to { stroke-dashoffset: 0; } }
+  @keyframes fadeScale { from { opacity: 0; transform: scale(.98) translateY(6px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+
+  .in { animation: fadeUp .7s cubic-bezier(.16,1,.3,1) both; }
+  .in-1 { animation-delay: .06s; } .in-2 { animation-delay: .14s; } .in-3 { animation-delay: .22s; } .in-4 { animation-delay: .3s; }
+
+  .reveal { opacity: 0; transform: translateY(24px); transition: opacity .7s cubic-bezier(.16,1,.3,1), transform .7s cubic-bezier(.16,1,.3,1); }
+  .reveal.active { opacity: 1; transform: translateY(0); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .in, .reveal { animation: none !important; transition: none !important; opacity: 1 !important; transform: none !important; }
+  }
+
+  /* ── Nav ── */
+  .nav {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(247,245,240,0.88); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; }
+  .brand { display: flex; align-items: center; gap: 9px; text-decoration: none; }
+  .brand-mark {
+    width: 30px; height: 30px; border-radius: var(--r-sm); background: var(--ink);
+    display: flex; align-items: center; justify-content: center; color: var(--white); flex-shrink: 0;
+  }
+  .brand-name { font-size: 16.5px; font-weight: 700; color: var(--ink); letter-spacing: -0.01em; }
+  .nav-links { display: flex; align-items: center; gap: 30px; list-style: none; }
+  .nav-links a { text-decoration: none; color: var(--ink2); font-size: 13.5px; font-weight: 500; transition: color .15s; }
+  .nav-links a:hover { color: var(--ink); }
+  .nav-actions { display: flex; align-items: center; gap: 8px; }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+    padding: 10px 18px; border-radius: var(--r); font-size: 13.5px; font-weight: 600;
+    text-decoration: none; cursor: pointer; border: 1px solid transparent;
+    transition: transform .15s cubic-bezier(.16,1,.3,1), box-shadow .15s, background .15s, border-color .15s, color .15s;
+    font-family: var(--font);
+  }
+  .btn:active { transform: scale(.97); }
+  .btn-ghost { background: transparent; color: var(--ink2); border-color: var(--border); }
+  .btn-ghost:hover { background: var(--white); color: var(--ink); border-color: #c9cdd3; }
+  .btn-solid { background: var(--ink); color: var(--white); }
+  .btn-solid:hover { background: #23272e; box-shadow: var(--elev); transform: translateY(-1px); }
+  .btn-solid-inverse { background: var(--white); color: var(--ink); }
+  .btn-solid-inverse:hover { background: #f0f0f0; transform: translateY(-1px); }
+  .btn-lg { padding: 13px 24px; font-size: 14.5px; border-radius: var(--r); }
+
+  /* ── Hero ── */
+  .hero { padding: 76px 0 48px; text-align: center; }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px 6px 10px;
+    border-radius: 20px; background: var(--white); border: 1px solid var(--border);
+    font-size: 12.5px; font-weight: 600; color: var(--ink2); margin-bottom: 22px; box-shadow: var(--elev-sm);
+  }
+  .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: pulseDot 2.2s infinite; }
+  .hero h1 { font-size: 56px; line-height: 1.06; max-width: 760px; margin: 0 auto 18px; }
+  .hero p.sub { font-size: 18px; color: var(--ink2); max-width: 560px; margin: 0 auto 32px; line-height: 1.55; }
+  .hero-ctas { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 44px; flex-wrap: wrap; }
+  .trust-label { font-size: 11px; font-weight: 700; color: var(--ink3); text-transform: uppercase; letter-spacing: .09em; margin-bottom: 18px; }
+  .trust-row { display: flex; align-items: center; justify-content: center; gap: 34px; flex-wrap: wrap; opacity: .55; }
+  .trust-row span { font-weight: 700; font-size: 13px; letter-spacing: .03em; }
+
+  /* ── Product mockup ── */
+  .mock-wrap { max-width: 980px; margin: 0 auto; padding: 0 24px; position: relative; }
+  .float-badge {
+    position: absolute; z-index: 5; background: var(--white); border: 1px solid var(--border);
+    padding: 9px 14px; border-radius: var(--r); box-shadow: var(--elev-lg); font-size: 12.5px; font-weight: 600;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .fb-1 { top: -14px; right: 8%; }
+  .fb-2 { bottom: 30px; left: -18px; }
+  @media (max-width: 900px) { .float-badge { display: none; } }
+
+  .mock {
+    background: var(--white); border: 1px solid var(--border); border-radius: var(--r-lg);
+    box-shadow: var(--elev-lg); overflow: hidden; text-align: left;
+  }
+  .mock-bar { background: var(--bg); border-bottom: 1px solid var(--border); padding: 11px 16px; display: flex; align-items: center; justify-content: space-between; }
+  .mock-dots { display: flex; gap: 6px; }
+  .mock-dots span { width: 9px; height: 9px; border-radius: 50%; background: #d8dbe0; display: block; }
+  .mock-url { font-family: var(--mono); font-size: 11.5px; color: var(--ink2); background: var(--white); padding: 3px 12px; border-radius: 5px; border: 1px solid var(--border); }
+  .mock-live { font-size: 10.5px; font-weight: 600; color: var(--ink3); display: flex; align-items: center; gap: 5px; }
+  .mock-live span.d { width: 5px; height: 5px; border-radius: 50%; background: var(--green); }
+
+  .mock-grid { display: grid; grid-template-columns: 230px 1fr; min-height: 420px; }
+  .mock-side { background: var(--bg); border-right: 1px solid var(--border); padding: 18px; }
+  .mock-main { padding: 22px; background: var(--white); }
+
+  .cal-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 2px; text-align: center; font-size: 11px; margin-top: 10px; }
+  .cal-grid .dow { font-weight: 700; color: var(--ink3); padding-bottom: 4px; }
+  .cal-day { padding: 6px 0; border-radius: var(--r-sm); color: var(--ink2); font-weight: 500; }
+  .cal-day.active { background: var(--ink); color: var(--white); font-weight: 700; }
+
+  .side-title { font-size: 11px; font-weight: 700; color: var(--ink3); text-transform: uppercase; letter-spacing: .06em; margin: 20px 0 8px; }
+  .cal-check { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--ink2); margin-bottom: 6px; }
+  .cal-check i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+
+  .day-hdr { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+  .day-hdr .date { font-size: 14.5px; font-weight: 700; }
+  .view-pills { display: flex; gap: 4px; }
+  .view-pills span { padding: 3px 9px; border-radius: 20px; font-size: 10.5px; font-weight: 600; background: var(--bg); color: var(--ink2); }
+  .view-pills span.on { background: var(--ink); color: var(--white); }
+
+  .evt { padding: 11px 14px; border-radius: var(--r); margin-bottom: 9px; border: 1px solid var(--border); background: var(--white); display: flex; align-items: center; justify-content: space-between; transition: border-color .15s, transform .15s; }
+  .evt:hover { border-color: var(--ink); transform: translateX(4px); }
+  .evt.b1 { border-left: 3px solid var(--ink); }
+  .evt.b2 { border-left: 3px solid var(--ink3); }
+  .evt.b3 { border-left: 3px solid var(--border); }
+  .evt-title { font-size: 12.5px; font-weight: 700; }
+  .evt-sub { font-size: 11px; color: var(--ink3); margin-top: 2px; }
+  .evt-tag { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: var(--r-sm); white-space: nowrap; margin-left: 10px; }
+  .evt-tag.solid { background: var(--ink); color: var(--white); }
+  .evt-tag.soft { background: var(--bg); color: var(--ink2); border: 1px solid var(--border); }
+
+  /* ── Section shell ── */
+  .section { padding: 92px 0; }
+  .section.dark { background: var(--ink); color: #e7e9ec; }
+  .section.dark h2, .section.dark .sec-eyebrow { color: var(--white); }
+  .sec-head { text-align: center; max-width: 600px; margin: 0 auto 48px; }
+  .sec-eyebrow { display: block; font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--ink3); margin-bottom: 10px; }
+  .section.dark .sec-eyebrow { color: #9198a1; }
+  .sec-title { font-size: 34px; line-height: 1.2; }
+
+  /* ── Showcase tabs (dark section) ── */
+  .tabs-row { display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 34px; flex-wrap: wrap; }
+  .tab-btn {
+    background: transparent; border: 1px solid transparent; padding: 10px 18px; font-family: var(--font);
+    font-size: 13.5px; font-weight: 600; color: #9198a1; cursor: pointer; border-radius: 999px; transition: all .18s;
+  }
+  .tab-btn:hover { color: var(--white); }
+  .tab-btn.active { color: var(--ink); background: var(--white); }
+
+  .showcase-panel {
+    background: #16191f; border: 1px solid #262b33; border-radius: var(--r-lg); padding: 40px;
+    min-height: 340px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center;
+  }
+  .tab-item { display: none; }
+  .tab-item.active { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; grid-column: 1 / -1; animation: fadeScale .4s cubic-bezier(.16,1,.3,1); }
+  .tab-item .kicker { font-size: 10.5px; font-weight: 700; color: #9198a1; text-transform: uppercase; letter-spacing: .08em; }
+  .tab-item h3 { color: var(--white); font-size: 24px; margin: 8px 0 12px; }
+  .tab-item p { font-size: 14px; color: #b3b8c0; line-height: 1.65; margin-bottom: 20px; }
+  .tab-visual { background: #1d2129; border: 1px solid #2b303a; border-radius: var(--r); padding: 20px; }
+  .tab-visual .h { font-size: 12.5px; font-weight: 700; color: var(--white); margin-bottom: 12px; }
+  .mini-row { display: flex; align-items: center; justify-content: space-between; background: #262b33; padding: 10px 12px; border-radius: var(--r-sm); margin-bottom: 8px; }
+  .mini-row:last-child { margin-bottom: 0; }
+  .mini-name { font-size: 12.5px; font-weight: 700; color: var(--white); }
+  .mini-sub { font-size: 10.5px; color: #8b919b; }
+  .mini-avatar { width: 26px; height: 26px; border-radius: 50%; background: #3a4150; color: var(--white); display: flex; align-items: center; justify-content: center; font-size: 10.5px; font-weight: 700; margin-right: 9px; }
+  @media (max-width: 760px) {
+    .showcase-panel, .tab-item.active { grid-template-columns: 1fr; }
+  }
+
+  /* ── Features ── */
+  .feat-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; }
+  .feat-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--r); padding: 26px 22px; transition: transform .2s cubic-bezier(.16,1,.3,1), box-shadow .2s, border-color .2s; }
+  .feat-card:hover { transform: translateY(-4px); border-color: var(--ink); box-shadow: var(--elev); }
+  .feat-icon { width: 38px; height: 38px; border-radius: var(--r-sm); background: var(--ink); color: var(--white); display: flex; align-items: center; justify-content: center; margin-bottom: 16px; }
+  .feat-card h3 { font-size: 16px; margin-bottom: 6px; }
+  .feat-card p { font-size: 13.5px; color: var(--ink2); line-height: 1.6; }
+  @media (max-width: 760px) { .feat-grid { grid-template-columns: 1fr; } }
+
+  /* ── Booking demo ── */
+  .booking-shell { background: var(--white); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--elev); padding: 40px; }
+  .booking-grid { display: grid; grid-template-columns: 300px 1fr; gap: 36px; }
+  .booking-left { padding-right: 26px; border-right: 1px solid var(--border); }
+  .booking-host { font-size: 10.5px; font-weight: 700; color: var(--ink3); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; }
+  .booking-title { font-size: 21px; margin-bottom: 8px; }
+  .booking-desc { font-size: 13.5px; color: var(--ink2); line-height: 1.55; margin-bottom: 20px; }
+  .booking-meta { display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: var(--ink2); }
+  .booking-meta .row { display: flex; align-items: center; gap: 8px; }
+  .booking-meta svg { flex-shrink: 0; color: var(--ink3); }
+
+  .slot-row { display: flex; gap: 8px; margin-bottom: 9px; }
+  .slot-btn {
+    flex: 1; padding: 11px 12px; border: 1px solid var(--border); border-radius: var(--r); background: var(--white);
+    font-weight: 600; font-size: 13px; color: var(--ink); cursor: pointer; transition: all .15s; font-family: var(--font);
+  }
+  .slot-btn:hover { border-color: var(--ink); }
+  .slot-btn.chosen { background: var(--ink); color: var(--white); border-color: var(--ink); }
+  .slot-confirm { display: none; padding: 11px 16px; background: var(--ink); color: var(--white); border-radius: var(--r); font-weight: 700; font-size: 12.5px; border: none; cursor: pointer; font-family: var(--font); animation: fadeScale .2s; }
+  .slot-row.open .slot-confirm { display: block; }
+
+  .book-form { display: none; flex-direction: column; gap: 11px; margin-top: 4px; }
+  .book-form input {
+    padding: 11px 14px; border: 1px solid var(--border); border-radius: var(--r); font-size: 13.5px; width: 100%;
+    font-family: var(--font); color: var(--ink);
+  }
+  .book-form input:focus { outline: none; border-color: var(--ink); }
+  .book-confirm-note { font-size: 13px; font-weight: 700; }
+
+  .book-success { display: none; padding: 26px; border-radius: var(--r); background: var(--bg); border: 1px solid var(--border); text-align: center; }
+  .check-svg { width: 46px; height: 46px; margin: 0 auto 12px; display: block; }
+  .check-circle { stroke-dasharray: 158; stroke-dashoffset: 158; stroke-width: 3; stroke: var(--ink); animation: drawCheck .55s cubic-bezier(.65,0,.45,1) forwards; }
+  .check-mark { stroke-dasharray: 44; stroke-dashoffset: 44; stroke-width: 3.5; stroke: var(--ink); animation: drawCheck .3s cubic-bezier(.65,0,.45,1) .4s forwards; }
+  .book-success h4 { font-size: 17px; margin-bottom: 6px; }
+  .book-success p { font-size: 13px; color: var(--ink2); line-height: 1.5; }
+  @media (max-width: 760px) {
+    .booking-grid { grid-template-columns: 1fr; }
+    .booking-left { border-right: none; padding-right: 0; padding-bottom: 22px; border-bottom: 1px solid var(--border); }
+  }
+
+  /* ── Included-in-plan strip ── */
+  .plan-strip {
+    background: var(--white); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 44px 40px;
+    display: flex; align-items: center; justify-content: space-between; gap: 30px; flex-wrap: wrap;
+  }
+  .plan-strip h3 { font-size: 22px; margin-bottom: 6px; }
+  .plan-strip p { font-size: 14px; color: var(--ink2); max-width: 460px; }
+  .plan-check-list { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 14px; }
+  .plan-check-list span { font-size: 12.5px; font-weight: 600; color: var(--ink2); display: flex; align-items: center; gap: 6px; }
+
+  /* ── Footer ── */
+  .footer { background: var(--ink); color: #9198a1; padding: 56px 0 26px; margin-top: 40px; }
+  .footer-grid { display: grid; grid-template-columns: 2fr repeat(3,1fr); gap: 36px; padding-bottom: 36px; border-bottom: 1px solid #262b33; }
+  .footer-brand { color: var(--white); font-size: 18px; font-weight: 700; margin-bottom: 10px; }
+  .footer p.desc { font-size: 13px; max-width: 280px; line-height: 1.55; }
+  .footer h4 { color: var(--white); font-size: 12.5px; margin-bottom: 14px; }
+  .footer ul { list-style: none; display: flex; flex-direction: column; gap: 9px; }
+  .footer a { color: #9198a1; text-decoration: none; font-size: 13px; transition: color .15s; }
+  .footer a:hover { color: var(--white); }
+  .footer-bottom { display: flex; align-items: center; justify-content: space-between; font-size: 12px; padding-top: 22px; flex-wrap: wrap; gap: 10px; }
+  @media (max-width: 760px) { .footer-grid { grid-template-columns: 1fr; gap: 26px; } }
+
+  @media (max-width: 760px) {
+    .hero h1 { font-size: 36px; }
+    .hero p.sub { font-size: 16px; }
+    .sec-title { font-size: 27px; }
+    .nav-links { display: none; }
+    .mock-grid { grid-template-columns: 1fr; }
+    .mock-side { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div id="scroll-progress"></div>
+
+<nav class="nav">
+  <div class="container nav-row">
+    <a href="/calendar" class="brand">
+      <span class="brand-mark">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+          <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+          <line x1="16" y1="2" x2="16" y2="6"></line>
+          <line x1="8" y1="2" x2="8" y2="6"></line>
+          <line x1="3" y1="10" x2="21" y2="10"></line>
+        </svg>
+      </span>
+      <span class="brand-name">Hudumika Calendar</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="#showcase">How it works</a></li>
+      <li><a href="#features">Features</a></li>
+      <li><a href="#booking">Booking links</a></li>
+      <li><a href="#plan">Pricing</a></li>
+    </ul>
+    <div class="nav-actions">
+      <a href="/login" class="btn btn-ghost">Sign in</a>
+      <a href="/calendar" class="btn btn-solid">Open Calendar</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero container">
+  <div class="eyebrow in"><span class="live-dot"></span> Now syncing bi-directionally with Google &amp; Outlook</div>
+  <h1 class="in in-1">Scheduling that gets <em>out of the way</em>.</h1>
+  <p class="sub in in-2">Share one link. It reads your real availability, books straight onto your calendar, and hands every meeting a Bliss video room — nobody has to ask "does this time work?" again.</p>
+  <div class="hero-ctas in in-3">
+    <a href="/calendar" class="btn btn-solid btn-lg">Open Hudumika Calendar</a>
+    <a href="#booking" class="btn btn-ghost btn-lg">See a live booking demo</a>
+  </div>
+  <div class="in in-4">
+    <div class="trust-label">Built into the workspace you already use</div>
+    <div class="trust-row">
+      <span>SuperAdmin</span><span>ComplyOS</span><span>NexusHR</span><span>Ondi</span><span>Bliss</span>
+    </div>
+  </div>
+</header>
+
+<section class="mock-wrap in in-4" style="margin-top: 40px;">
+  <div class="float-badge fb-1"><span style="width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block;"></span> Synced with Google Calendar</div>
+  <div class="float-badge fb-2">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+    Bliss video room attached
+  </div>
+  <div class="mock">
+    <div class="mock-bar">
+      <div class="mock-dots"><span></span><span></span><span></span></div>
+      <div class="mock-url">calendar.hudumika.tz</div>
+      <div class="mock-live"><span class="d"></span> Live</div>
+    </div>
+    <div class="mock-grid">
+      <div class="mock-side">
+        <div style="display:flex; justify-content:space-between; align-items:baseline; font-size:12.5px; font-weight:700;">
+          <span>September 2026</span><span style="font-size:10.5px; color:var(--ink3); font-weight:700;">Today</span>
+        </div>
+        <div class="cal-grid">
+          <div class="dow">S</div><div class="dow">M</div><div class="dow">T</div><div class="dow">W</div><div class="dow">T</div><div class="dow">F</div><div class="dow">S</div>
+          <div class="cal-day">31</div><div class="cal-day">1</div><div class="cal-day">2</div><div class="cal-day">3</div><div class="cal-day">4</div><div class="cal-day active">5</div><div class="cal-day">6</div>
+        </div>
+        <div class="side-title">My calendars</div>
+        <div class="cal-check"><i style="background:var(--ink);"></i> Work</div>
+        <div class="cal-check"><i style="background:var(--ink3);"></i> Client calls</div>
+        <div class="cal-check"><i style="background:var(--border);"></i> Product reviews</div>
+      </div>
+      <div class="mock-main">
+        <div class="day-hdr">
+          <span class="date">Thursday, Sep 5</span>
+          <div class="view-pills"><span class="on">Day</span><span>Week</span><span>Month</span></div>
+        </div>
+        <div class="evt b1">
+          <div><div class="evt-title">09:00 — Quarterly Review</div><div class="evt-sub">Sarah Chen · Bliss video</div></div>
+          <span class="evt-tag solid">Join</span>
+        </div>
+        <div class="evt b2">
+          <div><div class="evt-title">11:30 — Client Onboarding</div><div class="evt-sub">Booked via /book/onboarding</div></div>
+          <span class="evt-tag soft">30 min</span>
+        </div>
+        <div class="evt b3">
+          <div><div class="evt-title">14:00 — Customs Workflow Sync</div><div class="evt-sub">ClearOS · synced from Outlook</div></div>
+          <span class="evt-tag soft">Synced</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section dark reveal" id="showcase">
+  <div class="container">
+    <div class="sec-head">
+      <span class="sec-eyebrow">How it works</span>
+      <h2 class="sec-title">From first link to <em>booked meeting</em></h2>
+    </div>
+    <div class="tabs-row">
+      <button class="tab-btn active" data-tab="0" onclick="switchTab(0)">Team scheduling</button>
+      <button class="tab-btn" data-tab="1" onclick="switchTab(1)">Reminders</button>
+      <button class="tab-btn" data-tab="2" onclick="switchTab(2)">Smart routing</button>
+      <button class="tab-btn" data-tab="3" onclick="switchTab(3)">Bliss video</button>
+    </div>
+
+    <div class="showcase-panel">
+      <div class="tab-item active" id="tab-0">
+        <div>
+          <span class="kicker">01 · Availability</span>
+          <h3>Round-robin and collective booking</h3>
+          <p>Pool a team's real calendars into one link. Route a lead to whoever's free next, or find the one slot where a whole panel can meet — no reply-all thread required.</p>
+          <a href="/calendar" class="btn btn-solid-inverse">Explore team links →</a>
+        </div>
+        <div class="tab-visual">
+          <div class="h">Available now</div>
+          <div class="mini-row">
+            <div style="display:flex; align-items:center;"><span class="mini-avatar">SC</span><div><div class="mini-name">Sarah Chen</div><div class="mini-sub">Free until 2:00 PM</div></div></div>
+            <span style="width:7px;height:7px;border-radius:50%;background:#3fb950;"></span>
+          </div>
+          <div class="mini-row">
+            <div style="display:flex; align-items:center;"><span class="mini-avatar">AM</span><div><div class="mini-name">Alex Morgan</div><div class="mini-sub">In a meeting</div></div></div>
+            <span style="width:7px;height:7px;border-radius:50%;background:#565d68;"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-item" id="tab-1">
+        <div>
+          <span class="kicker">02 · Automation</span>
+          <h3>Reminders that actually cut no-shows</h3>
+          <p>SMS, WhatsApp, and email confirmations go out on their own — a nudge the day before, the join link ten minutes ahead, and a follow-up once it's done.</p>
+          <a href="/studio" class="btn btn-solid-inverse">Open Workflow Studio →</a>
+        </div>
+        <div class="tab-visual">
+          <div class="h">Active trigger</div>
+          <div class="mini-row" style="display:block;">
+            <div class="mini-name">24 hours before</div>
+            <div class="mini-sub">SMS reminder + Bliss join link sent to the invitee</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-item" id="tab-2">
+        <div>
+          <span class="kicker">03 · Qualification</span>
+          <h3>Route by who's actually asking</h3>
+          <p>A short intake form screens the request before a slot ever shows. Enterprise accounts land with a senior lead; everyone else books straight through.</p>
+          <a href="/calendar" class="btn btn-solid-inverse">Set up routing →</a>
+        </div>
+        <div class="tab-visual">
+          <div class="h">Intake preview</div>
+          <div class="mini-row" style="display:block;">
+            <div class="mini-name">Company size: 50–200</div>
+            <div class="mini-sub">Matched → Senior Enterprise Lead</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-item" id="tab-3">
+        <div>
+          <span class="kicker">04 · Meetings</span>
+          <h3>A Bliss room, attached automatically</h3>
+          <p>No plugin, no separate link to hunt for. Every booked event carries its own HD Bliss video room, with host controls and a waiting room already on.</p>
+          <a href="/bliss/overview" class="btn btn-solid-inverse">Try Bliss video →</a>
+        </div>
+        <div class="tab-visual" style="text-align:center;">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--white)" stroke-width="2" style="margin:4px auto 10px; display:block;"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+          <div class="mini-name">Bliss room active</div>
+          <div class="mini-sub" style="margin-top:2px;">bliss.hudumika.tz/call/sync-908</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section reveal" id="features">
+  <div class="container">
+    <div class="sec-head">
+      <span class="sec-eyebrow">What's underneath</span>
+      <h2 class="sec-title">Built for the way your <em>day</em> actually runs</h2>
+    </div>
+    <div class="feat-grid">
+      <div class="feat-card">
+        <div class="feat-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></div>
+        <h3>Shareable booking links</h3>
+        <p>A public page at <code style="font-family:var(--mono); font-size:12.5px;">/book/your-slug</code> with your own durations, buffers, and working hours.</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div>
+        <h3>Bliss WebRTC video</h3>
+        <p>Every meeting gets a real video room, not a placeholder link — host controls, waiting room, and recording included.</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6"/><path d="M21.34 15.57a10 10 0 1 1-.57-8.38"/></svg></div>
+        <h3>Two-way sync</h3>
+        <p>Google Calendar, Microsoft Outlook, and iCal stay current in both directions — nothing double-booked, nothing stale.</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+        <h3>Team free/busy overlay</h3>
+        <p>A "meet with…" panel that overlays several calendars at once, so the open slot is obvious instead of guessed at.</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
+        <h3>Recurring events &amp; reminders</h3>
+        <p>Set a pattern once. Drag to reschedule, resize to adjust, and let reminders fire on their own from then on.</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+        <h3>Tenant-isolated by design</h3>
+        <p>Every calendar sits behind the same row-level tenant isolation the rest of Hudumika runs on — nothing crosses between workspaces.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section reveal" id="booking">
+  <div class="container">
+    <div class="sec-head">
+      <span class="sec-eyebrow">Try it yourself</span>
+      <h2 class="sec-title">This is the link your guests would see</h2>
+    </div>
+    <div class="booking-shell">
+      <div class="booking-grid">
+        <div class="booking-left">
+          <div class="booking-host">Host: Hudumika Team</div>
+          <div class="booking-title">30 Min Product Tour</div>
+          <p class="booking-desc">Pick a time below to walk through the two-step booking flow a real guest would use.</p>
+          <div class="booking-meta">
+            <div class="row"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> 30 minutes</div>
+            <div class="row"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg> Bliss video link, generated automatically</div>
+            <div class="row"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 0 20 15.3 15.3 0 0 1 0-20z"/></svg> East Africa Time (GMT+3)</div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:13.5px; font-weight:700; margin-bottom:12px;">Thursday, September 5</div>
+          <div id="slots">
+            <div class="slot-row" data-time="09:00 AM">
+              <button class="slot-btn" onclick="pickSlot(this)">09:00 AM</button>
+              <button class="slot-confirm" onclick="confirmSlot(this)">Next →</button>
+            </div>
+            <div class="slot-row" data-time="10:30 AM">
+              <button class="slot-btn" onclick="pickSlot(this)">10:30 AM</button>
+              <button class="slot-confirm" onclick="confirmSlot(this)">Next →</button>
+            </div>
+            <div class="slot-row" data-time="02:00 PM">
+              <button class="slot-btn" onclick="pickSlot(this)">02:00 PM</button>
+              <button class="slot-confirm" onclick="confirmSlot(this)">Next →</button>
+            </div>
+            <div class="slot-row" data-time="03:30 PM">
+              <button class="slot-btn" onclick="pickSlot(this)">03:30 PM</button>
+              <button class="slot-confirm" onclick="confirmSlot(this)">Next →</button>
+            </div>
+          </div>
+          <div class="book-form" id="bookForm">
+            <div class="book-confirm-note" id="pickedNote">Selected: Thursday, Sep 5 at 10:30 AM</div>
+            <input type="text" placeholder="Your full name" value="Alex Morgan">
+            <input type="email" placeholder="Your email" value="alex@example.com">
+            <button class="btn btn-solid" style="width:100%; padding:12px;" onclick="submitBooking()">Confirm booking</button>
+          </div>
+          <div class="book-success" id="bookSuccess">
+            <svg viewBox="0 0 52 52" class="check-svg"><circle cx="26" cy="26" r="24" fill="none" class="check-circle"/><path fill="none" d="M14 27l7 7 16-16" class="check-mark"/></svg>
+            <h4>You're scheduled</h4>
+            <p>A calendar invite and Bliss video link were sent to <strong>alex@example.com</strong>.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section reveal" id="plan" style="padding-top: 0;">
+  <div class="container">
+    <div class="plan-strip">
+      <div>
+        <h3>Calendar comes with every Hudumika workspace</h3>
+        <p>No separate seat, no add-on to enable — booking links, Bliss video, and calendar sync are already part of your plan.</p>
+        <div class="plan-check-list">
+          <span>✓ Unlimited booking links</span>
+          <span>✓ Bliss video included</span>
+          <span>✓ Google &amp; Outlook sync</span>
+        </div>
+      </div>
+      <a href="/pricing" class="btn btn-solid btn-lg" style="flex-shrink:0;">See workspace plans →</a>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <div class="footer-brand">Hudumika Calendar</div>
+        <p class="desc">Scheduling and video meetings, built into the same workspace as your customs, HR, and finance tools.</p>
+      </div>
+      <div>
+        <h4>Product</h4>
+        <ul>
+          <li><a href="/calendar">Calendar</a></li>
+          <li><a href="#booking">Booking links</a></li>
+          <li><a href="/bliss/overview">Bliss video</a></li>
+          <li><a href="/calendar">Google &amp; Outlook sync</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Platform</h4>
+        <ul>
+          <li><a href="/admin">SuperAdmin</a></li>
+          <li><a href="/complyos">ComplyOS</a></li>
+          <li><a href="/nexushr">NexusHR</a></li>
+          <li><a href="/studio">Workflow Studio</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Legal</h4>
+        <ul>
+          <li><a href="/legal/privacy">Privacy policy</a></li>
+          <li><a href="/legal/terms">Terms of service</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div>© 2026 Hudumika Platform. All rights reserved.</div>
+      <div>calendar.hudumika.tz</div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  window.addEventListener('scroll', function () {
+    var h = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+    var pct = h > 0 ? (window.scrollY / h) * 100 : 0;
+    document.getElementById('scroll-progress').style.width = pct + '%';
+  });
+
+  document.addEventListener('DOMContentLoaded', function () {
+    var obs = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) { if (e.isIntersecting) e.target.classList.add('active'); });
+    }, { threshold: 0.12 });
+    document.querySelectorAll('.reveal').forEach(function (el) { obs.observe(el); });
+  });
+
+  function switchTab(i) {
+    document.querySelectorAll('.tab-btn').forEach(function (b, idx) { b.classList.toggle('active', idx === i); });
+    document.querySelectorAll('.tab-item').forEach(function (p, idx) { p.classList.toggle('active', idx === i); });
+  }
+
+  function pickSlot(btn) {
+    document.querySelectorAll('.slot-row').forEach(function (r) { r.classList.remove('open'); });
+    document.querySelectorAll('.slot-btn').forEach(function (b) { b.classList.remove('chosen'); });
+    btn.classList.add('chosen');
+    btn.closest('.slot-row').classList.add('open');
+  }
+
+  function confirmSlot(btn) {
+    var row = btn.closest('.slot-row');
+    var time = row.getAttribute('data-time');
+    document.getElementById('slots').style.display = 'none';
+    document.getElementById('bookForm').style.display = 'flex';
+    document.getElementById('pickedNote').textContent = 'Selected: Thursday, Sep 5 at ' + time;
+  }
+
+  function submitBooking() {
+    document.getElementById('bookForm').style.display = 'none';
+    document.getElementById('bookSuccess').style.display = 'block';
+  }
+</script>
+</body>
+</html>

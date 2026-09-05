@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { CompanyAvatar } from '../components/PersonAvatar.js';
 import { usePageSEO } from '../hooks/usePageSEO.js';
+import { PageLoading } from '../components/ui/spinner.js';
 import type { CmsPublicSite, CmsPage } from '@hudumika/types';
 import '../pages/LegalPages.css';
 import './OneSitePublic.css';
@@ -86,7 +87,7 @@ export function OneSitePublic() {
     };
   }, [site?.settings.faviconUrl]);
 
-  if (loading) return <div className="onesite-pub-loading">Loading…</div>;
+  if (loading) return <div className="onesite-pub-loading"><PageLoading /></div>;
   if (error || !site) return <div className="onesite-pub-loading">This site isn't available.</div>;
 
   const accent = site.settings.accentColor || '#0d7a6b';

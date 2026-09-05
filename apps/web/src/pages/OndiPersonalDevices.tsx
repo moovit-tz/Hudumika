@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { Icon } from '../components/Icon.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog.js';
 import { showAlert } from '../lib/alert.js';
 import { useAuth } from '../hooks/useAuth.js';
@@ -460,44 +461,24 @@ export const OndiPersonalDevices: React.FC = () => {
             />
           </div>
 
-          <div className="opd-filter-pills">
-            <button
-              type="button"
-              className={`opd-filter-btn ${filterType === 'all' ? 'active' : ''}`}
-              onClick={() => setFilterType('all')}
-            >
-              <span>All Sessions</span>
-              <span className="opd-filter-count">{activeDevices.length}</span>
-            </button>
-            <button
-              type="button"
-              className={`opd-filter-btn ${filterType === 'current' ? 'active' : ''}`}
-              onClick={() => setFilterType('current')}
-            >
-              <span>This Device</span>
-              <span className="opd-filter-count">{currentDevice ? 1 : 0}</span>
-            </button>
-            <button
-              type="button"
-              className={`opd-filter-btn ${filterType === 'desktop' ? 'active' : ''}`}
-              onClick={() => setFilterType('desktop')}
-            >
-              <span>Desktop</span>
-              <span className="opd-filter-count">
-                {activeDevices.filter((d) => realDeviceType(d) === 'desktop').length}
-              </span>
-            </button>
-            <button
-              type="button"
-              className={`opd-filter-btn ${filterType === 'mobile' ? 'active' : ''}`}
-              onClick={() => setFilterType('mobile')}
-            >
-              <span>Mobile / Tablet</span>
-              <span className="opd-filter-count">
-                {activeDevices.filter((d) => realDeviceType(d) !== 'desktop').length}
-              </span>
-            </button>
-          </div>
+          <Tabs value={filterType} onValueChange={(v) => setFilterType(v as any)} variant="segmented">
+          <TabsList>
+            {([
+              ['all', 'All Sessions', activeDevices.length],
+              ['current', 'This Device', currentDevice ? 1 : 0],
+              ['desktop', 'Desktop', activeDevices.filter((d) => realDeviceType(d) === 'desktop').length],
+              ['mobile', 'Mobile / Tablet', activeDevices.filter((d) => realDeviceType(d) !== 'desktop').length],
+            ] as const).map(([key, label, count]) => {
+              const isActive = filterType === key;
+              return (
+                <TabsTrigger key={key} value={key}>
+                  {label}
+                  <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 20, lineHeight: 1.5, background: isActive ? 'var(--teal-l)' : 'var(--bg)', color: isActive ? 'var(--teal)' : 'var(--ink3)' }}>{count}</span>
+                </TabsTrigger>
+              );
+            })}
+          </TabsList>
+          </Tabs>
         </div>
 
         <div className="opd-controls-right">

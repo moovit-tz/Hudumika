@@ -2,8 +2,10 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiFetch, apiDownload } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
+import { Banner } from '../components/ui/alert.js';
 import { Badge } from '../components/ui/badge.js';
 import { Input } from '../components/ui/input.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { Button } from '../components/ui/button.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { SingleSelectFilter } from '../components/ui/filter-dropdown.js';
@@ -369,30 +371,23 @@ export function HrDocuments() {
         }
       />
 
-      {error && (
-        <div style={{ padding: '10px 14px', borderRadius: 8, background: 'var(--red-l)', color: 'var(--red)', fontSize: 13, marginBottom: 16 }}>
-          {error}
-        </div>
-      )}
+      {error && <Banner variant="error" className="mb-4">{error}</Banner>}
 
       {/* Metrics Row */}
       <MetricsRow cards={metrics} />
 
       {/* Main Tabs Navigation */}
-      <div className="ds-tabs-list" data-variant="segmented">
+      <Tabs value={activeTab} onValueChange={v => setActiveTab(v as any)} variant="segmented">
+        <TabsList>
         {[
           { key: 'documents', label: 'Filed Documents', icon: 'fileText', badge: docs.length },
           { key: 'radar', label: 'Compliance & Expiry Radar', icon: 'shield', badge: expiringCount > 0 ? expiringCount : undefined, badgeColor: 'var(--red)' },
           { key: 'generator', label: 'Automated Letter Generator', icon: 'edit', badge: templates.length },
           { key: 'requirements', label: 'Document Requirements Rules', icon: 'checkCircle' },
         ].map(tab => (
-          <button
+          <TabsTrigger
             key={tab.key}
-            type="button"
-            className="ds-tabs-trigger"
-            data-variant="segmented"
-            data-state={activeTab === tab.key ? 'active' : 'inactive'}
-            onClick={() => setActiveTab(tab.key as any)}
+            value={tab.key}
           >
             <Icon name={tab.icon as any} size={15} color={activeTab === tab.key ? 'hsl(var(--primary))' : 'var(--ink3)'} />
             <span>{tab.label}</span>
@@ -410,9 +405,10 @@ export function HrDocuments() {
                 {tab.badge}
               </span>
             )}
-          </button>
+          </TabsTrigger>
         ))}
-      </div>
+        </TabsList>
+      </Tabs>
 
       {/* TAB 1: FILED DOCUMENTS */}
       {activeTab === 'documents' && (
@@ -610,7 +606,7 @@ export function HrDocuments() {
                       <td style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--red)' }}>{String(item.expiry_date).slice(0, 10)}</td>
                       <td style={{ padding: '10px 14px' }}><Badge variant="error">EXPIRED ({item.days_overdue}d ago)</Badge></td>
                       <td style={{ padding: '10px 14px' }}>
-                        <Button size="sm" style={{ height: 28, fontSize: 11, background: 'var(--red)', color: '#fff', border: 'none' }} onClick={() => setShowUploadModal(true)}>
+                        <Button size="sm" style={{ height: 28, fontSize: 11, background: 'var(--red)', color: 'hsl(var(--red-foreground))', border: 'none' }} onClick={() => setShowUploadModal(true)}>
                           Request Renewal
                         </Button>
                       </td>

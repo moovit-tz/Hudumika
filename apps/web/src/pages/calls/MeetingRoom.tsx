@@ -766,7 +766,7 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
               <button onClick={() => setPanel(p => p === 'host' ? 'none' : 'host')} style={{ position: 'relative', background: panel === 'host' ? '#3c4043' : 'none', border: 'none', color: '#cbd5e1', cursor: 'pointer', padding: 4, borderRadius: '50%', display: 'flex' }}>
                 <Icon name="lock" size={15} />
                 {waitingRoomList.length > 0 && (
-                  <span style={{ position: 'absolute', top: -3, right: -3, width: 15, height: 15, borderRadius: '50%', background: 'var(--red)', color: '#fff', fontSize: 9, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{waitingRoomList.length}</span>
+                  <span style={{ position: 'absolute', top: -3, right: -3, width: 15, height: 15, borderRadius: '50%', background: 'var(--red)', color: 'hsl(var(--red-foreground))', fontSize: 9, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{waitingRoomList.length}</span>
                 )}
               </button>
             </Tip>
@@ -1179,7 +1179,7 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
                 </div>
                 <div style={{ display: 'flex', gap: 8, padding: 12, borderTop: '1px solid #3c4043' }}>
                   <input value={newQuestionText} onChange={e => setNewQuestionText(e.target.value)} onKeyDown={e => e.key === 'Enter' && askQuestion()} placeholder="Ask a question…" style={{ flex: 1, height: 34, background: '#2d2f31', border: '1px solid #3c4043', borderRadius: 17, padding: '0 12px', color: '#fff', fontSize: 12.5, outline: 'none' }} />
-                  <button onClick={askQuestion} style={{ width: 34, height: 34, borderRadius: '50%', background: '#8ab4f8', color: '#202124', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="send" size={13} /></button>
+                  <button onClick={askQuestion} aria-label="Send" style={{ width: 34, height: 34, borderRadius: '50%', background: '#8ab4f8', color: '#202124', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="send" size={13} /></button>
                 </div>
               </div>
             )}
@@ -1336,7 +1336,7 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
                       <div style={{ height: 1, background: '#3c4043', margin: '4px 0' }} />
                       <div style={{ display: 'flex', gap: 6 }}>
                         <input value={breakoutBroadcastText} onChange={e => setBreakoutBroadcastText(e.target.value)} onKeyDown={e => e.key === 'Enter' && broadcastToBreakouts()} placeholder="Message all rooms…" style={{ flex: 1, height: 34, background: '#2d2f31', border: '1px solid #3c4043', borderRadius: 17, padding: '0 12px', color: '#fff', fontSize: 12, outline: 'none' }} />
-                        <button onClick={broadcastToBreakouts} style={{ width: 34, height: 34, borderRadius: '50%', background: '#8ab4f8', color: '#202124', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="send" size={13} /></button>
+                        <button onClick={broadcastToBreakouts} aria-label="Send" style={{ width: 34, height: 34, borderRadius: '50%', background: '#8ab4f8', color: '#202124', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="send" size={13} /></button>
                       </div>
                     </>
                   )}
@@ -1562,7 +1562,7 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
             <button
               type="button"
               onClick={toggleMute}
-              style={{ width: 40, height: 40, borderRadius: '50%', background: muted ? 'var(--red)' : '#3c4043', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              style={{ width: 40, height: 40, borderRadius: '50%', background: muted ? 'var(--red)' : '#3c4043', border: 'none', color: muted ? 'hsl(var(--red-foreground))' : '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             >
               <Icon name={muted ? 'micOff' : 'mic'} size={18} />
             </button>
@@ -1574,7 +1574,7 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
               <button
                 type="button"
                 onClick={toggleCam}
-                style={{ width: 40, height: 40, borderRadius: '50%', background: camOff ? 'var(--red)' : '#3c4043', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                style={{ width: 40, height: 40, borderRadius: '50%', background: camOff ? 'var(--red)' : '#3c4043', border: 'none', color: camOff ? 'hsl(var(--red-foreground))' : '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               >
                 <Icon name="camera" size={18} />
               </button>

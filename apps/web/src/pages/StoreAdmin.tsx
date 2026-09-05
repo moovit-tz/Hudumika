@@ -3,6 +3,7 @@ import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { showAlert } from '../lib/alert.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { PageLoading } from '../components/ui/spinner.js';
 import './Store.css';
 
 export const StoreAdmin: React.FC = () => {
@@ -37,7 +38,7 @@ export const StoreAdmin: React.FC = () => {
     }
   };
 
-  if (loading) return <div style={{ padding: 40 }}>Loading...</div>;
+  if (loading) return <PageLoading />;
 
   return (
     <div className="store-main">

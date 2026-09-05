@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.js';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import type { ShipmentCase } from '@hudumika/types';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { mapApiInvoice, invoiceTotals } from './Billing.js';
@@ -35,7 +36,7 @@ function QuickAction({ icon, label, to, color = 'var(--teal)' }: {
   return (
     <Link to={to} title={label} style={{
       display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
-      background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9,
+      background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)',
       padding: '18px 8px', cursor: 'pointer', fontFamily: 'var(--font)', flex: 1,
       minWidth: 72, transition: 'transform 0.1s', textDecoration: 'none', boxSizing: 'border-box',
     }}
@@ -45,7 +46,7 @@ function QuickAction({ icon, label, to, color = 'var(--teal)' }: {
       onTouchEnd={e => (e.currentTarget.style.transform = '')}
     >
       <div style={{
-        width: 44, height: 44, borderRadius: 9, background: color + '18',
+        width: 44, height: 44, borderRadius: 'var(--r)', background: color + '18',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
         <Icon name={icon as any} size={20} color={color} />
@@ -66,7 +67,7 @@ function ShipmentCard({ s }: { s: ShipmentCase & { active_risk_types?: string[] 
       style={{
         display: 'block', width: '100%', boxSizing: 'border-box', textAlign: 'left', cursor: 'pointer',
         background: 'var(--white)', border: `1px solid ${atRisk ? '#fca5a5' : 'var(--border)'}`,
-        borderRadius: 9, padding: '14px 16px', fontFamily: 'var(--font)',
+        borderRadius: 'var(--r)', padding: '14px 16px', fontFamily: 'var(--font)',
         boxShadow: atRisk ? '0 0 0 1px #fca5a5' : 'none', textDecoration: 'none', color: 'inherit',
       }}
     >
@@ -189,7 +190,7 @@ export const CustomerDashboard: React.FC = () => {
               { label: 'Done',    value: delivered.length, icon: 'checkCircle',  bg: 'rgba(255,255,255,0.18)' },
             ].map(chip => (
               <div key={chip.label} style={{
-                background: chip.bg, borderRadius: 9, padding: '10px 14px',
+                background: chip.bg, borderRadius: 'var(--r)', padding: '10px 14px',
                 display: 'flex', alignItems: 'center', gap: 8, backdropFilter: 'blur(6px)',
               }}>
                 <Icon name={chip.icon as any} size={15} color="#fff" />
@@ -227,10 +228,10 @@ export const CustomerDashboard: React.FC = () => {
           </div>
 
           {loading ? (
-            <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading…</div>
+            <SectionLoading />
           ) : shipments.length === 0 ? (
             <div style={{
-              background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9,
+              background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)',
               padding: '32px 20px', textAlign: 'center',
             }}>
               <Icon name="package" size={36} color="var(--ink3)" />
@@ -243,7 +244,7 @@ export const CustomerDashboard: React.FC = () => {
                 <Link to="/" title="See more"
                   style={{
                     display: 'block', textAlign: 'center', boxSizing: 'border-box',
-                    background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 9,
+                    background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)',
                     padding: '12px', fontSize: 13, fontWeight: 600, color: 'var(--teal)',
                     cursor: 'pointer', fontFamily: 'var(--font)', textDecoration: 'none',
                   }}>
@@ -259,10 +260,10 @@ export const CustomerDashboard: React.FC = () => {
           <div style={{ marginBottom: 24 }}>
             <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.05em', marginBottom: 12 }}>CARBON FOOTPRINT</p>
             <div style={{
-              background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9,
+              background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)',
               padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap',
             }}>
-              <div style={{ width: 36, height: 36, borderRadius: 9, background: 'var(--green-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 'var(--r)', background: 'var(--green-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Icon name="globe" size={17} color="#059669" />
               </div>
               <div>
@@ -292,11 +293,11 @@ export const CustomerDashboard: React.FC = () => {
               { label: 'Paid',     value: finLoading ? '…' : fmtAmt(totalPaid),    icon: 'checkCircle', color: '#059669', bg: 'var(--green-l)' },
             ].map(c => (
               <div key={c.label} style={{
-                background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9,
+                background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)',
                 padding: '14px', display: 'flex', flexDirection: 'column', gap: 6,
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <div style={{ width: 28, height: 28, borderRadius: 9, background: c.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ width: 28, height: 28, borderRadius: 'var(--r)', background: c.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Icon name={c.icon as any} size={14} color={c.color} />
                   </div>
                   <span style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 500 }}>{c.label}</span>

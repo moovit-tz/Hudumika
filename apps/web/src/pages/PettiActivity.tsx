@@ -5,6 +5,7 @@ import { Badge } from '../components/ui/badge.js';
 import { SingleSelectFilter } from '../components/ui/filter-dropdown.js';
 import { DateRangePicker } from '../components/ui/date-picker.js';
 import { PaginationBar } from '../components/PaginationBar.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { apiFetch } from '../lib/api.js';
 import type { DateRange } from 'react-day-picker';
 
@@ -81,7 +82,7 @@ export function PettiActivity() {
 
       <SectionCard title="Activity" padded={false} collapsible={false}>
         {loading ? (
-          <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>Loading…</div>
+          <SectionLoading />
         ) : rows.length === 0 ? (
           <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>No activity matches these filters.</div>
         ) : (

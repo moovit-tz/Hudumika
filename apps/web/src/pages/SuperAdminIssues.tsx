@@ -2,7 +2,9 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader.js';
 import { Icon } from '../components/Icon.js';
+import { Banner } from '../components/ui/alert.js';
 import { Badge } from '../components/ui/badge.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { apiFetch, BASE_URL } from '../lib/api.js';
 
@@ -172,11 +174,7 @@ export const SuperAdminIssues: React.FC = () => {
         subtitle="Every problem reported from inside the apps, across all tenants — with what the reporter was looking at when it happened."
       />
 
-      {error && (
-        <div style={{ margin: '12px 0', padding: '12px 16px', borderRadius: 'var(--r)', background: 'var(--red-l)', border: '1px solid var(--red)', color: 'var(--red)', fontSize: 12.5, display: 'flex', gap: 8 }}>
-          <Icon name="alertCircle" size={15} color="var(--red)" /> {error}
-        </div>
-      )}
+      {error && <Banner variant="error" icon="alertCircle" className="my-3">{error}</Banner>}
 
       <div className="sai-stats">
         {counts.map(({ s, n }) => (
@@ -261,7 +259,7 @@ export const SuperAdminIssues: React.FC = () => {
                 {!loading && rows.length === 0 && (
                   <tr><td colSpan={5} style={{ padding: '48px 18px', textAlign: 'center', color: 'var(--ink3)' }}>Nothing matches those filters.</td></tr>
                 )}
-                {loading && <tr><td colSpan={5} style={{ padding: '48px 18px', textAlign: 'center', color: 'var(--ink3)' }}>Loading…</td></tr>}
+                {loading && <tr><td colSpan={5}><SectionLoading /></td></tr>}
               </tbody>
             </table>
           </div>

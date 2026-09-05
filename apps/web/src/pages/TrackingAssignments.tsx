@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { DateTimePicker } from '../components/ui/date-picker.js';
@@ -102,9 +103,9 @@ export const TrackingAssignments: React.FC = () => {
         
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <button onClick={prevDay} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}><Icon name="chevronLeft" size={16} /></button>
+            <button onClick={prevDay} aria-label="Previous day" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}><Icon name="chevronLeft" size={16} /></button>
             <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', width: 140, textAlign: 'center' }}>{formatDate(currentDate)}</div>
-            <button onClick={nextDay} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}><Icon name="chevronRight" size={16} /></button>
+            <button onClick={nextDay} aria-label="Next day" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}><Icon name="chevronRight" size={16} /></button>
           </div>
           <div style={{ display: 'flex', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
             <button style={{ padding: 'var(--ds-btn-py-sm) 12px', background: 'var(--bg)', border: 'none', borderRight: '1px solid var(--border)', fontSize: 12, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>Today</button>
@@ -125,7 +126,7 @@ export const TrackingAssignments: React.FC = () => {
 
         <div style={{ flex: 1, overflowY: 'auto' }}>
           {loading ? (
-            <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>Loading...</div>
+            <SectionLoading />
           ) : (
             vehicles.map((v, i) => {
               const vAssignments = assignments.filter(a => a.vehicle_id === v.id);
@@ -210,7 +211,7 @@ const AddAssignmentModal = ({ onClose, onSave }: { onClose: () => void, onSave: 
       <div style={{ background: 'var(--white)', borderRadius: 12, padding: 24, width: 400, boxShadow: 'var(--elev-lg)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
           <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)' }}>Add Assignment</div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}><Icon name="x" size={20} /></button>
+          <button onClick={onClose} aria-label="Close" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}><Icon name="x" size={20} /></button>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>

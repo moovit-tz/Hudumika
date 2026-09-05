@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { apiFetch, apiFetchBlob, apiDownload, BASE_URL } from '../../lib/api.js';
 import type { SignEnvelope, SignRecipient } from '@hudumika/types';
 import { Icon } from '../../components/Icon.js';
+import { Tabs, TabsList, TabsTrigger } from '../../components/ui/tabs.js';
 import { Button } from '../../components/ui/button.js';
 import { Badge } from '../../components/ui/badge.js';
 import { Tip } from '../../components/ui/tooltip.js';
@@ -230,23 +231,17 @@ export function SignInbox({ view }: { view: ViewKey }) {
 
       {/* Filter Navigation Pills & Action Toolbar matching standard format */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
-        <div className="ds-tabs-list" data-variant="segmented">
+        <Tabs value={view} onValueChange={(v) => navigate(v === 'inbox' ? '/sign' : `/sign/${v}`)} variant="segmented">
+        <TabsList>
           {VIEW_TABS.map(tab => {
-            const active = view === tab.key;
             return (
-              <button
-                key={tab.key}
-                type="button"
-                className="ds-tabs-trigger"
-                data-variant="segmented"
-                data-state={active ? 'active' : 'inactive'}
-                onClick={() => navigate(tab.key === 'inbox' ? '/sign' : `/sign/${tab.key}`)}
-              >
+              <TabsTrigger key={tab.key} value={tab.key}>
                 {tab.label}
-              </button>
+              </TabsTrigger>
             );
           })}
-        </div>
+        </TabsList>
+        </Tabs>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div className="sign-view-toggle">
@@ -313,7 +308,7 @@ export function SignInbox({ view }: { view: ViewKey }) {
           </div>
         ) : (
           <div className="rtbl-wrap">
-            <table className="rtbl" style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9 }}>
+            <table className="rtbl" style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)' }}>
               <thead>
                 <tr>
                   <th>Document</th>
@@ -439,7 +434,7 @@ export function ShareEnvelopeModal({ env, onClose }: { env: EnvelopeWithRecipien
                         <div style={{ fontWeight: 600, color: 'var(--ink)' }}>{r.name}</div>
                         <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{r.email}</div>
                       </div>
-                      <Button variant="outline" size="xs" onClick={() => copy(rLink, `recipient-${r.id}`)} style={{ borderRadius: 5 }}>
+                      <Button variant="outline" size="xs" onClick={() => copy(rLink, `recipient-${r.id}`)} style={{ borderRadius: 'var(--r-sm)' }}>
                         <Icon name={copiedKey === `recipient-${r.id}` ? 'check' : 'copy'} size={11} />
                         {copiedKey === `recipient-${r.id}` ? 'Copied' : 'Copy Link'}
                       </Button>
@@ -642,7 +637,7 @@ export function SignEnvelopeDetail() {
   if (loading) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 380, gap: 12, color: 'var(--ink3)' }}>
-        <Icon name="clock" size={32} style={{ opacity: 0.4, animation: 'spin 2s linear infinite' }} />
+        <Icon name="clock" size={32} style={{ opacity: 0.4, animation: 'ds-spin 2s linear infinite' }} />
         <div style={{ fontSize: 14, fontWeight: 600 }}>Loading envelope details…</div>
       </div>
     );
@@ -790,7 +785,7 @@ export function SignEnvelopeDetail() {
               }}>
                 {previewLoading || (previewIsPdf && !!previewUrl && previewPdfLoading) ? (
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, color: 'var(--ink3)' }}>
-                    <Icon name="clock" size={24} style={{ animation: 'spin 2s linear infinite', color: 'var(--teal)' }} />
+                    <Icon name="clock" size={24} style={{ animation: 'ds-spin 2s linear infinite', color: 'var(--teal)' }} />
                     <div style={{ fontSize: 13, fontWeight: 600 }}>Loading document canvas…</div>
                   </div>
                 ) : !previewUrl ? (
@@ -1121,7 +1116,7 @@ export function SignAllDocuments() {
           </div>
         ) : (
           <div className="rtbl-wrap">
-            <table className="rtbl" style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9 }}>
+            <table className="rtbl" style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)' }}>
               <thead>
                 <tr>
                   <th>Document</th>

@@ -158,7 +158,7 @@ export const SystemUpdate: React.FC = () => {
             <button
               onClick={() => setShowConfirm(true)}
               disabled={updating}
-              style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border:'none', background: updating ? 'var(--ink3)' : 'var(--teal)', color:'#fff', fontSize:12, fontWeight:700, cursor: updating ? 'not-allowed' : 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
+              style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border:'none', background: updating ? 'var(--ink3)' : 'hsl(var(--primary))', color: updating ? '#fff' : 'hsl(var(--primary-foreground))', fontSize:12, fontWeight:700, cursor: updating ? 'not-allowed' : 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
             >
               <Icon name="upload" size={13} />
               {updating ? 'Updating…' : `Update to v${LATEST_VERSION}`}
@@ -173,9 +173,9 @@ export const SystemUpdate: React.FC = () => {
 
           {/* Update progress bar */}
           {updating && (
-            <div style={{ background:'var(--white)', borderRadius: 9, border:'1px solid var(--border)', padding:'20px 24px' }}>
+            <div style={{ background:'var(--white)', borderRadius: 'var(--r)', border:'1px solid var(--border)', padding:'20px 24px' }}>
               <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:14 }}>
-                <div style={{ width:32, height:32, borderRadius: 9, background:'var(--teal-l)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                <div style={{ width:32, height:32, borderRadius: 'var(--r)', background:'var(--teal-l)', display:'flex', alignItems:'center', justifyContent:'center' }}>
                   <Icon name="upload" size={16} color="var(--teal)" />
                 </div>
                 <div>
@@ -195,7 +195,7 @@ export const SystemUpdate: React.FC = () => {
 
           {/* Success banner */}
           {updateDone && (
-            <div style={{ background:'var(--green-l)', border:'1px solid #a7f3d0', borderRadius: 9, padding:'16px 20px', display:'flex', alignItems:'center', gap:12 }}>
+            <div style={{ background:'var(--green-l)', border:'1px solid #a7f3d0', borderRadius: 'var(--r)', padding:'16px 20px', display:'flex', alignItems:'center', gap:12 }}>
               <Icon name="checkCircle" size={20} color="#059669" />
               <div>
                 <div style={{ fontSize:14, fontWeight:700, color:'var(--green)' }}>Successfully updated to v{LATEST_VERSION}</div>
@@ -207,7 +207,7 @@ export const SystemUpdate: React.FC = () => {
           {/* Version cards row */}
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
             {/* Current version */}
-            <div style={{ background:'var(--white)', borderRadius: 9, border:'1px solid var(--border)', padding:'20px 22px' }}>
+            <div style={{ background:'var(--white)', borderRadius: 'var(--r)', border:'1px solid var(--border)', padding:'20px 22px' }}>
               <div style={{ fontSize:11, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:10 }}>Current Version</div>
               <div style={{ display:'flex', alignItems:'baseline', gap:8, marginBottom:8 }}>
                 <span style={{ fontSize:30, fontWeight:800, color:'var(--ink)', letterSpacing:'-0.04em' }}>v{updateDone ? LATEST_VERSION : CURRENT_VERSION}</span>
@@ -217,7 +217,7 @@ export const SystemUpdate: React.FC = () => {
             </div>
 
             {/* Latest version */}
-            <div style={{ borderRadius: 9, border: HAS_UPDATE && !updateDone ? '1px solid #bfdbfe' : '1px solid var(--border)', padding:'20px 22px', background: HAS_UPDATE && !updateDone ? '#eff6ff' : 'var(--white)' }}>
+            <div style={{ borderRadius: 'var(--r)', border: HAS_UPDATE && !updateDone ? '1px solid #bfdbfe' : '1px solid var(--border)', padding:'20px 22px', background: HAS_UPDATE && !updateDone ? '#eff6ff' : 'var(--white)' }}>
               <div style={{ fontSize:11, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:10 }}>Latest Version</div>
               <div style={{ display:'flex', alignItems:'baseline', gap:8, marginBottom:8 }}>
                 <span style={{ fontSize:30, fontWeight:800, color: HAS_UPDATE && !updateDone ? '#2563eb' : 'var(--ink)', letterSpacing:'-0.04em' }}>v{LATEST_VERSION}</span>
@@ -232,7 +232,7 @@ export const SystemUpdate: React.FC = () => {
 
           {/* What's new */}
           {HAS_UPDATE && !updateDone && (
-            <div style={{ background:'var(--white)', borderRadius: 9, border:'1px solid var(--border)', overflow:'hidden' }}>
+            <div style={{ background:'var(--white)', borderRadius: 'var(--r)', border:'1px solid var(--border)', overflow:'hidden' }}>
               <div style={{ padding:'16px 20px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', gap:10 }}>
                 <div style={{ width:28, height:28, borderRadius:7, background:'var(--teal-l)', display:'flex', alignItems:'center', justifyContent:'center' }}>
                   <Icon name="star" size={14} color="var(--teal)" />
@@ -257,7 +257,7 @@ export const SystemUpdate: React.FC = () => {
           )}
 
           {/* System requirements */}
-          <div style={{ background:'var(--white)', borderRadius: 9, border:'1px solid var(--border)', overflow:'hidden' }}>
+          <div style={{ background:'var(--white)', borderRadius: 'var(--r)', border:'1px solid var(--border)', overflow:'hidden' }}>
             <div style={{ padding:'14px 20px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', gap:8 }}>
               <div style={{ width:28, height:28, borderRadius:7, background:'var(--blue-l)', display:'flex', alignItems:'center', justifyContent:'center' }}>
                 <Icon name="monitor" size={14} color="var(--blue)" />
@@ -285,7 +285,7 @@ export const SystemUpdate: React.FC = () => {
           </div>
 
           {/* Update history */}
-          <div style={{ background:'var(--white)', borderRadius: 9, border:'1px solid var(--border)', overflow:'hidden' }}>
+          <div style={{ background:'var(--white)', borderRadius: 'var(--r)', border:'1px solid var(--border)', overflow:'hidden' }}>
             <div style={{ padding:'14px 20px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', gap:8 }}>
               <div style={{ width:28, height:28, borderRadius:7, background:'var(--purple-l)', display:'flex', alignItems:'center', justifyContent:'center' }}>
                 <Icon name="clock" size={14} color="var(--purple)" />
@@ -335,9 +335,9 @@ export const SystemUpdate: React.FC = () => {
       {/* Confirm modal */}
       {showConfirm && (
         <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:600, display:'flex', alignItems:'center', justifyContent:'center' }}>
-          <div style={{ background:'var(--white)', borderRadius: 9, padding:'28px 32px', width:420, boxShadow: 'var(--elev-lg)' }}>
+          <div style={{ background:'var(--white)', borderRadius: 'var(--r)', padding:'28px 32px', width:420, boxShadow: 'var(--elev-lg)' }}>
             <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:16 }}>
-              <div style={{ width:40, height:40, borderRadius: 9, background:'var(--gold-l)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+              <div style={{ width:40, height:40, borderRadius: 'var(--r)', background:'var(--gold-l)', display:'flex', alignItems:'center', justifyContent:'center' }}>
                 <Icon name="alertTriangle" size={20} color="#d97706" />
               </div>
               <div>
@@ -348,7 +348,7 @@ export const SystemUpdate: React.FC = () => {
             <p style={{ fontSize:13, color:'var(--ink2)', lineHeight:1.6, marginBottom:20 }}>
               This will update Hudumika to <strong>v{LATEST_VERSION}</strong>. The system will be briefly unavailable during the update. A backup will be created automatically before any changes are applied.
             </p>
-            <div style={{ background:'var(--bg)', borderRadius: 9, padding:'12px 14px', marginBottom:20, fontSize:12, color:'var(--ink2)' }}>
+            <div style={{ background:'var(--bg)', borderRadius: 'var(--r)', padding:'12px 14px', marginBottom:20, fontSize:12, color:'var(--ink2)' }}>
               <div style={{ fontWeight:700, color:'var(--ink)', marginBottom:4 }}>Before you proceed:</div>
               <ul style={{ listStyle:'none', display:'flex', flexDirection:'column', gap:4 }}>
                 {['Notify active users of brief downtime', 'Ensure all database transactions are complete', 'A snapshot backup will be created automatically'].map(t => (

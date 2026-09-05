@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { PageHeader } from '../components/PageHeader.js';
 import { Icon } from '../components/Icon.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { apiFetch } from '../lib/api.js';
 import type { LensItem } from '@hudumika/types';
 
@@ -31,7 +32,7 @@ export default function LensRoadmap() {
 
       <div style={{ maxWidth: 900, margin: '0 auto', paddingTop: 20 }}>
         {loading ? (
-          <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>Loading...</div>
+          <SectionLoading />
         ) : items.length === 0 ? (
           <div style={{ padding: 60, textAlign: 'center', background: 'var(--white)', borderRadius: 12, border: '1px dashed var(--border)' }}>
             <Icon name="layers" size={32} color="var(--ink3)" />

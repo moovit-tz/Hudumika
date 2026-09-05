@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { apiFetch } from '../../lib/api.js';
 import type { OnsiteDomain } from '@hudumika/types';
 import { Icon } from '../../components/Icon.js';
+import { Banner } from '../../components/ui/alert.js';
+import { Switch } from '../../components/ui/switch.js';
 import { PageHeader } from '../../components/PageHeader.js';
 import {
   Select,
@@ -537,14 +539,12 @@ export function OnsiteDomains() {
                             </div>
                           </td>
                           <td>
-                            <div className="onsite-switch-label" onClick={() => handleToggleAutoRenew(d)}>
-                              <div className={d.auto_renew ? 'onsite-switch-track on' : 'onsite-switch-track'}>
-                                <div className="onsite-switch-thumb" />
-                              </div>
+                            <label className="onsite-switch-label" style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                              <Switch checked={d.auto_renew} onCheckedChange={() => handleToggleAutoRenew(d)} />
                               <span style={{ fontSize: '0.8125rem', color: 'var(--ink2)', fontWeight: 500 }}>
                                 {d.auto_renew ? 'Enabled' : 'Disabled'}
                               </span>
-                            </div>
+                            </label>
                           </td>
                           <td>
                             <span style={{ background: 'var(--bg)', color: 'var(--ink)', fontSize: '0.75rem', fontWeight: 600, padding: '0.2rem 0.6rem', borderRadius: '0.375rem', border: '1px solid var(--border)' }}>
@@ -688,11 +688,7 @@ export function OnsiteDomains() {
 
             <form onSubmit={handleCreateDomain}>
               <div className="onsite-modal-body">
-                {addError && (
-                  <div style={{ background: 'var(--red-l)', color: 'var(--red)', padding: '0.625rem 0.875rem', borderRadius: '0.5rem', fontSize: '0.8125rem', fontWeight: 600 }}>
-                    {addError}
-                  </div>
-                )}
+                {addError && <Banner variant="error">{addError}</Banner>}
 
                 <div className="onsite-form-group">
                   <label>Domain Name *</label>

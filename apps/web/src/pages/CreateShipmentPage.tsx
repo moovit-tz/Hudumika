@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { usePageSEO } from '../hooks/usePageSEO.js';
 import { Icon } from '../components/Icon.js';
+import { Spinner } from '../components/ui/spinner.js';
+import { Banner } from '../components/ui/alert.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { apiFetch } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.js';
@@ -642,17 +644,14 @@ export function CreateShipmentPage() {
             {currentStep === 1 && (
               <div>
                 {ocrError && (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, background: 'var(--red-l)', border: '1px solid #fecaca', borderRadius: 9, padding: '12px 16px', marginBottom: 16 }}>
-                    <div style={{ fontSize: 13, color: 'var(--red)' }}>{ocrError}</div>
-                    <button type="button" title="Dismiss" onClick={() => setOcrError(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', fontWeight: 700, fontSize: 13 }}>×</button>
-                  </div>
+                  <Banner variant="error" onDismiss={() => setOcrError(null)} className="mb-4">{ocrError}</Banner>
                 )}
                 {!ocrFile && !ocrScanning && (
                   <div
                     onDragOver={e => { e.preventDefault(); setDragOver(true); }}
                     onDragLeave={() => setDragOver(false)}
                     onDrop={e => { e.preventDefault(); setDragOver(false); const f = e.dataTransfer.files[0]; if (f) handleOcrFile(f); }}
-                    style={{ border: `2px dashed ${dragOver ? 'var(--teal)' : 'var(--border)'}`, borderRadius: 9, padding: '60px 24px', textAlign: 'center', background: dragOver ? 'var(--teal-l)' : 'var(--bg)', cursor: 'pointer', transition: 'all 0.15s' }}
+                    style={{ border: `2px dashed ${dragOver ? 'var(--teal)' : 'var(--border)'}`, borderRadius: 'var(--r)', padding: '60px 24px', textAlign: 'center', background: dragOver ? 'var(--teal-l)' : 'var(--bg)', cursor: 'pointer', transition: 'all 0.15s' }}
                     onClick={() => { const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*,.pdf'; inp.onchange = (ev: any) => { const f = ev.target.files?.[0]; if (f) handleOcrFile(f); }; inp.click(); }}
                   >
                     <div style={{ marginBottom: 16 }}><Icon name="fileText" size={48} color="var(--ink3)" /></div>
@@ -663,7 +662,7 @@ export function CreateShipmentPage() {
                 )}
                 {ocrScanning && (
                   <div style={{ textAlign: 'center', padding: '60px 0' }}>
-                    <div style={{ width: 56, height: 56, border: '4px solid var(--teal-l)', borderTopColor: 'var(--teal)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
+                    <Spinner size={56} thickness={4} trackColor="var(--teal-l)" style={{ margin: '0 auto 16px' }} />
                     <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--ink)' }}>Scanning document…</div>
                     <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 8 }}>Our AI is extracting shipment data and line items.</div>
                   </div>
@@ -723,7 +722,7 @@ export function CreateShipmentPage() {
                     whenever a file had merely been selected, including when
                     nothing had been read from it at all. */}
                 {(ocrResult || excelReport?.ok) && (
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '12px 16px', background: 'var(--teal-l)', borderRadius: 9, fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.55 }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '12px 16px', background: 'var(--teal-l)', borderRadius: 'var(--r)', fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.55 }}>
                     <Icon name="check" size={16} color="var(--teal)" style={{ flexShrink: 0, marginTop: 1 }} />
                     <span>
                       {excelReport?.ok
@@ -810,7 +809,7 @@ export function CreateShipmentPage() {
                     </div>
 
                     {selectedDgEntry && (
-                      <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', padding: '10px 14px', borderRadius: 9, background: 'var(--white)', fontSize: 12.5 }}>
+                      <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', padding: '10px 14px', borderRadius: 'var(--r)', background: 'var(--white)', fontSize: 12.5 }}>
                         <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{selectedDgEntry.un_number}</span>
                         <span style={{ color: 'var(--ink)' }}>{selectedDgEntry.proper_shipping_name}</span>
                         <span style={{ color: 'var(--ink3)' }}>
@@ -942,17 +941,9 @@ export function CreateShipmentPage() {
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 16, background: 'var(--blue-l)', borderRadius: 12, border: '1px solid rgba(8,145,178,0.2)' }}>
-                  <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--blue)' }}>
-                    <Icon name="bell" size={20} />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Notification will be sent</div>
-                    <div style={{ fontSize: 12, color: 'var(--ink3)' }}>
-                      {createForm.assigned_to_name ? `Assignee ${createForm.assigned_to_name} will be notified.` : 'No assignee selected.'}
-                    </div>
-                  </div>
-                </div>
+                <Banner variant="info" icon="bell" title="Notification will be sent">
+                  {createForm.assigned_to_name ? `Assignee ${createForm.assigned_to_name} will be notified.` : 'No assignee selected.'}
+                </Banner>
               </div>
             )}
             

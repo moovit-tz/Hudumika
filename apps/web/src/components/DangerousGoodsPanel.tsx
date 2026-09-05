@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { apiFetch, apiViewBlob } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import { Icon } from './Icon.js';
+import { SectionLoading } from './ui/spinner.js';
 import { Badge } from './ui/badge.js';
 import { Button } from './ui/button.js';
 
@@ -68,7 +69,7 @@ export function DangerousGoodsPanel({ shipmentId }: { shipmentId: string }) {
     apiViewBlob(`/v1/dangerous-goods/declarations/${id}/pdf`).catch(() => showAlert('Could not open the declaration PDF.', { variant: 'error' }));
   };
 
-  if (loading) return <div style={{ color: 'var(--ink3)', fontSize: 12.5 }}>Loading…</div>;
+  if (loading) return <SectionLoading />;
 
   if (rows.length === 0) {
     return (

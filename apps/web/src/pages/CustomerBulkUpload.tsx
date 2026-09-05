@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
+import { Banner } from '../components/ui/alert.js';
 import { FileUploader } from '../components/ui/file-uploader.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
@@ -56,7 +57,7 @@ export const CustomerBulkUpload: React.FC = () => {
       <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', padding: '14px 24px', flexShrink: 0 }}>
         <Link
           to="/customers/overview"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer', textDecoration: 'none', marginBottom: 10 }}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer', textDecoration: 'none', marginBottom: 10 }}
         >
           <Icon name="chevronLeft" size={13} /> Back
         </Link>
@@ -74,7 +75,7 @@ export const CustomerBulkUpload: React.FC = () => {
           <SectionCard padded={false}>
             <div style={{ padding: '16px 20px', display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'center', gap: 14 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 14, width: isMobile ? '100%' : 'auto' }}>
-                <div style={{ width: 40, height: 40, borderRadius: 9, background: 'var(--green-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <div style={{ width: 40, height: 40, borderRadius: 'var(--r)', background: 'var(--green-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <Icon name="file" size={18} color="var(--green)" />
                 </div>
                 <div style={{ flex: 1 }}>
@@ -99,15 +100,11 @@ export const CustomerBulkUpload: React.FC = () => {
             />
           )}
 
-          {error && (
-            <div style={{ background: 'var(--red-l)', border: '1px solid #fecaca', borderRadius: 9, padding: '14px 18px', fontSize: 13, color: 'var(--red)' }}>
-              {error}
-            </div>
-          )}
+          {error && <Banner variant="error">{error}</Banner>}
 
           {/* Upload success */}
           {summary && (
-            <div style={{ background: summary.inserted > 0 ? '#ecfdf5' : '#fef2f2', border: `1px solid ${summary.inserted > 0 ? '#a7f3d0' : '#fecaca'}`, borderRadius: 9, padding: '20px 24px' }}>
+            <div style={{ background: summary.inserted > 0 ? '#ecfdf5' : '#fef2f2', border: `1px solid ${summary.inserted > 0 ? '#a7f3d0' : '#fecaca'}`, borderRadius: 'var(--r)', padding: '20px 24px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                 <Icon name={summary.inserted > 0 ? 'checkCircle' : 'alertCircle'} size={24} color={summary.inserted > 0 ? '#059669' : '#dc2626'} />
                 <div>

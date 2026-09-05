@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { apiFetch } from '../../lib/api.js';
 import { Icon } from '../../components/Icon.js';
+import { SectionLoading } from '../../components/ui/spinner.js';
 import { Badge } from '../../components/ui/badge.js';
 import { FeaturedIcon } from '../../components/ui/featured-icon.js';
 import { Combobox } from '../../components/ui/combobox.js';
@@ -110,7 +111,7 @@ function DryRunTab({ workflowId, unsaved }: { workflowId: string; unsaved: boole
       </div>
 
       {unsaved && (
-        <div style={{ display: 'flex', gap: 8, padding: '9px 11px', borderRadius: 9, background: 'var(--gold-l)', border: '1px solid var(--gold-l)', fontSize: 12, color: 'var(--ink2)' }}>
+        <div style={{ display: 'flex', gap: 8, padding: '9px 11px', borderRadius: 'var(--r)', background: 'var(--gold-l)', border: '1px solid var(--gold-l)', fontSize: 12, color: 'var(--ink2)' }}>
           <Icon name="alertTriangle" size={14} color="var(--gold)" style={{ flexShrink: 0, marginTop: 1 }} />
           <span>This tests the <strong>saved</strong> version. Save first to test your current edits.</span>
         </div>
@@ -278,7 +279,7 @@ function HistoryTab({ workflowId }: { workflowId: string }) {
         ))}
       </div>
 
-      {loading && <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>Loading…</div>}
+      {loading && <SectionLoading />}
       {error && <div style={{ fontSize: 12.5, color: 'var(--red)' }}>{error}</div>}
 
       {!loading && !error && runs.length === 0 && (

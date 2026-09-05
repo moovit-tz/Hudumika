@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext, useCallback, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
+import { Spinner } from '../components/ui/spinner.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { apiFetch } from '../lib/api.js';
 import { MobileNavContext } from '../shells/WorkspaceApp.js';
@@ -466,7 +467,7 @@ export const EmailApp: React.FC = () => {
 
             {emailsLoading && (
               <div className="em-loading">
-                <Icon name="refresh" size={18} /><span>Loading…</span>
+                <Spinner size={18} /><span>Loading…</span>
               </div>
             )}
 

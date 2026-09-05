@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { DatePicker, toDateOnlyString } from '../components/ui/date-picker.js';
@@ -137,7 +138,7 @@ export function SealConsignments() {
       <div className="seal-card">
         <div className="seal-card-body">
           {loading ? (
-            <div className="seal-empty">Loading…</div>
+            <SectionLoading />
           ) : consignments.length === 0 ? (
             <div className="seal-empty">No consignments yet.</div>
           ) : (

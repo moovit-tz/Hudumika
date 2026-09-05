@@ -25,7 +25,7 @@ export const TrackingDriverChat: React.FC = () => {
         titlePlain="Driver"
         titleEm="chat"
       />
-      <div style={{ width: 260, flexShrink: 0, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ width: 260, flexShrink: 0, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>Driver Chat</div>
         <div style={{ flex: 1, overflowY: 'auto' }}>
           {drivers.map(d => (
@@ -42,7 +42,7 @@ export const TrackingDriverChat: React.FC = () => {
       <div style={{ flex: 1 }}>
         {driver
           ? <DriverChatPanel driverId={driver.id} driverName={driver.name} driverPhone={driver.phone} />
-          : <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink3)', fontSize: 13, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9 }}>Select a driver to start chatting.</div>}
+          : <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink3)', fontSize: 13, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)' }}>Select a driver to start chatting.</div>}
       </div>
     </div>
   );

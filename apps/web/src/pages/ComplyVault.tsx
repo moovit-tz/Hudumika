@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { useComplyCertificates, useComplyRenewals } from '../hooks/useComply.js';
@@ -157,15 +158,24 @@ export function ComplyVault() {
 
       {error && <div className="comply-note comply-note--error">Failed to load certificates: {error}</div>}
 
-      <div className="comply-filters" style={{ justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          {(['all', 'active', 'expiring', 'expired'] as Filter[]).map(f => (
-            <button key={f} type="button" className={`comply-filter-btn${filter === f ? ' active' : ''}`} onClick={() => setFilter(f)}>
-              {f.charAt(0).toUpperCase() + f.slice(1)}
-              {f !== 'all' && ` (${certs.filter(c => c.status === f).length})`}
-            </button>
-          ))}
-        </div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 20 }}>
+        <Tabs value={filter} onValueChange={(v) => setFilter(v as Filter)} variant="boxed">
+        <TabsList>
+          {(['all', 'active', 'expiring', 'expired'] as Filter[]).map(f => {
+            const isActive = filter === f;
+            return (
+              <TabsTrigger key={f} value={f}>
+                {f.charAt(0).toUpperCase() + f.slice(1)}
+                {f !== 'all' && (
+                  <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 20, lineHeight: 1.5, background: isActive ? 'var(--teal-l)' : 'var(--bg)', color: isActive ? 'var(--teal)' : 'var(--ink3)' }}>
+                    {certs.filter(c => c.status === f).length}
+                  </span>
+                )}
+              </TabsTrigger>
+            );
+          })}
+        </TabsList>
+        </Tabs>
         <div className="comply-view-toggle">
           <button type="button" title="Grid view" className={`comply-view-btn${view === 'grid' ? ' active' : ''}`} onClick={() => setView('grid')}>
             <Icon name="grid" size={15} />

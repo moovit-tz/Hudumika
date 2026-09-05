@@ -3,6 +3,7 @@ import { PageHeader } from '../../components/PageHeader.js';
 import { apiFetch } from '../../lib/api.js';
 import { showAlert } from '../../lib/alert.js';
 import { Icon } from '../../components/Icon.js';
+import { SectionLoading } from '../../components/ui/spinner.js';
 import './Onsite.css';
 
 interface ReferralLink { referral_code: string; url: string | null; reason: string | null; }
@@ -50,7 +51,7 @@ export function OnsiteReferrals() {
       />
 
       {loading ? (
-        <div className="onsite-card"><p style={{ color: 'var(--ink2)' }}>Loading…</p></div>
+        <div className="onsite-card"><SectionLoading /></div>
       ) : (
         <>
           <div className="onsite-card" style={{ marginBottom: '1rem' }}>

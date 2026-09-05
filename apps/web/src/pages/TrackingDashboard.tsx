@@ -24,7 +24,7 @@ interface Summary {
 interface MaintenanceRecord { id: string; vehicle_id: string; service_type: string; next_due_date: string | null }
 interface Vehicle { id: string; name: string }
 
-const cardStyle: React.CSSProperties = { background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: 20 };
+const cardStyle: React.CSSProperties = { background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 20 };
 const statLabel: React.CSSProperties = { fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.04em' };
 
 const DEFAULT_SUMMARY: Summary = {

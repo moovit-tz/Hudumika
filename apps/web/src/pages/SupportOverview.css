@@ -31,7 +31,7 @@
 .sov-period-btn {
   padding: var(--ds-btn-py) 14px;
   border: 1.5px solid var(--border);
-  border-radius: 9px;
+  border-radius: var(--r);
   background: var(--white);
   color: var(--ink3);
   font-family: var(--font);
@@ -52,7 +52,7 @@
   padding: var(--ds-btn-py) 16px;
   background: hsl(var(--primary));
   border: none;
-  border-radius: 9px;
+  border-radius: var(--r);
   color: hsl(var(--primary-foreground));
   cursor: pointer;
   font-family: var(--font);
@@ -98,12 +98,22 @@
 
 .sov-kpi {
   background: var(--white);
-  border-radius: 9px;
+  border-radius: var(--r-md, 12px);
   padding: 16px 18px;
   border: 1px solid var(--border);
   box-shadow: var(--elev-sm);
   flex: 1 1 170px;
   min-width: 150px;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sov-kpi:hover {
+  transform: translateY(-2px);
+  border-color: var(--teal);
+}
+
+.sov-kpi:active {
+  transform: translateY(0) scale(0.985);
 }
 
 .sov-kpi-top {
@@ -115,7 +125,7 @@
 
 .sov-kpi-icon {
   width: 36px; height: 36px;
-  border-radius: 9px;
+  border-radius: var(--r);
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
 }
@@ -123,7 +133,7 @@
 .sov-kpi-trend {
   display: flex; align-items: center; gap: 3px;
   font-size: 11px; font-weight: 700;
-  padding: 2px 7px; border-radius: 9px;
+  padding: 2px 7px; border-radius: var(--r);
 }
 .sov-kpi-trend--up { color: var(--green); background: var(--green-l); }
 .sov-kpi-trend--down { color: var(--red); background: var(--red-l); }
@@ -143,11 +153,21 @@
 
 .sov-card {
   background: var(--white);
-  border-radius: 9px;
+  border-radius: var(--r-md, 12px);
   padding: 18px 20px;
   border: 1px solid var(--border);
   box-shadow: var(--elev-sm);
   min-width: 0;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sov-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--teal);
+}
+
+.sov-card:active {
+  transform: translateY(0) scale(0.985);
 }
 
 .sov-shdr {
@@ -173,7 +193,7 @@
 
 .sov-total-pill {
   margin-top: 14px; padding: 10px 12px;
-  background: var(--bg); border-radius: 9px;
+  background: var(--bg); border-radius: var(--r);
   display: flex; justify-content: space-between;
 }
 .sov-total-pill-val { font-size: var(--badge-fs); font-weight: 800; color: var(--navy); }

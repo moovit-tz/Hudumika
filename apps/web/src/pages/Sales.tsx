@@ -3,6 +3,8 @@ import { useIsMobile } from '../hooks/useIsMobile.js';
 import { apiFetch } from '../lib/api.js';
 import { MetricsRow } from '../components/MetricCard.js';
 import { Icon } from '../components/Icon.js';
+import { Badge } from '../components/ui/badge.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { EntityPicker, PickerItem } from '../components/EntityPicker.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
@@ -68,15 +70,11 @@ function blankLine() {
 
 // ─── StatusBadge ──────────────────────────────────────────────────────────────
 
+const STATUS_VARIANT: Record<string, 'gray' | 'warning' | 'success' | 'brand' | 'error'> = {
+  DRAFT: 'gray', PENDING: 'warning', APPROVED: 'success', CONVERTED: 'brand', REJECTED: 'error',
+};
 function StatusBadge({ status }: { status: string }) {
-  return (
-    <span style={{
-      display: 'inline-block', padding: '2px 8px', borderRadius: 20,
-      fontSize: 11, fontWeight: 700, letterSpacing: '0.04em',
-      background: STATUS_BG[status] || '#f0f0f0',
-      color: STATUS_FG[status] || 'var(--ink3)',
-    }}>{status}</span>
-  );
+  return <Badge variant={STATUS_VARIANT[status] ?? 'gray'} className="tracking-wide">{status}</Badge>;
 }
 
 // ─── Toast ────────────────────────────────────────────────────────────────────
@@ -203,7 +201,7 @@ function DetailPanel({
   if (loading) {
     return (
       <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1500 }}>
-        <div style={{ background: 'var(--white)', borderRadius: 12, padding: 40, fontSize: 14, color: 'var(--ink3)' }}>Loading…</div>
+        <div style={{ background: 'var(--white)', borderRadius: 12 }}><SectionLoading /></div>
       </div>
     );
   }
@@ -824,7 +822,7 @@ export const Sales: React.FC = () => {
               <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, paddingBottom: 8 }}>
                 {loading && <div style={{ textAlign: 'center', color: 'var(--ink3)', fontSize: 12, padding: 16 }}>…</div>}
                 {!loading && cards.length === 0 && (
-                  <div style={{ textAlign: 'center', color: 'var(--ink3)', fontSize: 12, padding: 20, borderRadius: 9, border: '1px dashed var(--border)' }}>
+                  <div style={{ textAlign: 'center', color: 'var(--ink3)', fontSize: 12, padding: 20, borderRadius: 'var(--r)', border: '1px dashed var(--border)' }}>
                     Empty
                   </div>
                 )}

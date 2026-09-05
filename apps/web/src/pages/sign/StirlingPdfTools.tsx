@@ -15,6 +15,8 @@ import { apiFetch, apiFetchBlob } from '../../lib/api.js';
 import { Icon } from '../../components/Icon.js';
 import type { IconName } from '../../components/Icon.js';
 import { Button } from '../../components/ui/button.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
+import { PageLoading } from '../../components/ui/spinner.js';
 import { showAlert } from '../../lib/alert.js';
 import { useAuth } from '../../hooks/useAuth.js';
 import { PdfPageOrganizer } from './PdfPageOrganizer.js';
@@ -309,7 +311,7 @@ export function StirlingPdfTools({ documentSrc, fileName, onExport, onClose, emb
 
       <div style={{ flex: 1, overflowY: 'auto', padding: embedded ? 16 : 32 }}>
         {baseUrl === undefined ? (
-          <div style={{ textAlign: 'center', color: 'var(--ink3)', fontSize: 13, marginTop: 60 }}>Loading…</div>
+          <PageLoading />
         ) : baseUrl === null ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, maxWidth: embedded ? '100%' : 460, margin: embedded ? '20px auto 0' : '60px auto 0', textAlign: 'center' }}>
             <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -423,18 +425,24 @@ export function StirlingPdfTools({ documentSrc, fileName, onExport, onClose, emb
                 {active.key === 'n-up' && (
                   <div style={{ maxWidth: 200 }}>
                     <label style={labelStyle}>Pages per sheet</label>
-                    <select value={pagesPerSheet} onChange={e => setPagesPerSheet(e.target.value)} style={inputStyle}>
-                      {['2', '4', '9', '16'].map(n => <option key={n} value={n}>{n}</option>)}
-                    </select>
+                    <Select value={pagesPerSheet} onValueChange={setPagesPerSheet}>
+                      <SelectTrigger style={inputStyle}><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {['2', '4', '9', '16'].map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
                   </div>
                 )}
 
                 {active.key === 'resize' && (
                   <div style={{ maxWidth: 200 }}>
                     <label style={labelStyle}>Target page size</label>
-                    <select value={resizeSize} onChange={e => setResizeSize(e.target.value)} style={inputStyle}>
-                      {['A4', 'A3', 'A5', 'LETTER', 'LEGAL'].map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
+                    <Select value={resizeSize} onValueChange={setResizeSize}>
+                      <SelectTrigger style={inputStyle}><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {['A4', 'A3', 'A5', 'LETTER', 'LEGAL'].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
                   </div>
                 )}
 
@@ -543,10 +551,13 @@ export function StirlingPdfTools({ documentSrc, fileName, onExport, onClose, emb
                 {(active.key === 'extract-images' || active.key === 'to-images') && (
                   <div style={{ maxWidth: 200 }}>
                     <label style={labelStyle}>Image format</label>
-                    <select value={imageFormat} onChange={e => setImageFormat(e.target.value)} style={inputStyle}>
-                      <option value="png">PNG</option>
-                      <option value="jpg">JPG</option>
-                    </select>
+                    <Select value={imageFormat} onValueChange={setImageFormat}>
+                      <SelectTrigger style={inputStyle}><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="png">PNG</SelectItem>
+                        <SelectItem value="jpg">JPG</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 )}
 
@@ -557,10 +568,13 @@ export function StirlingPdfTools({ documentSrc, fileName, onExport, onClose, emb
                 {active.key === 'ocr' && (
                   <div style={{ maxWidth: 220 }}>
                     <label style={labelStyle}>OCR Language</label>
-                    <select value={ocrLang} onChange={e => setOcrLang(e.target.value)} style={inputStyle}>
-                      <option value="eng">English (eng)</option>
-                      <option value="swa">Swahili (swa)</option>
-                    </select>
+                    <Select value={ocrLang} onValueChange={setOcrLang}>
+                      <SelectTrigger style={inputStyle}><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="eng">English (eng)</SelectItem>
+                        <SelectItem value="swa">Swahili (swa)</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 )}
 

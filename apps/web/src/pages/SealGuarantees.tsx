@@ -3,6 +3,7 @@ import { Icon } from '../components/Icon.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { Badge } from '../components/ui/badge.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { DatePicker, toDateOnlyString } from '../components/ui/date-picker.js';
 import { apiFetch } from '../lib/api.js';
@@ -119,7 +120,7 @@ export function SealGuarantees() {
       )}
 
       {loading ? (
-        <div className="seal-card"><div className="seal-empty">Loading…</div></div>
+        <div className="seal-card"><SectionLoading /></div>
       ) : guarantees.length === 0 ? (
         <div className="seal-card"><div className="seal-empty">No guarantees yet — compartments without one skip the bond headroom check entirely.</div></div>
       ) : (

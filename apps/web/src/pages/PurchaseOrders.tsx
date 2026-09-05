@@ -722,7 +722,7 @@ export const PurchaseOrders: React.FC = () => {
             key={t.id}
             style={{
               padding: '12px 20px',
-              borderRadius: 9,
+              borderRadius: 'var(--r)',
               background: 'var(--white)',
               borderLeft: `5px solid ${t.type === 'success' ? 'var(--green)' : t.type === 'info' ? 'var(--blue)' : 'var(--red)'}`,
               boxShadow: 'var(--elev)',
@@ -825,7 +825,7 @@ export const PurchaseOrders: React.FC = () => {
                     style={{
                       width: '100%',
                       padding: '8px 100px 8px 12px',
-                      borderRadius: 9,
+                      borderRadius: 'var(--r)',
                       border: '1px solid var(--border)',
                       fontSize: 13,
                       background: 'var(--bg)',
@@ -861,7 +861,7 @@ export const PurchaseOrders: React.FC = () => {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   
                   {/* Grid / List toggle */}
-                  <div style={{ display: 'flex', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--bg)', overflow: 'hidden', padding: 2 }}>
+                  <div style={{ display: 'flex', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', overflow: 'hidden', padding: 2 }}>
                     <button
                       onClick={() => setIsCardView(false)}
                       style={{
@@ -994,9 +994,9 @@ export const PurchaseOrders: React.FC = () => {
 
             {/* Empty State vs List vs Grid Display */}
             {processedPOs.length === 0 ? (
-              <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '60px 20px', textAlign: 'center' }}>
+              <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', padding: '60px 20px', textAlign: 'center' }}>
                 <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
-                  <div style={{ width: 56, height: 56, borderRadius: 9, background: 'var(--bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ width: 56, height: 56, borderRadius: 'var(--r)', background: 'var(--bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Icon name="shoppingCart" size={26} strokeWidth={1.5} color="var(--ink3)" />
                   </div>
                 </div>
@@ -1029,7 +1029,7 @@ export const PurchaseOrders: React.FC = () => {
                       key={po.id}
                       style={{
                         background: 'var(--white)',
-                        borderRadius: 9,
+                        borderRadius: 'var(--r)',
                         border: '1px solid var(--border)',
                         padding: 18,
                         display: 'flex',
@@ -1064,7 +1064,7 @@ export const PurchaseOrders: React.FC = () => {
                         >
                           {po.po_number}
                         </button>
-                        <span style={{ fontSize: 10, fontWeight: 700, background: badge.bg, color: badge.color, borderRadius: 5, padding: '2px 8px' }}>
+                        <span style={{ fontSize: 10, fontWeight: 700, background: badge.bg, color: badge.color, borderRadius: 'var(--r-sm)', padding: '2px 8px' }}>
                           {po.status}
                         </span>
                       </div>
@@ -1328,7 +1328,7 @@ export const PurchaseOrders: React.FC = () => {
                                   fontWeight: 700,
                                   background: badge.bg,
                                   color: badge.color,
-                                  borderRadius: 5,
+                                  borderRadius: 'var(--r-sm)',
                                   padding: '3px 8px',
                                   display: 'inline-block'
                                 }}
@@ -1514,7 +1514,7 @@ export const PurchaseOrders: React.FC = () => {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             
             {/* Details Shell Card */}
-            <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: 24, display: 'flex', flexDirection: 'column', gap: 20 }}>
+            <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', padding: 24, display: 'flex', flexDirection: 'column', gap: 20 }}>
               
               {/* Header summary inside details card */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid var(--border)', paddingBottom: 16 }}>
@@ -1537,7 +1537,7 @@ export const PurchaseOrders: React.FC = () => {
                       fontWeight: 700,
                       background: (STATUS_THEME[currentDetailsPo.status] || STATUS_THEME.Draft).bg,
                       color: (STATUS_THEME[currentDetailsPo.status] || STATUS_THEME.Draft).color,
-                      borderRadius: 5,
+                      borderRadius: 'var(--r-sm)',
                       padding: '2px 8px',
                       textTransform: 'uppercase',
                       letterSpacing: '0.04em'
@@ -1623,7 +1623,7 @@ export const PurchaseOrders: React.FC = () => {
               <div
                 style={{
                   background: 'var(--bg)',
-                  borderRadius: 9,
+                  borderRadius: 'var(--r)',
                   padding: '16px 20px',
                   display: 'flex',
                   justifyContent: 'space-between',
@@ -1833,7 +1833,7 @@ export const PurchaseOrders: React.FC = () => {
                     placeholder="e.g., Net 30, COD"
                     value={formPaymentTerms}
                     onChange={e => setFormPaymentTerms(e.target.value)}
-                    style={{ width: '100%', padding: '9px 12px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, outline: 'none' }}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, outline: 'none' }}
                   />
                 </div>
                 <div>
@@ -1842,7 +1842,7 @@ export const PurchaseOrders: React.FC = () => {
                     placeholder="Additional notes..."
                     value={formNotes}
                     onChange={e => setFormNotes(e.target.value)}
-                    style={{ width: '100%', height: 42, padding: '9px 12px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, outline: 'none', resize: 'vertical', fontFamily: 'inherit' }}
+                    style={{ width: '100%', height: 42, padding: '9px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, outline: 'none', resize: 'vertical', fontFamily: 'inherit' }}
                   />
                 </div>
               </div>
@@ -2014,7 +2014,7 @@ export const PurchaseOrders: React.FC = () => {
                 {(() => {
                   const totals = getPOTotals(formItems);
                   return (
-                    <div style={{ width: 280, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 9, padding: 16, fontSize: 13 }}>
+                    <div style={{ width: 280, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 16, fontSize: 13 }}>
                       <h4 style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 12px 0' }}>Invoice Summary</h4>
                       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                         <tbody>

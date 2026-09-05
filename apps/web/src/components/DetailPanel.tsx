@@ -177,7 +177,7 @@ export const DetailPanel: React.FC<DetailPanelProps> = ({ shipmentId, onClose })
               { label: 'CHARGES',   value: totalCharges > 0 ? fmtTZS(totalCharges) : '—' },
               { label: 'RECEIVED',  value: '—' },
             ].map(s => (
-              <div key={s.label} style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 9, padding: '10px 12px' }}>
+              <div key={s.label} style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '10px 12px' }}>
                 <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.06em', marginBottom: 5 }}>{s.label}</div>
                 <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', lineHeight: 1.3 }}>{s.value}</div>
               </div>
@@ -266,7 +266,7 @@ export const DetailPanel: React.FC<DetailPanelProps> = ({ shipmentId, onClose })
               style={{
                 width: '100%', boxSizing: 'border-box', padding: '14px 16px',
                 background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))',
-                border: 'none', borderRadius: 9,
+                border: 'none', borderRadius: 'var(--r)',
                 fontSize: 15, fontWeight: 700, cursor: 'pointer',
                 fontFamily: 'var(--font)', textDecoration: 'none',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,

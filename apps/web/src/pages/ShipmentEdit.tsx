@@ -11,6 +11,7 @@ import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/da
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { EntityPicker, type PickerItem } from '../components/EntityPicker.js';
 import { PageLoading } from '../components/ui/spinner.js';
+import { Banner } from '../components/ui/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import { PageHeader } from '../components/PageHeader.js';
 
@@ -333,9 +334,7 @@ export const ShipmentEdit: React.FC = () => {
         )}
         <div className="create-shipment-content" style={{ maxWidth: 800, marginTop: isMobile ? 0 : 24 }}>
           {error && (
-            <div style={{ padding: '11px 14px', background: 'var(--red-l)', border: '1px solid #fca5a5', borderRadius: 10, fontSize: 13, color: 'var(--red)', marginBottom: 24 }}>
-              {error}
-            </div>
+            <Banner variant="error" className="mb-6">{error}</Banner>
           )}
 
           <PageHeader
@@ -429,7 +428,7 @@ export const ShipmentEdit: React.FC = () => {
                     </div>
 
                     {selectedDgEntry && (
-                      <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', padding: '10px 14px', borderRadius: 9, background: 'var(--white)', fontSize: 12.5 }}>
+                      <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', padding: '10px 14px', borderRadius: 'var(--r)', background: 'var(--white)', fontSize: 12.5 }}>
                         <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{selectedDgEntry.un_number}</span>
                         <span style={{ color: 'var(--ink)' }}>{selectedDgEntry.proper_shipping_name}</span>
                         <span style={{ color: 'var(--ink3)' }}>

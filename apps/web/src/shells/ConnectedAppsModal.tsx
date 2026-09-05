@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { useCloud, StorageProvider } from './cloud-context.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 
 export const STORAGE_PROVIDERS: { id: StorageProvider; name: string; color: string; icon: IconName; blurb: string }[] = [
   { id: 'box',      name: 'Box',      color: '#0061D5', icon: 'box2',    blurb: 'Sync folders to your Box account.' },
@@ -56,14 +57,14 @@ export function ConnectedAppsModal({ onClose }: { onClose: () => void }) {
       <div className="card" style={{ width: 460, padding: 24 }} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
           <span style={{ fontSize:'var(--text-lg)', fontWeight: 700, color: 'var(--ink)' }}>Connected Apps</span>
-          <button onClick={onClose} className="dp-close"><Icon name="close" size={16} /></button>
+          <button onClick={onClose} className="dp-close" aria-label="Close"><Icon name="close" size={16} /></button>
         </div>
         <p style={{ fontSize:'var(--text-sm)', color: 'var(--ink3)', margin: '0 0 18px' }}>
           Sync your Drive to other storage providers. Connecting a provider requires that provider's own account sign-in.
         </p>
 
         {connectionsLoading && connections.length === 0 ? (
-          <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--ink3)', fontSize:'var(--text-base)' }}>Loading…</div>
+          <SectionLoading />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {STORAGE_PROVIDERS.map(p => {

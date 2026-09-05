@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
+import { SectionLoading } from '../components/ui/spinner.js';
+import { Banner } from '../components/ui/alert.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { Button } from '../components/ui/button.js';
@@ -762,7 +765,7 @@ export const ProjectsApp: React.FC = () => {
 
         <div style={{ padding: isMobile ? 16 : 32 }}>
           {filteredProjects === null ? (
-            <div style={{ color: 'var(--ink3)', fontSize: 14 }}>Loading…</div>
+            <SectionLoading />
           ) : filteredProjects.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--ink3)', fontSize: 14 }}>
               {projects && projects.length > 0 ? 'No projects match this filter.' : 'No projects yet. Create one to start organizing work into a shared board with milestones.'}
@@ -879,9 +882,8 @@ export const ProjectsApp: React.FC = () => {
           </DropdownMenu>
         </div>
         {viewAsCustomer && (
-          <div style={{ marginTop: 10, padding: '8px 12px', background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 8, fontSize: 12.5, color: 'var(--ink2)', display: 'flex', alignItems: 'center', gap: 8, maxWidth: 480 }}>
-            <Icon name="eye" size={14} color="var(--gold)" />
-            Previewing as your customer would see it — internal tabs hidden, only files marked "Visible to customer" shown, no rates or billing figures. This is a read-only local preview, not a real customer session.
+          <div style={{ marginTop: 10, maxWidth: 480 }}>
+            <Banner variant="warning">Previewing as your customer would see it — internal tabs hidden, only files marked "Visible to customer" shown, no rates or billing figures. This is a read-only local preview, not a real customer session.</Banner>
           </div>
         )}
         {selected.ref && <div style={{ fontSize: 11.5, color: 'var(--ink4)', marginTop: 2 }}>{selected.ref}</div>}
@@ -902,25 +904,26 @@ export const ProjectsApp: React.FC = () => {
           </div>
         )}
 
-        <div className="ds-tabs-list" data-variant="segmented" style={{ marginTop: 18 }}>
-          {(['overview', 'board', 'gantt', 'timesheets', 'files', 'discussions', 'tickets', 'sales', 'activity', 'milestones', 'members'] as const)
-            .filter(t => !viewAsCustomer || CUSTOMER_VISIBLE_TABS.has(t))
-            .map(t => (
-            <button
-              key={t} type="button" className="ds-tabs-trigger" data-variant="segmented"
-              data-state={tab === t ? 'active' : 'inactive'} onClick={() => setTab(t)}
-              style={{ textTransform: 'capitalize' }}
-            >
-              {t === 'overview' ? 'Overview' : t === 'board' ? `Tasks${projectTasks.length ? ` (${projectTasks.length})` : ''}` : t === 'gantt' ? 'Gantt' : t === 'timesheets' ? 'Timesheets' : t === 'files' ? `Files${projectFiles ? ` (${projectFiles.length})` : ''}` : t === 'discussions' ? `Discussions${discussions ? ` (${discussions.length})` : ''}` : t === 'tickets' ? `Tickets${projectTickets ? ` (${projectTickets.length})` : ''}` : t === 'sales' ? `Sales${projectInvoices ? ` (${projectInvoices.length})` : ''}` : t === 'activity' ? 'Activity' : t === 'milestones' ? `Milestones${milestones ? ` (${milestones.length})` : ''}` : `Members${members ? ` (${members.length})` : ''}`}
-            </button>
-          ))}
-        </div>
+        <Tabs value={tab} onValueChange={v => setTab(v as typeof tab)} variant="segmented" style={{ marginTop: 18 }}>
+          <TabsList>
+            {(['overview', 'board', 'gantt', 'timesheets', 'files', 'discussions', 'tickets', 'sales', 'activity', 'milestones', 'members'] as const)
+              .filter(t => !viewAsCustomer || CUSTOMER_VISIBLE_TABS.has(t))
+              .map(t => (
+              <TabsTrigger
+                key={t} value={t}
+                style={{ textTransform: 'capitalize' }}
+              >
+                {t === 'overview' ? 'Overview' : t === 'board' ? `Tasks${projectTasks.length ? ` (${projectTasks.length})` : ''}` : t === 'gantt' ? 'Gantt' : t === 'timesheets' ? 'Timesheets' : t === 'files' ? `Files${projectFiles ? ` (${projectFiles.length})` : ''}` : t === 'discussions' ? `Discussions${discussions ? ` (${discussions.length})` : ''}` : t === 'tickets' ? `Tickets${projectTickets ? ` (${projectTickets.length})` : ''}` : t === 'sales' ? `Sales${projectInvoices ? ` (${projectInvoices.length})` : ''}` : t === 'activity' ? 'Activity' : t === 'milestones' ? `Milestones${milestones ? ` (${milestones.length})` : ''}` : `Members${members ? ` (${members.length})` : ''}`}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? 16 : 32 }}>
         {tab === 'overview' && (
           detail === null ? (
-            <div style={{ color: 'var(--ink3)', fontSize: 14 }}>Loading…</div>
+            <SectionLoading />
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 20, alignItems: 'start' }}>
               <SectionCard title="Overview">
@@ -1421,7 +1424,7 @@ export const ProjectsApp: React.FC = () => {
             )}
 
             {timesheets === null ? (
-              <div style={{ color: 'var(--ink3)', fontSize: 14 }}>Loading…</div>
+              <SectionLoading />
             ) : timesheets.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--ink3)', fontSize: 14 }}>No logged time yet.</div>
             ) : (
@@ -1461,7 +1464,7 @@ export const ProjectsApp: React.FC = () => {
               {!viewAsCustomer && <FileUploader onUpload={uploadProjectFiles} multiple />}
               {uploadingFiles && <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>Uploading…</div>}
               {projectFiles === null ? (
-                <div style={{ color: 'var(--ink3)', fontSize: 13 }}>Loading…</div>
+                <SectionLoading />
               ) : visibleFiles.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--ink3)', fontSize: 14 }}>{viewAsCustomer ? 'No files have been shared with the customer yet.' : 'No files yet.'}</div>
               ) : (
@@ -1495,7 +1498,7 @@ export const ProjectsApp: React.FC = () => {
         {tab === 'activity' && (
           <div style={{ maxWidth: 640, display: 'flex', flexDirection: 'column', gap: 10 }}>
             {projectActivity === null ? (
-              <div style={{ color: 'var(--ink3)', fontSize: 14 }}>Loading…</div>
+              <SectionLoading />
             ) : projectActivity.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--ink3)', fontSize: 14 }}>No activity yet.</div>
             ) : (
@@ -1519,7 +1522,7 @@ export const ProjectsApp: React.FC = () => {
         {tab === 'discussions' && (
           <div style={{ maxWidth: 640, display: 'flex', flexDirection: 'column', gap: 12 }}>
             {discussions === null ? (
-              <div style={{ color: 'var(--ink3)', fontSize: 13 }}>Loading…</div>
+              <SectionLoading />
             ) : discussions.length === 0 ? (
               <div style={{ color: 'var(--ink3)', fontSize: 13 }}>No discussion yet — start the conversation below.</div>
             ) : (
@@ -1586,7 +1589,7 @@ export const ProjectsApp: React.FC = () => {
               </div>
             )}
             {projectTickets === null ? (
-              <div style={{ color: 'var(--ink3)', fontSize: 13 }}>Loading…</div>
+              <SectionLoading />
             ) : projectTickets.length === 0 ? (
               <div style={{ color: 'var(--ink3)', fontSize: 13 }}>No tickets linked to this project yet.</div>
             ) : (
@@ -1610,7 +1613,7 @@ export const ProjectsApp: React.FC = () => {
         {tab === 'sales' && (
           <div style={{ maxWidth: 640 }}>
             {projectInvoices === null ? (
-              <div style={{ color: 'var(--ink3)', fontSize: 13 }}>Loading…</div>
+              <SectionLoading />
             ) : projectInvoices.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--ink3)', fontSize: 14 }}>No invoices yet — use "Invoice Project" on the Overview tab.</div>
             ) : (
@@ -1661,7 +1664,7 @@ export const ProjectsApp: React.FC = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <EntityPicker value={null} onChange={v => v && addMember(v)} search={searchColleagues} placeholder="Add a colleague to this project…" />
               {members === null ? (
-                <div style={{ color: 'var(--ink3)', fontSize: 13 }}>Loading…</div>
+                <SectionLoading />
               ) : members.length === 0 ? (
                 <div style={{ color: 'var(--ink3)', fontSize: 13 }}>No members yet.</div>
               ) : (
@@ -1690,8 +1693,8 @@ export const ProjectsApp: React.FC = () => {
                     <div key={m.user_id} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                       <span style={{ width: 120, flexShrink: 0, fontSize: 12.5, color: 'var(--ink2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</span>
                       <span style={{ width: 70, flexShrink: 0, fontSize: 11, color: 'var(--ink3)' }}>{m.openTaskCount} open</span>
-                      <div style={{ flex: 1, height: 10, borderRadius: 5, background: 'var(--bg)', overflow: 'hidden' }}>
-                        <div style={{ width: `${Math.round((m.loggedMinutes / maxWorkloadMinutes) * 100)}%`, height: '100%', background: 'var(--teal)', borderRadius: 5, transition: 'width 0.2s' }} />
+                      <div style={{ flex: 1, height: 10, borderRadius: 'var(--r-sm)', background: 'var(--bg)', overflow: 'hidden' }}>
+                        <div style={{ width: `${Math.round((m.loggedMinutes / maxWorkloadMinutes) * 100)}%`, height: '100%', background: 'var(--teal)', borderRadius: 'var(--r-sm)', transition: 'width 0.2s' }} />
                       </div>
                       <span style={{ width: 60, flexShrink: 0, fontSize: 11.5, fontWeight: 600, color: 'var(--ink)', textAlign: 'right' }}>{formatHM(m.loggedMinutes)}</span>
                     </div>
@@ -1736,7 +1739,7 @@ function MilestonesTab({ milestones, onAdd, onUpdate, onDelete }: {
         <Button size="sm" onClick={() => { if (newName.trim()) { onAdd(newName.trim()); setNewName(''); } }} disabled={!newName.trim()}>Add</Button>
       </div>
       {milestones === null ? (
-        <div style={{ color: 'var(--ink3)', fontSize: 13 }}>Loading…</div>
+        <SectionLoading />
       ) : milestones.length === 0 ? (
         <div style={{ color: 'var(--ink3)', fontSize: 13 }}>No milestones yet.</div>
       ) : (
@@ -1836,7 +1839,7 @@ function TaskDetailDrawer({ task, milestones, otherTasks, onClose, onDelete }: {
       <div style={{ position: 'relative', width: 380, maxWidth: '100%', height: '100%', background: 'var(--white)', boxShadow: '-4px 0 24px rgba(0,0,0,0.08)', display: 'flex', flexDirection: 'column', padding: 20, gap: 14, overflowY: 'auto' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Task</span>
-          <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', display: 'flex' }}><Icon name="x" size={16} /></button>
+          <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', display: 'flex' }} aria-label="Close"><Icon name="x" size={16} /></button>
         </div>
         <textarea
           defaultValue={task.title}
@@ -2035,7 +2038,7 @@ function TaskDetailDrawer({ task, milestones, otherTasks, onClose, onDelete }: {
           <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', marginBottom: 6 }}>Activity</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {activity === null ? (
-              <div style={{ fontSize: 12, color: 'var(--ink3)' }}>Loading…</div>
+              <SectionLoading />
             ) : activity.length === 0 ? (
               <div style={{ fontSize: 12, color: 'var(--ink4)' }}>No activity yet.</div>
             ) : (

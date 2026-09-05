@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader.js';
 import { Icon } from '../components/Icon.js';
+import { Banner } from '../components/ui/alert.js';
 import { Badge } from '../components/ui/badge.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { apiFetch, BASE_URL } from '../lib/api.js';
@@ -262,9 +263,7 @@ export const ReportIssuePage: React.FC = () => {
               </div>
 
               {error && (
-                <div style={{ marginBottom: 16, padding: '12px 15px', borderRadius: 'var(--r-sm)', background: 'var(--red-l)', border: '1px solid var(--red)', color: 'var(--red)', fontSize: 12.5, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-                  <Icon name="alertCircle" size={15} color="var(--red)" style={{ flexShrink: 0, marginTop: 1 }} /> {error}
-                </div>
+                <Banner variant="error" icon="alertCircle" className="mb-4">{error}</Banner>
               )}
 
               <div className="ri-field">

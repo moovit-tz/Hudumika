@@ -5,6 +5,7 @@ import { apiFetch } from '../../lib/api.js';
 import { Icon, type IconName } from '../../components/Icon.js';
 import { Badge } from '../../components/ui/badge.js';
 import { FeaturedIcon } from '../../components/ui/featured-icon.js';
+import { Tabs, TabsList, TabsTrigger } from '../../components/ui/tabs.js';
 import { Button } from '../../components/ui/button.js';
 
 interface Stats {
@@ -75,7 +76,7 @@ export function StudioDashboard() {
     return (
       <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)', fontSize: 14 }}>
         <div style={{ display: 'inline-block', marginBottom: 12 }}>
-          <Icon name="sparkle" size={24} style={{ animation: 'spin 2s linear infinite', color: 'var(--teal)' }} />
+          <Icon name="sparkle" size={24} style={{ animation: 'ds-spin 2s linear infinite', color: 'var(--teal)' }} />
         </div>
         <div>Loading Workflow Studio Dashboard…</div>
       </div>
@@ -291,19 +292,19 @@ export function StudioDashboard() {
             </div>
 
             {/* Filter buttons */}
-            <div className="ds-tabs-list" data-variant="segmented">
-              {(['all', 'SUCCESS', 'SIMULATED', 'FAILED'] as const).map(st => (
-                <button
-                  key={st}
-                  type="button"
-                  className="ds-tabs-trigger"
-                  data-variant="segmented"
-                  data-state={runFilter === st ? 'active' : 'inactive'}
-                  onClick={() => setRunFilter(st)}
-                >
-                  {st === 'all' ? 'All' : st}
-                </button>
-              ))}
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <Tabs value={runFilter} onValueChange={v => setRunFilter(v as typeof runFilter)} variant="segmented">
+                <TabsList>
+                  {(['all', 'SUCCESS', 'SIMULATED', 'FAILED'] as const).map(st => (
+                    <TabsTrigger
+                      key={st}
+                      value={st}
+                    >
+                      {st === 'all' ? 'All' : st}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </Tabs>
 
               <button
                 type="button"

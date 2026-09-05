@@ -56,7 +56,7 @@ export const OndiAccessReviews: React.FC = () => {
         subtitle="Periodically re-confirm role grants, reattest entitlement compliance, and revoke stale access."
         actions={!showNew ? (
           <button type="button" onClick={() => setShowNew(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 18px', fontFamily: 'var(--font)', fontWeight: 700, fontSize: 13, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0, 181, 137, 0.3)' }}>
+            style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 8, padding: '8px 18px', fontFamily: 'var(--font)', fontWeight: 700, fontSize: 13, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0, 181, 137, 0.3)' }}>
             <Icon name="plus" size={15} /> New Campaign
           </button>
         ) : undefined}
@@ -108,7 +108,7 @@ export const OndiAccessReviews: React.FC = () => {
               <input value={name} onChange={e => setName(e.target.value)}
                 style={{ flex: 1, padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 8, fontFamily: 'var(--font)', fontSize: 13, color: 'var(--ink)', background: 'var(--white)', boxSizing: 'border-box' }} />
               <button type="button" disabled={creating || !name.trim()} onClick={create}
-                style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: 'var(--teal)', color: '#fff', fontWeight: 700, fontSize: 13, fontFamily: 'var(--font)', cursor: 'pointer', opacity: creating ? 0.6 : 1, whiteSpace: 'nowrap', boxShadow: '0 2px 8px rgba(0, 181, 137, 0.3)' }}>
+                style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 700, fontSize: 13, fontFamily: 'var(--font)', cursor: 'pointer', opacity: creating ? 0.6 : 1, whiteSpace: 'nowrap', boxShadow: '0 2px 8px rgba(0, 181, 137, 0.3)' }}>
                 {creating ? 'Starting…' : 'Start Campaign'}
               </button>
               <button type="button" onClick={() => setShowNew(false)}

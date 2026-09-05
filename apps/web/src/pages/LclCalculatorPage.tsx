@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { PageHeader } from '../components/PageHeader.js';
 import { Icon } from '../components/Icon.js';
+import { Banner } from '../components/ui/alert.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { AdvancedCalcResultPanel } from '../components/AdvancedCalcResultPanel.js';
 import { CustomerLeadPicker } from '../components/CustomerLeadPicker.js';
@@ -179,7 +180,7 @@ export const LclCalculatorPage: React.FC = () => {
                 <Field label="Insurance (USD)" hint="Blank = auto 1% of CFR"><input className="input-field" type="number" value={insurance} onChange={e => setInsurance(e.target.value)} style={wizInputStyle} /></Field>
               </div>
               {error && (
-                <div style={{ marginTop: 16, padding: '10px 14px', background: 'var(--red-l)', border: '1px solid var(--red)', borderRadius: 9, fontSize: 12.5, color: 'var(--red)' }}>{error}</div>
+                <Banner variant="error" className="mt-4">{error}</Banner>
               )}
               <WizardNavRow step={step} totalSteps={STEPS.length} setStep={setStep} error={stepError} busy={loading} onContinue={continueFromCargo} continueLabel="Calculate" />
             </SectionCard>

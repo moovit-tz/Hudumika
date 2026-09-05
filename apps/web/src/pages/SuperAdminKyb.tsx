@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { PageHeader } from '../components/PageHeader.js';
 import { Icon } from '../components/Icon.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { apiFetch, apiFetchRaw } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
@@ -122,7 +123,7 @@ export const SuperAdminKyb: React.FC = () => {
             ))}
           </tbody>
         </table>
-        {queue === null && <div style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading…</div>}
+        {queue === null && <SectionLoading />}
         {queue?.length === 0 && <div style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No pending submissions.</div>}
       </SectionCard>
 

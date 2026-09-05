@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { MetricsRow } from '../components/MetricCard.js';
 import { Icon } from '../components/Icon.js';
+import { Badge } from '../components/ui/badge.js';
 import { apiFetch } from '../lib/api.js';
 import { getCompany, useCompany } from '../data/companyStore.js';
 import { useIsDarkMode } from '../hooks/useIsDarkMode.js';
@@ -202,9 +203,12 @@ function Av({ name, size=36 }: { name:string; size?:number }) {
   );
 }
 
+const STATUS_VARIANT: Record<StatusKey, 'gray' | 'warning' | 'success' | 'error' | 'info'> = {
+  DRAFT: 'gray', PENDING: 'warning', APPROVED: 'success', REJECTED: 'error', CONVERTED: 'info', EXPIRED: 'gray',
+};
 function StatusBadge({ status }: { status:StatusKey }) {
   const c = STATUS_CFG[status]??STATUS_CFG.DRAFT;
-  return <span style={{ padding:'3px 10px', borderRadius: 9, fontSize:11, fontWeight:700, background:c.bg, color:c.color, whiteSpace:'nowrap' }}>{c.label}</span>;
+  return <Badge variant={STATUS_VARIANT[status] ?? 'gray'} className="whitespace-nowrap">{c.label}</Badge>;
 }
 
 function SHdr({ title, action }: { title:string; action?:React.ReactNode }) {
@@ -222,11 +226,11 @@ function RejectModal({ onConfirm, onCancel }: { onConfirm:(r:string)=>void; onCa
   const [reason, setReason] = useState('');
   return (
     <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', zIndex:1000, display:'flex', alignItems:'center', justifyContent:'center' }}>
-      <div style={{ background:'var(--white)', borderRadius: 9, padding:28, width:440, boxShadow: 'var(--elev-lg)' }}>
+      <div style={{ background:'var(--white)', borderRadius: 'var(--r)', padding:28, width:440, boxShadow: 'var(--elev-lg)' }}>
         <div style={{ fontSize:16, fontWeight:700, color:'var(--ink)', marginBottom:6 }}>Reject Quotation</div>
         <div style={{ fontSize:13, color:'var(--ink2)', marginBottom:16 }}>Provide a reason. This will be logged on the quote record.</div>
         <textarea title="Rejection reason" placeholder="Enter rejection reason..." value={reason} onChange={e=>setReason(e.target.value)} rows={4}
-          style={{ width:'100%', padding:'10px 12px', border:'1px solid var(--border)', borderRadius: 9, fontSize:13, resize:'vertical', boxSizing:'border-box' as const, fontFamily:'inherit', outline:'none' }} />
+          style={{ width:'100%', padding:'10px 12px', border:'1px solid var(--border)', borderRadius: 'var(--r)', fontSize:13, resize:'vertical', boxSizing:'border-box' as const, fontFamily:'inherit', outline:'none' }} />
         <div style={{ display:'flex', gap:8, justifyContent:'flex-end', marginTop:16 }}>
           <button type="button" title="Cancel" onClick={onCancel} style={{ padding:'var(--ds-btn-py) 18px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:13, color:'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
           <Button type="button" variant="destructive" title="Confirm rejection" disabled={!reason.trim()} onClick={()=>reason.trim()&&onConfirm(reason.trim())}>
@@ -243,17 +247,17 @@ function SendModal({ quote, onSend, onCancel }: { quote:Quote; onSend:(email:str
   const [msg, setMsg] = useState(`Dear ${quote.customer_name},\n\nPlease find attached our quotation ${quote.quote_number} for your review. We look forward to your confirmation.\n\nBest regards,\n${getCompany().name}`);
   return (
     <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', zIndex:1000, display:'flex', alignItems:'center', justifyContent:'center' }}>
-      <div style={{ background:'var(--white)', borderRadius: 9, padding:28, width:480, boxShadow: 'var(--elev-lg)' }}>
+      <div style={{ background:'var(--white)', borderRadius: 'var(--r)', padding:28, width:480, boxShadow: 'var(--elev-lg)' }}>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20 }}>
           <div style={{ fontSize:16, fontWeight:700, color:'var(--ink)' }}>Send Quotation to Customer</div>
           <button type="button" title="Close" onClick={onCancel} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink3)' }}><Icon name="x" size={18}/></button>
         </div>
         <label style={{ fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:4 }}>Recipient Email</label>
         <input type="email" title="Recipient email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="customer@example.com"
-          style={{ width:'100%', padding:'9px 12px', border:'1px solid var(--border)', borderRadius: 9, fontSize:13, marginBottom:14, boxSizing:'border-box' as const, outline:'none' }}/>
+          style={{ width:'100%', padding:'9px 12px', border:'1px solid var(--border)', borderRadius: 'var(--r)', fontSize:13, marginBottom:14, boxSizing:'border-box' as const, outline:'none' }}/>
         <label style={{ fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:4 }}>Message</label>
         <textarea title="Email message" value={msg} onChange={e=>setMsg(e.target.value)} rows={6}
-          style={{ width:'100%', padding:'10px 12px', border:'1px solid var(--border)', borderRadius: 9, fontSize:13, resize:'vertical', boxSizing:'border-box' as const, fontFamily:'inherit', marginBottom:16, outline:'none' }}/>
+          style={{ width:'100%', padding:'10px 12px', border:'1px solid var(--border)', borderRadius: 'var(--r)', fontSize:13, resize:'vertical', boxSizing:'border-box' as const, fontFamily:'inherit', marginBottom:16, outline:'none' }}/>
         <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
           <button type="button" title="Cancel" onClick={onCancel} style={{ padding:'var(--ds-btn-py) 18px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:13, color:'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
           <button type="button" title="Send quotation" onClick={()=>email.trim()&&onSend(email.trim(),msg)}
@@ -424,7 +428,7 @@ function ContactSelector({ customers, leads, value, onChange }: {
         <div style={{ padding:'10px 10px 8px' }}>
           <input type="text" title="Search contacts" placeholder="Search..." value={q} onChange={e=>setQ(e.target.value)} autoFocus
             style={{ width:'100%', padding:'7px 10px', border:'1px solid var(--border)', borderRadius:6, fontSize:13, outline:'none', boxSizing:'border-box' as const, marginBottom:8 }}/>
-          <div style={{ display:'flex', gap:4, background:'var(--bg)', borderRadius: 9, padding:3 }}>
+          <div style={{ display:'flex', gap:4, background:'var(--bg)', borderRadius: 'var(--r)', padding:3 }}>
             <button type="button" title="Show customers" onClick={()=>setTab('customers')} style={tabS(tab==='customers')}>Customers ({custOptions.length})</button>
             <button type="button" title="Show leads" onClick={()=>setTab('leads')} style={tabS(tab==='leads')}>Leads ({leadOptions.length})</button>
           </div>
@@ -669,9 +673,9 @@ function QuoteFormView({ mode, initial, customers, leads, onSave, onCancel, isMo
     try{ await onSave(f,asDraft); } finally{ setSaving(false); }
   }
 
-  const card: React.CSSProperties = { background:'var(--white)', border:'1px solid var(--border)', borderRadius: 9, marginBottom:20, overflow:'hidden' };
+  const card: React.CSSProperties = { background:'var(--white)', border:'1px solid var(--border)', borderRadius: 'var(--r)', marginBottom:20, overflow:'hidden' };
   const lbl: React.CSSProperties = { fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:5 };
-  const inp: React.CSSProperties = { width:'100%', padding:'9px 12px', border:'1px solid var(--border)', borderRadius: 9, fontSize:13, outline:'none', background:'var(--white)', boxSizing:'border-box' as const, color:'var(--ink)' };
+  const inp: React.CSSProperties = { width:'100%', padding:'9px 12px', border:'1px solid var(--border)', borderRadius: 'var(--r)', fontSize:13, outline:'none', background:'var(--white)', boxSizing:'border-box' as const, color:'var(--ink)' };
   const {subtotal,tax,total} = calcTotals(f.lines);
 
   return (
@@ -795,7 +799,7 @@ function QuoteFormView({ mode, initial, customers, leads, onSave, onCancel, isMo
         {/* Right sidebar */}
         <div style={{ position:'sticky', top:24, display:'flex', flexDirection:'column', gap:16 }}>
           {/* Branding preview */}
-          <div style={{ background:'var(--white)', border:'1px solid var(--border)', borderRadius: 9, overflow:'hidden' }}>
+          <div style={{ background:'var(--white)', border:'1px solid var(--border)', borderRadius: 'var(--r)', overflow:'hidden' }}>
             <SHdr title="Company Branding"/>
             <div style={{ padding:16, display:'flex', alignItems:'center', gap:12 }}>
               {docLogoSrc
@@ -813,7 +817,7 @@ function QuoteFormView({ mode, initial, customers, leads, onSave, onCancel, isMo
           </div>
 
           {/* Totals */}
-          <div style={{ background:'var(--white)', border:'1px solid var(--border)', borderRadius: 9, overflow:'hidden' }}>
+          <div style={{ background:'var(--white)', border:'1px solid var(--border)', borderRadius: 'var(--r)', overflow:'hidden' }}>
             <SHdr title="Totals"/>
             <div style={{ padding:16 }}>
               {[['Subtotal',fmt(subtotal,f.currency),false],['Tax',fmt(tax,f.currency),true]].map(([l,v,dim])=>(
@@ -831,7 +835,7 @@ function QuoteFormView({ mode, initial, customers, leads, onSave, onCancel, isMo
 
           {/* Contact preview */}
           {f.customer_name && (
-            <div style={{ background:'var(--white)', border:'1px solid var(--border)', borderRadius: 9, overflow:'hidden' }}>
+            <div style={{ background:'var(--white)', border:'1px solid var(--border)', borderRadius: 'var(--r)', overflow:'hidden' }}>
               <SHdr title="Bill To"/>
               <div style={{ padding:16 }}>
                 <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:10 }}>
@@ -849,7 +853,7 @@ function QuoteFormView({ mode, initial, customers, leads, onSave, onCancel, isMo
           )}
 
           {/* Quick catalog */}
-          <div style={{ background:'var(--white)', border:'1px solid var(--border)', borderRadius: 9, overflow:'hidden' }}>
+          <div style={{ background:'var(--white)', border:'1px solid var(--border)', borderRadius: 'var(--r)', overflow:'hidden' }}>
             <SHdr title="Quick Add Services"/>
             <div style={{ padding:'8px 0', maxHeight:220, overflowY:'auto' }}>
               {FREIGHT_SERVICES.slice(0,10).map(s=>(
@@ -892,7 +896,7 @@ function QuoteDetailView({ quote, onBack, onEdit, onStatusChange, onConvert, onS
 
   const lines = quote.lines??[];
   const activities = quote.activities??[];
-  const card: React.CSSProperties = { background:'var(--white)', border:'1px solid var(--border)', borderRadius: 9, marginBottom:20, overflow:'hidden' };
+  const card: React.CSSProperties = { background:'var(--white)', border:'1px solid var(--border)', borderRadius: 'var(--r)', marginBottom:20, overflow:'hidden' };
 
   return (
     <>
@@ -928,7 +932,7 @@ function QuoteDetailView({ quote, onBack, onEdit, onStatusChange, onConvert, onS
                   <StatusBadge status={quote.status}/>
                 </div>
                 {(quote.origin_port||quote.destination_port)&&(
-                  <div style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr auto 1fr', gap:16, background:'var(--bg)', borderRadius: 9, padding:16 }}>
+                  <div style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr auto 1fr', gap:16, background:'var(--bg)', borderRadius: 'var(--r)', padding:16 }}>
                     <div>
                       <div style={{ fontSize:10, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:4 }}>Origin</div>
                       <div style={{ fontSize:15, fontWeight:700 }}>{quote.origin_port||'—'}</div>
@@ -941,7 +945,7 @@ function QuoteDetailView({ quote, onBack, onEdit, onStatusChange, onConvert, onS
                   </div>
                 )}
                 {quote.rejection_reason&&(
-                  <div style={{ marginTop:14, padding:'10px 14px', background:'rgba(239,68,68,0.06)', border:'1px solid rgba(239,68,68,0.2)', borderRadius: 9, fontSize:13, color:'var(--red)' }}>
+                  <div style={{ marginTop:14, padding:'10px 14px', background:'rgba(239,68,68,0.06)', border:'1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--r)', fontSize:13, color:'var(--red)' }}>
                     <strong>Rejection reason: </strong>{quote.rejection_reason}
                   </div>
                 )}
@@ -1018,7 +1022,7 @@ function QuoteDetailView({ quote, onBack, onEdit, onStatusChange, onConvert, onS
 
           {/* Sidebar */}
           <div style={{ position:'sticky', top:24, display:'flex', flexDirection:'column', gap:16 }}>
-            <div style={{ background:'var(--white)', border:'1px solid var(--border)', borderRadius: 9, overflow:'hidden' }}>
+            <div style={{ background:'var(--white)', border:'1px solid var(--border)', borderRadius: 'var(--r)', overflow:'hidden' }}>
               <SHdr title="Actions"/>
               <div style={{ padding:16, display:'flex', flexDirection:'column', gap:8 }}>
                 {[
@@ -1042,8 +1046,8 @@ function QuoteDetailView({ quote, onBack, onEdit, onStatusChange, onConvert, onS
                 </button>
 
                 <div style={{ borderTop:'1px solid var(--border)', paddingTop:8, marginTop:4, display:'flex', flexDirection:'column', gap:8 }}>
-                  {quote.status==='DRAFT'&&<button type="button" title="Submit" onClick={()=>act('submit',()=>onStatusChange('PENDING'))} style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:10, border:'none', borderRadius: 'var(--r)', background:'var(--gold)', color:'#fff', cursor:'pointer', fontWeight:700, fontSize:13 }}><Icon name="send" size={14}/>{busy==='submit'?'Submitting...':'Submit for Approval'}</button>}
-                  {quote.status==='PENDING'&&<><button type="button" title="Approve" onClick={()=>act('approve',()=>onStatusChange('APPROVED'))} style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:10, border:'none', borderRadius: 'var(--r)', background:'var(--green)', color:'#fff', cursor:'pointer', fontWeight:700, fontSize:13 }}><Icon name="checkCircle" size={14}/>{busy==='approve'?'Approving...':'Approve'}</button>
+                  {quote.status==='DRAFT'&&<button type="button" title="Submit" onClick={()=>act('submit',()=>onStatusChange('PENDING'))} style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:10, border:'none', borderRadius: 'var(--r)', background:'var(--gold)', color:'hsl(var(--gold-foreground))', cursor:'pointer', fontWeight:700, fontSize:13 }}><Icon name="send" size={14}/>{busy==='submit'?'Submitting...':'Submit for Approval'}</button>}
+                  {quote.status==='PENDING'&&<><button type="button" title="Approve" onClick={()=>act('approve',()=>onStatusChange('APPROVED'))} style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:10, border:'none', borderRadius: 'var(--r)', background:'var(--green)', color:'hsl(var(--green-foreground))', cursor:'pointer', fontWeight:700, fontSize:13 }}><Icon name="checkCircle" size={14}/>{busy==='approve'?'Approving...':'Approve'}</button>
                   <button type="button" title="Reject" onClick={()=>setShowReject(true)} style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:10, border:'1px solid rgba(239,68,68,0.25)', borderRadius: 'var(--r)', background:'rgba(239,68,68,0.06)', color:'var(--red)', cursor:'pointer', fontWeight:700, fontSize:13 }}><Icon name="xCircle" size={14}/>Reject</button></>}
                   {quote.status==='APPROVED'&&<button type="button" title="Convert to Shipment" onClick={()=>act('convert',onConvert)} style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:10, border:'none', borderRadius: 'var(--r)', background:'var(--navy)', color:'#fff', cursor:'pointer', fontWeight:700, fontSize:13 }}><Icon name="ship" size={14}/>{busy==='convert'?'Converting...':'Convert to Shipment'}</button>}
                 </div>
@@ -1054,7 +1058,7 @@ function QuoteDetailView({ quote, onBack, onEdit, onStatusChange, onConvert, onS
               </div>
             </div>
 
-            <div style={{ background:'var(--white)', border:'1px solid var(--border)', borderRadius: 9, overflow:'hidden' }}>
+            <div style={{ background:'var(--white)', border:'1px solid var(--border)', borderRadius: 'var(--r)', overflow:'hidden' }}>
               <SHdr title="Details"/>
               <div style={{ padding:16 }}>
                 {[['Quote #',quote.quote_number],['Currency',quote.currency],['Mode',SHIP_TYPE_LABEL[quote.shipment_type]??quote.shipment_type],['Valid Until',fmtDate(quote.valid_until)],['Created',fmtDate(quote.created_at)],['Updated',fmtDate(quote.updated_at)]].map(([l,v])=>(
@@ -1066,7 +1070,7 @@ function QuoteDetailView({ quote, onBack, onEdit, onStatusChange, onConvert, onS
               </div>
             </div>
 
-            <div style={{ background:'var(--white)', border:'1px solid var(--border)', borderRadius: 9, overflow:'hidden' }}>
+            <div style={{ background:'var(--white)', border:'1px solid var(--border)', borderRadius: 'var(--r)', overflow:'hidden' }}>
               <SHdr title="Bill To"/>
               <div style={{ padding:16 }}>
                 <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:12 }}>
@@ -1235,7 +1239,7 @@ export const Quotations: React.FC = () => {
         </div>
       </div>
 
-      <div style={{ background:'var(--white)', borderRadius: 9, border:'1px solid var(--border)', overflow:'hidden' }}>
+      <div style={{ background:'var(--white)', borderRadius: 'var(--r)', border:'1px solid var(--border)', overflow:'hidden' }}>
         {loading
           ? <div style={{ padding:'60px 20px', textAlign:'center', color:'var(--ink3)', fontSize:13 }}>Loading quotations...</div>
           : displayed.length===0

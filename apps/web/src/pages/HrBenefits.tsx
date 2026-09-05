@@ -4,6 +4,7 @@ import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { Icon } from '../components/Icon.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
@@ -103,7 +104,7 @@ export function HrBenefits() {
       <div>
         <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', marginBottom: 10 }}>Your benefits</div>
         {loading ? (
-          <div style={{ color: 'var(--ink3)', fontSize: 13 }}>Loading…</div>
+          <SectionLoading />
         ) : plans.length === 0 ? (
           <SectionCard><div style={{ padding: 24, textAlign: 'center', color: 'var(--ink3)', fontSize: 13.5 }}>No benefit plans have been set up yet.</div></SectionCard>
         ) : (

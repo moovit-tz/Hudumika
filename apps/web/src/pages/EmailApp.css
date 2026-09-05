@@ -167,7 +167,7 @@
   display: flex;
   flex-direction: column;
   background: var(--white);
-  border-radius: 9px;
+  border-radius: var(--r);
   overflow: hidden;
   box-shadow: var(--elev-sm);
 }
@@ -414,7 +414,7 @@
 .em-detail {
   flex: 1;
   background: var(--white);
-  border-radius: 9px;
+  border-radius: var(--r);
   overflow: hidden;
   display: flex;
   flex-direction: column;

@@ -7,6 +7,7 @@ import { Icon, type IconName } from '../components/Icon.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { Badge } from '../components/ui/badge.js';
+import { Spinner } from '../components/ui/spinner.js';
 
 interface ActivityEvent {
   id: string;
@@ -242,7 +243,7 @@ export const OndiOrgActivity: React.FC = () => {
 
         {events === null && !err && (
           <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>
-            <div className="spinner" style={{ width: 24, height: 24, border: '3px solid var(--border)', borderTop: '3px solid var(--teal)', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 12px' }} />
+            <Spinner size={24} thickness={3} style={{ margin: '0 auto 12px' }} />
             <span>Loading audit feed…</span>
           </div>
         )}

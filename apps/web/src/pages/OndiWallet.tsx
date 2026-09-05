@@ -21,6 +21,7 @@ import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { EntityPicker, type PickerItem } from '../components/EntityPicker.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { showAlert } from '../lib/alert.js';
@@ -259,7 +260,7 @@ export const OndiWallet: React.FC = () => {
           </>
         ) : (
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{ width: 38, height: 38, borderRadius: 9, background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <div style={{ width: 38, height: 38, borderRadius: 'var(--r)', background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <Icon name="key" size={17} color="var(--teal)" />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -371,7 +372,7 @@ export const OndiWallet: React.FC = () => {
       )}
 
       <SectionCard padded={false}>
-        {owned === null && <div style={{ padding: 20, fontSize: 13, color: 'var(--ink3)' }}>Loading…</div>}
+        {owned === null && <SectionLoading />}
         {owned?.length === 0 && !showNew && <div style={{ padding: 20, fontSize: 13, color: 'var(--ink3)' }}>Nothing saved yet — add your first item above.</div>}
         {owned?.map(item => renderItemRow(item, { canEdit: true, canDelete: true, canShare: true }))}
       </SectionCard>

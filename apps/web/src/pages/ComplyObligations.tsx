@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Icon, type IconName } from '../components/Icon.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { useComplyObligations, useComplyAgencyDirectory } from '../hooks/useComply.js';
 import type { CompObligation } from '@hudumika/types';
@@ -122,15 +123,24 @@ export function ComplyObligations() {
         ))}
       </div>
 
-      {/* Filters */}
-      <div className="comply-filters">
-        {FILTER_OPTS.map(f => (
-          <button key={f.key} type="button" className={`comply-filter-btn${filter === f.key ? ' active' : ''}`} onClick={() => setFilter(f.key)}>
-            {f.label}
-            {f.key !== 'all' && ` (${stats[f.key as keyof typeof stats] ?? 0})`}
-          </button>
-        ))}
-      </div>
+      {/* Filters — the shared segmented ds-tabs, not a page-local pill style. */}
+      <Tabs value={filter} onValueChange={(v) => setFilter(v as any)} variant="boxed">
+      <TabsList style={{ marginBottom: 20 }}>
+        {FILTER_OPTS.map(f => {
+          const isActive = filter === f.key;
+          return (
+            <TabsTrigger key={f.key} value={f.key}>
+              {f.label}
+              {f.key !== 'all' && (
+                <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 20, lineHeight: 1.5, background: isActive ? 'var(--teal-l)' : 'var(--bg)', color: isActive ? 'var(--teal)' : 'var(--ink3)' }}>
+                  {stats[f.key as keyof typeof stats] ?? 0}
+                </span>
+              )}
+            </TabsTrigger>
+          );
+        })}
+      </TabsList>
+      </Tabs>
 
       {loading && <div className="comply-empty-hint">Loading obligations…</div>}
 

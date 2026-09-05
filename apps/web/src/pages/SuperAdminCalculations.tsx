@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { PageHeader } from '../components/PageHeader.js';
 import { Icon } from '../components/Icon.js';
+import { Banner } from '../components/ui/alert.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { apiFetch } from '../lib/api.js';
 
@@ -102,11 +104,7 @@ export const SuperAdminCalculations: React.FC = () => {
         subtitle="Every calculation run across all tenants — what is being priced, from where, and by whom. Summary figures only."
       />
 
-      {error && (
-        <div style={{ margin: '12px 0', padding: '12px 16px', borderRadius: 'var(--r)', background: 'var(--red-l)', border: '1px solid var(--red)', color: 'var(--red)', fontSize: 12.5, display: 'flex', gap: 8 }}>
-          <Icon name="alertCircle" size={15} color="var(--red)" /> {error}
-        </div>
-      )}
+      {error && <Banner variant="error" icon="alertCircle" className="my-3">{error}</Banner>}
 
       <div className="sac-card">
         <div className="sac-tools">
@@ -172,7 +170,7 @@ export const SuperAdminCalculations: React.FC = () => {
               {!loading && rows.length === 0 && (
                 <tr><td colSpan={7} style={{ padding: '48px 18px', textAlign: 'center', color: 'var(--ink3)' }}>No calculation matches that search.</td></tr>
               )}
-              {loading && <tr><td colSpan={7} style={{ padding: '48px 18px', textAlign: 'center', color: 'var(--ink3)' }}>Loading…</td></tr>}
+              {loading && <tr><td colSpan={7}><SectionLoading /></td></tr>}
             </tbody>
           </table>
         </div>

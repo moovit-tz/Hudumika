@@ -11,6 +11,7 @@ import { getOndiConfig } from '../lib/ondiConfig.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { Button } from '../components/ui/button.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { TotpEnrollCard } from '../components/TotpEnrollCard.js';
@@ -313,56 +314,13 @@ export const OndiApps: React.FC = () => {
                   )}
                 </div>
 
-                <div style={{ display: 'flex', gap: 6 }}>
-                  <button
-                    type="button"
-                    onClick={() => setTypeFilter('all')}
-                    style={{
-                      background: typeFilter === 'all' ? 'hsl(var(--primary))' : 'var(--bg)',
-                      color: typeFilter === 'all' ? 'hsl(var(--primary-foreground))' : 'var(--ink2)',
-                      border: '1px solid var(--border)',
-                      borderRadius: 'var(--r-sm, 7px)',
-                      padding: '5px 12px',
-                      fontSize: 12,
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    All ({consents ? consents.length : 0})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setTypeFilter('first_party')}
-                    style={{
-                      background: typeFilter === 'first_party' ? 'hsl(var(--primary))' : 'var(--bg)',
-                      color: typeFilter === 'first_party' ? 'hsl(var(--primary-foreground))' : 'var(--ink2)',
-                      border: '1px solid var(--border)',
-                      borderRadius: 'var(--r-sm, 7px)',
-                      padding: '5px 12px',
-                      fontSize: 12,
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Hudumika ({firstPartyCount})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setTypeFilter('third_party')}
-                    style={{
-                      background: typeFilter === 'third_party' ? 'hsl(var(--primary))' : 'var(--bg)',
-                      color: typeFilter === 'third_party' ? 'hsl(var(--primary-foreground))' : 'var(--ink2)',
-                      border: '1px solid var(--border)',
-                      borderRadius: 'var(--r-sm, 7px)',
-                      padding: '5px 12px',
-                      fontSize: 12,
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    External ({thirdPartyCount})
-                  </button>
-                </div>
+                <Tabs value={typeFilter} onValueChange={v => setTypeFilter(v as typeof typeFilter)} variant="segmented">
+                  <TabsList>
+                    <TabsTrigger value="all">All ({consents ? consents.length : 0})</TabsTrigger>
+                    <TabsTrigger value="first_party">Hudumika ({firstPartyCount})</TabsTrigger>
+                    <TabsTrigger value="third_party">External ({thirdPartyCount})</TabsTrigger>
+                  </TabsList>
+                </Tabs>
               </div>
 
               {/* App List */}

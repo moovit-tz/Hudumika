@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../../lib/api.js';
 import { Icon, type IconName } from '../../components/Icon.js';
+import { Banner } from '../../components/ui/alert.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
 import type { Workflow } from '@hudumika/types';
 import { showAlert } from '../../lib/alert.js';
@@ -233,9 +234,7 @@ export function ClearanceWorkflowList() {
       </div>
 
       {error && (
-        <div style={{ padding: '10px 16px', marginBottom: 16, background: 'var(--red-l)', border: '1px solid var(--red)', borderRadius: 8, color: 'var(--red)', fontSize: 13 }}>
-          {error}
-        </div>
+        <Banner variant="error" className="mb-4">{error}</Banner>
       )}
 
       {/* Template library — start from a platform template (superadmin-published) */}

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { Textarea } from '../components/ui/textarea.js';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '../components/ui/accordion.js';
 import { PageHeader } from '../components/PageHeader.js';
@@ -83,7 +84,7 @@ export function EmailTemplates() {
       <div style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
       <div style={{ width: 340, flexShrink: 0, borderRight: '1px solid var(--border)', overflowY: 'auto', padding: 16 }}>
         {loading ? (
-          <div style={{ fontSize: 13, color: 'var(--ink3)' }}>Loading…</div>
+          <SectionLoading />
         ) : (
           <Accordion type="multiple" defaultValue={CATEGORY_ORDER} className="flex flex-col gap-2">
             {grouped.map(g => (

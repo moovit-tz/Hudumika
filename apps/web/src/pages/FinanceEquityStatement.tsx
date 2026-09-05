@@ -122,7 +122,7 @@ export function FinanceEquityStatement() {
 
         {notice && (
           <div style={{
-            padding: '10px 16px', borderRadius: 9, fontSize: 12, fontWeight: 600,
+            padding: '10px 16px', borderRadius: 'var(--r)', fontSize: 12, fontWeight: 600,
             background: notice.kind === 'ok' ? 'var(--green-l)' : 'var(--red-l)',
             color: notice.kind === 'ok' ? 'var(--green)' : 'var(--red)',
           }}>
@@ -214,12 +214,12 @@ export function FinanceEquityStatement() {
               <div>
                 <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>Amount ({cur})</div>
                 <input type="number" min={0} value={declareAmount} onChange={e => setDeclareAmount(e.target.value)}
-                  style={{ padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 9, fontSize: 13, width: 160, fontFamily: 'inherit' }} />
+                  style={{ padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13, width: 160, fontFamily: 'inherit' }} />
               </div>
               <div style={{ flex: 1, minWidth: 200 }}>
                 <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>Description (optional)</div>
                 <input type="text" value={declareDesc} onChange={e => setDeclareDesc(e.target.value)}
-                  style={{ padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 9, fontSize: 13, width: '100%', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                  style={{ padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13, width: '100%', fontFamily: 'inherit', boxSizing: 'border-box' }} />
               </div>
               <button type="button" className="btn btn-primary btn-sm" disabled={busy === 'declare'} onClick={declareDividend}>
                 {busy === 'declare' ? 'Declaring…' : 'Declare'}

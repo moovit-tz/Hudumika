@@ -65,10 +65,10 @@ function ProductDetail({ product, onClose, onEdit, isMobile }: {
       <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
         <div style={{ minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
-            <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 5, fontWeight: 700, ...tc }}>
+            <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 'var(--r-sm)', fontWeight: 700, ...tc }}>
               {product.type === 'service' ? 'SERVICE' : 'PRODUCT'}
             </span>
-            <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 5, fontWeight: 700, background: product.status === 'active' ? '#ecfdf5' : '#f1f5f9', color: product.status === 'active' ? '#065f46' : '#64748b' }}>
+            <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 'var(--r-sm)', fontWeight: 700, background: product.status === 'active' ? '#ecfdf5' : '#f1f5f9', color: product.status === 'active' ? '#065f46' : '#64748b' }}>
               {product.status.toUpperCase()}
             </span>
           </div>
@@ -90,12 +90,12 @@ function ProductDetail({ product, onClose, onEdit, isMobile }: {
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
         {/* Pricing cards */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 18 }}>
-          <div style={{ padding: '13px 14px', background: 'var(--teal-l)', borderRadius: 9, border: '1px solid var(--teal-m)' }}>
+          <div style={{ padding: '13px 14px', background: 'var(--teal-l)', borderRadius: 'var(--r)', border: '1px solid var(--teal-m)' }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--teal)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>Sale Price</div>
             <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--teal)', fontFamily: 'var(--mono)' }}>{fmt(product.salePrice)}</div>
             <div style={{ fontSize: 10, color: 'var(--teal)', marginTop: 3 }}>per {product.unit}</div>
           </div>
-          <div style={{ padding: '13px 14px', background: 'var(--bg)', borderRadius: 9, border: '1px solid var(--border)' }}>
+          <div style={{ padding: '13px 14px', background: 'var(--bg)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>Purchase Price</div>
             <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--ink)', fontFamily: 'var(--mono)' }}>{fmt(product.purchasePrice)}</div>
             <div style={{ fontSize: 10, color: 'var(--ink3)', marginTop: 3 }}>per {product.unit}</div>
@@ -480,7 +480,7 @@ export function FinanceProducts() {
                       <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
                     </td>
                     <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
-                      <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 5, fontWeight: 700, ...tc }}>{p.type === 'service' ? 'SERVICE' : 'PRODUCT'}</span>
+                      <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 'var(--r-sm)', fontWeight: 700, ...tc }}>{p.type === 'service' ? 'SERVICE' : 'PRODUCT'}</span>
                     </td>
                     <td style={{ padding: '11px 14px', color: 'var(--ink2)', whiteSpace: 'nowrap' }}>{p.category}</td>
                     <td style={{ padding: '11px 14px', color: 'var(--ink3)', whiteSpace: 'nowrap' }}>{p.unit}</td>
@@ -492,7 +492,7 @@ export function FinanceProducts() {
                       </span>
                     </td>
                     <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
-                      <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 5, fontWeight: 700, background: p.status === 'active' ? '#ecfdf5' : '#f1f5f9', color: p.status === 'active' ? '#065f46' : '#64748b' }}>
+                      <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 'var(--r-sm)', fontWeight: 700, background: p.status === 'active' ? '#ecfdf5' : '#f1f5f9', color: p.status === 'active' ? '#065f46' : '#64748b' }}>
                         {p.status.toUpperCase()}
                       </span>
                     </td>

@@ -36,7 +36,7 @@ export const CompanyForm = ({ initialData = null, onClose, onSubmit }) => {
         style={{
           background: 'rgba(15,32,48,0.95)',
           padding: '24px',
-          borderRadius: '9px',
+          borderRadius: 'var(--r)',
           width: '320px',
           color: '#fff',
           backdropFilter: 'blur(8px)',
@@ -89,7 +89,7 @@ export const CompanyForm = ({ initialData = null, onClose, onSubmit }) => {
           <button type="button" onClick={onClose} style={{ background: 'transparent', border: '1px solid #fff', color: '#fff', padding: 'var(--ds-btn-py-sm) 12px', borderRadius: '4px', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
             Cancel
           </button>
-          <button type="submit" style={{ background: 'var(--teal)', border: 'none', color: '#fff', padding: 'var(--ds-btn-py-sm) 12px', borderRadius: '4px', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
+          <button type="submit" style={{ background: 'hsl(var(--primary))', border: 'none', color: 'hsl(var(--primary-foreground))', padding: 'var(--ds-btn-py-sm) 12px', borderRadius: '4px', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
             {initialData ? 'Update' : 'Create'}
           </button>
         </div>

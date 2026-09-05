@@ -57,7 +57,7 @@ function PaymentDetailPanel({ payment, onClose, isMobile }: { payment: Payment; 
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px' }}>
         {/* Total Badge */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, padding: 20, background: '#f8fafc', borderRadius: 9, border: '1px solid #e2e8f0' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, padding: 20, background: '#f8fafc', borderRadius: 'var(--r)', border: '1px solid #e2e8f0' }}>
           <div>
             <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 6 }}>{payment.direction === 'in' ? 'Amount Received' : 'Amount Paid'}</div>
             <div style={{ fontSize: 24, fontWeight: 800, color: payment.direction === 'in' ? 'var(--green)' : 'var(--red)', fontFamily: 'var(--mono)', lineHeight: 1 }}>{payment.direction === 'in' ? '+' : '−'}{fmt(payment.amount, (payment.currency || 'TZS') as any)}</div>
@@ -106,7 +106,7 @@ function PaymentDetailPanel({ payment, onClose, isMobile }: { payment: Payment; 
         {payment.note && (
           <div style={{ marginTop: 24 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 8 }}>Internal Note</div>
-            <div style={{ padding: 16, background: 'var(--gold-l)', border: '1px solid #fef3c7', borderRadius: 9, fontSize: 13, color: 'var(--gold)', lineHeight: 1.5 }}>
+            <div style={{ padding: 16, background: 'var(--gold-l)', border: '1px solid #fef3c7', borderRadius: 'var(--r)', fontSize: 13, color: 'var(--gold)', lineHeight: 1.5 }}>
               {payment.note}
             </div>
           </div>
@@ -377,7 +377,7 @@ export const FinancePayments: React.FC = () => {
 
         {/* -- Left: List -- */}
         <div style={{ flex: isSplit ? '0 0 55%' : 1, display: 'flex', flexDirection: 'column', borderRight: isSplit ? '1px solid var(--border)' : 'none', overflowY: 'auto' }}>
-          <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', overflow: 'hidden', display: 'flex', flexDirection: 'column', flex: 1 }}>
+          <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', overflow: 'hidden', display: 'flex', flexDirection: 'column', flex: 1 }}>
 
             <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
               <Tabs value={activeTab} onValueChange={setActiveTab} variant="segmented">

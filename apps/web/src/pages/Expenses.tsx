@@ -250,13 +250,13 @@ function ExpenseDetailPanel({ expense, onClose, onChanged, shipments, customers,
 
         <div style={{ marginBottom: 24 }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 4 }}>Notes / Description</div>
-          <div style={{ fontSize: 13, color: 'var(--ink)', background: 'var(--bg)', padding: 12, borderRadius: 9, minHeight: 60, whiteSpace: 'pre-wrap' }}>
+          <div style={{ fontSize: 13, color: 'var(--ink)', background: 'var(--bg)', padding: 12, borderRadius: 'var(--r)', minHeight: 60, whiteSpace: 'pre-wrap' }}>
             {expense.note || <span style={{ color: 'var(--ink3)', fontStyle: 'italic' }}>No additional notes provided.</span>}
           </div>
         </div>
 
         {expense.retirement_status !== 'not_required' && (
-          <div style={{ marginBottom: 24, border: '1.5px solid var(--border)', borderRadius: 9, padding: 16, background: 'var(--bg)' }}>
+          <div style={{ marginBottom: 24, border: '1.5px solid var(--border)', borderRadius: 'var(--r)', padding: 16, background: 'var(--bg)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Petty Cash Retirement</div>
               <span style={{ fontSize: 11.5, fontWeight: 700, color: RETIREMENT_LABEL[expense.retirement_status]?.color || 'var(--ink3)' }}>
@@ -310,11 +310,11 @@ function ExpenseDetailPanel({ expense, onClose, onChanged, shipments, customers,
         <div>
           <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 8 }}>Receipt Attachment</div>
           {expense.attachment_data ? (
-            <div style={{ border: '1.5px solid var(--border)', borderRadius: 9, padding: 4, background: 'var(--bg)' }}>
+            <div style={{ border: '1.5px solid var(--border)', borderRadius: 'var(--r)', padding: 4, background: 'var(--bg)' }}>
               <img src={expense.attachment_data} alt="Receipt Attachment" style={{ width: '100%', height: 'auto', borderRadius: 4, display: 'block' }} />
             </div>
           ) : (
-            <div style={{ border: '1.5px dashed var(--border)', borderRadius: 9, padding: 30, textAlign: 'center', background: 'var(--bg)', color: 'var(--ink3)' }}>
+            <div style={{ border: '1.5px dashed var(--border)', borderRadius: 'var(--r)', padding: 30, textAlign: 'center', background: 'var(--bg)', color: 'var(--ink3)' }}>
               <Icon name="paperclip" size={24} style={{ opacity: 0.5, marginBottom: 8 }} />
               <div style={{ fontSize: 12, fontWeight: 600 }}>No attachment uploaded</div>
             </div>
@@ -708,7 +708,7 @@ export const Expenses: React.FC = () => {
       {/* ── Bulk Upload Modal — bulk CSV paste stays a dialog, unlike single Add Expense ── */}
       {showBulkUpload && (
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowBulkUpload(false)}>
-          <div className="card" style={{ width: '90%', maxWidth: 540, padding: 24, borderRadius: 9, boxShadow: 'var(--elev-lg)' }}>
+          <div className="card" style={{ width: '90%', maxWidth: 540, padding: 24, borderRadius: 'var(--r)', boxShadow: 'var(--elev-lg)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
               <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--navy)' }}>Bulk Upload Expenses</h2>
               <button type="button" className="dp-close" onClick={() => setShowBulkUpload(false)}>×</button>

@@ -16,7 +16,7 @@ export function MoveToModal({ ids, allItems, onClose, onMove }: { ids: string[];
       <div className="card" style={{ width: 380, padding: 24 }} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>Move {ids.length > 1 ? `${ids.length} items` : 'item'}</span>
-          <button onClick={onClose} className="dp-close"><Icon name="close" size={16} /></button>
+          <button onClick={onClose} className="dp-close" aria-label="Close"><Icon name="close" size={16} /></button>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2, maxHeight: 280, overflowY: 'auto', marginBottom: 20 }}>
           <div style={rowStyle(dest === null)} onClick={() => setDest(null)}>

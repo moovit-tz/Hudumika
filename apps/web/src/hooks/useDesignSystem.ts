@@ -66,8 +66,11 @@ export interface ShapeTokens {
  *  system — so a tenant could restyle buttons, cards and badges but not tabs. */
 export interface TabsTokens {
   /** underline = rule beneath the active tab; pill = filled active tab on a
-   *  tinted track; segmented = bordered track with a raised active tab. */
-  variant: 'underline' | 'pill' | 'segmented';
+   *  tinted track; segmented = bordered track with a raised active tab;
+   *  boxed = discrete chips, active chip tinted; outline = discrete chips,
+   *  active chip reads through its border alone; lifted = browser-tab style,
+   *  active tab rises to meet the panel below it. */
+  variant: 'underline' | 'pill' | 'segmented' | 'boxed' | 'outline' | 'lifted';
   radius: number;
   height: number;
   size: number;
@@ -731,6 +734,26 @@ export function applyDesignTokens(tokens: DesignTokens): void {
   const primaryHslDark = hexToHslTriplet(primarySurfaceDark.hex);
   const primaryFgDark = pickForegroundHsl(primarySurfaceDark.hex);
 
+  // Same floor as --primary/--primary-foreground, for the semantic colours.
+  // These were never given it (see CLAUDE.md's own note that this was left
+  // for later) — proven a real, not just theoretical, gap: the dark-theme
+  // gold/red/green/blue values are deliberately brighter (meant to read as
+  // *text on a dark background*), so a solid fill of one of them with
+  // hardcoded white text measures 2.7-4.0:1 against the 4.5:1 AA floor —
+  // an actual failing contrast, not a hypothetical tenant-branding risk.
+  // Light-theme values already clear the floor (5.0-7.7:1) so these are a
+  // no-op there; dark mode is where a real foreground swap is needed.
+  const goldFgLight = pickForegroundHsl(tokens.semantic.light.gold);
+  const redFgLight = pickForegroundHsl(tokens.semantic.light.red);
+  const greenFgLight = pickForegroundHsl(tokens.semantic.light.green);
+  const blueFgLight = pickForegroundHsl(tokens.semantic.light.blue);
+  const purpleFgLight = pickForegroundHsl(tokens.semantic.light.purple);
+  const goldFgDark = pickForegroundHsl(tokens.semantic.dark.gold);
+  const redFgDark = pickForegroundHsl(tokens.semantic.dark.red);
+  const greenFgDark = pickForegroundHsl(tokens.semantic.dark.green);
+  const blueFgDark = pickForegroundHsl(tokens.semantic.dark.blue);
+  const purpleFgDark = pickForegroundHsl(tokens.semantic.dark.purple);
+
   const lightVars: Record<string, string | number> = {
     '--teal': tokens.brand.primary,
     '--teal-l': `rgba(${tr},${tg},${tb},0.1)`,
@@ -758,6 +781,11 @@ export function applyDesignTokens(tokens: DesignTokens): void {
     '--green': tokens.semantic.light.green,
     '--blue': tokens.semantic.light.blue,
     '--purple': tokens.semantic.light.purple,
+    '--gold-foreground': goldFgLight,
+    '--red-foreground': redFgLight,
+    '--green-foreground': greenFgLight,
+    '--blue-foreground': blueFgLight,
+    '--purple-foreground': purpleFgLight,
     '--navy': tokens.semantic.light.navy,
     '--navy2': tokens.semantic.light.navy2,
     '--gold-l': lightenHex(tokens.semantic.light.gold, 0.92),
@@ -892,6 +920,11 @@ export function applyDesignTokens(tokens: DesignTokens): void {
     '--green': tokens.semantic.dark.green,
     '--blue': tokens.semantic.dark.blue,
     '--purple': tokens.semantic.dark.purple,
+    '--gold-foreground': goldFgDark,
+    '--red-foreground': redFgDark,
+    '--green-foreground': greenFgDark,
+    '--blue-foreground': blueFgDark,
+    '--purple-foreground': purpleFgDark,
     '--navy': tokens.semantic.dark.navy,
     '--navy2': tokens.semantic.dark.navy2,
     '--gold-l': tintRgba(tokens.semantic.dark.gold, 0.18),

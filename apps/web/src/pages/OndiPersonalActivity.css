@@ -127,7 +127,7 @@
 .opa-kpi-icon {
   width: 36px;
   height: 36px;
-  border-radius: 9px;
+  border-radius: var(--r);
   background: var(--bg);
   display: flex;
   align-items: center;
@@ -650,7 +650,7 @@
 .opa-event-icon-box {
   width: 36px;
   height: 36px;
-  border-radius: 9px;
+  border-radius: var(--r);
   display: flex;
   align-items: center;
   justify-content: center;

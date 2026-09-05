@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useCMSPage } from '../hooks/useCMSPage.js';
 import { usePageSEO } from '../hooks/usePageSEO.js';
 import './LegalPages.css';
+import { SectionLoading } from '../components/ui/spinner.js';
 
 /** Parses `<h2 id="...">Label</h2>` out of CMS HTML to build the sidebar TOC — no hand-maintained list to fall out of sync with the actual content. */
 function extractTOC(html: string): [string, string][] {
@@ -60,7 +61,7 @@ export const TermsOfService: React.FC = () => {
             </div>
           </div>
 
-          {loading && <div className="lp-body-text">Loading…</div>}
+          {loading && <SectionLoading />}
           {error && <div className="lp-body-text">Couldn't load this page right now ({error}). Please try again shortly.</div>}
           {page && (
             <div className="lp-cms-body" dangerouslySetInnerHTML={{ __html: page.content }} />

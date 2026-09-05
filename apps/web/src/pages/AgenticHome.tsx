@@ -5,6 +5,7 @@ import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Badge } from '../components/ui/badge.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '../components/ui/dropdown-menu.js';
 import { getMood } from '../lib/greeting.js';
@@ -209,13 +210,15 @@ export const AgenticHome: React.FC = () => {
           <button type="button" className="ah-header-mark" onClick={switchToAdvanced} disabled={switching} title="Switch to Advanced landing">
             <Icon name="layoutDashboard" size={14} color="#fff" />
           </button>
-          <div className="ds-tabs-list" data-variant="segmented">
-            {TABS.map(t => (
-              <button key={t.key} type="button" className="ds-tabs-trigger" data-variant="segmented" data-state={tab === t.key ? 'active' : 'inactive'} onClick={() => setTab(t.key)}>
-                <Icon name={t.icon} size={13} strokeWidth={tab === t.key ? 2.3 : 1.8} />{t.label}
-              </button>
-            ))}
-          </div>
+          <Tabs value={tab} onValueChange={v => setTab(v as typeof tab)} variant="segmented">
+            <TabsList>
+              {TABS.map(t => (
+                <TabsTrigger key={t.key} value={t.key}>
+                  <Icon name={t.icon} size={13} strokeWidth={tab === t.key ? 2.3 : 1.8} />{t.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
           <div className="ah-header-search">
             <Icon name="search" size={13} color="var(--ink4)" />
             <input value={searchQ} onChange={e => setSearchQ(e.target.value)} placeholder="Search…" />
@@ -466,7 +469,7 @@ export const AgenticHome: React.FC = () => {
                 onChange={e => setChatInput(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') sendChat(); }}
               />
-              <button type="button" className="ah-chat-send" onClick={sendChat}><Icon name="send" size={14} color="#fff" /></button>
+              <button type="button" className="ah-chat-send" onClick={sendChat} aria-label="Send"><Icon name="send" size={14} color="#fff" /></button>
             </div>
           </div>
         )}

@@ -115,7 +115,7 @@ function AccountRow({
           {depth === 0 && (
             <span style={{
               fontSize: 10, fontWeight: 700, color: cfg.color, background: cfg.bg,
-              padding: '2px 7px', borderRadius: 9, textTransform: 'uppercase', letterSpacing: '0.05em',
+              padding: '2px 7px', borderRadius: 'var(--r)', textTransform: 'uppercase', letterSpacing: '0.05em',
             }}>
               {cfg.label}
             </span>
@@ -136,7 +136,7 @@ function AccountRow({
             fontSize: 10, fontWeight: 700,
             color: account.is_active ? 'var(--green)' : 'var(--ink3)',
             background: account.is_active ? 'var(--green-l)' : 'var(--bg)',
-            padding: '2px 7px', borderRadius: 9,
+            padding: '2px 7px', borderRadius: 'var(--r)',
           }}>
             {account.is_active ? 'Active' : 'Inactive'}
           </span>

@@ -91,7 +91,7 @@ export const OndiAuthorize: React.FC = () => {
             <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>{info.client.name}</div>
             <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 20 }}>wants to access your Hudumika account</div>
 
-            <div style={{ textAlign: 'left', background: 'var(--bg)', borderRadius: 9, padding: '12px 16px', marginBottom: 24 }}>
+            <div style={{ textAlign: 'left', background: 'var(--bg)', borderRadius: 'var(--r)', padding: '12px 16px', marginBottom: 24 }}>
               {scopes.map(s => (
                 <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--ink2)', padding: '5px 0' }}>
                   <Icon name="check" size={13} strokeWidth={2.5} style={{ color: 'var(--teal)' } as React.CSSProperties} />

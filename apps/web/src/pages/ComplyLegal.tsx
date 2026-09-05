@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useSearchParams, useNavigate, useParams } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { useComplyLegalFirms, useComplyLegalEngagements } from '../hooks/useComply.js';
 import type { CompLegalFirm, CompLegalEngagement } from '@hudumika/types';
 import './ComplyOS.css';
@@ -201,12 +202,19 @@ export function ComplyLegal() {
         subtitle="Engage vetted legal firms to handle your compliance applications"
       />
 
-      <div className="comply-filters" style={{ marginBottom: 18 }}>
-        <button type="button" className={`comply-filter-btn${tab === 'firms' ? ' active' : ''}`} onClick={() => setTab('firms')}>Browse Firms</button>
-        <button type="button" className={`comply-filter-btn${tab === 'engagements' ? ' active' : ''}`} onClick={() => setTab('engagements')}>
-          My Engagements {engagements.length > 0 && `(${engagements.length})`}
-        </button>
-      </div>
+      <Tabs value={tab} onValueChange={(v) => setTab(v as any)} variant="boxed">
+      <TabsList style={{ marginBottom: 18 }}>
+        <TabsTrigger value="firms">Browse Firms</TabsTrigger>
+        <TabsTrigger value="engagements">
+          My Engagements
+          {engagements.length > 0 && (
+            <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 20, lineHeight: 1.5, background: tab === 'engagements' ? 'var(--teal-l)' : 'var(--bg)', color: tab === 'engagements' ? 'var(--teal)' : 'var(--ink3)' }}>
+              {engagements.length}
+            </span>
+          )}
+        </TabsTrigger>
+      </TabsList>
+      </Tabs>
 
       {tab === 'firms' && (
         <>
@@ -228,18 +236,18 @@ export function ComplyLegal() {
                 placeholder="Search firms or location…"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                style={{ width: '100%', paddingLeft: 34, paddingRight: 12, paddingTop: 9, paddingBottom: 9, border: '1px solid var(--border)', borderRadius: 9, background: 'var(--white)', fontFamily: 'var(--font)', fontSize: 13, color: 'var(--ink)', boxSizing: 'border-box' }}
+                style={{ width: '100%', paddingLeft: 34, paddingRight: 12, paddingTop: 9, paddingBottom: 9, border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', fontFamily: 'var(--font)', fontSize: 13, color: 'var(--ink)', boxSizing: 'border-box' }}
               />
             </div>
           </div>
 
-          <div className="comply-filters">
+          <Tabs value={specialty} onValueChange={setSpecialty} variant="boxed">
+          <TabsList style={{ marginBottom: 18 }}>
             {SPECIALTIES_FILTER.map(s => (
-              <button key={s} type="button" className={`comply-filter-btn${specialty === s ? ' active' : ''}`} onClick={() => setSpecialty(s)}>
-                {s}
-              </button>
+              <TabsTrigger key={s} value={s}>{s}</TabsTrigger>
             ))}
-          </div>
+          </TabsList>
+          </Tabs>
 
           <div className="comply-firm-grid">
             {firmsLoading && <div className="comply-empty">Loading firms…</div>}
@@ -516,7 +524,7 @@ export function EngageFirmPage() {
           </div>
           <div className="comply-note"><strong>Brief: </strong>{brief}</div>
           {error && <div style={{ fontSize: 12.5, color: 'var(--red)' }}>{error}</div>}
-          <div style={{ background: 'var(--comply-l)', border: '1px solid var(--comply-edge)', borderRadius: 9, padding: '11px 14px', fontSize: 12.5, color: 'var(--ink2)' }}>
+          <div style={{ background: 'var(--comply-l)', border: '1px solid var(--comply-edge)', borderRadius: 'var(--r)', padding: '11px 14px', fontSize: 12.5, color: 'var(--ink2)' }}>
             <strong style={{ color: 'var(--comply)' }}>Milestone tracked</strong> — Payment milestones are tracked in-app as pending/paid/released; ComplyOS does not process payment directly.
           </div>
         </div>

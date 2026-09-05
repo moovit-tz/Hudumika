@@ -1,0 +1,1413 @@
+<!DOCTYPE html>
+<html lang="en" style="scroll-behavior: smooth;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hudumika Calendar — Scheduling Infrastructure for Modern Teams</title>
+  <meta name="description" content="Open, fast, and minimal calendar scheduling. Share booking links, sync bi-directionally with Google and Outlook, and host Bliss WebRTC video calls seamlessly.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* ── Hudumika Design System Font Definitions ── */
+    @font-face {
+      font-family: 'Google Sans Flex';
+      src: url('/fonts/GoogleSansFlex.ttf') format('truetype');
+      font-weight: 100 900;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    :root {
+      /* Hudumika Typography Stack */
+      --font: 'Google Sans Flex', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --mono: 'JetBrains Mono', 'Menlo', monospace;
+
+      /* Cal.com & Calendly Signature Monochrome Black & White Palette */
+      --black: #111827;
+      --black-hover: #1f2937;
+      --black-muted: #374151;
+      
+      --ink: #111827;
+      --ink-secondary: #4b5563;
+      --ink-muted: #6b7280;
+      --ink-light: #9ca3af;
+      
+      --bg: #fafafa;
+      --bg-subtle: #f3f4f6;
+      --white: #ffffff;
+      --border: #e5e7eb;
+      --border-dark: #d1d5db;
+
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 20px;
+
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.06);
+      --shadow-lg: 0 20px 45px -10px rgba(0, 0, 0, 0.12);
+      --shadow-xl: 0 30px 60px -15px rgba(0, 0, 0, 0.18);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    h1, h2, h3, h4 {
+      font-family: var(--font);
+      color: var(--black);
+      letter-spacing: -0.03em;
+      font-weight: 700;
+    }
+
+    /* ── Top Scroll Progress Bar ── */
+    #scroll-progress {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 3px;
+      background: var(--black);
+      z-index: 10000;
+      width: 0%;
+      transition: width 0.1s linear;
+    }
+
+    /* ── Calendly / Amie Smooth Keyframe Animations ── */
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(28px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes scaleUp {
+      from {
+        opacity: 0;
+        transform: scale(0.95) translateY(24px);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+    }
+
+    @keyframes floatBadge {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-8px); }
+    }
+
+    @keyframes pulseRing {
+      0% { box-shadow: 0 0 0 0 rgba(17, 24, 39, 0.4); }
+      70% { box-shadow: 0 0 0 10px rgba(17, 24, 39, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(17, 24, 39, 0); }
+    }
+
+    @keyframes strokeCheck {
+      100% { stroke-dashoffset: 0; }
+    }
+
+    @keyframes tabFadeScale {
+      from { opacity: 0; transform: scale(0.98) translateY(8px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    .hero-animate {
+      animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .hero-animate-scale {
+      animation: scaleUp 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .delay-1 { animation-delay: 0.12s; opacity: 0; }
+    .delay-2 { animation-delay: 0.24s; opacity: 0; }
+    .delay-3 { animation-delay: 0.36s; opacity: 0; }
+    .delay-4 { animation-delay: 0.48s; opacity: 0; }
+
+    /* Scroll Reveal Class */
+    .reveal {
+      opacity: 0;
+      transform: translateY(32px);
+      transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+      will-change: opacity, transform;
+    }
+
+    .reveal.active {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ── Navigation Bar ── */
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px;
+      transition: background 0.3s ease, border-color 0.3s ease;
+    }
+    .nav-container {
+      max-width: 1140px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      transition: transform 0.2s ease;
+    }
+    .brand:hover {
+      transform: translateY(-1px);
+    }
+    .brand-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: var(--radius-sm);
+      background: var(--black);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--white);
+      box-shadow: var(--shadow-sm);
+    }
+    .brand-text {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--black);
+      letter-spacing: -0.02em;
+    }
+    .brand-badge {
+      background: var(--bg-subtle);
+      color: var(--ink-secondary);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      font-family: var(--mono);
+    }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      list-style: none;
+    }
+    .nav-links a {
+      text-decoration: none;
+      color: var(--ink-secondary);
+      font-size: 14px;
+      font-weight: 500;
+      transition: color 0.2s ease;
+    }
+    .nav-links a:hover {
+      color: var(--black);
+    }
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 9px 18px;
+      border-radius: var(--radius-sm);
+      font-size: 13.5px;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      border: 1px solid transparent;
+      position: relative;
+      overflow: hidden;
+    }
+    .btn:active {
+      transform: scale(0.97);
+    }
+    .btn-ghost {
+      background: transparent;
+      color: var(--ink-secondary);
+      border-color: var(--border);
+    }
+    .btn-ghost:hover {
+      background: var(--white);
+      color: var(--black);
+      border-color: var(--border-dark);
+      box-shadow: var(--shadow-sm);
+    }
+    .btn-black {
+      background: var(--black);
+      color: var(--white);
+      border-color: var(--black);
+    }
+    .btn-black:hover {
+      background: var(--black-hover);
+      border-color: var(--black-hover);
+      box-shadow: 0 8px 20px rgba(17, 24, 39, 0.22);
+      transform: translateY(-2px);
+    }
+    .btn-lg {
+      padding: 13px 26px;
+      font-size: 15px;
+      border-radius: var(--radius-md);
+    }
+
+    /* ── Hero Section ── */
+    .hero {
+      padding: 88px 24px 56px;
+      max-width: 1140px;
+      margin: 0 auto;
+      text-align: center;
+      position: relative;
+    }
+    .hero-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      border-radius: 20px;
+      background: var(--white);
+      border: 1px solid var(--border);
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--ink-secondary);
+      margin-bottom: 24px;
+      box-shadow: var(--shadow-sm);
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+    .hero-pill:hover {
+      transform: translateY(-1px);
+      border-color: var(--border-dark);
+    }
+    .live-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--black);
+      animation: pulseRing 2s infinite;
+    }
+    .hero-title {
+      font-size: 62px;
+      font-weight: 800;
+      line-height: 1.08;
+      color: var(--black);
+      max-width: 920px;
+      margin: 0 auto 20px;
+      letter-spacing: -0.035em;
+    }
+    .hero-subtitle {
+      font-size: 19px;
+      color: var(--ink-secondary);
+      max-width: 680px;
+      margin: 0 auto 36px;
+      line-height: 1.6;
+    }
+    .hero-ctas {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      margin-bottom: 56px;
+    }
+    .hero-trust {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--ink-light);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 28px;
+    }
+    .hero-logos {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 40px;
+      opacity: 0.65;
+      transition: opacity 0.3s ease;
+    }
+    .hero-logos:hover {
+      opacity: 1;
+    }
+    .logo-item {
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--black);
+      letter-spacing: 0.02em;
+    }
+
+    /* ── Floating Micro-Badges around Hero (Calendly Style) ── */
+    .hero-preview-container {
+      max-width: 1040px;
+      margin: 0 auto;
+      position: relative;
+    }
+    .floating-badge {
+      position: absolute;
+      z-index: 10;
+      background: var(--white);
+      border: 1px solid var(--border-dark);
+      padding: 8px 14px;
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-lg);
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--black);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      animation: floatBadge 4s ease-in-out infinite;
+      backdrop-filter: blur(8px);
+    }
+    .badge-top-right {
+      top: -18px;
+      right: 20px;
+      animation-delay: 0s;
+    }
+    .badge-bottom-left {
+      bottom: 24px;
+      left: -24px;
+      animation-delay: 2s;
+    }
+
+    .hero-preview-card {
+      background: var(--white);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-xl);
+      overflow: hidden;
+      text-align: left;
+      transition: transform 0.2s ease-out, box-shadow 0.3s ease;
+      transform-style: preserve-3d;
+      will-change: transform;
+    }
+    .preview-bar {
+      background: var(--bg-subtle);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .preview-dots {
+      display: flex;
+      gap: 6px;
+    }
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #d1d5db;
+    }
+    .preview-url {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--ink-secondary);
+      background: var(--white);
+      padding: 4px 14px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+
+    .preview-content {
+      display: grid;
+      grid-template-columns: 250px 1fr;
+      min-height: 440px;
+    }
+    .preview-sidebar {
+      background: var(--bg);
+      border-right: 1px solid var(--border);
+      padding: 20px;
+    }
+    .preview-main {
+      padding: 24px;
+      background: var(--white);
+    }
+
+    .mini-cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 3px;
+      text-align: center;
+      font-size: 11.5px;
+      margin-top: 10px;
+    }
+    .mini-day {
+      padding: 6px 0;
+      border-radius: 4px;
+      color: var(--ink-secondary);
+      font-weight: 500;
+      transition: background 0.15s ease;
+      cursor: pointer;
+    }
+    .mini-day.active {
+      background: var(--black);
+      color: white;
+      font-weight: 700;
+    }
+    .mini-day:hover:not(.active) {
+      background: var(--border);
+    }
+
+    .event-row {
+      padding: 12px 16px;
+      border-radius: var(--radius-sm);
+      margin-bottom: 10px;
+      font-size: 13.5px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border: 1px solid var(--border);
+      background: var(--white);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .event-row:hover {
+      border-color: var(--black);
+      transform: translateX(6px);
+      box-shadow: var(--shadow-sm);
+    }
+    .event-row.black { border-left: 4px solid var(--black); }
+    .event-row.gray { border-left: 4px solid #4b5563; }
+    .event-row.subtle { border-left: 4px solid #9ca3af; }
+
+    /* ── Features Section & Interactive Tab Showcase (Calendly Style) ── */
+    .section {
+      padding: 96px 24px;
+      max-width: 1140px;
+      margin: 0 auto;
+    }
+    .section-header {
+      text-align: center;
+      max-width: 640px;
+      margin: 0 auto 56px;
+    }
+    .section-subtitle {
+      color: var(--ink-muted);
+      font-weight: 700;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 10px;
+      display: block;
+    }
+    .section-title {
+      font-size: 38px;
+      font-weight: 800;
+      color: var(--black);
+      line-height: 1.15;
+    }
+
+    /* Interactive Calendly Tab Switcher */
+    .showcase-tabs {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 32px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 12px;
+      position: relative;
+    }
+    .tab-btn {
+      background: transparent;
+      border: none;
+      padding: 10px 20px;
+      font-family: var(--font);
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--ink-secondary);
+      cursor: pointer;
+      border-radius: var(--radius-sm);
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .tab-btn.active {
+      color: var(--black);
+      background: var(--white);
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--border);
+    }
+    .tab-progress-bar {
+      position: absolute;
+      bottom: -1px;
+      height: 2px;
+      background: var(--black);
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .showcase-panel {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 40px;
+      box-shadow: var(--shadow-lg);
+      min-height: 380px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      align-items: center;
+    }
+    .tab-content-item {
+      display: none;
+      animation: tabFadeScale 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    .tab-content-item.active {
+      display: grid;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      margin-top: 48px;
+    }
+    .feature-card {
+      background: var(--white);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+      padding: 28px 24px;
+      box-shadow: var(--shadow-sm);
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .feature-card:hover {
+      transform: translateY(-6px);
+      border-color: var(--black);
+      box-shadow: var(--shadow-lg);
+    }
+    .feature-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: var(--radius-sm);
+      background: var(--black);
+      color: var(--white);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 18px;
+      box-shadow: var(--shadow-sm);
+    }
+    .feature-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--black);
+      margin-bottom: 8px;
+    }
+    .feature-desc {
+      font-size: 14px;
+      color: var(--ink-secondary);
+      line-height: 1.6;
+    }
+
+    /* ── Cal.com & Calendly Style Interactive Booking Widget ── */
+    .widget-section {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 40px;
+      box-shadow: var(--shadow-lg);
+    }
+    .widget-grid {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 36px;
+    }
+    .widget-left {
+      padding-right: 28px;
+      border-right: 1px solid var(--border);
+    }
+    
+    /* Interactive Dual-State Slot Picker Buttons */
+    .slot-wrapper {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .slot-btn {
+      flex: 1;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--white);
+      font-weight: 600;
+      font-size: 13.5px;
+      color: var(--ink);
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      text-align: center;
+    }
+    .slot-btn:hover {
+      border-color: var(--black);
+      color: var(--black);
+      transform: translateY(-1px);
+    }
+    .slot-btn.selected {
+      background: var(--black);
+      color: var(--white);
+      border-color: var(--black);
+      box-shadow: var(--shadow-sm);
+    }
+    .slot-confirm-btn {
+      display: none;
+      padding: 12px 16px;
+      background: var(--black);
+      color: var(--white);
+      border-radius: var(--radius-sm);
+      font-weight: 700;
+      font-size: 13px;
+      border: none;
+      cursor: pointer;
+      animation: tabFadeScale 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .slot-wrapper.active .slot-confirm-btn {
+      display: block;
+    }
+
+    /* Checkmark SVG draw animation */
+    .checkmark-svg {
+      width: 54px;
+      height: 54px;
+      margin: 0 auto 12px;
+      display: block;
+    }
+    .checkmark-circle-path {
+      stroke-dasharray: 166;
+      stroke-dashoffset: 166;
+      stroke-width: 3;
+      stroke: var(--black);
+      animation: strokeCheck 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+    }
+    .checkmark-check-path {
+      transform-origin: 50% 50%;
+      stroke-dasharray: 48;
+      stroke-dashoffset: 48;
+      stroke-width: 3.5;
+      stroke: var(--black);
+      animation: strokeCheck 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.4s forwards;
+    }
+
+    /* ── Pricing Section ── */
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+    .pricing-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 32px 28px;
+      display: flex;
+      flex-direction: column;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .pricing-card:hover {
+      transform: translateY(-6px);
+      box-shadow: var(--shadow-lg);
+    }
+    .pricing-card.highlight {
+      border-color: var(--black);
+      box-shadow: var(--shadow-lg);
+    }
+    .price-num {
+      font-size: 40px;
+      font-weight: 800;
+      color: var(--black);
+      margin: 14px 0;
+    }
+    .price-num span {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--ink-muted);
+    }
+    .pricing-list {
+      list-style: none;
+      margin: 20px 0 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .pricing-list li {
+      font-size: 13.5px;
+      color: var(--ink-secondary);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .check {
+      color: var(--black);
+      font-weight: 800;
+    }
+
+    /* ── Footer ── */
+    .footer {
+      background: var(--black);
+      color: var(--ink-light);
+      padding: 60px 24px 28px;
+      margin-top: 100px;
+    }
+    .footer-container {
+      max-width: 1140px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 2fr repeat(3, 1fr);
+      gap: 40px;
+      padding-bottom: 40px;
+      border-bottom: 1px solid #1f2937;
+    }
+    .footer-title {
+      color: var(--white);
+      font-size: 20px;
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+    .footer-col h4 {
+      color: var(--white);
+      font-size: 13.5px;
+      margin-bottom: 14px;
+    }
+    .footer-col ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .footer-col a {
+      color: var(--ink-light);
+      text-decoration: none;
+      font-size: 13px;
+      transition: color 0.15s ease;
+    }
+    .footer-col a:hover {
+      color: var(--white);
+    }
+    .footer-bottom {
+      max-width: 1140px;
+      margin: 24px auto 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12.5px;
+    }
+
+    @media (max-width: 860px) {
+      .hero-title { font-size: 40px; }
+      .features-grid, .pricing-grid { grid-template-columns: 1fr; }
+      .widget-grid, .showcase-panel { grid-template-columns: 1fr; }
+      .widget-left { border-right: none; padding-right: 0; padding-bottom: 24px; border-bottom: 1px solid var(--border); }
+      .preview-content { grid-template-columns: 1fr; }
+      .preview-sidebar { display: none; }
+      .footer-container { grid-template-columns: 1fr; gap: 28px; }
+      .nav-links { display: none; }
+      .floating-badge { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Scroll Progress Bar -->
+  <div id="scroll-progress"></div>
+
+  <!-- Minimal Monochrome Header -->
+  <nav class="nav">
+    <div class="nav-container">
+      <a href="/calendar" class="brand">
+        <div class="brand-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+        </div>
+        <span class="brand-text">Hudumika Calendar</span>
+        <span class="brand-badge">v2.4</span>
+      </a>
+
+      <ul class="nav-links">
+        <li><a href="#features">Features</a></li>
+        <li><a href="#showcase">Workflows</a></li>
+        <li><a href="#booking">Booking Links</a></li>
+        <li><a href="#pricing">Pricing</a></li>
+      </ul>
+
+      <div class="nav-actions">
+        <a href="/calendar" class="btn btn-ghost">Sign In</a>
+        <a href="/calendar" class="btn btn-black">Launch App</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <header class="hero hero-animate">
+    <div class="hero-pill">
+      <span class="live-dot"></span>
+      <span>Calendly & Cal.com Inspired Scheduling Infrastructure</span>
+    </div>
+
+    <h1 class="hero-title hero-animate delay-1">
+      Scheduling Infrastructure for Modern Teams
+    </h1>
+
+    <p class="hero-subtitle hero-animate delay-2">
+      Open, fast, and minimal calendar scheduling. Share booking links, sync bi-directionally with Google & Outlook, and host Bliss WebRTC video meetings.
+    </p>
+
+    <div class="hero-ctas hero-animate delay-3">
+      <a href="/calendar" class="btn btn-black btn-lg">
+        Claim Your Booking Link →
+      </a>
+      <a href="#booking" class="btn btn-ghost btn-lg">
+        Interactive Demo
+      </a>
+    </div>
+
+    <div class="hero-trust">Trusted by teams across East Africa & Global Workspaces</div>
+    <div class="hero-logos">
+      <div class="logo-item">SUPERADMIN</div>
+      <div class="logo-item">COMPLYOS</div>
+      <div class="logo-item">NEXUS HR</div>
+      <div class="logo-item">ONDI CONNECT</div>
+      <div class="logo-item">PETTI FINANCE</div>
+    </div>
+  </header>
+
+  <!-- Product UI Preview Mockup with 3D Parallax & Floating Micro Badges -->
+  <section class="hero-preview-container hero-animate-scale delay-4">
+    <!-- Floating Badges -->
+    <div class="floating-badge badge-top-right">
+      <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#10b981;"></span>
+      <span>⚡ Auto-Synced with Google & Outlook</span>
+    </div>
+    <div class="floating-badge badge-bottom-left">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+      <span>🎥 Bliss HD Video Link Attached</span>
+    </div>
+
+    <div class="hero-preview-card" id="heroCard">
+      <div class="preview-bar">
+        <div class="preview-dots">
+          <div class="dot"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+        </div>
+        <div class="preview-url">calendar.hudumika.tz / overview</div>
+        <div style="font-size: 11px; font-weight: 600; color: var(--ink-muted); display:flex; align-items:center; gap:6px;">
+          <span style="width:6px; height:6px; border-radius:50%; background:#10b981;"></span>
+          <span>Live System</span>
+        </div>
+      </div>
+
+      <div class="preview-content">
+        <div class="preview-sidebar">
+          <div style="font-weight: 700; font-size: 13px; margin-bottom: 8px; display: flex; justify-content: space-between;">
+            <span>September 2026</span>
+            <span style="color: var(--black); font-weight: 700; font-size: 11px;">Today</span>
+          </div>
+
+          <div class="mini-cal-grid">
+            <div style="font-weight: 700; color: var(--ink-light);">S</div>
+            <div style="font-weight: 700; color: var(--ink-light);">M</div>
+            <div style="font-weight: 700; color: var(--ink-light);">T</div>
+            <div style="font-weight: 700; color: var(--ink-light);">W</div>
+            <div style="font-weight: 700; color: var(--ink-light);">T</div>
+            <div style="font-weight: 700; color: var(--ink-light);">F</div>
+            <div style="font-weight: 700; color: var(--ink-light);">S</div>
+
+            <div class="mini-day">31</div>
+            <div class="mini-day">1</div>
+            <div class="mini-day">2</div>
+            <div class="mini-day">3</div>
+            <div class="mini-day">4</div>
+            <div class="mini-day active">5</div>
+            <div class="mini-day">6</div>
+            <div class="mini-day">7</div>
+            <div class="mini-day">8</div>
+            <div class="mini-day">9</div>
+            <div class="mini-day">10</div>
+          </div>
+
+          <div style="margin-top: 18px; font-weight: 700; font-size: 12px; margin-bottom: 6px; color: var(--black);">My Calendars</div>
+          <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--ink-secondary);">
+            <label style="display: flex; align-items: center; gap: 6px;"><input type="checkbox" checked style="accent-color: var(--black);"> Work Sync</label>
+            <label style="display: flex; align-items: center; gap: 6px;"><input type="checkbox" checked style="accent-color: var(--black);"> Client Meetings</label>
+            <label style="display: flex; align-items: center; gap: 6px;"><input type="checkbox" checked style="accent-color: var(--black);"> Product Reviews</label>
+          </div>
+        </div>
+
+        <div class="preview-main">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
+            <div style="font-size: 15px; font-weight: 700; color: var(--black);">Thursday, Sep 5, 2026</div>
+            <div style="display: flex; gap: 6px;">
+              <span style="padding: 3px 8px; border-radius: 4px; background: var(--black); color: white; font-size: 11px; font-weight: 700;">Day</span>
+              <span style="padding: 3px 8px; border-radius: 4px; background: var(--bg-subtle); color: var(--ink-secondary); font-size: 11px; font-weight: 500;">Week</span>
+              <span style="padding: 3px 8px; border-radius: 4px; background: var(--bg-subtle); color: var(--ink-secondary); font-size: 11px; font-weight: 500;">Month</span>
+            </div>
+          </div>
+
+          <div class="event-row black">
+            <div>
+              <div style="font-size: 13px; font-weight: 700;">09:00 AM — Executive Sync & Quarterly Review</div>
+              <div style="font-size: 11.5px; color: var(--ink-secondary);">Host: Sarah Chen · Bliss Video Link</div>
+            </div>
+            <span style="background: var(--black); color: white; font-size: 10.5px; padding: 2px 8px; border-radius: 4px; font-weight: 600;">Join Call</span>
+          </div>
+
+          <div class="event-row gray">
+            <div>
+              <div style="font-size: 13px; font-weight: 700;">11:30 AM — Client Onboarding & System Setup</div>
+              <div style="font-size: 11.5px; color: var(--ink-secondary);">Reachable via /book/onboarding-demo</div>
+            </div>
+            <span style="background: var(--bg-subtle); color: var(--black); border: 1px solid var(--border); font-size: 10.5px; padding: 2px 8px; border-radius: 4px; font-weight: 600;">30 min</span>
+          </div>
+
+          <div class="event-row subtle">
+            <div>
+              <div style="font-size: 13px; font-weight: 700;">02:00 PM — Logistics & Customs Workflow Sync</div>
+              <div style="font-size: 11.5px; color: var(--ink-secondary);">Synced with Google Calendar</div>
+            </div>
+            <span style="background: var(--bg-subtle); color: var(--black); border: 1px solid var(--border); font-size: 10.5px; padding: 2px 8px; border-radius: 4px; font-weight: 600;">Synced</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Interactive Calendly Feature Showcase Tabs -->
+  <section class="section reveal" id="showcase">
+    <div class="section-header">
+      <span class="section-subtitle">How It Works</span>
+      <h2 class="section-title">Automated scheduling from start to finish</h2>
+    </div>
+
+    <div class="showcase-tabs">
+      <button class="tab-btn active" onclick="switchTab(0)">
+        <span>1-on-1s & Teams</span>
+      </button>
+      <button class="tab-btn" onclick="switchTab(1)">
+        <span>Automated Workflows</span>
+      </button>
+      <button class="tab-btn" onclick="switchTab(2)">
+        <span>Custom Routing</span>
+      </button>
+      <button class="tab-btn" onclick="switchTab(3)">
+        <span>Bliss Video Calls</span>
+      </button>
+    </div>
+
+    <div class="showcase-panel">
+      <!-- Tab 0: 1-on-1s -->
+      <div class="tab-content-item active" id="tab-0">
+        <div>
+          <span style="font-size: 11px; font-weight: 700; color: var(--ink-muted); text-transform: uppercase;">01 / SMART AVAILABILITY</span>
+          <h3 style="font-size: 26px; font-weight: 800; margin: 8px 0 14px;">Round-Robin & Collective Team Booking</h3>
+          <p style="font-size: 14.5px; color: var(--ink-secondary); line-height: 1.6; margin-bottom: 20px;">
+            Automatically pool team availability. Route sales leads to open representatives or schedule collective review meetings without endless email threads.
+          </p>
+          <div style="display: flex; gap: 12px;">
+            <a href="/calendar" class="btn btn-black">Explore Team Links →</a>
+          </div>
+        </div>
+        <div style="background: var(--bg-subtle); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 24px;">
+          <div style="font-size: 13px; font-weight: 700; margin-bottom: 12px;">Active Team Members</div>
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; background: var(--white); padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border);">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <div style="width: 28px; height: 28px; border-radius: 50%; background: var(--black); color: white; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700;">SC</div>
+                <div>
+                  <div style="font-weight: 700; font-size: 13px;">Sarah Chen</div>
+                  <div style="font-size: 11px; color: var(--ink-muted);">Available Today</div>
+                </div>
+              </div>
+              <span style="font-size: 11px; font-weight: 700; color: #10b981;">Online</span>
+            </div>
+            <div style="display: flex; align-items: center; justify-content: space-between; background: var(--white); padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border);">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <div style="width: 28px; height: 28px; border-radius: 50%; background: #4b5563; color: white; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700;">AM</div>
+                <div>
+                  <div style="font-weight: 700; font-size: 13px;">Alex Morgan</div>
+                  <div style="font-size: 11px; color: var(--ink-muted);">Synced Google Cal</div>
+                </div>
+              </div>
+              <span style="font-size: 11px; font-weight: 700; color: var(--ink-muted);">In Meeting</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 1: Workflows -->
+      <div class="tab-content-item" id="tab-1">
+        <div>
+          <span style="font-size: 11px; font-weight: 700; color: var(--ink-muted); text-transform: uppercase;">02 / AUTOMATION</span>
+          <h3 style="font-size: 26px; font-weight: 800; margin: 8px 0 14px;">Automated SMS & Email Reminders</h3>
+          <p style="font-size: 14.5px; color: var(--ink-secondary); line-height: 1.6; margin-bottom: 20px;">
+            Eliminate no-shows with automated SMS, WhatsApp, and email confirmation flows. Send pre-meeting prep notes and post-meeting follow-up surveys automatically.
+          </p>
+          <a href="/studio" class="btn btn-black">Open Workflow Studio →</a>
+        </div>
+        <div style="background: var(--bg-subtle); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 24px;">
+          <div style="font-size: 13px; font-weight: 700; margin-bottom: 12px;">Active Automation Trigger</div>
+          <div style="background: var(--white); padding: 14px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 10px;">
+            <div style="font-size: 12px; font-weight: 700; color: var(--black);">⚡ 24 Hours Before Meeting</div>
+            <div style="font-size: 11.5px; color: var(--ink-secondary); margin-top: 4px;">Send SMS reminder & Bliss Video Join Link to Invitee</div>
+          </div>
+          <div style="background: var(--white); padding: 14px; border-radius: 8px; border: 1px solid var(--border);">
+            <div style="font-size: 12px; font-weight: 700; color: var(--black);">⚡ Immediately After Booking</div>
+            <div style="font-size: 11.5px; color: var(--ink-secondary); margin-top: 4px;">Create lead record in NexusHR & ComplyOS</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 2: Custom Routing -->
+      <div class="tab-content-item" id="tab-2">
+        <div>
+          <span style="font-size: 11px; font-weight: 700; color: var(--ink-muted); text-transform: uppercase;">03 / QUALIFICATION</span>
+          <h3 style="font-size: 26px; font-weight: 800; margin: 8px 0 14px;">Smart Form Screening & Routing</h3>
+          <p style="font-size: 14.5px; color: var(--ink-secondary); line-height: 1.6; margin-bottom: 20px;">
+            Screen visitors with custom intake questions. Direct high-value enterprise accounts to senior account managers while routing support queries automatically.
+          </p>
+          <a href="/calendar" class="btn btn-black">Setup Routing Forms →</a>
+        </div>
+        <div style="background: var(--bg-subtle); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 24px;">
+          <div style="font-weight: 700; font-size: 13px; margin-bottom: 10px;">Intake Question Preview</div>
+          <div style="display: flex; flex-direction: column; gap: 8px; font-size: 12px;">
+            <input type="text" value="Company Size: 50-200 Employees" readonly style="padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--white); font-weight: 600;">
+            <input type="text" value="Primary Goal: Multi-Tenant Customs Sync" readonly style="padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--white); font-weight: 600;">
+            <div style="font-size: 11px; font-weight: 700; color: var(--black); margin-top: 4px;">→ Matched with: Senior Enterprise Lead</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 3: Bliss Video -->
+      <div class="tab-content-item" id="tab-3">
+        <div>
+          <span style="font-size: 11px; font-weight: 700; color: var(--ink-muted); text-transform: uppercase;">04 / VIDEO MEETINGS</span>
+          <h3 style="font-size: 26px; font-weight: 800; margin: 8px 0 14px;">Native Bliss WebRTC Video Calls</h3>
+          <p style="font-size: 14.5px; color: var(--ink-secondary); line-height: 1.6; margin-bottom: 20px;">
+            No third-party plugins or downloads required. Every booked event automatically includes a secure HD Bliss video conference link with active host controls.
+          </p>
+          <a href="/bliss/overview" class="btn btn-black">Test Bliss Video →</a>
+        </div>
+        <div style="background: var(--black); color: white; border-radius: var(--radius-md); padding: 24px; text-align: center;">
+          <div style="width: 48px; height: 48px; border-radius: 50%; background: rgba(255,255,255,0.1); margin: 0 auto 12px; display: flex; align-items: center; justify-content: center;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+          </div>
+          <div style="font-weight: 700; font-size: 15px;">Bliss Meeting Room Active</div>
+          <div style="font-size: 12px; opacity: 0.7; margin-top: 4px;">bliss.hudumika.tz/call/sync-908</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Core Features Grid -->
+  <section class="section reveal" id="features">
+    <div class="section-header">
+      <span class="section-subtitle">Core Infrastructure</span>
+      <h2 class="section-title">Built for modern scheduling workflows</h2>
+    </div>
+
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+        </div>
+        <h3 class="feature-title">Shareable Booking Links</h3>
+        <p class="feature-desc">Cal.com style public booking pages (`/book/:slug`) with customized durations, buffer times, working hours, and guest questions.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+        </div>
+        <h3 class="feature-title">Bliss WebRTC Video</h3>
+        <p class="feature-desc">Instant 1-click video call room links embedded directly into calendar invites with host controls, waiting rooms, and recording.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6"></path><path d="M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path></svg>
+        </div>
+        <h3 class="feature-title">2-Way Sync</h3>
+        <p class="feature-desc">Keep your existing calendar up to date. Bi-directional sync with Google Calendar, Microsoft Outlook, and Apple iCal.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+        </div>
+        <h3 class="feature-title">Team Free/Busy Overlay</h3>
+        <p class="feature-desc">Effortlessly view team availability with the "Meet with…" panel. Find overlapping open slots in seconds without double booking.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+        </div>
+        <h3 class="feature-title">Smart Task Scheduling</h3>
+        <p class="feature-desc">Reclaim.ai & Morgen style time blocking. Drag and drop pending todo items directly onto the calendar grid.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+        </div>
+        <h3 class="feature-title">Enterprise Security</h3>
+        <p class="feature-desc">Multi-tenant architecture with tenant_id level data isolation, role-based access control, and audit trail compliance.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Cal.com & Calendly Style Interactive Booking Demo -->
+  <section class="section reveal" id="booking">
+    <div class="widget-section">
+      <div class="widget-grid">
+        <div class="widget-left">
+          <div style="font-size: 11px; font-weight: 700; color: var(--black); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">HOST: HUDUMIKA TEAM</div>
+          <div style="font-size: 22px; font-weight: 800; color: var(--black); margin-bottom: 8px;">30 Min Product Strategy Tour</div>
+          <p style="font-size: 13.5px; color: var(--ink-secondary); line-height: 1.5; margin-bottom: 20px;">
+            Select a time slot to experience Calendly's 2-step booking interaction flow.
+          </p>
+
+          <div style="display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: var(--ink-secondary);">
+            <div>⏱ <strong>30 mins</strong> duration</div>
+            <div>📹 <strong>Bliss WebRTC Link</strong> auto-generated</div>
+            <div>🌐 <strong>East Africa Time</strong> (GMT+3)</div>
+          </div>
+        </div>
+
+        <div>
+          <div style="font-size: 14px; font-weight: 700; color: var(--black); margin-bottom: 12px;">Select Available Time — Thursday, Sep 5</div>
+          
+          <div id="slotContainer">
+            <div class="slot-wrapper">
+              <button class="slot-btn" onclick="selectSlot(this, '09:00 AM')">09:00 AM</button>
+              <button class="slot-confirm-btn" onclick="confirmSlot('09:00 AM')">Next →</button>
+            </div>
+            <div class="slot-wrapper">
+              <button class="slot-btn" onclick="selectSlot(this, '10:30 AM')">10:30 AM</button>
+              <button class="slot-confirm-btn" onclick="confirmSlot('10:30 AM')">Next →</button>
+            </div>
+            <div class="slot-wrapper">
+              <button class="slot-btn" onclick="selectSlot(this, '02:00 PM')">02:00 PM</button>
+              <button class="slot-confirm-btn" onclick="confirmSlot('02:00 PM')">Next →</button>
+            </div>
+            <div class="slot-wrapper">
+              <button class="slot-btn" onclick="selectSlot(this, '03:30 PM')">03:30 PM</button>
+              <button class="slot-confirm-btn" onclick="confirmSlot('03:30 PM')">Next →</button>
+            </div>
+          </div>
+
+          <div id="bookingForm" style="display: none; flex-direction: column; gap: 12px; margin-top: 16px;">
+            <div style="font-size: 13.5px; font-weight: 700; color: var(--black);" id="selectedSlotNotice">Selected: Thursday, Sep 5 at 10:30 AM</div>
+            <input type="text" placeholder="Your Full Name" value="Alex Morgan" style="padding: 10px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13.5px; width: 100%;">
+            <input type="email" placeholder="Your Email Address" value="alex@example.com" style="padding: 10px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13.5px; width: 100%;">
+            <button class="btn btn-black" onclick="submitBooking()" style="width: 100%; padding: 12px;">Confirm Booking & Send Invite</button>
+          </div>
+
+          <div id="bookingSuccess" style="display: none; padding: 24px; border-radius: var(--radius-md); background: var(--bg-subtle); border: 1px solid var(--black); text-align: center;">
+            <svg viewBox="0 0 52 52" class="checkmark-svg">
+              <circle cx="26" cy="26" r="24" fill="none" class="checkmark-circle-path"/>
+              <path fill="none" d="M14 27l7 7 16-16" class="checkmark-check-path"/>
+            </svg>
+            <div style="font-size: 18px; font-weight: 800; color: var(--black); margin-bottom: 6px;">You are scheduled!</div>
+            <div style="font-size: 13.5px; color: var(--ink-secondary); line-height: 1.5;">
+              Calendar invitation & Bliss video room link have been dispatched to <strong>alex@example.com</strong>.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pricing -->
+  <section class="section reveal" id="pricing">
+    <div class="section-header">
+      <span class="section-subtitle">Simple Pricing</span>
+      <h2 class="section-title">Clean plans for teams</h2>
+    </div>
+
+    <div class="pricing-grid">
+      <div class="pricing-card">
+        <h3 style="font-size: 18px; font-weight: 700;">Starter</h3>
+        <div class="price-num">$0 <span>/ month</span></div>
+        <ul class="pricing-list">
+          <li><span class="check">✓</span> 1 Active Booking Page</li>
+          <li><span class="check">✓</span> Google & Outlook Calendar Sync</li>
+          <li><span class="check">✓</span> Bliss Video Calls (40 mins)</li>
+          <li><span class="check">✓</span> Standard Email Notifications</li>
+        </ul>
+        <a href="/calendar" class="btn btn-ghost" style="margin-top: auto;">Get Started Free</a>
+      </div>
+
+      <div class="pricing-card highlight">
+        <h3 style="font-size: 18px; font-weight: 700; color: var(--black);">Pro Team</h3>
+        <div class="price-num">$12 <span>/ user / mo</span></div>
+        <ul class="pricing-list">
+          <li><span class="check">✓</span> Unlimited Booking Pages</li>
+          <li><span class="check">✓</span> Bliss Video HD (Unlimited)</li>
+          <li><span class="check">✓</span> Team Overlay ("Meet with…")</li>
+          <li><span class="check">✓</span> Custom Domain (`calendar.domain.com`)</li>
+          <li><span class="check">✓</span> Automated Email/SMS Reminders</li>
+        </ul>
+        <a href="/calendar" class="btn btn-black" style="margin-top: auto;">Start 14-Day Free Trial</a>
+      </div>
+
+      <div class="pricing-card">
+        <h3 style="font-size: 18px; font-weight: 700;">Enterprise</h3>
+        <div class="price-num">Custom</div>
+        <ul class="pricing-list">
+          <li><span class="check">✓</span> Everything in Pro Team</li>
+          <li><span class="check">✓</span> Dedicated SSO & SAML Auth</li>
+          <li><span class="check">✓</span> Custom Entitlements & API Access</li>
+          <li><span class="check">✓</span> 99.9% Uptime SLA Guarantee</li>
+          <li><span class="check">✓</span> Dedicated Account Manager</li>
+        </ul>
+        <a href="/calendar" class="btn btn-ghost" style="margin-top: auto;">Contact Sales</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-container">
+      <div>
+        <div class="footer-title">Hudumika Calendar</div>
+        <p style="font-size: 13px; max-width: 300px; line-height: 1.5;">
+          Minimal scheduling infrastructure and WebRTC video meeting tools for modern teams.
+        </p>
+      </div>
+
+      <div class="footer-col">
+        <h4>Product</h4>
+        <ul>
+          <li><a href="/calendar">Calendar App</a></li>
+          <li><a href="/calendar">Booking Links</a></li>
+          <li><a href="/calendar">Bliss Video Calls</a></li>
+          <li><a href="/calendar">Google/Outlook Sync</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>Platform</h4>
+        <ul>
+          <li><a href="/admin">SuperAdmin</a></li>
+          <li><a href="/complyos">ComplyOS</a></li>
+          <li><a href="/nexushr">NexusHR</a></li>
+          <li><a href="/studio">Workflow Studio</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>Legal</h4>
+        <ul>
+          <li><a href="#">Privacy Policy</a></li>
+          <li><a href="#">Terms of Service</a></li>
+          <li><a href="#">Security Standards</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <div>Copyright © 2026 Hudumika Platform. All rights reserved.</div>
+      <div>calendar.hudumika.tz · Powered by ClearOS</div>
+    </div>
+  </footer>
+
+  <script>
+    // Top Scroll Progress Bar Handler
+    window.addEventListener('scroll', function() {
+      const winScroll = document.body.scrollTop || document.documentElement.scrollTop;
+      const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+      const scrolled = (winScroll / height) * 100;
+      document.getElementById('scroll-progress').style.width = scrolled + '%';
+    });
+
+    // Intersection Observer for Scroll Reveal Animations
+    document.addEventListener('DOMContentLoaded', function() {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('active');
+          }
+        });
+      }, { threshold: 0.1 });
+
+      document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+      // Parallax 3D Perspective Tilt on Hero Mockup Window
+      const heroCard = document.getElementById('heroCard');
+      if (heroCard) {
+        heroCard.parentElement.addEventListener('mousemove', (e) => {
+          const rect = heroCard.getBoundingClientRect();
+          const x = e.clientX - rect.left - rect.width / 2;
+          const y = e.clientY - rect.top - rect.height / 2;
+          const rotX = (-y / rect.height) * 6;
+          const rotY = (x / rect.width) * 6;
+          heroCard.style.transform = `perspective(1000px) rotateX(${rotX}deg) rotateY(${rotY}deg)`;
+        });
+        heroCard.parentElement.addEventListener('mouseleave', () => {
+          heroCard.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg)';
+        });
+      }
+    });
+
+    // Tab Switcher for Calendly Feature Showcase
+    function switchTab(index) {
+      document.querySelectorAll('.tab-btn').forEach((b, i) => {
+        b.classList.toggle('active', i === index);
+      });
+      document.querySelectorAll('.tab-content-item').forEach((panel, i) => {
+        panel.classList.toggle('active', i === index);
+      });
+    }
+
+    // Calendly Interactive Slot Picker Dual State
+    let chosenTime = '';
+    function selectSlot(btn, time) {
+      document.querySelectorAll('.slot-wrapper').forEach(w => w.classList.remove('active'));
+      document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('selected'));
+      
+      btn.classList.add('selected');
+      btn.parentElement.classList.add('active');
+      chosenTime = time;
+    }
+
+    function confirmSlot(time) {
+      document.getElementById('slotContainer').style.display = 'none';
+      document.getElementById('bookingForm').style.display = 'flex';
+      document.getElementById('selectedSlotNotice').innerText = 'Selected Time: Thursday, Sep 5 at ' + time;
+    }
+
+    function submitBooking() {
+      document.getElementById('bookingForm').style.display = 'none';
+      document.getElementById('bookingSuccess').style.display = 'block';
+    }
+  </script>
+</body>
+</html>

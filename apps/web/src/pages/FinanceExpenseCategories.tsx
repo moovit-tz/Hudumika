@@ -13,6 +13,7 @@ import React, { useState, useEffect } from 'react';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Icon } from '../components/Icon.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { apiFetch } from '../lib/api.js';
 
 interface Category { id: string; name: string; color: string }
@@ -62,7 +63,7 @@ export const FinanceExpenseCategories: React.FC = () => {
         action={<button type="button" className="btn btn-primary btn-sm" onClick={() => setAdding(true)}>+ Add category</button>}
       >
         {!loaded ? (
-          <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading…</div>
+          <SectionLoading />
         ) : cats.length === 0 && !adding ? (
           <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>
             No custom categories yet — the built-in set (Port Charges, Customs Duty, Freight, …) already covers most expenses.

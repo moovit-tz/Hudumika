@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Icon } from '../components/Icon.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { Badge } from '../components/ui/badge.js';
 import { Button } from '../components/ui/button.js';
 import { Input } from '../components/ui/input.js';
@@ -153,7 +154,7 @@ export function CarrierContractsPage() {
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {shopResults.map((r, i) => (
-                    <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 9, background: i === 0 ? 'var(--teal-l)' : 'var(--bg)', border: i === 0 ? '1px solid var(--teal-m)' : '1px solid var(--border)' }}>
+                    <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 'var(--r)', background: i === 0 ? 'var(--teal-l)' : 'var(--bg)', border: i === 0 ? '1px solid var(--teal-m)' : '1px solid var(--border)' }}>
                       {i === 0 && <Badge variant="brand">Cheapest</Badge>}
                       <PersonAvatar userId={r.carrier_id} kind="carriers" name={r.carrier_name ?? ''} size={22} style={{ borderRadius: 6 }} />
                       <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{r.carrier_name}</span>
@@ -223,7 +224,7 @@ export function CarrierContractsPage() {
 
         <SectionCard title="All contracts" padded={false} collapsible={false}>
           {loading ? (
-            <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>Loading…</div>
+            <SectionLoading />
           ) : contracts.length === 0 ? (
             <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>No carrier contracts yet.</div>
           ) : (

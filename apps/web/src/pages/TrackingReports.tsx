@@ -18,7 +18,7 @@ interface FuelLog { vehicle_id: string; liters: number; cost: number | null; log
 interface Trip { vehicle_id: string; status: string; origin: string | null; destination: string | null; scheduled_start: string | null }
 interface Maintenance { vehicle_id: string; service_type: string; cost: number | null; service_date: string }
 
-const cardStyle: React.CSSProperties = { background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: 20 };
+const cardStyle: React.CSSProperties = { background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 20 };
 const REPORT_TYPES = [
   { id: 'fleet-summary', label: 'Fleet Summary' },
   { id: 'maintenance', label: 'Maintenance' },

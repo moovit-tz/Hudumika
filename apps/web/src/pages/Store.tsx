@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { apiFetch } from '../lib/api.js';
 import { PageHeader } from '../components/PageHeader.js';
 import './Store.css';
@@ -340,19 +341,16 @@ export const Store: React.FC = () => {
               </div>
             </div>
 
-            {/* Tabs */}
-            <div className="store-detail-tabs">
+            {/* Tabs — the shared segmented ds-tabs */}
+            <Tabs value={activeDetailTab} onValueChange={(v) => setActiveDetailTab(v as any)} variant="segmented">
+              <TabsList>
               {(['overview', 'reviews', 'permissions'] as const).map(tab => (
-                <button
-                  key={tab}
-                  type="button"
-                  className={`store-tab-btn${activeDetailTab === tab ? ' active' : ''}`}
-                  onClick={() => setActiveDetailTab(tab)}
-                >
+                <TabsTrigger key={tab} value={tab}>
                   {tab === 'permissions' ? 'Permissions & Privacy' : tab.charAt(0).toUpperCase() + tab.slice(1)}
-                </button>
+                </TabsTrigger>
               ))}
-            </div>
+              </TabsList>
+            </Tabs>
 
             {/* Tab content */}
             <div className="store-detail-body">

@@ -121,7 +121,7 @@ export const CustomerDocuments: React.FC = () => {
             </p>
           </div>
           <button type="button" disabled={uploading} onClick={() => fileInputRef.current?.click()}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border: 'none', background: uploading ? 'var(--ink3)' : 'var(--teal)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: uploading ? 'default' : 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box' }}>
+            style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border: 'none', background: uploading ? 'var(--ink3)' : 'hsl(var(--primary))', color: uploading ? '#fff' : 'hsl(var(--primary-foreground))', fontSize: 13, fontWeight: 700, cursor: uploading ? 'default' : 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box' }}>
             <Icon name="upload" size={14} strokeWidth={2} />
             {uploading ? 'Uploading…' : 'Upload'}
           </button>
@@ -134,10 +134,10 @@ export const CustomerDocuments: React.FC = () => {
       <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
         {loading ? (
           Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: 16, height: 64 }} />
+            <div key={i} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 16, height: 64 }} />
           ))
         ) : loadError ? (
-          <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: '40px 20px', textAlign: 'center' }}>
+          <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '40px 20px', textAlign: 'center' }}>
             <Icon name="alertCircle" size={36} color="var(--red)" />
             <p style={{ color: 'var(--ink2)', fontSize: 14, margin: '12px 0 4px', fontWeight: 600 }}>Couldn't load your documents</p>
             <p style={{ color: 'var(--ink3)', fontSize: 13, margin: '0 0 16px' }}>Check your connection and try again.</p>
@@ -146,7 +146,7 @@ export const CustomerDocuments: React.FC = () => {
             </button>
           </div>
         ) : files.length === 0 ? (
-          <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: '40px 20px', textAlign: 'center' }}>
+          <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '40px 20px', textAlign: 'center' }}>
             <Icon name="folder" size={36} color="var(--ink3)" />
             <p style={{ color: 'var(--ink3)', fontSize: 14, margin: '12px 0 4px' }}>No documents yet</p>
             <p style={{ color: 'var(--ink3)', fontSize: 12.5, margin: 0 }}>Files your agent shares with you will appear here</p>
@@ -155,8 +155,8 @@ export const CustomerDocuments: React.FC = () => {
           files.map(f => {
             const ft = fileTypeStyle(f.type);
             return (
-              <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: '12px 14px' }}>
-                <div style={{ width: 36, height: 36, borderRadius: 9, background: ft.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '12px 14px' }}>
+                <div style={{ width: 36, height: 36, borderRadius: 'var(--r)', background: ft.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <Icon name={ft.icon} size={17} color={ft.color} strokeWidth={1.75} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>

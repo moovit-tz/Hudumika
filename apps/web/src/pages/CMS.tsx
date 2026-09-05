@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
+import { Badge } from '../components/ui/badge.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { apiFetch } from '../lib/api.js';
 import { RichTextEditor } from '../components/RichTextEditor.js';
 import { useAuth } from '../hooks/useAuth.js';
@@ -58,21 +61,12 @@ function Av({ initials, color, size = 36 }: { initials: string; color: string; s
 }
 
 /* ── Status badge ── */
+const STATUS_VARIANT: Record<string, 'success' | 'warning' | 'error'> = {
+  published: 'success', draft: 'warning', trash: 'error',
+  approved: 'success', pending: 'warning', spam: 'error',
+};
 function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, { bg: string; color: string }> = {
-    published: { bg: 'var(--green-l, rgba(5,150,105,0.1))', color: 'var(--green, #059669)' },
-    draft:     { bg: 'rgba(245,158,11,0.1)', color: 'var(--gold)' },
-    trash:     { bg: 'rgba(239,68,68,0.1)', color: 'var(--red)' },
-    approved:  { bg: 'var(--green-l, rgba(5,150,105,0.1))', color: 'var(--green, #059669)' },
-    pending:   { bg: 'rgba(245,158,11,0.1)', color: 'var(--gold)' },
-    spam:      { bg: 'rgba(239,68,68,0.1)', color: 'var(--red)' },
-  };
-  const s = map[status] || { bg: 'var(--bg)', color: 'var(--ink3)' };
-  return (
-    <span style={{ padding: '2px 9px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: s.bg, color: s.color }}>
-      {status}
-    </span>
-  );
+  return <Badge variant={STATUS_VARIANT[status] ?? 'gray'}>{status}</Badge>;
 }
 
 /* ── Field label ── */
@@ -499,17 +493,18 @@ export const CMS: React.FC = () => {
           <div style={{ padding: '18px 24px' }}>
             {/* Filter tabs + search */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-              <div className="ds-tabs-list" data-variant="segmented">
-                {(['all', 'published', 'draft', 'trash'] as const).map(f => {
-                  const cnt = f === 'all' ? posts.filter(p => p.status !== 'trash').length : posts.filter(p => p.status === f).length;
-                  return (
-                    <button key={f} type="button" className="ds-tabs-trigger" data-variant="segmented"
-                      data-state={pFilter === f ? 'active' : 'inactive'} onClick={() => setPFilter(f)}>
-                      {f.charAt(0).toUpperCase() + f.slice(1)} ({cnt})
-                    </button>
-                  );
-                })}
-              </div>
+              <Tabs value={pFilter} onValueChange={v => setPFilter(v as typeof pFilter)} variant="segmented">
+                <TabsList>
+                  {(['all', 'published', 'draft', 'trash'] as const).map(f => {
+                    const cnt = f === 'all' ? posts.filter(p => p.status !== 'trash').length : posts.filter(p => p.status === f).length;
+                    return (
+                      <TabsTrigger key={f} value={f}>
+                        {f.charAt(0).toUpperCase() + f.slice(1)} ({cnt})
+                      </TabsTrigger>
+                    );
+                  })}
+                </TabsList>
+              </Tabs>
               <div style={{ position: 'relative' }}>
                 <Icon name="search" size={13} style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)' } as React.CSSProperties} />
                 <input value={pSearch} onChange={e => setPSearch(e.target.value)} placeholder="Search…" style={{ border: '1px solid var(--border)', borderRadius: 7, padding: '7px 12px 7px 30px', fontSize: 13, outline: 'none', fontFamily: 'var(--font)', width: 200, background: 'var(--white)' }} />
@@ -617,7 +612,7 @@ export const CMS: React.FC = () => {
         {view === 'comments' && (
           <div style={{ padding: '18px 24px', display: 'flex', flexDirection: 'column', gap: 12 }}>
             {comments.length === 0 && (
-              <div style={{ textAlign: 'center', padding: 48, color: 'var(--ink3)', background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)' }}>
+              <div style={{ textAlign: 'center', padding: 48, color: 'var(--ink3)', background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
                 No comments yet — there's no visitor-facing comment form on your site yet, so this fills up once one exists.
               </div>
             )}
@@ -660,7 +655,7 @@ function CustomizeView({ settings, onSave }: { settings: CmsSiteSettings | null;
 
   useEffect(() => { if (settings) setForm(settings); }, [settings]);
 
-  if (!form) return <div style={{ padding: '18px 24px', color: 'var(--ink3)', fontSize: 13 }}>Loading…</div>;
+  if (!form) return <SectionLoading />;
   const set = (k: keyof CmsSiteSettings, v: string) => setForm(f => f ? { ...f, [k]: v } : f);
 
   async function handleSave(section: 'identity' | 'appearance', patch: Partial<CmsSiteSettings>) {
@@ -674,7 +669,7 @@ function CustomizeView({ settings, onSave }: { settings: CmsSiteSettings | null;
     <div style={{ padding: '18px 24px', display: 'flex', flexDirection: 'column', gap: 18, maxWidth: 560 }}>
       <div className="card" style={{ padding: 22 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-          <div style={{ width: 36, height: 36, borderRadius: 9, background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--teal)' }}>
+          <div style={{ width: 36, height: 36, borderRadius: 'var(--r)', background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--teal)' }}>
             <Icon name="star" size={17} />
           </div>
           <div>
@@ -702,7 +697,7 @@ function CustomizeView({ settings, onSave }: { settings: CmsSiteSettings | null;
 
       <div className="card" style={{ padding: 22 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-          <div style={{ width: 36, height: 36, borderRadius: 9, background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--teal)' }}>
+          <div style={{ width: 36, height: 36, borderRadius: 'var(--r)', background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--teal)' }}>
             <Icon name="edit" size={17} />
           </div>
           <div>

@@ -30,18 +30,18 @@ export interface PackResult {
   unplaced_items: { label: string; count: number }[];
 }
 
-const inputStyle: React.CSSProperties = { width: '100%', padding: '8px 10px', borderRadius: 9, border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: 13, background: 'var(--bg)', color: 'var(--ink)', boxSizing: 'border-box' };
+const inputStyle: React.CSSProperties = { width: '100%', padding: '8px 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: 13, background: 'var(--bg)', color: 'var(--ink)', boxSizing: 'border-box' };
 const labelStyle: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 };
-const cardStyle: React.CSSProperties = { background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: 18 };
+const cardStyle: React.CSSProperties = { background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 18 };
 
 function UpgradeEmptyState({ feature }: { feature: string }) {
   return (
     <div style={{ padding: 24 }}>
-      <div style={{ background: 'var(--white)', border: '1px dashed var(--border)', borderRadius: 9, padding: '60px 20px', textAlign: 'center' }}>
+      <div style={{ background: 'var(--white)', border: '1px dashed var(--border)', borderRadius: 'var(--r)', padding: '60px 20px', textAlign: 'center' }}>
         <Icon name="lock" size={28} color="var(--ink3)" />
         <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginTop: 12 }}>{feature} is an Enterprise feature</div>
         <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 6 }}>Upgrade your plan to unlock this tool.</div>
-        <a href="/subscription" style={{ display: 'inline-block', marginTop: 16, padding: '9px 18px', borderRadius: 9, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 600, fontSize: 13, textDecoration: 'none' }}>
+        <a href="/subscription" style={{ display: 'inline-block', marginTop: 16, padding: '9px 18px', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 600, fontSize: 13, textDecoration: 'none' }}>
           View plans
         </a>
       </div>
@@ -98,7 +98,7 @@ export function CargoScene({ manifest, items, cameraPreset }: { manifest: Manife
   const controlsRef = useRef<any>(null);
 
   return (
-    <Canvas camera={{ position: presetPosition(cameraPreset, L, W, H), fov: 45 }} style={{ background: 'var(--bg)', borderRadius: 9 }}>
+    <Canvas camera={{ position: presetPosition(cameraPreset, L, W, H), fov: 45 }} style={{ background: 'var(--bg)', borderRadius: 'var(--r)' }}>
       <ambientLight intensity={0.7} />
       <directionalLight position={[5, 8, 5]} intensity={0.8} />
       <ContainerWireframe l={L} w={W} h={H} />
@@ -144,7 +144,7 @@ function AddManifestModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ background: 'var(--white)', borderRadius: 9, padding: 28, width: 440, maxWidth: '92vw', boxShadow: 'var(--elev-lg)' }}>
+      <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', padding: 28, width: 440, maxWidth: '92vw', boxShadow: 'var(--elev-lg)' }}>
         <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>Create a load plan</div>
         <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 14 }}>Default dimensions match a standard 40ft container (cm)</div>
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -196,7 +196,7 @@ function ImportShipmentModal({ manifestId, onClose, onImported }: { manifestId: 
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ background: 'var(--white)', borderRadius: 9, padding: 28, width: 440, maxWidth: '92vw', boxShadow: 'var(--elev-lg)' }}>
+      <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', padding: 28, width: 440, maxWidth: '92vw', boxShadow: 'var(--elev-lg)' }}>
         <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>Import from Consignment</div>
         <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 14 }}>Automatically populate cargo items from a selected consignment.</div>
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -244,7 +244,7 @@ function DispatchModal({ manifestId, onClose, onDispatched }: { manifestId: stri
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ background: 'var(--white)', borderRadius: 9, padding: 28, width: 440, maxWidth: '92vw', boxShadow: 'var(--elev-lg)' }}>
+      <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', padding: 28, width: 440, maxWidth: '92vw', boxShadow: 'var(--elev-lg)' }}>
         <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>Dispatch to Vehicle</div>
         <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 14 }}>Assign this approved load plan to a truck/vehicle for dispatch.</div>
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -490,7 +490,7 @@ export const TrackingCargoLoading: React.FC = () => {
                 </button>
               ))}
             </div>
-            <div style={{ height: 600, borderRadius: 9, overflow: 'hidden', border: '1px solid var(--border)' }}>
+            <div style={{ height: 600, borderRadius: 'var(--r)', overflow: 'hidden', border: '1px solid var(--border)' }}>
               <CargoScene manifest={manifest} items={items} cameraPreset={cameraPreset} />
             </div>
           </div>

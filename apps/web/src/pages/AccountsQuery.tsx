@@ -4,6 +4,7 @@ import { Icon } from '../components/Icon.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionLoading } from '../components/ui/spinner.js';
+import { Banner } from '../components/ui/alert.js';
 
 type ReportType = 'receivables' | 'payables' | 'revenue' | 'expenses' | 'summary';
 
@@ -48,9 +49,9 @@ function StatusBadge({ status }: { status: string }) {
   const s = (status || '').toLowerCase();
   let bg = 'var(--border)';
   let color = 'var(--ink)';
-  if (s === 'paid') { bg = 'var(--green)'; color = '#fff'; }
-  else if (s === 'unpaid') { bg = 'var(--red)'; color = '#fff'; }
-  else if (s === 'partial') { bg = 'var(--gold)'; color = '#fff'; }
+  if (s === 'paid') { bg = 'var(--green)'; color = 'hsl(var(--green-foreground))'; }
+  else if (s === 'unpaid') { bg = 'var(--red)'; color = 'hsl(var(--red-foreground))'; }
+  else if (s === 'partial') { bg = 'var(--gold)'; color = 'hsl(var(--gold-foreground))'; }
   else if (s === 'draft') { bg = '#e2e8f0'; color = 'var(--ink2)'; }
   return (
     <span style={{
@@ -321,15 +322,7 @@ export function AccountsQuery() {
         />
 
         {/* Error */}
-        {error && (
-          <div style={{
-            background: 'var(--red-l)', border: '1px solid #fecaca', borderRadius: 8,
-            padding: '12px 16px', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 10, color: 'var(--red)',
-          }}>
-            <Icon name="alertCircle" size={16} color="var(--red)" />
-            <span style={{ fontSize: 13 }}>{error}</span>
-          </div>
-        )}
+        {error && <Banner variant="error" icon="alertCircle" className="mb-5">{error}</Banner>}
 
         {/* Empty state */}
         {!result && !loading && !error && (

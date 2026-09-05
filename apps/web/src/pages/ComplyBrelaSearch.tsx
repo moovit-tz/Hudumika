@@ -553,7 +553,7 @@ export function ComplyBrelaSearch() {
             title="Search BRELA"
           >
             {searching
-              ? <span style={{ display: 'inline-flex', animation: 'spin 0.8s linear infinite' }}><Icon name="refresh" size={16} /></span>
+              ? <span style={{ display: 'inline-flex', animation: 'ds-spin 0.8s linear infinite' }}><Icon name="refresh" size={16} /></span>
               : <Icon name="search" size={16} />}
           </button>
           <button type="button" className="comply-btn-secondary comply-btn-sm comply-search-compact-clear" onClick={handleClearForm} title="Start a new search">
@@ -663,7 +663,7 @@ export function ComplyBrelaSearch() {
                       disabled={importingRegNumber === entity.reg_number}
                     >
                       {importingRegNumber === entity.reg_number
-                        ? <span style={{ display: 'inline-flex', animation: 'spin 0.8s linear infinite' }}><Icon name="refresh" size={13} /></span>
+                        ? <span style={{ display: 'inline-flex', animation: 'ds-spin 0.8s linear infinite' }}><Icon name="refresh" size={13} /></span>
                         : <Icon name="plus" size={13} />}
                       <span>{importingRegNumber === entity.reg_number ? 'Importing…' : 'Import to ComplyOS'}</span>
                     </button>
@@ -728,7 +728,7 @@ export function ComplyBrelaSearch() {
                               disabled={importingRegNumber === entity.reg_number}
                             >
                               {importingRegNumber === entity.reg_number
-                                ? <span style={{ display: 'inline-flex', animation: 'spin 0.8s linear infinite' }}><Icon name="refresh" size={13} /></span>
+                                ? <span style={{ display: 'inline-flex', animation: 'ds-spin 0.8s linear infinite' }}><Icon name="refresh" size={13} /></span>
                                 : <Icon name="plus" size={13} />}
                               <span>{importingRegNumber === entity.reg_number ? 'Importing…' : 'Import'}</span>
                             </button>

@@ -8,6 +8,7 @@ import React, { useEffect, useState } from 'react';
 import { Icon } from '../../components/Icon.js';
 import { BASE_URL } from '../../lib/api.js';
 import { Button } from '../../components/ui/button.js';
+import { Banner } from '../../components/ui/alert.js';
 import '../sign/Sign.css';
 
 interface VerifyResult {
@@ -126,7 +127,7 @@ export function SignVerifyPage() {
                     )}
                   </div>
                   <Button variant="default" onClick={() => verify(code)} disabled={loading || !code.trim()}
-                    style={{ background: isCurrentlyVerified ? 'var(--sign-green)' : 'var(--blue)', color: '#fff', padding: '0 20px', borderRadius: 6, fontSize: 13.5, fontWeight: 600 }}>
+                    style={{ background: isCurrentlyVerified ? 'var(--sign-green)' : 'var(--blue)', color: isCurrentlyVerified ? 'hsl(var(--green-foreground))' : 'hsl(var(--blue-foreground))', padding: '0 20px', borderRadius: 6, fontSize: 13.5, fontWeight: 600 }}>
                     {loading ? 'Verifying...' : isCurrentlyVerified ? 'Re-verify' : 'Verify'}
                   </Button>
                 </div>
@@ -142,12 +143,8 @@ export function SignVerifyPage() {
           {/* Result */}
           {/* Result */}
           {error && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', background: 'var(--red-l)', border: '1px solid var(--red)', borderRadius: 6, marginTop: 16 }}>
-              <Icon name="xCircle" size={16} style={{ color: 'var(--red)' }} />
-              <div>
-                <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--red)' }}>Verification Failed</div>
-                <div style={{ fontSize: 12.5, color: 'var(--ink2)', marginTop: 2 }}>{error}</div>
-              </div>
+            <div style={{ marginTop: 16 }}>
+              <Banner variant="error" title="Verification Failed">{error}</Banner>
             </div>
           )}
 
@@ -255,7 +252,7 @@ export function SignVerifyPage() {
 
               {result.has_signed_pdf && (
                 <a href={`${BASE_URL}/v1/sign/public/verify/${result.verification_code}/download`} download
-                  style={{ display: 'block', textAlign: 'center', marginTop: 24, padding: '10px 16px', borderRadius: 6, background: 'var(--blue)', color: '#fff', fontSize: 13.5, fontWeight: 600, textDecoration: 'none', transition: 'background 0.15s' }}>
+                  style={{ display: 'block', textAlign: 'center', marginTop: 24, padding: '10px 16px', borderRadius: 6, background: 'var(--blue)', color: 'hsl(var(--blue-foreground))', fontSize: 13.5, fontWeight: 600, textDecoration: 'none', transition: 'background 0.15s' }}>
                   Download Signed PDF
                 </a>
               )}

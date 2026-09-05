@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import { PageHeader } from '../components/PageHeader.js';
@@ -183,16 +184,17 @@ export function AccountingIntegrations() {
 
       {/* Tabs */}
       <div style={{ flexShrink: 0 }}>
-        <div className="ds-tabs-list" data-variant="segmented">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabId)} variant="segmented">
+          <TabsList>
           {(['connected', 'marketplace'] as TabId[]).map(tab => (
-            <button key={tab} type="button" className="ds-tabs-trigger" data-variant="segmented"
-              data-state={activeTab === tab ? 'active' : 'inactive'} onClick={() => setActiveTab(tab)}>
+            <TabsTrigger key={tab} value={tab}>
               {tab === 'connected' ? 'Connected Platforms' : 'Marketplace'}
               {tab === 'connected' && <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 700, padding: '1px 6px', borderRadius: 8, background: 'var(--teal-l)', color: 'var(--teal)' }}>{integrations.filter(i => i.status === 'CONNECTED').length}</span>}
               {tab === 'marketplace' && <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 700, padding: '1px 6px', borderRadius: 8, background: 'var(--bg)', color: 'var(--ink3)' }}>{MARKETPLACE.length}</span>}
-            </button>
+            </TabsTrigger>
           ))}
-        </div>
+          </TabsList>
+        </Tabs>
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '24px 0' }}>
@@ -316,7 +318,7 @@ export function AccountingIntegrations() {
                   value={marketplaceSearch}
                   onChange={e => setMarketplaceSearch(e.target.value)}
                   placeholder="Search integrations…"
-                  style={{ width: '100%', paddingLeft: 34, paddingRight: 10, paddingTop: 10, paddingBottom: 10, borderRadius: 9, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13.5, fontFamily: 'var(--font)', outline: 'none', boxSizing: 'border-box' }}
+                  style={{ width: '100%', paddingLeft: 34, paddingRight: 10, paddingTop: 10, paddingBottom: 10, borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13.5, fontFamily: 'var(--font)', outline: 'none', boxSizing: 'border-box' }}
                 />
               </div>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>

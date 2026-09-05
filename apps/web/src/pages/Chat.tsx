@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { Icon } from '../components/Icon.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import type { IconName } from '../components/Icon.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
@@ -306,29 +308,23 @@ export const Chat: React.FC = () => {
         </div>
 
         {/* Filter Tabs */}
-        <div className="ds-tabs-list" data-variant="segmented" style={{ margin: '0 8px' }}>
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} variant="segmented">
+        <TabsList style={{ margin: '0 8px' }}>
           {[
             { id: 'all', label: 'All' },
             { id: 'unread', label: 'Unread', badge: totalUnread },
             { id: 'favorites', label: 'Favorites' },
             { id: 'groups', label: 'Groups' },
           ].map(tab => (
-            <button
-              key={tab.id}
-              type="button"
-              className="ds-tabs-trigger"
-              data-variant="segmented"
-              data-state={activeTab === tab.id ? 'active' : 'inactive'}
-              onClick={() => setActiveTab(tab.id as any)}
-              style={{ flex: 1, fontSize: 11.5 }}
-            >
+            <TabsTrigger key={tab.id} value={tab.id} style={{ flex: 1, fontSize: 11.5 }}>
               {tab.label}
               {tab.badge ? (
-                <span style={{ fontSize: 9, background: 'var(--red)', color: '#fff', padding: '1px 5px', borderRadius: 10, fontWeight: 800 }}>{tab.badge}</span>
+                <span style={{ fontSize: 9, background: 'var(--red)', color: 'hsl(var(--red-foreground))', padding: '1px 5px', borderRadius: 10, fontWeight: 800 }}>{tab.badge}</span>
               ) : null}
-            </button>
+            </TabsTrigger>
           ))}
-        </div>
+        </TabsList>
+        </Tabs>
 
         {/* Conversations List */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '8px 6px' }}>
@@ -682,7 +678,7 @@ export const Chat: React.FC = () => {
             <DialogTitle>Browse channels</DialogTitle>
           </DialogHeader>
           <div style={{ maxHeight: 320, overflowY: 'auto' }}>
-            {browseLoading && <div style={{ padding: 20, textAlign: 'center', color: 'var(--ink3)', fontSize: 12.5 }}>Loading…</div>}
+            {browseLoading && <SectionLoading />}
             {!browseLoading && browseList?.length === 0 && (
               <div style={{ padding: 20, textAlign: 'center', color: 'var(--ink3)', fontSize: 12.5 }}>No channels to join — you're already in every one.</div>
             )}
@@ -762,7 +758,7 @@ function ConversationItem({
       </button>
 
       {channel.unread > 0 && (
-        <span style={{ fontSize: 9.5, background: 'var(--red)', color: '#fff', padding: '1px 6px', borderRadius: 10, fontWeight: 800, flexShrink: 0 }}>
+        <span style={{ fontSize: 9.5, background: 'var(--red)', color: 'hsl(var(--red-foreground))', padding: '1px 6px', borderRadius: 10, fontWeight: 800, flexShrink: 0 }}>
           {channel.unread}
         </span>
       )}

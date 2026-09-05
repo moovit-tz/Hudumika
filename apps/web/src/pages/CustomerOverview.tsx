@@ -22,12 +22,12 @@ function KpiCard({ icon, iconBg, iconColor, value, label }: {
 }) {
   return (
     <div style={{
-      flex: 1, minWidth: 0, background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)',
+      flex: 1, minWidth: 0, background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)',
       padding: '18px 18px 14px',
     }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
         <div style={{
-          width: 44, height: 44, borderRadius: 9, background: iconBg, flexShrink: 0,
+          width: 44, height: 44, borderRadius: 'var(--r)', background: iconBg, flexShrink: 0,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
           <Icon name={icon} size={20} color={iconColor} />
@@ -48,7 +48,7 @@ function StatusCard({ label, value, pct, color, icon }: {
 }) {
   return (
     <div style={{
-      flex: 1, minWidth: 0, background: 'var(--white)', borderRadius: 9,
+      flex: 1, minWidth: 0, background: 'var(--white)', borderRadius: 'var(--r)',
       border: '1px solid var(--border)', padding: '16px 18px',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
@@ -65,7 +65,7 @@ function StatusCard({ label, value, pct, color, icon }: {
 
 function Badge({ label, color, bg }: { label: string; color: string; bg: string }) {
   return (
-    <span style={{ fontSize: 10, fontWeight: 700, color, background: bg, borderRadius: 5, padding: '2px 7px' }}>
+    <span style={{ fontSize: 10, fontWeight: 700, color, background: bg, borderRadius: 'var(--r-sm)', padding: '2px 7px' }}>
       {label}
     </span>
   );
@@ -126,12 +126,12 @@ export const CustomerOverview: React.FC = () => {
         actions={
           <div style={{ display: 'flex', gap: 8 }}>
             <Link to="/customers"
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', textDecoration: 'none' }}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', textDecoration: 'none' }}
             >
               <Icon name="users" size={13} /> Customer List
             </Link>
             <Link to="/customers/bulk-upload"
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 9, border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', textDecoration: 'none' }}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', textDecoration: 'none' }}
             >
               <Icon name="upload" size={13} /> Bulk Upload
             </Link>
@@ -201,7 +201,7 @@ export const CustomerOverview: React.FC = () => {
                     borderBottom: i < data.top_customers.length - 1 ? '1px solid var(--border)' : 'none',
                   }}>
                     <div style={{
-                      width: 30, height: 30, borderRadius: 9, background: 'var(--teal-l)',
+                      width: 30, height: 30, borderRadius: 'var(--r)', background: 'var(--teal-l)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontSize: 11, fontWeight: 800, color: 'var(--teal)', flexShrink: 0,
                     }}>
@@ -273,7 +273,7 @@ export const CustomerOverview: React.FC = () => {
                     to={a.path}
                     style={{
                       display: 'flex', alignItems: 'center', gap: 8,
-                      padding: '10px 12px', borderRadius: 9,
+                      padding: '10px 12px', borderRadius: 'var(--r)',
                       border: '1px solid var(--border)', background: 'var(--bg)',
                       color: 'var(--ink2)', fontSize: 12, fontWeight: 600,
                       cursor: 'pointer', textAlign: 'left', textDecoration: 'none',

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Icon } from '../components/Icon.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { Badge } from '../components/ui/badge.js';
 import { Button } from '../components/ui/button.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
@@ -86,24 +87,19 @@ export function PettiWithdrawals() {
       />
 
       {/* PayMoney Navigation Tabs */}
-      <div className="ds-tabs-list" data-variant="segmented" style={{ marginBottom: 20 }}>
-        {[
-          { key: 'list', label: 'Withdrawal List', icon: 'list' },
-          { key: 'withdraw', label: 'Withdraw Money', icon: 'plus' },
-          { key: 'settings', label: 'Withdrawal Settings & Channels', icon: 'grid' },
-        ].map(t => (
-          <button
-            key={t.key}
-            type="button"
-            className="ds-tabs-trigger"
-            data-variant="segmented"
-            data-state={activeTab === t.key ? 'active' : 'inactive'}
-            onClick={() => setActiveTab(t.key as any)}
-          >
-            <Icon name={t.icon as any} size={14} /> {t.label}
-          </button>
-        ))}
-      </div>
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} variant="segmented">
+        <TabsList style={{ marginBottom: 20 }}>
+          {[
+            { key: 'list', label: 'Withdrawal List', icon: 'list' },
+            { key: 'withdraw', label: 'Withdraw Money', icon: 'plus' },
+            { key: 'settings', label: 'Withdrawal Settings & Channels', icon: 'grid' },
+          ].map(t => (
+            <TabsTrigger key={t.key} value={t.key}>
+              <Icon name={t.icon as any} size={14} /> {t.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
 
       {activeTab === 'list' && (
         <SectionCard title="Withdrawal Transactions List" padded={false} collapsible={false}>

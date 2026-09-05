@@ -8,7 +8,9 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { SectionCard } from '../components/SectionCard.js';
 import { UpgradeNotice } from '../components/UpgradeNotice.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { Badge } from '../components/ui/badge.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { useEntitlements } from '../hooks/useEntitlements.js';
 
 // The three real Studio triggers OAuth/SSO events emit (studio/triggers.ts) —
@@ -62,12 +64,12 @@ function AddClientModal({ onClose, onAdded }: { onClose: () => void; onAdded: ()
     } finally { setSaving(false); }
   }
 
-  const inputStyle: React.CSSProperties = { width: '100%', padding: '8px 10px', borderRadius: 9, border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: 13, background: 'var(--bg)', color: 'var(--ink)', boxSizing: 'border-box' };
+  const inputStyle: React.CSSProperties = { width: '100%', padding: '8px 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: 13, background: 'var(--bg)', color: 'var(--ink)', boxSizing: 'border-box' };
   const labelStyle: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 };
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ background: 'var(--white)', borderRadius: 9, padding: 28, width: 460, maxWidth: '92vw', boxShadow: 'var(--elev-lg)' }}>
+      <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', padding: 28, width: 460, maxWidth: '92vw', boxShadow: 'var(--elev-lg)' }}>
         <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Add SSO Client Application</div>
         <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 18 }}>Configure an external app (relying party) to authenticate users using Ondi.</div>
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -140,12 +142,12 @@ function AddProviderModal({ onClose, onAdded, onStartSaml }: { onClose: () => vo
     } finally { setSaving(false); }
   }
 
-  const inputStyle: React.CSSProperties = { width: '100%', padding: '8px 10px', borderRadius: 9, border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: 13, background: 'var(--bg)', color: 'var(--ink)', boxSizing: 'border-box' };
+  const inputStyle: React.CSSProperties = { width: '100%', padding: '8px 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: 13, background: 'var(--bg)', color: 'var(--ink)', boxSizing: 'border-box' };
   const labelStyle: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 };
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ background: 'var(--white)', borderRadius: 9, padding: 28, width: 460, maxWidth: '92vw', boxShadow: 'var(--elev-lg)' }}>
+      <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', padding: 28, width: 460, maxWidth: '92vw', boxShadow: 'var(--elev-lg)' }}>
         <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Add identity provider</div>
         <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 18 }}>
           {type === 'SAML'
@@ -272,7 +274,7 @@ function SamlSetupWizard({ existing, initialName, onClose, onSaved }: { existing
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const inputStyle: React.CSSProperties = { width: '100%', padding: '8px 10px', borderRadius: 9, border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: 13, background: 'var(--bg)', color: 'var(--ink)', boxSizing: 'border-box' };
+  const inputStyle: React.CSSProperties = { width: '100%', padding: '8px 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: 13, background: 'var(--bg)', color: 'var(--ink)', boxSizing: 'border-box' };
   const labelStyle: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 };
   const btnPrimary: React.CSSProperties = { padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 };
   const btnGhost: React.CSSProperties = { padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', cursor: 'pointer', fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 };
@@ -336,7 +338,7 @@ function SamlSetupWizard({ existing, initialName, onClose, onSaved }: { existing
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ background: 'var(--white)', borderRadius: 9, padding: 28, width: 560, maxWidth: '94vw', maxHeight: '88vh', overflowY: 'auto', boxShadow: 'var(--elev-lg)' }}>
+      <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', padding: 28, width: 560, maxWidth: '94vw', maxHeight: '88vh', overflowY: 'auto', boxShadow: 'var(--elev-lg)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
           <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>{existing ? `Finish setup — ${existing.name}` : 'Connect a SAML identity provider'}</div>
           <button type="button" onClick={onClose} aria-label="Close" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}><Icon name="x" size={18} /></button>
@@ -370,7 +372,7 @@ function SamlSetupWizard({ existing, initialName, onClose, onSaved }: { existing
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                 {(Object.keys(SAML_VENDOR_GUIDES) as Array<keyof typeof SAML_VENDOR_GUIDES>).map(v => (
                   <button key={v} type="button" onClick={() => setVendor(v)}
-                    style={{ padding: '9px 12px', borderRadius: 9, border: vendor === v ? '1.5px solid var(--teal)' : '1px solid var(--border)', background: vendor === v ? 'var(--teal-l, #ecfeff)' : 'var(--bg)', color: vendor === v ? 'var(--teal)' : 'var(--ink)', fontWeight: 600, fontSize: 12.5, cursor: 'pointer', fontFamily: 'var(--font)', textAlign: 'left' }}>
+                    style={{ padding: '9px 12px', borderRadius: 'var(--r)', border: vendor === v ? '1.5px solid var(--teal)' : '1px solid var(--border)', background: vendor === v ? 'var(--teal-l, #ecfeff)' : 'var(--bg)', color: vendor === v ? 'var(--teal)' : 'var(--ink)', fontWeight: 600, fontSize: 12.5, cursor: 'pointer', fontFamily: 'var(--font)', textAlign: 'left' }}>
                     {SAML_VENDOR_GUIDES[v].label}
                   </button>
                 ))}
@@ -394,7 +396,7 @@ function SamlSetupWizard({ existing, initialName, onClose, onSaved }: { existing
             </div>
             <CopyRow label="ACS / Reply URL (Single sign-on URL)" value={acsUrl} />
             <CopyRow label="Entity ID / Audience URI" value={metadataUrl} />
-            <div style={{ background: 'var(--bg)', border: '1px solid var(--border-soft)', borderRadius: 9, padding: '12px 14px' }}>
+            <div style={{ background: 'var(--bg)', border: '1px solid var(--border-soft)', borderRadius: 'var(--r)', padding: '12px 14px' }}>
               <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.03em' }}>In {SAML_VENDOR_GUIDES[vendor].label}</div>
               <ol style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {SAML_VENDOR_GUIDES[vendor].steps.map((s, i) => (
@@ -451,7 +453,7 @@ function SamlSetupWizard({ existing, initialName, onClose, onSaved }: { existing
                 <Icon name="externalLink" size={14} /> Send a test sign-in
               </a>
             </div>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 9, cursor: 'pointer' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', cursor: 'pointer' }}>
               <input type="checkbox" checked={enabled} onChange={toggleEnabledHere} />
               <span style={{ fontSize: 12.5, color: 'var(--ink)' }}><strong>Enable this provider</strong> — staff at your domain can sign in through it immediately.</span>
             </label>
@@ -644,38 +646,16 @@ export const OndiSSO: React.FC = () => {
       {activeTab === 'registry' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           {/* Sub-tabs selection bar */}
-          <div style={{ display: 'flex', gap: 8, margin: '0 4px', borderBottom: '1px solid var(--border-soft)', paddingBottom: 10 }}>
-            <button
-              type="button"
-              onClick={() => setSubTab('idps')}
-              style={{
-                padding: '6px 14px', borderRadius: 20, border: 'none', fontSize: 12.5, fontWeight: 700,
-                cursor: 'pointer', fontFamily: 'var(--font)',
-                background: subTab === 'idps' ? 'var(--teal-l, #ecfeff)' : 'transparent',
-                color: subTab === 'idps' ? 'var(--teal)' : 'var(--ink2)',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              📥 Inbound Identity Providers
-            </button>
-            <button
-              type="button"
-              onClick={() => setSubTab('clients')}
-              style={{
-                padding: '6px 14px', borderRadius: 20, border: 'none', fontSize: 12.5, fontWeight: 700,
-                cursor: 'pointer', fontFamily: 'var(--font)',
-                background: subTab === 'clients' ? 'var(--teal-l, #ecfeff)' : 'transparent',
-                color: subTab === 'clients' ? 'var(--teal)' : 'var(--ink2)',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              📤 Outbound SSO Clients
-            </button>
-          </div>
+          <Tabs value={subTab} onValueChange={v => setSubTab(v as typeof subTab)} variant="pill" style={{ margin: '0 4px' }}>
+            <TabsList>
+              <TabsTrigger value="idps">📥 Inbound Identity Providers</TabsTrigger>
+              <TabsTrigger value="clients">📤 Outbound SSO Clients</TabsTrigger>
+            </TabsList>
+          </Tabs>
 
           {subTab === 'idps' ? (
             <>
-              <div style={{ background: 'var(--gold-l)', border: '1px solid #fde68a', borderRadius: 9, padding: '10px 14px', fontSize: 12, color: '#854d0e', display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+              <div style={{ background: 'var(--gold-l)', border: '1px solid #fde68a', borderRadius: 'var(--r)', padding: '10px 14px', fontSize: 12, color: '#854d0e', display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                 <Icon name="alertTriangle" size={15} style={{ flexShrink: 0 }} />
                 <span>Google, Microsoft and SAML providers here connect to real sign-in against Ondi Auth Server routes once enabled. A generic OIDC provider is still config-only — that federation still needs building.</span>
               </div>
@@ -746,7 +726,7 @@ export const OndiSSO: React.FC = () => {
             </>
           ) : (
             <>
-              <div style={{ background: '#f8fafc', border: '1px solid var(--border)', borderRadius: 9, padding: '10px 14px', fontSize: 12.5, color: 'var(--ink2)', display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+              <div style={{ background: '#f8fafc', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '10px 14px', fontSize: 12.5, color: 'var(--ink2)', display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                 <Icon name="shield" size={15} style={{ flexShrink: 0, color: 'var(--teal)', marginTop: 1 }} />
                 <span>Configure external client applications integrating with Ondi for single sign-on. Registered clients can initiate OAuth2/OIDC flows using PKCE or client secret signatures. First-party apps skip the user consent prompt.</span>
               </div>
@@ -832,7 +812,7 @@ export const OndiSSO: React.FC = () => {
                 </div>
 
                 {relatedAutomations === null ? (
-                  <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>Loading…</div>
+                  <SectionLoading />
                 ) : relatedAutomations.length === 0 ? (
                   <div style={{ fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.55 }}>
                     No Studio automation reacts to OAuth events yet. Client registration and consent grants/revocations on this page are real, available triggers —{' '}

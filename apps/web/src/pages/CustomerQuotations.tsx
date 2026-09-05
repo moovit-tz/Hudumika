@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 
 /* ── Types ── */
 type QuoteStatus = 'DRAFT' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'CONVERTED' | 'EXPIRED';
@@ -95,7 +96,7 @@ function RejectModal({ quote, onClose, onReject }: {
           value={reason}
           onChange={e => setReason(e.target.value)}
           rows={3}
-          style={{ width: '100%', resize: 'none', border: '1.5px solid var(--border)', borderRadius: 9, padding: '12px 14px', fontSize: 14, fontFamily: 'var(--font)', color: 'var(--ink)', background: 'var(--bg)', outline: 'none', lineHeight: 1.5, boxSizing: 'border-box' as const, marginBottom: 16 }}
+          style={{ width: '100%', resize: 'none', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', padding: '12px 14px', fontSize: 14, fontFamily: 'var(--font)', color: 'var(--ink)', background: 'var(--bg)', outline: 'none', lineHeight: 1.5, boxSizing: 'border-box' as const, marginBottom: 16 }}
         />
         <button type="button" title="Confirm rejection" onClick={() => onReject(reason.trim())}
           style={{ width: '100%', padding: '14px', background: '#dc2626', color: '#fff', border: 'none', borderRadius: 'var(--r)', fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)' }}>
@@ -201,7 +202,7 @@ function QuoteDetail({ quote: initial, onBack }: { quote: Quote; onBack: () => v
       <div style={{ padding: '20px 16px 0' }}>
         {/* Expiry warning */}
         {expiring && canAct && (
-          <div style={{ background: 'var(--gold-l)', border: '1px solid #fde68a', borderRadius: 9, padding: '10px 14px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ background: 'var(--gold-l)', border: '1px solid #fde68a', borderRadius: 'var(--r)', padding: '10px 14px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
             <Icon name="alertTriangle" size={16} color="#d97706" />
             <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--gold)' }}>
               Expires {fmtDate(quote.valid_until)} — accept before it lapses
@@ -224,14 +225,14 @@ function QuoteDetail({ quote: initial, onBack }: { quote: Quote; onBack: () => v
 
         {/* Rejection reason */}
         {quote.status === 'REJECTED' && quote.rejection_reason && (
-          <div style={{ background: 'var(--red-l)', borderRadius: 9, padding: '12px 16px', marginBottom: 16, display: 'flex', gap: 10 }}>
+          <div style={{ background: 'var(--red-l)', borderRadius: 'var(--r)', padding: '12px 16px', marginBottom: 16, display: 'flex', gap: 10 }}>
             <Icon name="x" size={16} color="#dc2626" />
             <span style={{ fontSize: 13, color: '#7f1d1d' }}><strong>Rejection reason:</strong> {quote.rejection_reason}</span>
           </div>
         )}
 
         {/* Shipment details */}
-        <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: 16, marginBottom: 16 }}>
+        <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', padding: 16, marginBottom: 16 }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.07em', marginBottom: 12 }}>SHIPMENT DETAILS</div>
           {[
             { label: 'Type',        value: quote.shipment_type },
@@ -248,7 +249,7 @@ function QuoteDetail({ quote: initial, onBack }: { quote: Quote; onBack: () => v
 
         {/* Line items */}
         {quote.lines && quote.lines.length > 0 && (
-          <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: 16, marginBottom: 16 }}>
+          <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', padding: 16, marginBottom: 16 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.07em', marginBottom: 12 }}>SERVICES QUOTED</div>
             {quote.lines.map((line, i) => (
               <div key={line.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10, paddingBottom: 10, borderBottom: i < (quote.lines!.length - 1) ? '1px solid var(--bg)' : 'none' }}>
@@ -284,13 +285,13 @@ function QuoteDetail({ quote: initial, onBack }: { quote: Quote; onBack: () => v
 
         {/* Notes */}
         {quote.notes && (
-          <div style={{ background: 'var(--bg)', borderRadius: 9, border: '1px solid var(--border)', padding: 14, marginBottom: 16 }}>
+          <div style={{ background: 'var(--bg)', borderRadius: 'var(--r)', border: '1px solid var(--border)', padding: 14, marginBottom: 16 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.07em', marginBottom: 6 }}>NOTES</div>
             <p style={{ fontSize: 13, color: 'var(--ink2)', margin: 0, lineHeight: 1.6 }}>{quote.notes}</p>
           </div>
         )}
         {quote.terms && (
-          <div style={{ background: 'var(--bg)', borderRadius: 9, border: '1px solid var(--border)', padding: 14, marginBottom: 16 }}>
+          <div style={{ background: 'var(--bg)', borderRadius: 'var(--r)', border: '1px solid var(--border)', padding: 14, marginBottom: 16 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.07em', marginBottom: 6 }}>TERMS</div>
             <p style={{ fontSize: 13, color: 'var(--ink2)', margin: 0, lineHeight: 1.6 }}>{quote.terms}</p>
           </div>
@@ -314,7 +315,7 @@ function QuoteDetail({ quote: initial, onBack }: { quote: Quote; onBack: () => v
               </button>
             </div>
             <Link to="/support/tickets" title="Request changes via support"
-              style={{ width: '100%', boxSizing: 'border-box', padding: '11px 0', border: '1.5px solid var(--border)', borderRadius: 9, background: 'var(--bg)', color: 'var(--ink2)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, textDecoration: 'none' }}>
+              style={{ width: '100%', boxSizing: 'border-box', padding: '11px 0', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--bg)', color: 'var(--ink2)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, textDecoration: 'none' }}>
               <Icon name="messageSquare" size={14} color="var(--ink3)" />
               Request Changes
             </Link>
@@ -322,13 +323,13 @@ function QuoteDetail({ quote: initial, onBack }: { quote: Quote; onBack: () => v
         ) : (
           <div style={{ display: 'flex', gap: 10 }}>
             <Link to="/support/tickets" title="Contact support"
-              style={{ flex: 1, padding: '12px 0', border: '1.5px solid var(--border)', borderRadius: 9, background: 'var(--bg)', color: 'var(--ink2)', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, textDecoration: 'none' }}>
+              style={{ flex: 1, padding: '12px 0', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--bg)', color: 'var(--ink2)', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, textDecoration: 'none' }}>
               <Icon name="headphones" size={15} color="var(--ink3)" />
               Get Support
             </Link>
             {quote.status === 'EXPIRED' && (
               <Link to="/support/tickets" title="Request a new quote"
-                style={{ flex: 2, padding: '12px 0', border: 'none', borderRadius: 9, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, textDecoration: 'none' }}>
+                style={{ flex: 2, padding: '12px 0', border: 'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, textDecoration: 'none' }}>
                 <Icon name="refresh" size={15} color="#fff" />
                 Request New Quote
               </Link>
@@ -338,7 +339,7 @@ function QuoteDetail({ quote: initial, onBack }: { quote: Quote; onBack: () => v
       </div>
 
       {toast && (
-        <div style={{ position: 'fixed', bottom: 160, left: 16, right: 16, background: 'var(--ink)', color: '#fff', borderRadius: 9, padding: '12px 16px', fontSize: 13, fontWeight: 600, zIndex: 400, textAlign: 'center', boxShadow: 'var(--elev-lg)' }}>
+        <div style={{ position: 'fixed', bottom: 160, left: 16, right: 16, background: 'var(--ink)', color: '#fff', borderRadius: 'var(--r)', padding: '12px 16px', fontSize: 13, fontWeight: 600, zIndex: 400, textAlign: 'center', boxShadow: 'var(--elev-lg)' }}>
           {toast}
         </div>
       )}
@@ -439,28 +440,29 @@ export const CustomerQuotations: React.FC = () => {
       </div>
 
       {/* Filter tabs */}
-      <div className="ds-tabs-list" data-variant="segmented" style={{ margin: '0 16px', marginBottom: 12 }}>
-        {FILTER_OPTIONS.map(f => (
-          <button key={f.key} type="button" title={f.label} className="ds-tabs-trigger" data-variant="segmented"
-            data-state={filter === f.key ? 'active' : 'inactive'} onClick={() => setFilter(f.key)}>
-            {f.label}
-            {f.key === 'PENDING' && pendingCount > 0 && (
-              <span style={{ marginLeft: 6, background: '#dc2626', color: '#fff', borderRadius: '50%', width: 16, height: 16, fontSize: 10, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-                {pendingCount}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
+      <Tabs value={filter} onValueChange={(v) => setFilter(v as any)} variant="segmented">
+        <TabsList style={{ margin: '0 16px', marginBottom: 12 }}>
+          {FILTER_OPTIONS.map(f => (
+            <TabsTrigger key={f.key} value={f.key} title={f.label}>
+              {f.label}
+              {f.key === 'PENDING' && pendingCount > 0 && (
+                <span style={{ marginLeft: 6, background: 'var(--red)', color: 'hsl(var(--red-foreground))', borderRadius: '50%', width: 16, height: 16, fontSize: 10, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {pendingCount}
+                </span>
+              )}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
 
       {/* Quote list */}
       <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
         {loading ? (
           Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, height: 120 }} />
+            <div key={i} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', height: 120 }} />
           ))
         ) : loadError ? (
-          <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: '40px 20px', textAlign: 'center' }}>
+          <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '40px 20px', textAlign: 'center' }}>
             <Icon name="alertCircle" size={36} color="var(--red)" />
             <p style={{ color: 'var(--ink2)', fontSize: 14, margin: '12px 0 4px', fontWeight: 600 }}>Couldn't load your quotations</p>
             <p style={{ color: 'var(--ink3)', fontSize: 13, margin: '0 0 16px' }}>Check your connection and try again.</p>
@@ -469,7 +471,7 @@ export const CustomerQuotations: React.FC = () => {
             </button>
           </div>
         ) : filtered.length === 0 ? (
-          <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: '40px 20px', textAlign: 'center' }}>
+          <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '40px 20px', textAlign: 'center' }}>
             <Icon name="clipboard" size={36} color="var(--ink3)" />
             <p style={{ color: 'var(--ink3)', fontSize: 14, margin: '12px 0 0' }}>
               {filter === 'ALL' ? 'No quotations yet' : `No ${filter.toLowerCase()} quotes`}

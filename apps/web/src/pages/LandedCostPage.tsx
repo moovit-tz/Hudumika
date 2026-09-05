@@ -759,7 +759,7 @@ function FormattedLandedCostBreakdown({
         {extraItems.length > 0 && (
           <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
             {extraItems.map(e => (
-              <div key={e.key} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 9, background: 'var(--bg)', border: '1px solid var(--border)' }}>
+              <div key={e.key} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 'var(--r)', background: 'var(--bg)', border: '1px solid var(--border)' }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)' }}>{e.item.item_name}</div>
                   <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{[e.item.clause_ref, e.item.category].filter(Boolean).join(' · ')} — {e.item.rate_currency} {Number(e.item.rate_amount).toLocaleString('en-US')}{e.item.unit ? ` / ${e.item.unit}` : ''}</div>
@@ -3784,7 +3784,7 @@ export const LandedCostPage: React.FC = () => {
   const navRow = (
     <div style={{ marginTop: 28, paddingTop: 20, borderTop: '1px solid var(--border)' }}>
       {stepError && (
-        <div style={{ marginBottom: 14, padding: '10px 14px', borderRadius: 9, background: 'color-mix(in srgb, var(--red) 9%, transparent)', border: '1px solid color-mix(in srgb, var(--red) 25%, transparent)', color: 'var(--red)', fontSize: 12.5, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ marginBottom: 14, padding: '10px 14px', borderRadius: 'var(--r)', background: 'color-mix(in srgb, var(--red) 9%, transparent)', border: '1px solid color-mix(in srgb, var(--red) 25%, transparent)', color: 'var(--red)', fontSize: 12.5, display: 'flex', alignItems: 'center', gap: 8 }}>
           <Icon name="alertCircle" size={15} color="var(--red)" /> {stepError}
         </div>
       )}
@@ -3798,7 +3798,7 @@ export const LandedCostPage: React.FC = () => {
         }
         {step < 4
           ? <button type="button" disabled={!!stepError} onClick={() => { if (!validateStep(step)) setStep(s => (s + 1) as any); }}
-              style={{ height: 'var(--ctl-h)', padding: '0 28px', borderRadius: 'var(--r-sm)', border: 'none', background: stepError ? 'var(--border)' : 'var(--teal)', color: stepError ? 'var(--ink3)' : '#fff', fontWeight: 700, fontSize: 14, cursor: stepError ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8, boxShadow: stepError ? 'none' : '0 4px 16px color-mix(in srgb, var(--teal) 30%, transparent)' }}>
+              style={{ height: 'var(--ctl-h)', padding: '0 28px', borderRadius: 'var(--r-sm)', border: 'none', background: stepError ? 'var(--border)' : 'hsl(var(--primary))', color: stepError ? 'var(--ink3)' : 'hsl(var(--primary-foreground))', fontWeight: 700, fontSize: 14, cursor: stepError ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8, boxShadow: stepError ? 'none' : '0 4px 16px color-mix(in srgb, var(--teal) 30%, transparent)' }}>
               Continue <Icon name="arrowRight" size={14} color={stepError ? 'var(--ink3)' : '#fff'} />
             </button>
           : null
@@ -3829,13 +3829,13 @@ export const LandedCostPage: React.FC = () => {
   const importFeedback = (
     <>
       {importNote && (
-        <div style={{ marginTop: 14, padding: '11px 14px', borderRadius: 9, background: 'color-mix(in srgb, var(--teal) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--teal) 25%, transparent)', fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.6, display: 'flex', alignItems: 'flex-start', gap: 9 }}>
+        <div style={{ marginTop: 14, padding: '11px 14px', borderRadius: 'var(--r)', background: 'color-mix(in srgb, var(--teal) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--teal) 25%, transparent)', fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.6, display: 'flex', alignItems: 'flex-start', gap: 9 }}>
           <Icon name="info" size={15} color="var(--teal)" style={{ flexShrink: 0, marginTop: 1 }} />
           <div>{importNote}</div>
         </div>
       )}
       {multiError && (
-        <div style={{ marginTop: 14, padding: '10px 14px', background: 'color-mix(in srgb, var(--red) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--red) 25%, transparent)', borderRadius: 9, fontSize: 12.5, color: 'var(--red)' }}>
+        <div style={{ marginTop: 14, padding: '10px 14px', background: 'color-mix(in srgb, var(--red) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--red) 25%, transparent)', borderRadius: 'var(--r)', fontSize: 12.5, color: 'var(--red)' }}>
           {multiError}
         </div>
       )}
@@ -4830,7 +4830,7 @@ export const LandedCostPage: React.FC = () => {
                                     type="button"
                                     onClick={() => acceptSuggestion(row.id, s.code)}
                                     title={`Use ${s.code} for this line`}
-                                    style={{ flexShrink: 0, cursor: 'pointer', border: '1px solid var(--teal)', background: led ? 'var(--teal)' : 'transparent', color: led ? '#fff' : 'var(--teal)', borderRadius: 'var(--badge-radius)', padding: 'var(--ds-btn-py-xs) 10px', fontSize: 12, fontWeight: 700, fontFamily: 'var(--mono, monospace)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}
+                                    style={{ flexShrink: 0, cursor: 'pointer', border: '1px solid var(--teal)', background: led ? 'hsl(var(--primary))' : 'transparent', color: led ? 'hsl(var(--primary-foreground))' : 'var(--teal)', borderRadius: 'var(--badge-radius)', padding: 'var(--ds-btn-py-xs) 10px', fontSize: 12, fontWeight: 700, fontFamily: 'var(--mono, monospace)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}
                                   >
                                     {s.code}
                                   </button>
@@ -5306,7 +5306,7 @@ export const LandedCostPage: React.FC = () => {
                         <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 16, lineHeight: 1.6 }}>Get AI-powered interpretation of your landed cost and compliance status.</div>
 
                         {aiError && (
-                          <div style={{ marginBottom: 14, padding: '11px 14px', background: 'color-mix(in srgb, var(--red) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--red) 25%, transparent)', borderRadius: 9, fontSize: 12.5, color: 'var(--red)', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                          <div style={{ marginBottom: 14, padding: '11px 14px', background: 'color-mix(in srgb, var(--red) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--red) 25%, transparent)', borderRadius: 'var(--r)', fontSize: 12.5, color: 'var(--red)', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
                             <Icon name="alertCircle" size={14} color="var(--red)" style={{ flexShrink: 0, marginTop: 1 }} />
                             <span>
                               {aiError}

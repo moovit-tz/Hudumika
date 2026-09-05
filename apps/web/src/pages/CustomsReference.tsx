@@ -10,6 +10,8 @@ import { showAlert } from '../lib/alert.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { PaginationBar } from '../components/PaginationBar.js';
 import { Spinner } from '../components/ui/spinner.js';
+import { Banner } from '../components/ui/alert.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 
 // ── Customs Reference — ICD directory, TASAC agents, EAC excise, port/agency tariff ──
 // Real gazette data imported from the public EAC customs suite
@@ -251,7 +253,7 @@ export const CustomsReference: React.FC = () => {
       />
 
       {!canEdit && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 9, fontSize: 12.5, color: 'var(--ink3)', marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 12.5, color: 'var(--ink3)', marginBottom: 16 }}>
           <Icon name="lock" size={13} />
           This is shared reference data used by every tenant on the platform — only a platform super-admin can edit or re-upload it.
         </div>
@@ -267,22 +269,20 @@ export const CustomsReference: React.FC = () => {
         </div>
       )}
       {importError && (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '12px 16px', background: 'var(--red-l)', border: '1px solid var(--red)', borderRadius: 10, marginBottom: 16, fontSize: 13, color: 'var(--red)', fontWeight: 600 }}>
-          <span>{importError}</span>
-          <button type="button" onClick={() => setImportError('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)' }}><Icon name="x" size={14} /></button>
-        </div>
+        <Banner variant="error" onDismiss={() => setImportError('')}>{importError}</Banner>
       )}
 
       {/* Tabs + search — one row, responsive */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
-        <div className="ds-tabs-list" data-variant="segmented">
-          {TABS.map(t => (
-            <button key={t.key} type="button" onClick={() => setTab(t.key)}
-              className="ds-tabs-trigger" data-variant="segmented" data-state={tab === t.key ? 'active' : 'inactive'}>
-              {t.label}
-            </button>
-          ))}
-        </div>
+        <Tabs value={tab} onValueChange={v => setTab(v as typeof tab)} variant="segmented">
+          <TabsList>
+            {TABS.map(t => (
+              <TabsTrigger key={t.key} value={t.key}>
+                {t.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
         <div style={{ position: 'relative', flex: '1 1 240px', maxWidth: 380, minWidth: 200 }}>
           <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
             <Icon name="search" size={13} color="var(--ink3)" />

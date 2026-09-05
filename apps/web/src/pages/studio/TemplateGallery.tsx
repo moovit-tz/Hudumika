@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import './studio.css';
 import { apiFetch } from '../../lib/api.js';
 import { Icon } from '../../components/Icon.js';
+import { SectionLoading } from '../../components/ui/spinner.js';
+import { Banner } from '../../components/ui/alert.js';
 import { Button } from '../../components/ui/button.js';
 import { Badge } from '../../components/ui/badge.js';
 import { PageHeader } from '../../components/PageHeader.js';
@@ -55,8 +57,8 @@ export function TemplateGallery() {
         subtitle="Ready-made workflows built from real triggers and actions. Installing creates a <strong>draft</strong> you can edit — nothing runs until you switch it on."
       />
 
-      {error && <div style={{ padding: '9px 13px', background: 'var(--red-l)', color: 'var(--red)', borderRadius: 9, fontSize: 12.5, marginBottom: 12 }}>{error}</div>}
-      {loading && <div style={{ color: 'var(--ink3)', fontSize: 13, padding: 20 }}>Loading…</div>}
+      {error && <Banner variant="error" className="mb-3">{error}</Banner>}
+      {loading && <SectionLoading />}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 12 }}>
         {templates.map(t => (

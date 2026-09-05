@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { useComplyCertificates, useComplyObligations } from '../hooks/useComply.js';
 import { apiFetch } from '../lib/api.js';
 import { getHudumikaFooterHtml } from '../lib/watermark.js';
@@ -310,26 +311,21 @@ export function ComplyTraExtract() {
             )}
 
             {/* Results Navigation Tabs */}
-            <div className="ds-tabs-list" data-variant="segmented" style={{ padding: '0 24px', marginTop: 16 }}>
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} variant="segmented">
+            <TabsList style={{ padding: '0 24px', marginTop: 16 }}>
               {([
                 { key: 'profile', label: 'Taxpayer Profile', icon: 'user' },
                 { key: 'obligations', label: 'Active Obligations', icon: 'clipboardList' },
                 { key: 'tcc', label: 'Compliance & TCC', icon: 'shield' },
                 { key: 'history', label: 'Filing History', icon: 'fileText' }
               ] as const).map(tab => (
-                <button
-                  key={tab.key}
-                  type="button"
-                  className="ds-tabs-trigger"
-                  data-variant="segmented"
-                  data-state={activeTab === tab.key ? 'active' : 'inactive'}
-                  onClick={() => setActiveTab(tab.key)}
-                >
+                <TabsTrigger key={tab.key} value={tab.key}>
                   <Icon name={tab.icon as any} style={{ width: 14, height: 14 }} />
                   {tab.label}
-                </button>
+                </TabsTrigger>
               ))}
-            </div>
+            </TabsList>
+            </Tabs>
 
             {/* Tab Body */}
             <div style={{ padding: 24 }}>

@@ -287,7 +287,7 @@ export function AttendanceStatusBanner() {
                 <Button type="button" variant="outline" onClick={() => setConfirmOpen(false)} disabled={clockingOut}>
                   Cancel
                 </Button>
-                <Button type="button" onClick={confirmClockOut} disabled={confirmLoading || clockingOut} style={{ background: 'var(--red)', color: '#fff', border: 'none' }}>
+                <Button type="button" onClick={confirmClockOut} disabled={confirmLoading || clockingOut} style={{ background: 'var(--red)', color: 'hsl(var(--red-foreground))', border: 'none' }}>
                   {clockingOut ? 'Clocking out…' : 'Confirm Clock Out'}
                 </Button>
               </div>
@@ -305,7 +305,7 @@ export function AttendanceStatusBanner() {
           {clockOutSummary && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               {clockOutSummary.is_short_shift && (
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 12px', borderRadius: 9, background: 'var(--gold-l, #fffbeb)', border: '1px solid var(--gold-m, #fde68a)' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 12px', borderRadius: 'var(--r)', background: 'var(--gold-l, #fffbeb)', border: '1px solid var(--gold-m, #fde68a)' }}>
                   <Icon name="alertCircle" size={15} color="var(--gold)" style={{ flexShrink: 0, marginTop: 1 }} />
                   <span style={{ fontSize: 12.5, color: 'var(--ink2)' }}>That was a very short session — if this was a mis-click, you can clock back in.</span>
                 </div>
@@ -324,7 +324,7 @@ export function AttendanceStatusBanner() {
               {clockOutSummary.tasks_completed_count > 0 ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 220, overflowY: 'auto' }}>
                   {clockOutSummary.tasks_completed.map(t => (
-                    <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 9, background: 'var(--bg)' }}>
+                    <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 'var(--r)', background: 'var(--bg)' }}>
                       <Icon name="check" size={14} strokeWidth={2.5} color="var(--green)" />
                       <span style={{ fontSize: 13, color: 'var(--ink)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</span>
                       <span style={{ fontSize: 11, color: 'var(--ink3)', flexShrink: 0 }}>{new Date(t.completed_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
@@ -339,7 +339,7 @@ export function AttendanceStatusBanner() {
                 <Link to={kpiLink} onClick={() => setClockOutSummary(null)} style={{ fontSize: 13, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none' }}>
                   View HR insights →
                 </Link>
-                <Button type="button" onClick={() => setClockOutSummary(null)} style={{ height: 38, padding: '0 18px', fontSize: 13, fontWeight: 700, borderRadius: 9, background: 'var(--bg)', color: 'var(--ink)', border: '1px solid var(--border)', cursor: 'pointer' }}>
+                <Button type="button" onClick={() => setClockOutSummary(null)} style={{ height: 38, padding: '0 18px', fontSize: 13, fontWeight: 700, borderRadius: 'var(--r)', background: 'var(--bg)', color: 'var(--ink)', border: '1px solid var(--border)', cursor: 'pointer' }}>
                   Close
                 </Button>
               </div>

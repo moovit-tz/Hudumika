@@ -128,7 +128,7 @@ html[data-expanded="true"] .app-sidebar {
   height: 34px;
   min-width: 34px;
   background: var(--sb-color, #64748b);
-  border-radius: 9px;
+  border-radius: var(--r);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -844,6 +844,9 @@ html[data-expanded="true"] .app-sidebar {
 @keyframes app-sb-spin {
   to { transform: rotate(360deg); }
 }
+@media (prefers-reduced-motion: reduce) {
+  .app-sb-item-spinner { animation-duration: 2.5s; }
+}
 
 /* ── Skeleton loading menu state ── */
 .app-sb-skeleton-group {
@@ -865,7 +868,7 @@ html[data-expanded="true"] .app-sidebar {
 .app-sb-skeleton-icon {
   width: 18px;
   height: 18px;
-  border-radius: 5px;
+  border-radius: var(--r-sm);
   background: rgba(0, 0, 0, 0.07);
   flex-shrink: 0;
 }

@@ -3,6 +3,7 @@ import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
+import { Banner } from '../components/ui/alert.js';
 import { Button } from '../components/ui/button.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { apiFetch } from '../lib/api.js';
@@ -138,10 +139,9 @@ export function PettiExchange() {
             </div>
 
             {!sameCurrency && fromWallet && toWallet && (
-              <div style={{ padding: '10px 14px', background: 'var(--gold-l)', borderRadius: 8, border: '1px solid var(--gold)', fontSize: 12, color: 'var(--ink2)' }}>
-                <Icon name="alertTriangle" size={13} color="var(--gold)" style={{ marginRight: 6, verticalAlign: '-2px' }} />
+              <Banner variant="warning">
                 Moving money between wallets in different currencies isn't supported yet — the rate below is for reference only.
-              </div>
+              </Banner>
             )}
 
             {/* Exchange Rate Box — real published rate (fx-rates.routes.ts), not a hardcoded table */}
@@ -166,7 +166,7 @@ export function PettiExchange() {
               )}
             </div>
 
-            <Button type="submit" disabled={converting || !sameCurrency} style={{ background: 'var(--purple)', color: '#fff', padding: '12px', fontWeight: 700, fontSize: 14 }}>
+            <Button type="submit" disabled={converting || !sameCurrency} style={{ background: 'var(--purple)', color: 'hsl(var(--purple-foreground))', padding: '12px', fontWeight: 700, fontSize: 14 }}>
               <Icon name="refresh" size={16} /> {converting ? 'Transferring…' : sameCurrency ? 'Transfer' : 'Different currencies — not yet supported'}
             </Button>
           </form>

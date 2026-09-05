@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Icon } from '../components/Icon.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { Button } from '../components/ui/button.js';
 import { showConfirm } from '../lib/confirm.js';
 import {
@@ -68,7 +69,7 @@ export function NotesLabelsPage() {
         </div>
 
         {!loaded ? (
-          <div style={{ padding: '16px 0', color: 'var(--ink3)', fontSize: 13 }}>Loading…</div>
+          <SectionLoading />
         ) : labels.length === 0 ? (
           <div style={{ padding: '16px 0', color: 'var(--ink3)', fontSize: 13 }}>No labels yet.</div>
         ) : (

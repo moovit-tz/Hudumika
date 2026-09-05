@@ -4,6 +4,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { apiFetch } from '../../lib/api.js';
 import { showAlert } from '../../lib/alert.js';
 import { Icon } from '../../components/Icon.js';
+import { SectionLoading } from '../../components/ui/spinner.js';
 import type { OnsiteAgencyProfile, AgencyPricingTier } from '@hudumika/types';
 import './Onsite.css';
 
@@ -107,7 +108,7 @@ export function OnsiteAgencyDirectoryProfile() {
       />
 
       {loading ? (
-        <div className="onsite-card"><p style={{ color: 'var(--ink2)' }}>Loading…</p></div>
+        <div className="onsite-card"><SectionLoading /></div>
       ) : (
         <>
           {profile && (

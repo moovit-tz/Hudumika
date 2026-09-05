@@ -13,6 +13,7 @@ import { apiFetch } from '../lib/api.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Icon } from '../components/Icon.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { Badge } from '../components/ui/badge.js';
 import { EntityPicker, type PickerItem } from '../components/EntityPicker.js';
 import { showAlert } from '../lib/alert.js';
@@ -133,7 +134,7 @@ export const HrVisitors: React.FC = () => {
 
       <div style={{ marginBottom: 20 }}>
         <SectionCard padded={false} title={`On-site now (${present.length})`}>
-          {visitors === null && <div style={{ padding: 20, fontSize: 13, color: 'var(--ink3)' }}>Loading…</div>}
+          {visitors === null && <SectionLoading />}
           {visitors !== null && present.length === 0 && <div style={{ padding: 20, fontSize: 13, color: 'var(--ink3)' }}>Nobody checked in right now.</div>}
           {present.map((v, i, arr) => (
             <div key={v.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '13px 20px', borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none' }}>
