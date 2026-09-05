@@ -1,4 +1,31 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import type { IconLibraryId } from '../hooks/useDesignSystem.js';
+
+// Loaded on demand, not from the main bundle — see IconAlt.tsx's own header
+// comment for why. Suspense's fallback covers only the brief moment this
+// chunk is in flight; IconAlt itself decides real-alt-render vs.
+// fall-back-to-stroke once it's loaded, based on whether the chosen
+// library actually covers this name (see Icon() below).
+const IconAlt = React.lazy(() => import('./IconAlt.js'));
+
+function readIconLibrary(): IconLibraryId {
+  if (typeof document === 'undefined') return 'stroke';
+  const attr = document.documentElement.getAttribute('data-icon-library');
+  return attr === 'twotone' || attr === 'hugeicons' ? attr : 'stroke';
+}
+
+// Same 'hudumika-ds-updated' event useIsMobile.ts already keys off — every
+// mounted <Icon> switches libraries live the moment a SuperAdmin changes it
+// in /admin/design-system, no reload.
+function useIconLibrary(): IconLibraryId {
+  const [library, setLibrary] = useState<IconLibraryId>(readIconLibrary);
+  useEffect(() => {
+    const onUpdate = () => setLibrary(readIconLibrary());
+    window.addEventListener('hudumika-ds-updated', onUpdate);
+    return () => window.removeEventListener('hudumika-ds-updated', onUpdate);
+  }, []);
+  return library;
+}
 
 /* Stroke-only SVG icon set — 24×24 viewBox, rounded caps/joins, no fill.
    All paths written to a 24-unit grid so they scale cleanly at any size. */
@@ -228,6 +255,7 @@ interface IconProps {
 }
 
 export function Icon({ name, size = 16, strokeWidth = 1.75, className, style, color, duotone = false, onClick }: IconProps) {
+  const library = useIconLibrary();
   const paths = P[name];
   if (!paths) return null;
   const arr = Array.isArray(paths) ? paths : [paths];
@@ -242,7 +270,8 @@ export function Icon({ name, size = 16, strokeWidth = 1.75, className, style, co
   // different weight (e.g. a bold 2.5 for an active nav icon).
   const pathStyle: React.CSSProperties | undefined =
     strokeWidth === 1.75 ? ({ strokeWidth: 'var(--icon-stroke-width, 1.75)' } as React.CSSProperties) : undefined;
-  return (
+
+  const strokeNode = (
     <svg
       width={size}
       height={size}
@@ -265,5 +294,29 @@ export function Icon({ name, size = 16, strokeWidth = 1.75, className, style, co
           ))
       }
     </svg>
+  );
+
+  if (library === 'stroke') return strokeNode;
+
+  // `duotone` is a stroke-set-only concept (a tinted fill layered under the
+  // stroke) — the alternate libraries render in their own native style
+  // regardless of it, same as they ignore nothing else about the request
+  // except which artwork to draw.
+  return (
+    <React.Suspense fallback={strokeNode}>
+      <IconAlt
+        name={name}
+        library={library}
+        size={size}
+        strokeWidth={strokeWidth}
+        color={color}
+        className={className}
+        style={interactiveProps.style}
+        onClick={onClick}
+        role={onClick ? 'button' : undefined}
+        aria-hidden={onClick ? undefined : true}
+        fallback={strokeNode}
+      />
+    </React.Suspense>
   );
 }

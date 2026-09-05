@@ -270,6 +270,49 @@ export async function ondiOauthRoutes(fastify: FastifyInstance) {
   });
 
   /**
+   * GET /v1/ondi/oauth/clients/first-party — Ondi Personal ▸ Apps's
+   * "Connect a Hudumika app" picker. Only the name/logo a picker needs, and
+   * only first-party clients — third-party apps are never self-connectable
+   * this way, see POST /consents/preauthorize below.
+   */
+  fastify.get('/clients/first-party', { preHandler: fastify.authenticate }, async () => {
+    return dbPlatform.selectFrom('ondi_oauth_clients')
+      .select(['client_id', 'name', 'logo_url'])
+      .where('first_party', '=', true)
+      .orderBy('name', 'asc')
+      .execute();
+  });
+
+  /**
+   * POST /v1/ondi/oauth/consents/preauthorize — self-service "connect" for
+   * one of Hudumika's own first-party apps. A first-party client already
+   * auto-approves at /authorize/info (no consent screen ever shown to the
+   * user), so this doesn't grant anything a visit to that app wouldn't
+   * already grant automatically — it just creates that same consent row up
+   * front, so the app shows on this user's Authorized Apps list before
+   * they've actually opened it. Deliberately first-party-only: an arbitrary
+   * third-party client cannot be self-approved this way, only Hudumika's
+   * own apps (registering *those* is the separate, admin-gated
+   * POST /v1/ondi/oauth-clients in ondi.routes.ts).
+   */
+  fastify.post('/consents/preauthorize', { preHandler: fastify.authenticate }, async (request, reply) => {
+    const { client_id } = z.object({ client_id: z.string().min(1) }).parse(request.body);
+    const client = await loadClient(client_id);
+    if (!client || !client.first_party) {
+      return reply.status(400).send({ error: "Only Hudumika's own apps can be connected this way." });
+    }
+
+    const user = request.user;
+    const scopes = ['openid', 'profile', 'email'];
+    await withTenant(user.tenant_id, trx => trx.insertInto('ondi_oauth_consents').values({
+      tenant_id: user.tenant_id, user_id: user.sub, client_id, scopes: JSON.stringify(scopes),
+    }).onConflict(oc => oc.columns(['user_id', 'client_id']).doUpdateSet({ scopes: JSON.stringify(scopes), granted_at: new Date() })).execute());
+
+    await recordAuthEvent(user.tenant_id, user.sub, 'oauth_consent_granted', { metadata: { via: 'oauth_preauthorize', client_id } });
+    return { success: true };
+  });
+
+  /**
    * DELETE /v1/ondi/oauth/consents/:id — revoke a standing grant. Clears
    * the consent row so the next /authorize prompts again; does not reach
    * into Redis for any access/refresh token already issued under it (no

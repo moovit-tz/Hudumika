@@ -1,0 +1,378 @@
+/* ══════════════════════════════════════════════════════════
+   OndiVault.css — Ondi Personal · ID Documents & Vault
+   Personal identity document management with Cloud Drive
+   integration. Mobile-first, 2x2 compact KPIs, 0% transparency,
+   zero AI gradients.
+   ══════════════════════════════════════════════════════════ */
+
+.ov-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+}
+
+/* ── Top Posture KPI Grid ── */
+.ov-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  width: 100%;
+}
+
+.ov-kpi-card {
+  background: var(--white, #ffffff);
+  border: 1px solid var(--border);
+  border-radius: var(--r, 12px);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+  box-shadow: var(--elev-sm, 0 1px 3px rgba(0, 0, 0, 0.03));
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ov-kpi-card:hover {
+  border-color: var(--border-hover, #cbd5e1);
+  box-shadow: var(--elev, 0 4px 12px rgba(0, 0, 0, 0.05));
+}
+
+.ov-kpi-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ov-kpi-title {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ink3);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ov-kpi-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--teal);
+  flex-shrink: 0;
+}
+
+.ov-kpi-icon.primary {
+  background: var(--teal-l);
+  color: var(--teal);
+}
+
+.ov-kpi-icon.success {
+  background: var(--green-l);
+  color: var(--green, #10b981);
+}
+
+.ov-kpi-icon.warning {
+  background: var(--gold-l);
+  color: var(--gold, #f59e0b);
+}
+
+.ov-kpi-icon.purple {
+  background: var(--purple-l);
+  color: var(--purple, #8b5cf6);
+}
+
+.ov-kpi-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ov-kpi-val {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-family: var(--mono);
+}
+
+.ov-kpi-sub {
+  font-size: 11.5px;
+  color: var(--ink3);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* ── Main Layout: Content Grid (2 Columns Desktop) ── */
+.ov-layout-grid {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 20px;
+  align-items: flex-start;
+  width: 100%;
+}
+
+.ov-main-col {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+.ov-side-col {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ── Enterprise Card System (0% Transparency) ── */
+.ov-card {
+  background: var(--white, #ffffff);
+  border: 1px solid var(--border);
+  border-radius: var(--r, 12px);
+  overflow: hidden;
+  box-shadow: var(--elev-sm, 0 1px 3px rgba(0, 0, 0, 0.03));
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ov-card:hover {
+  border-color: var(--border-hover, #cbd5e1);
+}
+
+.ov-card-hdr {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.ov-card-hdr-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ov-card-title {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0;
+}
+
+.ov-card-sub {
+  font-size: 12px;
+  color: var(--ink3);
+  margin: 2px 0 0;
+}
+
+.ov-card-body {
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ── Filter & Search Toolbar ── */
+.ov-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.ov-search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm, 8px);
+  padding: 0 12px;
+  height: 36px;
+  flex: 1;
+  min-width: 200px;
+}
+
+.ov-search-input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-family: var(--font);
+  font-size: 13px;
+  color: var(--ink);
+  width: 100%;
+}
+
+.ov-search-input::placeholder {
+  color: var(--ink3);
+}
+
+/* ── Document List & Items ── */
+.ov-doc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ov-doc-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm, 9px);
+  transition: all 0.15s ease;
+}
+
+.ov-doc-item:hover {
+  border-color: var(--teal);
+  background: var(--bg);
+}
+
+.ov-doc-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
+
+.ov-doc-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  background: var(--teal-l);
+  color: var(--teal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ov-doc-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.ov-doc-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ov-doc-meta {
+  font-size: 11.5px;
+  color: var(--ink3);
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ov-doc-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* ── Upload Area ── */
+.ov-upload-dropzone {
+  border: 1.5px dashed var(--border);
+  border-radius: var(--r, 12px);
+  padding: 24px 20px;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: center;
+}
+
+.ov-upload-dropzone:hover {
+  border-color: var(--teal);
+  background: var(--teal-l);
+}
+
+/* ── Mobile Viewports (<640px) ── */
+@media (max-width: 640px) {
+  .ov-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .ov-kpi-card {
+    padding: 12px 14px;
+    gap: 6px;
+  }
+
+  .ov-kpi-val {
+    font-size: 17px;
+  }
+
+  .ov-kpi-title {
+    font-size: 10.5px;
+  }
+
+  .ov-kpi-icon {
+    width: 28px;
+    height: 28px;
+  }
+
+  .ov-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .ov-search-box {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .ov-doc-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .ov-doc-actions {
+    width: 100%;
+    justify-content: flex-end;
+    border-top: 1px solid var(--border);
+    padding-top: 8px;
+  }
+
+  .ov-card-hdr {
+    padding: 14px 16px;
+  }
+
+  .ov-card-body {
+    padding: 14px 16px;
+  }
+}
+
+/* ── Tablet/Mobile Collapse (<1024px) ── */
+@media (max-width: 1024px) {
+  .ov-layout-grid {
+    grid-template-columns: 1fr;
+  }
+}

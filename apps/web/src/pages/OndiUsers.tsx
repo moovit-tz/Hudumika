@@ -57,19 +57,28 @@ function InviteModal({ onClose, onInvited }: { onClose: () => void; onInvited: (
     }
   }
 
-  const inputStyle = { width: '100%', padding: '8px 10px', borderRadius: 9, border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: 13, background: 'var(--bg)', color: 'var(--ink)', boxSizing: 'border-box' as const };
+  const inputStyle = { width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: 13, background: 'var(--bg)', color: 'var(--ink)', boxSizing: 'border-box' as const };
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ background: 'var(--white)', borderRadius: 9, padding: 28, width: 420, maxWidth: '92vw', boxShadow: 'var(--elev-lg)' }}>
-        <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 20 }}>Invite a user</div>
+    <div className="ondi-modal-backdrop" onClick={onClose}>
+      <div className="ondi-modal-box" onClick={e => e.stopPropagation()}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)' }}>Invite a New Team Member</div>
+            <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>An invitation link will be sent to their email.</div>
+          </div>
+          <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}>
+            <Icon name="x" size={18} />
+          </button>
+        </div>
+
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Email</label>
-            <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="name@company.com" style={inputStyle} />
+            <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 6 }}>Email Address</label>
+            <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="colleague@company.com" style={inputStyle} />
           </div>
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Role</label>
+            <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 6 }}>Assigned Role</label>
             <Select value={role} onValueChange={setRole}>
               <SelectTrigger style={inputStyle}><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -77,11 +86,11 @@ function InviteModal({ onClose, onInvited }: { onClose: () => void; onInvited: (
               </SelectContent>
             </Select>
           </div>
-          {error && <div style={{ fontSize: 12, color: 'var(--red)' }}>{error}</div>}
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
-            <button type="button" onClick={onClose} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', cursor: 'pointer', fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
-            <button type="submit" disabled={saving} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13, opacity: saving ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-              {saving ? 'Sending…' : 'Send invite'}
+          {error && <div style={{ fontSize: 12, color: 'var(--red)', background: '#fef2f2', padding: '8px 12px', borderRadius: 6 }}>{error}</div>}
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 10 }}>
+            <button type="button" onClick={onClose} style={{ padding: '8px 18px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13 }}>Cancel</button>
+            <button type="submit" disabled={saving} style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: 'var(--teal)', color: '#fff', fontFamily: 'var(--font)', fontWeight: 700, cursor: 'pointer', fontSize: 13, opacity: saving ? 0.6 : 1, boxShadow: '0 2px 8px rgba(0, 181, 137, 0.3)' }}>
+              {saving ? 'Sending…' : 'Send Invitation'}
             </button>
           </div>
         </form>
@@ -99,15 +108,6 @@ export const OndiUsers: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showInvite, setShowInvite] = useState(false);
 
-  // Tabs: 'users', 'invites', 'join-requests' — the NexusHR "Invitations"
-  // nav item links straight to ?tab=invites now that its own page is gone,
-  // and the auto-join-by-domain email (onboarding.service.ts's
-  // createJoinRequest) links to ?tab=join-requests, so the initial tab has
-  // to be readable from the URL, not just clicked into. (A "Google
-  // Workspace" and a "Settings" tab used to live here too — both were pure
-  // fabricated UI with no backend at all, e.g. a hardcoded "120 Users" and
-  // toggle switches with no onChange handler — removed rather than kept as
-  // decoration; see M5 of the Ondi house-style plan.)
   const [searchParams] = useSearchParams();
   const initialTab = searchParams.get('tab');
   const [activeTab, setActiveTab] = useState<'users' | 'invites' | 'join-requests'>(
@@ -191,24 +191,20 @@ export const OndiUsers: React.FC = () => {
 
   // Filter computation
   const filteredUsers = users.filter(u => {
-    // 1. Search
     const q = search.toLowerCase();
     const matchesSearch = u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
     if (!matchesSearch) return false;
 
-    // 2. Permissions filter (Mock permissions categories)
     if (filterPermission !== 'All') {
       if (filterPermission === 'Admin' && u.role !== 'ADMIN' && u.role !== 'SUPER_ADMIN') return false;
       if (filterPermission === 'Member' && (u.role === 'ADMIN' || u.role === 'SUPER_ADMIN')) return false;
     }
 
-    // 3. Status filter
     if (filterStatus !== 'All') {
       const status = u.active ? 'Seated' : 'Suspended';
       if (status !== filterStatus) return false;
     }
 
-    // 4. Role filter
     if (filterRole !== 'All') {
       if (u.role !== filterRole) return false;
     }
@@ -216,15 +212,10 @@ export const OndiUsers: React.FC = () => {
     return true;
   });
 
-  // Checkbox handlers
   function toggleSelectUser(id: string) {
     setSelectedUsers(prev => {
       const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
+      if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
   }
@@ -237,162 +228,192 @@ export const OndiUsers: React.FC = () => {
     }
   }
 
-  // CSV Exporter
   function exportCSV() {
-    const headers = ['Name', 'Email', 'Status', 'Role', 'Updated'];
-    const rows = filteredUsers.map(u => [
-      u.name,
-      u.email,
-      u.active ? 'Seated' : 'Suspended',
-      u.role,
-      fmt(u.created_at),
-    ]);
-    const csvContent = "data:text/csv;charset=utf-8,"
-      + [headers.join(','), ...rows.map(e => e.map(val => `"${val}"`).join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
+    const headers = ['Name', 'Email', 'Status', 'Role', 'Created At'];
+    const rows = filteredUsers.map(u => [u.name, u.email, u.active ? 'Seated' : 'Suspended', u.role, fmt(u.created_at)]);
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows.map(e => e.map(val => `"${val}"`).join(','))].join('\n');
     const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
+    link.setAttribute("href", encodeURI(csvContent));
     link.setAttribute("download", `users_export_${new Date().toISOString().split('T')[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   }
 
-  const tabStyle = (tab: typeof activeTab) => ({
-    padding: '12px 18px',
-    fontSize: 13,
-    fontWeight: 700,
-    cursor: 'pointer',
-    background: 'transparent',
-    border: 'none',
-    color: activeTab === tab ? 'var(--teal)' : 'var(--ink2)',
-    borderBottom: activeTab === tab ? '2px solid var(--teal)' : '2px solid transparent',
-    fontFamily: 'var(--font)',
-    outline: 'none',
-    transition: 'all 0.15s ease'
-  });
+  const activeCount = users.filter(u => u.active).length;
+  const pendingInvitesCount = invites.filter(i => i.status === 'PENDING').length;
 
   return (
-    <div>
+    <div className="ondi-page-container">
       {showInvite && <InviteModal onClose={() => setShowInvite(false)} onInvited={reload} />}
 
       <PageHeader
         crumbs={['Ondi', 'Users']}
         titlePlain="User"
         titleEm="directory"
-        subtitle="Every user in this tenant, their role, and pending invitations."
+        subtitle="Manage seated members, assigned administrative roles, and pending tenant invitations."
         actions={canManage ? (
           <button type="button" onClick={() => setShowInvite(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 16px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-            <Icon name="userPlus" size={15} /> Invite user
+            style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 18px', fontFamily: 'var(--font)', fontWeight: 700, fontSize: 13, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0, 181, 137, 0.3)' }}>
+            <Icon name="userPlus" size={15} /> Invite User
           </button>
         ) : undefined}
       />
 
-      {/* Tabs Header Navigation */}
-      <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', marginBottom: 20 }}>
-        <button style={tabStyle('users')} onClick={() => setActiveTab('users')}>Users</button>
-        <button style={tabStyle('invites')} onClick={() => setActiveTab('invites')}>Invites {invites.length > 0 ? `(${invites.length})` : ''}</button>
+      {/* KPI Stats Bar */}
+      <div className="ondi-kpi-grid">
+        <div className="ondi-kpi-card">
+          <div className="ondi-kpi-header">
+            <span className="ondi-kpi-title">Total Users</span>
+            <div className="ondi-kpi-icon-box"><Icon name="users" size={18} /></div>
+          </div>
+          <div className="ondi-kpi-body">
+            <span className="ondi-kpi-num">{users.length}</span>
+            <span className="ondi-kpi-sub">accounts registered</span>
+          </div>
+        </div>
+
+        <div className="ondi-kpi-card">
+          <div className="ondi-kpi-header">
+            <span className="ondi-kpi-title">Active Seated</span>
+            <div className="ondi-kpi-icon-box" style={{ background: '#ecfdf5', color: '#047857' }}><Icon name="checkCircle" size={18} /></div>
+          </div>
+          <div className="ondi-kpi-body">
+            <span className="ondi-kpi-num" style={{ color: '#047857' }}>{activeCount}</span>
+            <span className="ondi-kpi-sub">seated seats</span>
+          </div>
+        </div>
+
+        <div className="ondi-kpi-card">
+          <div className="ondi-kpi-header">
+            <span className="ondi-kpi-title">Pending Invites</span>
+            <div className="ondi-kpi-icon-box" style={{ background: '#fffbeb', color: '#b45309' }}><Icon name="mail" size={18} /></div>
+          </div>
+          <div className="ondi-kpi-body">
+            <span className="ondi-kpi-num" style={{ color: '#b45309' }}>{pendingInvitesCount}</span>
+            <span className="ondi-kpi-sub">awaiting sign-up</span>
+          </div>
+        </div>
+
+        <div className="ondi-kpi-card">
+          <div className="ondi-kpi-header">
+            <span className="ondi-kpi-title">Join Requests</span>
+            <div className="ondi-kpi-icon-box" style={{ background: '#eff6ff', color: '#1d4ed8' }}><Icon name="userCheck" size={18} /></div>
+          </div>
+          <div className="ondi-kpi-body">
+            <span className="ondi-kpi-num" style={{ color: '#1d4ed8' }}>{joinRequests.length}</span>
+            <span className="ondi-kpi-sub">auto-domain requests</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Tabs Header Bar */}
+      <div className="ondi-nav-tabstrip">
+        <button className={`ondi-tab-btn ${activeTab === 'users' ? 'active' : ''}`} onClick={() => setActiveTab('users')}>
+          <Icon name="users" size={14} /> Users <span className="ondi-tab-badge">{users.length}</span>
+        </button>
+        <button className={`ondi-tab-btn ${activeTab === 'invites' ? 'active' : ''}`} onClick={() => setActiveTab('invites')}>
+          <Icon name="mail" size={14} /> Invites {invites.length > 0 && <span className="ondi-tab-badge">{invites.length}</span>}
+        </button>
         {canManage && (
-          <button style={tabStyle('join-requests')} onClick={() => setActiveTab('join-requests')}>
-            Join requests {joinRequests.length > 0 ? `(${joinRequests.length})` : ''}
+          <button className={`ondi-tab-btn ${activeTab === 'join-requests' ? 'active' : ''}`} onClick={() => setActiveTab('join-requests')}>
+            <Icon name="userCheck" size={14} /> Join Requests {joinRequests.length > 0 && <span className="ondi-tab-badge">{joinRequests.length}</span>}
           </button>
         )}
       </div>
 
-      {/* ── Tab 1: Users ───────────────────────────────────────────────── */}
+      {/* ── Tab 1: Users Table ───────────────────────────────────────────────── */}
       {activeTab === 'users' && (
         <SectionCard padded={false}>
-          {/* Header / Export Row */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid var(--border-soft)' }}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>
-              Users <span style={{ color: 'var(--ink3)', fontWeight: 500 }}>({filteredUsers.length})</span>
-            </div>
-            <button type="button" onClick={exportCSV}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '6px 14px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', color: 'var(--ink)' }}>
-              <Icon name="download" size={14} /> Export CSV
-            </button>
-          </div>
-
-          {/* Filter Row */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, padding: '12px 20px', borderBottom: '1px solid var(--border-soft)', alignItems: 'center' }}>
-            <div style={{ position: 'relative', width: 220 }}>
-              <Icon name="search" size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)' }} />
-              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search users"
-                style={{ width: '100%', padding: '6px 10px 6px 30px', fontSize: 13, border: '1px solid var(--border)', borderRadius: 'var(--r-sm, 6px)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', boxSizing: 'border-box' }} />
+          {/* Header & Filter Toolbar */}
+          <div className="ondi-toolbar">
+            <div className="ondi-search-input">
+              <Icon name="search" size={14} />
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name or email…" />
             </div>
 
-            <SingleSelectFilter
-              label="Permissions"
-              value={filterPermission === 'All' ? null : filterPermission}
-              onChange={v => setFilterPermission(v ?? 'All')}
-              options={[
-                { value: 'Admin', label: 'Admins' },
-                { value: 'Member', label: 'Members' },
-              ]}
-            />
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
+              <SingleSelectFilter
+                label="Permissions"
+                value={filterPermission === 'All' ? null : filterPermission}
+                onChange={v => setFilterPermission(v ?? 'All')}
+                options={[
+                  { value: 'Admin', label: 'Admins' },
+                  { value: 'Member', label: 'Members' },
+                ]}
+              />
 
-            <SingleSelectFilter
-              label="Status"
-              value={filterStatus === 'All' ? null : filterStatus}
-              onChange={v => setFilterStatus(v ?? 'All')}
-              options={[
-                { value: 'Seated', label: 'Seated (Active)' },
-                { value: 'Suspended', label: 'Suspended (Inactive)' },
-              ]}
-            />
+              <SingleSelectFilter
+                label="Status"
+                value={filterStatus === 'All' ? null : filterStatus}
+                onChange={v => setFilterStatus(v ?? 'All')}
+                options={[
+                  { value: 'Seated', label: 'Seated (Active)' },
+                  { value: 'Suspended', label: 'Suspended' },
+                ]}
+              />
 
-            <SingleSelectFilter
-              label="Role"
-              value={filterRole === 'All' ? null : filterRole}
-              onChange={v => setFilterRole(v ?? 'All')}
-              options={ROLES.map(r => ({ value: r, label: r }))}
-            />
+              <SingleSelectFilter
+                label="Role"
+                value={filterRole === 'All' ? null : filterRole}
+                onChange={v => setFilterRole(v ?? 'All')}
+                options={ROLES.map(r => ({ value: r, label: r }))}
+              />
+
+              <button type="button" onClick={exportCSV}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 14px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', color: 'var(--ink)' }}>
+                <Icon name="download" size={14} /> Export CSV
+              </button>
+            </div>
           </div>
 
           {/* Table */}
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <table className="ondi-table">
               <thead>
-                <tr style={{ background: 'var(--bg)', textAlign: 'left' }}>
-                  <th style={{ padding: '12px 14px', width: 40 }}>
-                    <input type="checkbox" checked={selectedUsers.size === filteredUsers.length && filteredUsers.length > 0} onChange={toggleSelectAll} style={{ cursor: 'pointer', verticalAlign: 'middle' }} />
+                <tr>
+                  <th style={{ width: 40, textAlign: 'center' }}>
+                    <input type="checkbox" checked={selectedUsers.size === filteredUsers.length && filteredUsers.length > 0} onChange={toggleSelectAll} style={{ cursor: 'pointer' }} />
                   </th>
-                  {['Name ↑', 'Email', 'Status', 'Roles', 'Updated', ''].map(h => (
-                    <th key={h} style={{ padding: '12px 14px', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: 0.03 }}>{h}</th>
-                  ))}
+                  <th>User</th>
+                  <th>Email</th>
+                  <th>Status</th>
+                  <th>Role</th>
+                  <th>Created</th>
+                  <th style={{ textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {!loading && filteredUsers.map(u => {
                   const isSelected = selectedUsers.has(u.id);
                   return (
-                    <tr key={u.id} style={{ borderTop: '1px solid var(--border)', background: isSelected ? 'rgba(var(--teal-rgb), 0.04)' : 'transparent', transition: 'background 0.15s ease' }}>
-                      <td style={{ padding: '12px 14px' }}>
-                        <input type="checkbox" checked={isSelected} onChange={() => toggleSelectUser(u.id)} style={{ cursor: 'pointer', verticalAlign: 'middle' }} />
+                    <tr key={u.id} className={isSelected ? 'selected' : ''}>
+                      <td style={{ textAlign: 'center' }}>
+                        <input type="checkbox" checked={isSelected} onChange={() => toggleSelectUser(u.id)} style={{ cursor: 'pointer' }} />
                       </td>
-                      <td style={{ padding: '12px 14px', fontWeight: 600, color: 'var(--ink)' }}>
+                      <td style={{ fontWeight: 700, color: 'var(--ink)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <PersonAvatar userId={u.id} name={u.name} size={30} style={{ border: '1px solid var(--border-soft)' }} />
+                          <PersonAvatar userId={u.id} name={u.name} size={32} style={{ border: '1px solid var(--border-soft)' }} />
                           {u.name}
                         </div>
                       </td>
-                      <td style={{ padding: '12px 14px', color: 'var(--ink2)' }}>{u.email}</td>
-                      <td style={{ padding: '12px 14px' }}>
-                        <span style={{
-                          fontSize: 11, fontWeight: 700, borderRadius: 20, padding: '4px 10px',
-                          background: u.active ? '#ecfdf5' : '#fff7ed',
-                          color: u.active ? '#065f46' : '#c2410c'
-                        }}>
+                      <td style={{ color: 'var(--ink2)' }}>{u.email}</td>
+                      <td>
+                        <span className={`ondi-status-pill ${u.active ? 'success' : 'warning'}`}>
+                          <span className="ondi-status-dot" />
                           {u.active ? 'Seated' : 'Suspended'}
                         </span>
                       </td>
-                      <td style={{ padding: '12px 14px', color: 'var(--ink2)' }}>{u.role}</td>
-                      <td style={{ padding: '12px 14px', color: 'var(--ink3)' }}>{fmt(u.created_at)}</td>
-                      <td style={{ padding: '12px 14px', textAlign: 'right' }}>
+                      <td>
+                        <span style={{ fontSize: 11.5, fontWeight: 700, background: 'var(--bg)', border: '1px solid var(--border-soft)', padding: '3px 8px', borderRadius: 6, color: 'var(--ink)' }}>
+                          {u.role}
+                        </span>
+                      </td>
+                      <td style={{ color: 'var(--ink3)', fontSize: 12 }}>{fmt(u.created_at)}</td>
+                      <td style={{ textAlign: 'right' }}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}>
+                            <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 6, borderRadius: 6 }}>
                               <Icon name="moreVertical" size={16} />
                             </button>
                           </DropdownMenuTrigger>
@@ -415,49 +436,51 @@ export const OndiUsers: React.FC = () => {
               </tbody>
             </table>
             {!loading && filteredUsers.length === 0 && (
-              <div style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No users found matching current filters.</div>
+              <div style={{ padding: '36px 20px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No users found matching current filters.</div>
             )}
           </div>
         </SectionCard>
       )}
 
-      {/* ── Tab 2: Invites ─────────────────────────────────────────────── */}
+      {/* ── Tab 2: Invites Table ─────────────────────────────────────────────── */}
       {activeTab === 'invites' && (
         <SectionCard padded={false}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid var(--border-soft)' }}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>
-              Pending invitations <span style={{ color: 'var(--ink3)', fontWeight: 500 }}>({invites.length})</span>
-            </div>
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-soft)', fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>
+            Pending Invitations ({invites.length})
           </div>
 
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <table className="ondi-table">
               <thead>
-                <tr style={{ background: 'var(--bg)', textAlign: 'left' }}>
-                  {['Email', 'Role', 'Status', 'Invited by', 'Expires', ''].map(h => (
-                    <th key={h} style={{ padding: '12px 14px', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>{h}</th>
-                  ))}
+                <tr>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th>Status</th>
+                  <th>Invited By</th>
+                  <th>Expires</th>
+                  <th style={{ textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {invites.map(i => {
-                  const statusColor = i.status === 'REVOKED' ? '#ef4444' : i.status === 'ACCEPTED' ? '#10b981' : '#f59e0b';
+                  const statusClass = i.status === 'REVOKED' ? 'error' : i.status === 'ACCEPTED' ? 'success' : 'warning';
                   return (
-                    <tr key={i.id} style={{ borderTop: '1px solid var(--border)' }}>
-                      <td style={{ padding: '12px 14px', fontWeight: 600, color: 'var(--ink)' }}>{i.email}</td>
-                      <td style={{ padding: '12px 14px', color: 'var(--ink2)' }}>{i.role}</td>
-                      <td style={{ padding: '12px 14px' }}>
-                        <span style={{ fontSize: 11, fontWeight: 700, borderRadius: 20, padding: '2px 8px', background: `${statusColor}15`, color: statusColor }}>
+                    <tr key={i.id}>
+                      <td style={{ fontWeight: 700, color: 'var(--ink)' }}>{i.email}</td>
+                      <td><span style={{ fontSize: 11.5, fontWeight: 700, background: 'var(--bg)', border: '1px solid var(--border-soft)', padding: '3px 8px', borderRadius: 6 }}>{i.role}</span></td>
+                      <td>
+                        <span className={`ondi-status-pill ${statusClass}`}>
+                          <span className="ondi-status-dot" />
                           {i.status}
                         </span>
                       </td>
-                      <td style={{ padding: '12px 14px', color: 'var(--ink3)' }}>{i.invited_by_name || '—'}</td>
-                      <td style={{ padding: '12px 14px', color: 'var(--ink3)' }}>{fmt(i.expires_at)}</td>
-                      <td style={{ padding: '12px 14px', textAlign: 'right' }}>
+                      <td style={{ color: 'var(--ink3)' }}>{i.invited_by_name || '—'}</td>
+                      <td style={{ color: 'var(--ink3)', fontSize: 12 }}>{fmt(i.expires_at)}</td>
+                      <td style={{ textAlign: 'right' }}>
                         {i.status === 'PENDING' && (
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}>
+                              <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 6 }}>
                                 <Icon name="moreVertical" size={16} />
                               </button>
                             </DropdownMenuTrigger>
@@ -479,51 +502,49 @@ export const OndiUsers: React.FC = () => {
               </tbody>
             </table>
             {invites.length === 0 && (
-              <div style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No pending invitations.</div>
+              <div style={{ padding: '36px 20px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No pending invitations.</div>
             )}
           </div>
         </SectionCard>
       )}
 
-      {/* ── Tab 3: Join requests (auto-join-by-domain) ───────────────────── */}
+      {/* ── Tab 3: Join Requests ─────────────────────────────────────────────── */}
       {activeTab === 'join-requests' && canManage && (
         <SectionCard padded={false}>
           <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-soft)' }}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>
-              Join requests <span style={{ color: 'var(--ink3)', fontWeight: 500 }}>({joinRequests.length})</span>
-            </div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>Auto-Domain Join Requests ({joinRequests.length})</div>
             <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>
-              People who signed up with an email on this workspace's domain and asked to join instead of creating a new workspace.
+              People who registered with an email on this workspace's domain requesting account access.
             </div>
             {joinActionErr && <div style={{ fontSize: 12, color: 'var(--red)', marginTop: 6 }}>{joinActionErr}</div>}
           </div>
 
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <table className="ondi-table">
               <thead>
-                <tr style={{ background: 'var(--bg)', textAlign: 'left' }}>
-                  {['Name', 'Email', 'Requested', ''].map(h => (
-                    <th key={h} style={{ padding: '12px 14px', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>{h}</th>
-                  ))}
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Requested</th>
+                  <th style={{ textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {joinRequests.map(r => (
-                  <tr key={r.id} style={{ borderTop: '1px solid var(--border)' }}>
-                    <td style={{ padding: '12px 14px', fontWeight: 600, color: 'var(--ink)' }}>
+                  <tr key={r.id}>
+                    <td style={{ fontWeight: 700, color: 'var(--ink)' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <PersonAvatar name={r.name} size={30} style={{ border: '1px solid var(--border-soft)' }} />
                         {r.name}
                       </div>
                     </td>
-                    <td style={{ padding: '12px 14px', color: 'var(--ink2)' }}>{r.email}</td>
-                    <td style={{ padding: '12px 14px', color: 'var(--ink3)' }}>{fmt(r.created_at)}</td>
-                    <td style={{ padding: '12px 14px', textAlign: 'right' }}>
-                      <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                    <td style={{ color: 'var(--ink2)' }}>{r.email}</td>
+                    <td style={{ color: 'var(--ink3)', fontSize: 12 }}>{fmt(r.created_at)}</td>
+                    <td style={{ textAlign: 'right' }}>
+                      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <button type="button"
-                              style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r-sm)', padding: '6px 14px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer' }}>
+                            <button type="button" style={{ background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 6, padding: '6px 14px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>
                               Approve as…
                             </button>
                           </DropdownMenuTrigger>
@@ -536,7 +557,7 @@ export const OndiUsers: React.FC = () => {
                           </DropdownMenuContent>
                         </DropdownMenu>
                         <button type="button" onClick={() => denyJoinRequest(r.id)}
-                          style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--red)', borderRadius: 'var(--r-sm)', padding: '6px 14px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer' }}>
+                          style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--red)', borderRadius: 6, padding: '6px 14px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>
                           Deny
                         </button>
                       </div>
@@ -546,12 +567,11 @@ export const OndiUsers: React.FC = () => {
               </tbody>
             </table>
             {joinRequests.length === 0 && (
-              <div style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No pending join requests.</div>
+              <div style={{ padding: '36px 20px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No pending join requests.</div>
             )}
           </div>
         </SectionCard>
       )}
-
     </div>
   );
 };

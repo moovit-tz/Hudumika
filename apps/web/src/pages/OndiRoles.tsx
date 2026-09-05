@@ -69,9 +69,6 @@ export const OndiRoles: React.FC = () => {
   const [breakGlass, setBreakGlass] = useState(false);
   const [breakGlassHours, setBreakGlassHours] = useState('4');
 
-  // Just-in-Time-lite grants: per-role choice of how long a newly-added
-  // member's grant should last, kept keyed by role so switching one card's
-  // dropdown doesn't affect any other.
   const [pendingExpiry, setPendingExpiry] = useState<Record<string, string>>({});
 
   const entitlements = useEntitlements();
@@ -88,7 +85,7 @@ export const OndiRoles: React.FC = () => {
       apiFetch('/v1/ondi/users').then(setStaff).catch(() => setStaff([]));
     }
   }, [isAdmin, canReviewRequests]);
-  
+
   useEffect(() => { reload(); }, [reload]);
 
   async function createRole() {
@@ -178,7 +175,7 @@ export const OndiRoles: React.FC = () => {
     background: 'var(--bg)',
     border: '1px solid var(--border)',
     borderRadius: 'var(--r-sm, 6px)',
-    padding: '8px 12px',
+    padding: '9px 12px',
     fontSize: 13,
     color: 'var(--ink)',
     fontFamily: 'var(--font)',
@@ -186,20 +183,70 @@ export const OndiRoles: React.FC = () => {
     boxSizing: 'border-box' as const
   };
 
+  const totalGrants = roles ? roles.reduce((acc, r) => acc + r.members.length, 0) : 0;
+  const breakGlassCount = queue ? queue.filter(r => r.break_glass).length : 0;
+
   return (
-    <div>
+    <div className="ondi-page-container">
       <PageHeader
         crumbs={['Ondi', 'Roles & Access']}
         titlePlain="Roles &"
         titleEm="access"
-        subtitle="Custom roles layered on top of everyone's account role, and requests to hold one."
+        subtitle="Custom roles layered on top of account privileges, self-service access requests, and break-glass grants."
       />
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20, marginBottom: 24, alignItems: 'start' }}>
+      {/* KPI Stats Bar */}
+      <div className="ondi-kpi-grid">
+        <div className="ondi-kpi-card">
+          <div className="ondi-kpi-header">
+            <span className="ondi-kpi-title">Custom Roles</span>
+            <div className="ondi-kpi-icon-box"><Icon name="userCheck" size={18} /></div>
+          </div>
+          <div className="ondi-kpi-body">
+            <span className="ondi-kpi-num">{roles ? roles.length : availableRoles.length}</span>
+            <span className="ondi-kpi-sub">roles defined</span>
+          </div>
+        </div>
+
+        <div className="ondi-kpi-card">
+          <div className="ondi-kpi-header">
+            <span className="ondi-kpi-title">Pending Requests</span>
+            <div className="ondi-kpi-icon-box" style={{ background: '#fffbeb', color: '#b45309' }}><Icon name="clock" size={18} /></div>
+          </div>
+          <div className="ondi-kpi-body">
+            <span className="ondi-kpi-num" style={{ color: '#b45309' }}>{queue ? queue.length : 0}</span>
+            <span className="ondi-kpi-sub">awaiting approval</span>
+          </div>
+        </div>
+
+        <div className="ondi-kpi-card">
+          <div className="ondi-kpi-header">
+            <span className="ondi-kpi-title">Break-Glass</span>
+            <div className="ondi-kpi-icon-box" style={{ background: '#fef2f2', color: '#b91c1c' }}><Icon name="alertTriangle" size={18} /></div>
+          </div>
+          <div className="ondi-kpi-body">
+            <span className="ondi-kpi-num" style={{ color: '#b91c1c' }}>{breakGlassCount}</span>
+            <span className="ondi-kpi-sub">emergency requests</span>
+          </div>
+        </div>
+
+        <div className="ondi-kpi-card">
+          <div className="ondi-kpi-header">
+            <span className="ondi-kpi-title">Active Grants</span>
+            <div className="ondi-kpi-icon-box" style={{ background: '#ecfdf5', color: '#047857' }}><Icon name="users" size={18} /></div>
+          </div>
+          <div className="ondi-kpi-body">
+            <span className="ondi-kpi-num" style={{ color: '#047857' }}>{totalGrants}</span>
+            <span className="ondi-kpi-sub">role assignments</span>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20, alignItems: 'start' }}>
         
         {/* Card 1: Request Access (Self-Service) */}
         <SectionCard title="Request access">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'stretch' }}>
               <Select value={requestRoleId || '__none__'} onValueChange={v => setRequestRoleId(v === '__none__' ? '' : v)}>
                 <SelectTrigger style={{ flex: 1, minWidth: 150 }}><SelectValue placeholder="Choose a role…" /></SelectTrigger>
@@ -209,21 +256,21 @@ export const OndiRoles: React.FC = () => {
                 </SelectContent>
               </Select>
               <button type="button" onClick={submitAccessRequest} disabled={!requestRoleId || requesting}
-                style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontWeight: 600, cursor: 'pointer', fontSize: 13, opacity: (!requestRoleId || requesting) ? 0.6 : 1, minHeight: 'var(--ctl-h)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: 'var(--teal)', color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: 13, opacity: (!requestRoleId || requesting) ? 0.6 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0, 181, 137, 0.3)' }}>
                 {requesting ? 'Sending…' : 'Request'}
               </button>
             </div>
-            <input value={requestReason} onChange={e => setRequestReason(e.target.value)} placeholder="Why do you need this? (optional)" style={inputStyle} />
+            <input value={requestReason} onChange={e => setRequestReason(e.target.value)} placeholder="Why do you need this access? (optional)" style={inputStyle} />
 
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--ink2)', cursor: 'pointer' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12.5, color: 'var(--ink2)', cursor: 'pointer', background: 'var(--bg)', padding: '10px 12px', borderRadius: 8, border: '1px solid var(--border-soft)' }}>
               <Checkbox checked={breakGlass} onCheckedChange={() => setBreakGlass(v => !v)} />
-              Break-glass (emergency) — needs two admins to approve, and auto-expires
+              <span><strong>Break-glass (emergency)</strong> — requires 2 admin approvals &amp; auto-expires</span>
             </label>
             {breakGlass && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--ink3)' }}>
-                Expires after
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--ink3)', paddingLeft: 4 }}>
+                Expires after:
                 <Select value={breakGlassHours} onValueChange={setBreakGlassHours}>
-                  <SelectTrigger style={{ height: 30, fontSize: 12 }}><SelectValue /></SelectTrigger>
+                  <SelectTrigger style={{ height: 32, fontSize: 12 }}><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="1">1 hour</SelectItem>
                     <SelectItem value="4">4 hours</SelectItem>
@@ -235,21 +282,19 @@ export const OndiRoles: React.FC = () => {
             )}
 
             {myRequests.length > 0 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, borderTop: '1px solid var(--border-soft)', paddingTop: 12, marginTop: 4 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>My Requests</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, borderTop: '1px solid var(--border-soft)', paddingTop: 14 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>My Recent Requests</div>
                 {myRequests.map(r => (
                   <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, background: 'var(--bg)', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border-soft)' }}>
                     <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{r.role_name}</span>
                     {r.break_glass && (
-                      <span style={{ padding: '2px 8px', borderRadius: 20, fontSize: 10, fontWeight: 700, background: '#fef2f2', color: '#b91c1c' }} title="Break-glass request">
+                      <span className="ondi-status-pill error" style={{ fontSize: 10 }}>
                         BREAK-GLASS {r.status === 'pending' ? `· ${r.approvals_count}/${r.required_approvals}` : ''}
                       </span>
                     )}
-                    <span style={{
-                      padding: '2px 8px', borderRadius: 20, fontSize: 10, fontWeight: 700,
-                      background: r.status === 'approved' ? '#ecfdf5' : r.status === 'denied' ? '#fef2f2' : '#fffbeb',
-                      color: r.status === 'approved' ? '#047857' : r.status === 'denied' ? '#b91c1c' : '#b45309',
-                    }}>{r.status}</span>
+                    <span className={`ondi-status-pill ${r.status === 'approved' ? 'success' : r.status === 'denied' ? 'error' : 'warning'}`}>
+                      {r.status}
+                    </span>
                     <span style={{ color: 'var(--ink3)', marginLeft: 'auto', fontSize: 11 }}>{new Date(r.created_at).toLocaleDateString()}</span>
                   </div>
                 ))}
@@ -261,7 +306,7 @@ export const OndiRoles: React.FC = () => {
         {/* Card 2: Create Custom Role (Admin-only) */}
         {isAdmin && (
           <SectionCard title="Create New Role">
-            <form onSubmit={e => { e.preventDefault(); createRole(); }} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <form onSubmit={e => { e.preventDefault(); createRole(); }} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>
                 <input required value={newRoleName} onChange={e => setNewRoleName(e.target.value)} placeholder="Role name, e.g. Compliance Officer" style={{ ...inputStyle, width: '100%' }} />
               </div>
@@ -269,16 +314,18 @@ export const OndiRoles: React.FC = () => {
                 <input value={newRoleDesc} onChange={e => setNewRoleDesc(e.target.value)} placeholder="Short description" style={{ ...inputStyle, width: '100%' }} />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Assign Permissions</div>
-                {ALL_PERMISSIONS.map(p => (
-                  <label key={p} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: 'var(--ink)', cursor: 'pointer' }}>
-                    <Checkbox checked={newRolePerms.includes(p)} onCheckedChange={() => handleTogglePermission(p)} />
-                    {PERMISSION_LABEL[p]}
-                  </label>
-                ))}
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Assign Permissions</div>
+                <div style={{ maxHeight: 200, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, paddingRight: 6 }}>
+                  {ALL_PERMISSIONS.map(p => (
+                    <label key={p} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: 'var(--ink)', cursor: 'pointer' }}>
+                      <Checkbox checked={newRolePerms.includes(p)} onCheckedChange={() => handleTogglePermission(p)} />
+                      {PERMISSION_LABEL[p]}
+                    </label>
+                  ))}
+                </div>
               </div>
               <button type="submit" disabled={!newRoleName.trim() || creating}
-                style={{ width: '100%', padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 600, cursor: 'pointer', fontSize: 13, opacity: (!newRoleName.trim() || creating) ? 0.6 : 1, minHeight: 'var(--ctl-h)' }}>
+                style={{ width: '100%', padding: '10px', borderRadius: 8, border: 'none', background: 'var(--ink)', color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: 13, opacity: (!newRoleName.trim() || creating) ? 0.6 : 1 }}>
                 {creating ? 'Creating…' : 'Create Role'}
               </button>
             </form>
@@ -288,32 +335,31 @@ export const OndiRoles: React.FC = () => {
 
       {/* Card 3: Pending Approval Queue */}
       {canReviewRequests && (
-        <div style={{ marginBottom: 24 }}>
-          <SectionCard padded={false} title={`Pending Approval Requests${queue ? ` (${queue.length})` : ''}`}>
-            {queue?.length === 0 && <div style={{ padding: '32px 20px', fontSize: 13, color: 'var(--ink3)', textAlign: 'center' }}>No pending approval requests.</div>}
+        <div style={{ marginTop: 24 }}>
+          <SectionCard padded={false} title={`Pending Approval Queue${queue ? ` (${queue.length})` : ''}`}>
+            {queue?.length === 0 && <div style={{ padding: '36px 20px', fontSize: 13, color: 'var(--ink3)', textAlign: 'center' }}>No pending approval requests.</div>}
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               {queue?.map((r, i) => (
-                <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', borderTop: i > 0 ? '1px solid var(--border-soft)' : 'none' }}>
-                  <PersonAvatar userId={r.user_id} name={r.user_name} size={34} />
+                <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 20px', borderTop: i > 0 ? '1px solid var(--border-soft)' : 'none' }}>
+                  <PersonAvatar userId={r.user_id} name={r.user_name} size={36} />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                      <b>{r.user_name}</b> requests the <b>{r.role_name}</b> role
+                    <div style={{ fontSize: 13, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <strong style={{ fontWeight: 700 }}>{r.user_name}</strong> requests the <span className="ondi-perm-chip">{r.role_name}</span> role
                       {r.break_glass && (
-                        <span style={{ padding: '2px 8px', borderRadius: 20, fontSize: 10, fontWeight: 700, background: '#fef2f2', color: '#b91c1c' }} title={`Needs ${r.required_approvals} distinct admin approvals; expires ${r.expires_in_hours}h after the second`}>
+                        <span className="ondi-status-pill error">
                           BREAK-GLASS · {r.approvals_count}/{r.required_approvals} approved
                         </span>
                       )}
                     </div>
-                    {r.reason && <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>"{r.reason}"</div>}
+                    {r.reason && <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 3 }}>"{r.reason}"</div>}
                   </div>
                   <div style={{ display: 'flex', gap: 8 }}>
                     <button type="button" onClick={() => decide(r.id, false)}
-                      style={{ fontSize: 12, fontWeight: 700, borderRadius: 20, padding: '6px 12px', border: '1px solid #fecaca', background: '#fef2f2', color: '#b91c1c', cursor: 'pointer' }}>
+                      style={{ fontSize: 12, fontWeight: 700, borderRadius: 6, padding: '6px 14px', border: '1px solid #fecaca', background: '#fef2f2', color: '#b91c1c', cursor: 'pointer' }}>
                       Deny
                     </button>
                     <button type="button" onClick={() => decide(r.id, true)} disabled={r.my_decision === 'approve'}
-                      title={r.my_decision === 'approve' ? 'You already approved this' : undefined}
-                      style={{ fontSize: 12, fontWeight: 700, borderRadius: 20, padding: '6px 12px', border: 'none', background: '#ecfdf5', color: '#047857', cursor: r.my_decision === 'approve' ? 'default' : 'pointer', opacity: r.my_decision === 'approve' ? 0.5 : 1 }}>
+                      style={{ fontSize: 12, fontWeight: 700, borderRadius: 6, padding: '6px 14px', border: 'none', background: '#ecfdf5', color: '#047857', cursor: r.my_decision === 'approve' ? 'default' : 'pointer', opacity: r.my_decision === 'approve' ? 0.5 : 1 }}>
                       {r.my_decision === 'approve' ? 'Approved' : 'Approve'}
                     </button>
                   </div>
@@ -326,18 +372,16 @@ export const OndiRoles: React.FC = () => {
 
       {/* Card 4: Catalog of Defined Roles */}
       {isAdmin && roles && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)', paddingLeft: 4 }}>Role Catalog & Members</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20, marginTop: 24 }}>
+          <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)', paddingLeft: 4 }}>Role Catalog &amp; Active Members</div>
           
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
+          <div className="ondi-card-grid">
             {roles.map(r => (
-              <div key={r.id} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: 18, display: 'flex', flexDirection: 'column', gap: 14, boxShadow: 'var(--elev-sm)' }}>
-                
-                {/* Header */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
+              <div key={r.id} className="ondi-entity-card">
+                <div className="ondi-entity-header">
                   <div>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)' }}>{r.name}</div>
-                    {r.description && <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>{r.description}</div>}
+                    <div className="ondi-entity-title">{r.name}</div>
+                    {r.description && <div className="ondi-entity-sub">{r.description}</div>}
                   </div>
                   <button type="button" onClick={() => deleteRole(r.id, r.name)} title="Delete Role"
                     style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: 4 }}>
@@ -346,53 +390,49 @@ export const OndiRoles: React.FC = () => {
                 </div>
 
                 {/* Permissions badge list */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                <div className="ondi-chip-group">
                   {r.permissions.map(p => (
-                    <span key={p} style={{ fontSize: 10.5, fontWeight: 700, background: '#eff6ff', color: '#1e40af', padding: '2px 8px', borderRadius: 4 }} title={PERMISSION_LABEL[p]}>
+                    <span key={p} className="ondi-perm-chip" title={PERMISSION_LABEL[p]}>
                       {p}
                     </span>
                   ))}
                   {r.permissions.length === 0 && (
-                    <span style={{ fontSize: 11, color: 'var(--ink3)' }}>No explicit permissions.</span>
+                    <span style={{ fontSize: 12, color: 'var(--ink3)' }}>No explicit permissions assigned.</span>
                   )}
                 </div>
 
                 {/* Members list */}
-                <div style={{ borderTop: '1px solid var(--border-soft)', paddingTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Members ({r.members.length})</div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 120, overflowY: 'auto' }}>
+                <div style={{ borderTop: '1px solid var(--border-soft)', paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Members ({r.members.length})</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 130, overflowY: 'auto' }}>
                     {r.members.map(m => {
                       const expiry = expiryLabel(m.expires_at);
                       return (
                         <div key={m.user_id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5 }}>
-                          <PersonAvatar userId={m.user_id} name={m.user_name} size={22} />
+                          <PersonAvatar userId={m.user_id} name={m.user_name} size={24} />
                           <span style={{ fontWeight: 600, color: 'var(--ink)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={m.user_name}>{m.user_name}</span>
                           {expiry && (
-                            <span title={new Date(m.expires_at!).toLocaleString()} style={{
-                              fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, whiteSpace: 'nowrap',
-                              background: expiry === 'Expired' ? '#fef2f2' : '#fffbeb',
-                              color: expiry === 'Expired' ? '#b91c1c' : '#b45309',
-                            }}>{expiry}</span>
+                            <span className={`ondi-status-pill ${expiry === 'Expired' ? 'error' : 'warning'}`} style={{ fontSize: 10, padding: '2px 6px' }}>{expiry}</span>
                           )}
                           <button type="button" onClick={() => removeMember(r.id, m.user_id)} title="Remove Member"
                             style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}>
-                            <Icon name="x" size={12} />
+                            <Icon name="x" size={13} />
                           </button>
                         </div>
                       );
                     })}
                     {r.members.length === 0 && (
-                      <div style={{ fontSize: 12, color: 'var(--ink3)' }}>No users assigned.</div>
+                      <div style={{ fontSize: 12, color: 'var(--ink3)' }}>No users assigned to this role.</div>
                     )}
                   </div>
                 </div>
 
                 {/* Add member select box */}
-                <div style={{ borderTop: '1px solid var(--border-soft)', paddingTop: 10, marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div style={{ borderTop: '1px solid var(--border-soft)', paddingTop: 12, marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
                   <Select value={pendingExpiry[r.id] || '__never__'} onValueChange={v => setPendingExpiry(prev => ({ ...prev, [r.id]: v === '__never__' ? '' : v }))}>
-                    <SelectTrigger style={{ width: '100%', height: 30, fontSize: 12 }}><SelectValue /></SelectTrigger>
+                    <SelectTrigger style={{ width: '100%', height: 32, fontSize: 12 }}><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="__never__">Expires: Never</SelectItem>
+                      <SelectItem value="__never__">Grant Duration: Permanent</SelectItem>
                       <SelectItem value="24" disabled={!governanceEntitled}>Expires in 24 hours{!governanceEntitled ? ' (add-on required)' : ''}</SelectItem>
                       <SelectItem value="168" disabled={!governanceEntitled}>Expires in 7 days{!governanceEntitled ? ' (add-on required)' : ''}</SelectItem>
                       <SelectItem value="720" disabled={!governanceEntitled}>Expires in 30 days{!governanceEntitled ? ' (add-on required)' : ''}</SelectItem>
@@ -401,7 +441,7 @@ export const OndiRoles: React.FC = () => {
                   <Combobox
                     value=""
                     onChange={v => addMember(r.id, v)}
-                    placeholder="Add user to this role…"
+                    placeholder="Assign member to role…"
                     searchPlaceholder="Search staff…"
                     emptyText="No staff found"
                     options={staff.filter(s => !r.members.some(m => m.user_id === s.id)).map((s): ComboboxOption => ({ value: s.id, label: `${s.name} (${s.email})` }))}
@@ -413,7 +453,6 @@ export const OndiRoles: React.FC = () => {
           </div>
         </div>
       )}
-
     </div>
   );
 };

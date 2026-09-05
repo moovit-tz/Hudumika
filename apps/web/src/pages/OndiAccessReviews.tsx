@@ -1,10 +1,3 @@
-// ─── OndiAccessReviews.tsx — Ondi Enterprise · Access Reviews ────
-// The periodic sweep-and-reattest counterpart to OndiRoles.tsx's ad-hoc
-// access-request queue: instead of waiting for someone to ask for a role,
-// a reviewer starts a campaign that snapshots every current grant and
-// walks through each one, approve (keep) or revoke (remove, immediately —
-// see ondi.routes.ts). Backed by ondi_access_review_campaigns/_items
-// (migration 369), gated by the new access_reviews.manage permission.
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
@@ -25,8 +18,6 @@ interface Campaign {
 function fmtDate(d: string): string {
   return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
-
-// ── List: every campaign, past and present ─────────────────────────
 
 export const OndiAccessReviews: React.FC = () => {
   const navigate = useNavigate();
@@ -53,36 +44,75 @@ export const OndiAccessReviews: React.FC = () => {
     }
   }
 
+  const activeCount = campaigns ? campaigns.filter(c => c.status === 'active').length : 0;
+  const completedCount = campaigns ? campaigns.filter(c => c.status === 'completed').length : 0;
+
   return (
-    <div>
+    <div className="ondi-page-container">
       <PageHeader
         crumbs={['Ondi', 'Enterprise']}
         titlePlain="Access"
         titleEm="reviews"
-        subtitle="Periodically re-confirm every role grant is still warranted, instead of waiting for someone to ask."
+        subtitle="Periodically re-confirm role grants, reattest entitlement compliance, and revoke stale access."
         actions={!showNew ? (
           <button type="button" onClick={() => setShowNew(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 16px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box' }}>
-            <Icon name="plus" size={15} /> New campaign
+            style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 18px', fontFamily: 'var(--font)', fontWeight: 700, fontSize: 13, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0, 181, 137, 0.3)' }}>
+            <Icon name="plus" size={15} /> New Campaign
           </button>
         ) : undefined}
       />
 
+      {/* KPI Stats Bar */}
+      <div className="ondi-kpi-grid">
+        <div className="ondi-kpi-card">
+          <div className="ondi-kpi-header">
+            <span className="ondi-kpi-title">Review Campaigns</span>
+            <div className="ondi-kpi-icon-box"><Icon name="clipboard" size={18} /></div>
+          </div>
+          <div className="ondi-kpi-body">
+            <span className="ondi-kpi-num">{campaigns ? campaigns.length : 0}</span>
+            <span className="ondi-kpi-sub">total campaigns</span>
+          </div>
+        </div>
+
+        <div className="ondi-kpi-card">
+          <div className="ondi-kpi-header">
+            <span className="ondi-kpi-title">Active Audits</span>
+            <div className="ondi-kpi-icon-box" style={{ background: '#fffbeb', color: '#b45309' }}><Icon name="clock" size={18} /></div>
+          </div>
+          <div className="ondi-kpi-body">
+            <span className="ondi-kpi-num" style={{ color: '#b45309' }}>{activeCount}</span>
+            <span className="ondi-kpi-sub">in progress</span>
+          </div>
+        </div>
+
+        <div className="ondi-kpi-card">
+          <div className="ondi-kpi-header">
+            <span className="ondi-kpi-title">Completed Audits</span>
+            <div className="ondi-kpi-icon-box" style={{ background: '#ecfdf5', color: '#047857' }}><Icon name="checkCircle" size={18} /></div>
+          </div>
+          <div className="ondi-kpi-body">
+            <span className="ondi-kpi-num" style={{ color: '#047857' }}>{completedCount}</span>
+            <span className="ondi-kpi-sub">fully attested</span>
+          </div>
+        </div>
+      </div>
+
       {showNew && (
         <div style={{ marginBottom: 20 }}>
-          <SectionCard title="New review campaign">
-            <div style={{ fontSize: 12.5, color: 'var(--ink3)', lineHeight: 1.55, marginBottom: 14 }}>
-              Snapshots every role currently granted across this tenant into a list you can work through — approving keeps a grant as-is, revoking removes it immediately.
+          <SectionCard title="New Access Review Campaign">
+            <div style={{ fontSize: 13, color: 'var(--ink3)', lineHeight: 1.55, marginBottom: 14 }}>
+              Snapshots every role currently granted across this tenant into a review list. Approving keeps a grant intact; revoking removes it immediately.
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
               <input value={name} onChange={e => setName(e.target.value)}
-                style={{ flex: 1, padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontFamily: 'var(--font)', fontSize: 13, color: 'var(--ink)', background: 'var(--white)', boxSizing: 'border-box' }} />
+                style={{ flex: 1, padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 8, fontFamily: 'var(--font)', fontSize: 13, color: 'var(--ink)', background: 'var(--white)', boxSizing: 'border-box' }} />
               <button type="button" disabled={creating || !name.trim()} onClick={create}
-                style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 600, fontSize: 13, fontFamily: 'var(--font)', cursor: 'pointer', opacity: creating ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', whiteSpace: 'nowrap' }}>
-                {creating ? 'Starting…' : 'Start campaign'}
+                style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: 'var(--teal)', color: '#fff', fontWeight: 700, fontSize: 13, fontFamily: 'var(--font)', cursor: 'pointer', opacity: creating ? 0.6 : 1, whiteSpace: 'nowrap', boxShadow: '0 2px 8px rgba(0, 181, 137, 0.3)' }}>
+                {creating ? 'Starting…' : 'Start Campaign'}
               </button>
               <button type="button" onClick={() => setShowNew(false)}
-                style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontWeight: 600, fontSize: 13, fontFamily: 'var(--font)', cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box' }}>
+                style={{ padding: '8px 18px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontWeight: 600, fontSize: 13, fontFamily: 'var(--font)', cursor: 'pointer' }}>
                 Cancel
               </button>
             </div>
@@ -91,28 +121,34 @@ export const OndiAccessReviews: React.FC = () => {
       )}
 
       <SectionCard padded={false}>
-        {campaigns === null && <div style={{ padding: 20, fontSize: 13, color: 'var(--ink3)' }}>Loading…</div>}
-        {campaigns?.length === 0 && !showNew && <div style={{ padding: 20, fontSize: 13, color: 'var(--ink3)' }}>No review campaigns yet — start one above.</div>}
+        {campaigns === null && <div style={{ padding: 24, fontSize: 13, color: 'var(--ink3)' }}>Loading campaigns…</div>}
+        {campaigns?.length === 0 && !showNew && <div style={{ padding: 36, fontSize: 13, color: 'var(--ink3)', textAlign: 'center' }}>No review campaigns recorded yet — start one above.</div>}
         {campaigns?.map((c, i, arr) => {
           const decided = c.approved + c.revoked;
           const pct = c.total > 0 ? Math.round((decided / c.total) * 100) : 100;
           return (
-            <Link key={c.id} to={`/ondi/access-reviews/${c.id}`} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '15px 20px', borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none', textDecoration: 'none', color: 'inherit' }}>
-              <div style={{ width: 38, height: 38, borderRadius: 9, background: c.status === 'completed' ? 'var(--green-l)' : 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Icon name={c.status === 'completed' ? 'checkCircle' : 'userCheck'} size={17} color={c.status === 'completed' ? 'var(--green)' : 'var(--teal)'} />
+            <Link key={c.id} to={`/ondi/access-reviews/${c.id}`} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px 20px', borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none', textDecoration: 'none', color: 'inherit' }}>
+              <div style={{ width: 40, height: 40, borderRadius: 10, background: c.status === 'completed' ? '#ecfdf5' : 'var(--teal-l, #ecfeff)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Icon name={c.status === 'completed' ? 'checkCircle' : 'userCheck'} size={18} color={c.status === 'completed' ? '#047857' : 'var(--teal)'} />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 10 }}>
                   {c.name}
-                  <Badge variant={c.status === 'completed' ? 'success' : 'brand'}>{c.status === 'completed' ? 'Completed' : 'Active'}</Badge>
+                  <span className={`ondi-status-pill ${c.status === 'completed' ? 'success' : 'warning'}`}>
+                    {c.status === 'completed' ? 'Completed' : 'Active'}
+                  </span>
                 </div>
-                <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 3 }}>
+                <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 3 }}>
                   Started {fmtDate(c.created_at)}{c.created_by_name ? ` by ${c.created_by_name}` : ''} · {c.total} grant{c.total === 1 ? '' : 's'} · {decided}/{c.total} reviewed
                 </div>
               </div>
-              <div style={{ width: 120, flexShrink: 0 }}>
+              <div style={{ width: 140, flexShrink: 0 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>
+                  <span>Progress</span>
+                  <span>{pct}%</span>
+                </div>
                 <div style={{ height: 6, borderRadius: 3, background: 'var(--bg)', overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${pct}%`, background: c.revoked > 0 ? 'var(--gold)' : 'var(--green)', borderRadius: 3 }} />
+                  <div style={{ height: '100%', width: `${pct}%`, background: c.revoked > 0 ? '#b45309' : '#047857', borderRadius: 3, transition: 'width 0.3s ease' }} />
                 </div>
               </div>
               <Icon name="chevronRight" size={16} color="var(--ink3)" />
@@ -124,8 +160,7 @@ export const OndiAccessReviews: React.FC = () => {
   );
 };
 
-// ── Detail: one campaign's items, decide one-by-one or in bulk ─────
-
+// ── Detail: Campaign Items & Decisions ─────────────────────────────
 interface ReviewItem {
   id: string; user_id: string; user_name: string; user_email: string;
   role_name: string; decision: 'pending' | 'approved' | 'revoked';
@@ -185,80 +220,73 @@ export const OndiAccessReviewDetail: React.FC = () => {
     } catch (err: any) { showAlert(err.message); }
   }
 
-  const DECISION_BADGE: Record<ReviewItem['decision'], { variant: 'warning' | 'success' | 'error'; label: string }> = {
-    pending: { variant: 'warning', label: 'Pending' },
-    approved: { variant: 'success', label: 'Approved' },
-    revoked: { variant: 'error', label: 'Revoked' },
-  };
-
   return (
-    <div>
+    <div className="ondi-page-container">
       <PageHeader
         crumbs={['Ondi', 'Enterprise', 'Access Reviews']}
         titlePlain={campaign?.name ? campaign.name.split(' ').slice(0, -1).join(' ') || campaign.name : 'Review'}
         titleEm={campaign?.name ? campaign.name.split(' ').slice(-1)[0] : 'campaign'}
-        subtitle={campaign?.status === 'completed' ? 'This campaign is complete.' : 'Approve to keep a grant as-is, or revoke to remove it immediately.'}
+        subtitle={campaign?.status === 'completed' ? 'This review campaign is complete.' : 'Approve to keep a grant intact, or revoke to remove access immediately.'}
         actions={campaign?.status === 'active' ? (
           <button type="button" onClick={complete}
-            style={{ padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontWeight: 600, fontSize: 13, fontFamily: 'var(--font)', cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box' }}>
-            Complete campaign
+            style={{ padding: '8px 18px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+            Complete Campaign
           </button>
         ) : undefined}
       />
 
       {pending.length > 0 && campaign?.status === 'active' && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, padding: '10px 16px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 18px', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 10, boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
           <input type="checkbox" checked={selected.size === pending.length && pending.length > 0} onChange={toggleAll} style={{ cursor: 'pointer' }} />
-          <span style={{ fontSize: 12.5, color: 'var(--ink2)' }}>{selected.size > 0 ? `${selected.size} selected` : `Select all ${pending.length} pending`}</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{selected.size > 0 ? `${selected.size} grants selected` : `Select all ${pending.length} pending grants`}</span>
           <div style={{ flex: 1 }} />
           <button type="button" disabled={selected.size === 0 || busy} onClick={() => decideBulk('approved')}
-            style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--green)', background: 'var(--white)', border: '1.5px solid var(--border)', borderRadius: 8, padding: '6px 14px', cursor: 'pointer', opacity: selected.size === 0 ? 0.5 : 1 }}>
-            Approve selected
+            style={{ fontSize: 12.5, fontWeight: 700, color: '#047857', background: '#ecfdf5', border: '1px solid rgba(4,120,87,0.3)', borderRadius: 6, padding: '6px 14px', cursor: 'pointer', opacity: selected.size === 0 ? 0.5 : 1 }}>
+            Approve Selected
           </button>
           <button type="button" disabled={selected.size === 0 || busy} onClick={() => decideBulk('revoked')}
-            style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--red)', background: 'var(--white)', border: '1.5px solid var(--border)', borderRadius: 8, padding: '6px 14px', cursor: 'pointer', opacity: selected.size === 0 ? 0.5 : 1 }}>
-            Revoke selected
+            style={{ fontSize: 12.5, fontWeight: 700, color: '#b91c1c', background: '#fef2f2', border: '1px solid rgba(185,28,28,0.3)', borderRadius: 6, padding: '6px 14px', cursor: 'pointer', opacity: selected.size === 0 ? 0.5 : 1 }}>
+            Revoke Selected
           </button>
         </div>
       )}
 
       <SectionCard padded={false}>
-        {items === null && <div style={{ padding: 20, fontSize: 13, color: 'var(--ink3)' }}>Loading…</div>}
-        {items?.length === 0 && <div style={{ padding: 20, fontSize: 13, color: 'var(--ink3)' }}>No role grants existed when this campaign started.</div>}
-        {items?.map((item, i, arr) => {
-          const badge = DECISION_BADGE[item.decision];
-          return (
-            <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '13px 20px', borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none' }}>
-              {item.decision === 'pending' && campaign?.status === 'active' && (
-                <input type="checkbox" checked={selected.has(item.id)} onChange={() => toggle(item.id)} style={{ cursor: 'pointer' }} />
-              )}
-              <PersonAvatar userId={item.user_id} name={item.user_name} size={32} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{item.user_name}</div>
-                <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>{item.user_email} · role: {item.role_name}</div>
-              </div>
-              {item.decision !== 'pending' ? (
-                <div style={{ textAlign: 'right' }}>
-                  <Badge variant={badge.variant}>{badge.label}</Badge>
-                  {item.decided_by_name && <div style={{ fontSize: 10.5, color: 'var(--ink4)', marginTop: 3 }}>by {item.decided_by_name}</div>}
-                </div>
-              ) : campaign?.status === 'active' ? (
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button type="button" onClick={() => decideOne(item.id, 'approved')}
-                    style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--green)', background: 'var(--white)', border: '1.5px solid var(--border)', borderRadius: 8, padding: '6px 12px', cursor: 'pointer' }}>
-                    Approve
-                  </button>
-                  <button type="button" onClick={() => decideOne(item.id, 'revoked')}
-                    style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--red)', background: 'var(--white)', border: '1.5px solid var(--border)', borderRadius: 8, padding: '6px 12px', cursor: 'pointer' }}>
-                    Revoke
-                  </button>
-                </div>
-              ) : (
-                <Badge variant="warning">Pending</Badge>
-              )}
+        {items === null && <div style={{ padding: 24, fontSize: 13, color: 'var(--ink3)' }}>Loading items…</div>}
+        {items?.length === 0 && <div style={{ padding: 36, fontSize: 13, color: 'var(--ink3)', textAlign: 'center' }}>No role grants existed when this campaign started.</div>}
+        {items?.map((item, i, arr) => (
+          <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 20px', borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none' }}>
+            {item.decision === 'pending' && campaign?.status === 'active' && (
+              <input type="checkbox" checked={selected.has(item.id)} onChange={() => toggle(item.id)} style={{ cursor: 'pointer' }} />
+            )}
+            <PersonAvatar userId={item.user_id} name={item.user_name} size={34} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)' }}>{item.user_name}</div>
+              <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>{item.user_email} · role: <span className="ondi-perm-chip">{item.role_name}</span></div>
             </div>
-          );
-        })}
+            {item.decision !== 'pending' ? (
+              <div style={{ textAlign: 'right' }}>
+                <span className={`ondi-status-pill ${item.decision === 'approved' ? 'success' : 'error'}`}>
+                  {item.decision === 'approved' ? 'Approved' : 'Revoked'}
+                </span>
+                {item.decided_by_name && <div style={{ fontSize: 11, color: 'var(--ink4)', marginTop: 3 }}>by {item.decided_by_name}</div>}
+              </div>
+            ) : campaign?.status === 'active' ? (
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button type="button" onClick={() => decideOne(item.id, 'approved')}
+                  style={{ fontSize: 12.5, fontWeight: 700, color: '#047857', background: '#ecfdf5', border: '1px solid rgba(4,120,87,0.3)', borderRadius: 6, padding: '6px 14px', cursor: 'pointer' }}>
+                  Approve
+                </button>
+                <button type="button" onClick={() => decideOne(item.id, 'revoked')}
+                  style={{ fontSize: 12.5, fontWeight: 700, color: '#b91c1c', background: '#fef2f2', border: '1px solid rgba(185,28,28,0.3)', borderRadius: 6, padding: '6px 14px', cursor: 'pointer' }}>
+                  Revoke
+                </button>
+              </div>
+            ) : (
+              <span className="ondi-status-pill warning">Pending</span>
+            )}
+          </div>
+        ))}
       </SectionCard>
     </div>
   );

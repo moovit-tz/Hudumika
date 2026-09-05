@@ -1,0 +1,421 @@
+/* ─── Ondi Enterprise Identity & Governance Design System CSS ────── */
+
+/* Container & Header Level Styling */
+.ondi-page-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  animation: ondiFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes ondiFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* KPI Executive Stat Grid */
+.ondi-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.ondi-kpi-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md, 12px);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.ondi-kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: transparent;
+  transition: background 0.2s ease;
+}
+
+.ondi-kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+  border-color: var(--teal);
+}
+
+.ondi-kpi-card:hover::before {
+  background: linear-gradient(90deg, var(--teal) 0%, var(--teal-d, #008f6b) 100%);
+}
+
+.ondi-kpi-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ondi-kpi-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink3);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ondi-kpi-icon-box {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  color: var(--teal);
+  transition: all 0.2s ease;
+}
+
+.ondi-kpi-card:hover .ondi-kpi-icon-box {
+  background: var(--teal-l, #ecfeff);
+  color: var(--teal);
+}
+
+.ondi-kpi-body {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.ondi-kpi-num {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+  font-family: var(--font);
+}
+
+.ondi-kpi-sub {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink3);
+}
+
+/* Custom Segmented Tab Bar */
+.ondi-nav-tabstrip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--bg);
+  padding: 4px;
+  border-radius: 100px;
+  border: 1px solid var(--border-soft, var(--border));
+  width: fit-content;
+  margin-bottom: 20px;
+}
+
+.ondi-tab-btn {
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink3);
+  background: transparent;
+  border: none;
+  border-radius: 100px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font);
+}
+
+.ondi-tab-btn:hover {
+  color: var(--ink);
+}
+
+.ondi-tab-btn.active {
+  background: var(--white);
+  color: var(--teal);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.ondi-tab-badge {
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 12px;
+  background: rgba(0, 181, 137, 0.12);
+  color: var(--teal);
+}
+
+/* Premium Filter Toolbar */
+.ondi-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 20px;
+  background: var(--white);
+  border: 1px solid var(--border-soft);
+  border-bottom: 1px solid var(--border);
+  border-top-left-radius: var(--r-md, 12px);
+  border-top-right-radius: var(--r-md, 12px);
+}
+
+.ondi-search-input {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 240px;
+}
+
+.ondi-search-input input {
+  width: 100%;
+  padding: 7px 12px 7px 34px;
+  font-size: 13px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm, 6px);
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font);
+  transition: all 0.15s ease;
+}
+
+.ondi-search-input input:focus {
+  outline: none;
+  border-color: var(--teal);
+  background: var(--white);
+  box-shadow: 0 0 0 3px rgba(0, 181, 137, 0.15);
+}
+
+.ondi-search-input svg {
+  position: absolute;
+  left: 10px;
+  color: var(--ink3);
+  pointer-events: none;
+}
+
+/* Modern Datatable Row Hover & Badges */
+.ondi-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+}
+
+.ondi-table th {
+  padding: 12px 16px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink3);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+
+.ondi-table td {
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--border-soft);
+  color: var(--ink);
+  vertical-align: middle;
+  transition: background 0.15s ease;
+}
+
+.ondi-table tr:hover td {
+  background: rgba(0, 181, 137, 0.02);
+}
+
+.ondi-table tr.selected td {
+  background: rgba(0, 181, 137, 0.05);
+}
+
+/* Status Pill Badges */
+.ondi-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 100px;
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.ondi-status-pill.success {
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid rgba(4, 120, 87, 0.2);
+}
+
+.ondi-status-pill.warning {
+  background: #fffbeb;
+  color: #b45309;
+  border: 1px solid rgba(180, 83, 9, 0.2);
+}
+
+.ondi-status-pill.error {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid rgba(185, 28, 28, 0.2);
+}
+
+.ondi-status-pill.gray {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid rgba(71, 85, 105, 0.2);
+}
+
+.ondi-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* Card Grids for Roles / Groups / Devices */
+.ondi-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+}
+
+.ondi-entity-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md, 12px);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease;
+}
+
+.ondi-entity-card:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  border-color: rgba(0, 181, 137, 0.3);
+}
+
+.ondi-entity-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ondi-entity-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.ondi-entity-sub {
+  font-size: 12.5px;
+  color: var(--ink3);
+  margin-top: 2px;
+}
+
+.ondi-chip-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ondi-perm-chip {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 6px;
+  background: #eff6ff;
+  color: #1e40af;
+  border: 1px solid rgba(30, 64, 175, 0.15);
+}
+
+/* Slide-Over Inspection Drawer */
+.ondi-drawer {
+  width: 420px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md, 12px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  position: sticky;
+  top: 20px;
+  flex-shrink: 0;
+  animation: ondiSlideIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes ondiSlideIn {
+  from { opacity: 0; transform: translateX(12px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* Modal Overlay Styling (0% Transparency Solid Content Box) */
+.ondi-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: ondiFade 0.2s ease-out;
+}
+
+.ondi-modal-box {
+  background: var(--white) !important;
+  opacity: 1 !important;
+  border-radius: var(--r-md, 12px);
+  padding: 28px;
+  width: 480px;
+  max-width: 95vw;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border);
+  box-sizing: border-box;
+}
+
+@keyframes ondiFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Responsive Overrides */
+@media (max-width: 900px) {
+  .ondi-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .ondi-drawer {
+    width: 100%;
+    position: static;
+  }
+}
+
+@media (max-width: 600px) {
+  .ondi-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+  .ondi-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .ondi-search-input {
+    width: 100%;
+  }
+}

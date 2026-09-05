@@ -12,6 +12,17 @@ import { themeFromSourceColor, argbFromHex, hexFromArgb } from '@material/materi
 
 export type FontId    = 'system' | 'inter' | 'plus-jakarta' | 'dm-sans' | 'roboto' | 'atlassian-sans';
 export type DensityId = 'compact' | 'default' | 'comfortable';
+/** Which icon set <Icon> (Icon.tsx) renders. 'stroke' is the platform's own
+ *  181-name hand-authored set — always complete, the baseline every other
+ *  library falls back to for a name it doesn't cover. 'twotone' is a
+ *  smaller (25-name) hand-authored dual-layer set in the Hugeicons visual
+ *  style (ui/twotone-icon.tsx). 'hugeicons' renders real, officially
+ *  licensed Hugeicons free-tier SVGs (@hugeicons/core-free-icons) through a
+ *  verified name mapping (components/hugeicons-map.ts) — every entry there
+ *  was checked against the installed package's actual file list, not
+ *  guessed from the name, but it still only covers a majority of names,
+ *  not all 181. */
+export type IconLibraryId = 'stroke' | 'twotone' | 'hugeicons';
 export type ShadowId  = 'flat' | 'subtle' | 'default' | 'elevated'
   | 'halo' | 'hairline' | 'outline' | 'ring' | 'raised' | 'overlay'
   | 'stripe' | 'lifted' | 'layered'
@@ -71,6 +82,7 @@ export interface DesignTokens {
   tabs: TabsTokens;
   elevation: ShadowId;
   density: DensityId;
+  iconLibrary: IconLibraryId;
   motion: { durFast: number; dur: number; durSlow: number; ease: string };
   /** The single mobile/desktop breakpoint every one of the 42+ call sites of
    *  useIsMobile() (and the 28 raw @media rules in index.css) reads from —
@@ -83,6 +95,7 @@ export interface DesignTokens {
 
 export const FONT_IDS:    FontId[]    = ['system', 'inter', 'plus-jakarta', 'dm-sans', 'roboto', 'atlassian-sans'];
 export const DENSITY_IDS: DensityId[] = ['compact', 'default', 'comfortable'];
+export const ICON_LIBRARY_IDS: IconLibraryId[] = ['stroke', 'twotone', 'hugeicons'];
 export const SHADOW_IDS:  ShadowId[]  = [
   // roughly ordered flat -> deep, so the picker reads as a scale
   'flat', 'outline', 'hairline', 'subtle', 'github', 'ring',
@@ -121,6 +134,16 @@ export const FONT_URLS: Partial<Record<FontId, string>> = {
 
 export const DENSITY_LABELS: Record<DensityId, string> = {
   compact: 'Compact', default: 'Default', comfortable: 'Comfortable',
+};
+
+export const ICON_LIBRARY_LABELS: Record<IconLibraryId, string> = {
+  stroke: 'Stroke (default)', twotone: 'Twotone', hugeicons: 'Hugeicons',
+};
+
+export const ICON_LIBRARY_DESCRIPTIONS: Record<IconLibraryId, string> = {
+  stroke: "The platform's own icon set — every name is covered.",
+  twotone: 'Dual-layer accent style. Covers the most common ~25 names; anything else falls back to Stroke.',
+  hugeicons: 'Real Hugeicons free-tier artwork. Covers most names; anything unmapped falls back to Stroke.',
 };
 
 export const SHADOW_LABELS: Record<ShadowId, string> = {
@@ -340,6 +363,7 @@ export const DESIGN_TOKENS_DEFAULTS: DesignTokens = {
   shape: SHAPE_DEFAULT,
   elevation: 'default',
   density: 'default',
+  iconLibrary: 'stroke',
   motion: { durFast: 80, dur: 150, durSlow: 300, ease: 'cubic-bezier(0.4, 0, 0.2, 1)' },
   tabs: { variant: 'underline', radius: 8, height: 38, size: 13 },
   responsive: { breakpoint: 768 },
@@ -884,6 +908,12 @@ export function applyDesignTokens(tokens: DesignTokens): void {
   tag.textContent = `:root {\n${block(lightVars)}\n}\n[data-theme="dark"] {\n${block(darkVars)}\n}`;
 
   document.documentElement.setAttribute('data-tabs', tokens.tabs.variant);
+  // Icon.tsx reads this directly (not through a CSS var — which library
+  // renders is a real DOM/markup choice, not a style value) via its own
+  // small useSyncExternalStore hook, so every already-mounted <Icon>
+  // instance re-renders the moment this changes, live, same as every other
+  // design-system control.
+  document.documentElement.setAttribute('data-icon-library', tokens.iconLibrary);
 
   // Font stylesheet (CDN fonts only — local fonts are already @font-face'd)
   const fontUrl = FONT_URLS[tokens.typography.font];

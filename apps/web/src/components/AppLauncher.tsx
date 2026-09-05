@@ -35,6 +35,38 @@ export function AppLauncher({ renderTrigger }: AppLauncherProps) {
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [recentApps, setRecentApps] = useState<(typeof LAUNCHER_APPS)[0][]>([]);
 
+  // Recently-viewed row: a horizontally-snapping carousel where the card
+  // nearest the container's center pops forward (scaled up, elevated,
+  // white) while its neighbors sit smaller and flatter — tracked by scroll
+  // position rather than CSS alone, since there's no reliable cross-browser
+  // way to style "whichever snapped child is currently centered" from CSS
+  // alone.
+  const recentTrackRef = useRef<HTMLDivElement | null>(null);
+  const [focusedRecentId, setFocusedRecentId] = useState<string | null>(null);
+  const recentRafRef = useRef<number | null>(null);
+
+  const measureFocusedRecent = () => {
+    const track = recentTrackRef.current;
+    if (!track) return;
+    const trackRect = track.getBoundingClientRect();
+    const center = trackRect.left + trackRect.width / 2;
+    let closestId: string | null = null;
+    let closestDist = Infinity;
+    for (const child of Array.from(track.children)) {
+      const id = (child as HTMLElement).dataset.appId;
+      if (!id) continue;
+      const r = (child as HTMLElement).getBoundingClientRect();
+      const dist = Math.abs(r.left + r.width / 2 - center);
+      if (dist < closestDist) { closestDist = dist; closestId = id; }
+    }
+    setFocusedRecentId(closestId);
+  };
+
+  function handleRecentScroll() {
+    if (recentRafRef.current) cancelAnimationFrame(recentRafRef.current);
+    recentRafRef.current = requestAnimationFrame(measureFocusedRecent);
+  }
+
   // The app list is taller than any laptop viewport, so it has to scroll. Left
   // unmarked, the row the scroll edge cuts through looks like the footer card
   // is painting over it. `moreBelow` drives a fade on the bottom edge — but it
@@ -87,6 +119,19 @@ export function AppLauncher({ renderTrigger }: AppLauncherProps) {
       );
     } catch { setRecentApps([]); }
   }, [launcherOpen, enabledApps]);
+
+  // Establish the initial focused card once the row has actually rendered
+  // (layout must settle first, or getBoundingClientRect reads stale zeros),
+  // and clean up any in-flight scroll measurement when the panel closes.
+  useEffect(() => {
+    if (!launcherOpen || recentApps.length === 0) return;
+    const id = requestAnimationFrame(measureFocusedRecent);
+    return () => cancelAnimationFrame(id);
+  }, [launcherOpen, recentApps]);
+
+  useEffect(() => {
+    return () => { if (recentRafRef.current) cancelAnimationFrame(recentRafRef.current); };
+  }, []);
 
   const orderedApps = useMemo(() => {
     const ordered = appOrder
@@ -207,12 +252,13 @@ export function AppLauncher({ renderTrigger }: AppLauncherProps) {
           {recentApps.length > 0 && !editMode && (
             <>
               <p className="app-lnch-section-label">{t('launcher.recentlyViewed')}</p>
-              <div className="app-lnch-recent-row">
+              <div className="app-lnch-recent-row" ref={recentTrackRef} onScroll={handleRecentScroll}>
                 {recentApps.map(app => (
                   <Link
                     key={app.id}
                     to={app.path}
-                    className="app-lnch-panel-item app-lnch-panel-item--recent"
+                    data-app-id={app.id}
+                    className={`app-lnch-panel-item app-lnch-panel-item--recent${app.id === focusedRecentId ? ' app-lnch-panel-item--focused' : ''}`}
                     onClick={() => closeLauncher()}
                   >
                     <LauncherAppSvg id={app.id} color={branding.getAppColor(app.id, app.color)} logoUrl={branding.getAppLogo(app.id)} size={38} />

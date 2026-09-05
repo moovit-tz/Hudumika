@@ -1,15 +1,3 @@
-// ─── OndiGroups.tsx — Ondi Enterprise · Groups ───────────────────
-// Ondi feature-gap pass, continued. The benchmark doc's own gap list flags
-// static-only group membership as "an explicitly documented follow-up" in
-// the fork's org-groups.ts — but that file, and the group concept itself,
-// only exist in the disconnected fork (services/ondi-api). The real
-// integrated system had no group concept at all before this: only
-// per-user custom-role grants (OndiRoles.tsx). This is a group primitive
-// built fresh on top of that existing role system — a group carries a
-// static or rule-based member list, and zero or more roles; being in the
-// group grants those roles, tracked separately from a direct grant so
-// leaving the group (or a rule no longer matching) cleanly revokes only
-// what the group itself gave.
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { PageHeader } from '../components/PageHeader.js';
@@ -35,7 +23,7 @@ interface GroupDetail extends Omit<GroupSummary, 'roles'> {
 }
 interface AvailableRole { id: string; name: string; description: string | null }
 
-const inputStyle: React.CSSProperties = { width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontFamily: 'var(--font)', fontSize: 13, color: 'var(--ink)', background: 'var(--white)', boxSizing: 'border-box' };
+const inputStyle: React.CSSProperties = { width: '100%', padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 8, fontFamily: 'var(--font)', fontSize: 13, color: 'var(--ink)', background: 'var(--white)', boxSizing: 'border-box' };
 const labelStyle: React.CSSProperties = { fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 };
 
 function fmtDate(d: string): string {
@@ -93,7 +81,7 @@ export const OndiGroups: React.FC = () => {
         method: 'POST',
         body: JSON.stringify({
           name: name.trim(), description: description.trim() || undefined, membership_type: membershipType,
-          ...(membershipType === 'dynamic' ? { rule: { attribute: ruleAttribute, operator: 'equals', value: ruleAttribute === 'active' ? ruleValue : ruleValue } } : {}),
+          ...(membershipType === 'dynamic' ? { rule: { attribute: ruleAttribute, operator: 'equals', value: ruleValue } } : {}),
         }),
       });
       resetForm(); setShowNew(false);
@@ -117,12 +105,11 @@ export const OndiGroups: React.FC = () => {
   }
 
   async function refreshDetail(groupId: string) {
-    try { setDetail(prev => ({ ...prev, [groupId]: prev[groupId] ? { ...prev[groupId] } : prev[groupId] })); } catch { /* noop */ }
     try {
       const [d, list] = await Promise.all([apiFetch(`/v1/ondi/org/groups/${groupId}`), apiFetch('/v1/ondi/org/groups')]);
       setDetail(prev => ({ ...prev, [groupId]: d }));
       setGroups(list);
-    } catch { /* keep stale view rather than clearing it */ }
+    } catch { /* keep existing */ }
   }
 
   async function addMember(groupId: string) {
@@ -164,53 +151,92 @@ export const OndiGroups: React.FC = () => {
     } catch (err: any) { showAlert(err.message); } finally { setRecalculating(null); }
   }
 
+  const dynamicCount = groups ? groups.filter(g => g.membership_type === 'dynamic').length : 0;
+  const staticCount = groups ? groups.filter(g => g.membership_type === 'static').length : 0;
+
   return (
-    <div>
+    <div className="ondi-page-container">
       <PageHeader
         crumbs={['Ondi', 'Enterprise']}
         titlePlain="Org"
         titleEm="groups"
-        subtitle="Bulk-manage role access by group instead of one person at a time — static membership, or a live rule."
+        subtitle="Bulk-manage role access by group — static member assignments or dynamic rule-based evaluators."
         actions={!showNew ? (
           <button type="button" onClick={() => { setShowNew(true); resetForm(); }}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 16px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box' }}>
-            <Icon name="plus" size={15} /> New group
+            style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 18px', fontFamily: 'var(--font)', fontWeight: 700, fontSize: 13, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0, 181, 137, 0.3)' }}>
+            <Icon name="plus" size={15} /> New Group
           </button>
         ) : undefined}
       />
 
+      {/* KPI Stats Bar */}
+      <div className="ondi-kpi-grid">
+        <div className="ondi-kpi-card">
+          <div className="ondi-kpi-header">
+            <span className="ondi-kpi-title">Total Groups</span>
+            <div className="ondi-kpi-icon-box"><Icon name="users" size={18} /></div>
+          </div>
+          <div className="ondi-kpi-body">
+            <span className="ondi-kpi-num">{groups ? groups.length : 0}</span>
+            <span className="ondi-kpi-sub">org groups</span>
+          </div>
+        </div>
+
+        <div className="ondi-kpi-card">
+          <div className="ondi-kpi-header">
+            <span className="ondi-kpi-title">Dynamic Rules</span>
+            <div className="ondi-kpi-icon-box" style={{ background: '#ecfeff', color: 'var(--teal)' }}><Icon name="zap" size={18} /></div>
+          </div>
+          <div className="ondi-kpi-body">
+            <span className="ondi-kpi-num" style={{ color: 'var(--teal)' }}>{dynamicCount}</span>
+            <span className="ondi-kpi-sub">auto-evaluated</span>
+          </div>
+        </div>
+
+        <div className="ondi-kpi-card">
+          <div className="ondi-kpi-header">
+            <span className="ondi-kpi-title">Static Groups</span>
+            <div className="ondi-kpi-icon-box" style={{ background: '#f1f5f9', color: '#475569' }}><Icon name="userCheck" size={18} /></div>
+          </div>
+          <div className="ondi-kpi-body">
+            <span className="ondi-kpi-num" style={{ color: '#475569' }}>{staticCount}</span>
+            <span className="ondi-kpi-sub">manual members</span>
+          </div>
+        </div>
+      </div>
+
       {showNew && (
         <div style={{ marginBottom: 20 }}>
-          <SectionCard title="New group">
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <SectionCard title="Create New Group">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>
-                <label style={labelStyle}>Name</label>
-                <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Nairobi Managers" style={inputStyle} />
+                <label style={labelStyle}>Group Name</label>
+                <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Nairobi Engineering Managers" style={inputStyle} />
               </div>
               <div>
                 <label style={labelStyle}>Description (optional)</label>
                 <input value={description} onChange={e => setDescription(e.target.value)} style={inputStyle} />
               </div>
               <div>
-                <label style={labelStyle}>Membership</label>
-                <div style={{ display: 'flex', gap: 8 }}>
+                <label style={labelStyle}>Membership Type</label>
+                <div style={{ display: 'flex', gap: 10 }}>
                   {(['static', 'dynamic'] as const).map(t => (
                     <div key={t} onClick={() => setMembershipType(t)}
-                      style={{ flex: 1, textAlign: 'center', padding: '8px 12px', borderRadius: 8, cursor: 'pointer', fontSize: 12.5, fontWeight: 600, border: `1.5px solid ${membershipType === t ? 'var(--teal)' : 'var(--border)'}`, background: membershipType === t ? 'var(--teal-l)' : 'var(--white)', color: membershipType === t ? 'var(--teal)' : 'var(--ink2)' }}>
-                      {t === 'static' ? 'Static — I add people' : 'Dynamic — a rule decides'}
+                      style={{ flex: 1, textAlign: 'center', padding: '10px 14px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 700, border: `2px solid ${membershipType === t ? 'var(--teal)' : 'var(--border)'}`, background: membershipType === t ? 'var(--teal-l, #ecfeff)' : 'var(--white)', color: membershipType === t ? 'var(--teal)' : 'var(--ink2)', transition: 'all 0.15s ease' }}>
+                      {t === 'static' ? 'Static (Manual List)' : 'Dynamic (Rule Evaluator)'}
                     </div>
                   ))}
                 </div>
               </div>
               {membershipType === 'dynamic' && (
-                <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, padding: 12 }}>
+                <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, padding: 14 }}>
                   <div style={{ flex: 1 }}>
-                    <label style={labelStyle}>Everyone where…</label>
+                    <label style={labelStyle}>Evaluate where…</label>
                     <Select value={ruleAttribute} onValueChange={v => { setRuleAttribute(v as 'role' | 'active'); setRuleValue(''); }}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="role">Account role</SelectItem>
-                        <SelectItem value="active">Active status</SelectItem>
+                        <SelectItem value="role">Account Role</SelectItem>
+                        <SelectItem value="active">Active Status</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -225,7 +251,7 @@ export const OndiGroups: React.FC = () => {
                       </Select>
                     ) : (
                       <Select value={ruleValue} onValueChange={setRuleValue}>
-                        <SelectTrigger><SelectValue placeholder="Pick a status…" /></SelectTrigger>
+                        <SelectTrigger><SelectValue placeholder="Pick status…" /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="true">Active</SelectItem>
                           <SelectItem value="false">Inactive</SelectItem>
@@ -237,11 +263,11 @@ export const OndiGroups: React.FC = () => {
               )}
               <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
                 <button type="button" disabled={creating} onClick={createGroup}
-                  style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 600, fontSize: 13, fontFamily: 'var(--font)', cursor: 'pointer', opacity: creating ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box' }}>
-                  {creating ? 'Creating…' : 'Create group'}
+                  style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: 'var(--teal)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', opacity: creating ? 0.6 : 1, boxShadow: '0 2px 8px rgba(0, 181, 137, 0.3)' }}>
+                  {creating ? 'Creating…' : 'Create Group'}
                 </button>
                 <button type="button" onClick={() => { setShowNew(false); resetForm(); }}
-                  style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontWeight: 600, fontSize: 13, fontFamily: 'var(--font)', cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box' }}>
+                  style={{ padding: '8px 18px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
                   Cancel
                 </button>
               </div>
@@ -251,69 +277,71 @@ export const OndiGroups: React.FC = () => {
       )}
 
       <SectionCard padded={false}>
-        {groups === null && <div style={{ padding: 20, fontSize: 13, color: 'var(--ink3)' }}>Loading…</div>}
-        {groups?.length === 0 && !showNew && <div style={{ padding: 20, fontSize: 13, color: 'var(--ink3)' }}>No groups yet — create one above.</div>}
+        {groups === null && <div style={{ padding: 24, fontSize: 13, color: 'var(--ink3)' }}>Loading groups…</div>}
+        {groups?.length === 0 && !showNew && <div style={{ padding: 36, fontSize: 13, color: 'var(--ink3)', textAlign: 'center' }}>No groups defined yet — create one above.</div>}
         {groups?.map((g, i, arr) => {
           const open = expandedId === g.id;
           const d = detail[g.id];
           return (
             <div key={g.id} style={{ borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none' }}>
-              <div onClick={() => toggleExpand(g)} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px', cursor: 'pointer' }}>
-                <Icon name={open ? 'chevronDown' : 'chevronRight'} size={14} color="var(--ink3)" />
+              <div onClick={() => toggleExpand(g)} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 20px', cursor: 'pointer', background: open ? 'rgba(0, 181, 137, 0.02)' : 'transparent', transition: 'background 0.15s ease' }}>
+                <Icon name={open ? 'chevronDown' : 'chevronRight'} size={16} color="var(--ink3)" />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 10 }}>
                     {g.name}
-                    <Badge variant={g.membership_type === 'dynamic' ? 'brand' : 'gray'}>{g.membership_type === 'dynamic' ? 'Dynamic' : 'Static'}</Badge>
+                    <span className={`ondi-status-pill ${g.membership_type === 'dynamic' ? 'success' : 'gray'}`}>
+                      {g.membership_type === 'dynamic' ? '⚡ Dynamic Rule' : 'Static'}
+                    </span>
                   </div>
-                  {g.description && <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>{g.description}</div>}
+                  {g.description && <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>{g.description}</div>}
                 </div>
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: 280 }}>
-                  {g.roles.map(r => <Badge key={r.id} variant="info">{r.name}</Badge>)}
-                  {g.roles.length === 0 && <span style={{ fontSize: 11.5, color: 'var(--ink4)' }}>No roles attached</span>}
+                  {g.roles.map(r => <span key={r.id} className="ondi-perm-chip">{r.name}</span>)}
+                  {g.roles.length === 0 && <span style={{ fontSize: 12, color: 'var(--ink4)' }}>No roles granted</span>}
                 </div>
-                <span style={{ fontSize: 12, color: 'var(--ink3)', minWidth: 70, textAlign: 'right' }}>{g.member_count} member{g.member_count === 1 ? '' : 's'}</span>
+                <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink2)', minWidth: 80, textAlign: 'right' }}>{g.member_count} member{g.member_count === 1 ? '' : 's'}</span>
                 <button type="button" onClick={e => { e.stopPropagation(); deleteGroup(g); }} title="Delete group"
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: 4 }}>
-                  <Icon name="trash2" size={15} />
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: 6 }}>
+                  <Icon name="trash" size={15} />
                 </button>
               </div>
 
               {open && (
-                <div style={{ padding: '0 20px 18px 46px', display: 'flex', flexDirection: 'column', gap: 18 }}>
+                <div style={{ padding: '0 20px 20px 50px', display: 'flex', flexDirection: 'column', gap: 18, borderTop: '1px solid var(--border-soft)', paddingTop: 16 }}>
                   {!d ? (
-                    <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>Loading…</div>
+                    <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>Loading details…</div>
                   ) : (
                     <>
                       {g.membership_type === 'dynamic' && g.rule && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--teal-l)', border: '1px solid var(--teal-m, var(--teal))', borderRadius: 8, padding: '8px 12px', fontSize: 12 }}>
-                          <Icon name="zap" size={14} color="var(--teal)" />
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#ecfeff', border: '1px solid var(--teal)', borderRadius: 8, padding: '10px 14px', fontSize: 12.5 }}>
+                          <Icon name="zap" size={15} color="var(--teal)" />
                           <span style={{ color: 'var(--ink)' }}>
                             Rule: <strong>{g.rule.attribute === 'active' ? 'Active status' : 'Account role'}</strong> equals{' '}
                             <strong>{g.rule.attribute === 'active' ? (g.rule.value === 'true' ? 'Active' : 'Inactive') : String(g.rule.value)}</strong>
                           </span>
                           <button type="button" disabled={recalculating === g.id} onClick={() => recalculate(g.id)}
-                            style={{ marginLeft: 'auto', fontSize: 11.5, fontWeight: 700, color: 'var(--teal)', background: 'var(--white)', border: '1px solid var(--teal-m, var(--teal))', borderRadius: 6, padding: '4px 10px', cursor: 'pointer' }}>
-                            {recalculating === g.id ? 'Recalculating…' : 'Recalculate now'}
+                            style={{ marginLeft: 'auto', fontSize: 11.5, fontWeight: 700, color: 'var(--teal)', background: 'var(--white)', border: '1px solid var(--teal)', borderRadius: 6, padding: '4px 12px', cursor: 'pointer' }}>
+                            {recalculating === g.id ? 'Recalculating…' : 'Recalculate Now'}
                           </button>
                         </div>
                       )}
 
                       <div>
-                        <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: 0.3, marginBottom: 8 }}>Roles this group grants</div>
-                        {d.roles.length === 0 && <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 8 }}>No roles attached — members get no extra access yet.</div>}
+                        <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8 }}>Granted Roles</div>
+                        {d.roles.length === 0 && <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 8 }}>No roles attached — group members receive no extra permissions yet.</div>}
                         {d.roles.map(r => (
-                          <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '5px 0' }}>
-                            <div style={{ flex: 1, fontSize: 12.5, color: 'var(--ink)' }}>{r.name}{r.description ? <span style={{ color: 'var(--ink3)' }}> · {r.description}</span> : null}</div>
+                          <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0', borderBottom: '1px solid var(--border-soft)' }}>
+                            <div style={{ flex: 1, fontSize: 13, color: 'var(--ink)', fontWeight: 600 }}>{r.name}{r.description ? <span style={{ color: 'var(--ink3)', fontWeight: 400 }}> · {r.description}</span> : null}</div>
                             <button type="button" onClick={() => detachRole(g.id, r.id)}
-                              style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--red)', background: 'none', border: '1px solid var(--border)', borderRadius: 6, padding: '3px 9px', cursor: 'pointer' }}>
+                              style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--red)', background: 'none', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 10px', cursor: 'pointer' }}>
                               Detach
                             </button>
                           </div>
                         ))}
-                        <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                        <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
                           <div style={{ flex: 1 }}>
                             <Select value={rolePick[g.id] ?? ''} onValueChange={v => setRolePick(prev => ({ ...prev, [g.id]: v }))}>
-                              <SelectTrigger><SelectValue placeholder="Attach a role…" /></SelectTrigger>
+                              <SelectTrigger><SelectValue placeholder="Attach a role to group…" /></SelectTrigger>
                               <SelectContent>
                                 {availableRoles.filter(r => !d.roles.some(dr => dr.id === r.id)).map(r => (
                                   <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
@@ -322,33 +350,35 @@ export const OndiGroups: React.FC = () => {
                             </Select>
                           </div>
                           <button type="button" onClick={() => attachRole(g.id)}
-                            style={{ fontSize: 12.5, fontWeight: 600, color: 'hsl(var(--primary-foreground))', background: 'hsl(var(--primary))', border: 'none', borderRadius: 8, padding: '0 14px', cursor: 'pointer' }}>
+                            style={{ fontSize: 12.5, fontWeight: 700, color: '#fff', background: 'var(--teal)', border: 'none', borderRadius: 8, padding: '0 16px', cursor: 'pointer' }}>
                             Attach
                           </button>
                         </div>
                       </div>
 
                       <div>
-                        <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: 0.3, marginBottom: 8 }}>Members ({d.members.length})</div>
-                        {d.members.length === 0 && <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 8 }}>Nobody in this group yet.</div>}
+                        <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8 }}>Group Members ({d.members.length})</div>
+                        {d.members.length === 0 && <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 8 }}>No members assigned to group.</div>}
                         {d.members.map(m => (
-                          <div key={m.user_id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0' }}>
-                            <PersonAvatar userId={m.user_id} name={m.user_name} size={26} />
-                            <div style={{ flex: 1, fontSize: 12.5, color: 'var(--ink)' }}>{m.user_name} <span style={{ color: 'var(--ink3)' }}>· {m.user_email}</span></div>
-                            <Badge variant={m.source === 'rule' ? 'brand' : 'gray'}>{m.source === 'rule' ? 'via rule' : 'manual'}</Badge>
+                          <div key={m.user_id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', borderBottom: '1px solid var(--border-soft)' }}>
+                            <PersonAvatar userId={m.user_id} name={m.user_name} size={28} />
+                            <div style={{ flex: 1, fontSize: 13, color: 'var(--ink)', fontWeight: 600 }}>{m.user_name} <span style={{ color: 'var(--ink3)', fontWeight: 400 }}>· {m.user_email}</span></div>
+                            <span className={`ondi-status-pill ${m.source === 'rule' ? 'success' : 'gray'}`}>
+                              {m.source === 'rule' ? 'Rule Match' : 'Manual'}
+                            </span>
                             <span style={{ fontSize: 11, color: 'var(--ink4)' }}>{fmtDate(m.added_at)}</span>
                             <button type="button" onClick={() => removeMember(g.id, m.user_id)} title="Remove"
                               style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}>
-                              <Icon name="x" size={13} />
+                              <Icon name="x" size={14} />
                             </button>
                           </div>
                         ))}
-                        <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                        <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
                           <div style={{ flex: 1 }}>
-                            <EntityPicker value={memberPick[g.id] ?? null} onChange={p => setMemberPick(prev => ({ ...prev, [g.id]: p }))} search={searchStaff} placeholder="Add a colleague…" />
+                            <EntityPicker value={memberPick[g.id] ?? null} onChange={p => setMemberPick(prev => ({ ...prev, [g.id]: p }))} search={searchStaff} placeholder="Add colleague to group…" />
                           </div>
                           <button type="button" onClick={() => addMember(g.id)}
-                            style={{ fontSize: 12.5, fontWeight: 600, color: 'hsl(var(--primary-foreground))', background: 'hsl(var(--primary))', border: 'none', borderRadius: 8, padding: '0 14px', cursor: 'pointer' }}>
+                            style={{ fontSize: 12.5, fontWeight: 700, color: '#fff', background: 'var(--ink)', border: 'none', borderRadius: 8, padding: '0 16px', cursor: 'pointer' }}>
                             Add
                           </button>
                         </div>

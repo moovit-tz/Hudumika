@@ -26,6 +26,7 @@ import type { DateRange } from 'react-day-picker';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '../components/ui/accordion.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { Badge } from '../components/ui/badge.js';
+import { TwotoneIcon } from '../components/ui/twotone-icon.js';
 
 const SECTION = 'rounded-2xl border border-border bg-card p-6 shadow-sm';
 const SECTION_TITLE = 'mb-1 text-base font-bold text-foreground';
@@ -357,7 +358,122 @@ export default function ComponentShowcase() {
             />
           </div>
         </section>
+
+        {/* Twotone Rounded Icons Gallery (Hugeicons Collection) */}
+        <section className={`${SECTION} lg:col-span-2`}>
+          <div className="flex items-center justify-between gap-4 flex-wrap mb-1">
+            <div className={SECTION_TITLE}>Twotone Rounded Icons (Hugeicons Collection)</div>
+            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-[var(--teal-l)] text-[var(--teal)] border border-[var(--teal)]/20">
+              Dual-Layer 24×24 SVG
+            </span>
+          </div>
+          <div className={SECTION_DESC}>
+            Extracted Hugeicons Twotone Rounded icons with primary crisp 1.75px outline stroke and secondary 20% opacity depth layer.
+          </div>
+
+          <TwotoneShowcaseGrid />
+        </section>
       </div>
     </div>
   );
 }
+
+const TWOTONE_NAMES = [
+  'shield', 'lock', 'key', 'folder', 'document', 'download', 'upload',
+  'smartphone', 'laptop', 'user', 'users', 'grid', 'trash', 'clock',
+  'checkCircle', 'alertTriangle', 'fingerprint', 'database', 'sparkle',
+  'bell', 'settings', 'creditCard', 'link', 'activity', 'building'
+] as const;
+
+function TwotoneShowcaseGrid() {
+  const [selectedColor, setSelectedColor] = useState<'teal' | 'green' | 'gold' | 'purple' | 'red' | 'ink'>('teal');
+  const [iconSize, setIconSize] = useState<number>(24);
+  const [copiedName, setCopiedName] = useState<string | null>(null);
+
+  const colorMap = {
+    teal: 'var(--teal)',
+    green: 'var(--green, #10b981)',
+    gold: 'var(--gold, #f59e0b)',
+    purple: 'var(--purple, #8b5cf6)',
+    red: 'var(--red, #ef4444)',
+    ink: 'var(--ink)',
+  };
+
+  const handleCopy = (name: string) => {
+    const code = `<TwotoneIcon name="${name}" size={${iconSize}} color="${colorMap[selectedColor]}" />`;
+    navigator.clipboard?.writeText(code);
+    setCopiedName(name);
+    setTimeout(() => setCopiedName(null), 1200);
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Controls */}
+      <div className="flex items-center justify-between gap-4 flex-wrap p-3 rounded-xl bg-muted/40 border border-border">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Color Palette:</span>
+          <div className="flex items-center gap-1.5">
+            {(['teal', 'green', 'gold', 'purple', 'red', 'ink'] as const).map((c) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setSelectedColor(c)}
+                className={`w-6 h-6 rounded-full border transition-transform ${
+                  selectedColor === c ? 'scale-110 ring-2 ring-primary ring-offset-2' : 'hover:scale-105'
+                }`}
+                style={{ backgroundColor: colorMap[c], borderColor: 'var(--border)' }}
+                title={`Select ${c}`}
+              />
+            ))}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Size:</span>
+          <div className="flex items-center gap-1 bg-background border border-border rounded-lg p-0.5">
+            {[18, 22, 26, 32].map((sz) => (
+              <button
+                key={sz}
+                type="button"
+                onClick={() => setIconSize(sz)}
+                className={`px-2 py-0.5 text-xs font-medium rounded-md transition-colors ${
+                  iconSize === sz ? 'bg-primary text-primary-foreground font-semibold' : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {sz}px
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+        {TWOTONE_NAMES.map((name) => (
+          <div
+            key={name}
+            onClick={() => handleCopy(name)}
+            className="group relative flex flex-col items-center justify-center p-3.5 rounded-xl border border-border bg-card hover:border-primary/50 hover:bg-muted/30 transition-all cursor-pointer shadow-xs hover:shadow-sm"
+          >
+            <div className="h-12 flex items-center justify-center">
+              <TwotoneIcon
+                name={name as any}
+                size={iconSize}
+                color={colorMap[selectedColor]}
+                secondaryColor={colorMap[selectedColor]}
+              />
+            </div>
+            <span className="text-xs font-medium text-muted-foreground group-hover:text-foreground mt-2 truncate max-w-full">
+              {copiedName === name ? (
+                <span className="text-emerald-500 font-bold">Copied!</span>
+              ) : (
+                name
+              )}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+

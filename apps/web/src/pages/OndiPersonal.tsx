@@ -59,6 +59,32 @@ interface PasskeyItem {
   created_at: string;
 }
 
+interface ActivityItem {
+  id: string;
+  kind: 'login' | 'event';
+  label: string;
+  ip: string | null;
+  user_agent: string | null;
+  created_at: string;
+}
+
+/** Minimal browser/OS label for a compact activity row — "Edge on Windows",
+ *  not the full spec breakdown OndiPersonalActivity.tsx's own parser builds
+ *  for its detail modal. */
+function briefUserAgent(ua: string | null): string {
+  if (!ua) return 'Web client';
+  const browser = /Edg\//i.test(ua) ? 'Edge' : /OPR\//i.test(ua) ? 'Opera' : /Chrome\//i.test(ua) ? 'Chrome'
+    : /Firefox\//i.test(ua) ? 'Firefox' : /Version\/.*Safari/i.test(ua) ? 'Safari' : 'Browser';
+  const os = /iPhone/i.test(ua) ? 'iPhone' : /iPad/i.test(ua) ? 'iPad' : /Mac OS X/i.test(ua) ? 'macOS'
+    : /Windows/i.test(ua) ? 'Windows' : /Android/i.test(ua) ? 'Android' : /Linux/i.test(ua) ? 'Linux' : 'device';
+  return `${browser} on ${os}`;
+}
+
+function activityLabel(row: ActivityItem): string {
+  if (row.kind === 'login') return row.label === 'Signed in' ? 'Signed in' : 'Failed sign-in attempt';
+  return row.label.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
 const VERIFICATION_LEVEL_MAP: Record<string, { label: string; step: number }> = {
   unverified:     { label: 'Unverified',       step: 1 },
   phone_verified: { label: 'Phone Verified',   step: 1 },
@@ -89,6 +115,7 @@ export const OndiPersonal: React.FC = () => {
   const [passkeys, setPasskeys] = useState<PasskeyItem[]>([]);
   const [sessions, setSessions] = useState<any[]>([]);
   const [pwStatus, setPwStatus] = useState<{ expired: boolean; days_remaining: number | null } | null>(null);
+  const [activity, setActivity] = useState<ActivityItem[]>([]);
   const [copiedId, setCopiedId] = useState(false);
 
   useEffect(() => {
@@ -100,6 +127,7 @@ export const OndiPersonal: React.FC = () => {
     apiFetch('/v1/security/passkeys').then(res => setPasskeys(res || [])).catch(() => setPasskeys([]));
     apiFetch('/v1/security/sessions').then(res => setSessions(res || [])).catch(() => setSessions([]));
     apiFetch('/v1/security/password-status').then(setPwStatus).catch(() => setPwStatus(null));
+    apiFetch('/v1/security/activity').then(res => setActivity((res || []).slice(0, 3))).catch(() => setActivity([]));
   }, []);
 
   const copyUserId = useCallback(() => {
@@ -119,6 +147,13 @@ export const OndiPersonal: React.FC = () => {
     }
     return VERIFICATION_LEVEL_MAP[kyc.verification_level]?.step || 1;
   }, [kyc]);
+
+  // Any verification tier at or above "phone_verified" implies the phone
+  // step itself was already cleared, since the tiers are a strict ladder
+  // (unverified → phone_verified → id_verified → enhanced).
+  const phoneVerified = !!kyc && kyc.verification_level !== 'unverified';
+  const onboardSteps = [phoneVerified, passkeys.length > 0, !!twoFA?.enabled];
+  const onboardComplete = onboardSteps.filter(Boolean).length;
 
   // /v1/security/sessions returns every hr_devices row ever seen for this
   // user, revoked included (so device-rename history stays intact) — the
@@ -161,6 +196,105 @@ export const OndiPersonal: React.FC = () => {
           </div>
         }
       />
+
+      {/* ── Onboarding checklist + Recent activity preview ── */}
+      <div className="op-onboard-grid">
+        <div className="op-card">
+          <div>
+            <div className="op-card-hdr">
+              <div className="op-card-hdr-left">
+                <FeaturedIcon variant="brand" size="sm" shape="square">
+                  <Icon name="shield" size={16} />
+                </FeaturedIcon>
+                <div>
+                  <h2 className="op-card-title">Your Ondi Security</h2>
+                  <p className="op-card-sub">Recommended steps to secure this account</p>
+                </div>
+              </div>
+              <span className="op-onboard-progress">{onboardComplete} of 3 steps complete</span>
+            </div>
+
+            <div className="op-onboard-list">
+              <div className={`op-onboard-item${phoneVerified ? ' op-onboard-item--done' : ''}`}>
+                <Icon name={phoneVerified ? 'checkCircle' : 'circle'} size={17} color={phoneVerified ? 'var(--green)' : 'var(--ink3)'} />
+                <span>Phone verified — {phoneVerified ? 'complete' : 'not set up'}</span>
+              </div>
+              <div className={`op-onboard-item${passkeys.length > 0 ? ' op-onboard-item--done' : ''}`}>
+                <Icon name={passkeys.length > 0 ? 'checkCircle' : 'circle'} size={17} color={passkeys.length > 0 ? 'var(--green)' : 'var(--ink3)'} />
+                <span>Passkey enabled — {passkeys.length > 0 ? `${passkeys.length} registered` : 'not set up'}</span>
+              </div>
+              <div className={`op-onboard-item${twoFA?.enabled ? ' op-onboard-item--done' : ''}`}>
+                <Icon name={twoFA?.enabled ? 'checkCircle' : 'circle'} size={17} color={twoFA?.enabled ? 'var(--green)' : 'var(--ink3)'} />
+                <span>Ondi Authenticator enabled — {twoFA?.enabled ? 'complete' : 'not set up'}</span>
+              </div>
+            </div>
+
+            <div className="op-onboard-stats">
+              <div className="op-onboard-stat">
+                <span className="op-onboard-stat-val">{activeSessions.length}</span>
+                <span className="op-onboard-stat-lbl">Devices</span>
+              </div>
+              <div className="op-onboard-stat">
+                <span className="op-onboard-stat-val">{passkeys.length}</span>
+                <span className="op-onboard-stat-lbl">Passkeys</span>
+              </div>
+              <div className="op-onboard-stat">
+                <span className="op-onboard-stat-val">{twoFA?.enabled ? 1 : 0}</span>
+                <span className="op-onboard-stat-lbl">Authenticator</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="op-onboard-actions">
+            <Link to="/ondi/personal/security" className="op-onboard-action-link">
+              <Icon name="key" size={13} /> Add authenticator
+            </Link>
+            <Link to="/ondi/personal/security" className="op-onboard-action-link">
+              <Icon name="fingerprint" size={13} /> Create passkey
+            </Link>
+            <Link to="/ondi/personal/devices" className="op-onboard-action-link">
+              Review devices
+            </Link>
+          </div>
+        </div>
+
+        <div className="op-card">
+          <div>
+            <div className="op-card-hdr">
+              <div className="op-card-hdr-left">
+                <FeaturedIcon variant="info" size="sm" shape="square">
+                  <Icon name="activity" size={16} />
+                </FeaturedIcon>
+                <div>
+                  <h2 className="op-card-title">Recent Activity</h2>
+                  <p className="op-card-sub">Latest sign-ins and security events</p>
+                </div>
+              </div>
+              <Link to="/ondi/personal/activity" style={{ fontSize: 12, fontWeight: 600, color: 'var(--teal)', textDecoration: 'none' }}>
+                See all →
+              </Link>
+            </div>
+
+            {activity.length > 0 ? (
+              <div className="op-activity-list">
+                {activity.map(row => (
+                  <div key={row.id} className="op-activity-row">
+                    <div className="op-activity-left">
+                      <Icon name={row.kind === 'login' ? 'logIn' : 'shield'} size={15} color="var(--ink3)" />
+                      <div>
+                        <div className="op-activity-text">{briefUserAgent(row.user_agent)} · {activityLabel(row)}</div>
+                      </div>
+                    </div>
+                    <span className="op-activity-time">{new Date(row.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="op-activity-empty">No activity recorded yet.</div>
+            )}
+          </div>
+        </div>
+      </div>
 
       {/* ── Top Hero Grid: Identity Profile & Trust Score ── */}
       <div className="op-hero-grid">

@@ -1,0 +1,309 @@
+/* ══════════════════════════════════════════════════════════
+   OndiPrivacy.css — Ondi Personal · Privacy Hub
+   Data transparency, export package, erasure rights,
+   and compliance telemetry. Mobile-first, 2x2 compact KPIs,
+   zero AI gradients, 0% transparency.
+   ══════════════════════════════════════════════════════════ */
+
+.op-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+}
+
+/* ── Top Posture KPI Grid ── */
+.op-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  width: 100%;
+}
+
+.op-kpi-card {
+  background: var(--white, #ffffff);
+  border: 1px solid var(--border);
+  border-radius: var(--r, 12px);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+  box-shadow: var(--elev-sm, 0 1px 3px rgba(0, 0, 0, 0.03));
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.op-kpi-card:hover {
+  border-color: var(--border-hover, #cbd5e1);
+  box-shadow: var(--elev, 0 4px 12px rgba(0, 0, 0, 0.05));
+}
+
+.op-kpi-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.op-kpi-title {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ink3);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.op-kpi-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--teal);
+  flex-shrink: 0;
+}
+
+.op-kpi-icon.primary {
+  background: var(--teal-l);
+  color: var(--teal);
+}
+
+.op-kpi-icon.success {
+  background: var(--green-l);
+  color: var(--green, #10b981);
+}
+
+.op-kpi-icon.warning {
+  background: var(--gold-l);
+  color: var(--gold, #f59e0b);
+}
+
+.op-kpi-icon.purple {
+  background: var(--purple-l);
+  color: var(--purple, #8b5cf6);
+}
+
+.op-kpi-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.op-kpi-val {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-family: var(--mono);
+}
+
+.op-kpi-sub {
+  font-size: 11.5px;
+  color: var(--ink3);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* ── Main Layout: Content Grid (2 Columns Desktop) ── */
+.op-layout-grid {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 20px;
+  align-items: flex-start;
+  width: 100%;
+}
+
+.op-main-col {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+.op-side-col {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ── Enterprise Card System (0% Transparency) ── */
+.op-card {
+  background: var(--white, #ffffff);
+  border: 1px solid var(--border);
+  border-radius: var(--r, 12px);
+  overflow: hidden;
+  box-shadow: var(--elev-sm, 0 1px 3px rgba(0, 0, 0, 0.03));
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.op-card:hover {
+  border-color: var(--border-hover, #cbd5e1);
+}
+
+.op-card-hdr {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.op-card-hdr-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.op-card-title {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0;
+}
+
+.op-card-sub {
+  font-size: 12px;
+  color: var(--ink3);
+  margin: 2px 0 0;
+}
+
+.op-card-body {
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ── Category Breakdown Chips ── */
+.op-categories-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin: 4px 0 10px;
+}
+
+.op-category-item {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm, 8px);
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.op-category-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--teal);
+  flex-shrink: 0;
+}
+
+.op-category-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.op-category-desc {
+  font-size: 11px;
+  color: var(--ink3);
+}
+
+/* ── Status Banners ── */
+.op-pending-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: var(--gold-l);
+  border: 1px solid var(--gold);
+  border-radius: var(--r-sm, 10px);
+  padding: 14px 16px;
+}
+
+.op-requests-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+
+.op-requests-table th {
+  text-align: left;
+  padding: 8px 10px;
+  color: var(--ink3);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--border);
+}
+
+.op-requests-table td {
+  padding: 10px 10px;
+  border-bottom: 1px solid var(--border);
+  color: var(--ink);
+}
+
+.op-requests-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* ── Mobile Viewports (<640px) ── */
+@media (max-width: 640px) {
+  .op-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .op-kpi-card {
+    padding: 12px 14px;
+    gap: 6px;
+  }
+
+  .op-kpi-val {
+    font-size: 17px;
+  }
+
+  .op-kpi-title {
+    font-size: 10.5px;
+  }
+
+  .op-kpi-icon {
+    width: 28px;
+    height: 28px;
+  }
+
+  .op-categories-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .op-card-hdr {
+    padding: 14px 16px;
+  }
+
+  .op-card-body {
+    padding: 14px 16px;
+  }
+}
+
+/* ── Tablet/Mobile Collapse (<1024px) ── */
+@media (max-width: 1024px) {
+  .op-layout-grid {
+    grid-template-columns: 1fr;
+  }
+}

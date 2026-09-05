@@ -1,0 +1,368 @@
+/* ══════════════════════════════════════════════════════════
+   OndiApps.css — Ondi Personal · Authorized Apps Hub
+   OAuth consent registry, scopes inspection, and access
+   revocation. Mobile-first, 2x2 compact KPIs, 0% transparency,
+   zero AI gradients.
+   ══════════════════════════════════════════════════════════ */
+
+.oa-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+}
+
+/* ── Top Posture KPI Grid ── */
+.oa-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  width: 100%;
+}
+
+.oa-kpi-card {
+  background: var(--white, #ffffff);
+  border: 1px solid var(--border);
+  border-radius: var(--r, 12px);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+  box-shadow: var(--elev-sm, 0 1px 3px rgba(0, 0, 0, 0.03));
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.oa-kpi-card:hover {
+  border-color: var(--border-hover, #cbd5e1);
+  box-shadow: var(--elev, 0 4px 12px rgba(0, 0, 0, 0.05));
+}
+
+.oa-kpi-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.oa-kpi-title {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ink3);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.oa-kpi-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--teal);
+  flex-shrink: 0;
+}
+
+.oa-kpi-icon.primary {
+  background: var(--teal-l);
+  color: var(--teal);
+}
+
+.oa-kpi-icon.success {
+  background: var(--green-l);
+  color: var(--green, #10b981);
+}
+
+.oa-kpi-icon.warning {
+  background: var(--gold-l);
+  color: var(--gold, #f59e0b);
+}
+
+.oa-kpi-icon.purple {
+  background: var(--purple-l);
+  color: var(--purple, #8b5cf6);
+}
+
+.oa-kpi-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.oa-kpi-val {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-family: var(--mono);
+}
+
+.oa-kpi-sub {
+  font-size: 11.5px;
+  color: var(--ink3);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* ── Main Layout: Content Grid (2 Columns Desktop) ── */
+.oa-layout-grid {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 20px;
+  align-items: flex-start;
+  width: 100%;
+}
+
+.oa-main-col {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+.oa-side-col {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ── Enterprise Card System (0% Transparency) ── */
+.oa-card {
+  background: var(--white, #ffffff);
+  border: 1px solid var(--border);
+  border-radius: var(--r, 12px);
+  overflow: hidden;
+  box-shadow: var(--elev-sm, 0 1px 3px rgba(0, 0, 0, 0.03));
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.oa-card:hover {
+  border-color: var(--border-hover, #cbd5e1);
+}
+
+.oa-card-hdr {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.oa-card-hdr-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.oa-card-title {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0;
+}
+
+.oa-card-sub {
+  font-size: 12px;
+  color: var(--ink3);
+  margin: 2px 0 0;
+}
+
+.oa-card-body {
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ── Filter & Search Toolbar ── */
+.oa-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.oa-search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm, 8px);
+  padding: 0 12px;
+  height: 36px;
+  flex: 1;
+  min-width: 200px;
+}
+
+.oa-search-input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-family: var(--font);
+  font-size: 13px;
+  color: var(--ink);
+  width: 100%;
+}
+
+.oa-search-input::placeholder {
+  color: var(--ink3);
+}
+
+/* ── App Cards & List ── */
+.oa-app-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.oa-app-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 16px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm, 10px);
+  transition: all 0.15s ease;
+}
+
+.oa-app-item:hover {
+  border-color: var(--teal);
+  background: var(--bg);
+}
+
+.oa-app-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  flex: 1;
+}
+
+.oa-app-logo {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: var(--teal-l);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.oa-app-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.oa-app-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.oa-app-name {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.oa-scopes-list {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.oa-scope-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ink2);
+}
+
+/* ── Mobile Viewports (<640px) ── */
+@media (max-width: 640px) {
+  .oa-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .oa-kpi-card {
+    padding: 12px 14px;
+    gap: 6px;
+  }
+
+  .oa-kpi-val {
+    font-size: 17px;
+  }
+
+  .oa-kpi-title {
+    font-size: 10.5px;
+  }
+
+  .oa-kpi-icon {
+    width: 28px;
+    height: 28px;
+  }
+
+  .oa-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .oa-search-box {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .oa-app-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .oa-app-actions {
+    width: 100%;
+    display: flex;
+    justify-content: flex-end;
+    border-top: 1px solid var(--border);
+    padding-top: 10px;
+  }
+
+  .oa-card-hdr {
+    padding: 14px 16px;
+  }
+
+  .oa-card-body {
+    padding: 14px 16px;
+  }
+}
+
+/* ── Tablet/Mobile Collapse (<1024px) ── */
+@media (max-width: 1024px) {
+  .oa-layout-grid {
+    grid-template-columns: 1fr;
+  }
+}

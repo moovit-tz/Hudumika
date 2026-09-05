@@ -100,45 +100,91 @@ export const OndiTrust: React.FC = () => {
   const scorePct = Math.max(0, Math.min(100, ((score - 300) / (850 - 300)) * 100));
   const strokeDashoffset = arcLength - (arcLength * (scorePct / 100));
 
-  // Area sparkline path calculation
-  const sparklinePaths = useMemo(() => {
-    if (!history || history.length < 2) return null;
-    const w = 400;
-    const h = 70;
-    const padX = 10;
-    const padY = 8;
+  const [activeSnapshotIndex, setActiveSnapshotIndex] = useState<number | null>(null);
+  const [showLedger, setShowLedger] = useState(false);
 
-    // Scaled to the actual range of recorded scores, not the full 300-850
-    // theoretical scale — real history usually clusters tightly (e.g.
-    // 411-439), and against a 550-point axis that's ~5% of the chart
-    // height, rendering as a flat line even though the score genuinely
-    // moved. A little headroom on each side keeps the line off the very
-    // top/bottom edge; a floor of 10 on the range avoids a divide-by-zero
-    // when every recorded score is identical (renders as a flat centered
-    // line, which is correct there).
+  // Balanced Score Progression Chart calculation with intelligent Y-axis scaling & grid ticks
+  const chartData = useMemo(() => {
+    if (!history || history.length === 0) return null;
+    const w = 680;
+    const h = 180;
+    const padLeft = 44;
+    const padRight = 20;
+    const padTop = 24;
+    const padBottom = 28;
+
     const scores = history.map(p => p.score);
     const rawMin = Math.min(...scores);
     const rawMax = Math.max(...scores);
-    const range = Math.max(rawMax - rawMin, 10);
-    const headroom = range * 0.15;
-    const min = rawMin - headroom;
-    const max = rawMax + headroom;
+    const mid = (rawMin + rawMax) / 2;
+
+    // Minimum visual range of 140 points centered around midpoint so small adjustments don't plunge like a cliff
+    const minSpan = 140;
+    const actualSpan = rawMax - rawMin;
+    const span = Math.max(actualSpan + 40, minSpan);
+
+    let yMin = Math.floor((mid - span / 2) / 25) * 25;
+    let yMax = Math.ceil((mid + span / 2) / 25) * 25;
+    if (yMin < 300) yMin = 300;
+    if (yMax > 850) yMax = 850;
+    if (yMax - yMin < minSpan) {
+      if (yMin === 300) yMax = Math.min(850, 300 + minSpan);
+      else if (yMax === 850) yMin = Math.max(300, 850 - minSpan);
+    }
+    const yRange = Math.max(yMax - yMin, 10);
+
+    const gridTicks = [
+      yMax,
+      Math.round(yMin + yRange * 0.66),
+      Math.round(yMin + yRange * 0.33),
+      yMin,
+    ];
+
+    const plotW = w - padLeft - padRight;
+    const plotH = h - padTop - padBottom;
 
     const pts = history.map((p, i) => {
-      const x = padX + (i / (history.length - 1)) * (w - padX * 2);
-      const y = padY + (1 - (p.score - min) / (max - min)) * (h - padY * 2);
-      return [x, y] as [number, number];
+      const x = history.length === 1 ? padLeft + plotW / 2 : padLeft + (i / (history.length - 1)) * plotW;
+      const y = padTop + (1 - (p.score - yMin) / yRange) * plotH;
+      const prev = i > 0 ? history[i - 1].score : p.score;
+      const delta = p.score - prev;
+      return {
+        x,
+        y,
+        score: p.score,
+        tier: p.tier,
+        date: p.created_at,
+        delta,
+        index: i,
+      };
     });
 
-    const linePath = pts.reduce((acc, pt, i) => `${acc} ${i === 0 ? 'M' : 'L'} ${pt[0].toFixed(1)} ${pt[1].toFixed(1)}`, '');
-    const areaPath = `${linePath} L ${pts[pts.length - 1][0].toFixed(1)} ${h} L ${pts[0][0].toFixed(1)} ${h} Z`;
+    const linePath = pts.reduce((acc, pt, i) => `${acc} ${i === 0 ? 'M' : 'L'} ${pt.x.toFixed(1)} ${pt.y.toFixed(1)}`, '');
+    const areaPath = pts.length > 1
+      ? `${linePath} L ${pts[pts.length - 1].x.toFixed(1)} ${padTop + plotH} L ${pts[0].x.toFixed(1)} ${padTop + plotH} Z`
+      : '';
 
-    const lastPt = pts[pts.length - 1];
-    return { linePath, areaPath, lastPt, w, h };
+    return {
+      w,
+      h,
+      padLeft,
+      padRight,
+      padTop,
+      padBottom,
+      plotW,
+      plotH,
+      yMin,
+      yMax,
+      gridTicks,
+      pts,
+      linePath,
+      areaPath,
+      rawMin,
+      rawMax,
+    };
   }, [history]);
 
-  // Real change from the first to the most recent recorded snapshot — was a
-  // hardcoded "Stable (+0.0%)" regardless of what the history actually held.
+  // Real change from the first to the most recent recorded snapshot
   const volatility = useMemo(() => {
     if (!history || history.length < 2) return null;
     const first = history[0].score;
@@ -147,7 +193,7 @@ export const OndiTrust: React.FC = () => {
     const pct = first > 0 ? (delta / first) * 100 : 0;
     const label = delta > 15 ? 'Improving' : delta < -15 ? 'Declining' : 'Stable';
     const color = delta > 15 ? 'var(--green)' : delta < -15 ? 'var(--red)' : 'var(--gold)';
-    return { label, pct, color };
+    return { label, pct, delta, color };
   }, [history]);
 
   return (
@@ -345,8 +391,21 @@ export const OndiTrust: React.FC = () => {
             </div>
           </div>
 
-          <div style={{ fontSize: 12, color: 'var(--ink3)' }}>
-            {history.length > 0 ? `${history.length} snapshots recorded` : 'Single baseline'}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 12, color: 'var(--ink3)' }}>
+              {history.length > 0 ? `${history.length} snapshots recorded` : 'Single baseline'}
+            </span>
+            {history.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowLedger(prev => !prev)}
+                style={{ fontSize: 12, height: 28, padding: '0 10px' }}
+              >
+                <Icon name={showLedger ? 'chevronUp' : 'chevronDown'} size={12} style={{ marginRight: 4 }} />
+                {showLedger ? 'Hide Ledger' : 'View Ledger'}
+              </Button>
+            )}
           </div>
         </div>
 
@@ -354,7 +413,10 @@ export const OndiTrust: React.FC = () => {
         <div className="ot-trend-stats-row">
           <div className="ot-trend-stat">
             <span className="ot-trend-stat-lbl">Current Score</span>
-            <span className="ot-trend-stat-val" style={{ color: tierMeta.main }}>{trust?.score || '—'}</span>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+              <span className="ot-trend-stat-val" style={{ color: tierMeta.main }}>{trust?.score || '—'}</span>
+              <span style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 600 }}>/ 850</span>
+            </div>
           </div>
 
           <div className="ot-trend-stat">
@@ -372,31 +434,220 @@ export const OndiTrust: React.FC = () => {
           </div>
 
           <div className="ot-trend-stat">
-            <span className="ot-trend-stat-lbl">Score Trend</span>
+            <span className="ot-trend-stat-lbl">Score Trajectory</span>
             <span className="ot-trend-stat-val" style={{ color: volatility ? volatility.color : 'var(--ink3)', fontSize: 15 }}>
               {volatility ? `${volatility.label} (${volatility.pct >= 0 ? '+' : ''}${volatility.pct.toFixed(1)}%)` : 'No history yet'}
             </span>
           </div>
         </div>
 
-        {/* Interactive Sparkline */}
-        {sparklinePaths ? (
-          <div className="ot-chart-wrap">
-            <svg className="ot-sparkline-svg" viewBox={`0 0 ${sparklinePaths.w} ${sparklinePaths.h}`} preserveAspectRatio="none">
-              <defs>
-                <linearGradient id="otGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={tierMeta.main} stopOpacity="0.25" />
-                  <stop offset="100%" stopColor={tierMeta.main} stopOpacity="0.0" />
-                </linearGradient>
-              </defs>
-              <path d={sparklinePaths.areaPath} fill="url(#otGrad)" />
-              <path d={sparklinePaths.linePath} fill="none" stroke={tierMeta.main} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-              <circle cx={sparklinePaths.lastPt[0]} cy={sparklinePaths.lastPt[1]} r="4.5" fill="var(--white)" stroke={tierMeta.main} strokeWidth="2.5" />
-            </svg>
-            <div className="ot-trend-dates">
-              <span>{new Date(history[0].created_at).toLocaleDateString()}</span>
-              <span>{new Date(history[history.length - 1].created_at).toLocaleDateString()}</span>
+        {/* Dynamic Scale Chart */}
+        {chartData && history.length > 0 ? (
+          <div className="ot-chart-container">
+            <div className="ot-chart-viewport">
+              <svg
+                className="ot-chart-svg"
+                viewBox={`0 0 ${chartData.w} ${chartData.h}`}
+                preserveAspectRatio="none"
+              >
+                {/* Horizontal Gridlines & Y-Axis Labels */}
+                {chartData.gridTicks.map((tickVal, idx) => {
+                  const y = chartData.padTop + (1 - (tickVal - chartData.yMin) / (chartData.yMax - chartData.yMin)) * chartData.plotH;
+                  return (
+                    <g key={idx}>
+                      <line
+                        x1={chartData.padLeft}
+                        y1={y}
+                        x2={chartData.w - chartData.padRight}
+                        y2={y}
+                        stroke="var(--border)"
+                        strokeDasharray="4 4"
+                        strokeWidth="1"
+                      />
+                      <text
+                        x={chartData.padLeft - 8}
+                        y={y + 3.5}
+                        textAnchor="end"
+                        fontSize="10"
+                        fontWeight="600"
+                        fill="var(--ink3)"
+                        fontFamily="var(--mono)"
+                      >
+                        {tickVal}
+                      </text>
+                    </g>
+                  );
+                })}
+
+                {/* Shaded Area */}
+                {chartData.areaPath && (
+                  <path
+                    d={chartData.areaPath}
+                    fill={volatility && volatility.label === 'Declining' ? 'var(--red)' : 'var(--teal)'}
+                    fillOpacity="0.05"
+                  />
+                )}
+
+                {/* Score Polyline */}
+                <path
+                  d={chartData.linePath}
+                  fill="none"
+                  stroke={volatility && volatility.label === 'Declining' ? 'var(--red, #ef4444)' : 'var(--teal, #0d9488)'}
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+
+                {/* Interactive Milestone Nodes */}
+                {chartData.pts.map((pt, i) => {
+                  const isHovered = activeSnapshotIndex === i;
+                  const isLast = i === chartData.pts.length - 1;
+                  const nodeColor = pt.score >= 600 ? 'var(--green)' : pt.score >= 450 ? 'var(--gold)' : 'var(--red)';
+                  return (
+                    <g
+                      key={i}
+                      className="ot-chart-node-group"
+                      onMouseEnter={() => setActiveSnapshotIndex(i)}
+                      onMouseLeave={() => setActiveSnapshotIndex(null)}
+                      onClick={() => setActiveSnapshotIndex(i === activeSnapshotIndex ? null : i)}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      {/* Hover / Active Ring */}
+                      {isHovered && (
+                        <circle
+                          cx={pt.x}
+                          cy={pt.y}
+                          r="9"
+                          fill={nodeColor}
+                          fillOpacity="0.18"
+                        />
+                      )}
+                      {/* Node Point */}
+                      <circle
+                        cx={pt.x}
+                        cy={pt.y}
+                        r={isLast || isHovered ? 5 : 3.5}
+                        fill="var(--card, #ffffff)"
+                        stroke={nodeColor}
+                        strokeWidth={isLast || isHovered ? 2.5 : 2}
+                      />
+                    </g>
+                  );
+                })}
+              </svg>
+
+              {/* Active Snapshot Tooltip Overlay */}
+              {activeSnapshotIndex !== null && chartData.pts[activeSnapshotIndex] && (
+                (() => {
+                  const activePt = chartData.pts[activeSnapshotIndex];
+                  const leftPct = (activePt.x / chartData.w) * 100;
+                  const topPct = (activePt.y / chartData.h) * 100;
+                  return (
+                    <div
+                      className="ot-chart-tooltip"
+                      style={{
+                        left: `clamp(90px, ${leftPct}%, calc(100% - 90px))`,
+                        top: `clamp(10px, ${topPct - 35}%, calc(100% - 60px))`,
+                      }}
+                    >
+                      <div className="ot-chart-tooltip-header">
+                        <span className="ot-chart-tooltip-score">{activePt.score}</span>
+                        <Badge variant={activePt.tier === 'HIGH' ? 'success' : activePt.tier === 'MEDIUM' ? 'warning' : 'gray'}>
+                          {activePt.tier}
+                        </Badge>
+                      </div>
+                      <div className="ot-chart-tooltip-meta">
+                        <span>{new Date(activePt.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                        {activePt.delta !== 0 && (
+                          <span style={{ color: activePt.delta > 0 ? 'var(--green)' : 'var(--red)', fontWeight: 700 }}>
+                            {activePt.delta > 0 ? `+${activePt.delta}` : activePt.delta} pts
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()
+              )}
             </div>
+
+            {/* Bottom Timeline Axis */}
+            <div className="ot-chart-axis-bottom">
+              <span>{new Date(history[0].created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+              <span style={{ fontSize: 11, color: 'var(--ink3)' }}>
+                {history.length} Assessment Snapshots
+              </span>
+              <span>{new Date(history[history.length - 1].created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+            </div>
+
+            {/* Chronological Snapshot Ledger Table */}
+            {showLedger && (
+              <div className="ot-ledger-wrap">
+                <div className="ot-ledger-title">
+                  <Icon name="list" size={13} />
+                  <span>Recorded Snapshot Ledger</span>
+                </div>
+                <div className="ot-ledger-table-box">
+                  <table className="ot-ledger-table">
+                    <thead>
+                      <tr>
+                        <th>#</th>
+                        <th>Timestamp</th>
+                        <th>Trust Score</th>
+                        <th>Change</th>
+                        <th>Tier Band</th>
+                        <th>Recorded State</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {history.slice().reverse().map((h, revIdx) => {
+                        const originalIdx = history.length - 1 - revIdx;
+                        const prev = originalIdx > 0 ? history[originalIdx - 1].score : h.score;
+                        const delta = h.score - prev;
+                        const isSelected = activeSnapshotIndex === originalIdx;
+                        return (
+                          <tr
+                            key={revIdx}
+                            className={isSelected ? 'selected' : ''}
+                            onMouseEnter={() => setActiveSnapshotIndex(originalIdx)}
+                            onMouseLeave={() => setActiveSnapshotIndex(null)}
+                          >
+                            <td style={{ fontFamily: 'var(--mono)', color: 'var(--ink3)', fontSize: 11 }}>
+                              #{history.length - revIdx}
+                            </td>
+                            <td>
+                              {new Date(h.created_at).toLocaleString('en-GB', {
+                                day: '2-digit', month: 'short', year: 'numeric',
+                                hour: '2-digit', minute: '2-digit', second: '2-digit'
+                              })}
+                            </td>
+                            <td style={{ fontWeight: 700, fontFamily: 'var(--mono)', color: 'var(--ink)' }}>
+                              {h.score}
+                            </td>
+                            <td>
+                              {delta === 0 ? (
+                                <span style={{ color: 'var(--ink3)' }}>—</span>
+                              ) : (
+                                <span style={{ color: delta > 0 ? 'var(--green)' : 'var(--red)', fontWeight: 700, fontFamily: 'var(--mono)' }}>
+                                  {delta > 0 ? `+${delta}` : delta}
+                                </span>
+                              )}
+                            </td>
+                            <td>
+                              <Badge variant={h.tier === 'HIGH' ? 'success' : h.tier === 'MEDIUM' ? 'warning' : 'gray'}>
+                                {h.tier}
+                              </Badge>
+                            </td>
+                            <td style={{ color: 'var(--ink3)', fontSize: 11.5 }}>
+                              {originalIdx === 0 ? 'Baseline Audit' : 'Periodic Recalibration'}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 12.5 }}>

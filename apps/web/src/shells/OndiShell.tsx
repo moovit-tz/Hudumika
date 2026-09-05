@@ -9,6 +9,7 @@ import { RequireRoles } from '../components/RequireRoles.js';
 import { PageLayout } from '../components/PageLayout.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { Icon } from '../components/Icon.js';
+import '../pages/OndiPages.css';
 
 import { OndiUsers } from '../pages/OndiUsers.js';
 import { OndiSSO } from '../pages/OndiSSO.js';
@@ -26,7 +27,6 @@ import { OndiPersonalActivity } from '../pages/OndiPersonalActivity.js';
 import { OndiApps } from '../pages/OndiApps.js';
 import { OndiPrivacy } from '../pages/OndiPrivacy.js';
 import { OndiWallet } from '../pages/OndiWallet.js';
-import { OndiCreateOrganization } from '../pages/OndiCreateOrganization.js';
 import { OndiAccessReviews, OndiAccessReviewDetail } from '../pages/OndiAccessReviews.js';
 import { OndiOrgTrust } from '../pages/OndiOrgTrust.js';
 import { OndiOrgActivity } from '../pages/OndiOrgActivity.js';
@@ -41,9 +41,13 @@ import { OndiAuthorize } from '../pages/OndiAuthorize.js';
 const ADMIN_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'] as const;
 
 // Sectioned to match the house-style mockup's Personal nav grouping
-// (You / Account / Business) — Wallet/Apps/Create Organization land in
-// their own later milestones, added into these same sections rather than
-// requiring another restructure.
+// (You / Account). "Apps" (a user's own OAuth-connected apps) lives under
+// ACCOUNT — it's a personal-identity feature every user has regardless of
+// whether their tenant is a real company, not a business-admin one, so it
+// doesn't belong behind the Business-mode gate below. "Create Organization"
+// used to sit alongside it in its own BUSINESS section here — removed
+// (not just hidden): it only ever linked out to the real /signup flow and
+// had no other content to justify a section of its own.
 const PERSONAL_NAV: SidebarSection[] = [
   {
     items: [
@@ -65,13 +69,7 @@ const PERSONAL_NAV: SidebarSection[] = [
       { label: 'ID Documents',     icon: 'fileText', path: '/ondi/personal/documents' },
       { label: 'Privacy',          icon: 'shield',   path: '/ondi/personal/privacy' },
       { label: 'Security Settings', icon: 'lock',     path: '/ondi/personal/security' },
-    ],
-  },
-  {
-    title: 'BUSINESS',
-    items: [
-      { label: 'Apps',                 icon: 'grid',     path: '/ondi/personal/apps' },
-      { label: 'Create Organization',  icon: 'building', path: '/ondi/personal/create-organization' },
+      { label: 'Apps',              icon: 'grid',     path: '/ondi/personal/apps' },
     ],
   },
 ];
@@ -197,6 +195,17 @@ export function OndiShell() {
   const hasIntegrationsPermission = isAdmin || !!user?.org_permissions?.includes('integrations.manage');
   const hasGroupsPermission = isAdmin || !!user?.org_permissions?.includes('groups.manage');
 
+  // Business mode is this tenant's company-administration console (staff
+  // directory, KYB/business verification, roles, KYC review, SSO...) — it
+  // only makes sense for someone who actually has some administrative
+  // standing over that company, not for every signed-in individual. Every
+  // user already has a tenant_id (this platform is multi-tenant top to
+  // bottom), so "tied to a company" can't mean that; it means holding at
+  // least one of the real admin/org-permission flags above.
+  const canSeeBusinessMode = isAdmin || hasKycPermission || hasSsoPermission || hasAccessReviewsPermission
+    || hasOrgTrustPermission || hasAutomationPermission || hasComplianceReviewPermission
+    || hasPoliciesPermission || hasAssetsPermission || hasIntegrationsPermission || hasGroupsPermission;
+
   const businessNavItems: SidebarNavItem[] = [
     { label: 'Users',          icon: 'users' as const,    path: '/ondi', exact: true },
     { label: 'Business Verification', icon: 'building' as const, path: '/ondi/business' },
@@ -250,7 +259,6 @@ export function OndiShell() {
     businessNavItems.push({ label: 'IT Admin', icon: 'barChart2' as const, path: '/ondi/it-admin' });
     businessNavItems.push({ label: 'Sessions & Security', icon: 'lock' as const, path: '/ondi/sessions' });
     businessNavItems.push({ label: 'Activity', icon: 'activity' as const,    path: '/ondi/activity' });
-    businessNavItems.push({ label: 'Login Activity', icon: 'clock' as const,    path: '/ondi/login-activity' });
     // The webhook form itself still lives in Settings.tsx (same generic
     // /v1/settings-backed pattern every other tenant setting uses) — this
     // just points there directly, same "link out, don't rebuild" precedent
@@ -258,7 +266,13 @@ export function OndiShell() {
     businessNavItems.push({ label: 'SIEM Export', icon: 'send' as const, path: '/workspace/settings?s=siem-export' });
   }
 
-  const sections: SidebarSection[] = mode === 'personal' ? PERSONAL_NAV : [{ items: businessNavItems }];
+  // Without canSeeBusinessMode, the toggle above never renders — so `mode`
+  // can only read 'business' here from a direct URL hit (bare /ondi, or a
+  // bookmarked business-mode link), not from anything the sidebar itself
+  // offers. Falling back to PERSONAL_NAV in that case keeps the sidebar
+  // navigable instead of stranding them on a console they have no way back
+  // out of.
+  const sections: SidebarSection[] = (mode === 'personal' || !canSeeBusinessMode) ? PERSONAL_NAV : [{ items: businessNavItems }];
 
   return (
     <WorkspaceApp appId="ondi">
@@ -266,14 +280,14 @@ export function OndiShell() {
         <AppSidebar
           appId="ondi"
           sections={sections}
-          beforeNav={({ collapsed }) => <ModeToggle mode={mode} onChange={switchMode} collapsed={collapsed} />}
+          beforeNav={({ collapsed }) => canSeeBusinessMode ? <ModeToggle mode={mode} onChange={switchMode} collapsed={collapsed} /> : null}
         />
         <div className="app-main">
           <AppHeader />
           <div className="app-shell-content">
             <Routes>
               <Route element={<PageLayout />}>
-                <Route index element={<OndiUsers />} />
+                <Route index element={canSeeBusinessMode ? <OndiUsers /> : <Navigate to="/ondi/personal" replace />} />
                 <Route path="personal" element={<OndiPersonal />} />
                 <Route path="personal/trust" element={<OndiTrust />} />
                 <Route path="personal/wallet" element={<OndiWallet />} />
@@ -286,7 +300,10 @@ export function OndiShell() {
                 <Route path="personal/security" element={<OndiSecuritySettings />} />
                 <Route path="personal/privacy" element={<OndiPrivacy />} />
                 <Route path="personal/apps" element={<OndiApps />} />
-                <Route path="personal/create-organization" element={<OndiCreateOrganization />} />
+                {/* "Create Organization" removed — it only ever linked out
+                    to the real /signup flow; kept as a redirect for any
+                    bookmark/old link rather than a hard 404. */}
+                <Route path="personal/create-organization" element={<Navigate to="/ondi/personal" replace />} />
                 <Route path="business" element={<OndiBusinessVerification />} />
                 <Route path="access-reviews" element={<RequireRoles roles={[...ADMIN_ROLES]} permissions={['access_reviews.manage']}><OndiAccessReviews /></RequireRoles>} />
                 <Route path="access-reviews/:id" element={<RequireRoles roles={[...ADMIN_ROLES]} permissions={['access_reviews.manage']}><OndiAccessReviewDetail /></RequireRoles>} />
@@ -307,7 +324,7 @@ export function OndiShell() {
                 <Route path="sessions" element={<RequireRoles roles={[...ADMIN_ROLES]}><OndiSessions /></RequireRoles>} />
                 <Route path="activity" element={<RequireRoles roles={[...ADMIN_ROLES]}><OndiOrgActivity /></RequireRoles>} />
                 <Route path="trust" element={<RequireRoles roles={[...ADMIN_ROLES]} permissions={['org_trust.view']}><OndiOrgTrust /></RequireRoles>} />
-                <Route path="login-activity" element={<RequireRoles roles={[...ADMIN_ROLES]}><OndiLoginActivity /></RequireRoles>} />
+                <Route path="login-activity" element={<Navigate to="/ondi/activity" replace />} />
               </Route>
               <Route path="*" element={<Navigate to="/ondi" replace />} />
             </Routes>

@@ -13,6 +13,7 @@ import { computeReliabilitySignals } from '../lib/reliability-signals.js';
 import { env } from '../config/env.js';
 import { encryptSecret, decryptSecret } from '../services/onsite-secrets.service.js';
 import { getPasswordPolicy } from '../lib/password-policy.js';
+import { SmsService } from '../services/sms.service.js';
 
 let redisClient: Redis | null = null;
 try {
@@ -25,6 +26,23 @@ const passkeyRegChallengeKey = (userId: string) => `ondi:webauthn:reg:${userId}`
 function transportsToText(transports: readonly string[] | undefined): string | null {
   return transports && transports.length ? transports.join(',') : null;
 }
+
+// ── Phone verification (SMS one-time code) ──────────────────────────
+// Same Redis-backed OTP shape ondi-auth.routes.ts's login /otp/request+verify
+// already uses (short-lived code + capped attempts + SmsService.sendNow) —
+// a distinct flow, not that one reused, because this one runs from an
+// already-authenticated session (no session is issued) and can target a
+// phone number the account doesn't hold yet (changing/adding a number),
+// whereas the login flow only ever looks up a phone already on file.
+const PHONE_OTP_TTL_SECONDS = 5 * 60;
+const PHONE_OTP_MAX_ATTEMPTS = 5;
+const phoneOtpKey = (userId: string) => `ondi:phone-verify:${userId}`;
+const phoneOtpAttemptsKey = (userId: string) => `ondi:phone-verify:attempts:${userId}`;
+const phoneOtpPendingKey = (userId: string) => `ondi:phone-verify:pending:${userId}`;
+// unverified → phone_verified → id_verified → enhanced — same ladder
+// ondi.routes.ts's KYC approval uses; verifying a phone must never move a
+// user backwards from a tier they already hold via KYC.
+const VERIFICATION_RANK: Record<string, number> = { unverified: 0, phone_verified: 1, id_verified: 2, enhanced: 3 };
 
 // Self-service security settings for the currently-authenticated user —
 // backs Workspace ▸ Subscription ▸ Security (apps/web/src/pages/Subscription.tsx),
@@ -221,6 +239,89 @@ export default async function securityRoutes(fastify: FastifyInstance) {
       const result = await query.executeTakeFirst();
       return { revoked: Number(result.numUpdatedRows ?? 0) };
     });
+  });
+
+  fastify.post<{ Body: { phone: string } }>('/phone/send-code', {
+    config: { rateLimit: { max: 5, timeWindow: '1 minute' } },
+  }, async (request, reply) => {
+    const user = request.user;
+    const phone = (request.body?.phone || '').trim();
+    if (!/^\+?[0-9]{7,15}$/.test(phone)) {
+      reply.status(400);
+      return { error: 'Enter a valid phone number, including country code.' };
+    }
+    if (!redisClient) {
+      reply.status(503);
+      return { error: 'Phone verification is temporarily unavailable. Try again shortly.' };
+    }
+
+    const code = crypto.randomInt(100000, 1000000).toString();
+    await redisClient.set(phoneOtpKey(user.sub), code, 'EX', PHONE_OTP_TTL_SECONDS);
+    await redisClient.set(phoneOtpPendingKey(user.sub), phone, 'EX', PHONE_OTP_TTL_SECONDS);
+    await redisClient.del(phoneOtpAttemptsKey(user.sub));
+
+    const result = await SmsService.sendNow(user.tenant_id, user.sub, {
+      to: phone,
+      body: `${code} is your Hudumika phone verification code. It expires in 5 minutes. Never share this code.`,
+      sourceApp: 'ondi',
+    });
+    if (!result.success) {
+      reply.status(502);
+      return { error: result.error || 'Could not send the SMS code. Try again shortly.' };
+    }
+
+    await recordAuthEvent(user.tenant_id, user.sub, 'phone_otp_issued', {
+      ip: request.ip, userAgent: String(request.headers['user-agent'] || ''), metadata: { phone },
+    });
+    return { success: true, message: 'A verification code was sent by SMS.' };
+  });
+
+  fastify.post<{ Body: { code: string } }>('/phone/verify-code', {
+    config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
+  }, async (request, reply) => {
+    const user = request.user;
+    const code = (request.body?.code || '').trim();
+    if (!redisClient) {
+      reply.status(503);
+      return { error: 'Phone verification is temporarily unavailable. Try again shortly.' };
+    }
+
+    const attempts = await redisClient.incr(phoneOtpAttemptsKey(user.sub));
+    if (attempts === 1) await redisClient.expire(phoneOtpAttemptsKey(user.sub), PHONE_OTP_TTL_SECONDS);
+    if (attempts > PHONE_OTP_MAX_ATTEMPTS) {
+      await redisClient.del(phoneOtpKey(user.sub));
+      await redisClient.del(phoneOtpPendingKey(user.sub));
+      reply.status(429);
+      return { error: 'Too many incorrect attempts. Request a new code.' };
+    }
+
+    const [stored, phone] = await Promise.all([
+      redisClient.get(phoneOtpKey(user.sub)),
+      redisClient.get(phoneOtpPendingKey(user.sub)),
+    ]);
+    if (!stored || !phone) {
+      reply.status(400);
+      return { error: 'No verification code pending. Request a new one.' };
+    }
+    if (stored !== code) {
+      reply.status(400);
+      return { error: 'Incorrect code.' };
+    }
+
+    await redisClient.del(phoneOtpKey(user.sub));
+    await redisClient.del(phoneOtpAttemptsKey(user.sub));
+    await redisClient.del(phoneOtpPendingKey(user.sub));
+
+    await withTenant(user.tenant_id, async (trx) => {
+      const row = await trx.selectFrom('users').select('verification_level').where('id', '=', user.sub).executeTakeFirstOrThrow();
+      const nextLevel = VERIFICATION_RANK[row.verification_level] < VERIFICATION_RANK.phone_verified ? 'phone_verified' : row.verification_level;
+      await trx.updateTable('users').set({ phone, verification_level: nextLevel as any }).where('id', '=', user.sub).execute();
+    });
+
+    await recordAuthEvent(user.tenant_id, user.sub, 'phone_verified', {
+      ip: request.ip, userAgent: String(request.headers['user-agent'] || ''), metadata: { phone },
+    });
+    return { success: true, verification_level: 'phone_verified' };
   });
 
   // ── Passkeys (WebAuthn) — Ondi M2 ────────────────────────────────
@@ -442,6 +543,31 @@ export default async function securityRoutes(fastify: FastifyInstance) {
       ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
       return combined.slice(0, 100);
+    });
+  });
+
+  // ── SSO connection status — Ondi Personal ▸ Apps ─────────────────
+  // Google/Microsoft sign-in here is genuine sign-in-time email matching
+  // (see ondi-auth.routes.ts's /google/verify, /microsoft/verify) — there
+  // is no persistent "linked account" row to read, unlike an OAuth consent.
+  // The honest signal for "has this person actually used this SSO method"
+  // is whether that login event has ever been recorded for them.
+  fastify.get('/sso-status', async (request) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const rows = await trx.selectFrom('ondi_auth_events')
+        .select(['event_type', 'created_at'])
+        .where('user_id', '=', user.sub)
+        .where('tenant_id', '=', user.tenant_id)
+        .where('event_type', 'in', ['google_login', 'microsoft_login'])
+        .orderBy('created_at', 'desc')
+        .limit(50)
+        .execute();
+      const lastFor = (type: string) => rows.find(r => r.event_type === type)?.created_at ?? null;
+      return {
+        google: { last_used_at: lastFor('google_login') },
+        microsoft: { last_used_at: lastFor('microsoft_login') },
+      };
     });
   });
 

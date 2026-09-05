@@ -4,12 +4,15 @@ import {
   useDesignSystem, DesignTokens, NeutralSet, SemanticSet, DesignSystemVersion, DensityId,
   FONT_IDS, FONT_LABELS, DENSITY_IDS, DENSITY_LABELS, SHADOW_IDS, SHADOW_LABELS,
   SHADOW_PRESETS, generateFromSeed, PLATFORM_THEMES,
+  ICON_LIBRARY_IDS, ICON_LIBRARY_LABELS, ICON_LIBRARY_DESCRIPTIONS, type IconLibraryId,
 } from '../hooks/useDesignSystem.js';
 import { pushBranding } from '../hooks/useBranding.js';
 import { ALL_APP_IDS } from '@hudumika/types';
 import './DesignSystemView.css';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog.js';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs.js';
+import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
@@ -17,32 +20,54 @@ import { APP_PALETTE_SLOT } from '../shells/WorkspaceApp.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { BrandingIdentitySection, BrandingAppsSection, BrandingLoginSection } from './BrandingView.js';
 import ComponentShowcase from './ComponentShowcase.js';
+import { TwotoneIcon, TWOTONE_ICONS } from '../components/ui/twotone-icon.js';
+const OscarCatalog        = React.lazy(() => import('./OscarCatalog.js'));
+const AnimationsShowcase  = React.lazy(() => import('./AnimationsShowcase.js'));
+// HugeiconsIcon itself is a small runtime wrapper (cheap to import
+// statically), but the actual icon artwork (hugeicons-map.ts, ~130 SVG
+// modules) is deliberately NOT imported here — this file sits on the same
+// eagerly-bundled path as the rest of the SuperAdmin shell, and a static
+// import of that data would defeat Icon.tsx's own React.lazy() split for
+// it. HugeiconsIconGrid below loads it via a dynamic import() instead.
+import { HugeiconsIcon } from '@hugeicons/react';
+import type { IconSvgElement } from '@hugeicons/react';
 
-const SECTIONS: { id: string; group: 'theming' | 'layout' | 'platform'; label: string; icon: IconName; desc: string }[] = [
-  { id: 'themes',     group: 'theming', label: 'Themes',           icon: 'sparkle',          desc: 'Global color presets & version engine' },
-  { id: 'brand',      group: 'theming', label: 'Brand & Neutral',  icon: 'sun',              desc: 'Brand primary & neutral surface scales' },
-  { id: 'semantic',   group: 'theming', label: 'Semantic',         icon: 'tag',              desc: 'Status, alert & feedback colors' },
-  { id: 'typography', group: 'theming', label: 'Typography',       icon: 'fileText',         desc: 'Font family & type scale ladder' },
-  { id: 'shape',      group: 'theming', label: 'Shape & Radius',   icon: 'shapes',           desc: 'Corner radii, borders & icon weights' },
-  { id: 'tabs',       group: 'theming', label: 'Tabs & Strips',    icon: 'layoutDashboard',  desc: 'Tab variants, track styling & sizes' },
-  { id: 'elevation',  group: 'theming', label: 'Elevation',        icon: 'layers',           desc: 'Layered shadow & depth scales' },
-  { id: 'density',    group: 'theming', label: 'Density',          icon: 'grid3',            desc: 'Component compact & comfortable scale' },
-  { id: 'motion',     group: 'theming', label: 'Motion',           icon: 'zap',              desc: 'Transition durations & easing curves' },
-  { id: 'menu',       group: 'layout',  label: 'Menu Behavior',    icon: 'sidebar',          desc: 'Sidebar initial collapse & expansion' },
-  { id: 'navbar',     group: 'layout',  label: 'Navbar Mode',      icon: 'layoutDashboard',  desc: 'Sticky, static or hidden top navigation' },
-  { id: 'content',    group: 'layout',  label: 'Content Width',    icon: 'maximize',         desc: 'Boxed compact vs full-bleed wide layout' },
-  { id: 'skin',       group: 'layout',  label: 'Surface Skin',     icon: 'image',            desc: 'Default sleek vs high-contrast bordered' },
-  { id: 'semidark',   group: 'layout',  label: 'Semi Dark',        icon: 'moon',             desc: 'Dark sidebar navigation in light mode' },
-  { id: 'direction',  group: 'layout',  label: 'Text Direction',   icon: 'compass',          desc: 'Left-to-Right and RTL text flow' },
-  { id: 'mobile',     group: 'layout',  label: 'Responsive Break', icon: 'smartphone',       desc: 'Adaptive mobile viewport breakpoint' },
-  { id: 'identity',   group: 'platform', label: 'Identity & Brand', icon: 'image',            desc: 'Nomenclature, logos, favicons & assets' },
-  { id: 'apps',       group: 'platform', label: 'App Configurator', icon: 'grid',             desc: 'Per-app names, accents, slogans & icons' },
-  { id: 'login',      group: 'platform', label: 'Login Screen',     icon: 'logIn',            desc: 'Authentication screen themes & headers' },
-  { id: 'components', group: 'platform', label: 'Component Catalog', icon: 'layers',         desc: 'Live interactive Radix component showcase' },
+type SectionGroup = 'theming' | 'layout' | 'platform' | 'catalog';
+const SECTIONS: { id: string; group: SectionGroup; label: string; icon: IconName; desc: string }[] = [
+  { id: 'themes',     group: 'theming', label: 'Themes',            icon: 'sparkle',         desc: 'Global color presets & version engine' },
+  { id: 'brand',      group: 'theming', label: 'Brand & Neutral',   icon: 'sun',             desc: 'Brand primary & neutral surface scales' },
+  { id: 'semantic',   group: 'theming', label: 'Semantic',          icon: 'tag',             desc: 'Status, alert & feedback colors' },
+  { id: 'typography', group: 'theming', label: 'Typography',        icon: 'fileText',        desc: 'Font family & type scale ladder' },
+  { id: 'shape',      group: 'theming', label: 'Shape & Radius',    icon: 'shapes',          desc: 'Corner radii, borders & icon weights' },
+  { id: 'tabs',       group: 'theming', label: 'Tabs & Strips',     icon: 'layoutDashboard', desc: 'Tab variants, track styling & sizes' },
+  { id: 'elevation',  group: 'theming', label: 'Elevation',         icon: 'layers',          desc: 'Layered shadow & depth scales' },
+  { id: 'density',    group: 'theming', label: 'Density',           icon: 'grid3',           desc: 'Component compact & comfortable scale' },
+  { id: 'motion',     group: 'theming', label: 'Motion',            icon: 'zap',             desc: 'Transition durations & easing curves' },
+  { id: 'menu',       group: 'layout',  label: 'Menu Behavior',     icon: 'sidebar',         desc: 'Sidebar initial collapse & expansion' },
+  { id: 'navbar',     group: 'layout',  label: 'Navbar Mode',       icon: 'layoutDashboard', desc: 'Sticky, static or hidden top navigation' },
+  { id: 'content',    group: 'layout',  label: 'Content Width',     icon: 'maximize',        desc: 'Boxed compact vs full-bleed wide layout' },
+  { id: 'skin',       group: 'layout',  label: 'Surface Skin',      icon: 'image',           desc: 'Default sleek vs high-contrast bordered' },
+  { id: 'semidark',   group: 'layout',  label: 'Semi Dark',         icon: 'moon',            desc: 'Dark sidebar navigation in light mode' },
+  { id: 'direction',  group: 'layout',  label: 'Text Direction',    icon: 'compass',         desc: 'Left-to-Right and RTL text flow' },
+  { id: 'mobile',     group: 'layout',  label: 'Responsive Break',  icon: 'smartphone',      desc: 'Adaptive mobile viewport breakpoint' },
+  { id: 'identity',   group: 'platform', label: 'Identity & Brand', icon: 'image',           desc: 'Nomenclature, logos, favicons & assets' },
+  { id: 'apps',       group: 'platform', label: 'App Configurator', icon: 'grid',            desc: 'Per-app names, accents, slogans & icons' },
+  { id: 'login',      group: 'platform', label: 'Login Screen',     icon: 'logIn',           desc: 'Authentication screen themes & headers' },
+  { id: 'components', group: 'catalog',  label: 'Component Catalog',icon: 'layers',          desc: 'Live interactive Radix component showcase' },
+  { id: 'icons',      group: 'catalog',  label: 'Icon System',      icon: 'sparkle',         desc: 'Stroke icons & Twotone Rounded collection' },
+  { id: 'oscar',      group: 'catalog',  label: 'Oscar Catalog',    icon: 'star',            desc: 'Oscar/DaisyUI-inspired component catalog with style switchers' },
+  { id: 'animations', group: 'catalog',  label: 'Animations',       icon: 'zap',             desc: 'Keyframe animations, transitions, easing curves & micro-interactions' },
+];
+
+const SECTION_GROUPS: { id: SectionGroup; label: string; icon: IconName }[] = [
+  { id: 'theming',  label: 'Theming',    icon: 'sparkle'  },
+  { id: 'layout',   label: 'Layout',     icon: 'maximize' },
+  { id: 'platform', label: 'Platform',   icon: 'shield'   },
+  { id: 'catalog',  label: 'Catalog',    icon: 'layers'   },
 ];
 
 /** Sections with no separate "live token preview" rail. */
-const PANEL_ONLY_SECTIONS = new Set(['identity', 'apps', 'login', 'components']);
+const PANEL_ONLY_SECTIONS = new Set(['identity', 'apps', 'login', 'components', 'icons', 'oscar', 'animations']);
 
 const NEUTRAL_LABELS: Record<keyof NeutralSet, { title: string; desc: string }> = {
   ink:        { title: 'Text Primary',      desc: 'Main headings and primary reading copy' },
@@ -192,6 +217,382 @@ function NumberField({
   );
 }
 
+// ─── Icon System Showcase ──────────────────────────────────────────────────
+
+const STROKE_ICON_NAMES: IconName[] = [
+  'grid', 'list', 'menu', 'sidebar', 'home', 'search', 'filter', 'download', 'upload',
+  'refresh', 'file', 'fileText', 'folder', 'archive', 'receipt', 'invoice',
+  'user', 'users', 'userCheck', 'contact', 'dollarSign', 'creditCard', 'trendingUp',
+  'barChart', 'ship', 'truck', 'plane', 'package', 'globe', 'mapPin',
+  'warning', 'checkCircle', 'alertCircle', 'xCircle', 'info', 'check', 'clock', 'calendar',
+  'settings', 'edit', 'trash', 'copy', 'lock', 'key', 'bell', 'send',
+  'zap', 'eye', 'star', 'tag', 'activity', 'building', 'briefcase', 'camera',
+  'mail', 'shield', 'sun', 'moon', 'sparkle', 'logIn', 'logOut', 'smartphone',
+  'link', 'share', 'image', 'phone', 'layers', 'flag',
+];
+
+const TWOTONE_ICON_NAMES = Object.keys(TWOTONE_ICONS) as string[];
+
+function StrokeIconGrid() {
+  const [iconSize, setIconSize] = useState(20);
+  const [copiedName, setCopiedName] = useState<string | null>(null);
+
+  const handleCopy = (name: string) => {
+    const code = `<Icon name="${name}" size={${iconSize}} />`;
+    navigator.clipboard?.writeText(code);
+    setCopiedName(name);
+    setTimeout(() => setCopiedName(null), 1200);
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Controls */}
+      <div className="flex items-center justify-between gap-4 flex-wrap p-3 rounded-xl bg-muted/40 border border-border">
+        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+          {STROKE_ICON_NAMES.length} stroke icons · click to copy JSX
+        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Size:</span>
+          <div className="flex items-center gap-1 bg-background border border-border rounded-lg p-0.5">
+            {[16, 20, 24, 28].map((sz) => (
+              <button
+                key={sz}
+                type="button"
+                onClick={() => setIconSize(sz)}
+                className={`px-2 py-0.5 text-xs font-medium rounded-md transition-colors ${
+                  iconSize === sz ? 'bg-primary text-primary-foreground font-semibold' : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {sz}px
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+      {/* Grid */}
+      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
+        {STROKE_ICON_NAMES.map((name) => (
+          <div
+            key={name}
+            onClick={() => handleCopy(name)}
+            className="group relative flex flex-col items-center justify-center gap-1.5 p-2.5 rounded-xl border border-border bg-card hover:border-primary/50 hover:bg-muted/30 transition-all cursor-pointer shadow-xs hover:shadow-sm"
+          >
+            <div className="h-8 flex items-center justify-center">
+              <Icon name={name} size={iconSize} />
+            </div>
+            <span className="text-[10px] font-medium text-muted-foreground group-hover:text-foreground truncate max-w-full leading-tight text-center">
+              {copiedName === name ? (
+                <span className="text-emerald-500 font-bold">✓ copied</span>
+              ) : (
+                name
+              )}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function TwotoneIconGrid() {
+  const [selectedColor, setSelectedColor] = useState<'teal' | 'green' | 'gold' | 'purple' | 'red' | 'ink'>('teal');
+  const [iconSize, setIconSize] = useState(24);
+  const [copiedName, setCopiedName] = useState<string | null>(null);
+
+  const colorMap = {
+    teal:   'var(--teal)',
+    green:  'var(--green, #10b981)',
+    gold:   'var(--gold, #f59e0b)',
+    purple: 'var(--purple, #8b5cf6)',
+    red:    'var(--red, #ef4444)',
+    ink:    'var(--ink)',
+  };
+
+  const handleCopy = (name: string) => {
+    const code = `<TwotoneIcon name="${name}" size={${iconSize}} color="${colorMap[selectedColor]}" />`;
+    navigator.clipboard?.writeText(code);
+    setCopiedName(name);
+    setTimeout(() => setCopiedName(null), 1200);
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Controls */}
+      <div className="flex items-center justify-between gap-4 flex-wrap p-3 rounded-xl bg-muted/40 border border-border">
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Color:</span>
+          <div className="flex items-center gap-1.5">
+            {(['teal', 'green', 'gold', 'purple', 'red', 'ink'] as const).map((c) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setSelectedColor(c)}
+                className={`w-5 h-5 rounded-full border-2 transition-transform ${
+                  selectedColor === c ? 'scale-110 ring-2 ring-primary ring-offset-2' : 'hover:scale-105'
+                }`}
+                style={{ backgroundColor: colorMap[c], borderColor: 'transparent' }}
+                title={c}
+              />
+            ))}
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Size:</span>
+          <div className="flex items-center gap-1 bg-background border border-border rounded-lg p-0.5">
+            {[18, 22, 26, 32].map((sz) => (
+              <button
+                key={sz}
+                type="button"
+                onClick={() => setIconSize(sz)}
+                className={`px-2 py-0.5 text-xs font-medium rounded-md transition-colors ${
+                  iconSize === sz ? 'bg-primary text-primary-foreground font-semibold' : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {sz}px
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+      {/* Grid */}
+      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
+        {TWOTONE_ICON_NAMES.map((name) => (
+          <div
+            key={name}
+            onClick={() => handleCopy(name)}
+            className="group relative flex flex-col items-center justify-center gap-1.5 p-2.5 rounded-xl border border-border bg-card hover:border-primary/50 hover:bg-muted/30 transition-all cursor-pointer shadow-xs hover:shadow-sm"
+          >
+            <div className="h-8 flex items-center justify-center">
+              <TwotoneIcon
+                name={name as any}
+                size={iconSize}
+                color={colorMap[selectedColor]}
+                secondaryColor={colorMap[selectedColor]}
+              />
+            </div>
+            <span className="text-[10px] font-medium text-muted-foreground group-hover:text-foreground truncate max-w-full leading-tight text-center">
+              {copiedName === name ? (
+                <span className="text-emerald-500 font-bold">✓ copied</span>
+              ) : (
+                name
+              )}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Real, officially licensed Hugeicons free-tier artwork
+// (@hugeicons/core-free-icons) — its name→icon map is loaded via a dynamic
+// import() rather than a static one at the top of this file, so its ~130
+// SVG modules only ever download for someone who actually opens this tab,
+// not for every SuperAdmin page load. Coverage is intentionally partial
+// (verified real matches only, not guessed) — a name with no entry here is
+// what Icon.tsx itself falls back to Stroke for platform-wide.
+function HugeiconsIconGrid() {
+  const [selectedColor, setSelectedColor] = useState<'teal' | 'green' | 'gold' | 'purple' | 'red' | 'ink'>('teal');
+  const [iconSize, setIconSize] = useState(24);
+  const [copiedName, setCopiedName] = useState<string | null>(null);
+  const [map, setMap] = useState<Record<string, IconSvgElement> | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    import('../components/hugeicons-map.js').then((m) => { if (alive) setMap(m.HUGEICONS_MAP as Record<string, IconSvgElement>); });
+    return () => { alive = false; };
+  }, []);
+
+  const colorMap = {
+    teal: 'var(--teal)', green: 'var(--green, #10b981)', gold: 'var(--gold, #f59e0b)',
+    purple: 'var(--purple, #8b5cf6)', red: 'var(--red, #ef4444)', ink: 'var(--ink)',
+  };
+
+  const handleCopy = (name: string) => {
+    const code = `<Icon name="${name}" size={${iconSize}} />`;
+    navigator.clipboard?.writeText(code);
+    setCopiedName(name);
+    setTimeout(() => setCopiedName(null), 1200);
+  };
+
+  if (!map) {
+    return <div className="p-6 text-center text-xs text-muted-foreground">Loading Hugeicons artwork…</div>;
+  }
+
+  const names = Object.keys(map);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-4 flex-wrap p-3 rounded-xl bg-muted/40 border border-border">
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Color:</span>
+          <div className="flex items-center gap-1.5">
+            {(['teal', 'green', 'gold', 'purple', 'red', 'ink'] as const).map((c) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setSelectedColor(c)}
+                className={`w-5 h-5 rounded-full border-2 transition-transform ${
+                  selectedColor === c ? 'scale-110 ring-2 ring-primary ring-offset-2' : 'hover:scale-105'
+                }`}
+                style={{ backgroundColor: colorMap[c], borderColor: 'transparent' }}
+                title={c}
+              />
+            ))}
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Size:</span>
+          <div className="flex items-center gap-1 bg-background border border-border rounded-lg p-0.5">
+            {[18, 22, 26, 32].map((sz) => (
+              <button
+                key={sz}
+                type="button"
+                onClick={() => setIconSize(sz)}
+                className={`px-2 py-0.5 text-xs font-medium rounded-md transition-colors ${
+                  iconSize === sz ? 'bg-primary text-primary-foreground font-semibold' : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {sz}px
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
+        {names.map((name) => (
+          <div
+            key={name}
+            onClick={() => handleCopy(name)}
+            className="group relative flex flex-col items-center justify-center gap-1.5 p-2.5 rounded-xl border border-border bg-card hover:border-primary/50 hover:bg-muted/30 transition-all cursor-pointer shadow-xs hover:shadow-sm"
+          >
+            <div className="h-8 flex items-center justify-center">
+              <HugeiconsIcon icon={map[name]} size={iconSize} color={colorMap[selectedColor]} />
+            </div>
+            <span className="text-[10px] font-medium text-muted-foreground group-hover:text-foreground truncate max-w-full leading-tight text-center">
+              {copiedName === name ? (
+                <span className="text-emerald-500 font-bold">✓ copied</span>
+              ) : (
+                name
+              )}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const ICON_TAB_META: Record<IconLibraryId, { label: string; count: number | null }> = {
+  stroke: { label: 'Stroke Icons', count: STROKE_ICON_NAMES.length },
+  twotone: { label: 'Twotone Rounded', count: TWOTONE_ICON_NAMES.length },
+  hugeicons: { label: 'Hugeicons', count: null }, // resolved async once the tab is opened — see HugeiconsIconGrid
+};
+
+function IconSystemSection() {
+  const { tokens, updateTokens } = useDesignSystem();
+  // Browsing tab starts on whichever library is actually live for this
+  // tenant — the same as opening any other design-system section on its
+  // current value — but clicking around to look at another one doesn't by
+  // itself change anything; that's what the "Use platform-wide" button
+  // below is for.
+  const [tab, setTab] = useState<IconLibraryId>(tokens.iconLibrary);
+  const isActiveLibrary = tab === tokens.iconLibrary;
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="ds-section-header-block">
+        <h3 className="ds-section-heading">Icon System</h3>
+        <p className="ds-section-sub">
+          Hudumika ships three icon libraries, switchable platform-wide.
+          <strong> Stroke</strong> — the platform's own crisp 24×24 outline set (covers every icon name, the default).
+          <strong> Twotone Rounded</strong> — a hand-authored Hugeicons-inspired dual-layer style.
+          <strong> Hugeicons</strong> — real, officially licensed Hugeicons free-tier artwork.
+          Browse a library below, then use <strong>Use platform-wide</strong> to make it what every &lt;Icon&gt; in the app actually renders — a name the chosen library doesn't cover quietly falls back to Stroke rather than going blank.
+        </p>
+      </div>
+
+      {/* Library picker tabs */}
+      <div className="flex items-center gap-1 p-1 rounded-xl bg-muted/40 border border-border w-fit">
+        {ICON_LIBRARY_IDS.map(id => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setTab(id)}
+            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+              tab === id
+                ? 'bg-card shadow-sm text-foreground border border-border'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            {id === 'twotone'
+              ? <TwotoneIcon name="sparkle" size={14} color="var(--teal)" secondaryColor="var(--teal)" />
+              : <Icon name="sparkle" size={14} />}
+            {ICON_TAB_META[id].label}
+            {ICON_TAB_META[id].count !== null && (
+              <span className="ml-1 px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-primary/10 text-primary">
+                {ICON_TAB_META[id].count}
+              </span>
+            )}
+            {tokens.iconLibrary === id && (
+              <span className="ml-1 px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-emerald-500/15 text-emerald-600">live</span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* Description + platform-wide apply */}
+      <div className="flex items-center justify-between gap-4 flex-wrap p-4 rounded-xl bg-muted/40 border border-border">
+        <p className="text-xs text-muted-foreground m-0">{ICON_LIBRARY_DESCRIPTIONS[tab]}</p>
+        {isActiveLibrary ? (
+          <span className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600">
+            <Icon name="checkCircle" size={13} /> Currently active platform-wide
+          </span>
+        ) : (
+          <button
+            type="button"
+            onClick={() => updateTokens({ iconLibrary: tab })}
+            className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
+          >
+            Use {ICON_TAB_META[tab].label} platform-wide
+          </button>
+        )}
+      </div>
+
+      {/* Usage snippet */}
+      <div className="p-4 rounded-xl bg-muted/40 border border-border font-mono text-xs text-muted-foreground space-y-1.5">
+        {tab === 'stroke' && (
+          <>
+            <div><span className="text-primary">import</span> {'{ Icon }'} <span className="text-primary">from</span> <span className="text-emerald-500">'../components/Icon'</span>;</div>
+            <div className="text-foreground">{'<Icon name="shield" size={20} />'}</div>
+          </>
+        )}
+        {tab === 'twotone' && (
+          <>
+            <div><span className="text-primary">import</span> {'{ TwotoneIcon }'} <span className="text-primary">from</span> <span className="text-emerald-500">'../components/ui/twotone-icon'</span>;</div>
+            <div className="text-foreground">{'<TwotoneIcon name="shield" size={24} color="var(--teal)" secondaryColor="var(--teal)" />'}</div>
+          </>
+        )}
+        {tab === 'hugeicons' && (
+          <>
+            <div className="text-muted-foreground">// Same &lt;Icon&gt; call as Stroke — Hugeicons renders once it's the active platform-wide library above.</div>
+            <div><span className="text-primary">import</span> {'{ Icon }'} <span className="text-primary">from</span> <span className="text-emerald-500">'../components/Icon'</span>;</div>
+            <div className="text-foreground">{'<Icon name="shield" size={20} />'}</div>
+          </>
+        )}
+      </div>
+
+      {/* Icon grid */}
+      {tab === 'stroke' && <StrokeIconGrid />}
+      {tab === 'twotone' && <TwotoneIconGrid />}
+      {tab === 'hugeicons' && <HugeiconsIconGrid />}
+    </div>
+  );
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+
 export function DesignSystemView() {
   const { tokens, updateTokens, resetToDefaults, designSystemVersion, updateDesignSystemVersion } = useDesignSystem();
   const [v2ColorDraft, setV2ColorDraft] = useState(designSystemVersion.v2Color);
@@ -203,6 +604,11 @@ export function DesignSystemView() {
   const [seed, setSeed] = useState(tokens.brand.primary);
   const [saveErrors, setSaveErrors] = useState<Record<string, string | undefined>>({});
   const [savedFlash, setSavedFlash] = useState<string | null>(null);
+
+  // Search & Mobile Drawer States
+  const [railSearch, setRailSearch] = useState('');
+  const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   // Motion test trigger state
   const [motionTrigger, setMotionTrigger] = useState(0);
@@ -351,6 +757,80 @@ export function DesignSystemView() {
 
   const currentSectionMeta = SECTIONS.find(s => s.id === activeSection);
 
+  // Built once and mounted in two places — the permanent desktop sidebar
+  // and the mobile "Browse sections" drawer (same Dialog pattern already
+  // used for the live-preview FAB below) — so both stay in lock-step with
+  // zero duplicated markup.
+  const isSearching = !!railSearch.trim();
+  const q = railSearch.toLowerCase().trim();
+  const sidebarNavContent = (
+    <>
+      <div className="ds-sidebar-search">
+        <Icon name="search" size={13} className="ds-sidebar-search-icon" />
+        <input
+          type="text"
+          className="ds-sidebar-search-input"
+          placeholder="Search sections…"
+          value={railSearch}
+          onChange={(e) => setRailSearch(e.target.value)}
+        />
+        {railSearch && (
+          <button type="button" className="ds-sidebar-search-clear" onClick={() => setRailSearch('')}>
+            <Icon name="x" size={11} />
+          </button>
+        )}
+      </div>
+
+      <nav className="ds-sidebar-nav">
+        {SECTION_GROUPS.map((g) => {
+          const items = SECTIONS.filter((s) => s.group === g.id
+            && (!isSearching || s.label.toLowerCase().includes(q) || s.desc.toLowerCase().includes(q)));
+          if (items.length === 0) return null;
+          return (
+            <div className="ds-sidebar-group" key={g.id}>
+              <div className="ds-sidebar-group-label">
+                <Icon name={g.icon} size={12} />
+                <span>{g.label}</span>
+              </div>
+              {items.map((s) => {
+                const isActive = activeSection === s.id;
+                const isSpecial = s.id === 'oscar' || s.id === 'animations' || s.id === 'components';
+                // '181' used to describe the one stroke set this badge
+                // meant before Icon System grew a real
+                // Stroke/Twotone/Hugeicons switcher with three different
+                // coverage counts — a single number here would be
+                // misleading now.
+                const badgeText = s.id === 'oscar' ? 'Oscar' : s.id === 'animations' ? 'New' : s.id === 'components' ? 'Radix' : s.id === 'icons' ? '3 sets' : null;
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    className={`ds-sidebar-item ${isActive ? 'active' : ''}`}
+                    onClick={() => { setActiveSection(s.id); setMobileNavOpen(false); }}
+                    title={s.desc}
+                  >
+                    <Icon name={s.icon} size={15} className="ds-sidebar-item-icon" />
+                    <span className="ds-sidebar-item-label">{s.label}</span>
+                    {badgeText && (
+                      <span className={`ds-sidebar-item-badge ${isSpecial ? 'special' : ''}`}>{badgeText}</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          );
+        })}
+
+        {isSearching && SECTIONS.every((s) => !(s.label.toLowerCase().includes(q) || s.desc.toLowerCase().includes(q))) && (
+          <span className="ds-sidebar-empty">
+            No section matches "{railSearch.trim()}" — try a different word, or{' '}
+            <button type="button" className="ds-sidebar-empty-clear" onClick={() => setRailSearch('')}>clear the search</button>.
+          </span>
+        )}
+      </nav>
+    </>
+  );
+
   return (
     <div className="ds-root">
       {/* Studio Header */}
@@ -379,96 +859,101 @@ export function DesignSystemView() {
         }
       />
 
-      {/* Main Studio Grid */}
-      <div className={`ds-layout${PANEL_ONLY_SECTIONS.has(activeSection) ? ' ds-layout--full' : ''}`}>
-        
-        {/* Navigation Rail */}
-        <aside className="ds-rail">
-          <div className="ds-rail-header">
-            <span className="ds-rail-title">STUDIO SECTIONS</span>
-            <span className="ds-rail-badge">{SECTIONS.length}</span>
-          </div>
+      {/* Global system switches — v1/v2 engine, platform theme preset,
+          icon library. Not navigation (that's the sidebar below), just the
+          studio's own cross-cutting controls, so it gets its own slim bar
+          rather than living in the section list. */}
+      <div className="ds-system-bar">
+        <div className="ds-top-switcher-pills">
+          <button
+            type="button"
+            className={`ds-top-pill ${designSystemVersion.version === 'v1' ? 'active' : ''}`}
+            onClick={() => setVersion('v1')}
+          >
+            v1 Standard
+          </button>
+          <button
+            type="button"
+            className={`ds-top-pill ${designSystemVersion.version === 'v2' ? 'active' : ''}`}
+            onClick={() => setVersion('v2')}
+          >
+            v2 Mellon
+          </button>
+        </div>
 
-          <div className="ds-rail-group">
-            <div className="ds-rail-group-label">Theming Engine</div>
-            {SECTIONS.filter(s => s.group === 'theming').map(s => {
-              const isActive = activeSection === s.id;
-              return (
-                <button
-                  key={s.id}
-                  type="button"
-                  className={`ds-rail-item${isActive ? ' ds-rail-item--active' : ''}`}
-                  onClick={() => setActiveSection(s.id)}
-                >
-                  <div className="ds-rail-icon-wrap">
-                    <Icon name={s.icon} size={15} />
-                  </div>
-                  <div className="ds-rail-text">
-                    <span className="ds-rail-label">{s.label}</span>
-                  </div>
-                  {isActive && <span className="ds-rail-active-dot" />}
-                </button>
-              );
-            })}
-          </div>
+        <div className="ds-top-switcher-divider" />
 
-          <div className="ds-rail-group">
-            <div className="ds-rail-group-label">Layout &amp; Shell</div>
-            {SECTIONS.filter(s => s.group === 'layout').map(s => {
-              const isActive = activeSection === s.id;
-              return (
-                <button
-                  key={s.id}
-                  type="button"
-                  className={`ds-rail-item${isActive ? ' ds-rail-item--active' : ''}`}
-                  onClick={() => setActiveSection(s.id)}
-                >
-                  <div className="ds-rail-icon-wrap">
-                    <Icon name={s.icon} size={15} />
-                  </div>
-                  <div className="ds-rail-text">
-                    <span className="ds-rail-label">{s.label}</span>
-                  </div>
-                  {isActive && <span className="ds-rail-active-dot" />}
-                </button>
-              );
-            })}
-          </div>
+        <Select
+          value={activeTheme || 'custom'}
+          onValueChange={(val) => {
+            if (val !== 'custom') applyPlatformTheme(val);
+          }}
+        >
+          <SelectTrigger className="w-full sm:w-[160px] h-[34px] sm:h-[30px] text-xs font-semibold bg-background">
+            <SelectValue placeholder="Custom Palette" />
+          </SelectTrigger>
+          <SelectContent>
+            {PLATFORM_THEMES.map((t) => (
+              <SelectItem key={t.id} value={t.id} className="text-xs">
+                <div className="flex items-center gap-2">
+                  <span
+                    className="w-3 h-3 rounded-full border border-border inline-block flex-shrink-0"
+                    style={{ backgroundColor: t.tokens.brand?.primary }}
+                  />
+                  <span>{t.name}</span>
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-          <div className="ds-rail-group">
-            <div className="ds-rail-group-label">Platform &amp; Brand</div>
-            {SECTIONS.filter(s => s.group === 'platform').map(s => {
-              const isActive = activeSection === s.id;
-              return (
-                <button
-                  key={s.id}
-                  type="button"
-                  className={`ds-rail-item${isActive ? ' ds-rail-item--active' : ''}`}
-                  onClick={() => setActiveSection(s.id)}
-                >
-                  <div className="ds-rail-icon-wrap">
-                    <Icon name={s.icon} size={15} />
-                  </div>
-                  <div className="ds-rail-text">
-                    <span className="ds-rail-label">{s.label}</span>
-                  </div>
-                  {isActive && <span className="ds-rail-active-dot" />}
-                </button>
-              );
-            })}
-          </div>
+        <div className="ds-top-switcher-divider" />
+
+        <div className="ds-top-switcher-pills">
+          {(['stroke', 'twotone', 'hugeicons'] as const).map((lib) => (
+            <button
+              key={lib}
+              type="button"
+              className={`ds-top-pill ${tokens.iconLibrary === lib ? 'active' : ''}`}
+              onClick={() => updateTokens({ iconLibrary: lib })}
+            >
+              {lib === 'stroke' ? 'Stroke' : lib === 'twotone' ? 'Twotone' : 'Hugeicons'}
+            </button>
+          ))}
+        </div>
+
+        {/* Opens the same nav below in a drawer — the permanent sidebar is
+            hidden below the mobile breakpoint. */}
+        <button type="button" className="ds-mobile-nav-trigger" onClick={() => setMobileNavOpen(true)}>
+          <Icon name="menu" size={14} />
+          <span>Browse sections</span>
+        </button>
+      </div>
+
+      {/* Studio Shell: permanent sidebar + content */}
+      <div className="ds-studio-shell">
+        <aside className="ds-sidebar">
+          {sidebarNavContent}
         </aside>
 
-        {/* Configuration Panel */}
-        <main className="ds-panel">
+        <div className="ds-main-column">
+          {/* Main Studio Full-Bleed Grid */}
+          <div className={`ds-layout ds-layout-fullbleed ${PANEL_ONLY_SECTIONS.has(activeSection) ? 'ds-layout--full' : ''}`}>
+
+
+            {/* Configuration Panel */}
+            <main className="ds-panel">
           
           {/* Active Section Banner */}
           {currentSectionMeta && (
             <div className="ds-section-hero">
-              <div className="ds-hero-icon-box">
+              <FeaturedIcon variant="brand" size="lg" shape="square" className="ds-hero-icon-box">
                 <Icon name={currentSectionMeta.icon} size={20} />
-              </div>
+              </FeaturedIcon>
               <div className="ds-hero-text">
+                <span className="ds-hero-eyebrow">
+                  {SECTION_GROUPS.find((g) => g.id === currentSectionMeta.group)?.label ?? currentSectionMeta.group}
+                </span>
                 <h2 className="ds-hero-title">{currentSectionMeta.label}</h2>
                 <p className="ds-hero-desc">{currentSectionMeta.desc}</p>
               </div>
@@ -1397,6 +1882,28 @@ export function DesignSystemView() {
             </section>
           )}
 
+          {activeSection === 'icons' && (
+            <section className="ds-platform-section">
+              <IconSystemSection />
+            </section>
+          )}
+
+          {activeSection === 'oscar' && (
+            <section className="ds-platform-section">
+              <React.Suspense fallback={<div className="p-8 text-center text-sm text-[var(--ink3)]">Loading Oscar Catalog...</div>}>
+                <OscarCatalog />
+              </React.Suspense>
+            </section>
+          )}
+
+          {activeSection === 'animations' && (
+            <section className="ds-platform-section">
+              <React.Suspense fallback={<div className="p-8 text-center text-sm text-[var(--ink3)]">Loading Animations Showcase...</div>}>
+                <AnimationsShowcase />
+              </React.Suspense>
+            </section>
+          )}
+
         </main>
 
         {/* 3. Studio Live Preview Pane (For theming & layout sections) */}
@@ -1503,6 +2010,95 @@ export function DesignSystemView() {
         )}
 
       </div>
+        </div>
+      </div>
+
+      {/* Mobile "Browse sections" drawer — same nav content as the
+          permanent sidebar, just reached through a Dialog instead of
+          always being on screen. */}
+      <Dialog open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
+        <DialogContent className="ds-mobile-nav-dialog">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base font-bold">
+              <Icon name="menu" size={18} />
+              <span>Browse sections</span>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="ds-sidebar ds-sidebar--in-dialog">
+            {sidebarNavContent}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Floating Action Button for Mobile Live Playground */}
+      <button
+        type="button"
+        className="ds-mobile-preview-fab"
+        onClick={() => setMobilePreviewOpen(true)}
+        title="Open Live Component Playground"
+      >
+        <Icon name="sparkle" size={16} />
+        <span>Live Playground</span>
+      </button>
+
+      {/* Mobile Live Playground Drawer Dialog */}
+      <Dialog open={mobilePreviewOpen} onOpenChange={setMobilePreviewOpen}>
+        <DialogContent className="ds-mobile-preview-dialog">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base font-bold">
+              <Icon name="sparkle" size={18} className="text-teal-600" />
+              <span>Studio Live Playground</span>
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="ds-preview-body p-2 space-y-4 max-h-[70vh] overflow-y-auto">
+            {/* Buttons Playground */}
+            <div className="ds-playground-block">
+              <span className="ds-playground-label">BUTTON PRIMITIVES</span>
+              <div className="ds-preview-row">
+                <button type="button" className="btn btn-primary">Primary</button>
+                <button type="button" className="btn btn-secondary">Secondary</button>
+                <button type="button" className="btn btn-ghost">Ghost</button>
+                <button type="button" className="btn btn-danger">Danger</button>
+              </div>
+            </div>
+
+            {/* Status Badges */}
+            <div className="ds-playground-block">
+              <span className="ds-playground-label">SEMANTIC BADGES</span>
+              <div className="ds-preview-row flex-wrap">
+                <span className="badge badge-teal">Teal Brand</span>
+                <span className="badge badge-gold">Warning</span>
+                <span className="badge badge-red">Danger</span>
+                <span className="badge badge-green">Success</span>
+                <span className="badge badge-blue">Info</span>
+                <span className="badge badge-purple">Accent</span>
+              </div>
+            </div>
+
+            {/* Live Specimen Dashboard Card */}
+            <div className="card ds-preview-card">
+              <div className="ds-preview-card-header">
+                <div className="ds-preview-card-title-group">
+                  <span className="ds-preview-card-badge">LIVE METRICS</span>
+                  <h4 className="ds-preview-card-title">Customs Operational Hub</h4>
+                </div>
+                <span className="status-pill spl-green">Synced</span>
+              </div>
+              <p className="ds-preview-card-body text-xs">
+                Real-time component demonstration reacting live to active brand primary, neutral tonal scales, corner radius, and elevation tokens.
+              </p>
+              <div className="ds-preview-card-footer">
+                <div className="ds-preview-nav-item">
+                  <Icon name="sparkle" size={13} />
+                  <span>Active Workspace</span>
+                </div>
+                <span className="ds-preview-card-stat">99.8% Compliance</span>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

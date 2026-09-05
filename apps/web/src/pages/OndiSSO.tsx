@@ -1,5 +1,6 @@
 // ─── OndiSSO.tsx — Perfected Ondi SSO, Benchmark, Flow & Feature Map ──
 import React, { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { apiFetch, BASE_URL } from '../lib/api.js';
 import { Icon, type IconName } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
@@ -494,7 +495,12 @@ export const OndiSSO: React.FC = () => {
   const [samlWizardInitialName, setSamlWizardInitialName] = useState('');
   const [showAddClient, setShowAddClient] = useState(false);
   const [activeTab, setActiveTab] = useState<'registry' | 'flow'>('registry');
-  const [subTab, setSubTab] = useState<'idps' | 'clients'>('idps');
+  // Ondi Personal ▸ Apps deep-links here with ?tab=clients when a non-admin
+  // page hands off to the real, admin-gated "register an application" flow
+  // rather than duplicating a client-secret-issuing form on a self-service
+  // page — read once on mount, not kept in sync with the URL after that.
+  const [searchParams] = useSearchParams();
+  const [subTab, setSubTab] = useState<'idps' | 'clients'>(searchParams.get('tab') === 'clients' ? 'clients' : 'idps');
 
   // undefined while /v1/entitlements is still loading — default to
   // entitled so the page doesn't flash an upgrade prompt before we know,
