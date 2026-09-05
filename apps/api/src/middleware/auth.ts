@@ -4,6 +4,7 @@ import { createHash } from 'crypto';
 import { dbPlatform } from '../db/client.js';
 import { isMeteredPath, checkUsageLimit } from '../lib/usage.js';
 import { verifyCsrf } from './csrf.js';
+import { getPlatformSecuritySettings, ipMatchesAllowlist } from '../lib/platform-settings.js';
 
 declare module '@fastify/jwt' {
   interface FastifyJWT {
@@ -37,6 +38,21 @@ declare module 'fastify' {
  * that produced the CUSTOMER-role allowlist in support.routes.ts, just at
  * the one shared chokepoint every route's preHandler already passes through.
  */
+/**
+ * A `typ: 'twofa_setup'` token (auth.routes.ts POST /login, issued when
+ * SuperAdmin ▸ Settings ▸ Security & Sessions' 2FA policy is "Required" and
+ * this account hasn't enrolled yet) is a real, verified identity — but it
+ * proved only a password, not a second factor, so it must not reach
+ * anything beyond finishing that enrollment. Same allowlist shape as
+ * ORG_ALLOWED_ROUTES, checked at the same chokepoint.
+ */
+const TWOFA_SETUP_ALLOWED_ROUTES: { method: string; url: string }[] = [
+  { method: 'POST', url: '/v1/security/2fa/setup' },
+  { method: 'POST', url: '/v1/security/2fa/verify' },
+  { method: 'POST', url: '/auth/logout' },
+  { method: 'POST', url: '/v1/auth/logout' },
+];
+
 const ORG_ALLOWED_ROUTES: { method: string; url: string }[] = [
   { method: 'GET', url: '/v1/org/workspaces' },
   { method: 'GET', url: '/v1/org/customers' },
@@ -85,6 +101,43 @@ async function enforceMaintenanceGate(request: FastifyRequest, reply: FastifyRep
   const settings = typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings;
   if (settings?.maintenance === true) {
     reply.status(503).send({ error: 'Hudumika is temporarily down for maintenance. Please check back shortly.', code: 'PLATFORM_MAINTENANCE' });
+    return true;
+  }
+  return false;
+}
+
+/** Blocks the request with 403 if this tenant has been suspended
+ *  (tenants.active = false, set from SuperAdmin ▸ Companies). Login itself
+ *  already refuses a suspended tenant's staff (auth.routes.ts POST /login),
+ *  but that alone doesn't stop a token issued *before* suspension from
+ *  continuing to work for the rest of its lifetime — this is the actual
+ *  enforcement point, re-checked on every request the same way
+ *  enforceMaintenanceGate/enforceUsageGate below already are. */
+async function enforceTenantSuspension(request: FastifyRequest, reply: FastifyReply): Promise<boolean> {
+  // An 'ORG' token carries no tenant_id claim (see ORG_ALLOWED_ROUTES above) —
+  // nothing to look up, and not the kind of "tenant" this suspends anyway.
+  if (request.user.role === 'SUPER_ADMIN' || !request.user.tenant_id) return false;
+  const tenant = await dbPlatform.selectFrom('tenants').select('active')
+    .where('id', '=', request.user.tenant_id).executeTakeFirst();
+  if (tenant && tenant.active === false) {
+    reply.status(403).send({ error: "This organization's account has been suspended. Contact Hudumika support.", code: 'TENANT_SUSPENDED' });
+    return true;
+  }
+  return false;
+}
+
+/** Blocks the request with 403 if SuperAdmin ▸ Settings ▸ Security & Sessions
+ *  has an IP allowlist configured and this request's IP isn't on it. Empty
+ *  list = disabled, the untouched default. SUPER_ADMIN is exempt — an IP
+ *  allowlist is meant to protect tenant accounts, and a typo in this exact
+ *  field must never be able to lock the platform's own operators out of the
+ *  console that would fix it. */
+async function enforceIpAllowlist(request: FastifyRequest, reply: FastifyReply): Promise<boolean> {
+  if (request.user.role === 'SUPER_ADMIN') return false;
+  const { ipAllowlist } = await getPlatformSecuritySettings();
+  if (ipAllowlist.length === 0) return false;
+  if (!ipMatchesAllowlist(request.ip, ipAllowlist)) {
+    reply.status(403).send({ error: 'Access from this network is not permitted.', code: 'IP_NOT_ALLOWED' });
     return true;
   }
   return false;
@@ -161,6 +214,8 @@ export const authPlugin = fp(async (fastify: FastifyInstance) => {
       request.apiKeyScopes = row.scopes;
 
       dbPlatform.updateTable('api_keys').set({ last_used_at: new Date() }).where('id', '=', row.id).execute().catch(() => {});
+      if (await enforceTenantSuspension(request, reply)) return;
+      if (await enforceIpAllowlist(request, reply)) return;
       if (await enforceMaintenanceGate(request, reply)) return;
       if (await enforceUsageGate(request, reply)) return;
       return;
@@ -195,6 +250,16 @@ export const authPlugin = fp(async (fastify: FastifyInstance) => {
     // through, so no individual route file can forget it.
     if ((request.user as any).typ === 'guest') {
       return reply.status(401).send({ error: 'Unauthorized: guest sessions cannot be used for API requests' });
+    }
+
+    // See TWOFA_SETUP_ALLOWED_ROUTES above. Falls through to the gates below
+    // (tenant suspension, IP allowlist, maintenance) rather than returning
+    // early — same shape as the ORG check just below — since none of those
+    // should be bypassable just because 2FA enrollment isn't finished yet.
+    if ((request.user as any).typ === 'twofa_setup') {
+      const url = request.routeOptions?.url;
+      const allowed = TWOFA_SETUP_ALLOWED_ROUTES.some(r => r.method === request.method && r.url === url);
+      if (!allowed) return reply.status(401).send({ error: 'Unauthorized: finish setting up two-factor authentication first', code: 'TWOFA_SETUP_REQUIRED' });
     }
 
     // See ORG_ALLOWED_ROUTES above — an org token has no tenant_id claim and
@@ -232,7 +297,15 @@ export const authPlugin = fp(async (fastify: FastifyInstance) => {
         const settingsRow = await dbPlatform.selectFrom('tenant_settings').select('settings')
           .where('tenant_id', '=', request.user.tenant_id).executeTakeFirst();
         const settings = settingsRow ? (typeof settingsRow.settings === 'string' ? JSON.parse(settingsRow.settings) : settingsRow.settings) : null;
-        const timeoutMinutes = settings?.sessionPolicy?.timeoutMinutes;
+        // A tenant's own policy wins when set; otherwise fall back to
+        // SuperAdmin ▸ Settings ▸ Security & Sessions' platform-wide default
+        // (also previously saved and never read) — same "untouched default
+        // enforces nothing" rule if neither is configured.
+        let timeoutMinutes: number | undefined = settings?.sessionPolicy?.timeoutMinutes;
+        if (typeof timeoutMinutes !== 'number' || timeoutMinutes <= 0) {
+          const platformHours = (await getPlatformSecuritySettings()).sessionTimeoutHours;
+          timeoutMinutes = platformHours > 0 ? platformHours * 60 : undefined;
+        }
         if (typeof timeoutMinutes === 'number' && timeoutMinutes > 0) {
           const idleMs = Date.now() - new Date(device.last_used_at).getTime();
           if (idleMs > timeoutMinutes * 60 * 1000) {
@@ -242,6 +315,8 @@ export const authPlugin = fp(async (fastify: FastifyInstance) => {
       }
     }
 
+    if (await enforceTenantSuspension(request, reply)) return;
+    if (await enforceIpAllowlist(request, reply)) return;
     if (await enforceMaintenanceGate(request, reply)) return;
     await enforceUsageGate(request, reply);
   });

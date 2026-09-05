@@ -91,6 +91,7 @@ const APP_META: Record<AppId, { name: string; color: string }> = {
   seal:         { name: 'SEAL',         color: '#0f766e' },
   inventory:    { name: 'Inventory',    color: '#0f766e' },
   studio:       { name: 'Studio',       color: '#4361ee' },
+  ondi:         { name: 'Ondi',         color: '#0b1e3a' },
 };
 
 /** Top-level field names of an action's input schema, for the UI's form builder. */

@@ -16,8 +16,23 @@ import { sql, type Kysely, type Transaction } from 'kysely';
 import { withTenant, type Database } from '../db/client.js';
 import QRCode from 'qrcode';
 import { guardPlaceholders } from './placeholder-identifiers.js';
+import { encryptSecret, decryptSecret } from './onsite-secrets.service.js';
 
 type Db = Kysely<Database> | Transaction<Database>;
+
+/** cert_key/pfx_password/password were stored in tra_vfd_config as plain
+ *  text — a real TRA account password and the password protecting the PFX
+ *  private-key file, sitting in the clear in a table any DB-level access
+ *  (a backup, a replica, a compromised read-only credential) could read.
+ *  Encrypted the same way every other tenant-owned secret in this codebase
+ *  is (onsite-secrets.service.ts's AES-256-GCM). decryptTraSecret() falls
+ *  back to the raw value on a format mismatch so a row written before this
+ *  existed still works — it just isn't re-encrypted until the tenant's next
+ *  registration call writes it again. */
+function decryptTraSecret(value: string | null | undefined): string | null {
+  if (!value) return value ?? null;
+  try { return decryptSecret(value); } catch { return value; }
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -383,20 +398,25 @@ export const TRAService = {
           .where('tenant_id', '=', tenantId)
           .executeTakeFirst();
 
+        // Encrypted at rest — see decryptTraSecret's own comment above for why.
+        const encCertKey = encryptSecret(certKey);
+        const encPfxPassword = encryptSecret(pfxPassword);
+        const encPassword = regData.password ? encryptSecret(regData.password) : null;
+
         if (existing) {
           await trx.updateTable('tra_vfd_config').set({
             tin,
-            cert_key: certKey,
+            cert_key: encCertKey,
             cert_serial: certSerial,
             pfx_path: pfxPath,
-            pfx_password: pfxPassword,
+            pfx_password: encPfxPassword,
             reg_id: regData.regId ?? null,
             serial: regData.serial ?? null,
             uin: regData.uin ?? null,
             vrn: regData.vrn ?? null,
             receipt_code: regData.receiptCode ?? null,
             username: regData.username ?? null,
-            password: regData.password ?? null,
+            password: encPassword,
             token_path: regData.tokenPath ?? null,
             tax_office: regData.taxOffice ?? null,
             tax_code: regData.taxCode ?? 'A',
@@ -408,17 +428,17 @@ export const TRAService = {
           await trx.insertInto('tra_vfd_config').values({
             tenant_id: tenantId,
             tin,
-            cert_key: certKey,
+            cert_key: encCertKey,
             cert_serial: certSerial,
             pfx_path: pfxPath,
-            pfx_password: pfxPassword,
+            pfx_password: encPfxPassword,
             reg_id: regData.regId ?? null,
             serial: regData.serial ?? null,
             uin: regData.uin ?? null,
             vrn: regData.vrn ?? null,
             receipt_code: regData.receiptCode ?? null,
             username: regData.username ?? null,
-            password: regData.password ?? null,
+            password: encPassword,
             token_path: regData.tokenPath ?? null,
             tax_office: regData.taxOffice ?? null,
             tax_code: regData.taxCode ?? 'A',
@@ -452,6 +472,7 @@ export const TRAService = {
         .executeTakeFirst();
 
       if (!config) return { success: false, error: 'TRA VFD not configured' };
+      config.password = decryptTraSecret(config.password);
       if (!config.username || !config.password) return { success: false, error: 'TRA credentials not set (register first)' };
 
       // Check if existing token is still valid (with 5-min buffer)
@@ -532,6 +553,8 @@ export const TRAService = {
         .executeTakeFirst();
 
       if (!config) return { success: false, error: 'TRA VFD not configured for this tenant' };
+      config.cert_key = decryptTraSecret(config.cert_key);
+      config.pfx_password = decryptTraSecret(config.pfx_password);
       if (!config.reg_id || !config.receipt_code) {
         return { success: false, error: 'TRA registration incomplete. Please complete VFD registration first.' };
       }
@@ -928,6 +951,8 @@ export const TRAService = {
         .executeTakeFirst();
 
       if (!config) return { success: false, error: 'TRA VFD not configured' };
+      config.cert_key = decryptTraSecret(config.cert_key);
+      config.pfx_password = decryptTraSecret(config.pfx_password);
       if (!config.reg_id) return { success: false, error: 'TRA registration incomplete' };
 
       // A Z report files a day's takings, so the same rule applies as for a
@@ -1067,7 +1092,11 @@ export const TRAService = {
     const config = await withTenant(tenantId, trx => trx
       .selectFrom('tra_vfd_config')
       .select([
-        'id', 'tenant_id', 'tin', 'cert_key', 'reg_id', 'serial', 'uin',
+        // cert_key deliberately excluded — it's a TRA-issued signing
+        // credential, exactly as sensitive as the password this comment
+        // already promised not to return, and used to be sent here in the
+        // clear despite that.
+        'id', 'tenant_id', 'tin', 'reg_id', 'serial', 'uin',
         'vrn', 'receipt_code', 'tax_office', 'tax_code', 'environment',
         'gc', 'dc', 'dc_date', 'last_zreport_date', 'registered_at',
         'token_expires_at', 'created_at', 'updated_at',

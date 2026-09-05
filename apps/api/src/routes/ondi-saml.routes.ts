@@ -58,6 +58,12 @@ samlify.setSchemaValidator({ validate: async () => 'SKIP' });
 // request this SP actually sent rather than trusted at face value. Same
 // "Redis, not Postgres — short TTL, no retention value" reasoning as
 // ondi-auth.routes.ts's own OTP/magic-link stores.
+// ioredis reconnects on its own retry strategy after a transient error —
+// this used to call .disconnect() (which cancels that strategy) and null
+// the reference on the very first error, so a momentary Redis blip left
+// every route below permanently 503ing until the process restarted, even
+// once Redis was healthy again. Keeping the instance and gating on
+// `.status` instead lets it recover on its own.
 let redisClient: Redis | null = null;
 try {
   redisClient = new Redis(env.REDIS_URL, {
@@ -65,13 +71,11 @@ try {
     connectTimeout: 1500,
     enableOfflineQueue: false,
   });
-  redisClient.on('error', () => {
-    try { redisClient?.disconnect(); } catch { /* already gone */ }
-    redisClient = null;
-  });
+  redisClient.on('error', () => { /* ioredis logs and retries internally; an unhandled listener would crash the process */ });
 } catch {
   redisClient = null;
 }
+function redisReady(client: Redis | null): client is Redis { return !!client && client.status === 'ready'; }
 
 const SAML_REQUEST_TTL_SECONDS = 10 * 60;
 const samlRequestKey = (id: string) => `ondi:saml:req:${id}`;
@@ -261,7 +265,7 @@ export async function ondiSamlRoutes(fastify: FastifyInstance) {
     if (inResponseTo) {
       // SP-initiated — the ID must be one this SP issued, for this same
       // provider, and is consumed on first use (replay protection).
-      if (!redisClient) {
+      if (!redisReady(redisClient)) {
         await recordAuthEvent(found.row.tenant_id, null, 'login_failed', { ip, userAgent, metadata: { via: 'saml', reason: 'request_cache_unavailable', providerId: found.row.id } });
         return reply.redirect(failUrl);
       }

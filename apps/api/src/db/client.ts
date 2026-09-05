@@ -3306,6 +3306,8 @@ export interface PackagesTable {
   annual_price: number;
   max_users: number;
   price_per_seat: number | null;      // USD/user/month — NULL only for the custom-pricing (enterprise) tier
+  extra_seat_price: number | null;     // USD/user/month for seats past extra_seat_threshold — NULL = no discount tier (flat price_per_seat for every seat)
+  extra_seat_threshold: number | null; // seat count the discounted extra_seat_price kicks in after — NULL = no discount tier
   monthly_item_limit: number | null;  // billable items/month across the whole platform — NULL = unlimited
   trade_wizard_monthly_searches: number | null;  // Trade Compliance Wizard runs/month — NULL = unlimited
   storage_limit_bytes: string | null; // BIGINT, comes back from pg as a string — NULL = unlimited (Cloud storage quota)
@@ -6769,12 +6771,15 @@ export interface PaymentMethodsTable {
   id: Generated<string>;
   tenant_id: string;
   created_by: string;
-  type: Generated<'card' | 'mobile_money' | 'bank'>;
+  type: Generated<'card' | 'mobile_money' | 'bank' | 'petti_wallet'>;
   label: string;
   brand: string | null;
   last4: string | null;
   exp_month: number | null;
   exp_year: number | null;
+  /** Set only when type = 'petti_wallet' — which of the tenant's own
+   *  petti_wallets this method draws from. See migration 391. */
+  petti_wallet_id: string | null;
   is_default: Generated<boolean>;
   created_at: Generated<Date>;
 }

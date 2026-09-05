@@ -33,9 +33,9 @@ registerSubscriber('user.joined', async (tenantId, event) => {
   const roleId = await getDefaultRoleId(tenantId);
   if (!roleId) return;
 
-  await withTenant(tenantId, async (trx) => {
+  const granted = await withTenant(tenantId, async (trx) => {
     const role = await trx.selectFrom('ondi_org_roles').select(['id', 'name']).where('id', '=', roleId).where('tenant_id', '=', tenantId).executeTakeFirst();
-    if (!role) return; // configured role was since deleted — nothing to grant
+    if (!role) return false; // configured role was since deleted — nothing to grant
 
     await trx.insertInto('ondi_org_role_members').values({
       tenant_id: tenantId, role_id: role.id, user_id: userId,
@@ -45,9 +45,13 @@ registerSubscriber('user.joined', async (tenantId, event) => {
       tenant_id: tenantId, rule: 'joiner_default_role', user_id: userId,
       summary: `Granted "${role.name}" as the default role for new joiners.`,
     }).execute();
+    return true;
   });
 
-  await recordAuthEvent(tenantId, userId, 'org_role_granted', { metadata: { via: 'automation', rule: 'joiner_default_role' } });
+  // Only claim a grant happened if one actually did — this call used to run
+  // unconditionally, so a since-deleted default role produced an
+  // 'org_role_granted' audit entry for a grant that never occurred.
+  if (granted) await recordAuthEvent(tenantId, userId, 'org_role_granted', { metadata: { via: 'automation', rule: 'joiner_default_role' } });
 });
 
 // Leaver: deactivating a user (from either hr.routes.ts's own status route

@@ -14,12 +14,23 @@ import { env } from '../config/env.js';
 import { encryptSecret, decryptSecret } from '../services/onsite-secrets.service.js';
 import { getPasswordPolicy } from '../lib/password-policy.js';
 import { SmsService } from '../services/sms.service.js';
+import { requireRole } from '../middleware/rbac.js';
+import { issueTokens } from '../services/token.service.js';
+import { setSessionCookies } from '../lib/cookies.js';
+import { recordLogin } from './auth.routes.js';
 
+// ioredis reconnects on its own retry strategy after a transient error —
+// this used to call .disconnect() (which cancels that strategy) and null
+// the reference on the very first error, so a momentary Redis blip left
+// every route below permanently 503ing until the process restarted, even
+// once Redis was healthy again. Keeping the instance and gating on
+// `.status` instead lets it recover on its own.
 let redisClient: Redis | null = null;
 try {
   redisClient = new Redis(env.REDIS_URL, { maxRetriesPerRequest: null, connectTimeout: 1500, enableOfflineQueue: false });
-  redisClient.on('error', () => { try { redisClient?.disconnect(); } catch { /* already gone */ } redisClient = null; });
+  redisClient.on('error', () => { /* ioredis logs and retries internally; an unhandled listener would crash the process */ });
 } catch { redisClient = null; }
+function redisReady(client: Redis | null): client is Redis { return !!client && client.status === 'ready'; }
 
 const passkeyRegChallengeKey = (userId: string) => `ondi:webauthn:reg:${userId}`;
 
@@ -84,10 +95,25 @@ export default async function securityRoutes(fastify: FastifyInstance) {
   // Generates (or regenerates) a pending secret and returns the otpauth:// URI
   // to render as a QR code — NOT yet enabled until /2fa/verify confirms the
   // user's authenticator app actually produces matching codes.
-  fastify.post('/2fa/setup', async (request, reply) => {
+  fastify.post<{ Body: { token?: string } }>('/2fa/setup', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (request, reply) => {
     const user = request.user;
-    const secret = generateTotpSecret();
+    const existing = await withTenant(user.tenant_id, trx => trx.selectFrom('user_totp').select(['secret', 'enabled'])
+      .where('user_id', '=', user.sub).executeTakeFirst());
 
+    // Regenerating an already-enabled factor is exactly as sensitive as
+    // disabling it — without proof of the current code, anyone who can make
+    // one authenticated request as the victim (a hijacked session, XSS) could
+    // silently swap in a secret only they know, then /2fa/verify to re-enable
+    // it under their own control with the victim never seeing a code prompt.
+    if (existing?.enabled) {
+      const token = (request.body?.token || '').trim();
+      if (!token || !verifyTotp(existing.secret, token)) {
+        reply.status(403);
+        return { error: 'Enter your current 2FA code to set up a new authenticator.' };
+      }
+    }
+
+    const secret = generateTotpSecret();
     await withTenant(user.tenant_id, trx => trx.insertInto('user_totp')
       .values({ tenant_id: user.tenant_id, user_id: user.sub, secret, enabled: false })
       .onConflict((oc) => oc.column('user_id').doUpdateSet({ secret, enabled: false, backup_codes: '[]', enabled_at: null }))
@@ -97,7 +123,7 @@ export default async function securityRoutes(fastify: FastifyInstance) {
     return { secret, uri: buildTotpUri(secret, user.email) };
   });
 
-  fastify.post<{ Body: { token: string } }>('/2fa/verify', async (request, reply) => {
+  fastify.post<{ Body: { token: string } }>('/2fa/verify', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (request, reply) => {
     const user = request.user;
     const row = await withTenant(user.tenant_id, trx => trx.selectFrom('user_totp').select(['secret', 'enabled'])
       .where('user_id', '=', user.sub).executeTakeFirst());
@@ -114,15 +140,35 @@ export default async function securityRoutes(fastify: FastifyInstance) {
     await withTenant(user.tenant_id, trx => trx.updateTable('user_totp')
       .set({ enabled: true, enabled_at: new Date(), backup_codes: JSON.stringify(backupCodes) })
       .where('user_id', '=', user.sub)
+      .where('tenant_id', '=', user.tenant_id)
       .execute());
 
     reply.status(200);
     // Backup codes are only ever returned this once — same convention as an
     // API key's secret value (see api-keys.routes.ts POST /), never re-shown.
-    return { enabled: true, backup_codes: backupCodes };
+    const result: Record<string, unknown> = { enabled: true, backup_codes: backupCodes };
+
+    // Mandatory-2FA enrollment (auth.routes.ts POST /login's twofa_setup
+    // branch) got here on a narrow, session-less setup token — completing
+    // enrollment is exactly the proof a real session should now begin,
+    // rather than making the user log in a second time right after they
+    // just finished what login demanded of them.
+    if ((user as any).typ === 'twofa_setup') {
+      const ip = request.ip;
+      const userAgent = String(request.headers['user-agent'] || '');
+      const deviceId = await recordLogin(user.tenant_id, user.sub, 'SUCCESS', ip, userAgent);
+      const tokens = issueTokens(fastify, {
+        sub: user.sub, tenant_id: user.tenant_id, role: user.role, email: user.email, name: user.name,
+        ...(deviceId ? { device_id: deviceId } : {}),
+      } as any);
+      setSessionCookies(reply, tokens);
+      Object.assign(result, tokens);
+    }
+
+    return result;
   });
 
-  fastify.post<{ Body: { token: string } }>('/2fa/disable', async (request, reply) => {
+  fastify.post<{ Body: { token: string } }>('/2fa/disable', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (request, reply) => {
     const user = request.user;
     const row = await withTenant(user.tenant_id, trx => trx.selectFrom('user_totp').select('secret')
       .where('user_id', '=', user.sub).where('enabled', '=', true).executeTakeFirst());
@@ -134,7 +180,7 @@ export default async function securityRoutes(fastify: FastifyInstance) {
       reply.status(400);
       return { error: 'Incorrect code' };
     }
-    await withTenant(user.tenant_id, trx => trx.deleteFrom('user_totp').where('user_id', '=', user.sub).execute());
+    await withTenant(user.tenant_id, trx => trx.deleteFrom('user_totp').where('user_id', '=', user.sub).where('tenant_id', '=', user.tenant_id).execute());
     reply.status(200);
     return { enabled: false };
   });
@@ -250,7 +296,7 @@ export default async function securityRoutes(fastify: FastifyInstance) {
       reply.status(400);
       return { error: 'Enter a valid phone number, including country code.' };
     }
-    if (!redisClient) {
+    if (!redisReady(redisClient)) {
       reply.status(503);
       return { error: 'Phone verification is temporarily unavailable. Try again shortly.' };
     }
@@ -281,7 +327,7 @@ export default async function securityRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     const user = request.user;
     const code = (request.body?.code || '').trim();
-    if (!redisClient) {
+    if (!redisReady(redisClient)) {
       reply.status(503);
       return { error: 'Phone verification is temporarily unavailable. Try again shortly.' };
     }
@@ -313,9 +359,9 @@ export default async function securityRoutes(fastify: FastifyInstance) {
     await redisClient.del(phoneOtpPendingKey(user.sub));
 
     await withTenant(user.tenant_id, async (trx) => {
-      const row = await trx.selectFrom('users').select('verification_level').where('id', '=', user.sub).executeTakeFirstOrThrow();
+      const row = await trx.selectFrom('users').select('verification_level').where('id', '=', user.sub).where('tenant_id', '=', user.tenant_id).executeTakeFirstOrThrow();
       const nextLevel = VERIFICATION_RANK[row.verification_level] < VERIFICATION_RANK.phone_verified ? 'phone_verified' : row.verification_level;
-      await trx.updateTable('users').set({ phone, verification_level: nextLevel as any }).where('id', '=', user.sub).execute();
+      await trx.updateTable('users').set({ phone, verification_level: nextLevel as any }).where('id', '=', user.sub).where('tenant_id', '=', user.tenant_id).execute();
     });
 
     await recordAuthEvent(user.tenant_id, user.sub, 'phone_verified', {
@@ -340,9 +386,9 @@ export default async function securityRoutes(fastify: FastifyInstance) {
       .execute());
   });
 
-  fastify.post('/passkeys/register/options', async (request, reply) => {
+  fastify.post('/passkeys/register/options', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (request, reply) => {
     const user = request.user;
-    if (!redisClient) { reply.status(503); return { error: 'Passkey setup is temporarily unavailable. Try again shortly.' }; }
+    if (!redisReady(redisClient)) { reply.status(503); return { error: 'Passkey setup is temporarily unavailable. Try again shortly.' }; }
 
     const existing = await withTenant(user.tenant_id, trx => trx.selectFrom('ondi_credentials')
       .select(['passkey_credential_id', 'passkey_transports'])
@@ -366,9 +412,9 @@ export default async function securityRoutes(fastify: FastifyInstance) {
     return options;
   });
 
-  fastify.post<{ Body: { response: any; label?: string } }>('/passkeys/register/verify', async (request, reply) => {
+  fastify.post<{ Body: { response: any; label?: string } }>('/passkeys/register/verify', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (request, reply) => {
     const user = request.user;
-    if (!redisClient) { reply.status(503); return { error: 'Passkey setup is temporarily unavailable. Try again shortly.' }; }
+    if (!redisReady(redisClient)) { reply.status(503); return { error: 'Passkey setup is temporarily unavailable. Try again shortly.' }; }
 
     const challenge = await redisClient.get(passkeyRegChallengeKey(user.sub));
     if (!challenge) { reply.status(400); return { error: 'This passkey setup expired. Start again.' }; }
@@ -414,7 +460,7 @@ export default async function securityRoutes(fastify: FastifyInstance) {
     if (!label) { reply.status(400); return { error: 'Label is required.' }; }
     return withTenant(user.tenant_id, async (trx) => {
       const updated = await trx.updateTable('ondi_credentials').set({ label })
-        .where('id', '=', request.params.id).where('user_id', '=', user.sub)
+        .where('id', '=', request.params.id).where('user_id', '=', user.sub).where('tenant_id', '=', user.tenant_id)
         .returning('id').executeTakeFirst();
       if (!updated) { reply.status(404); return { error: 'Passkey not found' }; }
       return { success: true };
@@ -425,7 +471,7 @@ export default async function securityRoutes(fastify: FastifyInstance) {
     const user = request.user;
     return withTenant(user.tenant_id, async (trx) => {
       const deleted = await trx.deleteFrom('ondi_credentials')
-        .where('id', '=', request.params.id).where('user_id', '=', user.sub)
+        .where('id', '=', request.params.id).where('user_id', '=', user.sub).where('tenant_id', '=', user.tenant_id)
         .returning('id').executeTakeFirst();
       if (!deleted) { reply.status(404); return { error: 'Passkey not found' }; }
       await recordAuthEvent(user.tenant_id, user.sub, 'passkey_removed', { metadata: { passkey_id: request.params.id } });
@@ -504,7 +550,10 @@ export default async function securityRoutes(fastify: FastifyInstance) {
 
   // Proves this tenant's Ondi audit log hasn't been tampered with — walks
   // the SHA-256 hash chain from the oldest entry and recomputes every hash.
-  fastify.get('/audit/verify-chain', async (request) => {
+  // Matches ondi.routes.ts's /org/activity gate — a tenant-wide audit
+  // integrity check is an admin concern, not something any authenticated
+  // member should be able to query.
+  fastify.get('/audit/verify-chain', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (request) => {
     const user = request.user;
     return verifyAuditChain(user.tenant_id);
   });
@@ -723,7 +772,7 @@ export default async function securityRoutes(fastify: FastifyInstance) {
       if (body.secret !== undefined) patch.secret_cipher = encryptSecret(body.secret);
 
       const updated = await trx.updateTable('ondi_wallet_items').set(patch)
-        .where('id', '=', request.params.id)
+        .where('id', '=', request.params.id).where('tenant_id', '=', user.tenant_id)
         .returning(['id', 'label', 'username', 'url', 'created_at', 'updated_at']).executeTakeFirst();
       if (!updated) { reply.status(404); return { error: 'Not found' }; }
       await recordAuthEvent(user.tenant_id, user.sub, 'wallet_item_updated', { metadata: { item_id: updated.id, label: updated.label } });
@@ -767,7 +816,7 @@ export default async function securityRoutes(fastify: FastifyInstance) {
 
       const share = existing
         ? await trx.updateTable('ondi_wallet_shares').set({ permission: body.permission })
-            .where('id', '=', existing.id).returning(['id', 'permission']).executeTakeFirstOrThrow()
+            .where('id', '=', existing.id).where('tenant_id', '=', user.tenant_id).returning(['id', 'permission']).executeTakeFirstOrThrow()
         : await trx.insertInto('ondi_wallet_shares').values({
             tenant_id: user.tenant_id, item_id: item.id, owner_id: user.sub,
             grantee_user_id: body.grantee_user_id, permission: body.permission,
@@ -791,7 +840,7 @@ export default async function securityRoutes(fastify: FastifyInstance) {
       if (!item) { reply.status(404); return { error: 'Not found' }; }
 
       const revoked = await trx.updateTable('ondi_wallet_shares').set({ revoked_at: new Date() })
-        .where('id', '=', request.params.shareId).where('item_id', '=', item.id).where('revoked_at', 'is', null)
+        .where('id', '=', request.params.shareId).where('item_id', '=', item.id).where('tenant_id', '=', user.tenant_id).where('revoked_at', 'is', null)
         .returning(['id', 'grantee_user_id']).executeTakeFirst();
       if (!revoked) { reply.status(404); return { error: 'Not found' }; }
 
@@ -806,7 +855,7 @@ export default async function securityRoutes(fastify: FastifyInstance) {
     const user = request.user;
     return withTenant(user.tenant_id, async (trx) => {
       const deleted = await trx.deleteFrom('ondi_wallet_items')
-        .where('id', '=', request.params.id).where('user_id', '=', user.sub)
+        .where('id', '=', request.params.id).where('user_id', '=', user.sub).where('tenant_id', '=', user.tenant_id)
         .returning(['id', 'label']).executeTakeFirst();
       if (!deleted) { reply.status(404); return { error: 'Not found' }; }
       await recordAuthEvent(user.tenant_id, user.sub, 'wallet_item_deleted', { metadata: { item_id: deleted.id, label: deleted.label } });
@@ -888,7 +937,7 @@ export default async function securityRoutes(fastify: FastifyInstance) {
 
       const updated = await trx.updateTable('ondi_recovery_contacts')
         .set({ status: body.accept ? 'accepted' : 'declined', responded_at: new Date() })
-        .where('id', '=', row.id).returning(['id', 'status']).executeTakeFirstOrThrow();
+        .where('id', '=', row.id).where('tenant_id', '=', user.tenant_id).returning(['id', 'status']).executeTakeFirstOrThrow();
 
       await recordAuthEvent(user.tenant_id, user.sub, 'recovery_contact_responded', { metadata: { relationship_id: row.id, accepted: body.accept } });
       return updated;
@@ -901,6 +950,7 @@ export default async function securityRoutes(fastify: FastifyInstance) {
     return withTenant(user.tenant_id, async (trx) => {
       const deleted = await trx.deleteFrom('ondi_recovery_contacts')
         .where('id', '=', request.params.id)
+        .where('tenant_id', '=', user.tenant_id)
         .where(eb => eb.or([eb('user_id', '=', user.sub), eb('contact_user_id', '=', user.sub)]))
         .returning('id').executeTakeFirst();
       if (!deleted) { reply.status(404); return { error: 'Not found' }; }
@@ -946,7 +996,7 @@ export default async function securityRoutes(fastify: FastifyInstance) {
       const cooldownEndsAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
       const updated = await trx.updateTable('ondi_recovery_requests')
         .set({ status: 'approved', responded_at: new Date(), cooldown_ends_at: cooldownEndsAt })
-        .where('id', '=', row.id).returning(['id', 'status', 'cooldown_ends_at']).executeTakeFirstOrThrow();
+        .where('id', '=', row.id).where('tenant_id', '=', user.tenant_id).returning(['id', 'status', 'cooldown_ends_at']).executeTakeFirstOrThrow();
 
       await recordAuthEvent(user.tenant_id, user.sub, 'recovery_request_approved', { metadata: { request_id: row.id, for_user_id: row.user_id } });
       return updated;
@@ -967,7 +1017,7 @@ export default async function securityRoutes(fastify: FastifyInstance) {
 
       const updated = await trx.updateTable('ondi_recovery_requests')
         .set({ status: 'declined', responded_at: new Date() })
-        .where('id', '=', row.id).returning(['id', 'status']).executeTakeFirstOrThrow();
+        .where('id', '=', row.id).where('tenant_id', '=', user.tenant_id).returning(['id', 'status']).executeTakeFirstOrThrow();
 
       await recordAuthEvent(user.tenant_id, user.sub, 'recovery_request_declined', { metadata: { request_id: row.id, for_user_id: row.user_id } });
       return updated;

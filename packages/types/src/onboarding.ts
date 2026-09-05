@@ -10,6 +10,8 @@ export interface Package {
   annual_price: number;
   max_users: number;
   price_per_seat: number | null;      // USD/user/month — null only for custom-pricing tiers
+  extra_seat_price: number | null;     // USD/user/month for seats past extra_seat_threshold — null = no discount tier
+  extra_seat_threshold: number | null; // seat count the discounted extra_seat_price kicks in after — null = no discount tier
   monthly_item_limit: number | null;  // billable items/month platform-wide — null = unlimited
   storage_limit_bytes: number | null; // Cloud storage quota — null = unlimited
   features: string[];

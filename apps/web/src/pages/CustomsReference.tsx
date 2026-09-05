@@ -9,6 +9,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { showAlert } from '../lib/alert.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { PaginationBar } from '../components/PaginationBar.js';
+import { Spinner } from '../components/ui/spinner.js';
 
 // ── Customs Reference — ICD directory, TASAC agents, EAC excise, port/agency tariff ──
 // Real gazette data imported from the public EAC customs suite
@@ -313,8 +314,7 @@ export const CustomsReference: React.FC = () => {
             </Select>
           </>
         )}
-        {loading && <div style={{ width: 16, height: 16, border: '2px solid var(--border)', borderTopColor: 'var(--teal)', borderRadius: '50%', animation: 'spin .7s linear infinite' }} />}
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        {loading && <Spinner size={16} />}
       </div>
 
       {/* Table card */}

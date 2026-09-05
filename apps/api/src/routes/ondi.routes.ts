@@ -12,9 +12,10 @@ import { recordAuthEvent } from '../lib/audit-chain.js';
 import { requireRoleOrOrgPermission, hasOrgPermission, ORG_PERMISSIONS } from '../lib/org-rbac.js';
 import { computeOrgTrust } from '../lib/trust-score.js';
 import { DEFAULT_PASSWORD_POLICY } from '../lib/password-policy.js';
+import { hashPassword } from '../lib/password.js';
 import { webauthnOrigin } from '../lib/webauthn-config.js';
 import { computeComplianceRollup } from '../lib/compliance-rollup.js';
-import { emitDomainEvent } from '../services/domain-events.service.js';
+import { emitDomainEvent, emitDomainEventStandalone } from '../services/domain-events.service.js';
 
 // Ondi feature-gap pass (M5) — same escaping convention hr.routes.ts's own
 // timesheet export already uses; kept local rather than newly shared, same
@@ -317,15 +318,25 @@ export async function ondiRoutes(fastify: FastifyInstance) {
   });
 
   // ── Outbound SSO Clients (Ondi M6) ───────────────────────────
+  // ondi_oauth_clients is platform-global — one registry for every tenant on
+  // the platform, no tenant_id column (see its own migration comment) — the
+  // same shape as platform_signing_identities, which is SUPER_ADMIN-only.
+  // This CRUD used to be gated with the tenant-level SSO_PROVIDERS_MANAGE
+  // permission (ADMIN/TENANT_ADMIN), which is correct for the *inbound*
+  // sso_providers table above (genuinely tenant-scoped) but let any tenant's
+  // admin read every other tenant's registered clients (name, redirect_uris,
+  // client_secret_hash), edit their redirect_uris/secret, or delete
+  // Hudumika's own seeded first-party clients (hudumika-clearos, etc.),
+  // breaking SSO for every tenant on the platform.
 
-  fastify.get('/oauth-clients', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.SSO_PROVIDERS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async () => {
+  fastify.get('/oauth-clients', { preHandler: requireRole('SUPER_ADMIN') }, async () => {
     return dbPlatform.selectFrom('ondi_oauth_clients')
       .selectAll()
       .orderBy('created_at', 'desc')
       .execute();
   });
 
-  fastify.post('/oauth-clients', { preHandler: [requireRoleOrOrgPermission(ORG_PERMISSIONS.SSO_PROVIDERS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'), requireEntitlement('ondi.governance')] }, async (req) => {
+  fastify.post('/oauth-clients', { preHandler: [requireRole('SUPER_ADMIN'), requireEntitlement('ondi.governance')] }, async (req) => {
     const body = z.object({
       client_id: z.string().trim().min(3).max(80),
       name: z.string().trim().min(1).max(100),
@@ -335,9 +346,14 @@ export async function ondiRoutes(fastify: FastifyInstance) {
       client_secret: z.string().trim().max(100).optional().nullable(),
     }).parse(req.body);
 
-    const clientSecretHash = body.client_secret ? crypto.createHash('sha256').update(body.client_secret).digest('hex') : null;
+    // A bare sha256 hex digest here used to be unverifiable: /token's
+    // verifyPassword() expects the `iterations:salt:hash` format and falls
+    // through to a raw `password === storedHash` comparison otherwise,
+    // which a hash can never equal the plaintext secret it was derived
+    // from — every confidential client's token exchange failed permanently.
+    const clientSecretHash = body.client_secret ? hashPassword(body.client_secret) : null;
 
-    return dbPlatform.insertInto('ondi_oauth_clients').values({
+    const created = await dbPlatform.insertInto('ondi_oauth_clients').values({
       client_id: body.client_id,
       client_secret_hash: clientSecretHash,
       name: body.name,
@@ -345,9 +361,24 @@ export async function ondiRoutes(fastify: FastifyInstance) {
       logo_url: body.logo_url || null,
       first_party: body.first_party,
     }).returningAll().executeTakeFirstOrThrow();
+
+    // ondi_oauth_clients is platform-global (no tenant_id — see its own
+    // migration comment), so there's no open tenant transaction to hook
+    // this into; emitDomainEventStandalone opens its own. Attributed to the
+    // *registering admin's* tenant, not the client itself (which has none) —
+    // "an admin in my org registered a new OAuth client" is a real,
+    // tenant-scoped fact Studio can react to even though the client row
+    // it's about is shared platform-wide.
+    emitDomainEventStandalone(req.user.tenant_id, {
+      type: 'ondi.oauth_client_registered', sourceApp: 'ondi', entityType: 'oauth_client', entityId: created.id,
+      payload: { clientId: created.client_id, name: created.name, firstParty: created.first_party },
+      actorId: req.user.sub,
+    }).catch(err => console.error('[Ondi] oauth_client_registered emit failed:', err?.message));
+
+    return created;
   });
 
-  fastify.patch('/oauth-clients/:id', { preHandler: [requireRoleOrOrgPermission(ORG_PERMISSIONS.SSO_PROVIDERS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'), requireEntitlement('ondi.governance')] }, async (req) => {
+  fastify.patch('/oauth-clients/:id', { preHandler: [requireRole('SUPER_ADMIN'), requireEntitlement('ondi.governance')] }, async (req) => {
     const { id } = req.params as { id: string };
     const body = z.object({
       name: z.string().trim().min(1).max(100).optional(),
@@ -363,7 +394,7 @@ export async function ondiRoutes(fastify: FastifyInstance) {
     if (body.logo_url !== undefined) updates.logo_url = body.logo_url;
     if (body.first_party !== undefined) updates.first_party = body.first_party;
     if (body.client_secret !== undefined) {
-      updates.client_secret_hash = body.client_secret ? crypto.createHash('sha256').update(body.client_secret).digest('hex') : null;
+      updates.client_secret_hash = body.client_secret ? hashPassword(body.client_secret) : null;
     }
 
     return dbPlatform.updateTable('ondi_oauth_clients')
@@ -373,7 +404,7 @@ export async function ondiRoutes(fastify: FastifyInstance) {
       .executeTakeFirstOrThrow();
   });
 
-  fastify.delete('/oauth-clients/:id', { preHandler: [requireRoleOrOrgPermission(ORG_PERMISSIONS.SSO_PROVIDERS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'), requireEntitlement('ondi.governance')] }, async (req) => {
+  fastify.delete('/oauth-clients/:id', { preHandler: [requireRole('SUPER_ADMIN'), requireEntitlement('ondi.governance')] }, async (req) => {
     const { id } = req.params as { id: string };
     await dbPlatform.deleteFrom('ondi_oauth_clients').where('id', '=', id).execute();
     return { ok: true };
@@ -680,6 +711,11 @@ export async function ondiRoutes(fastify: FastifyInstance) {
     return withTenant(user.tenant_id, async (trx) => {
       const role = await trx.selectFrom('ondi_org_roles').select('id').where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!role) { reply.status(404); return { error: 'Role not found' }; }
+      // user_id is caller-supplied and otherwise unchecked — without this, an
+      // ADMIN could grant a role to any UUID in the system, including a user
+      // belonging to a different tenant entirely.
+      const target = await trx.selectFrom('users').select('id').where('id', '=', user_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!target) { reply.status(404); return { error: 'User not found in this organization.' }; }
       await trx.insertInto('ondi_org_role_members').values({
         tenant_id: user.tenant_id, role_id: id, user_id, granted_by: user.sub, expires_at: expiresAt,
       }).onConflict(oc => oc.columns(['role_id', 'user_id']).doUpdateSet({ expires_at: expiresAt, granted_by: user.sub })).execute();
@@ -861,12 +897,19 @@ export async function ondiRoutes(fastify: FastifyInstance) {
     const memberIds = await withTenant(user.tenant_id, async (trx) => {
       const group = await trx.selectFrom('ondi_org_groups').select('id').where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!group) return null;
+      // Same tenant-membership check as POST /org/roles/:id/members — user_id
+      // is caller-supplied and would otherwise let an ADMIN add any UUID in
+      // the system to a group (and, via syncGroupRoleGrants below, grant it
+      // every role attached to that group) regardless of tenant.
+      const target = await trx.selectFrom('users').select('id').where('id', '=', user_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!target) return 'not_member' as const;
       await trx.insertInto('ondi_org_group_members').values({ tenant_id: user.tenant_id, group_id: id, user_id, source: 'manual' })
         .onConflict(oc => oc.columns(['group_id', 'user_id']).doUpdateSet({ source: 'manual' })).execute();
       const rows = await trx.selectFrom('ondi_org_group_members').select('user_id').where('group_id', '=', id).execute();
       return rows.map(r => r.user_id);
     });
     if (memberIds === null) { reply.status(404); return { error: 'Not found' }; }
+    if (memberIds === 'not_member') { reply.status(404); return { error: 'User not found in this organization.' }; }
     await syncGroupRoleGrants(user.tenant_id, id, memberIds);
     await recordAuthEvent(user.tenant_id, user_id, 'org_group_member_added', { metadata: { group_id: id, added_by: user.sub } });
     return { success: true };
@@ -1212,6 +1255,7 @@ export async function ondiRoutes(fastify: FastifyInstance) {
       const campaigns = await trx.selectFrom('ondi_access_review_campaigns as c')
         .leftJoin('users as u', 'u.id', 'c.created_by')
         .select(['c.id', 'c.name', 'c.status', 'c.created_at', 'c.completed_at', 'u.name as created_by_name'])
+        .where('c.tenant_id', '=', user.tenant_id)
         .orderBy('c.created_at', 'desc')
         .execute();
       if (campaigns.length === 0) return [];
@@ -1219,6 +1263,7 @@ export async function ondiRoutes(fastify: FastifyInstance) {
       const ids = campaigns.map(c => c.id);
       const items = await trx.selectFrom('ondi_access_review_items')
         .select(['campaign_id', 'decision'])
+        .where('tenant_id', '=', user.tenant_id)
         .where('campaign_id', 'in', ids)
         .execute();
       const counts = new Map<string, { total: number; pending: number; approved: number; revoked: number }>();
@@ -1277,6 +1322,7 @@ export async function ondiRoutes(fastify: FastifyInstance) {
         .leftJoin('users as d', 'd.id', 'i.decided_by')
         .select(['i.id', 'i.role_id', 'i.role_name', 'i.decision', 'i.decided_at', 'i.created_at',
           'i.user_id', 'u.name as user_name', 'u.email as user_email', 'd.name as decided_by_name'])
+        .where('i.tenant_id', '=', user.tenant_id)
         .where('i.campaign_id', '=', campaign.id)
         .orderBy('u.name', 'asc')
         .execute();

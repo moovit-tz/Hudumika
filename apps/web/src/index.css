@@ -488,6 +488,18 @@ body {
 }
 @keyframes auth-spin { to { rotate: 1turn; } }
 
+/* Canonical loading ring (ui/spinner.tsx's Spinner/SectionLoading/PageLoading) —
+   replaces 17+ separate per-page `<style>{'@keyframes spin{...}'}</style>`
+   blocks that all did the same thing with a different local name. */
+@keyframes ds-spin { to { transform: rotate(360deg); } }
+.ds-spinner { animation: ds-spin 0.8s linear infinite; will-change: transform; }
+@media (prefers-reduced-motion: reduce) {
+  /* A spinner communicates real pending-state, not decoration, so it isn't
+     removed outright for reduced-motion — just slowed well past the point
+     of triggering vestibular discomfort while still reading as "busy". */
+  .ds-spinner, .auth-spinner { animation-duration: 2.5s; }
+}
+
 /* ── FILTER BAR ── */
 .filter-bar {
   display: flex;
@@ -2550,10 +2562,10 @@ select.input-field { cursor: pointer; }
 .ent-kpi-card.ent-kpi-selected { background: var(--bg); }
 
 /* Top accent stripe per category */
-.ent-kpi-ops     { border-top-color: var(--teal); }
-.ent-kpi-risk    { border-top-color: var(--red); }
-.ent-kpi-crm     { border-top-color: var(--purple); }
-.ent-kpi-finance { border-top-color: var(--gold); }
+.ent-kpi-ops     { border-top-color: var(--border); }
+.ent-kpi-risk    { border-top-color: var(--border); }
+.ent-kpi-crm     { border-top-color: var(--border); }
+.ent-kpi-finance { border-top-color: var(--border); }
 
 /* Top row: category label + icon */
 .ent-kpi-top {

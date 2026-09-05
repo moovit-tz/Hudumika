@@ -1,13 +1,22 @@
 // ─── OndiSSO.tsx — Perfected Ondi SSO, Benchmark, Flow & Feature Map ──
 import React, { useState, useEffect, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import { apiFetch, BASE_URL } from '../lib/api.js';
 import { Icon, type IconName } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { UpgradeNotice } from '../components/UpgradeNotice.js';
+import { FeaturedIcon } from '../components/ui/featured-icon.js';
+import { Badge } from '../components/ui/badge.js';
 import { useEntitlements } from '../hooks/useEntitlements.js';
+
+// The three real Studio triggers OAuth/SSO events emit (studio/triggers.ts) —
+// a Studio automation bound to one of these actually fires when this exact
+// page's own actions happen (register a client, grant/revoke consent).
+const OAUTH_TRIGGER_IDS = new Set([
+  'ondi.oauth_client_registered', 'ondi.oauth_consent_granted', 'ondi.oauth_consent_revoked',
+]);
 
 interface SsoProvider {
   id: string; provider_type: string; name: string; enabled: boolean;
@@ -524,6 +533,21 @@ export const OndiSSO: React.FC = () => {
     reloadClients();
   }, [reload, reloadClients]);
 
+  // Related automation & policy — real, tenant-scoped reads, not fabricated
+  // relationships: Studio automations are filtered to the 3 real Ondi/OAuth
+  // triggers (see studio/triggers.ts), and the policy readout is the same
+  // /v1/ondi/org/policies OndiPolicies.tsx itself edits.
+  const [relatedAutomations, setRelatedAutomations] = useState<any[] | null>(null);
+  const [sessionPolicy, setSessionPolicy] = useState<{ mfa_required: boolean } | null>(null);
+
+  useEffect(() => {
+    apiFetch('/v1/workflow-studio/apps').then((res: any) => {
+      const all: any[] = Array.isArray(res) ? res : (res?.data ?? []);
+      setRelatedAutomations(all.filter(a => OAUTH_TRIGGER_IDS.has(a.trigger_event)));
+    }).catch(() => setRelatedAutomations([]));
+    apiFetch('/v1/ondi/org/policies').then(setSessionPolicy).catch(() => setSessionPolicy(null));
+  }, []);
+
   async function toggleEnabled(p: SsoProvider) {
     const enabled = !p.enabled;
     setProviders(prev => prev.map(x => x.id === p.id ? { ...x, enabled } : x));
@@ -786,6 +810,64 @@ export const OndiSSO: React.FC = () => {
                 </table>
                 {!loadingClients && clients.length === 0 && (
                   <div style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No client applications configured yet.</div>
+                )}
+              </SectionCard>
+
+              {/* Related Automation — real Studio automations bound to the
+                  3 real OAuth/SSO triggers (client registered, consent
+                  granted/revoked), plus the org's real MFA policy. Nothing
+                  here is per-client-scoped (Studio automations react to the
+                  event type, not one specific client_id), so this reads as
+                  "automation and policy touching this page's own events",
+                  not a per-row relationship. */}
+              <SectionCard>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                  <FeaturedIcon variant="brand" size="sm" shape="square">
+                    <Icon name="gitBranch" size={15} />
+                  </FeaturedIcon>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>Related automation</div>
+                    <p style={{ fontSize: 12, color: 'var(--ink3)', margin: '2px 0 0' }}>Studio automations and org policy that react to OAuth client and consent events</p>
+                  </div>
+                </div>
+
+                {relatedAutomations === null ? (
+                  <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>Loading…</div>
+                ) : relatedAutomations.length === 0 ? (
+                  <div style={{ fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.55 }}>
+                    No Studio automation reacts to OAuth events yet. Client registration and consent grants/revocations on this page are real, available triggers —{' '}
+                    <Link to="/studio/new" style={{ color: 'var(--teal)', fontWeight: 700, textDecoration: 'none' }}>build one in Studio</Link>.
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {relatedAutomations.map((a) => (
+                      <Link
+                        key={a.id}
+                        to={`/studio/w/${a.id}`}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', textDecoration: 'none' }}
+                      >
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.name}</div>
+                          <div style={{ fontSize: 11, color: 'var(--ink3)' }}>
+                            {a.trigger_event === 'ondi.oauth_client_registered' ? 'Fires on client registration'
+                              : a.trigger_event === 'ondi.oauth_consent_granted' ? 'Fires on consent granted'
+                              : 'Fires on consent revoked'}
+                          </div>
+                        </div>
+                        <Badge variant={a.status === 'ACTIVE' ? 'success' : a.status === 'PAUSED' ? 'warning' : 'gray'}>{a.status}</Badge>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+
+                {sessionPolicy && (
+                  <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 12.5, color: 'var(--ink2)' }}>Org sign-in policy — MFA required for every user</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <Badge variant={sessionPolicy.mfa_required ? 'success' : 'gray'}>{sessionPolicy.mfa_required ? 'Required' : 'Optional'}</Badge>
+                      <Link to="/ondi/policies" style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none' }}>Manage →</Link>
+                    </div>
+                  </div>
                 )}
               </SectionCard>
             </>

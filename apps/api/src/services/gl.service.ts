@@ -88,6 +88,10 @@ const STANDARD_COA: { code: string; name: string; type: 'ASSET' | 'LIABILITY' | 
   { code: '5111', name: 'Depreciation Expense', type: 'EXPENSE', subtype: 'OPERATING_EXPENSE', normalBalance: 'DEBIT' },
   { code: '5101', name: 'Office Rent', type: 'EXPENSE', subtype: 'OPERATING_EXPENSE', normalBalance: 'DEBIT' },
   { code: '5102', name: 'Utilities', type: 'EXPENSE', subtype: 'OPERATING_EXPENSE', normalBalance: 'DEBIT' },
+  // Platform subscription/software fees (Hudumika's own invoice, when paid
+  // from a Petti wallet — billing.routes.ts). Backfilled to existing
+  // tenants by migration 391.
+  { code: '5103', name: 'Software & Subscription Fees', type: 'EXPENSE', subtype: 'OPERATING_EXPENSE', normalBalance: 'DEBIT' },
   { code: '5200', name: 'Bank Charges', type: 'EXPENSE', subtype: 'FINANCE_COST', normalBalance: 'DEBIT' },
   { code: '5201', name: 'Interest Expense', type: 'EXPENSE', subtype: 'FINANCE_COST', normalBalance: 'DEBIT' },
   // Period-end FX revaluation (M7) — one net line for both directions

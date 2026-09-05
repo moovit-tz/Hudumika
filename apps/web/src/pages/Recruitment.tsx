@@ -9,6 +9,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { Combobox, type ComboboxOption } from '../components/ui/combobox.js';
 import { DateTimePicker } from '../components/ui/date-picker.js';
 import { Button } from '../components/ui/button.js';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog.js';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '../components/ui/dropdown-menu.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
@@ -327,10 +328,36 @@ export function RecruitmentPage() {
     };
   }, [openings, candidates]);
 
+  // Moving a candidate to Hired now also invites them — see hr.routes.ts's
+  // PATCH /recruitment/candidates/:id, which creates a real hr_invitations
+  // row (and sends the invite email) on that exact transition instead of
+  // just flipping this column with nothing downstream ever hearing about
+  // it. That needs a role to invite them with, the same explicit choice
+  // Team ▸ Invite Staff already asks for — never auto-guessed from the job
+  // opening's free-text title.
+  const [hiring, setHiring] = useState<Candidate | null>(null);
+  const [hireRole, setHireRole] = useState('JUNIOR');
+  const [hiringBusy, setHiringBusy] = useState(false);
+
   async function setStage(c: Candidate, stage: string) {
+    if (stage === 'HIRED') { setHiring(c); setHireRole('JUNIOR'); return; }
     setCandidates(prev => prev.map(x => x.id === c.id ? { ...x, stage } : x));
     try { await apiFetch(`/v1/hr/recruitment/candidates/${c.id}`, { method: 'PATCH', body: JSON.stringify({ stage }) }); }
     catch (e: any) { showAlert(e?.message || 'Could not update stage.'); if (selId) loadCandidates(selId); }
+  }
+
+  async function confirmHire() {
+    if (!hiring) return;
+    setHiringBusy(true);
+    try {
+      await apiFetch(`/v1/hr/recruitment/candidates/${hiring.id}`, { method: 'PATCH', body: JSON.stringify({ stage: 'HIRED', role: hireRole }) });
+      setCandidates(prev => prev.map(x => x.id === hiring.id ? { ...x, stage: 'HIRED' } : x));
+      setHiring(null);
+    } catch (e: any) {
+      showAlert(e?.message || 'Could not mark this candidate hired.');
+    } finally {
+      setHiringBusy(false);
+    }
   }
 
   async function markInterview(interviewId: string, status: 'COMPLETED' | 'CANCELLED') {
@@ -573,6 +600,35 @@ export function RecruitmentPage() {
           </div>
         )}
       </SectionCard>
+
+      <Dialog open={!!hiring} onOpenChange={o => { if (!o) setHiring(null); }}>
+        <DialogContent className="sm:max-w-sm">
+          {hiring && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Hire {hiring.name}?</DialogTitle>
+              </DialogHeader>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '4px 0' }}>
+                <p style={{ fontSize: 13, color: 'var(--ink2)', margin: 0 }}>
+                  This sends a real staff invitation to <strong>{hiring.email}</strong>. Choose the role they'll join with.
+                </p>
+                <Select value={hireRole} onValueChange={setHireRole}>
+                  <SelectTrigger className="input-field" style={{ width: '100%' }}><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {['ADMIN', 'MANAGER', 'FINANCE', 'SALES', 'SENIOR', 'JUNIOR', 'TENANT_ADMIN', 'OFFICER'].map(r => (
+                      <SelectItem key={r} value={r}>{r}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setHiring(null)}>Cancel</Button>
+                <Button variant="default" disabled={hiringBusy} onClick={confirmHire}>{hiringBusy ? 'Inviting…' : 'Hire & invite'}</Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

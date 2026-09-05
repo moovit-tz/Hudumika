@@ -17,7 +17,6 @@ import { OndiSessions } from '../pages/OndiSessions.js';
 import { OndiLoginActivity } from '../pages/OndiLoginActivity.js';
 import { OndiKyc } from '../pages/OndiKyc.js';
 import { OndiRoles } from '../pages/OndiRoles.js';
-import { OndiGroups } from '../pages/OndiGroups.js';
 import { OndiPersonal } from '../pages/OndiPersonal.js';
 import { OndiSecuritySettings } from '../pages/OndiSecuritySettings.js';
 import { OndiVault } from '../pages/OndiVault.js';
@@ -193,7 +192,6 @@ export function OndiShell() {
   const hasPoliciesPermission = isAdmin || !!user?.org_permissions?.includes('policies.manage');
   const hasAssetsPermission = isAdmin || !!user?.org_permissions?.includes('assets.manage');
   const hasIntegrationsPermission = isAdmin || !!user?.org_permissions?.includes('integrations.manage');
-  const hasGroupsPermission = isAdmin || !!user?.org_permissions?.includes('groups.manage');
 
   // Business mode is this tenant's company-administration console (staff
   // directory, KYB/business verification, roles, KYC review, SSO...) — it
@@ -204,7 +202,7 @@ export function OndiShell() {
   // least one of the real admin/org-permission flags above.
   const canSeeBusinessMode = isAdmin || hasKycPermission || hasSsoPermission || hasAccessReviewsPermission
     || hasOrgTrustPermission || hasAutomationPermission || hasComplianceReviewPermission
-    || hasPoliciesPermission || hasAssetsPermission || hasIntegrationsPermission || hasGroupsPermission;
+    || hasPoliciesPermission || hasAssetsPermission || hasIntegrationsPermission;
 
   const businessNavItems: SidebarNavItem[] = [
     { label: 'Users',          icon: 'users' as const,    path: '/ondi', exact: true },
@@ -216,10 +214,6 @@ export function OndiShell() {
   }
 
   businessNavItems.push({ label: 'Roles & Access', icon: 'userCheck' as const, path: '/ondi/roles' });
-
-  if (hasGroupsPermission) {
-    businessNavItems.push({ label: 'Groups', icon: 'users' as const, path: '/ondi/groups' });
-  }
 
   if (hasAccessReviewsPermission) {
     businessNavItems.push({ label: 'Access Reviews', icon: 'clipboard' as const, path: '/ondi/access-reviews' });
@@ -317,7 +311,9 @@ export function OndiShell() {
                 <Route path="visitors" element={<Navigate to="/nexushr/visitors" replace />} />
                 <Route path="kyc" element={<RequireRoles roles={[...ADMIN_ROLES]} permissions={['kyc.review']}><OndiKyc /></RequireRoles>} />
                 <Route path="roles" element={<OndiRoles />} />
-                <Route path="groups" element={<RequireRoles roles={[...ADMIN_ROLES]} permissions={['groups.manage']}><OndiGroups /></RequireRoles>} />
+                {/* Moved to NexusHR — grouping staff (static or rule-based)
+                    is a people-management task, not an identity/access one. */}
+                <Route path="groups" element={<Navigate to="/nexushr/groups" replace />} />
                 <Route path="authorize" element={<OndiAuthorize />} />
                 <Route path="sso" element={<RequireRoles roles={[...ADMIN_ROLES]} permissions={['sso_providers.manage']}><OndiSSO /></RequireRoles>} />
                 <Route path="it-admin" element={<RequireRoles roles={[...ADMIN_ROLES]}><OndiItAdmin /></RequireRoles>} />

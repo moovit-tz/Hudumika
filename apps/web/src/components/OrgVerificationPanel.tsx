@@ -7,6 +7,7 @@ import { useCompany } from '../data/companyStore.js';
 import { FeaturedIcon } from './ui/featured-icon.js';
 import { Badge } from './ui/badge.js';
 import { CompanyAvatar } from './PersonAvatar.js';
+import { Spinner } from './ui/spinner.js';
 
 export function OrgVerificationPanel() {
   const co = useCompany();
@@ -125,7 +126,7 @@ export function OrgVerificationPanel() {
       <div style={{ padding: 24 }}>
         {kyb === null && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '24px 0', color: 'var(--ink3)', fontSize: 13 }}>
-            <div className="spinner" style={{ width: 20, height: 20, border: '2px solid var(--border)', borderTop: '2px solid var(--teal)', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+            <Spinner size={20} />
             <span>Retrieving KYB verification status…</span>
           </div>
         )}
@@ -315,7 +316,7 @@ export function OrgVerificationPanel() {
                   </label>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, padding: '12px 0' }}>
-                    <div className="spinner" style={{ width: 36, height: 36, border: '3px solid var(--border)', borderTop: '3px solid var(--teal)', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                    <Spinner size={36} thickness={3} />
                     <div>
                       <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)' }}>Extracting &amp; verifying registration details...</div>
                       <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 4 }}>Our OCR engine is reading document identifiers and company credentials.</div>

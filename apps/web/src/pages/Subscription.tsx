@@ -5,6 +5,7 @@ import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { apiFetch, apiDownload } from '../lib/api.js';
 import './Subscription.css';
+import { PageHeader } from '../components/PageHeader.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Switch } from '../components/ui/switch.js';
 import { Badge } from '../components/ui/badge.js';
@@ -15,66 +16,137 @@ import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import type { Addon } from '@hudumika/types';
 import { AreaSparkline } from '../components/MetricCard.js';
+import { refreshFxRates, convertAmount, formatAmount } from '../lib/currency.js';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type SubTab = 'company' | 'billing' | 'payments' | 'plans' | 'modules' | 'reports' | 'support';
-type PlanKey = 'starter' | 'growth' | 'scale' | 'enterprise';
+// Was a fixed 4-value union ('starter'|'growth'|'scale'|'enterprise') — that
+// ceiling is exactly why this page couldn't see anything a SuperAdmin added,
+// renamed, or retired in /admin/packages: any other code was silently
+// dropped by `if (pkg.code in next)` below. A package's code is real,
+// admin-defined data (packages.routes.ts), not a fixed set this page gets
+// to assume — so it's a plain string everywhere from here down.
+type PlanKey = string;
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-type PlanDisplay = { name: string; color: string; bg: string; pricePerSeat: number | null; itemLimit: number | null; badge?: string; features: string[] };
+type PlanDisplay = { name: string; color: string; bg: string; pricePerSeat: number | null; extraSeatPrice: number | null; extraSeatThreshold: number | null; itemLimit: number | null; storageLimitGb: number | null; tagline?: string; icon: IconName; badge?: string; features: string[] };
 
-// Fallback shown until /v1/packages resolves — mirrors the seeded values (migration 078) so there's no flash of wrong pricing.
-// Every tier gets every module now (see package_features) — tiers differ by $/seat/month and monthly item cap, not feature access.
-// All 4 tiers share the single brand accent (matches --teal) instead of a different hue each —
-// they're differentiated by icon (PLAN_ICONS) and the "Most Popular"/"Current Plan" badges instead.
-const PLAN_DEFAULTS: Record<PlanKey, PlanDisplay> = {
+/** Mirrors billing.routes.ts's computePlanAmount — the real per-period charge
+ *  for a seat count, discounted past extraSeatThreshold when a plan has one
+ *  set. Used only as the pre-invoice estimate; once a real invoice exists,
+ *  its server-computed amount is authoritative (see priceMonthlyTotalNum's
+ *  own comment on why that estimate is never allowed to override it). */
+function estimatePlanAmount(plan: PlanDisplay, seats: number): number | null {
+  if (plan.pricePerSeat === null) return null;
+  if (plan.extraSeatPrice != null && plan.extraSeatThreshold != null && seats > plan.extraSeatThreshold) {
+    return plan.extraSeatThreshold * plan.pricePerSeat + (seats - plan.extraSeatThreshold) * plan.extraSeatPrice;
+  }
+  return plan.pricePerSeat * seats;
+}
+
+// Curated tagline/icon for the packages seeded by migration 078 — cosmetic
+// polish for codes this page happens to already know about, never a gate on
+// which packages appear. Any other real code (renamed, added, or retired-and-
+// replaced in /admin/packages) still renders fully, just with a generic icon
+// and no tagline rather than fabricated copy.
+const PLAN_TAGLINES: Record<string, string> = {
+  starter: 'HuduStarter — For solo founders and small teams just getting started',
+  growth: 'HuduPlus — For growing teams scaling their operations',
+  scale: 'Legacy Plan — Scale',
+  enterprise: 'Hudu Advanced — Metered option shared per quotation',
+};
+const PLAN_ICONS: Record<string, IconName> = {
+  starter: 'zap', growth: 'trendingUp', scale: 'barChart', enterprise: 'crown',
+};
+
+// Shown only until /v1/packages resolves for the first time, so there's no
+// flash of an empty page — replaced wholesale (not merged) by the real
+// catalog once it loads. Mirrors migration 078's seeded values.
+const PLAN_DEFAULTS: Record<string, PlanDisplay> = {
   starter: {
-    name: 'HuduStarter', color: 'var(--teal)', bg: 'var(--teal-l)', pricePerSeat: 6, itemLimit: 100,
+    name: 'HuduStarter', color: 'var(--teal)', bg: 'var(--teal-l)', pricePerSeat: 6, extraSeatPrice: null, extraSeatThreshold: null, itemLimit: 100, storageLimitGb: 10, icon: 'zap',
     features: ['Every module included', '100 items / month', '10 GB storage', 'Basic shipment tracking', 'TANCIS integration', 'Email support', 'Local mobile money (M-Pesa, Tigo Pesa, Airtel Money)'],
   },
   growth: {
-    name: 'HuduPlus', color: 'var(--teal)', bg: 'var(--teal-l)', pricePerSeat: 18, itemLimit: 500, badge: 'Most Popular',
+    name: 'HuduPlus', color: 'var(--teal)', bg: 'var(--teal-l)', pricePerSeat: 18, extraSeatPrice: null, extraSeatThreshold: null, itemLimit: 500, storageLimitGb: 50, icon: 'trendingUp', badge: 'Most Popular',
     features: ['Every module included', '500 items / month', '50 GB storage', 'Advanced tracking & alerts', 'WhatsApp Bot', 'Priority 24h support'],
   },
-  scale: {
-    name: 'Scale (Legacy)', color: 'var(--teal)', bg: 'var(--teal-l)', pricePerSeat: 19, itemLimit: 1500,
-    features: ['Every module included', '1,500 items / month', '250 GB storage', 'Full API access', 'TANESW integration', 'Custom reports', 'Multi-branch support'],
-  },
   enterprise: {
-    name: 'Hudu Advanced', color: 'var(--teal)', bg: 'var(--teal-l)', pricePerSeat: null, itemLimit: null,
+    name: 'Hudu Advanced', color: 'var(--teal)', bg: 'var(--teal-l)', pricePerSeat: null, extraSeatPrice: null, extraSeatThreshold: null, itemLimit: null, storageLimitGb: null, icon: 'crown',
     features: ['Every module included', 'Unlimited items / month', 'Unlimited storage', 'Dedicated account manager', '24/7 phone & WhatsApp support', 'Custom integrations (core banking APIs)', 'White-label option', '99.99% SLA guarantee', 'Metered option shared per quotation'],
   },
 };
 
-const PLAN_BG: Record<string, string> = { starter: 'var(--teal-l)', growth: 'var(--teal-l)', scale: 'var(--teal-l)', enterprise: 'var(--teal-l)' };
-
-/** Fetches the canonical package catalog and shapes it to match this page's existing render code. */
-function usePlans(): Record<PlanKey, PlanDisplay> {
-  const [plans, setPlans] = useState<Record<PlanKey, PlanDisplay>>(PLAN_DEFAULTS);
+/** Fetches the canonical package catalog (same /v1/packages SuperAdmin's own
+ *  PackagesView reads) and shapes it to match this page's render code —
+ *  every real, active package the admin has configured, keyed by its own
+ *  code, nothing added or dropped. */
+function usePlans(): Record<string, PlanDisplay> {
+  const [plans, setPlans] = useState<Record<string, PlanDisplay>>(PLAN_DEFAULTS);
 
   useEffect(() => {
     apiFetch('/v1/packages').then(res => {
-      const next = { ...PLAN_DEFAULTS };
-      for (const pkg of res.data as Array<{ code: string; name: string; price_per_seat: number | null; monthly_item_limit: number | null; features: string[]; color: string; popular: boolean }>) {
-        if (pkg.code in next) {
-          next[pkg.code as PlanKey] = {
-            name: pkg.name,
-            color: pkg.color,
-            bg: PLAN_BG[pkg.code] ?? 'var(--teal-l)',
-            pricePerSeat: pkg.price_per_seat,
-            itemLimit: pkg.monthly_item_limit,
-            badge: pkg.popular ? 'Most Popular' : undefined,
-            features: pkg.features,
-          };
-        }
+      const next: Record<string, PlanDisplay> = {};
+      for (const pkg of res.data as Array<{ code: string; name: string; price_per_seat: number | null; extra_seat_price: number | null; extra_seat_threshold: number | null; monthly_item_limit: number | null; storage_limit_bytes: number | null; features: string[]; color: string; popular: boolean }>) {
+        next[pkg.code] = {
+          name: pkg.name,
+          color: pkg.color || 'var(--teal)',
+          bg: 'var(--teal-l)',
+          pricePerSeat: pkg.price_per_seat,
+          extraSeatPrice: pkg.extra_seat_price,
+          extraSeatThreshold: pkg.extra_seat_threshold,
+          itemLimit: pkg.monthly_item_limit,
+          storageLimitGb: pkg.storage_limit_bytes != null ? Math.round(pkg.storage_limit_bytes / 1073741824) : null,
+          tagline: PLAN_TAGLINES[pkg.code],
+          icon: PLAN_ICONS[pkg.code] ?? 'package',
+          badge: pkg.popular ? 'Most Popular' : undefined,
+          features: pkg.features,
+        };
       }
-      setPlans(next);
+      if (Object.keys(next).length > 0) setPlans(next);
     }).catch(() => { /* keep defaults on failure */ });
   }, []);
 
   return plans;
+}
+
+const UNKNOWN_PLAN: PlanDisplay = {
+  name: 'Unknown plan', color: 'var(--ink3)', bg: 'var(--bg)', pricePerSeat: null, extraSeatPrice: null, extraSeatThreshold: null, itemLimit: null, storageLimitGb: null, icon: 'package', features: [],
+};
+
+/** The tenant's own current plan by code, falling back to the first real
+ *  package if that exact code isn't in the live catalog for some reason
+ *  (never silently to a *different specific* plan's price — that plan's
+ *  own genuine "Custom pricing" state is closer to the truth than pretending
+ *  they're on whichever code happens to be first). */
+function planFor(plans: Record<string, PlanDisplay>, code: string): PlanDisplay {
+  return plans[code] ?? Object.values(plans)[0] ?? UNKNOWN_PLAN;
+}
+
+/** East African tenants think in shillings first — every headline USD price
+ *  on this page gets a real TZS-equivalent line under it, sourced from the
+ *  same live customs/fx-rates feed FinOps already uses (currency.ts). The
+ *  stored plan/invoice amounts stay USD (no billing-pipeline change); this
+ *  only affects what's displayed. Re-renders once live rates arrive so the
+ *  page doesn't stay pinned to the frozen fallback rate. */
+function useFxReady(): void {
+  const [, force] = useState(0);
+  useEffect(() => { refreshFxRates().then(() => force(v => v + 1)); }, []);
+}
+function tzsEquivalent(usd: number): string {
+  return formatAmount(convertAmount(usd, 'USD', 'TZS'), 'TZS');
+}
+
+/** Green below the limit, gold once a tenant is close enough to it that a
+ *  heads-up is actually useful, red once it's actually hit — never a silent
+ *  jump straight from "fine" to "blocked". */
+function usageBarColor(used: number, limit: number, base: string): string {
+  const pct = (used / limit) * 100;
+  if (pct >= 100) return 'var(--red)';
+  if (pct >= 80) return 'var(--gold)';
+  return base;
 }
 
 /** Active (non-suspended) user count for this tenant — drives the per-seat price estimate. */
@@ -238,11 +310,12 @@ function CompanyInfoTab({ tenant }: { tenant: any }) {
 
   const plans = usePlans();
   const currentPlan = tenant?.plan || 'starter';
-  const plan = plans[currentPlan as PlanKey] || plans.starter;
+  const plan = planFor(plans, currentPlan);
   const seats = useSeatCount();
   const entitlements = useEntitlements();
   const usage = entitlements?.usage;
-  const estMonthly = plan.pricePerSeat === null ? null : plan.pricePerSeat * seats;
+  const estMonthly = estimatePlanAmount(plan, seats);
+  useFxReady();
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 20 }}>
@@ -300,22 +373,30 @@ function CompanyInfoTab({ tenant }: { tenant: any }) {
               ['Price / seat', plan.pricePerSeat === null ? 'Custom' : `$${plan.pricePerSeat}/mo`],
               ['Active seats', String(seats)],
               ['Est. monthly bill', estMonthly === null ? 'Custom' : `$${estMonthly.toLocaleString()}`],
-              ['Storage', currentPlan === 'starter' ? '10 GB' : currentPlan === 'growth' ? '50 GB' : currentPlan === 'scale' ? '250 GB' : 'Unlimited'],
+              ['Storage', plan.storageLimitGb === null ? 'Unlimited' : `${plan.storageLimitGb} GB`],
             ].map(([k, v]) => (
               <div key={k} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, padding: '7px 0', borderBottom: '1px solid var(--border)' }}>
                 <span style={{ color: 'var(--ink3)' }}>{k}</span>
                 <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{v}</span>
               </div>
             ))}
+            {estMonthly !== null && (
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: -6, marginBottom: 8 }}>
+                <span style={{ fontSize: 11, color: 'var(--ink3)' }}>≈ {tzsEquivalent(estMonthly)}</span>
+              </div>
+            )}
             {usage && (
               <div style={{ marginTop: 12 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11.5, color: 'var(--ink3)', marginBottom: 5 }}>
                   <span>Items this month</span>
-                  <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{usage.used}{usage.limit !== null ? ` / ${usage.limit}` : ''}</span>
+                  <span style={{ fontWeight: 700, color: usage.limit !== null && usage.used / usage.limit >= 0.8 ? usageBarColor(usage.used, usage.limit, 'var(--ink)') : 'var(--ink)' }}>{usage.used}{usage.limit !== null ? ` / ${usage.limit}` : ''}</span>
                 </div>
+                {usage.limit !== null && usage.used / usage.limit >= 0.8 && usage.used < usage.limit && (
+                  <div style={{ fontSize: 10.5, color: 'var(--gold)', fontWeight: 600, marginBottom: 5 }}>Approaching this month's limit</div>
+                )}
                 {usage.limit !== null && (
                   <div style={{ height: 6, borderRadius: 4, background: 'var(--bg)', overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: `${Math.min(100, (usage.used / usage.limit) * 100)}%`, background: usage.used >= usage.limit ? 'var(--red)' : plan.color, borderRadius: 4 }} />
+                    <div style={{ height: '100%', width: `${Math.min(100, (usage.used / usage.limit) * 100)}%`, background: usageBarColor(usage.used, usage.limit, plan.color), borderRadius: 4 }} />
                   </div>
                 )}
               </div>
@@ -332,12 +413,10 @@ function CompanyInfoTab({ tenant }: { tenant: any }) {
 function BillingTab({ tenant, onNavigateTab }: { tenant: any; onNavigateTab: (t: SubTab) => void }) {
   const plans = usePlans();
   const currentPlan = tenant?.plan || 'starter';
-  const plan = plans[currentPlan as PlanKey] || plans.starter;
+  const plan = planFor(plans, currentPlan);
   const seats = useSeatCount();
   const isCustomPricing = plan.pricePerSeat === null;
-  const monthlyTotal = isCustomPricing ? null : (plan.pricePerSeat as number) * seats;
   const priceLabel = isCustomPricing ? 'Custom' : `$${plan.pricePerSeat}/user`;
-  const priceMonthlyTotal = isCustomPricing ? 'Custom' : `$${monthlyTotal!.toLocaleString()}`;
 
   const { invoices, reload: reloadInvoices } = useInvoices();
   const { methods } = usePaymentMethods();
@@ -345,6 +424,18 @@ function BillingTab({ tenant, onNavigateTab }: { tenant: any; onNavigateTab: (t:
   // Invoices come back newest-period-first per the API contract, so [0] is the current period.
   const current = invoices?.[0] ?? null;
   const [paying, setPaying] = useState<string | null>(null);
+
+  // The real, server-computed total for the current period (plan + active
+  // add-ons — see billing.routes.ts's /invoices/generate) is what's actually
+  // owed. A client-recomputed `pricePerSeat * seats` used to stand in for
+  // this even once a real invoice existed, silently excluding add-ons —
+  // e.g. a tenant with $9 of add-ons active saw "$36/mo" as the headline
+  // figure here while the adjacent Billing Summary card's real "Amount Due"
+  // correctly read $45. Only fall back to the estimate before any invoice
+  // has ever been generated for this tenant.
+  const priceMonthlyTotalNum = isCustomPricing ? null : current ? Number(current.amount) : estimatePlanAmount(plan, seats);
+  const priceMonthlyTotal = priceMonthlyTotalNum === null ? 'Custom' : `$${priceMonthlyTotalNum.toLocaleString()}`;
+  useFxReady();
 
   function fmtAmount(inv: any) { return `${inv.currency} ${Number(inv.amount).toFixed(2)}`; }
   function planNameFor(code: string) { return plans[code as PlanKey]?.name ?? code; }
@@ -405,6 +496,7 @@ function BillingTab({ tenant, onNavigateTab }: { tenant: any; onNavigateTab: (t:
               </div>
               <div style={{ textAlign: 'right' }}>
                 <div style={{ fontSize: 22, fontWeight: 800, color: plan.color }}>{priceMonthlyTotal}</div>
+                {priceMonthlyTotalNum !== null && <div style={{ fontSize: 12, color: 'var(--ink3)', fontWeight: 600 }}>≈ {tzsEquivalent(priceMonthlyTotalNum)}</div>}
                 <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>per month</div>
                 {Number(current?.addons_amount ?? 0) > 0 && (
                   <div style={{ fontSize: 11, color: 'var(--teal)', fontWeight: 600, marginTop: 2 }}>
@@ -505,23 +597,42 @@ function BillingTab({ tenant, onNavigateTab }: { tenant: any; onNavigateTab: (t:
 
 // ─── Tab: Payments ────────────────────────────────────────────────────────────
 
-const METHOD_TYPES: { value: 'card' | 'mobile_money'; label: string }[] = [
-  { value: 'card', label: 'Card' },
-  { value: 'mobile_money', label: 'Mobile Money' },
+// Mobile money leads — it's the rail most tenants in this market actually
+// pay with — followed by the Petti wallet (itself funded by mobile money
+// deposits), with card last since it's the least commonly held option here.
+const METHOD_TYPES: { value: 'card' | 'mobile_money' | 'petti_wallet'; label: string; sub: string; icon: IconName }[] = [
+  { value: 'mobile_money', label: 'Mobile Money', sub: 'M-Pesa, Tigo Pesa, Airtel Money', icon: 'smartphone' },
+  { value: 'petti_wallet', label: 'Petti Wallet', sub: 'Pay from a wallet topped up by mobile money', icon: 'wallet' },
+  { value: 'card', label: 'Card', sub: 'Visa, Mastercard', icon: 'creditCard' },
 ];
+
+const MOBILE_MONEY_PROVIDERS = ['M-Pesa', 'Tigo Pesa', 'Airtel Money', 'HaloPesa', 'Other'];
+
+/** The tenant's own Petti wallets — for the "pay from wallet" payment
+ *  method. Empty (not an error) if Petti isn't entitled for this tenant;
+ *  the option just has nothing to offer, same as add-ons with none configured. */
+function useWallets() {
+  const [wallets, setWallets] = useState<Array<{ id: string; name: string; currency: string; balance: number; status: string }> | null>(null);
+  useEffect(() => {
+    apiFetch('/v1/petti/wallets').then(res => setWallets(res.data ?? [])).catch(() => setWallets([]));
+  }, []);
+  return wallets;
+}
 
 function PaymentsTab({ onNavigateTab }: { tenant?: any; onNavigateTab: (t: SubTab) => void }) {
   const { user } = useAuth();
   const { methods, reload: reloadMethods } = usePaymentMethods();
   const { invoices, reload: reloadInvoices } = useInvoices();
+  const wallets = useWallets();
 
   const [showAddForm, setShowAddForm] = useState(false);
-  const [methodType, setMethodType] = useState<'card' | 'mobile_money'>('card');
+  const [methodType, setMethodType] = useState<'card' | 'mobile_money' | 'petti_wallet'>('mobile_money');
   const [cardNumber, setCardNumber] = useState('');
   const [cardExpiry, setCardExpiry] = useState('');
   const [cardCvc, setCardCvc] = useState('');
   const [phone, setPhone] = useState('');
   const [provider, setProvider] = useState('');
+  const [walletId, setWalletId] = useState('');
   const [methodLabel, setMethodLabel] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -529,6 +640,14 @@ function PaymentsTab({ onNavigateTab }: { tenant?: any; onNavigateTab: (t: SubTa
 
   const upcoming = invoices?.find((inv: any) => inv.status === 'due' || inv.status === 'overdue') ?? null;
   const paidInvoices = (invoices ?? []).filter((inv: any) => !!inv.tx_ref);
+  useFxReady();
+
+  // The wallet-top-up nudge — the default method IS a Petti wallet but its
+  // real balance (billing.routes.ts enriches this on every GET) can't cover
+  // what's about to come due, so the fix is one tap to Petti, not a failed
+  // charge discovered after the fact.
+  const defaultMethodForNudge = methods?.find((m: any) => m.is_default) ?? null;
+  const walletLow = !!(upcoming && defaultMethodForNudge?.type === 'petti_wallet' && Number(defaultMethodForNudge.wallet_balance ?? 0) < Number(upcoming.amount));
 
   function methodLabelFor(id: string | null) {
     if (!id) return '—';
@@ -537,16 +656,22 @@ function PaymentsTab({ onNavigateTab }: { tenant?: any; onNavigateTab: (t: SubTa
   }
 
   function resetForm() {
-    setCardNumber(''); setCardExpiry(''); setCardCvc(''); setPhone(''); setProvider(''); setMethodLabel(''); setFormError(null);
+    setCardNumber(''); setCardExpiry(''); setCardCvc(''); setPhone(''); setProvider(''); setWalletId(''); setMethodLabel(''); setFormError(null);
   }
 
   async function submitAdd() {
     setFormError(null);
+    if (methodType === 'petti_wallet' && !walletId) {
+      setFormError('Choose which wallet this payment method draws from.');
+      return;
+    }
     setSaving(true);
     try {
       const body: Record<string, string> = methodType === 'card'
         ? { type: 'card', card_number: cardNumber, card_expiry: cardExpiry, card_cvc: cardCvc, ...(methodLabel ? { label: methodLabel } : {}) }
-        : { type: 'mobile_money', phone, ...(provider ? { provider } : {}), ...(methodLabel ? { label: methodLabel } : {}) };
+        : methodType === 'mobile_money'
+        ? { type: 'mobile_money', phone, ...(provider ? { provider } : {}), ...(methodLabel ? { label: methodLabel } : {}) }
+        : { type: 'petti_wallet', petti_wallet_id: walletId, ...(methodLabel ? { label: methodLabel } : {}) };
       await apiFetch('/v1/billing/payment-methods', { method: 'POST', body: JSON.stringify(body) });
       await reloadMethods();
       setShowAddForm(false);
@@ -610,14 +735,18 @@ function PaymentsTab({ onNavigateTab }: { tenant?: any; onNavigateTab: (t: SubTa
             {methods?.map((m) => (
               <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 0', borderBottom: '1px solid var(--border)' }}>
                 <div style={{ width: 52, height: 36, borderRadius: 6, background: m.is_default ? 'var(--navy2)' : 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Icon name={m.type === 'mobile_money' ? 'smartphone' : 'creditCard'} size={18} strokeWidth={1.75} style={{ color: m.is_default ? '#fff' : 'var(--ink3)' } as React.CSSProperties} />
+                  <Icon name={m.type === 'petti_wallet' ? 'wallet' : m.type === 'mobile_money' ? 'smartphone' : 'creditCard'} size={18} strokeWidth={1.75} style={{ color: m.is_default ? '#fff' : 'var(--ink3)' } as React.CSSProperties} />
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>
                     {m.label || m.brand}{m.last4 ? ` •••• ${m.last4}` : ''}
                     {m.is_default && <span style={{ marginLeft: 8, padding: '1px 7px', borderRadius: 9, background: 'var(--green-l)', color: 'var(--green)', fontSize: 10, fontWeight: 700 }}>Default</span>}
                   </div>
-                  <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>{m.exp_month && m.exp_year ? `Expires ${String(m.exp_month).padStart(2, '0')}/${m.exp_year}` : (m.type === 'mobile_money' ? 'Mobile money' : '')}</div>
+                  <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>
+                    {m.type === 'petti_wallet'
+                      ? (m.wallet_status === 'missing' ? 'Wallet no longer exists' : m.wallet_status === 'closed' ? 'Wallet closed' : `Balance: ${m.wallet_currency} ${Number(m.wallet_balance ?? 0).toLocaleString()}`)
+                      : m.exp_month && m.exp_year ? `Expires ${String(m.exp_month).padStart(2, '0')}/${m.exp_year}` : (m.type === 'mobile_money' ? 'Mobile money' : '')}
+                  </div>
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
                   {!m.is_default && <Btn label="Set Default" onClick={() => setDefault(m.id)} />}
@@ -628,25 +757,58 @@ function PaymentsTab({ onNavigateTab }: { tenant?: any; onNavigateTab: (t: SubTa
 
             {showAddForm && (
               <div style={{ padding: '14px 0' }}>
-                <FormRow label="Type">
-                  <Select value={methodType} onValueChange={(v: any) => setMethodType(v)}>
-                    <SelectTrigger className="input-field" style={{ width: '100%' }}><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {METHOD_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </FormRow>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, padding: '4px 0 16px' }}>
+                  {METHOD_TYPES.map(t => (
+                    <button
+                      key={t.value}
+                      type="button"
+                      onClick={() => setMethodType(t.value)}
+                      className="pm-type-card"
+                      data-active={methodType === t.value}
+                    >
+                      <Icon name={t.icon} size={20} strokeWidth={1.75} />
+                      <span className="pm-type-card-label">{t.label}</span>
+                      <span className="pm-type-card-sub">{t.sub}</span>
+                    </button>
+                  ))}
+                </div>
                 {methodType === 'card' ? (
                   <>
                     <FormRow label="Card Number"><input value={cardNumber} onChange={e => setCardNumber(e.target.value)} placeholder="4242 4242 4242 4242" className="input-field" style={{ width: '100%', fontSize: 13, padding: '8px 12px' }} /></FormRow>
                     <FormRow label="Expiry (MM/YY)"><input value={cardExpiry} onChange={e => setCardExpiry(e.target.value)} placeholder="08/28" className="input-field" style={{ width: '100%', fontSize: 13, padding: '8px 12px' }} /></FormRow>
                     <FormRow label="CVC"><input value={cardCvc} onChange={e => setCardCvc(e.target.value)} placeholder="123" className="input-field" style={{ width: '100%', fontSize: 13, padding: '8px 12px' }} /></FormRow>
                   </>
-                ) : (
+                ) : methodType === 'mobile_money' ? (
                   <>
                     <FormRow label="Phone Number"><input value={phone} onChange={e => setPhone(e.target.value)} placeholder="0755 000 000" className="input-field" style={{ width: '100%', fontSize: 13, padding: '8px 12px' }} /></FormRow>
-                    <FormRow label="Provider"><input value={provider} onChange={e => setProvider(e.target.value)} placeholder="M-Pesa, Tigo Pesa, Airtel Money…" className="input-field" style={{ width: '100%', fontSize: 13, padding: '8px 12px' }} /></FormRow>
+                    <FormRow label="Provider">
+                      <Select value={provider} onValueChange={setProvider}>
+                        <SelectTrigger className="input-field" style={{ width: '100%' }}><SelectValue placeholder="Choose a provider…" /></SelectTrigger>
+                        <SelectContent>
+                          {MOBILE_MONEY_PROVIDERS.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </FormRow>
                   </>
+                ) : (
+                  <FormRow label="Wallet">
+                    {wallets === null ? (
+                      <div style={{ fontSize: 12.5, color: 'var(--ink3)', padding: '8px 0' }}>Loading your Petti wallets…</div>
+                    ) : wallets.length === 0 ? (
+                      <div style={{ fontSize: 12.5, color: 'var(--ink3)', padding: '8px 0' }}>
+                        No Petti wallets found. Set one up in the <a onClick={() => window.location.assign('/petti')} style={{ color: 'var(--teal)', cursor: 'pointer' }}>Petti app</a> first.
+                      </div>
+                    ) : (
+                      <Select value={walletId} onValueChange={setWalletId}>
+                        <SelectTrigger className="input-field" style={{ width: '100%' }}><SelectValue placeholder="Choose a wallet…" /></SelectTrigger>
+                        <SelectContent>
+                          {wallets.map(w => (
+                            <SelectItem key={w.id} value={w.id}>{w.name} — {w.currency} {w.balance.toLocaleString()}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </FormRow>
                 )}
                 <FormRow label="Label (optional)"><input value={methodLabel} onChange={e => setMethodLabel(e.target.value)} placeholder="e.g. Company Visa" className="input-field" style={{ width: '100%', fontSize: 13, padding: '8px 12px' }} /></FormRow>
                 {formError && <div style={{ color: 'var(--red)', fontSize: 12.5, marginTop: 8 }}>{formError}</div>}
@@ -696,12 +858,20 @@ function PaymentsTab({ onNavigateTab }: { tenant?: any; onNavigateTab: (t: SubTa
             {upcoming ? (
               <>
                 <div style={{ fontSize: 30, fontWeight: 800, color: 'var(--navy)', marginBottom: 4 }}>{fmtAmount(upcoming)}</div>
+                {upcoming.currency === 'USD' && <div style={{ fontSize: 13, color: 'var(--ink3)', fontWeight: 600, marginBottom: 4 }}>≈ {tzsEquivalent(Number(upcoming.amount))}</div>}
                 <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 16 }}>Due on {fmtDate(upcoming.due_date)}</div>
                 {[[`${upcoming.plan_code} (${upcoming.seats} seat${upcoming.seats === 1 ? '' : 's'})`, fmtAmount(upcoming)], ['Tax', 'Included'], ['Total', fmtAmount(upcoming)]].map(([k, v], i) => (
                   <div key={k} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, padding: '8px 0', borderBottom: '1px solid var(--border)', fontWeight: i === 2 ? 700 : 400, color: i === 2 ? 'var(--ink)' : 'var(--ink3)' }}>
                     <span>{k}</span><span>{v}</span>
                   </div>
                 ))}
+                {walletLow && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 14, padding: '10px 12px', borderRadius: 'var(--r)', background: 'var(--gold-l)', border: '1px solid var(--gold)' }}>
+                    <Icon name="alertTriangle" size={14} strokeWidth={2} style={{ color: 'var(--gold)', flexShrink: 0 } as React.CSSProperties} />
+                    <span style={{ fontSize: 12, color: 'var(--ink2)', flex: 1 }}>Your wallet balance won't cover this invoice.</span>
+                    <a href="/petti" style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', whiteSpace: 'nowrap' }}>Top up →</a>
+                  </div>
+                )}
                 <button onClick={payUpcoming} disabled={payingUpcoming} style={{ width: '100%', marginTop: 16, padding: 'var(--ds-btn-py) 0', border: 'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor: payingUpcoming ? 'default' : 'pointer', opacity: payingUpcoming ? 0.6 : 1, fontSize: 14, fontWeight: 700, fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
                   {payingUpcoming ? 'Processing…' : 'Pay Now'}
                 </button>
@@ -728,31 +898,26 @@ function PaymentsTab({ onNavigateTab }: { tenant?: any; onNavigateTab: (t: SubTa
 
 // ─── Tab: Plans ───────────────────────────────────────────────────────────────
 
-const PLAN_ORDER: PlanKey[] = ['starter', 'growth', 'enterprise'];
+// PLAN_ORDER/PLAN_TAGLINES/PLAN_ICONS/COMPARE_ROWS used to be hardcoded to
+// exactly the 4 packages migration 078 seeded — meaning a package renamed,
+// retired, or added in /admin/packages since then either vanished from this
+// tab or (worse) COMPARE_ROWS kept showing fabricated feature checkmarks for
+// whatever 3 codes happened to still be here. PLAN_TAGLINES/PLAN_ICONS now
+// live with PLAN_DEFAULTS above (real fallback cosmetics for the known
+// legacy codes, not a gate). The list below and the compare table are both
+// derived from whatever `plans` the live catalog actually contains.
 
-const PLAN_TAGLINES: Record<PlanKey, string> = {
-  starter: 'HuduStarter — For solo founders and small teams just getting started',
-  growth: 'HuduPlus — For growing teams scaling their operations',
-  scale: 'Legacy Plan — Scale',
-  enterprise: 'Hudu Advanced — Metered option shared per quotation',
-};
-
-const PLAN_ICONS: Record<PlanKey, IconName> = {
-  starter: 'zap', growth: 'trendingUp', scale: 'barChart', enterprise: 'crown',
-};
-
-const COMPARE_ROWS: [string, string, string, string][] = [
-  ['Shipments / month', '100', '500', 'Unlimited'],
-  ['User accounts limit', 'Up to 300', 'Up to 300', 'Unlimited'],
-  ['Document storage', '10 GB', '50 GB', 'Unlimited'],
-  ['TANCIS integration', '✓', '✓', '✓'],
-  ['TANESW integration', '—', '✓', '✓'],
-  ['WhatsApp Bot', '—', '✓', '✓'],
-  ['API access', '—', '✓', '✓'],
-  ['Custom branding', '—', '—', '✓'],
-  ['Dedicated manager', '—', '—', '✓'],
-  ['SLA uptime', '99%', '99.5%', '99.99%'],
-];
+/** Real packages only — cheapest first, custom-priced (pricePerSeat: null)
+ *  last regardless of price so "Talk to Sales" tiers don't interleave with
+ *  numeric ones. */
+function orderedPlanCodes(plans: Record<string, PlanDisplay>): string[] {
+  // /v1/packages already returns rows ordered by the admin's own sort_order
+  // (packages.routes.ts) and usePlans() fills `plans` by iterating that same
+  // response in order — plain string keys preserve insertion order in JS, so
+  // this is that same admin-configured order, not a second opinion re-derived
+  // from price.
+  return Object.keys(plans);
+}
 
 /** Real add-ons catalog (376_package_addons.sql) — "Get more with add-ons",
  *  the same purchasable-independent-of-plan concept SuperAdmin's own Packages
@@ -771,12 +936,20 @@ function useAddons() {
 function AddonsSection() {
   const { addons, reload } = useAddons();
   const [busyCode, setBusyCode] = useState<string | null>(null);
+  useFxReady();
 
-  async function purchase(code: string) {
+  // There is deliberately no separate checkout step (addons.routes.ts's own
+  // comment: "instant activation, no separate checkout step") — activating
+  // here folds the cost into the next generated subscription invoice
+  // (Billing tab), paid from your on-file default payment method, the same
+  // as the base plan itself. That's easy to miss with no confirmation
+  // saying so, which is exactly what prompted this.
+  async function purchase(code: string, name: string) {
     setBusyCode(code);
     try {
       await apiFetch(`/v1/addons/${code}/purchase`, { method: 'POST' });
       await reload();
+      showAlert(`${name} added. There's no separate checkout — its cost is included on your next Billing invoice, charged from your default payment method there.`, { variant: 'success', title: 'Add-on activated' });
     } catch (err: any) {
       showAlert(`Failed to add: ${err.message}`);
     } finally {
@@ -785,7 +958,7 @@ function AddonsSection() {
   }
 
   async function cancel(code: string, name: string) {
-    if (!(await showConfirm(`Remove the ${name} add-on from your subscription?`, { variant: 'warning', confirmLabel: 'Remove' }))) return;
+    if (!(await showConfirm(`Remove the ${name} add-on from your subscription? It stops immediately and won't appear on any future invoice.`, { variant: 'warning', confirmLabel: 'Remove' }))) return;
     setBusyCode(code);
     try {
       await apiFetch(`/v1/addons/${code}/cancel`, { method: 'POST' });
@@ -801,7 +974,7 @@ function AddonsSection() {
 
   return (
     <Card style={{ marginTop: 20 }}>
-      <CardHead title="Get more with add-ons" sub="Purchasable on top of your plan — not a separate tier." />
+      <CardHead title="Get more with add-ons" sub="Purchasable on top of your plan — not a separate tier. Adding one activates it immediately; there's no checkout, its cost is simply included on your next Billing invoice." />
       <div style={{ padding: 20, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 14 }}>
         {addons.map(addon => (
           <div key={addon.id} style={{ border: '1px solid var(--border)', borderRadius: 9, padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -817,13 +990,14 @@ function AddonsSection() {
                 <div style={{ fontSize: 15, fontWeight: 800, color: addon.color ?? 'var(--navy)', marginTop: 2 }}>
                   ${addon.monthlyPrice}<span style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink3)' }}>/mo</span>
                 </div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink3)' }}>≈ {tzsEquivalent(addon.monthlyPrice)}/mo</div>
               </div>
             </div>
             <p style={{ fontSize: 12, color: 'var(--ink2)', margin: 0, lineHeight: 1.5, flex: 1 }}>{addon.description}</p>
             {addon.purchased ? (
               <Btn label={busyCode === addon.code ? 'Removing…' : 'Remove'} variant="danger" onClick={() => cancel(addon.code, addon.name)} disabled={busyCode === addon.code} />
             ) : (
-              <Btn label={busyCode === addon.code ? 'Adding…' : 'Add to Plan'} icon="plus" variant="primary" onClick={() => purchase(addon.code)} disabled={busyCode === addon.code} />
+              <Btn label={busyCode === addon.code ? 'Adding…' : 'Add to Plan'} icon="plus" variant="primary" onClick={() => purchase(addon.code, addon.name)} disabled={busyCode === addon.code} />
             )}
           </div>
         ))}
@@ -834,17 +1008,25 @@ function AddonsSection() {
 
 function PlansTab({ tenant, onReload }: { tenant: any; onReload: () => Promise<void> }) {
   const plans = usePlans();
-  const [billing, setBilling] = useState<'monthly' | 'yearly'>('yearly');
-  const currentPlan: PlanKey = (tenant?.plan || 'starter') as PlanKey;
+  // Monthly is the hero choice, not yearly — a market where cash flow is
+  // tight and unpredictable-spend is the real objection favors the lower
+  // up-front commitment by default; yearly is still one tap away for anyone
+  // who wants the discount.
+  const [billing, setBilling] = useState<'monthly' | 'yearly'>('monthly');
+  const currentPlan: PlanKey = tenant?.plan || 'starter';
+  const order = orderedPlanCodes(plans);
+  useFxReady();
 
   async function handleSelectPlan(k: PlanKey) {
-    if (!(await showConfirm(`Are you sure you want to change your plan to ${k}?`, { variant: 'warning', confirmLabel: 'Change Plan' }))) return;
+    const name = plans[k]?.name ?? k;
+    if (!(await showConfirm(`Change your plan to ${name}? This takes effect immediately — there's no separate checkout, the new price is simply what's billed on your next Billing invoice.`, { variant: 'warning', confirmLabel: 'Change Plan' }))) return;
     try {
       await apiFetch('/v1/settings', {
         method: 'PATCH',
         body: JSON.stringify({ plan: k })
       });
       await onReload();
+      showAlert(`You're now on ${name}.`, { variant: 'success', title: 'Plan changed' });
     } catch (err: any) {
       showAlert(`Failed to update plan: ${err.message}`);
     }
@@ -862,7 +1044,7 @@ function PlansTab({ tenant, onReload }: { tenant: any; onReload: () => Promise<v
             <button key={b} className={`sub-toggle-btn${billing === b ? ' active' : ''}`}
                onClick={() => setBilling(b)}>
               {b.charAt(0).toUpperCase() + b.slice(1)}
-              {b === 'yearly' && <span className="sub-toggle-badge">Save ~17%</span>}
+              {b === 'yearly' && <span className="sub-toggle-badge">2 months free</span>}
             </button>
           ))}
         </div>
@@ -870,10 +1052,10 @@ function PlansTab({ tenant, onReload }: { tenant: any; onReload: () => Promise<v
 
       {/* Plan cards */}
       <div className="sub-cards" style={{ marginBottom: 16 }}>
-        {PLAN_ORDER.map(k => {
+        {order.map(k => {
           const p = plans[k];
           const isCurrent = k === currentPlan;
-          const isCustom = k === 'enterprise';
+          const isCustom = p.pricePerSeat === null;
           // Yearly billing = ~17% off, same discount rate the old flat-price plans used — no separate
           // per-seat-yearly column on the backend, so it's derived client-side from the monthly seat price.
           const perSeatDisplay = isCustom ? null : (billing === 'yearly' ? Math.round((p.pricePerSeat as number) * 0.83) : (p.pricePerSeat as number));
@@ -886,10 +1068,10 @@ function PlansTab({ tenant, onReload }: { tenant: any; onReload: () => Promise<v
               ) : null}
 
               <div className="sub-card-icon">
-                <Icon name={PLAN_ICONS[k]} size={18} strokeWidth={1.75} style={{ color: 'var(--plan-color)' } as React.CSSProperties} />
+                <Icon name={p.icon} size={18} strokeWidth={1.75} style={{ color: 'var(--plan-color)' } as React.CSSProperties} />
               </div>
               <div className="sub-card-name">{p.name}</div>
-              <div className="sub-card-sub">{PLAN_TAGLINES[k]}</div>
+              {p.tagline && <div className="sub-card-sub">{p.tagline}</div>}
 
               {isCustom ? (
                 <>
@@ -903,12 +1085,20 @@ function PlansTab({ tenant, onReload }: { tenant: any; onReload: () => Promise<v
                     <span className="sub-card-price">{perSeatDisplay!.toLocaleString()}</span>
                     <span className="sub-card-per">/user/mo</span>
                   </div>
+                  <div className="sub-card-fx">≈ {tzsEquivalent(perSeatDisplay!)}/user/mo</div>
                   <div className="sub-card-annual-note">
-                    {billing === 'yearly' ? `Billed annually · $${(perSeatDisplay! * 12).toLocaleString()} /seat/yr` : 'Billed monthly · switch to yearly to save'}
+                    {billing === 'yearly'
+                      ? `Billed annually · $${(perSeatDisplay! * 12).toLocaleString()} /seat/yr — save ${tzsEquivalent(((p.pricePerSeat as number) - perSeatDisplay!) * 12)}/seat/yr`
+                      : 'Billed monthly · switch to yearly for 2 months free'}
                   </div>
                   <div className="sub-card-annual-note" style={{ marginTop: 2 }}>
                     {p.itemLimit === null ? 'Unlimited items / month' : `Up to ${p.itemLimit.toLocaleString()} items / month`}
                   </div>
+                  {p.extraSeatThreshold != null && p.extraSeatPrice != null && (
+                    <div className="sub-card-annual-note" style={{ marginTop: 2 }}>
+                      Seat {p.extraSeatThreshold + 1}+ at ${billing === 'yearly' ? Math.round(p.extraSeatPrice * 0.83) : p.extraSeatPrice}/user/mo
+                    </div>
+                  )}
                 </>
               )}
 
@@ -951,14 +1141,18 @@ function PlansTab({ tenant, onReload }: { tenant: any; onReload: () => Promise<v
 
       <AddonsSection />
 
-      {/* Feature comparison table */}
+      {/* Feature comparison table — 3 rows only, each backed by a real
+          per-package column (packages.routes.ts), not the fixed 3-plan,
+          8-fabricated-checkmark table this used to be. Each plan's own
+          free-text feature list is already shown on its card above, so it
+          isn't duplicated here as a guessed boolean grid. */}
       <Card style={{ marginTop: 28 }}>
-        <CardHead title="Compare plans" sub="Every feature, side by side." />
+        <CardHead title="Compare plans" sub="Price, item cap and storage, side by side." />
         <div className="sub-compare-scroll">
           <div className="sub-compare-grid">
-            <div style={{ display: 'grid', gridTemplateColumns: `1fr repeat(${PLAN_ORDER.length}, 150px)`, borderBottom: '1px solid var(--border)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: `1fr repeat(${order.length}, 150px)`, borderBottom: '1px solid var(--border)' }}>
               <div style={{ padding: '16px 20px' }} />
-              {PLAN_ORDER.map(k => {
+              {order.map(k => {
                 const p = plans[k]; const isCur = k === currentPlan;
                 return (
                   <div key={k} style={{ padding: '16px 14px', textAlign: 'center', borderLeft: '1px solid var(--border)', background: isCur ? p.bg : 'var(--white)' }}>
@@ -968,11 +1162,15 @@ function PlansTab({ tenant, onReload }: { tenant: any; onReload: () => Promise<v
                 );
               })}
             </div>
-            {COMPARE_ROWS.map(([feat, ...vals]) => (
-              <div key={feat} style={{ display: 'grid', gridTemplateColumns: `1fr repeat(${PLAN_ORDER.length}, 150px)`, borderBottom: '1px solid var(--border)' }}>
+            {([
+              ['Price / seat', (p: PlanDisplay) => p.pricePerSeat === null ? 'Custom' : `$${p.pricePerSeat}/mo`],
+              ['Items / month', (p: PlanDisplay) => p.itemLimit === null ? 'Unlimited' : p.itemLimit.toLocaleString()],
+              ['Storage', (p: PlanDisplay) => p.storageLimitGb === null ? 'Unlimited' : `${p.storageLimitGb} GB`],
+            ] as [string, (p: PlanDisplay) => string][]).map(([feat, getVal]) => (
+              <div key={feat} style={{ display: 'grid', gridTemplateColumns: `1fr repeat(${order.length}, 150px)`, borderBottom: '1px solid var(--border)' }}>
                 <div style={{ padding: '11px 20px', fontSize: 13, color: 'var(--ink2)' }}>{feat}</div>
-                {vals.map((v, i) => (
-                  <div key={i} style={{ padding: '11px 14px', textAlign: 'center', borderLeft: '1px solid var(--border)', fontSize: 13, color: v === '—' ? 'var(--ink3)' : 'var(--green)', fontWeight: v === '—' ? 400 : 600 }}>{v}</div>
+                {order.map(k => (
+                  <div key={k} style={{ padding: '11px 14px', textAlign: 'center', borderLeft: '1px solid var(--border)', fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{getVal(plans[k])}</div>
                 ))}
               </div>
             ))}
@@ -1043,9 +1241,12 @@ function ReportsTab() {
             <div style={{ fontSize: 11, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Items This Period{usage?.period ? ` (${usage.period})` : ''}</div>
             <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--navy)', marginBottom: 4 }}>{usage ? usage.used : '—'}</div>
             <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: usage && usage.limit !== null ? 8 : 0 }}>{usage ? (usage.limit !== null ? `of ${usage.limit}` : 'Unlimited') : 'Loading…'}</div>
+            {usage && usage.limit !== null && usage.used / usage.limit >= 0.8 && usage.used < usage.limit && (
+              <div style={{ fontSize: 10.5, color: 'var(--gold)', fontWeight: 600, marginBottom: 6 }}>Approaching this month's limit</div>
+            )}
             {usage && usage.limit !== null && (
               <div style={{ height: 4, background: 'var(--border)', borderRadius: 2, overflow: 'hidden' }}>
-                <div style={{ width: `${Math.min(100, (usage.used / usage.limit) * 100)}%`, height: '100%', background: usage.used >= usage.limit ? 'var(--red)' : 'var(--teal)', borderRadius: 2 }} />
+                <div style={{ width: `${Math.min(100, (usage.used / usage.limit) * 100)}%`, height: '100%', background: usageBarColor(usage.used, usage.limit, 'var(--teal)'), borderRadius: 2 }} />
               </div>
             )}
           </div>
@@ -1363,43 +1564,47 @@ export const Subscription: React.FC = () => {
   return (
     <div className="sub-account-root" style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)', fontFamily: 'var(--font)' }}>
 
-      {/* ── Hero header ── */}
-      <div className="sub-hero2" style={{ background: 'linear-gradient(135deg, #0f2942 0%, #1a4f8a 100%)', position: 'relative', overflow: 'hidden' }}>
-        {/* decorative circles */}
-        <div style={{ position: 'absolute', top: -40, right: -40, width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,255,255,0.04)', pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', bottom: -60, right: 100, width: 260, height: 260, borderRadius: '50%', background: 'rgba(255,255,255,0.025)', pointerEvents: 'none' }} />
-
-        <div className="sub-hero-topline" style={{ position: 'relative', zIndex: 1 }}>
-          <div>
-            {/* breadcrumb */}
-            <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.5)', fontSize: 12, marginBottom: 6, padding: 0, fontFamily: 'var(--font)', textDecoration: 'none' }}>
-              <Icon name="chevronLeft" size={13} strokeWidth={2} /> Ops Command
-            </Link>
-            <div style={{ fontSize: 18, fontWeight: 800, color: '#fff', marginBottom: 3 }}>Subscription & Account</div>
-            <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.6)' }}>{tenantName} — {planLabel} Plan</div>
-          </div>
-          <div style={{ display: 'flex', gap: 8, paddingTop: 2 }}>
-            <div style={{ padding: '5px 12px', borderRadius: 20, background: 'rgba(255,255,255,0.1)', color: '#fff', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: tenant?.active ? '#4ade80' : '#ef4444', display: 'inline-block' }} /> {tenant?.active ? 'ACTIVE' : 'INACTIVE'}
+      {/* ── Page Header ── */}
+      <PageHeader
+        crumbs={['Workspace Admin', 'Subscription & Billing']}
+        titlePlain="Subscription &"
+        titleEm="billing."
+        subtitle={`${tenantName} — ${planLabel} Plan · Account & Billing Management`}
+        actions={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <div style={{ padding: '5px 12px', borderRadius: 20, background: tenant?.active ? 'var(--green-l, #ecfdf5)' : 'var(--red-l, #fef2f2)', color: tenant?.active ? 'var(--green, #10b981)' : 'var(--red, #ef4444)', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, border: '1px solid currentColor' }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor', display: 'inline-block' }} />
+              {tenant?.active ? 'ACTIVE' : 'INACTIVE'}
             </div>
-          </div>
-        </div>
-
-        {/* Tab bar inside hero */}
-        <div className="sub-hero-tabbar">
-          {TABS.map(t => (
-            <button key={t.id} type="button" onClick={() => setTab(t.id)} style={{
-              display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py-sm) 14px',
-              border: 'none', borderBottom: `2px solid ${tab === t.id ? '#fff' : 'transparent'}`,
-              background: 'none', cursor: 'pointer', fontFamily: 'var(--font)',
-              fontSize: 13, fontWeight: tab === t.id ? 700 : 500,
-              color: tab === t.id ? '#fff' : 'rgba(255,255,255,0.5)',
-              transition: 'all 0.15s', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
-              <Icon name={t.icon} size={13} strokeWidth={tab === t.id ? 2.5 : 2} />
-              {t.label}
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => setTab('plans')}
+              style={{ fontSize: 12.5, fontWeight: 600, padding: '7px 16px' }}
+            >
+              <Icon name="layers" size={14} />
+              <span>Change Plan</span>
             </button>
-          ))}
-        </div>
+          </div>
+        }
+      />
+
+      {/* ── Tab Bar Navigation ── */}
+      <div className="sub-hero-tabbar">
+        {TABS.map(t => {
+          const isActive = tab === t.id;
+          return (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => setTab(t.id)}
+              className={`sub-tab-pill ${isActive ? 'active' : ''}`}
+            >
+              <Icon name={t.icon} size={14} />
+              <span>{t.label}</span>
+            </button>
+          );
+        })}
       </div>
 
       {/* ── Tab content ── */}

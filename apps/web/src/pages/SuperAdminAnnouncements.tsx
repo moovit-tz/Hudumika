@@ -58,7 +58,7 @@ export const SuperAdminAnnouncements: React.FC = () => {
 
   useEffect(() => {
     load();
-    apiFetch('/v1/superadmin/companies')
+    apiFetch('/v1/superadmin/tenants')
       .then(res => setTenants((res.data ?? res ?? []).map((t: any) => ({ id: t.id, name: t.name }))))
       // Not fatal: without the list the form simply cannot narrow to one
       // workspace, which still leaves the common platform-wide case working.

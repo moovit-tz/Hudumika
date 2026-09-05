@@ -917,26 +917,17 @@ const InvoicesSection: React.FC = () => {
 
 // -- section: Quotations -----------------------------------------------------
 const QuotationsSection: React.FC = () => {
-  // prefix/nextEst are backed by the real numbering counters (GET/PATCH
-  // /v1/settings/numbering/quotation) — kept out of the generic settings blob.
-  const [f, set] = useSettingsFields('quotations', { validity: '14', terms: '', footer: '' });
+  // prefix/nextEst are backed by the real quotation counter (GET/PATCH
+  // /v1/settings/numbering/quotation) — the only genuinely live part of this
+  // section. validity/terms/footer/logo/notif used to live here too, saved
+  // to settings.quotations, which nothing on the backend ever read — a form
+  // that looked exactly as functional as the fields beside it but silently
+  // did nothing when submitted. Removed rather than left to keep collecting
+  // input no one downstream sees.
   const [prefix, setPrefix] = useState('QT-');
   const [nextEst, setNextEst] = useState('1');
-  const [logo, setLogo] = useState(true);
-  const [notif, setNotif] = useState(true);
-  const { s, save } = useContext(SettingsCtx);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const hydratedExtra = useRef(false);
-
-  useEffect(() => {
-    if (hydratedExtra.current) return;
-    if (s.quotations) {
-      setLogo(s.quotations.logo ?? true);
-      setNotif(s.quotations.notif ?? true);
-      hydratedExtra.current = true;
-    }
-  }, [s]);
 
   useEffect(() => {
     apiFetch('/v1/settings/numbering/quotation')
@@ -947,7 +938,6 @@ const QuotationsSection: React.FC = () => {
   async function handleSave() {
     setSaving(true);
     try {
-      await save('quotations', { ...f, logo, notif });
       const num = await apiFetch('/v1/settings/numbering/quotation', {
         method: 'PATCH',
         body: JSON.stringify({ prefix, next_number: Number(nextEst) }),
@@ -961,15 +951,6 @@ const QuotationsSection: React.FC = () => {
       <Card title="Quotation Format" desc="Numbering is backed by the real quotation counter used when converting/issuing quotes.">
         <Field label="Quote Prefix" hint="e.g. QT-0001"><input className="input-field" value={prefix} onChange={e => setPrefix(e.target.value)} /></Field>
         <Field label="Next Estimate #" hint="Starting number for the next auto-generated quote"><input className="input-field" type="number" placeholder="1" value={nextEst} onChange={e => setNextEst(e.target.value)} /></Field>
-        <Field label="Validity Days" hint="Days before quote expires"><input className="input-field" type="number" placeholder="14" value={f.validity} onChange={e => set('validity', e.target.value)} /></Field>
-        <ToggleRow label="Show Logo on Quote PDF" value={logo} onChange={setLogo} />
-        <ToggleRow label="Notify When Quote is Converted to Invoice" value={notif} onChange={setNotif} />
-        <Field label="Terms & Conditions" full>
-          <textarea className="input-field s-resize-v" rows={3} value={f.terms} onChange={e => set('terms', e.target.value)} placeholder="Default quotation terms…" />
-        </Field>
-        <Field label="Footer Note" full>
-          <textarea className="input-field s-resize-v" rows={2} value={f.footer} onChange={e => set('footer', e.target.value)} placeholder="Thank you for considering our services…" />
-        </Field>
       </Card>
       <SaveRow saving={saving} saved={saved} onSave={handleSave} />
     </>
@@ -979,25 +960,15 @@ const QuotationsSection: React.FC = () => {
 // -- section: Purchase Orders ------------------------------------------------
 const PurchaseOrdersSection: React.FC = () => {
   // prefix is backed by the real numbering counter (GET/PATCH
-  // /v1/settings/numbering/purchase_order) — kept out of the generic settings
-  // blob. This section has no pad/next-number field in its UI.
-  const [f, set] = useSettingsFields('purchase-orders', { threshold: '1000000' });
+  // /v1/settings/numbering/purchase_order) — the only genuinely live part of
+  // this section. autoNo/approval/threshold used to live here too, saved to
+  // settings['purchase-orders'], which nothing on the backend ever read —
+  // an "approval required above this amount" control that never actually
+  // gated anything. Removed rather than left implying an approval flow
+  // exists.
   const [prefix, setPrefix] = useState('PO-');
-  const [autoNo, setAutoNo] = useState(true);
-  const [approval, setApproval] = useState(true);
-  const { s, save } = useContext(SettingsCtx);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const hydratedExtra = useRef(false);
-
-  useEffect(() => {
-    if (hydratedExtra.current) return;
-    if (s['purchase-orders']) {
-      setAutoNo(s['purchase-orders'].autoNo ?? true);
-      setApproval(s['purchase-orders'].approval ?? true);
-      hydratedExtra.current = true;
-    }
-  }, [s]);
 
   useEffect(() => {
     apiFetch('/v1/settings/numbering/purchase_order')
@@ -1008,7 +979,6 @@ const PurchaseOrdersSection: React.FC = () => {
   async function handleSave() {
     setSaving(true);
     try {
-      await save('purchase-orders', { ...f, autoNo, approval });
       const num = await apiFetch('/v1/settings/numbering/purchase_order', { method: 'PATCH', body: JSON.stringify({ prefix }) });
       setPrefix(num.prefix);
       setSaved(true); setTimeout(() => setSaved(false), 2000);
@@ -1018,129 +988,6 @@ const PurchaseOrdersSection: React.FC = () => {
     <>
       <Card title="Purchase Order Settings" desc="Prefix is backed by the real PO counter used when issuing purchase orders.">
         <Field label="PO Number Prefix"><input className="input-field" value={prefix} onChange={e => setPrefix(e.target.value)} /></Field>
-        <ToggleRow label="Auto-Number Purchase Orders" value={autoNo} onChange={setAutoNo} />
-        <ToggleRow label="Require Approval for Large Orders" hint="Orders above the threshold need admin approval" value={approval} onChange={setApproval} />
-        {approval && (
-          <Field label="Approval Threshold (TZS)"><input className="input-field" type="number" value={f.threshold} onChange={e => set('threshold', e.target.value)} /></Field>
-        )}
-      </Card>
-      <SaveRow saving={saving} saved={saved} onSave={handleSave} />
-    </>
-  );
-};
-
-// -- section: Tax Rates ------------------------------------------------------
-const TaxRatesSection: React.FC = () => {
-  const [rates, setRates] = useState([
-    { id: '1', name: 'VAT 18%', rate: 18 },
-    { id: '2', name: 'Withholding Tax 5%', rate: 5 },
-    { id: '3', name: 'VAT 0% (Exempt)', rate: 0 },
-  ]);
-  const [adding, setAdding] = useState(false);
-  const [newName, setNewName] = useState('');
-  const [newRate, setNewRate] = useState('');
-  const { s, save } = useContext(SettingsCtx);
-  const hydrated = useRef(false);
-
-  useEffect(() => {
-    if (hydrated.current) return;
-    if (s['tax-rates']?.rates) { setRates(s['tax-rates'].rates); hydrated.current = true; }
-  }, [s]);
-
-  return (
-    <Card title="Tax Rates" desc="Manage VAT and other tax rates applied to transactions."
-      action={<button type="button" className="btn btn-primary btn-sm" onClick={() => setAdding(true)}>+ Add Rate</button>}>
-      <div className="s-fld--full rtbl-wrap">
-        <table className="rtbl">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th className="rtbl-r">Rate</th>
-              <th className="rtbl-r">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rates.map(r => (
-              <tr key={r.id}>
-                <td>{r.name}</td>
-                <td className="rtbl-r rtbl-bold">{r.rate}%</td>
-                <td className="rtbl-r">
-                  <button type="button" className="rtbl-rm" onClick={() => { const next = rates.filter(x => x.id !== r.id); setRates(next); save('tax-rates', { rates: next }).catch(() => {}); }}>Remove</button>
-                </td>
-              </tr>
-            ))}
-            {adding && (
-              <tr className="rtbl-add">
-                <td><input className="input-field" placeholder="e.g. VAT 18%" value={newName} onChange={e => setNewName(e.target.value)} /></td>
-                <td><input className="input-field rtbl-r" type="number" placeholder="18" value={newRate} onChange={e => setNewRate(e.target.value)} /></td>
-                <td className="rtbl-r rtbl-nowrap">
-                  <button type="button" className="btn btn-primary btn-sm rtbl-mr" title="Add tax rate" onClick={() => { if (newName && newRate) { const newEntry = { id: Date.now().toString(), name: newName, rate: parseFloat(newRate) }; const next = [...rates, newEntry]; setRates(next); save('tax-rates', { rates: next }).catch(() => {}); setNewName(''); setNewRate(''); setAdding(false); } }}>Add</button>
-                  <button type="button" className="btn btn-secondary btn-sm" title="Cancel" onClick={() => setAdding(false)}>Cancel</button>
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    </Card>
-  );
-};
-
-// -- section: Currencies -----------------------------------------------------
-const CurrenciesSection: React.FC = () => {
-  const [currencies, setCurrencies] = useState([
-    { code: 'TZS', name: 'Tanzanian Shilling', symbol: 'TSh', rate: 1, isBase: true },
-    { code: 'USD', name: 'US Dollar', symbol: '$', rate: 0.00039, isBase: false },
-    { code: 'EUR', name: 'Euro', symbol: '€', rate: 0.00036, isBase: false },
-    { code: 'GBP', name: 'British Pound', symbol: '£', rate: 0.00031, isBase: false },
-    { code: 'KES', name: 'Kenyan Shilling', symbol: 'KSh', rate: 0.052, isBase: false },
-    { code: 'AED', name: 'UAE Dirham', symbol: 'AED', rate: 0.00143, isBase: false },
-  ]);
-  const { s, save } = useContext(SettingsCtx);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const hydrated = useRef(false);
-
-  useEffect(() => {
-    if (hydrated.current) return;
-    if (s.currencies?.currencies) { setCurrencies(s.currencies.currencies); hydrated.current = true; }
-  }, [s]);
-
-  async function handleSave() { setSaving(true); try { await save('currencies', { currencies }); setSaved(true); setTimeout(() => setSaved(false), 2000); } catch {} finally { setSaving(false); } }
-  return (
-    <>
-      <Card title="Currencies" desc="Set the base currency and manage exchange rates.">
-        <div className="s-fld--full rtbl-wrap">
-          <table className="rtbl">
-            <thead>
-              <tr>
-                <th>Currency</th>
-                <th>Code</th>
-                <th>Symbol</th>
-                <th className="rtbl-r">Exchange Rate</th>
-                <th className="rtbl-c">Base</th>
-              </tr>
-            </thead>
-            <tbody>
-              {currencies.map(c => (
-                <tr key={c.code}>
-                  <td>{c.name}</td>
-                  <td className="rtbl-mono">{c.code}</td>
-                  <td>{c.symbol}</td>
-                  <td className="rtbl-r">
-                    {c.isBase ? <span className="s-muted">— base —</span> : (
-                      <input className="input-field rtbl-in-r" type="number" step="0.00001" value={c.rate}
-                        onChange={e => setCurrencies(cs => cs.map(x => x.code === c.code ? { ...x, rate: parseFloat(e.target.value) || 0 } : x))} />
-                    )}
-                  </td>
-                  <td className="rtbl-c">
-                    {c.isBase && <span className="s-base-badge">Base</span>}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
       </Card>
       <SaveRow saving={saving} saved={saved} onSave={handleSave} />
     </>
@@ -1387,12 +1234,21 @@ const PaymentGatewaysSection: React.FC = () => {
         </div>
         <button type="button" className="btn btn-primary" disabled={saving} title="Save all gateway settings" onClick={async () => {
           setSaving(true);
+          // Every top-level `gw-<id>` key directly, the exact same shape the
+          // per-gateway "Save" button and lib/payment-gateway.ts's own
+          // getActiveGateway()/getConfiguredGateways() already read — this
+          // used to nest everything under one `payment-gateways` key
+          // instead, which neither of those ever looked at, so a tenant who
+          // configured gateways through this button (rather than one at a
+          // time) had checkout silently see none of them. A disabled
+          // gateway is sent as `null` (mergeSettings deletes the key) rather
+          // than omitted, since a plain PATCH merges and would otherwise
+          // leave a previously-enabled gateway's old config in place.
           const payload: Record<string, any> = {};
-          for (const gw of GATEWAYS) { if (enabled[gw.id]) payload[`gw-${gw.id}`] = { enabled: true, sandbox: !!sandbox[gw.id], ...values[gw.id] }; }
-          // $replace: this screen omits disabled gateways rather than sending
-          // them as false, so the stored object must be replaced outright. Every
-          // other section merges, which is what makes partial saves safe.
-          try { await save('payment-gateways', payload, { replace: true }); } catch {}
+          for (const gw of GATEWAYS) {
+            payload[`gw-${gw.id}`] = enabled[gw.id] ? { enabled: true, sandbox: !!sandbox[gw.id], ...values[gw.id] } : null;
+          }
+          try { await apiFetch('/v1/settings', { method: 'PATCH', body: JSON.stringify(payload) }); } catch {}
           setSaving(false);
         }}>
           {saving ? 'Saving…' : 'Save All Changes'}
@@ -1638,44 +1494,6 @@ const GpswoxSection: React.FC = () => {
         </div>
       </Card>
       <p className="s-fld-hint" style={{ margin: '4px 2px 0' }}>Until credentials are saved and valid, vehicle positions must be entered manually · no simulated fleet data is shown.</p>
-      <SaveRow saving={saving} saved={saved} onSave={handleSave} />
-    </>
-  );
-};
-
-// -- section: Pusher ---------------------------------------------------------
-const PusherSection: React.FC = () => {
-  const [on, setOn] = useState(false);
-  const [f, set] = useSettingsFields('int-pusher', { appId: '', key: '', secret: '', cluster: 'ap2' });
-  const { s, save } = useContext(SettingsCtx);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const hydratedExtra = useRef(false);
-
-  useEffect(() => {
-    if (hydratedExtra.current) return;
-    if (s['int-pusher']) { setOn(s['int-pusher'].on ?? false); hydratedExtra.current = true; }
-  }, [s]);
-
-  async function handleSave() { setSaving(true); try { await save('int-pusher', { on, ...f }); setSaved(true); setTimeout(() => setSaved(false), 2000); } catch {} finally { setSaving(false); } }
-  return (
-    <>
-      <Card title="Pusher Real-Time" desc="Live notifications and presence via Pusher Channels.">
-        <ToggleRow label="Enable Pusher" value={on} onChange={setOn} />
-        {on && <>
-          <Field label="App ID"><input className="input-field" value={f.appId} onChange={e => set('appId', e.target.value)} /></Field>
-          <Field label="App Key"><input className="input-field" value={f.key} onChange={e => set('key', e.target.value)} /></Field>
-          <Field label="App Secret"><input className="input-field" type="password" value={f.secret} onChange={e => set('secret', e.target.value)} /></Field>
-          <Field label="Cluster">
-            <Select value={f.cluster} onValueChange={v => set('cluster', v)}>
-              <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {[['ap1','ap1 · Singapore'],['ap2','ap2 · Mumbai'],['ap3','ap3 · Tokyo'],['eu','eu · Ireland'],['mt1','mt1 · US East'],['us2','us2 · US West'],['sa1','sa1 · São Paulo']].map(([v,l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </Field>
-        </>}
-      </Card>
       <SaveRow saving={saving} saved={saved} onSave={handleSave} />
     </>
   );
@@ -3160,14 +2978,21 @@ function renderSection(key: string): React.ReactNode {
     case 'invoices':            return <InvoicesSection />;
     case 'quotations':          return <QuotationsSection />;
     case 'purchase-orders':     return <PurchaseOrdersSection />;
-    case 'tax-rates':           return <TaxRatesSection />;
-    case 'currencies':          return <CurrenciesSection />;
+    // Both superseded by real FinOps features (tax codes/rates now live at
+    // /finance/tax-codes; currency display used a hardcoded, never-updated
+    // exchange-rate table where fx_rates.service.ts's real synced rates now
+    // apply) — removed from NAV for that reason, but the switch case here
+    // still rendered the old editable form to anyone who kept the ?s= link
+    // or typed it in, letting them "save" numbers nothing downstream reads.
+    case 'tax-rates':           return <ElsewhereSection />;
     case 'payment-gateways':    return <PaymentGatewaysSection />;
     // Moved to FinOps ▸ Expenses ▸ Manage Categories (/finance/expenses/
     // categories) — same underlying tenant_settings key, real page now.
     case 'expenses-categories': return <ElsewhereSection />;
     case 'int-google':          return <GoogleSection />;
-    case 'int-pusher':          return <PusherSection />;
+    // No Pusher integration exists anywhere in the backend — never had a
+    // real reader, removed from NAV, but the switch case kept rendering the
+    // editable App ID/Key/Secret form to anyone who reached it by URL.
     case 'int-shipsgo':         return <ShipsGoSection />;
     case 'int-gpswox':          return <GpswoxSection />;
     case 'int-ai':               return <OpenAISection />;

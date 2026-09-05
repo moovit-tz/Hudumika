@@ -11,6 +11,8 @@ const packageCreateSchema = z.object({
   annual_price: z.number().optional(),
   max_users: z.number().int().optional(),
   price_per_seat: z.number().nullable().optional(),
+  extra_seat_price: z.number().nullable().optional(),
+  extra_seat_threshold: z.number().int().nullable().optional(),
   monthly_item_limit: z.number().int().nullable().optional(),
   storage_limit_bytes: z.number().nullable().optional(),
   features: z.array(z.any()).optional(),
@@ -24,6 +26,8 @@ const packagePatchSchema = z.object({
   annual_price: z.number().optional(),
   max_users: z.number().int().optional(),
   price_per_seat: z.number().nullable().optional(),
+  extra_seat_price: z.number().nullable().optional(),
+  extra_seat_threshold: z.number().int().nullable().optional(),
   monthly_item_limit: z.number().int().nullable().optional(),
   storage_limit_bytes: z.number().nullable().optional(),
   features: z.array(z.any()).optional(),
@@ -42,6 +46,8 @@ function toPackage(r: any): Package {
     annual_price: Number(r.annual_price),
     max_users: r.max_users,
     price_per_seat: r.price_per_seat !== null && r.price_per_seat !== undefined ? Number(r.price_per_seat) : null,
+    extra_seat_price: r.extra_seat_price !== null && r.extra_seat_price !== undefined ? Number(r.extra_seat_price) : null,
+    extra_seat_threshold: r.extra_seat_threshold ?? null,
     monthly_item_limit: r.monthly_item_limit ?? null,
     storage_limit_bytes: r.storage_limit_bytes !== null && r.storage_limit_bytes !== undefined ? Number(r.storage_limit_bytes) : null,
     features: r.features,
@@ -68,6 +74,21 @@ export async function packagesRoutes(fastify: FastifyInstance) {
   });
 
   /**
+   * GET /v1/packages/all — every package, active or not (SuperAdmin only).
+   * The public GET / above deliberately hides inactive packages from
+   * signup/pricing surfaces (a dormant tier like 'free', 'scale' isn't for
+   * sale yet) — but SuperAdmin's own Packages console needs to see and
+   * reactivate them, not just the ones already live.
+   */
+  fastify.get('/all', { preHandler: [fastify.authenticate, requireRole('SUPER_ADMIN')] }, async () => {
+    const rows = await dbPlatform.selectFrom('packages').selectAll()
+      .orderBy('sort_order', 'asc')
+      .execute();
+
+    return { data: rows.map(toPackage) };
+  });
+
+  /**
    * POST /v1/packages — create a new package (SuperAdmin only).
    */
   fastify.post('/', { preHandler: [fastify.authenticate, requireRole('SUPER_ADMIN')] }, async (request, reply) => {
@@ -81,6 +102,8 @@ export async function packagesRoutes(fastify: FastifyInstance) {
         annual_price: body.annual_price ?? 0,
         max_users: body.max_users ?? 0,
         price_per_seat: body.price_per_seat ?? null,
+        extra_seat_price: body.extra_seat_price ?? null,
+        extra_seat_threshold: body.extra_seat_threshold ?? null,
         monthly_item_limit: body.monthly_item_limit ?? null,
         storage_limit_bytes: body.storage_limit_bytes != null ? String(body.storage_limit_bytes) : null,
         features: JSON.stringify(body.features ?? []) as unknown as string[],
@@ -111,6 +134,8 @@ export async function packagesRoutes(fastify: FastifyInstance) {
       if (body.annual_price !== undefined) updates.annual_price = body.annual_price;
       if (body.max_users !== undefined) updates.max_users = body.max_users;
       if (body.price_per_seat !== undefined) updates.price_per_seat = body.price_per_seat;
+      if (body.extra_seat_price !== undefined) updates.extra_seat_price = body.extra_seat_price;
+      if (body.extra_seat_threshold !== undefined) updates.extra_seat_threshold = body.extra_seat_threshold;
       if (body.monthly_item_limit !== undefined) updates.monthly_item_limit = body.monthly_item_limit;
       if (body.storage_limit_bytes !== undefined) updates.storage_limit_bytes = body.storage_limit_bytes != null ? String(body.storage_limit_bytes) : null;
       if (body.features !== undefined) updates.features = JSON.stringify(body.features);

@@ -207,6 +207,12 @@ export async function checkRequest(
   tenantId: string, userId: string, leaveTypeId: string, days: number, onDate: Date = new Date(),
 ): Promise<{ ok: boolean; reason?: string; balance?: Balance }> {
   const balances = await computeBalances(tenantId, userId, onDate);
+  return evaluateBalance(balances, leaveTypeId, days);
+}
+
+function evaluateBalance(
+  balances: Balance[], leaveTypeId: string, days: number,
+): { ok: boolean; reason?: string; balance?: Balance } {
   const b = balances.find(x => x.leave_type_id === leaveTypeId);
   if (!b) return { ok: false, reason: 'That leave type does not exist for this tenant.' };
   if (!b.eligible) return { ok: false, reason: b.ineligible_reason, balance: b };
@@ -219,6 +225,23 @@ export async function checkRequest(
     };
   }
   return { ok: true, balance: b };
+}
+
+/**
+ * Same check as `checkRequest`, but runs inside a transaction the caller
+ * already holds — required so the check and the insert it gates can be
+ * serialized against a concurrent identical request via an advisory lock
+ * acquired on the same connection (see hr.routes.ts's POST /leaves, which
+ * is the only real caller: two requests submitted before either is decided
+ * used to both read "balance sufficient" and both succeed, together
+ * exceeding the entitlement — the exact race this file's own module
+ * comment says pending-holding prevents, which it only does sequentially).
+ */
+export async function checkRequestInTx(
+  trx: Db, tenantId: string, userId: string, leaveTypeId: string, days: number, onDate: Date = new Date(),
+): Promise<{ ok: boolean; reason?: string; balance?: Balance }> {
+  const balances = await computeBalancesWith(trx, tenantId, userId, onDate);
+  return evaluateBalance(balances, leaveTypeId, days);
 }
 
 /**

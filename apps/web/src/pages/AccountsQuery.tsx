@@ -3,6 +3,7 @@ import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 
 type ReportType = 'receivables' | 'payables' | 'revenue' | 'expenses' | 'summary';
 
@@ -348,12 +349,8 @@ export function AccountsQuery() {
 
         {/* Loading */}
         {loading && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 300, gap: 12, color: 'var(--ink3)' }}>
-            <div style={{
-              width: 24, height: 24, border: '3px solid var(--border)', borderTopColor: 'var(--teal)',
-              borderRadius: '50%', animation: 'spin 0.7s linear infinite',
-            }} />
-            <span style={{ fontSize: 14 }}>Generating report…</span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 300 }}>
+            <SectionLoading label="Generating report…" size={24} style={{ flexDirection: 'row', padding: 0 }} />
           </div>
         )}
 
@@ -555,9 +552,6 @@ export function AccountsQuery() {
           </div>
         )}
       </div>
-
-      {/* Spin keyframes */}
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }

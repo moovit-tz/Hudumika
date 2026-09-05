@@ -39,7 +39,7 @@ export async function superAdminKybRoutes(fastify: FastifyInstance) {
     return reply.send(bytes);
   });
 
-  fastify.post('/kyb/:id/approve', async (req, reply) => {
+  fastify.post('/kyb/:id/approve', { config: { rateLimit: { max: 20, timeWindow: '1 minute' } } }, async (req, reply) => {
     const { id } = req.params as { id: string };
     const superAdmin = req.user;
     const submission = await dbPlatform.updateTable('ondi_org_kyb')
@@ -53,7 +53,7 @@ export async function superAdminKybRoutes(fastify: FastifyInstance) {
     return { success: true };
   });
 
-  fastify.post('/kyb/:id/reject', async (req, reply) => {
+  fastify.post('/kyb/:id/reject', { config: { rateLimit: { max: 20, timeWindow: '1 minute' } } }, async (req, reply) => {
     const { id } = req.params as { id: string };
     const superAdmin = req.user;
     const { reason } = z.object({ reason: z.string().trim().min(1).max(500) }).parse(req.body);

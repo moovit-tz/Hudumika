@@ -3,12 +3,13 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import crypto from 'crypto';
 import { withTenant } from '../db/client.js';
+import { sql } from 'kysely';
 import { requireRole } from '../middleware/rbac.js';
 import { MailService } from '../services/mail.service.js';
 import { emitDomainEvent, emitDomainEventStandalone } from '../services/domain-events.service.js';
 import { HolidaysService } from '../services/holidays.service.js';
 import { workingDaysBetween } from '../services/holiday-calendar.service.js';
-import { checkRequest as checkLeaveRequest, splitPayDays, computeBalances as computeLeaveBalances } from '../services/leave-entitlement.service.js';
+import { checkRequest as checkLeaveRequest, checkRequestInTx, splitPayDays, computeBalances as computeLeaveBalances } from '../services/leave-entitlement.service.js';
 import { env } from '../config/env.js';
 import { settleEntry, MIN_SHIFT_MINUTES } from '../services/time-entry.service.js';
 import { callAI } from './ai.routes.js';
@@ -441,6 +442,11 @@ export async function hrRoutes(fastify: FastifyInstance) {
   fastify.get('/shift-assignments', async (req) => {
     const user = req.user;
     const q = req.query as any;
+    // The frontend's roster view is already MGMT-only (RequireRoles on
+    // /nexushr/devices and the shifts screens) — a non-privileged caller
+    // hitting the API directly is locked to their own assignments to match
+    // that same intent, rather than being able to browse everyone's roster.
+    if (!HR_VIEWER_ROLES.includes(user.role)) q.user_id = user.sub;
     return withTenant(user.tenant_id, async (trx) => {
       let query = trx.selectFrom('hr_shift_assignments as sa')
         .innerJoin('users as u', 'u.id', 'sa.user_id')
@@ -451,6 +457,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
           's.name as shift_name', 's.start_time', 's.end_time', 's.color',
         ])
         .where('sa.tenant_id', '=', user.tenant_id);
+      if (q.user_id) query = query.where('sa.user_id', '=', q.user_id);
       if (q.from) query = query.where('sa.date', '>=', q.from);
       if (q.to)   query = query.where('sa.date', '<=', q.to);
       return query.orderBy('sa.date').execute();
@@ -495,6 +502,10 @@ export async function hrRoutes(fastify: FastifyInstance) {
   fastify.get('/attendance', async (req) => {
     const user = req.user;
     const q = req.query as any;
+    // Same fix as /leaves and /shift-assignments — omitting user_id used to
+    // return every employee's daily clock-in/out times to any authenticated
+    // tenant member, bypassing the frontend's MGMT-only gate on this screen.
+    if (!HR_VIEWER_ROLES.includes(user.role)) q.user_id = user.sub;
     return withTenant(user.tenant_id, async (trx) => {
       let query = trx.selectFrom('hr_attendance as a')
         .innerJoin('users as u', 'u.id', 'a.user_id')
@@ -687,6 +698,14 @@ export async function hrRoutes(fastify: FastifyInstance) {
     const user = req.user;
     const body = req.body as any || {};
     return withTenant(user.tenant_id, async (trx) => {
+      // Advisory lock serializes concurrent clock-in attempts from the same
+      // person (e.g. a double-tap, two open tabs) so the check below and the
+      // insert that follows can't both see "no active session" — migration
+      // 394's unique partial index is the actual backstop if this is ever
+      // bypassed, but that would surface as a raw constraint-violation
+      // error rather than this clean message.
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${user.tenant_id}), hashtext(${'clock-in:' + user.sub}))`.execute(trx);
+
       const existing = await trx.selectFrom('hr_clock_sessions')
         .selectAll()
         .where('tenant_id', '=', user.tenant_id)
@@ -1265,6 +1284,11 @@ export async function hrRoutes(fastify: FastifyInstance) {
   fastify.get('/leaves', async (req) => {
     const user = req.user;
     const q = req.query as any;
+    // Omitting user_id used to return every employee's leave requests —
+    // including the free-text `reason`, often medical/personal — to any
+    // authenticated tenant member. A non-privileged caller is now locked to
+    // their own records regardless of what user_id they pass.
+    if (!HR_VIEWER_ROLES.includes(user.role)) q.user_id = user.sub;
     return withTenant(user.tenant_id, async (trx) => {
       let query = trx.selectFrom('hr_leaves as l')
         .innerJoin('users as u', 'u.id', 'l.user_id')
@@ -1405,7 +1429,27 @@ export async function hrRoutes(fastify: FastifyInstance) {
         type.full_pay_days === null || type.full_pay_days === undefined ? null : Number(type.full_pay_days));
     }
 
-    const created = await withTenant(user.tenant_id, async (trx) => {
+    const result = await withTenant(user.tenant_id, async (trx) => {
+      if (leaveTypeId) {
+        // The check above ran in its own, already-closed transaction — a
+        // second request for the same person/leave-type submitted in the
+        // gap between that check and this insert could read the exact same
+        // "balance sufficient" answer and also proceed, together exceeding
+        // the entitlement. The advisory lock (transaction-scoped, released
+        // automatically at commit/rollback) serializes concurrent requests
+        // for the same (tenant, person, leave type) so the second one to
+        // reach here blocks until the first commits, then re-checks against
+        // a balance that now reflects the first request's inserted row.
+        await sql`SELECT pg_advisory_xact_lock(hashtext(${user.tenant_id}), hashtext(${subjectId + ':' + leaveTypeId}))`.execute(trx);
+        const recheck = await checkRequestInTx(trx, user.tenant_id, subjectId, leaveTypeId, days);
+        if (!recheck.ok) {
+          // A tagged return rather than a thrown Error, so the response
+          // shape (error/balance/requested_days/excluded_days) matches the
+          // pre-check's 409 exactly — Fastify's default error handler does
+          // not serialize custom properties on a thrown Error.
+          return { ok: false as const, reason: recheck.reason, balance: recheck.balance };
+        }
+      }
       const row = await trx.insertInto('hr_leaves').values({
         tenant_id: user.tenant_id,
         user_id: subjectId,
@@ -1431,8 +1475,17 @@ export async function hrRoutes(fastify: FastifyInstance) {
       // The days that were not counted, and why. A request for "20th to 24th"
       // coming back as 3 days needs to say which two were free, or it reads as
       // a mistake.
-      return { ...row, excluded_days: excluded };
+      return { ok: true as const, ...row, excluded_days: excluded };
     });
+
+    if (!result.ok) {
+      return reply.status(409).send({
+        error: result.reason,
+        balance: result.balance,
+        requested_days: days,
+        excluded_days: excluded,
+      });
+    }
 
     // Computed after the transaction commits, not inside it. computeBalances
     // reads through `db` rather than the open transaction, so calling it from
@@ -1442,7 +1495,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
     const balanceAfter = leaveTypeId
       ? (await computeLeaveBalances(user.tenant_id, subjectId)).find(b => b.leave_type_id === leaveTypeId)
       : undefined;
-    return { ...created, balance_after: balanceAfter };
+    return { ...result, balance_after: balanceAfter };
   });
 
   fastify.patch('/leaves/:id/status', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN', 'SENIOR') }, async (req) => {
@@ -1495,7 +1548,12 @@ export async function hrRoutes(fastify: FastifyInstance) {
 
   // ── Payroll ───────────────────────────────────────────────────
 
-  fastify.get('/payroll', async (req) => {
+  // Legacy payroll table — dead in the current UI (PayrollPage reads
+  // /v1/payroll/runs, the real tax-engine, not this) but still live and
+  // reachable on the API surface, and until now readable by anyone
+  // authenticated in the tenant: every employee's basic_pay/allowances/
+  // deductions in one call, with no role check at all.
+  fastify.get('/payroll', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN', 'FINANCE') }, async (req) => {
     const user = req.user;
     const q = req.query as any;
     return withTenant(user.tenant_id, async (trx) => {
@@ -1741,9 +1799,16 @@ export async function hrRoutes(fastify: FastifyInstance) {
     const { id } = req.params as any;
     const b = (req.body as any) || {};
     const VALID_STAGES = ['APPLIED', 'SCREENING', 'INTERVIEW', 'OFFER', 'HIRED', 'REJECTED'];
+    // Same role enum POST /invitations already requires a human to choose —
+    // never auto-derived from the job opening's free-text title/department,
+    // which has no reliable mapping onto a real system role.
+    const HIRE_ROLES = ['ADMIN', 'MANAGER', 'FINANCE', 'SALES', 'SENIOR', 'JUNIOR', 'TENANT_ADMIN', 'OFFICER'] as const;
     const patch: Record<string, unknown> = { updated_at: new Date() };
     if (b.stage !== undefined) {
       if (!VALID_STAGES.includes(b.stage)) return reply.status(400).send({ error: 'invalid stage' });
+      if (b.stage === 'HIRED' && !HIRE_ROLES.includes(b.role)) {
+        return reply.status(400).send({ error: `Marking a candidate hired needs a role to invite them with: ${HIRE_ROLES.join(', ')}.` });
+      }
       patch.stage = b.stage;
     }
     if (b.rating !== undefined) {
@@ -1755,10 +1820,53 @@ export async function hrRoutes(fastify: FastifyInstance) {
       if (b[k] !== undefined) patch[k] = b[k] || null;
     }
     return withTenant(user.tenant_id, async (trx) => {
+      const before = await trx.selectFrom('hr_candidates').select(['stage', 'email', 'name'])
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!before) return reply.status(404).send({ error: 'Candidate not found' });
+
       const updated = await trx.updateTable('hr_candidates').set(patch as any)
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
         .returningAll().executeTakeFirst();
       if (!updated) return reply.status(404).send({ error: 'Candidate not found' });
+
+      // Marking a candidate HIRED used to only flip this column — nothing
+      // ever created the account/invitation that would actually bring them
+      // onboard, so the checklist-onboarding subscriber (fires on
+      // 'user.joined', see subscribers/*.ts) never ran and "Hired" in
+      // recruitment meant nothing to the rest of the platform. Fires only on
+      // an actual transition INTO hired (before.stage !== 'HIRED'), so
+      // re-saving an already-hired candidate never sends a second invite —
+      // and only when the email isn't already invited or an active account,
+      // since either means onboarding is already underway.
+      if (patch.stage === 'HIRED' && before.stage !== 'HIRED' && before.email) {
+        const email = before.email;
+        const alreadyInvited = await trx.selectFrom('hr_invitations').select('id')
+          .where('tenant_id', '=', user.tenant_id).where('email', '=', email).where('status', '=', 'PENDING')
+          .executeTakeFirst();
+        const alreadyStaff = await trx.selectFrom('users').select('id')
+          .where('tenant_id', '=', user.tenant_id).where('email', '=', email)
+          .executeTakeFirst();
+        if (!alreadyInvited && !alreadyStaff) {
+          const token = crypto.randomBytes(24).toString('hex');
+          const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+          const invite = await trx.insertInto('hr_invitations').values({
+            tenant_id: user.tenant_id, email, role: b.role,
+            token, invited_by: user.sub, expires_at: expiresAt,
+          }).returningAll().executeTakeFirstOrThrow();
+
+          const acceptUrl = `${env.OPS_BOARD_URL}/accept-invite?token=${token}`;
+          await MailService.enqueueTemplated(user.tenant_id, 'hr.staff_invitation', email, { role: b.role, acceptUrl }, 'hr')
+            .catch(() => { /* invite row exists regardless; resend is available */ });
+
+          await logActivity(trx, user.tenant_id, user.sub, `Hired ${before.name} — invited as ${b.role}`);
+          await emitDomainEvent(trx, user.tenant_id, {
+            type: 'hr.staff_invited', sourceApp: 'workspace', entityType: 'user', entityId: invite.id,
+            payload: { email, role: b.role, fromCandidateId: id },
+            actorId: user.sub,
+          }).catch(err => console.error('[HR] staff_invited emit failed:', err?.message));
+        }
+      }
+
       return updated;
     });
   });
@@ -2314,9 +2422,19 @@ export async function hrRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.get('/staff/:id', async (req) => {
+  fastify.get('/staff/:id', async (req, reply) => {
     const user = req.user;
     const { id } = req.params as any;
+    // This is the one place statutory identity/pay fields (basic_salary,
+    // bank_account_no, national_id, etc.) leave the DB — every sub-resource
+    // route below already gates on mayViewStaffRecord (self or HR_VIEWER_ROLES),
+    // but this original, most sensitive endpoint never got the same check,
+    // leaving any authenticated tenant member able to read a colleague's
+    // exact salary and banking details by id.
+    if (!mayViewStaffRecord(req, id)) {
+      reply.status(403);
+      return { error: 'Not authorized to view this staff record.' };
+    }
     return withTenant(user.tenant_id, async (trx) => {
       const staff = await trx.selectFrom('users')
         // Same omission as the staff list had: without avatar_url the profile

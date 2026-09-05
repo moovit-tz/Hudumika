@@ -4287,13 +4287,12 @@ export const LandedCostPage: React.FC = () => {
 
   return (
     <div className="lcp-page" style={{ flex: 1, overflowY: 'auto' }}>
-      {/* Inline responsive layout rules + spinner keyframe — this page is styled
-          with inline style objects everywhere else, so media queries (which
-          plain style objects can't express) live here instead. */}
+      {/* Inline responsive layout rules — this page is styled with inline
+          style objects everywhere else, so media queries (which plain style
+          objects can't express) live here instead. The spin keyframe used
+          to be duplicated here too; it now lives once, shared, in index.css
+          as @keyframes ds-spin. */}
       <style>{`
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .spin { animation: spin 1.2s linear infinite; }
-
         .lcp-page { padding: 0; }
         /* minmax(0, 1fr), not 1fr: a grid track defaults to min-width:auto, so a wide
            child — the invoice mapper's preview table — stretched the track and the
@@ -5223,7 +5222,7 @@ export const LandedCostPage: React.FC = () => {
 
               {calcLoading && (
                 <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>
-                  <Icon name="sliders" size={32} color="var(--teal)" className="spin" style={{ display: 'block', margin: '0 auto 12px' }} />
+                  <Icon name="sliders" size={32} color="var(--teal)" style={{ display: 'block', margin: '0 auto 12px', animation: 'ds-spin 1.2s linear infinite' }} />
                   Fetching live rates and calculating landed cost…
                 </div>
               )}

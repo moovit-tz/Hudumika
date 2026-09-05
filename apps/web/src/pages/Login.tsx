@@ -176,6 +176,7 @@ export const Login: React.FC = () => {
     setLoading(true);
     try {
       const res = await login(email, password);
+      if ('requires_2fa_setup' in res) { navigate('/2fa-setup-required', { state: { setupToken: res.setup_token } }); return; }
       if ('requires_2fa' in res) { setNeeds2fa(true); return; }
       navigate('/');
     }

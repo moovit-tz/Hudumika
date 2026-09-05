@@ -6,6 +6,7 @@ import type { AgedReport, AgedRow } from '@hudumika/types';
 import { PageHeader } from '../components/PageHeader.js';
 import { MetricsRow } from '../components/MetricCard.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { Button } from '../components/ui/button.js';
 
 export const FinanceAgedPayables: React.FC = () => {
   const co = useCompany();
@@ -59,9 +60,9 @@ export const FinanceAgedPayables: React.FC = () => {
         titleEm="payables"
         subtitle={`Outstanding supplier balances by age${asOf ? ` — as of ${asOf}` : ''}`}
         actions={
-          <button type="button" onClick={exportCsv} className="btn btn-secondary btn-sm" style={{ gap: 6 }}>
+          <Button type="button" variant="outline" size="sm" onClick={exportCsv}>
             <Icon name="download" size={13} /> Export
-          </button>
+          </Button>
         }
       />
 

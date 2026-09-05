@@ -15,6 +15,7 @@ import { WorkspaceProvider } from './contexts/WorkspaceContext.js';
 import { Icon, type IconName } from './components/Icon.js';
 import { SkeletonPage } from './components/ui/skeleton.js';
 import { Login }           from './pages/Login.js';
+import { TwoFaSetupRequired } from './pages/TwoFaSetupRequired.js';
 import { OndiLogin }       from './pages/OndiLogin.js';
 import { MaintenancePage } from './pages/MaintenancePage.js';
 import { OnboardingWizard } from './pages/onboarding/OnboardingWizard.js';
@@ -381,6 +382,7 @@ const AppContentBody: React.FC = () => {
           that link loop back to Ondi instead of ever reaching the password
           page — caught by testing the link, not just the default view. */}
       <Route path="/login"                element={<Login />} />
+      <Route path="/2fa-setup-required"   element={<TwoFaSetupRequired />} />
       {/* Same gap, different link: ForgotPassword/AcceptInvite/ResetPassword
           all point back to /auth/login (not /login) after a password reset
           or invite acceptance. That path had no route of its own either, so

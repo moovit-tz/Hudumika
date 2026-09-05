@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import crypto from 'crypto';
 import { dbPlatform } from '../db/client.js';
 import { getDeviceProvider } from '../lib/device-providers/index.js';
 import { recordDevicePunches } from '../services/attendance-device.service.js';
@@ -31,7 +32,15 @@ export async function deviceIngestRoutes(fastify: FastifyInstance) {
     if (!sn || !token) return null;
     const device = await dbPlatform.selectFrom('attendance_devices').selectAll()
       .where('serial_number', '=', sn).executeTakeFirst();
-    if (!device || device.push_token !== token) return null;
+    if (!device || !device.push_token) return null;
+    // Constant-time compare — a plain !== leaks how many leading bytes of
+    // the real token a guess matched via response-time, the same class of
+    // bug password/API-key comparisons in this codebase are already careful
+    // about. Buffers of different length can never be equal, checked first
+    // since timingSafeEqual throws rather than returning false for that case.
+    const a = Buffer.from(device.push_token);
+    const b = Buffer.from(token);
+    if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
     return device;
   }
 

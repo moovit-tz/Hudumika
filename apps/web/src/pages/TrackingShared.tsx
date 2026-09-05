@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
+import { Spinner } from '../components/ui/spinner.js';
 
 const BRAND = '#0b1e3a';
 const NAVY  = '#0e1f3d';
@@ -91,9 +92,8 @@ export const TrackingShared: React.FC = () => {
 
         {loading && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 0', gap: 16 }}>
-            <div style={{ width: 36, height: 36, border: `3px solid #e2e8f0`, borderTopColor: BRAND, borderRadius: '50%', animation: 'spin .7s linear infinite' }} />
+            <Spinner size={36} thickness={3} color={BRAND} trackColor="#e2e8f0" />
             <div style={{ fontSize: 13, color: 'var(--ink3)' }}>Loading tracking information…</div>
-            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
           </div>
         )}
 

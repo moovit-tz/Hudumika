@@ -11,6 +11,7 @@ import { MeetingLobby } from './MeetingLobby.js';
 import { GuestMeetingRoom } from './GuestMeetingRoom.js';
 import { Icon } from '../../components/Icon.js';
 import { Button } from '../../components/ui/button.js';
+import { Spinner } from '../../components/ui/spinner.js';
 
 interface PublicMeeting {
   id: string; title: string; kind: 'VIDEO' | 'VOICE'; status: string;
@@ -128,8 +129,7 @@ export function GuestMeetingJoin() {
             </>
           ) : (
             <>
-              <div style={{ width: 48, height: 48, borderRadius: '50%', border: '3px solid #1f2937', borderTopColor: '#10b981', margin: '0 auto', animation: 'spin 1s linear infinite' }} />
-              <style>{'@keyframes spin { to { transform: rotate(360deg); } }'}</style>
+              <Spinner size={48} thickness={3} color="#10b981" trackColor="#1f2937" style={{ margin: '0 auto' }} />
               <div style={{ fontSize: 15, fontWeight: 700, color: '#f9fafb', marginTop: 16 }}>Waiting for the host to let you in…</div>
               <div style={{ fontSize: 12.5, color: '#9ca3af', marginTop: 6 }}>{meeting.title}</div>
             </>

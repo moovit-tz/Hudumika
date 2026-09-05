@@ -487,7 +487,16 @@ export function RolesPage() {
     try {
       await apiFetch('/v1/permissions', { method: 'PATCH', body: JSON.stringify({ permissions: perms }) });
       setDirty(false);
-    } catch { /* ignore */ }
+    } catch (err: any) {
+      // PATCH /v1/permissions has always 410'd — this grid was never wired
+      // to any real enforcement (see permissions.routes.ts's own comment).
+      // Toggling a checkbox here used to look like it worked (no error, the
+      // switch just stayed on screen) while nothing was ever actually
+      // saved, which is worse than telling the person plainly.
+      showAlert(err?.message || 'This permission grid is not connected to enforcement — use Ondi ▸ Roles & Access to manage real role permissions.', {
+        title: 'Not saved', variant: 'warning',
+      });
+    }
     finally { setSaving(false); }
   }
 
@@ -512,6 +521,11 @@ export function RolesPage() {
           )}
         </div>
       </PageHeader>
+
+      <div style={{ display:'flex', alignItems:'center', gap:8, fontSize:12.5, color:'var(--gold)', background:'var(--gold-l)', border:'1px solid var(--gold)', borderRadius:8, padding:'8px 12px', margin:'0 0 16px' }}>
+        <Icon name="alertTriangle" size={13} />
+        <span>This grid is not connected to any enforcement — toggling a switch here has no effect. Manage real role permissions from <Link to="/ondi/roles" style={{ color:'var(--gold)', fontWeight:700, textDecoration:'underline' }}>Ondi ▸ Roles &amp; Access</Link>.</span>
+      </div>
 
       {view === 'matrix' ? (
         <>

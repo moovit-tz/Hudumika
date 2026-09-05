@@ -53,7 +53,7 @@ function reportClientHints(): void {
 interface AuthContextType {
   user: SafeUser | null;
   isImpersonating: boolean;
-  login: (email: string, password: string, totp?: string) => Promise<SafeUser | { requires_2fa: true }>;
+  login: (email: string, password: string, totp?: string) => Promise<SafeUser | { requires_2fa: true } | { requires_2fa_setup: true; setup_token: string }>;
   requestOtpLogin: (phone: string) => Promise<{ success: boolean; message: string }>;
   requestMagicLink: (email: string) => Promise<{ ok: boolean; message: string }>;
   verifyOtpLogin: (phone: string, code: string) => Promise<SafeUser>;
@@ -181,6 +181,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       body: JSON.stringify({ email, password, ...(totp ? { totp } : {}) }),
     });
     if (res.requires_2fa) return { requires_2fa: true as const };
+    // SuperAdmin ▸ Settings ▸ Security & Sessions' "Required" 2FA policy —
+    // the account authenticated correctly but has no authenticator enrolled
+    // yet, so the server withheld a real session and handed back only a
+    // narrow setup token instead (see TwoFaSetupRequired.tsx, the only
+    // place this token is ever used).
+    if (res.requires_2fa_setup) return { requires_2fa_setup: true as const, setup_token: res.setup_token as string };
     return completeLogin(res);
   };
 

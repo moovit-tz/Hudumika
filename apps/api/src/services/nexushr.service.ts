@@ -205,13 +205,20 @@ export class NexusHRService {
       const endDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
       const periodEnd = `${year}-${String(month).padStart(2, '0')}-${endDay}`;
 
-      const payroll = await trx.selectFrom('hr_payroll as p')
+      // hr_payroll is a legacy, effectively abandoned table (1 stale row
+      // platform-wide) — real payroll has run through payroll_runs/
+      // payroll_payslips for a while, so this report was comparing contracts
+      // against data nobody's actual payroll process writes to any more,
+      // misreporting every correctly-paid employee as unpaid or as having
+      // no payroll record at all.
+      const payroll = await trx.selectFrom('payroll_payslips as p')
+        .innerJoin('payroll_runs as r', 'r.id', 'p.run_id')
         .innerJoin('users as u', 'u.id', 'p.user_id')
-        .select(['p.id as payroll_id', 'p.user_id', 'p.basic_pay', 'p.allowances', 'p.deductions',
-                 'p.status', 'u.name', 'u.email'])
+        .select(['p.id as payroll_id', 'p.user_id', 'p.basic_pay',
+                 'r.status', 'u.name', 'u.email'])
         .where('p.tenant_id', '=', tenantId)
-        .where('p.period_month', '=', month)
-        .where('p.period_year', '=', year)
+        .where('r.period_month', '=', month)
+        .where('r.period_year', '=', year)
         .execute();
 
       // Contract salary in force during the period. There is no bridge to cross

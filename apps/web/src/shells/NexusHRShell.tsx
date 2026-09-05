@@ -29,6 +29,7 @@ import { Surveys } from '../pages/Surveys.js';
 import { CaseManagement } from '../pages/CaseManagement.js';
 import { HrChecklists } from '../pages/HrChecklists.js';
 import { HrBenefits } from '../pages/HrBenefits.js';
+import { OndiGroups } from '../pages/OndiGroups.js';
 // Calls (1:1 + group meetings) moved to Bliss, matching Team Chat's own
 // precedent — see BlissShell.tsx. The nav item below now just links out.
 import {
@@ -49,6 +50,12 @@ const PLATFORM_PATHS = new Set([
   '/nexushr/platform-devices',
 ]);
 
+// Groups (moved from Ondi — see OndiShell.tsx's redirect) kept its original,
+// narrower gate: SUPER_ADMIN/ADMIN/TENANT_ADMIN plus an explicit
+// groups.manage permission override, not the broader MGMT_ROLES (which also
+// includes MANAGER) most other routes in this shell use.
+const ADMIN_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'] as const;
+
 function buildNav(isSuperAdmin: boolean): SidebarSection[] {
   const sections: SidebarSection[] = [
   {
@@ -66,6 +73,7 @@ function buildNav(isSuperAdmin: boolean): SidebarSection[] {
       { label: 'Departments',     icon: 'building', path: '/nexushr/departments'     },
       { label: 'Designations',    icon: 'award',    path: '/nexushr/designations'    },
       { label: 'Teams',           icon: 'users',    path: '/nexushr/teams'           },
+      { label: 'Groups',          icon: 'users',    path: '/nexushr/groups'          },
       { label: 'Org Chart',       icon: 'layers',   path: '/nexushr/org-chart'       },
       { label: 'Employment',      icon: 'fileText', path: '/nexushr/employment'      },
       { label: 'Recruitment',     icon: 'userPlus', path: '/nexushr/recruitment'     },
@@ -201,6 +209,9 @@ export function NexusHRShell() {
               <Route path="benefits"          element={<HrBenefits />} />
               <Route path="departments"       element={<RequireRoles roles={MGMT_ROLES}><DepartmentsPage /></RequireRoles>} />
               <Route path="teams"             element={<RequireRoles roles={MGMT_ROLES}><TeamsPage /></RequireRoles>} />
+              {/* Moved from Ondi (/ondi/groups, which now redirects here) —
+                  grouping staff is a people-management task. */}
+              <Route path="groups"            element={<RequireRoles roles={[...ADMIN_ROLES]} permissions={['groups.manage']}><OndiGroups /></RequireRoles>} />
               {/* Invitations/Login History/Devices moved to Ondi Business (same
                   underlying records) — these three routes stay only as
                   redirects so old links/bookmarks still land somewhere real. */}

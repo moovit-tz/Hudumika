@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { issueTokens, durationSeconds } from '../services/token.service.js';
+import { issueTokens, issueTwoFaSetupToken, durationSeconds } from '../services/token.service.js';
 import crypto from 'crypto';
 import { withTenant, dbPlatform } from '../db/client.js';
 import { hashPassword, verifyPassword, needsRehash } from '../lib/password.js';
@@ -13,6 +13,7 @@ import { COOKIE_NAMES, setSessionCookies, clearSessionCookies, setSuperCookies, 
 import { verifyCsrf } from '../middleware/csrf.js';
 import { recordAuthEvent } from '../lib/audit-chain.js';
 import { emitDomainEvent } from '../services/domain-events.service.js';
+import { getPlatformSecuritySettings, ipMatchesAllowlist } from '../lib/platform-settings.js';
 import type { LoginInput, CustomerOTPInput, CustomerVerifyInput, SafeUser, JWTPayload, OrgLoginInput, SafeOrgUser } from '@hudumika/types';
 
 // Simple in-memory storage for customer OTPs in dev
@@ -59,6 +60,36 @@ const changeEmailSchema = z.object({
   current_password: z.string().min(1).max(200),
   new_email: z.string().trim().email().max(320),
 });
+
+/**
+ * SuperAdmin ▸ Settings ▸ Security & Sessions' maxLoginAttempts/lockoutMinutes
+ * — saved for a long time, read by nothing. Counts FAILED hr_login_history
+ * rows since this account's last SUCCESS; once that count reaches the
+ * configured threshold, login is refused (regardless of whether the
+ * password submitted this time is actually correct — checked before
+ * verifyPassword() runs, so a correct password during lockout gets the same
+ * "too many attempts" response as a wrong one, and the expensive PBKDF2
+ * comparison never runs while locked) until lockoutMinutes have passed since
+ * the most recent failure. maxLoginAttempts = 0 (the untouched default)
+ * disables this entirely.
+ */
+async function checkLoginLockout(tenantId: string, userId: string): Promise<{ locked: boolean; retryAfterMinutes?: number }> {
+  const { maxLoginAttempts, lockoutMinutes } = await getPlatformSecuritySettings();
+  if (maxLoginAttempts <= 0) return { locked: false };
+  return withTenant(tenantId, async (trx) => {
+    const lastSuccess = await trx.selectFrom('hr_login_history').select('created_at')
+      .where('tenant_id', '=', tenantId).where('user_id', '=', userId).where('status', '=', 'SUCCESS')
+      .orderBy('created_at', 'desc').executeTakeFirst();
+    let q = trx.selectFrom('hr_login_history').select('created_at')
+      .where('tenant_id', '=', tenantId).where('user_id', '=', userId).where('status', '=', 'FAILED');
+    if (lastSuccess) q = q.where('created_at', '>', lastSuccess.created_at);
+    const recentFailures = await q.orderBy('created_at', 'desc').limit(maxLoginAttempts).execute();
+    if (recentFailures.length < maxLoginAttempts) return { locked: false };
+    const lockedUntilMs = new Date(recentFailures[0].created_at).getTime() + lockoutMinutes * 60_000;
+    if (Date.now() >= lockedUntilMs) return { locked: false };
+    return { locked: true, retryAfterMinutes: Math.max(1, Math.ceil((lockedUntilMs - Date.now()) / 60_000)) };
+  });
+}
 
 function parseDevice(userAgent: string): { label: string; type: string } {
   const ua = userAgent || '';
@@ -199,6 +230,30 @@ export async function authRoutes(fastify: FastifyInstance) {
       return reply.status(401).send({ error: 'Invalid email or password' });
     }
 
+    const ip = request.ip;
+    const userAgent = String(request.headers['user-agent'] || '');
+
+    // SuperAdmin ▸ Settings ▸ Security & Sessions' IP allowlist, checked here
+    // too (not just per-request in middleware/auth.ts) so a disallowed IP is
+    // refused outright instead of being handed a token it can never actually
+    // use. SUPER_ADMIN exempt, same reasoning as the per-request gate.
+    if (user.role !== 'SUPER_ADMIN') {
+      const { ipAllowlist } = await getPlatformSecuritySettings();
+      if (ipAllowlist.length > 0 && !ipMatchesAllowlist(ip, ipAllowlist)) {
+        await recordLogin(user.tenant_id, user.id, 'FAILED', ip, userAgent);
+        return reply.status(403).send({ error: 'Access from this network is not permitted.', code: 'IP_NOT_ALLOWED' });
+      }
+    }
+
+    const lockout = await checkLoginLockout(user.tenant_id, user.id);
+    if (lockout.locked) {
+      return reply.status(429).send({
+        error: `Too many failed attempts. Try again in ${lockout.retryAfterMinutes} minute(s).`,
+        code: 'ACCOUNT_LOCKED',
+        retry_after_minutes: lockout.retryAfterMinutes,
+      });
+    }
+
     /**
      * Seeded throwaway accounts must not be usable in production.
      *
@@ -213,20 +268,33 @@ export async function authRoutes(fastify: FastifyInstance) {
      * makes it safe to refuse outright: no real customer can ever hold one.
      */
     if (env.APP_ENV === 'production' && /@hudumika\.test$/i.test(user.email)) {
-      await recordLogin(user.tenant_id, user.id, 'FAILED', request.ip, String(request.headers['user-agent'] || ''));
+      await recordLogin(user.tenant_id, user.id, 'FAILED', ip, userAgent);
       return reply.status(403).send({
         error: 'This is a seeded test account and cannot be used in production.',
       });
     }
-
-    const ip = request.ip;
-    const userAgent = String(request.headers['user-agent'] || '');
 
     // Node-native crypto check for security without external binary packages
     const isMatch = verifyPassword(password, user.password_hash);
     if (!isMatch) {
       await recordLogin(user.tenant_id, user.id, 'FAILED', ip, userAgent);
       return reply.status(401).send({ error: 'Invalid email or password' });
+    }
+
+    // A suspended tenant's staff must not be able to sign in at all — checked
+    // here (after password match, so an invalid password still just says
+    // "Invalid email or password" rather than confirming the account exists
+    // and revealing the tenant's suspended status) and again on every
+    // subsequent request by middleware/auth.ts's authenticate() decorator,
+    // which is what actually stops an already-issued token from continuing
+    // to work after suspension. SUPER_ADMIN is exempt, same bypass as every
+    // other platform-wide gate in that decorator.
+    if (user.role !== 'SUPER_ADMIN') {
+      const tenant = await dbPlatform.selectFrom('tenants').select('active').where('id', '=', user.tenant_id).executeTakeFirst();
+      if (tenant && tenant.active === false) {
+        await recordLogin(user.tenant_id, user.id, 'FAILED', ip, userAgent);
+        return reply.status(403).send({ error: "This organization's account has been suspended. Contact Hudumika support.", code: 'TENANT_SUSPENDED' });
+      }
     }
 
     // Transparent rehash-on-login: the password is already known-good (it
@@ -252,6 +320,23 @@ export async function authRoutes(fastify: FastifyInstance) {
         await recordLogin(user.tenant_id, user.id, 'FAILED', ip, userAgent);
         return reply.status(401).send({ error: 'Invalid authentication code' });
       }
+    } else if (user.role !== 'SUPER_ADMIN' && (await getPlatformSecuritySettings()).twoFaPolicy === 'required') {
+      // SuperAdmin ▸ Settings ▸ Security & Sessions' "Required" 2FA policy —
+      // the account has correctly authenticated with a password but has no
+      // authenticator set up yet. Rather than refuse login outright (which
+      // would need its own escape hatch to ever complete setup) or silently
+      // issue a full session anyway (which would make "Required" a lie), a
+      // real session is withheld and a narrow, 15-minute setup-only token is
+      // issued instead — accepted by nothing except the 2FA setup/verify
+      // routes (see middleware/auth.ts's TWOFA_SETUP_ALLOWED_ROUTES).
+      const setupToken = issueTwoFaSetupToken(fastify, {
+        sub: user.id, tenant_id: user.tenant_id, role: user.role, email: user.email, name: user.name,
+      });
+      return reply.status(200).send({
+        requires_2fa_setup: true,
+        setup_token: setupToken,
+        message: 'Your organization requires two-factor authentication. Set up an authenticator app to continue.',
+      });
     }
 
     const deviceId = await recordLogin(user.tenant_id, user.id, 'SUCCESS', ip, userAgent);

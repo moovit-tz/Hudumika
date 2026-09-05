@@ -35,6 +35,12 @@ import type { SafeUser, JWTPayload } from '@hudumika/types';
  * (Africa's Talking/Twilio) — Ondi is meant to become the platform's real
  * front door, not another simulated one.
  */
+// ioredis reconnects on its own retry strategy after a transient error —
+// this used to call .disconnect() (which cancels that strategy) and null
+// the reference on the very first error, so a momentary Redis blip left
+// every route below permanently 503ing until the process restarted, even
+// once Redis was healthy again. Keeping the instance and gating on
+// `.status` instead lets it recover on its own.
 let redisClient: Redis | null = null;
 try {
   redisClient = new Redis(env.REDIS_URL, {
@@ -42,13 +48,11 @@ try {
     connectTimeout: 1500,
     enableOfflineQueue: false,
   });
-  redisClient.on('error', () => {
-    try { redisClient?.disconnect(); } catch { /* already gone */ }
-    redisClient = null;
-  });
+  redisClient.on('error', () => { /* ioredis logs and retries internally; an unhandled listener would crash the process */ });
 } catch {
   redisClient = null;
 }
+function redisReady(client: Redis | null): client is Redis { return !!client && client.status === 'ready'; }
 
 const otpRequestSchema = z.object({ phone: z.string().trim().min(5).max(30) });
 const otpVerifySchema = z.object({ phone: z.string().trim().min(5).max(30), code: z.string().trim().length(6) });
@@ -189,7 +193,7 @@ export async function ondiAuthRoutes(fastify: FastifyInstance) {
   fastify.post('/otp/request', { config: { rateLimit: { max: 5, timeWindow: '1 minute' } } }, async (request, reply) => {
     const { phone } = otpRequestSchema.parse(request.body);
 
-    if (!redisClient) {
+    if (!redisReady(redisClient)) {
       return reply.status(503).send({ error: 'OTP login is temporarily unavailable. Try again shortly.' });
     }
 
@@ -197,8 +201,14 @@ export async function ondiAuthRoutes(fastify: FastifyInstance) {
     // /login's email lookup and /customer-otp's phone_wa lookup.
     const user = await dbPlatform.selectFrom('users').selectAll()
       .where('phone', '=', phone).where('active', '=', true).executeTakeFirst();
+
+    // Enumeration-safe: this used to 404 for an unmatched phone number,
+    // telling an unauthenticated caller whether a number is registered.
+    // /magic-link/request already gets this right with a generic response
+    // sent regardless of match — mirror it here rather than leaving OTP as
+    // the odd one out.
     if (!user) {
-      return reply.status(404).send({ error: 'No active account found for this phone number.' });
+      return { success: true, message: 'If that number is registered, a sign-in code was sent by SMS.' };
     }
 
     const code = crypto.randomInt(100000, 1000000).toString();
@@ -217,7 +227,7 @@ export async function ondiAuthRoutes(fastify: FastifyInstance) {
     await recordAuthEvent(user.tenant_id, user.id, 'otp_issued', {
       ip: request.ip, userAgent: String(request.headers['user-agent'] || ''),
     });
-    return { success: true, message: 'A sign-in code was sent by SMS.' };
+    return { success: true, message: 'If that number is registered, a sign-in code was sent by SMS.' };
   });
 
   /**
@@ -227,14 +237,17 @@ export async function ondiAuthRoutes(fastify: FastifyInstance) {
   fastify.post('/otp/verify', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (request, reply) => {
     const { phone, code } = otpVerifySchema.parse(request.body);
 
-    if (!redisClient) {
+    if (!redisReady(redisClient)) {
       return reply.status(503).send({ error: 'OTP login is temporarily unavailable. Try again shortly.' });
     }
 
     const user = await dbPlatform.selectFrom('users').selectAll()
       .where('phone', '=', phone).where('active', '=', true).executeTakeFirst();
+    // Enumeration-safe, same reasoning as /otp/request above: an unmatched
+    // phone number gets the exact response a wrong code would ("Invalid or
+    // expired code"), not a distinct "no such account" one.
     if (!user) {
-      return reply.status(404).send({ error: 'No active account found for this phone number.' });
+      return reply.status(401).send({ error: 'Invalid or expired code.' });
     }
 
     const ip = request.ip;
@@ -305,7 +318,7 @@ export async function ondiAuthRoutes(fastify: FastifyInstance) {
   fastify.post('/magic-link/request', { config: { rateLimit: { max: 5, timeWindow: '1 minute' } } }, async (request, reply) => {
     const { email } = magicLinkRequestSchema.parse(request.body);
 
-    if (!redisClient) {
+    if (!redisReady(redisClient)) {
       return reply.status(503).send({ error: 'Sign-in links are temporarily unavailable. Try again shortly.' });
     }
 
@@ -343,7 +356,7 @@ export async function ondiAuthRoutes(fastify: FastifyInstance) {
   fastify.post('/magic-link/verify', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (request, reply) => {
     const { token, totp } = magicLinkVerifySchema.parse(request.body);
 
-    if (!redisClient) {
+    if (!redisReady(redisClient)) {
       return reply.status(503).send({ error: 'Sign-in links are temporarily unavailable. Try again shortly.' });
     }
 
@@ -397,10 +410,13 @@ export async function ondiAuthRoutes(fastify: FastifyInstance) {
 
     const totpRow = await withTenant(user.tenant_id, trx => trx.selectFrom('user_totp').select(['secret', 'enabled'])
       .where('user_id', '=', user.id).executeTakeFirst());
-    if (!totpRow?.enabled) {
-      return reply.status(400).send({ error: 'This account has not set up an authenticator app.' });
-    }
-    if (!verifyTotp(totpRow.secret, code)) {
+    // Enumeration-safe: this used to 400 with a distinct message for an
+    // account that exists but hasn't set up TOTP, telling an unauthenticated
+    // caller both that the email is registered and which login methods it
+    // hasn't configured. Falling through to the same "Invalid email or code"
+    // 401 as a wrong code collapses that into one response, like the OTP
+    // fixes above.
+    if (!totpRow?.enabled || !verifyTotp(totpRow.secret, code)) {
       await recordLogin(user.tenant_id, user.id, 'FAILED', request.ip, String(request.headers['user-agent'] || ''));
       await recordAuthEvent(user.tenant_id, user.id, 'login_failed', { ip: request.ip, userAgent: String(request.headers['user-agent'] || ''), metadata: { via: 'totp' } });
       return reply.status(401).send({ error: 'Invalid email or code.' });
@@ -418,18 +434,28 @@ export async function ondiAuthRoutes(fastify: FastifyInstance) {
    */
   fastify.post('/passkey/login/options', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (request, reply) => {
     const { email } = passkeyOptionsSchema.parse(request.body);
-    if (!redisClient) {
+    if (!redisReady(redisClient)) {
       return reply.status(503).send({ error: 'Passkey login is temporarily unavailable. Try again shortly.' });
     }
 
+    // Enumeration-safe: a missing account or one with no registered passkey
+    // used to 404/400 with a distinct message, telling an unauthenticated
+    // caller whether an email is registered and whether it has a passkey
+    // configured. Instead, always generate and return options shaped like a
+    // real challenge — with an empty allowCredentials list when there's no
+    // real account/credential to scope to, same as a real account with zero
+    // passkeys would produce — so the HTTP response never varies. The
+    // Redis-stored userId is null in that case, which /passkey/login/verify
+    // already turns into the same generic "Invalid passkey" as any other
+    // failure, since its own user lookup by that id will simply miss.
     const user = await dbPlatform.selectFrom('users').selectAll()
       .where('email', '=', email).where('active', '=', true).executeTakeFirst();
-    if (!user) return reply.status(404).send({ error: 'No active account found for this email.' });
 
-    const creds = await withTenant(user.tenant_id, trx => trx.selectFrom('ondi_credentials')
-      .select(['passkey_credential_id', 'passkey_transports'])
-      .where('user_id', '=', user.id).execute());
-    if (creds.length === 0) return reply.status(400).send({ error: 'No passkey is registered for this account.' });
+    const creds = user
+      ? await withTenant(user.tenant_id, trx => trx.selectFrom('ondi_credentials')
+        .select(['passkey_credential_id', 'passkey_transports'])
+        .where('user_id', '=', user.id).execute())
+      : [];
 
     const options = await generateAuthenticationOptions({
       rpID: webauthnRpID(),
@@ -440,7 +466,7 @@ export async function ondiAuthRoutes(fastify: FastifyInstance) {
       userVerification: 'preferred',
     });
 
-    await redisClient.set(passkeyLoginChallengeKey(email), JSON.stringify({ challenge: options.challenge, userId: user.id }), 'EX', 120);
+    await redisClient.set(passkeyLoginChallengeKey(email), JSON.stringify({ challenge: options.challenge, userId: user?.id ?? null }), 'EX', 120);
     return options;
   });
 
@@ -449,16 +475,21 @@ export async function ondiAuthRoutes(fastify: FastifyInstance) {
    */
   fastify.post('/passkey/login/verify', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (request, reply) => {
     const { email, response } = passkeyVerifySchema.parse(request.body);
-    if (!redisClient) {
+    if (!redisReady(redisClient)) {
       return reply.status(503).send({ error: 'Passkey login is temporarily unavailable. Try again shortly.' });
     }
 
     const raw = await redisClient.get(passkeyLoginChallengeKey(email));
     if (!raw) return reply.status(400).send({ error: 'This passkey sign-in expired. Start again.' });
     await redisClient.del(passkeyLoginChallengeKey(email));
-    const { challenge, userId } = JSON.parse(raw) as { challenge: string; userId: string };
+    const { challenge, userId } = JSON.parse(raw) as { challenge: string; userId: string | null };
 
-    const user = await dbPlatform.selectFrom('users').selectAll().where('id', '=', userId).where('active', '=', true).executeTakeFirst();
+    // userId is null for the enumeration-safe decoy path in /passkey/login/options
+    // (no matching account or no registered passkey) — falls through to the
+    // same generic failure below rather than a special case.
+    const user = userId
+      ? await dbPlatform.selectFrom('users').selectAll().where('id', '=', userId).where('active', '=', true).executeTakeFirst()
+      : undefined;
     if (!user) return reply.status(401).send({ error: 'Invalid passkey.' });
 
     const credRow = await withTenant(user.tenant_id, trx => trx.selectFrom('ondi_credentials').selectAll()

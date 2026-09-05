@@ -169,6 +169,11 @@ export type SafeUser = Omit<User, 'password_hash'> & {
  *  professional→ legacy alias treated as finance
  */
 export type TenantPlan =
+  // Dormant until a SuperAdmin activates it (393_free_tier_and_seat_tiering.sql,
+  // packages.is_active = false) — a genuinely usable $0 entry tier, not just a
+  // trial countdown, aimed at lowering the trust barrier for a first-time,
+  // cash-conscious buyer.
+  | 'free'
   | 'starter'
   | 'growth'
   | 'scale'
@@ -189,6 +194,7 @@ export type TenantPlan =
   | 'onsite-standalone';
 
 export const PLAN_LEVELS: Record<TenantPlan, number> = {
+  free:         0,
   'agency-managed': 0, // grants no tier-gated feature on its own — see TenantPlan's doc comment
   'onsite-standalone': 0, // grants exactly one feature (onsite), not a tier
   starter:      1,
@@ -210,6 +216,7 @@ export function planHas(userPlan: TenantPlan, required: TenantPlan): boolean {
  * Higher plans include all roles from lower plans.
  */
 export const PLAN_ROLES: Record<TenantPlan, UserRole[]> = {
+  free:         ['ADMIN', 'CUSTOMER'],
   'agency-managed': ['ADMIN', 'CUSTOMER'],
   'onsite-standalone': ['ADMIN', 'CUSTOMER'],
   starter:      ['ADMIN', 'SALES', 'CUSTOMER'],

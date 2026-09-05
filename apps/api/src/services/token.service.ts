@@ -54,6 +54,17 @@ export interface IssuedTokens {
   expires_in: number;
 }
 
+/**
+ * A narrow, short-lived token for the one thing a user who hasn't finished
+ * mandatory 2FA enrollment is allowed to do: set it up. Distinct `typ` so
+ * middleware/auth.ts can allow it through only for the 2FA setup/verify
+ * routes (see TWOFA_SETUP_ALLOWED_ROUTES there) — it carries no device_id
+ * and must never be accepted anywhere a real session token is.
+ */
+export function issueTwoFaSetupToken(fastify: FastifyInstance, claims: Omit<AccessClaims, 'device_id'>): string {
+  return fastify.jwt.sign({ ...claims, typ: 'twofa_setup' } as any, { expiresIn: '15m' });
+}
+
 export function issueTokens(fastify: FastifyInstance, claims: AccessClaims): IssuedTokens {
   // `as any`: JWTPayload in @hudumika/types does not declare `typ`, and adding
   // it there would ripple through every consumer of that shared type for a

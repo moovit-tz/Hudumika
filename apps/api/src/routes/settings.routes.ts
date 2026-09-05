@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { withTenant } from '../db/client.js';
+import { withTenant, dbPlatform } from '../db/client.js';
 import nodeCrypto from 'node:crypto';
 import { sql } from 'kysely';
 import { requireRoleOrOrgPermission, ORG_PERMISSIONS } from '../lib/org-rbac.js';
@@ -48,6 +48,35 @@ const SECRET_FIELDS_BY_KEY: Record<string, readonly string[]> = {
   // the signing secret behind the HMAC header, same masked-round-trip
   // treatment as every other credential in this table.
   siemExport: ['secret'],
+  // Payment gateways (Settings.tsx's GATEWAYS array, PaymentGatewaysSection) —
+  // each gateway saves under its own top-level `gw-<id>` key. These were
+  // never in this table at all: GET /v1/settings has no role/permission
+  // gate beyond plain authentication (unlike PATCH), so every one of these
+  // was being sent back to the browser in plaintext to any authenticated
+  // tenant member, and never encrypted at rest either (encryption below
+  // only ever ran over this same map). Field lists match exactly the
+  // `type: 'password'` fields declared per gateway in Settings.tsx.
+  'gw-stripe': ['sec', 'webhook'],
+  'gw-paypal': ['secret'],
+  'gw-braintree': ['privateKey'],
+  'gw-square': ['accessToken'],
+  'gw-authorize': ['transKey'],
+  'gw-razorpay': ['keySecret'],
+  'gw-flutterwave': ['secretKey', 'encKey'],
+  'gw-paystack': ['secretKey'],
+  'gw-mpesa': ['consumerSecret', 'passkey', 'secCredential'],
+  'gw-tigopesa': ['password'],
+  'gw-airtel': ['clientSecret'],
+  'gw-selcom': ['apiSecret'],
+  'gw-halotel': ['apiKey'],
+  // AI provider key (OpenAISection / 'int-ai'), Pusher app secret
+  // ('int-pusher'), GPSWOX fleet-tracking account password
+  // ('int-gpswox'), and ShipsGo/Ship24 tracking API keys ('int-shipsgo')
+  // — same gap as the gateways above, none of these were ever masked.
+  'int-ai': ['apiKey'],
+  'int-pusher': ['secret'],
+  'int-gpswox': ['password'],
+  'int-shipsgo': ['shipsgo_api_key', 'ship24_api_key'],
 };
 /** OAuth tokens under settings.email — never sent to the browser at all
  *  (not even masked); only mail-oauth.routes.ts's callback ever writes
@@ -242,6 +271,22 @@ export async function settingsRoutes(fastify: FastifyInstance) {
           error: 'SIEM/webhook export requires the Enterprise Identity & Governance add-on.',
           code: 'PLAN_UPGRADE_REQUIRED',
         });
+      }
+    }
+
+    // Plan changes go through SuperAdmin ▸ Companies (PATCH /v1/superadmin/tenants/:id,
+    // SUPER_ADMIN-only) — that route resolves billing/invoicing consequences,
+    // this one does not. Nothing scrubbed `updates.plan` here before, so a
+    // plain tenant ADMIN/TENANT_ADMIN/MANAGER could PATCH `/v1/settings` with
+    // `{ plan: 'enterprise' }` and self-upgrade for free, with no payment and
+    // no validation the value was even a real package code.
+    if (updates.plan !== undefined) {
+      if (user.role !== 'SUPER_ADMIN') {
+        return reply.status(403).send({ error: 'Plan changes are made from SuperAdmin ▸ Companies, not here.', code: 'ROLE_INSUFFICIENT' });
+      }
+      const validPlan = await dbPlatform.selectFrom('packages').select('code').where('code', '=', updates.plan).executeTakeFirst();
+      if (!validPlan) {
+        return reply.status(400).send({ error: `"${updates.plan}" is not a real plan.` });
       }
     }
 

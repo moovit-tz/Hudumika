@@ -12,6 +12,7 @@ import swaggerUi from '@fastify/swagger-ui';
 import { env } from './config/env.js';
 import { db } from './db/client.js';
 import { authPlugin } from './middleware/auth.js';
+import { getPlatformApiSettings } from './lib/platform-settings.js';
 import { extractToken } from './lib/cookies.js';
 import { bootstrapJobs } from './jobs/index.js';
 import { bootstrapSubscribers } from './subscribers/index.js';
@@ -231,8 +232,19 @@ async function main() {
       crossOriginResourcePolicy: { policy: 'cross-origin' }, // the SPA on a different origin fetches this API directly
     });
 
+    // SuperAdmin ▸ Settings ▸ API & Webhooks' "Allowed CORS Origins" used to
+    // be saved and never read. It's layered ON TOP of env.CORS_ORIGINS —
+    // never a replacement for it — so a mistake in that field can add an
+    // unwanted extra origin but can never break the SPA's own known-good
+    // origin from talking to its own API.
+    const baseCorsOrigins = env.CORS_ORIGINS.split(',').map(o => o.trim());
     await server.register(cors, {
-      origin: env.CORS_ORIGINS.split(','),
+      origin: (origin, cb) => {
+        if (!origin || baseCorsOrigins.includes(origin)) return cb(null, true);
+        getPlatformApiSettings()
+          .then(s => cb(null, s.corsOrigins.includes(origin)))
+          .catch(() => cb(null, false));
+      },
       credentials: true,
     });
 
@@ -273,7 +285,17 @@ async function main() {
 
     await server.register(rateLimit, {
       global: true,
-      max: async (request: any) => (request.apiKeyScopes ? 300 : 1200), // partner API keys: 300/min; internal app sessions: 1200/min
+      // SuperAdmin ▸ Settings ▸ API & Webhooks' "Rate Limit" field overrides
+      // the session ceiling when set (0 = untouched default, use the
+      // built-in 1200/min) — previously saved and never read. Partner API
+      // keys keep their own fixed, narrower 300/min regardless: that ceiling
+      // exists to protect the platform from a partner integration, not to be
+      // loosened by a setting meant for normal app sessions.
+      max: async (request: any) => {
+        if (request.apiKeyScopes) return 300;
+        const { rateLimit: platformLimit } = await getPlatformApiSettings();
+        return platformLimit > 0 ? platformLimit : 1200;
+      },
       timeWindow: '1 minute',
       keyGenerator: (request: any) => request.headers['x-api-key'] || request.ip,
     });
@@ -292,6 +314,25 @@ async function main() {
           details: zodError.issues.map(i => ({ field: i.path.join('.'), message: i.message })),
         });
       }
+      // A raw pg/Kysely driver error (constraint violation, invalid input
+      // syntax, permission denied, etc.) carries Postgres-specific fields — a
+      // 5-character SQLSTATE `code` plus `severity`/`table`/`constraint` —
+      // that no application-thrown Error has. Its .message routinely leaks
+      // schema internals (table/column/constraint names) or literal row
+      // values ("Key (email)=(x@y.com) already exists"), which used to reach
+      // the client verbatim through this same fallback on any route that
+      // didn't wrap its own DB calls in a try/catch. Every other thrown Error
+      // — the many call sites across this codebase that intentionally
+      // `throw new Error('a clear, safe message')` to surface a friendly
+      // explanation via this exact handler — is left untouched.
+      const pgErr = error as unknown as { code?: unknown; severity?: unknown; table?: unknown; constraint?: unknown };
+      const looksLikeDriverError = typeof pgErr.code === 'string' && /^[0-9A-Z]{5}$/.test(pgErr.code)
+        && ('severity' in pgErr || 'table' in pgErr || 'constraint' in pgErr);
+      if (looksLikeDriverError) {
+        console.error('[db error]', request.method, request.url, error);
+        return reply.status(500).send({ error: 'An unexpected error occurred. Please try again.' });
+      }
+
       return reply.send(error);
     });
 

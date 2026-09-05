@@ -34,14 +34,14 @@ async function nextPettiRef(trx: Transaction<Database>, tenantId: string, type: 
 // VARCHAR), so this list only constrains what the UI offers, not the schema.
 export const PETTI_CATEGORIES = [
   'OFFICE_SUPPLIES', 'TRANSPORT', 'MEALS_ENTERTAINMENT', 'UTILITIES',
-  'STAFF_WELFARE', 'REPAIRS_MAINTENANCE', 'POSTAGE_COURIER', 'MISCELLANEOUS',
+  'STAFF_WELFARE', 'REPAIRS_MAINTENANCE', 'POSTAGE_COURIER', 'SUBSCRIPTION', 'MISCELLANEOUS',
 ] as const;
 export type PettiCategory = typeof PETTI_CATEGORIES[number];
 
 const PETTI_CATEGORY_LABEL: Record<string, string> = {
   OFFICE_SUPPLIES: 'Office supplies', TRANSPORT: 'Transport', MEALS_ENTERTAINMENT: 'Meals & entertainment',
   UTILITIES: 'Utilities', STAFF_WELFARE: 'Staff welfare', REPAIRS_MAINTENANCE: 'Repairs & maintenance',
-  POSTAGE_COURIER: 'Postage & courier', MISCELLANEOUS: 'Miscellaneous',
+  POSTAGE_COURIER: 'Postage & courier', SUBSCRIPTION: 'Subscription & software', MISCELLANEOUS: 'Miscellaneous',
 };
 
 // Category → GL expense account (see gl.service.ts STANDARD_COA). Only maps
@@ -51,6 +51,7 @@ const PETTI_CATEGORY_LABEL: Record<string, string> = {
 const PETTI_EXPENSE_ACCOUNT: Partial<Record<PettiCategory, string>> = {
   TRANSPORT: '5002',
   UTILITIES: '5102',
+  SUBSCRIPTION: '5103',
 };
 const OTHER_OPERATING_EXPENSE_ACCOUNT = '5900';
 const BANK_ACCOUNT = '1010'; // Bank Account (TZS) — see STANDARD_COA
@@ -1205,6 +1206,96 @@ export class PettiService {
         journal_entry_id: journalEntryId,
       }).where('id', '=', requestId).returningAll().executeTakeFirstOrThrow()
     );
+  }
+
+  /**
+   * Deducts directly from a wallet for something the requesting user is
+   * already authorized to do in one step — no separate request/approve first
+   * (unlike disburseWithdrawal above). Built for Workspace ▸ Subscription's
+   * "Pay Now" when the chosen payment method is a Petti wallet: the billing
+   * manager clicking Pay Now on their own tenant's invoice *is* the
+   * authorization, the same as it is for a card charge, so this posts the
+   * real GL entry immediately rather than opening a pending request that
+   * still needs a second person's sign-off. Still creates a real, already-
+   * 'disbursed' petti_withdrawal_requests row (requested/approved/disbursed
+   * all by the same actor, all at the same instant) purely so the spend
+   * shows up in Petti's own wallet history and voucher PDF like any other
+   * disbursement — not a parallel, invisible money movement.
+   */
+  static async payFromWalletDirect(tenantId: string, actor: PettiActor, input: {
+    walletId: string; amount: number; category: PettiCategory; purpose: string;
+  }) {
+    const { walletId, amount, category, purpose } = input;
+    const wallet = await withTenant(tenantId, (trx) =>
+      trx.selectFrom('petti_wallets').selectAll().where('id', '=', walletId).where('tenant_id', '=', tenantId).executeTakeFirst()
+    );
+    if (!wallet) throw new Error('Wallet not found.');
+    if (wallet.status !== 'active') throw new Error(`"${wallet.name}" is closed and cannot be drawn from.`);
+
+    const balance = await PettiService.getWalletBalance(tenantId, wallet.gl_account_id);
+    if (balance < amount) {
+      throw new Error(`Insufficient wallet balance: "${wallet.name}" has ${balance.toLocaleString()} ${wallet.currency}, but this payment is for ${amount.toLocaleString()} ${wallet.currency}.`);
+    }
+
+    const walletAccount = await withTenant(tenantId, (trx) =>
+      trx.selectFrom('chart_of_accounts').select('code').where('id', '=', wallet.gl_account_id).executeTakeFirstOrThrow()
+    );
+    const expenseAccountCode = PETTI_EXPENSE_ACCOUNT[category] || OTHER_OPERATING_EXPENSE_ACCOUNT;
+
+    const expenseRow = await withTenant(tenantId, (trx) => trx.insertInto('finance_expenses').values({
+      tenant_id: tenantId,
+      name: `Petty cash: ${purpose}`.slice(0, 255),
+      amount,
+      expense_date: new Date(),
+      category,
+      payment_mode: 'Petty Cash',
+      reference: `Petti/${wallet.name}`,
+      note: purpose,
+      is_revenue: false,
+      // Unlike a cash advance (disburseWithdrawal), this is a direct payment
+      // with nothing to retire later — 'not_required', not 'retired' (which
+      // implies a prior pending/advance phase this never had).
+      retirement_status: 'not_required',
+      created_by: actor.id,
+    }).returningAll().executeTakeFirstOrThrow());
+
+    let journalEntryId: string;
+    try {
+      journalEntryId = await GLService.post(tenantId, {
+        entryDate: new Date().toISOString(),
+        description: `Petty cash disbursement: ${purpose} (${wallet.name})`,
+        sourceModule: 'EXPENSE',
+        sourceId: expenseRow.id,
+        createdBy: actor.id,
+        lines: [
+          { accountCode: expenseAccountCode, debit: amount, credit: 0, description: purpose, currency: wallet.currency },
+          { accountCode: walletAccount.code, debit: 0, credit: amount, description: `From ${wallet.name}`, currency: wallet.currency },
+        ],
+      });
+    } catch (e) {
+      await withTenant(tenantId, (trx) => trx.deleteFrom('finance_expenses').where('id', '=', expenseRow.id).execute());
+      throw e;
+    }
+
+    const now = new Date();
+    const request = await withTenant(tenantId, (trx) => trx.insertInto('petti_withdrawal_requests').values({
+      tenant_id: tenantId,
+      wallet_id: walletId,
+      amount,
+      category,
+      purpose,
+      status: 'disbursed',
+      requested_by: actor.id,
+      requested_at: now,
+      approved_by: actor.id,
+      approved_at: now,
+      disbursed_by: actor.id,
+      disbursed_at: now,
+      finance_expense_id: expenseRow.id,
+      journal_entry_id: journalEntryId,
+    }).returningAll().executeTakeFirstOrThrow());
+
+    return { withdrawalRequestId: request.id, financeExpenseId: expenseRow.id, journalEntryId, walletName: wallet.name };
   }
 
   /** A simple, printable petty-cash voucher for one withdrawal request — the

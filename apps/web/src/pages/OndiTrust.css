@@ -51,6 +51,17 @@
   gap: 10px;
 }
 
+.ot-card-hdr-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ot-card-hdr-meta {
+  font-size: 12px;
+  color: var(--ink3);
+}
+
 .ot-card-title {
   font-size: 15px;
   font-weight: 700;
@@ -209,7 +220,7 @@
 .ot-trend-card {
   background: var(--white);
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--r-lg);
   padding: 22px 24px;
   box-shadow: var(--elev-sm, 0 1px 3px rgba(0,0,0,0.04));
 }
@@ -241,6 +252,18 @@
   font-weight: 800;
   color: var(--ink);
   font-family: var(--mono);
+}
+
+.ot-trend-stat-score-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.ot-trend-stat-max {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink3);
 }
 
 .ot-chart-container {

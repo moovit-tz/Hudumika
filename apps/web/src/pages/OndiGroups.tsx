@@ -157,7 +157,7 @@ export const OndiGroups: React.FC = () => {
   return (
     <div className="ondi-page-container">
       <PageHeader
-        crumbs={['Ondi', 'Enterprise']}
+        crumbs={['NexusHR', 'Groups']}
         titlePlain="Org"
         titleEm="groups"
         subtitle="Bulk-manage role access by group — static member assignments or dynamic rule-based evaluators."

@@ -6,6 +6,7 @@ import { dbPlatform, withTenant } from '../db/client.js';
 import { verifyPassword } from '../lib/password.js';
 import { signJwt, verifyJwt, verifyPkce, issuerUrl } from '../lib/oidc.js';
 import { recordAuthEvent } from '../lib/audit-chain.js';
+import { emitDomainEventStandalone } from '../services/domain-events.service.js';
 import { env } from '../config/env.js';
 
 /**
@@ -15,11 +16,18 @@ import { env } from '../config/env.js';
  * existing session — that cutover is M7, separate and later. Every route
  * here issues its own OAuth tokens, never a platform session cookie.
  */
+// ioredis reconnects on its own retry strategy after a transient error —
+// this used to call .disconnect() (which cancels that strategy) and null
+// the reference on the very first error, so a momentary Redis blip left
+// every route below permanently 503ing until the process restarted, even
+// once Redis was healthy again. Keeping the instance and gating on
+// `.status` instead lets it recover on its own.
 let redisClient: Redis | null = null;
 try {
   redisClient = new Redis(env.REDIS_URL, { maxRetriesPerRequest: null, connectTimeout: 1500, enableOfflineQueue: false });
-  redisClient.on('error', () => { try { redisClient?.disconnect(); } catch { /* already gone */ } redisClient = null; });
+  redisClient.on('error', () => { /* ioredis logs and retries internally; an unhandled listener would crash the process */ });
 } catch { redisClient = null; }
+function redisReady(client: Redis | null): client is Redis { return !!client && client.status === 'ready'; }
 
 const AUTH_CODE_TTL = 120;
 const ACCESS_TOKEN_TTL = 60 * 60;
@@ -85,7 +93,7 @@ export async function ondiOauthRoutes(fastify: FastifyInstance) {
    * Authenticated — issues a real authorization code and records consent.
    */
   fastify.post('/authorize/approve', { preHandler: fastify.authenticate }, async (request, reply) => {
-    if (!redisClient) return reply.status(503).send({ error: 'Sign-in is temporarily unavailable. Try again shortly.' });
+    if (!redisReady(redisClient)) return reply.status(503).send({ error: 'Sign-in is temporarily unavailable. Try again shortly.' });
     const q = authorizeQuerySchema.safeParse(request.body);
     if (!q.success) return reply.status(400).send({ error: 'Invalid authorization request', details: q.error.flatten() });
     const { client_id, redirect_uri, scope, state, nonce, code_challenge, code_challenge_method } = q.data;
@@ -95,12 +103,29 @@ export async function ondiOauthRoutes(fastify: FastifyInstance) {
     const redirectUris = Array.isArray(client.redirect_uris) ? client.redirect_uris : JSON.parse(client.redirect_uris ?? '[]');
     if (!redirectUris.includes(redirect_uri)) return reply.status(400).send({ error: 'redirect_uri is not registered for this client' });
 
+    // A public client (no client_secret_hash — a native app or SPA that
+    // can't hold a secret) has nothing else authenticating its /token call:
+    // without a mandatory PKCE challenge here, a code intercepted off the
+    // redirect (a malicious app on the same device, a leaky browser history)
+    // could be redeemed by anyone. A confidential client's secret already
+    // serves that purpose, so PKCE stays optional there.
+    if (!client.client_secret_hash && !code_challenge) {
+      reply.status(400);
+      return { error: 'invalid_request', error_description: 'code_challenge (PKCE) is required for this client.' };
+    }
+
     const user = request.user;
     const scopes = scope.split(' ').filter(Boolean);
 
     await withTenant(user.tenant_id, trx => trx.insertInto('ondi_oauth_consents').values({
       tenant_id: user.tenant_id, user_id: user.sub, client_id, scopes: JSON.stringify(scopes),
     }).onConflict(oc => oc.columns(['user_id', 'client_id']).doUpdateSet({ scopes: JSON.stringify(scopes), granted_at: new Date() })).execute());
+
+    emitDomainEventStandalone(user.tenant_id, {
+      type: 'ondi.oauth_consent_granted', sourceApp: 'ondi', entityType: 'oauth_consent', entityId: null,
+      payload: { clientId: client_id, clientName: client.name, scopes },
+      actorId: user.sub,
+    }).catch(err => console.error('[Ondi] oauth_consent_granted emit failed:', err?.message));
 
     const code = crypto.randomBytes(32).toString('base64url');
     await redisClient.set(codeKey(code), JSON.stringify({
@@ -120,7 +145,7 @@ export async function ondiOauthRoutes(fastify: FastifyInstance) {
    * POST /v1/ondi/oauth/token
    */
   fastify.post('/token', { config: { rateLimit: { max: 30, timeWindow: '1 minute' } } }, async (request, reply) => {
-    if (!redisClient) return reply.status(503).send({ error: 'temporarily_unavailable' });
+    if (!redisReady(redisClient)) return reply.status(503).send({ error: 'temporarily_unavailable' });
     const body = z.object({
       grant_type: z.enum(['authorization_code', 'refresh_token']),
       code: z.string().optional(),
@@ -227,7 +252,25 @@ export async function ondiOauthRoutes(fastify: FastifyInstance) {
    * POST /v1/ondi/oauth/introspect (RFC 7662)
    */
   fastify.post('/introspect', async (request, reply) => {
-    const { token } = z.object({ token: z.string().min(1) }).parse(request.body);
+    const { token, client_id, client_secret } = z.object({
+      token: z.string().min(1),
+      client_id: z.string().min(1),
+      client_secret: z.string().optional(),
+    }).parse(request.body);
+
+    // RFC 7662 §2.1 requires the introspection endpoint to authenticate its
+    // caller. Without this, anyone holding a token string (or scanning
+    // random ones) could probe token validity/claims with no registration
+    // at all. Same client-auth shape as /token above: a confidential client
+    // proves its secret; a public client is identified by client_id alone.
+    const client = await loadClient(client_id);
+    if (!client) return reply.status(401).send({ error: 'invalid_client' });
+    if (client.client_secret_hash) {
+      if (!client_secret || !verifyPassword(client_secret, client.client_secret_hash)) {
+        return reply.status(401).send({ error: 'invalid_client' });
+      }
+    }
+
     const claims = await verifyJwt(token);
     if (!claims) return { active: false };
     if (claims.jti && redisClient && await redisClient.get(revokedKey(claims.jti))) return { active: false };
@@ -309,6 +352,13 @@ export async function ondiOauthRoutes(fastify: FastifyInstance) {
     }).onConflict(oc => oc.columns(['user_id', 'client_id']).doUpdateSet({ scopes: JSON.stringify(scopes), granted_at: new Date() })).execute());
 
     await recordAuthEvent(user.tenant_id, user.sub, 'oauth_consent_granted', { metadata: { via: 'oauth_preauthorize', client_id } });
+
+    emitDomainEventStandalone(user.tenant_id, {
+      type: 'ondi.oauth_consent_granted', sourceApp: 'ondi', entityType: 'oauth_consent', entityId: null,
+      payload: { clientId: client_id, clientName: client.name, scopes },
+      actorId: user.sub,
+    }).catch(err => console.error('[Ondi] oauth_consent_granted emit failed:', err?.message));
+
     return { success: true };
   });
 
@@ -326,10 +376,18 @@ export async function ondiOauthRoutes(fastify: FastifyInstance) {
       const deleted = await trx.deleteFrom('ondi_oauth_consents')
         .where('id', '=', request.params.id)
         .where('user_id', '=', user.sub)
-        .returning('id')
+        .returning(['id', 'client_id'])
         .executeTakeFirst();
       if (!deleted) { reply.status(404); return { error: 'Not found' }; }
       await recordAuthEvent(user.tenant_id, user.sub, 'oauth_consent_revoked', { metadata: { consent_id: request.params.id } });
+
+      const client = await loadClient(deleted.client_id);
+      emitDomainEventStandalone(user.tenant_id, {
+        type: 'ondi.oauth_consent_revoked', sourceApp: 'ondi', entityType: 'oauth_consent', entityId: null,
+        payload: { clientId: deleted.client_id, clientName: client?.name ?? deleted.client_id },
+        actorId: user.sub,
+      }).catch(err => console.error('[Ondi] oauth_consent_revoked emit failed:', err?.message));
+
       return { success: true };
     });
   });
@@ -339,7 +397,7 @@ export async function ondiOauthRoutes(fastify: FastifyInstance) {
    */
   fastify.post('/revoke', async (request) => {
     const { token } = z.object({ token: z.string().min(1) }).parse(request.body);
-    if (!redisClient) return { success: true };
+    if (!redisReady(redisClient)) return { success: true };
     // A refresh token is opaque (not a JWT) — try deleting it as one directly.
     await redisClient.del(refreshKey(token));
     // An access token is a JWT — mark its jti revoked for however long it

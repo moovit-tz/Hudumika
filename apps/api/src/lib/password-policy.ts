@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { withTenant } from '../db/client.js';
+import { getPlatformSecuritySettings } from './platform-settings.js';
 
 /**
  * Tenant-configurable password policy — Ondi ▸ Policies, alongside the
@@ -28,11 +29,18 @@ export const DEFAULT_PASSWORD_POLICY: PasswordPolicy = {
 };
 
 export async function getPasswordPolicy(tenantId: string): Promise<PasswordPolicy> {
-  return withTenant(tenantId, async (trx) => {
-    const row = await trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', tenantId).executeTakeFirst();
-    const settings = row ? (typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings) : {};
-    return { ...DEFAULT_PASSWORD_POLICY, ...(settings?.passwordPolicy ?? {}) };
-  });
+  const [tenantPolicy, platform] = await Promise.all([
+    withTenant(tenantId, async (trx) => {
+      const row = await trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', tenantId).executeTakeFirst();
+      const settings = row ? (typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings) : {};
+      return { ...DEFAULT_PASSWORD_POLICY, ...(settings?.passwordPolicy ?? {}) };
+    }),
+    getPlatformSecuritySettings(),
+  ]);
+  // SuperAdmin ▸ Settings ▸ Security & Sessions sets a platform-wide floor —
+  // a tenant may require a longer password than the platform minimum, never
+  // a shorter one.
+  return { ...tenantPolicy, minLength: Math.max(tenantPolicy.minLength, platform.minPasswordLength) };
 }
 
 /** Local, synchronous checks only — length and character classes. Never

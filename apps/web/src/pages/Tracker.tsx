@@ -605,7 +605,6 @@ export const Tracker: React.FC = () => {
   return (
     <div style={{ padding: p, boxSizing: 'border-box', width: '100%' }}>
       <style>{`
-        @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes fadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
         .tr-fade { animation: fadeUp .28s ease both; }
         .tr-btn { transition: all .15s ease; }
@@ -667,7 +666,7 @@ export const Tracker: React.FC = () => {
                 }}
               />
               {suggLoading && inputNumber.trim().length >= 2 && (
-                <div style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', width: 14, height: 14, border: '2px solid var(--border)', borderTopColor: 'var(--teal)', borderRadius: '50%', animation: 'spin .7s linear infinite' }} />
+                <div style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', width: 14, height: 14, border: '2px solid var(--border)', borderTopColor: 'var(--teal)', borderRadius: '50%', animation: 'ds-spin .7s linear infinite' }} />
               )}
               {showSugg && suggestions.length > 0 && (
                 <div style={{ position: 'absolute', top: 54, left: 0, right: 0, zIndex: 40, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, boxShadow: 'var(--elev-lg)', overflow: 'hidden' }}>
@@ -708,7 +707,7 @@ export const Tracker: React.FC = () => {
               } as React.CSSProperties}
             >
               {loading
-                ? <><div style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin .7s linear infinite' }} />Tracking…</>
+                ? <><div style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'ds-spin .7s linear infinite' }} />Tracking…</>
                 : <><Icon name="search" size={16} color={inputNumber.trim() ? '#fff' : 'var(--ink3)'} />Track</>
               }
             </button>
@@ -1009,7 +1008,7 @@ export const Tracker: React.FC = () => {
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                   }}>
                     {savingSnap
-                      ? <><div style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin .7s linear infinite' }} />Saving…</>
+                      ? <><div style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'ds-spin .7s linear infinite' }} />Saving…</>
                       : <><Icon name="save" size={14} color="#fff" />Save Snapshot</>
                     }
                   </button>
@@ -1131,7 +1130,7 @@ export const Tracker: React.FC = () => {
 
         {loadingSnaps ? (
           <div style={{ padding: '40px 0', display: 'flex', justifyContent: 'center' }}>
-            <div style={{ width: 28, height: 28, border: '3px solid var(--border)', borderTopColor: 'var(--teal)', borderRadius: '50%', animation: 'spin .7s linear infinite' }} />
+            <div style={{ width: 28, height: 28, border: '3px solid var(--border)', borderTopColor: 'var(--teal)', borderRadius: '50%', animation: 'ds-spin .7s linear infinite' }} />
           </div>
         ) : snapshots.length === 0 ? (
           <div style={{ padding: '48px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>

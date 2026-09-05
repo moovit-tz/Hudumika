@@ -32,6 +32,19 @@ const rawRunSchema = z.object({ sql: z.string().trim().min(1) });
 
 const GLOBAL_TENANT_ID = '00000000-0000-0000-0000-000000000000';
 
+// Enabling raw SQL used to stay on forever once OTP-verified — a single
+// global boolean nobody was reminded to turn back off, standing open to
+// every SUPER_ADMIN indefinitely. Time-boxed the same way a JIT role grant
+// is: it auto-expires, so the highest-risk privilege in this file requires a
+// fresh OTP for every real work session instead of surviving as a forgotten
+// toggle from months ago.
+const RAW_SQL_GRANT_TTL_MS = 60 * 60 * 1000;
+function isRawSqlCurrentlyEnabled(settings: Record<string, any>): boolean {
+  if (!settings.raw_sql_enabled) return false;
+  const until = settings.raw_sql_enabled_until ? new Date(settings.raw_sql_enabled_until).getTime() : 0;
+  return Number.isFinite(until) && until > Date.now();
+}
+
 // In-memory, single-use, 5-minute TTL — mirrors auth.routes.ts's customer
 // OTP_STORE shape, but this gates a real platform privilege (enabling raw
 // SQL access), so there's deliberately no dev-mode bypass code path here.
@@ -75,7 +88,7 @@ export async function queryBuilderRoutes(fastify: FastifyInstance) {
 
   fastify.get('/settings', async () => {
     const settings = await readSettings();
-    return { raw_sql_enabled: !!settings.raw_sql_enabled };
+    return { raw_sql_enabled: isRawSqlCurrentlyEnabled(settings), raw_sql_enabled_until: settings.raw_sql_enabled_until ?? null };
   });
 
   fastify.post('/raw-sql/request-otp', async (request) => {
@@ -104,8 +117,12 @@ export async function queryBuilderRoutes(fastify: FastifyInstance) {
       return reply.status(400).send({ error: 'Incorrect code' });
     }
     RAW_SQL_OTP_STORE.delete(actor.sub); // consume — single use
-    const settings = await writeSettings({ raw_sql_enabled: true, raw_sql_enabled_by: actor.sub, raw_sql_enabled_at: new Date().toISOString() });
-    return { raw_sql_enabled: !!settings.raw_sql_enabled };
+    const enabledUntil = new Date(Date.now() + RAW_SQL_GRANT_TTL_MS).toISOString();
+    const settings = await writeSettings({
+      raw_sql_enabled: true, raw_sql_enabled_by: actor.sub, raw_sql_enabled_at: new Date().toISOString(),
+      raw_sql_enabled_until: enabledUntil,
+    });
+    return { raw_sql_enabled: isRawSqlCurrentlyEnabled(settings), raw_sql_enabled_until: enabledUntil };
   });
 
   fastify.post('/raw-sql/disable', async () => {
@@ -153,8 +170,8 @@ export async function queryBuilderRoutes(fastify: FastifyInstance) {
   fastify.post('/raw-run', async (request, reply) => {
     const actor = request.user;
     const settings = await readSettings();
-    if (!settings.raw_sql_enabled) {
-      return reply.status(403).send({ error: 'Raw SQL mode is disabled' });
+    if (!isRawSqlCurrentlyEnabled(settings)) {
+      return reply.status(403).send({ error: 'Raw SQL mode is disabled or its OTP grant has expired — request a new code.' });
     }
     const { sql: sqlText } = rawRunSchema.parse(request.body);
 

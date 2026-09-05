@@ -391,16 +391,15 @@ export const OndiTrust: React.FC = () => {
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: 12, color: 'var(--ink3)' }}>
+          <div className="ot-card-hdr-right">
+            <span className="ot-card-hdr-meta">
               {history.length > 0 ? `${history.length} snapshots recorded` : 'Single baseline'}
             </span>
             {history.length > 0 && (
               <Button
                 variant="outline"
-                size="sm"
+                size="xs"
                 onClick={() => setShowLedger(prev => !prev)}
-                style={{ fontSize: 12, height: 28, padding: '0 10px' }}
               >
                 <Icon name={showLedger ? 'chevronUp' : 'chevronDown'} size={12} style={{ marginRight: 4 }} />
                 {showLedger ? 'Hide Ledger' : 'View Ledger'}
@@ -413,9 +412,9 @@ export const OndiTrust: React.FC = () => {
         <div className="ot-trend-stats-row">
           <div className="ot-trend-stat">
             <span className="ot-trend-stat-lbl">Current Score</span>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+            <div className="ot-trend-stat-score-row">
               <span className="ot-trend-stat-val" style={{ color: tierMeta.main }}>{trust?.score || '—'}</span>
-              <span style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 600 }}>/ 850</span>
+              <span className="ot-trend-stat-max">/ 850</span>
             </div>
           </div>
 
@@ -502,7 +501,12 @@ export const OndiTrust: React.FC = () => {
                 {chartData.pts.map((pt, i) => {
                   const isHovered = activeSnapshotIndex === i;
                   const isLast = i === chartData.pts.length - 1;
-                  const nodeColor = pt.score >= 600 ? 'var(--green)' : pt.score >= 450 ? 'var(--gold)' : 'var(--red)';
+                  // Reuses this snapshot's own recorded tier (same field the
+                  // tooltip's Badge below already reads) rather than a second,
+                  // separately-guessed score threshold — the two used to be
+                  // able to disagree, since 450/600 aren't necessarily the
+                  // platform's actual tier cutoffs.
+                  const nodeColor = (TIER_META[pt.tier] || TIER_META.LOW).main;
                   return (
                     <g
                       key={i}
@@ -522,12 +526,18 @@ export const OndiTrust: React.FC = () => {
                           fillOpacity="0.18"
                         />
                       )}
-                      {/* Node Point */}
+                      {/* Node Point — fill matches .ot-chart-viewport's own
+                          background (var(--bg)) so the ring punches through
+                          to it correctly in both themes. `--card` (an HSL
+                          triplet, not a plain color) silently fell back to
+                          its hardcoded #ffffff default here before, which
+                          happened to look fine in light mode but would sit
+                          as a bright white hole in dark mode. */}
                       <circle
                         cx={pt.x}
                         cy={pt.y}
                         r={isLast || isHovered ? 5 : 3.5}
-                        fill="var(--card, #ffffff)"
+                        fill="var(--bg)"
                         stroke={nodeColor}
                         strokeWidth={isLast || isHovered ? 2.5 : 2}
                       />

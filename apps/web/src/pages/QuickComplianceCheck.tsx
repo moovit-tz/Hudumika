@@ -252,7 +252,7 @@ export const QuickComplianceCheck: React.FC = () => {
 
               {hsLoading && (
                 <div style={{ fontSize: 11.5, color: 'var(--teal)', fontWeight: 600, marginTop: 6, display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <Icon name="refresh" size={13} color="var(--teal)" className="spin" /> Searching…
+                  <Icon name="refresh" size={13} color="var(--teal)" style={{ animation: 'ds-spin 1.2s linear infinite' }} /> Searching…
                 </div>
               )}
 
@@ -326,7 +326,7 @@ export const QuickComplianceCheck: React.FC = () => {
 
           {loading && (
             <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 16, padding: 48, textAlign: 'center', color: 'var(--ink3)' }}>
-              <Icon name="sliders" size={28} color="var(--teal)" className="spin" style={{ display: 'block', margin: '0 auto 12px' }} />
+              <Icon name="sliders" size={28} color="var(--teal)" style={{ display: 'block', margin: '0 auto 12px', animation: 'ds-spin 1.2s linear infinite' }} />
               <div style={{ fontSize: 13.5 }}>Checking compliance requirements…</div>
             </div>
           )}
@@ -391,11 +391,6 @@ export const QuickComplianceCheck: React.FC = () => {
           )}
         </div>
       </div>
-
-      <style>{`
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .spin { animation: spin 1.2s linear infinite; }
-      `}</style>
     </div>
   );
 };

@@ -16,7 +16,7 @@ import { z } from 'zod';
 
 export type AppId =
   | 'clearos' | 'finops' | 'nexushr' | 'bliss' | 'complyos' | 'crm'
-  | 'tracking' | 'cargotracker' | 'seal' | 'inventory' | 'studio';
+  | 'tracking' | 'cargotracker' | 'seal' | 'inventory' | 'studio' | 'ondi';
 
 export type TriggerKind = 'DOMAIN_EVENT' | 'SCHEDULE' | 'MANUAL';
 
@@ -339,6 +339,42 @@ export const TRIGGERS: TriggerDef[] = [
       updated: z.number().optional(),
     }).passthrough(),
     samplePayload: { countries: ['TZ'], years: [2026], added: 12, updated: 2 },
+  },
+  {
+    id: 'ondi.oauth_client_registered',
+    kind: 'DOMAIN_EVENT',
+    app: 'ondi',
+    label: 'OAuth client registered',
+    description: 'An admin registered a new outbound OAuth/SSO client application (ondi.routes.ts POST /oauth-clients).',
+    entityType: 'oauth_client',
+    payloadSchema: z.object({
+      clientId: z.string(), name: z.string(), firstParty: z.boolean(),
+    }).passthrough(),
+    samplePayload: { clientId: 'corp-helpdesk', name: 'Corporate Helpdesk', firstParty: false },
+  },
+  {
+    id: 'ondi.oauth_consent_granted',
+    kind: 'DOMAIN_EVENT',
+    app: 'ondi',
+    label: 'OAuth consent granted',
+    description: 'A user authorized an app to sign in with Ondi, or pre-connected one of the platform\'s own first-party apps (ondi-oauth.routes.ts POST /authorize/approve, POST /consents/preauthorize).',
+    entityType: 'oauth_consent',
+    payloadSchema: z.object({
+      clientId: z.string(), clientName: z.string(), scopes: z.array(z.string()),
+    }).passthrough(),
+    samplePayload: { clientId: 'corp-helpdesk', clientName: 'Corporate Helpdesk', scopes: ['openid', 'profile', 'email'] },
+  },
+  {
+    id: 'ondi.oauth_consent_revoked',
+    kind: 'DOMAIN_EVENT',
+    app: 'ondi',
+    label: 'OAuth consent revoked',
+    description: 'A user revoked a previously-granted app\'s access to their Ondi identity (ondi-oauth.routes.ts DELETE /consents/:id).',
+    entityType: 'oauth_consent',
+    payloadSchema: z.object({
+      clientId: z.string(), clientName: z.string(),
+    }).passthrough(),
+    samplePayload: { clientId: 'corp-helpdesk', clientName: 'Corporate Helpdesk' },
   },
 ];
 

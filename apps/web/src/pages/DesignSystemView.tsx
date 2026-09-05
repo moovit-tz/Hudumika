@@ -13,6 +13,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog.js';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
+import { Badge } from '../components/ui/badge.js';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
@@ -23,6 +24,7 @@ import ComponentShowcase from './ComponentShowcase.js';
 import { TwotoneIcon, TWOTONE_ICONS } from '../components/ui/twotone-icon.js';
 const OscarCatalog        = React.lazy(() => import('./OscarCatalog.js'));
 const AnimationsShowcase  = React.lazy(() => import('./AnimationsShowcase.js'));
+const BuildingBlocksShowcase = React.lazy(() => import('./BuildingBlocksShowcase.js'));
 // HugeiconsIcon itself is a small runtime wrapper (cheap to import
 // statically), but the actual icon artwork (hugeicons-map.ts, ~130 SVG
 // modules) is deliberately NOT imported here — this file sits on the same
@@ -54,6 +56,8 @@ const SECTIONS: { id: string; group: SectionGroup; label: string; icon: IconName
   { id: 'apps',       group: 'platform', label: 'App Configurator', icon: 'grid',            desc: 'Per-app names, accents, slogans & icons' },
   { id: 'login',      group: 'platform', label: 'Login Screen',     icon: 'logIn',           desc: 'Authentication screen themes & headers' },
   { id: 'components', group: 'catalog',  label: 'Component Catalog',icon: 'layers',          desc: 'Live interactive Radix component showcase' },
+  { id: 'blocks',     group: 'catalog',  label: 'Building Blocks',  icon: 'layoutDashboard', desc: 'Pre-built page sections, metric grids & form blocks inspired by shadcn/ui' },
+  { id: 'dropdowns',  group: 'catalog',  label: 'Dropdowns & Selects', icon: 'chevronDown',   desc: 'Select menus, popover dropdowns & combo box varieties' },
   { id: 'icons',      group: 'catalog',  label: 'Icon System',      icon: 'sparkle',         desc: 'Stroke icons & Twotone Rounded collection' },
   { id: 'oscar',      group: 'catalog',  label: 'Oscar Catalog',    icon: 'star',            desc: 'Oscar/DaisyUI-inspired component catalog with style switchers' },
   { id: 'animations', group: 'catalog',  label: 'Animations',       icon: 'zap',             desc: 'Keyframe animations, transitions, easing curves & micro-interactions' },
@@ -67,7 +71,7 @@ const SECTION_GROUPS: { id: SectionGroup; label: string; icon: IconName }[] = [
 ];
 
 /** Sections with no separate "live token preview" rail. */
-const PANEL_ONLY_SECTIONS = new Set(['identity', 'apps', 'login', 'components', 'icons', 'oscar', 'animations']);
+const PANEL_ONLY_SECTIONS = new Set(['identity', 'apps', 'login', 'components', 'blocks', 'dropdowns', 'icons', 'oscar', 'animations']);
 
 const NEUTRAL_LABELS: Record<keyof NeutralSet, { title: string; desc: string }> = {
   ink:        { title: 'Text Primary',      desc: 'Main headings and primary reading copy' },
@@ -794,13 +798,8 @@ export function DesignSystemView() {
               </div>
               {items.map((s) => {
                 const isActive = activeSection === s.id;
-                const isSpecial = s.id === 'oscar' || s.id === 'animations' || s.id === 'components';
-                // '181' used to describe the one stroke set this badge
-                // meant before Icon System grew a real
-                // Stroke/Twotone/Hugeicons switcher with three different
-                // coverage counts — a single number here would be
-                // misleading now.
-                const badgeText = s.id === 'oscar' ? 'Oscar' : s.id === 'animations' ? 'New' : s.id === 'components' ? 'Radix' : s.id === 'icons' ? '3 sets' : null;
+                const isSpecial = s.id === 'blocks' || s.id === 'dropdowns' || s.id === 'oscar' || s.id === 'animations' || s.id === 'components';
+                const badgeText = s.id === 'blocks' ? 'shadcn' : s.id === 'dropdowns' ? 'Radix' : s.id === 'oscar' ? 'Oscar' : s.id === 'animations' ? 'New' : s.id === 'components' ? 'Radix' : s.id === 'icons' ? '3 sets' : null;
                 return (
                   <button
                     key={s.id}
@@ -1311,6 +1310,35 @@ export function DesignSystemView() {
               <div className="ds-section-header-block">
                 <h3 className="ds-section-heading">Shape, Radius &amp; Strokes</h3>
                 <p className="ds-section-sub">Corner curvatures, border thickness, breadcrumb typography, and Lucide icon stroke weights.</p>
+              </div>
+
+              <div style={{ marginBottom: 20 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>Shape &amp; Radius Variety Presets</div>
+                <div className="ds-variant-cards-grid">
+                  {[
+                    { id: 'sharp', title: 'Sharp Minimal', desc: 'Tight 4px radius with crisp 1px borders.', rSm: 2, r: 4, rLg: 6, badgeRadius: 4, bw: 1 },
+                    { id: 'sleek', title: 'Sleek Modern', desc: 'Balanced 8px radius for enterprise web tools.', rSm: 4, r: 8, rLg: 12, badgeRadius: 8, bw: 1 },
+                    { id: 'standard', title: 'Standard Curved', desc: 'Standard 10px radius with 1.5px borders.', rSm: 6, r: 10, rLg: 16, badgeRadius: 10, bw: 1.5 },
+                    { id: 'soft', title: 'Soft Rounded', desc: 'Generous 14px radius for relaxed UI panels.', rSm: 8, r: 14, rLg: 20, badgeRadius: 14, bw: 1.5 },
+                    { id: 'pill', title: 'Ultra Pill', desc: 'Pill-shaped 20px radius with 2px borders.', rSm: 12, r: 20, rLg: 28, badgeRadius: 20, bw: 2 },
+                  ].map(p => {
+                    const isSelected = tokens.shape.r === p.r && tokens.shape.rLg === p.rLg;
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        className={`ds-variant-card${isSelected ? ' ds-variant-card--active' : ''}`}
+                        onClick={() => save('shape', { shape: { ...tokens.shape, rSm: p.rSm, r: p.r, rLg: p.rLg, badgeRadius: p.badgeRadius, borderWidth: p.bw } })}
+                      >
+                        <div className="ds-variant-top">
+                          <span className="ds-variant-title">{p.title}</span>
+                          {isSelected && <span className="ds-version-check"><Icon name="check" size={11} /></span>}
+                        </div>
+                        <p className="ds-variant-desc">{p.desc}</p>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               <div className="ds-numbers-grid">
@@ -1901,6 +1929,52 @@ export function DesignSystemView() {
               <React.Suspense fallback={<div className="p-8 text-center text-sm text-[var(--ink3)]">Loading Animations Showcase...</div>}>
                 <AnimationsShowcase />
               </React.Suspense>
+            </section>
+          )}
+
+          {activeSection === 'blocks' && (
+            <section className="ds-platform-section">
+              <React.Suspense fallback={<div className="p-8 text-center text-sm text-[var(--ink3)]">Loading Building Blocks...</div>}>
+                <BuildingBlocksShowcase />
+              </React.Suspense>
+            </section>
+          )}
+
+          {activeSection === 'dropdowns' && (
+            <section className="ds-platform-section">
+              <div className="ds-card-section">
+                <div className="ds-section-header-block">
+                  <h3 className="ds-section-heading">Dropdowns, Selects &amp; Popover Varieties</h3>
+                  <p className="ds-section-sub">Select popover style, dropdown menu hover feedback, trigger density, and list item spacing.</p>
+                </div>
+
+                <div className="ds-variant-cards-grid">
+                  {[
+                    { id: 'clean', title: 'Clean Bordered Select', desc: 'Crisp 1px outline popup with subtle gray item hover highlighting.' },
+                    { id: 'floating', title: 'Floating Soft Shadow', desc: 'Elevated popover with soft shadow depth and rounded item corners.' },
+                    { id: 'tinted', title: 'Teal Accent Highlight', desc: 'Vibrant teal background tint on hovered and selected menu items.' },
+                    { id: 'compact', title: 'High-Density Compact', desc: 'Compact 28px trigger height and tight row padding for data grids.' },
+                  ].map(v => (
+                    <div key={v.id} className="ds-variant-card ds-variant-card--active" style={{ padding: 18 }}>
+                      <div className="ds-variant-top">
+                        <span className="ds-variant-title">{v.title}</span>
+                        <Badge variant="brand">Active</Badge>
+                      </div>
+                      <p className="ds-variant-desc">{v.desc}</p>
+                      <div style={{ marginTop: 12 }}>
+                        <Select defaultValue="option-1">
+                          <SelectTrigger style={{ width: '100%' }}><SelectValue placeholder="Choose option..." /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="option-1">Option 1 — Standard Selection</SelectItem>
+                            <SelectItem value="option-2">Option 2 — Secondary Item</SelectItem>
+                            <SelectItem value="option-3">Option 3 — Analytics Metric</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </section>
           )}
 

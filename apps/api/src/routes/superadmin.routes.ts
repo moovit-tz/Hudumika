@@ -10,6 +10,7 @@ import { CloudSync } from '../services/cloud-sync.service.js';
 import { buildSmtpTransporter } from '../integrations/email.js';
 import { encryptSecret, decryptSecret, MASKED_VALUE } from '../services/onsite-secrets.service.js';
 import { JOB_REGISTRY, isJobSchedulingConnected } from '../jobs/index.js';
+import { invalidatePlatformSettingsCache } from '../lib/platform-settings.js';
 import { env } from '../config/env.js';
 import os from 'node:os';
 
@@ -344,27 +345,27 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
       .selectAll()
       .execute();
 
-    const tenantsWithUsers = await Promise.all(list.map(async (t) => {
-      const userCountRow = await dbPlatform.selectFrom('users')
-        .select(dbPlatform.fn.count('id').as('count'))
-        .where('tenant_id', '=', t.id)
-        .executeTakeFirst();
-      
-      return {
-        id: t.id,
-        name: t.name,
-        slug: t.slug,
-        plan: t.plan,
-        active: t.active,
-        logo_url: t.logo_url,
-        primary_color: t.primary_color,
-        created_at: t.created_at,
-        users: Number(userCountRow?.count ?? 0),
-        founder_personal_email_domain: t.founder_personal_email_domain,
-      };
-    }));
+    // One grouped count instead of one query per tenant — this used to fire
+    // a full extra round-trip per row, so the page got slower with every
+    // tenant Hudumika signs up rather than staying flat.
+    const counts = await dbPlatform.selectFrom('users')
+      .select(['tenant_id', dbPlatform.fn.count('id').as('count')])
+      .groupBy('tenant_id')
+      .execute();
+    const countByTenant = new Map(counts.map(c => [c.tenant_id, Number(c.count)]));
 
-    return tenantsWithUsers;
+    return list.map(t => ({
+      id: t.id,
+      name: t.name,
+      slug: t.slug,
+      plan: t.plan,
+      active: t.active,
+      logo_url: t.logo_url,
+      primary_color: t.primary_color,
+      created_at: t.created_at,
+      users: countByTenant.get(t.id) ?? 0,
+      founder_personal_email_domain: t.founder_personal_email_domain,
+    }));
   });
 
   // 3. POST /v1/superadmin/tenants
@@ -422,13 +423,47 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
       .returningAll()
       .executeTakeFirstOrThrow();
 
+    let prunedOverrides: string[] = [];
+    if (before && body.plan !== undefined && body.plan !== before.plan) {
+      // checkEntitlement() (middleware/entitlement.ts) treats an explicit
+      // `enabled-apps[x] = true` override as a hard pass, checked BEFORE it
+      // ever looks at the tenant's plan — so an override left over from a
+      // bigger plan (Settings.tsx's own "Enable All Modules" writes one per
+      // app the CURRENT plan grants) survived a downgrade forever, keeping
+      // the tenant on features their new, smaller plan no longer includes.
+      // A `false` override (an app the tenant deliberately turned off) is
+      // never touched here — it can't grant anything beyond plan, so there's
+      // nothing to prune. This does mean a SuperAdmin's own one-off
+      // cross-plan grant (the Apps tab on this same screen) is pruned too
+      // on any plan change — the safer default: an exception surviving a
+      // plan change silently is exactly the bug this closes, so it must be
+      // re-granted deliberately afterward rather than assumed to persist.
+      const newPlanFeatures = await dbPlatform.selectFrom('package_features')
+        .select('feature_key').where('package_code', '=', result.plan).execute();
+      const allowedKeys = new Set(newPlanFeatures.map(f => f.feature_key));
+
+      const settingsRow = await dbPlatform.selectFrom('tenant_settings').select('settings')
+        .where('tenant_id', '=', id).executeTakeFirst();
+      const settings = settingsRow ? (typeof settingsRow.settings === 'string' ? JSON.parse(settingsRow.settings) : settingsRow.settings) : {};
+      const enabledApps: Record<string, boolean> = settings['enabled-apps'] || {};
+      const nextEnabledApps: Record<string, boolean> = {};
+      for (const [key, value] of Object.entries(enabledApps)) {
+        if (value === true && !allowedKeys.has(key)) { prunedOverrides.push(key); continue; }
+        nextEnabledApps[key] = value;
+      }
+      if (prunedOverrides.length > 0) {
+        await sql`UPDATE tenant_settings SET settings = jsonb_set(settings, '{enabled-apps}', ${JSON.stringify(nextEnabledApps)}::jsonb), updated_at = NOW() WHERE tenant_id = ${id}`.execute(dbPlatform);
+      }
+    }
+
     // Described by what actually changed, so the log reads as a history rather
     // than as a row of identical "Updated company" entries.
     const changed = Object.keys(updates).filter(k => k !== 'updated_at');
     let action = 'Updated company';
     let category: 'company' | 'billing' = 'company';
     if (before && body.plan !== undefined && body.plan !== before.plan) {
-      action = `Changed plan from ${before.plan} to ${body.plan}`;
+      action = `Changed plan from ${before.plan} to ${body.plan}`
+        + (prunedOverrides.length ? ` (removed ${prunedOverrides.length} app override(s) no longer in plan: ${prunedOverrides.join(', ')})` : '');
       category = 'billing';
     } else if (before && body.active !== undefined && body.active !== before.active) {
       action = body.active ? 'Reactivated company' : 'Suspended company';
@@ -444,7 +479,7 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
   });
 
   // 5. DELETE /v1/superadmin/tenants/:id
-  fastify.delete('/tenants/:id', async (request, reply) => {
+  fastify.delete('/tenants/:id', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (request, reply) => {
     const { id } = request.params as { id: string };
     // Read the name before it is gone — the audit row has to outlive the row
     // it describes, and tenant_id is SET NULL on delete for the same reason.
@@ -663,6 +698,8 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
         })
         .execute();
     }
+
+    invalidatePlatformSettingsCache();
 
     const row = await dbPlatform.selectFrom('tenant_settings')
       .selectAll()

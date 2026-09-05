@@ -94,7 +94,7 @@ export async function superAdminSigningCertRoutes(fastify: FastifyInstance) {
   // platform signing identity. Deliberately separate from upload — a
   // hard-to-reverse, shared-system action (every tenant's documents going
   // forward), so it gets its own explicit confirmation.
-  fastify.post('/signing-cert/:id/activate', async (req: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+  fastify.post('/signing-cert/:id/activate', { config: { rateLimit: { max: 20, timeWindow: '1 minute' } } }, async (req: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
     const target = await dbPlatform.selectFrom('platform_signing_identities').selectAll()
       .where('id', '=', req.params.id).executeTakeFirst();
     if (!target) return reply.status(404).send({ error: 'Certificate not found' });
@@ -117,7 +117,7 @@ export async function superAdminSigningCertRoutes(fastify: FastifyInstance) {
 
   // DELETE /v1/superadmin/signing-cert/:id — refuses on the active identity;
   // must be deactivated (another one activated, or none) first.
-  fastify.delete('/signing-cert/:id', async (req: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+  fastify.delete('/signing-cert/:id', { config: { rateLimit: { max: 20, timeWindow: '1 minute' } } }, async (req: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
     const target = await dbPlatform.selectFrom('platform_signing_identities').select(['id', 'enabled', 'label'])
       .where('id', '=', req.params.id).executeTakeFirst();
     if (!target) return reply.status(404).send({ error: 'Certificate not found' });

@@ -35,9 +35,8 @@ export function AdvancedCalcResultPanel({ result, loading, error, meta, onAmend,
   if (loading) {
     return (
       <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 16, padding: 48, textAlign: 'center', color: 'var(--ink3)' }}>
-        <Icon name="sliders" size={28} color="var(--teal)" className="spin" style={{ display: 'block', margin: '0 auto 12px' }} />
+        <Icon name="sliders" size={28} color="var(--teal)" style={{ display: 'block', margin: '0 auto 12px', animation: 'ds-spin 1.2s linear infinite' }} />
         <div style={{ fontSize: 13.5 }}>Calculating…</div>
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } } .spin { animation: spin 1.2s linear infinite; }`}</style>
       </div>
     );
   }

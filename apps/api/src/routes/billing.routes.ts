@@ -1,7 +1,9 @@
 import type { FastifyInstance } from 'fastify';
 import { db, withTenant } from '../db/client.js';
+import type { PackagesTable } from '../db/client.js';
 import { requireRoleOrOrgPermission, ORG_PERMISSIONS } from '../lib/org-rbac.js';
 import { PaymentsIntegration } from '../integrations/payments.js';
+import { PettiService } from '../services/petti.service.js';
 
 const MGMT = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER'] as const;
 
@@ -22,6 +24,21 @@ function cardBrand(digits: string): string {
   return 'Card';
 }
 
+/** The real per-period plan charge for a tenant's seat count. Seats beyond
+ *  extra_seat_threshold bill at the cheaper extra_seat_price (393_free_tier_
+ *  and_seat_tiering.sql) — both NULL on every package until a SuperAdmin sets
+ *  them, so this returns exactly `price_per_seat * seats` for every package
+ *  that hasn't opted in, unchanged from before that migration. */
+function computePlanAmount(pkg: Pick<PackagesTable, 'price_per_seat' | 'monthly_price' | 'extra_seat_price' | 'extra_seat_threshold'>, seats: number): number {
+  if (pkg.price_per_seat == null) return pkg.monthly_price;
+  if (pkg.extra_seat_price != null && pkg.extra_seat_threshold != null && seats > pkg.extra_seat_threshold) {
+    const baseSeats = pkg.extra_seat_threshold;
+    const extraSeats = seats - pkg.extra_seat_threshold;
+    return baseSeats * pkg.price_per_seat + extraSeats * pkg.extra_seat_price;
+  }
+  return pkg.price_per_seat * seats;
+}
+
 // Backs Workspace ▸ Subscription ▸ Payments/Billing — previously PAYMENT_HISTORY
 // and payment-method rows were hardcoded fixtures with no backend at all.
 // Real card numbers/CVCs are validated then immediately discarded (only brand/
@@ -34,22 +51,35 @@ export default async function billingRoutes(fastify: FastifyInstance) {
 
   fastify.get('/payment-methods', async (request) => {
     const user = request.user;
-    return withTenant(user.tenant_id, (trx) =>
+    const methods = await withTenant(user.tenant_id, (trx) =>
       trx.selectFrom('payment_methods').selectAll()
         .where('tenant_id', '=', user.tenant_id)
         .orderBy('is_default', 'desc').orderBy('created_at', 'desc')
         .execute()
     );
+    // A wallet's balance moves independently of this row (deposits,
+    // disbursements elsewhere in Petti) — read live rather than cached, same
+    // as Petti's own dashboard, so "can I actually pay with this" is never stale.
+    return Promise.all(methods.map(async (m) => {
+      if (m.type !== 'petti_wallet' || !m.petti_wallet_id) return m;
+      const wallet = await withTenant(user.tenant_id, (trx) =>
+        trx.selectFrom('petti_wallets').selectAll().where('id', '=', m.petti_wallet_id!).executeTakeFirst()
+      );
+      if (!wallet) return { ...m, wallet_balance: null, wallet_currency: null, wallet_status: 'missing' as const };
+      const balance = await PettiService.getWalletBalance(user.tenant_id, wallet.gl_account_id);
+      return { ...m, wallet_balance: balance, wallet_currency: wallet.currency, wallet_status: wallet.status };
+    }));
   });
 
   fastify.post<{
-    Body: { type?: 'card' | 'mobile_money' | 'bank'; card_number?: string; card_expiry?: string; card_cvc?: string; label?: string; phone?: string; provider?: string }
+    Body: { type?: 'card' | 'mobile_money' | 'bank' | 'petti_wallet'; card_number?: string; card_expiry?: string; card_cvc?: string; label?: string; phone?: string; provider?: string; petti_wallet_id?: string }
   }>('/payment-methods', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.BILLING_MANAGE, ...MGMT) }, async (request, reply) => {
     const user = request.user;
     const b = request.body;
     const type = b.type ?? 'card';
 
     let brand: string | null = null, last4: string | null = null, expMonth: number | null = null, expYear: number | null = null, label = b.label ?? '';
+    let pettiWalletId: string | null = null;
 
     if (type === 'card') {
       const digits = (b.card_number || '').replace(/\s/g, '');
@@ -81,6 +111,25 @@ export default async function billingRoutes(fastify: FastifyInstance) {
       last4 = phone.slice(-4);
       brand = b.provider || 'Mobile Money';
       label = label || `${brand} •••• ${last4}`;
+    } else if (type === 'petti_wallet') {
+      if (!b.petti_wallet_id) {
+        reply.status(400);
+        return { error: 'Choose which wallet this payment method draws from.' };
+      }
+      const wallet = await withTenant(user.tenant_id, (trx) =>
+        trx.selectFrom('petti_wallets').selectAll().where('id', '=', b.petti_wallet_id!).where('tenant_id', '=', user.tenant_id).executeTakeFirst()
+      );
+      if (!wallet) {
+        reply.status(404);
+        return { error: 'Wallet not found.' };
+      }
+      if (wallet.status !== 'active') {
+        reply.status(400);
+        return { error: `"${wallet.name}" is closed.` };
+      }
+      pettiWalletId = wallet.id;
+      brand = 'Petti Wallet';
+      label = label || `Petti — ${wallet.name}`;
     } else {
       if (!label) {
         reply.status(400);
@@ -93,7 +142,8 @@ export default async function billingRoutes(fastify: FastifyInstance) {
         .where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       const method = await trx.insertInto('payment_methods').values({
         tenant_id: user.tenant_id, created_by: user.sub, type, label, brand, last4,
-        exp_month: expMonth, exp_year: expYear, is_default: Number(existingCount?.c ?? 0) === 0,
+        exp_month: expMonth, exp_year: expYear, petti_wallet_id: pettiWalletId,
+        is_default: Number(existingCount?.c ?? 0) === 0,
       }).returningAll().executeTakeFirstOrThrow();
       reply.status(201);
       return method;
@@ -150,7 +200,7 @@ export default async function billingRoutes(fastify: FastifyInstance) {
       const seatRow = await trx.selectFrom('users').select(({ fn }) => fn.countAll<number>().as('c'))
         .where('tenant_id', '=', user.tenant_id).where('active', '=', true).executeTakeFirst();
       const seats = Number(seatRow?.c ?? 1);
-      const planAmount = pkg.price_per_seat != null ? pkg.price_per_seat * seats : pkg.monthly_price;
+      const planAmount = computePlanAmount(pkg, seats);
 
       // Fold in real active add-ons (376_package_addons.sql) — a purchased
       // add-on (e.g. Onsite) is billed alongside the plan itself.
@@ -189,7 +239,13 @@ export default async function billingRoutes(fastify: FastifyInstance) {
         period_start: periodStart.toISOString().slice(0, 10),
         period_end: periodEnd.toISOString().slice(0, 10),
         due_date: dueDate.toISOString().slice(0, 10),
-        status: dueDate < now ? 'overdue' : 'due',
+        // A $0 invoice (e.g. a custom/enterprise package whose monthly_price
+        // was briefly 0/unset before pricing was configured) has nothing
+        // owed — "overdue" is never correct for zero money, regardless of
+        // how far past the due date it is. Found via 2 real historical
+        // invoices stuck showing "$0.00 · overdue" after packages.monthly_price
+        // for 'enterprise' was corrected post-hoc without a backfill.
+        status: amount <= 0 ? 'paid' : (dueDate < now ? 'overdue' : 'due'),
       }).returningAll().executeTakeFirstOrThrow();
 
       reply.status(201);
@@ -220,24 +276,51 @@ export default async function billingRoutes(fastify: FastifyInstance) {
           return { error: 'Payment method not found' };
         }
 
-        // Simulated charge, same house convention as onboarding — no live
-        // gateway is wired up, but the result genuinely reflects the stored
-        // method (a mobile_money method routes through the mpesa branch).
-        const result = PaymentsIntegration.simulateCharge(invoice.amount, {
-          method: method.type === 'mobile_money' ? 'mpesa' : 'card',
-          card_number: method.type === 'card' ? `0000000000000${method.last4}` : undefined,
-          card_expiry: method.type === 'card' && method.exp_month && method.exp_year ? `${String(method.exp_month).padStart(2, '0')}/${String(method.exp_year).slice(-2)}` : undefined,
-          card_cvc: method.type === 'card' ? '123' : undefined,
-          mobile_number: method.type === 'mobile_money' ? `255700000${method.last4}` : undefined,
-        } as any);
+        let txRef: string;
 
-        if (!result.success) {
-          reply.status(402);
-          return { error: result.error || 'Payment failed' };
+        if (method.type === 'petti_wallet') {
+          // A real internal deduction, not a simulated external charge — see
+          // PettiService.payFromWalletDirect's own comment for why that's a
+          // meaningful distinction here specifically (it's genuine money
+          // this platform already tracks, unlike a card/mobile-money charge
+          // Hudumika has no live merchant credentials to actually place).
+          if (!method.petti_wallet_id) {
+            reply.status(400);
+            return { error: 'This payment method has no wallet attached.' };
+          }
+          try {
+            const result = await PettiService.payFromWalletDirect(user.tenant_id, { id: user.sub, role: user.role }, {
+              walletId: method.petti_wallet_id,
+              amount: invoice.amount,
+              category: 'SUBSCRIPTION',
+              purpose: `Hudumika subscription ${invoice.invoice_number} — ${invoice.plan_code} plan, ${invoice.seats} seat${invoice.seats === 1 ? '' : 's'}`,
+            });
+            txRef = `PETTI-${result.withdrawalRequestId}`;
+          } catch (err: any) {
+            reply.status(402);
+            return { error: err.message || 'Payment failed' };
+          }
+        } else {
+          // Simulated charge, same house convention as onboarding — no live
+          // gateway is wired up, but the result genuinely reflects the stored
+          // method (a mobile_money method routes through the mpesa branch).
+          const result = PaymentsIntegration.simulateCharge(invoice.amount, {
+            method: method.type === 'mobile_money' ? 'mpesa' : 'card',
+            card_number: method.type === 'card' ? `0000000000000${method.last4}` : undefined,
+            card_expiry: method.type === 'card' && method.exp_month && method.exp_year ? `${String(method.exp_month).padStart(2, '0')}/${String(method.exp_year).slice(-2)}` : undefined,
+            card_cvc: method.type === 'card' ? '123' : undefined,
+            mobile_number: method.type === 'mobile_money' ? `255700000${method.last4}` : undefined,
+          } as any);
+
+          if (!result.success) {
+            reply.status(402);
+            return { error: result.error || 'Payment failed' };
+          }
+          txRef = result.tx_ref;
         }
 
         const updated = await trx.updateTable('subscription_invoices')
-          .set({ status: 'paid', paid_at: new Date(), payment_method_id: method.id, tx_ref: result.tx_ref })
+          .set({ status: 'paid', paid_at: new Date(), payment_method_id: method.id, tx_ref: txRef })
           .where('id', '=', invoice.id)
           .returningAll().executeTakeFirstOrThrow();
         return updated;

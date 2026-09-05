@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
+import { Spinner } from '../components/ui/spinner.js';
 
 const STATE_KEY = 'hudumika_google_contacts_oauth_state';
 
@@ -55,8 +56,7 @@ export const ContactsGoogleCallback: React.FC = () => {
     <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16, padding: 24 }}>
       {status === 'working' ? (
         <>
-          <div style={{ width: 36, height: 36, border: '3px solid var(--border)', borderTopColor: 'var(--teal)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-          <style>{'@keyframes spin { to { transform: rotate(360deg); } }'}</style>
+          <Spinner size={36} thickness={3} />
           <div style={{ fontSize: 13.5, color: 'var(--ink2)' }}>{message}</div>
         </>
       ) : (

@@ -23,6 +23,7 @@ import { LAUNCHER_APPS } from '../components/LauncherApps.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { PaginationBar } from '../components/PaginationBar.js';
 
 /* ══════════════════════════════════════════════════
    TYPES
@@ -36,7 +37,7 @@ type PayMethod = 'card' | 'bank' | 'mpesa' | 'paypal';
 
 interface Company { id:string; name:string; email:string; phone:string; plan:PlanId; users:number; status:CoStatus; domain:string; created:string; owner:string; country:string; color:string; logoUrl?:string; founderPersonalEmailDomain?:string|null; }
 interface Subscription { id:string; companyId:string; plan:PlanId; start:string; end:string; amount:number; billing:'monthly'|'annual'; status:SubStatus; }
-interface Package { id:string; code:string; name:string; monthly:number; annual:number; maxUsers:number; monthlyItemLimit:number|null; storageLimitGb:number|null; features:string[]; active:number; color:string; popular?:boolean; }
+interface Package { id:string; code:string; name:string; monthly:number; annual:number; maxUsers:number; pricePerSeat:number|null; extraSeatPrice:number|null; extraSeatThreshold:number|null; monthlyItemLimit:number|null; storageLimitGb:number|null; features:string[]; active:number; color:string; popular?:boolean; isActive:boolean; }
 /** Purchasable independent of which base Package a tenant is on
  *  (376_package_addons.sql) — Onsite's real home now, not a fourth
  *  competing base package. */
@@ -103,17 +104,6 @@ const COMPANIES: Company[] = [
   { id:'C6', name:'Dar Port Agency',        email:'ops@darport.co.tz',     phone:'+255 712 999 888', plan:'starter',    users:8,  status:'inactive',  domain:'darport.clearos.app',   created:'2024-06-30', owner:'David Odhiambo',   country:'Tanzania', color:'#6366f1' },
   { id:'C7', name:'TZ Freight Solutions',   email:'admin@tzfreight.co.tz', phone:'+255 767 777 666', plan:'growth',     users:15, status:'active',    domain:'tzfreight.clearos.app', created:'2024-08-15', owner:'Amina Hassan',     country:'Tanzania', color:'#22c55e' },
   { id:'C8', name:'Coastal Clearers Ltd',   email:'info@coastal.co.tz',    phone:'+255 754 555 444', plan:'enterprise',   users:37, status:'suspended', domain:'coastal.clearos.app',   created:'2023-09-22', owner:'Beatrice Njoroge', country:'Kenya',    color:'#0891b2' },
-];
-
-const PACKAGES: Package[] = [
-  { id:'P1', code:'starter',  name:'HuduStarter',  monthly:6,  annual:60,  maxUsers:300,  monthlyItemLimit:50,   storageLimitGb:10,  active:0, color:'#0891b2',
-    features:['Every module included','Up to 300 users','10 GB storage','100 shipments / month','Basic shipment tracking','TANCIS integration','Email support','Local mobile money (M-Pesa, Tigo Pesa, Airtel Money)'] },
-  { id:'P2', code:'growth',   name:'HuduPlus',   monthly:18,  annual:180,  maxUsers:300, monthlyItemLimit:300,  storageLimitGb:50,  active:0, color:'#0d7a6b', popular:true,
-    features:['Every module included','Up to 300 users','50 GB storage','500 shipments / month','Advanced tracking & alerts','Finance module (invoices, bills)','CRM & Leads','WhatsApp Bot','Priority 24h support'] },
-  { id:'P3', code:'scale',    name:'Legacy Scale',    monthly:19, annual:190, maxUsers:99, monthlyItemLimit:1500, storageLimitGb:250, active:0, color:'#2563eb',
-    features:['Every module included','Up to 99 users','250 GB storage','1,000 shipments / month','Full API access','HR / People module','TANESW integration','Demurrage tracking','Custom reports','Multi-branch support'] },
-  { id:'P4', code:'enterprise', name:'Hudu Advanced', monthly:0, annual:0, maxUsers:0,  monthlyItemLimit:null, storageLimitGb:null, active:0, color:'#6e40c9',
-    features:['Every module included','Unlimited users','Unlimited storage','Unlimited shipments','Dedicated account manager','24/7 phone & WhatsApp support','Custom integrations (core banking APIs)','White-label option','99.99% SLA guarantee','Metered option shared per quotation'] },
 ];
 
 const SUBSCRIPTIONS: Subscription[] = [
@@ -347,11 +337,11 @@ function ActBtn({ icon, color, title, onClick }: { icon:IconName; color?:string;
 }
 
 /* ── Stat summary card ── */
-function StatCard({ label, value, color }: { label:string; value:number|string; color:string }) {
+function StatCard({ label, value }: { label:string; value:number|string; color?:string }) {
   return (
-    <div style={{ background:'var(--white)', border:'1px solid var(--border)', borderRadius: 9, padding:'14px 18px', flex:1, borderTop:`3px solid ${color}` }}>
-      <div style={{ fontSize:22, fontWeight:800, color:'var(--ink)' }}>{value}</div>
-      <div style={{ fontSize:12, color:'var(--ink3)', marginTop:4 }}>{label}</div>
+    <div style={{ background:'var(--white)', border:'1px solid var(--border)', borderRadius: 12, padding:'16px 20px', flex:1, boxShadow: 'var(--elev-sm, 0 1px 3px rgba(0, 0, 0, 0.03))' }}>
+      <div style={{ fontSize:24, fontWeight:800, color:'var(--ink)' }}>{value}</div>
+      <div style={{ fontSize:12.5, fontWeight:500, color:'var(--ink3)', marginTop:4 }}>{label}</div>
     </div>
   );
 }
@@ -588,6 +578,10 @@ export function CompaniesView() {
     apiFetch('/v1/addons').then(res => setAddonsCatalog((res.data as any[]).map(mapAddonFromApi))).catch(() => {});
   }, []);
 
+  const [deleteTarget, setDeleteTarget] = useState<Company|null>(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deleting, setDeleting] = useState(false);
+
   const [customersCo, setCustomersCo] = useState<Company|null>(null);
   const [tenantCustomers, setTenantCustomers] = useState<TenantCustomer[]>([]);
   const [loadingCustomers, setLoadingCustomers] = useState(false);
@@ -610,7 +604,14 @@ export function CompaniesView() {
   useEffect(() => { load(); }, [load]);
 
   const displayed = useMemo(() => {
-    if (apiError || tenants.length === 0) return COMPANIES;
+    // The mock COMPANIES fixture (including a fabricated "suspended" tenant)
+    // is only an honest stand-in when the real list genuinely couldn't be
+    // fetched — the subtitle below says "(mock — API offline)" for that case.
+    // It used to also cover a real, successful, genuinely-empty result (a
+    // fresh platform with zero tenants), silently presenting fake companies
+    // as real ones with no disclosure at all. A truly empty tenant list now
+    // renders as an empty table instead.
+    if (apiError) return COMPANIES;
     return tenants.map(t => {
       const mock = COMPANIES.find(c => c.name === t.name) ?? null;
       return {
@@ -750,13 +751,43 @@ export function CompaniesView() {
     }
   }
 
-  async function deleteCompany(id: string) {
-    if (!(await showConfirm('Are you sure you want to delete this company?', { confirmLabel: 'Delete' }))) return;
+  async function toggleSuspend(co: Company) {
+    const suspending = co.status === 'active';
+    const verb = suspending ? 'suspend' : 'reactivate';
+    const warning = suspending
+      ? `Suspend ${co.name}? Every user at this company will be signed out of any active session and unable to sign back in until you reactivate it.`
+      : `Reactivate ${co.name}? Their staff will be able to sign in again immediately.`;
+    if (!(await showConfirm(warning, { confirmLabel: suspending ? 'Suspend' : 'Reactivate' }))) return;
     try {
-      await apiFetch(`/v1/superadmin/tenants/${id}`, { method: 'DELETE' });
+      await apiFetch(`/v1/superadmin/tenants/${co.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ active: !suspending }),
+      });
       await load();
     } catch (err: any) {
+      showAlert(`Failed to ${verb} company: ${err?.message ?? 'Unknown error'}`);
+    }
+  }
+
+  // A generic yes/no dialog was the only thing standing between a misclick
+  // and permanently, irreversibly deleting a live tenant's entire dataset —
+  // every shipment, invoice, user account and document, cascade-deleted with
+  // no soft-delete or recovery path. This is the single most destructive
+  // action in the whole SuperAdmin console, so it gets the one confirmation
+  // pattern that actually stops a misclick: retyping the company's exact
+  // name, the same shape GitHub/AWS use for their own irreversible deletes.
+  async function confirmDeleteCompany() {
+    if (!deleteTarget || deleteConfirmText !== deleteTarget.name || deleting) return;
+    setDeleting(true);
+    try {
+      await apiFetch(`/v1/superadmin/tenants/${deleteTarget.id}`, { method: 'DELETE' });
+      await load();
+      setDeleteTarget(null);
+      setDeleteConfirmText('');
+    } catch (err: any) {
       showAlert(`Failed to delete company: ${err?.message ?? 'Unknown error'}`);
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -839,13 +870,18 @@ export function CompaniesView() {
                   </button>
                   <ActBtn icon="users" title="View customers" onClick={()=>openCustomers(co)} />
                   <ActBtn icon="edit" color="var(--teal)" title="Edit company" onClick={()=>openEdit(co)} />
-                  <ActBtn icon="trash" color="var(--red)" title="Delete company" onClick={()=>deleteCompany(co.id)} />
+                  {co.status === 'active'
+                    ? <ActBtn icon="lock" color="var(--gold)" title="Suspend company" onClick={()=>toggleSuspend(co)} />
+                    : <ActBtn icon="unlock" color="var(--green)" title="Reactivate company" onClick={()=>toggleSuspend(co)} />}
+                  <ActBtn icon="trash" color="var(--red)" title="Delete company" onClick={()=>{setDeleteTarget(co); setDeleteConfirmText('');}} />
                 </div>
               </TD>
             </TR>
           ))}
           {filtered.length === 0 && (
-            <tr><td colSpan={8} style={{ textAlign:'center', padding:'40px 0', color:'var(--ink3)', fontSize:13 }}>No companies match your filters</td></tr>
+            <tr><td colSpan={8} style={{ textAlign:'center', padding:'40px 0', color:'var(--ink3)', fontSize:13 }}>
+              {!apiError && tenants.length === 0 ? 'No companies registered yet.' : 'No companies match your filters'}
+            </td></tr>
           )}
         </DataTable>
       )}
@@ -1006,6 +1042,42 @@ export function CompaniesView() {
           </div>
         </div>
       )}
+
+      <Dialog open={!!deleteTarget} onOpenChange={o => { if (!o) { setDeleteTarget(null); setDeleteConfirmText(''); } }}>
+        <DialogContent className="sm:max-w-md">
+          {deleteTarget && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Delete {deleteTarget.name}?</DialogTitle>
+              </DialogHeader>
+              <div style={{ display:'flex', flexDirection:'column', gap:12, padding:'4px 0' }}>
+                <p style={{ fontSize:13, color:'var(--ink2)', margin:0 }}>
+                  This permanently deletes every shipment, invoice, document and user account belonging to <strong>{deleteTarget.name}</strong>. This cannot be undone — there is no backup or recovery.
+                </p>
+                <p style={{ fontSize:13, color:'var(--ink2)', margin:0 }}>
+                  Type <strong>{deleteTarget.name}</strong> to confirm.
+                </p>
+                <Input
+                  value={deleteConfirmText}
+                  onChange={e => setDeleteConfirmText(e.target.value)}
+                  placeholder={deleteTarget.name}
+                  autoFocus
+                />
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => { setDeleteTarget(null); setDeleteConfirmText(''); }}>Cancel</Button>
+                <Button
+                  variant="destructive"
+                  disabled={deleteConfirmText !== deleteTarget.name || deleting}
+                  onClick={confirmDeleteCompany}
+                >
+                  {deleting ? 'Deleting…' : 'Delete permanently'}
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -1285,19 +1357,35 @@ function AppQuotasEditor({ packageCode }: { packageCode: string }) {
 }
 
 export function PackagesView() {
-  const [packages, setPackages] = useState(PACKAGES);
+  // null = still loading. Was seeded with the hardcoded PACKAGES sample
+  // array and only overwritten `if (mapped.length)` — so every load of this
+  // page first drew 4 fabricated cards with numbers that don't match any
+  // real package (they haven't for a while: the real "scale" plan was
+  // deactivated and its price changed to 299, and the real starter/growth/
+  // enterprise prices are 3/10/50, not 6/18/0), then a moment later swapped
+  // to whatever the real, *active* packages actually are (3 of them, not
+  // 4 — "scale" is real but inactive, so /v1/packages correctly omits it).
+  // That swap — a visibly different card count and different prices on
+  // every single page load — is exactly what "packages keep changing"
+  // describes. Loading state now, real data only, once. Now fetches
+  // /v1/packages/all (every package, active or not) rather than the public
+  // /v1/packages, since this console is where a dormant tier — the free
+  // plan, legacy 'scale' — gets reactivated, not just where live ones get edited.
+  const [packages, setPackages] = useState<Package[] | null>(null);
+  const [packagesError, setPackagesError] = useState(false);
   const [billing, setBilling] = useState<'monthly'|'annual'>('monthly');
   const [editing, setEditing] = useState<Package|null>(null);
   const [showAdd, setShowAdd] = useState(false);
-  const [newPkg, setNewPkg] = useState({ name:'', monthly:0, annual:0, maxUsers:10 });
-  const [addons, setAddons] = useState<Addon[]>([]);
+  const [newPkg, setNewPkg] = useState({ name:'', monthly:0, annual:0, maxUsers:10, pricePerSeat:0 });
+  const [addons, setAddons] = useState<Addon[] | null>(null);
+  const [addonsError, setAddonsError] = useState(false);
   const [editingAddon, setEditingAddon] = useState<Addon|null>(null);
 
-  // Load the canonical catalog from the API — falls back to PACKAGES defaults on failure.
+  // Load the canonical catalog from the API — shows a real error state on failure, no fabricated fallback.
   // Edit/Create/Deactivate below are wired to real endpoints (packages.routes.ts POST/PATCH/DELETE,
   // SuperAdmin-gated). The Feature Gates checklist in the edit modal is a separate, already-wired
   // endpoint (/v1/superadmin/packages/:code/features) — see FeatureGatesEditor below.
-  function mapFromApi(pkg: { id:string; code:string; name:string; monthly_price:number; annual_price:number; max_users:number; monthly_item_limit:number|null; storage_limit_bytes:number|null; features:string[]; color:string; popular:boolean }): Package {
+  function mapFromApi(pkg: { id:string; code:string; name:string; monthly_price:number; annual_price:number; max_users:number; price_per_seat:number|null; extra_seat_price:number|null; extra_seat_threshold:number|null; monthly_item_limit:number|null; storage_limit_bytes:number|null; features:string[]; color:string; popular:boolean; is_active:boolean }): Package {
     return {
       id: pkg.id,
       code: pkg.code,
@@ -1305,6 +1393,9 @@ export function PackagesView() {
       monthly: pkg.monthly_price,
       annual: pkg.annual_price,
       maxUsers: pkg.max_users,
+      pricePerSeat: pkg.price_per_seat,
+      extraSeatPrice: pkg.extra_seat_price,
+      extraSeatThreshold: pkg.extra_seat_threshold,
       monthlyItemLimit: pkg.monthly_item_limit,
       storageLimitGb: pkg.storage_limit_bytes != null ? Math.round(pkg.storage_limit_bytes / 1073741824) : null,
       active: 0,
@@ -1316,18 +1407,25 @@ export function PackagesView() {
       color: pkg.color || '#e8461a',
       popular: pkg.popular,
       features: pkg.features,
+      isActive: pkg.is_active,
     };
   }
 
+  // /all (not the public / ) — SuperAdmin needs to see and reactivate
+  // dormant packages (the free tier, legacy 'scale', etc.), not just the
+  // ones already live to signups.
   function reload() {
-    apiFetch('/v1/packages').then(res => {
-      const mapped: Package[] = (res.data as any[]).map(mapFromApi);
-      if (mapped.length) setPackages(mapped);
-    }).catch(() => { /* keep current/fallback list */ });
+    setPackagesError(false);
+    apiFetch('/v1/packages/all').then(res => {
+      setPackages((res.data as any[]).map(mapFromApi));
+    }).catch(() => setPackagesError(true));
   }
 
   function reloadAddons() {
-    apiFetch('/v1/addons').then(res => setAddons((res.data as any[]).map(mapAddonFromApi))).catch(() => { /* keep current list */ });
+    setAddonsError(false);
+    apiFetch('/v1/addons').then(res => {
+      setAddons((res.data as any[]).map(mapAddonFromApi));
+    }).catch(() => setAddonsError(true));
   }
 
   useEffect(() => { reload(); reloadAddons(); }, []);
@@ -1347,11 +1445,25 @@ export function PackagesView() {
         }
       />
 
+      {packages === null && !packagesError && (
+        <div style={{ padding:'32px 0', textAlign:'center', color:'var(--ink3)', fontSize:13 }}>Loading packages…</div>
+      )}
+      {packagesError && (
+        <div style={{ padding:'32px 0', textAlign:'center', color:'var(--red)', fontSize:13 }}>
+          Couldn't load packages. <button onClick={reload} className="btn btn-secondary btn-sm" style={{ marginLeft:8 }}>Retry</button>
+        </div>
+      )}
+      {packages !== null && packages.length === 0 && (
+        <div style={{ padding:'32px 0', textAlign:'center', color:'var(--ink3)', fontSize:13 }}>No active packages configured yet.</div>
+      )}
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(240px,1fr))', gap:20 }}>
-        {packages.map(pkg=>(
-          <div key={pkg.id} className="card" style={{ padding:'28px 26px', position:'relative', border:`2px solid ${pkg.popular?pkg.color:'var(--border)'}` }}>
-            {pkg.popular && (
+        {packages?.map(pkg=>(
+          <div key={pkg.id} className="card" style={{ padding:'28px 26px', position:'relative', border:`2px solid ${pkg.popular&&pkg.isActive?pkg.color:'var(--border)'}`, opacity: pkg.isActive ? 1 : 0.6 }}>
+            {pkg.popular && pkg.isActive && (
               <div style={{ position:'absolute', top:-12, left:'50%', transform:'translateX(-50%)', background:pkg.color, color:'#fff', fontSize:10, fontWeight:800, padding:'4px 14px', borderRadius:20, whiteSpace:'nowrap', letterSpacing:'0.06em' }}>MOST POPULAR</div>
+            )}
+            {!pkg.isActive && (
+              <div style={{ position:'absolute', top:-12, left:'50%', transform:'translateX(-50%)', background:'var(--ink3)', color:'#fff', fontSize:10, fontWeight:800, padding:'4px 14px', borderRadius:20, whiteSpace:'nowrap', letterSpacing:'0.06em' }}>INACTIVE — hidden from signups</div>
             )}
 
             <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:16 }}>
@@ -1371,6 +1483,14 @@ export function PackagesView() {
               </div>
               {billing==='annual' && (
                 <div style={{ fontSize:11, color:'var(--green)', fontWeight:600, marginTop:2 }}>Save ${(pkg.monthly*12-pkg.annual).toFixed(0)}/yr vs monthly</div>
+              )}
+              {pkg.pricePerSeat != null && (
+                <div style={{ fontSize:11.5, color:'var(--ink3)', marginTop:6 }}>
+                  Billed at <strong style={{ color:'var(--ink2)' }}>${pkg.pricePerSeat}/seat/mo</strong> — the real per-tenant charge
+                  {pkg.extraSeatThreshold != null && pkg.extraSeatPrice != null && (
+                    <> (${pkg.extraSeatPrice}/seat past seat {pkg.extraSeatThreshold})</>
+                  )}
+                </div>
               )}
             </div>
 
@@ -1399,11 +1519,26 @@ export function PackagesView() {
           storage next to its own plan tiers rather than as a competing
           tier. Onsite lives here now instead of being a fourth package —
           it's for a narrow slice of tenants (agencies, web hosts/cloud
-          infra teams, IT providers), not a general-audience tier. */}
-      {addons.length > 0 && (
-        <div style={{ marginTop:36 }}>
-          <div style={{ fontSize:16, fontWeight:800, color:'var(--ink)', marginBottom:4 }}>Get more with add-ons</div>
-          <div style={{ fontSize:12.5, color:'var(--ink3)', marginBottom:16 }}>Purchasable on top of any package above — not a separate tier.</div>
+          infra teams, IT providers), not a general-audience tier.
+          Used to render nothing at all — no header, no message — whenever
+          `addons` was empty, which is indistinguishable on screen from
+          "still loading" or "the fetch failed": always show the header now,
+          and say which of those three states this actually is. */}
+      <div style={{ marginTop:36 }}>
+        <div style={{ fontSize:16, fontWeight:800, color:'var(--ink)', marginBottom:4 }}>Get more with add-ons</div>
+        <div style={{ fontSize:12.5, color:'var(--ink3)', marginBottom:16 }}>Purchasable on top of any package above — not a separate tier.</div>
+        {addons === null && !addonsError && (
+          <div style={{ padding:'16px 0', color:'var(--ink3)', fontSize:13 }}>Loading add-ons…</div>
+        )}
+        {addonsError && (
+          <div style={{ padding:'16px 0', color:'var(--red)', fontSize:13 }}>
+            Couldn't load add-ons. <button onClick={reloadAddons} className="btn btn-secondary btn-sm" style={{ marginLeft:8 }}>Retry</button>
+          </div>
+        )}
+        {addons !== null && addons.length === 0 && !addonsError && (
+          <div style={{ padding:'16px 0', color:'var(--ink3)', fontSize:13 }}>No add-ons configured yet.</div>
+        )}
+        {addons !== null && addons.length > 0 && (
           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(300px,1fr))', gap:14 }}>
             {addons.map(addon => (
               <div key={addon.id} className="card" style={{ padding:'18px 20px', display:'flex', gap:14, alignItems:'flex-start' }}>
@@ -1428,8 +1563,8 @@ export function PackagesView() {
               </div>
             ))}
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Add-on edit modal — pricing/description only; an add-on has no
           user/storage tiers of its own to configure. */}
@@ -1468,7 +1603,7 @@ export function PackagesView() {
                     if (!(await showConfirm(`Deactivate the ${editingAddon.name} add-on? It will stop appearing to new signups.`, { variant: 'warning', confirmLabel: 'Deactivate' }))) return;
                     try {
                       await apiFetch(`/v1/addons/${editingAddon.code}`, { method: 'DELETE' });
-                      setAddons(a => a.filter(x => x.id !== editingAddon.id));
+                      setAddons(a => (a ?? []).filter(x => x.id !== editingAddon.id));
                       setEditingAddon(null);
                     } catch (err: any) {
                       showAlert(`Failed to deactivate: ${err?.message ?? 'Unknown error'}`);
@@ -1490,7 +1625,7 @@ export function PackagesView() {
                             description: editingAddon.description,
                           }),
                         });
-                        setAddons(a => a.map(x => x.id === editingAddon.id ? mapAddonFromApi({ ...updated, activeCompanies: editingAddon.activeCompanies }) : x));
+                        setAddons(a => (a ?? []).map(x => x.id === editingAddon.id ? mapAddonFromApi({ ...updated, activeCompanies: editingAddon.activeCompanies }) : x));
                         setEditingAddon(null);
                       } catch (err: any) {
                         showAlert(`Failed to save: ${err?.message ?? 'Unknown error'}`);
@@ -1534,40 +1669,84 @@ export function PackagesView() {
                 ))}
               </div>
 
+              {/* The real per-tenant charge (billing.routes.ts's computePlanAmount)
+                  reads price_per_seat, not the flat monthly/annual figures above —
+                  those were never editable anywhere in this console before now,
+                  which is exactly why Subscription.tsx's own per-seat pricing has
+                  had to be hand-migrated through SQL up to this point. */}
+              <div style={{ marginTop:16, padding:'14px 16px', border:'1px solid var(--border)', borderRadius:9, background:'var(--bg)' }}>
+                <FeatureToggleRow
+                  icon={<Icon name="users" size={18} strokeWidth={1.75} />}
+                  title="Per-seat pricing"
+                  description={editing.pricePerSeat != null ? 'Billed per active user, every month.' : 'Off — flat/custom pricing (e.g. "Talk to Sales" tiers).'}
+                  checked={editing.pricePerSeat != null}
+                  onCheckedChange={(checked: boolean) => setEditing(p => p ? ({
+                    ...p,
+                    pricePerSeat: checked ? (p.pricePerSeat ?? 0) : null,
+                    extraSeatPrice: checked ? p.extraSeatPrice : null,
+                    extraSeatThreshold: checked ? p.extraSeatThreshold : null,
+                  }) : p)}
+                />
+                {editing.pricePerSeat != null && (
+                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:14, marginTop:14 }}>
+                    <div>
+                      <label style={{ fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:5 }}>Price per seat ($/mo)</label>
+                      <Input type="number" min={0} value={editing.pricePerSeat} onChange={e=>setEditing(p=>p?({...p,pricePerSeat:Number(e.target.value)}):p)} />
+                    </div>
+                    <div>
+                      <label style={{ fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:5 }}>
+                        Discount past seat # <span style={{ fontWeight:400, color:'var(--ink3)' }}>(blank = none)</span>
+                      </label>
+                      <Input type="number" min={1} placeholder="e.g. 5" value={editing.extraSeatThreshold ?? ''} onChange={e=>setEditing(p=>p?({...p,extraSeatThreshold:e.target.value===''?null:Number(e.target.value)}):p)} />
+                    </div>
+                    <div>
+                      <label style={{ fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:5 }}>Discounted seat price ($/mo)</label>
+                      <Input type="number" min={0} placeholder="e.g. 4" value={editing.extraSeatPrice ?? ''} onChange={e=>setEditing(p=>p?({...p,extraSeatPrice:e.target.value===''?null:Number(e.target.value)}):p)} />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div style={{ marginTop:12, padding:'2px 16px', border:'1px solid var(--border)', borderRadius:9 }}>
+                <FeatureToggleRow
+                  icon={<Icon name="eye" size={18} strokeWidth={1.75} />}
+                  title="Active — visible to signups"
+                  description={editing.isActive ? 'Live: tenants can pick this plan today.' : 'Dormant: hidden from signup/pricing, but any tenant already on it keeps working.'}
+                  checked={editing.isActive}
+                  onCheckedChange={(checked: boolean) => setEditing(p => p ? ({ ...p, isActive: checked }) : p)}
+                />
+              </div>
+
               <FeatureGatesEditor packageCode={editing.code} />
               <AppQuotasEditor packageCode={editing.code} />
 
-              <DialogFooter className="sm:justify-between">
-                <Button
-                  type="button" variant="destructive" size="sm"
-                  onClick={async () => {
-                    if (!(await showConfirm(`Deactivate the ${editing.name} package? It will stop appearing to new signups.`, { variant: 'warning', confirmLabel: 'Deactivate' }))) return;
-                    try {
-                      await apiFetch(`/v1/packages/${editing.code}`, { method: 'DELETE' });
-                      setPackages(p => p.filter(pk => pk.id !== editing.id));
-                      setEditing(null);
-                    } catch (err: any) {
-                      showAlert(`Failed to deactivate: ${err?.message ?? 'Unknown error'}`);
-                    }
-                  }}
-                >
-                  Deactivate
-                </Button>
+              <DialogFooter>
                 <div style={{ display:'flex', gap:8 }}>
                   <Button type="button" variant="outline" size="sm" onClick={()=>setEditing(null)}>Cancel</Button>
                   <Button
                     type="button" size="sm"
                     onClick={async () => {
+                      // Deactivating goes through the same PATCH as every other
+                      // field now (the "Active" toggle above) instead of a
+                      // separate destructive action — one save, one confirm,
+                      // and reactivating (flip it back on, Save) works the same way.
+                      if (!editing.isActive && packages?.find(pk => pk.id === editing.id)?.isActive) {
+                        if (!(await showConfirm(`Deactivate the ${editing.name} package? It will stop appearing to new signups — any tenant already on it keeps working.`, { variant: 'warning', confirmLabel: 'Deactivate' }))) return;
+                      }
                       try {
                         const updated = await apiFetch(`/v1/packages/${editing.code}`, {
                           method: 'PATCH',
                           body: JSON.stringify({
                             monthly_price: editing.monthly, annual_price: editing.annual, max_users: editing.maxUsers,
+                            price_per_seat: editing.pricePerSeat,
+                            extra_seat_price: editing.extraSeatPrice,
+                            extra_seat_threshold: editing.extraSeatThreshold,
                             monthly_item_limit: editing.monthlyItemLimit ? editing.monthlyItemLimit : null,
                             storage_limit_bytes: editing.storageLimitGb ? editing.storageLimitGb * 1073741824 : null,
+                            is_active: editing.isActive,
                           }),
                         });
-                        setPackages(p => p.map(pk => pk.id === editing.id ? mapFromApi(updated) : pk));
+                        setPackages(p => (p ?? []).map(pk => pk.id === editing.id ? mapFromApi(updated) : pk));
                         setEditing(null);
                       } catch (err: any) {
                         showAlert(`Failed to save: ${err?.message ?? 'Unknown error'}`);
@@ -1594,6 +1773,7 @@ export function PackagesView() {
             { label:'Monthly Price ($)', key:'monthly', type:'number' },
             { label:'Annual Price ($)',  key:'annual',  type:'number' },
             { label:'Max Users',         key:'maxUsers',type:'number' },
+            { label:'Price per seat ($/mo, optional — 0 = flat/custom pricing)', key:'pricePerSeat', type:'number' },
           ].map(f=>(
             <div key={f.key}>
               <label style={{ fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:5 }}>{f.label}</label>
@@ -1611,11 +1791,12 @@ export function PackagesView() {
                   body: JSON.stringify({
                     code, name: newPkg.name.trim(),
                     monthly_price: newPkg.monthly, annual_price: newPkg.annual, max_users: newPkg.maxUsers,
+                    price_per_seat: newPkg.pricePerSeat > 0 ? newPkg.pricePerSeat : null,
                     features: ['Custom features'], color: 'var(--teal)', popular: false, sort_order: 99,
                   }),
                 });
                 reload();
-                setNewPkg({name:'',monthly:0,annual:0,maxUsers:10});
+                setNewPkg({name:'',monthly:0,annual:0,maxUsers:10,pricePerSeat:0});
                 setShowAdd(false);
               } catch (err: any) {
                 showAlert(`Failed to create package: ${err?.message ?? 'Unknown error'}`);
@@ -2069,6 +2250,8 @@ export function ActivityView() {
   const [tenants, setTenants] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
 
   useEffect(() => {
     let alive = true;
@@ -2090,6 +2273,11 @@ export function ActivityView() {
       return true;
     }),
   [rows, typeFilter, coFilter]);
+
+  const paged = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }, [filtered, page, pageSize]);
 
   function relTime(iso: string) {
     const diff = Date.now() - new Date(iso).getTime();
@@ -2116,20 +2304,22 @@ export function ActivityView() {
         <SingleSelectFilter
           label="Type" allLabel="All Types"
           options={(Object.keys(TYPE_LABELS) as ActivityType[]).map(k => ({ value: k, label: TYPE_LABELS[k] }))}
-          value={typeFilter === 'all' ? null : typeFilter} onChange={v => setTypeFilter((v ?? 'all') as ActivityType | 'all')}
+          value={typeFilter === 'all' ? null : typeFilter}
+          onChange={v => { setTypeFilter((v ?? 'all') as ActivityType | 'all'); setPage(1); }}
         />
         <SingleSelectFilter
           label="Company" allLabel="All Companies"
           options={tenants.map((c:any) => ({ value: c.id, label: c.name }))}
-          value={coFilter === 'all' ? null : coFilter} onChange={v => setCoFilter(v ?? 'all')}
+          value={coFilter === 'all' ? null : coFilter}
+          onChange={v => { setCoFilter(v ?? 'all'); setPage(1); }}
         />
       </div>
 
       <div className="card" style={{ padding:'8px 0' }}>
-        {filtered.map((a, i) => {
+        {paged.map((a, i) => {
           const cfg = ACT_CFG[a.category as ActivityType] ?? ACT_CFG.system;
           return (
-            <div key={a.id} style={{ display:'flex', alignItems:'flex-start', gap:14, padding:'14px 22px', borderBottom: i < filtered.length-1 ? '1px solid var(--border)' : 'none' }}>
+            <div key={a.id} style={{ display:'flex', alignItems:'flex-start', gap:14, padding:'14px 22px', borderBottom: i < paged.length-1 ? '1px solid var(--border)' : 'none' }}>
               <div style={{ width:34, height:34, borderRadius: 9, background:cfg.bg, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, marginTop:2 }}>
                 <Icon name={cfg.icon as any} size={16} color={cfg.color} />
               </div>
@@ -2169,6 +2359,17 @@ export function ActivityView() {
         )}
         {!loading && rows.length > 0 && filtered.length === 0 && (
           <div style={{ padding:'48px 0', textAlign:'center', color:'var(--ink3)', fontSize:13 }}>No activity matching filters</div>
+        )}
+        {!loading && filtered.length > 0 && (
+          <PaginationBar
+            page={page}
+            pageSize={pageSize}
+            total={filtered.length}
+            onPageChange={setPage}
+            onPageSizeChange={size => { setPageSize(size); setPage(1); }}
+            pageSizeOptions={[10, 15, 25, 50, 100]}
+            itemLabel="activity log"
+          />
         )}
       </div>
     </div>
@@ -2259,6 +2460,28 @@ export function SettingsView() {
       setTimeout(() => setSaved(null), 2000);
     } catch (err: any) {
       showAlert(`Failed to save settings: ${err?.message ?? 'Unknown error'}`);
+    }
+  }
+
+  // Used to just re-save whatever was already sitting in the field — clicking
+  // "Regenerate" changed nothing at all. Generates a real random secret
+  // client-side (crypto.getRandomValues, not Math.random) and saves it
+  // immediately, same shape as an API key's own secret generation.
+  async function regenerateWebhookSecret() {
+    const bytes = crypto.getRandomValues(new Uint8Array(24));
+    const hex = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+    const nextApi = { ...api, webhookSecret: `whs_live_${hex}` };
+    setApi(nextApi);
+    setShowWebhookSecret(true);
+    try {
+      await apiFetch('/v1/superadmin/settings', {
+        method: 'POST',
+        body: JSON.stringify({ maintenance, smtp, security, api: nextApi, ocr, ondiSso }),
+      });
+      setSaved('api-regen');
+      setTimeout(() => setSaved(null), 2000);
+    } catch (err: any) {
+      showAlert(`Failed to save the new secret: ${err?.message ?? 'Unknown error'}`);
     }
   }
 
@@ -2387,9 +2610,9 @@ export function SettingsView() {
         <TabsContent value="security">
       {/* ── Security & Sessions ── */}
       <SectionCard title="Security & Sessions" sub="Password policy, session management, and access controls" section="security">
-        <div style={{ display:'flex', alignItems:'center', gap:8, fontSize:12, color:'var(--gold)', background:'var(--gold-l)', border:'1px solid var(--gold)', borderRadius:8, padding:'8px 12px', marginBottom:16 }}>
-          <Icon name="alertTriangle" size={13} />
-          Saved here, but not yet enforced anywhere — no login-time check reads these values yet.
+        <div style={{ display:'flex', alignItems:'center', gap:8, fontSize:12, color:'var(--teal)', background:'var(--teal-l)', border:'1px solid var(--teal)', borderRadius:8, padding:'8px 12px', marginBottom:16 }}>
+          <Icon name="shield" size={13} />
+          Enforced platform-wide on every login and request. SUPER_ADMIN accounts are exempt from the IP allowlist so a misconfiguration here can never lock the console itself out.
         </div>
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))', gap:16 }}>
           <Field label="Minimum Password Length" hint="Characters required for all user passwords">
@@ -2536,10 +2759,10 @@ export function SettingsView() {
       <SectionCard title="API & Webhooks" sub="Rate limiting, CORS, and webhook security for platform APIs" section="api">
         <div style={{ display:'flex', alignItems:'center', gap:8, fontSize:12, color:'var(--gold)', background:'var(--gold-l)', border:'1px solid var(--gold)', borderRadius:8, padding:'8px 12px', marginBottom:16 }}>
           <Icon name="alertTriangle" size={13} />
-          Saved here, but not yet enforced anywhere — no request path reads these values yet.
+          Rate limit and CORS origins are enforced platform-wide. Key rotation and the webhook secret below are saved but not yet acted on anywhere.
         </div>
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))', gap:16 }}>
-          <Field label="API Rate Limit" hint="Maximum requests per minute per API key">
+          <Field label="API Rate Limit" hint="Maximum requests per minute for a normal app session (partner API keys keep their own fixed 300/min)">
             <input title="Rate limit" type="number" min={10} max={10000} value={api.rateLimit}
               onChange={e => setApi(p=>({...p,rateLimit:e.target.value}))} className="input-field" style={{ width:'100%' }} />
           </Field>
@@ -2547,11 +2770,11 @@ export function SettingsView() {
             <input title="Key rotation days" type="number" min={30} max={365} value={api.keyRotationDays}
               onChange={e => setApi(p=>({...p,keyRotationDays:e.target.value}))} className="input-field" style={{ width:'100%' }} />
           </Field>
-          <Field label="CORS Allowed Origins" hint="Comma-separated origins. Use * to allow all.">
+          <Field label="CORS Allowed Origins" hint="Comma-separated extra origins, layered on top of the server's own configured origin — this can only add access, never remove the app's own.">
             <input title="CORS origins" placeholder="https://app.yourcompany.com" value={api.corsOrigins}
               onChange={e => setApi(p=>({...p,corsOrigins:e.target.value}))} className="input-field" style={{ width:'100%' }} />
           </Field>
-          <Field label="Webhook Signing Secret" hint="Used to sign outbound webhook payloads">
+          <Field label="Webhook Signing Secret" hint="Not yet used to sign anything — saved for a future outbound webhook feature">
             <div style={{ display:'flex', gap:8 }}>
               <input title="Webhook secret" type={showWebhookSecret ? 'text' : 'password'} value={api.webhookSecret}
                 onChange={e => setApi(p=>({...p,webhookSecret:e.target.value}))} className="input-field" style={{ flex:1 }} />
@@ -2559,7 +2782,7 @@ export function SettingsView() {
                 onClick={() => setShowWebhookSecret(s => !s)} style={{ flexShrink:0 }}>
                 <Icon name={showWebhookSecret ? 'eyeOff' : 'eye'} size={14} />
               </button>
-              <button type="button" title="Regenerate secret" className="btn btn-outline btn-sm" onClick={() => save('api-regen')} style={{ flexShrink:0, gap:5 }}>
+              <button type="button" title="Regenerate secret" className="btn btn-outline btn-sm" onClick={() => regenerateWebhookSecret()} style={{ flexShrink:0, gap:5 }}>
                 <Icon name="refresh" size={13} />{saved==='api-regen'?'Done':'Regen'}
               </button>
             </div>

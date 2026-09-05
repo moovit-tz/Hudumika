@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { sql } from 'kysely';
 import { withTenant } from '../db/client.js';
 import { dispatchSiemExport } from './siem-export.js';
 
@@ -83,6 +84,16 @@ export async function recordAuthEvent(
 ): Promise<void> {
   try {
     await withTenant(tenantId, async (trx) => {
+      // Reading the tail and inserting the next link are two separate
+      // statements — without a lock serializing them per tenant, two
+      // concurrent events can both read the same last event_hash and both
+      // write it as their prev_hash, forking the chain into two branches
+      // that verifyAuditChain() can't detect (each branch is internally
+      // consistent). The lock is transaction-scoped and released
+      // automatically at commit, same pattern as hr.routes.ts's leave-race
+      // fix.
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${tenantId}), hashtext('ondi_audit_chain'))`.execute(trx);
+
       const last = await trx.selectFrom('ondi_auth_events')
         .select('event_hash').orderBy('created_at', 'desc').limit(1).executeTakeFirst();
 
@@ -120,6 +131,15 @@ export async function verifyAuditChain(tenantId: string, limit = 10_000): Promis
         metadata: e.metadata, prevHash: e.prev_hash,
       });
       if (expected !== e.event_hash) return { valid: false, broken_at: e.id, checked: i + 1 };
+
+      // Recomputing each row's own hash only proves that row wasn't edited —
+      // it says nothing about whether a row was deleted or reordered, since a
+      // deleted row simply vanishes from this SELECT with no trace. Checking
+      // that each entry's prev_hash actually equals the previous entry's
+      // event_hash (and that the oldest entry has no prev_hash at all) is
+      // what makes a deletion detectable.
+      const expectedPrevHash = i === 0 ? null : entries[i - 1].event_hash;
+      if ((e.prev_hash ?? null) !== expectedPrevHash) return { valid: false, broken_at: e.id, checked: i + 1 };
     }
     return { valid: true, checked: entries.length };
   });

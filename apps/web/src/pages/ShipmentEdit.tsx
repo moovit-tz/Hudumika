@@ -10,6 +10,7 @@ import { Combobox } from '../components/ui/combobox.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { EntityPicker, type PickerItem } from '../components/EntityPicker.js';
+import { PageLoading } from '../components/ui/spinner.js';
 import { showConfirm } from '../lib/confirm.js';
 import { PageHeader } from '../components/PageHeader.js';
 
@@ -287,11 +288,7 @@ export const ShipmentEdit: React.FC = () => {
   }
 
   if (loading) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', flexDirection: 'column', gap: 12 }}>
-      <div style={{ width: 32, height: 32, borderRadius: '50%', border: '3px solid var(--teal)', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
-      <div style={{ fontSize: 14, color: 'var(--ink3)' }}>Loading shipment…</div>
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-    </div>
+    <PageLoading label="Loading shipment…" size={32} />
   );
 
   return (

@@ -17,8 +17,8 @@
 
 .opd-kpi-card {
   background: var(--white);
-  border: 1px solid var(--border, rgba(0, 0, 0, 0.08));
-  border-radius: var(--r);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md, 12px);
   padding: 18px 20px;
   display: flex;
   flex-direction: column;
@@ -27,12 +27,22 @@
   position: relative;
   overflow: hidden;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.18s ease;
+  cursor: pointer;
+  user-select: none;
 }
 
 .opd-kpi-card:hover {
-  border-color: var(--teal, #0d9488);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+  transform: translateY(-2px);
+  background: var(--white);
+  border-color: var(--teal);
+  box-shadow: 0 8px 20px -4px rgba(13, 148, 136, 0.14), 0 2px 6px -1px rgba(0, 0, 0, 0.04);
+}
+
+.opd-kpi-card:active {
+  transform: translateY(0) scale(0.985);
+  border-color: var(--teal-d, #0f766e);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.04);
 }
 
 .opd-kpi-header {
