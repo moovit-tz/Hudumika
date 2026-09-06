@@ -25,6 +25,14 @@ interface Trip {
 }
 interface Customer { id: string; name: string }
 interface TripExpense { id: string; category: string; description: string | null; amount: number; billable: boolean; invoice_id: string | null }
+interface BorderCrossing {
+  id: string; border_name: string; country_from: string; country_to: string;
+  status: string; arrival_at: string | null; cleared_at: string | null; customs_ref: string | null;
+}
+
+const CROSSING_STATUS_COLOR: Record<string, string> = {
+  PENDING: 'var(--ink3)', IN_PROGRESS: 'var(--gold)', CLEARED: 'var(--green)', DELAYED: 'var(--red)', REJECTED: 'var(--red)',
+};
 
 const STATUS_COLORS: Record<string, { bg: string; fg: string; dot: string }> = {
   PLANNED:     { bg: '#f1f5f9', fg: '#475569', dot: '#94a3b8' },
@@ -44,6 +52,9 @@ export const TrackingShipments: React.FC = () => {
   const [tripExpenses, setTripExpenses] = useState<Record<string, TripExpense[]>>({});
   const [billing, setBilling] = useState<string | null>(null);
   const [billError, setBillError] = useState<Record<string, string>>({});
+  const [crossings, setCrossings] = useState<Record<string, BorderCrossing[]>>({});
+  const [addingCrossing, setAddingCrossing] = useState<string | null>(null);
+  const [crossingForm, setCrossingForm] = useState({ border_name: '', country_from: '', country_to: '' });
 
   useEffect(() => {
     if (!expandedTrip || tripExpenses[expandedTrip]) return;
@@ -51,6 +62,38 @@ export const TrackingShipments: React.FC = () => {
       .then((rows: TripExpense[]) => setTripExpenses(p => ({ ...p, [expandedTrip]: rows })))
       .catch(() => setTripExpenses(p => ({ ...p, [expandedTrip]: [] })));
   }, [expandedTrip]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!expandedTrip || crossings[expandedTrip]) return;
+    apiFetch(`/v1/tracking/trips/${expandedTrip}/border-crossings`)
+      .then((rows: BorderCrossing[]) => setCrossings(p => ({ ...p, [expandedTrip]: rows })))
+      .catch(() => setCrossings(p => ({ ...p, [expandedTrip]: [] })));
+  }, [expandedTrip]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function recordCrossing(tripId: string) {
+    if (!crossingForm.border_name.trim() || !crossingForm.country_from.trim() || !crossingForm.country_to.trim()) return;
+    try {
+      const created = await apiFetch(`/v1/tracking/trips/${tripId}/border-crossings`, {
+        method: 'POST', body: JSON.stringify(crossingForm),
+      });
+      setCrossings(p => ({ ...p, [tripId]: [...(p[tripId] ?? []), created] }));
+      setCrossingForm({ border_name: '', country_from: '', country_to: '' });
+      setAddingCrossing(null);
+    } catch (err: any) {
+      showAlert(err.message || 'Could not record this border crossing.');
+    }
+  }
+
+  async function clearCrossing(tripId: string, crossingId: string) {
+    try {
+      const updated = await apiFetch(`/v1/tracking/border-crossings/${crossingId}`, {
+        method: 'PATCH', body: JSON.stringify({ status: 'CLEARED' }),
+      });
+      setCrossings(p => ({ ...p, [tripId]: (p[tripId] ?? []).map(c => c.id === crossingId ? updated : c) }));
+    } catch (err: any) {
+      showAlert(err.message || 'Could not update this crossing.');
+    }
+  }
 
   async function billTripExpenses(tripId: string) {
     setBilling(tripId);
@@ -285,6 +328,56 @@ export const TrackingShipments: React.FC = () => {
                             );
                           })()}
                         </div>
+                      </div>
+                      <div onClick={(e) => e.stopPropagation()} style={{ background: '#fff', marginTop: 16, padding: 20, borderRadius: 8, border: '1px solid var(--border)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                          <h3 style={{ fontSize: 14, fontWeight: 700, margin: 0, color: 'var(--ink)' }}>Border Crossings</h3>
+                          <button type="button" onClick={() => setAddingCrossing(a => a === s.id ? null : s.id)}
+                            style={{ fontSize: 12, fontWeight: 600, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer' }}>
+                            <Icon name={addingCrossing === s.id ? 'x' : 'plus'} size={13} /> {addingCrossing === s.id ? 'Cancel' : 'Record crossing'}
+                          </button>
+                        </div>
+                        {addingCrossing === s.id && (
+                          <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
+                            <input placeholder="Border name (e.g. Tunduma)" value={crossingForm.border_name}
+                              onChange={e => setCrossingForm(f => ({ ...f, border_name: e.target.value }))}
+                              style={{ padding: '8px 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontSize: 12.5, fontFamily: 'var(--font)', flex: 1, minWidth: 140 }} />
+                            <input placeholder="From country (e.g. TZ)" value={crossingForm.country_from}
+                              onChange={e => setCrossingForm(f => ({ ...f, country_from: e.target.value.toUpperCase() }))}
+                              maxLength={3}
+                              style={{ padding: '8px 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontSize: 12.5, fontFamily: 'var(--font)', width: 90 }} />
+                            <input placeholder="To country (e.g. ZM)" value={crossingForm.country_to}
+                              onChange={e => setCrossingForm(f => ({ ...f, country_to: e.target.value.toUpperCase() }))}
+                              maxLength={3}
+                              style={{ padding: '8px 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontSize: 12.5, fontFamily: 'var(--font)', width: 90 }} />
+                            <button type="button" onClick={() => recordCrossing(s.id)}
+                              style={{ padding: '8px 16px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 700, fontSize: 12.5, cursor: 'pointer', fontFamily: 'var(--font)' }}>
+                              Save
+                            </button>
+                          </div>
+                        )}
+                        {!crossings[s.id] ? (
+                          <SectionLoading />
+                        ) : crossings[s.id].length === 0 ? (
+                          <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>No border crossings recorded for this trip yet — most local trips have none.</div>
+                        ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                            {crossings[s.id].map(c => (
+                              <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12.5, padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 6 }}>
+                                <span><strong>{c.border_name}</strong> · {c.country_from} → {c.country_to}</span>
+                                <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                  <span style={{ color: CROSSING_STATUS_COLOR[c.status] ?? 'var(--ink3)', fontWeight: 700 }}>{c.status}</span>
+                                  {c.status !== 'CLEARED' && (
+                                    <button type="button" onClick={() => clearCrossing(s.id, c.id)}
+                                      style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer' }}>
+                                      Mark cleared
+                                    </button>
+                                  )}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </td>
                   </tr>

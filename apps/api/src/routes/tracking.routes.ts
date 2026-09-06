@@ -2,11 +2,17 @@ import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { sql } from 'kysely';
+import crypto from 'crypto';
 import { withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import { gpswoxService } from '../services/gpswox.service.js';
 import { toDateParam } from '../utils/dates.js';
 import { pick } from '../lib/pick.js';
+
+function stripSecret<T extends { device_secret?: unknown }>(v: T): Omit<T, 'device_secret'> {
+  const { device_secret, ...rest } = v;
+  return rest;
+}
 
 const FLEET_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'SENIOR', 'JUNIOR'] as const;
 
@@ -241,8 +247,12 @@ export async function trackingRoutes(fastify: FastifyInstance) {
         latitude: Number(r.latitude), longitude: Number(r.longitude),
         speed: numOrNull(r.speed), heading: numOrNull(r.heading), battery_pct: numOrNull(r.battery_pct),
       }]));
+      // device_secret never leaves the server once set (see the separate,
+      // unauthenticated device-ingestion route) — a plain vehicle list read
+      // by any dispatcher is not the place to hand out the credential a real
+      // GPS tracker authenticates with.
       return vehicles.map(v => ({
-        ...v,
+        ...stripSecret(v),
         mileage_km: numOrNull(v.mileage_km),
         driver_id: driverByVehicle.get(v.id) ?? null,
         last_position: posByVehicle.get(v.id) ?? null,
@@ -254,8 +264,12 @@ export async function trackingRoutes(fastify: FastifyInstance) {
   fastify.post('/vehicles', { preHandler: requireRole(...FLEET_ROLES) }, async (req) => {
     const user = req.user;
     const body = vehicleFieldsSchema.parse(req.body);
+    // Generated here and returned once in this response — the physical
+    // device gets configured with it at install time, same "shown once"
+    // convention as every other credential this platform issues.
+    const deviceSecret = crypto.randomBytes(32).toString('hex');
     return withTenant(user.tenant_id, async (trx) => {
-      return trx.insertInto('vehicles').values({
+      const created = await trx.insertInto('vehicles').values({
         tenant_id: user.tenant_id,
         name: body.name,
         plate_number: body.plate_number ?? null,
@@ -263,6 +277,7 @@ export async function trackingRoutes(fastify: FastifyInstance) {
         driver_name: body.driver_name ?? null,
         driver_phone: body.driver_phone ?? null,
         device_id: body.device_id,
+        device_secret: deviceSecret,
         fuel_type: body.fuel_type ?? null,
         group_name: body.group_name ?? null,
         vin: body.vin ?? null,
@@ -288,6 +303,21 @@ export async function trackingRoutes(fastify: FastifyInstance) {
         lifecycle_notes: body.lifecycle_notes ?? null,
         status: body.status ?? 'ACTIVE',
       } as any).returningAll().executeTakeFirstOrThrow();
+      // The one and only response that ever includes the raw device_secret.
+      return created;
+    });
+  });
+
+  fastify.post('/vehicles/:id/device-secret/regenerate', { preHandler: requireRole(...FLEET_ROLES) }, async (req, reply) => {
+    const user = req.user;
+    const { id } = req.params as { id: string };
+    const deviceSecret = crypto.randomBytes(32).toString('hex');
+    return withTenant(user.tenant_id, async (trx) => {
+      const updated = await trx.updateTable('vehicles').set({ device_secret: deviceSecret, updated_at: new Date() } as any)
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
+        .returning(['id', 'device_id', 'device_secret']).executeTakeFirst();
+      if (!updated) return reply.status(404).send({ error: 'Vehicle not found' });
+      return updated;
     });
   });
 
@@ -330,60 +360,12 @@ export async function trackingRoutes(fastify: FastifyInstance) {
     });
   });
 
-  // ── Position ingestion (device/simulator POSTs here) ────────────
-  // Not authenticated the same way as the rest of the app — a real device
-  // reports via its own device_id, not a user session. Kept inside this
-  // same route file (still gated by requireEntitlement above, which only
-  // needs a valid user token) rather than adding a separate device-auth
-  // scheme; a per-device shared secret is a reasonable follow-on if this
-  // needs to be reachable by real hardware outside an authenticated session.
-
-  fastify.post('/positions/ingest', async (req, reply) => {
-    const user = req.user;
-    const body = z.object({
-      device_id: z.string().min(1).max(100),
-      lat: z.number().min(-90).max(90),
-      lng: z.number().min(-180).max(180),
-      speed: z.number().min(0).optional(),
-      heading: z.number().min(0).max(360).optional(),
-      timestamp: z.string().optional(),
-      battery_pct: z.number().min(0).max(100).optional(),
-      ignition: z.enum(['ON', 'OFF']).optional(),
-    }).parse(req.body);
-
-    return withTenant(user.tenant_id, async (trx) => {
-      const vehicle = await trx.selectFrom('vehicles').selectAll()
-        .where('device_id', '=', body.device_id).where('tenant_id', '=', user.tenant_id)
-        .executeTakeFirst();
-      if (!vehicle) return reply.status(404).send({ error: 'Unknown device_id for this tenant' });
-
-      const recordedAt = body.timestamp ? new Date(body.timestamp) : new Date();
-      await trx.insertInto('vehicle_positions').values({
-        vehicle_id: vehicle.id,
-        tenant_id: user.tenant_id,
-        latitude: body.lat,
-        longitude: body.lng,
-        speed: body.speed ?? null,
-        heading: body.heading ?? null,
-        battery_pct: body.battery_pct ?? null,
-        ignition: body.ignition ?? null,
-        recorded_at: recordedAt,
-      } as any).execute();
-
-      await checkGeofenceTransitions(trx, user.tenant_id, vehicle.id, body.lat, body.lng);
-
-      fastify.websocketServer?.clients.forEach((client: any) => {
-        client.send(JSON.stringify({
-          type: 'vehicle.position_updated',
-          vehicleId: vehicle.id,
-          latitude: body.lat,
-          longitude: body.lng,
-        }));
-      });
-
-      return { ok: true, vehicle_id: vehicle.id };
-    });
-  });
+  // Position ingestion for a real device moved to tracking-device.routes.ts
+  // — it used to live here, authenticated as any signed-in tenant user of
+  // any role (a device has no user session at all, so in practice this
+  // meant anyone with tracking access could post a position for any known
+  // device_id). It now requires that vehicle's own device_secret instead,
+  // with no user session needed, the way a real tracker actually reports.
 
   // ── Geofences (shared table with the AIS/customs feature) ──────
 

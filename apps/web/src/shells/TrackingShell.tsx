@@ -43,6 +43,10 @@ import { TrackingIssueDetail } from '../pages/TrackingIssueDetail.js';
 import { TrackingNewExpense } from '../pages/TrackingNewExpense.js';
 import { TrackingDevices } from '../pages/TrackingDevices.js';
 import { DepotPage } from '../pages/DepotPage.js';
+import { TrackingTrailers } from '../pages/TrackingTrailers.js';
+import { TrackingTrailerNew } from '../pages/TrackingTrailerNew.js';
+import { TrackingTrailerDetail } from '../pages/TrackingTrailerDetail.js';
+import { TrackingTransporters } from '../pages/TrackingTransporters.js';
 
 export function TrackingShell() {
   const { hasPlan } = useTenantPlan();
@@ -56,6 +60,7 @@ export function TrackingShell() {
         { label: 'Dashboard',      icon: 'grid',    path: '/tracking', exact: true },
         { label: 'Live Map',       icon: 'mapPin',  path: '/tracking/map' },
         { label: 'Vehicles',       icon: 'truck',   path: '/tracking/vehicles' },
+        { label: 'Trailers',       icon: 'box3',    path: '/tracking/trailers' },
         { label: 'Drivers',        icon: 'user',    path: '/tracking/drivers' },
         { label: 'Trips',          icon: 'package', path: '/tracking/shipments' },
         { label: 'Route Planner',  icon: 'compass', path: '/tracking/route-planner' },
@@ -71,6 +76,7 @@ export function TrackingShell() {
         { label: 'Fuel',             icon: 'activity',       path: '/tracking/fuel' },
         { label: 'Parts Stock',      icon: 'package',        path: '/tracking/parts' },
         { label: 'Vehicle Vendors',  icon: 'users',           path: '/tracking/vendors' },
+        { label: 'Transporters',     icon: 'briefcase',       path: '/tracking/transporters' },
       ],
     },
     {
@@ -145,6 +151,10 @@ export function TrackingShell() {
                 <Route path="vehicles/new" element={<TrackingNewVehicle />} />
                 <Route path="vehicles/:id" element={<TrackingVehicleDetail />} />
                 <Route path="vehicles/:id/add/:type" element={<TrackingVehicleAddEntry />} />
+                <Route path="trailers" element={<TrackingTrailers />} />
+                <Route path="trailers/new" element={<TrackingTrailerNew />} />
+                <Route path="trailers/:id" element={<TrackingTrailerDetail />} />
+                <Route path="transporters" element={<TrackingTransporters />} />
                 <Route path="drivers" element={<TrackingDrivers />} />
                 <Route path="drivers/new" element={<TrackingDriverNew />} />
                 <Route path="drivers/:id" element={<TrackingDriverDetail />} />

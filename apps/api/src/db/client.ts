@@ -134,6 +134,12 @@ export interface UsersTable {
   mobile_money_number: string | null;
   /** NSSF or PSSSF — same rate, different return. */
   pension_fund: 'NSSF' | 'PSSSF' | null;
+  /** Migration 398 — an employee's actual place in the org structure.
+   *  hr_departments/hr_designations existed as standalone lists with nothing
+   *  on `users` pointing at them until now. SET NULL on delete: losing the
+   *  department must never delete or corrupt the employee row. */
+  department_id: string | null;
+  designation_id: string | null;
   /**
    * For CUSTOMER-role logins: the customers row they act for. Eleven call sites
    * used to assume this was the login's own id; it never was, so every
@@ -4628,6 +4634,12 @@ export interface Database {
   hr_job_openings: HrJobOpeningsTable;
   hr_candidates: HrCandidatesTable;
   hr_interviews: HrInterviewsTable;
+  hr_applications: HrApplicationsTable;
+  hr_requisitions: HrRequisitionsTable;
+  hr_offers: HrOffersTable;
+  hr_headcount_plans: HrHeadcountPlansTable;
+  hr_training_courses: HrTrainingCoursesTable;
+  hr_training_enrollments: HrTrainingEnrollmentsTable;
   bliss_calls: BlissCallsTable;
   bliss_meetings: BlissMeetingsTable;
   bliss_meeting_participants: BlissMeetingParticipantsTable;
@@ -4986,6 +4998,9 @@ export interface Database {
   parts_stock: PartsStockTable;
   fuel_logs: FuelLogsTable;
   vehicle_documents: VehicleDocumentsTable;
+  transporters: TransportersTable;
+  trailers: TrailersTable;
+  trailer_documents: TrailerDocumentsTable;
   fleet_reminders: FleetRemindersTable;
   driver_messages: DriverMessagesTable;
   fleet_alerts: FleetAlertsTable;
@@ -8561,6 +8576,9 @@ export interface HrJobOpeningsTable {
   status: Generated<string>;
   description: string | null;
   openings_count: Generated<number>;
+  /** Migration 399 — set when this opening was published from an approved
+   *  requisition; null for one created directly via POST /recruitment/openings. */
+  requisition_id: string | null;
   created_by: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
@@ -8570,6 +8588,13 @@ export interface HrInterviewsTable {
   id: Generated<string>;
   tenant_id: string;
   candidate_id: string;
+  /** Migration 399 — which application this interview belongs to, so a
+   *  candidate interviewing for one job never appears under another. */
+  application_id: string | null;
+  /** Migration 402 — the real calendar_events row this puts on the
+   *  interviewer's own calendar; null when there's no interviewer to own
+   *  one, or before this column existed. */
+  calendar_event_id: string | null;
   interviewer_id: string | null;
   scheduled_at: Date;
   mode: Generated<string>;
@@ -8583,7 +8608,9 @@ export interface HrInterviewsTable {
 export interface HrCandidatesTable {
   id: Generated<string>;
   tenant_id: string;
-  job_opening_id: string;
+  /** Migration 399 — nullable now that hr_applications is the real
+   *  candidate-x-job link; this column is legacy-read-only going forward. */
+  job_opening_id: string | null;
   name: string;
   email: string | null;
   phone: string | null;
@@ -8592,6 +8619,151 @@ export interface HrCandidatesTable {
   source: string | null;
   notes: string | null;
   avatar_url: string | null;
+  /** Migration 403 — a candidate's profile: résumé (stored via the same
+   *  MinioIntegration path hr_documents uses), free-text cover letter,
+   *  skills, and education. */
+  resume_storage_key: string | null;
+  resume_filename: string | null;
+  cover_letter: string | null;
+  skills: string | null;
+  education: string | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+/** Migration 399 — a candidate's application to one specific job opening.
+ *  The pipeline unit (stage/rating/notes live here, not on hr_candidates),
+ *  so one person can have several of these across different jobs. */
+export interface HrApplicationsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  candidate_id: string;
+  job_opening_id: string;
+  applied_at: Generated<Date>;
+  source: string | null;
+  stage: Generated<string>;
+  rating: number | null;
+  notes: string | null;
+  rejected_reason: string | null;
+  /** Migration 403 — structured screening outcome. Disqualification reuses
+   *  rejected_reason rather than a second, parallel field. */
+  screening_score: string | null;
+  screening_passed: boolean | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+/** Migration 399 — the approval gate a job opening now optionally goes
+ *  through before it exists: DRAFT -> SUBMITTED -> APPROVED -> OPEN (or
+ *  REJECTED/CANCELLED/CLOSED along the way). */
+export interface HrRequisitionsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  title: string;
+  department_id: string | null;
+  designation_id: string | null;
+  hiring_manager_id: string | null;
+  openings_count: Generated<number>;
+  employment_type: Generated<string>;
+  location: string | null;
+  description: string | null;
+  requirements: string | null;
+  salary_min: string | null;
+  salary_max: string | null;
+  salary_currency: string | null;
+  priority: Generated<string>;
+  reason: Generated<string>;
+  replacement_for_id: string | null;
+  status: Generated<string>;
+  rejected_reason: string | null;
+  created_by: string | null;
+  submitted_at: Date | null;
+  approved_by: string | null;
+  approved_at: Date | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+/** Migration 400 — an approved headcount for one department/year, kept
+ *  separate from current headcount and open vacancies (both computed live,
+ *  never stored) so the three numbers can never be conflated. */
+export interface HrHeadcountPlansTable {
+  id: Generated<string>;
+  tenant_id: string;
+  department_id: string;
+  fiscal_year: number;
+  approved_headcount: Generated<number>;
+  budget_amount: string | null;
+  budget_currency: string | null;
+  notes: string | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+/** Migration 401 — a course catalogue any employee can browse. */
+export interface HrTrainingCoursesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  title: string;
+  description: string | null;
+  category: string | null;
+  provider: string | null;
+  duration_hours: string | null;
+  is_certification: Generated<boolean>;
+  validity_months: number | null;
+  active: Generated<boolean>;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+/** Migration 401 — one person's enrollment in one course; certificate_expiry_date
+ *  is stored at completion time, not recomputed later from the course. */
+export interface HrTrainingEnrollmentsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  course_id: string;
+  user_id: string;
+  status: Generated<string>;
+  enrolled_at: Generated<Date>;
+  completed_at: Date | null;
+  score: string | null;
+  notes: string | null;
+  certificate_expiry_date: string | null;
+  certificate_document_id: string | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+/** Migration 399 — a real offer, not a candidate stage label: compensation,
+ *  expiry, approval, and a simple version chain via supersedes_offer_id. */
+export interface HrOffersTable {
+  id: Generated<string>;
+  tenant_id: string;
+  application_id: string;
+  position_title: string;
+  compensation_amount: string | null;
+  compensation_currency: string | null;
+  compensation_period: Generated<string>;
+  start_date: string | null;
+  expiry_date: string | null;
+  status: Generated<string>;
+  revision: Generated<number>;
+  supersedes_offer_id: string | null;
+  /** Migration 403 — the real, signable offer letter this created in the
+   *  platform's own eSign app when the offer was sent. Null until sent, or
+   *  for an offer sent before this column existed. */
+  sign_envelope_id: string | null;
+  decline_reason: string | null;
+  approved_by: string | null;
+  approved_at: Date | null;
+  sent_at: Date | null;
+  viewed_at: Date | null;
+  responded_at: Date | null;
   created_by: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;

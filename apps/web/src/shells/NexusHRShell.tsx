@@ -25,6 +25,8 @@ import { HrAssets }     from '../pages/HrAssets.js';
 import { ClockInPage }  from '../pages/ClockInPage.js';
 import { MyHubPage }    from '../pages/MyHub.js';
 import { RecruitmentPage } from '../pages/Recruitment.js';
+import { WorkforcePlanning } from '../pages/WorkforcePlanning.js';
+import { Training } from '../pages/Training.js';
 import { Surveys } from '../pages/Surveys.js';
 import { CaseManagement } from '../pages/CaseManagement.js';
 import { HrChecklists } from '../pages/HrChecklists.js';
@@ -76,6 +78,7 @@ function buildNav(isSuperAdmin: boolean): SidebarSection[] {
       { label: 'Groups',          icon: 'users',    path: '/nexushr/groups'          },
       { label: 'Org Chart',       icon: 'layers',   path: '/nexushr/org-chart'       },
       { label: 'Employment',      icon: 'fileText', path: '/nexushr/employment'      },
+      { label: 'Workforce Planning', icon: 'target', path: '/nexushr/workforce-planning' },
       { label: 'Recruitment',     icon: 'userPlus', path: '/nexushr/recruitment'     },
     ],
   },
@@ -95,6 +98,7 @@ function buildNav(isSuperAdmin: boolean): SidebarSection[] {
     title: 'PERFORMANCE',
     items: [
       { label: 'Goals & Reviews', icon: 'target', path: '/nexushr/performance' },
+      { label: 'Training & Development', icon: 'bookOpen', path: '/nexushr/training' },
     ],
   },
   {
@@ -244,8 +248,13 @@ export function NexusHRShell() {
               <Route path="surveys"           element={<Surveys />} />
               <Route path="org-chart"         element={<RequireRoles roles={MGMT_ROLES} permissions={['org_chart.manage']}><OrgChart /></RequireRoles>} />
               <Route path="employment"        element={<RequireRoles roles={MGMT_ROLES}><EmploymentRecords /></RequireRoles>} />
+              <Route path="workforce-planning" element={<RequireRoles roles={MGMT_ROLES}><WorkforcePlanning /></RequireRoles>} />
               <Route path="recruitment"       element={<RequireRoles roles={MGMT_ROLES}><RecruitmentPage /></RequireRoles>} />
               <Route path="performance"       element={<RequireRoles roles={MGMT_ROLES}><Performance /></RequireRoles>} />
+              {/* Everyone, not MGMT-only — enrollment is real self-service
+                  (same precedent as Benefits); course management is gated
+                  inside the page itself. */}
+              <Route path="training"          element={<Training />} />
               <Route path="documents"         element={<RequireRoles roles={MGMT_ROLES}><HrDocuments /></RequireRoles>} />
               <Route path="visitors"          element={<RequireRoles roles={MGMT_ROLES}><HrVisitors /></RequireRoles>} />
               <Route path="assets"            element={<RequireRoles roles={MGMT_ROLES}><HrAssets /></RequireRoles>} />

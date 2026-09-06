@@ -61,6 +61,7 @@ import { overtimeRoutes } from './routes/overtime.routes.js';
 import { hrCasesRoutes } from './routes/hr-cases.routes.js';
 import { hrChecklistsRoutes } from './routes/hr-checklists.routes.js';
 import { hrBenefitsRoutes } from './routes/hr-benefits.routes.js';
+import { hrTrainingRoutes } from './routes/hr-training.routes.js';
 import { activityRoutes } from './routes/activity.routes.js';
 import { activityMonitorRoutes } from './routes/activity-monitor.routes.js';
 import { orgChartRoutes }   from './routes/org-chart.routes.js';
@@ -84,7 +85,9 @@ import { ondiSamlRoutes } from './routes/ondi-saml.routes.js';
 import { ondiOauthRoutes } from './routes/ondi-oauth.routes.js';
 import { oidcDiscoveryRoutes } from './routes/oidc-discovery.routes.js';
 import { trackingRoutes } from './routes/tracking.routes.js';
+import { trackingDeviceRoutes } from './routes/tracking-device.routes.js';
 import { fleetOpsRoutes } from './routes/fleetOps.routes.js';
+import { trailersRoutes } from './routes/trailers.routes.js';
 import { fleetComplianceRoutes } from './routes/fleetCompliance.routes.js';
 import { fleetCommsRoutes } from './routes/fleetComms.routes.js';
 import { fleetAnalyticsRoutes } from './routes/fleetAnalytics.routes.js';
@@ -216,9 +219,24 @@ const server = fastify({
   trustProxy: 'loopback',
 });
 
-// Bootstrap fastify server setup
-async function main() {
-  try {
+// Bootstrap fastify server setup.
+//
+// Split from main() so a test file can get a fully-configured Fastify
+// instance (every plugin and route registered, real database behind it)
+// without also starting BullMQ job scheduling, the AIS tracker poller, or
+// binding a real network port — none of which `.inject()`-based HTTP tests
+// need or want running. Errors still propagate to main()'s own try/catch
+// exactly as before; this function carries no error handling of its own.
+let registered: Promise<any> | null = null;
+export async function registerApp() {
+  // Idempotent: several test files each import { registerApp } and call it
+  // in their own beforeAll — registering ~176 routes twice on the same
+  // Fastify singleton would throw (or at least double-register), so a
+  // second call just returns the already-built instance instead of
+  // re-running every server.register() again.
+  if (registered) return registered;
+  registered = (async () => {
+  {
     // 1. Plugins
 
     // Security headers on every response. CSP is left off for now rather than
@@ -464,6 +482,7 @@ async function main() {
     await server.register(hrCasesRoutes, { prefix: '/v1/hr/cases' });
     await server.register(hrChecklistsRoutes, { prefix: '/v1/hr/checklists' });
     await server.register(hrBenefitsRoutes, { prefix: '/v1/hr/benefits' });
+    await server.register(hrTrainingRoutes, { prefix: '/v1/hr/training' });
     // One per-record activity trail for every app, read from domain_events.
     await server.register(activityRoutes, { prefix: '/v1/activity' });
     await server.register(activityMonitorRoutes, { prefix: '/v1/activity-monitor' });
@@ -489,7 +508,9 @@ async function main() {
     await server.register(ondiOauthRoutes, { prefix: '/v1/ondi/oauth' });
     await server.register(oidcDiscoveryRoutes);
     await server.register(trackingRoutes, { prefix: '/v1/tracking' });
+    await server.register(trackingDeviceRoutes, { prefix: '/v1/tracking/device' });
     await server.register(fleetOpsRoutes, { prefix: '/v1/tracking' });
+    await server.register(trailersRoutes, { prefix: '/v1/tracking' });
     await server.register(fleetComplianceRoutes, { prefix: '/v1/tracking' });
     await server.register(fleetCommsRoutes, { prefix: '/v1/tracking' });
     await server.register(fleetAnalyticsRoutes, { prefix: '/v1/tracking' });
@@ -597,6 +618,16 @@ async function main() {
     server.get('/health', async () => {
       return { status: 'healthy', timestamp: new Date().toISOString() };
     });
+  }
+
+    return server;
+  })();
+  return registered;
+}
+
+async function main() {
+  try {
+    await registerApp();
 
     // 5. Start jobs scheduler
     bootstrapSubscribers();
@@ -632,5 +663,10 @@ for (const signal of signals) {
   });
 }
 
-main();
+// Not run under the test suite (vitest sets NODE_ENV=test): a test file
+// imports { server, registerApp } instead and drives it via .inject(),
+// without also starting BullMQ/the AIS poller or binding a real port.
+if (process.env.NODE_ENV !== 'test') {
+  main();
+}
 export { server };

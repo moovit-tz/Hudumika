@@ -12,6 +12,14 @@ function numOrNull(v: unknown): number | null {
   return v == null ? null : Number(v);
 }
 
+// device_secret is the credential a real GPS tracker authenticates
+// position-ingestion with (see tracking-device.routes.ts) — it must never
+// round-trip into a page every fleet viewer can open.
+function stripSecret<T extends { device_secret?: unknown }>(v: T): Omit<T, 'device_secret'> {
+  const { device_secret, ...rest } = v;
+  return rest;
+}
+
 export async function vehicleDetailRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('tracking'));
@@ -118,7 +126,7 @@ export async function vehicleDetailRoutes(fastify: FastifyInstance) {
       };
 
       return {
-        vehicle: { ...vehicle, mileage_km: numOrNull(vehicle.mileage_km) },
+        vehicle: { ...stripSecret(vehicle), mileage_km: numOrNull(vehicle.mileage_km) },
         driver: driver ?? null,
         last_position: lastPosition ? {
           ...lastPosition, latitude: Number(lastPosition.latitude), longitude: Number(lastPosition.longitude),

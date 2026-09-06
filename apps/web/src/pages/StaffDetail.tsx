@@ -11,6 +11,7 @@ import { useIsMobile } from '../hooks/useIsMobile.js';
 import type { EmpStatus } from '../data/staffData.js';
 import type { UserProfileFields } from '@hudumika/types';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { Combobox } from '../components/ui/combobox.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { showAlert } from '../lib/alert.js';
 import { RecordActivity } from '../components/RecordActivity.js';
@@ -61,6 +62,11 @@ interface StaffData {
   reports_to?: string;
   employment_type?: string;
   member_since?: string;
+  // Real org placement (migration 398) — users.department_id/designation_id,
+  // not the free-text profile.department/profile.job_title this page used
+  // to read (and which nothing else in the app ever wrote to for real).
+  department_id?: string | null;
+  designation_id?: string | null;
 }
 
 // Shared, so this page agrees with the header above it and with every other app.
@@ -348,6 +354,17 @@ export const StaffDetail: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [editForm, setEditForm] = useState<Partial<StaffData> & { profile: Partial<UserProfileFields> }>({ profile: {} });
 
+  // Real department/designation pickers (migration 398) — loaded once, on
+  // demand when the edit form actually opens, rather than on every profile
+  // view.
+  const [deptOptions, setDeptOptions] = useState<{ id: string; name: string }[]>([]);
+  const [desigOptions, setDesigOptions] = useState<{ id: string; title: string }[]>([]);
+  useEffect(() => {
+    if (!isEditing) return;
+    apiFetch('/v1/hr/departments').then(rows => setDeptOptions(Array.isArray(rows) ? rows : [])).catch(() => {});
+    apiFetch('/v1/hr/designations').then(rows => setDesigOptions(Array.isArray(rows) ? rows : [])).catch(() => {});
+  }, [isEditing]);
+
   const TABS = [
     'Profile', 'Attendance', 'Leaves', 'Tasks', 'Projects', 'Timesheet',
     'Documents', 'Signature', 'Payroll', 'Tickets', 'Shift Roster', 'Permissions', 'Activity'
@@ -433,8 +450,10 @@ export const StaffDetail: React.FC = () => {
           ...data,
           profile: data.profile || {},
           employee_code: data.profile?.employee_code || `EMP-${data.id.substring(0, 3).toUpperCase()}`,
-          dept: data.profile?.department || '',
-          designation: data.profile?.job_title || '',
+          // Real department/designation name first — data.profile?.department
+          // is legacy free text nothing else in the app ever set for real.
+          dept: data.department_name || data.profile?.department || '',
+          designation: data.designation_title || data.profile?.job_title || '',
           reports_to: data.profile?.reports_to || '',
           employment_type: data.profile?.employment_type || '',
           member_since: formatDate(data.created_at)
@@ -459,6 +478,8 @@ export const StaffDetail: React.FC = () => {
     setEditForm({
       name: staff.name,
       phone: staff.phone || '',
+      department_id: staff.department_id || '',
+      designation_id: staff.designation_id || '',
       profile: {
         employee_code: staff.profile?.employee_code || staff.employee_code,
         job_title: staff.profile?.job_title || staff.designation,
@@ -499,33 +520,14 @@ export const StaffDetail: React.FC = () => {
     if (!staff) return;
     setSaving(true);
     try {
-      if (staff.id.startsWith('e')) {
-        await new Promise(r => setTimeout(r, 400));
-        setStaff(prev => {
-          if (!prev) return prev;
-          const newProfile = { ...prev.profile, ...editForm.profile };
-          return {
-            ...prev,
-            name: editForm.name || prev.name,
-            phone: editForm.phone || prev.phone,
-            profile: newProfile,
-            employee_code: newProfile.employee_code || prev.employee_code,
-            dept: newProfile.department || prev.dept,
-            designation: newProfile.job_title || prev.designation,
-            reports_to: newProfile.reports_to || prev.reports_to,
-            employment_type: newProfile.employment_type || prev.employment_type,
-          };
-        });
-        setIsEditing(false);
-        return;
-      }
-
       // Pay fields are only sent when this user may set them. Sending them
       // anyway would have the API refuse the whole request, losing the identity
       // and contact edits alongside the one field they were not allowed to touch.
       const payload: Record<string, unknown> = {
         name: editForm.name,
         phone: editForm.phone,
+        department_id: editForm.department_id || null,
+        designation_id: editForm.designation_id || null,
         profile: editForm.profile,
         hire_date: editForm.hire_date,
         tax_residency: editForm.tax_residency,
@@ -567,8 +569,8 @@ export const StaffDetail: React.FC = () => {
           profile: newProfile,
           hireDate: updated.hire_date || prev.hireDate,
           employee_code: newProfile.employee_code || prev.employee_code,
-          dept: newProfile.department || prev.dept,
-          designation: newProfile.job_title || prev.designation,
+          dept: updated.department_name || '',
+          designation: updated.designation_title || '',
           reports_to: newProfile.reports_to || prev.reports_to,
           employment_type: newProfile.employment_type || prev.employment_type,
         };
@@ -1312,11 +1314,23 @@ export const StaffDetail: React.FC = () => {
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Designation</label>
-                    <input value={editForm.profile.job_title || ''} onChange={e => updateProfileField('job_title', e.target.value)} style={inputSt} />
+                    <Combobox
+                      options={desigOptions.map(d => ({ value: d.id, label: d.title }))}
+                      value={editForm.designation_id || ''}
+                      onChange={v => setEditForm(prev => ({ ...prev, designation_id: v }))}
+                      placeholder="Select a designation…"
+                      emptyText="No designations yet — add one under People ▸ Designations."
+                    />
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Department</label>
-                    <input value={editForm.profile.department || ''} onChange={e => updateProfileField('department', e.target.value)} style={inputSt} />
+                    <Combobox
+                      options={deptOptions.map(d => ({ value: d.id, label: d.name }))}
+                      value={editForm.department_id || ''}
+                      onChange={v => setEditForm(prev => ({ ...prev, department_id: v }))}
+                      placeholder="Select a department…"
+                      emptyText="No departments yet — add one under People ▸ Departments."
+                    />
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Reports To</label>

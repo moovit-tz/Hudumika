@@ -18,6 +18,7 @@ const toLocalDateTimeString = (d: Date): string => {
 
 interface Vehicle { id: string; name: string; plate_number: string | null }
 interface Driver { id: string; name: string }
+interface Trailer { id: string; name: string; registration_number: string | null }
 interface Customer { id: string; name: string }
 interface ClearosShipment {
   id: string; ref_number: string; customer_name?: string; goods_desc: string;
@@ -78,8 +79,10 @@ export const TrackingShipmentNew: React.FC = () => {
   // Step 3 — vehicle & cargo
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [trailers, setTrailers] = useState<Trailer[]>([]);
   const [vehicleId, setVehicleId] = useState('');
   const [driverId, setDriverId] = useState('');
+  const [trailerId, setTrailerId] = useState('');
   const [scheduledStart, setScheduledStart] = useState('');
   const [scheduledEnd, setScheduledEnd] = useState('');
   const [cargoType, setCargoType] = useState('');
@@ -93,6 +96,7 @@ export const TrackingShipmentNew: React.FC = () => {
   useEffect(() => {
     apiFetch('/v1/tracking/vehicles').then(setVehicles).catch(() => setVehicles([]));
     apiFetch('/v1/tracking/drivers').then(setDrivers).catch(() => setDrivers([]));
+    apiFetch('/v1/tracking/trailers').then(setTrailers).catch(() => setTrailers([]));
     // Excludes draft companies (active===false) — e.g. BRELA imports still
     // sitting in Company Directory that haven't been marked complete yet.
     apiFetch('/v1/customers').then((res: any) => setCustomers((res.data ?? res).filter((c: any) => c.active !== false))).catch(() => setCustomers([]));
@@ -126,7 +130,7 @@ export const TrackingShipmentNew: React.FC = () => {
       const created = await apiFetch('/v1/tracking/trips', {
         method: 'POST',
         body: JSON.stringify({
-          vehicle_id: vehicleId, driver_id: driverId || undefined,
+          vehicle_id: vehicleId, driver_id: driverId || undefined, trailer_id: trailerId || undefined,
           customer_id: jobType === 'TRANSPORT_ONLY' ? (customerId || undefined) : (selectedShipment ? undefined : undefined),
           origin: jobType === 'CLEARANCE_LINKED' ? selectedShipment?.origin_port : origin,
           destination: jobType === 'CLEARANCE_LINKED' ? selectedShipment?.dest_port : destination,
@@ -237,6 +241,16 @@ export const TrackingShipmentNew: React.FC = () => {
             </div>
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
+            <div style={{ flex: 1 }}>
+              <label style={labelStyle}>Trailer (optional)</label>
+              <Combobox
+                options={[{ value: '', label: '— No trailer —' }, ...trailers.map(t => ({ value: t.id, label: t.name, sublabel: t.registration_number || undefined }))]}
+                value={trailerId} onChange={setTrailerId} placeholder="— No trailer —"
+              />
+            </div>
+            <div style={{ flex: 1 }} />
+          </div>
+          <div style={{ display: 'flex', gap: 10 }}>
             <div style={{ flex: 1 }}><label style={labelStyle}>Scheduled start</label><DateTimePicker date={scheduledStart ? new Date(scheduledStart) : undefined} onChange={d => setScheduledStart(d ? toLocalDateTimeString(d) : '')} triggerClassName="w-full" /></div>
             <div style={{ flex: 1 }}><label style={labelStyle}>Scheduled end</label><DateTimePicker date={scheduledEnd ? new Date(scheduledEnd) : undefined} onChange={d => setScheduledEnd(d ? toLocalDateTimeString(d) : '')} triggerClassName="w-full" /></div>
           </div>
@@ -266,6 +280,7 @@ export const TrackingShipmentNew: React.FC = () => {
           {[
             ['Vehicle', vehicles.find(v => v.id === vehicleId)?.name || '—'],
             ['Driver', drivers.find(d => d.id === driverId)?.name || 'Unassigned'],
+            ['Trailer', trailers.find(t => t.id === trailerId)?.name || 'None'],
             ['Scheduled start', scheduledStart || '—'],
             ['Scheduled end', scheduledEnd || '—'],
             ['Cargo type', cargoType || '—'],

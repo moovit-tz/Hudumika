@@ -30,7 +30,7 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
    * See migration 172. Answers "who has a login, who has an HR record, and who
    * has both", which nothing could answer while the two families had no join.
    */
-  fastify.get('/roster', async (request: any, reply) => {
+  fastify.get('/roster', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (request: any, reply) => {
     try {
       return await NexusHRService.getRoster(request.user.tenant_id);
     } catch (err: any) {
@@ -42,7 +42,7 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
    * Legal entities — the employing company. An employment cannot exist without
    * one (NOT NULL + RESTRICT), and nothing could create one until now.
    */
-  fastify.get('/legal-entities', async (request: any, reply) => {
+  fastify.get('/legal-entities', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (request: any, reply) => {
     try {
       return await NexusHRService.getLegalEntities(request.user.tenant_id);
     } catch (err: any) {
@@ -59,7 +59,7 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
   });
 
   /** Effective-dated pay history for one employment. */
-  fastify.get('/employments/:id/compensation', async (request: any, reply) => {
+  fastify.get('/employments/:id/compensation', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (request: any, reply) => {
     try {
       return await NexusHRService.getCompensationHistory(request.user.tenant_id, request.params.id);
     } catch (err: any) {
@@ -94,7 +94,7 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
     }
   });
 
-  fastify.get('/employments', async (request: any, reply) => {
+  fastify.get('/employments', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (request: any, reply) => {
     try {
       const tenantId = request.user.tenant_id;
       return await NexusHRService.getEmployments(tenantId);
@@ -122,7 +122,7 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
 
   // ─── DOCUMENTS ─────────────────────────────────────────────────────────────
 
-  fastify.get('/documents', async (request: any, reply) => {
+  fastify.get('/documents', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (request: any, reply) => {
     try {
       const tenantId = request.user.tenant_id;
       return await NexusHRService.getDocuments(tenantId);
@@ -202,7 +202,7 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
   // up by document id (tenant-scoped) rather than taking a raw storage key
   // as a query param, so a caller can't request an arbitrary storage key —
   // same shape as seal-documents.routes.ts's own /documents/:id/download.
-  fastify.get('/documents/:id/download', async (request: any, reply) => {
+  fastify.get('/documents/:id/download', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (request: any, reply) => {
     try {
       const doc = await withTenant(request.user.tenant_id, trx =>
         trx.selectFrom('hr_documents').selectAll()
@@ -239,7 +239,7 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
       }
     });
 
-  fastify.get('/documents/expiry-radar', async (request: any, reply) => {
+  fastify.get('/documents/expiry-radar', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (request: any, reply) => {
     try {
       return await NexusHRService.getExpiryRadar(request.user.tenant_id);
     } catch (err: any) {
@@ -334,7 +334,7 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
     }
   });
 
-  fastify.get('/assets', async (request: any, reply) => {
+  fastify.get('/assets', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (request: any, reply) => {
     try {
       const tenantId = request.user.tenant_id;
       return await NexusHRService.getAssets(tenantId);
@@ -365,7 +365,13 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
 
   // ─── PAYROLL ───────────────────────────────────────────────────────────────
 
-  fastify.get('/payroll/runs', async (request: any, reply) => {
+  // Same hr_payroll table GET /v1/hr/payroll (hr.routes.ts) already serves
+  // under a real role gate — this second, differently-shaped read had none
+  // at all, exposing every employee's exact basic_pay/allowances/deductions
+  // for every period to any authenticated tenant member. Matched to that
+  // sibling endpoint's role set (FINANCE included) rather than inventing a
+  // narrower one for the same data.
+  fastify.get('/payroll/runs', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN', 'FINANCE') }, async (request: any, reply) => {
     try {
       const tenantId = request.user.tenant_id;
       return await NexusHRService.getPayrollRuns(tenantId);
@@ -384,7 +390,7 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
 
   // ─── PERFORMANCE ───────────────────────────────────────────────────────────
 
-  fastify.get('/goals', async (request: any, reply) => {
+  fastify.get('/goals', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (request: any, reply) => {
     try {
       const tenantId = request.user.tenant_id;
       return await NexusHRService.getGoals(tenantId);
@@ -393,7 +399,7 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
     }
   });
 
-  fastify.post('/goals', async (request: any, reply) => {
+  fastify.post('/goals', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (request: any, reply) => {
     try {
       const tenantId = request.user.tenant_id;
       return await NexusHRService.createGoal(tenantId, request.body);
@@ -402,7 +408,7 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
     }
   });
 
-  fastify.post('/goals/:id/checkin', async (request: any, reply) => {
+  fastify.post('/goals/:id/checkin', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (request: any, reply) => {
     try {
       const tenantId = request.user.tenant_id;
       const { id } = request.params as { id: string };
@@ -412,7 +418,7 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
     }
   });
 
-  fastify.get('/reviews/cycles', async (request: any, reply) => {
+  fastify.get('/reviews/cycles', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (request: any, reply) => {
     try {
       const tenantId = request.user.tenant_id;
       return await NexusHRService.getReviewCycles(tenantId);
@@ -430,7 +436,7 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
   });
 
   /** The individual reviews inside one cycle, each against a named person. */
-  fastify.get('/reviews/cycles/:id/instances', async (request: any, reply) => {
+  fastify.get('/reviews/cycles/:id/instances', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (request: any, reply) => {
     try {
       return await NexusHRService.getReviewInstances(request.user.tenant_id, request.params.id);
     } catch (err: any) {

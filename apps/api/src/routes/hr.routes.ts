@@ -15,6 +15,9 @@ import { settleEntry, MIN_SHIFT_MINUTES } from '../services/time-entry.service.j
 import { callAI } from './ai.routes.js';
 import { recordAuthEvent } from '../lib/audit-chain.js';
 import { computeAttendance, type Shift } from '../services/attendance.service.js';
+import { createEvent, updateEvent, deleteEvent, type Guest } from '../services/calendar-events.service.js';
+import { renderOfferLetterPdf } from '../services/offer-letter-pdf.service.js';
+import { MinioIntegration } from '../integrations/minio.js';
 
 /**
  * YYYY-MM-DD from a `date` column, whatever the driver hands back.
@@ -273,17 +276,30 @@ export async function hrRoutes(fastify: FastifyInstance) {
   fastify.get('/departments', async (req) => {
     const user = req.user;
     return withTenant(user.tenant_id, async (trx) => {
-      const rows = await trx
-        .selectFrom('hr_departments as d')
-        .leftJoin('users as u', 'u.id', 'd.head_user_id')
-        .select([
-          'd.id', 'd.name', 'd.status', 'd.created_at', 'd.head_user_id',
-          'u.name as head_name',
-        ])
-        .where('d.tenant_id', '=', user.tenant_id)
-        .orderBy('d.name')
-        .execute();
-      return rows.map(r => ({ ...r, employee_count: 0 }));
+      const [rows, counts] = await Promise.all([
+        trx
+          .selectFrom('hr_departments as d')
+          .leftJoin('users as u', 'u.id', 'd.head_user_id')
+          .select([
+            'd.id', 'd.name', 'd.status', 'd.created_at', 'd.head_user_id',
+            'u.name as head_name',
+          ])
+          .where('d.tenant_id', '=', user.tenant_id)
+          .orderBy('d.name')
+          .execute(),
+        // Real headcount now that users.department_id exists (migration 398)
+        // — this used to be hardcoded to 0 for every department, since there
+        // was nothing to count.
+        trx.selectFrom('users')
+          .select(['department_id', (eb) => eb.fn.countAll<number>().as('n')])
+          .where('tenant_id', '=', user.tenant_id)
+          .where('department_id', 'is not', null)
+          .where('active', '=', true)
+          .groupBy('department_id')
+          .execute(),
+      ]);
+      const byDept = new Map(counts.map(c => [c.department_id, Number(c.n)]));
+      return rows.map(r => ({ ...r, employee_count: byDept.get(r.id) ?? 0 }));
     });
   });
 
@@ -340,12 +356,26 @@ export async function hrRoutes(fastify: FastifyInstance) {
   fastify.get('/designations', async (req) => {
     const user = req.user;
     return withTenant(user.tenant_id, async (trx) => {
-      return trx.selectFrom('hr_designations as d')
-        .leftJoin('hr_departments as dept', 'dept.id', 'd.department_id')
-        .select(['d.id', 'd.title', 'd.department_id', 'd.created_at', 'dept.name as department_name'])
-        .where('d.tenant_id', '=', user.tenant_id)
-        .orderBy('d.title')
-        .execute();
+      const [rows, counts] = await Promise.all([
+        trx.selectFrom('hr_designations as d')
+          .leftJoin('hr_departments as dept', 'dept.id', 'd.department_id')
+          .select(['d.id', 'd.title', 'd.department_id', 'd.created_at', 'dept.name as department_name'])
+          .where('d.tenant_id', '=', user.tenant_id)
+          .orderBy('d.title')
+          .execute(),
+        // Real headcount now that users.designation_id exists (migration
+        // 398) — the frontend read this field expecting a count, but nothing
+        // here ever returned one, so it always fell back to 0.
+        trx.selectFrom('users')
+          .select(['designation_id', (eb) => eb.fn.countAll<number>().as('n')])
+          .where('tenant_id', '=', user.tenant_id)
+          .where('designation_id', 'is not', null)
+          .where('active', '=', true)
+          .groupBy('designation_id')
+          .execute(),
+      ]);
+      const byDesig = new Map(counts.map(c => [c.designation_id, Number(c.n)]));
+      return rows.map(r => ({ ...r, employee_count: byDesig.get(r.id) ?? 0 }));
     });
   });
 
@@ -1395,6 +1425,29 @@ export async function hrRoutes(fastify: FastifyInstance) {
 
     const subjectId = body.user_id || user.sub;
 
+    // Reject a range that overlaps a leave request this person already has
+    // pending or approved. The entitlement ledger below stops someone taking
+    // more days than they have, but nothing stopped the exact same days being
+    // claimed twice over — two independently-valid-looking requests for
+    // "Jan 5-10" and "Jan 8-15" could both be approved, leaving the person
+    // simultaneously "on leave" under two different rows for the overlap.
+    // Rejected/cancelled requests don't hold the dates, so they're excluded.
+    const overlapping = await withTenant(user.tenant_id, trx =>
+      trx.selectFrom('hr_leaves')
+        .select(['id', 'from_date', 'to_date', 'status'])
+        .where('tenant_id', '=', user.tenant_id)
+        .where('user_id', '=', subjectId)
+        .where('status', 'in', ['PENDING', 'APPROVED'])
+        .where('from_date', '<=', to)
+        .where('to_date', '>=', from)
+        .executeTakeFirst());
+    if (overlapping) {
+      return reply.status(409).send({
+        error: `This overlaps an existing ${overlapping.status.toLowerCase()} leave request (${isoDate(overlapping.from_date)} to ${isoDate(overlapping.to_date)}).`,
+        code: 'LEAVE_OVERLAP',
+      });
+    }
+
     // Resolve the leave type, and refuse if there is not enough left.
     //
     // This is the whole point of the entitlement ledger. Until now an approver
@@ -1430,6 +1483,29 @@ export async function hrRoutes(fastify: FastifyInstance) {
     }
 
     const result = await withTenant(user.tenant_id, async (trx) => {
+      // Same race as the balance check below, for the overlap check above:
+      // two concurrent submissions for the same person could both read "no
+      // overlap yet" and both insert. Locked on (tenant, person) alone —
+      // independent of leave type, since two DIFFERENT leave types for the
+      // same person on the same days still overlap on the calendar.
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${user.tenant_id}), hashtext(${subjectId + ':overlap'}))`.execute(trx);
+      const stillOverlapping = await trx.selectFrom('hr_leaves')
+        .select(['id', 'from_date', 'to_date', 'status'])
+        .where('tenant_id', '=', user.tenant_id)
+        .where('user_id', '=', subjectId)
+        .where('status', 'in', ['PENDING', 'APPROVED'])
+        .where('from_date', '<=', to)
+        .where('to_date', '>=', from)
+        .executeTakeFirst();
+      if (stillOverlapping) {
+        return {
+          ok: false as const,
+          reason: `This overlaps an existing ${stillOverlapping.status.toLowerCase()} leave request (${isoDate(stillOverlapping.from_date)} to ${isoDate(stillOverlapping.to_date)}).`,
+          balance: undefined,
+          code: 'LEAVE_OVERLAP' as const,
+        };
+      }
+
       if (leaveTypeId) {
         // The check above ran in its own, already-closed transaction — a
         // second request for the same person/leave-type submitted in the
@@ -1447,7 +1523,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
           // shape (error/balance/requested_days/excluded_days) matches the
           // pre-check's 409 exactly — Fastify's default error handler does
           // not serialize custom properties on a thrown Error.
-          return { ok: false as const, reason: recheck.reason, balance: recheck.balance };
+          return { ok: false as const, reason: recheck.reason, balance: recheck.balance, code: undefined };
         }
       }
       const row = await trx.insertInto('hr_leaves').values({
@@ -1484,6 +1560,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
         balance: result.balance,
         requested_days: days,
         excluded_days: excluded,
+        code: result.code,
       });
     }
 
@@ -1649,11 +1726,276 @@ export async function hrRoutes(fastify: FastifyInstance) {
 
   // ── Recruitment: job openings & candidate pipeline ────────────
 
+  // Local role sets for the whole recruitment section below (migration 399
+  // restructure). MGMT mirrors the frontend's MGMT_ROLES; APPROVER_ROLES
+  // drops MANAGER — approving a requisition or offer is a step above
+  // submitting one, same split PATCH /staff/:id already draws between
+  // MANAGER and admin-tier roles for pay.
+  const MGMT = ['SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN'] as const;
+  const APPROVER_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'] as const;
+  // Same role enum POST /invitations already requires a human to choose —
+  // never auto-derived from the job opening's free-text title/department,
+  // which has no reliable mapping onto a real system role.
+  const HIRE_ROLES = ['ADMIN', 'MANAGER', 'FINANCE', 'SALES', 'SENIOR', 'JUNIOR', 'TENANT_ADMIN', 'OFFICER'] as const;
+
+  /**
+   * Invites a hired person as a real staff account — shared by both places a
+   * hire actually happens: PATCH /recruitment/applications/:id (stage set to
+   * HIRED directly) and POST /recruitment/offers/:id/accept. Deduplicated on
+   * email: an existing PENDING invite or an active account for the same
+   * address means onboarding is already underway, so this is a no-op rather
+   * than a second invite.
+   */
+  async function inviteHiredPerson(
+    trx: any, tenantId: string, actorId: string,
+    candidateId: string, candidateName: string, candidateEmail: string, role: string,
+  ): Promise<void> {
+    const alreadyInvited = await trx.selectFrom('hr_invitations').select('id')
+      .where('tenant_id', '=', tenantId).where('email', '=', candidateEmail).where('status', '=', 'PENDING')
+      .executeTakeFirst();
+    const alreadyStaff = await trx.selectFrom('users').select('id')
+      .where('tenant_id', '=', tenantId).where('email', '=', candidateEmail)
+      .executeTakeFirst();
+    if (alreadyInvited || alreadyStaff) return;
+
+    const token = crypto.randomBytes(24).toString('hex');
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    const invite = await trx.insertInto('hr_invitations').values({
+      tenant_id: tenantId, email: candidateEmail, role,
+      token, invited_by: actorId, expires_at: expiresAt,
+    }).returningAll().executeTakeFirstOrThrow();
+
+    const acceptUrl = `${env.OPS_BOARD_URL}/accept-invite?token=${token}`;
+    await MailService.enqueueTemplated(tenantId, 'hr.staff_invitation', candidateEmail, { role, acceptUrl }, 'hr')
+      .catch(() => { /* invite row exists regardless; resend is available */ });
+
+    await logActivity(trx, tenantId, actorId, `Hired ${candidateName} — invited as ${role}`);
+    await emitDomainEvent(trx, tenantId, {
+      type: 'hr.staff_invited', sourceApp: 'workspace', entityType: 'user', entityId: invite.id,
+      payload: { email: candidateEmail, role, fromCandidateId: candidateId },
+      actorId,
+    }).catch(err => console.error('[HR] staff_invited emit failed:', err?.message));
+  }
+
+  // ════════════════════════════════════════════════════════════════════
+  // REQUISITIONS (migration 399) — the approval gate before a job opening
+  // exists: DRAFT -> SUBMITTED -> APPROVED -> OPEN, with REJECTED/
+  // CANCELLED/CLOSED off to the side. Publishing an APPROVED requisition
+  // creates the linked hr_job_openings row below. POST /recruitment/openings
+  // directly remains a legitimate lighter path for a tenant that doesn't
+  // want this step — this doesn't remove it, it adds the option.
+  // ════════════════════════════════════════════════════════════════════
+
+  const REQ_COLUMNS = [
+    'r.id', 'r.title', 'r.department_id', 'd.name as department_name',
+    'r.designation_id', 'g.title as designation_title',
+    'r.hiring_manager_id', 'hm.name as hiring_manager_name',
+    'r.openings_count', 'r.employment_type', 'r.location', 'r.description', 'r.requirements',
+    'r.salary_min', 'r.salary_max', 'r.salary_currency', 'r.priority', 'r.reason', 'r.replacement_for_id',
+    'r.status', 'r.rejected_reason', 'r.created_by',
+    'r.submitted_at', 'r.approved_by', 'r.approved_at', 'r.created_at', 'r.updated_at',
+  ] as const;
+
+  fastify.get('/recruitment/requisitions', { preHandler: requireRole(...MGMT) }, async (req) => {
+    const user = req.user;
+    const { status } = (req.query as any) || {};
+    return withTenant(user.tenant_id, async (trx) => {
+      let q = trx.selectFrom('hr_requisitions as r')
+        .leftJoin('hr_departments as d', 'd.id', 'r.department_id')
+        .leftJoin('hr_designations as g', 'g.id', 'r.designation_id')
+        .leftJoin('users as hm', 'hm.id', 'r.hiring_manager_id')
+        .select(REQ_COLUMNS)
+        .where('r.tenant_id', '=', user.tenant_id)
+        .orderBy('r.created_at', 'desc');
+      if (status) q = q.where('r.status', '=', String(status));
+      return q.execute();
+    });
+  });
+
+  fastify.post('/recruitment/requisitions', { preHandler: requireRole(...MGMT) }, async (req, reply) => {
+    const user = req.user;
+    const b = (req.body as any) || {};
+    if (!b.title || !String(b.title).trim()) return reply.status(400).send({ error: 'title is required' });
+    return withTenant(user.tenant_id, async (trx) => {
+      return trx.insertInto('hr_requisitions').values({
+        tenant_id: user.tenant_id,
+        title: String(b.title).trim(),
+        department_id: b.department_id || null,
+        designation_id: b.designation_id || null,
+        hiring_manager_id: b.hiring_manager_id || null,
+        openings_count: Number(b.openings_count) > 0 ? Number(b.openings_count) : 1,
+        employment_type: b.employment_type || 'FULL_TIME',
+        location: b.location || null,
+        description: b.description || null,
+        requirements: b.requirements || null,
+        salary_min: b.salary_min != null && b.salary_min !== '' ? String(b.salary_min) : null,
+        salary_max: b.salary_max != null && b.salary_max !== '' ? String(b.salary_max) : null,
+        salary_currency: b.salary_currency || null,
+        priority: ['LOW', 'MEDIUM', 'HIGH', 'URGENT'].includes(b.priority) ? b.priority : 'MEDIUM',
+        reason: ['NEW_POSITION', 'REPLACEMENT', 'OTHER'].includes(b.reason) ? b.reason : 'NEW_POSITION',
+        replacement_for_id: b.replacement_for_id || null,
+        created_by: user.sub,
+      }).returningAll().executeTakeFirstOrThrow();
+    });
+  });
+
+  fastify.get('/recruitment/requisitions/:id', { preHandler: requireRole(...MGMT) }, async (req, reply) => {
+    const user = req.user;
+    const { id } = req.params as any;
+    return withTenant(user.tenant_id, async (trx) => {
+      const row = await trx.selectFrom('hr_requisitions as r')
+        .leftJoin('hr_departments as d', 'd.id', 'r.department_id')
+        .leftJoin('hr_designations as g', 'g.id', 'r.designation_id')
+        .leftJoin('users as hm', 'hm.id', 'r.hiring_manager_id')
+        .select(REQ_COLUMNS)
+        .where('r.id', '=', id).where('r.tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!row) return reply.status(404).send({ error: 'Requisition not found' });
+      const opening = await trx.selectFrom('hr_job_openings').select(['id', 'status'])
+        .where('requisition_id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      return { ...row, job_opening: opening || null };
+    });
+  });
+
+  fastify.patch('/recruitment/requisitions/:id', { preHandler: requireRole(...MGMT) }, async (req, reply) => {
+    const user = req.user;
+    const { id } = req.params as any;
+    const b = (req.body as any) || {};
+    return withTenant(user.tenant_id, async (trx) => {
+      const existing = await trx.selectFrom('hr_requisitions').select('status')
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!existing) return reply.status(404).send({ error: 'Requisition not found' });
+      if (existing.status !== 'DRAFT') {
+        return reply.status(409).send({ error: `Only a DRAFT requisition can be edited — this one is ${existing.status}.` });
+      }
+      const patch: Record<string, unknown> = { updated_at: new Date() };
+      if (b.title !== undefined) { if (!String(b.title).trim()) return reply.status(400).send({ error: 'title cannot be empty' }); patch.title = String(b.title).trim(); }
+      for (const k of ['department_id', 'designation_id', 'hiring_manager_id', 'location', 'description', 'requirements', 'salary_currency', 'replacement_for_id'] as const) {
+        if (b[k] !== undefined) patch[k] = b[k] || null;
+      }
+      if (b.employment_type !== undefined) patch.employment_type = b.employment_type;
+      if (b.priority !== undefined && ['LOW', 'MEDIUM', 'HIGH', 'URGENT'].includes(b.priority)) patch.priority = b.priority;
+      if (b.reason !== undefined && ['NEW_POSITION', 'REPLACEMENT', 'OTHER'].includes(b.reason)) patch.reason = b.reason;
+      if (b.openings_count !== undefined) patch.openings_count = Number(b.openings_count) > 0 ? Number(b.openings_count) : 1;
+      if (b.salary_min !== undefined) patch.salary_min = b.salary_min != null && b.salary_min !== '' ? String(b.salary_min) : null;
+      if (b.salary_max !== undefined) patch.salary_max = b.salary_max != null && b.salary_max !== '' ? String(b.salary_max) : null;
+      return trx.updateTable('hr_requisitions').set(patch as any)
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
+        .returningAll().executeTakeFirstOrThrow();
+    });
+  });
+
+  fastify.post('/recruitment/requisitions/:id/submit', { preHandler: requireRole(...MGMT) }, async (req, reply) => {
+    const user = req.user; const { id } = req.params as any;
+    return withTenant(user.tenant_id, async (trx) => {
+      const existing = await trx.selectFrom('hr_requisitions').select('status').where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!existing) return reply.status(404).send({ error: 'Requisition not found' });
+      if (existing.status !== 'DRAFT') return reply.status(409).send({ error: `Only a DRAFT requisition can be submitted — this one is ${existing.status}.` });
+      const updated = await trx.updateTable('hr_requisitions')
+        .set({ status: 'SUBMITTED', submitted_at: new Date(), updated_at: new Date() })
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).returningAll().executeTakeFirstOrThrow();
+      await logActivity(trx, user.tenant_id, user.sub, `Submitted requisition "${updated.title}" for approval`);
+      return updated;
+    });
+  });
+
+  fastify.post('/recruitment/requisitions/:id/approve', { preHandler: requireRole(...APPROVER_ROLES) }, async (req, reply) => {
+    const user = req.user; const { id } = req.params as any;
+    return withTenant(user.tenant_id, async (trx) => {
+      const existing = await trx.selectFrom('hr_requisitions').select('status').where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!existing) return reply.status(404).send({ error: 'Requisition not found' });
+      if (existing.status !== 'SUBMITTED') return reply.status(409).send({ error: `Only a SUBMITTED requisition can be approved — this one is ${existing.status}.` });
+      const updated = await trx.updateTable('hr_requisitions')
+        .set({ status: 'APPROVED', approved_by: user.sub, approved_at: new Date(), updated_at: new Date() })
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).returningAll().executeTakeFirstOrThrow();
+      await logActivity(trx, user.tenant_id, user.sub, `Approved requisition "${updated.title}"`);
+      await emitDomainEvent(trx, user.tenant_id, {
+        type: 'hr.requisition_approved', sourceApp: 'nexushr', entityType: 'hr_requisition', entityId: id,
+        actorId: user.sub, payload: { title: updated.title },
+      }).catch(err => console.error('[HR] requisition_approved emit failed:', err?.message));
+      return updated;
+    });
+  });
+
+  fastify.post('/recruitment/requisitions/:id/reject', { preHandler: requireRole(...APPROVER_ROLES) }, async (req, reply) => {
+    const user = req.user; const { id } = req.params as any;
+    const { reason } = (req.body as any) || {};
+    return withTenant(user.tenant_id, async (trx) => {
+      const existing = await trx.selectFrom('hr_requisitions').select('status').where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!existing) return reply.status(404).send({ error: 'Requisition not found' });
+      if (existing.status !== 'SUBMITTED') return reply.status(409).send({ error: `Only a SUBMITTED requisition can be rejected — this one is ${existing.status}.` });
+      const updated = await trx.updateTable('hr_requisitions')
+        .set({ status: 'REJECTED', rejected_reason: reason || null, updated_at: new Date() })
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).returningAll().executeTakeFirstOrThrow();
+      await logActivity(trx, user.tenant_id, user.sub, `Rejected requisition "${updated.title}"${reason ? `: ${reason}` : ''}`);
+      return updated;
+    });
+  });
+
+  // Approved -> a real, live job opening. This is the one place
+  // hr_job_openings gets created with requisition_id set — everything the
+  // opening needs is copied across so it never has to re-join the
+  // requisition just to render.
+  fastify.post('/recruitment/requisitions/:id/publish', { preHandler: requireRole(...MGMT) }, async (req, reply) => {
+    const user = req.user; const { id } = req.params as any;
+    return withTenant(user.tenant_id, async (trx) => {
+      const reqRow = await trx.selectFrom('hr_requisitions as r')
+        .leftJoin('hr_departments as d', 'd.id', 'r.department_id')
+        .select(['r.id', 'r.status', 'r.title', 'd.name as department_name', 'r.location', 'r.employment_type', 'r.description', 'r.openings_count'])
+        .where('r.id', '=', id).where('r.tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!reqRow) return reply.status(404).send({ error: 'Requisition not found' });
+      if (reqRow.status !== 'APPROVED') return reply.status(409).send({ error: `Only an APPROVED requisition can be published — this one is ${reqRow.status}.` });
+
+      const opening = await trx.insertInto('hr_job_openings').values({
+        tenant_id: user.tenant_id, requisition_id: id,
+        title: reqRow.title, department: reqRow.department_name || null, location: reqRow.location,
+        employment_type: reqRow.employment_type, status: 'OPEN', description: reqRow.description,
+        openings_count: reqRow.openings_count, created_by: user.sub,
+      }).returningAll().executeTakeFirstOrThrow();
+
+      const updated = await trx.updateTable('hr_requisitions')
+        .set({ status: 'OPEN', updated_at: new Date() })
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).returningAll().executeTakeFirstOrThrow();
+
+      await logActivity(trx, user.tenant_id, user.sub, `Published requisition "${updated.title}" as a job opening`);
+      return { requisition: updated, job_opening: opening };
+    });
+  });
+
+  fastify.post('/recruitment/requisitions/:id/close', { preHandler: requireRole(...MGMT) }, async (req, reply) => {
+    const user = req.user; const { id } = req.params as any;
+    return withTenant(user.tenant_id, async (trx) => {
+      const existing = await trx.selectFrom('hr_requisitions').select('status').where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!existing) return reply.status(404).send({ error: 'Requisition not found' });
+      if (existing.status !== 'OPEN') return reply.status(409).send({ error: `Only an OPEN requisition can be closed — this one is ${existing.status}.` });
+      await trx.updateTable('hr_job_openings').set({ status: 'CLOSED', updated_at: new Date() })
+        .where('requisition_id', '=', id).where('tenant_id', '=', user.tenant_id).execute();
+      return trx.updateTable('hr_requisitions').set({ status: 'CLOSED', updated_at: new Date() })
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).returningAll().executeTakeFirstOrThrow();
+    });
+  });
+
+  fastify.post('/recruitment/requisitions/:id/cancel', { preHandler: requireRole(...MGMT) }, async (req, reply) => {
+    const user = req.user; const { id } = req.params as any;
+    return withTenant(user.tenant_id, async (trx) => {
+      const existing = await trx.selectFrom('hr_requisitions').select('status').where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!existing) return reply.status(404).send({ error: 'Requisition not found' });
+      if (['CLOSED', 'CANCELLED', 'REJECTED'].includes(existing.status)) {
+        return reply.status(409).send({ error: `A ${existing.status} requisition cannot be cancelled.` });
+      }
+      return trx.updateTable('hr_requisitions').set({ status: 'CANCELLED', updated_at: new Date() })
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).returningAll().executeTakeFirstOrThrow();
+    });
+  });
+
+  // ════════════════════════════════════════════════════════════════════
+  // JOB OPENINGS
+  // ════════════════════════════════════════════════════════════════════
+
   // GET /recruitment/interviews/upcoming — every scheduled interview across
   // every opening, for the dashboard's "Upcoming Interviews" widget. The
-  // existing /openings/:id/candidates route only ever returns one opening's
-  // slice; this is the flat, tenant-wide view nothing else needed until now.
-  fastify.get('/recruitment/interviews/upcoming', async (req) => {
+  // /openings/:id/applications route only ever returns one opening's slice;
+  // this is the flat, tenant-wide view nothing else needed until now.
+  fastify.get('/recruitment/interviews/upcoming', { preHandler: requireRole(...MGMT) }, async (req) => {
     const user = req.user;
     const limit = Math.min(Number((req.query as any)?.limit) || 6, 20);
     return withTenant(user.tenant_id, async (trx) => {
@@ -1674,21 +2016,22 @@ export async function hrRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.get('/recruitment/openings', async (req) => {
+  fastify.get('/recruitment/openings', { preHandler: requireRole(...MGMT) }, async (req) => {
     const user = req.user;
     return withTenant(user.tenant_id, async (trx) => {
       const openings = await trx.selectFrom('hr_job_openings as o')
         .leftJoin('users as c', 'c.id', 'o.created_by')
         .select(['o.id', 'o.title', 'o.department', 'o.location', 'o.employment_type',
-                 'o.status', 'o.description', 'o.openings_count', 'o.created_at',
+                 'o.status', 'o.description', 'o.openings_count', 'o.requisition_id', 'o.created_at',
                  'c.name as created_by_name'])
         .where('o.tenant_id', '=', user.tenant_id)
         .orderBy('o.created_at', 'desc')
         .execute();
 
-      // Candidate counts per opening so the list can show a pipeline size
-      // without a second round-trip per row.
-      const counts = await trx.selectFrom('hr_candidates')
+      // Application counts per opening (migration 399 — was candidate counts;
+      // a candidate can now span several openings, so counting applications
+      // is what actually reflects this opening's pipeline size).
+      const counts = await trx.selectFrom('hr_applications')
         .select(['job_opening_id', (eb) => eb.fn.countAll<number>().as('n')])
         .where('tenant_id', '=', user.tenant_id)
         .groupBy('job_opening_id')
@@ -1698,7 +2041,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/recruitment/openings', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
+  fastify.post('/recruitment/openings', { preHandler: requireRole(...MGMT) }, async (req, reply) => {
     const user = req.user;
     const b = (req.body as any) || {};
     if (!b.title || !String(b.title).trim()) return reply.status(400).send({ error: 'title is required' });
@@ -1717,7 +2060,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.patch('/recruitment/openings/:id', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
+  fastify.patch('/recruitment/openings/:id', { preHandler: requireRole(...MGMT) }, async (req, reply) => {
     const user = req.user;
     const { id } = req.params as any;
     const b = (req.body as any) || {};
@@ -1736,78 +2079,199 @@ export async function hrRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.get('/recruitment/openings/:id/candidates', async (req) => {
+  // GET /recruitment/openings/:id/applications — was .../candidates before
+  // migration 399. Returns applications (the pipeline unit), each with its
+  // candidate identity flattened in and its interviews attached.
+  fastify.get('/recruitment/openings/:id/applications', { preHandler: requireRole(...MGMT) }, async (req) => {
     const user = req.user;
     const { id } = req.params as any;
     return withTenant(user.tenant_id, async (trx) => {
-      const candidates = await trx.selectFrom('hr_candidates')
-        .selectAll()
-        .where('tenant_id', '=', user.tenant_id)
-        .where('job_opening_id', '=', id)
-        .orderBy('created_at', 'desc')
+      const applications = await trx.selectFrom('hr_applications as a')
+        .innerJoin('hr_candidates as c', 'c.id', 'a.candidate_id')
+        .select([
+          'a.id', 'a.candidate_id', 'a.job_opening_id', 'a.applied_at', 'a.source',
+          'a.stage', 'a.rating', 'a.notes', 'a.rejected_reason', 'a.created_at',
+          'a.screening_score', 'a.screening_passed',
+          'c.name as candidate_name', 'c.email as candidate_email', 'c.phone as candidate_phone',
+        ])
+        .where('a.tenant_id', '=', user.tenant_id)
+        .where('a.job_opening_id', '=', id)
+        .orderBy('a.created_at', 'desc')
         .execute();
 
-      const ids = candidates.map(c => c.id);
+      const ids = applications.map(a => a.id);
       let interviews: any[] = [];
       if (ids.length) {
         interviews = await trx.selectFrom('hr_interviews as i')
           .leftJoin('users as u', 'u.id', 'i.interviewer_id')
-          .select(['i.id', 'i.candidate_id', 'i.scheduled_at', 'i.mode', 'i.status', 'i.notes', 'i.interviewer_id', 'u.name as interviewer_name'])
+          .select(['i.id', 'i.application_id', 'i.scheduled_at', 'i.mode', 'i.status', 'i.notes', 'i.interviewer_id', 'u.name as interviewer_name'])
           .where('i.tenant_id', '=', user.tenant_id)
-          .where('i.candidate_id', 'in', ids)
+          .where('i.application_id', 'in', ids)
           .orderBy('i.scheduled_at', 'asc')
           .execute();
       }
-      const byCand = new Map<string, any[]>();
-      for (const iv of interviews) { if (!byCand.has(iv.candidate_id)) byCand.set(iv.candidate_id, []); byCand.get(iv.candidate_id)!.push(iv); }
+      const byApp = new Map<string, any[]>();
+      for (const iv of interviews) { if (!byApp.has(iv.application_id)) byApp.set(iv.application_id, []); byApp.get(iv.application_id)!.push(iv); }
       const now = Date.now();
-      return candidates.map(c => {
-        const list = byCand.get(c.id) || [];
+      return applications.map(a => {
+        const list = byApp.get(a.id) || [];
         const upcoming = list.filter(x => x.status === 'SCHEDULED' && new Date(x.scheduled_at).getTime() >= now);
-        return { ...c, interviews: list, next_interview: upcoming[0] || list.find(x => x.status === 'SCHEDULED') || null };
+        return { ...a, interviews: list, next_interview: upcoming[0] || list.find(x => x.status === 'SCHEDULED') || null };
       });
     });
   });
 
-  fastify.post('/recruitment/candidates', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
+  // ════════════════════════════════════════════════════════════════════
+  // CANDIDATES — the person record (name/email/phone only). Pipeline state
+  // (stage/rating/notes) lives on hr_applications, one row per job applied
+  // to, so the same person applying to a second job is a second
+  // APPLICATION, not a second identity.
+  // ════════════════════════════════════════════════════════════════════
+
+  // POST /recruitment/candidates — creates an application for a job opening,
+  // reusing an existing candidate by email in this tenant when one already
+  // exists. This is the real fix for duplicate candidate records: a person
+  // re-applying (same email, different job, or the same job again) is
+  // matched to their existing identity rather than cloned.
+  fastify.post('/recruitment/candidates', { preHandler: requireRole(...MGMT) }, async (req, reply) => {
     const user = req.user;
     const b = (req.body as any) || {};
     if (!b.job_opening_id) return reply.status(400).send({ error: 'job_opening_id is required' });
     if (!b.name || !String(b.name).trim()) return reply.status(400).send({ error: 'name is required' });
     return withTenant(user.tenant_id, async (trx) => {
-      // Confirm the opening belongs to this tenant before attaching a candidate.
       const opening = await trx.selectFrom('hr_job_openings').select('id')
         .where('id', '=', b.job_opening_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!opening) return reply.status(404).send({ error: 'Job opening not found' });
-      return trx.insertInto('hr_candidates').values({
+
+      const email = b.email ? String(b.email).trim().toLowerCase() : null;
+      let candidate = email
+        ? await trx.selectFrom('hr_candidates').selectAll()
+            .where('tenant_id', '=', user.tenant_id).where(sql`lower(email)`, '=', email)
+            .executeTakeFirst()
+        : undefined;
+      if (!candidate) {
+        candidate = await trx.insertInto('hr_candidates').values({
+          tenant_id: user.tenant_id,
+          name: String(b.name).trim(),
+          email: b.email || null,
+          phone: b.phone || null,
+          created_by: user.sub,
+        }).returningAll().executeTakeFirstOrThrow();
+      }
+
+      const existingApplication = await trx.selectFrom('hr_applications').select('id')
+        .where('tenant_id', '=', user.tenant_id)
+        .where('candidate_id', '=', candidate.id).where('job_opening_id', '=', b.job_opening_id)
+        .executeTakeFirst();
+      if (existingApplication) {
+        return reply.status(409).send({ error: `${candidate.name} has already applied to this opening.`, application_id: existingApplication.id });
+      }
+
+      const application = await trx.insertInto('hr_applications').values({
         tenant_id: user.tenant_id,
+        candidate_id: candidate.id,
         job_opening_id: b.job_opening_id,
-        name: String(b.name).trim(),
-        email: b.email || null,
-        phone: b.phone || null,
+        source: b.source || null,
         stage: b.stage || 'APPLIED',
         rating: b.rating != null ? Number(b.rating) : null,
-        source: b.source || null,
         notes: b.notes || null,
         created_by: user.sub,
       }).returningAll().executeTakeFirstOrThrow();
+
+      return {
+        ...application,
+        candidate_name: candidate.name, candidate_email: candidate.email, candidate_phone: candidate.phone,
+      };
     });
   });
 
-  fastify.patch('/recruitment/candidates/:id', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
+  // A person's full application history across every job — the direct
+  // answer to "one candidate can have multiple applications".
+  fastify.get('/recruitment/candidates/:id/applications', { preHandler: requireRole(...MGMT) }, async (req, reply) => {
+    const user = req.user;
+    const { id } = req.params as any;
+    return withTenant(user.tenant_id, async (trx) => {
+      const candidate = await trx.selectFrom('hr_candidates')
+        .select(['id', 'name', 'email', 'phone', 'resume_storage_key', 'resume_filename', 'cover_letter', 'skills', 'education'])
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!candidate) return reply.status(404).send({ error: 'Candidate not found' });
+      const applications = await trx.selectFrom('hr_applications as a')
+        .innerJoin('hr_job_openings as o', 'o.id', 'a.job_opening_id')
+        .select(['a.id', 'a.job_opening_id', 'o.title as job_title', 'o.status as job_status',
+                 'a.stage', 'a.rating', 'a.notes', 'a.rejected_reason', 'a.source', 'a.applied_at',
+                 'a.screening_score', 'a.screening_passed'])
+        .where('a.tenant_id', '=', user.tenant_id).where('a.candidate_id', '=', id)
+        .orderBy('a.applied_at', 'desc').execute();
+      return { candidate, applications };
+    });
+  });
+
+  fastify.patch('/recruitment/candidates/:id', { preHandler: requireRole(...MGMT) }, async (req, reply) => {
+    const user = req.user;
+    const { id } = req.params as any;
+    const b = (req.body as any) || {};
+    const patch: Record<string, unknown> = { updated_at: new Date() };
+    for (const k of ['name', 'email', 'phone', 'cover_letter', 'skills', 'education'] as const) {
+      if (b[k] !== undefined) patch[k] = b[k] || null;
+    }
+    return withTenant(user.tenant_id, async (trx) => {
+      const updated = await trx.updateTable('hr_candidates').set(patch as any)
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
+        .returningAll().executeTakeFirst();
+      if (!updated) return reply.status(404).send({ error: 'Candidate not found' });
+      return updated;
+    });
+  });
+
+  // A candidate's résumé — same upload shape as NexusHR documents
+  // (MinioIntegration), just namespaced under the candidate's own id rather
+  // than an employee's.
+  fastify.post('/recruitment/candidates/:id/resume', { preHandler: requireRole(...MGMT) }, async (req, reply) => {
+    const user = req.user;
+    const { id } = req.params as any;
+    const data = await req.file();
+    if (!data) return reply.status(400).send({ error: 'No file uploaded.' });
+    return withTenant(user.tenant_id, async (trx) => {
+      const candidate = await trx.selectFrom('hr_candidates').select('id')
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!candidate) return reply.status(404).send({ error: 'Candidate not found' });
+      const buffer = await data.toBuffer();
+      const up = await MinioIntegration.uploadHrDocument(user.tenant_id, id, data.filename || 'resume', buffer);
+      return trx.updateTable('hr_candidates')
+        .set({ resume_storage_key: up.storageKey, resume_filename: data.filename || 'resume', updated_at: new Date() })
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
+        .returningAll().executeTakeFirstOrThrow();
+    });
+  });
+
+  fastify.get('/recruitment/candidates/:id/resume/download', { preHandler: requireRole(...MGMT) }, async (req, reply) => {
+    const user = req.user;
+    const { id } = req.params as any;
+    const candidate = await withTenant(user.tenant_id, trx =>
+      trx.selectFrom('hr_candidates').select(['resume_storage_key', 'resume_filename'])
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst());
+    if (!candidate?.resume_storage_key) return reply.status(404).send({ error: 'No résumé on file for this candidate.' });
+    const fileBuffer = MinioIntegration.readFile(candidate.resume_storage_key);
+    if (!fileBuffer) return reply.status(404).send({ error: 'File missing from storage' });
+    reply.header('Content-Type', 'application/octet-stream');
+    reply.header('Content-Disposition', `attachment; filename="${(candidate.resume_filename || 'resume').replace(/"/g, '')}"`);
+    return reply.send(fileBuffer);
+  });
+
+  // ════════════════════════════════════════════════════════════════════
+  // APPLICATIONS — the pipeline unit
+  // ════════════════════════════════════════════════════════════════════
+
+  fastify.patch('/recruitment/applications/:id', { preHandler: requireRole(...MGMT) }, async (req, reply) => {
     const user = req.user;
     const { id } = req.params as any;
     const b = (req.body as any) || {};
     const VALID_STAGES = ['APPLIED', 'SCREENING', 'INTERVIEW', 'OFFER', 'HIRED', 'REJECTED'];
-    // Same role enum POST /invitations already requires a human to choose —
-    // never auto-derived from the job opening's free-text title/department,
-    // which has no reliable mapping onto a real system role.
-    const HIRE_ROLES = ['ADMIN', 'MANAGER', 'FINANCE', 'SALES', 'SENIOR', 'JUNIOR', 'TENANT_ADMIN', 'OFFICER'] as const;
     const patch: Record<string, unknown> = { updated_at: new Date() };
     if (b.stage !== undefined) {
       if (!VALID_STAGES.includes(b.stage)) return reply.status(400).send({ error: 'invalid stage' });
       if (b.stage === 'HIRED' && !HIRE_ROLES.includes(b.role)) {
-        return reply.status(400).send({ error: `Marking a candidate hired needs a role to invite them with: ${HIRE_ROLES.join(', ')}.` });
+        return reply.status(400).send({ error: `Marking an application hired needs a role to invite them with: ${HIRE_ROLES.join(', ')}.` });
       }
       patch.stage = b.stage;
     }
@@ -1816,86 +2280,101 @@ export async function hrRoutes(fastify: FastifyInstance) {
       if (b.rating !== null && (!Number.isFinite(r) || r < 0 || r > 5)) return reply.status(400).send({ error: 'rating must be 0–5' });
       patch.rating = b.rating === null ? null : r;
     }
-    for (const k of ['name', 'email', 'phone', 'source', 'notes'] as const) {
+    // Structured screening outcome — score + pass/fail. Disqualification
+    // reuses rejected_reason below rather than a second reason field.
+    if (b.screening_score !== undefined) {
+      const s = Number(b.screening_score);
+      if (b.screening_score !== null && (!Number.isFinite(s) || s < 0 || s > 100)) return reply.status(400).send({ error: 'screening_score must be 0–100' });
+      patch.screening_score = b.screening_score === null ? null : s;
+    }
+    if (b.screening_passed !== undefined) patch.screening_passed = b.screening_passed === null ? null : !!b.screening_passed;
+    for (const k of ['notes', 'rejected_reason'] as const) {
       if (b[k] !== undefined) patch[k] = b[k] || null;
     }
     return withTenant(user.tenant_id, async (trx) => {
-      const before = await trx.selectFrom('hr_candidates').select(['stage', 'email', 'name'])
-        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
-      if (!before) return reply.status(404).send({ error: 'Candidate not found' });
+      const before = await trx.selectFrom('hr_applications as a')
+        .innerJoin('hr_candidates as c', 'c.id', 'a.candidate_id')
+        .select(['a.stage', 'a.candidate_id', 'c.name as candidate_name', 'c.email as candidate_email'])
+        .where('a.id', '=', id).where('a.tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!before) return reply.status(404).send({ error: 'Application not found' });
 
-      const updated = await trx.updateTable('hr_candidates').set(patch as any)
+      const updated = await trx.updateTable('hr_applications').set(patch as any)
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
         .returningAll().executeTakeFirst();
-      if (!updated) return reply.status(404).send({ error: 'Candidate not found' });
+      if (!updated) return reply.status(404).send({ error: 'Application not found' });
 
-      // Marking a candidate HIRED used to only flip this column — nothing
-      // ever created the account/invitation that would actually bring them
-      // onboard, so the checklist-onboarding subscriber (fires on
-      // 'user.joined', see subscribers/*.ts) never ran and "Hired" in
-      // recruitment meant nothing to the rest of the platform. Fires only on
-      // an actual transition INTO hired (before.stage !== 'HIRED'), so
-      // re-saving an already-hired candidate never sends a second invite —
-      // and only when the email isn't already invited or an active account,
-      // since either means onboarding is already underway.
-      if (patch.stage === 'HIRED' && before.stage !== 'HIRED' && before.email) {
-        const email = before.email;
-        const alreadyInvited = await trx.selectFrom('hr_invitations').select('id')
-          .where('tenant_id', '=', user.tenant_id).where('email', '=', email).where('status', '=', 'PENDING')
-          .executeTakeFirst();
-        const alreadyStaff = await trx.selectFrom('users').select('id')
-          .where('tenant_id', '=', user.tenant_id).where('email', '=', email)
-          .executeTakeFirst();
-        if (!alreadyInvited && !alreadyStaff) {
-          const token = crypto.randomBytes(24).toString('hex');
-          const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-          const invite = await trx.insertInto('hr_invitations').values({
-            tenant_id: user.tenant_id, email, role: b.role,
-            token, invited_by: user.sub, expires_at: expiresAt,
-          }).returningAll().executeTakeFirstOrThrow();
-
-          const acceptUrl = `${env.OPS_BOARD_URL}/accept-invite?token=${token}`;
-          await MailService.enqueueTemplated(user.tenant_id, 'hr.staff_invitation', email, { role: b.role, acceptUrl }, 'hr')
-            .catch(() => { /* invite row exists regardless; resend is available */ });
-
-          await logActivity(trx, user.tenant_id, user.sub, `Hired ${before.name} — invited as ${b.role}`);
-          await emitDomainEvent(trx, user.tenant_id, {
-            type: 'hr.staff_invited', sourceApp: 'workspace', entityType: 'user', entityId: invite.id,
-            payload: { email, role: b.role, fromCandidateId: id },
-            actorId: user.sub,
-          }).catch(err => console.error('[HR] staff_invited emit failed:', err?.message));
-        }
+      // Fires only on an actual transition INTO hired, so re-saving an
+      // already-hired application never sends a second invite.
+      if (patch.stage === 'HIRED' && before.stage !== 'HIRED' && before.candidate_email) {
+        await inviteHiredPerson(trx, user.tenant_id, user.sub, before.candidate_id, before.candidate_name, before.candidate_email, b.role);
       }
 
       return updated;
     });
   });
 
-  // Schedule an interview for a candidate.
-  fastify.post('/recruitment/candidates/:id/interviews', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
+  // Schedule an interview against an application (not a bare candidate) —
+  // so a person interviewing for one job never shows under a different job.
+  // Interview duration for calendar purposes — this system has no separate
+  // end time, only scheduled_at, so a fixed default is what actually blocks
+  // the interviewer's calendar. Not user-configurable yet.
+  const INTERVIEW_DURATION_MS = 45 * 60 * 1000;
+
+  fastify.post('/recruitment/applications/:id/interviews', { preHandler: requireRole(...MGMT) }, async (req, reply) => {
     const user = req.user;
     const { id } = req.params as any;
     const b = (req.body as any) || {};
     if (!b.scheduled_at || Number.isNaN(new Date(b.scheduled_at).getTime())) return reply.status(400).send({ error: 'a valid scheduled_at is required' });
     return withTenant(user.tenant_id, async (trx) => {
-      const cand = await trx.selectFrom('hr_candidates').select('id').where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
-      if (!cand) return reply.status(404).send({ error: 'Candidate not found' });
+      const application = await trx.selectFrom('hr_applications as a')
+        .innerJoin('hr_candidates as c', 'c.id', 'a.candidate_id')
+        .innerJoin('hr_job_openings as o', 'o.id', 'a.job_opening_id')
+        .select(['a.id', 'a.candidate_id', 'c.name as candidate_name', 'c.email as candidate_email', 'o.title as job_title'])
+        .where('a.id', '=', id).where('a.tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!application) return reply.status(404).send({ error: 'Application not found' });
       if (b.interviewer_id) {
         const iv = await trx.selectFrom('users').select('id').where('id', '=', b.interviewer_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
         if (!iv) return reply.status(404).send({ error: 'Interviewer not found' });
       }
+
+      const mode = ['PHONE', 'VIDEO', 'ONSITE'].includes(b.mode) ? b.mode : 'VIDEO';
+      const scheduledAt = new Date(b.scheduled_at);
+
+      // A real event on the interviewer's own calendar (calendar_events,
+      // migration 079/402) — only when there's an interviewer to own it,
+      // since a calendar event needs a calendar to belong to.
+      let calendarEventId: string | null = null;
+      if (b.interviewer_id) {
+        const eventId = crypto.randomUUID();
+        const guests: Guest[] = application.candidate_email
+          ? [{ userId: null, email: application.candidate_email, name: application.candidate_name, status: 'pending' }]
+          : [];
+        try {
+          await createEvent(user.tenant_id, b.interviewer_id, user.name ?? 'HR', eventId, {
+            title: `Interview: ${application.candidate_name} — ${application.job_title}`,
+            start: scheduledAt.toISOString(), end: new Date(scheduledAt.getTime() + INTERVIEW_DURATION_MS).toISOString(),
+            description: b.notes || null, category: 'interview', guests,
+          });
+          calendarEventId = eventId;
+        } catch (err: any) {
+          console.error('[HR] calendar event create failed:', err?.message);
+        }
+      }
+
       return trx.insertInto('hr_interviews').values({
-        tenant_id: user.tenant_id, candidate_id: id,
+        tenant_id: user.tenant_id, application_id: id, candidate_id: application.candidate_id,
         interviewer_id: b.interviewer_id || null,
-        scheduled_at: new Date(b.scheduled_at),
-        mode: ['PHONE', 'VIDEO', 'ONSITE'].includes(b.mode) ? b.mode : 'VIDEO',
-        status: 'SCHEDULED', notes: b.notes || null, created_by: user.sub,
+        scheduled_at: scheduledAt, mode, status: 'SCHEDULED', notes: b.notes || null, created_by: user.sub,
+        calendar_event_id: calendarEventId,
       }).returningAll().executeTakeFirstOrThrow();
     });
   });
 
-  // Update an interview (reschedule, complete, cancel, note).
-  fastify.patch('/recruitment/interviews/:id', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
+  // Update an interview (reschedule, complete, cancel, note). Reschedules
+  // move the SAME calendar event (updateEvent) rather than creating a new
+  // one — the exact "don't duplicate on reschedule" behavior a real
+  // calendar integration needs. Cancelling removes it entirely.
+  fastify.patch('/recruitment/interviews/:id', { preHandler: requireRole(...MGMT) }, async (req, reply) => {
     const user = req.user;
     const { id } = req.params as any;
     const b = (req.body as any) || {};
@@ -1911,11 +2390,374 @@ export async function hrRoutes(fastify: FastifyInstance) {
     if (b.mode !== undefined && ['PHONE', 'VIDEO', 'ONSITE'].includes(b.mode)) patch.mode = b.mode;
     if (b.notes !== undefined) patch.notes = b.notes || null;
     return withTenant(user.tenant_id, async (trx) => {
+      const before = await trx.selectFrom('hr_interviews').select(['interviewer_id', 'calendar_event_id'])
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!before) return reply.status(404).send({ error: 'Interview not found' });
+
+      if (before.calendar_event_id && before.interviewer_id) {
+        if (patch.status === 'CANCELLED') {
+          await deleteEvent(user.tenant_id, before.interviewer_id, before.calendar_event_id, 'all')
+            .catch(err => console.error('[HR] calendar event delete failed:', err?.message));
+          patch.calendar_event_id = null;
+        } else if (patch.scheduled_at !== undefined || patch.notes !== undefined) {
+          const start = (patch.scheduled_at as Date | undefined);
+          await updateEvent(user.tenant_id, before.interviewer_id, user.name ?? 'HR', before.calendar_event_id, {
+            ...(start ? { start: start.toISOString(), end: new Date(start.getTime() + INTERVIEW_DURATION_MS).toISOString() } : {}),
+            ...(patch.notes !== undefined ? { description: patch.notes as string | null } : {}),
+          }, 'all').catch(err => console.error('[HR] calendar event update failed:', err?.message));
+        }
+      }
+
       const updated = await trx.updateTable('hr_interviews').set(patch as any)
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
         .returningAll().executeTakeFirst();
       if (!updated) return reply.status(404).send({ error: 'Interview not found' });
       return updated;
+    });
+  });
+
+  // ════════════════════════════════════════════════════════════════════
+  // OFFERS (migration 399) — a real entity, not a stage label.
+  // DRAFT -> PENDING_APPROVAL -> APPROVED -> SENT -> VIEWED ->
+  // ACCEPTED/DECLINED, with WITHDRAWN/EXPIRED off to the side. There is no
+  // candidate portal anywhere in this platform (candidates are never
+  // logins), so SENT/VIEWED/ACCEPTED/DECLINED are recorded by staff on the
+  // candidate's behalf (a call, an email reply) rather than detected from a
+  // click — building a fake auto-tracked "viewed" would be dishonest about
+  // what this system can actually observe.
+  // ════════════════════════════════════════════════════════════════════
+
+  const OFFER_COLUMNS = [
+    'o.id', 'o.application_id', 'o.position_title',
+    'o.compensation_amount', 'o.compensation_currency', 'o.compensation_period',
+    'o.start_date', 'o.expiry_date', 'o.status', 'o.revision', 'o.supersedes_offer_id',
+    'o.decline_reason', 'o.approved_by', 'o.approved_at', 'o.sent_at', 'o.viewed_at', 'o.responded_at',
+    'o.created_by', 'o.created_at', 'o.updated_at',
+  ] as const;
+
+  fastify.get('/recruitment/applications/:id/offers', { preHandler: requireRole(...MGMT) }, async (req) => {
+    const user = req.user;
+    const { id } = req.params as any;
+    return withTenant(user.tenant_id, trx => trx.selectFrom('hr_offers as o')
+      .select(OFFER_COLUMNS)
+      .where('o.tenant_id', '=', user.tenant_id).where('o.application_id', '=', id)
+      .orderBy('o.created_at', 'desc').execute());
+  });
+
+  fastify.post('/recruitment/offers', { preHandler: requireRole(...MGMT) }, async (req, reply) => {
+    const user = req.user;
+    const b = (req.body as any) || {};
+    if (!b.application_id) return reply.status(400).send({ error: 'application_id is required' });
+    if (!b.position_title || !String(b.position_title).trim()) return reply.status(400).send({ error: 'position_title is required' });
+    return withTenant(user.tenant_id, async (trx) => {
+      const application = await trx.selectFrom('hr_applications').select('id')
+        .where('id', '=', b.application_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!application) return reply.status(404).send({ error: 'Application not found' });
+
+      // A fresh offer superseding one already sent — the sent version is
+      // frozen (SUPERSEDED), not silently edited, so what a candidate was
+      // actually shown is never rewritten after the fact.
+      if (b.supersedes_offer_id) {
+        const prior = await trx.selectFrom('hr_offers').select(['id', 'status', 'revision'])
+          .where('id', '=', b.supersedes_offer_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+        if (!prior) return reply.status(404).send({ error: 'The offer being superseded was not found.' });
+        await trx.updateTable('hr_offers').set({ status: 'SUPERSEDED', updated_at: new Date() })
+          .where('id', '=', prior.id).where('tenant_id', '=', user.tenant_id).execute();
+      }
+
+      return trx.insertInto('hr_offers').values({
+        tenant_id: user.tenant_id,
+        application_id: b.application_id,
+        position_title: String(b.position_title).trim(),
+        compensation_amount: b.compensation_amount != null && b.compensation_amount !== '' ? String(b.compensation_amount) : null,
+        compensation_currency: b.compensation_currency || null,
+        compensation_period: b.compensation_period === 'ANNUAL' ? 'ANNUAL' : 'MONTHLY',
+        start_date: b.start_date || null,
+        expiry_date: b.expiry_date || null,
+        supersedes_offer_id: b.supersedes_offer_id || null,
+        created_by: user.sub,
+      }).returningAll().executeTakeFirstOrThrow();
+    });
+  });
+
+  fastify.get('/recruitment/offers/:id', { preHandler: requireRole(...MGMT) }, async (req, reply) => {
+    const user = req.user;
+    const { id } = req.params as any;
+    return withTenant(user.tenant_id, async (trx) => {
+      const row = await trx.selectFrom('hr_offers as o').select(OFFER_COLUMNS)
+        .where('o.id', '=', id).where('o.tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!row) return reply.status(404).send({ error: 'Offer not found' });
+      return row;
+    });
+  });
+
+  // Editable only while still internal (DRAFT/PENDING_APPROVAL) — bumps
+  // revision in place. Once SENT, POST a new offer with supersedes_offer_id
+  // instead, so what was actually sent is never rewritten.
+  fastify.patch('/recruitment/offers/:id', { preHandler: requireRole(...MGMT) }, async (req, reply) => {
+    const user = req.user;
+    const { id } = req.params as any;
+    const b = (req.body as any) || {};
+    return withTenant(user.tenant_id, async (trx) => {
+      const existing = await trx.selectFrom('hr_offers').select(['status', 'revision']).where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!existing) return reply.status(404).send({ error: 'Offer not found' });
+      if (!['DRAFT', 'PENDING_APPROVAL'].includes(existing.status)) {
+        return reply.status(409).send({ error: `A ${existing.status} offer can no longer be edited — create a new offer that supersedes it instead.` });
+      }
+      const patch: Record<string, unknown> = { updated_at: new Date(), revision: existing.revision + 1 };
+      if (b.position_title !== undefined) patch.position_title = String(b.position_title).trim();
+      if (b.compensation_amount !== undefined) patch.compensation_amount = b.compensation_amount != null && b.compensation_amount !== '' ? String(b.compensation_amount) : null;
+      if (b.compensation_currency !== undefined) patch.compensation_currency = b.compensation_currency || null;
+      if (b.compensation_period !== undefined) patch.compensation_period = b.compensation_period === 'ANNUAL' ? 'ANNUAL' : 'MONTHLY';
+      if (b.start_date !== undefined) patch.start_date = b.start_date || null;
+      if (b.expiry_date !== undefined) patch.expiry_date = b.expiry_date || null;
+      return trx.updateTable('hr_offers').set(patch as any)
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).returningAll().executeTakeFirstOrThrow();
+    });
+  });
+
+  fastify.post('/recruitment/offers/:id/submit', { preHandler: requireRole(...MGMT) }, async (req, reply) => {
+    const user = req.user; const { id } = req.params as any;
+    return withTenant(user.tenant_id, async (trx) => {
+      const existing = await trx.selectFrom('hr_offers').select('status').where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!existing) return reply.status(404).send({ error: 'Offer not found' });
+      if (existing.status !== 'DRAFT') return reply.status(409).send({ error: `Only a DRAFT offer can be submitted — this one is ${existing.status}.` });
+      return trx.updateTable('hr_offers').set({ status: 'PENDING_APPROVAL', updated_at: new Date() })
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).returningAll().executeTakeFirstOrThrow();
+    });
+  });
+
+  fastify.post('/recruitment/offers/:id/approve', { preHandler: requireRole(...APPROVER_ROLES) }, async (req, reply) => {
+    const user = req.user; const { id } = req.params as any;
+    return withTenant(user.tenant_id, async (trx) => {
+      const existing = await trx.selectFrom('hr_offers').select('status').where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!existing) return reply.status(404).send({ error: 'Offer not found' });
+      if (existing.status !== 'PENDING_APPROVAL') return reply.status(409).send({ error: `Only a PENDING_APPROVAL offer can be approved — this one is ${existing.status}.` });
+      const updated = await trx.updateTable('hr_offers')
+        .set({ status: 'APPROVED', approved_by: user.sub, approved_at: new Date(), updated_at: new Date() })
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).returningAll().executeTakeFirstOrThrow();
+      await logActivity(trx, user.tenant_id, user.sub, `Approved offer for "${updated.position_title}"`);
+      return updated;
+    });
+  });
+
+  // Sending an offer now generates a real, signable offer letter through
+  // the platform's own eSign app (sign_envelopes/sign_recipients,
+  // migration 267) — reused rather than reinvented, the same way interview
+  // scheduling reuses the real Calendar app. sign_recipients was already
+  // designed to support an external, non-login signer ("may be external,
+  // so no users FK"), which is exactly what a candidate is, so no
+  // candidate-authentication system had to be built to give them a real
+  // link to view and sign the offer. Without an email on file there's
+  // nothing to send a signing link to — the offer still moves to SENT
+  // (sent_at records the decision was made) but with no envelope.
+  fastify.post('/recruitment/offers/:id/send', { preHandler: requireRole(...APPROVER_ROLES) }, async (req, reply) => {
+    const user = req.user; const { id } = req.params as any;
+    const existing = await withTenant(user.tenant_id, trx =>
+      trx.selectFrom('hr_offers').select('status').where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst());
+    if (!existing) return reply.status(404).send({ error: 'Offer not found' });
+    if (existing.status !== 'APPROVED') return reply.status(409).send({ error: `Only an APPROVED offer can be sent — this one is ${existing.status}.` });
+
+    let envelopeId: string | null = null;
+    try {
+      const { buffer, candidateName, candidateEmail } = await renderOfferLetterPdf(user.tenant_id, id);
+      if (candidateEmail) {
+        envelopeId = await withTenant(user.tenant_id, async (trx) => {
+          const envelope = await trx.insertInto('sign_envelopes').values({
+            tenant_id: user.tenant_id, created_by: user.sub,
+            title: `Offer letter — ${candidateName}`,
+            document_data: buffer.toString('base64'),
+            file_name: 'offer-letter.pdf',
+            status: 'sent', sent_at: new Date(),
+          }).returningAll().executeTakeFirstOrThrow();
+          await trx.insertInto('sign_recipients').values({
+            envelope_id: envelope.id, tenant_id: user.tenant_id,
+            name: candidateName, email: candidateEmail, role_label: 'Candidate',
+          }).execute();
+          return envelope.id;
+        });
+      }
+    } catch (err: any) {
+      console.error('[HR] offer-letter envelope create failed:', err?.message);
+    }
+
+    return withTenant(user.tenant_id, trx =>
+      trx.updateTable('hr_offers').set({ status: 'SENT', sent_at: new Date(), sign_envelope_id: envelopeId, updated_at: new Date() })
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).returningAll().executeTakeFirstOrThrow());
+  });
+
+  // The signing link a candidate would actually use — the frontend shows
+  // this so staff can copy/share it (there is still no candidate portal or
+  // outbound-email template to deliver it automatically).
+  fastify.get('/recruitment/offers/:id/signing-link', { preHandler: requireRole(...MGMT) }, async (req, reply) => {
+    const user = req.user; const { id } = req.params as any;
+    return withTenant(user.tenant_id, async (trx) => {
+      const offer = await trx.selectFrom('hr_offers').select('sign_envelope_id')
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!offer) return reply.status(404).send({ error: 'Offer not found' });
+      if (!offer.sign_envelope_id) return reply.status(404).send({ error: 'No signable offer letter exists for this offer yet.' });
+      const recipient = await trx.selectFrom('sign_recipients').select(['token', 'status', 'signed_at'])
+        .where('envelope_id', '=', offer.sign_envelope_id).where('tenant_id', '=', user.tenant_id)
+        .executeTakeFirst();
+      if (!recipient) return reply.status(404).send({ error: 'No signer found for this offer letter.' });
+      return {
+        signing_url: `${env.OPS_BOARD_URL}/sign/public/${recipient.token}`,
+        status: recipient.status, signed_at: recipient.signed_at,
+      };
+    });
+  });
+
+  fastify.post('/recruitment/offers/:id/mark-viewed', { preHandler: requireRole(...MGMT) }, async (req, reply) => {
+    const user = req.user; const { id } = req.params as any;
+    return withTenant(user.tenant_id, async (trx) => {
+      const existing = await trx.selectFrom('hr_offers').select('status').where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!existing) return reply.status(404).send({ error: 'Offer not found' });
+      if (existing.status !== 'SENT') return reply.status(409).send({ error: `Only a SENT offer can be marked viewed — this one is ${existing.status}.` });
+      return trx.updateTable('hr_offers').set({ status: 'VIEWED', viewed_at: new Date(), updated_at: new Date() })
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).returningAll().executeTakeFirstOrThrow();
+    });
+  });
+
+  fastify.post('/recruitment/offers/:id/accept', { preHandler: requireRole(...MGMT) }, async (req, reply) => {
+    const user = req.user; const { id } = req.params as any;
+    const b = (req.body as any) || {};
+    if (!HIRE_ROLES.includes(b.role)) {
+      return reply.status(400).send({ error: `Accepting an offer needs a role to invite the new hire with: ${HIRE_ROLES.join(', ')}.` });
+    }
+    return withTenant(user.tenant_id, async (trx) => {
+      const offer = await trx.selectFrom('hr_offers').select(['id', 'status', 'application_id']).where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!offer) return reply.status(404).send({ error: 'Offer not found' });
+      if (!['SENT', 'VIEWED'].includes(offer.status)) return reply.status(409).send({ error: `Only a SENT or VIEWED offer can be accepted — this one is ${offer.status}.` });
+
+      const updated = await trx.updateTable('hr_offers')
+        .set({ status: 'ACCEPTED', responded_at: new Date(), updated_at: new Date() })
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).returningAll().executeTakeFirstOrThrow();
+
+      const application = await trx.selectFrom('hr_applications as a')
+        .innerJoin('hr_candidates as c', 'c.id', 'a.candidate_id')
+        .select(['a.id', 'a.stage', 'a.candidate_id', 'c.name as candidate_name', 'c.email as candidate_email'])
+        .where('a.id', '=', offer.application_id).executeTakeFirstOrThrow();
+      await trx.updateTable('hr_applications').set({ stage: 'HIRED', updated_at: new Date() })
+        .where('id', '=', application.id).where('tenant_id', '=', user.tenant_id).execute();
+
+      if (application.stage !== 'HIRED' && application.candidate_email) {
+        await inviteHiredPerson(trx, user.tenant_id, user.sub, application.candidate_id, application.candidate_name, application.candidate_email, b.role);
+      }
+
+      return updated;
+    });
+  });
+
+  fastify.post('/recruitment/offers/:id/decline', { preHandler: requireRole(...MGMT) }, async (req, reply) => {
+    const user = req.user; const { id } = req.params as any;
+    const { reason } = (req.body as any) || {};
+    return withTenant(user.tenant_id, async (trx) => {
+      const offer = await trx.selectFrom('hr_offers').select(['id', 'status', 'application_id']).where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!offer) return reply.status(404).send({ error: 'Offer not found' });
+      if (!['SENT', 'VIEWED'].includes(offer.status)) return reply.status(409).send({ error: `Only a SENT or VIEWED offer can be declined — this one is ${offer.status}.` });
+      const updated = await trx.updateTable('hr_offers')
+        .set({ status: 'DECLINED', decline_reason: reason || null, responded_at: new Date(), updated_at: new Date() })
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).returningAll().executeTakeFirstOrThrow();
+      await trx.updateTable('hr_applications').set({ stage: 'REJECTED', rejected_reason: reason ? `Offer declined: ${reason}` : 'Offer declined', updated_at: new Date() })
+        .where('id', '=', offer.application_id).where('tenant_id', '=', user.tenant_id).execute();
+      return updated;
+    });
+  });
+
+  fastify.post('/recruitment/offers/:id/withdraw', { preHandler: requireRole(...APPROVER_ROLES) }, async (req, reply) => {
+    const user = req.user; const { id } = req.params as any;
+    return withTenant(user.tenant_id, async (trx) => {
+      const existing = await trx.selectFrom('hr_offers').select('status').where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!existing) return reply.status(404).send({ error: 'Offer not found' });
+      if (['ACCEPTED', 'DECLINED', 'WITHDRAWN', 'SUPERSEDED'].includes(existing.status)) {
+        return reply.status(409).send({ error: `A ${existing.status} offer cannot be withdrawn.` });
+      }
+      return trx.updateTable('hr_offers').set({ status: 'WITHDRAWN', updated_at: new Date() })
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).returningAll().executeTakeFirstOrThrow();
+    });
+  });
+
+  // ════════════════════════════════════════════════════════════════════
+  // WORKFORCE PLANNING (migration 400) — three numbers that must never be
+  // conflated: an approved headcount is a plan decision (stored), current
+  // headcount is who's actually assigned to the department right now
+  // (users.department_id, migration 398), and open vacancies/planned hiring
+  // are both derived, never stored, so they can't drift out of sync with
+  // the real roster or the real requisition pipeline.
+  // ════════════════════════════════════════════════════════════════════
+
+  fastify.get('/workforce-planning', { preHandler: requireRole(...MGMT) }, async (req) => {
+    const user = req.user;
+    const year = Number((req.query as any)?.year) || new Date().getFullYear();
+    return withTenant(user.tenant_id, async (trx) => {
+      const [departments, plans, currentCounts, pipelineCounts] = await Promise.all([
+        trx.selectFrom('hr_departments').select(['id', 'name']).where('tenant_id', '=', user.tenant_id).orderBy('name').execute(),
+        trx.selectFrom('hr_headcount_plans').select(['department_id', 'approved_headcount', 'budget_amount', 'budget_currency', 'notes'])
+          .where('tenant_id', '=', user.tenant_id).where('fiscal_year', '=', year).execute(),
+        trx.selectFrom('users').select(['department_id', (eb) => eb.fn.countAll<number>().as('n')])
+          .where('tenant_id', '=', user.tenant_id).where('department_id', 'is not', null).where('active', '=', true)
+          .groupBy('department_id').execute(),
+        // "Planned hiring" — openings already in motion for this department,
+        // via the real department_id FK on requisitions (not hr_job_openings'
+        // free-text department string, which can't be joined reliably back).
+        trx.selectFrom('hr_requisitions')
+          .select(['department_id', (eb) => eb.fn.sum<number>('openings_count').as('n')])
+          .where('tenant_id', '=', user.tenant_id).where('department_id', 'is not', null)
+          .where('status', 'in', ['SUBMITTED', 'APPROVED', 'OPEN'])
+          .groupBy('department_id').execute(),
+      ]);
+      const planByDept = new Map(plans.map(p => [p.department_id, p]));
+      const currentByDept = new Map(currentCounts.map(c => [c.department_id, Number(c.n)]));
+      const pipelineByDept = new Map(pipelineCounts.map(c => [c.department_id, Number(c.n)]));
+
+      return departments.map(d => {
+        const plan = planByDept.get(d.id);
+        const approved = plan?.approved_headcount ?? 0;
+        const current = currentByDept.get(d.id) ?? 0;
+        return {
+          department_id: d.id, department_name: d.name, fiscal_year: year,
+          approved_headcount: approved,
+          current_headcount: current,
+          open_vacancies: Math.max(approved - current, 0),
+          planned_hiring: pipelineByDept.get(d.id) ?? 0,
+          budget_amount: plan?.budget_amount ?? null,
+          budget_currency: plan?.budget_currency ?? null,
+          notes: plan?.notes ?? null,
+        };
+      });
+    });
+  });
+
+  // Setting an approved headcount is a budget decision — admin-tier only,
+  // same split as pay fields and requisition/offer approval elsewhere in
+  // this file.
+  fastify.post('/workforce-planning', { preHandler: requireRole(...APPROVER_ROLES) }, async (req, reply) => {
+    const user = req.user;
+    const b = (req.body as any) || {};
+    if (!b.department_id) return reply.status(400).send({ error: 'department_id is required' });
+    const year = Number(b.fiscal_year) || new Date().getFullYear();
+    const headcount = Number(b.approved_headcount);
+    if (!Number.isFinite(headcount) || headcount < 0) return reply.status(400).send({ error: 'approved_headcount must be a non-negative number' });
+    return withTenant(user.tenant_id, async (trx) => {
+      const dept = await trx.selectFrom('hr_departments').select('id')
+        .where('id', '=', b.department_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!dept) return reply.status(404).send({ error: 'Department not found in this workspace.' });
+      return trx.insertInto('hr_headcount_plans').values({
+        tenant_id: user.tenant_id, department_id: b.department_id, fiscal_year: year,
+        approved_headcount: headcount,
+        budget_amount: b.budget_amount != null && b.budget_amount !== '' ? String(b.budget_amount) : null,
+        budget_currency: b.budget_currency || null,
+        notes: b.notes || null,
+        created_by: user.sub,
+      })
+        .onConflict(oc => oc.columns(['tenant_id', 'department_id', 'fiscal_year']).doUpdateSet({
+          approved_headcount: headcount,
+          budget_amount: b.budget_amount != null && b.budget_amount !== '' ? String(b.budget_amount) : null,
+          budget_currency: b.budget_currency || null,
+          notes: b.notes || null,
+          updated_at: new Date(),
+        }))
+        .returningAll().executeTakeFirstOrThrow();
     });
   });
 
@@ -2392,14 +3234,18 @@ export async function hrRoutes(fastify: FastifyInstance) {
           // avatar_url was not selected, which is why every staff row fell back
           // to initials while the header — reading the same column through
           // /auth/me — showed the picture.
-          .select(['id', 'name', 'email', 'phone', 'role', 'active', 'created_at',
-                   'last_login_at', 'avatar_url'])
-          .where('tenant_id', '=', user.tenant_id)
+          .leftJoin('hr_departments as dept', 'dept.id', 'users.department_id')
+          .leftJoin('hr_designations as desig', 'desig.id', 'users.designation_id')
+          .select(['users.id', 'users.name', 'users.email', 'users.phone', 'users.role',
+                   'users.active', 'users.created_at', 'users.last_login_at', 'users.avatar_url',
+                   'users.department_id', 'users.designation_id',
+                   'dept.name as department_name', 'desig.title as designation_title'])
+          .where('users.tenant_id', '=', user.tenant_id)
           .$if(!!search?.trim(), qb => qb.where(eb => eb.or([
-            eb('name', 'ilike', `%${search!.trim()}%`),
-            eb('email', 'ilike', `%${search!.trim()}%`),
+            eb('users.name', 'ilike', `%${search!.trim()}%`),
+            eb('users.email', 'ilike', `%${search!.trim()}%`),
           ])))
-          .orderBy('name')
+          .orderBy('users.name')
           .execute(),
         trx.selectFrom('hr_leaves')
           .select('user_id')
@@ -2416,8 +3262,11 @@ export async function hrRoutes(fastify: FastifyInstance) {
         hireDate: u.created_at instanceof Date
           ? u.created_at.toISOString().split('T')[0]
           : String(u.created_at).split('T')[0],
-        dept: '',
-        designation: '',
+        // Real names now that users.department_id/designation_id exist
+        // (migration 398) — this used to be hardcoded '' for every row,
+        // because there was nothing to join.
+        dept: u.department_name ?? '',
+        designation: u.designation_title ?? '',
       }));
     });
   });
@@ -2439,19 +3288,23 @@ export async function hrRoutes(fastify: FastifyInstance) {
       const staff = await trx.selectFrom('users')
         // Same omission as the staff list had: without avatar_url the profile
         // header falls back to initials for someone who has a picture.
-        .select(['id', 'name', 'email', 'phone', 'role', 'active', 'created_at',
-                 'last_login_at', 'profile', 'avatar_url',
+        .leftJoin('hr_departments as dept', 'dept.id', 'users.department_id')
+        .leftJoin('hr_designations as desig', 'desig.id', 'users.designation_id')
+        .select(['users.id', 'users.name', 'users.email', 'users.phone', 'users.role',
+                 'users.active', 'users.created_at', 'users.last_login_at', 'users.profile',
+                 'users.avatar_url', 'users.department_id', 'users.designation_id',
+                 'dept.name as department_name', 'desig.title as designation_title',
                  // Statutory identity and pay. Selected here rather than behind a
                  // second endpoint because the profile screen is the only place
                  // they are ever entered, and a field nobody can see is a field
                  // nobody fills in.
-                 'hire_date', 'tax_residency', 'national_id', 'tax_id',
-                 'social_security_no', 'health_insurance_no', 'pension_fund',
-                 'basic_salary', 'pay_currency', 'pay_method',
-                 'bank_name', 'bank_branch', 'bank_account_no', 'bank_account_name',
-                 'mobile_money_provider', 'mobile_money_number'])
-        .where('id', '=', id)
-        .where('tenant_id', '=', user.tenant_id)
+                 'users.hire_date', 'users.tax_residency', 'users.national_id', 'users.tax_id',
+                 'users.social_security_no', 'users.health_insurance_no', 'users.pension_fund',
+                 'users.basic_salary', 'users.pay_currency', 'users.pay_method',
+                 'users.bank_name', 'users.bank_branch', 'users.bank_account_no', 'users.bank_account_name',
+                 'users.mobile_money_provider', 'users.mobile_money_number'])
+        .where('users.id', '=', id)
+        .where('users.tenant_id', '=', user.tenant_id)
         .executeTakeFirst();
       if (!staff) throw Object.assign(new Error('Staff not found'), { statusCode: 404 });
 
@@ -2539,6 +3392,11 @@ export async function hrRoutes(fastify: FastifyInstance) {
     const allowed: Record<string, any> = {};
     if (body.name  !== undefined) allowed.name  = body.name;
     if (body.phone !== undefined) allowed.phone = body.phone;
+    // Org placement is contact/identity-level, not pay-level — a manager can
+    // move someone between departments the same way they can update a phone
+    // number, without the admin-only check PAY_FIELDS enforces below.
+    if (body.department_id !== undefined) allowed.department_id = body.department_id || null;
+    if (body.designation_id !== undefined) allowed.designation_id = body.designation_id || null;
 
     const canSetPay = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'].includes(user.role);
     for (const field of [...IDENTITY_FIELDS, ...PAY_FIELDS]) {
@@ -2588,15 +3446,37 @@ export async function hrRoutes(fastify: FastifyInstance) {
           .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
         allowed.profile = JSON.stringify({ ...(current?.profile as any || {}), ...body.profile });
       }
+      // Confirm the department/designation is this tenant's own before
+      // linking it — otherwise an id borrowed from another tenant would
+      // pass the FK (it references hr_departments(id) globally) and only
+      // RLS on hr_departments would stand between this and a cross-tenant
+      // pointer sitting on a real employee row.
+      if (allowed.department_id) {
+        const dept = await trx.selectFrom('hr_departments').select('id')
+          .where('id', '=', allowed.department_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+        if (!dept) return reply.status(404).send({ error: 'Department not found in this workspace.' });
+      }
+      if (allowed.designation_id) {
+        const desig = await trx.selectFrom('hr_designations').select('id')
+          .where('id', '=', allowed.designation_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+        if (!desig) return reply.status(404).send({ error: 'Designation not found in this workspace.' });
+      }
       allowed.updated_at = new Date();
-      const updated = await trx.updateTable('users').set(allowed)
+      await trx.updateTable('users').set(allowed)
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
-        .returning(['id', 'name', 'email', 'phone', 'role', 'active', 'profile',
-                    'hire_date', 'tax_residency', 'national_id', 'tax_id',
-                    'social_security_no', 'health_insurance_no', 'pension_fund',
-                    'basic_salary', 'pay_currency', 'pay_method',
-                    'bank_name', 'bank_branch', 'bank_account_no', 'bank_account_name',
-                    'mobile_money_provider', 'mobile_money_number'])
+        .executeTakeFirstOrThrow();
+      const updated = await trx.selectFrom('users')
+        .leftJoin('hr_departments as dept', 'dept.id', 'users.department_id')
+        .leftJoin('hr_designations as desig', 'desig.id', 'users.designation_id')
+        .select(['users.id', 'users.name', 'users.email', 'users.phone', 'users.role', 'users.active',
+                    'users.profile', 'users.department_id', 'users.designation_id',
+                    'dept.name as department_name', 'desig.title as designation_title',
+                    'users.hire_date', 'users.tax_residency', 'users.national_id', 'users.tax_id',
+                    'users.social_security_no', 'users.health_insurance_no', 'users.pension_fund',
+                    'users.basic_salary', 'users.pay_currency', 'users.pay_method',
+                    'users.bank_name', 'users.bank_branch', 'users.bank_account_no', 'users.bank_account_name',
+                    'users.mobile_money_provider', 'users.mobile_money_number'])
+        .where('users.id', '=', id).where('users.tenant_id', '=', user.tenant_id)
         .executeTakeFirstOrThrow();
       return { ...updated, hire_date_is_estimated: !updated.hire_date };
     });
@@ -2970,7 +3850,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
    * than a data one — so already-expired contracts are included, not filtered
    * out for being in the past. Those are the urgent ones.
    */
-  fastify.get('/contracts/expiring', async (req) => {
+  fastify.get('/contracts/expiring', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     const days = Math.min(Math.max(Number((req.query as any)?.days) || 30, 1), 365);
     const horizon = new Date(Date.now() + days * 86400000).toISOString().slice(0, 10);
@@ -3189,7 +4069,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
 
   // ── Invitations ───────────────────────────────────────────────
 
-  fastify.get('/invitations', async (req) => {
+  fastify.get('/invitations', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     return withTenant(user.tenant_id, async (trx) => {
       return trx.selectFrom('hr_invitations as i')
@@ -3270,7 +4150,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
 
   // ── Delete Requests ───────────────────────────────────────────
 
-  fastify.get('/delete-requests', async (req) => {
+  fastify.get('/delete-requests', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     return withTenant(user.tenant_id, async (trx) => {
       return trx.selectFrom('hr_delete_requests as d')

@@ -15,6 +15,13 @@ function bucketFor(score: number) {
   return HEALTH_BUCKETS.find(b => score >= b.min && score <= b.max)?.label ?? 'Critical';
 }
 
+// device_secret is a real GPS tracker's credential — never round-trip it
+// into an exported fleet-summary report.
+function stripSecret<T extends { device_secret?: unknown }>(v: T): Omit<T, 'device_secret'> {
+  const { device_secret, ...rest } = v;
+  return rest;
+}
+
 export async function fleetAnalyticsRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('tracking'));
@@ -281,7 +288,7 @@ export async function fleetAnalyticsRoutes(fastify: FastifyInstance) {
         const trips = await trx.selectFrom('trips').selectAll()
           .where('tenant_id', '=', user.tenant_id)
           .where('created_at', '>=', fromDate).where('created_at', '<=', toDate).execute();
-        return { type, from: fromDate, to: toDate, vehicles, trips };
+        return { type, from: fromDate, to: toDate, vehicles: vehicles.map(stripSecret), trips };
       }
       if (type === 'maintenance') {
         const records = await trx.selectFrom('maintenance_records').selectAll()

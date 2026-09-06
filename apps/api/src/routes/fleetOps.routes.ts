@@ -37,25 +37,37 @@ function numOrNull(v: unknown): number | null {
   return v == null ? null : Number(v);
 }
 
-// A vehicle in any of these states is not physically fit to be sent out —
-// dispatching one anyway used to be silently possible (POST /trips and the
-// status transition below did no validation at all against the vehicle's
-// own state or its existing trips), which is exactly the "impossible state"
+// device_secret is a real GPS tracker's credential — never round-trip it
+// into a driver-detail page every dispatcher can open.
+function stripSecret<T extends { device_secret?: unknown }>(v: T): Omit<T, 'device_secret'> {
+  const { device_secret, ...rest } = v;
+  return rest;
+}
+
+// A vehicle/trailer in any of these states is not physically fit to be sent
+// out — dispatching one anyway used to be silently possible (POST /trips and
+// the status transition below did no validation at all against its own
+// state or its existing trips), which is exactly the "impossible state"
 // case this module's own design brief calls out by name.
 const NON_DISPATCHABLE_VEHICLE_STATUSES = new Set([
   'OUT_OF_SERVICE', 'MAINTENANCE', 'ACCIDENT', 'HELD', 'IMPOUNDED', 'DECOMMISSIONED', 'INACTIVE',
 ]);
+const NON_DISPATCHABLE_TRAILER_STATUSES = new Set(['OUT_OF_SERVICE', 'MAINTENANCE', 'DECOMMISSIONED']);
 
 /**
  * Checked before a trip is created and again before one is actually
  * dispatched (status -> IN_PROGRESS): a vehicle already mid-trip can't also
  * start a second one, a vehicle that's out of service/in maintenance/etc.
- * can't be dispatched at all, and a driver already mid-trip can't crew a
- * second vehicle at the same time. `excludeTripId` lets re-dispatching the
- * same trip (e.g. re-PATCHing it to IN_PROGRESS) skip colliding with itself.
+ * can't be dispatched at all, a driver already mid-trip can't crew a second
+ * vehicle at the same time, and — the two checks a real cross-border haulier
+ * actually lives or dies by — a vehicle with an expired registration/
+ * insurance/inspection document, or one with genuinely overdue maintenance,
+ * cannot be sent out either. `excludeTripId` lets re-dispatching the same
+ * trip (e.g. re-PATCHing it to IN_PROGRESS) skip colliding with itself.
  */
 async function assertDispatchable(
-  trx: any, tenantId: string, vehicleId: string, driverId: string | null | undefined, excludeTripId?: string
+  trx: any, tenantId: string, vehicleId: string, driverId: string | null | undefined,
+  trailerId?: string | null, excludeTripId?: string
 ): Promise<string | null> {
   const vehicle = await trx.selectFrom('vehicles').select(['id', 'name', 'status'])
     .where('id', '=', vehicleId).where('tenant_id', '=', tenantId).executeTakeFirst();
@@ -71,6 +83,23 @@ async function assertDispatchable(
     return `${vehicle.name} is already on an active trip.`;
   }
 
+  const now = new Date();
+  const expiredDoc = await trx.selectFrom('vehicle_documents').select(['doc_type', 'expiry_date'])
+    .where('vehicle_id', '=', vehicleId).where('tenant_id', '=', tenantId)
+    .where('expiry_date', 'is not', null).where('expiry_date', '<', now)
+    .orderBy('expiry_date').executeTakeFirst();
+  if (expiredDoc) {
+    return `${vehicle.name}'s ${expiredDoc.doc_type} expired on ${new Date(expiredDoc.expiry_date).toLocaleDateString()} and cannot be dispatched until it's renewed.`;
+  }
+
+  const overdueMaint = await trx.selectFrom('maintenance_records').select(['service_type', 'next_due_date'])
+    .where('vehicle_id', '=', vehicleId).where('tenant_id', '=', tenantId)
+    .where('status', '=', 'SCHEDULED').where('next_due_date', 'is not', null).where('next_due_date', '<', now)
+    .orderBy('next_due_date').executeTakeFirst();
+  if (overdueMaint) {
+    return `${vehicle.name} has overdue ${overdueMaint.service_type} maintenance (due ${new Date(overdueMaint.next_due_date).toLocaleDateString()}) and cannot be dispatched until it's completed.`;
+  }
+
   if (driverId) {
     const driver = await trx.selectFrom('drivers').select(['id', 'name', 'license_expiry'])
       .where('id', '=', driverId).where('tenant_id', '=', tenantId).executeTakeFirst();
@@ -83,6 +112,28 @@ async function assertDispatchable(
     if (excludeTripId) driverBusyQuery = driverBusyQuery.where('id', '!=', excludeTripId);
     if (await driverBusyQuery.executeTakeFirst()) {
       return `${driver.name} is already driving another active trip.`;
+    }
+  }
+
+  if (trailerId) {
+    const trailer = await trx.selectFrom('trailers').select(['id', 'name', 'status'])
+      .where('id', '=', trailerId).where('tenant_id', '=', tenantId).executeTakeFirst();
+    if (!trailer) return 'Trailer not found.';
+    if (NON_DISPATCHABLE_TRAILER_STATUSES.has(String(trailer.status).toUpperCase())) {
+      return `Trailer ${trailer.name} is marked ${trailer.status} and cannot be dispatched.`;
+    }
+    let trailerBusyQuery = trx.selectFrom('trips').select('id')
+      .where('tenant_id', '=', tenantId).where('trailer_id', '=', trailerId).where('status', '=', 'IN_PROGRESS');
+    if (excludeTripId) trailerBusyQuery = trailerBusyQuery.where('id', '!=', excludeTripId);
+    if (await trailerBusyQuery.executeTakeFirst()) {
+      return `Trailer ${trailer.name} is already coupled to another active trip.`;
+    }
+    const expiredTrailerDoc = await trx.selectFrom('trailer_documents').select(['doc_type', 'expiry_date'])
+      .where('trailer_id', '=', trailerId).where('tenant_id', '=', tenantId)
+      .where('expiry_date', 'is not', null).where('expiry_date', '<', now)
+      .orderBy('expiry_date').executeTakeFirst();
+    if (expiredTrailerDoc) {
+      return `Trailer ${trailer.name}'s ${expiredTrailerDoc.doc_type} expired on ${new Date(expiredTrailerDoc.expiry_date).toLocaleDateString()} and cannot be dispatched until it's renewed.`;
     }
   }
 
@@ -328,7 +379,7 @@ export async function fleetOpsRoutes(fastify: FastifyInstance) {
       // not something this endpoint should paper over with a constant).
       return {
         driver: { ...driver, custom_id, email, joined_date, address },
-        vehicle: vehicle ? { ...vehicle, custom_code: `FBL-${vehicle.id.slice(0, 8).toUpperCase()}`, condition: vehicle.status } : null,
+        vehicle: vehicle ? { ...stripSecret(vehicle), custom_code: `FBL-${vehicle.id.slice(0, 8).toUpperCase()}`, condition: vehicle.status } : null,
         trips, fuel_logs: fuelLogs
       };
     });
@@ -417,20 +468,21 @@ export async function fleetOpsRoutes(fastify: FastifyInstance) {
   fastify.post('/trips', { preHandler: requireRole(...FLEET_ROLES) }, async (req, reply) => {
     const user = req.user;
     const body = req.body as {
-      vehicle_id: string; driver_id?: string; customer_id?: string;
+      vehicle_id: string; driver_id?: string; trailer_id?: string; customer_id?: string;
       origin?: string; destination?: string; scheduled_start?: string; scheduled_end?: string;
       cargo_desc?: string; notes?: string;
       cargo_type?: string; cargo_weight_kg?: number; cargo_temp_c?: number; load_capacity_pct?: number;
       shipment_id?: string;
     };
     return withTenant(user.tenant_id, async (trx) => {
-      const blocker = await assertDispatchable(trx, user.tenant_id, body.vehicle_id, body.driver_id);
+      const blocker = await assertDispatchable(trx, user.tenant_id, body.vehicle_id, body.driver_id, body.trailer_id);
       if (blocker) return reply.status(400).send({ error: blocker });
 
       const trip = await trx.insertInto('trips').values({
         tenant_id: user.tenant_id,
         vehicle_id: body.vehicle_id,
         driver_id: body.driver_id ?? null,
+        trailer_id: body.trailer_id ?? null,
         customer_id: body.customer_id ?? null,
         origin: body.origin ?? null,
         destination: body.destination ?? null,
@@ -462,11 +514,86 @@ export async function fleetOpsRoutes(fastify: FastifyInstance) {
     });
   });
 
+  // ── Cross-border (migration 396) ────────────────────────────────
+  // border_crossings already existed (border name, country_from/to,
+  // arrival/cleared timestamps, customs_ref, status) but only for the older
+  // road_consignments/consignment_trips pair — a real dispatched trip had no
+  // way to record a border event at all. fleet_trip_id extends the same
+  // table rather than duplicating its shape. A trip can carry any number of
+  // crossings in sequence (Country A -> border -> Country B -> border ->
+  // Country C) without a schema change per corridor.
+
+  fastify.get('/trips/:id/border-crossings', async (req, reply) => {
+    const user = req.user;
+    const { id } = req.params as { id: string };
+    return withTenant(user.tenant_id, async (trx) => {
+      const trip = await trx.selectFrom('trips').select('id')
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!trip) return reply.status(404).send({ error: 'Trip not found' });
+      return trx.selectFrom('border_crossings').selectAll()
+        .where('fleet_trip_id', '=', id).where('tenant_id', '=', user.tenant_id)
+        .orderBy('created_at').execute();
+    });
+  });
+
+  fastify.post('/trips/:id/border-crossings', { preHandler: requireRole(...FLEET_ROLES) }, async (req, reply) => {
+    const user = req.user;
+    const { id } = req.params as { id: string };
+    const body = req.body as {
+      border_name: string; country_from: string; country_to: string;
+      customs_ref?: string; notes?: string;
+    };
+    return withTenant(user.tenant_id, async (trx) => {
+      const trip = await trx.selectFrom('trips').select('id')
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!trip) return reply.status(404).send({ error: 'Trip not found' });
+
+      const crossing = await trx.insertInto('border_crossings').values({
+        tenant_id: user.tenant_id,
+        fleet_trip_id: id,
+        border_name: body.border_name,
+        country_from: body.country_from,
+        country_to: body.country_to,
+        arrival_at: new Date(),
+        status: 'PENDING',
+        customs_ref: body.customs_ref ?? null,
+        notes: body.notes ?? null,
+      } as any).returningAll().executeTakeFirstOrThrow();
+
+      emitDomainEvent(trx, user.tenant_id, {
+        type: 'trip.border_crossing_recorded', sourceApp: 'tracking', entityType: 'trip', entityId: id,
+        payload: { borderName: body.border_name, countryFrom: body.country_from, countryTo: body.country_to },
+      }).catch(err => console.error('[Fleet] border_crossing emit failed:', err.message));
+
+      return crossing;
+    });
+  });
+
+  fastify.patch('/border-crossings/:id', { preHandler: requireRole(...FLEET_ROLES) }, async (req, reply) => {
+    const user = req.user;
+    const { id } = req.params as { id: string };
+    const body = req.body as Partial<{
+      status: string; delay_reason: string; customs_ref: string; documents_checked: boolean; notes: string;
+    }>;
+    return withTenant(user.tenant_id, async (trx) => {
+      const existing = await trx.selectFrom('border_crossings').select('id')
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!existing) return reply.status(404).send({ error: 'Border crossing not found' });
+
+      return trx.updateTable('border_crossings').set({
+        ...body,
+        cleared_at: body.status === 'CLEARED' ? new Date() : undefined,
+      } as any)
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
+        .returningAll().executeTakeFirstOrThrow();
+    });
+  });
+
   fastify.patch('/trips/:id', { preHandler: requireRole(...FLEET_ROLES) }, async (req, reply) => {
     const user = req.user;
     const { id } = req.params as { id: string };
     const body = req.body as Partial<{
-      driver_id: string; customer_id: string; origin: string; destination: string;
+      driver_id: string; trailer_id: string; customer_id: string; origin: string; destination: string;
       scheduled_start: string; scheduled_end: string; actual_start: string; actual_end: string;
       status: string; cargo_desc: string; distance_km: number; notes: string;
       cargo_type: string; cargo_weight_kg: number; cargo_temp_c: number; load_capacity_pct: number;
@@ -474,16 +601,16 @@ export async function fleetOpsRoutes(fastify: FastifyInstance) {
     return withTenant(user.tenant_id, async (trx) => {
       // The actual "dispatch" moment — re-check right here rather than only
       // at creation, since a trip can sit PLANNED for days before this and
-      // the vehicle/driver's real-world state can change in the meantime
-      // (sent for repairs, put on another trip some other way, license
-      // lapsed). Re-fetches the trip's own vehicle_id since it isn't
-      // patchable through this endpoint.
+      // the vehicle/driver/trailer's real-world state can change in the
+      // meantime (sent for repairs, put on another trip some other way,
+      // license or a document lapsed).
       if (body.status === 'IN_PROGRESS') {
-        const trip = await trx.selectFrom('trips').select(['vehicle_id', 'driver_id'])
+        const trip = await trx.selectFrom('trips').select(['vehicle_id', 'driver_id', 'trailer_id'])
           .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
         if (!trip) return reply.status(404).send({ error: 'Trip not found.' });
         const driverId = body.driver_id !== undefined ? body.driver_id : trip.driver_id;
-        const blocker = await assertDispatchable(trx, user.tenant_id, trip.vehicle_id, driverId, id);
+        const trailerId = body.trailer_id !== undefined ? body.trailer_id : trip.trailer_id;
+        const blocker = await assertDispatchable(trx, user.tenant_id, trip.vehicle_id, driverId, trailerId, id);
         if (blocker) return reply.status(400).send({ error: blocker });
       }
 

@@ -64,6 +64,14 @@ export const TrackingNewVehicle: React.FC = () => {
         body: JSON.stringify(payload)
       });
       if (res && res.id) {
+        // The real GPS tracker's credential (see tracking-device.routes.ts)
+        // — shown here once, since no page ever displays it again.
+        if (res.device_secret) {
+          showAlert(
+            `Configure this device secret on the physical tracker for device ID "${res.device_id}" now — it won't be shown again. It can be regenerated later from the vehicle's detail page if it's lost or compromised.`,
+            { title: 'Device secret (shown once)', variant: 'info', items: [res.device_secret] }
+          );
+        }
         navigate(`/tracking/vehicles/${res.id}`);
       }
     } catch (e: any) {

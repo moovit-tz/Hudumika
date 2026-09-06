@@ -256,6 +256,7 @@ export const consignmentService = {
       return trx
         .insertInto('border_crossings')
         .values({
+          tenant_id: tenantId,
           consignment_id: consignmentId,
           trip_id: data.trip_id || null,
           border_name: data.border_name,
