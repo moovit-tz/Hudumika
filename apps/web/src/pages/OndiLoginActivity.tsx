@@ -45,10 +45,10 @@ export const OndiLoginActivity: React.FC = () => {
         <div className="ondi-kpi-card">
           <div className="ondi-kpi-header">
             <span className="ondi-kpi-title">Successful Logins</span>
-            <div className="ondi-kpi-icon-box" style={{ background: '#ecfdf5', color: '#047857' }}><Icon name="checkCircle" size={18} /></div>
+            <div className="ondi-kpi-icon-box" style={{ background: 'var(--green-l)', color: 'var(--green)' }}><Icon name="checkCircle" size={18} /></div>
           </div>
           <div className="ondi-kpi-body">
-            <span className="ondi-kpi-num" style={{ color: '#047857' }}>{successCount}</span>
+            <span className="ondi-kpi-num" style={{ color: 'var(--green)' }}>{successCount}</span>
             <span className="ondi-kpi-sub">successful sign-ins</span>
           </div>
         </div>
@@ -56,10 +56,10 @@ export const OndiLoginActivity: React.FC = () => {
         <div className="ondi-kpi-card">
           <div className="ondi-kpi-header">
             <span className="ondi-kpi-title">Failed Attempts</span>
-            <div className="ondi-kpi-icon-box" style={{ background: '#fef2f2', color: '#b91c1c' }}><Icon name="alertTriangle" size={18} /></div>
+            <div className="ondi-kpi-icon-box" style={{ background: 'var(--red-l)', color: 'var(--red)' }}><Icon name="alertTriangle" size={18} /></div>
           </div>
           <div className="ondi-kpi-body">
-            <span className="ondi-kpi-num" style={{ color: '#b91c1c' }}>{failedCount}</span>
+            <span className="ondi-kpi-num" style={{ color: 'var(--red)' }}>{failedCount}</span>
             <span className="ondi-kpi-sub">authentication failures</span>
           </div>
         </div>

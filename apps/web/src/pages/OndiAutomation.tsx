@@ -64,10 +64,10 @@ export const OndiAutomation: React.FC = () => {
         <div className="ondi-kpi-card">
           <div className="ondi-kpi-header">
             <span className="ondi-kpi-title">Leaver Hook</span>
-            <div className="ondi-kpi-icon-box" style={{ background: '#ecfdf5', color: '#047857' }}><Icon name="checkCircle" size={18} /></div>
+            <div className="ondi-kpi-icon-box" style={{ background: 'var(--green-l)', color: 'var(--green)' }}><Icon name="checkCircle" size={18} /></div>
           </div>
           <div className="ondi-kpi-body">
-            <span className="ondi-kpi-num" style={{ fontSize: 20, color: '#047857' }}>Active</span>
+            <span className="ondi-kpi-num" style={{ fontSize: 20, color: 'var(--green)' }}>Active</span>
             <span className="ondi-kpi-sub">instant revocation</span>
           </div>
         </div>
@@ -103,9 +103,9 @@ export const OndiAutomation: React.FC = () => {
         </SectionCard>
 
         <SectionCard title="Leaver — Offboarding & Account Deactivation">
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, background: '#ecfdf5', padding: 16, borderRadius: 10, border: '1px solid rgba(4,120,87,0.2)' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, background: 'var(--green-l)', padding: 16, borderRadius: 10, border: '1px solid rgba(4,120,87,0.2)' }}>
             <Icon name="checkCircle" size={20} color="#047857" style={{ flexShrink: 0, marginTop: 2 }} />
-            <div style={{ fontSize: 13, color: '#047857', lineHeight: 1.55 }}>
+            <div style={{ fontSize: 13, color: 'var(--green)', lineHeight: 1.55 }}>
               <strong>Always Active:</strong> The moment an account is deactivated (from Ondi or NexusHR), Ondi instantly revokes its role grants, authorized app tokens, and active sessions. No standing credentials remain on deactivated accounts.
             </div>
           </div>

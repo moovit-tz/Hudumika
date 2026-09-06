@@ -295,7 +295,7 @@ export function SignPublicPage() {
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 24px' }}>
         <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, padding: '32px', maxWidth: 520, width: '100%', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
           <div style={{ textAlign: 'center', marginBottom: 24 }}>
-            <div style={{ width: 48, height: 48, borderRadius: '50%', background: '#ecfdf5', border: '1px solid #10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+            <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'var(--green-l)', border: '1px solid #10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
               <Icon name="checkCircle" size={24} style={{ color: '#10b981' }} />
             </div>
             <h1 style={{ fontSize: 20, fontWeight: 700, margin: '0 0 6px', color: '#111827' }}>Document Signed</h1>
@@ -303,7 +303,7 @@ export function SignPublicPage() {
           </div>
 
           {stamp && (
-            <div style={{ background: '#ecfdf5', border: '1px solid rgba(16,185,129,0.2)', borderRadius: 6, padding: 16, marginBottom: 20 }}>
+            <div style={{ background: 'var(--green-l)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: 6, padding: 16, marginBottom: 20 }}>
               <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#10b981', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}><Icon name="lock" size={11} /> Verification Stamp</div>
               <div style={{ fontFamily: 'monospace', fontSize: 15, fontWeight: 700, color: '#10b981', letterSpacing: '0.08em', marginBottom: 10 }}>{stamp.verification_code}</div>
               <div style={{ fontSize: 12.5, color: '#374151', marginBottom: 4 }}>Document: <strong>{stamp.title}</strong></div>
@@ -473,7 +473,7 @@ export function SignPublicPage() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
-          <div style={{ display: isMobile ? 'none' : 'flex', alignItems: 'center', gap: 7, fontSize: 12.5, color: 'var(--ink2)', background: 'var(--bg)', border: '1px solid var(--border)', padding: '6px 14px', borderRadius: 20, fontWeight: 500 }}>
+          <div style={{ display: isMobile ? 'none' : 'flex', alignItems: 'center', gap: 7, fontSize: 12.5, color: 'var(--ink2)', background: 'var(--bg)', border: '1px solid var(--border)', padding: '6px 14px', borderRadius: 'var(--badge-radius)', fontWeight: 500 }}>
             <Icon name="lock" size={13} color="var(--teal)" />
             <span>256-bit SSL Encrypted</span>
           </div>
@@ -530,7 +530,7 @@ export function SignPublicPage() {
                   </span>
                 </div>
                 {isPdf && pdfNumPages > 1 && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#1e293b', borderRadius: 20, padding: '3px 10px', flexShrink: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#1e293b', borderRadius: 'var(--badge-radius)', padding: '3px 10px', flexShrink: 0 }}>
                     <button onClick={() => setCurrentPdfPage(p => Math.max(1, p - 1))} disabled={currentPdfPage <= 1}
                       style={{ background: 'none', border: 'none', cursor: currentPdfPage <= 1 ? 'default' : 'pointer', opacity: currentPdfPage <= 1 ? 0.3 : 1, display: 'flex', padding: 2 }}>
                       <Icon name="chevronLeft" size={14} color="#f8fafc" />

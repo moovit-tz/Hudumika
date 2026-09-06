@@ -46,15 +46,15 @@ function fmtTime(iso: string): string {
 }
 
 const STATUS_COLORS: Record<string, { bg: string; fg: string }> = {
-  DELIVERED:       { bg: 'var(--green-l)', fg: '#059669' },
+  DELIVERED:       { bg: 'var(--green-l)', fg: 'var(--green)' },
   IN_TRANSIT:      { bg: 'var(--blue-l)', fg: '#2563eb' },
   TRANSIT:         { bg: 'var(--blue-l)', fg: '#2563eb' },
   PICKED_UP:       { bg: 'var(--purple-l)', fg: '#6366f1' },
   DEPARTED:        { bg: 'var(--blue-l)', fg: '#0284c7' },
-  CUSTOMS_CLEARED: { bg: 'var(--gold-l)', fg: '#ca8a04' },
-  ON_HOLD:         { bg: 'var(--red-l)', fg: '#dc2626' },
-  DELAYED:         { bg: 'var(--red-l)', fg: '#dc2626' },
-  ARRIVED:         { bg: 'var(--green-l)', fg: '#059669' },
+  CUSTOMS_CLEARED: { bg: 'var(--gold-l)', fg: 'var(--gold)' },
+  ON_HOLD:         { bg: 'var(--red-l)', fg: 'var(--red)' },
+  DELAYED:         { bg: 'var(--red-l)', fg: 'var(--red)' },
+  ARRIVED:         { bg: 'var(--green-l)', fg: 'var(--green)' },
 };
 
 export const TrackingShared: React.FC = () => {

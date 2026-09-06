@@ -78,7 +78,7 @@ export function VesselLiveStatus({ vesselName, mode }: { vesselName?: string | n
           style={{ display: 'inline-flex', flexWrap: 'wrap', justifyContent: 'flex-end', alignItems: 'center', gap: 6, background: 'none', border: 'none', padding: 0, cursor: 'pointer', font: 'inherit', color: 'var(--ink)', textAlign: 'right' }}
         >
           <span>{vesselName}</span>
-          <span style={{ display: 'inline-flex', flexShrink: 0, whiteSpace: 'nowrap', alignItems: 'center', gap: 3, fontSize: 10.5, fontWeight: 700, color: 'var(--green)', background: 'var(--green-l)', padding: '1px 6px', borderRadius: 20 }}>
+          <span style={{ display: 'inline-flex', flexShrink: 0, whiteSpace: 'nowrap', alignItems: 'center', gap: 3, fontSize: 10.5, fontWeight: 700, color: 'var(--green)', background: 'var(--green-l)', padding: '1px 6px', borderRadius: 'var(--badge-radius)' }}>
             <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--green)', flexShrink: 0 }} />
             LIVE
           </span>

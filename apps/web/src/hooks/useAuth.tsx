@@ -64,6 +64,7 @@ interface AuthContextType {
   verifyPasskeyLogin: (email: string, response: any) => Promise<SafeUser>;
   loginWithGoogle: (credential: string, allowJoinRequest?: boolean) => Promise<SafeUser | { join_request: JoinRequestSubmitResponse }>;
   loginWithMicrosoft: (credential: string, allowJoinRequest?: boolean) => Promise<SafeUser | { join_request: JoinRequestSubmitResponse }>;
+  loginWithApple: (credential: string, name?: string, allowJoinRequest?: boolean) => Promise<SafeUser | { join_request: JoinRequestSubmitResponse }>;
   completeOnboarding: (res: OnboardingCompleteResponse) => void;
   logout: () => void;
   impersonate: (tenantId: string) => Promise<void>;
@@ -290,6 +291,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return completeLogin(res);
   };
 
+  // name: only ever present on a user's very first "Sign in with Apple" —
+  // see AppleSignInButton/apple-oidc.ts's own comments on why Apple's
+  // id_token itself never carries one.
+  const loginWithApple = async (credential: string, name?: string, allowJoinRequest?: boolean) => {
+    const res = await apiFetch('/v1/ondi/auth/apple/verify', {
+      method: 'POST',
+      body: JSON.stringify({ credential, ...(name ? { name } : {}), ...(allowJoinRequest ? { allowJoinRequest: true } : {}) }),
+    });
+    if (res && typeof res === 'object' && 'join_request' in res) return res as { join_request: JoinRequestSubmitResponse };
+    return completeLogin(res);
+  };
+
   const completeOnboarding = (res: OnboardingCompleteResponse) => {
     localStorage.setItem(KEYS.user, JSON.stringify(res.user));
     setUser(res.user);
@@ -445,7 +458,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, isImpersonating, login, requestOtpLogin, requestMagicLink, verifyOtpLogin, loginWithTotp, verifyMagicLink, resumeSession, requestPasskeyLoginOptions, verifyPasskeyLogin, loginWithGoogle, loginWithMicrosoft, completeOnboarding, logout, impersonate, impersonateCustomer, stopImpersonating, updateUser, loading }}>
+    <AuthContext.Provider value={{ user, isImpersonating, login, requestOtpLogin, requestMagicLink, verifyOtpLogin, loginWithTotp, verifyMagicLink, resumeSession, requestPasskeyLoginOptions, verifyPasskeyLogin, loginWithGoogle, loginWithMicrosoft, loginWithApple, completeOnboarding, logout, impersonate, impersonateCustomer, stopImpersonating, updateUser, loading }}>
       {children}
     </AuthContext.Provider>
   );

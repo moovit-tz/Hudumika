@@ -168,7 +168,7 @@ export function ComplyWorkflows() {
                 >
                   {t.label}
                   {t.key === 'active' && pendingCount > 0 && (
-                    <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 20, lineHeight: 1.5, background: isActive ? 'var(--teal-l)' : 'var(--bg)', color: isActive ? 'var(--teal)' : 'var(--ink3)' }}>{pendingCount}</span>
+                    <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 'var(--badge-radius)', lineHeight: 1.5, background: isActive ? 'var(--teal-l)' : 'var(--bg)', color: isActive ? 'var(--teal)' : 'var(--ink3)' }}>{pendingCount}</span>
                   )}
                 </TabsTrigger>
               );

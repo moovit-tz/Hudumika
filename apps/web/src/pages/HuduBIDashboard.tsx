@@ -103,7 +103,7 @@ export function HuduBIDashboard() {
               </div>
               <div style={{ fontSize: 12, color: 'var(--ink3)' }}>{data.period} · scoped to this workspace · every figure below is a live count or sum of these rows</div>
             </div>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 600, color: 'var(--green)', background: 'var(--green-l)', padding: '4px 10px', borderRadius: 20 }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 600, color: 'var(--green)', background: 'var(--green-l)', padding: '4px 10px', borderRadius: 'var(--badge-radius)' }}>
               <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--green)' }} /> Live
             </span>
             </div>

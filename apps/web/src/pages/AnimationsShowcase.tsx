@@ -215,7 +215,8 @@ export default function AnimationsShowcase() {
       >
         <div className="anim-grid">
           {KEYFRAME_ANIMS.map(a => (
-            <div key={a.label} onClick={retrigger} className="cursor-pointer">
+            <div key={a.label} onClick={retrigger} className="cursor-pointer"
+              role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); retrigger(); } }}>
               <AnimBox label={a.label} animClass={a.cls} triggerKey={trigger}>
                 {a.content}
               </AnimBox>

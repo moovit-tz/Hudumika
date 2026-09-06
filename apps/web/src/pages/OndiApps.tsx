@@ -71,6 +71,16 @@ function MicrosoftMark({ size = 20 }: { size?: number }) {
   );
 }
 
+/** Real Apple mark — same path as AppleSignInButton.tsx, natural (taller
+ *  than wide) aspect ratio rather than forced into a square viewBox. */
+function AppleMark({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size * (512 / 384)} viewBox="0 0 384 512" aria-hidden="true">
+      <path fill="#000" d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/>
+    </svg>
+  );
+}
+
 interface Consent {
   id: string;
   client_id: string;
@@ -114,8 +124,8 @@ export const OndiApps: React.FC = () => {
   const [typeFilter, setTypeFilter] = useState<'all' | 'first_party' | 'third_party'>('all');
   const [firstPartyApps, setFirstPartyApps] = useState<FirstPartyClient[] | null>(null);
   const [connectingId, setConnectingId] = useState<string | null>(null);
-  const [ssoConfig, setSsoConfig] = useState<{ google_client_id: string | null; microsoft_client_id: string | null } | null>(null);
-  const [ssoStatus, setSsoStatus] = useState<{ google: { last_used_at: string | null }; microsoft: { last_used_at: string | null } } | null>(null);
+  const [ssoConfig, setSsoConfig] = useState<{ google_client_id: string | null; microsoft_client_id: string | null; apple_client_id: string | null } | null>(null);
+  const [ssoStatus, setSsoStatus] = useState<{ google: { last_used_at: string | null }; microsoft: { last_used_at: string | null }; apple: { last_used_at: string | null } } | null>(null);
 
   const reload = useCallback(async () => {
     try {
@@ -135,7 +145,7 @@ export const OndiApps: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    getOndiConfig().then(setSsoConfig).catch(() => setSsoConfig({ google_client_id: null, microsoft_client_id: null }));
+    getOndiConfig().then(setSsoConfig).catch(() => setSsoConfig({ google_client_id: null, microsoft_client_id: null, apple_client_id: null }));
     apiFetch('/v1/security/sso-status').then(setSsoStatus).catch(() => setSsoStatus(null));
   }, []);
 
@@ -452,11 +462,11 @@ export const OndiApps: React.FC = () => {
             </div>
           </div>
 
-          {/* Single Sign-On — Google/Microsoft are sign-in-time email
+          {/* Single Sign-On — Google/Microsoft/Apple are sign-in-time email
               matching (ondi-auth.routes.ts), not a "link my account" record,
               so this reports real usage history from GET /sso-status rather
               than offering a fake "Connect" button with nothing behind it. */}
-          {ssoConfig && (ssoConfig.google_client_id || ssoConfig.microsoft_client_id) && (
+          {ssoConfig && (ssoConfig.google_client_id || ssoConfig.microsoft_client_id || ssoConfig.apple_client_id) && (
             <div className="oa-card">
               <div className="oa-card-hdr">
                 <div className="oa-card-hdr-left">
@@ -517,6 +527,31 @@ export const OndiApps: React.FC = () => {
                       <div className="oa-app-actions">
                         <Badge variant={ssoStatus?.microsoft.last_used_at ? 'success' : 'gray'}>
                           {ssoStatus?.microsoft.last_used_at ? 'Connected' : 'Not connected yet'}
+                        </Badge>
+                      </div>
+                    </div>
+                  )}
+
+                  {ssoConfig.apple_client_id && (
+                    <div className="oa-app-item">
+                      <div className="oa-app-left">
+                        <div className="oa-app-logo" style={{ background: 'var(--white)' }}>
+                          <AppleMark size={18} />
+                        </div>
+                        <div className="oa-app-info">
+                          <div className="oa-app-name-row">
+                            <span className="oa-app-name">Apple</span>
+                            {ssoStatus?.apple.last_used_at ? (
+                              <span style={{ fontSize: 11.5, color: 'var(--ink3)' }}>
+                                Last used {fmtDate(ssoStatus.apple.last_used_at)}
+                              </span>
+                            ) : null}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="oa-app-actions">
+                        <Badge variant={ssoStatus?.apple.last_used_at ? 'success' : 'gray'}>
+                          {ssoStatus?.apple.last_used_at ? 'Connected' : 'Not connected yet'}
                         </Badge>
                       </div>
                     </div>

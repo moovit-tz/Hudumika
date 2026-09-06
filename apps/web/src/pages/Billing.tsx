@@ -1246,9 +1246,9 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
 
       {/* Action bar */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
-        <span style={{ padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: st.bg, color: st.color }}>{st.label}</span>
+        <span style={{ padding: '4px 10px', borderRadius: 'var(--badge-radius)', fontSize: 11, fontWeight: 700, background: st.bg, color: st.color }}>{st.label}</span>
         {traFiscalized ? (
-          <span title={`Verification #: ${inv.traRctvnum}`} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: 'var(--green-l)', color: 'var(--green)' }}>
+          <span title={`Verification #: ${inv.traRctvnum}`} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 'var(--badge-radius)', fontSize: 11, fontWeight: 700, background: 'var(--green-l)', color: 'var(--green)' }}>
             <Icon name="checkCircle" size={12} color="var(--green)" /> TRA Fiscalized
           </span>
         ) : onSubmitTRA ? (

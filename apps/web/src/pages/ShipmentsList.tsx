@@ -675,7 +675,7 @@ export const ShipmentsList: React.FC = () => {
           <Panel
             title="At-Risk Shipments"
             action={
-              <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--red)', background: 'var(--red-l)', padding: '2px 8px', borderRadius: 20 }}>
+              <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--red)', background: 'var(--red-l)', padding: '2px 8px', borderRadius: 'var(--badge-radius)' }}>
                 {atRisk.length} flagged
               </span>
             }

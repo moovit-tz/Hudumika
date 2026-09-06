@@ -328,8 +328,8 @@ export const UserProfile: React.FC = () => {
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 5, flexWrap: 'wrap' }}>
               <span style={{ fontSize: 13, color: 'var(--ink3)' }}>{user.email}</span>
               <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--ink3)' }} />
-              <span style={{ padding: '2px 10px', borderRadius: 20, background: 'var(--teal-l)', color: 'var(--teal)', fontSize: 11.5, fontWeight: 700 }}>{ROLE_LABELS[user.role] || user.role}</span>
-              {user.active && <span style={{ padding: '2px 10px', borderRadius: 20, background: 'var(--green-l)', color: 'var(--green)', fontSize: 11.5, fontWeight: 700 }}>● Active</span>}
+              <span style={{ padding: '2px 10px', borderRadius: 'var(--badge-radius)', background: 'var(--teal-l)', color: 'var(--teal)', fontSize: 11.5, fontWeight: 700 }}>{ROLE_LABELS[user.role] || user.role}</span>
+              {user.active && <span style={{ padding: '2px 10px', borderRadius: 'var(--badge-radius)', background: 'var(--green-l)', color: 'var(--green)', fontSize: 11.5, fontWeight: 700 }}>● Active</span>}
             </div>
           </div>
         </div>
@@ -576,7 +576,7 @@ export const UserProfile: React.FC = () => {
                     <td style={{ padding: '11px 12px', fontSize: 12.5, color: 'var(--ink3)' }}>{row.device}</td>
                     <td style={{ padding: '11px 12px', fontSize: 12.5, color: 'var(--ink3)', whiteSpace: 'nowrap' }}>{row.time}</td>
                     <td style={{ padding: '11px 12px' }}>
-                      <span style={{ padding: '2px 9px', borderRadius: 20, fontSize: 11.5, fontWeight: 700, background: row.ok ? 'var(--green-l)' : 'var(--red-l)', color: row.ok ? 'var(--green)' : 'var(--red)' }}>
+                      <span style={{ padding: '2px 9px', borderRadius: 'var(--badge-radius)', fontSize: 11.5, fontWeight: 700, background: row.ok ? 'var(--green-l)' : 'var(--red-l)', color: row.ok ? 'var(--green)' : 'var(--red)' }}>
                         {row.ok ? '✓ OK' : '✗ Failed'}
                       </span>
                     </td>

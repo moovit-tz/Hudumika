@@ -71,7 +71,7 @@ export const FinanceExpenseCategories: React.FC = () => {
         ) : (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
             {cats.map(c => (
-              <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 8px 7px 12px', borderRadius: 20, border: '1px solid var(--border)', background: 'var(--white)' }}>
+              <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 8px 7px 12px', borderRadius: 'var(--badge-radius)', border: '1px solid var(--border)', background: 'var(--white)' }}>
                 <span style={{ width: 9, height: 9, borderRadius: 99, background: c.color, flexShrink: 0 }} />
                 <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)' }}>{c.name}</span>
                 <button type="button" title={`Remove ${c.name}`} disabled={saving}

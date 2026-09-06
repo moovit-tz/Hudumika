@@ -25,15 +25,17 @@ interface Vehicle {
   } | null;
 }
 
+// Shape of GET /v1/tracking/dashboard-summary — real, derived-from-data
+// figures only. There is no historical baseline stored anywhere for these
+// (no day-over-day snapshot table), so unlike the mockup this page was
+// built from, there are no trend/percentage-change figures here: a
+// fabricated trend arrow is exactly the same category of problem as a
+// fabricated total, just easier to miss on a glance.
 interface DashboardKPIs {
-  total_shipments: number;
-  shipments_trend: number;
-  active_fleet: number;
-  fleet_trend: number;
-  avg_delivery_time: string;
-  delivery_trend: number;
-  on_time_performance: number;
-  performance_trend: number;
+  vehicles_total: number;
+  trips_today: number;
+  avg_delivery_minutes_today: number | null;
+  on_time_pct_today: number | null;
 }
 
 // Map markers
@@ -50,114 +52,11 @@ const customMarkerRed = new L.DivIcon({
   iconAnchor: [8, 8]
 });
 
-const DEFAULT_VEHICLES: Vehicle[] = [
-  {
-    id: 'veh-101',
-    name: 'Scania R500 (Heavy Truck)',
-    plate_number: 'T-104-ABZ',
-    type: 'TRUCK',
-    driver_name: 'Juma Hamisi',
-    driver_phone: '+255 754 112 233',
-    device_id: 'dev-101',
-    status: 'ACTIVE',
-    photo_url: null,
-    current_load_pct: 85,
-    driver_id: null,
-    make: 'Scania',
-    model: 'R500 6x4',
-    dimensions: '16.5m x 2.5m x 4.0m',
-    group_name: 'Long Haul North',
-    last_position: { latitude: -6.7924, longitude: 39.2083, speed: 64, recorded_at: new Date().toISOString() }
-  },
-  {
-    id: 'veh-102',
-    name: 'Volvo FH16 (Flatbed)',
-    plate_number: 'T-882-DKL',
-    type: 'TRUCK',
-    driver_name: 'Rashidi Athumani',
-    driver_phone: '+255 713 445 667',
-    device_id: 'dev-102',
-    status: 'ACTIVE',
-    photo_url: null,
-    current_load_pct: 100,
-    driver_id: null,
-    make: 'Volvo',
-    model: 'FH16 750',
-    dimensions: '16.5m x 2.5m x 4.0m',
-    group_name: 'Port Logistics',
-    last_position: { latitude: -6.8235, longitude: 39.2695, speed: 48, recorded_at: new Date().toISOString() }
-  },
-  {
-    id: 'veh-103',
-    name: 'ISUZU FVR 34 (Box Truck)',
-    plate_number: 'T-519-EEM',
-    type: 'TRUCK',
-    driver_name: 'Bakari Mwamba',
-    driver_phone: '+255 788 991 002',
-    device_id: 'dev-103',
-    status: 'ACTIVE',
-    photo_url: null,
-    current_load_pct: 45,
-    driver_id: null,
-    make: 'Isuzu',
-    model: 'FVR 34',
-    dimensions: '9.0m x 2.4m x 2.6m',
-    group_name: 'Urban Express',
-    last_position: { latitude: -6.7712, longitude: 39.2341, speed: 0, recorded_at: new Date().toISOString() }
-  },
-  {
-    id: 'veh-104',
-    name: 'Mercedes-Benz Actros 3340',
-    plate_number: 'T-320-CXR',
-    type: 'TRUCK',
-    driver_name: 'Hassan Kazi',
-    driver_phone: '+255 767 334 112',
-    device_id: 'dev-104',
-    status: 'ACTIVE',
-    photo_url: null,
-    current_load_pct: 0,
-    driver_id: null,
-    make: 'Mercedes-Benz',
-    model: 'Actros 3340',
-    dimensions: '16.5m x 2.5m x 4.0m',
-    group_name: 'Border Freight',
-    last_position: { latitude: -5.0889, longitude: 39.0988, speed: 72, recorded_at: new Date().toISOString() }
-  },
-  {
-    id: 'veh-105',
-    name: 'MAN TGX 26.540',
-    plate_number: 'T-901-BKN',
-    type: 'TRUCK',
-    driver_name: 'Emanuel Peter',
-    driver_phone: '+255 655 221 443',
-    device_id: 'dev-105',
-    status: 'MAINTENANCE',
-    photo_url: null,
-    current_load_pct: 0,
-    driver_id: null,
-    make: 'MAN',
-    model: 'TGX 26.540',
-    dimensions: '16.5m x 2.5m x 4.0m',
-    group_name: 'Maintenance Depot',
-    last_position: { latitude: -6.8150, longitude: 39.2800, speed: 0, recorded_at: new Date().toISOString() }
-  }
-];
-
-const DEFAULT_KPIS: DashboardKPIs = {
-  total_shipments: 428,
-  shipments_trend: 12.4,
-  active_fleet: 18,
-  fleet_trend: 5.2,
-  avg_delivery_time: '4h 15m',
-  delivery_trend: -8.5,
-  on_time_performance: 96.4,
-  performance_trend: 3.1
-};
-
 export const TrackingVehicles: React.FC = () => {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [kpis, setKpis] = useState<DashboardKPIs | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [filter, setFilter] = useState('All');
   const [search, setSearch] = useState('');
   const [selectedVehicleId, setSelectedVehicleId] = useState<string>('');
@@ -165,15 +64,30 @@ export const TrackingVehicles: React.FC = () => {
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 12;
 
+  // A tenant with zero vehicles registered, or a failed request, must never
+  // render fabricated trucks with invented driver names and phone numbers
+  // in their place — this page used to fall back to five hardcoded sample
+  // vehicles whenever the real list came back empty, which is indistinguishable
+  // from a real fleet to anyone looking at it. An empty result renders the
+  // real empty state below; a failed request surfaces as an error banner
+  // instead of silently substituting fake data for it.
   const reload = useCallback(() => {
     setLoading(true);
+    setLoadError(null);
     Promise.all([
       apiFetch('/v1/tracking/vehicles')
-        .then(res => setVehicles(Array.isArray(res) && res.length > 0 ? res : DEFAULT_VEHICLES))
-        .catch(() => setVehicles(DEFAULT_VEHICLES)),
-      apiFetch('/v1/tracking/dashboard')
-        .then(res => setKpis(res && res.total_shipments ? res : DEFAULT_KPIS))
-        .catch(() => setKpis(DEFAULT_KPIS))
+        .then(res => setVehicles(Array.isArray(res) ? res : []))
+        .catch(() => { setVehicles([]); setLoadError('Could not load vehicles. Try refreshing.'); }),
+      // dashboard-summary (not the older /dashboard, which returns hardcoded
+      // placeholder KPIs) — every figure here is derived from real rows.
+      apiFetch('/v1/tracking/dashboard-summary')
+        .then(res => setKpis({
+          vehicles_total: res?.vehicles?.total ?? 0,
+          trips_today: res?.trips_today ?? 0,
+          avg_delivery_minutes_today: res?.avg_delivery_minutes_today ?? null,
+          on_time_pct_today: res?.on_time_pct_today ?? null,
+        }))
+        .catch(() => setKpis(null))
     ]).finally(() => setLoading(false));
   }, []);
 
@@ -247,49 +161,46 @@ export const TrackingVehicles: React.FC = () => {
 
       <div className="trk-kpi-grid">
         <div className="trk-kpi-card">
-          <div className="trk-kpi-top"><Icon name="package" size={14} /> Total shipments</div>
-          <div className="trk-kpi-value-row">
-            <span className="trk-kpi-value">{kpis?.total_shipments.toLocaleString() ?? '—'}</span>
-            <span className={`trk-kpi-trend ${kpis && kpis.shipments_trend >= 0 ? 'positive' : 'negative'}`}>
-              {kpis && kpis.shipments_trend > 0 ? '+' : ''}{kpis?.shipments_trend ?? 0}%
-            </span>
-          </div>
-          <div className="trk-kpi-desc">Processed over the last 30 days</div>
-        </div>
-        
-        <div className="trk-kpi-card">
           <div className="trk-kpi-top"><Icon name="truck" size={14} /> Active fleet</div>
           <div className="trk-kpi-value-row">
-            <span className="trk-kpi-value">{kpis?.active_fleet.toLocaleString() ?? '—'}</span>
-            <span className={`trk-kpi-trend ${kpis && kpis.fleet_trend >= 0 ? 'positive' : 'negative'}`}>
-              {kpis && kpis.fleet_trend > 0 ? '+' : ''}{kpis?.fleet_trend ?? 0}%
-            </span>
+            <span className="trk-kpi-value">{kpis ? kpis.vehicles_total.toLocaleString() : '—'}</span>
           </div>
-          <div className="trk-kpi-desc">Average vehicles in operation</div>
+          <div className="trk-kpi-desc">Vehicles registered to this workspace</div>
+        </div>
+
+        <div className="trk-kpi-card">
+          <div className="trk-kpi-top"><Icon name="package" size={14} /> Trips today</div>
+          <div className="trk-kpi-value-row">
+            <span className="trk-kpi-value">{kpis ? kpis.trips_today.toLocaleString() : '—'}</span>
+          </div>
+          <div className="trk-kpi-desc">Scheduled to start today</div>
         </div>
 
         <div className="trk-kpi-card">
           <div className="trk-kpi-top"><Icon name="clock" size={14} /> Avg. delivery time</div>
           <div className="trk-kpi-value-row">
-            <span className="trk-kpi-value">{kpis?.avg_delivery_time ?? '—'}</span>
-            <span className={`trk-kpi-trend ${kpis && kpis.delivery_trend <= 0 ? 'positive' : 'negative'}`}>
-              {kpis && kpis.delivery_trend > 0 ? '+' : ''}{kpis?.delivery_trend ?? 0} min
+            <span className="trk-kpi-value">
+              {kpis?.avg_delivery_minutes_today != null
+                ? `${Math.floor(kpis.avg_delivery_minutes_today / 60)}h ${Math.round(kpis.avg_delivery_minutes_today % 60)}m`
+                : '—'}
             </span>
           </div>
-          <div className="trk-kpi-desc">Across all completed deliveries</div>
+          <div className="trk-kpi-desc">Trips completed today</div>
         </div>
 
         <div className="trk-kpi-card">
           <div className="trk-kpi-top"><Icon name="checkCircle" size={14} /> On-time performance</div>
           <div className="trk-kpi-value-row">
-            <span className="trk-kpi-value">{kpis?.on_time_performance ?? '—'}%</span>
-            <span className={`trk-kpi-trend ${kpis && kpis.performance_trend >= 0 ? 'positive' : 'negative'}`}>
-              {kpis && kpis.performance_trend > 0 ? '+' : ''}{kpis?.performance_trend ?? 0}%
-            </span>
+            <span className="trk-kpi-value">{kpis?.on_time_pct_today != null ? `${kpis.on_time_pct_today}%` : '—'}</span>
           </div>
-          <div className="trk-kpi-desc">Deliveries completed within schedule</div>
+          <div className="trk-kpi-desc">Deliveries completed on schedule today</div>
         </div>
       </div>
+      {loadError && (
+        <div style={{ padding: '10px 16px', margin: '0 0 16px', background: 'var(--red-l, #fef2f2)', color: 'var(--red, #b91c1c)', borderRadius: 'var(--r-sm)', fontSize: 13, fontWeight: 600 }}>
+          {loadError}
+        </div>
+      )}
 
       <div className="trk-main-grid">
         {/* Left Column: Monitoring & Map */}
@@ -302,19 +213,6 @@ export const TrackingVehicles: React.FC = () => {
               triggerClassName="h-7 py-1 text-[11px]"
             />
           </div>
-          <div className="trk-card" style={{padding: 0, position: 'relative'}}>
-            {/* Live Feed Placeholder Image */}
-            <img 
-              src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?q=80&w=600&auto=format&fit=crop" 
-              alt="Live Feed" 
-              className="trk-live-feed" 
-              style={{marginTop: 0, borderBottomLeftRadius: 0, borderBottomRightRadius: 0}}
-            />
-            <div style={{position: 'absolute', bottom: 12, left: 12, background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(4px)', padding: '4px 10px', borderRadius: 20, color: '#fff', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6}}>
-              <span style={{width: 8, height: 8, borderRadius: '50%', background: '#059669', display: 'inline-block'}}></span> Live
-            </div>
-          </div>
-
           <div className="trk-section-header">
             <div className="trk-section-title">Logistics network map</div>
             <Icon name="moreVertical" size={14} style={{color: 'var(--ink3)'}}/>
@@ -336,13 +234,13 @@ export const TrackingVehicles: React.FC = () => {
             </div>
             <div style={{display: 'flex', gap: 16, padding: '12px 16px', fontSize: 11, fontWeight: 600, color: 'var(--ink2)'}}>
               <div style={{display: 'flex', alignItems: 'center', gap: 6}}>
-                <span style={{width: 8, height: 8, borderRadius: '50%', background: '#059669'}}></span> On schedule
+                <span style={{width: 8, height: 8, borderRadius: '50%', background: 'var(--green)'}}></span> On schedule
               </div>
               <div style={{display: 'flex', alignItems: 'center', gap: 6}}>
                 <span style={{width: 8, height: 8, borderRadius: '50%', background: '#f97316'}}></span> Delayed
               </div>
               <div style={{display: 'flex', alignItems: 'center', gap: 6}}>
-                <span style={{width: 8, height: 8, borderRadius: '50%', background: '#dc2626'}}></span> Issue
+                <span style={{width: 8, height: 8, borderRadius: '50%', background: 'var(--red)'}}></span> Issue
               </div>
             </div>
           </div>
@@ -398,12 +296,20 @@ export const TrackingVehicles: React.FC = () => {
                     </div>
                     
                     <div className="trk-vcard-img-container" style={{height: 140, marginBottom: 16, borderRadius: 8}}>
-                      <img 
-                        src={v.photo_url || 'https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?q=80&w=800&auto=format&fit=crop'} 
-                        alt={v.name} 
-                        className="trk-vcard-img" 
-                        style={{objectFit: 'cover', width: '100%', height: '100%', borderRadius: 8}}
-                      />
+                      {v.photo_url ? (
+                        <img
+                          src={v.photo_url}
+                          alt={v.name}
+                          className="trk-vcard-img"
+                          style={{objectFit: 'cover', width: '100%', height: '100%', borderRadius: 8}}
+                        />
+                      ) : (
+                        // No stock photo of an unrelated truck stands in here — it
+                        // would read as a real photo of this specific vehicle.
+                        <div style={{ width: '100%', height: '100%', borderRadius: 8, background: 'var(--bg-subtle, #f1f5f9)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Icon name="truck" size={32} style={{ color: 'var(--ink3)' }} />
+                        </div>
+                      )}
                     </div>
 
                     <div className="trk-vcard-specs">
@@ -425,7 +331,7 @@ export const TrackingVehicles: React.FC = () => {
                           <span className="trk-vcard-driver-name">{v.driver_name || 'Unassigned'}</span>
                         </div>
                         <div className="trk-vcard-updated">
-                          Updated {v.last_position ? formatDistanceToNow(new Date(v.last_position.recorded_at), {addSuffix: true}) : '2 min ago'}
+                          Updated {v.last_position ? formatDistanceToNow(new Date(v.last_position.recorded_at), {addSuffix: true}) : 'No GPS data yet'}
                         </div>
                       </div>
 
@@ -442,7 +348,9 @@ export const TrackingVehicles: React.FC = () => {
               })}
               {filteredVehicles.length === 0 && (
                 <div style={{padding: '32px 20px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13, gridColumn: '1 / -1'}}>
-                  No vehicles found matching filters.
+                  {vehicles.length === 0 ? (
+                    <>No vehicles registered yet. <Link to="/tracking/vehicles/new" style={{ color: 'var(--teal)', fontWeight: 600 }}>Add your first vehicle</Link>.</>
+                  ) : 'No vehicles match the current filters.'}
                 </div>
               )}
             </div>
@@ -454,11 +362,17 @@ export const TrackingVehicles: React.FC = () => {
                 return (
                   <Link to={`/tracking/vehicles/${v.id}`} key={v.id} className="trk-vlist-item">
                     <div className="trk-vlist-img-container">
-                      <img 
-                        src={v.photo_url || 'https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?q=80&w=800&auto=format&fit=crop'} 
-                        alt={v.name} 
-                        className="trk-vlist-img" 
-                      />
+                      {v.photo_url ? (
+                        <img
+                          src={v.photo_url}
+                          alt={v.name}
+                          className="trk-vlist-img"
+                        />
+                      ) : (
+                        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-subtle, #f1f5f9)' }}>
+                          <Icon name="truck" size={28} style={{ color: 'var(--ink3)' }} />
+                        </div>
+                      )}
                     </div>
                     
                     <div className="trk-vlist-content">
@@ -469,7 +383,7 @@ export const TrackingVehicles: React.FC = () => {
                           <PersonAvatar userId={v.driver_id} kind="drivers" name={v.driver_name || 'Unassigned'} size={24} style={{ borderRadius: '50%' }} />
                           <span className="trk-vcard-driver-name">{v.driver_name || 'Unassigned'}</span>
                           <span style={{color: 'var(--ink3)', fontSize: 11, marginLeft: 8}}>
-                            Updated {v.last_position ? formatDistanceToNow(new Date(v.last_position.recorded_at), {addSuffix: true}) : '2 min ago'}
+                            Updated {v.last_position ? formatDistanceToNow(new Date(v.last_position.recorded_at), {addSuffix: true}) : 'No GPS data yet'}
                           </span>
                         </div>
                       </div>
@@ -500,7 +414,9 @@ export const TrackingVehicles: React.FC = () => {
               })}
               {filteredVehicles.length === 0 && (
                 <div style={{padding: '32px 20px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13}}>
-                  No vehicles found matching filters.
+                  {vehicles.length === 0 ? (
+                    <>No vehicles registered yet. <Link to="/tracking/vehicles/new" style={{ color: 'var(--teal)', fontWeight: 600 }}>Add your first vehicle</Link>.</>
+                  ) : 'No vehicles match the current filters.'}
                 </div>
               )}
             </div>

@@ -103,6 +103,11 @@ export interface AppStatus {
   app_id: FeatureKey;
   status: AppStatusValue;
   message: string | null;
+  /** Platform-wide "Beta" label (migration 395) — set by a SuperAdmin on
+   *  app_status, the same table backing the maintenance kill switch above,
+   *  and reported identically to every tenant. Independent of `status`: an
+   *  app can be in maintenance, beta, both, or neither. */
+  is_beta: boolean;
   updated_by: string | null;
   updated_at: string;
 }
@@ -124,5 +129,10 @@ export interface TenantUsage {
 export interface TenantEntitlements {
   features: Record<string, boolean>;
   appStatus: Record<string, AppStatusValue>;
+  /** app_ids the platform currently has flagged Beta (migration 395) — set
+   *  once by a SuperAdmin on app_status, reported the same way to every
+   *  tenant. Settings.tsx's Modules & Extensions grid renders the "Beta"
+   *  pill straight off membership in this list. */
+  betaApps: string[];
   usage: TenantUsage;
 }

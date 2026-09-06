@@ -229,6 +229,7 @@ export const DutyCheckPage: React.FC = () => {
                   <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 12, zIndex: 1000, boxShadow: 'var(--elev-lg)', overflow: 'hidden', marginTop: 6, maxHeight: 260, overflowY: 'auto' }}>
                     {hsResults.map(r => (
                       <div key={r.code} onClick={() => { setHs(r.code); setHsSelected(r); setHsResults([]); }}
+                        role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setHs(r.code); setHsSelected(r); setHsResults([]); } }}
                         style={{ padding: '10px 14px', cursor: 'pointer', fontSize: 13, borderBottom: '1px solid var(--border)' }}
                         onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface, rgba(255,255,255,0.06))')}
                         onMouseLeave={e => (e.currentTarget.style.background = '')}>

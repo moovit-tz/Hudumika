@@ -211,10 +211,10 @@ export const OndiRoles: React.FC = () => {
         <div className="ondi-kpi-card">
           <div className="ondi-kpi-header">
             <span className="ondi-kpi-title">Pending Requests</span>
-            <div className="ondi-kpi-icon-box" style={{ background: '#fffbeb', color: '#b45309' }}><Icon name="clock" size={18} /></div>
+            <div className="ondi-kpi-icon-box" style={{ background: 'var(--gold-l)', color: 'var(--gold)' }}><Icon name="clock" size={18} /></div>
           </div>
           <div className="ondi-kpi-body">
-            <span className="ondi-kpi-num" style={{ color: '#b45309' }}>{queue ? queue.length : 0}</span>
+            <span className="ondi-kpi-num" style={{ color: 'var(--gold)' }}>{queue ? queue.length : 0}</span>
             <span className="ondi-kpi-sub">awaiting approval</span>
           </div>
         </div>
@@ -222,10 +222,10 @@ export const OndiRoles: React.FC = () => {
         <div className="ondi-kpi-card">
           <div className="ondi-kpi-header">
             <span className="ondi-kpi-title">Break-Glass</span>
-            <div className="ondi-kpi-icon-box" style={{ background: '#fef2f2', color: '#b91c1c' }}><Icon name="alertTriangle" size={18} /></div>
+            <div className="ondi-kpi-icon-box" style={{ background: 'var(--red-l)', color: 'var(--red)' }}><Icon name="alertTriangle" size={18} /></div>
           </div>
           <div className="ondi-kpi-body">
-            <span className="ondi-kpi-num" style={{ color: '#b91c1c' }}>{breakGlassCount}</span>
+            <span className="ondi-kpi-num" style={{ color: 'var(--red)' }}>{breakGlassCount}</span>
             <span className="ondi-kpi-sub">emergency requests</span>
           </div>
         </div>
@@ -233,10 +233,10 @@ export const OndiRoles: React.FC = () => {
         <div className="ondi-kpi-card">
           <div className="ondi-kpi-header">
             <span className="ondi-kpi-title">Active Grants</span>
-            <div className="ondi-kpi-icon-box" style={{ background: '#ecfdf5', color: '#047857' }}><Icon name="users" size={18} /></div>
+            <div className="ondi-kpi-icon-box" style={{ background: 'var(--green-l)', color: 'var(--green)' }}><Icon name="users" size={18} /></div>
           </div>
           <div className="ondi-kpi-body">
-            <span className="ondi-kpi-num" style={{ color: '#047857' }}>{totalGrants}</span>
+            <span className="ondi-kpi-num" style={{ color: 'var(--green)' }}>{totalGrants}</span>
             <span className="ondi-kpi-sub">role assignments</span>
           </div>
         </div>
@@ -355,11 +355,11 @@ export const OndiRoles: React.FC = () => {
                   </div>
                   <div style={{ display: 'flex', gap: 8 }}>
                     <button type="button" onClick={() => decide(r.id, false)}
-                      style={{ fontSize: 12, fontWeight: 700, borderRadius: 6, padding: '6px 14px', border: '1px solid #fecaca', background: '#fef2f2', color: '#b91c1c', cursor: 'pointer' }}>
+                      style={{ fontSize: 12, fontWeight: 700, borderRadius: 6, padding: '6px 14px', border: '1px solid #fecaca', background: 'var(--red-l)', color: 'var(--red)', cursor: 'pointer' }}>
                       Deny
                     </button>
                     <button type="button" onClick={() => decide(r.id, true)} disabled={r.my_decision === 'approve'}
-                      style={{ fontSize: 12, fontWeight: 700, borderRadius: 6, padding: '6px 14px', border: 'none', background: '#ecfdf5', color: '#047857', cursor: r.my_decision === 'approve' ? 'default' : 'pointer', opacity: r.my_decision === 'approve' ? 0.5 : 1 }}>
+                      style={{ fontSize: 12, fontWeight: 700, borderRadius: 6, padding: '6px 14px', border: 'none', background: 'var(--green-l)', color: 'var(--green)', cursor: r.my_decision === 'approve' ? 'default' : 'pointer', opacity: r.my_decision === 'approve' ? 0.5 : 1 }}>
                       {r.my_decision === 'approve' ? 'Approved' : 'Approve'}
                     </button>
                   </div>

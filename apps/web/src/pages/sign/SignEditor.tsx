@@ -59,7 +59,7 @@ const FIELD_TYPES: { type: SignFieldType; label: string; icon: IconName; default
   { type: 'certification_stamp', label: 'Certified True Copy Stamp', icon: 'shield', defaultW: 0.30, defaultH: 0.16 },
 ];
 
-const RECIPIENT_COLORS = ['#1a56db','#0e9f6e','#d97706','#7c3aed','#db2777','#0891b2'];
+const RECIPIENT_COLORS = ['#1a56db','#0e9f6e','var(--gold)','#7c3aed','#db2777','#0891b2'];
 
 interface PlacedField {
   id: string;
@@ -901,7 +901,7 @@ export function SignEditor() {
                   nowhere to go before since page 1 was the only page ever
                   rendered. */}
               {isPdf && pdfDoc && pdfNumPages > 1 && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#1e293b', borderRadius: 20, padding: '3px 10px', flexShrink: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#1e293b', borderRadius: 'var(--badge-radius)', padding: '3px 10px', flexShrink: 0 }}>
                   <button onClick={() => setCurrentPdfPage(p => Math.max(1, p - 1))} disabled={currentPdfPage <= 1}
                     style={{ background: 'none', border: 'none', cursor: currentPdfPage <= 1 ? 'default' : 'pointer', opacity: currentPdfPage <= 1 ? 0.3 : 1, display: 'flex', padding: 2 }}>
                     <Icon name="chevronLeft" size={14} color="#f8fafc" />
@@ -926,6 +926,7 @@ export function SignEditor() {
           {/* File upload area */}
           {!previewSrc && (
             <div onClick={() => fileInputRef.current?.click()}
+              role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInputRef.current?.click(); } }}
               style={{ width: pageW, height: Math.round(pageW * 0.3), border: '2px dashed var(--border)', borderRadius: 12, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, cursor: 'pointer', background: 'var(--card-bg)', color: 'var(--ink3)', transition: 'border-color 0.15s', marginTop: fileName ? 0 : undefined }}>
               <Icon name="file" size={36} style={{ opacity: 0.4 }} />
               <div style={{ fontSize: 14, fontWeight: 600 }}>Upload Document</div>

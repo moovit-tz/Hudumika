@@ -134,7 +134,7 @@ export function SmsCompose() {
               {numbers.length > 0 && (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                   {numbers.map(n => (
-                    <span key={n.phone} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 600, padding: '5px 6px 5px 10px', borderRadius: 20, background: 'var(--bg)', color: 'var(--ink2)' }}>
+                    <span key={n.phone} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 600, padding: '5px 6px 5px 10px', borderRadius: 'var(--badge-radius)', background: 'var(--bg)', color: 'var(--ink2)' }}>
                       {n.name || n.phone}
                       <button type="button" onClick={() => removeNumber(n.phone)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', display: 'flex', padding: 2 }}>
                         <Icon name="x" size={11} />

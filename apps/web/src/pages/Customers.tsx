@@ -44,7 +44,7 @@ function openStatementPrintWindow(
     <td>${tx.date ? new Date(tx.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>
     <td>${tx.ref}</td>
     <td style="text-transform:capitalize">${tx.type}</td>
-    <td style="text-align:right;font-family:monospace;color:${tx.debit ? '#dc2626' : '#059669'}">${tx.debit ? '-' : '+'}${money(tx.amount)}</td>
+    <td style="text-align:right;font-family:monospace;color:${tx.debit ? 'var(--red)' : 'var(--green)'}">${tx.debit ? '-' : '+'}${money(tx.amount)}</td>
     <td style="text-align:right;font-family:monospace;font-weight:700;${tx.balance < 0 ? 'color:#dc2626' : ''}">${money(tx.balance)}</td>
   </tr>`).join('');
 
@@ -89,7 +89,7 @@ td{padding:7px 8px;border-bottom:1px solid #f3f4f6;font-size:10.5px}
 <div class="totals">
   <div><div class="lbl">Total Invoiced</div><div class="val">${money(totals.totalInvoiced)}</div></div>
   <div><div class="lbl">Total Paid</div><div class="val" style="color:#059669">${money(totals.totalPaid)}</div></div>
-  <div><div class="lbl">Outstanding</div><div class="val" style="color:${totals.outstanding > 0 ? '#dc2626' : '#059669'}">${money(totals.outstanding)}</div></div>
+  <div><div class="lbl">Outstanding</div><div class="val" style="color:${totals.outstanding > 0 ? 'var(--red)' : 'var(--green)'}">${money(totals.outstanding)}</div></div>
 </div>
 <table><thead><tr>
   <th>Date</th><th>Reference</th><th>Type</th><th>Amount</th><th>Balance</th>
@@ -1582,7 +1582,7 @@ export const Customers: React.FC = () => {
                             <td className="col-hide-sm">{inv.bill_date ? new Date(inv.bill_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>
                             <td className="col-hide-sm">{inv.due_date ? new Date(inv.due_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>
                             <td style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--mono)', textAlign: 'right' }}>{invoiceTotals(mapApiInvoice(inv)).grandTotalTZS.toLocaleString()}</td>
-                            <td style={{ textAlign: 'center' }}><span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: sc.bg, color: sc.color }}>{st.charAt(0).toUpperCase() + st.slice(1)}</span></td>
+                            <td style={{ textAlign: 'center' }}><span style={{ padding: '3px 10px', borderRadius: 'var(--badge-radius)', fontSize: 11, fontWeight: 700, background: sc.bg, color: sc.color }}>{st.charAt(0).toUpperCase() + st.slice(1)}</span></td>
                           </tr>
                         );
                       })}
@@ -1895,7 +1895,7 @@ export const Customers: React.FC = () => {
                       <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--navy)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.subject || t.title || `Ticket #${t.id?.slice(-5)}`}</div>
                       <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 1 }}>{t.category || 'General'} · {t.created_at ? new Date(t.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</div>
                     </div>
-                    <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: sc.bg, color: sc.color, whiteSpace: 'nowrap' }}>
+                    <span style={{ padding: '3px 10px', borderRadius: 'var(--badge-radius)', fontSize: 11, fontWeight: 700, background: sc.bg, color: sc.color, whiteSpace: 'nowrap' }}>
                       {(t.status || 'Open').replace('_', ' ')}
                     </span>
                   </div>
@@ -1957,7 +1957,7 @@ export const Customers: React.FC = () => {
                       {(l.dutyAtRisk > 0 || l.taxAtRisk > 0) && (
                         <span style={{ fontSize: 12.5, color: 'var(--ink2)' }}>{(l.dutyAtRisk + l.taxAtRisk).toLocaleString()} {l.currency ?? ''} at risk</span>
                       )}
-                      <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: style.bg, color: style.color, whiteSpace: 'nowrap' }}>
+                      <span style={{ padding: '3px 10px', borderRadius: 'var(--badge-radius)', fontSize: 11, fontWeight: 700, background: style.bg, color: style.color, whiteSpace: 'nowrap' }}>
                         {l.customsStatus.replace(/_/g, ' ')}
                       </span>
                     </div>
@@ -2135,7 +2135,7 @@ export const Customers: React.FC = () => {
                 <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--navy)', margin: 0, letterSpacing: '-0.3px' }}>{sel.name}</h1>
                 <StatusBadge status={status} />
                 {sel.client_type && (
-                  <span style={{ padding: '2px 9px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: 'var(--bg)', color: 'var(--ink2)', border: '1px solid var(--border)' }}>{sel.client_type}</span>
+                  <span style={{ padding: '2px 9px', borderRadius: 'var(--badge-radius)', fontSize: 11, fontWeight: 700, background: 'var(--bg)', color: 'var(--ink2)', border: '1px solid var(--border)' }}>{sel.client_type}</span>
                 )}
               </div>
               <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 16 }}>

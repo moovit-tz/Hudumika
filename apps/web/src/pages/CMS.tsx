@@ -618,7 +618,7 @@ export const CMS: React.FC = () => {
             )}
             {comments.map(c => (
               <div key={c.id} className="card" style={{ padding: '16px 20px', display: 'flex', gap: 14, borderLeftWidth: 3, borderLeftStyle: 'solid', borderLeftColor: c.status === 'pending' ? 'var(--gold)' : c.status === 'spam' ? 'var(--red)' : 'var(--teal)' }}>
-                <Av initials={c.author.split(' ').map(w => w[0]).join('').slice(0, 2)} color={c.status === 'approved' ? '#0d7a6b' : c.status === 'spam' ? '#dc2626' : '#d97706'} size={40} />
+                <Av initials={c.author.split(' ').map(w => w[0]).join('').slice(0, 2)} color={c.status === 'approved' ? '#0d7a6b' : c.status === 'spam' ? 'var(--red)' : 'var(--gold)'} size={40} />
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
                     <span style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--navy)' }}>{c.author}</span>

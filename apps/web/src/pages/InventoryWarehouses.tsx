@@ -112,7 +112,8 @@ export function InventoryWarehouses() {
           const warehouseLocations = locations.filter(l => l.warehouseId === w.id);
           return (
             <div className="inv-card" key={w.id}>
-              <div className="inv-card-hdr" style={{ cursor: 'pointer' }} onClick={() => setSelected(isOpen ? null : w.id)}>
+              <div className="inv-card-hdr" style={{ cursor: 'pointer' }} onClick={() => setSelected(isOpen ? null : w.id)}
+                role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelected(isOpen ? null : w.id); } }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <FeaturedIcon variant="brand" size="md" shape="square"><Icon name="warehouse" size={18} /></FeaturedIcon>
                   <div>

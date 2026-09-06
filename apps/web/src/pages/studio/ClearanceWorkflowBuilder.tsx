@@ -136,7 +136,7 @@ const RECIPIENTS: {value: AutoComm['recipient']; label: string}[] = [
 ];
 
 const TEMPLATE_VARS = ['{{ref}}','{{customer_name}}','{{vessel}}','{{eta}}','{{duty_amount}}','{{agent_name}}','{{current_step}}'];
-const STEP_COLORS   = ['#0d9488','#2563eb','#d97706','#059669','#7c3aed','#ea580c','#db2777','#0369a1'];
+const STEP_COLORS   = ['#0d9488','#2563eb','var(--gold)','var(--green)','#7c3aed','#ea580c','#db2777','#0369a1'];
 const FREIGHT_MODES = ['sea','air','road','rail','multimodal'];
 const CONSIGNMENT_TYPES = ['import','export','transit','re-export','warehousing'];
 const FREIGHT_MODE_ICON: Record<string, IconName> = {

@@ -18,7 +18,7 @@ function fmtDate(d: string | null): string {
 }
 
 function pctColor(pct: number): string {
-  return pct >= 80 ? '#047857' : pct >= 50 ? '#b45309' : '#b91c1c';
+  return pct >= 80 ? 'var(--green)' : pct >= 50 ? 'var(--gold)' : 'var(--red)';
 }
 
 export const OndiCompliance: React.FC = () => {
@@ -95,8 +95,8 @@ export const OndiCompliance: React.FC = () => {
           {/* Metric 4: Stale Role Grants */}
           <SectionCard title="Stale Role Grants">
             <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-              <div style={{ width: 44, height: 44, borderRadius: 10, background: data.staleGrants.count > 0 ? '#fffbeb' : '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Icon name="clock" size={20} color={data.staleGrants.count > 0 ? '#b45309' : '#047857'} />
+              <div style={{ width: 44, height: 44, borderRadius: 10, background: data.staleGrants.count > 0 ? 'var(--gold-l)' : 'var(--green-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Icon name="clock" size={20} color={data.staleGrants.count > 0 ? 'var(--gold)' : 'var(--green)'} />
               </div>
               <div>
                 <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--ink)' }}>{data.staleGrants.count}</div>

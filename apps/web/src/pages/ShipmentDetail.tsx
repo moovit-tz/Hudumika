@@ -135,7 +135,7 @@ function fmtServiceRate(amount: number, currency: string) {
   catch { return `${currency} ${amount.toLocaleString('en')}`; }
 }
 function avatarBg(name: string) {
-  const c = ['#e8461a', '#2563eb', '#059669', '#7c3aed', '#ca8a04', '#0891b2'];
+  const c = ['#e8461a', '#2563eb', 'var(--green)', '#7c3aed', 'var(--gold)', '#0891b2'];
   let h = 0; for (const ch of (name ?? '')) h = (h * 31 + ch.charCodeAt(0)) % c.length;
   return c[Math.abs(h)];
 }
@@ -1012,7 +1012,7 @@ function DocVerifyList({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJ
             <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{DOC_TYPE_LABEL[d.type] ?? d.type}</div>
           </div>
           {d.status === 'VERIFIED' ? (
-            <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: 'var(--green-l)', color: 'var(--green)', display: 'inline-flex', alignItems: 'center', gap: 3 }}><Icon name="checkCircle" size={11} color="var(--green)" /> Verified</span>
+            <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 'var(--badge-radius)', background: 'var(--green-l)', color: 'var(--green)', display: 'inline-flex', alignItems: 'center', gap: 3 }}><Icon name="checkCircle" size={11} color="var(--green)" /> Verified</span>
           ) : canVerify ? (
             <button type="button" onClick={() => verify(d.id)} disabled={verifying === d.id} style={{ fontSize: 11, fontWeight: 700, padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 'var(--r)', border: '1px solid var(--green)', background: 'var(--white)', color: 'var(--green)', cursor: verifying === d.id ? 'default' : 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25 }}>
               {verifying === d.id ? '…' : 'Verify'}
@@ -3373,7 +3373,8 @@ function FilesTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
           const isExp = expanded === doc.id; const ex = doc.extracted;
           return (
             <div key={doc.id} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', cursor: 'pointer' }} onClick={() => setExpanded(isExp ? null : doc.id)}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', cursor: 'pointer' }} onClick={() => setExpanded(isExp ? null : doc.id)}
+                role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpanded(isExp ? null : doc.id); } }}>
                 <div style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--teal)', flexShrink: 0 }}>
                   <Icon name={docIcon(doc.type)} size={20} />
                 </div>
@@ -3607,7 +3608,7 @@ function LedgerTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; 
           <div style={{ marginBottom: 20 }}>
           <Card
             title="Shipment Economics"
-            action={<span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, background: marginPct >= 20 ? 'var(--green-l)' : marginPct >= 0 ? 'var(--gold-l)' : 'var(--red-l)', color: marginPct >= 20 ? 'var(--green)' : marginPct >= 0 ? 'var(--gold)' : 'var(--red)' }}>
+            action={<span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 'var(--badge-radius)', background: marginPct >= 20 ? 'var(--green-l)' : marginPct >= 0 ? 'var(--gold-l)' : 'var(--red-l)', color: marginPct >= 20 ? 'var(--green)' : marginPct >= 0 ? 'var(--gold)' : 'var(--red)' }}>
               {marginPct >= 0 ? '+' : ''}{marginPct}% margin
             </span>}
           >
@@ -5216,7 +5217,7 @@ export function ShipmentDetail() {
                   <TabsTrigger key={t.id} value={t.id}>
                     <Icon name={t.icon} size={14} />
                     <span className="ds-tabs-trigger-label">{t.label}</span>
-                    {badge !== undefined && <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 20, lineHeight: 1.5, background: tab === t.id ? 'var(--teal-l)' : 'var(--white)', color: tab === t.id ? 'var(--teal)' : 'var(--ink3)' }}>{badge}</span>}
+                    {badge !== undefined && <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 'var(--badge-radius)', lineHeight: 1.5, background: tab === t.id ? 'var(--teal-l)' : 'var(--white)', color: tab === t.id ? 'var(--teal)' : 'var(--ink3)' }}>{badge}</span>}
                   </TabsTrigger>
                 );
               })}

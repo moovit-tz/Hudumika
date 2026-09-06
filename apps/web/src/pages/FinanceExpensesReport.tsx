@@ -19,7 +19,7 @@ const CATS: Record<string, { label: string; color: string }> = {
   FREIGHT:         { label: 'Freight',         color: 'var(--teal)' },
   HANDLING:        { label: 'Handling',        color: '#9a6700' },
   TRANSPORT:       { label: 'Transport',       color: '#6e40c9' },
-  INSPECTION_FEE:  { label: 'Inspection Fee',  color: '#059669' },
+  INSPECTION_FEE:  { label: 'Inspection Fee',  color: 'var(--green)' },
   AGENT_FEE:       { label: 'Agent Fee',       color: '#cf222e' },
   MISCELLANEOUS:   { label: 'Miscellaneous',   color: 'var(--ink3)' },
   FUEL:            { label: 'Fuel',            color: '#0891b2' },

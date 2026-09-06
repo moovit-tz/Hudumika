@@ -105,15 +105,15 @@ const parseEvents = (raw: string | TrackingEvent[]): TrackingEvent[] => {
 };
 
 const STATUS: Record<string, { bg: string; fg: string; label: string; icon: IconName }> = {
-  DELIVERED:       { bg: 'var(--green-l)', fg: '#059669', label: 'Delivered',       icon: 'checkCircle' },
+  DELIVERED:       { bg: 'var(--green-l)', fg: 'var(--green)', label: 'Delivered',       icon: 'checkCircle' },
   IN_TRANSIT:      { bg: 'var(--blue-l)', fg: '#2563eb', label: 'In Transit',       icon: 'globe'       },
   TRANSIT:         { bg: 'var(--blue-l)', fg: '#2563eb', label: 'In Transit',       icon: 'globe'       },
   PICKED_UP:       { bg: 'var(--purple-l)', fg: '#6366f1', label: 'Picked Up',        icon: 'package'     },
   DEPARTED:        { bg: 'var(--blue-l)', fg: '#0284c7', label: 'Departed',         icon: 'compass'     },
-  CUSTOMS_CLEARED: { bg: 'var(--gold-l)', fg: '#ca8a04', label: 'Customs Cleared',  icon: 'shield'      },
-  ON_HOLD:         { bg: 'var(--red-l)', fg: '#dc2626', label: 'On Hold',          icon: 'alertCircle' },
-  DELAYED:         { bg: 'var(--red-l)', fg: '#dc2626', label: 'Delayed',          icon: 'alertCircle' },
-  ARRIVED:         { bg: 'var(--green-l)', fg: '#059669', label: 'Arrived',          icon: 'mapPin'      },
+  CUSTOMS_CLEARED: { bg: 'var(--gold-l)', fg: 'var(--gold)', label: 'Customs Cleared',  icon: 'shield'      },
+  ON_HOLD:         { bg: 'var(--red-l)', fg: 'var(--red)', label: 'On Hold',          icon: 'alertCircle' },
+  DELAYED:         { bg: 'var(--red-l)', fg: 'var(--red)', label: 'Delayed',          icon: 'alertCircle' },
+  ARRIVED:         { bg: 'var(--green-l)', fg: 'var(--green)', label: 'Arrived',          icon: 'mapPin'      },
 };
 const getStatus = (code?: string) =>
   STATUS[code?.toUpperCase() ?? ''] ?? { bg: 'var(--bg)', fg: '#64748b', label: code ?? 'Unknown', icon: 'info' as IconName };
@@ -243,7 +243,7 @@ function generatePDF(result: TrackingResult) {
     </div>
     <div class="kpi">
       <div class="kpi-label">Days Remaining</div>
-      <div class="kpi-value" style="color:${(days ?? 0) < 0 ? '#dc2626' : (days ?? 99) <= 3 ? '#d97706' : NAVY}">${days == null ? '—' : days > 0 ? '~' + days + ' days' : days === 0 ? 'Today' : Math.abs(days) + 'd overdue'}</div>
+      <div class="kpi-value" style="color:${(days ?? 0) < 0 ? 'var(--red)' : (days ?? 99) <= 3 ? 'var(--gold)' : NAVY}">${days == null ? '—' : days > 0 ? '~' + days + ' days' : days === 0 ? 'Today' : Math.abs(days) + 'd overdue'}</div>
     </div>
     <div class="kpi">
       <div class="kpi-label">Progress</div>
@@ -309,7 +309,7 @@ export const SnapshotCard = React.forwardRef<HTMLDivElement, { result: TrackingR
             </div>
           </div>
         </div>
-        <div style={{ padding: '4px 10px', borderRadius: 20, fontSize: 10, fontWeight: 700, background: st.fg + '22', color: st.fg, border: `1px solid ${st.fg}30`, display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
+        <div style={{ padding: '4px 10px', borderRadius: 'var(--badge-radius)', fontSize: 10, fontWeight: 700, background: st.fg + '22', color: st.fg, border: `1px solid ${st.fg}30`, display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
           <Icon name={st.icon} size={10} color={st.fg} />
           {st.label}
         </div>
@@ -779,14 +779,14 @@ export const Tracker: React.FC = () => {
                 {result.eta && result.eta_initial && result.eta !== result.eta_initial && (() => {
                   const delayDays = Math.round((new Date(result.eta).getTime() - new Date(result.eta_initial).getTime()) / 86_400_000);
                   return delayDays !== 0 ? (
-                    <div style={{ padding: '5px 12px', borderRadius: 20, background: delayDays > 0 ? 'rgba(220,38,38,.2)' : 'rgba(5,150,105,.2)', color: delayDays > 0 ? '#fca5a5' : '#6ee7b7', border: `1px solid ${delayDays > 0 ? 'rgba(220,38,38,.3)' : 'rgba(5,150,105,.3)'}`, fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <div style={{ padding: '5px 12px', borderRadius: 'var(--badge-radius)', background: delayDays > 0 ? 'rgba(220,38,38,.2)' : 'rgba(5,150,105,.2)', color: delayDays > 0 ? '#fca5a5' : '#6ee7b7', border: `1px solid ${delayDays > 0 ? 'rgba(220,38,38,.3)' : 'rgba(5,150,105,.3)'}`, fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
                       <Icon name={delayDays > 0 ? 'alertCircle' : 'checkCircle'} size={11} color={delayDays > 0 ? '#fca5a5' : '#6ee7b7'} />
                       {delayDays > 0 ? `+${delayDays}d delay` : `${Math.abs(delayDays)}d early`}
                     </div>
                   ) : null;
                 })()}
                 {(() => { const st = getStatus(result.status_code); return (
-                  <div style={{ padding: '6px 16px', borderRadius: 20, background: st.fg + '22', color: st.fg, border: `1px solid ${st.fg}33`, fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <div style={{ padding: '6px 16px', borderRadius: 'var(--badge-radius)', background: st.fg + '22', color: st.fg, border: `1px solid ${st.fg}33`, fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
                     <Icon name={st.icon} size={13} color={st.fg} />{st.label}
                   </div>
                 ); })()}

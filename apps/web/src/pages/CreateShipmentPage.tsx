@@ -119,7 +119,7 @@ function OfficerMentionInput({
                 {(o.role || '').replace(/_/g, ' ')}{o.department ? ` · ${o.department}` : ''}
               </div>
             </div>
-            <span style={{ fontSize: 10, color: 'var(--teal)', fontWeight: 700, background: 'var(--teal-l)', padding: '1px 7px', borderRadius: 20, flexShrink: 0 }}>
+            <span style={{ fontSize: 10, color: 'var(--teal)', fontWeight: 700, background: 'var(--teal-l)', padding: '1px 7px', borderRadius: 'var(--badge-radius)', flexShrink: 0 }}>
               @{o.name.split(' ')[0].toLowerCase()}
             </span>
           </button>
@@ -819,7 +819,7 @@ export function CreateShipmentPage() {
                         </span>
                         {dgForm.transportMode === 'AIR' && selectedDgEntry.air_transport_restriction && (
                           <span style={{
-                            fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 20,
+                            fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 'var(--badge-radius)',
                             background: selectedDgEntry.air_transport_restriction === 'FORBIDDEN' ? 'var(--red-l)' : 'var(--gold-l)',
                             color: selectedDgEntry.air_transport_restriction === 'FORBIDDEN' ? 'var(--red)' : 'var(--gold)',
                           }}>

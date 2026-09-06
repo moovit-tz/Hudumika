@@ -863,6 +863,41 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
     }
   );
 
+  // 10b. PATCH /v1/superadmin/app-status/:appId/beta — platform-wide "Beta"
+  // label (migration 395), independent of the maintenance status above.
+  // Reported to every tenant identically via GET /v1/entitlements'
+  // betaApps, which is what Settings.tsx's Modules & Extensions grid reads
+  // instead of the hardcoded MODULE_CATALOG constant this replaced.
+  fastify.patch<{ Params: { appId: string }; Body: { is_beta: boolean } }>(
+    '/app-status/:appId/beta',
+    async (request, reply) => {
+      const { appId } = request.params;
+      const { is_beta } = request.body;
+      const user = request.user;
+
+      const existing = await dbPlatform.selectFrom('app_status').select('app_id').where('app_id', '=', appId).executeTakeFirst();
+      if (existing) {
+        await dbPlatform.updateTable('app_status')
+          .set({ is_beta, updated_by: user.sub, updated_at: new Date() })
+          .where('app_id', '=', appId)
+          .execute();
+      } else {
+        await dbPlatform.insertInto('app_status')
+          .values({ app_id: appId, status: 'active', is_beta, updated_by: user.sub })
+          .execute();
+      }
+
+      const row = await dbPlatform.selectFrom('app_status').selectAll().where('app_id', '=', appId).executeTakeFirstOrThrow();
+      await PlatformAdminService.recordActivity({
+        ...actor(request), category: 'system',
+        action: is_beta ? `Marked ${appId} as Beta` : `Cleared Beta label on ${appId}`,
+        targetType: 'app', targetId: null, targetName: appId, tenantId: null,
+        metadata: { is_beta },
+      });
+      return { appStatus: row };
+    }
+  );
+
   // 11. GET /v1/superadmin/packages/:code/features — which feature keys a package grants
   fastify.get<{ Params: { code: string } }>('/packages/:code/features', async (request, reply) => {
     const { code } = request.params;

@@ -308,7 +308,8 @@ export const ShipmentEdit: React.FC = () => {
             {steps.map((s) => {
               const status = currentStep === s.id ? 'active' : 'completed'; // For edits, all are accessible, so 'completed' fits as a clickable state
               return (
-                <div key={s.id} className={`create-shipment-step ${status}`} onClick={() => setCurrentStep(s.id)} style={{ cursor: 'pointer' }}>
+                <div key={s.id} className={`create-shipment-step ${status}`} onClick={() => setCurrentStep(s.id)} style={{ cursor: 'pointer' }}
+                  role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setCurrentStep(s.id); } }}>
                   <div className="create-shipment-step-indicator">
                     {s.id}
                   </div>
@@ -438,7 +439,7 @@ export const ShipmentEdit: React.FC = () => {
                         </span>
                         {dgForm.transportMode === 'AIR' && selectedDgEntry.air_transport_restriction && (
                           <span style={{
-                            fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 20,
+                            fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 'var(--badge-radius)',
                             background: selectedDgEntry.air_transport_restriction === 'FORBIDDEN' ? 'var(--red-l)' : 'var(--gold-l)',
                             color: selectedDgEntry.air_transport_restriction === 'FORBIDDEN' ? 'var(--red)' : 'var(--gold)',
                           }}>

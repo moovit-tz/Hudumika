@@ -444,7 +444,7 @@ function SamlSetupWizard({ existing, initialName, onClose, onSaved }: { existing
         {/* Step 4 — test, then turn it on */}
         {step === 'test' && provider && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#059669', fontSize: 13, fontWeight: 600 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--green)', fontSize: 13, fontWeight: 600 }}>
               <Icon name="checkCircle" size={16} /> Both sides of the trust are configured.
             </div>
             <div>
@@ -680,15 +680,15 @@ export const OndiSSO: React.FC = () => {
                         <td style={{ padding: '10px 14px' }}>
                           {isSaml ? (
                             needsSetup
-                              ? <span style={{ fontSize: 11, fontWeight: 700, borderRadius: 20, padding: '4px 12px', background: 'var(--gold-l)', color: '#854d0e' }}>Needs setup</span>
-                              : <span style={{ fontSize: 11, fontWeight: 700, borderRadius: 20, padding: '4px 12px', background: '#ecfdf5', color: '#065f46' }}>Ready</span>
+                              ? <span style={{ fontSize: 11, fontWeight: 700, borderRadius: 'var(--badge-radius)', padding: '4px 12px', background: 'var(--gold-l)', color: '#854d0e' }}>Needs setup</span>
+                              : <span style={{ fontSize: 11, fontWeight: 700, borderRadius: 'var(--badge-radius)', padding: '4px 12px', background: 'var(--green-l)', color: 'var(--green)' }}>Ready</span>
                           ) : (
                             <span style={{ fontSize: 12, color: 'var(--ink3)' }}>—</span>
                           )}
                         </td>
                         <td style={{ padding: '10px 14px' }}>
                           <button type="button" onClick={() => toggleEnabled(p)} disabled={needsSetup || !governanceEntitled} title={needsSetup ? 'Finish setup before enabling' : !governanceEntitled ? 'Requires the Enterprise Identity & Governance add-on' : undefined}
-                            style={{ fontSize: 11, fontWeight: 700, borderRadius: 20, padding: '4px 12px', border: 'none', cursor: (needsSetup || !governanceEntitled) ? 'not-allowed' : 'pointer', opacity: (needsSetup || !governanceEntitled) ? 0.6 : 1, background: p.enabled ? '#ecfdf5' : '#f1f5f9', color: p.enabled ? '#065f46' : '#64748b', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                            style={{ fontSize: 11, fontWeight: 700, borderRadius: 20, padding: '4px 12px', border: 'none', cursor: (needsSetup || !governanceEntitled) ? 'not-allowed' : 'pointer', opacity: (needsSetup || !governanceEntitled) ? 0.6 : 1, background: p.enabled ? 'var(--green-l)' : '#f1f5f9', color: p.enabled ? 'var(--green)' : '#64748b', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
                             {p.enabled ? 'Enabled' : 'Disabled'}
                           </button>
                         </td>
@@ -765,12 +765,12 @@ export const OndiSSO: React.FC = () => {
                             </div>
                           </td>
                           <td style={{ padding: '12px 14px' }}>
-                            <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: c.first_party ? '#ecfdf5' : '#f1f5f9', color: c.first_party ? '#065f46' : '#64748b' }}>
+                            <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: c.first_party ? 'var(--green-l)' : '#f1f5f9', color: c.first_party ? 'var(--green)' : '#64748b' }}>
                               {c.first_party ? 'First Party' : 'Third Party'}
                             </span>
                           </td>
                           <td style={{ padding: '12px 14px' }}>
-                            <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: c.client_secret_hash ? '#eff6ff' : '#fef2f2', color: c.client_secret_hash ? '#1d4ed8' : '#b91c1c' }}>
+                            <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: c.client_secret_hash ? '#eff6ff' : 'var(--red-l)', color: c.client_secret_hash ? '#1d4ed8' : 'var(--red)' }}>
                               {c.client_secret_hash ? 'Confidential' : 'Public (PKCE)'}
                             </span>
                           </td>

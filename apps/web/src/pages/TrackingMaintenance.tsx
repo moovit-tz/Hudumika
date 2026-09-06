@@ -134,7 +134,7 @@ export const TrackingMaintenance: React.FC = () => {
         </div>
         <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '14px 16px' }}>
           <div style={{ fontSize: 11, color: 'var(--ink3)', textTransform: 'uppercase', fontWeight: 700 }}>Overdue</div>
-          <div style={{ fontSize: 22, fontWeight: 800, color: overdueCount > 0 ? '#dc2626' : 'var(--ink)', marginTop: 4 }}>{overdueCount}</div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: overdueCount > 0 ? 'var(--red)' : 'var(--ink)', marginTop: 4 }}>{overdueCount}</div>
         </div>
       </div>
 
@@ -160,6 +160,8 @@ export const TrackingMaintenance: React.FC = () => {
               const hasEvents = done.length > 0 || due.length > 0;
               return (
                 <div key={i} onClick={() => cell.thisMonth && hasEvents && setSelectedDate(cell.key)}
+                  role={cell.thisMonth && hasEvents ? 'button' : undefined} tabIndex={cell.thisMonth && hasEvents ? 0 : undefined}
+                  onKeyDown={e => { if ((e.key === 'Enter' || e.key === ' ') && cell.thisMonth && hasEvents) { e.preventDefault(); setSelectedDate(cell.key); } }}
                   style={{
                     minHeight: 68, borderRadius: 7, padding: '6px 6px',
                     background: selectedDate === cell.key ? 'var(--teal-l)' : isToday(cell.key) && cell.thisMonth ? 'var(--bg)' : 'transparent',
@@ -170,7 +172,7 @@ export const TrackingMaintenance: React.FC = () => {
                   <div style={{ fontSize: 11.5, fontWeight: isToday(cell.key) ? 800 : 600, color: 'var(--ink)' }}>{cell.day}</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 3 }}>
                     {done.length > 0 && (
-                      <div style={{ fontSize: 9.5, fontWeight: 700, borderRadius: 4, padding: '1px 5px', background: 'rgba(22,163,74,0.14)', color: '#059669' }}>
+                      <div style={{ fontSize: 9.5, fontWeight: 700, borderRadius: 4, padding: '1px 5px', background: 'rgba(22,163,74,0.14)', color: 'var(--green)' }}>
                         {done.length} done
                       </div>
                     )}
@@ -186,8 +188,8 @@ export const TrackingMaintenance: React.FC = () => {
           </div>
 
           <div style={{ display: 'flex', gap: 16, marginTop: 14, fontSize: 11, color: 'var(--ink3)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 8, height: 8, borderRadius: 2, background: '#059669' }} /> Service done</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 8, height: 8, borderRadius: 2, background: '#ca8a04' }} /> Expected / due</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 8, height: 8, borderRadius: 2, background: 'var(--green)' }} /> Service done</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 8, height: 8, borderRadius: 2, background: 'var(--gold)' }} /> Expected / due</div>
           </div>
         </SectionCard>
 
@@ -198,7 +200,7 @@ export const TrackingMaintenance: React.FC = () => {
           >
             {selectedDone.length > 0 && (
               <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 10.5, fontWeight: 700, color: '#059669', textTransform: 'uppercase', marginBottom: 6 }}>Done</div>
+                <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--green)', textTransform: 'uppercase', marginBottom: 6 }}>Done</div>
                 {selectedDone.map(r => (
                   <div key={r.id} style={{ padding: '8px 0', borderTop: '1px solid var(--border)', fontSize: 12 }}>
                     <div style={{ fontWeight: 700, color: 'var(--ink)' }}>{vehicleName(r.vehicle_id)}</div>

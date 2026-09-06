@@ -1872,7 +1872,7 @@ const EventGuestPicker: React.FC<{ guests: CalendarGuest[]; onAdd: (p: Person) =
       {guests.length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
           {guests.map(g => (
-            <span key={g.userId ?? g.email} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12.5, fontWeight: 600, padding: '4px 6px 4px 10px', borderRadius: 20, background: 'var(--bg)', color: 'var(--ink2)' }}>
+            <span key={g.userId ?? g.email} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12.5, fontWeight: 600, padding: '4px 6px 4px 10px', borderRadius: 'var(--badge-radius)', background: 'var(--bg)', color: 'var(--ink2)' }}>
               {g.name || g.email}
               <button type="button" onClick={() => onRemove(g.userId, g.email)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', display: 'flex', padding: 2 }}>
                 <Icon name="x" size={11} />

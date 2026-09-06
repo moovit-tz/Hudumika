@@ -125,31 +125,6 @@ export async function trackingRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('tracking'));
 
-  // ── Dashboard ─────────────────────────────────────────────────
-
-  fastify.get('/dashboard', async (req) => {
-    const user = req.user;
-    return withTenant(user.tenant_id, async (trx) => {
-      const { count: activeFleet } = await trx.selectFrom('vehicles')
-        .select(trx.fn.count<number>('id').as('count'))
-        .where('tenant_id', '=', user.tenant_id)
-        .where('status', '=', 'ACTIVE')
-        .executeTakeFirstOrThrow();
-
-      // Mocked KPI stats for now since shipments might not be fully linked yet
-      return {
-        total_shipments: 38420,
-        shipments_trend: 7.8,
-        active_fleet: Number(activeFleet),
-        fleet_trend: 4.3,
-        avg_delivery_time: '4h 05m',
-        delivery_trend: -15, // minutes improvement
-        on_time_performance: 97.9,
-        performance_trend: -0.5,
-      };
-    });
-  });
-
   // ── GPSWOX device integration ────────────────────────────────
 
   fastify.post('/gpswox/test', { preHandler: requireRole(...FLEET_ROLES) }, async (req) => {
@@ -244,6 +219,23 @@ export async function trackingRoutes(fastify: FastifyInstance) {
       // read of the same column that could drift from what that shows.
       const driverByVehicle = new Map(drivers.map(d => [d.assigned_vehicle_id, d.id]));
 
+      // A vehicle's current route/cargo on the live map used to be a fixed
+      // set of invented strings (same "Dar es Salaam Port Terminal" origin,
+      // same 8.4t cargo weight) attached to every vehicle regardless of what
+      // it was actually doing — the real answer already exists as that
+      // vehicle's own IN_PROGRESS trip row; a vehicle with no active trip
+      // gets null here rather than a fabricated stand-in.
+      const activeTrips = await trx.selectFrom('trips')
+        .select(['vehicle_id', 'origin', 'destination', 'cargo_type', 'cargo_weight_kg', 'cargo_temp_c', 'load_capacity_pct', 'scheduled_end'])
+        .where('tenant_id', '=', user.tenant_id)
+        .where('status', '=', 'IN_PROGRESS')
+        .execute();
+      const tripByVehicle = new Map(activeTrips.map(t => [t.vehicle_id, {
+        origin: t.origin, destination: t.destination, cargo_type: t.cargo_type,
+        cargo_weight_kg: numOrNull(t.cargo_weight_kg), cargo_temp_c: numOrNull(t.cargo_temp_c),
+        load_capacity_pct: numOrNull(t.load_capacity_pct), eta: t.scheduled_end,
+      }]));
+
       const posByVehicle = new Map(latest.rows.map(r => [r.vehicle_id, {
         ...r,
         latitude: Number(r.latitude), longitude: Number(r.longitude),
@@ -254,6 +246,7 @@ export async function trackingRoutes(fastify: FastifyInstance) {
         mileage_km: numOrNull(v.mileage_km),
         driver_id: driverByVehicle.get(v.id) ?? null,
         last_position: posByVehicle.get(v.id) ?? null,
+        current_trip: tripByVehicle.get(v.id) ?? null,
       }));
     });
   });

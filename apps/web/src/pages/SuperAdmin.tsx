@@ -2400,7 +2400,7 @@ export function SettingsView() {
   const [api, setApi] = useState({ rateLimit:'120', corsOrigins:'*', webhookSecret:'whs_live_••••••••••••••••', keyRotationDays:'90' });
   const [showWebhookSecret, setShowWebhookSecret] = useState(false);
   const [ocr, setOcr] = useState({ geminiApiKey:'' });
-  const [ondiSso, setOndiSso] = useState<{ enabled: boolean; googleClientId?: string; microsoftClientId?: string }>({ enabled: false });
+  const [ondiSso, setOndiSso] = useState<{ enabled: boolean; googleClientId?: string; microsoftClientId?: string; appleClientId?: string }>({ enabled: false });
   const [loading, setLoading] = useState(true);
   const [testingSmtp, setTestingSmtp] = useState(false);
   const [smtpTested, setSmtpTested] = useState(false);
@@ -2712,13 +2712,13 @@ export function SettingsView() {
 
         <TabsContent value="ondiSso">
       {/* ── Ondi SSO (M7 dark-launch flag) ── */}
-      <SectionCard title="Ondi SSO" sub="Default sign-in experience for every tenant — phone/authenticator/passkey/Google first, or password first" section="ondiSso">
+      <SectionCard title="Ondi SSO" sub="Default sign-in experience for every tenant — phone/authenticator/passkey/Google/Microsoft/Apple first, or password first" section="ondiSso">
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:24 }}>
           <div>
             <div style={{ fontSize:13, fontWeight:600, color:'var(--ink)' }}>Make Ondi the default sign-in page</div>
             <div style={{ fontSize:12, color:'var(--ink3)', marginTop:3 }}>
               {ondiSso.enabled
-                ? 'On — visitors land on Ondi (phone code / authenticator / passkey / Google) first. Password sign-in stays fully reachable via the link on that page.'
+                ? 'On — visitors land on Ondi (phone code / authenticator / passkey / Google / Microsoft / Apple) first. Password sign-in stays fully reachable via the link on that page.'
                 : 'Off — visitors land on the password sign-in page first, same as today. Ondi is reachable via its own link, but is not the default.'}
             </div>
           </div>
@@ -2733,8 +2733,8 @@ export function SettingsView() {
         <div style={{ borderTop:'1px solid var(--border)', marginTop:18, paddingTop:18 }}>
           <div style={{ fontSize:13, fontWeight:600, color:'var(--ink)', marginBottom:3 }}>Social sign-in</div>
           <div style={{ fontSize:12, color:'var(--ink3)', marginBottom:14 }}>
-            Paste a Client ID to switch Google or Microsoft sign-in on for every tenant. Leave blank to hide that button.
-            Add this app's URL as an authorized JavaScript origin in the provider's console, or the button renders but fails on click.
+            Paste a Client ID to switch Google, Microsoft, or Apple sign-in on for every tenant. Leave blank to hide that button.
+            Add this app's URL as an authorized JavaScript origin (Google/Microsoft) or Return URL (Apple) in the provider's console, or the button renders but fails on click.
             The Client ID/Secret under a workspace's Settings ▸ Integrations ▸ Google is a different setting — it drives Contacts sync, not sign-in.
           </div>
           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))', gap:16 }}>
@@ -2746,11 +2746,21 @@ export function SettingsView() {
               <input title="Microsoft Client ID" placeholder="00000000-0000-0000-0000-000000000000" value={ondiSso.microsoftClientId ?? ''}
                 onChange={e => setOndiSso(p => ({ ...p, microsoftClientId: e.target.value }))} className="input-field" style={{ width:'100%' }} />
             </Field>
+            <Field label="Apple Client ID" hint="The Services ID (not a Bundle ID) from your 'Sign in with Apple' setup in developer.apple.com.">
+              <input title="Apple Client ID" placeholder="com.yourcompany.web" value={ondiSso.appleClientId ?? ''}
+                onChange={e => setOndiSso(p => ({ ...p, appleClientId: e.target.value }))} className="input-field" style={{ width:'100%' }} />
+            </Field>
           </div>
-          <div style={{ fontSize:11, color:'var(--ink3)', marginTop:2 }}>
+          <div style={{ fontSize:11, color:'var(--ink3)', marginTop:2, display:'flex', flexDirection:'column', gap:2 }}>
             {ondiSso.googleClientId?.trim()
               ? <span style={{ color:'var(--teal)' }}>● Google sign-in is live on the sign-in page</span>
               : <span>○ Google sign-in hidden — no Client ID configured</span>}
+            {ondiSso.microsoftClientId?.trim()
+              ? <span style={{ color:'var(--teal)' }}>● Microsoft sign-in is live on the sign-in page</span>
+              : <span>○ Microsoft sign-in hidden — no Client ID configured</span>}
+            {ondiSso.appleClientId?.trim()
+              ? <span style={{ color:'var(--teal)' }}>● Apple sign-in is live on the sign-in page</span>
+              : <span>○ Apple sign-in hidden — no Client ID configured</span>}
           </div>
         </div>
       </SectionCard>
@@ -2893,17 +2903,27 @@ const APP_LABELS: Record<string, string> = {
   ai: 'AI', clearos: 'ClearOS', cloud: 'Cloud', complyos: 'ComplyOS',
   contacts: 'Contacts', email: 'Email', finops: 'FinOps', ondi: 'Ondi',
   nexushr: 'NexusHR', tracking: 'Tracking', demurrage: 'Demurrage', cargotracker: 'CargoTracker',
-  petti: 'Petti', notes: 'Notes', sign: 'eSign', sms: 'SMS',
+  petti: 'Petti', notes: 'Notes', sign: 'eSign', sms: 'SMS', onsite: 'Onsite', onesite: 'oneSite',
+  inventory: 'Inventory',
+  // Backfilled by migration 395 — these had real feature keys and
+  // package_features grants (see ALL_FEATURE_KEYS) but never got an
+  // app_status row at all, so this console had nothing to toggle for them,
+  // for maintenance or Beta either one.
+  seal: 'SEAL', studio: 'Studio', crm: 'CRM', bliss: 'Bliss', calendar: 'Calendar',
+  tasks: 'Tasks', projects: 'Projects', store: 'Store', hudubi: 'HuduBI',
 };
 
 const APP_ICONS: Record<string, IconName> = {
   ai: 'sparkle', clearos: 'ship', cloud: 'folder', complyos: 'shield',
   contacts: 'contact', email: 'mail', finops: 'dollarSign', ondi: 'key',
   nexushr: 'users', tracking: 'truck', demurrage: 'timer', cargotracker: 'container',
-  petti: 'wallet', notes: 'fileText', sign: 'stamp', sms: 'messageSquare',
+  petti: 'wallet', notes: 'fileText', sign: 'stamp', sms: 'messageSquare', onsite: 'globe', onesite: 'layoutDashboard',
+  inventory: 'package',
+  seal: 'lock', studio: 'gitBranch', crm: 'briefcase', bliss: 'headphones', calendar: 'calendar',
+  tasks: 'checkCircle', projects: 'columns', store: 'shoppingCart', hudubi: 'barChart2',
 };
 
-interface AppStatusRow { app_id: string; status: 'active' | 'maintenance'; message: string | null; updated_at: string; }
+interface AppStatusRow { app_id: string; status: 'active' | 'maintenance'; message: string | null; is_beta: boolean; updated_at: string; }
 
 type AppStatusSort = 'name' | 'status' | 'updated';
 
@@ -2914,6 +2934,8 @@ export function AppStatusView() {
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [betaOnly, setBetaOnly] = useState(false);
+  const [betaSavingId, setBetaSavingId] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<AppStatusSort>('name');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>(() =>
     (localStorage.getItem('hudumika_appstatus_view_mode') as 'list' | 'grid') || 'list');
@@ -2936,6 +2958,7 @@ export function AppStatusView() {
       list = list.filter(r => (APP_LABELS[r.app_id] ?? r.app_id).toLowerCase().includes(q) || r.app_id.toLowerCase().includes(q));
     }
     if (statusFilter) list = list.filter(r => r.status === statusFilter);
+    if (betaOnly) list = list.filter(r => r.is_beta);
     const sorted = [...list];
     if (sortBy === 'name') {
       sorted.sort((a, b) => (APP_LABELS[a.app_id] ?? a.app_id).localeCompare(APP_LABELS[b.app_id] ?? b.app_id));
@@ -2945,7 +2968,30 @@ export function AppStatusView() {
       sorted.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
     }
     return sorted;
-  }, [rows, search, statusFilter, sortBy]);
+  }, [rows, search, statusFilter, betaOnly, sortBy]);
+
+  /**
+   * Platform-wide "Beta" label (migration 395) — independent of the
+   * maintenance status toggle() below. Every tenant's GET /v1/entitlements
+   * reports the same betaApps list, which is what Settings.tsx's Modules &
+   * Extensions grid renders the pill from, so this is the one place that
+   * decides it for the whole platform.
+   */
+  async function toggleBeta(row: AppStatusRow) {
+    const nextBeta = !row.is_beta;
+    setBetaSavingId(row.app_id);
+    try {
+      const res = await apiFetch(`/v1/superadmin/app-status/${row.app_id}/beta`, {
+        method: 'PATCH',
+        body: JSON.stringify({ is_beta: nextBeta }),
+      });
+      setRows(prev => prev.map(r => r.app_id === row.app_id ? res.appStatus : r));
+    } catch (err: any) {
+      showAlert(`Failed to update ${APP_LABELS[row.app_id] ?? row.app_id}: ${err?.message ?? 'Unknown error'}`);
+    } finally {
+      setBetaSavingId(null);
+    }
+  }
 
   async function toggle(row: AppStatusRow) {
     const nextStatus = row.status === 'active' ? 'maintenance' : 'active';
@@ -2966,6 +3012,7 @@ export function AppStatusView() {
   if (loading) return <div style={{ textAlign:'center', padding:'48px 0', color:'var(--ink3)' }}>Loading app status…</div>;
 
   const liveCount = rows.filter(r => r.status === 'active').length;
+  const betaCount = rows.filter(r => r.is_beta).length;
   const SORT_OPTIONS: { value: string; label: string }[] = [
     { value: 'name',    label: 'Name A–Z' },
     { value: 'status',  label: 'Maintenance first' },
@@ -2976,15 +3023,18 @@ export function AppStatusView() {
     <div>
       <PageHdr
         title="App Status"
-        sub="Per-app maintenance switch — take a single app down for a deploy without affecting the rest of the platform"
+        sub="Per-app maintenance switch and Beta label — take a single app down for a deploy, or flag it Beta, without affecting the rest of the platform. Both are seen identically by every tenant."
         action={
-          <Badge cfg={liveCount === rows.length
-            ? { label: `${liveCount} of ${rows.length} apps live`, color:'var(--green)', bg:'var(--green-l)' }
-            : { label: `${liveCount} of ${rows.length} apps live`, color:'var(--gold)', bg:'var(--gold-l)' }} />
+          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+            <Badge cfg={{ label: `${betaCount} Beta`, color:'var(--gold)', bg:'var(--gold-l)' }} />
+            <Badge cfg={liveCount === rows.length
+              ? { label: `${liveCount} of ${rows.length} apps live`, color:'var(--green)', bg:'var(--green-l)' }
+              : { label: `${liveCount} of ${rows.length} apps live`, color:'var(--gold)', bg:'var(--gold-l)' }} />
+          </div>
         }
       />
 
-      {/* Toolbar: single-row search + status filter + sort + view toggle */}
+      {/* Toolbar: single-row search + status filter + beta filter + sort + view toggle */}
       <div className="sa-app-status-toolbar">
         <div className="sa-app-status-search">
           <Icon name="search" size={14} color="var(--ink3)" style={{ position:'absolute', left:12, top:'50%', transform:'translateY(-50%)' }} />
@@ -3004,6 +3054,21 @@ export function AppStatusView() {
           onChange={setStatusFilter}
           allLabel="All statuses"
         />
+        <button
+          type="button"
+          onClick={() => setBetaOnly(v => !v)}
+          title="Show only apps flagged Beta"
+          style={{
+            display:'flex', alignItems:'center', gap:6, height:36, padding:'0 12px', borderRadius:'var(--r)',
+            border: `1px solid ${betaOnly ? 'var(--gold)' : 'var(--border)'}`,
+            background: betaOnly ? 'var(--gold-l)' : 'var(--white)',
+            color: betaOnly ? 'var(--gold)' : 'var(--ink2)',
+            fontSize:13, fontWeight:600, fontFamily:'var(--font)', cursor:'pointer', flexShrink:0,
+          }}
+        >
+          <Icon name="sparkle" size={13} />
+          Beta only
+        </button>
         <Select value={sortBy} onValueChange={v => setSortBy(v as AppStatusSort)}>
           <SelectTrigger className="w-auto shrink-0" style={{ width:'auto', minWidth:140, height:36, flexShrink:0 }}>
             <Icon name="sliders" size={13} color="var(--ink3)" />
@@ -3041,6 +3106,7 @@ export function AppStatusView() {
             const inMaintenance = row.status === 'maintenance';
             const label = APP_LABELS[row.app_id] ?? row.app_id;
             const busy = savingId === row.app_id;
+            const betaBusy = betaSavingId === row.app_id;
             return (
               <div key={row.app_id} style={{ padding: '0 18px', opacity: busy ? 0.6 : 1 }}>
                 <FeatureToggleRow
@@ -3050,6 +3116,15 @@ export function AppStatusView() {
                   checked={!inMaintenance}
                   onCheckedChange={() => toggle(row)}
                   disabled={busy}
+                  trailingExtra={
+                    <label
+                      title="Show this app's Beta pill to every tenant"
+                      style={{ display:'flex', alignItems:'center', gap:6, cursor: betaBusy ? 'default' : 'pointer', opacity: betaBusy ? 0.6 : 1, paddingRight:10, borderRight:'1px solid var(--border)' }}
+                    >
+                      <span style={{ fontSize:11, fontWeight:700, color: row.is_beta ? 'var(--gold)' : 'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.04em' }}>Beta</span>
+                      <Switch checked={row.is_beta} disabled={betaBusy} onCheckedChange={() => toggleBeta(row)} />
+                    </label>
+                  }
                   action={inMaintenance && (
                     <input
                       title="Maintenance message shown to tenants"
@@ -3071,6 +3146,7 @@ export function AppStatusView() {
             const inMaintenance = row.status === 'maintenance';
             const label = APP_LABELS[row.app_id] ?? row.app_id;
             const busy = savingId === row.app_id;
+            const betaBusy = betaSavingId === row.app_id;
             const muted = busy || inMaintenance;
             return (
               <div
@@ -3082,7 +3158,16 @@ export function AppStatusView() {
                     <FeaturedIcon variant={muted ? 'gray' : 'brand'} shape="circle" size="md">
                       <Icon name={APP_ICONS[row.app_id] ?? 'layers'} size={18} />
                     </FeaturedIcon>
-                    <div style={{ fontSize:14, fontWeight:700, color: muted ? 'var(--ink3)' : 'var(--ink)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{label}</div>
+                    <div style={{ minWidth:0 }}>
+                      <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                        <span style={{ fontSize:14, fontWeight:700, color: muted ? 'var(--ink3)' : 'var(--ink)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{label}</span>
+                        {row.is_beta && (
+                          <span style={{ fontSize:9.5, fontWeight:700, padding:'1px 6px', borderRadius:4, background:'var(--gold-l)', color:'var(--gold)', border:'1px solid var(--gold)', textTransform:'uppercase', letterSpacing:'0.4px', flexShrink:0 }}>
+                            Beta
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
                   <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
                     <span style={{ fontSize:11, fontWeight:600, color: inMaintenance ? 'var(--ink3)' : 'var(--teal)' }}>{inMaintenance ? 'Off' : 'On'}</span>
@@ -3092,6 +3177,13 @@ export function AppStatusView() {
                 <div style={{ fontSize:12, color:'var(--ink3)', opacity: muted ? 0.7 : 1 }}>
                   {inMaintenance ? 'All tenants are blocked from this app.' : 'Accessible per each tenant’s plan.'}
                 </div>
+                <label
+                  title="Show this app's Beta pill to every tenant"
+                  style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, paddingTop:10, borderTop:'1px solid var(--border)', cursor: betaBusy ? 'default' : 'pointer', opacity: betaBusy ? 0.6 : 1 }}
+                >
+                  <span style={{ fontSize:12, fontWeight:600, color: 'var(--ink2)' }}>Beta label</span>
+                  <Switch checked={row.is_beta} disabled={betaBusy} onCheckedChange={() => toggleBeta(row)} />
+                </label>
                 {inMaintenance && (
                   <input
                     title="Maintenance message shown to tenants"

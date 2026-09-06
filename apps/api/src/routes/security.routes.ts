@@ -608,7 +608,7 @@ export default async function securityRoutes(fastify: FastifyInstance) {
         .select(['event_type', 'created_at'])
         .where('user_id', '=', user.sub)
         .where('tenant_id', '=', user.tenant_id)
-        .where('event_type', 'in', ['google_login', 'microsoft_login'])
+        .where('event_type', 'in', ['google_login', 'microsoft_login', 'apple_login'])
         .orderBy('created_at', 'desc')
         .limit(50)
         .execute();
@@ -616,6 +616,7 @@ export default async function securityRoutes(fastify: FastifyInstance) {
       return {
         google: { last_used_at: lastFor('google_login') },
         microsoft: { last_used_at: lastFor('microsoft_login') },
+        apple: { last_used_at: lastFor('apple_login') },
       };
     });
   });

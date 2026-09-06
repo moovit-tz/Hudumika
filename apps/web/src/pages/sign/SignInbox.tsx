@@ -717,6 +717,7 @@ export function SignEnvelopeDetail() {
       {/* Version chain banners */}
       {env.previous_version && (
         <div onClick={() => navigate(`/sign/envelope/${env.previous_version!.id}`)}
+          role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/sign/envelope/${env.previous_version!.id}`); } }}
           style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, background: 'var(--teal-l)', border: '1px solid var(--teal)', borderRadius: 12, padding: '12px 18px', fontSize: 13, color: 'var(--ink)' }}>
           <Icon name="gitBranch" size={16} style={{ color: 'var(--teal)', flexShrink: 0 } as React.CSSProperties} />
           <span>This is Version {env.version_number}, amended from <strong>Version {env.previous_version.version_number} — {env.previous_version.title}</strong></span>
@@ -725,6 +726,7 @@ export function SignEnvelopeDetail() {
       )}
       {env.next_version && (
         <div onClick={() => navigate(`/sign/envelope/${env.next_version!.id}`)}
+          role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/sign/envelope/${env.next_version!.id}`); } }}
           style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 12, padding: '12px 18px', fontSize: 13, color: 'var(--ink)' }}>
           <Icon name="gitBranch" size={16} style={{ color: 'var(--gold)', flexShrink: 0 } as React.CSSProperties} />
           <span>This signed document is unchanged, but it’s been superseded by <strong>Version {env.next_version.version_number}</strong> ({env.next_version.status})</span>
@@ -759,7 +761,7 @@ export function SignEnvelopeDetail() {
             </div>
 
             {previewIsPdf && previewNumPages > 1 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#1e293b', borderRadius: 20, padding: '3px 10px', flexShrink: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#1e293b', borderRadius: 'var(--badge-radius)', padding: '3px 10px', flexShrink: 0 }}>
                 <button onClick={() => setPreviewPage(p => Math.max(1, p - 1))} disabled={previewPage <= 1}
                   style={{ background: 'none', border: 'none', cursor: previewPage <= 1 ? 'default' : 'pointer', opacity: previewPage <= 1 ? 0.3 : 1, display: 'flex', padding: 2 }}>
                   <Icon name="chevronLeft" size={14} color="#f8fafc" />

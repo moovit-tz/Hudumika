@@ -32,16 +32,16 @@ import { Button } from '../components/ui/button.js';
 const STATUS_META: Record<TaskStatus, { label: string; variant: 'gray' | 'brand' | 'warning' | 'info' | 'success'; color: string; bg: string }> = {
   none:        { label: 'Not Started', variant: 'gray',    color: '#64748b', bg: 'rgba(100,116,139,0.1)' },
   in_progress: { label: 'In Progress', variant: 'brand',   color: '#2563eb', bg: 'rgba(37,99,235,0.1)' },
-  in_review:   { label: 'Testing / Review', variant: 'warning', color: '#d97706', bg: 'rgba(217,119,6,0.1)' },
+  in_review:   { label: 'Testing / Review', variant: 'warning', color: 'var(--gold)', bg: 'rgba(217,119,6,0.1)' },
   waiting:     { label: 'Awaiting Feedback', variant: 'info',  color: '#7c3aed', bg: 'rgba(124,58,237,0.1)' },
-  completed:   { label: 'Complete',    variant: 'success', color: '#059669', bg: 'rgba(5,150,105,0.1)' },
+  completed:   { label: 'Complete',    variant: 'success', color: 'var(--green)', bg: 'rgba(5,150,105,0.1)' },
 };
 
 const PRIORITY_META: Record<TaskPriority, { label: string; color: string; bg: string }> = {
   low:    { label: 'Low',    color: '#64748b', bg: '#f1f5f9' },
-  medium: { label: 'Medium', color: '#d97706', bg: '#fef3c7' },
+  medium: { label: 'Medium', color: 'var(--gold)', bg: '#fef3c7' },
   high:   { label: 'High',   color: '#ea580c', bg: '#ffedd5' },
-  urgent: { label: 'Urgent', color: '#dc2626', bg: '#fee2e2' },
+  urgent: { label: 'Urgent', color: 'var(--red)', bg: 'var(--red-l)' },
 };
 
 function todayStr() { return new Date().toISOString().slice(0, 10); }
@@ -298,8 +298,8 @@ export const TasksApp: React.FC = () => {
               background: 'var(--white)', border: `1px solid ${filterStatus === 'in_review' ? 'var(--teal)' : 'var(--border)'}`,
               borderRadius: 10, padding: '10px 14px', textAlign: 'left', cursor: 'pointer', transition: 'all 0.15s'
             }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#d97706', textTransform: 'uppercase' }}>Testing / Review</div>
-              <div style={{ fontSize: 18, fontWeight: 800, color: '#d97706', marginTop: 2 }}>{counts.inReview}</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold)', textTransform: 'uppercase' }}>Testing / Review</div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--gold)', marginTop: 2 }}>{counts.inReview}</div>
             </button>
 
             <button type="button" onClick={() => setFilterStatus(prev => prev === 'waiting' ? 'all' : 'waiting')} style={{
@@ -314,8 +314,8 @@ export const TasksApp: React.FC = () => {
               background: 'var(--white)', border: `1px solid ${filterStatus === 'completed' ? 'var(--teal)' : 'var(--border)'}`,
               borderRadius: 10, padding: '10px 14px', textAlign: 'left', cursor: 'pointer', transition: 'all 0.15s'
             }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#059669', textTransform: 'uppercase' }}>Completed</div>
-              <div style={{ fontSize: 18, fontWeight: 800, color: '#059669', marginTop: 2 }}>{counts.complete}</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--green)', textTransform: 'uppercase' }}>Completed</div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--green)', marginTop: 2 }}>{counts.complete}</div>
             </button>
 
           </div>
@@ -397,9 +397,9 @@ function TasksKanbanBoard({ todos, listMap, onTaskClick }: {
   const columns: { status: TaskStatus; title: string; color: string; bg: string }[] = [
     { status: 'none',        title: 'Not Started',       color: '#64748b', bg: '#f8fafc' },
     { status: 'in_progress', title: 'In Progress',       color: '#2563eb', bg: '#eff6ff' },
-    { status: 'in_review',   title: 'Testing / Review',  color: '#d97706', bg: '#fffbeb' },
+    { status: 'in_review',   title: 'Testing / Review',  color: 'var(--gold)', bg: 'var(--gold-l)' },
     { status: 'waiting',     title: 'Awaiting Feedback', color: '#7c3aed', bg: '#f5f3ff' },
-    { status: 'completed',   title: 'Completed',         color: '#059669', bg: '#ecfdf5' },
+    { status: 'completed',   title: 'Completed',         color: 'var(--green)', bg: 'var(--green-l)' },
   ];
 
   function handleKanbanDrop(e: React.DragEvent, newStatus: TaskStatus) {
@@ -820,7 +820,8 @@ function TaskRow({ todo, list, expanded, onToggleExpand, newSubtaskTitle, setNew
           </button>
         )}
 
-        <div style={{ flex: 1, minWidth: 0, cursor: 'pointer' }} onClick={onToggleExpand}>
+        <div style={{ flex: 1, minWidth: 0, cursor: 'pointer' }} onClick={onToggleExpand}
+          role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggleExpand(); } }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <span style={{
               fontSize: 14, fontWeight: 600, color: todo.completed ? 'var(--ink3)' : 'var(--ink)',

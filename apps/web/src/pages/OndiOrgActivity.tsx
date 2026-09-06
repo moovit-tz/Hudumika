@@ -25,7 +25,7 @@ const EVENT_LABEL: Record<string, string> = {
   otp_issued: 'One-time code sent', otp_verified: 'One-time code verified',
   totp_verified: 'Two-factor code verified',
   passkey_added: 'Passkey added', passkey_removed: 'Passkey removed', passkey_login: 'Signed in with a passkey',
-  google_login: 'Signed in with Google', microsoft_login: 'Signed in with Microsoft',
+  google_login: 'Signed in with Google', microsoft_login: 'Signed in with Microsoft', apple_login: 'Signed in with Apple',
   device_renamed: 'Device renamed', session_revoked: 'Session signed out',
   access_denied: 'Access denied',
   kyc_submitted: 'Identity document submitted', kyc_approved: 'Identity verified', kyc_rejected: 'Identity document rejected',
@@ -177,12 +177,12 @@ export const OndiOrgActivity: React.FC = () => {
         <div className="ondi-kpi-card">
           <div className="ondi-kpi-header">
             <span className="ondi-kpi-title">Security Warnings</span>
-            <div className="ondi-kpi-icon-box" style={{ background: '#fef2f2', color: '#dc2626' }}>
+            <div className="ondi-kpi-icon-box" style={{ background: 'var(--red-l)', color: 'var(--red)' }}>
               <Icon name="alertTriangle" size={18} />
             </div>
           </div>
           <div className="ondi-kpi-body">
-            <span className="ondi-kpi-num" style={{ color: '#dc2626' }}>{failedCount}</span>
+            <span className="ondi-kpi-num" style={{ color: 'var(--red)' }}>{failedCount}</span>
             <span className="ondi-kpi-sub">failures &amp; denials</span>
           </div>
         </div>
@@ -190,12 +190,12 @@ export const OndiOrgActivity: React.FC = () => {
         <div className="ondi-kpi-card">
           <div className="ondi-kpi-header">
             <span className="ondi-kpi-title">Log Storage Guarantee</span>
-            <div className="ondi-kpi-icon-box" style={{ background: '#ecfdf5', color: '#047857' }}>
+            <div className="ondi-kpi-icon-box" style={{ background: 'var(--green-l)', color: 'var(--green)' }}>
               <Icon name="shield" size={18} />
             </div>
           </div>
           <div className="ondi-kpi-body">
-            <span className="ondi-kpi-num" style={{ color: '#047857', fontSize: 20 }}>Tamper-Proof</span>
+            <span className="ondi-kpi-num" style={{ color: 'var(--green)', fontSize: 20 }}>Tamper-Proof</span>
             <span className="ondi-kpi-sub">SHA-256 chained</span>
           </div>
         </div>
@@ -226,7 +226,7 @@ export const OndiOrgActivity: React.FC = () => {
               className={`ondi-tab-btn ${categoryTab === 'security' ? 'active' : ''}`}
               onClick={() => setCategoryTab('security')}
             >
-              Security Warnings <span className="ondi-tab-badge" style={{ background: 'rgba(220,38,38,0.12)', color: '#dc2626' }}>{failedCount}</span>
+              Security Warnings <span className="ondi-tab-badge" style={{ background: 'rgba(220,38,38,0.12)', color: 'var(--red)' }}>{failedCount}</span>
             </button>
           </div>
 
@@ -249,7 +249,7 @@ export const OndiOrgActivity: React.FC = () => {
         )}
 
         {err && (
-          <div style={{ padding: 24, fontSize: 13, color: '#dc2626', background: '#fef2f2', borderBottom: '1px solid #fee2e2' }}>
+          <div style={{ padding: 24, fontSize: 13, color: 'var(--red)', background: 'var(--red-l)', borderBottom: '1px solid #fee2e2' }}>
             {err}
           </div>
         )}
@@ -283,7 +283,7 @@ export const OndiOrgActivity: React.FC = () => {
                           <Icon name={iconFor(e.event_type)} size={15} />
                         </FeaturedIcon>
                         <div>
-                          <div style={{ fontWeight: 700, color: failed ? '#b91c1c' : 'var(--ink)' }}>{label}</div>
+                          <div style={{ fontWeight: 700, color: failed ? 'var(--red)' : 'var(--ink)' }}>{label}</div>
                           <div style={{ fontSize: 11, fontFamily: 'var(--mono)', color: 'var(--ink3)', marginTop: 1 }}>{e.event_type}</div>
                         </div>
                       </div>

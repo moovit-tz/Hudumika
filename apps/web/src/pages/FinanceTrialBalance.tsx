@@ -14,7 +14,7 @@ const TYPE_CFG: Record<AccountType, { label: string; color: string; bg: string }
   ASSET:     { label: 'Assets',      color: '#0891b2', bg: '#ecfeff' },
   LIABILITY: { label: 'Liabilities', color: 'var(--red)', bg: 'var(--red-l)' },
   EQUITY:    { label: 'Equity',      color: '#7c3aed', bg: 'var(--purple-l)' },
-  REVENUE:   { label: 'Revenue',     color: '#059669', bg: 'var(--green-l)' },
+  REVENUE:   { label: 'Revenue',     color: 'var(--green)', bg: 'var(--green-l)' },
   EXPENSE:   { label: 'Expenses',    color: 'var(--gold)', bg: 'var(--gold-l)' },
 };
 const TYPE_ORDER: AccountType[] = ['ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE'];
@@ -151,12 +151,12 @@ export const FinanceTrialBalance: React.FC = () => {
       />
 
       {/* Balance status banner */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 18px', borderRadius: 'var(--r)', marginBottom: 20, background: balanced ? '#ecfdf5' : '#fef2f2', border: `1px solid ${balanced ? '#059669' : '#ef4444'}40` }}>
-        <div style={{ width: 32, height: 32, borderRadius: 'var(--r)', background: balanced ? '#059669' : '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 18px', borderRadius: 'var(--r)', marginBottom: 20, background: balanced ? 'var(--green-l)' : 'var(--red-l)', border: `1px solid ${balanced ? 'var(--green)' : 'var(--red)'}` }}>
+        <div style={{ width: 32, height: 32, borderRadius: 'var(--r)', background: balanced ? 'var(--green)' : 'var(--red)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <Icon name={balanced ? 'check' : 'alertTriangle'} size={16} color="#fff" />
         </div>
         <div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: balanced ? '#059669' : '#ef4444' }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: balanced ? 'var(--green)' : 'var(--red)' }}>
             {balanced ? 'Trial Balance is Balanced ✓' : 'Trial Balance Out of Balance ✗'}
           </div>
           <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>
@@ -301,13 +301,13 @@ export const FinanceTrialBalance: React.FC = () => {
             </tr>
 
             {/* Balance check row */}
-            <tr style={{ background: balanced ? '#ecfdf5' : '#fef2f2' }}>
-              <td colSpan={3} style={{ fontSize:12, fontWeight:700, color: balanced ? '#059669' : '#ef4444' }}>
-                <Icon name={balanced ? 'check' : 'alertTriangle'} size={12} color={balanced?'#059669':'#ef4444'} style={{ marginRight:5, verticalAlign:'middle' }} />
+            <tr style={{ background: balanced ? 'var(--green-l)' : 'var(--red-l)' }}>
+              <td colSpan={3} style={{ fontSize:12, fontWeight:700, color: balanced ? 'var(--green)' : 'var(--red)' }}>
+                <Icon name={balanced ? 'check' : 'alertTriangle'} size={12} color={balanced?'var(--green)':'var(--red)'} style={{ marginRight:5, verticalAlign:'middle' }} />
                 {balanced ? 'Balanced — Nil Difference' : 'Out of Balance'}
               </td>
-              <td style={{ textAlign:'right', fontSize:12, fontFamily:'var(--mono)', color: balanced ? '#059669' : '#ef4444', fontWeight:700 }}>{balanced ? '—' : `${cur} ${Math.abs(totals.debit - totals.credit).toLocaleString()}`}</td>
-              <td style={{ textAlign:'right', fontSize:12, fontFamily:'var(--mono)', color: balanced ? '#059669' : '#ef4444', fontWeight:700 }}>{balanced ? '—' : ''}</td>
+              <td style={{ textAlign:'right', fontSize:12, fontFamily:'var(--mono)', color: balanced ? 'var(--green)' : 'var(--red)', fontWeight:700 }}>{balanced ? '—' : `${cur} ${Math.abs(totals.debit - totals.credit).toLocaleString()}`}</td>
+              <td style={{ textAlign:'right', fontSize:12, fontFamily:'var(--mono)', color: balanced ? 'var(--green)' : '#ef4444', fontWeight:700 }}>{balanced ? '—' : ''}</td>
             </tr>
           </tbody>
         </table>

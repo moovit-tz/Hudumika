@@ -223,3 +223,11 @@
   font-size: 12.5px;
   line-height: 1.6;
 }
+
+/* Responsive — the fixed 180px rail crowds the query builder on narrow
+   viewports; stack it above the main column instead. */
+@media (max-width: 768px) {
+  .qb-layout { grid-template-columns: 1fr; }
+  .qb-rail { position: static; }
+  .qb-root { padding: 20px; }
+}

@@ -16,7 +16,7 @@ import { useTaxCodes } from '../data/taxCodeData.js';
 const STAGES = [
   { key: 'DRAFT',     label: 'Draft',          color: 'var(--ink3)' },
   { key: 'PENDING',   label: 'Pending Review',  color: '#9a6700' },
-  { key: 'APPROVED',  label: 'Approved',         color: '#059669' },
+  { key: 'APPROVED',  label: 'Approved',         color: 'var(--green)' },
   { key: 'CONVERTED', label: 'Converted',        color: 'var(--teal)' },
   { key: 'REJECTED',  label: 'Rejected',         color: '#cf222e' },
 ];
@@ -31,7 +31,7 @@ const STATUS_BG: Record<string, string> = {
 const STATUS_FG: Record<string, string> = {
   DRAFT:     'var(--ink3)',
   PENDING:   '#9a6700',
-  APPROVED:  '#059669',
+  APPROVED:  'var(--green)',
   CONVERTED: 'var(--teal)',
   REJECTED:  '#cf222e',
 };

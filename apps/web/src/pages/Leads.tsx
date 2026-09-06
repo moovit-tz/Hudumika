@@ -114,7 +114,7 @@ export function LeadAv({ name, size = 32, leadId }: { name: string; size?: numbe
 export function StageBadge({ stage }: { stage: string }) {
   const c = STAGE_CFG[stage] || STAGE_CFG.NEW;
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 9px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: c.bg, color: c.color, whiteSpace: 'nowrap', fontFamily: 'var(--mono)', letterSpacing: '0.03em' }}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 9px', borderRadius: 'var(--badge-radius)', fontSize: 11, fontWeight: 700, background: c.bg, color: c.color, whiteSpace: 'nowrap', fontFamily: 'var(--mono)', letterSpacing: '0.03em' }}>
       <span style={{ width: 5, height: 5, borderRadius: '50%', background: c.color, flexShrink: 0 }} />
       {c.label}
     </span>
@@ -202,7 +202,7 @@ function StagePipeline({ current, onSelect, interactive }: { current: string; on
 
   if (isLost) {
     return (
-      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 14px', borderRadius: 20, fontSize: 12.5, fontWeight: 700, background: STAGE_CFG.LOST.bg, color: STAGE_CFG.LOST.color, border: `1.5px solid ${STAGE_CFG.LOST.color}` }}>
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 14px', borderRadius: 'var(--badge-radius)', fontSize: 12.5, fontWeight: 700, background: STAGE_CFG.LOST.bg, color: STAGE_CFG.LOST.color, border: `1.5px solid ${STAGE_CFG.LOST.color}` }}>
         <Icon name="x" size={12} strokeWidth={3} />
         Lost
       </div>
@@ -519,7 +519,7 @@ export const Leads: React.FC = () => {
                   <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--navy)', margin: 0, letterSpacing: '-0.3px' }}>{sel.company}</h1>
                   <StageBadge stage={sel.stage} />
                   <PriBadge priority={sel.priority} />
-                  {sel.industry && <span style={{ padding: '2px 9px', borderRadius: 20, fontSize: 11, fontWeight: 600, background: 'var(--bg)', color: 'var(--ink2)', border: '1px solid var(--border)' }}>{sel.industry}</span>}
+                  {sel.industry && <span style={{ padding: '2px 9px', borderRadius: 'var(--badge-radius)', fontSize: 11, fontWeight: 600, background: 'var(--bg)', color: 'var(--ink2)', border: '1px solid var(--border)' }}>{sel.industry}</span>}
                 </div>
                 <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 16 }}>
                   {sel.contact_name}

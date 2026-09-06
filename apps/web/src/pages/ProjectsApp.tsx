@@ -119,9 +119,9 @@ const TASK_STATUS_META: Record<TaskStatus, { label: string; variant: 'gray' | 'b
 };
 const TASK_PRIORITY_META: Record<TaskPriority, { label: string; color: string; bg: string }> = {
   low: { label: 'Low', color: '#64748b', bg: '#f1f5f9' },
-  medium: { label: 'Medium', color: '#d97706', bg: '#fef3c7' },
+  medium: { label: 'Medium', color: 'var(--gold)', bg: '#fef3c7' },
   high: { label: 'High', color: '#ea580c', bg: '#ffedd5' },
-  urgent: { label: 'Urgent', color: '#dc2626', bg: '#fee2e2' },
+  urgent: { label: 'Urgent', color: 'var(--red)', bg: 'var(--red-l)' },
 };
 // CSS var per status, for the Gantt bar fill — same variant→hue mapping
 // Badge already uses (brand/success/warning/info/gray), just resolved to a

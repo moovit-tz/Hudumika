@@ -312,7 +312,7 @@ function RRow({ label, value, hi, red }: { label: string; value: string; hi?: bo
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
       <span style={{ fontSize: hi ? 13 : 12, color: 'var(--ink2)', fontWeight: hi ? 700 : 400 }}>{label}</span>
-      <span style={{ fontSize: hi ? 14 : 12.5, fontWeight: 700, color: red ? '#dc2626' : hi ? 'var(--teal)' : 'var(--ink)' }}>{value}</span>
+      <span style={{ fontSize: hi ? 14 : 12.5, fontWeight: 700, color: red ? 'var(--red)' : hi ? 'var(--teal)' : 'var(--ink)' }}>{value}</span>
     </div>
   );
 }
@@ -546,13 +546,13 @@ export const ShipmentTools: React.FC = () => {
                 ]
               ).map(({ label, r }) => (
                 <div key={label} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '9px 0', borderBottom: '1px solid var(--border)' }}>
-                  <span style={{ flexShrink: 0, width: 18, height: 18, borderRadius: '50%', marginTop: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800, background: r.required ? '#fee2e2' : '#ecfdf5', color: r.required ? '#dc2626' : '#059669' }}>
+                  <span style={{ flexShrink: 0, width: 18, height: 18, borderRadius: '50%', marginTop: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800, background: r.required ? 'var(--red-l)' : 'var(--green-l)', color: r.required ? 'var(--red)' : 'var(--green)' }}>
                     {r.required ? '!' : '✓'}
                   </span>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
                       <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)' }}>{label}</span>
-                      <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: r.required ? '#fee2e2' : '#ecfdf5', color: r.required ? '#dc2626' : '#059669' }}>
+                      <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: r.required ? 'var(--red-l)' : 'var(--green-l)', color: r.required ? 'var(--red)' : 'var(--green)' }}>
                         {r.required ? 'REQUIRED' : 'NOT REQUIRED'}
                       </span>
                     </div>
@@ -600,7 +600,7 @@ export const ShipmentTools: React.FC = () => {
             <div style={{ gridColumn: '1 / -1', display: 'flex', gap: 20, flexWrap: 'wrap', paddingTop: 2 }}>
               {([['pNoPvoc', 'No PVoC/COC certificate', pNoPvoc, setPNoPvoc], ['pNoDi', 'No DI Inspection permit', pNoDi, setPNoDi]] as const).map(([, label, val, set]) => (
                 <label key={label} style={{ display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer', fontSize: 13, color: 'var(--ink2)', userSelect: 'none' }}>
-                  <input type="checkbox" checked={val} onChange={e => set(e.target.checked)} style={{ accentColor: '#dc2626', width: 15, height: 15, cursor: 'pointer' }} />
+                  <input type="checkbox" checked={val} onChange={e => set(e.target.checked)} style={{ accentColor: 'var(--red)', width: 15, height: 15, cursor: 'pointer' }} />
                   {label}
                 </label>
               ))}

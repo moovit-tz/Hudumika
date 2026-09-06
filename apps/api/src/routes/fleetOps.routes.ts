@@ -37,6 +37,58 @@ function numOrNull(v: unknown): number | null {
   return v == null ? null : Number(v);
 }
 
+// A vehicle in any of these states is not physically fit to be sent out —
+// dispatching one anyway used to be silently possible (POST /trips and the
+// status transition below did no validation at all against the vehicle's
+// own state or its existing trips), which is exactly the "impossible state"
+// case this module's own design brief calls out by name.
+const NON_DISPATCHABLE_VEHICLE_STATUSES = new Set([
+  'OUT_OF_SERVICE', 'MAINTENANCE', 'ACCIDENT', 'HELD', 'IMPOUNDED', 'DECOMMISSIONED', 'INACTIVE',
+]);
+
+/**
+ * Checked before a trip is created and again before one is actually
+ * dispatched (status -> IN_PROGRESS): a vehicle already mid-trip can't also
+ * start a second one, a vehicle that's out of service/in maintenance/etc.
+ * can't be dispatched at all, and a driver already mid-trip can't crew a
+ * second vehicle at the same time. `excludeTripId` lets re-dispatching the
+ * same trip (e.g. re-PATCHing it to IN_PROGRESS) skip colliding with itself.
+ */
+async function assertDispatchable(
+  trx: any, tenantId: string, vehicleId: string, driverId: string | null | undefined, excludeTripId?: string
+): Promise<string | null> {
+  const vehicle = await trx.selectFrom('vehicles').select(['id', 'name', 'status'])
+    .where('id', '=', vehicleId).where('tenant_id', '=', tenantId).executeTakeFirst();
+  if (!vehicle) return 'Vehicle not found.';
+  if (NON_DISPATCHABLE_VEHICLE_STATUSES.has(String(vehicle.status).toUpperCase())) {
+    return `${vehicle.name} is marked ${vehicle.status} and cannot be dispatched.`;
+  }
+
+  let vehicleBusyQuery = trx.selectFrom('trips').select('id')
+    .where('tenant_id', '=', tenantId).where('vehicle_id', '=', vehicleId).where('status', '=', 'IN_PROGRESS');
+  if (excludeTripId) vehicleBusyQuery = vehicleBusyQuery.where('id', '!=', excludeTripId);
+  if (await vehicleBusyQuery.executeTakeFirst()) {
+    return `${vehicle.name} is already on an active trip.`;
+  }
+
+  if (driverId) {
+    const driver = await trx.selectFrom('drivers').select(['id', 'name', 'license_expiry'])
+      .where('id', '=', driverId).where('tenant_id', '=', tenantId).executeTakeFirst();
+    if (!driver) return 'Driver not found.';
+    if (driver.license_expiry && new Date(driver.license_expiry) < new Date()) {
+      return `${driver.name}'s license expired on ${new Date(driver.license_expiry).toLocaleDateString()} and cannot be dispatched.`;
+    }
+    let driverBusyQuery = trx.selectFrom('trips').select('id')
+      .where('tenant_id', '=', tenantId).where('driver_id', '=', driverId).where('status', '=', 'IN_PROGRESS');
+    if (excludeTripId) driverBusyQuery = driverBusyQuery.where('id', '!=', excludeTripId);
+    if (await driverBusyQuery.executeTakeFirst()) {
+      return `${driver.name} is already driving another active trip.`;
+    }
+  }
+
+  return null;
+}
+
 export async function fleetOpsRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('tracking'));
@@ -135,7 +187,7 @@ export async function fleetOpsRoutes(fastify: FastifyInstance) {
       let vehicleIssueDelays = 0;
       if (driver.assigned_vehicle_id && late.length > 0) {
         const issues = await trx.selectFrom('vehicle_issues').select(['created_at'])
-          .where('vehicle_id', '=', driver.assigned_vehicle_id)
+          .where('vehicle_id', '=', driver.assigned_vehicle_id).where('tenant_id', '=', user.tenant_id)
           .where('severity', 'in', ['HIGH', 'CRITICAL'])
           .execute();
         for (const t of late) {
@@ -229,11 +281,15 @@ export async function fleetOpsRoutes(fastify: FastifyInstance) {
         .where('d.id', '=', id).where('d.tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!driver) return reply.status(404).send({ error: 'Driver not found' });
 
-      // Fallbacks
+      // custom_id is a real, derivable display code (not fabricated data);
+      // email/joined_date/address below are left null rather than backed by
+      // an invented email domain, a hardcoded 2022 join date, or a US postal
+      // address for a driver who has none of these on file — an absent field
+      // renders as "Not on file" in the UI, which is the honest state.
       const custom_id = `EMP-${id.split('-')[0].toUpperCase()}`;
-      const email = driver.hr_email || `${driver.name.toLowerCase().replace(' ', '.')}@example.com`;
-      const joined_date = driver.hr_joined_date || new Date('2022-01-12').toISOString();
-      const address = '64 Royal Ln. Mesa, New Jersey 4563'; // Mock address
+      const email = driver.hr_email || null;
+      const joined_date = driver.hr_joined_date || null;
+      const address = null;
 
       const vehicle = driver.assigned_vehicle_id
         ? await trx.selectFrom('vehicles').selectAll()
@@ -243,26 +299,20 @@ export async function fleetOpsRoutes(fastify: FastifyInstance) {
       const tripRows = await trx.selectFrom('trips').selectAll()
         .where('driver_id', '=', id).where('tenant_id', '=', user.tenant_id)
         .orderBy('created_at', 'desc').limit(20).execute();
-        
+
+      // Only real trip columns — this used to attach a fixed set of invented
+      // per-trip numbers (item counts, "fuel per litre" in dollars, an
+      // odometer in miles) lifted wholesale from a parcel-courier UI template
+      // and never actually computed from anything, so every trip for every
+      // driver showed the exact same numbers. Bulk-freight trucking has no
+      // "deliverable items"/"cases" concept to begin with; the real,
+      // meaningful fields for a trip already exist on this row.
       const trips = tripRows.map(r => ({
         ...r,
         distance_km: numOrNull(r.distance_km),
-        // Mocking the complex analytical fields requested by the Cureer design
-        delivery_id: `REG-${r.id.split('-')[0].toUpperCase()}`,
-        deliverable_items: 324,
-        total_issue: 4,
-        working_hours: 44,
-        overtime: 8,
-        fuel_purchase: 12.927,
-        fuel_per_litre: 442,
-        fleet_conditions: 'Good',
-        fleet_odometer: 36234,
-        avg_daily_mileage: 237,
-        service_day: 237,
-        carrier_items: 387,
-        issued_items: 44,
-        refunded_items: 14,
-        delivery_accuracy: 4.9,
+        cargo_weight_kg: numOrNull(r.cargo_weight_kg),
+        load_capacity_pct: numOrNull(r.load_capacity_pct),
+        delivery_id: `TRIP-${r.id.slice(0, 8).toUpperCase()}`,
       }));
 
       const fuelLogRows = await trx.selectFrom('fuel_logs').selectAll()
@@ -270,9 +320,15 @@ export async function fleetOpsRoutes(fastify: FastifyInstance) {
         .orderBy('logged_at', 'desc').limit(20).execute();
       const fuelLogs = fuelLogRows.map(r => ({ ...r, liters: Number(r.liters), cost: numOrNull(r.cost), odometer_km: numOrNull(r.odometer_km) }));
 
+      // custom_code/condition are real display derivations (a short id slice,
+      // the vehicle's own status field) — last_checking and capacity_kg are
+      // left out rather than backed by a fixed "18 January 2024"/"782 kg"
+      // that doesn't change per vehicle: the vehicle master record has no
+      // inspection-date or payload-capacity field yet (a real data-model gap,
+      // not something this endpoint should paper over with a constant).
       return {
         driver: { ...driver, custom_id, email, joined_date, address },
-        vehicle: vehicle ? { ...vehicle, custom_code: `FBL-${vehicle.id.split('-')[0].toUpperCase()}`, last_checking: '18 January 2024', capacity_kg: 782, condition: 'Good Condition' } : null,
+        vehicle: vehicle ? { ...vehicle, custom_code: `FBL-${vehicle.id.slice(0, 8).toUpperCase()}`, condition: vehicle.status } : null,
         trips, fuel_logs: fuelLogs
       };
     });
@@ -358,7 +414,7 @@ export async function fleetOpsRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/trips', { preHandler: requireRole(...FLEET_ROLES) }, async (req) => {
+  fastify.post('/trips', { preHandler: requireRole(...FLEET_ROLES) }, async (req, reply) => {
     const user = req.user;
     const body = req.body as {
       vehicle_id: string; driver_id?: string; customer_id?: string;
@@ -368,6 +424,9 @@ export async function fleetOpsRoutes(fastify: FastifyInstance) {
       shipment_id?: string;
     };
     return withTenant(user.tenant_id, async (trx) => {
+      const blocker = await assertDispatchable(trx, user.tenant_id, body.vehicle_id, body.driver_id);
+      if (blocker) return reply.status(400).send({ error: blocker });
+
       const trip = await trx.insertInto('trips').values({
         tenant_id: user.tenant_id,
         vehicle_id: body.vehicle_id,
@@ -403,7 +462,7 @@ export async function fleetOpsRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.patch('/trips/:id', { preHandler: requireRole(...FLEET_ROLES) }, async (req) => {
+  fastify.patch('/trips/:id', { preHandler: requireRole(...FLEET_ROLES) }, async (req, reply) => {
     const user = req.user;
     const { id } = req.params as { id: string };
     const body = req.body as Partial<{
@@ -412,8 +471,23 @@ export async function fleetOpsRoutes(fastify: FastifyInstance) {
       status: string; cargo_desc: string; distance_km: number; notes: string;
       cargo_type: string; cargo_weight_kg: number; cargo_temp_c: number; load_capacity_pct: number;
     }>;
-    return withTenant(user.tenant_id, async (trx) =>
-      trx.updateTable('trips').set({
+    return withTenant(user.tenant_id, async (trx) => {
+      // The actual "dispatch" moment — re-check right here rather than only
+      // at creation, since a trip can sit PLANNED for days before this and
+      // the vehicle/driver's real-world state can change in the meantime
+      // (sent for repairs, put on another trip some other way, license
+      // lapsed). Re-fetches the trip's own vehicle_id since it isn't
+      // patchable through this endpoint.
+      if (body.status === 'IN_PROGRESS') {
+        const trip = await trx.selectFrom('trips').select(['vehicle_id', 'driver_id'])
+          .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+        if (!trip) return reply.status(404).send({ error: 'Trip not found.' });
+        const driverId = body.driver_id !== undefined ? body.driver_id : trip.driver_id;
+        const blocker = await assertDispatchable(trx, user.tenant_id, trip.vehicle_id, driverId, id);
+        if (blocker) return reply.status(400).send({ error: blocker });
+      }
+
+      return trx.updateTable('trips').set({
         ...body,
         scheduled_start: body.scheduled_start ? new Date(body.scheduled_start) : undefined,
         scheduled_end: body.scheduled_end ? new Date(body.scheduled_end) : undefined,
@@ -422,8 +496,8 @@ export async function fleetOpsRoutes(fastify: FastifyInstance) {
         updated_at: new Date(),
       } as any)
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
-        .returningAll().executeTakeFirstOrThrow()
-    );
+        .returningAll().executeTakeFirstOrThrow();
+    });
   });
 
   fastify.delete('/trips/:id', { preHandler: requireRole(...FLEET_ROLES) }, async (req) => {

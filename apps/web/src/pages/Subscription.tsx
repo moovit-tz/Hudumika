@@ -1018,7 +1018,7 @@ function AddonsSection() {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                   <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--navy)' }}>{addon.name}</span>
-                  {addon.purchased && <span style={{ padding: '1px 8px', borderRadius: 20, background: 'var(--green-l)', color: 'var(--green)', fontSize: 10, fontWeight: 700 }}>Active</span>}
+                  {addon.purchased && <span style={{ padding: '1px 8px', borderRadius: 'var(--badge-radius)', background: 'var(--green-l)', color: 'var(--green)', fontSize: 10, fontWeight: 700 }}>Active</span>}
                 </div>
                 <div style={{ fontSize: 15, fontWeight: 800, color: addon.color ?? 'var(--navy)', marginTop: 2 }}>
                   ${addon.monthlyPrice}<span style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink3)' }}>/mo</span>
@@ -1605,7 +1605,7 @@ export const Subscription: React.FC = () => {
         subtitle={`${tenantName} — ${planLabel} Plan · Account & Billing Management`}
         actions={
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <div style={{ padding: '5px 12px', borderRadius: 20, background: tenant?.active ? 'var(--green-l, #ecfdf5)' : 'var(--red-l, #fef2f2)', color: tenant?.active ? 'var(--green, #10b981)' : 'var(--red, #ef4444)', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, border: '1px solid currentColor' }}>
+            <div style={{ padding: '5px 12px', borderRadius: 'var(--badge-radius)', background: tenant?.active ? 'var(--green-l, #ecfdf5)' : 'var(--red-l, #fef2f2)', color: tenant?.active ? 'var(--green, #10b981)' : 'var(--red, #ef4444)', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, border: '1px solid currentColor' }}>
               <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor', display: 'inline-block' }} />
               {tenant?.active ? 'ACTIVE' : 'INACTIVE'}
             </div>

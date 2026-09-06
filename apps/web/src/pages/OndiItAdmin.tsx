@@ -80,7 +80,7 @@ export function OndiItAdmin() {
               </FeaturedIcon>
             </div>
             <div className="ondi-kpi-body">
-              <span className="ondi-kpi-num" style={{ color: failed > 0 ? '#b91c1c' : 'var(--ink)' }}>{recentLogins.length}</span>
+              <span className="ondi-kpi-num" style={{ color: failed > 0 ? 'var(--red)' : 'var(--ink)' }}>{recentLogins.length}</span>
               <span className="ondi-kpi-sub">{failed} failed attempts</span>
             </div>
           </div>
@@ -121,7 +121,7 @@ export function OndiItAdmin() {
         {/* Accounts by Role */}
         <SectionCard title="Accounts by Role" action={cardAction('/ondi/roles', 'Manage Roles')}>
           {byRole.length === 0 ? <div style={{ fontSize: 13, color: 'var(--ink3)' }}>No accounts registered.</div> : byRole.map(([role, n], i) => {
-            const colors = ['var(--teal)', '#1d4ed8', '#7c3aed', '#047857', '#b45309', '#b91c1c', 'var(--ink3)'];
+            const colors = ['var(--teal)', '#1d4ed8', '#7c3aed', 'var(--green)', 'var(--gold)', 'var(--red)', 'var(--ink3)'];
             return (
               <div key={role} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', flex: 1 }}>{role}</span>

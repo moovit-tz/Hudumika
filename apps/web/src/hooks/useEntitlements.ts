@@ -19,10 +19,10 @@ async function fetchEntitlements(): Promise<Entitlements> {
   if (!inflight) {
     inflight = apiFetch('/v1/entitlements')
       .then((r: any) => {
-        cache = { features: r?.features || {}, appStatus: r?.appStatus || {}, usage: r?.usage || EMPTY_USAGE };
+        cache = { features: r?.features || {}, appStatus: r?.appStatus || {}, betaApps: r?.betaApps || [], usage: r?.usage || EMPTY_USAGE };
         return cache!;
       })
-      .catch(() => ({ features: {}, appStatus: {}, usage: EMPTY_USAGE }))
+      .catch(() => ({ features: {}, appStatus: {}, betaApps: [], usage: EMPTY_USAGE }))
       .finally(() => { inflight = null; });
   }
   return inflight;

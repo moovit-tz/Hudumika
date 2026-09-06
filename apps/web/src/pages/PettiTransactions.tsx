@@ -283,7 +283,8 @@ export function PettiTransactions() {
             rows.map(r => {
               const wall = walletsById[r.wallet_id];
               return (
-                <div key={`${r.type}-${r.id}`} className="petti-card-interactive" onClick={() => setSelectedTx(r)} style={{ cursor: 'pointer' }}>
+                <div key={`${r.type}-${r.id}`} className="petti-card-interactive" onClick={() => setSelectedTx(r)} style={{ cursor: 'pointer' }}
+                  role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedTx(r); } }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                     <Badge variant={TYPE_VARIANT[r.type] || 'gray'}>{TYPE_LABEL[r.type] || r.type}</Badge>
                     <span style={{ fontSize: 11, color: 'var(--ink3)' }}>{fmtDate(r.occurred_at)}</span>

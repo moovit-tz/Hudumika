@@ -24,7 +24,7 @@ const STAGE_CFG: Record<string, { label: string; color: string; bg: string; step
   CUSTOMS:     { label: 'Customs',        color: 'var(--gold)', bg: 'var(--gold-l)', step: 3 },
   DUTY:        { label: 'Duty Payment',   color: '#ea580c', bg: 'var(--gold-l)', step: 4 },
   RELEASE:     { label: 'Port Release',   color: '#0d7a6b', bg: '#ccfbf1', step: 5 },
-  DELIVERY:    { label: 'Delivery',       color: '#059669', bg: 'var(--green-l)', step: 6 },
+  DELIVERY:    { label: 'Delivery',       color: 'var(--green)', bg: 'var(--green-l)', step: 6 },
   CLOSED:      { label: 'Completed',      color: 'var(--ink2)', bg: '#f3f4f6', step: 7 },
 };
 const TOTAL_STEPS = 7;
@@ -75,11 +75,11 @@ function ShipmentCard({ s }: { s: ShipmentCase & { active_risk_types?: string[] 
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
         <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', flex: 1 }}>{s.ref_number}</span>
         {atRisk && (
-          <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--red)', background: 'var(--red-l)', borderRadius: 20, padding: '2px 8px' }}>
+          <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--red)', background: 'var(--red-l)', borderRadius: 'var(--badge-radius)', padding: '2px 8px' }}>
             At Risk
           </span>
         )}
-        <span style={{ fontSize: 11, fontWeight: 600, color: cfg.color, background: cfg.bg, borderRadius: 20, padding: '2px 9px' }}>
+        <span style={{ fontSize: 11, fontWeight: 600, color: cfg.color, background: cfg.bg, borderRadius: 'var(--badge-radius)', padding: '2px 9px' }}>
           {cfg.label}
         </span>
       </div>
@@ -271,7 +271,7 @@ export const CustomerDashboard: React.FC = () => {
                 <div style={{ fontSize: 10.5, color: 'var(--ink3)' }}>CO₂ emissions ({co2Calculated.length} of {shipments.length} shipments)</div>
               </div>
               <div>
-                <div style={{ fontSize: 16, fontWeight: 800, color: '#059669' }}>{totalCredits.toFixed(2)}</div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--green)' }}>{totalCredits.toFixed(2)}</div>
                 <div style={{ fontSize: 10.5, color: 'var(--ink3)' }}>Credits saved (est.)</div>
               </div>
             </div>
@@ -290,7 +290,7 @@ export const CustomerDashboard: React.FC = () => {
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 10 }}>
             {[
               { label: 'Pending',  value: finLoading ? '…' : fmtAmt(totalPending), icon: 'clock',      color: 'var(--gold)', bg: 'var(--gold-l)' },
-              { label: 'Paid',     value: finLoading ? '…' : fmtAmt(totalPaid),    icon: 'checkCircle', color: '#059669', bg: 'var(--green-l)' },
+              { label: 'Paid',     value: finLoading ? '…' : fmtAmt(totalPaid),    icon: 'checkCircle', color: 'var(--green)', bg: 'var(--green-l)' },
             ].map(c => (
               <div key={c.label} style={{
                 background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)',

@@ -23,7 +23,7 @@ export function FlagChip({ flag, hero }: { flag: Flag; hero?: boolean }) {
   // dark pill, because a light tint would disappear against an arbitrary image.
   if (hero) {
     return (
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', borderRadius: 20, fontSize: 10.5, fontWeight: 700, background: 'rgba(0,0,0,0.3)', color: '#fff', border: '1px solid rgba(255,255,255,0.35)', whiteSpace: 'nowrap', letterSpacing: '0.04em', backdropFilter: 'blur(4px)' }}>
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', borderRadius: 'var(--badge-radius)', fontSize: 10.5, fontWeight: 700, background: 'rgba(0,0,0,0.3)', color: '#fff', border: '1px solid rgba(255,255,255,0.35)', whiteSpace: 'nowrap', letterSpacing: '0.04em', backdropFilter: 'blur(4px)' }}>
         <Icon name={cfg.icon as IconName} size={10} color={cfg.color} />{cfg.label}
       </span>
     );

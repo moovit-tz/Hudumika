@@ -1785,8 +1785,14 @@ export interface ConsignmentTripsTable {
 
 export interface BorderCrossingsTable {
   id: Generated<string>;
-  consignment_id: string;
+  /** Migration 396: real tenant_id column — previously scoped only via a
+   *  subquery through consignment_id, which broke once that became optional. */
+  tenant_id: string;
+  consignment_id: string | null;
   trip_id: string | null;
+  /** Migration 396: a real fleet trip (the `trips` table) this crossing
+   *  belongs to, alongside/instead of the older consignment_id link. */
+  fleet_trip_id: string | null;
   border_name: string;
   country_from: string;
   country_to: string;
@@ -3957,6 +3963,7 @@ export interface AppStatusTable {
   app_id: string;
   status: Generated<string>;
   message: string | null;
+  is_beta: Generated<boolean>;
   updated_by: string | null;
   updated_at: Generated<Date>;
 }
@@ -5867,6 +5874,8 @@ export interface VehiclesTable {
   out_of_service_date: DateOnlyNull;
   out_of_service_odometer: number | null;
   lifecycle_notes: string | null;
+  transporter_id: string | null;
+  device_secret: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -6010,6 +6019,7 @@ export interface TripsTable {
   tenant_id: string;
   vehicle_id: string;
   driver_id: string | null;
+  trailer_id: string | null;
   customer_id: string | null;
   origin: string | null;
   destination: string | null;
@@ -6140,6 +6150,55 @@ export interface VehicleDocumentsTable {
   id: Generated<string>;
   tenant_id: string;
   vehicle_id: string;
+  doc_type: Generated<string>;
+  doc_number: string | null;
+  issued_date: DateOnlyNull;
+  expiry_date: DateOnlyNull;
+  file_url: string | null;
+  notes: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+/** Migration 396. */
+export interface TransportersTable {
+  id: Generated<string>;
+  tenant_id: string;
+  name: string;
+  contact_name: string | null;
+  phone: string | null;
+  email: string | null;
+  contract_ref: string | null;
+  rate_notes: string | null;
+  status: Generated<string>;
+  notes: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+/** Migration 396. */
+export interface TrailersTable {
+  id: Generated<string>;
+  tenant_id: string;
+  name: string;
+  registration_number: string | null;
+  vin: string | null;
+  trailer_type: Generated<string>;
+  capacity_kg: number | null;
+  axles: number | null;
+  ownership: Generated<string>;
+  transporter_id: string | null;
+  status: Generated<string>;
+  notes: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+/** Migration 396. */
+export interface TrailerDocumentsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  trailer_id: string;
   doc_type: Generated<string>;
   doc_number: string | null;
   issued_date: DateOnlyNull;

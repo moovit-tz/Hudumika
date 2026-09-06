@@ -28,7 +28,7 @@ export type OndiEventType =
   | 'phone_otp_issued' | 'phone_verified'
   | 'magic_link_requested' | 'magic_link_login'
   | 'passkey_added' | 'passkey_removed' | 'passkey_login'
-  | 'google_login' | 'microsoft_login' | 'saml_login'
+  | 'google_login' | 'microsoft_login' | 'apple_login' | 'saml_login'
   | 'device_renamed' | 'session_revoked'
   | 'access_denied'
   | 'kyc_submitted' | 'kyc_approved' | 'kyc_rejected'

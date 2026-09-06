@@ -54,7 +54,7 @@ const LEAVE_TYPE_COLORS: Record<string, string> = {
 const leaveTypeColor = (code: string) => LEAVE_TYPE_COLORS[String(code || '').toUpperCase()] || 'var(--teal)';
 
 /* -- Shared helpers -- */
-const AVATAR_COLORS = ['#e8461a','#0891b2','#7c3aed','#059669','#d97706','#9333ea'];
+const AVATAR_COLORS = ['#e8461a','#0891b2','#7c3aed','var(--green)','var(--gold)','#9333ea'];
 function avatarColor(n: string) { return AVATAR_COLORS[[...(n ?? '?')].reduce((a,c) => a + c.charCodeAt(0), 0) % AVATAR_COLORS.length]; }
 function ini(n: string) { return n.split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase(); }
 function fmtTZS(n: number) { return 'TZS ' + n.toLocaleString(); }
@@ -618,6 +618,7 @@ export function RolesPage() {
           const isActive = selected === key;
           return (
             <div key={key} onClick={() => setSelected(isActive ? null : key)}
+              role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelected(isActive ? null : key); } }}
               style={{ background:'var(--white)', borderRadius:10, border:`2px solid ${isActive ? meta.color : 'var(--border)'}`,
                 padding:20, cursor:'pointer', transition:'all 0.15s',
                 boxShadow: isActive ? '0 4px 20px rgba(0,0,0,0.08)' : '0 1px 4px rgba(0,0,0,0.04)',
@@ -1380,9 +1381,9 @@ export function LeavesPage() {
 
   const getStatusBadgeClass = (s: string) => {
     switch (s.toUpperCase()) {
-      case 'APPROVED': return { bg: '#dcfce7', color: '#15803d', text: 'Approved' };
-      case 'REJECTED': return { bg: '#fee2e2', color: '#b91c1c', text: 'Rejected' };
-      default: return { bg: '#fef3c7', color: '#b45309', text: 'New / Pending' };
+      case 'APPROVED': return { bg: 'var(--green-l)', color: 'var(--green)', text: 'Approved' };
+      case 'REJECTED': return { bg: 'var(--red-l)', color: 'var(--red)', text: 'Rejected' };
+      default: return { bg: 'var(--gold-l)', color: 'var(--gold)', text: 'New / Pending' };
     }
   };
 
@@ -1837,10 +1838,10 @@ export function AttendancePage() {
                       const isWeekend = d.getDay() === 0 || d.getDay() === 6;
                       let bg = '#fff';
                       let symbol = 'P';
-                      if (isWeekend) { bg = '#f8fafc'; symbol = 'W'; }
-                      else if (rec?.status === 'Late') { bg = '#ffedd5'; symbol = 'L'; }
-                      else if (rec?.status === 'Absent') { bg = '#fee2e2'; symbol = 'A'; }
-                      else if (rec?.status === 'Present') { bg = '#dcfce7'; symbol = 'P'; }
+                      if (isWeekend) { bg = 'var(--bg)'; symbol = 'W'; }
+                      else if (rec?.status === 'Late') { bg = 'var(--gold-l)'; symbol = 'L'; }
+                      else if (rec?.status === 'Absent') { bg = 'var(--red-l)'; symbol = 'A'; }
+                      else if (rec?.status === 'Present') { bg = 'var(--green-l)'; symbol = 'P'; }
                       return (
                         <td key={dStr} style={{ textAlign: 'center', padding: 4, background: bg, fontSize: 11, fontWeight: 700, borderRight: '1px solid #f1f5f9' }}>
                           {symbol}
@@ -1911,7 +1912,7 @@ export function AttendancePage() {
                     <TD bold>{d.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' })}</TD>
                     <TD>
                       {a ? (
-                        <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 4, background: a.status === 'Present' ? '#dcfce7' : a.status === 'Late' ? '#ffedd5' : '#fee2e2', color: a.status === 'Present' ? '#15803d' : a.status === 'Late' ? '#c2410c' : '#b91c1c', fontWeight: 700 }}>
+                        <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 4, background: a.status === 'Present' ? 'var(--green-l)' : a.status === 'Late' ? 'var(--gold-l)' : 'var(--red-l)', color: a.status === 'Present' ? 'var(--green)' : a.status === 'Late' ? 'var(--gold)' : 'var(--red)', fontWeight: 700 }}>
                           {a.status}
                         </span>
                       ) : (
@@ -2043,7 +2044,7 @@ const DEVICE_STATUS_STYLE: Record<string, { bg: string; color: string; label: st
 };
 function DeviceStatusBadge({ status }: { status: string }) {
   const s = DEVICE_STATUS_STYLE[status] ?? DEVICE_STATUS_STYLE.unregistered;
-  return <span style={{ padding: '2px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: s.bg, color: s.color, whiteSpace: 'nowrap' }}>{s.label}</span>;
+  return <span style={{ padding: '2px 10px', borderRadius: 'var(--badge-radius)', fontSize: 11, fontWeight: 700, background: s.bg, color: s.color, whiteSpace: 'nowrap' }}>{s.label}</span>;
 }
 function relTime(iso: string | null): string {
   if (!iso) return 'Never';
@@ -3030,12 +3031,12 @@ export function PayrollPage() {
       case 'PAID':
       case 'APPROVED':
       case 'COMPLETED':
-        return { bg: '#dbeafe', color: '#1d4ed8', label: 'Completed' };
+        return { bg: 'var(--blue-l)', color: 'var(--blue)', label: 'Completed' };
       case 'REJECTED':
       case 'REJECT':
-        return { bg: '#fee2e2', color: '#b91c1c', label: 'Reject' };
+        return { bg: 'var(--red-l)', color: 'var(--red)', label: 'Reject' };
       default:
-        return { bg: '#ffedd5', color: '#c2410c', label: 'Pending' };
+        return { bg: 'var(--gold-l)', color: 'var(--gold)', label: 'Pending' };
     }
   };
 
@@ -3956,7 +3957,7 @@ export function HrmDashboard() {
                   <div style={{ fontSize: 24, fontWeight: 800, color: attRate >= 70 ? 'var(--green)' : 'var(--red)' }}>{attRate}%</div>
                 </div>
                 <div style={{
-                  padding: '6px 14px', borderRadius: 20, fontSize: 12, fontWeight: 700,
+                  padding: '6px 14px', borderRadius: 'var(--badge-radius)', fontSize: 12, fontWeight: 700,
                   background: attRate >= 70 ? 'rgba(5,150,105,0.12)' : 'rgba(225,29,72,0.12)',
                   color: attRate >= 70 ? 'var(--green)' : 'var(--red)'
                 }}>

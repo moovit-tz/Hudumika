@@ -27,14 +27,14 @@ interface PlatformDevice {
 }
 
 const DEVICE_STATUS_TINT: Record<string, { bg: string; color: string; label: string }> = {
-  online:       { bg: 'var(--green-l)', color: '#059669',    label: 'Online' },
+  online:       { bg: 'var(--green-l)', color: 'var(--green)',    label: 'Online' },
   offline:      { bg: 'var(--bg)',      color: 'var(--ink3)', label: 'Offline' },
   unregistered: { bg: 'var(--bg)',      color: 'var(--ink3)', label: 'Awaiting first sync' },
   error:        { bg: 'var(--red-l)',   color: 'var(--red)',  label: 'Error' },
 };
 function PlatformDeviceStatusBadge({ status }: { status: string }) {
   const s = DEVICE_STATUS_TINT[status] ?? DEVICE_STATUS_TINT.unregistered;
-  return <span style={{ padding: '2px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: s.bg, color: s.color, whiteSpace: 'nowrap' }}>{s.label}</span>;
+  return <span style={{ padding: '2px 10px', borderRadius: 'var(--badge-radius)', fontSize: 11, fontWeight: 700, background: s.bg, color: s.color, whiteSpace: 'nowrap' }}>{s.label}</span>;
 }
 
 function relTimeShort(iso: string | null): string {

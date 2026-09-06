@@ -90,7 +90,7 @@ export function ComplianceOverview() {
     teal: isDark ? '#6c8ec4' : '#0b1e3a',
     gold: isDark ? '#c8920a' : '#9a6700',
     red:  isDark ? '#e84040' : '#cf222e',
-    green: isDark ? '#10b981' : '#059669',
+    green: isDark ? '#10b981' : 'var(--green)',
     blue: isDark ? '#4a9ef5' : '#0550ae',
     gridLine: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
     axisText: isDark ? '#94a3b8' : '#94a3b8',

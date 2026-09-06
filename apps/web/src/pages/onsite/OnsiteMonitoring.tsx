@@ -147,7 +147,7 @@ export function OnsiteMonitoring() {
                         {c.method}
                       </span>
                     </td>
-                    <td style={{ fontWeight: 600, color: c.uptime_30d == null ? 'var(--ink-muted)' : Number(c.uptime_30d) >= 99 ? '#059669' : '#ef4444' }}>
+                    <td style={{ fontWeight: 600, color: c.uptime_30d == null ? 'var(--ink-muted)' : Number(c.uptime_30d) >= 99 ? 'var(--green)' : '#ef4444' }}>
                       {c.uptime_30d != null ? `${c.uptime_30d}%` : 'Not measured yet'}
                       {/* The measurement's own timestamp, so a stale figure is
                           visibly stale rather than quietly current. */}

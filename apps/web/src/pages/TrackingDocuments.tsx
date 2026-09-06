@@ -105,9 +105,9 @@ export const TrackingDocuments: React.FC = () => {
   function expiryStatus(date: string | null): { label: string; bg: string; fg: string } | null {
     if (!date) return null;
     const days = (new Date(date).getTime() - Date.now()) / 86_400_000;
-    if (days < 0) return { label: 'EXPIRED', bg: 'var(--red-l)', fg: '#dc2626' };
-    if (days < 30) return { label: 'EXPIRING SOON', bg: 'var(--gold-l)', fg: '#ca8a04' };
-    return { label: 'VALID', bg: 'var(--green-l)', fg: '#065f46' };
+    if (days < 0) return { label: 'EXPIRED', bg: 'var(--red-l)', fg: 'var(--red)' };
+    if (days < 30) return { label: 'EXPIRING SOON', bg: 'var(--gold-l)', fg: 'var(--gold)' };
+    return { label: 'VALID', bg: 'var(--green-l)', fg: 'var(--green)' };
   }
 
   async function remove(id: string) {
@@ -154,7 +154,7 @@ export const TrackingDocuments: React.FC = () => {
                   <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{d.doc_number || '—'}</td>
                   <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{d.expiry_date ? new Date(d.expiry_date).toLocaleDateString() : '—'}</td>
                   <td style={{ padding: '10px 14px' }}>
-                    {st && <span style={{ fontSize: 11, fontWeight: 700, borderRadius: 20, padding: '2px 10px', background: st.bg, color: st.fg }}>{st.label}</span>}
+                    {st && <span style={{ fontSize: 11, fontWeight: 700, borderRadius: 'var(--badge-radius)', padding: '2px 10px', background: st.bg, color: st.fg }}>{st.label}</span>}
                   </td>
                   <td style={{ padding: '10px 14px', textAlign: 'right' }}>
                     <button type="button" onClick={() => remove(d.id)} title="Remove" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}>

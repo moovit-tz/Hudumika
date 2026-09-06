@@ -100,7 +100,7 @@ function VendorDetail({ vendor, bills, expenses, purchaseOrders, onClose, onEdit
         {/* Balance summary */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
           {[
-            { label: 'Outstanding', value: fmt(vendor.balance), color: vendor.balance > 0 ? '#dc2626' : '#059669' },
+            { label: 'Outstanding', value: fmt(vendor.balance), color: vendor.balance > 0 ? 'var(--red)' : 'var(--green)' },
             { label: 'Total Paid', value: fmt(vendor.totalPaid), color: 'var(--ink)' },
           ].map(c => (
             <div key={c.label} style={{ padding: '14px 16px', background: 'var(--bg)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
@@ -597,7 +597,7 @@ export function FinanceVendors() {
                     <td style={{ padding: '12px 14px', color: 'var(--ink2)', whiteSpace: 'nowrap' }}>{VENDOR_CATEGORY_LABEL[v.category]}</td>
                     <td style={{ padding: '12px 14px', color: 'var(--ink2)' }}>{v.contactPerson || '—'}</td>
                     <td style={{ padding: '12px 14px', color: 'var(--ink2)', whiteSpace: 'nowrap', fontFamily: 'var(--mono)', fontSize: 12 }}>{v.phone || '—'}</td>
-                    <td style={{ padding: '12px 14px', fontWeight: 700, color: v.balance > 0 ? '#dc2626' : 'var(--ink3)', fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>{fmt(v.balance)}</td>
+                    <td style={{ padding: '12px 14px', fontWeight: 700, color: v.balance > 0 ? 'var(--red)' : 'var(--ink3)', fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>{fmt(v.balance)}</td>
                     <td style={{ padding: '12px 14px' }}>
                       <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 'var(--r-sm)', fontWeight: 700, ...sc }}>{v.status.toUpperCase()}</span>
                     </td>
@@ -610,7 +610,7 @@ export function FinanceVendors() {
                       </button>
                       <button type="button" title="Delete" onClick={e => { e.stopPropagation(); handleDelete(v.id); }}
                         style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--ink3)', borderRadius: 'var(--r)' }}
-                        onMouseEnter={e => (e.currentTarget.style.color = '#dc2626')}
+                        onMouseEnter={e => (e.currentTarget.style.color = 'var(--red)')}
                         onMouseLeave={e => (e.currentTarget.style.color = 'var(--ink3)')}>
                         <Icon name="trash2" size={14} />
                       </button>

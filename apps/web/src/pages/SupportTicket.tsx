@@ -245,7 +245,8 @@ export const SupportTicket: React.FC = () => {
               {/* File upload */}
               <div className="st-field">
                 <label className="st-label">Attachments <span style={{ fontWeight: 400, color: '#64756B' }}>(optional, max 5 files)</span></label>
-                <div className="st-upload-zone" onClick={() => fileRef.current?.click()}>
+                <div className="st-upload-zone" onClick={() => fileRef.current?.click()}
+                  role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileRef.current?.click(); } }}>
                   <input ref={fileRef} type="file" multiple accept=".pdf,.png,.jpg,.jpeg,.gif,.xlsx,.csv,.docx,.zip,.txt" onChange={handleFiles} tabIndex={-1} />
                   <div className="st-upload-icon" style={{ display: 'flex', justifyContent: 'center' }}><Icon name="paperclip" size={22} color="#64756B" /></div>
                   <div className="st-upload-label">Click to attach files or drag & drop</div>
@@ -276,7 +277,7 @@ export const SupportTicket: React.FC = () => {
             <div className="st-form-foot">
               <div className="st-form-note">
                 <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-                Your information is encrypted and handled per our <Link to="/privacy" style={{ color: '#059669' }}>Privacy Policy</Link>
+                Your information is encrypted and handled per our <Link to="/privacy" style={{ color: 'var(--green)' }}>Privacy Policy</Link>
               </div>
               <button type="submit" className="st-submit-btn" disabled={!canSubmit || submitting}>
                 {submitting ? (

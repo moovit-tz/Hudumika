@@ -142,6 +142,7 @@ export function BankReconciliation() {
           {statements.length === 0 && <div style={{ fontSize: 13, color: 'var(--ink3)', padding: '20px 0' }}>No statements imported yet.</div>}
           {statements.map(s => (
             <div key={s.id} onClick={() => setSelectedId(s.id)}
+              role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedId(s.id); } }}
               style={{ padding: '12px 14px', borderRadius: 'var(--r)', cursor: 'pointer', border: selectedId === s.id ? '1.5px solid var(--teal)' : '1px solid var(--border)', background: selectedId === s.id ? 'var(--teal-l)' : 'var(--white)' }}>
               <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)' }}>{s.bank_name || 'Bank Account'}</div>
               <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>{new Date(s.statement_date_from).toLocaleDateString('en-GB')} – {new Date(s.statement_date_to).toLocaleDateString('en-GB')}</div>

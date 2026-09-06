@@ -170,7 +170,7 @@ const LEAVE_TONE: Record<string, { bg: string; fg: string }> = {
 function Pill({ text, tone }: { text: string; tone?: { bg: string; fg: string } }) {
   return (
     <span style={{
-      fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 20,
+      fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 'var(--badge-radius)',
       background: tone?.bg ?? 'var(--bg)', color: tone?.fg ?? 'var(--ink3)',
     }}>{text}</span>
   );

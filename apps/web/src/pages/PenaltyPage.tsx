@@ -26,7 +26,7 @@ function RRow({ label, value, red }: { label: string; value: string; red?: boole
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 0', borderBottom: '1px solid var(--border)' }}>
       <span style={{ fontSize: red ? 13 : 12.5, color: 'var(--ink2)', fontWeight: red ? 700 : 400 }}>{label}</span>
-      <span style={{ fontSize: red ? 15 : 13, fontWeight: 700, color: red ? '#dc2626' : 'var(--ink)' }}>{value}</span>
+      <span style={{ fontSize: red ? 15 : 13, fontWeight: 700, color: red ? 'var(--red)' : 'var(--ink)' }}>{value}</span>
     </div>
   );
 }

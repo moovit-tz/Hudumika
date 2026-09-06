@@ -2258,7 +2258,9 @@ function VerticalStepBar({ current, setStep }: { current: number; setStep: (s: W
         const isDone = i < current;
         const isActive = i === current;
         return (
-          <div key={i} style={{ display: 'flex', gap: 14, cursor: isDone ? 'pointer' : 'default' }} onClick={() => isDone && setStep((i + 1) as any)}>
+          <div key={i} style={{ display: 'flex', gap: 14, cursor: isDone ? 'pointer' : 'default' }} onClick={() => isDone && setStep((i + 1) as any)}
+            role={isDone ? 'button' : undefined} tabIndex={isDone ? 0 : undefined}
+            onKeyDown={e => { if ((e.key === 'Enter' || e.key === ' ') && isDone) { e.preventDefault(); setStep((i + 1) as any); } }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
               <div style={{
                 width: 36, height: 36, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',

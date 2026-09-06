@@ -482,13 +482,18 @@ export const EmailApp: React.FC = () => {
                   key={email.id}
                   className={`em-row${!email.read ? ' em-row--unread' : ''}${selectedId === email.id ? ' em-row--selected' : ''}`}
                   onClick={() => selectEmail(email.id)}
+                  role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectEmail(email.id); } }}
                 >
-                  <div className="em-row-check-wrap" onClick={ev => toggleSelect(email.id, ev)}>
+                  <div className="em-row-check-wrap" onClick={ev => toggleSelect(email.id, ev)}
+                    role="button" tabIndex={0} aria-label="Select email"
+                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); toggleSelect(email.id, e as any); } }}>
                     <span className={`em-row-check${selected.has(email.id) ? ' em-row-check--on' : ''}`}>
                       {selected.has(email.id) && <Icon name="check" size={10} color="#fff" />}
                     </span>
                   </div>
-                  <div className="em-row-star" onClick={ev => toggleStar(email.id, ev)}>
+                  <div className="em-row-star" onClick={ev => toggleStar(email.id, ev)}
+                    role="button" tabIndex={0} aria-label={email.starred ? 'Unstar' : 'Star'}
+                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); toggleStar(email.id, e as any); } }}>
                     <Icon name="star" size={16} color={email.starred ? '#f4b400' : 'var(--border)'} />
                   </div>
                   <PersonAvatar userId={email.from.userId} name={email.from.name} size={24} style={{ marginRight: 8, flexShrink: 0 }} />
@@ -632,7 +637,8 @@ export const EmailApp: React.FC = () => {
 
               {aiPanelOpen && (
                 <div className="em-ai-panel">
-                  <div className="em-ai-panel-hdr" onClick={() => setAiPanelOpen(v => !v)}>
+                  <div className="em-ai-panel-hdr" onClick={() => setAiPanelOpen(v => !v)}
+                    role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setAiPanelOpen(v => !v); } }}>
                     <Icon name="zap" size={15} color="var(--teal)" />
                     <span>AI Summary</span>
                     <Icon name={aiPanelOpen ? 'chevronUp' : 'chevronDown'} size={13} color="var(--teal)" />

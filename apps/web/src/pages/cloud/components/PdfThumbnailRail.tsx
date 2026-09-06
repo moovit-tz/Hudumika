@@ -33,7 +33,8 @@ function Thumb({ doc, pageNumber, active, onClick }: {
   }, [active]);
 
   return (
-    <div ref={wrapRef} className={`pdf-thumb${active ? ' pdf-thumb--active' : ''}`} onClick={onClick}>
+    <div ref={wrapRef} className={`pdf-thumb${active ? ' pdf-thumb--active' : ''}`} onClick={onClick}
+      role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } }}>
       <div className="pdf-thumb-page">
         {visible && <PdfPageCanvas doc={doc} pageNumber={pageNumber} scale={THUMB_SCALE} />}
       </div>

@@ -132,7 +132,7 @@ export function ComplyObligations() {
             <TabsTrigger key={f.key} value={f.key}>
               {f.label}
               {f.key !== 'all' && (
-                <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 20, lineHeight: 1.5, background: isActive ? 'var(--teal-l)' : 'var(--bg)', color: isActive ? 'var(--teal)' : 'var(--ink3)' }}>
+                <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 'var(--badge-radius)', lineHeight: 1.5, background: isActive ? 'var(--teal-l)' : 'var(--bg)', color: isActive ? 'var(--teal)' : 'var(--ink3)' }}>
                   {stats[f.key as keyof typeof stats] ?? 0}
                 </span>
               )}

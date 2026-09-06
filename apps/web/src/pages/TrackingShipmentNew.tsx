@@ -157,12 +157,14 @@ export const TrackingShipmentNew: React.FC = () => {
       {step === 1 && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
           <div onClick={() => chooseJobType('CLEARANCE_LINKED')}
+            role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); chooseJobType('CLEARANCE_LINKED'); } }}
             style={{ ...cardStyle, cursor: 'pointer', borderColor: jobType === 'CLEARANCE_LINKED' ? 'var(--teal)' : 'var(--border)' }}>
             <Icon name="shield" size={22} color="var(--teal)" />
             <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', margin: '10px 0 4px' }}>Linked to ClearOS Shipment</div>
             <div style={{ fontSize: 12.5, color: 'var(--ink3)', lineHeight: 1.5 }}>This cargo has an existing customs clearance case. Search and attach it, and its details carry over automatically.</div>
           </div>
           <div onClick={() => chooseJobType('TRANSPORT_ONLY')}
+            role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); chooseJobType('TRANSPORT_ONLY'); } }}
             style={{ ...cardStyle, cursor: 'pointer', borderColor: jobType === 'TRANSPORT_ONLY' ? 'var(--teal)' : 'var(--border)' }}>
             <Icon name="truck" size={22} color="var(--teal)" />
             <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', margin: '10px 0 4px' }}>Transport Only</div>
@@ -182,6 +184,7 @@ export const TrackingShipmentNew: React.FC = () => {
             {searching && <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>Searching…</div>}
             {shipmentResults.map(s => (
               <div key={s.id} onClick={() => setSelectedShipment(s)}
+                role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedShipment(s); } }}
                 style={{ padding: '12px 14px', borderRadius: 'var(--r)', border: `1.5px solid ${selectedShipment?.id === s.id ? 'var(--teal)' : 'var(--border)'}`, cursor: 'pointer', background: selectedShipment?.id === s.id ? 'var(--teal-l)' : 'var(--white)' }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{s.ref_number} <span style={{ fontWeight: 400, color: 'var(--ink3)' }}>· {s.stage}</span></div>
                 <div style={{ fontSize: 12, color: 'var(--ink2)', marginTop: 2 }}>{s.customer_name || 'Unknown customer'} — {s.goods_desc}</div>

@@ -9,22 +9,22 @@ import { AvatarPicker } from '../components/AvatarPicker.js';
 
 interface DriverEnriched {
   id: string; name: string; phone: string | null; license_number: string | null;
-  status: string; avatar_url: string | null; custom_id: string; email: string;
-  joined_date: string; address: string;
+  status: string; avatar_url: string | null; custom_id: string; email: string | null;
+  joined_date: string | null; address: string | null;
 }
 
 interface VehicleEnriched {
   id: string; name: string; plate_number: string | null; custom_code: string;
-  last_checking: string; capacity_kg: number; condition: string;
+  condition: string;
 }
 
 interface TripEnriched {
   id: string; origin: string | null; destination: string | null; status: string;
   created_at: string; delivery_id: string; distance_km: number | null;
-  deliverable_items: number; total_issue: number; working_hours: number; overtime: number;
-  fuel_purchase: number; fuel_per_litre: number; fleet_conditions: string;
-  fleet_odometer: number; avg_daily_mileage: number; service_day: number;
-  carrier_items: number; issued_items: number; refunded_items: number; delivery_accuracy: number;
+  scheduled_start: string | null; scheduled_end: string | null;
+  actual_start: string | null; actual_end: string | null;
+  cargo_desc: string | null; cargo_type: string | null;
+  cargo_weight_kg: number | null; load_capacity_pct: number | null;
 }
 
 interface DetailPayload {
@@ -106,9 +106,9 @@ export const TrackingDriverDetail: React.FC = () => {
         {/* Header */}
         <div className="dd-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <div style={{ cursor: 'pointer', padding: 8, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 8 }} onClick={() => navigate('/tracking/drivers')}>
+            <button type="button" aria-label="Back to drivers" style={{ cursor: 'pointer', padding: 8, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 8 }} onClick={() => navigate('/tracking/drivers')}>
               <Icon name="arrowLeft" size={16} color="var(--ink)" />
-            </div>
+            </button>
             <div className="dd-search-bar">
               <Icon name="search" size={16} color="var(--ink3)" />
               <input placeholder="Search Stock or Orders" />
@@ -134,7 +134,7 @@ export const TrackingDriverDetail: React.FC = () => {
               <div className="dd-alert-icon"><Icon name="alertTriangle" size={16} /></div>
               <div className="dd-alert-text">{driver.name} has some unverified information</div>
             </div>
-            <div className="dd-alert-close" onClick={() => setDismissAlert(true)}><Icon name="x" size={16} /></div>
+            <button type="button" aria-label="Dismiss" className="dd-alert-close" onClick={() => setDismissAlert(true)}><Icon name="x" size={16} /></button>
           </div>
         )}
 
@@ -183,18 +183,20 @@ export const TrackingDriverDetail: React.FC = () => {
                 )}
                 <div className="dd-courier-badges">
                   <span className="dd-courier-badge">Courier Code: {driver.custom_id}</span>
-                  <span className="dd-courier-badge">Joined {new Date(driver.joined_date).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
+                  {driver.joined_date && (
+                    <span className="dd-courier-badge">Joined {new Date(driver.joined_date).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
+                  )}
                 </div>
               </div>
             </div>
             <div className="dd-info-grid">
               <div className="dd-info-item">
                 <span className="dd-info-label">Email</span>
-                <span className="dd-info-value">{driver.email}</span>
+                <span className="dd-info-value">{driver.email || 'Not on file'}</span>
               </div>
               <div className="dd-info-item">
                 <span className="dd-info-label">Address</span>
-                <span className="dd-info-value">{driver.address}</span>
+                <span className="dd-info-value">{driver.address || 'Not on file'}</span>
               </div>
               <div className="dd-info-item">
                 <span className="dd-info-label">Phone Number</span>
@@ -253,12 +255,8 @@ export const TrackingDriverDetail: React.FC = () => {
                 <span className="dd-info-value">{vehicle ? vehicle.custom_code : '—'}</span>
               </div>
               <div className="dd-info-item">
-                <span className="dd-info-label">Last Checking</span>
-                <span className="dd-info-value">{vehicle ? vehicle.last_checking : '—'}</span>
-              </div>
-              <div className="dd-info-item">
-                <span className="dd-info-label">Fleet Capacity</span>
-                <span className="dd-info-value">{vehicle ? `${vehicle.capacity_kg} kg` : '—'}</span>
+                <span className="dd-info-label">Plate Number</span>
+                <span className="dd-info-value">{vehicle?.plate_number || '—'}</span>
               </div>
               <div className="dd-info-item">
                 <span className="dd-info-label">Fleet Condition</span>
@@ -293,13 +291,14 @@ export const TrackingDriverDetail: React.FC = () => {
             {activeTab === 'Courier Report' && trips.length === 0 && <div style={{ color: 'var(--ink3)' }}>No recent deliveries found.</div>}
             {activeTab === 'Courier Report' && trips.map(t => (
               <div key={t.id} className="dd-report-item">
-                <div className="dd-report-header" style={{ cursor: 'pointer' }} onClick={() => toggleTrip(t.id)}>
+                <div className="dd-report-header" style={{ cursor: 'pointer' }} onClick={() => toggleTrip(t.id)}
+                  role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleTrip(t.id); } }}>
                   <div>
                     <div className="dd-route-title">{t.origin || 'Unknown'} <Icon name="arrowRight" size={14} style={{ margin: '0 8px', color: 'var(--ink3)' }}/> {t.destination || 'Unknown'}</div>
                     <div className="dd-route-meta">
                       <span>{new Date(t.created_at).toLocaleDateString()}</span>
                       <span style={{ color: 'var(--border2)' }}>|</span>
-                      <span>{t.distance_km || 0} Miles Distance</span>
+                      <span>{t.distance_km != null ? `${t.distance_km} km` : 'Distance not logged'}</span>
                     </div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
@@ -312,84 +311,68 @@ export const TrackingDriverDetail: React.FC = () => {
 
                 {expandedTrips[t.id] && (
                   <>
+                    {/* Every figure here comes straight off the trip row. This
+                        used to be a fixed set of invented numbers (item
+                        counts, a "fuel per litre" cost in dollars, an
+                        odometer in miles) attached to every trip regardless
+                        of driver or route — bulk-freight trucking has no
+                        "deliverable items"/"cases" concept in the first
+                        place, and none of it was ever computed from anything. */}
                     <div className="dd-metrics-row">
                       <div className="dd-metric">
-                        <span className="dd-metric-label">Delivery ID</span>
+                        <span className="dd-metric-label">Trip ID</span>
                         <span className="dd-metric-val">{t.delivery_id}</span>
                       </div>
                       <div className="dd-metric">
-                        <span className="dd-metric-label">Total Delivery Mileage</span>
-                        <span className="dd-metric-val">{t.distance_km || 0} m</span>
+                        <span className="dd-metric-label">Distance</span>
+                        <span className="dd-metric-val">{t.distance_km != null ? `${t.distance_km} km` : 'Not logged'}</span>
                       </div>
                       <div className="dd-metric">
-                        <span className="dd-metric-label">Deliverable Items</span>
-                        <span className="dd-metric-val">{t.deliverable_items} Items</span>
+                        <span className="dd-metric-label">Cargo Type</span>
+                        <span className="dd-metric-val">{t.cargo_type || '—'}</span>
                       </div>
                       <div className="dd-metric">
-                        <span className="dd-metric-label">Total Issue</span>
-                        <span className="dd-metric-val">{t.total_issue} Cases</span>
+                        <span className="dd-metric-label">Cargo Weight</span>
+                        <span className="dd-metric-val">{t.cargo_weight_kg != null ? `${t.cargo_weight_kg} kg` : '—'}</span>
                       </div>
                       <div className="dd-metric">
-                        <span className="dd-metric-label">Total Working Hours</span>
-                        <span className="dd-metric-val">{t.working_hours} hr</span>
-                      </div>
-                      <div className="dd-metric">
-                        <span className="dd-metric-label">Overtime Delivery</span>
-                        <span className="dd-metric-val" style={{ color: 'var(--red)' }}>{t.overtime} hr</span>
-                      </div>
-                      <div className="dd-metric">
-                        <span className="dd-metric-label">Fuel Purchase</span>
-                        <span className="dd-metric-val">{t.fuel_purchase.toFixed(3)} L</span>
-                      </div>
-                      <div className="dd-metric">
-                        <span className="dd-metric-label">Fuel Per Litre</span>
-                        <span className="dd-metric-val">${t.fuel_per_litre.toFixed(2)}</span>
+                        <span className="dd-metric-label">Load Capacity Used</span>
+                        <span className="dd-metric-val">{t.load_capacity_pct != null ? `${t.load_capacity_pct}%` : '—'}</span>
                       </div>
                     </div>
 
                     <div className="dd-nested-cards">
                       <div className="dd-ncard">
-                        <div className="dd-ncard-title">Fleet Information</div>
+                        <div className="dd-ncard-title">Schedule</div>
                         <div className="dd-ncard-grid">
                           <div className="dd-ncard-item">
-                            <span className="dd-ncard-label">Conditions</span>
-                            <span className="dd-ncard-val">{t.fleet_conditions}</span>
+                            <span className="dd-ncard-label">Scheduled Departure</span>
+                            <span className="dd-ncard-val">{t.scheduled_start ? new Date(t.scheduled_start).toLocaleString() : '—'}</span>
                           </div>
                           <div className="dd-ncard-item">
-                            <span className="dd-ncard-label">Fleet Odometer</span>
-                            <span className="dd-ncard-val">{t.fleet_odometer.toLocaleString()} Miles</span>
+                            <span className="dd-ncard-label">Scheduled Arrival</span>
+                            <span className="dd-ncard-val">{t.scheduled_end ? new Date(t.scheduled_end).toLocaleString() : '—'}</span>
                           </div>
                           <div className="dd-ncard-item">
-                            <span className="dd-ncard-label">Avg. Daily Mileage</span>
-                            <span className="dd-ncard-val">{t.avg_daily_mileage} Miles</span>
+                            <span className="dd-ncard-label">Actual Departure</span>
+                            <span className="dd-ncard-val">{t.actual_start ? new Date(t.actual_start).toLocaleString() : '—'}</span>
                           </div>
                           <div className="dd-ncard-item">
-                            <span className="dd-ncard-label">Service Day</span>
-                            <span className="dd-ncard-val">{t.service_day} Days Remaining</span>
+                            <span className="dd-ncard-label">Actual Arrival</span>
+                            <span className="dd-ncard-val">{t.actual_end ? new Date(t.actual_end).toLocaleString() : '—'}</span>
                           </div>
                         </div>
                       </div>
-                      <div className="dd-ncard">
-                        <div className="dd-ncard-title">Deliverable Items Informations</div>
-                        <div className="dd-ncard-grid cols-4">
-                          <div className="dd-ncard-item">
-                            <span className="dd-ncard-label">Carrier Items</span>
-                            <span className="dd-ncard-val">{t.carrier_items} Items</span>
-                          </div>
-                          <div className="dd-ncard-item">
-                            <span className="dd-ncard-label">Issued Items</span>
-                            <span className="dd-ncard-val">{t.issued_items} Items</span>
-                          </div>
-                          <div className="dd-ncard-item">
-                            <span className="dd-ncard-label">Refunded Items</span>
-                            <span className="dd-ncard-val">{t.refunded_items} Items</span>
-                          </div>
-                          <div className="dd-ncard-item">
-                            <span className="dd-ncard-label">Delivery Accuracy</span>
-                            <span className="dd-ncard-val"><span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: '#10b981' }}><Icon name="star" size={12} duotone /> {t.delivery_accuracy}</span> / 5.0</span>
+                      {t.cargo_desc && (
+                        <div className="dd-ncard">
+                          <div className="dd-ncard-title">Cargo Description</div>
+                          <div className="dd-ncard-grid">
+                            <div className="dd-ncard-item">
+                              <span className="dd-ncard-val">{t.cargo_desc}</span>
+                            </div>
                           </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                   </>
                 )}

@@ -7,6 +7,7 @@ import { SectionLoading } from '../components/ui/spinner.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { showAlert } from '../lib/alert.js';
 
 interface Trip {
   id: string;
@@ -27,10 +28,10 @@ interface TripExpense { id: string; category: string; description: string | null
 
 const STATUS_COLORS: Record<string, { bg: string; fg: string; dot: string }> = {
   PLANNED:     { bg: '#f1f5f9', fg: '#475569', dot: '#94a3b8' },
-  IN_PROGRESS: { bg: 'var(--green-l)', fg: '#059669', dot: '#10b981' },
+  IN_PROGRESS: { bg: 'var(--green-l)', fg: 'var(--green)', dot: '#10b981' },
   COMPLETED:   { bg: 'var(--blue-l)', fg: '#2563eb', dot: '#3b82f6' },
-  CANCELLED:   { bg: 'var(--red-l)', fg: '#dc2626', dot: '#ef4444' },
-  DELAYED:     { bg: 'var(--gold-l)', fg: '#d97706', dot: '#f59e0b' },
+  CANCELLED:   { bg: 'var(--red-l)', fg: 'var(--red)', dot: '#ef4444' },
+  DELAYED:     { bg: 'var(--gold-l)', fg: 'var(--gold)', dot: '#f59e0b' },
 };
 
 export const TrackingShipments: React.FC = () => {
@@ -83,8 +84,17 @@ export const TrackingShipments: React.FC = () => {
   const customerName = (id: string | null) => customers.find(c => c.id === id)?.name ?? '—';
 
   async function updateStatus(id: string, status: string) {
-    await apiFetch(`/v1/tracking/trips/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) });
-    reload();
+    // Dispatching to IN_PROGRESS is validated server-side (vehicle out of
+    // service, already on another active trip, driver's license expired,
+    // etc.) — this used to have no try/catch at all, so a rejected dispatch
+    // failed completely silently with the dropdown just reverting on the
+    // next reload and no indication to the dispatcher of why.
+    try {
+      await apiFetch(`/v1/tracking/trips/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) });
+      reload();
+    } catch (err: any) {
+      showAlert(err.message || 'Could not update this trip\'s status.');
+    }
   }
 
   const filteredShipments = shipments.filter(s => {
@@ -185,7 +195,7 @@ export const TrackingShipments: React.FC = () => {
                     </div>
                   </td>
                   <td style={{ padding: '16px 20px' }}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600, background: sc.bg, color: sc.fg }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 'var(--badge-radius)', fontSize: 12, fontWeight: 600, background: sc.bg, color: sc.fg }}>
                       <span style={{ width: 6, height: 6, borderRadius: '50%', background: sc.dot }} />
                       {displayStatus}
                     </span>

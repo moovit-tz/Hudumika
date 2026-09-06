@@ -465,6 +465,7 @@ export const LandedCostHistoryPage: React.FC = () => {
                     </div>
                     {detail.versions.map((v: any) => (
                       <div key={v.id} onClick={() => openDetail(v.id)}
+                        role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDetail(v.id); } }}
                         style={{
                           display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10,
                           padding: '9px 12px', marginBottom: 6, borderRadius: 'var(--r-sm)', cursor: 'pointer',

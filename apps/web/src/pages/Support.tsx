@@ -137,7 +137,7 @@ const STATUS_CFG: Record<StatusKey, { bg: string; color: string; label: string }
 const CHANNEL_CFG: Record<ChannelId, { label: string; icon: IconName; color: string; bg: string; border: string; btnLabel: string }> = {
   inapp:    { label: 'Reply',    icon: 'message',    color: 'var(--teal)', bg: 'var(--teal-l)', border: 'var(--teal)', btnLabel: 'Send Reply'        },
   email:    { label: 'Email',    icon: 'mail',       color: '#2563eb',     bg: 'var(--blue-l)',       border: '#2563eb',     btnLabel: 'Send Email'        },
-  whatsapp: { label: 'WhatsApp', icon: 'chatBubble', color: 'var(--green)',     bg: 'var(--green-l)',       border: '#047857',     btnLabel: 'Send via WhatsApp' },
+  whatsapp: { label: 'WhatsApp', icon: 'chatBubble', color: 'var(--green)',     bg: 'var(--green-l)',       border: 'var(--green)',     btnLabel: 'Send via WhatsApp' },
   sms:      { label: 'SMS',      icon: 'smartphone', color: '#7c3aed',     bg: 'var(--purple-l)',       border: '#7c3aed',     btnLabel: 'Send SMS'          },
   note:     { label: 'Note',     icon: 'fileText',   color: 'var(--gold)',     bg: 'var(--gold-l)',       border: '#92400e',     btnLabel: 'Save Note'         },
 };
@@ -724,7 +724,7 @@ function ThreadPanel({ ticket, onStatusChange, authorName, onClose, onOpenDetail
               <TabsTrigger key={tab.key} value={tab.key}>
                 <span className="spt-ch-dot" />
                 {tab.label}
-                <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 20, lineHeight: 1.5, background: active ? 'var(--teal-l)' : 'var(--bg)', color: active ? 'var(--teal)' : 'var(--ink3)' }}>{count}</span>
+                <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 'var(--badge-radius)', lineHeight: 1.5, background: active ? 'var(--teal-l)' : 'var(--bg)', color: active ? 'var(--teal)' : 'var(--ink3)' }}>{count}</span>
               </TabsTrigger>
             );
           })}
@@ -946,11 +946,11 @@ function DetailsPanel({ ticket }: { ticket: Ticket }) {
   });
 
   const RULE_LIST = [
-    { key: 'dailyStatusWa',    dot: '#047857', label: 'Daily status → WhatsApp'   },
+    { key: 'dailyStatusWa',    dot: 'var(--green)', label: 'Daily status → WhatsApp'   },
     { key: 'dailyStatusEmail', dot: '#2563eb', label: 'Daily status → Email'       },
-    { key: 'missingDoc',       dot: '#d97706', label: 'Missing doc reminder (24h)' },
-    { key: 'demurrageAlert',   dot: '#dc2626', label: 'Demurrage alert'            },
-    { key: 'stageAdvance',     dot: '#047857', label: 'Stage advance notification' },
+    { key: 'missingDoc',       dot: 'var(--gold)', label: 'Missing doc reminder (24h)' },
+    { key: 'demurrageAlert',   dot: 'var(--red)', label: 'Demurrage alert'            },
+    { key: 'stageAdvance',     dot: 'var(--green)', label: 'Stage advance notification' },
     { key: 'paymentRequest',   dot: '#6b7280', label: 'Payment confirmation'       },
   ] as const;
 

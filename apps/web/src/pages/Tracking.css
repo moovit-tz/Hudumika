@@ -518,3 +518,7 @@
   background: rgba(255, 255, 255, 0.03);
   border-color: rgba(255, 255, 255, 0.08);
 }
+
+@media (max-width: 480px) {
+  .trk-kpi-grid { grid-template-columns: 1fr; }
+}

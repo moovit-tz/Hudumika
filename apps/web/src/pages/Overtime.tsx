@@ -47,7 +47,7 @@ const STATUS_TONE: Record<string, { bg: string; fg: string }> = {
 function Pill({ text, tone }: { text: string; tone?: { bg: string; fg: string } }) {
   return (
     <span style={{
-      fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 20, whiteSpace: 'nowrap',
+      fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 'var(--badge-radius)', whiteSpace: 'nowrap',
       background: tone?.bg ?? 'var(--bg)', color: tone?.fg ?? 'var(--ink3)',
     }}>{text}</span>
   );

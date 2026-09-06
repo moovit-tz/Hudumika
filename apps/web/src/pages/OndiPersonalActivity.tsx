@@ -124,6 +124,7 @@ const EVENT_HUMAN_NAMES: Record<string, string> = {
   passkey_login: 'Signed In via Hardware Passkey',
   google_login: 'Signed In via Google SSO',
   microsoft_login: 'Signed In via Microsoft SSO',
+  apple_login: 'Signed In via Apple SSO',
   device_renamed: 'Recognized Hardware Renamed',
   session_revoked: 'Hardware Session Terminated',
   access_denied: 'Unauthorized Access Blocked',
@@ -561,7 +562,7 @@ export const OndiPersonalActivity: React.FC = () => {
             return (
               <TabsTrigger key={key} value={key}>
                 {label}
-                <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 20, lineHeight: 1.5, background: isActive ? 'var(--teal-l)' : 'var(--bg)', color: isActive ? 'var(--teal)' : 'var(--ink3)' }}>{count}</span>
+                <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 'var(--badge-radius)', lineHeight: 1.5, background: isActive ? 'var(--teal-l)' : 'var(--bg)', color: isActive ? 'var(--teal)' : 'var(--ink3)' }}>{count}</span>
               </TabsTrigger>
             );
           })}
@@ -577,7 +578,7 @@ export const OndiPersonalActivity: React.FC = () => {
                 style={isActive ? { background: 'var(--red-l)', color: 'var(--red)' } : { color: 'var(--red)' }}
               >
                 Flagged / Failed
-                <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 20, lineHeight: 1.5, background: isActive ? 'var(--white)' : 'var(--red-l)', color: 'var(--red)' }}>
+                <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 'var(--badge-radius)', lineHeight: 1.5, background: isActive ? 'var(--white)' : 'var(--red-l)', color: 'var(--red)' }}>
                   {rows?.filter((r) => getEventCategory(r) === 'failure').length ?? 0}
                 </span>
               </TabsTrigger>

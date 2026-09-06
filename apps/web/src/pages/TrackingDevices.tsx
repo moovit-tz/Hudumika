@@ -75,7 +75,7 @@ export const TrackingDevices: React.FC = () => {
       <div style={{ marginBottom: 20 }}>
       <SectionCard title="Connection Status">
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: configured ? 12 : 0 }}>
-          <span style={{ width: 9, height: 9, borderRadius: '50%', background: configured ? '#059669' : '#dc2626', flexShrink: 0 }} />
+          <span style={{ width: 9, height: 9, borderRadius: '50%', background: configured ? 'var(--green)' : 'var(--red)', flexShrink: 0 }} />
           <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{configured ? 'Connected' : 'Not connected'}</span>
           {!configured && !loading && (
             <Link to="/settings?s=int-gpswox" style={{ fontSize: 12, color: 'var(--teal)', fontWeight: 600, marginLeft: 4 }}>Configure in Settings →</Link>
@@ -94,7 +94,7 @@ export const TrackingDevices: React.FC = () => {
             </div>
             <div>
               <div style={{ fontSize: 11, color: 'var(--ink3)', textTransform: 'uppercase', fontWeight: 700 }}>Outcome</div>
-              <div style={{ fontSize: 13, color: lastSync.ok ? '#059669' : '#dc2626', marginTop: 2, fontWeight: 600 }}>
+              <div style={{ fontSize: 13, color: lastSync.ok ? 'var(--green)' : 'var(--red)', marginTop: 2, fontWeight: 600 }}>
                 {lastSync.ok ? 'Success' : (lastSync.reason ?? 'Failed')}
               </div>
             </div>
@@ -106,7 +106,7 @@ export const TrackingDevices: React.FC = () => {
                 </div>
                 <div>
                   <div style={{ fontSize: 11, color: 'var(--ink3)', textTransform: 'uppercase', fontWeight: 700 }}>Unmatched devices</div>
-                  <div style={{ fontSize: 13, color: lastSync.unmatched.length > 0 ? '#ca8a04' : 'var(--ink)', marginTop: 2 }}>{lastSync.unmatched.length}</div>
+                  <div style={{ fontSize: 13, color: lastSync.unmatched.length > 0 ? 'var(--gold)' : 'var(--ink)', marginTop: 2 }}>{lastSync.unmatched.length}</div>
                 </div>
               </>
             )}
@@ -140,7 +140,7 @@ export const TrackingDevices: React.FC = () => {
                   <td style={{ padding: '10px 14px', color: 'var(--ink2)', fontFamily: 'var(--mono)' }}>{v.device_id}</td>
                   <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{recordedAt ? new Date(recordedAt).toLocaleString() : 'Never'}</td>
                   <td style={{ padding: '10px 14px', textAlign: 'right' }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, borderRadius: 20, padding: '2px 10px', background: stale ? '#fef2f2' : '#ecfdf5', color: stale ? '#dc2626' : '#065f46' }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, borderRadius: 'var(--badge-radius)', padding: '2px 10px', background: stale ? 'var(--red-l)' : 'var(--green-l)', color: stale ? 'var(--red)' : 'var(--green)' }}>
                       {stale ? 'Stale' : 'Live'}
                     </span>
                   </td>

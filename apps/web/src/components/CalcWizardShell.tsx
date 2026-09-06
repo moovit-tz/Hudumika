@@ -33,7 +33,9 @@ export function WizardVerticalStepBar({ steps, current, setStep }: StepBarProps)
         const isDone = i < current;
         const isActive = i === current;
         return (
-          <div key={i} style={{ display: 'flex', gap: 14, cursor: isDone ? 'pointer' : 'default' }} onClick={() => isDone && setStep(i + 1)}>
+          <div key={i} style={{ display: 'flex', gap: 14, cursor: isDone ? 'pointer' : 'default' }} onClick={() => isDone && setStep(i + 1)}
+            role={isDone ? 'button' : undefined} tabIndex={isDone ? 0 : undefined}
+            onKeyDown={e => { if ((e.key === 'Enter' || e.key === ' ') && isDone) { e.preventDefault(); setStep(i + 1); } }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
               <div style={{
                 width: 36, height: 36, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -72,7 +74,10 @@ export function WizardHorizontalStepBar({ steps, current, setStep }: StepBarProp
           const isActive = i === current;
           return (
             <React.Fragment key={i}>
-              <div onClick={() => isDone && setStep(i + 1)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, cursor: isDone ? 'pointer' : 'default', flexShrink: 0 }}>
+              <div onClick={() => isDone && setStep(i + 1)}
+                role={isDone ? 'button' : undefined} tabIndex={isDone ? 0 : undefined}
+                onKeyDown={e => { if ((e.key === 'Enter' || e.key === ' ') && isDone) { e.preventDefault(); setStep(i + 1); } }}
+                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, cursor: isDone ? 'pointer' : 'default', flexShrink: 0 }}>
                 <div style={{
                   width: 30, height: 30, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: 12, fontWeight: 700, flexShrink: 0,

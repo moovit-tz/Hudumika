@@ -15,7 +15,7 @@ const TYPE_CFG: Record<AccountType, { label: string; color: string; bg: string }
   ASSET:     { label: 'Asset',     color: '#0891b2', bg: '#ecfeff' },
   LIABILITY: { label: 'Liability', color: 'var(--red)', bg: 'var(--red-l)' },
   EQUITY:    { label: 'Equity',    color: '#7c3aed', bg: 'var(--purple-l)' },
-  REVENUE:   { label: 'Revenue',   color: '#059669', bg: 'var(--green-l)' },
+  REVENUE:   { label: 'Revenue',   color: 'var(--green)', bg: 'var(--green-l)' },
   EXPENSE:   { label: 'Expense',   color: 'var(--gold)', bg: 'var(--gold-l)' },
 };
 const TYPE_ORDER: AccountType[] = ['ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE'];
@@ -181,7 +181,7 @@ export const FinanceLedger: React.FC = () => {
           { label: 'Active Accounts', value: accounts.length, color: 'var(--teal)' },
           { label: 'Total Debits',    value: fmt(totals.dr), color: '#0891b2' },
           { label: 'Total Credits',   value: fmt(totals.cr), color: '#7c3aed' },
-          { label: 'Net Movement',    value: fmt(totals.dr - totals.cr), color: totals.dr >= totals.cr ? '#059669' : '#ef4444' },
+          { label: 'Net Movement',    value: fmt(totals.dr - totals.cr), color: totals.dr >= totals.cr ? 'var(--green)' : '#ef4444' },
         ].map(c => (
           // No accent bar across the top. Four cards each in a different
           // colour is decoration competing with the figures they carry.

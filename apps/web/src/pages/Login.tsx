@@ -478,7 +478,7 @@ export function AuthCard({ children }: { children: React.ReactNode }) {
     // double-scoped: those key off <html>'s own separate theme toggle, not
     // this page's local one.
     el.style.setProperty('--lp-success-bg',      d ? '#1e2c22' : '#f0fdf4');
-    el.style.setProperty('--lp-success-border',  d ? '#2d4a37' : '#dcfce7');
+    el.style.setProperty('--lp-success-border',  d ? '#2d4a37' : 'var(--green-l)');
     el.style.setProperty('--lp-success-text',    d ? '#86efac' : '#166534');
     el.style.setProperty('--lp-link-accent',     d ? '#8ab4f8' : accent);
     const surfaceBase = d ? lightenHex(accent, 0.45) : accent;

@@ -56,12 +56,12 @@ export const OndiSessions: React.FC = () => {
         <div className="ondi-kpi-card">
           <div className="ondi-kpi-header">
             <span className="ondi-kpi-title">Audit Chain Integrity</span>
-            <div className="ondi-kpi-icon-box" style={{ background: chainStatus?.valid ? '#ecfdf5' : '#fef2f2', color: chainStatus?.valid ? '#047857' : '#b91c1c' }}>
+            <div className="ondi-kpi-icon-box" style={{ background: chainStatus?.valid ? 'var(--green-l)' : 'var(--red-l)', color: chainStatus?.valid ? 'var(--green)' : 'var(--red)' }}>
               <Icon name={chainStatus?.valid ? 'checkCircle' : 'shield'} size={18} />
             </div>
           </div>
           <div className="ondi-kpi-body">
-            <span className="ondi-kpi-num" style={{ fontSize: 20, color: chainStatus?.valid ? '#047857' : '#b91c1c' }}>
+            <span className="ondi-kpi-num" style={{ fontSize: 20, color: chainStatus?.valid ? 'var(--green)' : 'var(--red)' }}>
               {chainStatus?.valid ? 'Intact' : chainStatus ? 'Tampered' : 'Checking'}
             </span>
             <span className="ondi-kpi-sub">{chainStatus ? `${chainStatus.checked} logs verified` : 'Cryptographic check'}</span>
@@ -85,19 +85,19 @@ export const OndiSessions: React.FC = () => {
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '6px 0' }}>
           <div style={{
             width: 48, height: 48, borderRadius: 12, flexShrink: 0,
-            background: chainStatus?.valid ? '#ecfdf5' : chainStatus ? '#fef2f2' : 'var(--bg)',
+            background: chainStatus?.valid ? 'var(--green-l)' : chainStatus ? 'var(--red-l)' : 'var(--bg)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             border: `1px solid ${chainStatus?.valid ? 'rgba(4,120,87,0.2)' : 'var(--border)'}`
           }}>
             <Icon name={chainStatus?.valid ? 'checkCircle' : chainStatus ? 'alertTriangle' : 'shield'} size={22}
-              color={chainStatus?.valid ? '#047857' : chainStatus ? '#b91c1c' : 'var(--ink3)'} />
+              color={chainStatus?.valid ? 'var(--green)' : chainStatus ? 'var(--red)' : 'var(--ink3)'} />
           </div>
           <div style={{ flex: 1 }}>
             {checkingChain ? (
               <div style={{ fontSize: 13.5, color: 'var(--ink3)', fontWeight: 600 }}>Verifying cryptographic hash chain…</div>
             ) : chainStatus ? (
               <>
-                <div style={{ fontSize: 15, fontWeight: 800, color: chainStatus.valid ? '#047857' : '#b91c1c' }}>
+                <div style={{ fontSize: 15, fontWeight: 800, color: chainStatus.valid ? 'var(--green)' : 'var(--red)' }}>
                   {chainStatus.valid ? 'Audit Log Chain Verified Intact' : 'Tampering Detected in Hash Chain'}
                 </div>
                 <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginTop: 3 }}>

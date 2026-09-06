@@ -24,13 +24,13 @@ const labelStyle: React.CSSProperties = { color: 'var(--ink3)', flexShrink: 0 };
 const valueStyle: React.CSSProperties = { color: 'var(--ink)', fontWeight: 600, textAlign: 'right' };
 
 const SEVERITY_CFG: Record<string, { color: string; bg: string }> = {
-  LOW: { color: '#059669', bg: 'var(--green-l)' }, MEDIUM: { color: 'var(--gold)', bg: 'var(--gold-l)' },
-  HIGH: { color: '#ea580c', bg: 'var(--gold-l)' }, CRITICAL: { color: 'var(--red)', bg: 'var(--red-l)' },
+  LOW: { color: 'var(--green)', bg: 'var(--green-l)' }, MEDIUM: { color: 'var(--gold)', bg: 'var(--gold-l)' },
+  HIGH: { color: 'var(--gold)', bg: 'var(--gold-l)' }, CRITICAL: { color: 'var(--red)', bg: 'var(--red-l)' },
 };
 const STATUS_CFG: Record<string, { color: string; bg: string; icon: IconName }> = {
   OPEN: { color: 'var(--red)', bg: 'var(--red-l)', icon: 'alertTriangle' },
-  IN_PROGRESS: { color: '#2563eb', bg: 'var(--blue-l)', icon: 'clock' },
-  RESOLVED: { color: '#059669', bg: 'var(--green-l)', icon: 'checkCircle' },
+  IN_PROGRESS: { color: 'var(--blue)', bg: 'var(--blue-l)', icon: 'clock' },
+  RESOLVED: { color: 'var(--green)', bg: 'var(--green-l)', icon: 'checkCircle' },
 };
 
 function fdate(iso?: string | null) {
@@ -124,7 +124,7 @@ export const TrackingIssueDetail: React.FC = () => {
           <div style={rowStyle}><span style={labelStyle}>Issue #</span><span style={valueStyle}>{issue.id.slice(0, 8).toUpperCase()}</span></div>
           <div style={rowStyle}>
             <span style={labelStyle}>Status</span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700, borderRadius: 20, padding: '2px 10px', background: sCfg.bg, color: sCfg.color }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700, borderRadius: 'var(--badge-radius)', padding: '2px 10px', background: sCfg.bg, color: sCfg.color }}>
               <Icon name={sCfg.icon} size={11} color={sCfg.color} /> {issue.status.replace('_', ' ')}
             </span>
           </div>
@@ -169,8 +169,8 @@ export const TrackingIssueDetail: React.FC = () => {
               {events.map((ev, i) => (
                 <div key={ev.id} style={{ display: 'flex', gap: 10, position: 'relative' }}>
                   {i < events.length - 1 && <div style={{ position: 'absolute', left: 13, top: 26, bottom: -16, width: 2, background: 'var(--border)' }} />}
-                  <div style={{ width: 26, height: 26, borderRadius: '50%', background: ev.event_type === 'RESOLVED' ? '#ecfdf5' : ev.event_type === 'OPENED' ? '#fef9c3' : 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}>
-                    <Icon name={ev.event_type === 'RESOLVED' ? 'checkCircle' : ev.event_type === 'OPENED' ? 'alertTriangle' : 'chatBubble'} size={13} color={ev.event_type === 'RESOLVED' ? '#059669' : ev.event_type === 'OPENED' ? '#ca8a04' : 'var(--ink3)'} />
+                  <div style={{ width: 26, height: 26, borderRadius: '50%', background: ev.event_type === 'RESOLVED' ? 'var(--green-l)' : ev.event_type === 'OPENED' ? 'var(--gold-l)' : 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}>
+                    <Icon name={ev.event_type === 'RESOLVED' ? 'checkCircle' : ev.event_type === 'OPENED' ? 'alertTriangle' : 'chatBubble'} size={13} color={ev.event_type === 'RESOLVED' ? 'var(--green)' : ev.event_type === 'OPENED' ? 'var(--gold)' : 'var(--ink3)'} />
                   </div>
                   <div style={{ flex: 1, paddingBottom: 8 }}>
                     <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{ev.description}</div>

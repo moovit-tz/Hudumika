@@ -370,7 +370,8 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
               className={`notes-composer keep-color-${color}`}
             >
               {!isExpanded ? (
-                <div className="notes-composer-collapsed" onClick={() => setIsExpanded(true)}>
+                <div className="notes-composer-collapsed" onClick={() => setIsExpanded(true)}
+                  role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setIsExpanded(true); } }}>
                   <span>Take a note...</span>
                   <div className="notes-composer-actions" onClick={e => e.stopPropagation()}>
                     <button

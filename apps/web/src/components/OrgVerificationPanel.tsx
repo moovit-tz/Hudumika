@@ -140,19 +140,19 @@ export function OrgVerificationPanel() {
               justifyContent: 'space-between',
               flexWrap: 'wrap',
               gap: 14,
-              background: '#ecfdf5',
-              border: '1px solid rgba(4,120,87,0.2)',
+              background: 'var(--green-l)',
+              border: '1px solid var(--green)',
               borderRadius: 10,
               padding: '16px 20px'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                 <CompanyAvatar name={co.name} logoUrl={co.logoUrl} size={44} shape="square" />
                 <div>
-                  <div style={{ fontSize: 14.5, fontWeight: 800, color: '#047857', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <div style={{ fontSize: 14.5, fontWeight: 800, color: 'var(--green)', display: 'flex', alignItems: 'center', gap: 6 }}>
                     Verified Business Profile Active
-                    <Icon name="checkCircle" size={16} style={{ color: '#047857' }} />
+                    <Icon name="checkCircle" size={16} style={{ color: 'var(--green)' }} />
                   </div>
-                  <div style={{ fontSize: 12, color: '#065f46', marginTop: 2 }}>
+                  <div style={{ fontSize: 12, color: 'var(--green)', marginTop: 2 }}>
                     This organization has completed formal KYB registration verification.
                   </div>
                 </div>
@@ -209,7 +209,7 @@ export function OrgVerificationPanel() {
             display: 'flex',
             alignItems: 'flex-start',
             gap: 16,
-            background: '#fffbeb',
+            background: 'var(--gold-l)',
             border: '1px solid #fef3c7',
             borderRadius: 12,
             padding: 20
@@ -222,7 +222,7 @@ export function OrgVerificationPanel() {
                 Submission Under Review
                 <span className="ondi-status-pill warning" style={{ fontSize: 11 }}>In Progress</span>
               </div>
-              <div style={{ fontSize: 13, color: '#b45309', marginTop: 6, lineHeight: 1.5 }}>
+              <div style={{ fontSize: 13, color: 'var(--gold)', marginTop: 6, lineHeight: 1.5 }}>
                 Your business registration certificate is currently with a Hudumika reviewer. Verifications are automatically processed within 24 hours.
               </div>
             </div>
@@ -250,9 +250,9 @@ export function OrgVerificationPanel() {
               {isRejected && kyb.latest_submission?.rejection_reason && (
                 <div style={{
                   fontSize: 13,
-                  color: '#dc2626',
-                  background: '#fef2f2',
-                  border: '1px solid #fee2e2',
+                  color: 'var(--red)',
+                  background: 'var(--red-l)',
+                  border: '1px solid var(--red)',
                   borderRadius: 10,
                   padding: '14px 18px',
                   display: 'flex',

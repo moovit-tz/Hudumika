@@ -56,8 +56,8 @@ export function SwitchRow({
  * scannable — for a plain settings preference with no icon, use `SwitchRow`.
  */
 export function FeatureToggleRow({
-  title, description, icon, action, checked, onCheckedChange, disabled, className,
-}: RowProps & { icon: React.ReactNode; action?: React.ReactNode; checked: boolean; onCheckedChange: (checked: boolean) => void }) {
+  title, description, icon, action, trailingExtra, checked, onCheckedChange, disabled, className,
+}: RowProps & { icon: React.ReactNode; action?: React.ReactNode; /** A second control rendered before the main On/Off switch — e.g. an independent "Beta" toggle on the same row (SuperAdmin's App Status list). */ trailingExtra?: React.ReactNode; checked: boolean; onCheckedChange: (checked: boolean) => void }) {
   // Muted whenever the switch reads "Off" — not just when the row itself is
   // un-interactive — so a toggled-off row visually recedes (gray icon badge,
   // gray title/description) the same way the reference kill-switch list does,
@@ -74,6 +74,7 @@ export function FeatureToggleRow({
         </div>
       </div>
       <div className="flex shrink-0 items-center gap-2.5">
+        {trailingExtra}
         <span className={cn("text-xs font-semibold", checked && !disabled ? "text-primary" : "text-muted-foreground")}>
           {checked ? "On" : "Off"}
         </span>

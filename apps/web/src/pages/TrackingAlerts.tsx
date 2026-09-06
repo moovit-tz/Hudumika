@@ -10,9 +10,9 @@ interface Alert {
 }
 
 const SEVERITY_COLORS: Record<string, { bg: string; fg: string }> = {
-  INFO: { bg: 'var(--blue-l)', fg: '#0284c7' },
-  WARNING: { bg: 'var(--gold-l)', fg: '#ca8a04' },
-  CRITICAL: { bg: 'var(--red-l)', fg: '#dc2626' },
+  INFO: { bg: 'var(--blue-l)', fg: 'var(--blue)' },
+  WARNING: { bg: 'var(--gold-l)', fg: 'var(--gold)' },
+  CRITICAL: { bg: 'var(--red-l)', fg: 'var(--red)' },
 };
 
 export const TrackingAlerts: React.FC = () => {
@@ -66,7 +66,7 @@ export const TrackingAlerts: React.FC = () => {
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, borderRadius: 20, padding: '2px 9px', background: sc.bg, color: sc.fg }}>{a.alert_type.replace('_', ' ')}</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, borderRadius: 'var(--badge-radius)', padding: '2px 9px', background: sc.bg, color: sc.fg }}>{a.alert_type.replace('_', ' ')}</span>
                   <span style={{ fontSize: 12, color: 'var(--ink3)' }}>{vehicleName(a.vehicle_id)}</span>
                 </div>
                 <div style={{ fontSize: 13, color: 'var(--ink)', fontWeight: 600 }}>{a.message}</div>

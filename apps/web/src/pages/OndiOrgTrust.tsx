@@ -7,7 +7,7 @@ import { PersonAvatar } from '../components/PersonAvatar.js';
 interface OrgTrustMember { user_id: string; name: string; email: string; role: string; score: number; tier: 'LOW' | 'MEDIUM' | 'HIGH' }
 interface OrgTrust { average: number; tier: 'LOW' | 'MEDIUM' | 'HIGH'; distribution: { LOW: number; MEDIUM: number; HIGH: number }; members: OrgTrustMember[] }
 
-const TIER_COLOR: Record<string, string> = { LOW: '#dc2626', MEDIUM: '#d97706', HIGH: '#059669' };
+const TIER_COLOR: Record<string, string> = { LOW: 'var(--red)', MEDIUM: 'var(--gold)', HIGH: 'var(--green)' };
 const TIER_PILL: Record<string, 'error' | 'warning' | 'success'> = { LOW: 'error', MEDIUM: 'warning', HIGH: 'success' };
 
 export const OndiOrgTrust: React.FC = () => {
@@ -60,7 +60,7 @@ export const OndiOrgTrust: React.FC = () => {
                 <span className="ondi-kpi-title">High Trust Ratio</span>
               </div>
               <div className="ondi-kpi-body">
-                <span className="ondi-kpi-num" style={{ color: '#047857' }}>
+                <span className="ondi-kpi-num" style={{ color: 'var(--green)' }}>
                   {total > 0 ? Math.round((data.distribution.HIGH / total) * 100) : 0}%
                 </span>
                 <span className="ondi-kpi-sub">high tier users</span>

@@ -155,6 +155,18 @@ const envSchema = z.object({
    * exists, same "report not configured" convention.
    */
   MICROSOFT_OAUTH_CLIENT_ID: z.string().optional(),
+
+  /**
+   * Sign in with Apple (Ondi M2, same shape as Google/Microsoft above) — the
+   * Services ID (not a Bundle ID) registered for web sign-in, one per
+   * platform. Only a client ID is needed: the frontend runs Apple's own JS
+   * SDK popup flow, which returns a signed id_token directly (no client
+   * secret exchange on our side), and the backend verifies that token
+   * against Apple's own published JWKS (lib/apple-oidc.ts) rather than
+   * holding a secret. Optional: unset until a real Apple "Sign in with
+   * Apple" Services ID exists, same "report not configured" convention.
+   */
+  APPLE_OAUTH_CLIENT_ID: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

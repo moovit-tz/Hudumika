@@ -144,12 +144,12 @@ export const OndiKyc: React.FC = () => {
         <div className="ondi-kpi-card">
           <div className="ondi-kpi-header">
             <span className="ondi-kpi-title">Pending Queue</span>
-            <div className="ondi-kpi-icon-box" style={{ background: '#fffbeb', color: '#b45309' }}>
+            <div className="ondi-kpi-icon-box" style={{ background: 'var(--gold-l)', color: 'var(--gold)' }}>
               <Icon name="clock" size={18} />
             </div>
           </div>
           <div className="ondi-kpi-body">
-            <span className="ondi-kpi-num" style={{ color: '#b45309' }}>{queue ? queue.length : 0}</span>
+            <span className="ondi-kpi-num" style={{ color: 'var(--gold)' }}>{queue ? queue.length : 0}</span>
             <span className="ondi-kpi-sub">awaiting inspection</span>
           </div>
         </div>
@@ -157,12 +157,12 @@ export const OndiKyc: React.FC = () => {
         <div className="ondi-kpi-card">
           <div className="ondi-kpi-header">
             <span className="ondi-kpi-title">Valid Checksums</span>
-            <div className="ondi-kpi-icon-box" style={{ background: '#ecfdf5', color: '#047857' }}>
+            <div className="ondi-kpi-icon-box" style={{ background: 'var(--green-l)', color: 'var(--green)' }}>
               <Icon name="checkCircle" size={18} />
             </div>
           </div>
           <div className="ondi-kpi-body">
-            <span className="ondi-kpi-num" style={{ color: '#047857' }}>{validMrzCount}</span>
+            <span className="ondi-kpi-num" style={{ color: 'var(--green)' }}>{validMrzCount}</span>
             <span className="ondi-kpi-sub">passed MRZ checks</span>
           </div>
         </div>
@@ -170,12 +170,12 @@ export const OndiKyc: React.FC = () => {
         <div className="ondi-kpi-card">
           <div className="ondi-kpi-header">
             <span className="ondi-kpi-title">Flagged / Invalid</span>
-            <div className="ondi-kpi-icon-box" style={{ background: '#fef2f2', color: '#dc2626' }}>
+            <div className="ondi-kpi-icon-box" style={{ background: 'var(--red-l)', color: 'var(--red)' }}>
               <Icon name="alertTriangle" size={18} />
             </div>
           </div>
           <div className="ondi-kpi-body">
-            <span className="ondi-kpi-num" style={{ color: '#dc2626' }}>{invalidMrzCount}</span>
+            <span className="ondi-kpi-num" style={{ color: 'var(--red)' }}>{invalidMrzCount}</span>
             <span className="ondi-kpi-sub">mismatch / invalid</span>
           </div>
         </div>
@@ -442,8 +442,8 @@ export const OndiKyc: React.FC = () => {
                   flex: 1,
                   padding: '10px 16px',
                   border: '1px solid #fecaca',
-                  background: '#fef2f2',
-                  color: '#b91c1c',
+                  background: 'var(--red-l)',
+                  color: 'var(--red)',
                   borderRadius: 8,
                   fontWeight: 700,
                   cursor: 'pointer',

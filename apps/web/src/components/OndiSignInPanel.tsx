@@ -6,6 +6,7 @@ import { Icon } from './Icon.js';
 import { apiFetch, BASE_URL } from '../lib/api.js';
 import { GoogleSignInButton } from './GoogleSignInButton.js';
 import { MicrosoftSignInButton } from './MicrosoftSignInButton.js';
+import { AppleSignInButton } from './AppleSignInButton.js';
 import { Tip } from './ui/tooltip.js';
 
 const METHOD_META: Record<'phone' | 'totp' | 'passkey' | 'magic-link' | 'company-sso', { icon: 'phone' | 'shield' | 'fingerprint' | 'mail' | 'building'; label: string }> = {
@@ -53,7 +54,7 @@ const SECONDARY_METHODS = VISIBLE_METHODS.filter(key => key !== 'phone');
  * of which page is currently hosting it.
  */
 export function OndiSignInPanel() {
-  const { login, requestOtpLogin, verifyOtpLogin, requestMagicLink, requestPasskeyLoginOptions, verifyPasskeyLogin, loginWithGoogle, loginWithMicrosoft } = useAuth();
+  const { login, requestOtpLogin, verifyOtpLogin, requestMagicLink, requestPasskeyLoginOptions, verifyPasskeyLogin, loginWithGoogle, loginWithMicrosoft, loginWithApple } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -239,7 +240,7 @@ export function OndiSignInPanel() {
     navigate('/');
   };
 
-  const handleFederatedError = (err: any, provider: 'Google' | 'Microsoft') => {
+  const handleFederatedError = (err: any, provider: 'Google' | 'Microsoft' | 'Apple') => {
     if (err?.status === 404 && err?.body?.code === 'NO_MATCHING_WORKSPACE') {
       setError(`No Hudumika workspace found for that ${provider} account. If your company is new here, create a workspace instead.`);
       return;
@@ -262,6 +263,15 @@ export function OndiSignInPanel() {
       handleFederatedResult(await loginWithMicrosoft(credential, true));
     } catch (err: any) {
       handleFederatedError(err, 'Microsoft');
+    } finally { setLoading(false); }
+  };
+
+  const handleAppleCredential = async (credential: string, name?: string) => {
+    setError(null); setInfo(null); setLoading(true);
+    try {
+      handleFederatedResult(await loginWithApple(credential, name, true));
+    } catch (err: any) {
+      handleFederatedError(err, 'Apple');
     } finally { setLoading(false); }
   };
 
@@ -295,11 +305,15 @@ export function OndiSignInPanel() {
                 ))}
               </div>
               <div className="ondi-method-caption">Pick a method above</div>
-              {/* Microsoft draws its own real click-handled button (no
-                  iframe constraint like Google's), so it needs no pill
-                  treatment here — .login-social-btn's existing centered
-                  look is enough for a secondary, tucked-away option. */}
+              {/* Microsoft and Apple both draw their own real click-handled
+                  buttons (no iframe constraint like Google's), so neither
+                  needs pill treatment here — .login-social-btn's existing
+                  centered look is enough for a secondary, tucked-away
+                  option. Each self-hides independently when its own Client
+                  ID isn't configured (Ondi SSO settings), so this renders
+                  zero, one, or both with no layout gap either way. */}
               <MicrosoftSignInButton onCredential={handleMicrosoftCredential} onError={setError} />
+              <AppleSignInButton onCredential={handleAppleCredential} onError={setError} />
             </div>
           )}
         </>

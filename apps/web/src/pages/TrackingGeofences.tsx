@@ -84,55 +84,20 @@ function AddGeofenceModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
   );
 }
 
-const DEFAULT_GEOFENCES: Geofence[] = [
-  {
-    id: 'geo-1',
-    name: 'Dar es Salaam Port Terminal 1',
-    zone_type: 'DEPOT',
-    center_lat: -6.8235,
-    center_lon: 39.2695,
-    radius_km: 3.5,
-    active: true
-  },
-  {
-    id: 'geo-2',
-    name: 'Kurasini ICD Logistics Hub',
-    zone_type: 'DEPOT',
-    center_lat: -6.8400,
-    center_lon: 39.2780,
-    radius_km: 2.0,
-    active: true
-  },
-  {
-    id: 'geo-3',
-    name: 'Julius Nyerere International Airport Cargo',
-    zone_type: 'DEPOT',
-    center_lat: -6.8781,
-    center_lon: 39.2026,
-    radius_km: 4.0,
-    active: true
-  },
-  {
-    id: 'geo-4',
-    name: 'Tunduma Border Clearance Post',
-    zone_type: 'RESTRICTED',
-    center_lat: -9.3000,
-    center_lon: 32.7667,
-    radius_km: 5.0,
-    active: true
-  }
-];
-
 export const TrackingGeofences: React.FC = () => {
   const [geofences, setGeofences] = useState<Geofence[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
 
+  // A tenant with no geofences configured yet — the normal starting state,
+  // since these are opt-in — sees the real "No geofences created yet" empty
+  // state below, not four fabricated zones (one of them with coordinates in
+  // Zambia mislabeled as a Tanzanian border post) standing in for it.
   const reload = useCallback(() => {
     setLoading(true);
     apiFetch('/v1/tracking/geofences')
-      .then(res => setGeofences(Array.isArray(res) && res.length > 0 ? res : DEFAULT_GEOFENCES))
-      .catch(() => setGeofences(DEFAULT_GEOFENCES))
+      .then(res => setGeofences(Array.isArray(res) ? res : []))
+      .catch(() => setGeofences([]))
       .finally(() => setLoading(false));
   }, []);
 
@@ -190,7 +155,7 @@ export const TrackingGeofences: React.FC = () => {
                 <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{g.zone_type.replace('_', ' ')}</td>
                 <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{g.radius_km} km</td>
                 <td style={{ padding: '10px 14px' }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, borderRadius: 20, padding: '2px 10px', background: g.active ? '#ecfdf5' : '#f1f5f9', color: g.active ? '#065f46' : '#64748b' }}>{g.active ? 'ACTIVE' : 'INACTIVE'}</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, borderRadius: 'var(--badge-radius)', padding: '2px 10px', background: g.active ? 'var(--green-l)' : 'var(--bg)', color: g.active ? 'var(--green)' : 'var(--ink3)' }}>{g.active ? 'ACTIVE' : 'INACTIVE'}</span>
                 </td>
                 <td style={{ padding: '10px 14px', textAlign: 'right' }}>
                   <button type="button" onClick={() => remove(g.id)} title="Delete" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}>

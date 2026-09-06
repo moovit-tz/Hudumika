@@ -104,11 +104,11 @@ export const CustomerBulkUpload: React.FC = () => {
 
           {/* Upload success */}
           {summary && (
-            <div style={{ background: summary.inserted > 0 ? '#ecfdf5' : '#fef2f2', border: `1px solid ${summary.inserted > 0 ? '#a7f3d0' : '#fecaca'}`, borderRadius: 'var(--r)', padding: '20px 24px' }}>
+            <div style={{ background: summary.inserted > 0 ? 'var(--green-l)' : 'var(--red-l)', border: `1px solid ${summary.inserted > 0 ? 'var(--green)' : 'var(--red)'}`, borderRadius: 'var(--r)', padding: '20px 24px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                <Icon name={summary.inserted > 0 ? 'checkCircle' : 'alertCircle'} size={24} color={summary.inserted > 0 ? '#059669' : '#dc2626'} />
+                <Icon name={summary.inserted > 0 ? 'checkCircle' : 'alertCircle'} size={24} color={summary.inserted > 0 ? 'var(--green)' : 'var(--red)'} />
                 <div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: summary.inserted > 0 ? '#047857' : '#991b1b' }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: summary.inserted > 0 ? 'var(--green)' : 'var(--red)' }}>
                     {summary.inserted} of {summary.total} client{summary.total !== 1 ? 's' : ''} imported
                   </div>
                   {summary.skipped > 0 && (

@@ -37,7 +37,7 @@ function getInitials(name?: string | null): string {
   return ((parts[0][0] ?? '') + (parts[parts.length - 1][0] ?? '')).toUpperCase();
 }
 
-const AV_COLORS = ['#0d7a6b','#0550ae','#6e40c9','#059669','#9a6700','#cf222e','#d05c30'];
+const AV_COLORS = ['#0d7a6b','#0550ae','#6e40c9','var(--green)','#9a6700','#cf222e','#d05c30'];
 function avColor(name?: string | null) { return AV_COLORS[((name ?? '?').charCodeAt(0)) % AV_COLORS.length]; }
 
 // ── Global cross-app search (GET /v1/search, see apps/api/src/routes/search.routes.ts) ──

@@ -127,13 +127,13 @@ export const DetailPanel: React.FC<DetailPanelProps> = ({ shipmentId, onClose })
           {(channelCfg || shipment.tansad_number || hasRisk) && (
             <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--border)', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {channelCfg && (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, color: channelCfg.color, background: channelCfg.bg, borderRadius: 20, padding: '3px 10px' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, color: channelCfg.color, background: channelCfg.bg, borderRadius: 'var(--badge-radius)', padding: '3px 10px' }}>
                   <Icon name={channelCfg.icon} size={12} color={channelCfg.color} />
                   {channelCfg.label}
                 </span>
               )}
               {riskTypes.map((r: string) => (
-                <span key={r} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 12, fontWeight: 700, color: '#dc2626', background: '#fee2e2', borderRadius: 20, padding: '3px 10px' }}>
+                <span key={r} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 12, fontWeight: 700, color: '#dc2626', background: '#fee2e2', borderRadius: 'var(--badge-radius)', padding: '3px 10px' }}>
                   <Icon name="alertTriangle" size={11} color="#dc2626" />
                   {r}
                 </span>
@@ -237,11 +237,11 @@ export const DetailPanel: React.FC<DetailPanelProps> = ({ shipmentId, onClose })
                   <div style={{ fontSize: 13, color: 'var(--ink2)', lineHeight: 1.55, marginBottom: 8 }}>{body}</div>
                 )}
                 <div style={{ display: 'flex', gap: 6 }}>
-                  <span style={{ fontSize: 11, color: 'var(--ink3)', border: '1px solid var(--border)', borderRadius: 20, padding: '2px 10px', background: 'var(--bg)' }}>
+                  <span style={{ fontSize: 11, color: 'var(--ink3)', border: '1px solid var(--border)', borderRadius: 'var(--badge-radius)', padding: '2px 10px', background: 'var(--bg)' }}>
                     Internal
                   </span>
                   {isMsg && (
-                    <span style={{ fontSize: 11, color: '#059669', border: '1px solid #a7f3d0', borderRadius: 20, padding: '2px 10px', background: '#ecfdf5' }}>
+                    <span style={{ fontSize: 11, color: '#059669', border: '1px solid #a7f3d0', borderRadius: 'var(--badge-radius)', padding: '2px 10px', background: '#ecfdf5' }}>
                       WhatsApp
                     </span>
                   )}

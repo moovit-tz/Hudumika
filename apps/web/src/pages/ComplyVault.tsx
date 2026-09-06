@@ -167,7 +167,7 @@ export function ComplyVault() {
               <TabsTrigger key={f} value={f}>
                 {f.charAt(0).toUpperCase() + f.slice(1)}
                 {f !== 'all' && (
-                  <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 20, lineHeight: 1.5, background: isActive ? 'var(--teal-l)' : 'var(--bg)', color: isActive ? 'var(--teal)' : 'var(--ink3)' }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 'var(--badge-radius)', lineHeight: 1.5, background: isActive ? 'var(--teal-l)' : 'var(--bg)', color: isActive ? 'var(--teal)' : 'var(--ink3)' }}>
                     {certs.filter(c => c.status === f).length}
                   </span>
                 )}
@@ -195,7 +195,8 @@ export function ComplyVault() {
       {view === 'grid' ? (
         <div className="comply-cert-grid">
           {visible.map(cert => (
-            <div key={cert.id} className="comply-cert-card" onClick={() => setSelected(cert)}>
+            <div key={cert.id} className="comply-cert-card" onClick={() => setSelected(cert)}
+              role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelected(cert); } }}>
               <div className="comply-cert-card-body">
                 <div className="comply-cert-card-hdr-row">
                   <span className={`comply-agency comply-agency--${cert.agency_class}`}>{cert.agency_code}</span>

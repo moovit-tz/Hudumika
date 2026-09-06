@@ -313,6 +313,7 @@ export const ReportIssuePage: React.FC = () => {
               <div className="ri-field">
                 <label className="ri-lab">Screenshot or file</label>
                 <div className="ri-drop" onClick={() => fileRef.current?.click()}
+                  role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileRef.current?.click(); } }}
                   onDragOver={e => e.preventDefault()}
                   onDrop={e => { e.preventDefault(); addFiles(e.dataTransfer.files); }}>
                   <Icon name="upload" size={20} color="var(--teal)" />
@@ -375,7 +376,8 @@ export const ReportIssuePage: React.FC = () => {
             </div>
           )}
           {tickets.map(t => (
-            <div key={t.id} className="ri-tick" onClick={() => openTicket(t.id)}>
+            <div key={t.id} className="ri-tick" onClick={() => openTicket(t.id)}
+              role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openTicket(t.id); } }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
                 <span style={{ fontFamily: 'var(--mono, monospace)', fontSize: 11.5, fontWeight: 700, color: 'var(--teal)' }}>{t.ref_number}</span>
                 <Badge variant={STATUS_VARIANT[t.status] ?? 'gray'}>{STATUS_LABEL[t.status] ?? t.status}</Badge>

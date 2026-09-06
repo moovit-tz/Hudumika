@@ -219,14 +219,14 @@ export const OndiPolicies: React.FC = () => {
           <div className="ondi-kpi-header">
             <span className="ondi-kpi-title">Two-Factor Requirement</span>
             <div className="ondi-kpi-icon-box" style={{
-              background: mfaRequired ? '#ecfdf5' : '#fffbeb',
-              color: mfaRequired ? '#047857' : '#b45309'
+              background: mfaRequired ? 'var(--green-l)' : 'var(--gold-l)',
+              color: mfaRequired ? 'var(--green)' : 'var(--gold)'
             }}>
               <Icon name="shield" size={18} />
             </div>
           </div>
           <div className="ondi-kpi-body">
-            <span className="ondi-kpi-num" style={{ fontSize: 22, color: mfaRequired ? '#047857' : '#b45309' }}>
+            <span className="ondi-kpi-num" style={{ fontSize: 22, color: mfaRequired ? 'var(--green)' : 'var(--gold)' }}>
               {mfaRequired ? 'Required' : 'Optional'}
             </span>
           </div>

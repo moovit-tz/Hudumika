@@ -14,6 +14,7 @@ import { recordLogin } from './auth.routes.js';
 import { webauthnOrigin, webauthnRpID } from '../lib/webauthn-config.js';
 import { recordAuthEvent } from '../lib/audit-chain.js';
 import { verifyMicrosoftIdToken } from '../lib/microsoft-oidc.js';
+import { verifyAppleIdToken } from '../lib/apple-oidc.js';
 import { computeTrustScore } from '../lib/trust-score.js';
 import { assessRisk } from '../lib/risk-engine.js';
 import { createJoinRequestForFederatedIdentity } from '../services/onboarding.service.js';
@@ -68,6 +69,10 @@ const passkeyVerifySchema = z.object({ email: z.string().trim().email().max(320)
 // what "join request" means here (never a silent tenant creation).
 const googleVerifySchema = z.object({ credential: z.string().trim().min(1).max(4000), allowJoinRequest: z.boolean().optional() });
 const microsoftVerifySchema = z.object({ credential: z.string().trim().min(1).max(4000), allowJoinRequest: z.boolean().optional() });
+// name: Apple's id_token never carries one (see apple-oidc.ts's header) — the
+// frontend forwards the `user.name` Apple's SDK hands it on a first-ever
+// authorization only, used solely as a join request's display name.
+const appleVerifySchema = z.object({ credential: z.string().trim().min(1).max(4000), name: z.string().trim().max(200).optional(), allowJoinRequest: z.boolean().optional() });
 
 const OTP_TTL_SECONDS = 5 * 60;
 const OTP_MAX_ATTEMPTS = 5;
@@ -146,12 +151,13 @@ function cleanClientId(value: unknown): string | null {
   return trimmed || null;
 }
 
-async function resolveOAuthClientIds(): Promise<{ google: string | null; microsoft: string | null; settings: any }> {
+async function resolveOAuthClientIds(): Promise<{ google: string | null; microsoft: string | null; apple: string | null; settings: any }> {
   const settings = await readPlatformSettings();
   const sso = settings?.ondiSso ?? {};
   return {
     google:    cleanClientId(sso.googleClientId)    ?? cleanClientId(env.GOOGLE_OAUTH_CLIENT_ID),
     microsoft: cleanClientId(sso.microsoftClientId) ?? cleanClientId(env.MICROSOFT_OAUTH_CLIENT_ID),
+    apple:     cleanClientId(sso.appleClientId)     ?? cleanClientId(env.APPLE_OAUTH_CLIENT_ID),
     settings,
   };
 }
@@ -178,10 +184,11 @@ export async function ondiAuthRoutes(fastify: FastifyInstance) {
    * path, only changes which one a visitor sees first.
    */
   fastify.get('/config', async () => {
-    const { google, microsoft, settings } = await resolveOAuthClientIds();
+    const { google, microsoft, apple, settings } = await resolveOAuthClientIds();
     return {
       google_client_id: google,
       microsoft_client_id: microsoft,
+      apple_client_id: apple,
       sso_enabled: !!settings?.ondiSso?.enabled,
     };
   });
@@ -606,6 +613,48 @@ export async function ondiAuthRoutes(fastify: FastifyInstance) {
     }
 
     await recordAuthEvent(user.tenant_id, user.id, 'microsoft_login', { ip: request.ip, userAgent: String(request.headers['user-agent'] || '') });
+    return issueSessionFor(fastify, reply, user, request.ip, String(request.headers['user-agent'] || ''));
+  });
+
+  /**
+   * POST /v1/ondi/auth/apple/verify
+   * Same login-first / join-request-with-allowJoinRequest shape as
+   * /google/verify and /microsoft/verify above. `name` (see appleVerifySchema's
+   * own comment) only ever arrives on a user's very first "Sign in with
+   * Apple" — every login after that has it stripped by Apple itself, so a
+   * missing name here is normal, not a bug, and createJoinRequestForFederatedIdentity
+   * already falls back to the email's local part when it's blank.
+   */
+  fastify.post('/apple/verify', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (request, reply) => {
+    const { credential, name, allowJoinRequest } = appleVerifySchema.parse(request.body);
+    const { apple: appleClientId } = await resolveOAuthClientIds();
+    if (!appleClientId) {
+      return reply.status(503).send({ error: 'Apple sign-in is not configured for this platform yet.' });
+    }
+
+    const data = await verifyAppleIdToken(credential, appleClientId);
+    if (!data) return reply.status(401).send({ error: 'Invalid Apple credential.' });
+
+    const email = data.email;
+    if (!email) return reply.status(401).send({ error: 'Your Apple account has no email address to sign in with.' });
+    if (data.email_verified !== 'true' && data.email_verified !== true) {
+      return reply.status(401).send({ error: 'Your Apple account email is not verified.' });
+    }
+
+    const user = await dbPlatform.selectFrom('users').selectAll()
+      .where('email', '=', email).where('active', '=', true).executeTakeFirst();
+    if (!user) {
+      if (allowJoinRequest) {
+        const joinResult = await createJoinRequestForFederatedIdentity(name || '', email);
+        if (joinResult) return reply.status(202).send({ join_request: joinResult });
+      }
+      return reply.status(404).send({
+        error: 'No active account found for this Apple email.',
+        code: 'NO_MATCHING_WORKSPACE',
+      });
+    }
+
+    await recordAuthEvent(user.tenant_id, user.id, 'apple_login', { ip: request.ip, userAgent: String(request.headers['user-agent'] || '') });
     return issueSessionFor(fastify, reply, user, request.ip, String(request.headers['user-agent'] || ''));
   });
 }

@@ -87,7 +87,7 @@ function EscCard({ esc, canResolve, onResolve }: {
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
         <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--teal)' }}>{esc.caseRef}</span>
         <span style={{
-          fontSize: 11, fontWeight: 700, borderRadius: 20, padding: '2px 10px',
+          fontSize: 11, fontWeight: 700, borderRadius: 'var(--badge-radius)', padding: '2px 10px',
           background: cfg.bg, color: cfg.color,
         }}>{cfg.label}</span>
         <span style={{ fontSize: 11, color: 'var(--ink3)', marginLeft: 'auto' }}>{fmt(esc.escalatedAt)}</span>

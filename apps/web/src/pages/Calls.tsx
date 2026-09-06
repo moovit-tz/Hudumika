@@ -422,7 +422,7 @@ export function Calls() {
               </div>
             )}
             {callState === 'in-call' && (
-              <div style={{ position: 'absolute', top: 16, left: 16, background: 'rgba(0,0,0,0.5)', color: '#fff', padding: '5px 12px', borderRadius: 20, fontSize: 13, fontWeight: 600 }}>{peer.name} · {fmtDur(elapsed)}</div>
+              <div style={{ position: 'absolute', top: 16, left: 16, background: 'rgba(0,0,0,0.5)', color: '#fff', padding: '5px 12px', borderRadius: 'var(--badge-radius)', fontSize: 13, fontWeight: 600 }}>{peer.name} · {fmtDur(elapsed)}</div>
             )}
             {/* Local preview */}
             <video ref={localVideo} autoPlay playsInline muted style={{ position: 'absolute', bottom: 100, right: 16, width: 150, height: 200, objectFit: 'cover', borderRadius: 12, border: '2px solid rgba(255,255,255,0.3)', background: '#111', display: kind === 'VIDEO' ? 'block' : 'none' }} />

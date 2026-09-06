@@ -54,8 +54,8 @@ export const OndiBusinessVerification: React.FC = () => {
           <div className="ondi-kpi-header">
             <span className="ondi-kpi-title">KYB Verification Status</span>
             <div className="ondi-kpi-icon-box" style={{
-              background: isVerified ? '#ecfdf5' : isPending ? '#fffbeb' : '#fef2f2',
-              color: isVerified ? '#047857' : isPending ? '#b45309' : '#dc2626'
+              background: isVerified ? 'var(--green-l)' : isPending ? 'var(--gold-l)' : 'var(--red-l)',
+              color: isVerified ? 'var(--green)' : isPending ? 'var(--gold)' : 'var(--red)'
             }}>
               <Icon name={isVerified ? 'checkCircle' : isPending ? 'clock' : 'alertTriangle'} size={18} />
             </div>
@@ -63,7 +63,7 @@ export const OndiBusinessVerification: React.FC = () => {
           <div className="ondi-kpi-body">
             <span className="ondi-kpi-num" style={{
               fontSize: 22,
-              color: isVerified ? '#047857' : isPending ? '#b45309' : '#dc2626'
+              color: isVerified ? 'var(--green)' : isPending ? 'var(--gold)' : 'var(--red)'
             }}>
               {isVerified ? 'Verified' : isPending ? 'Under Review' : 'Unverified'}
             </span>

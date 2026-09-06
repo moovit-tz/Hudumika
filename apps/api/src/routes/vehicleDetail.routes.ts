@@ -269,7 +269,13 @@ export async function vehicleDetailRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.patch('/issues/:id/resolve', async (req) => {
+  // Both POST /vehicles/:id/issues (create) and PATCH /issues/:id (general
+  // update, which can also set status) already require FLEET_ROLES — this
+  // shortcut and the comment-style event log below it didn't, so any
+  // authenticated tenant user regardless of role could resolve or comment
+  // on a fleet issue through these two, bypassing the restriction the
+  // equivalent general-purpose endpoints enforce.
+  fastify.patch('/issues/:id/resolve', { preHandler: requireRole(...FLEET_ROLES) }, async (req) => {
     const user = req.user;
     const { id } = req.params as { id: string };
     const body = req.body as { resolved_odometer_km?: number };
@@ -308,7 +314,7 @@ export async function vehicleDetailRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/issues/:id/events', async (req) => {
+  fastify.post('/issues/:id/events', { preHandler: requireRole(...FLEET_ROLES) }, async (req) => {
     const user = req.user;
     const { id } = req.params as { id: string };
     const body = req.body as { event_type?: string; description: string; };

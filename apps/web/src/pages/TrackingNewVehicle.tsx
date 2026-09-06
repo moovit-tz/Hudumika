@@ -276,6 +276,7 @@ export const TrackingNewVehicle: React.FC = () => {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
                     {['LOAN', 'LEASE', 'NONE'].map(t => (
                       <div key={t} onClick={() => handleChange('financing_type', t)}
+                        role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleChange('financing_type', t); } }}
                         style={{ border: `1px solid ${form.financing_type === t ? 'var(--teal)' : 'var(--border)'}`, borderRadius: 8, padding: 16, cursor: 'pointer', background: form.financing_type === t ? 'var(--teal-l)' : 'var(--white)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                           <input type="radio" checked={form.financing_type === t} readOnly style={{ accentColor: 'var(--teal)' }} />

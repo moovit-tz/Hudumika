@@ -801,7 +801,7 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
         {/* Animated reaction badges */}
         <div style={{ position: 'absolute', bottom: 20, left: 30, display: 'flex', flexDirection: 'column', gap: 8, pointerEvents: 'none', zIndex: 50 }}>
           {reactions.map(r => (
-            <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#3c4043', border: '1px solid #5f6368', borderRadius: 20, padding: '4px 12px', fontSize: 13, color: '#fff', boxShadow: '0 4px 10px rgba(0,0,0,0.3)', animation: 'slideIn 0.2s' }}>
+            <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#3c4043', border: '1px solid #5f6368', borderRadius: 'var(--badge-radius)', padding: '4px 12px', fontSize: 13, color: '#fff', boxShadow: '0 4px 10px rgba(0,0,0,0.3)', animation: 'slideIn 0.2s' }}>
               <span>{r.emoji}</span>
               <span style={{ fontWeight: 600 }}>{r.from}</span>
             </div>
@@ -1054,7 +1054,9 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
                       { icon: 'sparkle', title: 'Summary', desc: 'AI-generated notes, decisions & action items', action: () => setSubPanel('summary'), badge: summary ? 'Ready' : '' },
                       ...(canModerate ? [{ icon: 'users', title: 'Breakout rooms', desc: 'Split into smaller group discussions', action: () => setSubPanel('breakout'), badge: breakoutRooms.length ? String(breakoutRooms.length) : '' }] : []),
                     ].map((tool, idx) => (
-                      <div key={idx} onClick={tool.action} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '10px 14px', borderRadius: 10, background: '#2d2f31', cursor: 'pointer' }}>
+                      <div key={idx} onClick={tool.action}
+                        role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tool.action(); } }}
+                        style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '10px 14px', borderRadius: 10, background: '#2d2f31', cursor: 'pointer' }}>
                         <div style={{ width: 34, height: 34, borderRadius: '50%', background: '#3c4043', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8ab4f8' }}>
                           <Icon name={tool.icon as IconName} size={16} />
                         </div>

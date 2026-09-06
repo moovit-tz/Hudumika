@@ -166,7 +166,7 @@ export const CustomerDocuments: React.FC = () => {
                   </div>
                 </div>
                 {f.entity_type === 'shipment' && (
-                  <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--teal)', background: 'var(--teal-l)', borderRadius: 20, padding: '2px 8px', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                  <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--teal)', background: 'var(--teal-l)', borderRadius: 'var(--badge-radius)', padding: '2px 8px', whiteSpace: 'nowrap', flexShrink: 0 }}>
                     Shipment
                   </span>
                 )}

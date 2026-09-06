@@ -222,6 +222,7 @@ export const OndiGroups: React.FC = () => {
                 <div style={{ display: 'flex', gap: 10 }}>
                   {(['static', 'dynamic'] as const).map(t => (
                     <div key={t} onClick={() => setMembershipType(t)}
+                      role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setMembershipType(t); } }}
                       style={{ flex: 1, textAlign: 'center', padding: '10px 14px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 700, border: `2px solid ${membershipType === t ? 'var(--teal)' : 'var(--border)'}`, background: membershipType === t ? 'var(--teal-l, #ecfeff)' : 'var(--white)', color: membershipType === t ? 'var(--teal)' : 'var(--ink2)', transition: 'all 0.15s ease' }}>
                       {t === 'static' ? 'Static (Manual List)' : 'Dynamic (Rule Evaluator)'}
                     </div>
@@ -284,7 +285,9 @@ export const OndiGroups: React.FC = () => {
           const d = detail[g.id];
           return (
             <div key={g.id} style={{ borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none' }}>
-              <div onClick={() => toggleExpand(g)} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 20px', cursor: 'pointer', background: open ? 'rgba(0, 181, 137, 0.02)' : 'transparent', transition: 'background 0.15s ease' }}>
+              <div onClick={() => toggleExpand(g)}
+                role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleExpand(g); } }}
+                style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 20px', cursor: 'pointer', background: open ? 'rgba(0, 181, 137, 0.02)' : 'transparent', transition: 'background 0.15s ease' }}>
                 <Icon name={open ? 'chevronDown' : 'chevronRight'} size={16} color="var(--ink3)" />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 10 }}>

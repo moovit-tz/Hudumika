@@ -830,7 +830,7 @@ export const TopBar: React.FC<TopBarProps> = ({ navCollapsed, onToggleNav, onMob
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.name}</div>
                   <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.email}</div>
-                  <span style={{ display: 'inline-block', marginTop: 4, padding: '2px 8px', borderRadius: 20, background: 'var(--teal-l)', color: 'var(--teal)', fontSize: 10, fontWeight: 700, letterSpacing: '0.04em' }}>
+                  <span style={{ display: 'inline-block', marginTop: 4, padding: '2px 8px', borderRadius: 'var(--badge-radius)', background: 'var(--teal-l)', color: 'var(--teal)', fontSize: 10, fontWeight: 700, letterSpacing: '0.04em' }}>
                     {ROLE_LABELS[user?.role ?? ''] ?? user?.role}
                   </span>
                 </div>

@@ -270,7 +270,7 @@ export const TrackingWarehouse: React.FC = () => {
                     <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{l.zone || '—'}</td>
                     <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{l.capacity_units ?? '—'}</td>
                     <td style={{ padding: '10px 14px' }}>
-                      <span style={{ fontSize: 11, fontWeight: 700, borderRadius: 20, padding: '2px 10px', background: l.active ? '#ecfdf5' : '#f1f5f9', color: l.active ? '#065f46' : '#64748b' }}>{l.active ? 'ACTIVE' : 'INACTIVE'}</span>
+                      <span style={{ fontSize: 11, fontWeight: 700, borderRadius: 'var(--badge-radius)', padding: '2px 10px', background: l.active ? 'var(--green-l)' : 'var(--bg)', color: l.active ? 'var(--green)' : 'var(--ink3)' }}>{l.active ? 'ACTIVE' : 'INACTIVE'}</span>
                     </td>
                     <td style={{ padding: '10px 14px', textAlign: 'right' }}>
                       <button type="button" onClick={() => removeLocation(l.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}><Icon name="close" size={14} /></button>
@@ -311,7 +311,7 @@ export const TrackingWarehouse: React.FC = () => {
                       <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{a.reference || '—'}</td>
                       <td style={{ padding: '10px 14px', color: 'var(--ink3)', fontSize: 12 }}>{new Date(a.scheduled_at).toLocaleString()}</td>
                       <td style={{ padding: '10px 14px' }}>
-                        <span style={{ fontSize: 11, fontWeight: 700, borderRadius: 20, padding: '2px 10px', background: '#f1f5f9', color: 'var(--ink2)' }}>{a.status.replace('_', ' ')}</span>
+                        <span style={{ fontSize: 11, fontWeight: 700, borderRadius: 'var(--badge-radius)', padding: '2px 10px', background: '#f1f5f9', color: 'var(--ink2)' }}>{a.status.replace('_', ' ')}</span>
                       </td>
                       <td style={{ padding: '10px 14px', textAlign: 'right', whiteSpace: 'nowrap' }}>
                         {a.status === 'SCHEDULED' && <button type="button" onClick={() => setAppointmentStatus(a.id, 'check-in')} style={{ fontSize: 11, fontWeight: 600, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', marginRight: 8 }}>Check in</button>}
@@ -338,15 +338,15 @@ export const TrackingWarehouse: React.FC = () => {
             {!occupancyLoading && occupancy?.map(z => (
               <SectionCard key={z.zone} title={z.zone} action={
                 <div style={{ display: 'flex', gap: 10, fontSize: 10.5, color: 'var(--ink3)' }}>
-                  <span><span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 2, background: '#059669', marginRight: 4 }} />0-60%</span>
-                  <span><span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 2, background: '#ca8a04', marginRight: 4 }} />61-85%</span>
-                  <span><span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 2, background: '#dc2626', marginRight: 4 }} />86-100%</span>
+                  <span><span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 2, background: 'var(--green)', marginRight: 4 }} />0-60%</span>
+                  <span><span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 2, background: 'var(--gold)', marginRight: 4 }} />61-85%</span>
+                  <span><span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 2, background: 'var(--red)', marginRight: 4 }} />86-100%</span>
                 </div>
               }>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(110px,1fr))', gap: 10 }}>
                   {z.locations.map(loc => {
                     const pct = loc.occupancy_pct;
-                    const color = pct == null ? 'var(--ink3)' : pct > 85 ? '#dc2626' : pct > 60 ? '#ca8a04' : '#059669';
+                    const color = pct == null ? 'var(--ink3)' : pct > 85 ? 'var(--red)' : pct > 60 ? 'var(--gold)' : 'var(--green)';
                     const bg = pct == null ? 'var(--bg)' : pct > 85 ? 'rgba(220,38,38,0.1)' : pct > 60 ? 'rgba(202,138,4,0.1)' : 'rgba(22,163,74,0.1)';
                     return (
                       <div key={loc.id} title={`${loc.name} — ${loc.occupied_units} occupied${loc.capacity_units != null ? ` / ${loc.capacity_units} capacity` : ''}`}
@@ -370,7 +370,7 @@ export const TrackingWarehouse: React.FC = () => {
             {insightLoading && <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 12 }}>Analyzing occupancy…</div>}
             {insight && <div style={{ fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.6, marginBottom: 12, whiteSpace: 'pre-line' }}>{insight}</div>}
             {insightError && (
-              <div style={{ fontSize: 12, color: insightError.includes('not configured') ? 'var(--ink3)' : '#dc2626', marginBottom: 12 }}>
+              <div style={{ fontSize: 12, color: insightError.includes('not configured') ? 'var(--ink3)' : 'var(--red)', marginBottom: 12 }}>
                 {insightError.includes('not configured')
                   ? <>Configure AI in <a href="/settings?s=int-ai" style={{ color: 'var(--teal)', fontWeight: 600 }}>Settings</a> to enable insights.</>
                   : insightError}

@@ -51,7 +51,7 @@ function InvoiceCard({ inv, onClick }: { inv: Invoice; onClick: () => void }) {
       {/* Row 1: id + badge */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
         <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--mono)', flex: 1 }}>{inv.id}</span>
-        <span style={{ fontSize: 11, fontWeight: 700, color: st.color, background: st.bg, borderRadius: 20, padding: '2px 10px', flexShrink: 0 }}>
+        <span style={{ fontSize: 11, fontWeight: 700, color: st.color, background: st.bg, borderRadius: 'var(--badge-radius)', padding: '2px 10px', flexShrink: 0 }}>
           {st.label}
         </span>
       </div>
@@ -66,7 +66,7 @@ function InvoiceCard({ inv, onClick }: { inv: Invoice; onClick: () => void }) {
         <span style={{ fontSize: 12, color: 'var(--ink3)' }}>
           {inv.status === 'Paid' ? `Paid · ${fmtDate(inv.billDate)}` : `Due ${fmtDate(inv.dueDate)}`}
         </span>
-        <span style={{ fontSize: 14, fontWeight: 700, color: isOverdue ? '#dc2626' : 'var(--ink)' }}>
+        <span style={{ fontSize: 14, fontWeight: 700, color: isOverdue ? 'var(--red)' : 'var(--ink)' }}>
           {fmtTZS(bal > 0 ? bal : total)}
         </span>
       </div>
@@ -110,7 +110,7 @@ function DisputeModal({ inv, onClose, onSubmit }: {
         />
         <button type="button" title="Submit dispute" onClick={() => { if (reason.trim()) onSubmit(reason.trim()); }}
           disabled={!reason.trim()}
-          style={{ width: '100%', padding: '14px', background: reason.trim() ? '#dc2626' : 'var(--border)', color: '#fff', border: 'none', borderRadius: 'var(--r)', fontSize: 15, fontWeight: 700, cursor: reason.trim() ? 'pointer' : 'default', fontFamily: 'var(--font)' }}>
+          style={{ width: '100%', padding: '14px', background: reason.trim() ? 'var(--red)' : 'var(--border)', color: '#fff', border: 'none', borderRadius: 'var(--r)', fontSize: 15, fontWeight: 700, cursor: reason.trim() ? 'pointer' : 'default', fontFamily: 'var(--font)' }}>
           Submit Dispute
         </button>
       </div>
@@ -151,7 +151,7 @@ function InvoiceDetail({ inv, onBack }: { inv: Invoice; onBack: () => void }) {
           Back
         </button>
         <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--mono)', flex: 1 }}>{inv.id}</span>
-        <span style={{ fontSize: 11, fontWeight: 700, color: st.color, background: st.bg, borderRadius: 20, padding: '3px 10px', flexShrink: 0 }}>{st.label}</span>
+        <span style={{ fontSize: 11, fontWeight: 700, color: st.color, background: st.bg, borderRadius: 'var(--badge-radius)', padding: '3px 10px', flexShrink: 0 }}>{st.label}</span>
       </div>
 
       <div style={{ padding: '20px 16px 0' }}>
@@ -166,7 +166,7 @@ function InvoiceDetail({ inv, onBack }: { inv: Invoice; onBack: () => void }) {
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: '#e6f4ea', marginLeft: 'auto' }}>
               <QRCodeSVG value={inv.traQrUrl!} size={60} level="M" />
               <div style={{ fontSize: 9, color: 'var(--ink3)', textAlign: 'center', lineHeight: 1.4 }}>
-                <div style={{ fontWeight: 700, color: '#059669' }}>TRA Verified</div>
+                <div style={{ fontWeight: 700, color: 'var(--green)' }}>TRA Verified</div>
                 <div>{inv.traRctvnum}</div>
               </div>
             </div>
@@ -222,7 +222,7 @@ function InvoiceDetail({ inv, onBack }: { inv: Invoice; onBack: () => void }) {
                 <div style={{ fontSize: 10.5, color: 'var(--ink3)' }}>CO₂ emissions</div>
               </div>
               <div>
-                <div style={{ fontSize: 15, fontWeight: 800, color: '#059669' }}>{Number(inv.shipmentCarbon.carbon_credits_saved).toFixed(2)}</div>
+                <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--green)' }}>{Number(inv.shipmentCarbon.carbon_credits_saved).toFixed(2)}</div>
                 <div style={{ fontSize: 10.5, color: 'var(--ink3)' }}>Credits saved (est.)</div>
               </div>
             </div>
@@ -383,7 +383,7 @@ export const CustomerInvoices: React.FC = () => {
       {/* Header */}
       <div style={{ padding: '20px 16px 0' }}>
         <h2 style={{ margin: '0 0 2px', fontSize: 22, fontWeight: 800, color: 'var(--ink)' }}>Invoices</h2>
-        <p style={{ margin: '0 0 16px', fontSize: 13, color: overdue > 0 ? '#dc2626' : 'var(--ink3)' }}>
+        <p style={{ margin: '0 0 16px', fontSize: 13, color: overdue > 0 ? 'var(--red)' : 'var(--ink3)' }}>
           {loading ? 'Loading…' : unpaid > 0 ? `${unpaid} invoice${unpaid !== 1 ? 's' : ''} outstanding` : `${invoices.length} invoice${invoices.length !== 1 ? 's' : ''}`}
         </p>
 
@@ -393,7 +393,7 @@ export const CustomerInvoices: React.FC = () => {
             {[
               { label: 'Overdue',  count: invoices.filter(i => i.status === 'Overdue').length,  color: 'var(--red)', bg: 'var(--red-l)' },
               { label: 'Unpaid',   count: invoices.filter(i => i.status === 'Unpaid').length,   color: 'var(--gold)', bg: 'var(--gold-l)' },
-              { label: 'Paid',     count: invoices.filter(i => i.status === 'Paid').length,     color: '#059669', bg: 'var(--green-l)' },
+              { label: 'Paid',     count: invoices.filter(i => i.status === 'Paid').length,     color: 'var(--green)', bg: 'var(--green-l)' },
             ].map(s => (
               <button key={s.label} type="button" title={`Show ${s.label}`} onClick={() => setFilter(s.label as FilterKey)}
                 style={{ background: 'var(--white)', border: `1.5px solid ${filter === s.label ? s.color : 'var(--border)'}`, borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 8px', cursor: 'pointer', fontFamily: 'var(--font)', textAlign: 'center', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>

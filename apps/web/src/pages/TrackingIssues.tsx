@@ -13,11 +13,11 @@ interface Issue {
 }
 
 const SEVERITY_CFG: Record<string, { color: string; bg: string }> = {
-  LOW: { color: '#059669', bg: 'rgba(22,163,74,0.14)' }, MEDIUM: { color: 'var(--gold)', bg: 'rgba(202,138,4,0.14)' },
-  HIGH: { color: '#ea580c', bg: 'rgba(234,88,12,0.14)' }, CRITICAL: { color: 'var(--red)', bg: 'rgba(220,38,38,0.14)' },
+  LOW: { color: 'var(--green)', bg: 'var(--green-l)' }, MEDIUM: { color: 'var(--gold)', bg: 'var(--gold-l)' },
+  HIGH: { color: 'var(--gold)', bg: 'var(--gold-l)' }, CRITICAL: { color: 'var(--red)', bg: 'var(--red-l)' },
 };
 const STATUS_CFG: Record<string, { color: string; bg: string }> = {
-  OPEN: { color: 'var(--red)', bg: 'rgba(220,38,38,0.14)' }, IN_PROGRESS: { color: '#2563eb', bg: 'rgba(37,99,235,0.14)' }, RESOLVED: { color: '#059669', bg: 'rgba(22,163,74,0.14)' },
+  OPEN: { color: 'var(--red)', bg: 'var(--red-l)' }, IN_PROGRESS: { color: 'var(--blue)', bg: 'var(--blue-l)' }, RESOLVED: { color: 'var(--green)', bg: 'var(--green-l)' },
 };
 const STATUS_FILTERS = ['All', 'OPEN', 'IN_PROGRESS', 'RESOLVED'];
 
@@ -91,7 +91,7 @@ export const TrackingIssues: React.FC = () => {
                     <span style={{ fontSize: 11, fontWeight: 700, color: pCfg.color }}>{i.severity}</span>
                   </td>
                   <td style={{ padding: '10px 14px' }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, borderRadius: 20, padding: '2px 10px', background: sCfg.bg, color: sCfg.color }}>{i.status.replace('_', ' ')}</span>
+                    <span style={{ fontSize: 11, fontWeight: 700, borderRadius: 'var(--badge-radius)', padding: '2px 10px', background: sCfg.bg, color: sCfg.color }}>{i.status.replace('_', ' ')}</span>
                   </td>
                   <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{i.assigned_to_name || '—'}</td>
                   <td style={{ padding: '10px 14px', color: 'var(--ink3)' }}>{new Date(i.created_at).toLocaleDateString()}</td>

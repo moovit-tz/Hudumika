@@ -208,7 +208,7 @@ export function ComplyLegal() {
         <TabsTrigger value="engagements">
           My Engagements
           {engagements.length > 0 && (
-            <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 20, lineHeight: 1.5, background: tab === 'engagements' ? 'var(--teal-l)' : 'var(--bg)', color: tab === 'engagements' ? 'var(--teal)' : 'var(--ink3)' }}>
+            <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 'var(--badge-radius)', lineHeight: 1.5, background: tab === 'engagements' ? 'var(--teal-l)' : 'var(--bg)', color: tab === 'engagements' ? 'var(--teal)' : 'var(--ink3)' }}>
               {engagements.length}
             </span>
           )}

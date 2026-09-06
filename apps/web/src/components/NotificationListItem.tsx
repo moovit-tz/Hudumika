@@ -85,7 +85,8 @@ export function NotificationListItem({ n, onMarkRead, onNavigate }: {
       {content}
     </Link>
   ) : (
-    <div className={className} onClick={() => onMarkRead(n.id, undefined)}>
+    <div className={className} onClick={() => onMarkRead(n.id, undefined)}
+      role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onMarkRead(n.id, undefined); } }}>
       {content}
     </div>
   );

@@ -160,7 +160,7 @@ const TABS = [
 const TICKET_STATUS_STYLE: Record<string, { color: string; bg: string; label: string }> = {
   OPEN:        { label: 'Open',        color: '#0891b2', bg: '#ecfeff' },
   IN_PROGRESS: { label: 'In Progress', color: 'var(--gold)', bg: 'var(--gold-l)' },
-  RESOLVED:    { label: 'Resolved',    color: '#059669', bg: 'var(--green-l)' },
+  RESOLVED:    { label: 'Resolved',    color: 'var(--green)', bg: 'var(--green-l)' },
   CLOSED:      { label: 'Closed',      color: 'var(--ink2)', bg: '#f3f4f6' },
 };
 
@@ -397,8 +397,8 @@ export const OrgShell: React.FC = () => {
               <Icon name="chevronLeft" size={18} /> Back
             </button>
             <span style={{ fontSize: 12, color: 'var(--ink3)', fontFamily: 'var(--mono)' }}>{selectedTicket.ref}</span>
-            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 20, padding: '2px 9px' }}>{selectedTicket.tenant_name}</span>
-            <span style={{ fontSize: 11, fontWeight: 600, color: st.color, background: st.bg, borderRadius: 20, padding: '2px 9px', marginLeft: 'auto' }}>{st.label}</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--badge-radius)', padding: '2px 9px' }}>{selectedTicket.tenant_name}</span>
+            <span style={{ fontSize: 11, fontWeight: 600, color: st.color, background: st.bg, borderRadius: 'var(--badge-radius)', padding: '2px 9px', marginLeft: 'auto' }}>{st.label}</span>
           </div>
           <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>{selectedTicket.subject}</div>
           {selectedTicket.description && (
@@ -518,7 +518,7 @@ export const OrgShell: React.FC = () => {
                     <div key={a.tenant_id} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '14px 16px' }}>
                       <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{a.tenant_name}</div>
                       <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 3 }}>You're known there as {a.customer_name}</div>
-                      <span style={{ display: 'inline-block', marginTop: 8, fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: a.account_status === 'Active' ? 'var(--green-l)' : 'var(--bg)', color: a.account_status === 'Active' ? 'var(--green)' : 'var(--ink3)' }}>
+                      <span style={{ display: 'inline-block', marginTop: 8, fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 'var(--badge-radius)', background: a.account_status === 'Active' ? 'var(--green-l)' : 'var(--bg)', color: a.account_status === 'Active' ? 'var(--green)' : 'var(--ink3)' }}>
                         {a.account_status || 'Active'}
                       </span>
                     </div>
@@ -568,10 +568,10 @@ export const OrgShell: React.FC = () => {
                           <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--mono)' }}>{s.ref_number}</div>
                           <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.goods_desc}</div>
                         </div>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 20, padding: '3px 10px', whiteSpace: 'nowrap' }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--badge-radius)', padding: '3px 10px', whiteSpace: 'nowrap' }}>
                           {s.tenant_name}
                         </span>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: st.color, background: st.bg, borderRadius: 20, padding: '3px 10px', whiteSpace: 'nowrap' }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: st.color, background: st.bg, borderRadius: 'var(--badge-radius)', padding: '3px 10px', whiteSpace: 'nowrap' }}>
                           {s.stage}
                         </span>
                         <span style={{ fontSize: 12, color: 'var(--ink3)', whiteSpace: 'nowrap' }}>{fmtDate(s.created_at)}</span>
@@ -600,10 +600,10 @@ export const OrgShell: React.FC = () => {
                           <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--mono)' }}>{inv.id}</div>
                           <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 1 }}>{fmtInvDate(inv.billDate)}</div>
                         </div>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 20, padding: '3px 10px', whiteSpace: 'nowrap' }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--badge-radius)', padding: '3px 10px', whiteSpace: 'nowrap' }}>
                           {inv.tenant_name}
                         </span>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: st.color, background: st.bg, borderRadius: 20, padding: '3px 10px', whiteSpace: 'nowrap' }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: st.color, background: st.bg, borderRadius: 'var(--badge-radius)', padding: '3px 10px', whiteSpace: 'nowrap' }}>
                           {inv.status}
                         </span>
                         <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>{fmtTZS(total)}</span>
@@ -636,7 +636,7 @@ export const OrgShell: React.FC = () => {
                             {d.size != null ? `${(d.size / 1024).toFixed(1)} KB · ` : ''}{fmtDate(d.created_at)}
                           </div>
                         </div>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 20, padding: '3px 10px', whiteSpace: 'nowrap' }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--badge-radius)', padding: '3px 10px', whiteSpace: 'nowrap' }}>
                           {d.tenant_name}
                         </span>
                         {d.can_manage_sharing && (
@@ -675,7 +675,7 @@ export const OrgShell: React.FC = () => {
                             {lot.compartment_name || '—'}{lot.batch ? ` · Batch ${lot.batch}` : ''}
                           </div>
                         </div>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 20, padding: '3px 10px', whiteSpace: 'nowrap' }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--badge-radius)', padding: '3px 10px', whiteSpace: 'nowrap' }}>
                           {lot.tenant_name}
                         </span>
                         <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>
@@ -706,10 +706,10 @@ export const OrgShell: React.FC = () => {
                             {Number(r.qty_requested).toLocaleString()} {r.lot_uom ?? ''} · {fmtDate(r.created_at)}
                           </div>
                         </div>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 20, padding: '3px 10px', whiteSpace: 'nowrap' }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--badge-radius)', padding: '3px 10px', whiteSpace: 'nowrap' }}>
                           {r.tenant_name}
                         </span>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: st.color, background: st.bg, borderRadius: 20, padding: '3px 10px', whiteSpace: 'nowrap' }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: st.color, background: st.bg, borderRadius: 'var(--badge-radius)', padding: '3px 10px', whiteSpace: 'nowrap' }}>
                           {st.label}
                         </span>
                       </div>
@@ -744,10 +744,10 @@ export const OrgShell: React.FC = () => {
                             <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)' }}>{t.subject}</div>
                             <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 1, fontFamily: 'var(--mono)' }}>{t.ref}</div>
                           </div>
-                          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 20, padding: '3px 10px', whiteSpace: 'nowrap' }}>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--badge-radius)', padding: '3px 10px', whiteSpace: 'nowrap' }}>
                             {t.tenant_name}
                           </span>
-                          <span style={{ fontSize: 11, fontWeight: 700, color: st.color, background: st.bg, borderRadius: 20, padding: '3px 10px', whiteSpace: 'nowrap' }}>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: st.color, background: st.bg, borderRadius: 'var(--badge-radius)', padding: '3px 10px', whiteSpace: 'nowrap' }}>
                             {st.label}
                           </span>
                           <span style={{ fontSize: 12, color: 'var(--ink3)', whiteSpace: 'nowrap' }}>{fmtDate(t.updated_at)}</span>
@@ -855,7 +855,7 @@ export const OrgShell: React.FC = () => {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.name}</div>
                     </div>
-                    <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', background: 'var(--bg)', borderRadius: 20, padding: '2px 8px', whiteSpace: 'nowrap' }}>
+                    <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', background: 'var(--bg)', borderRadius: 'var(--badge-radius)', padding: '2px 8px', whiteSpace: 'nowrap' }}>
                       {s.role}
                     </span>
                     <button type="button" title="Remove access" disabled={shareBusy} onClick={() => removeShare(i)}

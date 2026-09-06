@@ -85,7 +85,7 @@ interface EditForm {
 const DEPT_COLORS: Record<string, string> = {
   Executive: '#7c3aed',
   Operations: '#0891b2',
-  Finance: '#059669',
+  Finance: 'var(--green)',
   HR: '#f59e0b',
   Sales: '#ef4444',
   IT: '#6366f1',
@@ -296,7 +296,7 @@ function Sidebar({ node, allNodes, staffList, onClose, onSave, onDelete, saving 
 
   if (!node) return null;
 
-  const palette = ['#7c3aed','#0891b2','#059669','#f59e0b','#ef4444','#6366f1','#14b8a6','#0ea5e9','#ec4899','#84cc16'];
+  const palette = ['#7c3aed','#0891b2','var(--green)','#f59e0b','#ef4444','#6366f1','#14b8a6','#0ea5e9','#ec4899','#84cc16'];
   const possibleParents = allNodes.filter(n => n.id !== node?.id);
   const directReports = allNodes.filter(n => n.data.parent_id === node?.id);
 
@@ -610,7 +610,7 @@ export const OrgChart: React.FC = () => {
     scheduleSave(laid);
   }, [nodes, edges, scheduleSave]);
 
-  const palette = ['#7c3aed','#0891b2','#059669','#f59e0b','#ef4444','#6366f1','#14b8a6','#0ea5e9'];
+  const palette = ['#7c3aed','#0891b2','var(--green)','#f59e0b','#ef4444','#6366f1','#14b8a6','#0ea5e9'];
 
   // Filter nodes by department if selected
   const displayedNodes = filterDept

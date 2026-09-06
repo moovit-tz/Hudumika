@@ -110,11 +110,11 @@ export const SuperAdminKyb: React.FC = () => {
                       {previewLoading === row.id ? '…' : 'View'}
                     </button>
                     <button type="button" onClick={() => approve(row)} disabled={busyId === row.id}
-                      style={{ fontSize: 11, fontWeight: 700, borderRadius: 20, padding: 'var(--ds-btn-py-xs) 10px', border: 'none', cursor: 'pointer', background: 'var(--green-l)', color: '#059669' }}>
+                      style={{ fontSize: 11, fontWeight: 700, borderRadius: 20, padding: 'var(--ds-btn-py-xs) 10px', border: 'none', cursor: 'pointer', background: 'var(--green-l)', color: 'var(--green)' }}>
                       Verify
                     </button>
                     <button type="button" onClick={() => reject(row)} disabled={busyId === row.id}
-                      style={{ fontSize: 11, fontWeight: 700, borderRadius: 20, padding: 'var(--ds-btn-py-xs) 10px', border: 'none', cursor: 'pointer', background: '#fef2f2', color: '#dc2626' }}>
+                      style={{ fontSize: 11, fontWeight: 700, borderRadius: 20, padding: 'var(--ds-btn-py-xs) 10px', border: 'none', cursor: 'pointer', background: 'var(--red-l)', color: 'var(--red)' }}>
                       Reject
                     </button>
                   </div>

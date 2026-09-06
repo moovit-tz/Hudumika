@@ -15,7 +15,7 @@ const CATS: Record<string, { label: string; color: string }> = {
   FREIGHT:         { label: 'Freight',         color: 'var(--teal)' },
   HANDLING:        { label: 'Handling',        color: '#9a6700' },
   TRANSPORT:       { label: 'Transport',       color: '#6e40c9' },
-  INSPECTION_FEE:  { label: 'Inspection Fee',  color: '#059669' },
+  INSPECTION_FEE:  { label: 'Inspection Fee',  color: 'var(--green)' },
   AGENT_FEE:       { label: 'Agent Fee',       color: '#cf222e' },
   MISCELLANEOUS:   { label: 'Miscellaneous',   color: 'var(--ink3)' },
   FUEL:            { label: 'Fuel',            color: '#0891b2' },
@@ -209,7 +209,7 @@ function ExpenseDetailPanel({ expense, onClose, onChanged, shipments, customers,
               expense.efd_verified ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                   <Icon name="checkCircle" size={13} color="#059669" />
-                  <span style={{ fontSize: 11.5, fontWeight: 700, color: '#059669' }}>EFD Verified</span>
+                  <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--green)' }}>EFD Verified</span>
                 </div>
               ) : (
                 <div>

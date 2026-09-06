@@ -15,21 +15,22 @@ import './Tracking.css';
 
 interface VehicleWithPosition {
   id: string; name: string; plate_number: string | null; status: string;
+  mileage_km?: number | null;
   last_position: { latitude: number; longitude: number; speed: number | null; recorded_at: string; heading?: number; battery_pct?: number; ignition?: boolean | string } | null;
-  // Extended fields for the premium dashboard mock
   heading?: number;
   battery?: number;
   ignition?: boolean;
-  odometer?: number;
   driver_name?: string;
   driver_id?: string | null;
-  origin?: string;
-  destination?: string;
-  eta_time?: string;
-  cargo_type?: string;
-  cargo_weight?: number;
-  cargo_temp?: number;
-  capacity_used?: number;
+  // The vehicle's own current IN_PROGRESS trip, if it has one (GET
+  // /v1/tracking/vehicles now joins this in from the real trips table) — a
+  // vehicle idle between trips genuinely has none, which the UI shows
+  // honestly rather than filling in a placeholder route/cargo.
+  current_trip?: {
+    origin: string | null; destination: string | null; cargo_type: string | null;
+    cargo_weight_kg: number | null; cargo_temp_c: number | null;
+    load_capacity_pct: number | null; eta: string | null;
+  } | null;
 }
 interface Geofence { id: string; name: string; center_lat: number; center_lon: number; radius_km: number }
 
@@ -100,75 +101,6 @@ function RecenterOnFirstFix({ position, hasSelection }: { position: [number, num
   return null;
 }
 
-const DEFAULT_MAP_VEHICLES: VehicleWithPosition[] = [
-  {
-    id: 'veh-101',
-    name: 'Scania R500 (Heavy Truck)',
-    plate_number: 'T-104-ABZ',
-    status: 'ACTIVE',
-    last_position: { latitude: -6.7924, longitude: 39.2083, speed: 64, recorded_at: new Date().toISOString(), heading: 45, battery_pct: 98, ignition: true },
-    heading: 45,
-    battery: 98,
-    ignition: true,
-    odometer: 42150,
-    driver_name: 'Juma Hamisi',
-    driver_id: null,
-    origin: 'Dar es Salaam Port Terminal',
-    destination: 'Dodoma Inland Container Depot',
-    eta_time: '18:30',
-    cargo_type: 'General Cargo',
-    cargo_weight: 24.5,
-    cargo_temp: 22,
-    capacity_used: 85
-  },
-  {
-    id: 'veh-102',
-    name: 'Volvo FH16 (Flatbed)',
-    plate_number: 'T-882-DKL',
-    status: 'ACTIVE',
-    last_position: { latitude: -6.8235, longitude: 39.2695, speed: 48, recorded_at: new Date().toISOString(), heading: 180, battery_pct: 100, ignition: true },
-    heading: 180,
-    battery: 100,
-    ignition: true,
-    odometer: 18400,
-    driver_name: 'Rashidi Athumani',
-    driver_id: null,
-    origin: 'Kurasini ICD Hub',
-    destination: 'Tunduma Border Clearance',
-    eta_time: '21:15',
-    cargo_type: 'Refrigerated Produce',
-    cargo_weight: 18.2,
-    cargo_temp: 4,
-    capacity_used: 100
-  },
-  {
-    id: 'veh-103',
-    name: 'ISUZU FVR 34 (Box Truck)',
-    plate_number: 'T-519-EEM',
-    status: 'ACTIVE',
-    last_position: { latitude: -6.7712, longitude: 39.2341, speed: 0, recorded_at: new Date().toISOString(), heading: 90, battery_pct: 92, ignition: false },
-    heading: 90,
-    battery: 92,
-    ignition: false,
-    odometer: 31200,
-    driver_name: 'Bakari Mwamba',
-    driver_id: null,
-    origin: 'JNIA Cargo Terminal',
-    destination: 'Mbezi Distribution Center',
-    eta_time: 'Standby',
-    cargo_type: 'Electronics',
-    cargo_weight: 6.8,
-    cargo_temp: 20,
-    capacity_used: 45
-  }
-];
-
-const DEFAULT_MAP_GEOFENCES: Geofence[] = [
-  { id: 'geo-1', name: 'Dar es Salaam Port Terminal 1', center_lat: -6.8235, center_lon: 39.2695, radius_km: 3.5 },
-  { id: 'geo-2', name: 'Kurasini ICD Logistics Hub', center_lat: -6.8400, center_lon: 39.2780, radius_km: 2.0 },
-  { id: 'geo-3', name: 'Julius Nyerere Airport Cargo Depot', center_lat: -6.8781, center_lon: 39.2026, radius_km: 4.0 }
-];
-
 export const TrackingLiveMap: React.FC = () => {
   const [vehicles, setVehicles] = useState<VehicleWithPosition[]>([]);
   const [geofences, setGeofences] = useState<Geofence[]>([]);
@@ -176,43 +108,29 @@ export const TrackingLiveMap: React.FC = () => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [mapVariant, setMapVariant] = useState<MapVariant | null>(null);
   const [leafletMap, setLeafletMap] = useState<L.Map | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
+  // A tenant with zero vehicles, or a failed request, must see that real
+  // state — not three sample trucks with invented GPS fixes and driver
+  // names standing in for it, indistinguishable from a real fleet on a
+  // live map. heading/battery/ignition come straight off the vehicle's own
+  // last_position; current_trip (real IN_PROGRESS trip data, joined
+  // server-side) drives the route/cargo panel, present only when the
+  // vehicle actually has one.
   const reload = useCallback(() => {
+    setLoadError(null);
     apiFetch('/v1/tracking/vehicles').then(data => {
-      if (!Array.isArray(data) || data.length === 0) {
-        setVehicles(DEFAULT_MAP_VEHICLES);
-        return;
-      }
-      const enhanced = (data as any[]).map(v => {
-        const isMoving = (v.last_position?.speed || 0) > 0;
-        return {
-          ...v,
-          heading: v.last_position?.heading ?? 0,
-          battery: v.last_position?.battery_pct ?? 100,
-          ignition: v.last_position?.ignition === 'ON' || isMoving,
-          odometer: Math.floor(Math.random() * 50000) + 10000,
-          // driver_name and driver_id ride along from the real API record
-          // (the ...v spread above) untouched — this used to overwrite a
-          // real vehicle's actual driver with one of three fabricated
-          // names keyed off a substring of the vehicle id, and a random
-          // pravatar.cc stranger's face for the picture. Out of scope for
-          // today: odometer/origin/destination/eta/cargo below are still
-          // fabricated placeholders, a separate, larger gap (no real route/
-          // cargo data model exists yet for tracking vehicles).
-          origin: 'Dar es Salaam Port Terminal',
-          destination: 'Dodoma ICD Depot',
-          eta_time: isMoving ? '16:45' : 'N/A',
-          cargo_type: 'General Cargo',
-          cargo_weight: 8.4,
-          cargo_temp: 4,
-          capacity_used: 60,
-        };
-      });
-      setVehicles(enhanced);
-    }).catch(() => setVehicles(DEFAULT_MAP_VEHICLES));
+      const list = Array.isArray(data) ? data : [];
+      setVehicles(list.map((v: any) => ({
+        ...v,
+        heading: v.last_position?.heading ?? 0,
+        battery: v.last_position?.battery_pct ?? null,
+        ignition: v.last_position?.ignition === 'ON' || (v.last_position?.speed || 0) > 0,
+      })));
+    }).catch(() => { setVehicles([]); setLoadError('Could not load vehicles. Try refreshing.'); });
     apiFetch('/v1/tracking/geofences')
-      .then(res => setGeofences(Array.isArray(res) && res.length > 0 ? res : DEFAULT_MAP_GEOFENCES))
-      .catch(() => setGeofences(DEFAULT_MAP_GEOFENCES));
+      .then(res => setGeofences(Array.isArray(res) ? res : []))
+      .catch(() => setGeofences([]));
   }, []);
 
   useEffect(() => { reload(); }, [reload]);
@@ -265,6 +183,11 @@ export const TrackingLiveMap: React.FC = () => {
        what it did: the breadcrumb and title showed through the gaps in the
        vehicle panel, and the panel's `bottom: 16px` fell below the fold. */
     <div className="trk-livemap-shell">
+      {loadError && (
+        <div style={{ position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)', zIndex: 20, background: 'var(--red-l, #fef2f2)', color: 'var(--red, #b91c1c)', padding: '8px 16px', borderRadius: 'var(--r-sm)', fontSize: 13, fontWeight: 600, boxShadow: 'var(--elev-sm)' }}>
+          {loadError}
+        </div>
+      )}
       {/* TOP KPI BAR */}
       <div className="trk-top-kpi-bar">
         <div className="trk-kpi-item">
@@ -378,11 +301,11 @@ export const TrackingLiveMap: React.FC = () => {
                 <div className="trk-v-micro-metrics">
                   <div className="trk-v-metric-bar-wrap">
                     <div className="trk-v-metric-bar-lbl">Fuel/Batt</div>
-                    <div className="trk-v-metric-bar"><div style={{ width: `${v.battery}%` }}></div></div>
+                    <div className="trk-v-metric-bar"><div style={{ width: `${v.battery ?? 0}%` }}></div></div>
                   </div>
                   <div className="trk-v-metric-bar-wrap">
                     <div className="trk-v-metric-bar-lbl">Load</div>
-                    <div className="trk-v-metric-bar"><div style={{ width: `${v.capacity_used}%` }}></div></div>
+                    <div className="trk-v-metric-bar"><div style={{ width: `${v.current_trip?.load_capacity_pct ?? 0}%` }}></div></div>
                   </div>
                 </div>
               </li>
@@ -410,14 +333,18 @@ export const TrackingLiveMap: React.FC = () => {
             </div>
             
             <div className="trk-detail-body">
-              {/* Timeline */}
+              {/* Timeline — only for a vehicle actually on an IN_PROGRESS
+                  trip; one idle between trips has no route to show, and
+                  showing an invented origin/destination for it would be
+                  indistinguishable from a real one. */}
               <div className="trk-info-group">
                 <div className="trk-info-label">Route Progress</div>
+                {selectedVehicle.current_trip ? (
                 <div className="trk-route-timeline">
                   <div className="trk-rt-item completed">
                     <div className="trk-rt-dot"></div>
                     <div className="trk-rt-content">
-                      <div className="trk-rt-title">{selectedVehicle.origin}</div>
+                      <div className="trk-rt-title">{selectedVehicle.current_trip.origin || 'Unknown origin'}</div>
                       <div className="trk-rt-sub">Departed</div>
                     </div>
                   </div>
@@ -431,11 +358,14 @@ export const TrackingLiveMap: React.FC = () => {
                   <div className="trk-rt-item pending">
                     <div className="trk-rt-dot"></div>
                     <div className="trk-rt-content">
-                      <div className="trk-rt-title">{selectedVehicle.destination}</div>
-                      <div className="trk-rt-sub">ETA: {selectedVehicle.eta_time}</div>
+                      <div className="trk-rt-title">{selectedVehicle.current_trip.destination || 'Unknown destination'}</div>
+                      <div className="trk-rt-sub">ETA: {selectedVehicle.current_trip.eta ? new Date(selectedVehicle.current_trip.eta).toLocaleString() : 'Not scheduled'}</div>
                     </div>
                   </div>
                 </div>
+                ) : (
+                  <div className="trk-rt-sub" style={{ padding: '4px 0' }}>No active trip right now.</div>
+                )}
               </div>
 
               {/* Driver info */}
@@ -447,26 +377,31 @@ export const TrackingLiveMap: React.FC = () => {
                  </div>
               </div>
 
-              {/* Cargo meters */}
-              <div className="trk-info-group">
-                <div className="trk-info-label">Cargo & Capacity</div>
-                <div className="trk-cargo-stats">
-                  <div className="trk-cargo-stat"><span>Type</span> <strong>{selectedVehicle.cargo_type}</strong></div>
-                  <div className="trk-cargo-stat"><span>Weight</span> <strong>{selectedVehicle.cargo_weight} t</strong></div>
-                  <div className="trk-cargo-stat"><span>Temp</span> <strong>{selectedVehicle.cargo_temp}°C</strong></div>
+              {/* Cargo meters — real figures off the vehicle's own active
+                  trip; absent entirely when it has none. */}
+              {selectedVehicle.current_trip && (
+                <div className="trk-info-group">
+                  <div className="trk-info-label">Cargo & Capacity</div>
+                  <div className="trk-cargo-stats">
+                    <div className="trk-cargo-stat"><span>Type</span> <strong>{selectedVehicle.current_trip.cargo_type || '—'}</strong></div>
+                    <div className="trk-cargo-stat"><span>Weight</span> <strong>{selectedVehicle.current_trip.cargo_weight_kg != null ? `${selectedVehicle.current_trip.cargo_weight_kg} kg` : '—'}</strong></div>
+                    <div className="trk-cargo-stat"><span>Temp</span> <strong>{selectedVehicle.current_trip.cargo_temp_c != null ? `${selectedVehicle.current_trip.cargo_temp_c}°C` : '—'}</strong></div>
+                  </div>
+                  {selectedVehicle.current_trip.load_capacity_pct != null && (
+                    <div className="trk-capacity-meter-wrap">
+                      <div className="trk-capacity-header"><span>Load Capacity</span> <span>{selectedVehicle.current_trip.load_capacity_pct}%</span></div>
+                      <div className="trk-capacity-meter"><div style={{ width: `${selectedVehicle.current_trip.load_capacity_pct}%` }}></div></div>
+                    </div>
+                  )}
                 </div>
-                <div className="trk-capacity-meter-wrap">
-                  <div className="trk-capacity-header"><span>Load Capacity</span> <span>{selectedVehicle.capacity_used}%</span></div>
-                  <div className="trk-capacity-meter"><div style={{ width: `${selectedVehicle.capacity_used}%` }}></div></div>
-                </div>
-              </div>
+              )}
               <div className="trk-kpi-grid" style={{ marginBottom: 24 }}>
                 <div className="trk-kpi-card">
                   <div className="trk-kpi-val">{selectedVehicle.last_position?.speed || 0}</div>
                   <div className="trk-kpi-lbl">km/h</div>
                 </div>
                 <div className="trk-kpi-card">
-                  <div className="trk-kpi-val">{selectedVehicle.battery}%</div>
+                  <div className="trk-kpi-val">{selectedVehicle.battery != null ? `${selectedVehicle.battery}%` : '—'}</div>
                   <div className="trk-kpi-lbl">Battery</div>
                 </div>
               </div>
@@ -506,7 +441,7 @@ export const TrackingLiveMap: React.FC = () => {
                   <Icon name="compass" size={16} /> Heading: {selectedVehicle.heading}°
                 </div>
                 <div className="trk-info-value" style={{ marginTop: 6 }}>
-                  <Icon name="barChart2" size={16} /> Odometer: {selectedVehicle.odometer?.toLocaleString()} km
+                  <Icon name="barChart2" size={16} /> Odometer: {selectedVehicle.mileage_km != null ? `${selectedVehicle.mileage_km.toLocaleString()} km` : 'Not logged'}
                 </div>
               </div>
 

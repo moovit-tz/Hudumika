@@ -189,7 +189,7 @@ function newLine(): LineForm {
   return { _key:Math.random().toString(36).slice(2), description:'', category:'FREIGHT', quantity:1, unit_price:0, tax_rate:0 };
 }
 
-const ACOLORS = ['#0d7a6b','#0550ae','#6e40c9','#059669','#9a6700','#cf222e','#d05c30'];
+const ACOLORS = ['#0d7a6b','#0550ae','#6e40c9','var(--green)','#9a6700','#cf222e','#d05c30'];
 function acolor(name: string) { return ACOLORS[((name ?? '?').charCodeAt(0))%ACOLORS.length]; }
 function initials(name: string) { return name.split(' ').slice(0,2).map(w=>w[0]??'').join('').toUpperCase(); }
 
@@ -415,7 +415,9 @@ function ContactSelector({ customers, leads, value, onChange }: {
   return (
     <Popover open={open} onOpenChange={(o) => { setOpen(o); if (!o) setQ(''); }}>
       <PopoverAnchor asChild>
-        <div onClick={()=>setOpen(o=>!o)} style={{ display:'flex', alignItems:'center', gap:8, padding:'var(--ds-btn-py) 12px', border:'1px solid var(--border)', borderRadius: 'var(--r)', cursor:'pointer', background:'var(--white)', minHeight:'var(--ctl-h)', boxSizing:'border-box' as const }}>
+        <div onClick={()=>setOpen(o=>!o)}
+          role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(o=>!o); } }}
+          style={{ display:'flex', alignItems:'center', gap:8, padding:'var(--ds-btn-py) 12px', border:'1px solid var(--border)', borderRadius: 'var(--r)', cursor:'pointer', background:'var(--white)', minHeight:'var(--ctl-h)', boxSizing:'border-box' as const }}>
           {selected
             ? <><Av name={selected.label} size={22}/><div><span style={{ fontSize:13, fontWeight:600 }}>{selected.label}</span>{selected.company&&<span style={{ fontSize:11, color:'var(--ink3)', marginLeft:6 }}>{selected.company}</span>}</div><span style={{ marginLeft:4, fontSize:10, background: selected.type==='lead'?'var(--gold-l)':'var(--teal-l)', color:selected.type==='lead'?'var(--gold)':'var(--teal)', borderRadius:4, padding:'2px 6px', fontWeight:700 }}>{selected.type==='lead'?'LEAD':'CLIENT'}</span></>
             : <span style={{ fontSize:13, color:'var(--ink3)' }}>Select customer or lead...</span>
@@ -438,6 +440,7 @@ function ContactSelector({ customers, leads, value, onChange }: {
             ? <div style={{ padding:'20px', textAlign:'center', color:'var(--ink3)', fontSize:13 }}>No {tab} found</div>
             : filtered.map(c=>(
                 <div key={c.id} onClick={()=>{onChange(c);setOpen(false);setQ('');}}
+                  role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onChange(c); setOpen(false); setQ(''); } }}
                   className="hover:bg-accent"
                   style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px', cursor:'pointer' }}>
                   <Av name={c.label} size={30}/>
@@ -482,6 +485,7 @@ function ServicePicker({ onSelect }: {
               <div style={{ padding:'6px 14px 4px', fontSize:10, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.05em' }}>{g.label}</div>
               {items.map(s=>(
                 <div key={s.id} onClick={()=>onSelect(s)}
+                  role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(s); } }}
                   className="hover:bg-accent"
                   style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 14px', cursor:'pointer' }}>
                   <div style={{ flex:1, minWidth:0 }}>

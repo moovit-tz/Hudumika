@@ -192,7 +192,11 @@ export async function fleetComplianceRoutes(fastify: FastifyInstance) {
     return alert;
   });
 
-  fastify.patch('/alerts/:id/acknowledge', async (req) => {
+  // POST /alerts (above) already requires FLEET_ROLES — acknowledging one
+  // had no role check at all, so any authenticated user with tracking
+  // access, including a role outside fleet staff entirely, could dismiss a
+  // fleet alert.
+  fastify.patch('/alerts/:id/acknowledge', { preHandler: requireRole(...FLEET_ROLES) }, async (req) => {
     const user = req.user;
     const { id } = req.params as { id: string };
     return withTenant(user.tenant_id, async (trx) =>

@@ -30,6 +30,7 @@ export const TrackingDriverChat: React.FC = () => {
         <div style={{ flex: 1, overflowY: 'auto' }}>
           {drivers.map(d => (
             <div key={d.id} onClick={() => setDriverId(d.id)}
+              role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setDriverId(d.id); } }}
               style={{ padding: '12px 16px', cursor: 'pointer', background: driverId === d.id ? 'var(--teal-l)' : 'transparent', borderLeft: driverId === d.id ? '3px solid var(--teal)' : '3px solid transparent' }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{d.name}</div>
               <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{d.phone || 'No phone on file'}</div>

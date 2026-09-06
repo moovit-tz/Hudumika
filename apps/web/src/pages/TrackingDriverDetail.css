@@ -412,3 +412,26 @@
   font-weight: 700;
   color: var(--ink);
 }
+
+/* Responsive — the 8/4/3/2-column grids above render illegibly cramped
+   below desktop width; collapse progressively rather than at one cliff. */
+@media (max-width: 900px) {
+  .dd-metrics-row { grid-template-columns: repeat(4, 1fr); }
+}
+
+@media (max-width: 768px) {
+  .dd-main { padding: 20px; }
+  .dd-profile-grid { grid-template-columns: 1fr; }
+  .dd-nested-cards { grid-template-columns: 1fr; }
+  .dd-fleet-grid { grid-template-columns: repeat(2, 1fr); }
+  .dd-ncard-grid.cols-4 { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 560px) {
+  .dd-info-grid { grid-template-columns: 1fr; }
+  .dd-ncard-grid { grid-template-columns: 1fr; }
+  .dd-fleet-grid { grid-template-columns: 1fr; }
+  .dd-metrics-row { grid-template-columns: repeat(2, 1fr); }
+  .dd-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .dd-courier-top { flex-direction: column; align-items: flex-start; }
+}

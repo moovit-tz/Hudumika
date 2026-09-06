@@ -34,7 +34,7 @@ export async function entitlementsRoutes(fastify: FastifyInstance) {
 
     const [[appStatusRows, settingsRow, tenant], usage, history] = await Promise.all([
       withTenant(user.tenant_id, trx => Promise.all([
-        trx.selectFrom('app_status').select(['app_id', 'status']).execute(),
+        trx.selectFrom('app_status').select(['app_id', 'status', 'is_beta']).execute(),
         trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', user.tenant_id).executeTakeFirst(),
         trx.selectFrom('tenants').select('plan').where('id', '=', user.tenant_id).executeTakeFirst(),
       ])),
@@ -43,7 +43,15 @@ export async function entitlementsRoutes(fastify: FastifyInstance) {
     ]);
 
     const appStatus: Record<string, string> = {};
-    for (const row of appStatusRows) appStatus[row.app_id] = row.status;
+    // Platform-wide "Beta" label (migration 395) — a SuperAdmin sets this on
+    // app_status, the same table appStatus above already reads, and every
+    // tenant sees the identical list. Settings.tsx renders the pill straight
+    // off membership here instead of a hardcoded per-app constant.
+    const betaApps: string[] = [];
+    for (const row of appStatusRows) {
+      appStatus[row.app_id] = row.status;
+      if (row.is_beta) betaApps.push(row.app_id);
+    }
 
     const settings = settingsRow
       ? (typeof settingsRow.settings === 'string' ? JSON.parse(settingsRow.settings) : settingsRow.settings)
@@ -113,6 +121,6 @@ export async function entitlementsRoutes(fastify: FastifyInstance) {
       }));
     }
 
-    return { features, appStatus, usage: { ...usage, history } };
+    return { features, appStatus, betaApps, usage: { ...usage, history } };
   });
 }

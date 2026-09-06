@@ -44,7 +44,7 @@ export function DocThumbnail({ type, name, url }: DocThumbnailProps) {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 3, background: '#fff', padding: '3px 6px', borderBottom: '1px solid #e2e8f0', color: '#334155' }}>
           <span>08</span><span>Widget B</span><span>$120.00</span><span>$960.00</span>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 3, background: '#ecfdf5', padding: '4px 6px', borderRadius: 3, fontWeight: 700, color: '#047857', marginTop: 'auto' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 3, background: 'var(--green-l)', padding: '4px 6px', borderRadius: 3, fontWeight: 700, color: 'var(--green)', marginTop: 'auto' }}>
           <span>SUB</span><span>TOTAL</span><span>USD</span><span>$1,500</span>
         </div>
       </div>
@@ -53,7 +53,7 @@ export function DocThumbnail({ type, name, url }: DocThumbnailProps) {
 
   if (isPresentation) {
     return (
-      <div style={{ width: '100%', height: '100%', background: '#fffbeb', padding: 12, display: 'flex', flexDirection: 'column', gap: 8, justifyContent: 'center', alignItems: 'center' }}>
+      <div style={{ width: '100%', height: '100%', background: 'var(--gold-l)', padding: 12, display: 'flex', flexDirection: 'column', gap: 8, justifyContent: 'center', alignItems: 'center' }}>
         <div style={{ width: '80%', height: 12, background: '#f59e0b', borderRadius: 3 }} />
         <div style={{ width: '60%', height: 6, background: '#fde68a', borderRadius: 2 }} />
         <div style={{ display: 'flex', gap: 6, width: '100%', marginTop: 6 }}>

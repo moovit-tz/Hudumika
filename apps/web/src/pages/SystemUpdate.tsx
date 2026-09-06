@@ -83,7 +83,7 @@ type BadgeType = 'major' | 'minor' | 'patch' | 'security';
 const TYPE_COLORS: Record<BadgeType, { bg: string; color: string }> = {
   major:    { bg: 'var(--red-l)', color: 'var(--red)' },
   minor:    { bg: 'var(--blue-l)', color: '#2563eb' },
-  patch:    { bg: 'var(--green-l)', color: '#059669' },
+  patch:    { bg: 'var(--green-l)', color: 'var(--green)' },
   security: { bg: 'var(--gold-l)', color: 'var(--gold)' },
 };
 
@@ -92,7 +92,7 @@ function TypeBadge({ type }: { type: BadgeType }) {
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center',
-      padding: '2px 8px', borderRadius: 20,
+      padding: '2px 8px', borderRadius: 'var(--badge-radius)',
       fontSize: 10, fontWeight: 700, letterSpacing: '0.04em',
       textTransform: 'uppercase', background: c.bg, color: c.color,
     }}>
@@ -211,7 +211,7 @@ export const SystemUpdate: React.FC = () => {
               <div style={{ fontSize:11, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:10 }}>Current Version</div>
               <div style={{ display:'flex', alignItems:'baseline', gap:8, marginBottom:8 }}>
                 <span style={{ fontSize:30, fontWeight:800, color:'var(--ink)', letterSpacing:'-0.04em' }}>v{updateDone ? LATEST_VERSION : CURRENT_VERSION}</span>
-                <span style={{ padding:'2px 8px', borderRadius:20, background:'var(--green-l)', color:'#059669', fontSize:11, fontWeight:700 }}>Installed</span>
+                <span style={{ padding:'2px 8px', borderRadius:20, background:'var(--green-l)', color:'var(--green)', fontSize:11, fontWeight:700 }}>Installed</span>
               </div>
               <div style={{ fontSize:12, color:'var(--ink3)' }}>Released {UPDATE_HISTORY.find(u => u.version === CURRENT_VERSION)?.date}</div>
             </div>
@@ -223,7 +223,7 @@ export const SystemUpdate: React.FC = () => {
                 <span style={{ fontSize:30, fontWeight:800, color: HAS_UPDATE && !updateDone ? '#2563eb' : 'var(--ink)', letterSpacing:'-0.04em' }}>v{LATEST_VERSION}</span>
                 {HAS_UPDATE && !updateDone
                   ? <span style={{ padding:'2px 8px', borderRadius:20, background:'var(--blue-l)', color:'var(--blue)', fontSize:11, fontWeight:700 }}>Update Available</span>
-                  : <span style={{ padding:'2px 8px', borderRadius:20, background:'var(--green-l)', color:'#059669', fontSize:11, fontWeight:700 }}>Up to Date</span>
+                  : <span style={{ padding:'2px 8px', borderRadius:20, background:'var(--green-l)', color:'var(--green)', fontSize:11, fontWeight:700 }}>Up to Date</span>
                 }
               </div>
               <div style={{ fontSize:12, color:'var(--ink3)' }}>Released {UPDATE_HISTORY.find(u => u.version === LATEST_VERSION)?.date}</div>
@@ -273,12 +273,12 @@ export const SystemUpdate: React.FC = () => {
                 }}>
                   <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4 }}>
                     <span style={{ fontSize:12, fontWeight:600, color:'var(--ink2)' }}>{req.label}</span>
-                    <span style={{ width:16, height:16, borderRadius:'50%', background: req.ok ? '#ecfdf5' : '#fef2f2', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                      <Icon name={req.ok ? 'check' : 'x'} size={10} color={req.ok ? '#059669' : '#dc2626'} />
+                    <span style={{ width:16, height:16, borderRadius:'50%', background: req.ok ? 'var(--green-l)' : 'var(--red-l)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                      <Icon name={req.ok ? 'check' : 'x'} size={10} color={req.ok ? 'var(--green)' : 'var(--red)'} />
                     </span>
                   </div>
                   <div style={{ fontSize:11, color:'var(--ink3)', marginBottom:2 }}>Required: {req.required}</div>
-                  <div style={{ fontSize:12, fontWeight:600, color: req.ok ? '#059669' : '#dc2626' }}>{req.current}</div>
+                  <div style={{ fontSize:12, fontWeight:600, color: req.ok ? 'var(--green)' : 'var(--red)' }}>{req.current}</div>
                 </div>
               ))}
             </div>

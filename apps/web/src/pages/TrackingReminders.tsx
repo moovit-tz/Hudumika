@@ -157,11 +157,11 @@ export const TrackingReminders: React.FC = () => {
                 <td style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--ink)' }}>{r.title}</td>
                 <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{r.reminder_type}</td>
                 <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{vehicleName(r.vehicle_id) || driverName(r.driver_id) || '—'}</td>
-                <td style={{ padding: '10px 14px', color: r.status === 'PENDING' && overdue(r.due_date) ? '#dc2626' : 'var(--ink2)', fontWeight: r.status === 'PENDING' && overdue(r.due_date) ? 700 : 400 }}>
+                <td style={{ padding: '10px 14px', color: r.status === 'PENDING' && overdue(r.due_date) ? 'var(--red)' : 'var(--ink2)', fontWeight: r.status === 'PENDING' && overdue(r.due_date) ? 700 : 400 }}>
                   {new Date(r.due_date).toLocaleDateString()}
                 </td>
                 <td style={{ padding: '10px 14px' }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, borderRadius: 20, padding: '2px 10px', background: r.status === 'DONE' ? '#ecfdf5' : r.status === 'DISMISSED' ? '#f1f5f9' : '#fef9c3', color: r.status === 'DONE' ? '#065f46' : r.status === 'DISMISSED' ? '#64748b' : '#ca8a04' }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, borderRadius: 'var(--badge-radius)', padding: '2px 10px', background: r.status === 'DONE' ? 'var(--green-l)' : r.status === 'DISMISSED' ? 'var(--bg)' : 'var(--gold-l)', color: r.status === 'DONE' ? 'var(--green)' : r.status === 'DISMISSED' ? 'var(--ink3)' : 'var(--gold)' }}>
                     {r.status}
                   </span>
                 </td>

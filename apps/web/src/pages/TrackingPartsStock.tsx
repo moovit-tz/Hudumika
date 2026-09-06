@@ -138,8 +138,8 @@ export const TrackingPartsStock: React.FC = () => {
                   <td style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--ink)' }}>{p.part_name}{p.part_number ? <span style={{ color: 'var(--ink3)', fontWeight: 400 }}> · {p.part_number}</span> : ''}</td>
                   <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{p.category || '—'}</td>
                   <td style={{ padding: '10px 14px' }}>
-                    <span style={{ fontWeight: 700, color: low ? '#dc2626' : 'var(--ink)' }}>{p.quantity}</span>
-                    {low && <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 700, borderRadius: 20, padding: '2px 8px', background: 'var(--red-l)', color: 'var(--red)' }}>LOW STOCK</span>}
+                    <span style={{ fontWeight: 700, color: low ? 'var(--red)' : 'var(--ink)' }}>{p.quantity}</span>
+                    {low && <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 700, borderRadius: 'var(--badge-radius)', padding: '2px 8px', background: 'var(--red-l)', color: 'var(--red)' }}>LOW STOCK</span>}
                   </td>
                   <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{p.unit_cost != null ? p.unit_cost.toLocaleString() : '—'}</td>
                   <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{vendorName(p.vendor_id)}</td>

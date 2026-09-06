@@ -44,7 +44,7 @@ interface Quote {
 const STATUS_CFG: Record<QuoteStatus, { label: string; color: string; bg: string }> = {
   DRAFT:     { label: 'Draft',     color: 'var(--ink2)', bg: '#f1f5f9' },
   PENDING:   { label: 'Pending',   color: 'var(--gold)', bg: 'var(--gold-l)' },
-  APPROVED:  { label: 'Accepted',  color: '#059669', bg: 'var(--green-l)' },
+  APPROVED:  { label: 'Accepted',  color: 'var(--green)', bg: 'var(--green-l)' },
   REJECTED:  { label: 'Rejected',  color: 'var(--red)', bg: 'var(--red-l)' },
   CONVERTED: { label: 'Converted', color: '#0891b2', bg: '#ecfeff' },
   EXPIRED:   { label: 'Expired',   color: 'var(--ink3)', bg: '#f3f4f6' },
@@ -99,7 +99,7 @@ function RejectModal({ quote, onClose, onReject }: {
           style={{ width: '100%', resize: 'none', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', padding: '12px 14px', fontSize: 14, fontFamily: 'var(--font)', color: 'var(--ink)', background: 'var(--bg)', outline: 'none', lineHeight: 1.5, boxSizing: 'border-box' as const, marginBottom: 16 }}
         />
         <button type="button" title="Confirm rejection" onClick={() => onReject(reason.trim())}
-          style={{ width: '100%', padding: '14px', background: '#dc2626', color: '#fff', border: 'none', borderRadius: 'var(--r)', fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)' }}>
+          style={{ width: '100%', padding: '14px', background: 'var(--red)', color: '#fff', border: 'none', borderRadius: 'var(--r)', fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)' }}>
           Reject Quote
         </button>
       </div>
@@ -196,7 +196,7 @@ function QuoteDetail({ quote: initial, onBack }: { quote: Quote; onBack: () => v
           Back
         </button>
         <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--mono)', flex: 1 }}>{quote.quote_number}</span>
-        <span style={{ fontSize: 11, fontWeight: 700, color: st.color, background: st.bg, borderRadius: 20, padding: '3px 10px', flexShrink: 0 }}>{st.label}</span>
+        <span style={{ fontSize: 11, fontWeight: 700, color: st.color, background: st.bg, borderRadius: 'var(--badge-radius)', padding: '3px 10px', flexShrink: 0 }}>{st.label}</span>
       </div>
 
       <div style={{ padding: '20px 16px 0' }}>
@@ -365,19 +365,19 @@ function QuoteCard({ quote, onClick }: { quote: Quote; onClick: () => void }) {
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
         <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', fontFamily: 'var(--mono)', flex: 1 }}>{quote.quote_number}</span>
-        <span style={{ fontSize: 11, fontWeight: 700, color: st.color, background: st.bg, borderRadius: 20, padding: '2px 10px', flexShrink: 0 }}>{st.label}</span>
+        <span style={{ fontSize: 11, fontWeight: 700, color: st.color, background: st.bg, borderRadius: 'var(--badge-radius)', padding: '2px 10px', flexShrink: 0 }}>{st.label}</span>
       </div>
       <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 4, lineHeight: 1.3 }}>{quote.title}</div>
       <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 10 }}>{quote.origin_port} → {quote.destination_port}</div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: expiring && canAct ? '#d97706' : 'var(--ink3)', fontWeight: expiring && canAct ? 600 : 400 }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: expiring && canAct ? 'var(--gold)' : 'var(--ink3)', fontWeight: expiring && canAct ? 600 : 400 }}>
           {expiring && canAct ? <><Icon name="alertTriangle" size={11} /> Expires {fmtDate(quote.valid_until)}</> : quote.valid_until ? `Valid until ${fmtDate(quote.valid_until)}` : fmtDate(quote.created_at)}
         </span>
         <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--teal)' }}>{fmtAmt(quote.total_amount, quote.currency)}</span>
       </div>
       {canAct && (
         <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--bg)', display: 'flex', gap: 6 }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold)', background: 'var(--gold-l)', borderRadius: 20, padding: '3px 10px' }}>Action required</span>
+          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold)', background: 'var(--gold-l)', borderRadius: 'var(--badge-radius)', padding: '3px 10px' }}>Action required</span>
         </div>
       )}
     </button>
@@ -434,7 +434,7 @@ export const CustomerQuotations: React.FC = () => {
       {/* Header */}
       <div style={{ padding: '20px 16px 0' }}>
         <h2 style={{ margin: '0 0 2px', fontSize: 22, fontWeight: 800, color: 'var(--ink)' }}>Quotations</h2>
-        <p style={{ margin: '0 0 16px', fontSize: 13, color: pendingCount > 0 ? '#d97706' : 'var(--ink3)' }}>
+        <p style={{ margin: '0 0 16px', fontSize: 13, color: pendingCount > 0 ? 'var(--gold)' : 'var(--ink3)' }}>
           {loading ? 'Loading…' : pendingCount > 0 ? `${pendingCount} pending your action` : `${quotes.length} quote${quotes.length !== 1 ? 's' : ''}`}
         </p>
       </div>

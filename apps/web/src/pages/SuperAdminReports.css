@@ -150,3 +150,11 @@
 .sar-save-input {
   max-width: 320px;
 }
+
+/* Responsive — the fixed 260px rail crowds the report canvas on narrow
+   viewports; stack it above the main column instead. */
+@media (max-width: 768px) {
+  .sar-layout { grid-template-columns: 1fr; }
+  .sar-rail { position: static; }
+  .sar-root { padding: 20px; }
+}

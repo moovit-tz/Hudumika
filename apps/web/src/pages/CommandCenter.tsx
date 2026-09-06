@@ -114,7 +114,7 @@ function OfficerMentionInput({
                 {(o.role || '').replace(/_/g, ' ')}{o.department ? ` · ${o.department}` : ''}
               </div>
             </div>
-            <span style={{ fontSize: 10, color: 'var(--teal)', fontWeight: 700, background: 'var(--teal-l)', padding: '1px 7px', borderRadius: 20, flexShrink: 0 }}>
+            <span style={{ fontSize: 10, color: 'var(--teal)', fontWeight: 700, background: 'var(--teal-l)', padding: '1px 7px', borderRadius: 'var(--badge-radius)', flexShrink: 0 }}>
               @{o.name.split(' ')[0].toLowerCase()}
             </span>
           </button>
@@ -644,8 +644,8 @@ export const CommandCenter: React.FC = () => {
     { key: 'active',    label: 'Active Shipments',   value: loading ? '—' : fmt(kpis?.active_cases),           icon: 'package',       color: 'var(--teal)',  bg: 'var(--teal-l)',  metric: 'active' as Metric },
     { key: 'dem',       label: 'Demurrage Risk',      value: loading ? '—' : fmt(kpis?.demurrage_risk),          icon: 'alertTriangle', color: 'var(--red)',   bg: 'var(--red-l)',   cell: 'alert', metric: 'demurrage' as Metric },
     { key: 'sla',       label: 'SLA Breached',        value: loading ? '—' : fmt(kpis?.sla_breached),            icon: 'clock',         color: 'var(--red)',   bg: 'var(--red-l)',   cell: 'alert', metric: 'sla' as Metric },
-    { key: 'del',       label: 'Delivered Today',     value: loading ? '—' : fmt(kpis?.delivered_today),         icon: 'checkCircle',   color: 'var(--green)', bg: '#ecfdf5',        metric: 'delivered' as Metric },
-    { key: 'penalty',   label: 'Penalty Exposure',    value: loading ? '—' : `${fmtM(kpis?.penalty_exposure_tzs)} TZS`, icon: 'dollarSign', color: 'var(--gold)',  bg: '#fffbeb',        cell: 'warn', metric: 'penalty' as Metric },
+    { key: 'del',       label: 'Delivered Today',     value: loading ? '—' : fmt(kpis?.delivered_today),         icon: 'checkCircle',   color: 'var(--green)', bg: 'var(--green-l)',        metric: 'delivered' as Metric },
+    { key: 'penalty',   label: 'Penalty Exposure',    value: loading ? '—' : `${fmtM(kpis?.penalty_exposure_tzs)} TZS`, icon: 'dollarSign', color: 'var(--gold)',  bg: 'var(--gold-l)',        cell: 'warn', metric: 'penalty' as Metric },
     { key: 'ontime',    label: 'On-Time Rate',        value: loading || kpis?.on_time_rate_pct == null ? '—' : `${kpis.on_time_rate_pct}%`, icon: 'trendingUp', color: 'var(--blue)',  bg: '#eff6ff',        metric: (kpis?.on_time_rate_pct == null ? null : 'ontime') as Metric },
     { key: 'month',     label: 'This Month',          value: loading ? '—' : fmt(kpis?.cases_this_month),        icon: 'calendar',      color: 'var(--navy)',  bg: 'var(--bg)',      metric: 'month' as Metric },
   ];

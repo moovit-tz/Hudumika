@@ -21,10 +21,9 @@ interface HudumikaApp {
   path: string;
   color: string;
   superAdminOnly?: boolean;
-  status: 'Live' | 'Beta' | 'Coming Soon';
 }
 
-// Card copy (description/category/status) for each app in LAUNCHER_APPS —
+// Card copy (description/category) for each app in LAUNCHER_APPS —
 // id/name/color/path come from LAUNCHER_APPS itself (the same list the header
 // launcher renders) so this grid can't drift into showing a different set of
 // apps, a stale display name, or a wrong route than the launcher does.
@@ -34,37 +33,46 @@ interface HudumikaApp {
 // · 33 GB") that were identical for every tenant on the platform, not real
 // usage. Removed rather than wired up, since no per-tenant, per-app metering
 // exists yet to back them honestly.
-const APP_META: Record<string, Pick<HudumikaApp, 'desc' | 'category' | 'status'>> = {
-  clearos:      { desc: 'Customs clearance platform & TANCIS integration', category: 'Logistics', status: 'Live' },
-  finops:       { desc: 'Financial accounts, TRA EFD integration & payroll ledger', category: 'Finance', status: 'Live' },
-  nexushr:        { desc: 'People operations, payroll & shift rosters', category: 'HR', status: 'Live' },
-  bliss:        { desc: 'Omnichannel customer helpdesk & ticketing system', category: 'Support', status: 'Live' },
-  complyos:     { desc: 'Compliance tracking, BRELA business search, permits & audit logs', category: 'Compliance', status: 'Live' },
-  crm:          { desc: 'Customer relationships, leads & sales pipeline', category: 'Sales', status: 'Live' },
-  cloud:        { desc: 'Enterprise document storage & cloud drive', category: 'Storage', status: 'Live' },
-  email:        { desc: 'Team inbox and email workspace', category: 'Communication', status: 'Live' },
-  contacts:     { desc: 'Shared customer, vendor and partner contact directory', category: 'Directory', status: 'Live' },
-  ai:           { desc: 'Automated intelligence, document OCR & predictive analytics', category: 'AI', status: 'Live' },
-  store:        { desc: 'B2B Procurement & equipment marketplace', category: 'Procurement', status: 'Live' },
-  ondi:         { desc: 'SSO, identity verification & biometric access control', category: 'Identity', status: 'Live' },
-  tracking:     { desc: 'Fleet, vehicle and driver tracking — GPS positions, geofence alerts & trip history', category: 'Logistics', status: 'Live' },
-  workspace:    { desc: 'Organization settings and configuration', category: 'Admin', status: 'Live' },
-  onsite:       { desc: 'Domains, DNS, hosting, deployments & cloud infrastructure', category: 'Infrastructure', status: 'Live' },
-  calendar:     { desc: 'Scheduling & team calendar', category: 'Productivity', status: 'Live' },
-  tasks:        { desc: 'To-dos & team task tracking', category: 'Productivity', status: 'Live' },
-  cargotracker: { desc: 'AWB and Bill of Lading shipment tracking', category: 'Logistics', status: 'Live' },
-  seal:         { desc: 'Bonded warehouse ledger — customs status, storage clocks & audit-chained movements', category: 'Logistics', status: 'Beta' },
-  inventory:    { desc: 'General multi-warehouse stock control — items, batches, units of measure & reorder alerts', category: 'Logistics', status: 'Beta' },
-  hudubi:       { desc: 'Data layer, executive BI analytics, board KPIs & predictive intelligence', category: 'Analytics', status: 'Live' },
-  petti:        { desc: 'Tenant petty-cash wallets — deposits, request/approve/disburse withdrawals', category: 'Finance', status: 'Beta' },
-  sign:         { desc: 'Secure electronic document signatures, approvals & audit-chained events', category: 'Productivity', status: 'Beta' },
-  sms:          { desc: 'Bulk & transactional SMS — quick send, groups, templates, scheduled campaigns', category: 'Communication', status: 'Beta' },
+//
+// A `status: 'Live' | 'Beta' | 'Coming Soon'` field used to live on every one
+// of these entries too — a second, independent hardcoded "Beta" catalog that
+// disagreed with Settings.tsx's own MODULE_CATALOG (this one never marked
+// 'notes' Beta; that one did) and, on top of that, was never actually read
+// anywhere in this file — no badge, no conditional, nothing. Removed rather
+// than wired up: the one real Beta label now lives on app_status
+// (migration 395), set by a SuperAdmin and reported to every tenant via
+// GET /v1/entitlements' betaApps, exactly like Settings.tsx reads it.
+const APP_META: Record<string, Pick<HudumikaApp, 'desc' | 'category'>> = {
+  clearos:      { desc: 'Customs clearance platform & TANCIS integration', category: 'Logistics' },
+  finops:       { desc: 'Financial accounts, TRA EFD integration & payroll ledger', category: 'Finance' },
+  nexushr:        { desc: 'People operations, payroll & shift rosters', category: 'HR' },
+  bliss:        { desc: 'Omnichannel customer helpdesk & ticketing system', category: 'Support' },
+  complyos:     { desc: 'Compliance tracking, BRELA business search, permits & audit logs', category: 'Compliance' },
+  crm:          { desc: 'Customer relationships, leads & sales pipeline', category: 'Sales' },
+  cloud:        { desc: 'Enterprise document storage & cloud drive', category: 'Storage' },
+  email:        { desc: 'Team inbox and email workspace', category: 'Communication' },
+  contacts:     { desc: 'Shared customer, vendor and partner contact directory', category: 'Directory' },
+  ai:           { desc: 'Automated intelligence, document OCR & predictive analytics', category: 'AI' },
+  store:        { desc: 'B2B Procurement & equipment marketplace', category: 'Procurement' },
+  ondi:         { desc: 'SSO, identity verification & biometric access control', category: 'Identity' },
+  tracking:     { desc: 'Fleet, vehicle and driver tracking — GPS positions, geofence alerts & trip history', category: 'Logistics' },
+  workspace:    { desc: 'Organization settings and configuration', category: 'Admin' },
+  onsite:       { desc: 'Domains, DNS, hosting, deployments & cloud infrastructure', category: 'Infrastructure' },
+  calendar:     { desc: 'Scheduling & team calendar', category: 'Productivity' },
+  tasks:        { desc: 'To-dos & team task tracking', category: 'Productivity' },
+  cargotracker: { desc: 'AWB and Bill of Lading shipment tracking', category: 'Logistics' },
+  seal:         { desc: 'Bonded warehouse ledger — customs status, storage clocks & audit-chained movements', category: 'Logistics' },
+  inventory:    { desc: 'General multi-warehouse stock control — items, batches, units of measure & reorder alerts', category: 'Logistics' },
+  hudubi:       { desc: 'Data layer, executive BI analytics, board KPIs & predictive intelligence', category: 'Analytics' },
+  petti:        { desc: 'Tenant petty-cash wallets — deposits, request/approve/disburse withdrawals', category: 'Finance' },
+  sign:         { desc: 'Secure electronic document signatures, approvals & audit-chained events', category: 'Productivity' },
+  sms:          { desc: 'Bulk & transactional SMS — quick send, groups, templates, scheduled campaigns', category: 'Communication' },
 };
 
 const apps: HudumikaApp[] = [
   ...LAUNCHER_APPS.map(app => ({
     ...app,
-    ...(APP_META[app.id] ?? { desc: '', category: 'Other', status: 'Live' as const }),
+    ...(APP_META[app.id] ?? { desc: '', category: 'Other' }),
   })),
   // Deliberately not in LAUNCHER_APPS/APP_META above — that list also drives
   // the header AppLauncher switcher, which has no role filtering, so a tile
@@ -74,7 +82,7 @@ const apps: HudumikaApp[] = [
   {
     id: 'superadmin', name: 'SuperAdmin', path: '/admin', color: 'var(--ink)',
     superAdminOnly: true, desc: 'Platform-wide tenant, billing, package & system administration',
-    category: 'Admin', status: 'Live' as const,
+    category: 'Admin',
   },
 ];
 

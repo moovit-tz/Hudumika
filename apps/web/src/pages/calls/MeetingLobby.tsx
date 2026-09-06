@@ -146,7 +146,7 @@ export function MeetingLobby({ title, kind, onJoin, onCancel, hideWorkspaceLinks
               )}
 
               {/* Volume Meter Indicator Overlay */}
-              <div style={{ position: 'absolute', top: 12, left: 12, display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)', padding: '4px 10px', borderRadius: 20, border: '1px solid rgba(255,255,255,0.08)' }}>
+              <div style={{ position: 'absolute', top: 12, left: 12, display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)', padding: '4px 10px', borderRadius: 'var(--badge-radius)', border: '1px solid rgba(255,255,255,0.08)' }}>
                 <Icon name="volume2" size={13} color={audioEnabled ? 'var(--teal)' : 'var(--red)'} />
                 <div style={{ width: 60, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.2)', overflow: 'hidden' }}>
                   <div style={{ width: `${Math.round(level * 100)}%`, height: '100%', background: 'var(--teal)', transition: 'width 0.1s ease' }} />

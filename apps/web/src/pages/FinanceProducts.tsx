@@ -68,7 +68,7 @@ function ProductDetail({ product, onClose, onEdit, isMobile }: {
             <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 'var(--r-sm)', fontWeight: 700, ...tc }}>
               {product.type === 'service' ? 'SERVICE' : 'PRODUCT'}
             </span>
-            <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 'var(--r-sm)', fontWeight: 700, background: product.status === 'active' ? '#ecfdf5' : '#f1f5f9', color: product.status === 'active' ? '#065f46' : '#64748b' }}>
+            <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 'var(--r-sm)', fontWeight: 700, background: product.status === 'active' ? 'var(--green-l)' : 'var(--bg)', color: product.status === 'active' ? 'var(--green)' : 'var(--ink3)' }}>
               {product.status.toUpperCase()}
             </span>
           </div>
@@ -104,9 +104,9 @@ function ProductDetail({ product, onClose, onEdit, isMobile }: {
 
         {/* Margin & Tax row */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
-          <div style={{ padding: '10px 12px', background: margin !== null && margin > 0 ? '#ecfdf5' : 'var(--bg)', borderRadius: 8, border: '1px solid var(--border)', textAlign: 'center' }}>
+          <div style={{ padding: '10px 12px', background: margin !== null && margin > 0 ? 'var(--green-l)' : 'var(--bg)', borderRadius: 8, border: '1px solid var(--border)', textAlign: 'center' }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 4 }}>Margin</div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: margin !== null && margin > 0 ? '#059669' : 'var(--ink3)' }}>{margin !== null ? `${margin}%` : '—'}</div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: margin !== null && margin > 0 ? 'var(--green)' : 'var(--ink3)' }}>{margin !== null ? `${margin}%` : '—'}</div>
           </div>
           <div style={{ padding: '10px 12px', background: 'var(--bg)', borderRadius: 8, border: '1px solid var(--border)', textAlign: 'center' }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 4 }}>Tax</div>
@@ -492,7 +492,7 @@ export function FinanceProducts() {
                       </span>
                     </td>
                     <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
-                      <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 'var(--r-sm)', fontWeight: 700, background: p.status === 'active' ? '#ecfdf5' : '#f1f5f9', color: p.status === 'active' ? '#065f46' : '#64748b' }}>
+                      <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 'var(--r-sm)', fontWeight: 700, background: p.status === 'active' ? 'var(--green-l)' : 'var(--bg)', color: p.status === 'active' ? 'var(--green)' : 'var(--ink3)' }}>
                         {p.status.toUpperCase()}
                       </span>
                     </td>
@@ -505,7 +505,7 @@ export function FinanceProducts() {
                       </button>
                       <button type="button" title="Delete" onClick={e => { e.stopPropagation(); handleDelete(p.id); }}
                         style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--ink3)', borderRadius: 'var(--r)' }}
-                        onMouseEnter={e => (e.currentTarget.style.color = '#dc2626')}
+                        onMouseEnter={e => (e.currentTarget.style.color = 'var(--red)')}
                         onMouseLeave={e => (e.currentTarget.style.color = 'var(--ink3)')}>
                         <Icon name="trash2" size={14} />
                       </button>

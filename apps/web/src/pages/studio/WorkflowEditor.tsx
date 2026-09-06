@@ -404,7 +404,8 @@ export function WorkflowEditor() {
               {runs.length === 0 && <div className="studio-item-desc" style={{ padding: 8 }}>No runs recorded yet.</div>}
               {runs.map(r => (
                 <div key={r.id}>
-                  <div className={`studio-run-row ${viewedRun?.id === r.id ? 'is-active' : ''}`} onClick={() => setViewedRun(viewedRun?.id === r.id ? null : r)}>
+                  <div className={`studio-run-row ${viewedRun?.id === r.id ? 'is-active' : ''}`} onClick={() => setViewedRun(viewedRun?.id === r.id ? null : r)}
+                    role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setViewedRun(viewedRun?.id === r.id ? null : r); } }}>
                     <Badge variant={STATUS_VARIANT[r.status] ?? 'gray'}>{r.status}</Badge>
                     <span className="studio-run-mono">{r.trigger_source}</span>
                     <span style={{ marginLeft: 'auto', color: 'var(--ink3)', fontSize: 11.5 }}>

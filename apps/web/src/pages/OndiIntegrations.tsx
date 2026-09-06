@@ -142,10 +142,10 @@ export const OndiIntegrations: React.FC = () => {
         <div className="ondi-kpi-card">
           <div className="ondi-kpi-header">
             <span className="ondi-kpi-title">Active Delivery</span>
-            <div className="ondi-kpi-icon-box" style={{ background: '#ecfdf5', color: '#047857' }}><Icon name="checkCircle" size={18} /></div>
+            <div className="ondi-kpi-icon-box" style={{ background: 'var(--green-l)', color: 'var(--green)' }}><Icon name="checkCircle" size={18} /></div>
           </div>
           <div className="ondi-kpi-body">
-            <span className="ondi-kpi-num" style={{ color: '#047857' }}>{enabledAppsCount}</span>
+            <span className="ondi-kpi-num" style={{ color: 'var(--green)' }}>{enabledAppsCount}</span>
             <span className="ondi-kpi-sub">receiving webhooks</span>
           </div>
         </div>
@@ -186,7 +186,7 @@ export const OndiIntegrations: React.FC = () => {
                   Pause
                 </button>
                 <button type="button" disabled={busy === app.id} onClick={() => revoke(app)}
-                  style={{ fontSize: 12.5, fontWeight: 700, color: '#b91c1c', background: '#fef2f2', border: '1px solid rgba(185,28,28,0.3)', borderRadius: 6, padding: '6px 12px', cursor: 'pointer' }}>
+                  style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--red)', background: 'var(--red-l)', border: '1px solid var(--red)', borderRadius: 6, padding: '6px 12px', cursor: 'pointer' }}>
                   Revoke
                 </button>
               </div>

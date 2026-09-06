@@ -246,7 +246,7 @@ function TodoSidebarContent({ collapsed }: { collapsed: boolean }) {
             { label: 'Client / Social', color: '#10b981' },
             { label: 'Customs Deadline', color: '#f97316' },
             { label: 'Scheduled Todo', color: '#8b5cf6' },
-            { label: 'Holidays', color: '#059669' },
+            { label: 'Holidays', color: 'var(--green)' },
           ].map((item, idx) => (
             <label key={idx} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: 'var(--ink2)', cursor: 'pointer', padding: '3px 0' }}>
               <input type="checkbox" defaultChecked style={{ accentColor: item.color, width: 14, height: 14, cursor: 'pointer' }} />

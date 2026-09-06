@@ -39,7 +39,7 @@ export async function fleetAnalyticsRoutes(fastify: FastifyInstance) {
 
         const overdueMaint = await trx.selectFrom('maintenance_records')
           .select(({ fn }) => [fn.count<number>('id').as('count')])
-          .where('vehicle_id', '=', v.id)
+          .where('vehicle_id', '=', v.id).where('tenant_id', '=', user.tenant_id)
           .where('next_due_date', 'is not', null)
           .where('next_due_date', '<', toDateParam(now))
           .executeTakeFirst();
@@ -47,7 +47,7 @@ export async function fleetAnalyticsRoutes(fastify: FastifyInstance) {
 
         const expiredDocs = await trx.selectFrom('vehicle_documents')
           .select(({ fn }) => [fn.count<number>('id').as('count')])
-          .where('vehicle_id', '=', v.id)
+          .where('vehicle_id', '=', v.id).where('tenant_id', '=', user.tenant_id)
           .where('expiry_date', 'is not', null)
           .where('expiry_date', '<', toDateParam(now))
           .executeTakeFirst();
@@ -55,14 +55,15 @@ export async function fleetAnalyticsRoutes(fastify: FastifyInstance) {
 
         const criticalAlerts = await trx.selectFrom('fleet_alerts')
           .select(({ fn }) => [fn.count<number>('id').as('count')])
-          .where('vehicle_id', '=', v.id)
+          .where('vehicle_id', '=', v.id).where('tenant_id', '=', user.tenant_id)
           .where('severity', '=', 'CRITICAL')
           .where('acknowledged', '=', false)
           .executeTakeFirst();
         score -= Number(criticalAlerts?.count ?? 0) * 20;
 
         const lastPos = await trx.selectFrom('vehicle_positions').select('recorded_at')
-          .where('vehicle_id', '=', v.id).orderBy('recorded_at', 'desc').executeTakeFirst();
+          .where('vehicle_id', '=', v.id).where('tenant_id', '=', user.tenant_id)
+          .orderBy('recorded_at', 'desc').executeTakeFirst();
         if (!lastPos || now.getTime() - new Date(lastPos.recorded_at).getTime() > 2 * 3_600_000) {
           score -= 10;
         }

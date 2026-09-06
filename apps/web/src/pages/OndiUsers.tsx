@@ -86,7 +86,7 @@ function InviteModal({ onClose, onInvited }: { onClose: () => void; onInvited: (
               </SelectContent>
             </Select>
           </div>
-          {error && <div style={{ fontSize: 12, color: 'var(--red)', background: '#fef2f2', padding: '8px 12px', borderRadius: 6 }}>{error}</div>}
+          {error && <div style={{ fontSize: 12, color: 'var(--red)', background: 'var(--red-l)', padding: '8px 12px', borderRadius: 6 }}>{error}</div>}
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 10 }}>
             <button type="button" onClick={onClose} style={{ padding: '8px 18px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13 }}>Cancel</button>
             <button type="submit" disabled={saving} style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontFamily: 'var(--font)', fontWeight: 700, cursor: 'pointer', fontSize: 13, opacity: saving ? 0.6 : 1, boxShadow: '0 2px 8px rgba(0, 181, 137, 0.3)' }}>
@@ -276,10 +276,10 @@ export const OndiUsers: React.FC = () => {
         <div className="ondi-kpi-card">
           <div className="ondi-kpi-header">
             <span className="ondi-kpi-title">Active Seated</span>
-            <div className="ondi-kpi-icon-box" style={{ background: '#ecfdf5', color: '#047857' }}><Icon name="checkCircle" size={18} /></div>
+            <div className="ondi-kpi-icon-box" style={{ background: 'var(--green-l)', color: 'var(--green)' }}><Icon name="checkCircle" size={18} /></div>
           </div>
           <div className="ondi-kpi-body">
-            <span className="ondi-kpi-num" style={{ color: '#047857' }}>{activeCount}</span>
+            <span className="ondi-kpi-num" style={{ color: 'var(--green)' }}>{activeCount}</span>
             <span className="ondi-kpi-sub">seated seats</span>
           </div>
         </div>
@@ -287,10 +287,10 @@ export const OndiUsers: React.FC = () => {
         <div className="ondi-kpi-card">
           <div className="ondi-kpi-header">
             <span className="ondi-kpi-title">Pending Invites</span>
-            <div className="ondi-kpi-icon-box" style={{ background: '#fffbeb', color: '#b45309' }}><Icon name="mail" size={18} /></div>
+            <div className="ondi-kpi-icon-box" style={{ background: 'var(--gold-l)', color: 'var(--gold)' }}><Icon name="mail" size={18} /></div>
           </div>
           <div className="ondi-kpi-body">
-            <span className="ondi-kpi-num" style={{ color: '#b45309' }}>{pendingInvitesCount}</span>
+            <span className="ondi-kpi-num" style={{ color: 'var(--gold)' }}>{pendingInvitesCount}</span>
             <span className="ondi-kpi-sub">awaiting sign-up</span>
           </div>
         </div>

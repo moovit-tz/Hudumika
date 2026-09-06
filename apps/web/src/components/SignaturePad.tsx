@@ -188,6 +188,7 @@ export function SignaturePad({ onCapture, kind = 'signature' }: { onCapture: (da
         )}
         {!hasDrawn && mode === 'upload' && (
           <div onClick={() => fileInputRef.current?.click()}
+            role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInputRef.current?.click(); } }}
             onDragOver={e => e.preventDefault()}
             onDrop={e => { e.preventDefault(); const file = e.dataTransfer.files?.[0]; if (file) drawImageFile(file); }}
             style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)', cursor: 'pointer', gap: 6, border: '1.5px dashed var(--border)', borderRadius: 8, textAlign: 'center', padding: '0 20px' }}>

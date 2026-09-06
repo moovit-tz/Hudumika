@@ -27,37 +27,29 @@ interface Vehicle { id: string; name: string }
 const cardStyle: React.CSSProperties = { background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 20 };
 const statLabel: React.CSSProperties = { fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.04em' };
 
-const DEFAULT_SUMMARY: Summary = {
-  vehicles: { total: 18, moving: 12, stopped: 4, offline: 1, in_maintenance: 1 },
-  trips_today: 14,
-  trips_completed_today: 11,
-  on_time_pct_today: 96,
-  avg_delivery_minutes_today: 42,
-  expiring_documents: 2,
-  pending_reminders: 3,
-  recent_alerts: [
-    { id: 'alt-1', alert_type: 'Over-speeding', severity: 'HIGH', message: 'Vehicle T-104-ABZ exceeded 90 km/h limit on Morogoro Road', created_at: new Date().toISOString() },
-    { id: 'alt-2', alert_type: 'Geofence Departure', severity: 'MEDIUM', message: 'Vehicle T-882-DKL departed Dar es Salaam Port Terminal', created_at: new Date().toISOString() }
-  ],
-  costs_30d: { fuel: 4850000, maintenance: 1200000, total: 6050000, per_vehicle: 336111 }
-};
-
 export const TrackingDashboard: React.FC = () => {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [maintenance, setMaintenance] = useState<MaintenanceRecord[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     apiFetch('/v1/tracking/dashboard-summary')
       .then(setSummary)
-      .catch(() => setSummary(DEFAULT_SUMMARY))
+      .catch(() => setLoadError(true))
       .finally(() => setLoading(false));
     apiFetch('/v1/tracking/maintenance').then(setMaintenance).catch(() => setMaintenance([]));
     apiFetch('/v1/tracking/vehicles').then(setVehicles).catch(() => setVehicles([]));
   }, []);
 
-  const activeSummary = summary ?? DEFAULT_SUMMARY;
+  // No fabricated placeholder fleet stands in for a still-loading or failed
+  // fetch here — a dashboard showing "18 vehicles" and a fake over-speeding
+  // alert on a tenant with a genuinely different (or zero) fleet is worse
+  // than a loading spinner or an honest error.
+  if (loading) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>Loading fleet dashboard…</div>;
+  if (!summary) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>{loadError ? 'Could not load the fleet dashboard. Try refreshing.' : 'No dashboard data available.'}</div>;
+  const activeSummary = summary;
 
   const vehicleName = (id: string) => vehicles.find(v => v.id === id)?.name ?? 'Vehicle';
   const now = Date.now();
@@ -79,7 +71,7 @@ export const TrackingDashboard: React.FC = () => {
     labels: ['Moving', 'Stopped', 'In maintenance', 'Offline'],
     datasets: [{
       data: [activeSummary.vehicles.moving, activeSummary.vehicles.stopped, activeSummary.vehicles.in_maintenance, activeSummary.vehicles.offline],
-      backgroundColor: ['#10b981', '#ca8a04', '#6366f1', '#94a3b8'],
+      backgroundColor: ['#10b981', 'var(--gold)', '#6366f1', '#94a3b8'],
       borderWidth: 0,
     }],
   };
@@ -191,9 +183,9 @@ export const TrackingDashboard: React.FC = () => {
               const overdue = m.next_due_date && new Date(m.next_due_date).getTime() < now;
               return (
                 <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderTop: '1px solid var(--border)' }}>
-                  <Icon name="clipboardList" size={14} color={overdue ? '#dc2626' : '#d97706'} />
+                  <Icon name="clipboardList" size={14} color={overdue ? 'var(--red)' : 'var(--gold)'} />
                   <div style={{ flex: 1, fontSize: 13, color: 'var(--ink)' }}>{m.service_type} — {vehicleName(m.vehicle_id)}</div>
-                  <span style={{ fontSize: 11, fontWeight: 700, borderRadius: 20, padding: '2px 9px', background: overdue ? '#fee2e2' : '#fef9c3', color: overdue ? '#dc2626' : '#ca8a04' }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, borderRadius: 'var(--badge-radius)', padding: '2px 9px', background: overdue ? 'var(--red-l)' : 'var(--gold-l)', color: overdue ? 'var(--red)' : 'var(--gold)' }}>
                     {m.next_due_date ? new Date(m.next_due_date).toLocaleDateString() : '—'}
                   </span>
                 </div>

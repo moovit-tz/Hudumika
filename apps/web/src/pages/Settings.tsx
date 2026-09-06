@@ -1678,7 +1678,7 @@ const TRASection: React.FC = () => {
     return (
       <>
         <Card title="TRA VFD · Registered" desc="Fiscal receipts are signed and submitted to TRA through this registration. Invoices can now be submitted to TRA from Finance → Sales Invoices.">
-          <Field label="Status"><span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: '#059669', fontWeight: 700 }}><Icon name="checkCircle" size={14} color="#059669" /> Registered</span></Field>
+          <Field label="Status"><span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--green)', fontWeight: 700 }}><Icon name="checkCircle" size={14} color="#059669" /> Registered</span></Field>
           <Field label="Environment"><span style={{ textTransform: 'uppercase', fontWeight: 700, color: config.environment === 'production' ? 'var(--red)' : 'var(--ink2)' }}>{config.environment}</span></Field>
           <Field label="REGID"><span style={{ fontFamily: 'var(--mono)' }}>{config.reg_id}</span></Field>
           <Field label="Receipt Code"><span style={{ fontFamily: 'var(--mono)' }}>{config.receipt_code}</span></Field>
@@ -1741,38 +1741,43 @@ interface ModuleCatalogEntry {
   desc: string;
   category: string;
   color: string;
-  status: 'Live' | 'Beta';
 }
 
 const MODULE_CATALOG: Record<string, ModuleCatalogEntry> = {
-  clearos:      { name: 'ClearOS',       desc: 'Customs clearance platform, declarations & TANCIS integration.', category: 'Logistics & Trade', color: '#ea580c', status: 'Live' },
-  tracking:     { name: 'HuduFreight',   desc: 'Fleet, vehicle and driver tracking — live GPS positions & trips.', category: 'Logistics & Trade', color: '#0891b2', status: 'Live' },
-  cargotracker: { name: 'CargoTracker',  desc: 'AWB & Bill of Lading shipment tracking across sea & air carriers.', category: 'Logistics & Trade', color: '#4f46e5', status: 'Live' },
-  seal:         { name: 'SEAL',          desc: 'Bonded warehousing ledger, customs examination & storage clock.', category: 'Logistics & Trade', color: '#0f766e', status: 'Beta' },
-  inventory:    { name: 'Inventory',     desc: 'Stock control, multi-warehouse counts, batches & reorder alerts.', category: 'Logistics & Trade', color: '#0f766e', status: 'Beta' },
-  demurrage:    { name: 'Demurrage',     desc: 'Container dwell time and demurrage cost tracking.',               category: 'Logistics & Trade', color: '#f59e0b', status: 'Live' },
-  finops:       { name: 'FinOps',        desc: 'Financial accounts, TRA EFDMS integration, bills & ledgers.',     category: 'Finance & Accounts', color: '#0284c7', status: 'Live' },
-  petti:        { name: 'Petti',         desc: 'Tenant petty-cash wallets — deposit, request, approve & disburse.', category: 'Finance & Accounts', color: '#16a34a', status: 'Beta' },
-  complyos:     { name: 'ComplyOS',      desc: 'Compliance tracking, BRELA business search, permits & audits.',   category: 'Compliance & Legal', color: '#059669', status: 'Live' },
-  sign:         { name: 'eSign',         desc: 'Secure electronic document signatures, approvals & audit logs.',  category: 'Compliance & Legal', color: '#2563eb', status: 'Beta' },
-  nexushr:      { name: 'NexusHR',       desc: 'People operations, payroll, attendance & shift rosters.',         category: 'People & HR', color: '#0d9488', status: 'Live' },
-  contacts:     { name: 'Contacts',      desc: 'Shared customer, vendor and partner contact directory.',          category: 'People & HR', color: '#1a73e8', status: 'Live' },
-  crm:          { name: 'CRM',           desc: 'Customer relationships, sales pipeline & lead tracking.',         category: 'Communication & CRM', color: '#059669', status: 'Live' },
-  bliss:        { name: 'Bliss',         desc: 'Omnichannel customer helpdesk, ticketing & SLA reminders.',       category: 'Communication & CRM', color: '#7c3aed', status: 'Live' },
-  email:        { name: 'Email',         desc: 'Unified team inbox, webmail & shared email workspace.',           category: 'Communication & CRM', color: '#0078d4', status: 'Live' },
-  sms:          { name: 'SMS',           desc: 'Bulk and transactional SMS messaging campaigns & gateways.',      category: 'Communication & CRM', color: '#dc2626', status: 'Beta' },
-  ai:           { name: 'AI',            desc: 'Automated intelligence, document OCR & predictive insights.',     category: 'AI & Automation', color: '#6d28d9', status: 'Live' },
-  studio:       { name: 'Studio',        desc: 'Visual workflow builder and cross-app automations.',              category: 'AI & Automation', color: '#4361ee', status: 'Live' },
-  hudubi:       { name: 'HuduBI',        desc: 'Executive business intelligence, board KPIs & reports.',          category: 'AI & Automation', color: '#18181b', status: 'Live' },
-  cloud:        { name: 'Cloud',         desc: 'Enterprise cloud drive, file manager & secure storage.',          category: 'Productivity & Cloud', color: '#0369a1', status: 'Live' },
-  calendar:     { name: 'Calendar',      desc: 'Shared scheduling, video meetings & team calendars.',             category: 'Productivity & Cloud', color: '#db2777', status: 'Live' },
-  tasks:        { name: 'Tasks',         desc: 'Team task tracking, assignments & to-dos across apps.',           category: 'Productivity & Cloud', color: '#0f766e', status: 'Live' },
-  notes:        { name: 'Notes',         desc: 'Shared team notes, checklists, documents & sketches.',            category: 'Productivity & Cloud', color: '#fbbc04', status: 'Beta' },
-  store:        { name: 'Store',         desc: 'B2B procurement, equipment marketplace & catalog.',              category: 'Productivity & Cloud', color: '#8b5cf6', status: 'Live' },
-  onsite:       { name: 'Onsite',        desc: 'Domains, DNS, hosting, deployments & cloud infra.',               category: 'Infrastructure & Admin', color: '#0f172a', status: 'Live' },
-  onesite:      { name: 'oneSite',       desc: 'Content management, landing page & company intranet.',            category: 'Infrastructure & Admin', color: '#06b6d4', status: 'Live' },
-  ondi:         { name: 'Ondi',          desc: 'Single sign-on, identity verification & biometric security.',     category: 'Infrastructure & Admin', color: '#4253d1', status: 'Live' },
-  workspace:    { name: 'Workspace Admin', desc: 'Organization settings, branding & platform configuration.',      category: 'Infrastructure & Admin', color: '#64748b', status: 'Live' },
+  clearos:      { name: 'ClearOS',       desc: 'Customs clearance platform, declarations & TANCIS integration.', category: 'Logistics & Trade', color: '#ea580c' },
+  tracking:     { name: 'HuduFreight',   desc: 'Fleet, vehicle and driver tracking — live GPS positions & trips.', category: 'Logistics & Trade', color: '#0891b2' },
+  cargotracker: { name: 'CargoTracker',  desc: 'AWB & Bill of Lading shipment tracking across sea & air carriers.', category: 'Logistics & Trade', color: '#4f46e5' },
+  seal:         { name: 'SEAL',          desc: 'Bonded warehousing ledger, customs examination & storage clock.', category: 'Logistics & Trade', color: '#0f766e' },
+  inventory:    { name: 'Inventory',     desc: 'Stock control, multi-warehouse counts, batches & reorder alerts.', category: 'Logistics & Trade', color: '#0f766e' },
+  demurrage:    { name: 'Demurrage',     desc: 'Container dwell time and demurrage cost tracking.',               category: 'Logistics & Trade', color: '#f59e0b' },
+  finops:       { name: 'FinOps',        desc: 'Financial accounts, TRA EFDMS integration, bills & ledgers.',     category: 'Finance & Accounts', color: '#0284c7' },
+  petti:        { name: 'Petti',         desc: 'Tenant petty-cash wallets — deposit, request, approve & disburse.', category: 'Finance & Accounts', color: '#16a34a' },
+  complyos:     { name: 'ComplyOS',      desc: 'Compliance tracking, BRELA business search, permits & audits.',   category: 'Compliance & Legal', color: 'var(--green)' },
+  sign:         { name: 'eSign',         desc: 'Secure electronic document signatures, approvals & audit logs.',  category: 'Compliance & Legal', color: '#2563eb' },
+  nexushr:      { name: 'NexusHR',       desc: 'People operations, payroll, attendance & shift rosters.',         category: 'People & HR', color: '#0d9488' },
+  contacts:     { name: 'Contacts',      desc: 'Shared customer, vendor and partner contact directory.',          category: 'People & HR', color: '#1a73e8' },
+  crm:          { name: 'CRM',           desc: 'Customer relationships, sales pipeline & lead tracking.',         category: 'Communication & CRM', color: 'var(--green)' },
+  bliss:        { name: 'Bliss',         desc: 'Omnichannel customer helpdesk, ticketing & SLA reminders.',       category: 'Communication & CRM', color: '#7c3aed' },
+  email:        { name: 'Email',         desc: 'Unified team inbox, webmail & shared email workspace.',           category: 'Communication & CRM', color: '#0078d4' },
+  sms:          { name: 'SMS',           desc: 'Bulk and transactional SMS messaging campaigns & gateways.',      category: 'Communication & CRM', color: 'var(--red)' },
+  ai:           { name: 'AI',            desc: 'Automated intelligence, document OCR & predictive insights.',     category: 'AI & Automation', color: '#6d28d9' },
+  studio:       { name: 'Studio',        desc: 'Visual workflow builder and cross-app automations.',              category: 'AI & Automation', color: '#4361ee' },
+  hudubi:       { name: 'HuduBI',        desc: 'Executive business intelligence, board KPIs & reports.',          category: 'AI & Automation', color: '#18181b' },
+  cloud:        { name: 'Cloud',         desc: 'Enterprise cloud drive, file manager & secure storage.',          category: 'Productivity & Cloud', color: '#0369a1' },
+  calendar:     { name: 'Calendar',      desc: 'Shared scheduling, video meetings & team calendars.',             category: 'Productivity & Cloud', color: '#db2777' },
+  tasks:        { name: 'Tasks',         desc: 'Team task tracking, assignments & to-dos across apps.',           category: 'Productivity & Cloud', color: '#0f766e' },
+  // Standalone Projects app (migration 313) — real feature key
+  // (ALL_FEATURE_KEYS in packages/types) with real package_features grants,
+  // but never had a catalog entry here, so it was invisible in Modules &
+  // Extensions even though it's fully shipped and plan-gated like every
+  // other app. See entitlements.ts's own comment on the same key.
+  projects:     { name: 'Projects',      desc: 'Enterprise project management — milestones, Gantt, contracts & timesheets.', category: 'Productivity & Cloud', color: '#a21caf' },
+  notes:        { name: 'Notes',         desc: 'Shared team notes, checklists, documents & sketches.',            category: 'Productivity & Cloud', color: '#fbbc04' },
+  store:        { name: 'Store',         desc: 'B2B procurement, equipment marketplace & catalog.',              category: 'Productivity & Cloud', color: '#8b5cf6' },
+  onsite:       { name: 'Onsite',        desc: 'Domains, DNS, hosting, deployments & cloud infra.',               category: 'Infrastructure & Admin', color: '#0f172a' },
+  onesite:      { name: 'oneSite',       desc: 'Content management, landing page & company intranet.',            category: 'Infrastructure & Admin', color: '#06b6d4' },
+  ondi:         { name: 'Ondi',          desc: 'Single sign-on, identity verification & biometric security.',     category: 'Infrastructure & Admin', color: '#4253d1' },
+  workspace:    { name: 'Workspace Admin', desc: 'Organization settings, branding & platform configuration.',      category: 'Infrastructure & Admin', color: '#64748b' },
 };
 
 const MODULE_CATEGORIES = [
@@ -1792,6 +1797,11 @@ const ModulesSection: React.FC = () => {
   const branding = useBranding();
   const canManageModules = !!user && ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER'].includes(user.role);
   const entitlements = useEntitlements();
+  // Platform-wide "Beta" label (migration 395) — a SuperAdmin sets this once
+  // on app_status and every tenant's GET /v1/entitlements reports the same
+  // list, replacing what used to be a hardcoded status field on
+  // MODULE_CATALOG that no admin could actually change.
+  const betaApps = useMemo(() => new Set(entitlements?.betaApps ?? []), [entitlements]);
   const [overrides, setOverrides] = useState<Record<string, boolean> | null>(null);
   const [moduleSaving, setModuleSaving] = useState<string | null>(null);
   const [savingBulk, setSavingBulk] = useState(false);
@@ -1891,7 +1901,7 @@ const ModulesSection: React.FC = () => {
   // Filtered keys
   const filteredKeys = useMemo(() => {
     return moduleKeys.filter(key => {
-      const meta = MODULE_CATALOG[key] || APP_META[key] || { name: key, desc: '', category: 'Other', color: '#64748b', status: 'Live' };
+      const meta = MODULE_CATALOG[key] || APP_META[key] || { name: key, desc: '', category: 'Other', color: '#64748b' };
       const name = meta.name.toLowerCase();
       const desc = (meta.desc || '').toLowerCase();
       const cat = (meta.category || '').toLowerCase();
@@ -1957,106 +1967,105 @@ const ModulesSection: React.FC = () => {
       {/* ── Overview Metrics Row ── */}
       <MetricsRow cards={statCards} />
 
-      {/* ── Search, Filters, Category Tabs & Layout Controls ── */}
+      {/* ── Single Responsive Row Toolbar ── */}
       <div className="s-mods-toolbar">
-        <div className="s-mods-toolbar-top">
-          {/* Search Input */}
-          <div className="s-mods-search-wrap">
-            <div className="s-mods-search-icon">
-              <Icon name="search" size={15} />
-            </div>
-            <input
-              type="text"
-              placeholder="Search modules by name, category, or features…"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              className="s-mods-search-input"
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                className="s-mods-search-clear"
-                onClick={() => setSearchQuery('')}
-                title="Clear search"
-              >
-                <Icon name="x" size={14} />
-              </button>
-            )}
+        {/* Search Input */}
+        <div className="s-mods-search-wrap">
+          <div className="s-mods-search-icon">
+            <Icon name="search" size={15} />
           </div>
-
-          {/* Right Action Controls */}
-          <div className="s-mods-toolbar-actions">
-            {/* Status Dropdown */}
-            <Select value={selectedStatus} onValueChange={v => setSelectedStatus(v as any)}>
-              <SelectTrigger style={{ width: 145, height: 38 }}>
-                <SelectValue placeholder="All Statuses" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="enabled">Enabled Only</SelectItem>
-                <SelectItem value="disabled">Disabled Only</SelectItem>
-                <SelectItem value="restricted">Restricted Access</SelectItem>
-              </SelectContent>
-            </Select>
-
-            {/* View Mode Toggle */}
-            <Tabs value={viewMode} onValueChange={v => handleViewChange(v as typeof viewMode)} variant="segmented">
-              <TabsList>
-                <TabsTrigger value="grid" title="Card Grid View">
-                  <Icon name="grid" size={16} />
-                </TabsTrigger>
-                <TabsTrigger value="list" title="Table List View">
-                  <Icon name="list" size={16} />
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-
-            {/* Bulk Actions (Admin only) */}
-            {canManageModules && (
-              <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={enableAllModules}
-                  disabled={savingBulk}
-                  style={{ height: 38 }}
-                >
-                  <Icon name="check" size={13} style={{ marginRight: 5 }} />
-                  Enable All
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={resetModulesToDefault}
-                  disabled={savingBulk}
-                  style={{ height: 38, color: 'var(--ink3)' }}
-                >
-                  Reset Defaults
-                </Button>
-              </>
-            )}
-          </div>
+          <input
+            type="text"
+            placeholder="Search modules by name, category, or features…"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="s-mods-search-input"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              className="s-mods-search-clear"
+              onClick={() => setSearchQuery('')}
+              title="Clear search"
+            >
+              <Icon name="x" size={14} />
+            </button>
+          )}
         </div>
 
-        {/* Category Filter Chips — the shared segmented ds-tabs (same control
-            as ShipmentDetail/Ops Command/NexusHR), not a one-off chip style. */}
-        <Tabs value={selectedCategory} onValueChange={setSelectedCategory} variant="segmented">
-        <TabsList style={{ maxWidth: '100%' }}>
-          {MODULE_CATEGORIES.map(cat => {
-            const count = cat === 'All'
-              ? moduleKeys.length
-              : moduleKeys.filter(k => (MODULE_CATALOG[k]?.category || 'Other') === cat).length;
-            if (count === 0 && cat !== 'All') return null;
-            const isActive = selectedCategory === cat;
-            return (
-              <TabsTrigger key={cat} value={cat}>
-                {cat}
-                <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 20, lineHeight: 1.5, background: isActive ? 'var(--teal-l)' : 'var(--bg)', color: isActive ? 'var(--teal)' : 'var(--ink3)' }}>{count}</span>
+        {/* Category Filter Chips (Scrollable inline segment) */}
+        <div className="s-mods-cats-scroll">
+          <Tabs value={selectedCategory} onValueChange={setSelectedCategory} variant="segmented">
+            <TabsList style={{ display: 'inline-flex', flexWrap: 'nowrap' }}>
+              {MODULE_CATEGORIES.map(cat => {
+                const count = cat === 'All'
+                  ? moduleKeys.length
+                  : moduleKeys.filter(k => (MODULE_CATALOG[k]?.category || 'Other') === cat).length;
+                if (count === 0 && cat !== 'All') return null;
+                const isActive = selectedCategory === cat;
+                return (
+                  <TabsTrigger key={cat} value={cat} style={{ whiteSpace: 'nowrap' }}>
+                    {cat}
+                    <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 'var(--badge-radius)', lineHeight: 1.5, background: isActive ? 'var(--teal-l)' : 'var(--bg)', color: isActive ? 'var(--teal)' : 'var(--ink3)', marginLeft: 4 }}>{count}</span>
+                  </TabsTrigger>
+                );
+              })}
+            </TabsList>
+          </Tabs>
+        </div>
+
+        {/* Right Action Controls */}
+        <div className="s-mods-toolbar-actions">
+          {/* Status Dropdown */}
+          <Select value={selectedStatus} onValueChange={v => setSelectedStatus(v as any)}>
+            <SelectTrigger className="s-mods-status-trigger" style={{ height: 36 }}>
+              <SelectValue placeholder="All Statuses" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Statuses</SelectItem>
+              <SelectItem value="enabled">Enabled Only</SelectItem>
+              <SelectItem value="disabled">Disabled Only</SelectItem>
+              <SelectItem value="restricted">Restricted Access</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* View Mode Toggle */}
+          <Tabs value={viewMode} onValueChange={v => handleViewChange(v as typeof viewMode)} variant="segmented">
+            <TabsList>
+              <TabsTrigger value="grid" title="Card Grid View">
+                <Icon name="grid" size={15} />
               </TabsTrigger>
-            );
-          })}
-        </TabsList>
-        </Tabs>
+              <TabsTrigger value="list" title="Table List View">
+                <Icon name="list" size={15} />
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+
+          {/* Bulk Actions (Admin only) */}
+          {canManageModules && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={enableAllModules}
+                disabled={savingBulk}
+                style={{ height: 36, whiteSpace: 'nowrap' }}
+              >
+                <Icon name="check" size={13} style={{ marginRight: 4 }} />
+                Enable All
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={resetModulesToDefault}
+                disabled={savingBulk}
+                style={{ height: 36, color: 'var(--ink3)', whiteSpace: 'nowrap' }}
+              >
+                Reset Defaults
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* ── Main Content Area: Grid or List ── */}
@@ -2092,7 +2101,7 @@ const ModulesSection: React.FC = () => {
         <div className="s-mods-grid">
           {filteredKeys.map(key => {
             const catalog = MODULE_CATALOG[key];
-            const meta = catalog || APP_META[key] || { name: key, desc: '', category: 'Other', color: '#0d9488', status: 'Live' };
+            const meta = catalog || APP_META[key] || { name: key, desc: '', category: 'Other', color: '#0d9488' };
             const on = overrides[key] ?? entitlements.features[key] ?? true;
             const maintenance = entitlements.appStatus[key] === 'maintenance';
             const isRestricted = !!licenseData?.restricted?.[key];
@@ -2112,7 +2121,7 @@ const ModulesSection: React.FC = () => {
                       <div className="s-mod-card-meta">
                         <div className="s-mod-title-row">
                           <span className="s-mod-title">{branding.getAppName(key, meta.name)}</span>
-                          {meta.status === 'Beta' && <span className="s-mod-badge-beta">Beta</span>}
+                          {betaApps.has(key) && <span className="s-mod-badge-beta">Beta</span>}
                         </div>
                         <div className="s-mod-category">{meta.category}</div>
                       </div>
@@ -2182,7 +2191,7 @@ const ModulesSection: React.FC = () => {
             <tbody>
               {filteredKeys.map(key => {
                 const catalog = MODULE_CATALOG[key];
-                const meta = catalog || APP_META[key] || { name: key, desc: '', category: 'Other', color: '#0d9488', status: 'Live' };
+                const meta = catalog || APP_META[key] || { name: key, desc: '', category: 'Other', color: '#0d9488' };
                 const on = overrides[key] ?? entitlements.features[key] ?? true;
                 const maintenance = entitlements.appStatus[key] === 'maintenance';
                 const isRestricted = !!licenseData?.restricted?.[key];
@@ -2201,7 +2210,7 @@ const ModulesSection: React.FC = () => {
                         <div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                             <span className="s-mods-table-name">{branding.getAppName(key, meta.name)}</span>
-                            {meta.status === 'Beta' && <span className="s-mod-badge-beta">Beta</span>}
+                            {betaApps.has(key) && <span className="s-mod-badge-beta">Beta</span>}
                           </div>
                         </div>
                       </div>
@@ -2751,7 +2760,7 @@ const ApiKeysSection: React.FC = () => {
                     <td style={{ padding: '8px', color: 'var(--ink2)' }}>{k.scopes.join(', ')}</td>
                     <td style={{ padding: '8px', color: 'var(--ink3)' }}>{k.last_used_at ? new Date(k.last_used_at).toLocaleDateString() : 'Never'}</td>
                     <td style={{ padding: '8px' }}>
-                      <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 'var(--r-sm)', color: k.revoked_at ? 'var(--red)' : 'var(--green)', background: k.revoked_at ? '#fef2f2' : '#ecfdf5' }}>
+                      <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 'var(--r-sm)', color: k.revoked_at ? 'var(--red)' : 'var(--green)', background: k.revoked_at ? 'var(--red-l)' : 'var(--green-l)' }}>
                         {k.revoked_at ? 'Revoked' : 'Active'}
                       </span>
                     </td>
@@ -2926,9 +2935,17 @@ const WorkspaceFacts: React.FC = () => {
       .catch(() => setIntegrations(null));
   }, []);
 
+  // entitlements.features carries every plan-gated FeatureKey, which is
+  // wider than "modules": tracking.cargo-loading/.warehouse/.analytics/
+  // .reports and ondi.governance are sub-features of the tracking and ondi
+  // apps, not separate modules — counting them here inflated both the
+  // enabled and total figures against what Modules & Extensions actually
+  // lists. Restricting to keys MODULE_CATALOG recognizes as a real app
+  // keeps this stat and that page's own count in agreement by construction.
   const features = entitlements?.features ?? null;
-  const enabled = features ? Object.values(features).filter(Boolean).length : null;
-  const total = features ? Object.keys(features).length : null;
+  const moduleKeys = features ? Object.keys(features).filter(k => k in MODULE_CATALOG) : [];
+  const enabled = features ? moduleKeys.filter(k => features[k]).length : null;
+  const total = features ? moduleKeys.length : null;
 
   return (
     <div className="sett-strip">

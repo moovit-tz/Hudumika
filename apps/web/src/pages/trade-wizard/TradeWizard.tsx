@@ -77,7 +77,7 @@ export function TradeWizard() {
             alignItems: 'center',
             gap: 8,
             padding: '7px 16px',
-            borderRadius: 20,
+            borderRadius: 'var(--badge-radius)',
             background: quotaExhausted ? 'color-mix(in srgb, var(--red) 10%, transparent)' : 'color-mix(in srgb, var(--teal) 10%, transparent)',
             border: `1.5px solid ${quotaExhausted ? 'color-mix(in srgb, var(--red) 30%, transparent)' : 'color-mix(in srgb, var(--teal) 30%, transparent)'}`,
             color: quotaExhausted ? 'var(--red)' : 'var(--teal)',
