@@ -5,11 +5,14 @@ import { Badge } from '../../components/ui/badge.js';
 import { Button } from '../../components/ui/button.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog.js';
-import { Icon, type IconName } from '../../components/Icon.js';
+import { Tabs, TabsList, TabsTrigger } from '../../components/ui/tabs.js';
+import { FeaturedIcon } from '../../components/ui/featured-icon.js';
+import { SingleSelectFilter } from '../../components/ui/filter-dropdown.js';
+import { Icon } from '../../components/Icon.js';
 import { PersonAvatar } from '../../components/PersonAvatar.js';
-import { Tip } from '../../components/ui/tooltip.js';
 import { apiFetch, BASE_URL } from '../../lib/api.js';
 import { useAuth } from '../../hooks/useAuth.js';
+import { useMediaQuery } from '../../hooks/useMediaQuery.js';
 import { MGMT_ROLES } from '../../lib/permissions.js';
 import { showAlert } from '../../lib/alert.js';
 
@@ -100,6 +103,8 @@ export const BlissWhatsApp: React.FC = () => {
   const { user } = useAuth();
   const canManage = MGMT_ROLES.includes(user?.role as any);
   const [searchParams, setSearchParams] = useSearchParams();
+  const isMobile = useMediaQuery('(max-width: 767px)');
+  const isTablet = useMediaQuery('(max-width: 1024px)');
 
   const tabParam = searchParams.get('tab') as 'overview' | 'simulator' | 'templates' | 'automation' | 'settings' | null;
   const activeTab = tabParam || 'overview';
@@ -124,8 +129,8 @@ export const BlissWhatsApp: React.FC = () => {
   const [templates, setTemplates] = useState<WaTemplate[] | null>(null);
   const [templatesError, setTemplatesError] = useState<string | null>(null);
   const [templatesConfigured, setTemplatesConfigured] = useState(false);
-  const [templateFilter, setTemplateFilter] = useState<'ALL' | 'APPROVED' | 'PENDING' | 'REJECTED'>('ALL');
-  const [templateCategoryFilter, setTemplateCategoryFilter] = useState<string>('ALL');
+  const [templateFilter, setTemplateFilter] = useState<string | null>(null);
+  const [templateCategoryFilter, setTemplateCategoryFilter] = useState<string | null>(null);
   const [templateSearch, setTemplateSearch] = useState('');
   const [showNewTemplateModal, setShowNewTemplateModal] = useState(false);
   const [tplName, setTplName] = useState('');
@@ -346,8 +351,8 @@ export const BlissWhatsApp: React.FC = () => {
 
   const filteredTemplates = useMemo(() => {
     return (templates || []).filter(t => {
-      if (templateFilter !== 'ALL' && t.status !== templateFilter) return false;
-      if (templateCategoryFilter !== 'ALL' && t.category !== templateCategoryFilter) return false;
+      if (templateFilter && templateFilter !== 'ALL' && t.status !== templateFilter) return false;
+      if (templateCategoryFilter && templateCategoryFilter !== 'ALL' && t.category !== templateCategoryFilter) return false;
       if (templateSearch.trim()) {
         const q = templateSearch.toLowerCase();
         const bodyText = t.components?.find((c: any) => c.type === 'BODY')?.text || '';
@@ -366,97 +371,85 @@ export const BlissWhatsApp: React.FC = () => {
   if (loading) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: 16, color: 'var(--ink2)' }}>
-        <div style={{ width: 52, height: 52, borderRadius: '50%', background: '#25D36618', color: '#25D366', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Icon name="whatsapp" size={28} />
-        </div>
-        <div style={{ fontSize: 14, fontWeight: 700 }}>Connecting to WhatsApp Business Hub…</div>
+        <FeaturedIcon variant="brand" size="xl">
+          <Icon name="refresh" size={28} style={{ animation: 'spin 1s linear infinite' }} />
+        </FeaturedIcon>
+        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>Connecting to WhatsApp Business Hub…</div>
       </div>
     );
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20, padding: '24px 28px', background: 'var(--bg)', minHeight: '100%' }}>
-      {/* ── Top Hero Header ── */}
-      <div style={{
-        background: 'linear-gradient(135deg, rgba(37, 211, 102, 0.08) 0%, rgba(18, 140, 126, 0.04) 50%, rgba(255, 255, 255, 0.6) 100%)',
-        border: '1px solid rgba(37, 211, 102, 0.25)',
-        borderRadius: 16,
-        padding: '20px 24px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: 16,
-        boxShadow: '0 4px 20px -2px rgba(37, 211, 102, 0.08)',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, minWidth: 280 }}>
-          <div style={{
-            width: 52,
-            height: 52,
-            borderRadius: 14,
-            background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)',
-            color: '#ffffff',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 4px 14px rgba(37, 211, 102, 0.35)',
-            flexShrink: 0,
-          }}>
-            <Icon name="whatsapp" size={30} />
-          </div>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <h1 style={{ fontSize: 20, fontWeight: 900, color: 'var(--ink)', margin: 0, letterSpacing: '-0.02em' }}>
-                WhatsApp Business Hub
-              </h1>
-              <span style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 5,
-                padding: '2px 8px',
-                borderRadius: 12,
-                fontSize: 11,
-                fontWeight: 800,
-                background: metrics?.configured ? '#25D36620' : '#f59e0b20',
-                color: metrics?.configured ? '#128C7E' : '#b45309',
-                border: metrics?.configured ? '1px solid #25D36650' : '1px solid #f59e0b50',
-              }}>
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: metrics?.configured ? '#25D366' : '#f59e0b', display: 'inline-block' }} />
-                {metrics?.configured ? 'Meta Cloud API Live' : 'Simulation Mode'}
-              </span>
-            </div>
-            <p style={{ fontSize: 12.5, color: 'var(--ink2)', margin: '4px 0 0', fontWeight: 500 }}>
-              Meta WhatsApp Cloud API integration · Inbound tickets, HSM template dispatch, and keyword automations.
-            </p>
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          <Button variant="outline" size="sm" onClick={() => loadCore(true)} disabled={refreshing}>
-            <Icon name="refresh" size={13} style={{ animation: refreshing ? 'spin 1s linear infinite' : 'none' }} />
-            {refreshing ? 'Syncing…' : 'Sync Meta Data'}
-          </Button>
-
-          <Link to="/bliss/inbox" style={{ textDecoration: 'none' }}>
-            <Button variant="default" size="sm" style={{ background: '#128C7E', borderColor: '#075E54', color: '#ffffff' }}>
-              <Icon name="inbox" size={14} /> Open Support Center
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      gap: isMobile ? 14 : 20,
+      padding: isMobile ? '14px 16px' : '22px 28px',
+      background: 'var(--bg)',
+      minHeight: '100%',
+    }}>
+      {/* ── Standard Hudumika PageHeader ── */}
+      <PageHeader
+        crumbs={['Bliss', 'WhatsApp']}
+        titlePlain="WhatsApp"
+        titleEm="hub"
+        subtitle="Meta WhatsApp Cloud API integration — inbound tickets, HSM template dispatch, and keyword automations."
+        actions={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <Badge variant={metrics?.configured ? 'success' : 'warning'}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor', display: 'inline-block' }} />
+              {metrics?.configured ? 'Meta Cloud API Live' : 'Simulation Mode'}
+            </Badge>
+            <Button variant="outline" size="sm" onClick={() => loadCore(true)} disabled={refreshing}>
+              <Icon name="refresh" size={13} style={{ animation: refreshing ? 'spin 1s linear infinite' : 'none' }} />
+              {refreshing ? 'Syncing…' : 'Sync Meta Data'}
             </Button>
-          </Link>
-        </div>
-      </div>
+            <Link to="/bliss/inbox" style={{ textDecoration: 'none' }}>
+              <Button variant="default" size="sm">
+                <Icon name="inbox" size={14} /> Open Support Center
+              </Button>
+            </Link>
+          </div>
+        }
+      />
 
       {error && (
-        <div style={{ padding: '12px 16px', background: 'var(--red-l)', color: 'var(--red)', fontSize: 13, fontWeight: 600, borderRadius: 'var(--r)', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{
+          padding: '12px 16px',
+          background: 'var(--red-l)',
+          color: 'var(--red)',
+          fontSize: 13,
+          fontWeight: 600,
+          borderRadius: 'var(--r)',
+          border: '1px solid var(--red)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+        }}>
           <Icon name="alertTriangle" size={16} /> {error}
         </div>
       )}
 
-      {/* ── KPI Metric Cards ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
-        <div style={{ background: 'var(--white)', padding: 18, borderRadius: 14, border: '1px solid var(--border)', boxShadow: 'var(--elev-sm)', display: 'flex', alignItems: 'center', gap: 14 }}>
-          <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(37, 211, 102, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#128C7E', flexShrink: 0 }}>
-            <Icon name="clock" size={22} strokeWidth={2} />
-          </div>
+      {/* ── KPI Metric Cards Ribbon (Responsive Grid) ── */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: isMobile ? '1fr' : isTablet ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
+        gap: 14,
+      }}>
+        {/* Metric 1 */}
+        <div style={{
+          background: 'var(--card)',
+          padding: '16px 18px',
+          borderRadius: 'var(--r)',
+          border: '1px solid var(--border)',
+          boxShadow: 'var(--elev-sm)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 14,
+        }}>
+          <FeaturedIcon variant="success" size="md">
+            <Icon name="clock" size={20} strokeWidth={2} />
+          </FeaturedIcon>
           <div>
             <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--ink)', lineHeight: 1.1 }}>{metrics?.activeSessions ?? 0}</div>
             <div style={{ fontSize: 12, color: 'var(--ink2)', fontWeight: 600, marginTop: 2 }}>24h Active Windows</div>
@@ -464,21 +457,41 @@ export const BlissWhatsApp: React.FC = () => {
           </div>
         </div>
 
-        <div style={{ background: 'var(--white)', padding: 18, borderRadius: 14, border: '1px solid var(--border)', boxShadow: 'var(--elev-sm)', display: 'flex', alignItems: 'center', gap: 14 }}>
-          <div style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--teal)', flexShrink: 0 }}>
-            <Icon name="messageSquare" size={22} strokeWidth={2} />
-          </div>
+        {/* Metric 2 */}
+        <div style={{
+          background: 'var(--card)',
+          padding: '16px 18px',
+          borderRadius: 'var(--r)',
+          border: '1px solid var(--border)',
+          boxShadow: 'var(--elev-sm)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 14,
+        }}>
+          <FeaturedIcon variant="brand" size="md">
+            <Icon name="messageSquare" size={20} strokeWidth={2} />
+          </FeaturedIcon>
           <div>
             <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--ink)', lineHeight: 1.1 }}>{metrics?.deliveredToday ?? 0}</div>
             <div style={{ fontSize: 12, color: 'var(--ink2)', fontWeight: 600, marginTop: 2 }}>Dispatched Today</div>
-            <div style={{ fontSize: 10.5, color: 'var(--ink3)' }}>Outbound HSM & replies</div>
+            <div style={{ fontSize: 10.5, color: 'var(--ink3)' }}>Outbound HSM &amp; replies</div>
           </div>
         </div>
 
-        <div style={{ background: 'var(--white)', padding: 18, borderRadius: 14, border: '1px solid var(--border)', boxShadow: 'var(--elev-sm)', display: 'flex', alignItems: 'center', gap: 14 }}>
-          <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(59, 130, 246, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563eb', flexShrink: 0 }}>
-            <Icon name="checkCircle" size={22} strokeWidth={2} />
-          </div>
+        {/* Metric 3 */}
+        <div style={{
+          background: 'var(--card)',
+          padding: '16px 18px',
+          borderRadius: 'var(--r)',
+          border: '1px solid var(--border)',
+          boxShadow: 'var(--elev-sm)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 14,
+        }}>
+          <FeaturedIcon variant="info" size="md">
+            <Icon name="checkCircle" size={20} strokeWidth={2} />
+          </FeaturedIcon>
           <div>
             <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--ink)', lineHeight: 1.1 }}>{metrics?.readRate != null ? `${metrics.readRate}%` : '—'}</div>
             <div style={{ fontSize: 12, color: 'var(--ink2)', fontWeight: 600, marginTop: 2 }}>Read Rate (Receipts)</div>
@@ -486,14 +499,24 @@ export const BlissWhatsApp: React.FC = () => {
           </div>
         </div>
 
-        <div style={{ background: 'var(--white)', padding: 18, borderRadius: 14, border: '1px solid var(--border)', boxShadow: 'var(--elev-sm)', display: 'flex', alignItems: 'center', gap: 14 }}>
-          <div style={{ width: 44, height: 44, borderRadius: 12, background: metrics?.configured ? 'rgba(37, 211, 102, 0.12)' : 'rgba(239, 68, 68, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: metrics?.configured ? '#128C7E' : 'var(--red)', flexShrink: 0 }}>
-            <Icon name="globe" size={22} strokeWidth={2} />
-          </div>
+        {/* Metric 4 */}
+        <div style={{
+          background: 'var(--card)',
+          padding: '16px 18px',
+          borderRadius: 'var(--r)',
+          border: '1px solid var(--border)',
+          boxShadow: 'var(--elev-sm)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 14,
+        }}>
+          <FeaturedIcon variant={metrics?.configured ? 'success' : 'warning'} size="md">
+            <Icon name="globe" size={20} strokeWidth={2} />
+          </FeaturedIcon>
           <div>
             <div style={{ fontSize: 14, fontWeight: 900, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 6 }}>
               Meta Cloud API
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: metrics?.configured ? '#25D366' : 'var(--red)' }} />
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: metrics?.configured ? 'var(--green)' : 'var(--gold)' }} />
             </div>
             <div style={{ fontSize: 12, color: 'var(--ink2)', fontWeight: 600, marginTop: 2 }}>
               {metrics?.configured ? 'Credentials Verified' : 'Unset Credentials'}
@@ -503,81 +526,103 @@ export const BlissWhatsApp: React.FC = () => {
         </div>
       </div>
 
-      {/* ── Main Tabbed Navigation ── */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'var(--card-sunken)', padding: 4, borderRadius: 12, width: 'fit-content', border: '1px solid var(--border2)' }}>
-        {[
-          { id: 'overview', label: 'Overview & Activity', icon: 'activity' as IconName },
-          { id: 'simulator', label: 'Live Simulator & Test Send', icon: 'send' as IconName },
-          { id: 'templates', label: `Message Templates (${approvedTemplates.length})`, icon: 'fileText' as IconName },
-          { id: 'automation', label: `Keyword Rules (${rules.length})`, icon: 'sliders' as IconName },
-          { id: 'settings', label: 'API & Webhook Setup', icon: 'settings' as IconName },
-        ].map(t => {
-          const active = activeTab === t.id;
-          return (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => setTab(t.id as any)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: '7px 14px',
-                borderRadius: 9,
-                border: 'none',
-                background: active ? 'var(--white)' : 'transparent',
-                color: active ? '#128C7E' : 'var(--ink2)',
-                fontSize: 12.5,
-                fontWeight: active ? 800 : 600,
-                cursor: 'pointer',
-                boxShadow: active ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              <Icon name={t.icon} size={14} strokeWidth={active ? 2.2 : 1.75} />
-              {t.label}
-            </button>
-          );
-        })}
-      </div>
+      {/* ── Main Tabbed Navigation (Hudumika Design System Outline Tabs) ── */}
+      <Tabs value={activeTab} onValueChange={v => setTab(v as any)} variant="outline" style={{ flexShrink: 0 }}>
+        <TabsList>
+          <TabsTrigger value="overview">
+            <Icon name="activity" size={14} />
+            <span className="ds-tabs-trigger-label" style={{ display: isMobile ? 'none' : undefined }}>Overview &amp; Activity</span>
+          </TabsTrigger>
+          <TabsTrigger value="simulator">
+            <Icon name="send" size={14} />
+            <span className="ds-tabs-trigger-label" style={{ display: isMobile ? 'none' : undefined }}>Live Simulator &amp; Test Send</span>
+          </TabsTrigger>
+          <TabsTrigger value="templates">
+            <Icon name="fileText" size={14} />
+            <span className="ds-tabs-trigger-label" style={{ display: isMobile ? 'none' : undefined }}>Message Templates ({approvedTemplates.length})</span>
+          </TabsTrigger>
+          <TabsTrigger value="automation">
+            <Icon name="sliders" size={14} />
+            <span className="ds-tabs-trigger-label" style={{ display: isMobile ? 'none' : undefined }}>Keyword Rules ({rules.length})</span>
+          </TabsTrigger>
+          <TabsTrigger value="settings">
+            <Icon name="settings" size={14} />
+            <span className="ds-tabs-trigger-label" style={{ display: isMobile ? 'none' : undefined }}>API &amp; Webhook Setup</span>
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
 
       {/* ── TAB 1: OVERVIEW & ACTIVITY ── */}
       {activeTab === 'overview' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: 20 }}>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: isTablet ? '1fr' : 'minmax(0, 1.3fr) minmax(0, 1fr)',
+          gap: 18,
+        }}>
           {/* Recent WhatsApp Conversations */}
-          <div style={{ background: 'var(--white)', borderRadius: 14, border: '1px solid var(--border)', boxShadow: 'var(--elev-sm)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <div style={{
+            background: 'var(--card)',
+            borderRadius: 'var(--r)',
+            border: '1px solid var(--border)',
+            boxShadow: 'var(--elev-sm)',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+          }}>
+            <div style={{
+              padding: '14px 18px',
+              borderBottom: '1px solid var(--border)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 12,
+              flexWrap: 'wrap',
+            }}>
               <div>
-                <h2 style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)', margin: 0 }}>Recent WhatsApp Conversations</h2>
+                <h2 style={{ fontSize: 14.5, fontWeight: 800, color: 'var(--ink)', margin: 0 }}>Recent WhatsApp Conversations</h2>
                 <span style={{ fontSize: 11.5, color: 'var(--ink3)' }}>Incoming customer threads connected to Support Center</span>
               </div>
-              <div style={{ position: 'relative', width: 200 }}>
-                <Icon name="search" size={13} color="var(--ink3)" style={{ position: 'absolute', left: 8, top: 9 }} />
+              <div style={{ position: 'relative', width: isMobile ? '100%' : 200 }}>
+                <Icon name="search" size={13} style={{ position: 'absolute', left: 9, top: 9, color: 'var(--ink3)' }} />
                 <input
+                  className="input-field"
                   value={convSearch}
                   onChange={e => setConvSearch(e.target.value)}
                   placeholder="Filter conversations…"
-                  style={{ width: '100%', height: 30, background: 'var(--card-sunken)', border: '1px solid var(--border2)', borderRadius: 8, paddingLeft: 26, paddingRight: 8, fontSize: 11.5, color: 'var(--ink)', outline: 'none' }}
+                  style={{
+                    width: '100%',
+                    height: 32,
+                    paddingLeft: 28,
+                    paddingRight: 8,
+                    fontSize: 12,
+                  }}
                 />
               </div>
             </div>
 
             {filteredRecent.length === 0 ? (
               <div style={{ padding: 36, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>
-                <Icon name="messageSquare" size={32} style={{ marginBottom: 10, opacity: 0.4 }} />
-                <div>No WhatsApp customer conversations found.</div>
+                <FeaturedIcon variant="brand" size="lg" className="mx-auto mb-3">
+                  <Icon name="messageSquare" size={24} />
+                </FeaturedIcon>
+                <div style={{ fontWeight: 700, color: 'var(--ink)' }}>No WhatsApp customer conversations found</div>
                 <div style={{ fontSize: 11.5, marginTop: 4 }}>When customers message your WhatsApp number, they will appear here.</div>
               </div>
             ) : (
-              <div style={{ maxHeight: 440, overflowY: 'auto' }}>
+              <div style={{ maxHeight: 460, overflowY: 'auto' }}>
                 {filteredRecent.map(t => (
                   <Link key={t.id} to={`/bliss/inbox?id=${t.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-                    <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12, transition: 'background 0.1s ease', cursor: 'pointer' }} className="hover:bg-[var(--bg)]">
-                      <div style={{ position: 'relative' }}>
+                    <div style={{
+                      padding: '12px 16px',
+                      borderBottom: '1px solid var(--border)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 12,
+                      transition: 'background 0.15s ease',
+                      cursor: 'pointer',
+                    }} className="hover:bg-[var(--card-sunken)]">
+                      <div style={{ position: 'relative', flexShrink: 0 }}>
                         <PersonAvatar name={t.customer} size={36} />
-                        <span style={{ position: 'absolute', bottom: -2, right: -2, width: 14, height: 14, borderRadius: '50%', background: '#25D366', border: '2px solid var(--white)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 8 }}>
-                          <Icon name="whatsapp" size={8} />
-                        </span>
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
@@ -590,10 +635,10 @@ export const BlissWhatsApp: React.FC = () => {
                           {t.subject || 'Customer inquiry via WhatsApp'}
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
-                          <span style={{ fontSize: 11, fontFamily: 'var(--mono)', color: '#128C7E', fontWeight: 600 }}>
+                          <span style={{ fontSize: 11, fontFamily: 'var(--mono)', color: 'var(--teal)', fontWeight: 600 }}>
                             {t.customer_wa || t.customer_phone || `Ticket #${t.ref}`}
                           </span>
-                          <Badge variant={t.status === 'OPEN' ? 'error' : t.status === 'RESOLVED' ? 'success' : 'default'} style={{ fontSize: 10, padding: '0 6px' }}>
+                          <Badge variant={t.status === 'OPEN' ? 'error' : t.status === 'RESOLVED' ? 'success' : 'gray'} style={{ fontSize: 10, padding: '0 6px' }}>
                             {t.status}
                           </Badge>
                         </div>
@@ -608,34 +653,40 @@ export const BlissWhatsApp: React.FC = () => {
 
           {/* WhatsApp Channel Guidelines & Health Guard */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ background: 'var(--white)', borderRadius: 14, border: '1px solid var(--border)', padding: '20px 22px', boxShadow: 'var(--elev-sm)' }}>
+            <div style={{
+              background: 'var(--card)',
+              borderRadius: 'var(--r)',
+              border: '1px solid var(--border)',
+              padding: '18px 20px',
+              boxShadow: 'var(--elev-sm)',
+            }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(37, 211, 102, 0.12)', color: '#128C7E', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Icon name="shield" size={18} />
-                </div>
+                <FeaturedIcon variant="brand" size="sm">
+                  <Icon name="shield" size={16} />
+                </FeaturedIcon>
                 <div>
-                  <h3 style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)', margin: 0 }}>24-Hour Policy & Service Window Guard</h3>
+                  <h3 style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)', margin: 0 }}>24-Hour Policy &amp; Service Window Guard</h3>
                   <span style={{ fontSize: 11.5, color: 'var(--ink3)' }}>Meta WhatsApp Business Platform Rules</span>
                 </div>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.5 }}>
-                <div style={{ display: 'flex', gap: 10, background: 'var(--bg)', padding: '10px 12px', borderRadius: 8 }}>
-                  <Icon name="check" size={15} color="#25D366" style={{ marginTop: 2, flexShrink: 0 }} />
+                <div style={{ display: 'flex', gap: 10, background: 'var(--card-sunken)', padding: '10px 12px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)' }}>
+                  <Icon name="checkCircle" size={15} color="var(--green)" style={{ marginTop: 2, flexShrink: 0 }} />
                   <div>
                     <strong style={{ color: 'var(--ink)' }}>Customer-Initiated 24h Window:</strong> Agents can send free-form messages, file attachments, and internal notes within 24 hours of the customer's last message.
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: 10, background: 'var(--bg)', padding: '10px 12px', borderRadius: 8 }}>
-                  <Icon name="alertTriangle" size={15} color="#f59e0b" style={{ marginTop: 2, flexShrink: 0 }} />
+                <div style={{ display: 'flex', gap: 10, background: 'var(--card-sunken)', padding: '10px 12px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)' }}>
+                  <Icon name="alertTriangle" size={15} color="var(--gold)" style={{ marginTop: 2, flexShrink: 0 }} />
                   <div>
                     <strong style={{ color: 'var(--ink)' }}>Outside the 24h Window:</strong> Business-initiated conversations or re-engagement require an approved <strong>Meta HSM Template</strong> (Utility or Marketing).
                   </div>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+              <div style={{ display: 'flex', gap: 10, marginTop: 16, flexWrap: 'wrap' }}>
                 <Button variant="outline" size="sm" onClick={() => setTab('simulator')}>
                   <Icon name="send" size={13} /> Open Live Simulator
                 </Button>
@@ -646,10 +697,16 @@ export const BlissWhatsApp: React.FC = () => {
             </div>
 
             {/* Quick Automation Presets Preview */}
-            <div style={{ background: 'var(--white)', borderRadius: 14, border: '1px solid var(--border)', padding: '18px 20px', boxShadow: 'var(--elev-sm)' }}>
+            <div style={{
+              background: 'var(--card)',
+              borderRadius: 'var(--r)',
+              border: '1px solid var(--border)',
+              padding: '18px 20px',
+              boxShadow: 'var(--elev-sm)',
+            }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                 <div style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--ink)' }}>Active Keyword Automations</div>
-                <Button variant="ghost" size="sm" onClick={() => setTab('automation')} style={{ fontSize: 11.5, color: '#128C7E' }}>
+                <Button variant="ghost" size="sm" onClick={() => setTab('automation')} style={{ fontSize: 11.5 }}>
                   View all ({rules.length}) →
                 </Button>
               </div>
@@ -661,9 +718,19 @@ export const BlissWhatsApp: React.FC = () => {
                   {rules.slice(0, 3).map(r => {
                     const cfg = parseConfig(r);
                     return (
-                      <div key={r.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '8px 12px', background: 'var(--bg)', borderRadius: 8, fontSize: 12 }}>
+                      <div key={r.id} style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: 10,
+                        padding: '8px 12px',
+                        background: 'var(--card-sunken)',
+                        borderRadius: 'var(--r-sm)',
+                        fontSize: 12,
+                        border: '1px solid var(--border)',
+                      }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <span style={{ fontFamily: 'var(--mono)', fontWeight: 800, color: '#128C7E', background: '#25D36615', padding: '1px 6px', borderRadius: 4 }}>
+                          <span style={{ fontFamily: 'var(--mono)', fontWeight: 800, color: 'var(--teal)', background: 'var(--teal-l)', padding: '1px 6px', borderRadius: 'var(--r-sm)' }}>
                             {cfg.keyword}
                           </span>
                           <span style={{ color: 'var(--ink2)' }}>{MATCH_LABEL[cfg.matchType]}</span>
@@ -681,58 +748,41 @@ export const BlissWhatsApp: React.FC = () => {
 
       {/* ── TAB 2: LIVE SIMULATOR & TEST SANDBOX ── */}
       {activeTab === 'simulator' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(340px, 480px) minmax(320px, 400px)', gap: 24, alignItems: 'start', justifyContent: 'center' }}>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: isTablet ? '1fr' : 'minmax(340px, 480px) minmax(300px, 380px)',
+          gap: 24,
+          alignItems: 'start',
+          justifyContent: 'center',
+        }}>
           {/* Dispatcher Form */}
-          <div style={{ background: 'var(--white)', borderRadius: 16, border: '1px solid var(--border)', padding: '22px 24px', boxShadow: 'var(--elev-sm)', display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{
+            background: 'var(--card)',
+            borderRadius: 'var(--r)',
+            border: '1px solid var(--border)',
+            padding: isMobile ? '16px' : '22px 24px',
+            boxShadow: 'var(--elev-sm)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 16,
+          }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 10, background: '#25D36620', color: '#128C7E', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <FeaturedIcon variant="brand" size="md">
                 <Icon name="send" size={18} />
-              </div>
+              </FeaturedIcon>
               <div>
-                <h2 style={{ fontSize: 16, fontWeight: 900, color: 'var(--ink)', margin: 0 }}>WhatsApp Test Sender</h2>
+                <h2 style={{ fontSize: 15, fontWeight: 900, color: 'var(--ink)', margin: 0 }}>WhatsApp Test Sender</h2>
                 <span style={{ fontSize: 12, color: 'var(--ink3)' }}>Send real Meta Cloud API or simulated WhatsApp tests</span>
               </div>
             </div>
 
-            {/* Mode Switcher */}
-            <div style={{ display: 'flex', gap: 6, background: 'var(--card-sunken)', padding: 3, borderRadius: 9 }}>
-              <button
-                type="button"
-                onClick={() => setTestMode('text')}
-                style={{
-                  flex: 1,
-                  padding: '6px 12px',
-                  borderRadius: 7,
-                  border: 'none',
-                  background: testMode === 'text' ? 'var(--white)' : 'transparent',
-                  color: testMode === 'text' ? '#128C7E' : 'var(--ink2)',
-                  fontSize: 12,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  boxShadow: testMode === 'text' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
-                }}
-              >
-                Free-form Text (24h Window)
-              </button>
-              <button
-                type="button"
-                onClick={() => setTestMode('template')}
-                style={{
-                  flex: 1,
-                  padding: '6px 12px',
-                  borderRadius: 7,
-                  border: 'none',
-                  background: testMode === 'template' ? 'var(--white)' : 'transparent',
-                  color: testMode === 'template' ? '#128C7E' : 'var(--ink2)',
-                  fontSize: 12,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  boxShadow: testMode === 'template' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
-                }}
-              >
-                Approved HSM Template
-              </button>
-            </div>
+            {/* Mode Switcher Tabs */}
+            <Tabs value={testMode} onValueChange={v => setTestMode(v as any)} variant="outline">
+              <TabsList style={{ width: '100%' }}>
+                <TabsTrigger value="text" style={{ flex: 1, fontSize: 12 }}>Free-form Text</TabsTrigger>
+                <TabsTrigger value="template" style={{ flex: 1, fontSize: 12 }}>Approved HSM</TabsTrigger>
+              </TabsList>
+            </Tabs>
 
             {/* Destination Phone */}
             <div>
@@ -740,13 +790,13 @@ export const BlissWhatsApp: React.FC = () => {
                 Recipient Phone Number
               </label>
               <div style={{ position: 'relative' }}>
-                <Icon name="phone" size={13} color="var(--ink3)" style={{ position: 'absolute', left: 10, top: 10 }} />
+                <Icon name="phone" size={13} style={{ position: 'absolute', left: 10, top: 10, color: 'var(--ink3)' }} />
                 <input
                   className="input-field"
                   value={testPhone}
                   onChange={e => setTestPhone(e.target.value)}
                   placeholder="+255 712 345 678"
-                  style={{ paddingLeft: 30, fontFamily: 'var(--mono)', fontSize: 13 }}
+                  style={{ paddingLeft: 30, fontFamily: 'var(--mono)', fontSize: 13, height: 34 }}
                 />
               </div>
               <span style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 3, display: 'block' }}>
@@ -780,7 +830,7 @@ export const BlissWhatsApp: React.FC = () => {
                     Select Approved Meta Template
                   </label>
                   {approvedTemplates.length === 0 ? (
-                    <div style={{ padding: '10px 12px', background: 'var(--bg)', borderRadius: 8, fontSize: 12, color: 'var(--ink3)' }}>
+                    <div style={{ padding: '10px 12px', background: 'var(--card-sunken)', borderRadius: 'var(--r-sm)', fontSize: 12, color: 'var(--ink3)' }}>
                       No approved templates found. Create one in the Message Templates tab.
                     </div>
                   ) : (
@@ -801,14 +851,14 @@ export const BlissWhatsApp: React.FC = () => {
 
                 {/* Dynamic Variable Inputs */}
                 {Object.keys(templateVariables).length > 0 && (
-                  <div style={{ background: 'var(--bg)', padding: '12px 14px', borderRadius: 10, border: '1px solid var(--border)' }}>
+                  <div style={{ background: 'var(--card-sunken)', padding: '12px 14px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)' }}>
                     <div style={{ fontSize: 11.5, fontWeight: 800, color: 'var(--ink)', marginBottom: 8 }}>
                       Template Parameters (Variables)
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                       {Object.keys(templateVariables).map(num => (
                         <div key={num} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <span style={{ fontSize: 11, fontWeight: 800, color: '#128C7E', fontFamily: 'var(--mono)', width: 34 }}>
+                          <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--teal)', fontFamily: 'var(--mono)', width: 34 }}>
                             {`{{${num}}}`}
                           </span>
                           <input
@@ -831,7 +881,7 @@ export const BlissWhatsApp: React.FC = () => {
               size="default"
               onClick={sendTest}
               disabled={sendingTest}
-              style={{ background: '#25D366', borderColor: '#128C7E', color: '#075E54', fontWeight: 800, height: 40, fontSize: 13 }}
+              style={{ fontWeight: 800, height: 40, fontSize: 13 }}
             >
               <Icon name="send" size={15} />
               {sendingTest ? 'Dispatching over Meta API…' : 'Send Test Message'}
@@ -840,11 +890,11 @@ export const BlissWhatsApp: React.FC = () => {
             {testResult && (
               <div style={{
                 padding: '12px 14px',
-                borderRadius: 10,
-                background: testResult.ok ? '#25D36615' : 'var(--red-l)',
-                border: testResult.ok ? '1px solid #25D36640' : '1px solid var(--red)',
+                borderRadius: 'var(--r-sm)',
+                background: testResult.ok ? 'var(--green-l)' : 'var(--red-l)',
+                border: testResult.ok ? '1px solid var(--green)' : '1px solid var(--red)',
                 fontSize: 12.5,
-                color: testResult.ok ? '#075E54' : 'var(--red)',
+                color: testResult.ok ? 'var(--green)' : 'var(--red)',
                 fontWeight: 600,
                 display: 'flex',
                 alignItems: 'flex-start',
@@ -863,27 +913,35 @@ export const BlissWhatsApp: React.FC = () => {
 
           {/* Interactive WhatsApp Device Preview Mockup */}
           <div style={{
-            background: '#e5ddd5',
-            borderRadius: 24,
-            border: '8px solid #2d3748',
-            boxShadow: '0 12px 36px -4px rgba(0, 0, 0, 0.25)',
+            background: 'var(--card-sunken)',
+            borderRadius: 'var(--r)',
+            border: '2px solid var(--border)',
+            boxShadow: 'var(--elev-sm)',
             overflow: 'hidden',
             display: 'flex',
             flexDirection: 'column',
             height: 520,
             maxWidth: 380,
+            width: '100%',
             position: 'relative',
           }}>
             {/* Phone Top Header */}
-            <div style={{ background: '#075E54', padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#ffffff' }}>
+            <div style={{
+              background: 'var(--ink)',
+              padding: '12px 14px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              color: 'var(--white)',
+            }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 34, height: 34, borderRadius: '50%', background: '#ffffff', color: '#075E54', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 13 }}>
+                <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'var(--teal)', color: 'var(--white)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 13 }}>
                   H
                 </div>
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 4 }}>
                     Hudumika Logistics
-                    <span style={{ color: '#25D366', fontSize: 12 }}>✓</span>
+                    <Icon name="checkCircle" size={12} color="var(--teal)" />
                   </div>
                   <div style={{ fontSize: 10.5, opacity: 0.8 }}>WhatsApp Official Business</div>
                 </div>
@@ -902,10 +960,9 @@ export const BlissWhatsApp: React.FC = () => {
               display: 'flex',
               flexDirection: 'column',
               gap: 12,
-              backgroundImage: 'radial-gradient(#00000008 1px, transparent 1px)',
-              backgroundSize: '12px 12px',
+              background: 'var(--bg)',
             }}>
-              <div style={{ alignSelf: 'center', background: '#ffffffd0', padding: '3px 10px', borderRadius: 8, fontSize: 10.5, fontWeight: 700, color: '#555', boxShadow: '0 1px 1px rgba(0,0,0,0.06)' }}>
+              <div style={{ alignSelf: 'center', background: 'var(--card)', padding: '3px 10px', borderRadius: 'var(--r-sm)', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', border: '1px solid var(--border)' }}>
                 Today
               </div>
 
@@ -913,52 +970,53 @@ export const BlissWhatsApp: React.FC = () => {
               <div style={{
                 alignSelf: 'flex-start',
                 maxWidth: '82%',
-                background: '#ffffff',
+                background: 'var(--card)',
                 padding: '8px 12px',
                 borderRadius: '0 10px 10px 10px',
-                boxShadow: '0 1px 1px rgba(0,0,0,0.1)',
+                boxShadow: 'var(--elev-sm)',
                 fontSize: 12.5,
-                color: '#111827',
+                color: 'var(--ink)',
                 lineHeight: 1.35,
+                border: '1px solid var(--border)',
               }}>
                 <div>Hello, please confirm if container MSCU7291823 has been released by TRA.</div>
-                <div style={{ textAlign: 'right', fontSize: 9.5, color: '#9ca3af', marginTop: 3 }}>10:42 AM</div>
+                <div style={{ textAlign: 'right', fontSize: 9.5, color: 'var(--ink3)', marginTop: 3 }}>10:42 AM</div>
               </div>
 
               {/* Live Preview Outgoing Bubble */}
               <div style={{
                 alignSelf: 'flex-end',
                 maxWidth: '85%',
-                background: '#DCF8C6',
+                background: 'var(--teal-l)',
                 padding: '10px 12px',
                 borderRadius: '10px 0 10px 10px',
-                boxShadow: '0 1px 2px rgba(0,0,0,0.12)',
+                boxShadow: 'var(--elev-sm)',
                 fontSize: 12.5,
-                color: '#111827',
+                color: 'var(--ink)',
                 lineHeight: 1.35,
-                border: '1px solid #c7e8ad',
+                border: '1px solid var(--teal)',
               }}>
                 {testMode === 'template' && selectedTemplateObj && (
-                  <div style={{ fontSize: 10, fontWeight: 800, color: '#075E54', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>
+                  <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--teal)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>
                     {selectedTemplateObj.category} TEMPLATE: {selectedTemplateObj.name}
                   </div>
                 )}
                 <div style={{ whiteSpace: 'pre-wrap' }}>
                   {testMode === 'text' ? (testText || 'Type a message to preview…') : computedTemplatePreview}
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4, marginTop: 4, fontSize: 9.5, color: '#4b5563' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4, marginTop: 4, fontSize: 9.5, color: 'var(--ink3)' }}>
                   <span>{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                  <span style={{ color: '#3b82f6', fontWeight: 900 }}>✓✓</span>
+                  <span style={{ color: 'var(--teal)', fontWeight: 900 }}>✓✓</span>
                 </div>
               </div>
             </div>
 
             {/* Bottom Fake Input Bar */}
-            <div style={{ background: '#f0f2f5', padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 8, borderTop: '1px solid #e5e7eb' }}>
-              <div style={{ flex: 1, background: '#ffffff', borderRadius: 20, padding: '6px 14px', fontSize: 12, color: '#9ca3af', border: '1px solid #e5e7eb' }}>
+            <div style={{ background: 'var(--card)', padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 8, borderTop: '1px solid var(--border)' }}>
+              <div style={{ flex: 1, background: 'var(--card-sunken)', borderRadius: 20, padding: '6px 14px', fontSize: 12, color: 'var(--ink3)', border: '1px solid var(--border)' }}>
                 Message
               </div>
-              <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#075E54', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--teal)', color: 'var(--white)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Icon name="send" size={13} />
               </div>
             </div>
@@ -969,63 +1027,57 @@ export const BlissWhatsApp: React.FC = () => {
       {/* ── TAB 3: MESSAGE TEMPLATES (HSM) ── */}
       {activeTab === 'templates' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              {/* Status Filter */}
-              <div style={{ display: 'flex', gap: 3, background: 'var(--card-sunken)', padding: 3, borderRadius: 8 }}>
-                {(['ALL', 'APPROVED', 'PENDING', 'REJECTED'] as const).map(st => (
-                  <button
-                    key={st}
-                    type="button"
-                    onClick={() => setTemplateFilter(st)}
-                    style={{
-                      padding: '4px 10px',
-                      borderRadius: 6,
-                      border: 'none',
-                      background: templateFilter === st ? 'var(--white)' : 'transparent',
-                      color: templateFilter === st ? '#128C7E' : 'var(--ink2)',
-                      fontSize: 11.5,
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {st === 'ALL' ? 'All Status' : st}
-                  </button>
-                ))}
-              </div>
+          {/* Top Filter & Search Toolbar */}
+          <div style={{
+            background: 'var(--card)',
+            borderRadius: 'var(--r)',
+            border: '1px solid var(--border)',
+            boxShadow: 'var(--elev-sm)',
+            padding: '10px 14px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 10,
+            flexWrap: isMobile ? 'wrap' : 'nowrap',
+            overflowX: isMobile ? 'visible' : 'auto',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', flex: 1 }}>
+              <SingleSelectFilter
+                label="Status"
+                icon={<Icon name="filter" size={13} />}
+                value={templateFilter}
+                onChange={setTemplateFilter}
+                allLabel="All Statuses"
+                options={[
+                  { value: 'APPROVED', label: 'Approved' },
+                  { value: 'PENDING', label: 'Pending' },
+                  { value: 'REJECTED', label: 'Rejected' },
+                ]}
+              />
 
-              {/* Category Filter */}
-              <div style={{ display: 'flex', gap: 3, background: 'var(--card-sunken)', padding: 3, borderRadius: 8 }}>
-                {(['ALL', 'UTILITY', 'MARKETING', 'AUTHENTICATION'] as const).map(cat => (
-                  <button
-                    key={cat}
-                    type="button"
-                    onClick={() => setTemplateCategoryFilter(cat)}
-                    style={{
-                      padding: '4px 10px',
-                      borderRadius: 6,
-                      border: 'none',
-                      background: templateCategoryFilter === cat ? 'var(--white)' : 'transparent',
-                      color: templateCategoryFilter === cat ? '#128C7E' : 'var(--ink2)',
-                      fontSize: 11.5,
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {cat === 'ALL' ? 'All Categories' : cat}
-                  </button>
-                ))}
-              </div>
+              <SingleSelectFilter
+                label="Category"
+                icon={<Icon name="layers" size={13} />}
+                value={templateCategoryFilter}
+                onChange={setTemplateCategoryFilter}
+                allLabel="All Categories"
+                options={[
+                  { value: 'UTILITY', label: 'Utility' },
+                  { value: 'MARKETING', label: 'Marketing' },
+                  { value: 'AUTHENTICATION', label: 'Authentication' },
+                ]}
+              />
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ position: 'relative', width: 220 }}>
-                <Icon name="search" size={13} color="var(--ink3)" style={{ position: 'absolute', left: 8, top: 9 }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: isMobile ? '100%' : 'auto' }}>
+              <div style={{ position: 'relative', width: isMobile ? '100%' : 220 }}>
+                <Icon name="search" size={13} style={{ position: 'absolute', left: 9, top: 9, color: 'var(--ink3)' }} />
                 <input
+                  className="input-field"
                   value={templateSearch}
                   onChange={e => setTemplateSearch(e.target.value)}
                   placeholder="Search templates…"
-                  style={{ width: '100%', height: 32, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 8, paddingLeft: 28, paddingRight: 8, fontSize: 12, color: 'var(--ink)', outline: 'none' }}
+                  style={{ width: '100%', height: 32, paddingLeft: 28, paddingRight: 8, fontSize: 12 }}
                 />
               </div>
 
@@ -1034,7 +1086,7 @@ export const BlissWhatsApp: React.FC = () => {
                   variant="default"
                   size="sm"
                   onClick={() => setShowNewTemplateModal(true)}
-                  style={{ background: '#128C7E', borderColor: '#075E54', color: '#ffffff' }}
+                  style={{ flexShrink: 0 }}
                 >
                   <Icon name="plus" size={13} /> New HSM Template
                 </Button>
@@ -1043,25 +1095,60 @@ export const BlissWhatsApp: React.FC = () => {
           </div>
 
           {!templatesConfigured && (
-            <div style={{ padding: '14px 18px', background: 'var(--gold-l)', color: 'var(--gold)', fontSize: 12.5, fontWeight: 600, borderRadius: 10, display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{
+              padding: '14px 18px',
+              background: 'var(--gold-l)',
+              color: 'var(--gold)',
+              fontSize: 12.5,
+              fontWeight: 600,
+              borderRadius: 'var(--r-sm)',
+              border: '1px solid var(--gold)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+            }}>
               <Icon name="alertTriangle" size={16} />
               {templatesError || 'META_WABA_ID is not configured in this environment — template management communicates with Meta WhatsApp Business Account Graph API.'}
             </div>
           )}
 
           {filteredTemplates.length === 0 ? (
-            <div style={{ background: 'var(--white)', padding: 40, borderRadius: 14, border: '1px solid var(--border)', textAlign: 'center', color: 'var(--ink3)' }}>
-              <Icon name="fileText" size={32} style={{ marginBottom: 10, opacity: 0.4 }} />
+            <div style={{
+              background: 'var(--card)',
+              padding: 40,
+              borderRadius: 'var(--r)',
+              border: '1px solid var(--border)',
+              textAlign: 'center',
+              color: 'var(--ink3)',
+              boxShadow: 'var(--elev-sm)',
+            }}>
+              <FeaturedIcon variant="brand" size="lg" className="mx-auto mb-3">
+                <Icon name="fileText" size={24} />
+              </FeaturedIcon>
               <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>No message templates found</div>
               <div style={{ fontSize: 12, marginTop: 4 }}>Submit utility or marketing templates to Meta for approval.</div>
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16 }}>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(320px, 1fr))',
+              gap: 16,
+            }}>
               {filteredTemplates.map(t => {
                 const bodyObj = t.components?.find((c: any) => c.type === 'BODY');
                 const bodyText = bodyObj?.text || '';
                 return (
-                  <div key={t.id} style={{ background: 'var(--white)', borderRadius: 14, border: '1px solid var(--border)', padding: 18, boxShadow: 'var(--elev-sm)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 12 }}>
+                  <div key={t.id} style={{
+                    background: 'var(--card)',
+                    borderRadius: 'var(--r)',
+                    border: '1px solid var(--border)',
+                    padding: 18,
+                    boxShadow: 'var(--elev-sm)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    gap: 12,
+                  }}>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
                         <span style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--ink)', fontFamily: 'var(--mono)' }}>{t.name}</span>
@@ -1070,11 +1157,21 @@ export const BlissWhatsApp: React.FC = () => {
                         </Badge>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--ink3)', marginBottom: 10 }}>
-                        <span style={{ fontWeight: 700, color: '#128C7E' }}>{t.category}</span>
+                        <span style={{ fontWeight: 700, color: 'var(--teal)' }}>{t.category}</span>
                         <span>·</span>
                         <span>{t.language}</span>
                       </div>
-                      <div style={{ background: 'var(--bg)', padding: '10px 12px', borderRadius: 8, fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.45, minHeight: 64, whiteSpace: 'pre-wrap' }}>
+                      <div style={{
+                        background: 'var(--card-sunken)',
+                        padding: '10px 12px',
+                        borderRadius: 'var(--r-sm)',
+                        fontSize: 12.5,
+                        color: 'var(--ink2)',
+                        lineHeight: 1.45,
+                        minHeight: 64,
+                        whiteSpace: 'pre-wrap',
+                        border: '1px solid var(--border)',
+                      }}>
                         {bodyText || 'No body component configured.'}
                       </div>
                     </div>
@@ -1090,7 +1187,7 @@ export const BlissWhatsApp: React.FC = () => {
                             setTestMode('template');
                             setTab('simulator');
                           }}
-                          style={{ fontSize: 11.5, color: '#128C7E', fontWeight: 700 }}
+                          style={{ fontSize: 11.5, color: 'var(--teal)', fontWeight: 700 }}
                         >
                           <Icon name="send" size={12} /> Test in Simulator
                         </Button>
@@ -1108,7 +1205,13 @@ export const BlissWhatsApp: React.FC = () => {
       {activeTab === 'automation' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           {/* Preset Quick Add Library */}
-          <div style={{ background: 'var(--white)', borderRadius: 14, border: '1px solid var(--border)', padding: '18px 20px', boxShadow: 'var(--elev-sm)' }}>
+          <div style={{
+            background: 'var(--card)',
+            borderRadius: 'var(--r)',
+            border: '1px solid var(--border)',
+            padding: '18px 20px',
+            boxShadow: 'var(--elev-sm)',
+          }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <div>
                 <h3 style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)', margin: 0 }}>Recommended Preset Automations</h3>
@@ -1116,12 +1219,25 @@ export const BlissWhatsApp: React.FC = () => {
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 12 }}>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(240px, 1fr))',
+              gap: 12,
+            }}>
               {PRESET_RULES.map(p => (
-                <div key={p.keyword} style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10, padding: 14, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 10 }}>
+                <div key={p.keyword} style={{
+                  background: 'var(--card-sunken)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--r-sm)',
+                  padding: 14,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  gap: 10,
+                }}>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                      <span style={{ fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 900, color: '#128C7E', background: '#25D36620', padding: '1px 6px', borderRadius: 4 }}>
+                      <span style={{ fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 900, color: 'var(--teal)', background: 'var(--teal-l)', padding: '1px 6px', borderRadius: 'var(--r-sm)' }}>
                         {p.keyword}
                       </span>
                       <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--ink)' }}>{p.title}</span>
@@ -1144,14 +1260,20 @@ export const BlissWhatsApp: React.FC = () => {
           </div>
 
           {/* Active Custom Rules List */}
-          <div style={{ background: 'var(--white)', borderRadius: 14, border: '1px solid var(--border)', padding: '18px 20px', boxShadow: 'var(--elev-sm)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+          <div style={{
+            background: 'var(--card)',
+            borderRadius: 'var(--r)',
+            border: '1px solid var(--border)',
+            padding: '18px 20px',
+            boxShadow: 'var(--elev-sm)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
               <div>
                 <h3 style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)', margin: 0 }}>Configured Keyword Auto-Replies ({rules.length})</h3>
                 <span style={{ fontSize: 12, color: 'var(--ink3)' }}>Evaluated in real-time on every inbound WhatsApp webhook event</span>
               </div>
               {canManage && (
-                <Button variant="default" size="sm" onClick={() => setShowNewRuleModal(true)} style={{ background: '#128C7E', color: '#fff' }}>
+                <Button variant="default" size="sm" onClick={() => setShowNewRuleModal(true)}>
                   <Icon name="plus" size={13} /> New Custom Rule
                 </Button>
               )}
@@ -1166,10 +1288,20 @@ export const BlissWhatsApp: React.FC = () => {
                 {rules.map(r => {
                   const cfg = parseConfig(r);
                   return (
-                    <div key={r.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, padding: '12px 16px', background: 'var(--bg)', borderRadius: 10, border: '1px solid var(--border)' }}>
+                    <div key={r.id} style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      gap: 14,
+                      padding: '12px 16px',
+                      background: 'var(--card-sunken)',
+                      borderRadius: 'var(--r-sm)',
+                      border: '1px solid var(--border)',
+                      flexDirection: isMobile ? 'column' : 'row',
+                      alignItems: isMobile ? 'flex-start' : 'center',
+                    }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <span style={{ fontFamily: 'var(--mono)', fontSize: 13, fontWeight: 900, color: '#128C7E', background: '#25D36620', padding: '2px 8px', borderRadius: 6 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                          <span style={{ fontFamily: 'var(--mono)', fontSize: 13, fontWeight: 900, color: 'var(--teal)', background: 'var(--teal-l)', padding: '2px 8px', borderRadius: 'var(--r-sm)' }}>
                             "{cfg.keyword}"
                           </span>
                           <Badge variant="outline" style={{ fontSize: 11 }}>{MATCH_LABEL[cfg.matchType] || cfg.matchType}</Badge>
@@ -1181,7 +1313,7 @@ export const BlissWhatsApp: React.FC = () => {
                       </div>
 
                       {canManage && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: isMobile ? '100%' : 'auto', justifyContent: isMobile ? 'flex-end' : 'flex-start' }}>
                           <Button variant="outline" size="sm" onClick={() => toggleRule(r)}>
                             {r.enabled ? 'Disable' : 'Enable'}
                           </Button>
@@ -1201,9 +1333,22 @@ export const BlissWhatsApp: React.FC = () => {
 
       {/* ── TAB 5: API & WEBHOOK SETUP ── */}
       {activeTab === 'settings' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: 20 }}>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: isTablet ? '1fr' : 'repeat(auto-fit, minmax(380px, 1fr))',
+          gap: 20,
+        }}>
           {/* Callback Webhook Details */}
-          <div style={{ background: 'var(--white)', borderRadius: 14, border: '1px solid var(--border)', padding: '20px 22px', boxShadow: 'var(--elev-sm)', display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{
+            background: 'var(--card)',
+            borderRadius: 'var(--r)',
+            border: '1px solid var(--border)',
+            padding: '20px 22px',
+            boxShadow: 'var(--elev-sm)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 16,
+          }}>
             <div>
               <h3 style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)', margin: 0 }}>Meta Inbound Webhook Configuration</h3>
               <span style={{ fontSize: 12, color: 'var(--ink3)' }}>Copy this endpoint into your Meta Developer WhatsApp App Dashboard</span>
@@ -1211,23 +1356,31 @@ export const BlissWhatsApp: React.FC = () => {
 
             <div>
               <label style={{ fontSize: 11, fontWeight: 800, color: 'var(--ink)', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>
-                Callback URL (Inbound Messages & Status Receipts)
+                Callback URL (Inbound Messages &amp; Status Receipts)
               </label>
               <div style={{ display: 'flex', gap: 6 }}>
                 <input
                   readOnly
                   className="input-field"
                   value={webhookUrl}
-                  style={{ fontFamily: 'var(--mono)', fontSize: 12, background: 'var(--bg)', flex: 1 }}
+                  style={{ fontFamily: 'var(--mono)', fontSize: 12, background: 'var(--card-sunken)', flex: 1, height: 34 }}
                 />
-                <Button variant="outline" size="sm" onClick={handleCopyWebhook}>
+                <Button variant="outline" size="sm" onClick={handleCopyWebhook} style={{ flexShrink: 0 }}>
                   <Icon name={copiedWebhook ? 'check' : 'copy'} size={13} />
                   {copiedWebhook ? 'Copied!' : 'Copy'}
                 </Button>
               </div>
             </div>
 
-            <div style={{ background: 'var(--bg)', padding: '12px 14px', borderRadius: 8, fontSize: 12, color: 'var(--ink2)', lineHeight: 1.5 }}>
+            <div style={{
+              background: 'var(--card-sunken)',
+              padding: '12px 14px',
+              borderRadius: 'var(--r-sm)',
+              fontSize: 12,
+              color: 'var(--ink2)',
+              lineHeight: 1.5,
+              border: '1px solid var(--border)',
+            }}>
               <strong>Signature Verification (HMAC-SHA256):</strong> Every inbound payload is authenticated using the server's <code>META_APP_SECRET</code> against the <code>X-Hub-Signature-256</code> header to reject spoofed webhooks.
             </div>
 
@@ -1235,7 +1388,7 @@ export const BlissWhatsApp: React.FC = () => {
               <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--ink)' }}>Meta App Event Subscriptions Required:</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {['messages', 'message_status', 'template_category_update', 'message_template_status_update'].map(ev => (
-                  <span key={ev} style={{ background: 'var(--card-sunken)', border: '1px solid var(--border2)', padding: '2px 8px', borderRadius: 6, fontSize: 11, fontFamily: 'var(--mono)', color: 'var(--ink2)' }}>
+                  <span key={ev} style={{ background: 'var(--card-sunken)', border: '1px solid var(--border)', padding: '2px 8px', borderRadius: 'var(--r-sm)', fontSize: 11, fontFamily: 'var(--mono)', color: 'var(--ink2)' }}>
                     {ev}
                   </span>
                 ))}
@@ -1244,7 +1397,16 @@ export const BlissWhatsApp: React.FC = () => {
           </div>
 
           {/* Architecture Pipeline Flow */}
-          <div style={{ background: 'var(--white)', borderRadius: 14, border: '1px solid var(--border)', padding: '20px 22px', boxShadow: 'var(--elev-sm)', display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{
+            background: 'var(--card)',
+            borderRadius: 'var(--r)',
+            border: '1px solid var(--border)',
+            padding: '20px 22px',
+            boxShadow: 'var(--elev-sm)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 16,
+          }}>
             <div>
               <h3 style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)', margin: 0 }}>WhatsApp Event Pipeline</h3>
               <span style={{ fontSize: 12, color: 'var(--ink3)' }}>End-to-end routing flow for inbound customer messages</span>
@@ -1258,7 +1420,19 @@ export const BlissWhatsApp: React.FC = () => {
                 { step: '4', title: 'Support Center Ticket Assignment', desc: 'Matches customer profile by phone number, opens/updates ticket in Bliss' },
               ].map(item => (
                 <div key={item.step} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                  <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#25D36620', color: '#128C7E', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 900, flexShrink: 0 }}>
+                  <div style={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: '50%',
+                    background: 'var(--teal-l)',
+                    color: 'var(--teal)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 11,
+                    fontWeight: 900,
+                    flexShrink: 0,
+                  }}>
                     {item.step}
                   </div>
                   <div>
@@ -1292,7 +1466,7 @@ export const BlissWhatsApp: React.FC = () => {
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
                 <div>
                   <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)' }}>CATEGORY</label>
                   <Select value={tplCategory} onValueChange={v => setTplCategory(v as any)}>
@@ -1317,7 +1491,7 @@ export const BlissWhatsApp: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setTplBody(prev => `${prev} {{${(prev.match(/\{\{\d+\}\}/g) || []).length + 1}}}`)}
-                    style={{ background: 'none', border: 'none', color: '#128C7E', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
+                    style={{ background: 'none', border: 'none', color: 'var(--teal)', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
                   >
                     + Insert Variable
                   </button>
@@ -1335,7 +1509,7 @@ export const BlissWhatsApp: React.FC = () => {
 
             <DialogFooter>
               <Button variant="outline" size="sm" onClick={() => setShowNewTemplateModal(false)}>Cancel</Button>
-              <Button variant="default" size="sm" onClick={createTemplate} disabled={savingTpl} style={{ background: '#128C7E', color: '#fff' }}>
+              <Button variant="default" size="sm" onClick={createTemplate} disabled={savingTpl}>
                 {savingTpl ? 'Submitting to Meta…' : 'Submit for Review'}
               </Button>
             </DialogFooter>
@@ -1352,7 +1526,7 @@ export const BlissWhatsApp: React.FC = () => {
             </DialogHeader>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14, margin: '12px 0' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
                 <div>
                   <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)' }}>KEYWORD / TRIGGER</label>
                   <input
@@ -1392,7 +1566,7 @@ export const BlissWhatsApp: React.FC = () => {
 
             <DialogFooter>
               <Button variant="outline" size="sm" onClick={() => setShowNewRuleModal(false)}>Cancel</Button>
-              <Button variant="default" size="sm" onClick={() => createRule()} disabled={savingRule} style={{ background: '#128C7E', color: '#fff' }}>
+              <Button variant="default" size="sm" onClick={() => createRule()} disabled={savingRule}>
                 {savingRule ? 'Saving…' : 'Create Auto-Reply'}
               </Button>
             </DialogFooter>

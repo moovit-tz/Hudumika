@@ -207,7 +207,13 @@ export function MeetingSession({ meetingId, onExit }: { meetingId: string; onExi
       myUserId={user?.id || ''}
       myName={user?.name || 'You'}
       onLeave={onExit}
-      onEndedByHost={() => setEndedNotice(joined.role === 'HOST' ? 'Meeting ended.' : 'The host ended this meeting.')}
+      onEndedByHost={(reason, maxDurationMinutes) => setEndedNotice(
+        reason === 'time_limit'
+          ? `This meeting reached its ${maxDurationMinutes ?? ''}-minute time limit and has ended.`
+          : reason === 'removed'
+          ? 'You were removed from the meeting.'
+          : (joined.role === 'HOST' ? 'Meeting ended.' : 'The host ended this meeting.')
+      )}
     />
   );
 }

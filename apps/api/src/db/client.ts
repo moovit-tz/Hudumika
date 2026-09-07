@@ -4158,6 +4158,29 @@ export interface SupportMessagesTable {
   created_at: Generated<Date>;
 }
 
+/** Links an already-uploaded cloud_files row to the message it was attached
+ *  to — see migration 410's own header comment for why this stays a join
+ *  table rather than a column, and why it's note-only for now. */
+export interface SupportMessageAttachmentsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  message_id: string;
+  file_id: string;
+  created_at: Generated<Date>;
+}
+
+/** Saved reply templates — see migration 409. */
+export interface SupportMacrosTable {
+  id: Generated<string>;
+  tenant_id: string;
+  title: string;
+  content: string;
+  created_by: string;
+  created_by_name: string;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
 export interface CustomerAssetsTable {
   id: Generated<string>;
   tenant_id: string;
@@ -4536,6 +4559,8 @@ export interface Database {
   inventory_tasks: InventoryTasksTable;
   support_tickets: SupportTicketsTable;
   support_messages: SupportMessagesTable;
+  support_message_attachments: SupportMessageAttachmentsTable;
+  support_macros: SupportMacrosTable;
   support_groups: SupportGroupsTable;
   support_views: SupportViewsTable;
   support_rules: SupportRulesTable;
@@ -8487,6 +8512,13 @@ export interface BlissMeetingsTable {
   // Guest (no-account) join, migration 368 — off by default; see
   // calls-public routes in calls.routes.ts for the actual guest flow.
   guest_join_enabled: Generated<boolean>;
+  /** Auto-termination cap — see 408_bliss_meetings_duration_limit.sql and
+   *  jobs/meeting-duration-limit.job.ts, which sweeps for and ends any
+   *  ACTIVE meeting past started_at + this many minutes. */
+  max_duration_minutes: Generated<number>;
+  /** 'host' | 'time_limit' | null — set by endMeetingRow() in
+   *  calls.routes.ts so participants see a real, specific reason. */
+  end_reason: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }

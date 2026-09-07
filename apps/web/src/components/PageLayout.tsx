@@ -22,7 +22,13 @@ export const PageLayout: React.FC = () => {
 
   return (
     <div className="page-layout">
-      <Outlet />
+      {/* Grows to push the footer to the bottom of a short page and never
+          shrinks below its own content on a tall one — see its own CSS
+          comment (index.css) for why this replaced margin-top:auto on the
+          footer itself. */}
+      <div className="page-layout-content">
+        <Outlet />
+      </div>
       <footer className="page-footer">
         {/* Left Aligned Copyrights */}
         <div className="page-footer-copyright">

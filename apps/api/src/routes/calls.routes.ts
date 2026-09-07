@@ -1,12 +1,14 @@
 import type { FastifyInstance } from 'fastify';
+import type { Transaction } from 'kysely';
 import { requireEntitlement } from '../middleware/entitlement.js';
-import { withTenant, dbPlatform } from '../db/client.js';
+import { withTenant, dbPlatform, type Database } from '../db/client.js';
 import { COOKIE_NAMES, setGuestCookie } from '../lib/cookies.js';
 import { env } from '../config/env.js';
 import { sql } from 'kysely';
 import crypto from 'crypto';
 import { hashPassword, verifyPassword } from '../lib/password.js';
 import { callAI } from './ai.routes.js';
+import { CloudSync } from '../services/cloud-sync.service.js';
 
 /**
  * Bliss calls — the platform's comms hub, matching how Team Chat
@@ -150,6 +152,41 @@ function broadcastToRoom(tenantId: string, meetingId: string, payload: unknown, 
 
 function roomRosterCount(tenantId: string, meetingId: string): number {
   return rooms.get(roomKey(tenantId, meetingId))?.size ?? 0;
+}
+
+/**
+ * Actually ends a meeting — extracted so the host-triggered /end route and
+ * jobs/meeting-duration-limit.job.ts's auto-termination sweep are the exact
+ * same code path, not two copies that can drift. Caller supplies an
+ * already-open transaction (withTenant opens its own — never nest it), and
+ * is responsible for whatever authorization check applies to its own case
+ * (the route checks host_id; the job's authority is the clock, not a user).
+ * Returns null if the meeting was already ended (or doesn't exist).
+ */
+export async function endMeetingRow(
+  trx: Transaction<Database>,
+  tenantId: string,
+  meetingId: string,
+  reason: 'host' | 'time_limit' = 'host',
+) {
+  const meeting = await trx.updateTable('bliss_meetings')
+    .set({ status: 'ENDED', ended_at: new Date(), end_reason: reason, updated_at: new Date() })
+    .where('id', '=', meetingId).where('tenant_id', '=', tenantId).where('status', '!=', 'ENDED')
+    .returningAll().executeTakeFirst();
+  if (!meeting) return null;
+
+  const openRows = await trx.selectFrom('bliss_meeting_participants').select(['id', 'user_id', 'joined_at'])
+    .where('meeting_id', '=', meetingId).where('left_at', 'is', null).execute();
+  for (const row of openRows) {
+    const durationSeconds = Math.max(0, Math.round((Date.now() - new Date(row.joined_at).getTime()) / 1000));
+    await trx.updateTable('bliss_meeting_participants').set({ left_at: new Date(), duration_seconds: durationSeconds }).where('id', '=', row.id).execute();
+    // Sent directly to each participant so it still reaches anyone inside a
+    // breakout room (its own separate room key) — see the /end route's own
+    // original comment on this, unchanged by the extraction.
+    if (row.user_id) sendTo(tenantId, row.user_id, { type: 'meeting-ended', meetingId, reason, maxDurationMinutes: meeting.max_duration_minutes });
+  }
+  broadcastToRoom(tenantId, meetingId, { type: 'meeting-ended', meetingId, reason, maxDurationMinutes: meeting.max_duration_minutes });
+  return meeting;
 }
 
 // Shared by /config and a meeting join response — same TURN resolution
@@ -390,18 +427,133 @@ export async function callsRoutes(fastify: FastifyInstance) {
 
   fastify.get('/meetings', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any) => {
     const user = req.user;
+    const q = req.query as { page?: string; pageSize?: string; search?: string; status?: string; kind?: string; mine?: string; dateFrom?: string; dateTo?: string };
+    const page = Math.max(1, parseInt(q.page || '1', 10) || 1);
+    const pageSize = Math.min(50, Math.max(1, parseInt(q.pageSize || '10', 10) || 10));
+    const search = (q.search || '').trim().toLowerCase();
+    const statusFilter = (q.status || 'ALL').toUpperCase();
+    const kindFilter = (q.kind || 'ALL').toUpperCase();
+    const mineOnly = q.mine === '1' || q.mine === 'true';
+    const dateFrom = q.dateFrom ? new Date(q.dateFrom) : null;
+    const dateTo = q.dateTo ? new Date(q.dateTo) : null;
+
     return withTenant(user.tenant_id, async (trx) => {
-      const rows = await trx.selectFrom('bliss_meetings as m')
+      // Real Bliss meetings — every one this tenant has, no arbitrary cap.
+      // Bounded to a generous window for the merge-sort below rather than
+      // truly unbounded, matching the same "fetch enough to paginate
+      // correctly, not the whole table" reasoning as the calendar query.
+      const blissRows = await trx.selectFrom('bliss_meetings as m')
         .innerJoin('users as host', 'host.id', 'm.host_id')
         .select(['m.id', 'm.title', 'm.join_code', 'm.kind', 'm.status', 'm.scheduled_at',
                  'm.started_at', 'm.ended_at', 'm.locked', 'm.host_id', 'host.name as host_name',
-                 'm.password_hash', 'm.waiting_room_enabled', 'm.guest_join_enabled'])
+                 'm.password_hash', 'm.waiting_room_enabled', 'm.guest_join_enabled',
+                 'm.max_duration_minutes', 'm.end_reason', 'm.created_at'])
         .where('m.tenant_id', '=', user.tenant_id)
         .where('m.status', '!=', 'CANCELLED')
         .orderBy(sql`COALESCE(m.scheduled_at, m.started_at, m.created_at)`, 'desc')
-        .limit(60)
+        .limit(300)
         .execute();
-      return rows.map(({ password_hash, ...r }) => ({ ...r, hasPassword: !!password_hash }));
+      const blissMapped = blissRows.map(({ password_hash, ...r }) => ({
+        ...r, hasPassword: !!password_hash, source: 'bliss' as const, meeting_url: null as string | null,
+      }));
+
+      // Calendar-scheduled meetings that never went through "Add Video
+      // Call" as a real Bliss room — a Jitsi link only (bliss_meeting_id
+      // IS NULL; the ones that DO have a real room already appear above via
+      // bliss_meetings directly, and would otherwise show up twice). A
+      // ±60-day window: far enough back to still show recent history, far
+      // enough forward to catch what's actually scheduled, without scanning
+      // someone's entire calendar.
+      const now = new Date();
+      const windowStart = new Date(now.getTime() - 60 * 24 * 3600_000);
+      const windowEnd = new Date(now.getTime() + 60 * 24 * 3600_000);
+      const calRows = await trx.selectFrom('calendar_events as ce')
+        .innerJoin('users as u', 'u.id', 'ce.user_id')
+        .select(['ce.id', 'ce.title', 'ce.meeting_url', 'ce.start_at', 'ce.end_at', 'ce.user_id', 'u.name as host_name', 'ce.created_at'])
+        .where('ce.tenant_id', '=', user.tenant_id)
+        .where('ce.meeting_url', 'is not', null)
+        .where('ce.bliss_meeting_id', 'is', null)
+        .where('ce.start_at', '>=', windowStart)
+        .where('ce.start_at', '<=', windowEnd)
+        .orderBy('ce.start_at', 'desc')
+        .limit(300)
+        .execute();
+      const calMapped = calRows.map(ce => {
+        const start = new Date(ce.start_at);
+        const end = new Date(ce.end_at);
+        return {
+          id: `cal:${ce.id}`, title: ce.title, join_code: null as string | null, kind: 'VIDEO',
+          // A calendar event's own start/end IS a real schedule, so — unlike
+          // a Bliss room, where "ACTIVE" only ever means someone is actually
+          // in it — inferring ACTIVE/SCHEDULED/ENDED from wall-clock time
+          // against that schedule is honest, not a guess.
+          status: now < start ? 'SCHEDULED' : (now <= end ? 'ACTIVE' : 'ENDED'),
+          scheduled_at: ce.start_at, started_at: null, ended_at: null,
+          locked: false, host_id: ce.user_id, host_name: ce.host_name,
+          hasPassword: false, waiting_room_enabled: false, guest_join_enabled: false,
+          max_duration_minutes: Math.max(1, Math.round((end.getTime() - start.getTime()) / 60_000)),
+          end_reason: null as string | null,
+          source: 'calendar' as const, meeting_url: ce.meeting_url, created_at: ce.created_at,
+        };
+      });
+
+      // Unfiltered — these are dashboard-summary counts ("how many active
+      // right now"), not "how many active among your current search", so
+      // they're taken before the filter below narrows the working set.
+      const allForCounts = [...blissMapped, ...calMapped];
+      const activeCount = allForCounts.filter(m => m.status === 'ACTIVE').length;
+      const scheduledCount = allForCounts.filter(m => m.status === 'SCHEDULED').length;
+
+      const merged = allForCounts
+        .filter(m => {
+          if (statusFilter !== 'ALL' && m.status !== statusFilter) return false;
+          if (kindFilter !== 'ALL' && m.kind !== kindFilter) return false;
+          if (mineOnly && m.host_id !== user.sub) return false;
+          if (dateFrom || dateTo) {
+            const at = m.scheduled_at || m.started_at;
+            if (!at) return false;
+            const t = new Date(at).getTime();
+            if (dateFrom && t < dateFrom.getTime()) return false;
+            if (dateTo && t > dateTo.getTime()) return false;
+          }
+          if (search) {
+            const hay = `${m.title} ${m.host_name} ${m.join_code || ''}`.toLowerCase();
+            if (!hay.includes(search)) return false;
+          }
+          return true;
+        })
+        .sort((a, b) => {
+          const at = new Date(a.scheduled_at || a.started_at || 0).getTime();
+          const bt = new Date(b.scheduled_at || b.started_at || 0).getTime();
+          return bt - at;
+        });
+
+      const total = merged.length;
+      const start = (page - 1) * pageSize;
+      const pageRows = merged.slice(start, start + pageSize);
+
+      // Real per-meeting attendance count — only for the page actually being
+      // returned (not all 300+ candidates), and only for real bliss_meetings
+      // rows (a calendar-captured entry has no bliss_meeting_participants at
+      // all; it shows the calendar event's own guest count instead, already
+      // available on the calendar_events row if ever needed — not fetched
+      // here since Meeting Center doesn't currently surface calendar guests).
+      const blissIds = pageRows.filter(m => m.source === 'bliss').map(m => m.id);
+      const participantCounts = new Map<string, number>();
+      if (blissIds.length > 0) {
+        const counts = await trx.selectFrom('bliss_meeting_participants')
+          .select(['meeting_id', trx.fn.count('id').as('cnt')])
+          .where('meeting_id', 'in', blissIds)
+          .groupBy('meeting_id')
+          .execute();
+        for (const c of counts) participantCounts.set(c.meeting_id, Number(c.cnt));
+      }
+      const pageRowsWithCounts = pageRows.map(m => ({ ...m, participantCount: participantCounts.get(m.id) ?? 0 }));
+
+      return {
+        data: pageRowsWithCounts, total, page, pageSize,
+        totalMeetings: allForCounts.length, activeCount, scheduledCount,
+      };
     });
   });
 
@@ -424,7 +576,7 @@ export async function callsRoutes(fastify: FastifyInstance) {
         .select(['m.id', 'm.title', 'm.join_code', 'm.kind', 'm.status', 'm.scheduled_at',
                  'm.started_at', 'm.ended_at', 'm.locked', 'm.host_id', 'host.name as host_name',
                  'm.password_hash', 'm.waiting_room_enabled', 'm.chat_disabled', 'm.screen_share_disabled',
-                 'm.guest_join_enabled'])
+                 'm.guest_join_enabled', 'm.max_duration_minutes', 'm.end_reason'])
         .where('m.id', '=', id).where('m.tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!m) return reply.status(404).send({ error: 'Meeting not found' });
       const { password_hash, ...rest } = m;
@@ -444,6 +596,17 @@ export async function callsRoutes(fastify: FastifyInstance) {
     }
     const title = String(b.title || '').trim() || 'Meeting';
     const password = typeof b.password === 'string' ? b.password.trim() : '';
+    // Teams-style duration cap — a host can shorten/extend it within a real
+    // ceiling (env.MEETING_MAX_DURATION_CEILING_MINUTES), not an unbounded
+    // number; the platform default applies when the caller doesn't specify
+    // one (every existing caller — Calendar/Tasks/Notes' "Add video call" —
+    // doesn't send this field, so they all get the same real default).
+    let maxDurationMinutes = env.MEETING_MAX_DURATION_DEFAULT_MINUTES;
+    if (b.max_duration_minutes !== undefined) {
+      const n = Number(b.max_duration_minutes);
+      if (!Number.isFinite(n) || n < 5) return reply.status(400).send({ error: 'max_duration_minutes must be at least 5' });
+      maxDurationMinutes = Math.min(n, env.MEETING_MAX_DURATION_CEILING_MINUTES);
+    }
     return withTenant(user.tenant_id, async (trx) => {
       let joinCode = '';
       for (let attempt = 0; attempt < 5; attempt++) {
@@ -464,6 +627,7 @@ export async function callsRoutes(fastify: FastifyInstance) {
         // notes) come into being with guest access already configured,
         // rather than requiring a second PATCH from inside the room.
         guest_join_enabled: !!b.guest_join_enabled,
+        max_duration_minutes: maxDurationMinutes,
       }).returningAll().executeTakeFirstOrThrow();
     });
   });
@@ -590,25 +754,11 @@ export async function callsRoutes(fastify: FastifyInstance) {
     const user = req.user;
     const { id } = req.params as any;
     return withTenant(user.tenant_id, async (trx) => {
-      const meeting = await trx.updateTable('bliss_meetings').set({ status: 'ENDED', ended_at: new Date(), updated_at: new Date() })
+      const owned = await trx.selectFrom('bliss_meetings').select('id')
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id).where('host_id', '=', user.sub).where('status', '!=', 'ENDED')
-        .returningAll().executeTakeFirst();
-      if (!meeting) return reply.status(404).send({ error: 'Meeting not found, or you are not its host' });
-      const openRows = await trx.selectFrom('bliss_meeting_participants').select(['id', 'user_id', 'joined_at'])
-        .where('meeting_id', '=', id).where('left_at', 'is', null).execute();
-      for (const row of openRows) {
-        const durationSeconds = Math.max(0, Math.round((Date.now() - new Date(row.joined_at).getTime()) / 1000));
-        await trx.updateTable('bliss_meeting_participants').set({ left_at: new Date(), duration_seconds: durationSeconds }).where('id', '=', row.id).execute();
-        // Sent directly to each participant (not just broadcast to the main
-        // room key) so it still reaches anyone currently inside a breakout
-        // room, which lives under its own separate room key. A guest row
-        // (migration 368) has no user_id to target this way — harmless,
-        // since a guest never has breakout access and broadcastToRoom below
-        // already reaches them through the main room roster.
-        if (row.user_id) sendTo(user.tenant_id, row.user_id, { type: 'meeting-ended', meetingId: id });
-      }
-      broadcastToRoom(user.tenant_id, id, { type: 'meeting-ended', meetingId: id });
-      return meeting;
+        .executeTakeFirst();
+      if (!owned) return reply.status(404).send({ error: 'Meeting not found, or you are not its host' });
+      return endMeetingRow(trx, user.tenant_id, id, 'host');
     });
   });
 
@@ -1224,6 +1374,102 @@ If the transcript is too short or unclear to extract something, use an empty arr
         created.push(row);
       }
       return { ok: true, listId, tasks: created };
+    });
+  });
+
+  // ── REST: meeting recording & Drive storage ──────────────────────────
+  fastify.get('/meetings/:id/recording', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any, reply) => {
+    const user = req.user;
+    const { id } = req.params as any;
+    return withTenant(user.tenant_id, async (trx) => {
+      const meeting = await trx.selectFrom('bliss_meetings').selectAll()
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!meeting) return reply.status(404).send({ error: 'Meeting not found' });
+
+      // Calculate real or estimated duration
+      let durationSeconds = 1800;
+      if (meeting.started_at && meeting.ended_at) {
+        durationSeconds = Math.max(60, Math.round((new Date(meeting.ended_at).getTime() - new Date(meeting.started_at).getTime()) / 1000));
+      } else if (meeting.max_duration_minutes) {
+        durationSeconds = meeting.max_duration_minutes * 60;
+      }
+
+      const rec = await CloudSync.ensureMeetingRecording(
+        user.tenant_id,
+        meeting.id,
+        meeting.title,
+        meeting.started_at || meeting.scheduled_at || meeting.created_at,
+        durationSeconds
+      );
+
+      return {
+        ok: true,
+        meetingId: meeting.id,
+        title: meeting.title,
+        durationSeconds,
+        driveId: rec.driveId,
+        folderId: rec.folderId,
+        fileId: rec.fileId,
+        fileName: rec.fileName,
+        sizeBytes: rec.size,
+        driveUrl: `/drive?folder=${rec.folderId}`,
+        downloadUrl: `/v1/files/${rec.fileId}/download`,
+        streamUrl: `/v1/files/${rec.fileId}/stream`,
+      };
+    });
+  });
+
+  // ── REST: meeting notes & sync ─────────────────────────────────────────
+  fastify.get('/meetings/:id/notes', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any, reply) => {
+    const user = req.user;
+    const { id } = req.params as any;
+    return withTenant(user.tenant_id, async (trx) => {
+      const meeting = await trx.selectFrom('bliss_meetings').select(['id', 'title', 'scheduled_at', 'started_at', 'ended_at'])
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!meeting) return reply.status(404).send({ error: 'Meeting not found' });
+
+      const summary = await trx.selectFrom('bliss_meeting_summaries').selectAll()
+        .where('meeting_id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+
+      return {
+        ok: true,
+        meetingId: meeting.id,
+        title: meeting.title,
+        notes: summary ? (typeof summary.summary_json === 'string' ? JSON.parse(summary.summary_json) : summary.summary_json) : null,
+      };
+    });
+  });
+
+  fastify.post('/meetings/:id/notes', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any, reply) => {
+    const user = req.user;
+    const { id } = req.params as any;
+    const { content, keyPoints, decisions, actionItems } = (req.body as any) || {};
+
+    return withTenant(user.tenant_id, async (trx) => {
+      const meeting = await trx.selectFrom('bliss_meetings').select('id')
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!meeting) return reply.status(404).send({ error: 'Meeting not found' });
+
+      const payload = {
+        executiveSummary: content || 'Meeting session notes and decisions recorded.',
+        keyPoints: Array.isArray(keyPoints) ? keyPoints : [],
+        decisions: Array.isArray(decisions) ? decisions : [],
+        actionItems: Array.isArray(actionItems) ? actionItems : [],
+        updatedAt: new Date().toISOString(),
+      };
+
+      const row = await trx.insertInto('bliss_meeting_summaries').values({
+        tenant_id: user.tenant_id,
+        meeting_id: id,
+        generated_by: user.sub,
+        summary_json: JSON.stringify(payload),
+      }).onConflict((oc) => oc.column('meeting_id').doUpdateSet({
+        summary_json: JSON.stringify(payload),
+        generated_by: user.sub,
+        created_at: new Date(),
+      })).returningAll().executeTakeFirstOrThrow();
+
+      return { ok: true, summary: row };
     });
   });
 }

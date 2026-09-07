@@ -95,9 +95,12 @@ export const MailService = {
     return { success: result.success, simulated: !!result.simulated, error: result.error, outboxId };
   },
 
-  /** Renders templateKey via MailTemplateService, then sends synchronously. */
-  async sendNowTemplated(tenantId: string, templateKey: string, to: string, vars: Record<string, string>, sourceApp: string): Promise<SendResult> {
+  /** Renders templateKey via MailTemplateService, then sends synchronously.
+   *  attachment forwards straight to sendNow's own attachmentStorageKey/
+   *  attachmentFilename — added for support.routes.ts's broadcast composer,
+   *  the first templated caller that ever had a real file to attach. */
+  async sendNowTemplated(tenantId: string, templateKey: string, to: string, vars: Record<string, string>, sourceApp: string, attachment?: { storageKey: string; filename: string }): Promise<SendResult> {
     const { subject, bodyHtml } = await MailTemplateService.render(tenantId, templateKey, vars);
-    return this.sendNow(tenantId, { to, subject, bodyHtml, templateKey, sourceApp });
+    return this.sendNow(tenantId, { to, subject, bodyHtml, templateKey, sourceApp, attachmentStorageKey: attachment?.storageKey, attachmentFilename: attachment?.filename });
   },
 };

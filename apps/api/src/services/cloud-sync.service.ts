@@ -393,4 +393,47 @@ export const CloudSync = {
     }
     return { customersTagged, shipmentsTagged };
   },
+
+  /** Meetings ▸ <Meeting Title - YYYY-MM-DD> — resolves or creates the meeting recording folder in Drive */
+  async ensureMeetingFolder(tenantId: string, meetingId: string, meetingTitle: string, scheduledOrStartedAt: Date | string | null): Promise<{ driveId: string; folderId: string; folderName: string }> {
+    return await withTenant(tenantId, async (trx) => {
+      const driveId = await ensureDrive(trx, tenantId);
+      const root = await ensureFolder(trx, tenantId, driveId, 'Meetings', null);
+      const d = scheduledOrStartedAt ? new Date(scheduledOrStartedAt) : new Date();
+      const dateStr = d.toISOString().split('T')[0];
+      const folderName = `${(meetingTitle || 'Meeting').trim()} - ${dateStr}`;
+      const folderId = await ensureFolder(trx, tenantId, driveId, folderName, root, { type: 'meeting', id: meetingId });
+      return { driveId, folderId, folderName };
+    });
+  },
+
+  /** Creates or resolves the recording file in the meeting's Drive folder */
+  async ensureMeetingRecording(tenantId: string, meetingId: string, meetingTitle: string, scheduledOrStartedAt: Date | string | null, durationSeconds?: number): Promise<{ driveId: string; folderId: string; fileId: string; fileName: string; size: number }> {
+    return await withTenant(tenantId, async (trx) => {
+      const { driveId, folderId } = await this.ensureMeetingFolder(tenantId, meetingId, meetingTitle, scheduledOrStartedAt);
+      const d = scheduledOrStartedAt ? new Date(scheduledOrStartedAt) : new Date();
+      const dateStr = d.toISOString().split('T')[0];
+      const fileName = `${(meetingTitle || 'Meeting').trim()} - ${dateStr} - Recording.mp4`;
+
+      const existing = await trx.selectFrom('cloud_files').selectAll()
+        .where('tenant_id', '=', tenantId).where('parent_id', '=', folderId)
+        .where('entity_type', '=', 'meeting_recording').where('entity_id', '=', meetingId)
+        .executeTakeFirst();
+      if (existing) {
+        return { driveId, folderId, fileId: existing.id, fileName: existing.name, size: Number(existing.size) || 28400000 };
+      }
+
+      const durSec = durationSeconds || 1800;
+      const sizeBytes = Math.max(1024 * 1024, Math.round(durSec * 20000));
+
+      const fileRow = await trx.insertInto('cloud_files').values({
+        tenant_id: tenantId, drive_id: driveId, parent_id: folderId, name: fileName,
+        type: 'video', size: sizeBytes, color: '#0d9488', owner_name: 'Bliss Calls',
+        entity_type: 'meeting_recording', entity_id: meetingId,
+      }).returningAll().executeTakeFirstOrThrow();
+
+      await bumpCloudFolderCount(trx, folderId, tenantId, 1, sizeBytes);
+      return { driveId, folderId, fileId: fileRow.id, fileName: fileRow.name, size: sizeBytes };
+    });
+  },
 };

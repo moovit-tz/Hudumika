@@ -3373,6 +3373,23 @@ select.input-field { cursor: pointer; }
 /* ════════════════════════════════════════════════════════════
    INNER PAGE LAYOUT — boxed centered wrapper for all non-hub pages
    ════════════════════════════════════════════════════════════ */
+/* Wraps <Outlet/> so the footer can be pushed to the bottom of a short
+   page by growing THIS element (flex-grow), not by margin-top:auto on
+   .page-footer itself. The two read as equivalent on paper, but once
+   .page-layout also carries overflow-y:auto (any Bliss route — see
+   [data-bliss] .app-shell-content>.page-layout in Bliss.css, added so a
+   tall page could scroll at all) an auto margin on a flex item stops
+   reliably collapsing to 0 against that container's *scrollable* size:
+   real content (WhatsApp hub's Live Simulator tab, its success banner
+   pushing the card taller) rendered UNDER the footer instead of above
+   it, both fighting for the same few pixels of "leftover" space. A
+   flex-grow content wrapper doesn't have that ambiguity — it fills
+   exactly the free space there is, and never less than its own content
+   height, so the footer always ends up immediately after it. */
+.page-layout-content {
+  flex: 1 0 auto;
+  min-width: 0;
+}
 .page-layout {
   width: 100%;
   max-width: 100% !important;
@@ -3459,18 +3476,14 @@ html:not([data-theme="dark"]) .page-layout {
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 10px 8px;
-  /* `auto` pins the footer to the bottom of a short page. It used to read
-     40px here, but eleven app stylesheets each overrode it with `auto`
-     anyway, so `auto` was the real behaviour everywhere and the 40px was
-     dead. Stating it once means every app agrees, including the ones with
-     no stylesheet of their own.
-
-     `auto` alone gives no separation, though: the moment the content fills
-     the column it resolves to 0 and the footer's top border sits flush
-     against the card above it. The breathing room therefore comes from
-     row-gap on .page-layout, which a flex container always applies and an
-     auto margin can never swallow. */
-  margin-top: auto;
+  /* Pinning the footer to the bottom of a short page is now .page-layout-
+     content's job (flex-grow, see its own comment above) — not this
+     margin. An auto margin here read fine on paper (eleven app stylesheets
+     independently arrived at the same `auto`) but stopped reliably
+     resolving to 0 once .page-layout also needed overflow-y:auto to
+     scroll at all, and rendered the footer overlapping real content
+     instead of following it. row-gap on .page-layout still gives the
+     breathing room between content and footer, same as before. */
 }
 .page-footer-copyright,
 .page-footer-powered {

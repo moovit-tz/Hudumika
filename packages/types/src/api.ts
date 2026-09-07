@@ -242,7 +242,13 @@ export type ServerEvent =
   // ── Tracking Events ──
   | { type: 'vehicle.position_updated'; vehicleId: string; latitude: number; longitude: number }
   // ── Bliss / Support Events ──
-  | { type: 'support.message_received'; ticketId: string; message: string };
+  | { type: 'support.message_received'; ticketId: string; message: string }
+  // ── Bliss / Team Chat Events ── deliberately carries no message content:
+  // this event broadcasts to every connected socket in the tenant (see
+  // ws-broadcast.ts), but a channel's messages are membership-gated
+  // (GET /v1/chat/channels/:id/messages 403s a non-member) — the content
+  // itself only ever reaches a client through that check, never the socket.
+  | { type: 'chat.message_received'; channelId: string; authorId: string };
 
 // ── Declaration List Query ───────────────────────────────────
 

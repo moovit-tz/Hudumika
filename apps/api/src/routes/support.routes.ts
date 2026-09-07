@@ -32,6 +32,11 @@ const createTicketSchema = z.object({
   source_app: z.enum(SOURCE_APPS).optional(),
 });
 const customerReplySchema = z.object({ content: z.string().trim().min(1).max(10_000) });
+const updateAttributesSchema = z.object({
+  subject: z.string().trim().min(1).max(300).optional(),
+  category: z.string().trim().min(1).max(100).optional(),
+  priority: z.enum(['LOW', 'NORMAL', 'MEDIUM', 'HIGH', 'URGENT']).optional(),
+});
 
 const MGMT_ROLES: UserRole[] = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER'];
 const AGENT_ROLES: UserRole[] = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'SENIOR', 'JUNIOR', 'OFFICER'];
@@ -165,6 +170,40 @@ export async function createTicketRow(
 }
 
 // ── Rules engine — notification triggers ────────────────────────
+/** One real in-app notification row, inside the caller's own already-open
+ *  transaction — never a fresh withTenant() of its own, since every call
+ *  site here runs from inside a PATCH handler's transaction and a second,
+ *  independent one could commit before (or after a rollback of) the ticket
+ *  change it's actually about. Shared by fireNotificationTrigger's
+ *  rule-driven recipients and the two unconditional ones below it. */
+async function insertSupportNotification(
+  trx: Transaction<Database>,
+  tenantId: string,
+  userId: string,
+  ticket: { id: string; ref_number?: string; subject: string },
+  opts: { title: string; message?: string }
+): Promise<void> {
+  await trx.insertInto('notifications').values({
+    tenant_id: tenantId,
+    user_id: userId,
+    app: 'bliss',
+    type: 'support',
+    title: opts.title,
+    message: opts.message ?? null,
+    link: `/bliss/inbox?id=${ticket.id}`,
+    metadata: '{}',
+    entity_type: 'support_ticket',
+    entity_id: ticket.id,
+    entity_label: ticket.subject,
+    shipment_id: null,
+    customer_id: null,
+    trigger_type: null,
+    channel: null,
+    recipient: null,
+    content: null,
+  } as any).execute();
+}
+
 export async function fireNotificationTrigger(
   trx: Transaction<Database>,
   tenantId: string,
@@ -191,25 +230,10 @@ export async function fireNotificationTrigger(
     }
 
     for (const userId of recipientIds) {
-      await trx.insertInto('notifications').values({
-        tenant_id: tenantId,
-        user_id: userId,
-        app: 'bliss',
-        type: 'support',
+      await insertSupportNotification(trx, tenantId, userId, ticket, {
         title: extra?.title ?? `Ticket ${ticket.ref_number ?? ''}: ${ticket.subject}`,
-        message: extra?.message ?? null,
-        link: `/bliss/inbox?id=${ticket.id}`,
-        metadata: '{}',
-        entity_type: 'support_ticket',
-        entity_id: ticket.id,
-        entity_label: ticket.subject,
-        shipment_id: null,
-        customer_id: null,
-        trigger_type: null,
-        channel: null,
-        recipient: null,
-        content: null,
-      } as any).execute();
+        message: extra?.message,
+      });
     }
   }
 }
@@ -373,15 +397,32 @@ export default async function supportRoutes(fastify: FastifyInstance) {
           .orderBy('sc.updated_at', 'desc').limit(5).execute().catch(() => []),
       ]);
 
+      const messageIds = messages.map(m => m.id);
+      const attachments = messageIds.length > 0
+        ? await trx.selectFrom('support_message_attachments as sma')
+            .innerJoin('cloud_files as cf', 'cf.id', 'sma.file_id')
+            .select(['sma.message_id', 'cf.id', 'cf.name', 'cf.size', 'cf.mime_type'])
+            .where('sma.message_id', 'in', messageIds)
+            .where('sma.tenant_id', '=', user.tenant_id)
+            .execute()
+        : [];
+      const attachmentsByMessage = new Map<string, typeof attachments>();
+      for (const a of attachments) {
+        const arr = attachmentsByMessage.get(a.message_id) ?? [];
+        arr.push(a);
+        attachmentsByMessage.set(a.message_id, arr);
+      }
+      const messagesWithAttachments = messages.map(m => ({ ...m, attachments: attachmentsByMessage.get(m.id) ?? [] }));
+
       reply.status(200);
-      return { ...ticket, messages, assets, invoices, shipments };
+      return { ...ticket, messages: messagesWithAttachments, assets, invoices, shipments };
     });
   });
 
   // 4. BROADCAST — Send to multiple channels simultaneously
   fastify.post<{
     Params: { id: string };
-    Body: { content: string; channels: MessageChannel[]; email_subject?: string }
+    Body: { content: string; channels: MessageChannel[]; email_subject?: string; attachment_file_ids?: string[] }
   }>('/tickets/:id/broadcast', async (request, reply) => {
     const user = request.user;
     return withTenant(user.tenant_id, async (trx) => {
@@ -403,8 +444,24 @@ export default async function supportRoutes(fastify: FastifyInstance) {
         return { error: 'Ticket not found' };
       }
 
-      const { content, channels, email_subject } = request.body;
+      const { content, channels, email_subject, attachment_file_ids } = request.body;
       const results: any[] = [];
+
+      // Attach file/Insert image only ever reaches here when every selected
+      // channel can actually deliver one (Support.tsx's canAttachToBroadcast
+      // gates the buttons on that) — EMAIL (real MIME attachment, see
+      // MailService.sendNowTemplated above) and IN_APP (just a row + link,
+      // same as an internal note's attachment — no external delivery to
+      // fake). WhatsApp has no media-message support in this integration
+      // and SMS isn't MMS, so neither channel's message row gets one linked
+      // below even if somehow requested — a WhatsApp/SMS bubble with an
+      // attachment chip would claim a delivery that never happened.
+      const attachFileIds = Array.isArray(attachment_file_ids) ? attachment_file_ids.filter(Boolean) : [];
+      const attachedFiles = attachFileIds.length > 0
+        ? await trx.selectFrom('cloud_files').select(['id', 'name', 'size', 'mime_type', 'storage_key'])
+            .where('id', 'in', attachFileIds).where('tenant_id', '=', user.tenant_id).execute()
+        : [];
+      const emailAttachment = attachedFiles.find(f => f.storage_key) as { storage_key: string; name: string } | undefined;
 
       for (const channel of channels) {
         try {
@@ -420,7 +477,13 @@ export default async function supportRoutes(fastify: FastifyInstance) {
             user.name,
             effectivePhone,
             ticket.customer_email || undefined,
+            channel === 'EMAIL' && emailAttachment ? { storageKey: emailAttachment.storage_key, filename: emailAttachment.name } : undefined,
           );
+          if ((channel === 'EMAIL' || channel === 'IN_APP') && attachedFiles.length > 0) {
+            await trx.insertInto('support_message_attachments').values(
+              attachedFiles.map(f => ({ tenant_id: user.tenant_id, message_id: msg.id, file_id: f.id }))
+            ).execute();
+          }
           results.push({ channel, success: true, message: msg });
         } catch (err: any) {
           results.push({ channel, success: false, error: err.message });
@@ -462,7 +525,7 @@ export default async function supportRoutes(fastify: FastifyInstance) {
   // 5. Single channel message (legacy)
   fastify.post<{
     Params: { id: string };
-    Body: { content: string; channel: MessageChannel }
+    Body: { content: string; channel: MessageChannel; attachment_file_ids?: string[] }
   }>('/tickets/:id/messages', async (request, reply) => {
     const user = request.user;
     return withTenant(user.tenant_id, async (trx) => {
@@ -484,6 +547,22 @@ export default async function supportRoutes(fastify: FastifyInstance) {
         user.sub, user.name,
         ticket.customer_phone || undefined, ticket.customer_email || undefined
       );
+
+      // Attachments only ever come from the internal-note composer (see
+      // Support.tsx and migration 410's own header comment for why) — but
+      // the check here isn't "trust the caller said NOTE", it's that every
+      // file_id must be a real cloud_files row in this same tenant, so a
+      // stray/forged id can't link someone else's file onto this message.
+      const fileIds = Array.isArray(request.body.attachment_file_ids) ? request.body.attachment_file_ids.filter(Boolean) : [];
+      if (fileIds.length > 0) {
+        const ownedFiles = await trx.selectFrom('cloud_files').select('id')
+          .where('id', 'in', fileIds).where('tenant_id', '=', user.tenant_id).execute();
+        if (ownedFiles.length > 0) {
+          await trx.insertInto('support_message_attachments').values(
+            ownedFiles.map(f => ({ tenant_id: user.tenant_id, message_id: msg.id, file_id: f.id }))
+          ).execute();
+        }
+      }
 
       // Same bookkeeping #4 (broadcast) already does — this endpoint sends
       // to exactly one channel instead of several, but a reply is a reply:
@@ -507,8 +586,13 @@ export default async function supportRoutes(fastify: FastifyInstance) {
       }
       broadcastToTenant(fastify, user.tenant_id, { type: 'support.message_received', ticketId: ticket.id, message: request.body.content });
 
+      const attachments = fileIds.length > 0
+        ? await trx.selectFrom('cloud_files').select(['id', 'name', 'size', 'mime_type'])
+            .where('id', 'in', fileIds).where('tenant_id', '=', user.tenant_id).execute()
+        : [];
+
       reply.status(201);
-      return msg;
+      return { ...msg, attachments };
     });
   });
 
@@ -619,7 +703,22 @@ export default async function supportRoutes(fastify: FastifyInstance) {
         .executeTakeFirstOrThrow();
 
       const wasReassigned = !!request.body.assigned_to && request.body.assigned_to !== before?.assigned_to;
-      if (wasReassigned) await fireNotificationTrigger(trx, user.tenant_id, 'reassigned', updated);
+      if (wasReassigned) {
+        // Unconditional — the new assignee finding out they own this ticket
+        // is the core workflow, not an opt-in automation a manager has to
+        // remember to configure. fireNotificationTrigger below is the
+        // separate, admin-configured "also notify X on this event" layer
+        // (e.g. managers) and stays purely additive to this. Skipped only
+        // when the assigner is assigning the ticket to themself — telling
+        // someone they did the thing they just did isn't a notification.
+        if (request.body.assigned_to !== user.sub) {
+          await insertSupportNotification(trx, user.tenant_id, request.body.assigned_to!, updated, {
+            title: `You were assigned ticket ${updated.ref_number ?? ''}`,
+            message: updated.subject,
+          });
+        }
+        await fireNotificationTrigger(trx, user.tenant_id, 'reassigned', updated);
+      }
       if (request.body.status !== before?.status) await fireNotificationTrigger(trx, user.tenant_id, 'status_changed', updated);
 
       if (wasReassigned) {
@@ -756,6 +855,11 @@ Write a professional, empathetic reply to this customer. Be concise (2–4 sente
     const user = request.user;
     const tags = Array.isArray(request.body.tags) ? request.body.tags.map(t => String(t).trim()).filter(Boolean) : [];
     return withTenant(user.tenant_id, async (trx) => {
+      const before = await trx.selectFrom('support_tickets')
+        .select(['tags', 'assigned_to'])
+        .where('id', '=', request.params.id).where('tenant_id', '=', user.tenant_id)
+        .executeTakeFirst();
+
       const updated = await trx
         .updateTable('support_tickets')
         .set({ tags: JSON.stringify(tags), updated_at: new Date() })
@@ -764,8 +868,105 @@ Write a professional, empathetic reply to this customer. Be concise (2–4 sente
         .returningAll()
         .executeTakeFirstOrThrow();
 
+      // Keep the assignee in the loop on their own ticket, the same way
+      // reassignment above always notifies unconditionally — a tag being
+      // added isn't behind an admin-configured rule either. No obvious
+      // single recipient for a plain text tag beyond "whoever owns this
+      // ticket right now," so that's who hears about it; skipped when
+      // there's no assignee yet, or the editor is the assignee themself.
+      const beforeTags: string[] = Array.isArray(before?.tags) ? before.tags : (typeof before?.tags === 'string' ? JSON.parse(before.tags || '[]') : []);
+      const tagsChanged = JSON.stringify([...beforeTags].sort()) !== JSON.stringify([...tags].sort());
+      if (tagsChanged && updated.assigned_to && updated.assigned_to !== user.sub) {
+        await insertSupportNotification(trx, user.tenant_id, updated.assigned_to, updated, {
+          title: `Tags updated on ticket ${updated.ref_number ?? ''}`,
+          message: tags.length ? tags.join(', ') : 'All tags removed',
+        });
+      }
+
       reply.status(200);
       return updated;
+    });
+  });
+
+  // 8b. Update a ticket's own attributes — subject/category/priority.
+  // Status/assignee have their own endpoint (7, above) since they trigger
+  // notifications and resolution-time bookkeeping that a plain attribute
+  // edit shouldn't. Was previously nowhere in the API — the "Edit" button
+  // on the Conversation Attributes panel (Support.tsx) rendered with no
+  // handler at all, so category/priority/subject were permanently fixed
+  // at ticket-creation time no matter what an agent tried to change them to.
+  fastify.patch<{
+    Params: { id: string };
+    Body: { subject?: string; category?: string; priority?: TicketPriority };
+  }>('/tickets/:id/attributes', async (request, reply) => {
+    const user = request.user;
+    const b = updateAttributesSchema.parse(request.body);
+    if (!b.subject && !b.category && !b.priority) {
+      reply.status(400);
+      return { error: 'Nothing to update' };
+    }
+    return withTenant(user.tenant_id, async (trx) => {
+      const updated = await trx
+        .updateTable('support_tickets')
+        .set({
+          ...(b.subject ? { subject: b.subject } : {}),
+          ...(b.category ? { category: b.category } : {}),
+          ...(b.priority ? { priority: b.priority } : {}),
+          updated_at: new Date(),
+        })
+        .where('id', '=', request.params.id)
+        .where('tenant_id', '=', user.tenant_id)
+        .returningAll()
+        .executeTakeFirst();
+
+      if (!updated) {
+        reply.status(404);
+        return { error: 'Ticket not found' };
+      }
+      reply.status(200);
+      return updated;
+    });
+  });
+
+  // 8c. Macros / canned responses — list, create, delete. Backs the
+  // composer's "Canned responses" button (Support.tsx) — see migration 409.
+  fastify.get('/macros', async (request, reply) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const macros = await trx.selectFrom('support_macros').selectAll()
+        .where('tenant_id', '=', user.tenant_id)
+        .orderBy('title', 'asc')
+        .execute();
+      reply.status(200);
+      return macros;
+    });
+  });
+
+  fastify.post<{ Body: { title: string; content: string } }>('/macros', async (request, reply) => {
+    const user = request.user;
+    const title = String(request.body?.title || '').trim();
+    const content = String(request.body?.content || '').trim();
+    if (!title || !content) {
+      reply.status(400);
+      return { error: 'title and content are required' };
+    }
+    return withTenant(user.tenant_id, async (trx) => {
+      const macro = await trx.insertInto('support_macros').values({
+        tenant_id: user.tenant_id, title, content,
+        created_by: user.sub, created_by_name: user.name ?? 'Unknown',
+      }).returningAll().executeTakeFirstOrThrow();
+      reply.status(201);
+      return macro;
+    });
+  });
+
+  fastify.delete<{ Params: { id: string } }>('/macros/:id', async (request, reply) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      await trx.deleteFrom('support_macros')
+        .where('id', '=', request.params.id).where('tenant_id', '=', user.tenant_id).execute();
+      reply.status(204);
+      return null;
     });
   });
 
@@ -1108,7 +1309,10 @@ Write a professional, empathetic reply to this customer. Be concise (2–4 sente
   });
 
   fastify.post<{
-    Body: { type: 'auto_assign' | 'sla_escalation' | 'status_automation' | 'notification_trigger'; name: string; enabled?: boolean; config: any }
+    // 'whatsapp_keyword' rules are evaluated by the /v1/webhooks/whatsapp
+    // handler (webhooks.routes.ts), not by anything in this file — this
+    // union just has to name every type this table actually stores.
+    Body: { type: 'auto_assign' | 'sla_escalation' | 'status_automation' | 'notification_trigger' | 'whatsapp_keyword'; name: string; enabled?: boolean; config: any }
   }>('/rules', { preHandler: [requireRole(...MGMT_ROLES)] }, async (request, reply) => {
     const user = request.user;
     return withTenant(user.tenant_id, async (trx) => {

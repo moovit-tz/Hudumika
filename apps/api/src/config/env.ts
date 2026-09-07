@@ -98,6 +98,13 @@ const envSchema = z.object({
   
   APP_ENV: z.enum(['development', 'production', 'test']).default('development'),
   APP_PORT: z.coerce.number().default(3001),
+  // Platform-wide default meeting duration cap (minutes) — the same "Teams
+  // free/basic tier" reference the auto-termination job (meeting-duration-
+  // limit.job.ts) is built on. A host can raise/lower it per meeting within
+  // MEETING_MAX_DURATION_CEILING_MINUTES; there's no per-tenant plan tier to
+  // key this off yet, so it's one platform default, not a billing feature.
+  MEETING_MAX_DURATION_DEFAULT_MINUTES: z.coerce.number().default(60),
+  MEETING_MAX_DURATION_CEILING_MINUTES: z.coerce.number().default(480),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('debug'),
   CORS_ORIGINS: z.string().default('http://localhost:5173'),
 

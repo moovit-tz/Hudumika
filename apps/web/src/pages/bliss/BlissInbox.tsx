@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { Icon } from '../../components/Icon.js';
 import { usePageSEO } from '../../hooks/usePageSEO.js';
 import { useMediaQuery } from '../../hooks/useMediaQuery.js';
 import { BlissSearch } from '../../components/BlissSearch.js';
 import { Tip } from '../../components/ui/tooltip.js';
+import { Tabs, TabsList, TabsTrigger } from '../../components/ui/tabs.js';
 import { Support, type ViewMode } from '../Support.js';
 import { Chat } from '../Chat.js';
 
@@ -52,38 +53,34 @@ export const BlissInbox: React.FC = () => {
     });
   }
 
-  const viewTabs: { id: 'customers' | 'team'; label: string; icon: 'inbox' | 'chatBubble' }[] = [
-    { id: 'customers', label: 'Customer Conversations', icon: 'inbox' },
-    { id: 'team', label: 'Team Chat', icon: 'chatBubble' },
+  const viewTabs: { id: 'customers' | 'team'; label: string; shortLabel: string; icon: 'inbox' | 'chatBubble' }[] = [
+    { id: 'customers', label: 'Customer Conversations', shortLabel: 'Conversations', icon: 'inbox' },
+    { id: 'team', label: 'Team Chat', shortLabel: 'Team Chat', icon: 'chatBubble' },
   ];
 
   return (
-    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
-      <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', padding: '10px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexShrink: 0, flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 13, fontWeight: 900, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink)' }}>Support Center</span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            {viewTabs.map(t => (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => setView(t.id)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 6,
-                  padding: '6px 12px', borderRadius: 'var(--r)', border: 'none', cursor: 'pointer',
-                  background: view === t.id ? 'var(--teal-l)' : 'transparent',
-                  color: view === t.id ? 'var(--teal)' : 'var(--ink2)',
-                  fontSize: 12.5, fontWeight: 800, letterSpacing: '0.02em',
-                }}
-              >
-                <Icon name={t.icon} size={14} />
-                {t.label}
-              </button>
-            ))}
+    <div className="bliss-inbox-card">
+      <div className="bliss-inbox-header">
+        <div className="bliss-inbox-header-main">
+          <div className="bliss-inbox-title-group">
+            <span className="bliss-inbox-title">Support Center</span>
+          </div>
+          <div className="bliss-inbox-tabs-wrap">
+            <Tabs value={view} onValueChange={v => setView(v as 'customers' | 'team')} variant="outline" className="bliss-inbox-tabs">
+              <TabsList className="bliss-inbox-tabs-list">
+                {viewTabs.map(t => (
+                  <TabsTrigger key={t.id} value={t.id} className="bliss-inbox-tab-trigger">
+                    <Icon name={t.icon} size={16} />
+                    <span className="bliss-inbox-tab-label-full">{t.label}</span>
+                    <span className="bliss-inbox-tab-label-short">{t.shortLabel}</span>
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div className="bliss-inbox-header-right">
           {/* Desktop already has a search box inside the ticket list itself
               (Support.tsx's own header) — on mobile that pane isn't always
               on screen (a thread or Team Chat can fill it), so this is the
@@ -91,58 +88,44 @@ export const BlissInbox: React.FC = () => {
               it searches across tickets, chats and the KB, not just tickets. */}
           {isMobile && (
             <Tip label="Search Bliss">
-              <button type="button" onClick={() => setSearchOpen(true)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', cursor: 'pointer' }}>
+              <button
+                type="button"
+                onClick={() => setSearchOpen(true)}
+                className="bliss-inbox-action-btn"
+                aria-label="Search Bliss"
+              >
                 <Icon name="search" size={15} />
               </button>
             </Tip>
           )}
           {view === 'customers' && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 2, padding: 2, borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)' }}>
+            <div className="bliss-inbox-layout-switch">
               <Tip label="Chat layout">
                 <button
-                  type="button" aria-label="Chat layout"
+                  type="button"
+                  aria-label="Chat layout"
                   onClick={() => setViewMode('chat')}
-                  style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 26,
-                    borderRadius: 'calc(var(--r) - 2px)', border: 'none', cursor: 'pointer',
-                    background: viewMode === 'chat' ? 'var(--white)' : 'transparent',
-                    color: viewMode === 'chat' ? 'var(--teal)' : 'var(--ink3)',
-                    boxShadow: viewMode === 'chat' ? 'var(--elev-sm)' : 'none',
-                  }}
+                  className={`bliss-inbox-layout-btn ${viewMode === 'chat' ? 'is-active' : ''}`}
                 >
                   <Icon name="layoutSplit" size={14} />
                 </button>
               </Tip>
               <Tip label="Table layout">
                 <button
-                  type="button" aria-label="Table layout"
+                  type="button"
+                  aria-label="Table layout"
                   onClick={() => setViewMode('table')}
-                  style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 26,
-                    borderRadius: 'calc(var(--r) - 2px)', border: 'none', cursor: 'pointer',
-                    background: viewMode === 'table' ? 'var(--white)' : 'transparent',
-                    color: viewMode === 'table' ? 'var(--teal)' : 'var(--ink3)',
-                    boxShadow: viewMode === 'table' ? 'var(--elev-sm)' : 'none',
-                  }}
+                  className={`bliss-inbox-layout-btn ${viewMode === 'table' ? 'is-active' : ''}`}
                 >
                   <Icon name="layoutTable" size={14} />
                 </button>
               </Tip>
             </div>
           )}
-          {/* Routing/SLA/escalation rules live on their own real page
-              (support_rules, previously orphaned) — this is the discoverable
-              way to reach them from where an agent actually feels the need. */}
-          <Tip label="Support routing & SLA rules">
-            <Link to="/bliss/operational-mode" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', color: 'var(--ink2)', fontSize: 12.5, fontWeight: 700, textDecoration: 'none' }}>
-              <Icon name="settings" size={14} />
-              Settings
-            </Link>
-          </Tip>
         </div>
       </div>
 
-      <div style={{ flex: 1, minHeight: 0, display: 'flex' }}>
+      <div style={{ flex: 1, minHeight: 0, display: 'flex', background: 'var(--card-bg, var(--white))' }}>
         {view === 'team' ? <Chat /> : (
           <Support
             initialChannelFilter={isLivechatDeepLink ? 'inapp' : undefined} queueMode={isLivechatDeepLink}

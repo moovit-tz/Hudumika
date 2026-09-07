@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { usePageSEO } from "../hooks/usePageSEO.js";
 import { Icon, type IconName } from "../components/Icon.js";
 import { apiFetch } from "../lib/api.js";
@@ -13,7 +14,12 @@ import "./BlissNotifications.css";
 
 const PAGE_SIZE = 30;
 
-type FilterTab = "all" | "unread" | "task" | "support" | "announcement" | "security" | "chat" | "mention";
+// 'mention' used to be a tab here too — no feature anywhere in the platform
+// ever creates a mention-type notification (no @-mention concept exists in
+// any composer/comment box yet), so it was permanently, structurally empty.
+// Dropped rather than left as a dead tab; add it back once something real
+// produces that type.
+type FilterTab = "all" | "unread" | "task" | "support" | "announcement" | "security" | "chat";
 
 const FILTER_TABS: { key: FilterTab; label: string; icon: IconName }[] = [
   { key: "all",          label: "All",           icon: "inbox" },
@@ -23,7 +29,6 @@ const FILTER_TABS: { key: FilterTab; label: string; icon: IconName }[] = [
   { key: "announcement", label: "Announcements", icon: "volume2" },
   { key: "security",     label: "Security",      icon: "shield" },
   { key: "chat",         label: "Chat",          icon: "chatBubble" },
-  { key: "mention",      label: "Mentions",      icon: "atSign" },
 ];
 
 export function BlissNotifications() {
@@ -79,13 +84,31 @@ export function BlissNotifications() {
   const load = useCallback(async (currentOffset: number, currentTab: FilterTab) => {
     setLoading(true);
     try {
+      // Announcements are never rows in the notifications table (they live
+      // in their own table — see AppHeader.tsx's header pill, the same
+      // /active endpoint) — this is the one path in this page that isn't
+      // /v1/notifications at all. It's also not paginated the same way:
+      // /active only ever returns what's currently live and undismissed for
+      // this person (same 5-item cap the pill itself uses), so this tab
+      // gives someone a second chance at one they dismissed from the pill
+      // by accident, or missed while they were away — not a full history,
+      // since a dismissed announcement leaves no record anywhere.
+      if (currentTab === "announcement") {
+        const data = await apiFetch('/v1/announcements/active');
+        const list: any[] = (data.data ?? []).map((a: any) => ({
+          id: a.id, title: a.title, message: a.body, link: a.link,
+          type: 'announcement', read: false, created_at: a.starts_at,
+        }));
+        setNotifs(list);
+        setUnreadCount(list.length);
+        setTotalCount(list.length);
+        return;
+      }
+
       const unreadOnly = currentTab === "unread";
-      const data = await apiFetch(`/v1/notifications?limit=${PAGE_SIZE}&offset=${currentOffset}&unread_only=${unreadOnly}`);
-      const list: any[] = data.notifications ?? [];
-      const filtered = (currentTab === "all" || currentTab === "unread")
-        ? list
-        : list.filter((n: any) => n.type === currentTab);
-      setNotifs(filtered);
+      const typeParam = (currentTab === "all" || currentTab === "unread") ? "" : `&type=${currentTab}`;
+      const data = await apiFetch(`/v1/notifications?limit=${PAGE_SIZE}&offset=${currentOffset}&unread_only=${unreadOnly}${typeParam}`);
+      setNotifs(data.notifications ?? []);
       setUnreadCount(data.unread_count ?? 0);
       setTotalCount(data.total_count ?? 0);
     } catch { /* ignore */ } finally {
@@ -101,15 +124,27 @@ export function BlissNotifications() {
     if (!n.read) {
       setNotifs(prev => prev.map(x => x.id === n.id ? { ...x, read: true } : x));
       setUnreadCount(prev => Math.max(0, prev - 1));
-      apiFetch(`/v1/notifications/${n.id}/read`, { method: "PATCH" }).catch(() => {});
+      // An announcement isn't a notifications row — "read" here means
+      // dismissed, via the same endpoint the header pill itself calls.
+      if (n.type === 'announcement') {
+        apiFetch(`/v1/announcements/${n.id}/dismiss`, { method: "POST" }).catch(() => {});
+      } else {
+        apiFetch(`/v1/notifications/${n.id}/read`, { method: "PATCH" }).catch(() => {});
+      }
     }
     setSelected({ ...n, read: true });
   }
 
   function handleMarkAllRead() {
     setNotifs(prev => prev.map(x => ({ ...x, read: true })));
+    const dismissedIds = tab === 'announcement' ? notifs.map(n => n.id) : [];
     setUnreadCount(0);
-    apiFetch("/v1/notifications/read-all", { method: "PATCH" }).then(() => load(offset, tab)).catch(() => {});
+    if (tab === 'announcement') {
+      Promise.allSettled(dismissedIds.map(id => apiFetch(`/v1/announcements/${id}/dismiss`, { method: 'POST' })))
+        .then(() => load(offset, tab));
+    } else {
+      apiFetch("/v1/notifications/read-all", { method: "PATCH" }).then(() => load(offset, tab)).catch(() => {});
+    }
   }
 
   const searchLower = search.toLowerCase();
@@ -362,20 +397,36 @@ function NotifDetail({ n, onClose }: { n: any; onClose: () => void }) {
             {n.link && (
               <tr>
                 <td className="bnc-detail-td-label">Linked Resource</td>
-                <td><a href={n.link} className="bnc-detail-link">{n.link} <Icon name="arrowUpRight" size={11} /></a></td>
+                <td>
+                  {/* An internal route (every real link this page ever
+                      renders) goes through the router, not a full reload —
+                      same reason NotificationListItem.tsx (the header
+                      dropdown's version of this same link) uses Link too. */}
+                  {n.link.startsWith('/') ? (
+                    <Link to={n.link} className="bnc-detail-link">{n.link} <Icon name="arrowUpRight" size={11} /></Link>
+                  ) : (
+                    <a href={n.link} target="_blank" rel="noreferrer" className="bnc-detail-link">{n.link} <Icon name="arrowUpRight" size={11} /></a>
+                  )}
+                </td>
               </tr>
             )}
           </tbody>
         </table>
       </div>
 
-      {n.link && (
+      {n.link && (n.link.startsWith('/') ? (
         <div className="bnc-detail-actions">
-          <a href={n.link} className="btn btn-primary bnc-detail-cta" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <Link to={n.link} className="btn btn-primary bnc-detail-cta" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <Icon name="arrowUpRight" size={14} /> Open Linked Resource
+          </Link>
+        </div>
+      ) : (
+        <div className="bnc-detail-actions">
+          <a href={n.link} target="_blank" rel="noreferrer" className="btn btn-primary bnc-detail-cta" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
             <Icon name="arrowUpRight" size={14} /> Open Linked Resource
           </a>
         </div>
-      )}
+      ))}
     </div>
   );
 }

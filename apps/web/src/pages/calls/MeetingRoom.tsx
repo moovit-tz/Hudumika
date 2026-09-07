@@ -42,7 +42,12 @@ const fmtDur = (s: number) => {
 export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialAudioEnabled, initialVideoEnabled, myUserId, myName, onLeave, onEndedByHost }: {
   meetingId: string; title: string; kind: 'VIDEO' | 'VOICE'; role: 'HOST' | 'PARTICIPANT';
   iceServers: any[]; initialAudioEnabled: boolean; initialVideoEnabled: boolean;
-  myUserId: string; myName: string; onLeave: () => void; onEndedByHost: () => void;
+  myUserId: string; myName: string; onLeave: () => void;
+  // 'time_limit' when the meeting-duration-limit job auto-ended it,
+  // 'removed' when the host specifically kicked this participant,
+  // undefined for a plain host-ended meeting — three genuinely different
+  // events the caller can now tell apart instead of one generic notice.
+  onEndedByHost: (reason?: 'time_limit' | 'removed', maxDurationMinutes?: number) => void;
 }) {
   const devices = useMediaDevices();
   const isHost = role === 'HOST';
@@ -271,7 +276,7 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
         case 'answer': { try { await pcMapRef.current.get(m.from)?.setRemoteDescription(new RTCSessionDescription(m.sdp)); } catch { /* */ } break; }
         case 'ice': { try { await pcMapRef.current.get(m.from)?.addIceCandidate(new RTCIceCandidate(m.candidate)); } catch { /* */ } break; }
         case 'peer-left': closePeer(m.userId); break;
-        case 'meeting-ended': onEndedByHost(); break;
+        case 'meeting-ended': onEndedByHost(m.reason === 'time_limit' ? 'time_limit' : undefined, m.maxDurationMinutes); break;
         case 'room-chat': setChat(prev => [...prev, { from: m.from, fromName: m.fromName, text: m.text, ts: Date.now() }]); break;
         case 'room-reaction': {
           const id = ++reactionIdRef.current;
@@ -284,7 +289,7 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
         case 'host-camera-off-request': { const t = localStreamRef.current?.getVideoTracks()[0]; if (t) t.enabled = false; setCamOff(true); break; }
         case 'host-chat-disable': setChatBlocked(true); break;
         case 'host-chat-enable': setChatBlocked(false); break;
-        case 'host-remove': onEndedByHost(); break;
+        case 'host-remove': onEndedByHost('removed'); break;
         // Meeting tools — real, DB-backed data; these WS messages are just
         // "go re-fetch" pings so every open panel updates live.
         case 'poll-created': case 'poll-voted': case 'poll-closed': loadPolls(); break;

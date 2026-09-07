@@ -1,6 +1,235 @@
 /* Bliss brand color — set dynamically by WorkspaceApp via useBranding() */
 .app-shell[data-bliss] {}
 
+/* ── Support Center Body Card ──
+   Matches the Hudumika design system body card treatment (/admin/dashboard
+   and other platform workspaces) with a soft border, rounded corners, and elevation. */
+.bliss-inbox-card {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--card-bg, var(--white));
+  border: 1px solid var(--border);
+  border-radius: var(--card-radius, var(--r));
+  box-shadow: var(--card-shadow, var(--elev-sm));
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* ── Support Center Top Header & View Switcher Tabs ── */
+.bliss-inbox-header {
+  background: var(--card-bg, var(--white));
+  border-bottom: 1px solid var(--border);
+  padding: 10px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.bliss-inbox-header-main {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+
+.bliss-inbox-title-group {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.bliss-inbox-title {
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.bliss-inbox-tabs-wrap {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.bliss-inbox-tabs {
+  display: inline-flex;
+  max-width: 100%;
+}
+
+.bliss-inbox-tabs-list {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  background: transparent !important;
+  padding: 0 !important;
+  border: none !important;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.bliss-inbox-tabs-list::-webkit-scrollbar {
+  display: none;
+}
+
+.bliss-inbox-tab-trigger {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  height: 38px !important;
+  padding: 0 16px !important;
+  font-size: 13.5px !important;
+  font-weight: 600 !important;
+  border-radius: 9999px !important;
+  border: 1px solid var(--border) !important;
+  background: var(--card-bg, var(--white)) !important;
+  color: var(--ink2) !important;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.bliss-inbox-tab-trigger:hover:not([data-state="active"]):not(:disabled) {
+  border-color: var(--ink3) !important;
+  color: var(--ink) !important;
+  background: var(--bg) !important;
+}
+
+.bliss-inbox-tab-trigger[data-state="active"] {
+  border: 1.5px solid var(--ink) !important;
+  color: var(--ink) !important;
+  font-weight: 700 !important;
+  background: var(--card-bg, var(--white)) !important;
+  box-shadow: var(--elev-sm) !important;
+}
+
+.bliss-inbox-tab-label-full {
+  display: inline;
+}
+
+.bliss-inbox-tab-label-short {
+  display: none;
+}
+
+.bliss-inbox-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.bliss-inbox-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--r);
+  border: 1px solid var(--border);
+  background: var(--card-bg, var(--white));
+  color: var(--ink2);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.bliss-inbox-action-btn:hover {
+  background: var(--bg);
+  color: var(--ink);
+  border-color: var(--ink3);
+}
+
+.bliss-inbox-layout-switch {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--r);
+  border: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.bliss-inbox-layout-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 26px;
+  border-radius: calc(var(--r) - 2px);
+  border: none;
+  cursor: pointer;
+  background: transparent;
+  color: var(--ink3);
+  transition: all 0.15s ease;
+}
+
+.bliss-inbox-layout-btn.is-active {
+  background: var(--card-bg, var(--white));
+  color: var(--teal);
+  box-shadow: var(--elev-sm);
+}
+
+@media (max-width: 768px) {
+  .bliss-inbox-header {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px 12px;
+    padding: 8px 12px;
+  }
+  .bliss-inbox-header-main {
+    display: contents;
+  }
+  .bliss-inbox-title-group {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .bliss-inbox-title {
+    font-size: 12.5px;
+  }
+  .bliss-inbox-header-right {
+    grid-column: 2;
+    grid-row: 1;
+    justify-content: flex-end;
+  }
+  .bliss-inbox-tabs-wrap {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    width: 100%;
+  }
+  .bliss-inbox-tabs {
+    width: 100%;
+  }
+  .bliss-inbox-tabs-list {
+    width: 100%;
+    gap: 6px !important;
+    height: 38px !important;
+    min-height: 38px !important;
+  }
+  .bliss-inbox-tab-trigger {
+    flex: 1 1 0;
+    height: 36px !important;
+    padding: 0 10px !important;
+    font-size: 13px !important;
+    gap: 6px !important;
+  }
+  .bliss-inbox-tab-label-full {
+    display: none;
+  }
+  .bliss-inbox-tab-label-short {
+    display: inline;
+  }
+}
+
 /* ── Support shell — fills app-shell-content at full height ──
    app-shell-content is a flex item (flex: 1 1 0) but NOT a flex container,
    so height:100% is unreliable. We make it a flex column in bliss context
@@ -10,19 +239,6 @@
   flex-direction: column;
   overflow: hidden;
   min-height: 0;
-}
-
-/* The ticket workspace (Support.tsx, .spt-shell) and Live Chat (SupportChat.tsx,
-   .spc-shell) are inbox-style UIs, not padded dashboard pages — they should run
-   edge-to-edge against the app sidebar and browser edge rather than sit inside
-   app-shell-content's default 1380px-capped, 24px-padded, centered box. Other
-   Bliss routes (Overview, KB, Settings, Escalations) keep the default padding. */
-[data-bliss] .app-shell-content:has(> .spt-shell),
-[data-bliss] .app-shell-content:has(> .spc-shell),
-[data-bliss] .app-shell-content:has(> .bliss-chat-shell) {
-  max-width: none;
-  margin: 0;
-  padding: 0;
 }
 
 /* Every other Bliss route (WhatsApp, Telephony, Overview, KB, Settings,
@@ -46,7 +262,7 @@
   min-height: 0;
   display: flex;
   overflow: hidden;
-  background: var(--bg);
+  background: var(--card-bg, var(--white));
   font-family: var(--font);
 }
 
@@ -402,6 +618,7 @@
   flex-direction: column;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
+  padding-bottom: 8px;
 }
 
 .spt-inbox-item {
@@ -493,12 +710,22 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 14px 4px;
+  padding: 18px 14px 10px;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--ink3);
+}
+
+/* Views/Groups/Channels — the sections after the fixed Inbox list — read
+   as cramped against how much empty sidebar sits below them once there
+   are only a handful of items (a lone group, four channels). Taller rows
+   than the Inbox list's own .spt-inbox-item use, not just more section
+   padding, so the extra room actually shows up between entries instead
+   of only at the section's own top/bottom edge. */
+.spt-nav-section .spt-inbox-item {
+  padding: 12px 14px;
 }
 
 .spt-nav-add {
@@ -521,7 +748,7 @@
 
 .spt-nav-section .spt-inbox-nav {
   border-bottom: none;
-  padding-bottom: 4px;
+  padding-bottom: 10px;
 }
 
 .spt-nav-empty {
@@ -770,12 +997,16 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  flex-wrap: wrap;
-  padding: 10px 16px;
+  flex-wrap: nowrap;
+  padding: 0 16px;
   border-bottom: 1px solid var(--border);
-  background: var(--white);
+  background: var(--card-bg, var(--white));
   flex-shrink: 0;
-  gap: 8px 10px;
+  height: 50px;
+  min-height: 50px;
+  max-height: 50px;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .spt-thread-hdr-left {
@@ -824,6 +1055,11 @@
   font-weight: 700;
   cursor: pointer;
   outline: none;
+  /* The base SelectTrigger primitive ships shadow-sm in its own Tailwind
+     class list (ui/select.tsx) — every custom class here overrides border/
+     background/padding/radius but none of them touched box-shadow, so that
+     default shadow rendered on every one of these pills regardless. */
+  box-shadow: none !important;
 }
 
 .spt-status-select--open {
@@ -2590,8 +2826,14 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 16px 12px;
+  padding: 0 16px;
   flex-shrink: 0;
+  height: 50px;
+  min-height: 50px;
+  max-height: 50px;
+  border-bottom: 1px solid var(--border);
+  background: var(--card-bg, var(--white));
+  box-sizing: border-box;
 }
 
 .spt-bedesk-nav-title {
@@ -2737,7 +2979,13 @@
 }
 
 .spt-bedesk-conv-card--active {
-  background: var(--bg) !important;
+  /* Was var(--bg) — the same neutral every other row falls back to on
+     hover, so "selected" and "hovered" read as almost the same state.
+     var(--teal-l) matches .spt-inbox-item--active (the sidebar's own
+     selected-menu color) so a selected ticket and a selected inbox/view/
+     group agree on what "selected" looks like, instead of two different
+     colors for the same idea on the same screen. */
+  background: var(--teal-l) !important;
   box-shadow: inset 3px 0 0 var(--teal);
 }
 
@@ -3175,11 +3423,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
+  padding: 0 16px;
   border-bottom: 1px solid var(--border);
-  background: var(--white);
+  background: var(--card-bg, var(--white));
   flex-shrink: 0;
-  min-height: 48px;
+  height: 50px;
+  min-height: 50px;
+  max-height: 50px;
   box-sizing: border-box;
 }
 
@@ -3257,23 +3507,51 @@
 .spt-bedesk-attr-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  /* Was space-between, pinning the label to the left edge and the value
+     (a ~110px Select trigger) to the right — on this panel's real width
+     that reads as a big empty gap between two short things, not two
+     things "spread out". Left-aligned with a fixed label column instead,
+     so Assignee/Status/Group's values start at the same x position
+     immediately after their labels. */
+  gap: 10px;
 }
 
 .spt-bedesk-attr-lbl {
   font-size: 12px;
   color: var(--ink3);
   font-weight: 500;
+  flex: 0 0 64px;
 }
 
 .spt-bedesk-val-select {
-  height: 26px !important;
+  /* --ctl-h-sm, not a hardcoded 26px — the status Tabs beside it are on
+     the same density-driven floor (ds-tabs.css's segmented trigger height),
+     so this is the one way the two ever line up at every density setting,
+     not just by coincidence at the default one. */
+  height: var(--ctl-h-sm) !important;
   font-size: 12px !important;
   font-weight: 600 !important;
   border: 1px solid var(--border) !important;
   background: var(--bg) !important;
   padding: 0 8px !important;
-  border-radius: 6px !important;
+  border-radius: var(--r-sm) !important;
+  /* Same reason as .spt-status-select — the base SelectTrigger's own
+     shadow-sm Tailwind class survives every other override here. */
+  box-shadow: none !important;
+}
+
+/* Same box as .spt-bedesk-val-select (height/padding/font), for a viewer
+   below OPS_ROLES who can see this field but not act on it — plain text
+   in the same slot, not a control with nothing behind it. */
+.spt-bedesk-readonly-val {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: var(--ctl-h-sm);
+  padding: 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink2);
 }
 
 .spt-bedesk-group-pill {
@@ -3366,19 +3644,22 @@
 .spt-bedesk-kv-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  /* Same fix as .spt-bedesk-attr-row just above — space-between put
+     "Type:" hard against the left edge and "Chat" hard against the
+     right, with nothing but empty panel between them. */
+  gap: 10px;
   font-size: 12px;
 }
 
 .spt-bedesk-k {
   color: var(--ink3);
   font-weight: 500;
+  flex: 0 0 88px;
 }
 
 .spt-bedesk-v {
   color: var(--ink);
   font-weight: 600;
-  text-align: right;
 }
 
 .spt-bedesk-btn-secondary {
@@ -3407,7 +3688,11 @@
 }
 
 [data-theme="dark"] .spt-bedesk-conv-card--active {
-  background: #1c212e !important;
+  /* Same reasoning as the light-mode rule above — matches
+     [data-theme="dark"] .spt-inbox-item--active's own var(--teal-l)
+     instead of a separate hardcoded navy nothing else on this screen
+     uses for "selected". */
+  background: var(--teal-l) !important;
   border-color: rgba(255, 255, 255, 0.12);
 }
 
@@ -3425,7 +3710,9 @@
 }
 
 [data-theme="dark"] .spt-bedesk-row--active {
-  background: #1c212e !important;
+  /* Same var(--teal-l) as .spt-inbox-item--active — see the conv-card
+     rule just above for why this used to be its own hardcoded navy. */
+  background: var(--teal-l) !important;
 }
 
 [data-theme="dark"] .spt-bedesk-msg--customer .spt-bedesk-msg-bubble {

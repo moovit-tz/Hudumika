@@ -17,10 +17,17 @@ export class MessagingService {
     authorId: string,
     authorName: string,
     customerPhone?: string,
-    customerEmail?: string
+    customerEmail?: string,
+    // Only ever forwarded to EMAIL below — neither WhatsApp (sendMessage is
+    // text-only, no media-message support in this integration yet) nor SMS
+    // (not a real MMS integration) has anywhere to put a file. The composer
+    // that calls this (support.routes.ts's /broadcast) is responsible for
+    // only offering Attach/Insert image when every selected channel can
+    // actually deliver one — see Support.tsx's canAttachToBroadcast.
+    attachment?: { storageKey: string; filename: string }
   ) {
     let externalRef: string | undefined = undefined;
-    
+
     // Dispatch to external channels
     if (channel === 'WHATSAPP' && customerPhone) {
       const res = await WhatsAppIntegration.sendMessage(customerPhone, content);
@@ -30,7 +37,7 @@ export class MessagingService {
     } else if (channel === 'EMAIL' && customerEmail) {
       const res = await MailService.sendNowTemplated(tenantId, 'support.ticket_update', customerEmail, {
         ticketRef: ticketId.split('-')[0], content: content.replace(/\n/g, '<br/>'),
-      }, 'support');
+      }, 'support', attachment);
       if (res.success) {
         externalRef = res.outboxId;
       }

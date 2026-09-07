@@ -35,6 +35,7 @@ import { runRecurringDocumentsJob } from './recurring-documents.job.js';
 import { runTaskRecurrenceJob } from './task-recurrence.job.js';
 import { runFixedAssetDepreciationJob } from './fixed-asset-depreciation.job.js';
 import { runFxRateSyncJob } from './fx-rate-sync.job.js';
+import { runMeetingDurationLimitJob } from './meeting-duration-limit.job.js';
 
 /**
  * Real registry of every background job this file actually schedules —
@@ -83,6 +84,7 @@ export const JOB_REGISTRY: { name: string; schedule: string; fallbackOnly?: bool
   { name: 'Mail Outbox Sweep', schedule: 'Every 1 minute' },
   { name: 'SMS Outbox Sweep', schedule: 'Every 1 minute' },
   { name: 'IMAP Ticket Ingest', schedule: 'Every 3 minutes' },
+  { name: 'Meeting Duration Limit Sweep', schedule: 'Every 1 minute' },
   { name: 'Onsite Deployment Sync', schedule: 'Every 1 minute', fallbackOnly: true },
   { name: 'Onsite Uptime Monitors', schedule: 'Every 1 minute', fallbackOnly: true },
   { name: 'Onsite Server Reachability', schedule: 'Every 1 minute', fallbackOnly: true },
@@ -99,6 +101,7 @@ let declarationAnchorQueue: Queue | null = null;
 let mailOutboxQueue: Queue | null = null;
 let imapTicketQueue: Queue | null = null;
 let smsOutboxQueue: Queue | null = null;
+let meetingDurationQueue: Queue | null = null;
 
 /**
  * Initializes BullMQ or falls back to in-memory intervals if Redis is not running
@@ -209,6 +212,7 @@ function startBullMQ(): void {
     declarationAnchorQueue = track(new Queue('declaration-ledger-anchor', { connection: redisConnection as any }));
     mailOutboxQueue = track(new Queue('mail-outbox', { connection: redisConnection as any }));
     imapTicketQueue = track(new Queue('imap-ticket-ingest', { connection: redisConnection as any }));
+    meetingDurationQueue = track(new Queue('meeting-duration-limit', { connection: redisConnection as any }));
     smsOutboxQueue = track(new Queue('sms-outbox', { connection: redisConnection as any }));
 
     // Worker for risk scans
@@ -377,6 +381,20 @@ function startBullMQ(): void {
       { connection: redisConnection as any }
     ));
 
+    // Worker for the meeting duration limit sweep — its own queue, same
+    // "needs to happen promptly" 1-min cadence as mail/SMS outbox above:
+    // a meeting running past its cap should be ended within about a
+    // minute of crossing it, not on the next daily pass.
+    track(new Worker(
+      'meeting-duration-limit',
+      async (job) => {
+        if (job.name === 'sweep') {
+          await runMeetingDurationLimitJob();
+        }
+      },
+      { connection: redisConnection as any }
+    ));
+
     // Schedule repeatable jobs
     riskQueue.add('scan', {}, {
       repeat: { every: 15 * 60 * 1000 } // Every 15 minutes
@@ -537,6 +555,10 @@ function startBullMQ(): void {
       repeat: { every: 3 * 60 * 1000 } // Every 3 minutes — inbound support replies via email
     }).catch(console.error);
 
+    meetingDurationQueue.add('sweep', {}, {
+      repeat: { every: 60 * 1000 } // Every 1 minute — same "needs to go promptly" reasoning as mail/SMS outbox
+    }).catch(console.error);
+
     console.log('🚀 BullMQ Workers and repeat schedules initialized.');
   } catch (err) {
     console.error('❌ Failed to start BullMQ:', err);
@@ -561,6 +583,7 @@ function startIntervalFallback(): void {
   runWorkflowCommQueueJob().catch(console.error);
   runMailOutboxJob().catch(console.error);
   runSmsOutboxJob().catch(console.error);
+  runMeetingDurationLimitJob().catch(console.error);
   runSignExpiryJob().catch(console.error);
   runSignReminderJob().catch(console.error);
   runSignAnchorStampJob().catch(console.error);
@@ -747,4 +770,11 @@ function startIntervalFallback(): void {
   setInterval(() => {
     runImapTicketIngestJob().catch(console.error);
   }, 3 * 60 * 1000);
+
+  // Meeting duration limit sweep — every 1 minute, same cadence and
+  // safe-to-rerun reasoning as mail/SMS outbox: each meeting is only ever
+  // ended once (status flips to 'ENDED', excluded from the next pass).
+  setInterval(() => {
+    runMeetingDurationLimitJob().catch(console.error);
+  }, 60 * 1000);
 }

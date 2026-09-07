@@ -8,11 +8,13 @@ import type { IconName } from '../components/Icon.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
+import { subscribePresence, type PresenceStatus } from '../lib/presence.js';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '../components/ui/dropdown-menu.js';
 import { Popover, PopoverTrigger, PopoverContent } from '../components/ui/popover.js';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog.js';
 import { useMediaQuery } from '../hooks/useMediaQuery.js';
 import { Tip } from '../components/ui/tooltip.js';
+import { useWebSocket } from '../hooks/useWebSocket.js';
 
 // ─── Types (match apps/api/src/routes/chat.routes.ts) ─────────────────────────
 
@@ -54,6 +56,23 @@ function fd(d: Date) {
 }
 function sd(a: Date, b: Date) { return a.toDateString() === b.toDateString(); }
 function grp(a: ApiMessage, b: ApiMessage) { return a.author_id === b.author_id && (new Date(b.created_at).getTime() - new Date(a.created_at).getTime()) < 5 * 60000; }
+
+/** Real, live status for the DM "Status" row — same source PersonAvatar's
+ *  own dot reads (presence.ts), not a hardcoded "Online". */
+function usePresenceStatus(userId: string | null | undefined): PresenceStatus | null {
+  const [status, setStatus] = useState<PresenceStatus | null>(null);
+  useEffect(() => {
+    if (!userId) { setStatus(null); return; }
+    setStatus(null);
+    return subscribePresence(userId, setStatus);
+  }, [userId]);
+  return status;
+}
+const PRESENCE_LABEL: Record<PresenceStatus, { label: string; color: string }> = {
+  offline: { label: 'Offline', color: 'var(--ink3)' },
+  online: { label: 'Online', color: 'var(--gold)' },
+  clocked_in: { label: 'Online · clocked in', color: 'var(--green)' },
+};
 
 const EMOJIS = ['👍', '❤️', '😄', '🎉', '🚀', '👀', '✅', '😂', '🙌', '💯', '🔥', '👋', '🤝', '📦', '✈️', '⚓'];
 const QUICK_REACTIONS = ['👍', '❤️', '😂', '🔥'];
@@ -155,7 +174,18 @@ export const Chat: React.FC = () => {
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, activeId]);
 
+  // Live push — the event carries no message content (see
+  // packages/types/src/api.ts), so a hit just triggers the same
+  // membership-gated fetches the 6s poll already does, sooner. The poll
+  // itself stays running underneath as the fallback for a dropped socket.
+  useWebSocket((event) => {
+    if (event.type !== 'chat.message_received') return;
+    loadChannels(false);
+    if (event.channelId === activeId) loadMessages(activeId);
+  });
+
   const activeCh = channels.find(c => c.id === activeId) ?? null;
+  const dmPresence = usePresenceStatus(activeCh?.type === 'dm' ? activeCh.other_user_id : null);
 
   // Send Message
   async function send() {
@@ -273,6 +303,14 @@ export const Chat: React.FC = () => {
     } catch (err: any) { showAlert(err.message || 'Failed to join'); } finally { setJoiningId(null); }
   }
 
+  // Deep-links into Calls.tsx's real 1:1 ring/accept/decline WebRTC system
+  // (see its own ?call= handling) instead of just landing on the generic
+  // call directory and making the agent find this same person again.
+  function startCallWith(otherUserId: string | null, k: 'VOICE' | 'VIDEO') {
+    if (!otherUserId) { navigate('/bliss/calls'); return; }
+    navigate(`/bliss/calls?call=${otherUserId}&kind=${k}`);
+  }
+
   // Filter Conversations
   const q = search.toLowerCase();
   const filteredChannels = channels.filter(c => {
@@ -289,7 +327,7 @@ export const Chat: React.FC = () => {
   const groupList = filteredChannels.filter(c => (c.type === 'group' || c.type === 'channel') && !c.is_favorite);
 
   return (
-    <div className="bliss-chat-shell" style={{ display: 'flex', width: '100%', height: '100%', overflow: 'hidden', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)' }}>
+    <div className="bliss-chat-shell" style={{ display: 'flex', width: '100%', height: '100%', overflow: 'hidden', background: 'var(--card-bg, var(--white))', color: 'var(--ink)', fontFamily: 'var(--font)' }}>
 
       {/* ─── 1. CONVERSATIONS PANEL (280px) ─────────────────────────────────── */}
       {(!isMobile || !activeId) && (
@@ -534,12 +572,12 @@ export const Chat: React.FC = () => {
               {/* Header Right Action Buttons */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Tip label="Start Voice Call">
-                  <button type="button" onClick={() => navigate('/bliss/calls')} style={{ width: 34, height: 34, borderRadius: 'var(--r)', background: 'var(--card-sunken)', border: 'none', color: 'var(--ink2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <button type="button" onClick={() => startCallWith(activeCh.type === 'dm' ? activeCh.other_user_id : null, 'VOICE')} style={{ width: 34, height: 34, borderRadius: 'var(--r)', background: 'var(--card-sunken)', border: 'none', color: 'var(--ink2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Icon name="phone" size={16} />
                   </button>
                 </Tip>
                 <Tip label="Start Video Call">
-                  <button type="button" onClick={() => navigate('/bliss/calls')} style={{ width: 34, height: 34, borderRadius: 'var(--r)', background: 'var(--card-sunken)', border: 'none', color: 'var(--ink2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <button type="button" onClick={() => startCallWith(activeCh.type === 'dm' ? activeCh.other_user_id : null, 'VIDEO')} style={{ width: 34, height: 34, borderRadius: 'var(--r)', background: 'var(--card-sunken)', border: 'none', color: 'var(--ink2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Icon name="camera" size={16} />
                   </button>
                 </Tip>
@@ -803,10 +841,11 @@ export const Chat: React.FC = () => {
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                        <div style={{ position: 'relative', flexShrink: 0 }}>
-                          <PersonAvatar name={m.name} userId={m.isCurrent ? user?.id : m.id} size={28} />
-                          <span style={{ position: 'absolute', bottom: -1, right: -1, width: 7, height: 7, borderRadius: '50%', background: '#10b981', border: '1.5px solid var(--white)' }} />
-                        </div>
+                        {/* PersonAvatar already draws a real, live status dot
+                            for kind:'people' + userId — a second hand-rolled
+                            dot here used to hardcode green/"online" for
+                            every member regardless of actual presence. */}
+                        <PersonAvatar name={m.name} userId={m.isCurrent ? user?.id : m.id} size={28} />
                         <div style={{ minWidth: 0 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                             <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -846,13 +885,14 @@ export const Chat: React.FC = () => {
           {/* User Details & Actions for DMs */}
           {activeCh.type === 'dm' && (() => {
             const otherStaff = staff.find(s => s.id === activeCh.other_user_id);
+            const presenceCfg = dmPresence ? PRESENCE_LABEL[dmPresence] : null;
             return (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 4 }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, background: 'var(--card-sunken)', borderRadius: 10, padding: 12, border: '1px solid var(--border2)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12 }}>
                     <span style={{ color: 'var(--ink3)', fontWeight: 600 }}>Status</span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: '#10b981', fontWeight: 700, fontSize: 11.5 }}>
-                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981' }} /> Online
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: presenceCfg?.color ?? 'var(--ink3)', fontWeight: 700, fontSize: 11.5 }}>
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: presenceCfg?.color ?? 'var(--ink3)' }} /> {presenceCfg?.label ?? '—'}
                     </span>
                   </div>
                   {otherStaff?.email && (
@@ -872,14 +912,14 @@ export const Chat: React.FC = () => {
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button
                     type="button"
-                    onClick={() => navigate('/bliss/calls')}
+                    onClick={() => startCallWith(activeCh.other_user_id, 'VOICE')}
                     style={{ flex: 1, height: 32, borderRadius: 8, border: '1px solid var(--border2)', background: 'var(--card-sunken)', color: 'var(--ink2)', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
                   >
                     <Icon name="phone" size={13} /> Call
                   </button>
                   <button
                     type="button"
-                    onClick={() => navigate('/bliss/calls')}
+                    onClick={() => startCallWith(activeCh.other_user_id, 'VIDEO')}
                     style={{ flex: 1, height: 32, borderRadius: 8, border: '1px solid var(--border2)', background: 'var(--card-sunken)', color: 'var(--ink2)', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
                   >
                     <Icon name="camera" size={13} /> Video

@@ -30,7 +30,7 @@ export async function notificationRoutes(fastify: FastifyInstance) {
     // a real limit/offset to page through everything instead of only ever
     // seeing the 50 most recent — that mismatch was why the "Unread" tab
     // count could exceed what the dropdown actually showed.
-    const { limit: limitRaw, offset: offsetRaw, unread_only } = request.query as { limit?: string; offset?: string; unread_only?: string };
+    const { limit: limitRaw, offset: offsetRaw, unread_only, type } = request.query as { limit?: string; offset?: string; unread_only?: string; type?: string };
     const limit = Math.min(parseInt(limitRaw ?? '50', 10) || 50, 200);
     const offset = Math.max(parseInt(offsetRaw ?? '0', 10) || 0, 0);
 
@@ -70,6 +70,20 @@ export async function notificationRoutes(fastify: FastifyInstance) {
       }
 
       if (unread_only === 'true') q = q.where('read', '=', false);
+
+      // BlissNotifications.tsx's category tabs (Tasks/Support/Security/Chat)
+      // used to fetch the same unfiltered "all" page as every other tab and
+      // filter it client-side — meaning anything of that type outside
+      // whatever 30 rows happened to be on screen simply never appeared, no
+      // matter how many actually existed. unread_count/total_count stay
+      // scoped to "type" too, so the tab's own counts and pagination agree
+      // with what it actually shows instead of reporting the platform-wide
+      // total under a category label.
+      if (type) {
+        q = q.where('type', '=', type);
+        countQ = countQ.where('type', '=', type);
+        totalQ = totalQ.where('type', '=', type);
+      }
 
       const list = await q.orderBy('created_at', 'desc').limit(limit).offset(offset).execute();
       const countResult = await countQ.executeTakeFirst();

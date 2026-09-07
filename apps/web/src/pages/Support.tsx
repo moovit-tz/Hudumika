@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
-import { apiFetch } from '../lib/api.js';
+import { apiFetch, apiDownload } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.js';
+import { OPS_ROLES } from '../lib/permissions.js';
 import { useMediaQuery } from '../hooks/useMediaQuery.js';
 import { useWebSocket } from '../hooks/useWebSocket.js';
 import { Icon } from '../components/Icon.js';
@@ -12,12 +13,23 @@ import type { IconName } from '../components/Icon.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import '../pages/Bliss.css';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { Checkbox } from '../components/ui/checkbox.js';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog.js';
 import { Badge } from '../components/ui/badge.js';
 import { Tip } from '../components/ui/tooltip.js';
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuSeparator, DropdownMenuItem } from '../components/ui/dropdown-menu.js';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuSeparator, DropdownMenuItem, DropdownMenuCheckboxItem } from '../components/ui/dropdown-menu.js';
+import { Popover, PopoverTrigger, PopoverContent } from '../components/ui/popover.js';
 import { showAlert } from '../lib/alert.js';
+
+// Same emoji set Team Chat's own composer offers (Chat.tsx) — one set, not
+// a second invented list, so a reply picks from the same palette a channel
+// message would.
+const COMPOSER_EMOJIS = ['👍', '❤️', '😄', '🎉', '🚀', '👀', '✅', '😂', '🙌', '💯', '🔥', '👋', '🤝', '📦', '✈️', '⚓'];
+
+// Same resolveDriveId() caching pattern ContractDetail.tsx already uses for
+// its own attachment uploads — one drive, not re-fetched per attach.
+let cachedSupportDriveId: string | null = null;
 
 const COMPLYOS_AGENCIES = [
   { code: 'BRELA', name: 'BRELA — Business Registration & Licensing' },
@@ -104,7 +116,11 @@ export interface Ticket {
   customer: string; customer_id?: string; customer_email?: string;
   customer_phone?: string; customer_company?: string;
   category: string; status: StatusKey; priority: PriorityKey;
-  assigned_to?: string; created_at: string; updated_at?: string;
+  // Both list and detail endpoints already join `users` and return this
+  // (u.id as assigned_to_id) — it just never made it into this interface,
+  // so every assignee avatar fell back to initials for want of an id to
+  // look a real photo up by, even for a real staff account that has one.
+  assigned_to?: string; assigned_to_id?: string; created_at: string; updated_at?: string;
   messages?: Message[]; message_count?: number;
   tags?: string[]; related_shipments?: string[];
   group_id?: string | null; group_name?: string | null; group_color?: string | null;
@@ -116,9 +132,18 @@ export interface Ticket {
 export interface SupportGroup { id: string; name: string; color: string; ticket_count?: number; }
 export interface SupportView { id: string; name: string; filters: Record<string, any>; }
 
+export interface MessageAttachment { id: string; name: string; size: number | null; mime_type: string | null }
 export interface Message {
   id: string; content: string; author_name: string;
+  // Real column on support_messages (messaging.service.ts and the inbound
+  // webhook both write it — the customer's id for CUSTOMER messages, the
+  // sending officer's user id for OFFICER ones) that GET .../messages was
+  // already returning via selectAll(); this interface just never declared
+  // it, so every message bubble fell back to initials regardless of
+  // whether a real photo existed.
+  author_id?: string;
   author_type: 'OFFICER' | 'CUSTOMER'; channel?: ChannelId; created_at: string;
+  attachments?: MessageAttachment[];
 }
 
 /* ── Config ── */
@@ -178,6 +203,13 @@ export const relTime = (d: string) => {
   if (s < 604800) return `${Math.floor(s / 86400)}d ago`;
   return parsed.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
 };
+
+// Same formatting ShipmentDetail.tsx's own attachment list already uses.
+function fmtAttachmentSize(bytes: number): string {
+  if (bytes >= 1_048_576) return `${(bytes / 1_048_576).toFixed(1)} MB`;
+  if (bytes >= 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${bytes} B`;
+}
 
 // Instagram/Facebook/Telegram were removed from ChannelId entirely — the
 // backend's own MessageChannel type (packages/types/src/core.ts) never
@@ -331,7 +363,7 @@ function loadHiddenColumns(): Set<ColumnId> {
   return new Set();
 }
 
-function ConvList({ tickets, selected, onSelect, onNew, groups, views, onCreateGroup, onCreateView, onDeleteView, isDesktop, initialChannelFilter, queueMode, agents = [], viewMode = 'chat', onViewModeChange }: {
+function ConvList({ tickets, selected, onSelect, onNew, groups, views, onCreateGroup, onCreateView, onDeleteView, isDesktop, initialChannelFilter, queueMode, agents = [], viewMode = 'chat', onViewModeChange, onBulkStatus, onBulkAssign, onBulkGroup }: {
   tickets: Ticket[]; selected: Ticket | null;
   onSelect: (t: Ticket) => void; onNew: () => void;
   groups: SupportGroup[]; views: SupportView[];
@@ -344,6 +376,9 @@ function ConvList({ tickets, selected, onSelect, onNew, groups, views, onCreateG
   agents?: { id: string; name: string }[];
   viewMode?: ViewMode;
   onViewModeChange?: (v: ViewMode) => void;
+  onBulkStatus: (ids: string[], status: StatusKey) => Promise<void>;
+  onBulkAssign: (ids: string[], assigneeId: string) => Promise<void>;
+  onBulkGroup: (ids: string[], groupId: string | null) => Promise<void>;
 }) {
   const [convPage, setConvPage] = useState(1);
   const [sel, setSel] = useState<FilterSel>({ kind: 'fixed', key: 'inbox' });
@@ -534,7 +569,7 @@ function ConvList({ tickets, selected, onSelect, onNew, groups, views, onCreateG
           <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {t.assigned_to ? (
               <>
-                <Av name={t.assigned_to} size={20} />
+                <Av name={t.assigned_to} userId={t.assigned_to_id} kind="people" size={20} />
                 <span style={{ fontSize: 12.5, color: 'var(--ink2)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {t.assigned_to}
                 </span>
@@ -599,7 +634,7 @@ function ConvList({ tickets, selected, onSelect, onNew, groups, views, onCreateG
       </div>
 
       {searchOpen && (
-        <div style={{ padding: '0 12px 10px' }}>
+        <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--border)', background: 'var(--bg)' }}>
           <div className="spt-bedesk-search-input-wrap">
             <Icon name="search" size={13} color="var(--ink3)" />
             <input
@@ -764,19 +799,117 @@ function ConvList({ tickets, selected, onSelect, onNew, groups, views, onCreateG
         </div>
       </div>
 
-      {/* Bottom Pinned Action */}
+      {/* Bottom Pinned: Assignee Filter — moved down from the toolbar row
+          above the ticket list, which only ever had room for it alongside
+          the status Tabs by scrolling. "Manage views" that lived in this
+          slot linked to Operational Mode, itself always reachable from
+          Bliss's own main nav — a real destination, just a redundant third
+          path to it once the header's own Settings button already covered
+          the same ground. */}
       <div className="spt-bedesk-nav-ft">
-        <Link to="/bliss/operational-mode" className="spt-bedesk-nav-ft-link">
-          <Icon name="sliders" size={14} />
-          <span>Manage views</span>
-        </Link>
+        <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
+          <SelectTrigger className="spt-bedesk-val-select" style={{ width: '100%' }}>
+            <SelectValue placeholder="All assignees" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All assignees</SelectItem>
+            <SelectItem value="unassigned">Unassigned</SelectItem>
+            {agents.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
       </div>
+    </div>
+  );
+
+  // statusTabFilter/assigneeFilter already drove the real filtering logic
+  // above (visible = tickets.filter(...)) with no control anywhere that
+  // ever changed either away from its initial value — a finer cut within
+  // the sidebar's own broader buckets (e.g. "Pending" here is IN_PROGRESS
+  // only, distinct from the sidebar's "Inbox" which lumps OPEN+IN_PROGRESS
+  // together; the sidebar has no per-agent filter at all).
+  const STATUS_TABS: { key: typeof statusTabFilter; label: string }[] = [
+    { key: 'all', label: 'All' }, { key: 'open', label: 'Open' },
+    { key: 'pending', label: 'Pending' }, { key: 'resolved', label: 'Resolved' },
+  ];
+  const filterBar = (
+    // Always exactly one row, never wrapped and never shrunk to invisible.
+    // The conversation-list panel is a resizable react-resizable-panels
+    // column (minSize 20%) that at its default size gives this row less
+    // room than the tabs + select need at their natural, fully-legible
+    // width — flexWrap broke it into two lines, and shrinking the select
+    // with no real floor let it collapse toward 0 width instead. Neither
+    // is "a single row" in any useful sense. The one thing that keeps
+    // BOTH controls fully readable at every panel width is the same
+    // visible-scrollbar overflow ds-tabs.css already uses for a tab row
+    // that doesn't fit — scroll the row itself rather than hide anything.
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8,
+      padding: '0 14px',
+      borderBottom: '1px solid var(--border)',
+      overflowX: 'auto',
+      scrollbarWidth: 'none',
+      height: 50,
+      minHeight: 50,
+      maxHeight: 50,
+      background: 'var(--card-bg, var(--white))',
+      flexShrink: 0,
+      boxSizing: 'border-box',
+    }}>
+      <Tabs value={statusTabFilter} onValueChange={v => setStatusTabFilter(v as any)} variant="segmented" style={{ flexShrink: 0 }}>
+        <TabsList>
+          {STATUS_TABS.map(tab => (
+            <TabsTrigger key={tab.key} value={tab.key} style={{ fontSize: 11.5, padding: '0 8px' }}>
+              {tab.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
+    </div>
+  );
+
+  // The row/table checkboxes and "select all" already existed with real
+  // selection state (selectedIds) — nothing consumed it (see Bliss.css's own
+  // "nobody's using yet" comment on .spt-row-checkbox). This is that
+  // consumer: bulk status/assignee/group changes over whatever's selected,
+  // reusing the same per-ticket endpoints the Details panel's own Select
+  // rows call, not a new bulk API.
+  const bulkBar = selectedIds.size > 0 && (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', background: 'var(--teal-l)', borderBottom: '1px solid var(--border)', flexWrap: 'wrap' }}>
+      <span style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--teal)', marginRight: 4 }}>{selectedIds.size} selected</span>
+      <Select value="__" onValueChange={v => { onBulkStatus(Array.from(selectedIds), v as StatusKey).then(() => setSelectedIds(new Set())); }}>
+        <SelectTrigger className="spt-bedesk-val-select" style={{ width: 130 }}><span style={{ fontSize: 12 }}>Set status…</span></SelectTrigger>
+        <SelectContent>
+          <SelectItem value="OPEN">Open</SelectItem>
+          <SelectItem value="IN_PROGRESS">Pending</SelectItem>
+          <SelectItem value="RESOLVED">Resolved</SelectItem>
+          <SelectItem value="CLOSED">Closed</SelectItem>
+        </SelectContent>
+      </Select>
+      <Select value="__" onValueChange={v => { onBulkAssign(Array.from(selectedIds), v).then(() => setSelectedIds(new Set())); }}>
+        <SelectTrigger className="spt-bedesk-val-select" style={{ width: 130 }}><span style={{ fontSize: 12 }}>Assign to…</span></SelectTrigger>
+        <SelectContent>
+          {agents.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+        </SelectContent>
+      </Select>
+      <Select value="__" onValueChange={v => { onBulkGroup(Array.from(selectedIds), v === '__none__' ? null : v).then(() => setSelectedIds(new Set())); }}>
+        <SelectTrigger className="spt-bedesk-val-select" style={{ width: 130 }}><span style={{ fontSize: 12 }}>Add to group…</span></SelectTrigger>
+        <SelectContent>
+          <SelectItem value="__none__">General</SelectItem>
+          {groups.map(g => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
+        </SelectContent>
+      </Select>
+      <button type="button" onClick={() => setSelectedIds(new Set())} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--teal)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+        Clear selection
+      </button>
     </div>
   );
 
   const listContent = (
     <div className="spt-tix-list-pane">
-
+      {filterBar}
+      {bulkBar}
 
       {activeViewMode === 'chat' ? (
         <div className={`spt-conv-rows${selectedIds.size > 0 ? ' spt-conv-rows--selecting' : ''}`}>
@@ -875,11 +1008,34 @@ function ConvList({ tickets, selected, onSelect, onNew, groups, views, onCreateG
                     </th>
                   );
                 })}
+                <th style={{ width: 32, minWidth: 32, textAlign: 'center', padding: '8px 4px' }}>
+                  <DropdownMenu>
+                    <Tip label="Show/hide columns">
+                      <DropdownMenuTrigger asChild>
+                        <button type="button" onClick={e => e.stopPropagation()} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4, display: 'flex' }}>
+                          <Icon name="settings" size={13} />
+                        </button>
+                      </DropdownMenuTrigger>
+                    </Tip>
+                    <DropdownMenuContent align="end">
+                      {colOrder.map(colId => (
+                        <DropdownMenuCheckboxItem
+                          key={colId}
+                          checked={!hiddenCols.has(colId)}
+                          onCheckedChange={() => toggleColumnVisible(colId)}
+                          onSelect={e => e.preventDefault()}
+                        >
+                          {COLUMN_LABELS[colId]}
+                        </DropdownMenuCheckboxItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </th>
               </tr>
             </thead>
             <tbody>
               {paged.length === 0 && (
-                <tr><td colSpan={visibleColOrder.length + 1} className="spt-conv-empty">No conversations found</td></tr>
+                <tr><td colSpan={visibleColOrder.length + 2} className="spt-conv-empty">No conversations found</td></tr>
               )}
               {paged.map(t => {
                 const isSel = selected?.id === t.id;
@@ -903,6 +1059,7 @@ function ConvList({ tickets, selected, onSelect, onNew, groups, views, onCreateG
                         {renderColumnCell(colId, t)}
                       </td>
                     ))}
+                    <td style={{ width: 32, minWidth: 32 }} />
                   </tr>
                 );
               })}
@@ -954,11 +1111,9 @@ function ConvList({ tickets, selected, onSelect, onNew, groups, views, onCreateG
 /* ══════════════════════════════════════════
    COL 3 — BeDesk Conversation Thread & Composer
 ══════════════════════════════════════════ */
-function ThreadPanel({ ticket, onStatusChange, authorName, onClose, onOpenDetails, aiSuggestionToUse, agents = [], onReassign }: {
-  ticket: Ticket; onStatusChange: (id: string, s: StatusKey) => void;
+function ThreadPanel({ ticket, authorName, onClose, onOpenDetails, aiSuggestionToUse }: {
+  ticket: Ticket;
   authorName: string; onClose: () => void; onOpenDetails?: () => void; aiSuggestionToUse?: string;
-  agents?: { id: string; name: string }[];
-  onReassign?: (id: string, assigneeId: string) => void;
 }) {
   const [messages, setMessages] = useState<Message[]>(ticket.messages || []);
   const [sending, setSending] = useState(false);
@@ -967,9 +1122,71 @@ function ThreadPanel({ ticket, onStatusChange, authorName, onClose, onOpenDetail
   const [compose, setCompose] = useState('');
   const [emailSubj, setEmailSubj] = useState(`Re: [${ticket.ref}] ${ticket.subject}`);
   const [broadcastResult, setBroadcastResult] = useState<{ ch: string; success: boolean }[]>([]);
-  const [showComplyModal, setShowComplyModal] = useState(false);
+  const [showEmoji, setShowEmoji] = useState(false);
+  const [showMacros, setShowMacros] = useState(false);
+  const [macros, setMacros] = useState<{ id: string; title: string; content: string }[] | null>(null);
+  const [newMacroOpen, setNewMacroOpen] = useState(false);
+  const [newMacroTitle, setNewMacroTitle] = useState('');
+  const [pendingAttachments, setPendingAttachments] = useState<{ id: string; name: string; size: number | null; mime_type: string | null }[]>([]);
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const msgEndRef = useRef<HTMLDivElement>(null);
   const isMobile = useMediaQuery('(max-width: 899px)');
+
+  function loadMacros() {
+    if (macros !== null) return;
+    apiFetch('/v1/support/macros').then((r: any) => setMacros(Array.isArray(r) ? r : [])).catch(() => setMacros([]));
+  }
+
+  async function saveMacro() {
+    if (!newMacroTitle.trim() || !compose.trim()) return;
+    try {
+      const macro = await apiFetch('/v1/support/macros', { method: 'POST', body: JSON.stringify({ title: newMacroTitle.trim(), content: compose }) });
+      setMacros(prev => [...(prev ?? []), macro].sort((a, b) => a.title.localeCompare(b.title)));
+      setNewMacroTitle('');
+      setNewMacroOpen(false);
+    } catch (err: any) { showAlert(err.message || 'Could not save this macro.'); }
+  }
+
+  async function deleteMacro(id: string, e: React.MouseEvent) {
+    e.stopPropagation();
+    try {
+      await apiFetch(`/v1/support/macros/${id}`, { method: 'DELETE' });
+      setMacros(prev => (prev ?? []).filter(m => m.id !== id));
+    } catch (err: any) { showAlert(err.message || 'Could not delete this macro.'); }
+  }
+
+  // Attachments only apply to internal notes (see support.routes.ts PATCH
+  // /tickets/:id/messages and migration 410's own header comment for why —
+  // no WhatsApp/Email/SMS media-delivery integration exists yet, so
+  // offering this on a customer-facing broadcast would be a fake success).
+  async function handleAttach(files: FileList | null) {
+    if (!files || files.length === 0) return;
+    setUploadingAttachment(true);
+    try {
+      let driveId = cachedSupportDriveId;
+      if (!driveId) {
+        const drives = await apiFetch('/v1/drives');
+        const list = Array.isArray(drives) ? drives : (drives.data ?? []);
+        if (!list.length) throw new Error('No drive available to attach files to.');
+        driveId = list[0].id;
+        cachedSupportDriveId = driveId;
+      }
+      for (const file of Array.from(files)) {
+        const fd = new FormData();
+        fd.append('file', file);
+        const uploaded = await apiFetch(`/v1/files/upload?drive_id=${driveId}&entity_type=support_ticket&entity_id=${ticket.id}`, { method: 'POST', body: fd });
+        setPendingAttachments(prev => [...prev, { id: uploaded.id, name: uploaded.name, size: uploaded.size, mime_type: uploaded.mime_type }]);
+      }
+    } catch (err: any) {
+      showAlert(err.message || 'Upload failed.');
+    } finally {
+      setUploadingAttachment(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      if (imageInputRef.current) imageInputRef.current.value = '';
+    }
+  }
 
   useEffect(() => {
     setMessages(ticket.messages || []);
@@ -1006,19 +1223,20 @@ function ThreadPanel({ ticket, onStatusChange, authorName, onClose, onOpenDetail
     try {
       if (isNote) {
         const res: any = await apiFetch(`/v1/support/tickets/${ticket.id}/messages`, {
-          method: 'POST', body: JSON.stringify({ content, channel: 'NOTE' }),
-        }).catch(() => null);
+          method: 'POST', body: JSON.stringify({ content, channel: 'NOTE', attachment_file_ids: pendingAttachments.map(a => a.id) }),
+        });
         setMessages(prev => [...prev, {
           id: `local-${Date.now()}`, content, channel: 'note',
           author_type: 'OFFICER', author_name: authorName, created_at: new Date().toISOString(),
           ...(res || {}),
         }]);
+        setPendingAttachments([]);
       } else {
         const channels = Array.from(broadcastChs).map(ch => ch.toUpperCase());
         const res: any = await apiFetch(`/v1/support/tickets/${ticket.id}/broadcast`, {
           method: 'POST',
-          body: JSON.stringify({ content, channels, email_subject: emailSubj }),
-        }).catch(() => null);
+          body: JSON.stringify({ content, channels, email_subject: emailSubj, attachment_file_ids: pendingAttachments.map(a => a.id) }),
+        });
 
         if (res?.results) {
           setBroadcastResult(res.results.map((r: any) => ({ ch: r.channel, success: r.success })));
@@ -1032,17 +1250,70 @@ function ThreadPanel({ ticket, onStatusChange, authorName, onClose, onOpenDetail
           author_type: 'OFFICER' as const,
           author_name: authorName,
           created_at: new Date().toISOString(),
+          // Only the channels the backend actually links attachments to
+          // (see /broadcast's own comment) — a WhatsApp/SMS bubble showing
+          // an attachment chip would claim a delivery that never happened.
+          attachments: (ch === 'email' || ch === 'inapp') ? pendingAttachments : undefined,
         }));
         setMessages(prev => [...prev, ...newMsgs]);
+        setPendingAttachments([]);
       }
-    } catch { /* silent */ }
-    setCompose('');
-    setSending(false);
+      setCompose('');
+    } catch (err: any) {
+      // Leave the draft in place on failure — clearing it here (the old
+      // behaviour, regardless of success or failure) meant a failed send
+      // silently discarded whatever the agent had just typed.
+      showAlert(err.message || 'Could not send that.');
+    } finally {
+      setSending(false);
+    }
     setTimeout(() => setBroadcastResult([]), 5000);
   };
 
   const visible = messages;
+
+  // Broadcasting to N channels genuinely creates N support_messages rows —
+  // one per channel, so each channel's own delivery status (WhatsApp sent,
+  // Email failed, ...) can be tracked independently, on the backend and
+  // even in this same optimistic append below. Rendering each of those rows
+  // as its own bubble is what showed the same "Hellow" four times in a row:
+  // real data, wrong presentation. This merges adjacent rows back into one
+  // bubble per actual send when they're clearly the same broadcast — same
+  // officer, same text, arriving within the same request — and shows which
+  // channels it reached as a row of pills instead of repeating the bubble.
+  // Never merges two customer replies or two notes that just happen to
+  // share text; only an OFFICER broadcast ever fans out like this.
+  const groupedVisible = useMemo(() => {
+    const groups: { first: Message; channels: ChannelId[] }[] = [];
+    for (const m of visible) {
+      const chKey = (m.channel?.toLowerCase() || 'inapp') as ChannelId;
+      const last = groups[groups.length - 1];
+      const lastChKey = last ? (last.first.channel?.toLowerCase() || 'inapp') as ChannelId : null;
+      const canMerge = !!last
+        && m.author_type === 'OFFICER' && last.first.author_type === 'OFFICER'
+        && chKey !== 'note' && lastChKey !== 'note'
+        && m.content === last.first.content
+        && m.author_name === last.first.author_name
+        && Math.abs(new Date(m.created_at).getTime() - new Date(last.first.created_at).getTime()) < 10_000;
+      if (canMerge && last) {
+        if (!last.channels.includes(chKey)) last.channels.push(chKey);
+      } else {
+        groups.push({ first: m, channels: [chKey] });
+      }
+    }
+    return groups;
+  }, [visible]);
+
   const canSend = compose.trim().length > 0 && !sending;
+  // Attach/Insert image are real (see support.routes.ts's /broadcast) for
+  // EMAIL — a genuine MIME attachment — and IN_APP — just a row + link,
+  // nothing external to fake. WhatsApp has no media-message support in
+  // this integration and SMS isn't MMS, so the moment either is one of the
+  // selected channels, attaching would either silently drop the file for
+  // that channel or (worse) look attached on a bubble that never carried
+  // it — the button stays off for the whole send rather than attach
+  // "mostly".
+  const canAttachToBroadcast = broadcastChs.size > 0 && Array.from(broadcastChs).every(ch => ch === 'email' || ch === 'inapp');
   const BROADCAST_ORDER: ChannelId[] = ['whatsapp', 'email', 'inapp', 'sms'];
 
   return (
@@ -1063,7 +1334,6 @@ function ThreadPanel({ ticket, onStatusChange, authorName, onClose, onOpenDetail
             </Tip>
           )}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-            <Checkbox className="spt-row-checkbox" style={{ opacity: 1 }} checked={false} />
             <span className="spt-thread-customer">{ticket.customer}</span>
             <ChPill ch={channelKey(ticket.channel)} />
             <span className="spt-thread-ref">#{ticket.ref}</span>
@@ -1071,72 +1341,18 @@ function ThreadPanel({ ticket, onStatusChange, authorName, onClose, onOpenDetail
         </div>
 
         <div className="spt-thread-hdr-right">
-          {/* Assignee Selector */}
-          <div className="spt-bedesk-hdr-ctrl">
-            <span className="spt-bedesk-ctrl-label">Assignee:</span>
-            <Select value={agents.find(a => a.name === ticket.assigned_to)?.id || '__unassigned__'} onValueChange={v => onReassign && v !== '__unassigned__' && onReassign(ticket.id, v)}>
-              <SelectTrigger className="spt-bedesk-hdr-select">
-                <SelectValue placeholder={ticket.assigned_to || 'Unassigned'} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__unassigned__">Unassigned</SelectItem>
-                {agents.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Status Picker */}
-          <Select value={ticket.status} onValueChange={v => onStatusChange(ticket.id, v as StatusKey)}>
-            <SelectTrigger className={`spt-status-select spt-status-select--${ticket.status.toLowerCase().replace('_', '-')}`} style={{ width: 110 }}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="OPEN">Open</SelectItem>
-              <SelectItem value="IN_PROGRESS">Pending</SelectItem>
-              <SelectItem value="RESOLVED">Resolved</SelectItem>
-              <SelectItem value="CLOSED">Closed</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {/* More Dropdown */}
-          <DropdownMenu>
-            <Tip label="More options">
-              <DropdownMenuTrigger asChild>
-                <button type="button" className="spt-bedesk-icon-btn">
-                  <Icon name="moreVertical" size={16} />
-                </button>
-              </DropdownMenuTrigger>
+          {/* Assignee, status, "more" actions and tags all moved into the
+              always-visible Details pane (desktop) / drawer (mobile) below —
+              editing them from two places at once is what this replaces.
+              The one thing kept here is a way to actually *reach* that pane
+              on mobile, where it's a drawer rather than a fixed 3rd column. */}
+          {isMobile && (
+            <Tip label="View details">
+              <button type="button" className="spt-bedesk-icon-btn" onClick={onOpenDetails}>
+                <Icon name="dockRight" size={16} />
+              </button>
             </Tip>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setShowComplyModal(true)}>
-                <Icon name="shield" size={13} style={{ marginRight: 8 }} />
-                Send to ComplyOS
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigator.clipboard.writeText(ticket.ref)}>
-                <Icon name="copy" size={13} style={{ marginRight: 8 }} />
-                Copy Reference
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => onStatusChange(ticket.id, 'CLOSED')}>
-                <Icon name="checkCircle" size={13} style={{ marginRight: 8 }} />
-                Mark as Closed
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          {/* Tag Button */}
-          <Tip label="Tags">
-            <button type="button" className="spt-bedesk-icon-btn" onClick={onOpenDetails}>
-              <Icon name="tag" size={15} />
-            </button>
-          </Tip>
-
-          {/* Close Action Button */}
-          <Tip label="Mark as closed">
-            <button type="button" className="spt-bedesk-close-btn" onClick={() => onStatusChange(ticket.id, 'CLOSED')}>
-              <Icon name="x" size={13} strokeWidth={2.5} />
-            </button>
-          </Tip>
+          )}
         </div>
       </div>
 
@@ -1160,7 +1376,7 @@ function ThreadPanel({ ticket, onStatusChange, authorName, onClose, onOpenDetail
           </div>
         )}
 
-        {visible.map((m, idx) => {
+        {groupedVisible.map(({ first: m, channels: sentChannels }) => {
           const ch = (m.channel?.toLowerCase() || 'inapp') as ChannelId;
           const isNoteMsg = ch === 'note';
           const isOff = m.author_type === 'OFFICER';
@@ -1183,18 +1399,52 @@ function ThreadPanel({ ticket, onStatusChange, authorName, onClose, onOpenDetail
                 <div style={{ fontSize: 13, lineHeight: 1.6, color: 'var(--ink)' }}>
                   {m.content}
                 </div>
+                {m.attachments && m.attachments.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+                    {m.attachments.map(a => (
+                      <button key={a.id} type="button"
+                        onClick={() => apiDownload(`/v1/files/${a.id}/download`, a.name).catch((err: any) => showAlert(err.message || 'Download failed'))}
+                        style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 9px', borderRadius: 'var(--r)', background: 'var(--white)', border: '1px solid var(--border)', cursor: 'pointer', fontSize: 11.5, color: 'var(--ink2)' }}>
+                        <Icon name={(a.mime_type || '').startsWith('image/') ? 'image' : 'paperclip'} size={12} />
+                        <span style={{ maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.name}</span>
+                        {a.size != null && <span style={{ color: 'var(--ink3)' }}>({fmtAttachmentSize(a.size)})</span>}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             );
           }
 
           return (
             <div key={m.id} className={`spt-bedesk-msg ${isOff ? 'spt-bedesk-msg--officer' : 'spt-bedesk-msg--customer'}`}>
-              <Av name={m.author_name} size={32} />
+              <Av name={m.author_name} userId={m.author_id} kind={isOff ? 'people' : 'customers'} size={32} />
               <div className="spt-bedesk-msg-bubble-wrap">
                 <div className="spt-bedesk-msg-bubble">
                   {m.content}
                   {isOff && <span style={{ marginLeft: 8, fontSize: 11, opacity: 0.8, verticalAlign: 'middle' }}>✓✓</span>}
                 </div>
+                {m.attachments && m.attachments.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+                    {m.attachments.map(a => (
+                      <button key={a.id} type="button"
+                        onClick={() => apiDownload(`/v1/files/${a.id}/download`, a.name).catch((err: any) => showAlert(err.message || 'Download failed'))}
+                        style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 9px', borderRadius: 'var(--r)', background: 'var(--white)', border: '1px solid var(--border)', cursor: 'pointer', fontSize: 11.5, color: 'var(--ink2)' }}>
+                        <Icon name={(a.mime_type || '').startsWith('image/') ? 'image' : 'paperclip'} size={12} />
+                        <span style={{ maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.name}</span>
+                        {a.size != null && <span style={{ color: 'var(--ink3)' }}>({fmtAttachmentSize(a.size)})</span>}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {/* Only shows for an actual multi-channel broadcast (see
+                    groupedVisible above) — a single-channel reply keeps the
+                    plain timestamp-only footer it always had. */}
+                {sentChannels.length > 1 && (
+                  <div style={{ display: 'flex', gap: 4, marginTop: 4, flexWrap: 'wrap' }}>
+                    {sentChannels.map(c => <ChPill key={c} ch={c} />)}
+                  </div>
+                )}
                 <div className="spt-bedesk-msg-time">{timeLbl}</div>
               </div>
             </div>
@@ -1293,40 +1543,121 @@ function ThreadPanel({ ticket, onStatusChange, authorName, onClose, onOpenDetail
         </div>
 
         <div className="spt-bedesk-composer-ft">
+          {pendingAttachments.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+              {pendingAttachments.map(a => (
+                <span key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 6px 4px 9px', borderRadius: 'var(--r)', background: 'var(--bg)', border: '1px solid var(--border)', fontSize: 11.5, color: 'var(--ink2)' }}>
+                  <Icon name={(a.mime_type || '').startsWith('image/') ? 'image' : 'paperclip'} size={12} />
+                  <span style={{ maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.name}</span>
+                  <button type="button" onClick={() => setPendingAttachments(prev => prev.filter(x => x.id !== a.id))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 2, display: 'flex' }}>
+                    <Icon name="x" size={11} />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
           <div className="spt-bedesk-toolbar-icons">
-            <Tip label="Insert snippet / action">
-              <button type="button" className="spt-bedesk-tb-btn">
-                <Icon name="plusSquare" size={15} />
-              </button>
-            </Tip>
-            <Tip label="Insert Emoji">
-              <button type="button" className="spt-bedesk-tb-btn">
-                <Icon name="smile" size={15} />
-              </button>
-            </Tip>
-            <Tip label="Canned responses / Macros">
-              <button type="button" className="spt-bedesk-tb-btn">
-                <Icon name="cannedResponse" size={15} />
-              </button>
-            </Tip>
-            <Tip label="Attach file">
-              <button type="button" className="spt-bedesk-tb-btn">
-                <Icon name="paperclip" size={15} />
-              </button>
-            </Tip>
-            <Tip label="Insert image">
-              <button type="button" className="spt-bedesk-tb-btn">
-                <Icon name="image" size={15} />
-              </button>
-            </Tip>
-            <Tip label="AI Copilot Sparkles">
+            <Popover open={showEmoji} onOpenChange={setShowEmoji}>
+              <Tip label="Insert Emoji">
+                <PopoverTrigger asChild>
+                  <button type="button" className="spt-bedesk-tb-btn">
+                    <Icon name="smile" size={15} />
+                  </button>
+                </PopoverTrigger>
+              </Tip>
+              <PopoverContent align="start" side="top" className="w-auto p-2">
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8,1fr)', gap: 4 }}>
+                  {COMPOSER_EMOJIS.map(em => (
+                    <button key={em} type="button" onClick={() => { setCompose(c => c + em); setShowEmoji(false); }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, padding: 4 }}>
+                      {em}
+                    </button>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+            <Popover open={showMacros} onOpenChange={o => { setShowMacros(o); if (o) loadMacros(); else setNewMacroOpen(false); }}>
+              <Tip label="Canned responses / Macros">
+                <PopoverTrigger asChild>
+                  <button type="button" className="spt-bedesk-tb-btn">
+                    <Icon name="cannedResponse" size={15} />
+                  </button>
+                </PopoverTrigger>
+              </Tip>
+              <PopoverContent align="start" side="top" className="w-72 p-2">
+                <div style={{ maxHeight: 240, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {macros === null && <div style={{ padding: 10, fontSize: 12, color: 'var(--ink3)' }}>Loading…</div>}
+                  {macros !== null && macros.length === 0 && <div style={{ padding: 10, fontSize: 12, color: 'var(--ink3)' }}>No canned responses yet.</div>}
+                  {macros?.map(m => (
+                    <div key={m.id} role="button" tabIndex={0}
+                      onClick={() => { setCompose(c => c ? `${c}\n${m.content}` : m.content); setShowMacros(false); }}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = '')}
+                      style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 8px', borderRadius: 6, cursor: 'pointer' }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)' }}>{m.title}</div>
+                        <div style={{ fontSize: 11, color: 'var(--ink3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.content}</div>
+                      </div>
+                      <button type="button" title="Delete" onClick={e => deleteMacro(m.id, e)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4, display: 'flex', flexShrink: 0 }}>
+                        <Icon name="trash2" size={12} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ borderTop: '1px solid var(--border)', marginTop: 6, paddingTop: 6 }}>
+                  {newMacroOpen ? (
+                    <div style={{ display: 'flex', gap: 4 }}>
+                      <input autoFocus value={newMacroTitle} onChange={e => setNewMacroTitle(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter') saveMacro(); if (e.key === 'Escape') setNewMacroOpen(false); }}
+                        placeholder="Macro title…" style={{ flex: 1, fontSize: 12, padding: '5px 8px', border: '1px solid var(--border)', borderRadius: 6, background: 'var(--white)', color: 'var(--ink)' }} />
+                      <button type="button" onClick={saveMacro} disabled={!newMacroTitle.trim() || !compose.trim()} className="btn btn-primary btn-sm">Save</button>
+                    </div>
+                  ) : (
+                    <button type="button" onClick={() => setNewMacroOpen(true)} disabled={!compose.trim()}
+                      title={compose.trim() ? 'Save the current message as a new canned response' : 'Type a message first'}
+                      style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: compose.trim() ? 'var(--teal)' : 'var(--ink3)', fontWeight: 600, fontSize: 12, cursor: compose.trim() ? 'pointer' : 'default', padding: '6px 8px' }}>
+                      <Icon name="plus" size={13} /> Save current message as macro
+                    </button>
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
+            <input ref={fileInputRef} type="file" multiple hidden onChange={e => handleAttach(e.target.files)} />
+            <input ref={imageInputRef} type="file" accept="image/*" multiple hidden onChange={e => handleAttach(e.target.files)} />
+            {(() => {
+              const canAttach = isNote || canAttachToBroadcast;
+              const label = isNote
+                ? 'Attach file'
+                : canAttachToBroadcast
+                  ? 'Attach file'
+                  : 'Attach file (only Email and the in-app channel can deliver one — switch off WhatsApp/SMS to attach)';
+              const imgLabel = isNote
+                ? 'Insert image'
+                : canAttachToBroadcast
+                  ? 'Insert image'
+                  : 'Insert image (only Email and the in-app channel can deliver one — switch off WhatsApp/SMS to attach)';
+              return (
+                <>
+                  <Tip label={label}>
+                    <button type="button" className="spt-bedesk-tb-btn" disabled={!canAttach || uploadingAttachment} onClick={() => fileInputRef.current?.click()} style={!canAttach ? { opacity: 0.4, cursor: 'default' } : undefined}>
+                      <Icon name="paperclip" size={15} />
+                    </button>
+                  </Tip>
+                  <Tip label={imgLabel}>
+                    <button type="button" className="spt-bedesk-tb-btn" disabled={!canAttach || uploadingAttachment} onClick={() => imageInputRef.current?.click()} style={!canAttach ? { opacity: 0.4, cursor: 'default' } : undefined}>
+                      <Icon name="image" size={15} />
+                    </button>
+                  </Tip>
+                </>
+              );
+            })()}
+            <Tip label="Hudumika AI">
               <button
                 type="button"
                 className="spt-bedesk-tb-btn"
                 onClick={() => { if (aiSuggestionToUse) setCompose(aiSuggestionToUse); }}
                 style={{ color: 'var(--teal)' }}
               >
-                <Icon name="wand" size={15} />
+                <Icon name="sparkle" size={15} />
               </button>
             </Tip>
           </div>
@@ -1344,10 +1675,6 @@ function ThreadPanel({ ticket, onStatusChange, authorName, onClose, onOpenDetail
           </div>
         </div>
       </div>
-
-      {showComplyModal && (
-        <SendToComplyOSModal ticket={ticket} onClose={() => setShowComplyModal(false)} />
-      )}
     </div>
   );
 }
@@ -1355,14 +1682,26 @@ function ThreadPanel({ ticket, onStatusChange, authorName, onClose, onOpenDetail
 /* ══════════════════════════════════════════
    COL 4 — Details Panel (Contact Profile & Attributes)
 ══════════════════════════════════════════ */
-function DetailsAccordion({ title, defaultOpen = true, children }: { title: string; defaultOpen?: boolean; children: React.ReactNode }) {
+function DetailsAccordion({ title, defaultOpen = true, headerAction, children }: { title: string; defaultOpen?: boolean; headerAction?: React.ReactNode; children: React.ReactNode }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div className="spt-bedesk-accordion">
-      <button type="button" className="spt-bedesk-accordion-hdr" onClick={() => setOpen(o => !o)}>
-        <span>{title}</span>
+      {/* A <button> can't host another <button> (headerAction, when it's an
+          edit icon) without invalid/nested-interactive-control markup, so
+          this is a div with the same className/click-to-toggle behavior —
+          headerAction's own wrapper stops the click from bubbling up to it,
+          the same way the row's other click targets (Select triggers, tag
+          removal) already have to. */}
+      <div className="spt-bedesk-accordion-hdr" onClick={() => setOpen(o => !o)} role="button" tabIndex={0}
+        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(o => !o); } }}>
+        <span style={{ flex: 1 }}>{title}</span>
+        {headerAction && (
+          <span onClick={e => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center' }}>
+            {headerAction}
+          </span>
+        )}
         <Icon name={open ? 'chevronUp' : 'chevronDown'} size={13} strokeWidth={2} />
-      </button>
+      </div>
       {open && <div className="spt-bedesk-accordion-body">{children}</div>}
     </div>
   );
@@ -1427,12 +1766,108 @@ function RelatedTickets({ ticket }: { ticket: Ticket }) {
   );
 }
 
-function DetailsPanel({ ticket, agents, onReassign, onUpdateTags, onClose }: {
+/** Backing the Conversation Attributes panel's "Edit" button — subject,
+ *  category and priority, the three fields set at ticket-creation time that
+ *  previously had no update path anywhere in the app (see
+ *  support.routes.ts PATCH /tickets/:id/attributes). Status/assignee are
+ *  edited inline elsewhere on this same page and aren't duplicated here. */
+function EditAttributesDialog({ open, onClose, ticket, onSave }: {
+  open: boolean; onClose: () => void; ticket: Ticket;
+  onSave: (id: string, attrs: { subject?: string; category?: string; priority?: PriorityKey }) => Promise<void>;
+}) {
+  const [subject, setSubject] = useState(ticket.subject);
+  const [category, setCategory] = useState(ticket.category);
+  const [priority, setPriority] = useState<PriorityKey>(ticket.priority);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (open) {
+      setSubject(ticket.subject);
+      setCategory(ticket.category);
+      setPriority(ticket.priority);
+      setError('');
+    }
+  }, [open, ticket.subject, ticket.category, ticket.priority]);
+
+  async function handleSave() {
+    if (!subject.trim()) { setError('Subject cannot be empty.'); return; }
+    setSaving(true);
+    setError('');
+    try {
+      await onSave(ticket.id, { subject: subject.trim(), category, priority });
+      onClose();
+    } catch (e: any) {
+      setError(e.message || 'Could not save these changes.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={o => { if (!o) onClose(); }}>
+      <DialogContent className="w-105 max-w-full p-0 gap-0">
+        <DialogHeader style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', textAlign: 'left' }}>
+          <DialogTitle style={{ fontSize: 15 }}>Edit conversation attributes</DialogTitle>
+        </DialogHeader>
+        <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div>
+            <label style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', marginBottom: 5 }}>Subject</label>
+            <input className="input-field" value={subject} onChange={e => setSubject(e.target.value)} maxLength={300} />
+          </div>
+          <div>
+            <label style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', marginBottom: 5 }}>Category</label>
+            <Select value={category} onValueChange={setCategory}>
+              <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', marginBottom: 5 }}>Priority</label>
+            <Select value={priority === 'NORMAL' ? 'MEDIUM' : priority} onValueChange={v => setPriority(v as PriorityKey)}>
+              <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="LOW">Low</SelectItem>
+                <SelectItem value="MEDIUM">Medium</SelectItem>
+                <SelectItem value="HIGH">High</SelectItem>
+                <SelectItem value="URGENT">Urgent</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {error && <div style={{ fontSize: 12.5, color: 'var(--red)' }}>{error}</div>}
+        </div>
+        <DialogFooter style={{ padding: '14px 20px', borderTop: '1px solid var(--border)' }}>
+          <button type="button" className="btn btn-secondary" onClick={onClose} disabled={saving}>Cancel</button>
+          <button type="button" className="btn btn-primary" disabled={saving} onClick={handleSave}>
+            {saving ? 'Saving…' : 'Save changes'}
+          </button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function DetailsPanel({ ticket, agents, onReassign, onStatusChange, onUpdateTags, onUpdateAttributes, groups, onUpdateGroup, onClose }: {
   ticket: Ticket; agents: { id: string; name: string }[]; onReassign: (id: string, assigneeId: string) => void;
+  onStatusChange: (id: string, s: StatusKey) => void;
   onUpdateTags: (id: string, tags: string[]) => void;
+  onUpdateAttributes: (id: string, attrs: { subject?: string; category?: string; priority?: PriorityKey }) => Promise<void>;
+  groups: SupportGroup[];
+  onUpdateGroup: (id: string, groupId: string | null) => void;
   onClose?: () => void;
 }) {
+  const { user } = useAuth();
+  // Assignee/status/group are day-to-day ticket-ops actions — gated to real
+  // working staff (OPS_ROLES: SENIOR/JUNIOR/OFFICER and up), not blanket-open
+  // to whoever can merely load this page. Tags stay ungated below; they're
+  // not a workflow-control field the way ownership/state/queue are.
+  const canEdit = OPS_ROLES.includes(user?.role as any);
+  const [editOpen, setEditOpen] = useState(false);
+  const [showComplyModal, setShowComplyModal] = useState(false);
   const currentAssigneeId = agents.find(a => a.name === ticket.assigned_to)?.id ?? '__unassigned__';
+  const currentGroupId = ticket.group_id ?? '__none__';
   // Derived straight from the real ticket, not local state — this editor
   // used to only ever call setState, so every tag an agent added vanished
   // on the next load having never reached the database (see PATCH
@@ -1459,13 +1894,34 @@ function DetailsPanel({ ticket, agents, onReassign, onUpdateTags, onClose }: {
     <div className="spt-bedesk-details">
       <div className="spt-bedesk-details-hdr">
         <span className="spt-bedesk-details-title">Details</span>
-        {onClose && (
-          <Tip label="Close details">
-            <button type="button" className="spt-bedesk-icon-btn" onClick={onClose}>
-              <Icon name="dockRight" size={15} />
-            </button>
-          </Tip>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <DropdownMenu>
+            <Tip label="More options">
+              <DropdownMenuTrigger asChild>
+                <button type="button" className="spt-bedesk-icon-btn">
+                  <Icon name="moreVertical" size={16} />
+                </button>
+              </DropdownMenuTrigger>
+            </Tip>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setShowComplyModal(true)}>
+                <Icon name="shield" size={13} style={{ marginRight: 8 }} />
+                Send to ComplyOS
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigator.clipboard.writeText(ticket.ref)}>
+                <Icon name="copy" size={13} style={{ marginRight: 8 }} />
+                Copy Reference
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          {onClose && (
+            <Tip label="Close details">
+              <button type="button" className="spt-bedesk-icon-btn" onClick={onClose}>
+                <Icon name="dockRight" size={15} />
+              </button>
+            </Tip>
+          )}
+        </div>
       </div>
       <div className="spt-details-scroll">
         {/* Profile Card */}
@@ -1484,40 +1940,105 @@ function DetailsPanel({ ticket, agents, onReassign, onUpdateTags, onClose }: {
           </div>
         </div>
 
-        {/* Quick Selectors: Assignee, Group, Tags */}
+        {/* Quick Selectors: Assignee, Status, Group, Tags — Assignee/Status/
+            Group are real workflow-control actions (who owns this, what
+            state it's in, which queue), so they render read-only for anyone
+            below OPS_ROLES rather than an editable Select they could act on
+            without the access to actually own the outcome. Tags stay open
+            to anyone below — labeling a conversation isn't a control action
+            the way reassigning or closing it is. */}
         <div className="spt-bedesk-quick-attrs">
           <div className="spt-bedesk-attr-row">
             <span className="spt-bedesk-attr-lbl">Assignee</span>
             <div className="spt-bedesk-attr-val">
-              <Select value={currentAssigneeId} onValueChange={v => v !== '__unassigned__' && onReassign(ticket.id, v)}>
-                <SelectTrigger className="spt-bedesk-val-select">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__unassigned__">
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <Icon name="paw" size={13} /> Unassigned
-                    </span>
-                  </SelectItem>
-                  {agents.map(a => (
-                    <SelectItem key={a.id} value={a.id}>
+              {canEdit ? (
+                <Select value={currentAssigneeId} onValueChange={v => v !== '__unassigned__' && onReassign(ticket.id, v)}>
+                  <SelectTrigger className="spt-bedesk-val-select">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__unassigned__">
                       <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <Av name={a.name} size={16} /> {a.name}
+                        <Icon name="paw" size={13} /> Unassigned
                       </span>
                     </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                    {agents.map(a => (
+                      <SelectItem key={a.id} value={a.id}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <Av name={a.name} userId={a.id} kind="people" size={16} /> {a.name}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <span className="spt-bedesk-readonly-val">
+                  {ticket.assigned_to ? <><Av name={ticket.assigned_to} userId={ticket.assigned_to_id} kind="people" size={16} /> {ticket.assigned_to}</> : <><Icon name="paw" size={13} /> Unassigned</>}
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="spt-bedesk-attr-row">
+            <span className="spt-bedesk-attr-lbl">Status</span>
+            <div className="spt-bedesk-attr-val">
+              {canEdit ? (
+                <Select value={ticket.status} onValueChange={v => onStatusChange(ticket.id, v as StatusKey)}>
+                  <SelectTrigger className={`spt-status-select spt-status-select--${ticket.status.toLowerCase().replace('_', '-')}`}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(Object.keys(STATUS_CFG) as StatusKey[]).map(s => (
+                      <SelectItem key={s} value={s}>{STATUS_CFG[s].label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <span className="spt-bedesk-readonly-val">
+                  <Badge style={{ background: STATUS_CFG[ticket.status]?.bg, color: STATUS_CFG[ticket.status]?.color }}>
+                    {STATUS_CFG[ticket.status]?.label || ticket.status}
+                  </Badge>
+                </span>
+              )}
             </div>
           </div>
 
           <div className="spt-bedesk-attr-row">
             <span className="spt-bedesk-attr-lbl">Group</span>
             <div className="spt-bedesk-attr-val">
-              <span className="spt-bedesk-group-pill">
-                <span className="spt-bedesk-group-dot" style={{ background: ticket.group_color || '#06b6d4' }} />
-                <span>{ticket.group_name || 'General'}</span>
-              </span>
+              {canEdit ? (
+                <Select value={currentGroupId} onValueChange={v => onUpdateGroup(ticket.id, v === '__none__' ? null : v)}>
+                  <SelectTrigger className="spt-bedesk-val-select">
+                    <SelectValue>
+                      <span className="spt-bedesk-group-pill">
+                        <span className="spt-bedesk-group-dot" style={{ background: ticket.group_color || '#06b6d4' }} />
+                        <span>{ticket.group_name || 'General'}</span>
+                      </span>
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#06b6d4' }} /> General
+                      </span>
+                    </SelectItem>
+                    {groups.map(g => (
+                      <SelectItem key={g.id} value={g.id}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span style={{ width: 8, height: 8, borderRadius: '50%', background: g.color || '#06b6d4' }} /> {g.name}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <span className="spt-bedesk-readonly-val">
+                  <span className="spt-bedesk-group-pill">
+                    <span className="spt-bedesk-group-dot" style={{ background: ticket.group_color || '#06b6d4' }} />
+                    <span>{ticket.group_name || 'General'}</span>
+                  </span>
+                </span>
+              )}
             </div>
           </div>
 
@@ -1543,7 +2064,17 @@ function DetailsPanel({ ticket, agents, onReassign, onUpdateTags, onClose }: {
         </div>
 
         {/* 1. Conversation Attributes Accordion */}
-        <DetailsAccordion title="Conversation attributes">
+        <DetailsAccordion
+          title="Conversation attributes"
+          headerAction={canEdit && (
+            <Tip label="Edit subject, category & priority">
+              <button type="button" onClick={() => setEditOpen(true)}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4, marginRight: 2 }}>
+                <Icon name="edit" size={13} />
+              </button>
+            </Tip>
+          )}
+        >
           <div className="spt-bedesk-kv-grid">
             <div className="spt-bedesk-kv-row">
               <span className="spt-bedesk-k">Type:</span>
@@ -1580,10 +2111,12 @@ function DetailsPanel({ ticket, agents, onReassign, onUpdateTags, onClose }: {
               <span className="spt-bedesk-v"><PBadge p={ticket.priority} /></span>
             </div>
           </div>
-          <button type="button" className="spt-bedesk-btn-secondary" style={{ marginTop: 10, width: '100%' }}>
-            Edit
-          </button>
         </DetailsAccordion>
+
+        <EditAttributesDialog open={editOpen} onClose={() => setEditOpen(false)} ticket={ticket} onSave={onUpdateAttributes} />
+        {showComplyModal && (
+          <SendToComplyOSModal ticket={ticket} onClose={() => setShowComplyModal(false)} />
+        )}
 
         {/* 2. Other tickets from this customer — real, cross-app: whatever
             app raised them (SEAL, ClearOS, Workflow Studio, Onsite, or
@@ -1691,13 +2224,16 @@ export const Support: React.FC<{
   useEffect(() => { loadGroups(); loadViews(); }, [loadGroups, loadViews]);
 
   const createGroup = useCallback(async (name: string) => {
-    try { await apiFetch('/v1/support/groups', { method: 'POST', body: JSON.stringify({ name }) }); loadGroups(); } catch { }
+    try { await apiFetch('/v1/support/groups', { method: 'POST', body: JSON.stringify({ name }) }); loadGroups(); }
+    catch (err: any) { showAlert(err.message || 'Could not create that group.'); }
   }, [loadGroups]);
   const createView = useCallback(async (name: string, filters: Record<string, any>) => {
-    try { await apiFetch('/v1/support/views', { method: 'POST', body: JSON.stringify({ name, filters }) }); loadViews(); } catch { }
+    try { await apiFetch('/v1/support/views', { method: 'POST', body: JSON.stringify({ name, filters }) }); loadViews(); }
+    catch (err: any) { showAlert(err.message || 'Could not create that view.'); }
   }, [loadViews]);
   const deleteView = useCallback(async (id: string) => {
-    try { await apiFetch(`/v1/support/views/${id}`, { method: 'DELETE' }); loadViews(); } catch { }
+    try { await apiFetch(`/v1/support/views/${id}`, { method: 'DELETE' }); loadViews(); }
+    catch (err: any) { showAlert(err.message || 'Could not delete that view.'); }
   }, [loadViews]);
 
   useEffect(() => {
@@ -1817,7 +2353,14 @@ export const Support: React.FC<{
           method: 'PATCH',
           body: JSON.stringify({ status }),
         });
-      } catch { }
+      } catch (err: any) {
+        // Applying the new status locally regardless of whether the PATCH
+        // actually succeeded (the old behaviour) left the UI showing a
+        // status the database never had — a real desync, not a cosmetic one,
+        // since the next full reload would silently snap it back.
+        showAlert(err.message || 'Could not update this ticket\'s status.');
+        return;
+      }
       setTickets(ts => ts.map(t => t.id === id ? { ...t, status } : t));
       setSelected(prev => prev?.id === id ? { ...prev, status } : prev);
     }
@@ -1843,7 +2386,7 @@ export const Support: React.FC<{
         method: 'PATCH',
         body: JSON.stringify({ status: current.status, assigned_to: assigneeId }),
       });
-    } catch { return; }
+    } catch (err: any) { showAlert(err.message || 'Could not reassign this ticket.'); return; }
     setTickets(ts => ts.map(t => t.id === id ? { ...t, assigned_to: agentName } : t));
     setSelected(prev => prev?.id === id ? { ...prev, assigned_to: agentName } : prev);
   };
@@ -1851,10 +2394,54 @@ export const Support: React.FC<{
   const updateTicketTags = async (id: string, tags: string[]) => {
     try {
       await apiFetch(`/v1/support/tickets/${id}/tags`, { method: 'PATCH', body: JSON.stringify({ tags }) });
-    } catch { return; }
+    } catch (err: any) { showAlert(err.message || 'Could not update tags.'); return; }
     setTickets(ts => ts.map(t => t.id === id ? { ...t, tags } : t));
     setSelected(prev => prev?.id === id ? { ...prev, tags } : prev);
   };
+
+  // Category/priority/subject — previously nowhere to save this, see
+  // support.routes.ts PATCH /tickets/:id/attributes.
+  const updateTicketAttributes = async (id: string, attrs: { subject?: string; category?: string; priority?: PriorityKey }) => {
+    await apiFetch(`/v1/support/tickets/${id}/attributes`, { method: 'PATCH', body: JSON.stringify(attrs) });
+    setTickets(ts => ts.map(t => t.id === id ? { ...t, ...attrs } : t));
+    setSelected(prev => prev?.id === id ? { ...prev, ...attrs } : prev);
+  };
+
+  // Group had a real backend endpoint (PATCH /tickets/:id/group) with no
+  // frontend caller anywhere — the Details panel showed it as a read-only
+  // pill next to an Assignee row that was already a real, editable Select.
+  const updateTicketGroup = async (id: string, groupId: string | null) => {
+    try {
+      await apiFetch(`/v1/support/tickets/${id}/group`, { method: 'PATCH', body: JSON.stringify({ group_id: groupId }) });
+    } catch (err: any) { showAlert(err.message || 'Could not update this ticket\'s group.'); return; }
+    const g = groupId ? groups.find(x => x.id === groupId) : null;
+    const patch = { group_id: groupId, group_name: g?.name ?? null, group_color: g?.color ?? null };
+    setTickets(ts => ts.map(t => t.id === id ? { ...t, ...patch } : t));
+    setSelected(prev => prev?.id === id ? { ...prev, ...patch } : prev);
+  };
+
+  // Bulk versions for ConvList's own selection bar — loop the same
+  // per-ticket endpoints rather than a new bulk API. Deliberately call
+  // apiFetch directly instead of reassignTicket/updateTicketGroup/
+  // updateStatus: those already show their own alert (and, for status,
+  // updateStatus special-cases RESOLVED/CLOSED into opening the single-
+  // ticket NPS/CSAT modal, which makes no sense fired N times over a bulk
+  // selection) — running them under Promise.allSettled would both
+  // double-alert on failure and hide real per-item failures behind their
+  // own internal catch. One combined success/failure summary here instead,
+  // then a single refreshTickets() to resync whatever actually changed.
+  async function bulkApply(ids: string[], run: (id: string) => Promise<unknown>, verb: string) {
+    const results = await Promise.allSettled(ids.map(run));
+    const failed = results.filter(r => r.status === 'rejected').length;
+    if (failed > 0) showAlert(`${verb}: ${ids.length - failed} of ${ids.length} succeeded, ${failed} failed.`);
+    refreshTickets();
+  }
+  const bulkUpdateStatus = (ids: string[], status: StatusKey) =>
+    bulkApply(ids, id => apiFetch(`/v1/support/tickets/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }), 'Bulk status update');
+  const bulkReassign = (ids: string[], assigneeId: string) =>
+    bulkApply(ids, id => apiFetch(`/v1/support/tickets/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status: tickets.find(t => t.id === id)?.status ?? 'OPEN', assigned_to: assigneeId }) }), 'Bulk assign');
+  const bulkUpdateGroup = (ids: string[], groupId: string | null) =>
+    bulkApply(ids, id => apiFetch(`/v1/support/tickets/${id}/group`, { method: 'PATCH', body: JSON.stringify({ group_id: groupId }) }), 'Bulk group update');
 
   const handleFeedbackSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1877,8 +2464,11 @@ export const Support: React.FC<{
       setNpsScore(null);
       setCsatScore(null);
       setFeedbackText('');
-    } catch (err) {
-      console.error('Failed to submit support feedback', err);
+    } catch (err: any) {
+      // This modal is deliberately non-dismissible (see its own comment
+      // below) — a console-only failure used to leave an agent staring at
+      // an unresponsive Submit button with no idea why.
+      showAlert(err.message || 'Could not submit this feedback. Please try again.');
     } finally {
       setSubmittingFeedback(false);
     }
@@ -1893,7 +2483,13 @@ export const Support: React.FC<{
       });
       setTickets(ts => ts.map(t => t.id === feedbackTicketId ? { ...t, status: 'CLOSED' } : t));
       setSelected(prev => prev?.id === feedbackTicketId ? { ...prev, status: 'CLOSED' } : prev);
-    } catch { }
+    } catch (err: any) {
+      // Used to close the modal regardless — the ticket stayed OPEN/
+      // IN_PROGRESS in the database while the UI acted as if "Skip &
+      // Resolve" had worked.
+      showAlert(err.message || 'Could not close this ticket. Please try again.');
+      return;
+    }
     setFeedbackTicketId(null);
   };
 
@@ -1963,6 +2559,7 @@ export const Support: React.FC<{
             agents={agents}
             viewMode={viewMode}
             onViewModeChange={setViewMode}
+            onBulkStatus={bulkUpdateStatus} onBulkAssign={bulkReassign} onBulkGroup={bulkUpdateGroup}
           />
 
           {viewMode === 'chat' && (
@@ -1971,10 +2568,10 @@ export const Support: React.FC<{
 
               <Panel minSize={32} className="spt-thread-panel">
                 {selected ? (
-                  <ThreadPanel ticket={selected} onStatusChange={updateStatus}
+                  <ThreadPanel ticket={selected}
                     authorName={user?.name || 'Support Agent'} onClose={() => setSelected(null)}
                     onOpenDetails={() => setDetailsOpen(o => !o)}
-                    aiSuggestionToUse={aiSuggestionToUse} agents={agents} onReassign={reassignTicket} />
+                    aiSuggestionToUse={aiSuggestionToUse} />
                 ) : (
                   <div className="spt-thread" style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--ink3)' }}>
                     <div style={{ textAlign: 'center' }}>
@@ -1991,7 +2588,7 @@ export const Support: React.FC<{
                   <PanelResizeHandle className="spt-resize-handle" />
                   <Panel defaultSize={26} minSize={20} maxSize={38} className="spt-details-panel">
                     <div className="spt-rcol" style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
-                      <DetailsPanel ticket={selected} agents={agents} onReassign={reassignTicket} onUpdateTags={updateTicketTags} onClose={() => setSelected(null)} />
+                      <DetailsPanel ticket={selected} agents={agents} onReassign={reassignTicket} onStatusChange={updateStatus} onUpdateTags={updateTicketTags} onUpdateAttributes={updateTicketAttributes} groups={groups} onUpdateGroup={updateTicketGroup} onClose={() => setSelected(null)} />
                     </div>
                   </Panel>
                 </>
@@ -2011,6 +2608,7 @@ export const Support: React.FC<{
               agents={agents}
               viewMode={viewMode}
               onViewModeChange={setViewMode}
+              onBulkStatus={bulkUpdateStatus} onBulkAssign={bulkReassign} onBulkGroup={bulkUpdateGroup}
             />
           ) : !selected ? (
             <ConvList
@@ -2022,12 +2620,13 @@ export const Support: React.FC<{
               agents={agents}
               viewMode={viewMode}
               onViewModeChange={setViewMode}
+              onBulkStatus={bulkUpdateStatus} onBulkAssign={bulkReassign} onBulkGroup={bulkUpdateGroup}
             />
           ) : (
-            <ThreadPanel ticket={selected} onStatusChange={updateStatus}
+            <ThreadPanel ticket={selected}
               authorName={user?.name || 'Support Agent'} onClose={() => setSelected(null)}
               onOpenDetails={() => setDetailsOpen(true)}
-              aiSuggestionToUse={aiSuggestionToUse} agents={agents} onReassign={reassignTicket} />
+              aiSuggestionToUse={aiSuggestionToUse} />
           )}
           {selected && detailsOpen && createPortal(
             <>
@@ -2038,7 +2637,7 @@ export const Support: React.FC<{
                     <Icon name="x" size={16} strokeWidth={2} />
                   </button>
                 </Tip>
-                <DetailsPanel ticket={selected} agents={agents} onReassign={reassignTicket} onUpdateTags={updateTicketTags} onClose={() => setDetailsOpen(false)} />
+                <DetailsPanel ticket={selected} agents={agents} onReassign={reassignTicket} onStatusChange={updateStatus} onUpdateTags={updateTicketTags} onUpdateAttributes={updateTicketAttributes} groups={groups} onUpdateGroup={updateTicketGroup} onClose={() => setDetailsOpen(false)} />
               </div>
             </>,
             document.body

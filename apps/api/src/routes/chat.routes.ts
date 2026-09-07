@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { withTenant } from '../db/client.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
+import { broadcastToTenant } from '../lib/ws-broadcast.js';
 
 const channelCreateSchema = z.object({
   type: z.enum(['channel', 'dm', 'group']),
@@ -14,8 +15,10 @@ const reactionSchema = z.object({ emoji: z.string().trim().min(1).max(20) });
 
 /**
  * Real team chat backend (channels, DMs, groups, messages, reactions).
- * Polling-based, not websocket-realtime — the frontend refetches on an
- * interval. Chat.tsx previously ran entirely off hardcoded mock data.
+ * A sent message pushes a content-free 'chat.message_received' WS event
+ * (see packages/types/src/api.ts) so an open thread updates immediately
+ * instead of waiting out Chat.tsx's own 6s poll — that poll stays as the
+ * fallback for a dropped socket, same hybrid pattern support.routes.ts uses.
  */
 export async function chatRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
@@ -298,6 +301,44 @@ export async function chatRoutes(fastify: FastifyInstance) {
       await trx.updateTable('chat_channel_members').set({ last_read_at: new Date() })
         .where('channel_id', '=', id).where('user_id', '=', user.sub).execute();
 
+      broadcastToTenant(fastify, user.tenant_id, { type: 'chat.message_received', channelId: id, authorId: user.sub });
+
+      // A Team Chat message previously left zero trace anywhere outside the
+      // chat itself — no bell badge, no row in the Notification Centre —
+      // so someone who wasn't actively looking at Team Chat when a DM or
+      // channel message arrived had no way to ever find out. One 'chat'
+      // notification per other member, same pattern shipment
+      // MESSAGE_RECEIVED already uses for the bell.
+      const [channel, otherMembers] = await Promise.all([
+        trx.selectFrom('chat_channels').select(['type', 'name']).where('id', '=', id).executeTakeFirst(),
+        trx.selectFrom('chat_channel_members').select('user_id').where('channel_id', '=', id).where('user_id', '!=', user.sub).execute(),
+      ]);
+      if (channel && otherMembers.length > 0) {
+        const title = channel.type === 'dm' ? `New message from ${user.name}` : `New message in ${channel.name}`;
+        const link = `/bliss/inbox?view=team&channel=${id}`;
+        await trx.insertInto('notifications').values(
+          otherMembers.map((m) => ({
+            tenant_id: user.tenant_id,
+            user_id: m.user_id,
+            app: 'bliss',
+            type: 'chat',
+            title,
+            message: content.trim().slice(0, 200),
+            link,
+            metadata: '{}',
+            entity_type: 'chat_channel',
+            entity_id: id,
+            entity_label: channel.name,
+            shipment_id: null,
+            customer_id: null,
+            trigger_type: null,
+            channel: null,
+            recipient: null,
+            content: null,
+          } as any))
+        ).execute();
+      }
+
       return { id: message.id, author_id: message.author_id, author_name: user.name, content: message.content, created_at: message.created_at, reactions: [] };
     });
   });
@@ -309,6 +350,17 @@ export async function chatRoutes(fastify: FastifyInstance) {
     return withTenant(user.tenant_id, async (trx) => {
       await trx.updateTable('chat_channel_members').set({ last_read_at: new Date() })
         .where('channel_id', '=', id).where('user_id', '=', user.sub).execute();
+      // Opening the channel in Team Chat is reading it — without this the
+      // bell kept showing these as unread forever after that, since a chat
+      // notification's own `read` flag (notifications.read) is a separate
+      // column from this channel-membership read receipt and nothing else
+      // ever touched it.
+      await trx.updateTable('notifications').set({ read: true, read_at: new Date() })
+        .where('user_id', '=', user.sub)
+        .where('entity_type', '=', 'chat_channel')
+        .where('entity_id', '=', id)
+        .where('read', '=', false)
+        .execute();
       return { ok: true };
     });
   });
