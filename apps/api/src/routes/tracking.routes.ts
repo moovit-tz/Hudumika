@@ -8,6 +8,7 @@ import { requireRole } from '../middleware/rbac.js';
 import { gpswoxService } from '../services/gpswox.service.js';
 import { toDateParam } from '../utils/dates.js';
 import { pick } from '../lib/pick.js';
+import { broadcastToTenant } from '../lib/ws-broadcast.js';
 
 function stripSecret<T extends { device_secret?: unknown }>(v: T): Omit<T, 'device_secret'> {
   const { device_secret, ...rest } = v;
@@ -142,9 +143,7 @@ export async function trackingRoutes(fastify: FastifyInstance) {
     const user = req.user;
     try {
       return await gpswoxService.syncPositions(user.tenant_id, (vehicleId, lat, lng) => {
-        fastify.websocketServer?.clients.forEach((client: any) => {
-          client.send(JSON.stringify({ type: 'vehicle.position_updated', vehicleId, latitude: lat, longitude: lng }));
-        });
+        broadcastToTenant(fastify, user.tenant_id, { type: 'vehicle.position_updated', vehicleId, latitude: lat, longitude: lng });
       });
     } catch (e: any) {
       return reply.status(500).send({ error: e.message });

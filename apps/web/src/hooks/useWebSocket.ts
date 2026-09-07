@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react';
 import type { ServerEvent } from '@hudumika/types';
+import { BASE_URL } from '../lib/api.js';
 
 export function useWebSocket(onEvent: (event: ServerEvent) => void) {
   const callbackRef = useRef(onEvent);
@@ -13,7 +14,7 @@ export function useWebSocket(onEvent: (event: ServerEvent) => void) {
     let reconnectTimer: NodeJS.Timeout;
 
     const connect = () => {
-      ws = new WebSocket('ws://localhost:3001/ws');
+      ws = new WebSocket(BASE_URL.replace(/^http/, 'ws') + '/ws');
 
       ws.onmessage = (event) => {
         try {

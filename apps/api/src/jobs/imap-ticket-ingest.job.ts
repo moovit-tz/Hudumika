@@ -135,7 +135,7 @@ export async function processMessage(tenantId: string, config: TicketImapConfig,
         await trx.insertInto('notifications').values({
           tenant_id: tenantId, user_id: existingTicket.assigned_to, app: 'bliss', type: 'support',
           title: `New email reply on ${existingTicket.ref_number}`, message: content.slice(0, 200),
-          link: `/support/tickets/${existingTicket.id}`, metadata: '{}',
+          link: `/bliss/inbox?id=${existingTicket.id}`, metadata: '{}',
         } as any).execute();
       }
 

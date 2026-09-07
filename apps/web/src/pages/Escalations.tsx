@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../hooks/useAuth.js';
 import { apiFetch } from '../lib/api.js';
+import { showAlert } from '../lib/alert.js';
 import './Escalations.css';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Combobox } from '../components/ui/combobox.js';
@@ -9,7 +10,7 @@ import { PageHeader } from '../components/PageHeader.js';
 // -- Types ------------------------------------------------------
 export interface Escalation {
   id: string;
-  caseId: string;
+  caseId: string | null;
   caseRef: string;
   goodsDesc: string;
   reason: string;
@@ -19,36 +20,25 @@ export interface Escalation {
   escalatedAt: string;
   status: 'PENDING' | 'IN_PROGRESS' | 'RESOLVED';
   resolvedAt?: string;
-  resolvedNote?: string;
 }
 
-const STORE_KEY = 'cls_escalations';
-
-function loadEscalations(): Escalation[] {
-  try { return JSON.parse(localStorage.getItem(STORE_KEY) || '[]'); } catch { return []; }
-}
-function saveEscalations(items: Escalation[]): void {
-  localStorage.setItem(STORE_KEY, JSON.stringify(items));
-}
-
-export function escalateCase(params: {
-  caseId: string; caseRef: string; goodsDesc: string;
-  reason: string; note: string; userId: string; userName: string;
-}): void {
-  const items = loadEscalations();
-  items.unshift({
-    id: crypto.randomUUID(),
-    caseId: params.caseId,
-    caseRef: params.caseRef,
-    goodsDesc: params.goodsDesc,
-    reason: params.reason,
-    note: params.note,
-    escalatedBy: params.userId,
-    escalatedByName: params.userName,
-    escalatedAt: new Date().toISOString(),
-    status: 'PENDING',
-  });
-  saveEscalations(items);
+/** Real backend (migration 406 / escalations.routes.ts) — this used to be
+ *  entirely localStorage, so an escalation only ever existed in the browser
+ *  that created it. A senior on a different machine had no way to see it. */
+function mapEscalation(row: any): Escalation {
+  return {
+    id: row.id,
+    caseId: row.case_id,
+    caseRef: row.case_ref,
+    goodsDesc: row.goods_desc ?? '',
+    reason: row.reason,
+    note: row.note ?? '',
+    escalatedBy: row.escalated_by,
+    escalatedByName: row.escalated_by_name,
+    escalatedAt: row.escalated_at,
+    status: row.status,
+    resolvedAt: row.resolved_at ?? undefined,
+  };
 }
 
 // -- UI helpers -------------------------------------------------
@@ -205,32 +195,40 @@ export const Escalations: React.FC = () => {
   const canResolve = isSenior || user?.role === 'MANAGER' || user?.role === 'ADMIN' || user?.role === 'TENANT_ADMIN';
 
   const [items, setItems] = useState<Escalation[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'ALL' | 'PENDING' | 'IN_PROGRESS' | 'RESOLVED'>('ALL');
   const [showModal, setShowModal] = useState(false);
 
-  const reload = useCallback(() => setItems(loadEscalations()), []);
+  const reload = useCallback(() => {
+    apiFetch('/v1/escalations')
+      .then((rows: any) => setItems(Array.isArray(rows) ? rows.map(mapEscalation) : []))
+      .catch(() => setItems([]))
+      .finally(() => setLoading(false));
+  }, []);
 
   useEffect(() => { reload(); }, [reload]);
 
-  function handleSubmit(params: { caseId: string; caseRef: string; goodsDesc: string; reason: string; note: string }) {
-    escalateCase({ ...params, userId: user!.id, userName: user!.name });
-    reload();
+  async function handleSubmit(params: { caseId: string; caseRef: string; goodsDesc: string; reason: string; note: string }) {
+    try {
+      await apiFetch('/v1/escalations', { method: 'POST', body: JSON.stringify(params) });
+      reload();
+    } catch (err: any) {
+      showAlert(err?.message || 'Could not create this escalation — please try again.');
+    }
   }
 
-  function handleResolve(id: string) {
-    const updated = loadEscalations().map(e => {
-      if (e.id !== id) return e;
-      if (e.status === 'PENDING') return { ...e, status: 'IN_PROGRESS' as const };
-      return { ...e, status: 'RESOLVED' as const, resolvedAt: new Date().toISOString() };
-    });
-    saveEscalations(updated);
-    reload();
+  async function handleResolve(id: string) {
+    try {
+      await apiFetch(`/v1/escalations/${id}/advance`, { method: 'PATCH', body: '{}' });
+      reload();
+    } catch (err: any) {
+      showAlert(err?.message || 'Could not update this escalation — please try again.');
+    }
   }
 
-  const visible = items.filter(e => {
-    if (isJunior) return e.escalatedBy === user!.id;
-    return true;
-  }).filter(e => filter === 'ALL' || e.status === filter);
+  // The backend already scopes the list to a JUNIOR/OFFICER's own
+  // escalations — this only applies the status filter on top of that.
+  const visible = items.filter(e => filter === 'ALL' || e.status === filter);
 
   const counts = {
     PENDING:     items.filter(e => e.status === 'PENDING').length,
@@ -278,7 +276,14 @@ export const Escalations: React.FC = () => {
       </div>
 
       {/* List */}
-      {visible.length === 0 ? (
+      {loading ? (
+        <div style={{
+          background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)',
+          padding: '40px 20px', textAlign: 'center', color: 'var(--ink3)', fontSize: 14,
+        }}>
+          Loading escalations…
+        </div>
+      ) : visible.length === 0 ? (
         <div style={{
           background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)',
           padding: '40px 20px', textAlign: 'center', color: 'var(--ink3)', fontSize: 14,

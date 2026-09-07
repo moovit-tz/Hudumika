@@ -383,7 +383,7 @@
 }
 
 .dd-report-header:hover {
-  background: #f1f5f9;
+  background: color-mix(in srgb, var(--teal-l) 25%, var(--bg));
 }
 
 .dd-route-title {
@@ -417,9 +417,9 @@
 }
 
 .dd-route-status.transit {
-  background: #eff6ff;
-  color: #2563eb;
-  border: 1px solid #93c5fd;
+  background: var(--blue-l, rgba(37, 99, 235, 0.12));
+  color: var(--blue, #2563eb);
+  border: 1px solid var(--blue-m, rgba(147, 197, 253, 0.5));
 }
 
 .dd-trip-details-panel {
@@ -656,3 +656,175 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ══════════════════════════════════════════════════════════
+   Dark Mode Overrides — [data-theme="dark"]
+   Pristine dark mode contrast, glowing indicators & dark panels
+══════════════════════════════════════════════════════════ */
+[data-theme="dark"] .dd-back-btn,
+[data-theme="dark"] .dd-action-btn:not(.dark) {
+  background: var(--white);
+  border-color: var(--border);
+  color: var(--ink);
+}
+
+[data-theme="dark"] .dd-back-btn:hover,
+[data-theme="dark"] .dd-action-btn:not(.dark):hover {
+  background: var(--bg);
+  border-color: var(--border2);
+}
+
+[data-theme="dark"] .dd-lifecycle-bar {
+  background: var(--white);
+  border-color: var(--border);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] .dd-lifecycle-step {
+  opacity: 0.45;
+}
+
+[data-theme="dark"] .dd-lifecycle-step.active {
+  opacity: 1;
+}
+
+[data-theme="dark"] .step-num {
+  background: var(--bg);
+  border-color: var(--border);
+  color: var(--ink2);
+}
+
+[data-theme="dark"] .dd-lifecycle-step.active .step-num {
+  background: var(--teal);
+  color: #ffffff;
+  border-color: var(--teal);
+  box-shadow: 0 0 14px rgba(13, 148, 136, 0.6);
+}
+
+[data-theme="dark"] .dd-alert.warning {
+  background: rgba(234, 179, 8, 0.12);
+  border-color: rgba(234, 179, 8, 0.4);
+}
+
+[data-theme="dark"] .dd-alert-icon {
+  background: var(--white);
+  border-color: #eab308;
+  color: #eab308;
+}
+
+[data-theme="dark"] .dd-card {
+  background: var(--white);
+  border-color: var(--border);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+}
+
+[data-theme="dark"] .dd-courier-badge {
+  background: var(--bg);
+  border-color: var(--border);
+  color: var(--ink2);
+}
+
+[data-theme="dark"] .dd-vehicle-hero {
+  background: var(--bg);
+  border-color: var(--border);
+}
+
+[data-theme="dark"] .dd-vh-icon {
+  background: rgba(13, 148, 136, 0.18);
+  color: var(--teal);
+  border-color: rgba(13, 148, 136, 0.35);
+}
+
+[data-theme="dark"] .dd-condition-pill {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border-color: rgba(16, 185, 129, 0.35);
+}
+
+[data-theme="dark"] .dd-report-item {
+  background: var(--white);
+  border-color: var(--border);
+}
+
+[data-theme="dark"] .dd-report-header {
+  background: var(--bg);
+}
+
+[data-theme="dark"] .dd-report-header:hover {
+  background: color-mix(in srgb, var(--teal-l) 30%, var(--bg));
+}
+
+[data-theme="dark"] .dd-route-status.transit {
+  background: rgba(37, 99, 235, 0.2);
+  color: #60a5fa;
+  border-color: rgba(96, 165, 250, 0.4);
+}
+
+[data-theme="dark"] .dd-route-status.completed {
+  background: rgba(16, 185, 129, 0.18);
+  color: #34d399;
+  border-color: rgba(16, 185, 129, 0.35);
+}
+
+[data-theme="dark"] .dd-trip-details-panel {
+  background: var(--white);
+  border-top-color: var(--border);
+}
+
+[data-theme="dark"] .dd-metrics-row {
+  background: var(--bg);
+  border-color: var(--border);
+}
+
+[data-theme="dark"] .dd-ncard {
+  background: var(--bg);
+  border-color: var(--border);
+}
+
+[data-theme="dark"] .dd-doc-card {
+  background: var(--white);
+  border-color: var(--border);
+}
+
+[data-theme="dark"] .dd-doc-icon {
+  background: var(--bg);
+  border-color: var(--border);
+  color: var(--ink);
+}
+
+[data-theme="dark"] .dd-doc-status.verified {
+  background: rgba(16, 185, 129, 0.18);
+  color: #34d399;
+  border-color: rgba(16, 185, 129, 0.35);
+}
+
+[data-theme="dark"] .dd-modal-backdrop {
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+}
+
+[data-theme="dark"] .dd-modal-content {
+  background: var(--white);
+  border-color: var(--border);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+}
+
+[data-theme="dark"] .dd-modal-header,
+[data-theme="dark"] .dd-modal-footer {
+  background: var(--bg);
+  border-color: var(--border);
+}
+
+[data-theme="dark"] .dd-form-input,
+[data-theme="dark"] .dd-form-select {
+  background: var(--bg);
+  border-color: var(--border);
+  color: var(--ink);
+}
+
+[data-theme="dark"] .dd-form-input:focus,
+[data-theme="dark"] .dd-form-select:focus {
+  background: var(--white);
+  border-color: var(--teal);
+}
+

@@ -1,12 +1,17 @@
 import type { FastifyInstance } from 'fastify';
 import type { Transaction } from 'kysely';
+import { sql } from 'kysely';
 import { z } from 'zod';
 import { db, withTenant, type Database } from '../db/client.js';
 import { MessagingService } from '../services/messaging.service.js';
 import { requireRole } from '../middleware/rbac.js';
+import { requireEntitlement } from '../middleware/entitlement.js';
 import { resolveCustomerId } from '../services/customer-identity.service.js';
 import { callAI } from './ai.routes.js';
 import type { MessageChannel, TicketPriority, TicketStatus, UserRole } from '@hudumika/types';
+import { broadcastToTenant } from '../lib/ws-broadcast.js';
+import { WhatsAppIntegration } from '../integrations/whatsapp.js';
+import { emitDomainEvent } from '../services/domain-events.service.js';
 
 // The two endpoints CUSTOMER_ALLOWED_ROUTES below actually lets a CUSTOMER
 // login reach (create ticket, reply) — the only ones in this file where the
@@ -136,6 +141,18 @@ export async function createTicketRow(
   if (assignedTo) ticket = { ...ticket, assigned_to: assignedTo };
 
   await fireNotificationTrigger(trx, tenantId, 'new_ticket', ticket);
+
+  // Studio has always been able to CREATE a Bliss ticket (the
+  // support.create_ticket action) but had nothing to REACT to inside
+  // Bliss — no ticket-lifecycle event was ever emitted. This is the first
+  // of four (created/reassigned/resolved/sla_escalated) added so a tenant
+  // can build real workflows on top of what support_rules already does
+  // internally, not just point Studio at other apps' events.
+  await emitDomainEvent(trx, tenantId, {
+    type: 'support.ticket_created', sourceApp: 'bliss', entityType: 'support_ticket', entityId: ticket.id,
+    payload: { channel: ticket.channel, priority: ticket.priority, category: ticket.category, assignedTo: ticket.assigned_to ?? null },
+  }).catch(err => console.error('[Support] ticket_created emit failed:', err?.message));
+
   return ticket;
 }
 
@@ -173,7 +190,7 @@ export async function fireNotificationTrigger(
         type: 'support',
         title: extra?.title ?? `Ticket ${ticket.ref_number ?? ''}: ${ticket.subject}`,
         message: extra?.message ?? null,
-        link: `/bliss/tickets?id=${ticket.id}`,
+        link: `/bliss/inbox?id=${ticket.id}`,
         metadata: '{}',
         entity_type: 'support_ticket',
         entity_id: ticket.id,
@@ -191,6 +208,10 @@ export async function fireNotificationTrigger(
 
 export default async function supportRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
+  // Every other Bliss pillar (calls.routes.ts) already gates on the 'bliss'
+  // entitlement; this file and chat.routes.ts didn't, so a tenant whose plan
+  // excludes Bliss could still read/write tickets purely by being logged in.
+  fastify.addHook('preHandler', requireEntitlement('bliss'));
   fastify.addHook('preHandler', async (request, reply) => {
     if (request.user.role !== 'CUSTOMER') return;
     const url = request.routeOptions?.url;
@@ -395,6 +416,15 @@ export default async function supportRoutes(fastify: FastifyInstance) {
         }
       }
 
+      // A reply is only useful live if the people watching this ticket
+      // (other agents, the customer's own Live Chat panel) actually see it
+      // arrive — this event previously only ever fired for inbound WhatsApp,
+      // so an officer's own reply never appeared anywhere without a manual
+      // refresh.
+      if (results.some(r => r.success)) {
+        broadcastToTenant(fastify, user.tenant_id, { type: 'support.message_received', ticketId: ticket.id, message: content });
+      }
+
       // Update ticket to IN_PROGRESS if it was OPEN; record first-reply timing on the first officer reply
       const now = new Date();
       await trx.updateTable('support_tickets')
@@ -428,7 +458,7 @@ export default async function supportRoutes(fastify: FastifyInstance) {
       const ticket = await trx
         .selectFrom('support_tickets as st')
         .leftJoin('customers as c', 'c.id', 'st.customer_id')
-        .select(['st.id', 'st.customer_id', 'c.phone as customer_phone', 'c.email as customer_email'])
+        .select(['st.id', 'st.customer_id', 'st.created_at', 'st.first_reply_at', 'c.phone as customer_phone', 'c.email as customer_email'])
         .where('st.id', '=', request.params.id)
         .where('st.tenant_id', '=', user.tenant_id)
         .executeTakeFirst();
@@ -443,6 +473,28 @@ export default async function supportRoutes(fastify: FastifyInstance) {
         user.sub, user.name,
         ticket.customer_phone || undefined, ticket.customer_email || undefined
       );
+
+      // Same bookkeeping #4 (broadcast) already does — this endpoint sends
+      // to exactly one channel instead of several, but a reply is a reply:
+      // it should count toward SLA first-response time and move the ticket
+      // out of OPEN the same way, and the people watching this ticket should
+      // see it arrive without a manual refresh.
+      const now = new Date();
+      await trx.updateTable('support_tickets')
+        .set({ status: 'IN_PROGRESS', updated_at: now })
+        .where('id', '=', ticket.id)
+        .where('status', '=', 'OPEN')
+        .execute();
+      if (!ticket.first_reply_at) {
+        await trx.updateTable('support_tickets')
+          .set({
+            first_reply_at: now,
+            first_reply_time_seconds: Math.round((now.getTime() - new Date(ticket.created_at).getTime()) / 1000),
+          })
+          .where('id', '=', ticket.id)
+          .execute();
+      }
+      broadcastToTenant(fastify, user.tenant_id, { type: 'support.message_received', ticketId: ticket.id, message: request.body.content });
 
       reply.status(201);
       return msg;
@@ -492,7 +544,7 @@ export default async function supportRoutes(fastify: FastifyInstance) {
           type: 'support',
           title: `New reply on ${ticket.ref_number}`,
           message: content.slice(0, 200),
-          link: `/bliss/tickets?id=${ticket.id}`,
+          link: `/bliss/inbox?id=${ticket.id}`,
           metadata: '{}',
           entity_type: 'support_ticket',
           entity_id: ticket.id,
@@ -507,6 +559,11 @@ export default async function supportRoutes(fastify: FastifyInstance) {
       }
 
       await trx.updateTable('support_tickets').set({ updated_at: new Date() }).where('id', '=', ticket.id).execute();
+
+      // The notification row above reaches the assigned agent's bell icon;
+      // this is what makes the message show up live in whichever ticket
+      // view (agent or the customer's own other tab) is already open.
+      broadcastToTenant(fastify, user.tenant_id, { type: 'support.message_received', ticketId: ticket.id, message: content });
 
       reply.status(201);
       return message;
@@ -553,6 +610,19 @@ export default async function supportRoutes(fastify: FastifyInstance) {
       const wasReassigned = !!request.body.assigned_to && request.body.assigned_to !== before?.assigned_to;
       if (wasReassigned) await fireNotificationTrigger(trx, user.tenant_id, 'reassigned', updated);
       if (request.body.status !== before?.status) await fireNotificationTrigger(trx, user.tenant_id, 'status_changed', updated);
+
+      if (wasReassigned) {
+        await emitDomainEvent(trx, user.tenant_id, {
+          type: 'support.ticket_reassigned', sourceApp: 'bliss', entityType: 'support_ticket', entityId: updated.id,
+          payload: { assignedTo: updated.assigned_to, previousAssignedTo: before.assigned_to ?? null },
+        }).catch(err => console.error('[Support] ticket_reassigned emit failed:', err?.message));
+      }
+      if (newlyResolved) {
+        await emitDomainEvent(trx, user.tenant_id, {
+          type: 'support.ticket_resolved', sourceApp: 'bliss', entityType: 'support_ticket', entityId: updated.id,
+          payload: { priority: updated.priority, category: updated.category, resolutionSeconds: resolutionSeconds ?? 0 },
+        }).catch(err => console.error('[Support] ticket_resolved emit failed:', err?.message));
+      }
 
       reply.status(200);
       return updated;
@@ -832,6 +902,13 @@ Write a professional, empathetic reply to this customer. Be concise (2–4 sente
       ).length;
       const defectRate = total > 0 ? Number(((defectCount / total) * 100).toFixed(1)) : 0;
 
+      // Real escalation rate — sla_escalated_at is stamped by the actual
+      // sla_escalation rule job (support-rules.job.ts), not derived from
+      // another metric. Used to be `defectRate / 2` on the frontend, a
+      // number with no relationship to anything escalation actually means.
+      const escalatedCount = tickets.filter(t => t.sla_escalated_at != null).length;
+      const escalationRate = total > 0 ? Number(((escalatedCount / total) * 100).toFixed(1)) : 0;
+
       // Daily volume (last 14 days)
       const dailyBars: number[] = [];
       for (let i = 13; i >= 0; i--) {
@@ -919,6 +996,7 @@ Write a professional, empathetic reply to this customer. Be concise (2–4 sente
         resolution: avgSolveTime,
         sla: slaCompliance,
         defect: defectRate,
+        escalation: escalationRate,
         dailyBars,
         firstReplyHistogram,
         busiestHeatmap,
@@ -1141,6 +1219,261 @@ Write a professional, empathetic reply to this customer. Be concise (2–4 sente
       return null;
     });
   });
+
+  // 19. Customer directory (BlissCustomerCRM) — real customers rows plus
+  // aggregates only Bliss actually needs: conversation/open-ticket counts
+  // and lifetime value from FinOps' real invoicing tables (sales_invoices
+  // has no total column of its own — the real total is the sum of its
+  // lines' rate*qty*(1+tax_pct/100), same math the invoice PDF uses).
+  // Two follow-up aggregate queries + a JS merge rather than correlated
+  // subqueries — simpler to read and the customer count per tenant is small.
+  fastify.get<{ Querystring: { search?: string } }>('/customers', async (request) => {
+    const user = request.user;
+    const { search } = request.query;
+    return withTenant(user.tenant_id, async (trx) => {
+      let q = trx.selectFrom('customers as c')
+        .leftJoin('users as u', 'u.id', 'c.assigned_officer_id')
+        .select([
+          'c.id', 'c.name', 'c.contact_name', 'c.email', 'c.phone', 'c.phone_wa',
+          'c.country', 'c.city', 'c.client_type', 'c.account_status', 'c.website',
+          'c.logo_url', 'c.avatar_color', 'c.avatar_initials', 'c.created_at',
+          'u.name as assigned_officer_name',
+        ])
+        .where('c.tenant_id', '=', user.tenant_id)
+        .where('c.deleted_at', 'is', null);
+      if (search?.trim()) {
+        const like = `%${search.trim()}%`;
+        q = q.where((eb) => eb.or([eb('c.name', 'ilike', like), eb('c.contact_name', 'ilike', like), eb('c.email', 'ilike', like)]));
+      }
+      const customers = await q.orderBy('c.name', 'asc').limit(300).execute();
+      if (customers.length === 0) return [];
+      const ids = customers.map(c => c.id);
+
+      const ticketCounts = await trx.selectFrom('support_tickets')
+        .select(['customer_id',
+          (eb) => eb.fn.count<number>('id').as('total'),
+          (eb) => eb.fn.count<number>('id').filterWhere('status', 'in', ['OPEN', 'IN_PROGRESS']).as('open'),
+        ])
+        .where('tenant_id', '=', user.tenant_id).where('customer_id', 'in', ids)
+        .groupBy('customer_id').execute();
+      const ticketMap = new Map(ticketCounts.map(t => [t.customer_id, { total: Number(t.total), open: Number(t.open) }]));
+
+      const invoiceSums = await trx.selectFrom('sales_invoice_lines as sil')
+        .innerJoin('sales_invoices as si', 'si.id', 'sil.invoice_id')
+        .select(['si.customer_id',
+          (eb) => eb.fn.sum<number>(sql`sil.rate * sil.qty * (1 + sil.tax_pct / 100.0)`).as('total'),
+        ])
+        .where('si.tenant_id', '=', user.tenant_id).where('si.customer_id', 'in', ids).where('si.status', '!=', 'Draft')
+        .groupBy('si.customer_id').execute();
+      const lifetimeMap = new Map(invoiceSums.map(i => [i.customer_id, Number(i.total) || 0]));
+
+      return customers.map(c => ({
+        ...c,
+        total_conversations: ticketMap.get(c.id)?.total ?? 0,
+        open_tickets: ticketMap.get(c.id)?.open ?? 0,
+        lifetime_value: lifetimeMap.get(c.id) ?? 0,
+      }));
+    });
+  });
+
+  // 20. Real channel-configuration status for BlissIntegrations/BlissWhatsApp
+  // — no secrets returned, just whether each channel actually has real
+  // credentials behind it right now. WhatsApp is a single platform-wide
+  // credential (env vars, no per-tenant override anywhere in this codebase),
+  // so its status is the same for every tenant — genuinely a SUPER_ADMIN /
+  // server-config fact, not a tenant setting. AI is real per-tenant config
+  // (tenant_settings['int-ai']).
+  fastify.get('/channel-status', async (request) => {
+    const user = request.user;
+    const aiCfg = await withTenant(user.tenant_id, async (trx) => {
+      const row = await trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      const settings = row?.settings as any ?? {};
+      return settings['int-ai'] ?? {};
+    });
+    return {
+      whatsapp: WhatsAppIntegration.isConfigured(),
+      ai: !!(aiCfg.on && aiCfg.apiKey),
+    };
+  });
+
+  // 21. Real WhatsApp channel metrics (BlissWhatsApp) — replaces 4 invented
+  // numbers (142 active sessions, 1,890 delivered, 94.2% read rate) with
+  // real counts off support_messages. "Active session" mirrors Meta's own
+  // 24h customer-service-window rule: a distinct customer who has sent an
+  // inbound WhatsApp message in the last 24h. Read rate is computed only
+  // over messages migration 404's delivery_status actually knows the fate
+  // of (Meta's delivery receipts), not assumed for the rest.
+  fastify.get('/whatsapp-metrics', async (request) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const since24h = new Date(Date.now() - 24 * 3600 * 1000);
+      const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+
+      const activeSessions = await trx.selectFrom('support_messages')
+        .select((eb) => eb.fn.count<number>('ticket_id').distinct().as('c'))
+        .where('tenant_id', '=', user.tenant_id).where('channel', '=', 'WHATSAPP')
+        .where('direction', '=', 'INBOUND').where('created_at', '>=', since24h)
+        .executeTakeFirst();
+
+      const todayOutbound = await trx.selectFrom('support_messages')
+        .select(['delivery_status', (eb) => eb.fn.count<number>('id').as('c')])
+        .where('tenant_id', '=', user.tenant_id).where('channel', '=', 'WHATSAPP')
+        .where('direction', '=', 'OUTBOUND').where('created_at', '>=', todayStart)
+        .groupBy('delivery_status').execute();
+
+      const deliveredToday = todayOutbound.reduce((sum, r) => sum + Number(r.c), 0);
+      const knownStatusTotal = todayOutbound.filter(r => r.delivery_status != null).reduce((sum, r) => sum + Number(r.c), 0);
+      const readToday = todayOutbound.find(r => r.delivery_status === 'read');
+      const readRate = knownStatusTotal > 0 ? Number((((Number(readToday?.c) || 0) / knownStatusTotal) * 100).toFixed(1)) : null;
+
+      return {
+        activeSessions: Number(activeSessions?.c) || 0,
+        deliveredToday,
+        readRate, // null (not 0) when nothing has a known delivery status yet — an honest "no data", not a fake rate
+        configured: WhatsAppIntegration.isConfigured(),
+      };
+    });
+  });
+
+  // 22. Unified search across Bliss's three real data surfaces — tickets,
+  // this tenant's published knowledge base, and the calling user's own chat
+  // channels/DMs. Powers the mobile search bar, which previously only ever
+  // reached the ticket list. Chat is scoped to chat_channel_members rows for
+  // this user — same membership boundary every other chat read in
+  // chat.routes.ts enforces — never a tenant-wide message search.
+  fastify.get<{ Querystring: { q?: string } }>('/search', async (request) => {
+    const user = request.user;
+    const q = (request.query.q || '').trim();
+    if (q.length < 2) return { tickets: [], articles: [], chats: [] };
+    const like = `%${q}%`;
+
+    return withTenant(user.tenant_id, async (trx) => {
+      let ticketsQuery = trx.selectFrom('support_tickets as st')
+        .leftJoin('customers as c', 'c.id', 'st.customer_id')
+        .select(['st.id', 'st.ref_number as ref', 'st.subject', 'st.status', 'c.name as customer'])
+        .where('st.tenant_id', '=', user.tenant_id)
+        .where((eb) => eb.or([
+          eb('st.subject', 'ilike', like),
+          eb('st.ref_number', 'ilike', like),
+          eb('c.name', 'ilike', like),
+        ]));
+      if (user.role === 'CUSTOMER') {
+        const cid = await resolveCustomerId(user);
+        ticketsQuery = ticketsQuery.where('st.customer_id', '=', cid ?? NIL_UUID);
+      }
+      const tickets = await ticketsQuery.orderBy('st.updated_at', 'desc').limit(6).execute();
+
+      const articles = await trx.selectFrom('knowledge_base')
+        .select(['id', 'title', 'category_id'])
+        .where('tenant_id', '=', user.tenant_id)
+        .where('status', '=', 'Published')
+        .where((eb) => eb.or([
+          eb('title', 'ilike', like),
+          eb('content', 'ilike', like),
+        ]))
+        .orderBy('updated_at', 'desc')
+        .limit(6)
+        .execute();
+
+      let chats: { kind: 'channel' | 'message'; channelId: string; label: string; preview: string | null }[] = [];
+      // CUSTOMER logins have no chat_channel_members rows at all (Team Chat
+      // is internal-staff-only), so this naturally comes back empty for them.
+      const memberships = await trx.selectFrom('chat_channel_members')
+        .select('channel_id').where('user_id', '=', user.sub).execute();
+      const channelIds = memberships.map((m) => m.channel_id);
+      if (channelIds.length > 0) {
+        const channels = await trx.selectFrom('chat_channels')
+          .select(['id', 'type', 'name'])
+          .where('id', 'in', channelIds).where('tenant_id', '=', user.tenant_id).execute();
+
+        const matchingMessages = await trx.selectFrom('chat_messages')
+          .select(['id', 'channel_id', 'content'])
+          .where('channel_id', 'in', channelIds).where('tenant_id', '=', user.tenant_id)
+          .where('content', 'ilike', like)
+          .orderBy('created_at', 'desc').limit(6).execute();
+
+        // DM channels carry no real name of their own — resolve the other
+        // member so the result reads as a person, the same way GET
+        // /v1/chat/channels already does for the channel list itself.
+        const dmChannelIds = channels.filter((c) => c.type === 'dm').map((c) => c.id);
+        const dmMembers = dmChannelIds.length > 0
+          ? await trx.selectFrom('chat_channel_members').select(['channel_id', 'user_id'])
+              .where('channel_id', 'in', dmChannelIds).where('user_id', '!=', user.sub).execute()
+          : [];
+        const dmOtherIds = [...new Set(dmMembers.map((m) => m.user_id))];
+        const dmUsers = dmOtherIds.length > 0
+          ? await trx.selectFrom('users').select(['id', 'name']).where('id', 'in', dmOtherIds).execute()
+          : [];
+        const dmUserMap = new Map(dmUsers.map((u) => [u.id, u.name]));
+        const dmOtherByChannel = new Map(dmMembers.map((m) => [m.channel_id, m.user_id]));
+        const channelMap = new Map(channels.map((c) => [c.id, c]));
+        const labelFor = (c: { id: string; type: string; name: string | null }) =>
+          c.type === 'dm' ? (dmUserMap.get(dmOtherByChannel.get(c.id) ?? '') ?? 'Direct message') : (c.name || 'Channel');
+
+        const qLower = q.toLowerCase();
+        const nameMatches = channels.filter((c) => c.type !== 'dm' && c.name?.toLowerCase().includes(qLower));
+
+        const seen = new Set<string>();
+        chats = [
+          ...nameMatches.map((c) => ({ kind: 'channel' as const, channelId: c.id, label: labelFor(c), preview: null })),
+          ...matchingMessages.map((m) => {
+            const c = channelMap.get(m.channel_id);
+            return { kind: 'message' as const, channelId: m.channel_id, label: c ? labelFor(c) : 'Chat', preview: m.content.slice(0, 80) };
+          }),
+        ].filter((item) => {
+          if (seen.has(item.channelId)) return false;
+          seen.add(item.channelId);
+          return true;
+        }).slice(0, 6);
+      }
+
+      return { tickets, articles, chats };
+    });
+  });
+
+  // ── WhatsApp HSM templates — real Meta Graph API, not a local invention.
+  // Listing returns whatever Meta's own review status is right now
+  // (APPROVED/PENDING/REJECTED); creating submits for review and does NOT
+  // come back approved — the only way to know is to list again later.
+  fastify.get('/whatsapp/templates', async (_request, reply) => {
+    const res = await WhatsAppIntegration.listTemplates();
+    if (!res.success) { reply.status(502); return { error: res.error, configured: WhatsAppIntegration.isWabaConfigured() }; }
+    return { templates: res.templates, configured: true };
+  });
+
+  fastify.post<{ Body: { name: string; category: 'UTILITY' | 'MARKETING' | 'AUTHENTICATION'; language: string; bodyText: string } }>(
+    '/whatsapp/templates',
+    { preHandler: [requireRole(...MGMT_ROLES)] },
+    async (request, reply) => {
+      const b = request.body;
+      if (!b?.name?.trim() || !b?.bodyText?.trim()) { reply.status(400); return { error: 'Template name and body text are required.' }; }
+      // Meta template names: lowercase letters, numbers and underscores only.
+      const name = b.name.trim().toLowerCase().replace(/[^a-z0-9_]/g, '_');
+      const res = await WhatsAppIntegration.createTemplate({ name, category: b.category || 'UTILITY', language: b.language || 'en_US', bodyText: b.bodyText.trim() });
+      if (!res.success) { reply.status(502); return { error: res.error }; }
+      reply.status(201);
+      return { id: res.id, name, status: 'PENDING' };
+    }
+  );
+
+  // Real ad-hoc send, not tied to an existing ticket — the one thing
+  // dispatchOutbound() (used by tickets/:id/messages and /broadcast) can't
+  // do, since it always requires a ticket. Gated to management roles since
+  // it's a genuine outbound broadcast capability, same bar as creating a
+  // template or an auto-assign rule.
+  fastify.post<{ Body: { phone: string; templateName?: string; languageCode?: string; text?: string } }>(
+    '/whatsapp/test-send',
+    { preHandler: [requireRole(...MGMT_ROLES)] },
+    async (request, reply) => {
+      const b = request.body;
+      if (!b?.phone?.trim()) { reply.status(400); return { error: 'Destination phone number is required.' }; }
+      const result = b.templateName
+        ? await WhatsAppIntegration.sendTemplateMessage(b.phone.trim(), b.templateName, b.languageCode || 'en_US')
+        : await WhatsAppIntegration.sendMessage(b.phone.trim(), b.text?.trim() || 'Hudumika Bliss test message.');
+      if (!result.success) { reply.status(502); return { error: result.error }; }
+      return result;
+    }
+  );
 
 }
 

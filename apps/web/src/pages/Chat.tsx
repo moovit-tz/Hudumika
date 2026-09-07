@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { Icon } from '../components/Icon.js';
@@ -12,6 +12,7 @@ import { PersonAvatar } from '../components/PersonAvatar.js';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '../components/ui/dropdown-menu.js';
 import { Popover, PopoverTrigger, PopoverContent } from '../components/ui/popover.js';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog.js';
+import { useMediaQuery } from '../hooks/useMediaQuery.js';
 
 // ─── Types (match apps/api/src/routes/chat.routes.ts) ─────────────────────────
 
@@ -64,6 +65,12 @@ const labelStyle: React.CSSProperties = { fontSize: 12, fontWeight: 700, color: 
 export const Chat: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  // A phone has room for exactly one of {conversation list, active thread} —
+  // this file had no mobile handling at all (two fixed 280px <aside>s either
+  // side of the thread, unconditionally rendered), which on a narrow screen
+  // squeezed the actual conversation into a sliver a few dozen pixels wide.
+  const isMobile = useMediaQuery('(max-width: 900px)');
 
   // State
   const [channels, setChannels] = useState<ApiChannel[]>([]);
@@ -95,9 +102,21 @@ export const Chat: React.FC = () => {
       const res = await apiFetch('/v1/chat/channels');
       const list: ApiChannel[] = res.data ?? [];
       setChannels(list);
-      if (selectFirst && !activeId && list.length > 0) setActiveId(list[0].id);
+      // A search/notification result linking here (?channel=<id>) should
+      // open on that channel, not silently fall back to whichever one
+      // happens to be first. Consumed once, like Support.tsx/SupportKB.tsx's
+      // own ?id= — this runs again every 6s poll, so leaving the param in
+      // the URL would snap the user back to it the moment they switched to
+      // a different channel themselves.
+      const wantedId = searchParams.get('channel');
+      if (wantedId && list.some(c => c.id === wantedId)) {
+        setActiveId(wantedId);
+        setSearchParams(prev => { const next = new URLSearchParams(prev); next.delete('channel'); return next; }, { replace: true });
+      } else if (selectFirst && !activeId && list.length > 0) {
+        setActiveId(list[0].id);
+      }
     } catch { /* keep previous list */ } finally { setLoadingChannels(false); }
-  }, [activeId]);
+  }, [activeId, searchParams, setSearchParams]);
 
   useEffect(() => { loadChannels(true); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -272,7 +291,8 @@ export const Chat: React.FC = () => {
     <div className="bliss-chat-shell" style={{ display: 'flex', width: '100%', height: '100%', overflow: 'hidden', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)' }}>
 
       {/* ─── 1. CONVERSATIONS PANEL (280px) ─────────────────────────────────── */}
-      <aside style={{ width: 280, flexShrink: 0, background: 'var(--white)', borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      {(!isMobile || !activeId) && (
+      <aside style={{ width: isMobile ? '100%' : 280, flexShrink: 0, background: 'var(--white)', borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         {/* Sidebar Header */}
         <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <h2 style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)', margin: 0 }}>Messages</h2>
@@ -384,8 +404,10 @@ export const Chat: React.FC = () => {
           </button>
         </div>
       </aside>
+      )}
 
       {/* ─── 2. MAIN CHAT STAGE ────────────────────────────────────────────── */}
+      {(!isMobile || activeId) && (
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg)', position: 'relative', minWidth: 0 }}>
         {!activeCh ? (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, color: 'var(--ink3)' }}>
@@ -397,6 +419,11 @@ export const Chat: React.FC = () => {
             {/* Main Stage Header */}
             <header style={{ height: 58, padding: '0 20px', background: 'var(--white)', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+                {isMobile && (
+                  <button type="button" onClick={() => setActiveId(null)} style={{ background: 'none', border: 'none', padding: 4, cursor: 'pointer', color: 'var(--ink2)', flexShrink: 0 }}>
+                    <Icon name="arrowLeft" size={18} />
+                  </button>
+                )}
                 {activeCh.type === 'dm' ? (
                   <PersonAvatar userId={activeCh.other_user_id} name={activeCh.name} size={36} />
                 ) : (
@@ -567,10 +594,15 @@ export const Chat: React.FC = () => {
           </>
         )}
       </main>
+      )}
 
-      {/* ─── 3. RIGHT CONTACT / DETAILS DRAWER (280px) ────────────────────── */}
+      {/* ─── 3. RIGHT CONTACT / DETAILS DRAWER (280px; a full-screen overlay
+             on mobile instead — there's no room for a third 280px column
+             next to a phone-width thread). ─────────────────────────────── */}
       {showDetails && activeCh && (
-        <aside style={{ width: 280, flexShrink: 0, background: 'var(--white)', borderLeft: '1px solid var(--border)', display: 'flex', flexDirection: 'column', overflowY: 'auto', padding: 16, gap: 16 }}>
+        <aside style={isMobile
+          ? { position: 'fixed', inset: 0, zIndex: 200, background: 'var(--white)', display: 'flex', flexDirection: 'column', overflowY: 'auto', padding: 16, gap: 16 }
+          : { width: 280, flexShrink: 0, background: 'var(--white)', borderLeft: '1px solid var(--border)', display: 'flex', flexDirection: 'column', overflowY: 'auto', padding: 16, gap: 16 }}>
           {/* Header */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)' }}>{activeCh.type === 'dm' ? 'User Details' : 'Channel Details'}</span>

@@ -1,18 +1,20 @@
-﻿import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { usePageSEO } from "../hooks/usePageSEO.js";
-import { Icon } from "../components/Icon.js";
+import { Icon, type IconName } from "../components/Icon.js";
 import { apiFetch } from "../lib/api.js";
 import { NOTIF_TYPE_CFG, notifRelTime } from "../components/NotificationListItem.js";
 import { PageHeader } from "../components/PageHeader.js";
 import { Tabs, TabsList, TabsTrigger } from "../components/ui/tabs.js";
 import { Spinner } from "../components/ui/spinner.js";
+import { Button } from "../components/ui/button.js";
+import { Badge } from "../components/ui/badge.js";
 import "./BlissNotifications.css";
 
 const PAGE_SIZE = 30;
 
 type FilterTab = "all" | "unread" | "task" | "support" | "announcement" | "security" | "chat" | "mention";
 
-const FILTER_TABS: { key: FilterTab; label: string; icon: string }[] = [
+const FILTER_TABS: { key: FilterTab; label: string; icon: IconName }[] = [
   { key: "all",          label: "All",           icon: "inbox" },
   { key: "unread",       label: "Unread",        icon: "bell" },
   { key: "task",         label: "Tasks",         icon: "checkCircle" },
@@ -35,13 +37,6 @@ export function BlissNotifications() {
   const [selected, setSelected]       = useState<any | null>(null);
   const [search, setSearch]           = useState("");
 
-  // ── Proportional list/detail split — same mechanic as EmailApp.tsx: the
-  // list fills the full width until something is selected, then becomes a
-  // draggable column with the detail pane filling the rest. Defaults to an
-  // even 50/50 split (CSS `flex-basis: 50%`, no JS measurement needed) and
-  // only switches to a fixed pixel width once the user actually drags —
-  // measured off the real rendered width, so the drag starts from wherever
-  // the split currently sits rather than jumping to a hardcoded number.
   const [listWidth, setListWidth] = useState<number | null>(null);
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -68,8 +63,8 @@ export function BlissNotifications() {
       if (!isDragging.current) return;
       const dx = ev.clientX - dragStartX.current;
       const rootWidth = rootRef.current?.getBoundingClientRect().width ?? 1200;
-      const maxW = Math.max(260, rootWidth - 320); // leave the detail pane at least 320px
-      setListWidth(Math.max(260, Math.min(dragStartW.current + dx, maxW)));
+      const maxW = Math.max(300, rootWidth - 340);
+      setListWidth(Math.max(300, Math.min(dragStartW.current + dx, maxW)));
     };
     const onUp = () => {
       isDragging.current = false;
@@ -124,105 +119,152 @@ export function BlissNotifications() {
   const page = Math.floor(offset / PAGE_SIZE) + 1;
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
+  const actionNotifsCount = notifs.filter(n => n.type === 'task' || n.type === 'security').length;
+  const supportNotifsCount = notifs.filter(n => n.type === 'support' || n.type === 'chat').length;
+
   return (
-    <div className="bnc-root" ref={rootRef}>
-      {/* LEFT PANEL — full width alone; a draggable, 50/50-by-default column
-          once a notification is open (mirrors EmailApp.tsx's em-list /
-          em-list--has-detail). On mobile it's replaced entirely by the
-          detail pane rather than squeezed into a stacked half-height split. */}
-      {(!isMobile || !selected) && (
-      <div
-        ref={leftRef}
-        className={`bnc-left${selected ? " bnc-left--has-detail" : ""}`}
-        style={selected && listWidth != null ? ({ "--bnc-list-w": `${listWidth}px` } as React.CSSProperties) : undefined}
-      >
-        <div className="bnc-left-hdr">
-          <PageHeader
-            crumbs={['Support', 'Notifications']}
-            titlePlain="Notification"
-            titleEm="centre"
-            subtitle={unreadCount > 0 ? `${unreadCount} unread · every notification across the platform, in one place.` : 'Every notification across the platform, in one place.'}
-            actions={
-              <div className="bnc-hdr-actions">
-                {unreadCount > 0 && (
-                  <button type="button" className="bnc-icon-btn" title="Mark all read" onClick={handleMarkAllRead}>
-                    <Icon name="checkCircle" size={15} />
+    <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', background: 'var(--bg)', minHeight: '100%' }}>
+      
+      {/* Top Banner Header */}
+      <div style={{ padding: '16px 24px 12px', background: 'var(--white)', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+        <PageHeader
+          crumbs={['Bliss', 'Notifications']}
+          titlePlain="Notification"
+          titleEm="Centre"
+          subtitle={unreadCount > 0 ? `${unreadCount} unread alerts • every platform notification, organized in one place.` : 'Every notification across the platform, organized in real time.'}
+          actions={
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+              {unreadCount > 0 && (
+                <Button variant="default" size="sm" onClick={handleMarkAllRead}>
+                  <Icon name="checkCircle" size={14} /> Mark All Read
+                </Button>
+              )}
+              <Button variant="outline" size="sm" onClick={() => load(offset, tab)}>
+                <Icon name="refresh" size={14} /> Refresh Feed
+              </Button>
+            </div>
+          }
+        />
+
+        {/* Top Summary Metrics Cards */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginTop: 14 }}>
+          <div style={{ background: 'var(--bg)', padding: '10px 14px', borderRadius: 'var(--r)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 34, height: 34, borderRadius: 'var(--r)', background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--teal)' }}>
+              <Icon name="inbox" size={16} />
+            </div>
+            <div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)' }}>{totalCount} Total</div>
+              <div style={{ fontSize: 11, color: 'var(--ink3)' }}>Platform Alerts</div>
+            </div>
+          </div>
+
+          <div style={{ background: 'var(--bg)', padding: '10px 14px', borderRadius: 'var(--r)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 34, height: 34, borderRadius: 'var(--r)', background: unreadCount > 0 ? 'var(--red-l)' : 'var(--green-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: unreadCount > 0 ? 'var(--red)' : 'var(--green)' }}>
+              <Icon name="bell" size={16} />
+            </div>
+            <div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)' }}>{unreadCount} Unread</div>
+              <div style={{ fontSize: 11, color: unreadCount > 0 ? 'var(--red)' : 'var(--ink3)', fontWeight: unreadCount > 0 ? 700 : 400 }}>Requires Attention</div>
+            </div>
+          </div>
+
+          <div style={{ background: 'var(--bg)', padding: '10px 14px', borderRadius: 'var(--r)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 34, height: 34, borderRadius: 'var(--r)', background: 'var(--gold-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gold)' }}>
+              <Icon name="shield" size={16} />
+            </div>
+            <div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)' }}>{actionNotifsCount} Action Items</div>
+              <div style={{ fontSize: 11, color: 'var(--ink3)' }}>Tasks & Security</div>
+            </div>
+          </div>
+
+          <div style={{ background: 'var(--bg)', padding: '10px 14px', borderRadius: 'var(--r)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 34, height: 34, borderRadius: 'var(--r)', background: 'var(--blue-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--blue)' }}>
+              <Icon name="headphones" size={16} />
+            </div>
+            <div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)' }}>{supportNotifsCount} Support/Chats</div>
+              <div style={{ fontSize: 11, color: 'var(--ink3)' }}>Customer Activity</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Dual-Pane Master Detail Container */}
+      <div className="bnc-root" ref={rootRef}>
+        {(!isMobile || !selected) && (
+          <div
+            ref={leftRef}
+            className={`bnc-left${selected ? " bnc-left--has-detail" : ""}`}
+            style={selected && listWidth != null ? ({ "--bnc-list-w": `${listWidth}px` } as React.CSSProperties) : undefined}
+          >
+            <div className="bnc-left-hdr">
+              <div className="bnc-search-wrap">
+                <Icon name="search" size={14} className="bnc-search-icon" />
+                <input
+                  className="bnc-search"
+                  placeholder="Filter notifications by title or message text…"
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                />
+                {search && (
+                  <button className="bnc-search-clear" onClick={() => setSearch("")}>
+                    <Icon name="x" size={12} />
                   </button>
                 )}
-                <button type="button" className="bnc-icon-btn" title="Refresh" onClick={() => load(offset, tab)}>
-                  <Icon name="refresh" size={15} />
+              </div>
+
+              <Tabs value={tab} onValueChange={v => switchTab(v as typeof tab)} variant="segmented">
+                <TabsList className="bnc-chips">
+                  {FILTER_TABS.map(t => (
+                    <TabsTrigger key={t.key} value={t.key}>
+                      <Icon name={t.icon} size={12} />
+                      {t.label}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </Tabs>
+            </div>
+
+            <div className="bnc-list">
+              {loading ? (
+                <div className="bnc-empty">
+                  <Spinner />
+                  <span className="bnc-empty-label">Loading notifications…</span>
+                </div>
+              ) : displayed.length === 0 ? (
+                <div className="bnc-empty">
+                  <div className="bnc-empty-ico"><Icon name="bell" size={28} /></div>
+                  <span className="bnc-empty-label">{search ? "No matching notifications" : "All caught up!"}</span>
+                  <span className="bnc-empty-sub">{search ? "Try searching for a different keyword" : "No notifications available in this category."}</span>
+                </div>
+              ) : displayed.map(n => (
+                <NotifRow key={n.id} n={n} isActive={selected?.id === n.id} onClick={() => handleMarkRead(n)} />
+              ))}
+            </div>
+
+            {totalPages > 1 && (
+              <div className="bnc-pagination">
+                <button className="bnc-pg-btn" disabled={page === 1} onClick={() => setOffset(o => Math.max(0, o - PAGE_SIZE))}>
+                  <Icon name="chevronLeft" size={14} />
+                </button>
+                <span className="bnc-pg-label">Page {page} of {totalPages}</span>
+                <button className="bnc-pg-btn" disabled={page === totalPages} onClick={() => setOffset(o => o + PAGE_SIZE)}>
+                  <Icon name="chevronRight" size={14} />
                 </button>
               </div>
-            }
-          />
-          <div className="bnc-search-wrap">
-            <Icon name="search" size={14} className="bnc-search-icon" />
-            <input
-              className="bnc-search"
-              placeholder="Search notifications…"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-            />
-            {search && (
-              <button className="bnc-search-clear" onClick={() => setSearch("")}>
-                <Icon name="x" size={12} />
-              </button>
             )}
           </div>
-          <Tabs value={tab} onValueChange={v => switchTab(v as typeof tab)} variant="segmented">
-            <TabsList className="bnc-chips">
-              {FILTER_TABS.map(t => (
-                <TabsTrigger key={t.key} value={t.key}>
-                  <Icon name={t.icon as any} size={12} />
-                  {t.label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
-        </div>
+        )}
 
-        <div className="bnc-list">
-          {loading ? (
-            <div className="bnc-empty">
-              <Spinner />
-              <span className="bnc-empty-label">Loading…</span>
-            </div>
-          ) : displayed.length === 0 ? (
-            <div className="bnc-empty">
-              <div className="bnc-empty-ico"><Icon name="bell" size={28} /></div>
-              <span className="bnc-empty-label">{search ? "No matches" : "All caught up!"}</span>
-              <span className="bnc-empty-sub">{search ? "Try a different search term" : "No notifications here yet"}</span>
-            </div>
-          ) : displayed.map(n => (
-            <NotifRow key={n.id} n={n} isActive={selected?.id === n.id} onClick={() => handleMarkRead(n)} />
-          ))}
-        </div>
+        {selected && !isMobile && <div className="bnc-resizer" onMouseDown={startDrag} />}
 
-        {totalPages > 1 && (
-          <div className="bnc-pagination">
-            <button className="bnc-pg-btn" disabled={page === 1} onClick={() => setOffset(o => Math.max(0, o - PAGE_SIZE))}>
-              <Icon name="chevronLeft" size={14} />
-            </button>
-            <span className="bnc-pg-label">Page {page} of {totalPages}</span>
-            <button className="bnc-pg-btn" disabled={page === totalPages} onClick={() => setOffset(o => o + PAGE_SIZE)}>
-              <Icon name="chevronRight" size={14} />
-            </button>
+        {selected && (
+          <div className="bnc-right">
+            <NotifDetail n={selected} onClose={() => setSelected(null)} />
           </div>
         )}
       </div>
-      )}
-
-      {/* Draggable resizer — only between the panes, only on desktop widths
-          (mirrors EmailApp.tsx's em-resizer; mobile swaps panes instead). */}
-      {selected && !isMobile && <div className="bnc-resizer" onMouseDown={startDrag} />}
-
-      {/* RIGHT PANEL — doesn't render at all with nothing selected, so the
-          list gets the full width instead of it going to an empty state. */}
-      {selected && (
-        <div className="bnc-right">
-          <NotifDetail n={selected} onClose={() => setSelected(null)} />
-        </div>
-      )}
     </div>
   );
 }
@@ -235,17 +277,12 @@ function NotifRow({ n, isActive, onClick }: { n: any; isActive: boolean; onClick
       onClick={onClick}
     >
       {!n.read && <div className="bnc-row-bar" style={{ background: cfg.color }} />}
-      {/* No PersonAvatar — a notification carries no actor id, only a
-          type/title/message, so there's no "who" to fetch a picture for.
-          n.avatar_url was never actually sent by the API (see
-          notifications.routes.ts); this always rendered initials in
-          practice. */}
       <div className="bnc-row-avatar-wrap">
         <div className="bnc-row-initials" style={{ background: cfg.color }}>
           {(n.title || "?")[0]?.toUpperCase()}
         </div>
         <div className="bnc-row-type-badge" style={{ color: cfg.color }}>
-          <Icon name={cfg.icon as any} size={9} strokeWidth={2.5} />
+          <Icon name={cfg.icon as IconName} size={9} strokeWidth={2.5} />
         </div>
       </div>
       <div className="bnc-row-body">
@@ -258,6 +295,9 @@ function NotifRow({ n, isActive, onClick }: { n: any; isActive: boolean; onClick
           <span className="bnc-tag" style={{ background: `${cfg.color}18`, color: cfg.color }}>
             {n.type ?? "info"}
           </span>
+          {!n.read && (
+            <Badge variant="error" style={{ fontSize: 9, padding: '1px 5px' }}>NEW</Badge>
+          )}
         </div>
       </div>
       {!n.read && <div className="bnc-row-dot" />}
@@ -272,7 +312,7 @@ function NotifDetail({ n, onClose }: { n: any; onClose: () => void }) {
     <div className="bnc-detail">
       <div className="bnc-detail-hdr">
         <div className="bnc-detail-hdr-icon" style={{ background: `${cfg.color}18`, color: cfg.color }}>
-          <Icon name={cfg.icon as any} size={20} />
+          <Icon name={cfg.icon as IconName} size={20} />
         </div>
         <div className="bnc-detail-hdr-text">
           <h2 className="bnc-detail-headline">{n.title}</h2>
@@ -291,25 +331,25 @@ function NotifDetail({ n, onClose }: { n: any; onClose: () => void }) {
 
       {n.message && (
         <div className="bnc-detail-callout" style={{ borderLeftColor: cfg.color }}>
-          <Icon name={cfg.icon as any} size={14} style={{ color: cfg.color, flexShrink: 0, marginTop: 2 }} />
+          <Icon name={cfg.icon as IconName} size={14} style={{ color: cfg.color, flexShrink: 0, marginTop: 2 }} />
           <div className="bnc-detail-callout-text">{n.message}</div>
         </div>
       )}
 
       <div className="bnc-detail-section">
-        <h3 className="bnc-detail-section-title">Details</h3>
+        <h3 className="bnc-detail-section-title">Notification Attributes</h3>
         <table className="bnc-detail-table">
           <tbody>
             <tr>
-              <td className="bnc-detail-td-label">Type</td>
+              <td className="bnc-detail-td-label">Category Type</td>
               <td><span className="bnc-tag" style={{ background: `${cfg.color}18`, color: cfg.color }}>{n.type ?? "info"}</span></td>
             </tr>
             <tr>
-              <td className="bnc-detail-td-label">Received</td>
+              <td className="bnc-detail-td-label">Received Timestamp</td>
               <td>{date.toLocaleString()}</td>
             </tr>
             <tr>
-              <td className="bnc-detail-td-label">Status</td>
+              <td className="bnc-detail-td-label">Read Status</td>
               <td>
                 <span className={`bnc-status-badge bnc-status-badge--${n.read ? "read" : "unread"}`}>
                   {n.read ? "Read" : "Unread"}
@@ -318,7 +358,7 @@ function NotifDetail({ n, onClose }: { n: any; onClose: () => void }) {
             </tr>
             {n.link && (
               <tr>
-                <td className="bnc-detail-td-label">Link</td>
+                <td className="bnc-detail-td-label">Linked Resource</td>
                 <td><a href={n.link} className="bnc-detail-link">{n.link} <Icon name="arrowUpRight" size={11} /></a></td>
               </tr>
             )}
@@ -328,12 +368,11 @@ function NotifDetail({ n, onClose }: { n: any; onClose: () => void }) {
 
       {n.link && (
         <div className="bnc-detail-actions">
-          <a href={n.link} className="btn btn-primary bnc-detail-cta">
-            <Icon name="arrowUpRight" size={14} /> Open linked page
+          <a href={n.link} className="btn btn-primary bnc-detail-cta" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <Icon name="arrowUpRight" size={14} /> Open Linked Resource
           </a>
         </div>
       )}
     </div>
   );
 }
-

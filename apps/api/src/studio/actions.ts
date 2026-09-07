@@ -4,6 +4,8 @@ import type { Database } from '../db/client.js';
 import { withTenant } from '../db/client.js';
 import { NotificationService } from '../services/notification.service.js';
 import { SealService } from '../services/seal.service.js';
+import { fireNotificationTrigger } from '../routes/support.routes.js';
+import { emitDomainEvent } from '../services/domain-events.service.js';
 import type { AppId } from './triggers.js';
 
 /**
@@ -150,6 +152,48 @@ export const ACTIONS: ActionDef[] = [
         }).returning('id').executeTakeFirstOrThrow();
 
         return { ok: true, detail: `Opened ticket ${row.id}.`, output: { ticketId: row.id } };
+      });
+    },
+  },
+
+  {
+    /**
+     * The other half of the loop support.ticket_created/hr.find_available_staff
+     * opened: a workflow can now find who's free and actually assign the
+     * ticket to them — "WHEN a ticket is created, find an available SENIOR,
+     * assign it to them" is a real, buildable Studio workflow now, not just
+     * the first two steps of one. Mirrors exactly what
+     * PATCH /tickets/:id/status does for a reassignment (same notification
+     * trigger, same domain event) rather than a second, thinner copy of it.
+     */
+    id: 'support.assign_ticket',
+    app: 'bliss',
+    label: 'Assign a support ticket',
+    description: 'Assigns (or reassigns) a ticket to a staff member.',
+    inputSchema: z.object({
+      ticketId: z.string().uuid(),
+      userId: z.string().uuid(),
+    }),
+    async execute(ctx, input) {
+      return withTenant(ctx.tenantId, async (trx) => {
+        const before = await trx.selectFrom('support_tickets').select('assigned_to')
+          .where('id', '=', input.ticketId).where('tenant_id', '=', ctx.tenantId).executeTakeFirst();
+        if (!before) return { ok: false, detail: `Ticket ${input.ticketId} not found.` };
+        if (before.assigned_to === input.userId) return { ok: true, detail: 'Already assigned to this person — nothing to do.' };
+        if (ctx.simulate) return { ok: true, detail: `Would assign ticket ${input.ticketId} to ${input.userId}.` };
+
+        const updated = await trx.updateTable('support_tickets')
+          .set({ assigned_to: input.userId, updated_at: new Date() })
+          .where('id', '=', input.ticketId).where('tenant_id', '=', ctx.tenantId)
+          .returningAll().executeTakeFirstOrThrow();
+
+        await fireNotificationTrigger(trx, ctx.tenantId, 'reassigned', updated);
+        await emitDomainEvent(trx, ctx.tenantId, {
+          type: 'support.ticket_reassigned', sourceApp: 'bliss', entityType: 'support_ticket', entityId: updated.id,
+          payload: { assignedTo: updated.assigned_to, previousAssignedTo: before.assigned_to ?? null },
+        }).catch(err => console.error('[Studio] ticket_reassigned emit failed:', err?.message));
+
+        return { ok: true, detail: `Assigned ticket ${input.ticketId} to ${input.userId}.` };
       });
     },
   },

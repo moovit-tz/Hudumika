@@ -393,9 +393,44 @@ export async function registerApp() {
       if (appId) incrementAppUsage(user.tenant_id, appId).catch(() => {});
     });
 
-    // 3. WebSocket handler
-    server.get('/ws', { websocket: true }, (socket, req) => {
-      server.log.info('🔌 WebSocket client connected');
+    // 3. WebSocket handler — authenticated and tenant-tagged the same way
+    // the Bliss calls-signal socket already does (routes/calls.routes.ts):
+    // browsers can't set an Authorization header on a WS handshake, but they
+    // DO send cookies, so the same httpOnly access cookie every REST request
+    // uses (extractToken(), lib/cookies.ts) authenticates the connection. No
+    // CORS preflight applies to a WS upgrade, so origin is checked here
+    // explicitly instead of relying on the CORS plugin (which never runs for
+    // this route at all). Every broadcast call site MUST go through
+    // broadcastToTenant() (lib/ws-broadcast.ts) using the tenantId tagged
+    // below — sending straight to `.clients` leaks every tenant's live
+    // events (ticket messages, vehicle positions, invoices...) to every
+    // connected client platform-wide, authenticated or not, which is exactly
+    // how this endpoint used to work.
+    server.get('/ws', { websocket: true }, (socket: any, req) => {
+      const origin = String(req.headers?.origin || '');
+      if (origin && !env.CORS_ORIGINS.split(',').map(o => o.trim()).includes(origin)) {
+        try { socket.close(4001, 'unauthorized'); } catch { /* ignore */ }
+        return;
+      }
+
+      let claims: any;
+      try {
+        const token = extractToken(req as any);
+        if (!token) throw new Error('no session');
+        claims = server.jwt.verify(token);
+      } catch {
+        try { socket.close(4001, 'unauthorized'); } catch { /* ignore */ }
+        return;
+      }
+      if (!claims?.sub || !claims?.tenant_id || claims.typ === 'refresh' || claims.typ === 'guest') {
+        try { socket.close(4001, 'unauthorized'); } catch { /* ignore */ }
+        return;
+      }
+
+      socket.tenantId = String(claims.tenant_id);
+      socket.userId = String(claims.sub);
+
+      server.log.info(`🔌 WebSocket client connected (tenant ${socket.tenantId})`);
       socket.on('message', (message: any) => {
         server.log.debug(`WebSocket message received: ${message}`);
       });

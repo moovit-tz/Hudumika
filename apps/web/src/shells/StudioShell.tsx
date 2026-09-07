@@ -48,6 +48,16 @@ const NAV: SidebarSection[] = [
     items: [{ label: 'Triggers & Actions', icon: 'layers', path: '/studio/catalog' }],
   },
   {
+    // Every entry here must correspond to an app id that actually has at
+    // least one real trigger or action registered (studio/triggers.ts /
+    // actions.ts) — otherwise it's a sidebar link to a permanently empty
+    // list, which is exactly the bug NexusHR had: this pointed at
+    // ?app=onepi, an id nothing in the registry has ever used (the real id
+    // is 'nexushr' — 'onepi' looks like a leftover from a rename), so the
+    // link showed zero workflows regardless of how many NexusHR ones
+    // existed. crm/cargotracker/inventory are deliberately not listed:
+    // they have zero registered triggers or actions right now, so a link
+    // to them would have the identical problem.
     title: 'BY APP',
     items: [
       { label: 'ClearOS',      icon: 'layers',        path: '/studio/workflows?app=clearos' },
@@ -55,8 +65,13 @@ const NAV: SidebarSection[] = [
       { label: 'FinOps',       icon: 'dollarSign',    path: '/studio/workflows?app=finops' },
       { label: 'Bliss',        icon: 'chatBubble',    path: '/studio/workflows?app=bliss' },
       { label: 'HuduFreight',  icon: 'truck',         path: '/studio/workflows?app=tracking' },
-      { label: 'CargoTracker', icon: 'alertTriangle', path: '/studio/workflows?app=cargotracker' },
-      { label: 'NexusHR',      icon: 'users',         path: '/studio/workflows?app=onepi' },
+      { label: 'NexusHR',      icon: 'users',         path: '/studio/workflows?app=nexushr' },
+      { label: 'ComplyOS',     icon: 'shield',        path: '/studio/workflows?app=complyos' },
+      { label: 'Ondi',         icon: 'key',           path: '/studio/workflows?app=ondi' },
+      { label: 'Cloud',        icon: 'folder',        path: '/studio/workflows?app=cloud' },
+      { label: 'Onsite',       icon: 'monitor',       path: '/studio/workflows?app=onsite' },
+      { label: 'Tasks',        icon: 'tasks',         path: '/studio/workflows?app=tasks' },
+      { label: 'Admin',        icon: 'settings',      path: '/studio/workflows?app=workspace' },
     ],
   },
 ];

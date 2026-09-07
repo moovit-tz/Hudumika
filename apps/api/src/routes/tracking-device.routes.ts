@@ -3,6 +3,7 @@ import { z } from 'zod';
 import crypto from 'crypto';
 import { dbPlatform, withTenant } from '../db/client.js';
 import { checkGeofenceTransitions } from './tracking.routes.js';
+import { broadcastToTenant } from '../lib/ws-broadcast.js';
 
 /**
  * Real GPS device ingestion — no user session at all, by design: a physical
@@ -72,13 +73,11 @@ export async function trackingDeviceRoutes(fastify: FastifyInstance) {
 
       await checkGeofenceTransitions(trx, vehicle.tenant_id, vehicle.id, body.lat, body.lng);
 
-      fastify.websocketServer?.clients.forEach((client: any) => {
-        client.send(JSON.stringify({
-          type: 'vehicle.position_updated',
-          vehicleId: vehicle.id,
-          latitude: body.lat,
-          longitude: body.lng,
-        }));
+      broadcastToTenant(fastify, vehicle.tenant_id, {
+        type: 'vehicle.position_updated',
+        vehicleId: vehicle.id,
+        latitude: body.lat,
+        longitude: body.lng,
       });
 
       return { ok: true, vehicle_id: vehicle.id };

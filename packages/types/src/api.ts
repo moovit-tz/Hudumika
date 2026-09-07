@@ -240,7 +240,9 @@ export type ServerEvent =
   | { type: 'declaration.status_changed'; declarationId: string; status: string }
   | { type: 'declaration.selectivity_result'; declarationId: string; channel: string }
   // ── Tracking Events ──
-  | { type: 'vehicle.position_updated'; vehicleId: string; latitude: number; longitude: number };
+  | { type: 'vehicle.position_updated'; vehicleId: string; latitude: number; longitude: number }
+  // ── Bliss / Support Events ──
+  | { type: 'support.message_received'; ticketId: string; message: string };
 
 // ── Declaration List Query ───────────────────────────────────
 

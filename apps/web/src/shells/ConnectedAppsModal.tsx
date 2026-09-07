@@ -3,6 +3,9 @@ import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { useCloud, StorageProvider } from './cloud-context.js';
 import { SectionLoading } from '../components/ui/spinner.js';
+import { Dialog, DialogContent } from '../components/ui/dialog.js';
+import { Badge } from '../components/ui/badge.js';
+import { Button } from '../components/ui/button.js';
 
 export const STORAGE_PROVIDERS: { id: StorageProvider; name: string; color: string; icon: IconName; blurb: string }[] = [
   { id: 'box',      name: 'Box',      color: '#0061D5', icon: 'box2',    blurb: 'Sync folders to your Box account.' },
@@ -53,103 +56,121 @@ export function ConnectedAppsModal({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="card" style={{ width: 460, padding: 24 }} onClick={e => e.stopPropagation()}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-          <span style={{ fontSize:'var(--text-lg)', fontWeight: 700, color: 'var(--ink)' }}>Connected Apps</span>
-          <button onClick={onClose} className="dp-close" aria-label="Close"><Icon name="close" size={16} /></button>
+    <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent hideClose className="flex w-[calc(100vw-2rem)] max-w-md flex-col gap-0 overflow-hidden p-0 sm:max-w-md" style={{ maxHeight: 'min(85vh, 640px)' }}>
+        {/* Header — fixed, doesn't scroll with the list */}
+        <div className="flex shrink-0 items-start justify-between gap-3 border-b px-5 py-4" style={{ borderColor: 'var(--border)' }}>
+          <div className="min-w-0">
+            <div className="text-base font-bold" style={{ color: 'var(--ink)' }}>Connected apps</div>
+            <p className="mt-1 text-sm leading-snug" style={{ color: 'var(--ink3)' }}>
+              Sync your Drive to other storage providers. Connecting one requires that provider's own account sign-in.
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-(--bg)"
+            style={{ color: 'var(--ink3)' }}
+          >
+            <Icon name="close" size={16} />
+          </button>
         </div>
-        <p style={{ fontSize:'var(--text-sm)', color: 'var(--ink3)', margin: '0 0 18px' }}>
-          Sync your Drive to other storage providers. Connecting a provider requires that provider's own account sign-in.
-        </p>
 
-        {connectionsLoading && connections.length === 0 ? (
-          <SectionLoading />
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {STORAGE_PROVIDERS.map(p => {
-              const conn = connections.find(c => c.provider === p.id);
-              const isConnected = conn?.status === 'connected';
-              const isBusy = busyProvider === p.id;
-              const isConnecting = connectingProvider === p.id;
+        {/* Body — the only part that scrolls */}
+        <div className="flex-1 overflow-y-auto px-5 py-4">
+          {connectionsLoading && connections.length === 0 ? (
+            <SectionLoading />
+          ) : (
+            <div className="flex flex-col gap-2.5">
+              {STORAGE_PROVIDERS.map(p => {
+                const conn = connections.find(c => c.provider === p.id);
+                const isConnected = conn?.status === 'connected';
+                const isBusy = busyProvider === p.id;
+                const isConnecting = connectingProvider === p.id;
 
-              return (
-                <div key={p.id} style={{ border: '1px solid var(--border)', borderRadius:'var(--r)', padding: 14 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 38, height: 38, borderRadius:'var(--r)', background: `${p.color}1a`, flexShrink: 0 }}>
-                      <Icon name={p.icon} size={18} color={p.color} />
-                    </span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ fontSize:'var(--text-base)', fontWeight: 600, color: 'var(--ink)' }}>{p.name}</span>
-                        <span style={{ fontSize:'var(--text-xs)', fontWeight: 700, padding: '2px 8px', borderRadius:'var(--badge-radius)', textTransform: 'uppercase', letterSpacing: '0.03em', color: isConnected ? '#188038' : 'var(--ink3)', background: isConnected ? '#e6f4ea' : 'var(--bg)' }}>
-                          {isConnected ? 'Connected' : 'Not connected'}
-                        </span>
-                      </div>
-                      <div style={{ fontSize:'var(--text-xs)', color: 'var(--ink3)', marginTop: 2 }}>
-                        {isConnected
-                          ? `${conn?.account_label ?? 'Account'} · synced ${fmtRelative(conn?.last_synced_at ?? null) ?? 'never'}`
-                          : p.blurb}
-                      </div>
-                    </div>
-                    {!isConnecting && (
-                      isConnected ? (
-                        <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                          <button
-                            onClick={() => handleSync(p.id)}
-                            disabled={isBusy}
-                            className="btn btn-secondary btn-sm"
-                          >
-                            <Icon name="refresh" size={12} /> Sync
-                          </button>
-                          <button
-                            onClick={() => handleDisconnect(p.id)}
-                            disabled={isBusy}
-                            className="btn btn-secondary btn-sm"
-                            style={{ color: 'var(--red)' }}
-                          >
-                            Disconnect
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => { setConnectingProvider(p.id); setEmailInput(''); }}
-                          className="btn btn-primary btn-sm"
-                          style={{ flexShrink: 0 }}
+                return (
+                  <div
+                    key={p.id}
+                    className="rounded-(--r-lg) border p-3.5 transition-colors sm:p-4"
+                    style={{ borderColor: 'var(--border)', background: 'var(--white)' }}
+                  >
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                      <div className="flex min-w-0 flex-1 items-center gap-3">
+                        <span
+                          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-(--r)"
+                          style={{ background: `${p.color}1a` }}
                         >
-                          Connect
-                        </button>
-                      )
+                          <Icon name={p.icon} size={18} color={p.color} />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-semibold" style={{ color: 'var(--ink)', fontSize: 'var(--text-base)' }}>{p.name}</span>
+                            <Badge variant={isConnected ? 'success' : 'gray'}>{isConnected ? 'Connected' : 'Not connected'}</Badge>
+                          </div>
+                          <div className="mt-0.5 truncate" style={{ fontSize: 'var(--text-xs)', color: 'var(--ink3)' }}>
+                            {isConnected
+                              ? `${conn?.account_label ?? 'Account'} · synced ${fmtRelative(conn?.last_synced_at ?? null) ?? 'never'}`
+                              : p.blurb}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Actions get their own full-width row on mobile instead of
+                          squeezing beside the icon/name — that's the layout the
+                          original never had a fallback for. */}
+                      {!isConnecting && (
+                        isConnected ? (
+                          <div className="flex shrink-0 gap-2 sm:gap-1.5">
+                            <Button variant="outline" size="sm" className="flex-1 sm:flex-none" disabled={isBusy} onClick={() => handleSync(p.id)}>
+                              <Icon name="refresh" size={12} /> Sync
+                            </Button>
+                            <Button
+                              variant="outline" size="sm" className="flex-1 sm:flex-none"
+                              disabled={isBusy} onClick={() => handleDisconnect(p.id)}
+                              style={{ color: 'var(--red)' }}
+                            >
+                              Disconnect
+                            </Button>
+                          </div>
+                        ) : (
+                          <Button size="sm" className="w-full sm:w-auto" onClick={() => { setConnectingProvider(p.id); setEmailInput(''); }}>
+                            Connect
+                          </Button>
+                        )
+                      )}
+                    </div>
+
+                    {isConnecting && (
+                      <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                        <input
+                          autoFocus
+                          value={emailInput}
+                          onChange={e => setEmailInput(e.target.value)}
+                          onKeyDown={e => { if (e.key === 'Enter') handleConnect(p.id); if (e.key === 'Escape') setConnectingProvider(null); }}
+                          placeholder={`${p.name} account email…`}
+                          className="input-field flex-1"
+                          style={{ fontSize: 'var(--text-base)' }}
+                        />
+                        <div className="flex gap-2">
+                          <Button variant="outline" size="sm" className="flex-1 sm:flex-none" onClick={() => setConnectingProvider(null)}>Cancel</Button>
+                          <Button size="sm" className="flex-1 sm:flex-none" disabled={!emailInput.trim() || isBusy} onClick={() => handleConnect(p.id)}>
+                            {isBusy ? 'Connecting…' : 'Connect'}
+                          </Button>
+                        </div>
+                      </div>
                     )}
                   </div>
-
-                  {isConnecting && (
-                    <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                      <input
-                        autoFocus
-                        value={emailInput}
-                        onChange={e => setEmailInput(e.target.value)}
-                        onKeyDown={e => { if (e.key === 'Enter') handleConnect(p.id); if (e.key === 'Escape') setConnectingProvider(null); }}
-                        placeholder={`${p.name} account email…`}
-                        className="input-field"
-                        style={{ flex: 1, fontSize:'var(--text-base)' }}
-                      />
-                      <button onClick={() => setConnectingProvider(null)} className="btn btn-secondary btn-sm">Cancel</button>
-                      <button onClick={() => handleConnect(p.id)} className="btn btn-primary btn-sm" disabled={!emailInput.trim() || isBusy}>
-                        {isBusy ? 'Connecting…' : 'Connect'}
-                      </button>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 20, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
-          <button onClick={onClose} className="btn btn-secondary btn-sm">Done</button>
+                );
+              })}
+            </div>
+          )}
         </div>
-      </div>
-    </div>
+
+        {/* Footer — fixed */}
+        <div className="flex shrink-0 justify-end border-t px-5 py-3.5" style={{ borderColor: 'var(--border)' }}>
+          <Button variant="outline" size="sm" onClick={onClose}>Done</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

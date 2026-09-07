@@ -9,14 +9,30 @@ import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Button } from '../components/ui/button.js';
-import { DatePicker } from '../components/ui/date-picker.js';
-import { showAlert } from '../lib/alert.js';
-import { MeetingSession } from './calls/MeetingSession.js';
+import { Badge } from '../components/ui/badge.js';
+import { PersonAvatar } from '../components/PersonAvatar.js';
 
-interface Staff { id: string; name: string; role: string; email?: string }
-interface CallRow { id: string; caller_id: string; callee_id: string; kind: string; status: string; started_at: string; duration_seconds: number; caller_name: string; callee_name: string }
+interface Staff {
+  id: string;
+  name: string;
+  role: string;
+  email?: string;
+  department?: string;
+}
+
+interface CallRow {
+  id: string;
+  caller_id: string;
+  callee_id: string;
+  kind: string;
+  status: string;
+  started_at: string;
+  duration_seconds: number;
+  caller_name: string;
+  callee_name: string;
+}
+
 type CallState = 'idle' | 'calling' | 'incoming' | 'in-call';
-interface MeetingRow { id: string; title: string; join_code: string; kind: string; status: string; scheduled_at: string | null; started_at: string | null; ended_at: string | null; locked: boolean; host_id: string; host_name: string }
 
 const ini = (n: string) => (n || '?').split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
 const fmtDur = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
@@ -34,6 +50,22 @@ export function Calls() {
   const [camOff, setCamOff] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [wsConnected, setWsConnected] = useState(false);
+
+  // ── Filter & Pagination States - Directory ──
+  const [searchStaff, setSearchStaff] = useState('');
+  const [presenceFilter, setPresenceFilter] = useState<'ALL' | 'ONLINE' | 'OFFLINE'>('ALL');
+  const [roleFilter, setRoleFilter] = useState('ALL');
+  const [dirPage, setDirPage] = useState(1);
+  const DIR_PAGE_SIZE = 8;
+
+  // ── Filter & Pagination States - History Log ──
+  const [searchHistory, setSearchHistory] = useState('');
+  const [directionFilter, setDirectionFilter] = useState('ALL');
+  const [historyKindFilter, setHistoryKindFilter] = useState('ALL');
+  const [historyStatusFilter, setHistoryStatusFilter] = useState('ALL');
+  const [historyPage, setHistoryPage] = useState(1);
+  const HISTORY_PAGE_SIZE = 10;
 
   const wsRef = useRef<WebSocket | null>(null);
   const pcRef = useRef<RTCPeerConnection | null>(null);
@@ -46,74 +78,32 @@ export function Calls() {
   const timer = useRef<any>(null);
 
   const load = useCallback(async () => {
-    try { const s = await apiFetch('/v1/hr/staff'); if (Array.isArray(s)) setStaff(s.filter((x: any) => x.id !== user?.id)); } catch { /* */ }
-    try { const p = await apiFetch('/v1/calls/presence'); if (p?.online) setOnline(new Set(p.online)); } catch { /* */ }
-    try { const h = await apiFetch('/v1/calls/direct'); if (Array.isArray(h)) setHistory(h); } catch { /* */ }
-    try { const cfg = await apiFetch('/v1/calls/config'); if (cfg?.iceServers) iceServers.current = cfg.iceServers; } catch { /* */ }
+    try {
+      const s = await apiFetch('/v1/hr/staff');
+      if (Array.isArray(s)) setStaff(s.filter((x: any) => x.id !== user?.id));
+    } catch { /* */ }
+    try {
+      const p = await apiFetch('/v1/calls/presence');
+      if (p?.online) setOnline(new Set(p.online));
+    } catch { /* */ }
+    try {
+      const h = await apiFetch('/v1/calls/direct');
+      if (Array.isArray(h)) setHistory(h);
+    } catch { /* */ }
+    try {
+      const cfg = await apiFetch('/v1/calls/config');
+      if (cfg?.iceServers) iceServers.current = cfg.iceServers;
+    } catch { /* */ }
   }, [user?.id]);
+
   useEffect(() => { load(); }, [load]);
 
-  // ── Meetings ──
-  const [tab, setTab] = useState<'directory' | 'meetings'>('directory');
-  const [meetings, setMeetings] = useState<MeetingRow[]>([]);
-  const [showSchedule, setShowSchedule] = useState(false);
-  const [schedTitle, setSchedTitle] = useState('');
-  const [schedDate, setSchedDate] = useState<Date | undefined>(undefined);
-  const [schedTime, setSchedTime] = useState('09:00');
-  const [schedKind, setSchedKind] = useState<'VIDEO' | 'VOICE'>('VIDEO');
-  const [schedPassword, setSchedPassword] = useState('');
-  const [schedWaitingRoom, setSchedWaitingRoom] = useState(false);
-  const [joinCodeInput, setJoinCodeInput] = useState('');
-  const [activeMeetingId, setActiveMeetingId] = useState<string | null>(null);
-  const [creatingMeeting, setCreatingMeeting] = useState(false);
+  const [tab, setTab] = useState<'directory' | 'history'>('directory');
 
-  const loadMeetings = useCallback(async () => {
-    try { const m = await apiFetch('/v1/calls/meetings'); if (Array.isArray(m)) setMeetings(m); } catch { /* */ }
-  }, []);
-  useEffect(() => { if (tab === 'meetings') loadMeetings(); }, [tab, loadMeetings]);
-
-  async function startInstantMeeting() {
-    setCreatingMeeting(true);
-    try {
-      const m = await apiFetch('/v1/calls/meetings', { method: 'POST', body: JSON.stringify({ title: `${user?.name || 'Team'}'s meeting`, kind: 'VIDEO' }) });
-      setActiveMeetingId(m.id);
-    } catch (e: any) { showAlert(e?.message || 'Could not start a meeting.'); }
-    finally { setCreatingMeeting(false); }
-  }
-
-  async function scheduleMeeting() {
-    if (!schedTitle.trim()) { showAlert('Give the meeting a title.'); return; }
-    if (!schedDate) { showAlert('Pick a date.'); return; }
-    const [h, min] = schedTime.split(':').map(Number);
-    const when = new Date(schedDate); when.setHours(h || 0, min || 0, 0, 0);
-    try {
-      await apiFetch('/v1/calls/meetings', { method: 'POST', body: JSON.stringify({ title: schedTitle, kind: schedKind, scheduled_at: when.toISOString(), password: schedPassword.trim() || undefined, waiting_room_enabled: schedWaitingRoom }) });
-      setShowSchedule(false); setSchedTitle(''); setSchedDate(undefined); setSchedTime('09:00'); setSchedPassword(''); setSchedWaitingRoom(false);
-      loadMeetings();
-    } catch (e: any) { showAlert(e?.message || 'Could not schedule that meeting.'); }
-  }
-
-  async function cancelMeeting(id: string) {
-    try { await apiFetch(`/v1/calls/meetings/${id}`, { method: 'DELETE' }); loadMeetings(); } catch (e: any) { showAlert(e?.message || 'Could not cancel.'); }
-  }
-
-  function copyJoinLink(m: MeetingRow) {
-    const url = `${window.location.origin}/bliss/calls/meeting/${m.id}`;
-    navigator.clipboard?.writeText(url);
-  }
-
-  async function joinByCode() {
-    const code = joinCodeInput.trim().toUpperCase();
-    if (!code) return;
-    try {
-      const m = await apiFetch(`/v1/calls/meetings/by-code/${encodeURIComponent(code)}`);
-      setActiveMeetingId(m.id);
-      setJoinCodeInput('');
-    } catch { showAlert('No meeting found for that code.'); }
-  }
-
-  // ── Signaling socket ──
-  const send = (m: any) => { try { wsRef.current?.send(JSON.stringify(m)); } catch { /* */ } };
+  // ── WebRTC Signaling Socket ──
+  const send = (m: any) => {
+    try { wsRef.current?.send(JSON.stringify(m)); } catch { /* */ }
+  };
 
   const cleanup = useCallback((logStatus?: string) => {
     if (timer.current) { clearInterval(timer.current); timer.current = null; }
@@ -122,11 +112,18 @@ export function Calls() {
     if (remoteVideo.current) remoteVideo.current.srcObject = null;
     if (logStatus && callId.current) {
       const dur = answeredAt.current ? Math.round((Date.now() - answeredAt.current) / 1000) : 0;
-      apiFetch(`/v1/calls/direct/${callId.current}`, { method: 'PATCH', body: JSON.stringify({ status: logStatus, duration_seconds: dur }) }).then(load).catch(() => {});
+      apiFetch(`/v1/calls/direct/${callId.current}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: logStatus, duration_seconds: dur })
+      }).then(load).catch(() => {});
     }
-    callId.current = null; answeredAt.current = null;
-    setElapsed(0); setMuted(false); setCamOff(false);
-    setCallState('idle'); setPeer(null);
+    callId.current = null;
+    answeredAt.current = null;
+    setElapsed(0);
+    setMuted(false);
+    setCamOff(false);
+    setCallState('idle');
+    setPeer(null);
   }, [load]);
 
   const newPeerConnection = useCallback((remoteId: string) => {
@@ -152,14 +149,13 @@ export function Calls() {
   };
 
   useEffect(() => {
-    // Browsers send cookies on a WS handshake the same as any other request
-    // to this origin, so the httpOnly access cookie authenticates this
-    // connection with nothing to attach — see calls.routes.ts's /signal.
-    // No more raw access token riding in the URL (server/proxy logs,
-    // browser history).
     const wsUrl = BASE_URL.replace(/^http/, 'ws') + '/v1/calls/signal';
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
+
+    ws.onopen = () => setWsConnected(true);
+    ws.onclose = () => setWsConnected(false);
+    ws.onerror = () => setWsConnected(false);
 
     ws.onmessage = async (ev) => {
       let m: any; try { m = JSON.parse(ev.data); } catch { return; }
@@ -167,14 +163,14 @@ export function Calls() {
         case 'ready': setOnline(new Set(m.online || [])); break;
         case 'presence': setOnline(prev => { const s = new Set(prev); if (m.online) s.add(m.userId); else s.delete(m.userId); return s; }); break;
         case 'ring': {
-          if (callState !== 'idle') { send({ type: 'decline', to: m.from }); return; } // busy
+          if (callState !== 'idle') { send({ type: 'decline', to: m.from }); return; }
           callId.current = m.callId || null;
           setPeer({ id: m.from, name: m.fromName || 'Caller', role: '' });
           setKind(m.kind === 'VOICE' ? 'VOICE' : 'VIDEO');
           setCallState('incoming');
           break;
         }
-        case 'accept': { // callee accepted — caller now makes the offer
+        case 'accept': {
           try {
             const pc = newPeerConnection(m.from);
             const offer = await pc.createOffer(); await pc.setLocalDescription(offer);
@@ -184,7 +180,7 @@ export function Calls() {
           } catch { setError('Could not start the call.'); cleanup('ENDED'); }
           break;
         }
-        case 'offer': { // callee receives the caller's offer
+        case 'offer': {
           try {
             const pc = pcRef.current || newPeerConnection(m.from);
             await pc.setRemoteDescription(new RTCSessionDescription(m.sdp));
@@ -201,7 +197,6 @@ export function Calls() {
       }
     };
     return () => { try { ws.close(); } catch { /* */ } };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [callState, newPeerConnection, cleanup]);
 
   // ── Actions ──
@@ -218,10 +213,20 @@ export function Calls() {
       cleanup();
     }
   };
+
   const acceptCall = async () => {
-    try { await getMedia(kind === 'VIDEO'); send({ type: 'accept', to: peer!.id }); setCallState('in-call'); startTimer(); }
-    catch (e: any) { setError(e?.name === 'NotAllowedError' ? 'Camera/microphone permission denied.' : 'Could not answer.'); send({ type: 'decline', to: peer!.id }); cleanup('DECLINED'); }
+    try {
+      await getMedia(kind === 'VIDEO');
+      send({ type: 'accept', to: peer!.id });
+      setCallState('in-call');
+      startTimer();
+    } catch (e: any) {
+      setError(e?.name === 'NotAllowedError' ? 'Camera/microphone permission denied.' : 'Could not answer.');
+      send({ type: 'decline', to: peer!.id });
+      cleanup('DECLINED');
+    }
   };
+
   const declineCall = () => { if (peer) send({ type: 'decline', to: peer.id }); cleanup('DECLINED'); };
   const hangup = () => { if (peer) send({ type: callState === 'calling' ? 'cancel' : 'hangup', to: peer.id }); cleanup(callState === 'calling' ? 'MISSED' : 'ENDED'); };
   const toggleMute = () => { const t = localStream.current?.getAudioTracks()[0]; if (t) { t.enabled = !t.enabled; setMuted(!t.enabled); } };
@@ -229,157 +234,242 @@ export function Calls() {
 
   const inCall = callState === 'in-call' || callState === 'calling';
 
+  // ── Filtering Logic: Directory ──
+  const availableRoles = Array.from(new Set(staff.map(s => s.role).filter(Boolean)));
+  const filteredStaff = staff.filter(s => {
+    const isOnline = online.has(s.id);
+    const matchesSearch = s.name.toLowerCase().includes(searchStaff.toLowerCase()) ||
+      (s.role && s.role.toLowerCase().includes(searchStaff.toLowerCase())) ||
+      (s.department && s.department.toLowerCase().includes(searchStaff.toLowerCase()));
+    const matchesPresence = presenceFilter === 'ALL' || (presenceFilter === 'ONLINE' && isOnline) || (presenceFilter === 'OFFLINE' && !isOnline);
+    const matchesRole = roleFilter === 'ALL' || s.role === roleFilter;
+    return matchesSearch && matchesPresence && matchesRole;
+  });
+
+  const totalDirPages = Math.max(1, Math.ceil(filteredStaff.length / DIR_PAGE_SIZE));
+  const paginatedStaff = filteredStaff.slice((dirPage - 1) * DIR_PAGE_SIZE, dirPage * DIR_PAGE_SIZE);
+
+
+  // ── Filtering Logic: History ──
+  const filteredHistory = history.filter(h => {
+    const outgoing = h.caller_id === user?.id;
+    const other = outgoing ? h.callee_name : h.caller_name;
+    const missed = h.status === 'MISSED' || h.status === 'DECLINED';
+
+    const matchesSearch = other.toLowerCase().includes(searchHistory.toLowerCase());
+    const matchesDirection = directionFilter === 'ALL' || (directionFilter === 'OUTBOUND' && outgoing) || (directionFilter === 'INBOUND' && !outgoing);
+    const matchesKind = historyKindFilter === 'ALL' || h.kind === historyKindFilter;
+    const matchesStatus = historyStatusFilter === 'ALL' ||
+      (historyStatusFilter === 'CONNECTED' && !missed) ||
+      (historyStatusFilter === 'MISSED' && h.status === 'MISSED') ||
+      (historyStatusFilter === 'DECLINED' && h.status === 'DECLINED');
+
+    return matchesSearch && matchesDirection && matchesKind && matchesStatus;
+  });
+
+  const totalHistoryPages = Math.max(1, Math.ceil(filteredHistory.length / HISTORY_PAGE_SIZE));
+  const paginatedHistory = filteredHistory.slice((historyPage - 1) * HISTORY_PAGE_SIZE, historyPage * HISTORY_PAGE_SIZE);
+
   return (
-    <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <PageHeader crumbs={['Bliss', 'Calls']} titlePlain="Voice &" titleEm="video"
-        subtitle="Call a colleague directly — peer-to-peer, with live presence and a record of every call."
-        actions={<Button variant="outline" onClick={() => navigate('/bliss/calls/reports')}><Icon name="barChart" size={14} /> Reports</Button>} />
+    <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 20, padding: '20px 24px', background: 'var(--bg)', minHeight: '100%' }}>
+      <PageHeader
+        crumbs={['Bliss', 'Call Center']}
+        titlePlain="Call"
+        titleEm="Center"
+        subtitle="Initiate direct WebRTC calls with team members and review call logs."
+        actions={
+          <div style={{ display: 'flex', gap: 10 }}>
+            <Button variant="default" size="sm" onClick={() => navigate('/bliss/meetings')}>
+              <Icon name="camera" size={14} /> Meeting Center
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => navigate('/bliss/calls/reports')}>
+              <Icon name="barChart" size={14} /> Call Reports & Analytics
+            </Button>
+            {/* STUN/TURN connectivity — a call failing to connect for someone
+                behind a strict NAT is a settings problem, not a bug, so the
+                fix is one click away from where an agent would notice it. */}
+            <Button variant="outline" size="sm" onClick={() => navigate('/bliss/telephony')}>
+              <Icon name="settings" size={14} /> Settings
+            </Button>
+          </div>
+        }
+      />
 
       {error && <Banner variant="error">{error}</Banner>}
 
-      <Tabs value={tab} onValueChange={v => setTab(v as typeof tab)} variant="segmented">
-        <TabsList>
-          {([['directory', 'Direct calls'], ['meetings', 'Meetings']] as const).map(([key, label]) => (
-            <TabsTrigger key={key} value={key}>
-              {label}
-            </TabsTrigger>
-          ))}
+      {/* Top Metrics Summary Ribbon */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
+        <div style={{ background: 'var(--white)', padding: 16, borderRadius: 'var(--r-lg)', border: '1px solid var(--border)', boxShadow: 'var(--elev)', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 'var(--r)', background: 'var(--green-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--green)' }}>
+            <Icon name="users" size={20} />
+          </div>
+          <div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)' }}>{online.size} Online</div>
+            <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>Colleagues Available</div>
+          </div>
+        </div>
+
+        <div style={{ background: 'var(--white)', padding: 16, borderRadius: 'var(--r-lg)', border: '1px solid var(--border)', boxShadow: 'var(--elev)', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 'var(--r)', background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--teal)' }}>
+            <Icon name="phone" size={20} />
+          </div>
+          <div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)' }}>{history.length} Calls</div>
+            <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>Recent Direct Log</div>
+          </div>
+        </div>
+
+        <div style={{ background: 'var(--white)', padding: 16, borderRadius: 'var(--r-lg)', border: '1px solid var(--border)', boxShadow: 'var(--elev)', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 'var(--r)', background: wsConnected ? 'var(--blue-l)' : 'var(--red-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: wsConnected ? 'var(--blue)' : 'var(--red)' }}>
+            <Icon name="globe" size={20} />
+          </div>
+          <div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)' }}>Signaling Server</div>
+            {/* Real WebSocket readyState, not a fabricated audio-quality
+                (MOS) score this platform has no way to actually measure. */}
+            <div style={{ fontSize: 11.5, color: wsConnected ? 'var(--green)' : 'var(--red)', fontWeight: 700 }}>
+              {wsConnected ? 'Connected' : 'Disconnected'}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Tabs Navigation */}
+      <Tabs value={tab} onValueChange={v => setTab(v as typeof tab)}>
+        <TabsList style={{ background: 'var(--white)', border: '1px solid var(--border)' }}>
+          <TabsTrigger value="directory">Team Directory & Direct Calls ({filteredStaff.length})</TabsTrigger>
+          <TabsTrigger value="history">Call Logs & History ({filteredHistory.length})</TabsTrigger>
         </TabsList>
       </Tabs>
 
+      {/* TAB 1: Team Directory & Direct Calls */}
       {tab === 'directory' && (
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(320px, 100%), 1fr))', gap: 20 }}>
-        {/* Directory + presence */}
-        <SectionCard title="Team">
-          <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 14 }}>{online.size} online now</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            {staff.length === 0 && <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>No colleagues found.</div>}
-            {staff.map(p => {
-              const isOnline = online.has(p.id);
-              return (
-                <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 6px', borderBottom: '1px solid var(--border)' }}>
-                  <div style={{ position: 'relative', flexShrink: 0 }}>
-                    <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700 }}>{ini(p.name)}</div>
-                    <span style={{ position: 'absolute', right: -1, bottom: -1, width: 10, height: 10, borderRadius: '50%', border: '2px solid var(--white)', background: isOnline ? 'var(--green)' : 'var(--ink3)' }} />
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{p.name}</div>
-                    <div style={{ fontSize: 11.5, color: isOnline ? 'var(--green)' : 'var(--ink3)' }}>{isOnline ? 'Online' : 'Offline'}{p.role ? ` · ${p.role}` : ''}</div>
-                  </div>
-                  <button type="button" title="Voice call" disabled={!isOnline || callState !== 'idle'} onClick={() => startCall(p, 'VOICE')}
-                    style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid var(--border)', background: 'var(--white)', cursor: isOnline && callState === 'idle' ? 'pointer' : 'default', opacity: isOnline && callState === 'idle' ? 1 : 0.4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Icon name="phone" size={15} color="var(--ink2)" />
-                  </button>
-                  <button type="button" title="Video call" disabled={!isOnline || callState !== 'idle'} onClick={() => startCall(p, 'VIDEO')}
-                    style={{ width: 32, height: 32, borderRadius: 8, border: 'none', background: isOnline && callState === 'idle' ? 'hsl(var(--primary))' : 'var(--bg)', cursor: isOnline && callState === 'idle' ? 'pointer' : 'default', opacity: isOnline && callState === 'idle' ? 1 : 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Icon name="camera" size={15} color={isOnline && callState === 'idle' ? 'hsl(var(--primary-foreground))' : 'var(--ink3)'} />
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        </SectionCard>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 20 }}>
+          <SectionCard title="Colleague Directory">
+            {/* Filter Bar */}
+            <div style={{ marginBottom: 14, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
+                <Icon name="search" size={14} style={{ position: 'absolute', left: 10, top: 10, color: 'var(--ink3)' }} />
+                <input
+                  className="input-field"
+                  style={{ paddingLeft: 30, fontSize: 12.5 }}
+                  placeholder="Filter team members by name or role..."
+                  value={searchStaff}
+                  onChange={e => { setSearchStaff(e.target.value); setDirPage(1); }}
+                />
+              </div>
 
-        {/* History */}
-        <SectionCard title="Recent calls">
-          {history.length === 0 ? (
-            <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>No calls yet.</div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {history.slice(0, 12).map(h => {
-                const outgoing = h.caller_id === user?.id;
-                const other = outgoing ? h.callee_name : h.caller_name;
-                const missed = h.status === 'MISSED' || h.status === 'DECLINED';
+              <div style={{ width: 140 }}>
+                <Select value={presenceFilter} onValueChange={v => { setPresenceFilter(v as any); setDirPage(1); }}>
+                  <SelectTrigger className="input-field"><SelectValue placeholder="Presence" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">All Statuses</SelectItem>
+                    <SelectItem value="ONLINE">🟢 Online Only</SelectItem>
+                    <SelectItem value="OFFLINE">⚪ Offline Only</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {availableRoles.length > 0 && (
+                <div style={{ width: 150 }}>
+                  <Select value={roleFilter} onValueChange={v => { setRoleFilter(v); setDirPage(1); }}>
+                    <SelectTrigger className="input-field"><SelectValue placeholder="Role" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">All Roles</SelectItem>
+                      {availableRoles.map(r => (
+                        <SelectItem key={r} value={r}>{r}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+
+            {/* Staff List Grid */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {filteredStaff.length === 0 && (
+                <div style={{ padding: 24, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No colleagues found matching selected filters.</div>
+              )}
+              {paginatedStaff.map(p => {
+                const isOnline = online.has(p.id);
                 return (
-                  <div key={h.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 4px', borderBottom: '1px solid var(--border)' }}>
-                    <Icon name={h.kind === 'VOICE' ? 'phone' : 'camera'} size={14} color={missed ? 'var(--red)' : 'var(--ink3)'} />
-                    <Icon name={outgoing ? 'arrowUpRight' : 'arrowDown'} size={12} color="var(--ink3)" />
-                    <span style={{ flex: 1, fontSize: 12.5, color: 'var(--ink)' }}>{other}</span>
-                    <span style={{ fontSize: 11, color: missed ? 'var(--red)' : 'var(--ink3)' }}>{missed ? h.status.toLowerCase() : (h.duration_seconds ? fmtDur(h.duration_seconds) : h.status.toLowerCase())}</span>
-                    <span style={{ fontSize: 11, color: 'var(--ink3)', minWidth: 62, textAlign: 'right' }}>{new Date(h.started_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                  <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', boxShadow: 'var(--elev)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{ position: 'relative' }}>
+                        <PersonAvatar name={p.name} size={36} />
+                        <span style={{ position: 'absolute', right: -1, bottom: -1, width: 10, height: 10, borderRadius: '50%', border: '2px solid var(--white)', background: isOnline ? 'var(--green)' : 'var(--ink3)' }} />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)' }}>{p.name}</div>
+                        <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>{p.role || 'Staff Member'} • <strong style={{ color: isOnline ? 'var(--green)' : 'var(--ink3)' }}>{isOnline ? 'Online' : 'Offline'}</strong></div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={!isOnline || callState !== 'idle'}
+                        onClick={() => startCall(p, 'VOICE')}
+                        title="Start Voice Call"
+                      >
+                        <Icon name="phone" size={14} color="var(--green)" /> Call Voice
+                      </Button>
+                      <Button
+                        variant="default"
+                        size="sm"
+                        disabled={!isOnline || callState !== 'idle'}
+                        onClick={() => startCall(p, 'VIDEO')}
+                        title="Start Video Call"
+                      >
+                        <Icon name="camera" size={14} /> Start Video
+                      </Button>
+                    </div>
                   </div>
                 );
               })}
             </div>
-          )}
-        </SectionCard>
-      </div>
-      )}
 
-      {tab === 'meetings' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-            <Button variant="default" onClick={startInstantMeeting} disabled={creatingMeeting}>
-              <Icon name="camera" size={14} /> {creatingMeeting ? 'Starting…' : 'New meeting'}
-            </Button>
-            <Button variant="outline" onClick={() => setShowSchedule(v => !v)}>
-              <Icon name="calendar" size={14} /> Schedule
-            </Button>
-            <div style={{ display: 'flex', gap: 6, marginLeft: 'auto' }}>
-              <input value={joinCodeInput} onChange={e => setJoinCodeInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && joinByCode()} placeholder="Have a code? Enter it here"
-                style={{ height: 34, borderRadius: 8, border: '1px solid var(--border)', padding: '0 10px', fontSize: 12.5, width: 200 }} />
-              <Button variant="outline" size="sm" onClick={joinByCode}>Join</Button>
-            </div>
-          </div>
+            {/* Pagination Controls */}
+            {filteredStaff.length > DIR_PAGE_SIZE && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--border)', fontSize: 12, color: 'var(--ink3)' }}>
+                <div>
+                  Showing {Math.min(filteredStaff.length, (dirPage - 1) * DIR_PAGE_SIZE + 1)} to {Math.min(filteredStaff.length, dirPage * DIR_PAGE_SIZE)} of {filteredStaff.length} team members
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Button variant="outline" size="sm" disabled={dirPage <= 1} onClick={() => setDirPage(p => Math.max(1, p - 1))}>
+                    <Icon name="chevronLeft" size={14} /> Prev
+                  </Button>
+                  <span style={{ padding: '0 8px', fontWeight: 600, color: 'var(--ink)' }}>Page {dirPage} of {totalDirPages}</span>
+                  <Button variant="outline" size="sm" disabled={dirPage >= totalDirPages} onClick={() => setDirPage(p => Math.min(totalDirPages, p + 1))}>
+                    Next <Icon name="chevronRight" size={14} />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </SectionCard>
 
-          {showSchedule && (
-            <SectionCard title="Schedule a meeting" collapsible={false}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10 }}>
-                <input value={schedTitle} onChange={e => setSchedTitle(e.target.value)} placeholder="Meeting title"
-                  style={{ height: 36, borderRadius: 8, border: '1px solid var(--border)', padding: '0 10px', fontSize: 13, gridColumn: '1 / -1' }} />
-                <DatePicker date={schedDate} onChange={setSchedDate} placeholder="Date" />
-                <input type="time" value={schedTime} onChange={e => setSchedTime(e.target.value)} style={{ height: 36, borderRadius: 8, border: '1px solid var(--border)', padding: '0 10px', fontSize: 13 }} />
-                <Select value={schedKind} onValueChange={v => setSchedKind(v as 'VIDEO' | 'VOICE')}>
-                  <SelectTrigger style={{ height: 36 }}><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="VIDEO">Video</SelectItem>
-                    <SelectItem value="VOICE">Voice only</SelectItem>
-                  </SelectContent>
-                </Select>
-                <input value={schedPassword} onChange={e => setSchedPassword(e.target.value)} placeholder="Password (optional)"
-                  style={{ height: 36, borderRadius: 8, border: '1px solid var(--border)', padding: '0 10px', fontSize: 13 }} />
-              </div>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: 'var(--ink2)', cursor: 'pointer' }}>
-                <input type="checkbox" checked={schedWaitingRoom} onChange={e => setSchedWaitingRoom(e.target.checked)} />
-                Enable waiting room — you'll admit each participant before they can join
-              </label>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <Button variant="default" size="sm" onClick={scheduleMeeting}>Schedule</Button>
-                <Button variant="outline" size="sm" onClick={() => setShowSchedule(false)}>Cancel</Button>
-              </div>
-              </div>
-            </SectionCard>
-          )}
-
-          <SectionCard title="Meetings">
-            {meetings.length === 0 ? (
-              <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>No meetings yet — start an instant one or schedule ahead.</div>
+          {/* Quick Recent Activity Feed Sidebar */}
+          <SectionCard title="Recent Direct Calls">
+            {history.length === 0 ? (
+              <div style={{ fontSize: 12.5, color: 'var(--ink3)', padding: 14 }}>No recent direct call logs.</div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                {meetings.map(m => {
-                  const isPast = m.status === 'ENDED' || m.status === 'CANCELLED';
-                  const isMine = m.host_id === user?.id;
-                  const statusColor = m.status === 'ACTIVE' ? 'var(--green)' : m.status === 'SCHEDULED' ? 'var(--gold)' : 'var(--ink3)';
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {history.slice(0, 8).map(h => {
+                  const outgoing = h.caller_id === user?.id;
+                  const other = outgoing ? h.callee_name : h.caller_name;
+                  const missed = h.status === 'MISSED' || h.status === 'DECLINED';
                   return (
-                    <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 4px', borderBottom: '1px solid var(--border)' }}>
-                      <Icon name={m.kind === 'VOICE' ? 'phone' : 'camera'} size={14} color="var(--ink3)" />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.title}{m.locked && <Icon name="lock" size={10} color="var(--ink3)" />}</div>
-                        <div style={{ fontSize: 11, color: 'var(--ink3)' }}>
-                          Hosted by {isMine ? 'you' : m.host_name} · {m.status === 'SCHEDULED' && m.scheduled_at ? new Date(m.scheduled_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : m.status.toLowerCase()}
-                        </div>
+                    <div key={h.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', fontSize: 12.5 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <Icon name={h.kind === 'VOICE' ? 'phone' : 'camera'} size={14} color={missed ? 'var(--red)' : 'var(--teal)'} />
+                        <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{other}</span>
                       </div>
-                      <span style={{ width: 7, height: 7, borderRadius: '50%', background: statusColor, flexShrink: 0 }} />
-                      {!isPast && (
-                        <>
-                          <Button variant="ghost" size="xs" onClick={() => copyJoinLink(m)} title="Copy join link"><Icon name="copy" size={13} /></Button>
-                          {isMine && m.status === 'SCHEDULED' && (
-                            <Button variant="ghost" size="xs" onClick={() => cancelMeeting(m.id)} title="Cancel"><Icon name="x" size={13} color="var(--red)" /></Button>
-                          )}
-                          <Button variant="default" size="xs" onClick={() => setActiveMeetingId(m.id)}>Join</Button>
-                        </>
-                      )}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <Badge variant={missed ? 'error' : 'success'}>
+                          {missed ? h.status.toLowerCase() : fmtDur(h.duration_seconds)}
+                        </Badge>
+                      </div>
                     </div>
                   );
                 })}
@@ -389,49 +479,181 @@ export function Calls() {
         </div>
       )}
 
-      {activeMeetingId && (
-        <MeetingSession meetingId={activeMeetingId} onExit={() => { setActiveMeetingId(null); loadMeetings(); }} />
+      {/* Video meetings moved to Meeting Center (/bliss/meetings) — see the
+          header action above; this page is direct 1:1 calls + history only. */}
+
+      {/* TAB 3: Recent Call History Table */}
+      {tab === 'history' && (
+        <SectionCard padded={false} title="Comprehensive Call History Log">
+          {/* Filter Bar for Call History */}
+          <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', display: 'flex', gap: 10, flexWrap: 'wrap', background: 'var(--bg)' }}>
+            <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
+              <Icon name="search" size={14} style={{ position: 'absolute', left: 10, top: 10, color: 'var(--ink3)' }} />
+              <input
+                className="input-field"
+                style={{ paddingLeft: 30, fontSize: 12.5 }}
+                placeholder="Search contact name..."
+                value={searchHistory}
+                onChange={e => { setSearchHistory(e.target.value); setHistoryPage(1); }}
+              />
+            </div>
+
+            <div style={{ width: 140 }}>
+              <Select value={directionFilter} onValueChange={v => { setDirectionFilter(v); setHistoryPage(1); }}>
+                <SelectTrigger className="input-field"><SelectValue placeholder="Direction" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">All Directions</SelectItem>
+                  <SelectItem value="OUTBOUND">Outbound</SelectItem>
+                  <SelectItem value="INBOUND">Inbound</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div style={{ width: 130 }}>
+              <Select value={historyKindFilter} onValueChange={v => { setHistoryKindFilter(v); setHistoryPage(1); }}>
+                <SelectTrigger className="input-field"><SelectValue placeholder="Mode" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">All Modes</SelectItem>
+                  <SelectItem value="VIDEO">Video</SelectItem>
+                  <SelectItem value="VOICE">Voice</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div style={{ width: 150 }}>
+              <Select value={historyStatusFilter} onValueChange={v => { setHistoryStatusFilter(v); setHistoryPage(1); }}>
+                <SelectTrigger className="input-field"><SelectValue placeholder="Call Status" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">All Statuses</SelectItem>
+                  <SelectItem value="CONNECTED">Connected</SelectItem>
+                  <SelectItem value="MISSED">Missed</SelectItem>
+                  <SelectItem value="DECLINED">Declined</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+              <thead>
+                <tr style={{ background: 'var(--bg)', textAlign: 'left' }}>
+                  {['Call Direction', 'Colleague / Contact', 'Mode', 'Duration', 'Status', 'Date & Time'].map(h => (
+                    <th key={h} style={{ padding: '12px 16px', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filteredHistory.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} style={{ padding: 24, textAlign: 'center', color: 'var(--ink3)' }}>No call history records matching selected filters.</td>
+                  </tr>
+                ) : (
+                  paginatedHistory.map(h => {
+                    const outgoing = h.caller_id === user?.id;
+                    const other = outgoing ? h.callee_name : h.caller_name;
+                    const missed = h.status === 'MISSED' || h.status === 'DECLINED';
+                    return (
+                      <tr key={h.id} style={{ borderTop: '1px solid var(--border)' }}>
+                        <td style={{ padding: '12px 16px' }}>
+                          <Badge variant={outgoing ? 'brand' : 'info'}>
+                            {outgoing ? 'OUTBOUND' : 'INBOUND'}
+                          </Badge>
+                        </td>
+                        <td style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--ink)' }}>{other}</td>
+                        <td style={{ padding: '12px 16px' }}>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)' }}>{h.kind}</span>
+                        </td>
+                        <td style={{ padding: '12px 16px', fontWeight: 700, fontFamily: 'var(--mono)' }}>
+                          {missed ? '0s' : fmtDur(h.duration_seconds)}
+                        </td>
+                        <td style={{ padding: '12px 16px' }}>
+                          <Badge variant={missed ? 'error' : 'success'}>{h.status}</Badge>
+                        </td>
+                        <td style={{ padding: '12px 16px', color: 'var(--ink3)', fontSize: 12 }}>
+                          {new Date(h.started_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination Controls for Call History */}
+          {filteredHistory.length > HISTORY_PAGE_SIZE && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderTop: '1px solid var(--border)', fontSize: 12, color: 'var(--ink3)' }}>
+              <div>
+                Showing {Math.min(filteredHistory.length, (historyPage - 1) * HISTORY_PAGE_SIZE + 1)} to {Math.min(filteredHistory.length, historyPage * HISTORY_PAGE_SIZE)} of {filteredHistory.length} call logs
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Button variant="outline" size="sm" disabled={historyPage <= 1} onClick={() => setHistoryPage(p => Math.max(1, p - 1))}>
+                  <Icon name="chevronLeft" size={14} /> Prev
+                </Button>
+                <span style={{ padding: '0 8px', fontWeight: 600, color: 'var(--ink)' }}>Page {historyPage} of {totalHistoryPages}</span>
+                <Button variant="outline" size="sm" disabled={historyPage >= totalHistoryPages} onClick={() => setHistoryPage(p => Math.min(totalHistoryPages, p + 1))}>
+                  Next <Icon name="chevronRight" size={14} />
+                </Button>
+              </div>
+            </div>
+          )}
+        </SectionCard>
       )}
 
-      {/* Incoming call prompt */}
+      {/* Incoming Call Prompt Modal */}
       {callState === 'incoming' && peer && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ background: 'var(--white)', borderRadius: 18, padding: 32, width: 340, textAlign: 'center', boxShadow: 'var(--elev-lg)' }}>
-            <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, fontWeight: 700, margin: '0 auto 14px' }}>{ini(peer.name)}</div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)' }}>{peer.name}</div>
-            <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 4, marginBottom: 24 }}>Incoming {kind === 'VIDEO' ? 'video' : 'voice'} call…</div>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ background: 'var(--white)', borderRadius: 20, padding: 32, width: 360, textAlign: 'center', boxShadow: 'var(--elev-lg)', border: '1px solid var(--border)' }}>
+            <div style={{ margin: '0 auto 16px' }}>
+              <PersonAvatar name={peer.name} size={64} />
+            </div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)' }}>{peer.name}</div>
+            <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 4, marginBottom: 24 }}>
+              Incoming WebRTC {kind === 'VIDEO' ? 'Video' : 'Voice'} Call…
+            </div>
             <div style={{ display: 'flex', gap: 14, justifyContent: 'center' }}>
-              {/* TODO design-system: migrate to <Button variant="destructive"> once it can express a fixed-size circular icon button (paired with the plain --green accept button below, so only converting one half would leave the pair inconsistent). */}
-              <button type="button" onClick={declineCall} aria-label="Decline call" style={{ width: 58, height: 58, borderRadius: '50%', border: 'none', background: 'var(--red)', color: 'hsl(var(--red-foreground))', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="x" size={22} color="hsl(var(--red-foreground))" /></button>
-              <button type="button" onClick={acceptCall} aria-label="Accept call" style={{ width: 58, height: 58, borderRadius: '50%', border: 'none', background: 'var(--green)', color: 'hsl(var(--green-foreground))', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name={kind === 'VIDEO' ? 'camera' : 'phone'} size={22} color="hsl(var(--green-foreground))" /></button>
+              <Button variant="destructive" style={{ borderRadius: 30, padding: '12px 24px' }} onClick={declineCall}>
+                Decline
+              </Button>
+              <Button variant="default" style={{ borderRadius: 30, padding: '12px 24px', background: 'var(--green)', color: '#fff' }} onClick={acceptCall}>
+                Accept Call
+              </Button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Active / outgoing call stage */}
+      {/* Active Call Fullscreen Stage */}
       {inCall && peer && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 2000, background: '#0b0b0f', display: 'flex', flexDirection: 'column' }}>
           <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
             <video ref={remoteVideo} autoPlay playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', background: '#0b0b0f' }} />
             {callState === 'calling' && (
-              <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#fff', gap: 10 }}>
-                <div style={{ width: 84, height: 84, borderRadius: '50%', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30, fontWeight: 700 }}>{ini(peer.name)}</div>
-                <div style={{ fontSize: 20, fontWeight: 700 }}>{peer.name}</div>
-                <div style={{ fontSize: 13, opacity: 0.7 }}>Ringing…</div>
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#fff', gap: 12 }}>
+                <PersonAvatar name={peer.name} size={84} />
+                <div style={{ fontSize: 22, fontWeight: 800 }}>{peer.name}</div>
+                <div style={{ fontSize: 14, opacity: 0.7 }}>Ringing WebRTC peer…</div>
               </div>
             )}
             {callState === 'in-call' && (
-              <div style={{ position: 'absolute', top: 16, left: 16, background: 'rgba(0,0,0,0.5)', color: '#fff', padding: '5px 12px', borderRadius: 'var(--badge-radius)', fontSize: 13, fontWeight: 600 }}>{peer.name} · {fmtDur(elapsed)}</div>
+              <div style={{ position: 'absolute', top: 20, left: 20, background: 'rgba(0,0,0,0.6)', color: '#fff', padding: '6px 14px', borderRadius: 20, fontSize: 13, fontWeight: 700, backdropFilter: 'blur(6px)' }}>
+                {peer.name} • {fmtDur(elapsed)}
+              </div>
             )}
-            {/* Local preview */}
-            <video ref={localVideo} autoPlay playsInline muted style={{ position: 'absolute', bottom: 100, right: 16, width: 150, height: 200, objectFit: 'cover', borderRadius: 12, border: '2px solid rgba(255,255,255,0.3)', background: '#111', display: kind === 'VIDEO' ? 'block' : 'none' }} />
+            <video ref={localVideo} autoPlay playsInline muted style={{ position: 'absolute', bottom: 90, right: 20, width: 160, height: 210, objectFit: 'cover', borderRadius: 14, border: '2px solid rgba(255,255,255,0.3)', background: '#111', display: kind === 'VIDEO' ? 'block' : 'none' }} />
           </div>
-          {/* Controls */}
           <div style={{ display: 'flex', gap: 16, justifyContent: 'center', padding: '20px 0 30px', background: '#0b0b0f' }}>
-            <button type="button" onClick={toggleMute} title={muted ? 'Unmute' : 'Mute'} style={ctrlBtn(muted)}><Icon name="volume2" size={20} color={muted ? '#111' : '#fff'} /></button>
-            {kind === 'VIDEO' && <button type="button" onClick={toggleCam} title={camOff ? 'Camera on' : 'Camera off'} style={ctrlBtn(camOff)}><Icon name="camera" size={20} color={camOff ? '#111' : '#fff'} /></button>}
-            <button type="button" onClick={hangup} title="Hang up" style={{ ...ctrlBtn(false), background: 'var(--red)' }}><Icon name="x" size={20} color="hsl(var(--red-foreground))" /></button>
+            <Button variant="outline" style={{ borderRadius: '50%', width: 52, height: 52, padding: 0 }} onClick={toggleMute}>
+              <Icon name="volume2" size={20} />
+            </Button>
+            {kind === 'VIDEO' && (
+              <Button variant="outline" style={{ borderRadius: '50%', width: 52, height: 52, padding: 0 }} onClick={toggleCam}>
+                <Icon name="camera" size={20} />
+              </Button>
+            )}
+            <Button variant="destructive" style={{ borderRadius: '50%', width: 52, height: 52, padding: 0 }} onClick={hangup}>
+              <Icon name="x" size={20} />
+            </Button>
           </div>
         </div>
       )}
@@ -439,6 +661,3 @@ export function Calls() {
   );
 }
 
-function ctrlBtn(active: boolean): React.CSSProperties {
-  return { width: 56, height: 56, borderRadius: '50%', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: active ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.15)' };
-}

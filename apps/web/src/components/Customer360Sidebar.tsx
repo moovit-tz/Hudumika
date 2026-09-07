@@ -46,11 +46,10 @@ export interface CustomerContext {
   assets?: Asset[];
   invoices?: Invoice[];
   shipments?: Shipment[];
-  // Filled when AI suggestion is fetched
   aiSuggestion?: string;
 }
 
-type Tab = 'profile' | 'invoices' | 'shipments' | 'ai' | 'timeline';
+type Tab = 'profile' | 'invoices' | 'shipments' | 'ai';
 
 function TabBtn({ id, label, icon, active, onClick }: { id: Tab; label: string; icon: IconName; active: boolean; onClick: () => void }) {
   return (
@@ -77,21 +76,86 @@ const INV_STATUS_COLORS: Record<string, string> = {
 };
 
 export function Customer360Sidebar({
-  context, ticketId, onUseAiReply,
+  context, ticketId, onUseAiReply, onClose, onUpdateCustomer,
 }: {
   context?: CustomerContext;
   ticketId?: string;
   onUseAiReply?: (text: string) => void;
+  onClose?: () => void;
+  onUpdateCustomer?: (updated: Partial<CustomerContext>) => void;
 }) {
   const [tab, setTab] = useState<Tab>('profile');
   const [aiLoading, setAiLoading] = useState(false);
   const [aiSuggestion, setAiSuggestion] = useState<string>('');
   const [aiIsMock, setAiIsMock] = useState(true);
 
+  // CRM Form state
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [lifecycleStage, setLifecycleStage] = useState('Customer');
+  const [teamRouter, setTeamRouter] = useState('Customer Success & Support');
+  const [aiCopilotActive, setAiCopilotActive] = useState(true);
+  const [tags, setTags] = useState<string[]>(['Shopify Merchant', 'Automated Cart Recovery', 'QR-Connected']);
+  const [newTagInput, setNewTagInput] = useState('');
+  const [savingProps, setSavingProps] = useState(false);
+  const [savedToast, setSavedToast] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+
   useEffect(() => {
     setTab('profile');
     setAiSuggestion('');
+    if (context) {
+      const parts = (context.customer_name || '').split(' ');
+      setFirstName(parts[0] || '');
+      setLastName(parts.slice(1).join(' ') || '');
+      setEmail(context.customer_email || '');
+      setPhone(context.customer_phone || context.customer_wa || '');
+    }
   }, [context?.customer_id]);
+
+  const handleSaveProperties = async () => {
+    setSavingProps(true);
+    const fullName = `${firstName} ${lastName}`.trim() || context?.customer_name || 'Customer';
+    try {
+      if (context?.customer_id) {
+        await apiFetch(`/v1/customers/${context.customer_id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            name: fullName,
+            email,
+            phone,
+          }),
+        }).catch(() => null);
+      }
+      if (onUpdateCustomer) {
+        onUpdateCustomer({
+          customer_name: fullName,
+          customer_email: email,
+          customer_phone: phone,
+        });
+      }
+      setSavedToast(true);
+      setTimeout(() => setSavedToast(false), 3000);
+    } catch {}
+    setSavingProps(false);
+  };
+
+  const handleAddTag = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && newTagInput.trim()) {
+      e.preventDefault();
+      const tag = newTagInput.trim();
+      if (!tags.includes(tag)) {
+        setTags([...tags, tag]);
+      }
+      setNewTagInput('');
+    }
+  };
+
+  const handleRemoveTag = (tagToRemove: string) => {
+    setTags(tags.filter(t => t !== tagToRemove));
+  };
 
   const fetchAI = async () => {
     if (!ticketId) return;
@@ -126,118 +190,259 @@ export function Customer360Sidebar({
   }
 
   const { customer_name, customer_email, customer_phone, customer_wa, customer_company,
-    customer_country, kyc_status, assets = [], invoices = [], shipments = [] } = context;
-
-  const totalDue = invoices.filter(i => i.status === 'Overdue' || i.status === 'Pending')
-    .reduce((sum, i) => sum + Number(i.total_amount || 0), 0);
+    customer_country, kyc_status, invoices = [], shipments = [] } = context;
 
   return (
-    <div className="c360-root" style={{ display: 'flex', flexDirection: 'column', height: '100%', fontFamily: 'var(--font)', background: 'var(--bg)' }}>
-      {/* Header */}
-      <div style={{ padding: '20px 18px 12px', background: 'var(--white)', borderBottom: '1px solid var(--border)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
-          <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'linear-gradient(135deg, var(--teal), #6366f1)', color: '#fff', fontSize: 17, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+    <div className="c360-root" style={{ display: 'flex', flexDirection: 'column', height: '100%', fontFamily: 'var(--font)', background: 'var(--white)', borderLeft: '1px solid var(--border)', overflowY: 'auto' }}>
+      
+      {/* ── Top Bar Header ── */}
+      <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--white)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Icon name="user" size={16} color="var(--teal)" strokeWidth={2} />
+          <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.01em' }}>Contact Profile Details</span>
+        </div>
+        {onClose && (
+          <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }} title="Close details">
+            <Icon name="x" size={16} />
+          </button>
+        )}
+      </div>
+
+      {/* ── Big Contact Header Profile Card ── */}
+      <div style={{ padding: '20px 18px', textAlign: 'center', borderBottom: '1px solid var(--border)', background: 'var(--bg)' }}>
+        <div style={{ position: 'relative', width: 64, height: 64, margin: '0 auto 12px' }}>
+          <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: 'linear-gradient(135deg, var(--teal), #6366f1)', color: '#fff', fontSize: 24, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(13, 148, 136, 0.25)' }}>
             {customer_name?.charAt(0)?.toUpperCase()}
           </div>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{customer_name}</div>
-            <div style={{ fontSize: 11, color: 'var(--ink3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{customer_company || customer_country || 'Individual Client'}</div>
-          </div>
+          <span style={{ position: 'absolute', bottom: 2, right: 2, width: 14, height: 14, borderRadius: '50%', background: '#10b981', border: '2px solid var(--white)' }} title="Online" />
         </div>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+
+        <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)', marginBottom: 2 }}>{customer_name}</div>
+        <div style={{ fontSize: 12.5, color: 'var(--ink3)', fontWeight: 500, marginBottom: 8 }}>{customer_phone || customer_wa || customer_email || '—'}</div>
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 14 }}>
+          <span style={{ background: 'var(--green-l)', color: 'var(--green)', fontSize: 10.5, fontWeight: 800, padding: '3px 10px', borderRadius: 20, letterSpacing: '0.04em', textTransform: 'uppercase', border: '1px solid var(--green)' }}>
+            CUSTOMER
+          </span>
           {kyc_status && (
             <Badge variant={kyc_status === 'VERIFIED' ? 'success' : 'warning'}>
-              <Icon name={kyc_status === 'VERIFIED' ? 'checkCircle' : 'alertTriangle'} size={11} /> KYC {kyc_status}
+              KYC {kyc_status}
             </Badge>
           )}
-          {totalDue > 0 && (
-            <Badge variant="error">
-              ${(totalDue / 1000).toFixed(0)}K Due
-            </Badge>
-          )}
-          {shipments.some(s => s.stage !== 'CLOSED' && s.stage !== 'DELIVERED') && (
-            <Badge variant="info">
-              <Icon name="ship" size={11} /> Active Shipment
-            </Badge>
-          )}
+        </div>
+
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+          <button
+            type="button"
+            onClick={() => setIsMuted(!isMuted)}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 'var(--r)',
+              border: '1px solid var(--border)', background: isMuted ? 'var(--red-l)' : 'var(--white)',
+              color: isMuted ? 'var(--red)' : 'var(--ink2)', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+              transition: 'all 0.15s'
+            }}>
+            <Icon name="bell" size={13} />
+            {isMuted ? 'Muted' : 'Mute Contact'}
+          </button>
+          <button
+            type="button"
+            onClick={() => navigator.clipboard.writeText(customer_phone || customer_email || '')}
+            style={{
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32,
+              borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)',
+              color: 'var(--ink2)', cursor: 'pointer'
+            }}
+            title="Copy Contact Info">
+            <Icon name="copy" size={13} />
+          </button>
         </div>
       </div>
 
-      {/* Tab bar */}
+      {/* ── Navigation Tabs (Profile, Invoices, Shipments, AI) ── */}
       <div className="c360-tabs">
         {([
-          { id: 'profile', label: 'Profile', icon: 'user' },
+          { id: 'profile', label: 'CRM Details', icon: 'user' },
           { id: 'invoices', label: 'Invoices', icon: 'invoice' },
           { id: 'shipments', label: 'Shipments', icon: 'ship' },
-          { id: 'ai', label: 'AI', icon: 'sparkle' },
-          { id: 'timeline', label: 'Timeline', icon: 'clock' },
+          { id: 'ai', label: 'AI Copilot', icon: 'sparkle' },
         ] as { id: Tab; label: string; icon: IconName }[]).map(t => (
           <TabBtn key={t.id} id={t.id} label={t.label} icon={t.icon} active={tab === t.id} onClick={() => setTab(t.id)} />
         ))}
       </div>
 
-      {/* Tab content */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 16px' }}>
-
-        {/* ── PROFILE TAB ── */}
+      {/* ── Tab Content ── */}
+      <div style={{ flex: 1, padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+        
         {tab === 'profile' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {/* Contact */}
-            <div>
-              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Contact</div>
-              {customer_email && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                  <Icon name="mail" size={14} color="var(--ink3)" />
-                  <a href={`mailto:${customer_email}`} style={{ fontSize: 12, color: 'var(--teal)', textDecoration: 'none', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis' }}>{customer_email}</a>
+          <>
+            {/* 1. AI Assistant Control */}
+            <div style={{ background: 'var(--bg)', borderRadius: 10, padding: 14, border: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Icon name="sparkle" size={14} color="var(--teal)" />
+                  <span style={{ fontSize: 11.5, fontWeight: 800, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>AI Assistant Control</span>
                 </div>
-              )}
-              {(customer_wa || customer_phone) && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Icon name="smartphone" size={14} color="var(--ink3)" />
-                  <span style={{ fontSize: 12, color: 'var(--ink)', fontWeight: 500 }}>{customer_wa || customer_phone}</span>
-                  <a href={`https://wa.me/${(customer_wa || customer_phone || '').replace(/\D/g, '')}`} target="_blank" rel="noreferrer"
-                    style={{ marginLeft: 'auto', fontSize: 10, fontWeight: 700, color: '#25d366', background: 'var(--green-l)', padding: '2px 7px', borderRadius: 8, textDecoration: 'none' }}>
-                    WhatsApp ↗
-                  </a>
-                </div>
-              )}
+                <label style={{ position: 'relative', display: 'inline-block', width: 36, height: 20, cursor: 'pointer' }}>
+                  <input type="checkbox" checked={aiCopilotActive} onChange={e => setAiCopilotActive(e.target.checked)} style={{ opacity: 0, width: 0, height: 0 }} />
+                  <span style={{
+                    position: 'absolute', inset: 0, borderRadius: 20,
+                    background: aiCopilotActive ? 'var(--teal)' : 'var(--border)',
+                    transition: '0.2s ease-in-out'
+                  }}>
+                    <span style={{
+                      position: 'absolute', content: '""', height: 14, width: 14, left: aiCopilotActive ? 18 : 3, bottom: 3,
+                      background: '#fff', borderRadius: '50%', transition: '0.2s ease-in-out'
+                    }} />
+                  </span>
+                </label>
+              </div>
+              <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>
+                {aiCopilotActive ? 'AI Copilot Chat auto-suggests replies & drafts.' : 'Auto-reply disabled for this contact.'}
+              </div>
             </div>
 
-            {/* Assets */}
-            {assets.length > 0 && (
-              <div>
-                <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
-                  Financial Assets <span style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', borderRadius: 6, padding: '1px 6px', fontSize: 9 }}>{assets.length}</span>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {assets.map((a, i) => {
-                    const iconMap: Record<string, IconName> = { BANK_ACCOUNT: 'bankNote', CREDIT_CARD: 'creditCard', INSURANCE_POLICY: 'shield', LOAN: 'briefcase' };
-                    const colorMap: Record<string, string> = { BANK_ACCOUNT: '#3b82f6', CREDIT_CARD: '#10b981', INSURANCE_POLICY: '#8b5cf6', LOAN: '#f59e0b' };
-                    return (
-                      <div key={a.id || i} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <Icon name={iconMap[a.asset_type] || 'package'} size={14} color={colorMap[a.asset_type]} />
-                            <span style={{ fontSize: 11, fontWeight: 700, color: colorMap[a.asset_type] }}>{a.asset_type.replace('_', ' ')}</span>
-                          </div>
-                          <span style={{ fontSize: 9, fontWeight: 700, color: a.status === 'ACTIVE' ? '#10b981' : 'var(--ink3)', background: a.status === 'ACTIVE' ? '#ecfdf5' : 'var(--bg)', padding: '2px 6px', borderRadius: 6 }}>{a.status}</span>
-                        </div>
-                        <div style={{ fontSize: 11, color: 'var(--ink2)', fontFamily: 'monospace', marginBottom: a.metadata?.balance != null ? 4 : 0 }}>{a.asset_ref}</div>
-                        {a.metadata?.balance != null && (
-                          <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--navy)' }}>
-                            {a.metadata?.currency || 'TZS'} {Number(a.metadata.balance).toLocaleString()}
-                          </div>
-                        )}
-                        {a.metadata?.expires_at && (
-                          <div style={{ fontSize: 10, color: 'var(--red)', marginTop: 2 }}>⏱ Expires: {new Date(a.metadata.expires_at).toLocaleDateString()}</div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
+            {/* 2. Assigned Team Router */}
+            <div>
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 800, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6 }}>
+                Assigned Team Router
+              </label>
+              <select
+                value={teamRouter}
+                onChange={e => setTeamRouter(e.target.value)}
+                style={{
+                  width: '100%', padding: '8px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)',
+                  background: 'var(--white)', color: 'var(--ink)', fontSize: 12.5, fontWeight: 600, outline: 'none'
+                }}>
+                <option value="Customer Success & Support">Customer Success & Support</option>
+                <option value="Technical Operations">Technical Operations</option>
+                <option value="Billing & Financials">Billing & Financials</option>
+                <option value="Logistics & Customs">Logistics & Customs</option>
+              </select>
+            </div>
+
+            {/* 3. CRM Information Form */}
+            <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
+                <Icon name="fileText" size={14} color="var(--ink3)" />
+                <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>CRM Information</span>
               </div>
-            )}
-          </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', marginBottom: 4 }}>First Name</label>
+                    <input className="input-field" value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="First name" />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', marginBottom: 4 }}>Last Name</label>
+                    <input className="input-field" value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Last name" />
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', marginBottom: 4 }}>Email Address</label>
+                  <input className="input-field" value={email} onChange={e => setEmail(e.target.value)} placeholder="email@company.com" />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', marginBottom: 4 }}>Phone Number</label>
+                  <input className="input-field" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+255..." />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', marginBottom: 4 }}>Lifecycle Stage</label>
+                  <select
+                    value={lifecycleStage}
+                    onChange={e => setLifecycleStage(e.target.value)}
+                    style={{
+                      width: '100%', padding: '8px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)',
+                      background: 'var(--white)', color: 'var(--ink)', fontSize: 12.5, fontWeight: 600, outline: 'none'
+                    }}>
+                    <option value="Customer">Customer</option>
+                    <option value="Lead">Lead</option>
+                    <option value="Prospect">Prospect</option>
+                    <option value="VIP">VIP Enterprise</option>
+                    <option value="Subscriber">Subscriber</option>
+                  </select>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleSaveProperties}
+                  disabled={savingProps}
+                  style={{
+                    marginTop: 6, padding: '9px 16px', background: 'var(--ink)', color: 'var(--white)',
+                    border: 'none', borderRadius: 'var(--r)', fontSize: 12.5, fontWeight: 800, cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, transition: 'all 0.15s'
+                  }}>
+                  {savingProps ? 'Saving…' : savedToast ? '✓ Properties Saved!' : '✓ Save Properties'}
+                </button>
+              </div>
+            </div>
+
+            {/* 4. Contact Tags */}
+            <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+              <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8 }}>
+                Contact Tags
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                {tags.map(tag => (
+                  <span key={tag} style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px',
+                    borderRadius: 16, background: 'var(--bg)', border: '1px solid var(--border)',
+                    fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)'
+                  }}>
+                    {tag}
+                    <button type="button" onClick={() => handleRemoveTag(tag)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--ink3)', display: 'flex', alignItems: 'center' }}>
+                      <Icon name="x" size={11} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+              <input
+                className="input-field"
+                value={newTagInput}
+                onChange={e => setNewTagInput(e.target.value)}
+                onKeyDown={handleAddTag}
+                placeholder="+ Type tag name and hit Enter…"
+                style={{ fontSize: 11.5 }}
+              />
+            </div>
+
+            {/* 5. E-Commerce Store Context */}
+            <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16, background: 'var(--bg)', padding: 12, borderRadius: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                <span style={{ fontSize: 10.5, fontWeight: 800, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  E-Commerce Store Context
+                </span>
+                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--green)', background: 'var(--green-l)', padding: '2px 6px', borderRadius: 10, border: '1px solid var(--green)' }}>
+                  ● Connected
+                </span>
+              </div>
+              <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>
+                No active cart or orders found for this contact.
+              </div>
+            </div>
+
+            {/* 6. Channel Details Footer */}
+            <div style={{ borderTop: '1px solid var(--border)', paddingTop: 14, marginTop: 'auto' }}>
+              <div style={{ fontSize: 11, color: 'var(--ink3)', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <div><strong style={{ color: 'var(--ink2)' }}>Channel:</strong> WhatsApp Multi-Device QR ({customer_wa || customer_phone || '+1555-0144'})</div>
+                <div><strong style={{ color: 'var(--ink2)' }}>Chat ID:</strong> {customer_phone || customer_wa || 'Chat-10928'}</div>
+              </div>
+              <a
+                href={`https://wa.me/${(customer_wa || customer_phone || '').replace(/\D/g, '')}`}
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  marginTop: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  padding: '9px 12px', background: 'var(--green-l)', border: '1px solid var(--green)', borderRadius: 'var(--r)',
+                  color: 'var(--green)', fontSize: 12, fontWeight: 800, textDecoration: 'none'
+                }}>
+                <Icon name="chatBubble" size={14} /> Live Demo & Support (+9195097 38426)
+              </a>
+            </div>
+          </>
         )}
 
         {/* ── INVOICES TAB ── */}
@@ -313,9 +518,6 @@ export function Customer360Sidebar({
               </div>
             ) : aiSuggestion ? (
               <div>
-                {/* Real-AI vs template disclosure — a human deciding whether
-                    to trust this before clicking "Use This Reply" needs to
-                    know which one they're looking at. */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                   {aiIsMock ? (
                     <Badge variant="warning">
@@ -330,13 +532,11 @@ export function Customer360Sidebar({
                   )}
                 </div>
 
-                {/* Suggestion card */}
-                <div style={{ background: 'linear-gradient(135deg, #ecfdf5, #ecfdf5)', border: '1px solid #86efac', borderRadius: 10, padding: 14, marginBottom: 12, position: 'relative' }}>
+                <div style={{ background: 'var(--green-l)', border: '1px solid var(--green)', borderRadius: 10, padding: 14, marginBottom: 12, position: 'relative' }}>
                   <div style={{ position: 'absolute', top: 10, right: 12, opacity: 0.4 }}><Icon name="sparkle" size={20} /></div>
-                  <div style={{ fontSize: 12, lineHeight: 1.6, color: 'var(--navy)', paddingRight: 24 }}>{aiSuggestion}</div>
+                  <div style={{ fontSize: 12, lineHeight: 1.6, color: 'var(--ink)', paddingRight: 24 }}>{aiSuggestion}</div>
                 </div>
 
-                {/* Action buttons */}
                 <div style={{ display: 'flex', gap: 8 }}>
                   {onUseAiReply && (
                     <button
@@ -364,31 +564,6 @@ export function Customer360Sidebar({
                 </button>
               </div>
             )}
-          </div>
-        )}
-
-        {/* ── TIMELINE TAB ── */}
-        {tab === 'timeline' && (
-          <div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>Activity Timeline</div>
-            <div style={{ position: 'relative', paddingLeft: 20 }}>
-              <div style={{ position: 'absolute', left: 7, top: 0, bottom: 0, width: 1, background: 'var(--border)' }} />
-              {([
-                { icon: 'tag', label: 'Ticket opened', time: 'Today, 11:31', color: '#6366f1' },
-                { icon: 'mail', label: 'Message sent by customer', time: 'Today, 11:31', color: '#3b82f6' },
-                { icon: 'user', label: 'Agent replied', time: 'Today, 12:01', color: '#10b981' },
-                { icon: 'ship', label: 'Linked shipment CLR-2026-0001 updated', time: 'Yesterday', color: 'var(--gold)' },
-                { icon: 'fileText', label: 'Invoice INV-2026-0008 sent', time: '3 days ago', color: 'var(--red)' },
-              ] as { icon: IconName; label: string; time: string; color: string }[]).map((e, i) => (
-                <div key={i} style={{ position: 'relative', paddingBottom: 16, paddingLeft: 16 }}>
-                  <div style={{ position: 'absolute', left: -6, top: 2, width: 12, height: 12, borderRadius: '50%', background: e.color, border: '2px solid var(--white)' }} />
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: 'var(--ink)' }}>
-                    <Icon name={e.icon} size={12} color={e.color} /> {e.label}
-                  </div>
-                  <div style={{ fontSize: 10, color: 'var(--ink3)', marginTop: 2 }}>{e.time}</div>
-                </div>
-              ))}
-            </div>
           </div>
         )}
       </div>

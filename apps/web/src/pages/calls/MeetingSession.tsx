@@ -111,7 +111,7 @@ export function MeetingSession({ meetingId, onExit }: { meetingId: string; onExi
   if (error || !meeting) {
     return (
       <div style={{ position: 'fixed', inset: 0, zIndex: 2100, background: '#0b0b0f', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ background: 'var(--white)', borderRadius: 16, padding: 28, width: 360, textAlign: 'center' }}>
+        <div style={{ background: 'var(--white)', borderRadius: 16, padding: 28, width: 360, maxWidth: 'calc(100vw - 32px)', textAlign: 'center' }}>
           <Icon name="alertCircle" size={28} color="var(--red)" />
           <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginTop: 10 }}>{error || 'Meeting not found'}</div>
           <Button variant="outline" onClick={onExit} style={{ marginTop: 16 }}>Back to Calls</Button>
@@ -123,7 +123,7 @@ export function MeetingSession({ meetingId, onExit }: { meetingId: string; onExi
   if (endedNotice) {
     return (
       <div style={{ position: 'fixed', inset: 0, zIndex: 2100, background: '#0b0b0f', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ background: 'var(--white)', borderRadius: 16, padding: 28, width: 360, textAlign: 'center' }}>
+        <div style={{ background: 'var(--white)', borderRadius: 16, padding: 28, width: 360, maxWidth: 'calc(100vw - 32px)', textAlign: 'center' }}>
           <Icon name="checkCircle" size={28} color="var(--green)" />
           <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginTop: 10 }}>{endedNotice}</div>
           <Button variant="outline" onClick={onExit} style={{ marginTop: 16 }}>Back to Calls</Button>
@@ -135,7 +135,7 @@ export function MeetingSession({ meetingId, onExit }: { meetingId: string; onExi
   if (meeting.status === 'ENDED' || meeting.status === 'CANCELLED') {
     return (
       <div style={{ position: 'fixed', inset: 0, zIndex: 2100, background: '#0b0b0f', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ background: 'var(--white)', borderRadius: 16, padding: 28, width: 360, textAlign: 'center' }}>
+        <div style={{ background: 'var(--white)', borderRadius: 16, padding: 28, width: 360, maxWidth: 'calc(100vw - 32px)', textAlign: 'center' }}>
           <Icon name="clock" size={28} color="var(--ink3)" />
           <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginTop: 10 }}>This meeting has {meeting.status === 'CANCELLED' ? 'been cancelled' : 'ended'}.</div>
           <Button variant="outline" onClick={onExit} style={{ marginTop: 16 }}>Back to Calls</Button>
@@ -147,7 +147,7 @@ export function MeetingSession({ meetingId, onExit }: { meetingId: string; onExi
   if (waiting) {
     return (
       <div style={{ position: 'fixed', inset: 0, zIndex: 2100, background: 'linear-gradient(135deg, #0b0f19 0%, #111827 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ background: '#111827', borderRadius: 16, border: '1px solid #1f2937', padding: 32, width: 360, textAlign: 'center' }}>
+        <div style={{ background: '#111827', borderRadius: 16, border: '1px solid #1f2937', padding: 32, width: 360, maxWidth: 'calc(100vw - 32px)', textAlign: 'center' }}>
           {waitingStatus === 'REJECTED' ? (
             <>
               <Icon name="alertCircle" size={28} color="var(--red)" />
@@ -170,7 +170,7 @@ export function MeetingSession({ meetingId, onExit }: { meetingId: string; onExi
   if (meeting.hasPassword && pendingOpts && !joined) {
     return (
       <div style={{ position: 'fixed', inset: 0, zIndex: 2100, background: 'linear-gradient(135deg, #0b0f19 0%, #111827 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ background: '#111827', borderRadius: 16, border: '1px solid #1f2937', padding: 32, width: 360 }}>
+        <div style={{ background: '#111827', borderRadius: 16, border: '1px solid #1f2937', padding: 32, width: 360, maxWidth: 'calc(100vw - 32px)', boxSizing: 'border-box' }}>
           <Icon name="lock" size={24} color="#8ab4f8" />
           <div style={{ fontSize: 15, fontWeight: 700, color: '#f9fafb', marginTop: 12 }}>This meeting is password-protected</div>
           <div style={{ fontSize: 12.5, color: '#9ca3af', marginTop: 4, marginBottom: 16 }}>Enter the password the host shared with you.</div>

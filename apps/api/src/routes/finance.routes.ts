@@ -7,6 +7,7 @@ import { requireRole } from '../middleware/rbac.js';
 import { computeVatReturn } from '../services/vat-return.service.js';
 import { reportingCurrency } from '../services/tax-registration.service.js';
 import { resolveCustomerId } from '../services/customer-identity.service.js';
+import { broadcastToTenant } from '../lib/ws-broadcast.js';
 
 const EXPENSE_CATEGORIES = ['DUTY', 'PORT', 'INSPECTION', 'TRANSPORT', 'STORAGE', 'AGENCY', 'CLEARANCE', 'OTHER'] as const;
 const recordExpenseSchema = z.object({
@@ -358,14 +359,10 @@ export async function financeRoutes(fastify: FastifyInstance) {
       }
 
       // Alert clients via socket
-      fastify.websocketServer?.clients.forEach((client: any) => {
-        client.send(
-          JSON.stringify({
-            type: 'invoice.finalised',
-            caseId: id,
-            invoiceId,
-          })
-        );
+      broadcastToTenant(fastify, user.tenant_id, {
+        type: 'invoice.finalised',
+        caseId: id,
+        invoiceId,
       });
 
       return { success: true, message: 'Invoice finalised successfully', invoice_id: invoiceId };

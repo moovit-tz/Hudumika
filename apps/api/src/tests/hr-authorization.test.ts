@@ -27,7 +27,6 @@ describe('HR authorization — previously-open endpoints now require a managemen
     { method: 'GET', url: '/v1/hr/contracts/expiring' },
     { method: 'GET', url: '/v1/hr/invitations' },
     { method: 'GET', url: '/v1/hr/roster' },
-    { method: 'GET', url: '/v1/hr/payroll/runs' },
     { method: 'GET', url: '/v1/hr/documents' },
     { method: 'GET', url: '/v1/hr/assets' },
     { method: 'GET', url: '/v1/hr/goals' },
@@ -51,4 +50,31 @@ describe('HR authorization — previously-open endpoints now require a managemen
     const res = await app.inject({ method: 'GET', url: '/v1/hr/recruitment/openings', headers: authHeaders(tenant.token) });
     expect(res.statusCode).toBe(200);
   });
+});
+
+describe('Retired legacy payroll paths (hr_payroll) stay retired', () => {
+  // hr_payroll is the abandoned table real payroll moved off of — these
+  // routes are 410s pointing at the real /v1/payroll/* engine, unguarded by
+  // role (matching how a redirect notice, not data, needs no authorization)
+  // so they answer the same way for anyone, not just a management role.
+  let tenant: TestTenant;
+  beforeAll(async () => { tenant = await createTestTenant('JUNIOR'); });
+  afterAll(async () => { await tenant.cleanup(); });
+
+  const retired: { method: 'GET' | 'POST' | 'PATCH'; url: string }[] = [
+    { method: 'GET', url: '/v1/hr/payroll' },
+    { method: 'POST', url: '/v1/hr/payroll' },
+    { method: 'PATCH', url: '/v1/hr/payroll/00000000-0000-0000-0000-000000000000' },
+    { method: 'GET', url: '/v1/hr/payroll/runs' },
+    { method: 'POST', url: '/v1/hr/payroll/run' },
+  ];
+
+  for (const ep of retired) {
+    it(`${ep.method} ${ep.url} is a 410 pointing at the real payroll engine`, async () => {
+      const app = await getApp();
+      const res = await app.inject({ method: ep.method, url: ep.url, headers: authHeaders(tenant.token), payload: {} });
+      expect(res.statusCode).toBe(410);
+      expect(res.json().error).toContain('/v1/payroll');
+    });
+  }
 });

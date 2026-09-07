@@ -2,6 +2,7 @@ import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { withTenant } from '../db/client.js';
+import { broadcastToTenant } from '../lib/ws-broadcast.js';
 
 // Real values — 117_seal_geofence_and_sensors.sql's CHECK constraints.
 const SENSOR_DEVICE_TYPES = ['camera', 'occupancy_sensor', 'weight_sensor', 'door_sensor'] as const;
@@ -142,11 +143,9 @@ export async function sealSensorsRoutes(fastify: FastifyInstance) {
       });
       if (!result) return reply.status(404).send({ error: 'Unknown device_id for this tenant' });
 
-      fastify.websocketServer?.clients.forEach((client: any) => {
-        client.send(JSON.stringify({
-          type: 'seal.sensor_reading', deviceId: result.device.id, compartmentId: result.device.compartment_id,
-          readingType: b.reading_type, value: b.value,
-        }));
+      broadcastToTenant(fastify, request.user.tenant_id, {
+        type: 'seal.sensor_reading', deviceId: result.device.id, compartmentId: result.device.compartment_id,
+        readingType: b.reading_type, value: b.value,
       });
 
       return { ok: true, device_id: result.device.id };

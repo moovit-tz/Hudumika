@@ -37,10 +37,9 @@ import { TrackingShared } from './pages/TrackingShared.js';
 import { ShipmentReportShared } from './pages/ShipmentReportShared.js';
 import { SharedLandedCostReport } from './pages/SharedLandedCostReport.js';
 import { UserProfile }    from './pages/UserProfile.js';
-import { Support }        from './pages/Support.js';
+import { BlissInbox }     from './pages/bliss/BlissInbox.js';
 import { SupportOverview }from './pages/SupportOverview.js';
 import { FileBrowser }    from './pages/cloud/FileBrowser.js';
-import { Escalations }    from './pages/Escalations.js';
 import { Chat }           from './pages/Chat.js';
 import { ToolsOverview }  from './pages/ToolsOverview.js';
 import { LandedCostPage } from './pages/LandedCostPage.js';
@@ -516,9 +515,8 @@ const AppContentBody: React.FC = () => {
             {/* Tools — all staff */}
             <Route path="/documents"        element={<FileBrowser />} />
             <Route path="/support/overview" element={<SupportOverview />} />
-            <Route path="/support/tickets"  element={<Support />} />
+            <Route path="/support/tickets"  element={<BlissInbox />} />
             <Route path="/support"          element={<SupportOverview />} />
-            <Route path="/escalations"      element={<RequireRoles roles={[...MGMT_ROLES, 'SENIOR']}><Escalations /></RequireRoles>} />
             <Route path="/chat"             element={<Chat />} />
             <Route path="/profile"          element={<UserProfile />} />
             <Route path="/tools/overview"   element={<ToolsOverview />} />

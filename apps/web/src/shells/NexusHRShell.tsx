@@ -64,7 +64,7 @@ function buildNav(isSuperAdmin: boolean): SidebarSection[] {
     items: [
       { label: 'Dashboard', icon: 'home', path: '/nexushr', exact: true },
       { label: 'My HR', icon: 'user', path: '/nexushr/me' },
-      { label: 'Calls', icon: 'camera', path: '/bliss/calls' },
+      { label: 'Call Center', icon: 'camera', path: '/bliss/calls' },
       { label: 'Clock-in', icon: 'clock', path: '/nexushr/clock-in' },
     ],
   },

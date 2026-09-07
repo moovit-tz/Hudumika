@@ -4084,10 +4084,32 @@ export interface SupportTicketsTable {
 export interface SupportRulesTable {
   id: Generated<string>;
   tenant_id: string;
-  type: 'auto_assign' | 'sla_escalation' | 'status_automation' | 'notification_trigger';
+  // whatsapp_keyword: real keyword-triggered auto-replies on inbound
+  // WhatsApp messages (webhooks.routes.ts), config: { keyword, matchType,
+  // replyText }. Column has no CHECK constraint (migration 050), so this
+  // needed no migration — same reuse the rules engine was already built for.
+  type: 'auto_assign' | 'sla_escalation' | 'status_automation' | 'notification_trigger' | 'whatsapp_keyword';
   name: string;
   enabled: Generated<boolean>;
   config: any;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface CaseEscalationsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  case_id: string | null;
+  case_ref: string;
+  goods_desc: string | null;
+  reason: string;
+  note: string | null;
+  escalated_by: string;
+  escalated_by_name: string;
+  escalated_at: Generated<Date>;
+  status: 'PENDING' | 'IN_PROGRESS' | 'RESOLVED';
+  resolved_at: Date | null;
+  resolved_by: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -4123,6 +4145,10 @@ export interface SupportMessagesTable {
   author_type: 'OFFICER' | 'CUSTOMER' | 'SYSTEM' | 'ORG';
   content: string;
   external_ref: string | null;
+  /** Meta delivery/read/failed receipt for an OUTBOUND WhatsApp send,
+   *  correlated back to this row via external_ref (migration 404). Null for
+   *  every other channel/direction — there is nothing Meta reports on them. */
+  delivery_status: 'sent' | 'delivered' | 'read' | 'failed' | null;
   created_at: Generated<Date>;
 }
 
@@ -4507,6 +4533,7 @@ export interface Database {
   support_groups: SupportGroupsTable;
   support_views: SupportViewsTable;
   support_rules: SupportRulesTable;
+  case_escalations: CaseEscalationsTable;
   customer_assets: CustomerAssetsTable;
   kb_categories: KbCategoriesTable;
   knowledge_base: KnowledgeBaseTable;

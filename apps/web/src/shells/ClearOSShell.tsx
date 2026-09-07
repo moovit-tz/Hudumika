@@ -155,7 +155,7 @@ const NAV: SidebarSection[] = [
       // Chat and Workflows now live in the apps that own those functions.
       // The links are deep enough to land on the ClearOS view of each, so
       // the journey is unchanged — only the app that hosts it.
-      { label: 'Team Chat',         icon: 'chatBubble', path: '/bliss/team-chat' },
+      { label: 'Team Chat',         icon: 'chatBubble', path: '/bliss/inbox?view=team' },
       { label: 'Workflows',         icon: 'gitBranch',  path: '/studio/clearance' },
       { label: 'Trips',             icon: 'truck',      path: '/tracking/shipments' },
       { label: 'Demurrage',         icon: 'alertTriangle', path: '/cargotracker' },
@@ -218,7 +218,7 @@ export function ClearOSShell() {
                 {/* Moved to Bliss (team chat) and Studio (workflows).
                     Redirects rather than removals: these paths are in
                     bookmarks, notification links and printed reports. */}
-                <Route path="chat"            element={<Navigate to="/bliss/team-chat" replace />} />
+                <Route path="chat"            element={<Navigate to="/bliss/inbox?view=team" replace />} />
                 <Route path="reference"       element={<CustomsReference />} />
                 <Route path="rate-card"       element={<RequireRoles roles={OPS_ROLES}><RateCardPage /></RequireRoles>} />
                 {/* Freight Booking moved to CargoTracker — see nav comment above. */}

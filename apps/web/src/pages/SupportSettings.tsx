@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader.js';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
@@ -9,7 +10,7 @@ import './SupportSettings.css';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { showConfirm } from '../lib/confirm.js';
 
-type RuleType = 'auto_assign' | 'sla_escalation' | 'status_automation' | 'notification_trigger';
+type RuleType = 'auto_assign' | 'sla_escalation' | 'status_automation' | 'notification_trigger' | 'whatsapp_keyword';
 
 interface Rule {
   id: string; type: RuleType; name: string; enabled: boolean; config: any;
@@ -22,6 +23,11 @@ const SECTIONS: { type: RuleType; title: string; icon: IconName; desc: string }[
   { type: 'sla_escalation', title: 'SLA Escalation', icon: 'alertTriangle', desc: 'Notify or escalate tickets approaching or past their SLA deadline.' },
   { type: 'status_automation', title: 'Status Automation', icon: 'refresh', desc: 'Automatically close stale resolved tickets.' },
   { type: 'notification_trigger', title: 'Notification Triggers', icon: 'bell', desc: 'Send in-app notifications on ticket events.' },
+  // Real: matched against every inbound WhatsApp message in
+  // webhooks.routes.ts, sent via the same WhatsAppIntegration.sendMessage
+  // every other outbound reply on this platform uses — not a decorative
+  // keyword list, an actual reply goes out and is logged on the ticket.
+  { type: 'whatsapp_keyword', title: 'WhatsApp Auto-Reply', icon: 'chatBubble', desc: 'Reply automatically when an inbound WhatsApp message matches a keyword.' },
 ];
 
 function RuleConfigSummary({ rule, agents }: { rule: Rule; agents: Agent[] }) {
@@ -36,6 +42,8 @@ function RuleConfigSummary({ rule, agents }: { rule: Rule; agents: Agent[] }) {
       return <span>Auto-close after {c.autoCloseAfterDays ?? '—'} day{c.autoCloseAfterDays === 1 ? '' : 's'} resolved</span>;
     case 'notification_trigger':
       return <span>On {String(c.event || '—').replace('_', ' ')} → notify {c.notify === 'assignee' ? 'assignee' : c.notify === 'manager_role' ? 'managers' : 'selected users'}</span>;
+    case 'whatsapp_keyword':
+      return <span>{c.matchType === 'exact' ? 'Exact match' : c.matchType === 'starts_with' ? 'Starts with' : 'Contains'} "{c.keyword || '—'}" → auto-reply</span>;
   }
 }
 
@@ -50,6 +58,9 @@ function RuleForm({ type, agents, onCancel, onSave, saving }: {
   const [autoCloseAfterDays, setAutoCloseAfterDays] = useState(3);
   const [event, setEvent] = useState('new_ticket');
   const [notify, setNotify] = useState('assignee');
+  const [keyword, setKeyword] = useState('');
+  const [matchType, setMatchType] = useState<'contains' | 'exact' | 'starts_with'>('contains');
+  const [replyText, setReplyText] = useState('');
 
   const toggleAgent = (id: string) => setAgentIds(prev => prev.includes(id) ? prev.filter(a => a !== id) : [...prev, id]);
 
@@ -59,6 +70,7 @@ function RuleForm({ type, agents, onCancel, onSave, saving }: {
       type === 'auto_assign' ? { strategy, agentIds } :
       type === 'sla_escalation' ? { thresholdPercent, escalateToRole } :
       type === 'status_automation' ? { autoCloseAfterDays } :
+      type === 'whatsapp_keyword' ? { keyword: keyword.trim(), matchType, replyText: replyText.trim() } :
       { event, notify };
     onSave(name.trim(), config);
   }
@@ -152,6 +164,30 @@ function RuleForm({ type, agents, onCancel, onSave, saving }: {
         </>
       )}
 
+      {type === 'whatsapp_keyword' && (
+        <>
+          <div className="ssg-field">
+            <label>Keyword</label>
+            <input className="input-field" value={keyword} onChange={e => setKeyword(e.target.value)} placeholder="e.g. #STATUS" />
+          </div>
+          <div className="ssg-field">
+            <label>Match type</label>
+            <Select value={matchType} onValueChange={v => setMatchType(v as any)}>
+              <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="contains">Message contains keyword</SelectItem>
+                <SelectItem value="starts_with">Message starts with keyword</SelectItem>
+                <SelectItem value="exact">Message is exactly the keyword</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="ssg-field">
+            <label>Auto-reply text</label>
+            <textarea className="input-field" rows={3} value={replyText} onChange={e => setReplyText(e.target.value)} placeholder="Sent back to the customer via WhatsApp when this rule matches." />
+          </div>
+        </>
+      )}
+
       <div className="ssg-form-actions">
         <button type="button" className="btn btn-secondary btn-sm" onClick={onCancel}>Cancel</button>
         <button type="button" className="btn btn-primary btn-sm" disabled={!name.trim() || saving} onClick={handleSave}>
@@ -221,16 +257,23 @@ export const SupportSettings: React.FC = () => {
     }
   }
 
-  const integrations: { name: string; icon: IconName; color: string; desc: string; active: boolean }[] = [
-    { name: 'WhatsApp Cloud API', icon: 'phone', color: '#25D366', desc: 'Connect WhatsApp Business for two-way messaging.', active: true },
-    { name: 'Facebook Messenger', icon: 'messageSquare', color: '#0084FF', desc: 'Receive and reply to Facebook page messages.', active: false },
-    { name: 'Email Helpdesk', icon: 'mail', color: '#0569e3', desc: 'Convert incoming emails to tickets.', active: true },
-    { name: 'Live Chat Widget', icon: 'messageSquare', color: 'var(--teal)', desc: 'Embed live chat on your website.', active: true },
+  // This card used to be 4 hand-picked "channels," each with a hardcoded
+  // active:true/false and a permanently-disabled Manage/Connect button that
+  // did nothing — decorative status regardless of whether the tenant had
+  // actually configured anything. Real channel config already exists
+  // elsewhere in the platform; this card now points at the real place for
+  // each, rather than pretending to be a second, non-functional copy of it.
+  // Facebook Messenger is dropped entirely: support_tickets' channel column
+  // has no FACEBOOK value in its schema, so there is nothing real to link —
+  // wiring that in is a real integration project, not a settings toggle.
+  const integrations: { name: string; icon: IconName; color: string; desc: string; to: string }[] = [
+    { name: 'WhatsApp & SMS gateways', icon: 'phone', color: '#25D366', desc: 'Credentials, sender IDs and priority order — managed in the SMS app.', to: '/sms/gateways' },
+    { name: 'Email ticket ingest', icon: 'mail', color: '#0569e3', desc: 'IMAP mailbox that turns incoming email into tickets — configure the mailbox in Settings.', to: '/workspace/settings?s=email' },
   ];
 
   return (
     <div className="ssg-root">
-      <PageHeader crumbs={['Support', 'Settings']} titlePlain="Support" titleEm="Settings" />
+      <PageHeader crumbs={['Bliss', 'Settings']} titlePlain="Support" titleEm="Settings" />
 
       <div className="ssg-section-hdr">
         <h3>Rules &amp; Workflows</h3>
@@ -296,12 +339,12 @@ export const SupportSettings: React.FC = () => {
 
       <div className="ssg-section-hdr" style={{ marginTop: 32 }}>
         <h3>Channels &amp; Integrations</h3>
-        <p>Connect external channels to route customer messages into your unified inbox.</p>
+        <p>Where each channel that feeds this inbox is actually configured.</p>
       </div>
 
       <div className="card ssg-integrations-card">
         {integrations.map(ig => (
-          <div key={ig.name} className="ssg-integration-row">
+          <Link key={ig.name} to={ig.to} className="ssg-integration-row" style={{ textDecoration: 'none' }}>
             <div className="ssg-integration-left">
               <div className="ssg-integration-icon" style={{ background: ig.color + '18' }}>
                 <Icon name={ig.icon} size={20} color={ig.color} />
@@ -311,10 +354,8 @@ export const SupportSettings: React.FC = () => {
                 <div className="ssg-integration-desc">{ig.desc}</div>
               </div>
             </div>
-            <button type="button" className={`btn btn-sm${ig.active ? ' btn-secondary' : ' btn-primary'}`} disabled>
-              {ig.active ? 'Manage' : 'Connect'}
-            </button>
-          </div>
+            <Icon name="arrowUpRight" size={16} color="var(--ink3)" />
+          </Link>
         ))}
       </div>
     </div>

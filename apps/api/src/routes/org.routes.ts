@@ -446,7 +446,7 @@ export async function orgRoutes(fastify: FastifyInstance) {
         await trx.insertInto('notifications').values({
           tenant_id, user_id: ticket.assigned_to, app: 'bliss', type: 'support',
           title: `New reply on ${ticket.ref_number}`, message: content.slice(0, 200),
-          link: `/bliss/tickets?id=${ticket.id}`, metadata: '{}',
+          link: `/bliss/inbox?id=${ticket.id}`, metadata: '{}',
           entity_type: 'support_ticket', entity_id: ticket.id, entity_label: ticket.subject,
           shipment_id: null, customer_id: link.customer_id, trigger_type: null,
           channel: null, recipient: null, content: null,

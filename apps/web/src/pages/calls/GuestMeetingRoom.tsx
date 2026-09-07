@@ -226,7 +226,7 @@ export function GuestMeetingRoom({
     <button
       type="button" title={label} onClick={onClick} disabled={disabled}
       style={{
-        width: 48, height: 48, borderRadius: '50%', border: 'none', cursor: disabled ? 'not-allowed' : 'pointer',
+        width: 48, height: 48, flexShrink: 0, borderRadius: '50%', border: 'none', cursor: disabled ? 'not-allowed' : 'pointer',
         background: danger ? 'var(--red)' : active ? '#3c4043' : '#fff', color: danger ? 'hsl(var(--red-foreground))' : active ? '#fff' : '#202124',
         display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: disabled ? 0.4 : 1,
       }}
@@ -303,7 +303,7 @@ export function GuestMeetingRoom({
       )}
 
       {chatOpen && (
-        <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, width: 300, background: '#1f2937', borderLeft: '1px solid #374151', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, width: 300, maxWidth: '100vw', background: '#1f2937', borderLeft: '1px solid #374151', display: 'flex', flexDirection: 'column' }}>
           <div style={{ padding: '12px 14px', borderBottom: '1px solid #374151', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: '#f9fafb' }}>In-call messages</span>
             <button onClick={() => setChatOpen(false)} style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer' }}><Icon name="x" size={16} /></button>
@@ -327,7 +327,7 @@ export function GuestMeetingRoom({
         </div>
       )}
 
-      <div style={{ padding: '12px 0 20px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14 }}>
+      <div style={{ padding: '12px 16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, overflowX: 'auto' }}>
         {ctrlBtn(muted ? 'micOff' : 'mic', muted ? 'Unmute' : 'Mute', muted, false, toggleMute)}
         {kind === 'VIDEO' && ctrlBtn('camera', camOff ? 'Start video' : 'Stop video', camOff, false, toggleCam)}
         {ctrlBtn('monitor', screenShareDisabled ? 'Screen share disabled by host' : 'Share screen', sharing, false, toggleScreenShare, screenShareDisabled)}
@@ -347,7 +347,7 @@ function Popover2({ onEmoji }: { onEmoji: (e: string) => void }) {
     <div style={{ position: 'relative' }}>
       <button
         type="button" title="Reactions" onClick={() => setOpen(v => !v)}
-        style={{ width: 48, height: 48, borderRadius: '50%', border: 'none', cursor: 'pointer', background: open ? '#3c4043' : '#fff', color: open ? '#fff' : '#202124', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        style={{ width: 48, height: 48, flexShrink: 0, borderRadius: '50%', border: 'none', cursor: 'pointer', background: open ? '#3c4043' : '#fff', color: open ? '#fff' : '#202124', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
       >
         <Icon name="smile" size={20} />
       </button>

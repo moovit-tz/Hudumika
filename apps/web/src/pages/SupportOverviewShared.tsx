@@ -1,7 +1,9 @@
-// Shared data hook + small UI atoms used by SupportOverview.tsx,
-// SupportAnalytics.tsx and SupportTeam.tsx — these were originally three tabs
-// of one component; split into separate pages/routes but still share the
-// same ticket+metrics fetch and the same KPI-card/section-header/bar-row look.
+// Shared data hook + small UI atoms used by SupportOverview.tsx and
+// SupportTeam.tsx — these were originally three tabs of one component
+// (a third, SupportAnalytics.tsx, was later merged back into
+// SupportOverview.tsx — the two pages showed the same metrics twice) —
+// still share the same ticket+metrics fetch and the same
+// KPI-card/section-header/bar-row look.
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';

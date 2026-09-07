@@ -730,17 +730,10 @@ export class NexusHRService {
 
   // ─── PAYROLL ───────────────────────────────────────────────────────────────
 
-  static async getPayrollRuns(tenantId: string) {
-    return withTenant(tenantId, async (trx) => {
-      return await trx
-        .selectFrom('hr_payroll')
-        .selectAll()
-        .where('tenant_id', '=', tenantId)
-        .orderBy('period_year', 'desc')
-        .orderBy('period_month', 'desc')
-        .execute();
-    });
-  }
+  // getPayrollRuns (read hr_payroll) is gone the same way runPayroll below
+  // is — no route calls it any more (GET /payroll/runs is a 410 in
+  // nexushr.routes.ts), and the table it read is the same effectively
+  // abandoned one described there.
 
   /**
    * runPayroll is gone. It was a third payroll implementation — beside

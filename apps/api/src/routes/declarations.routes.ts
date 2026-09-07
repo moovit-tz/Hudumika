@@ -6,6 +6,7 @@ import { requireRole } from '../middleware/rbac.js';
 import { withTenant } from '../db/client.js';
 import { MinioIntegration } from '../integrations/minio.js';
 import { CloudSync } from '../services/cloud-sync.service.js';
+import { broadcastToTenant } from '../lib/ws-broadcast.js';
 import type {
   CreateDeclarationInput,
   CreateDeclarationItemInput,
@@ -446,14 +447,10 @@ export async function declarationRoutes(fastify: FastifyInstance) {
         );
 
         // Broadcast WebSocket event
-        fastify.websocketServer?.clients.forEach((client: any) => {
-          client.send(
-            JSON.stringify({
-              type: 'declaration.status_changed',
-              declarationId: id,
-              status,
-            })
-          );
+        broadcastToTenant(fastify, user.tenant_id, {
+          type: 'declaration.status_changed',
+          declarationId: id,
+          status,
         });
 
         return updated;
@@ -535,14 +532,10 @@ export async function declarationRoutes(fastify: FastifyInstance) {
         });
 
         // Broadcast WebSocket event
-        fastify.websocketServer?.clients.forEach((client: any) => {
-          client.send(
-            JSON.stringify({
-              type: 'declaration.notice_received',
-              declarationId: id,
-              noticeType: input.notice_type,
-            })
-          );
+        broadcastToTenant(fastify, user.tenant_id, {
+          type: 'declaration.notice_received',
+          declarationId: id,
+          noticeType: input.notice_type,
         });
 
         return reply.status(201).send(notice);

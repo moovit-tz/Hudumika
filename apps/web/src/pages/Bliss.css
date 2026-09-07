@@ -25,6 +25,22 @@
   padding: 0;
 }
 
+/* Every other Bliss route (WhatsApp, Telephony, Overview, KB, Settings,
+   Notifications, Calls, Meetings...) renders through <PageLayout/>, so its
+   actual DOM child of app-shell-content is .page-layout, not the page's own
+   root div. A plain block has no bounded height inside a flex column, so it
+   just grows to fit its content and app-shell-content's overflow:hidden
+   above then clips it outright instead of scrolling — this is what made
+   /bliss/whatsapp unscrollable once its card list grew taller than the
+   viewport. .page-layout itself needs the flex:1 + min-height:0 + its own
+   overflow-y, the same way .spt-shell gets it above for the routes that
+   bypass PageLayout entirely. */
+[data-bliss] .app-shell-content > .page-layout {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
 .spt-shell {
   flex: 1;
   min-height: 0;
@@ -500,6 +516,18 @@
 
 .spt-conv-row-body { flex: 1; min-width: 0; }
 
+.spt-conv-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 3px;
+}
+.spt-conv-row-ref {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--teal);
+}
 .spt-conv-row-top {
   display: flex;
   align-items: center;
@@ -579,11 +607,12 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   padding: 10px 16px;
   border-bottom: 1px solid var(--border);
   background: var(--white);
   flex-shrink: 0;
-  gap: 10px;
+  gap: 8px 10px;
 }
 .spt-thread-hdr-left {
   display: flex;
@@ -609,8 +638,14 @@
 .spt-thread-hdr-right {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 7px;
   flex-shrink: 0;
+  /* Once the column is squeezed, this row wraps onto its own line under
+     the customer identity rather than crushing every control down to
+     unreadable widths or overflowing the panel. */
+  margin-left: auto;
 }
 
 .spt-status-select {
@@ -1101,6 +1136,18 @@
 .spt-contact-name  { font-size: 13px; font-weight: 700; color: var(--ink); margin-bottom: 2px; }
 .spt-contact-meta  { font-size: 11.5px; color: var(--ink3); margin-bottom: 1px; }
 
+/* Customer / Ticket tab toggle above the right-hand panel */
+.spt-rcol-tabs {
+  display: flex; flex-shrink: 0; border-bottom: 1px solid var(--border);
+}
+.spt-rcol-tabs button {
+  flex: 1; padding: 10px 0; border: none; background: none; cursor: pointer;
+  font-size: 12.5px; font-weight: 700; color: var(--ink3);
+  border-bottom: 2px solid transparent;
+}
+.spt-rcol-tabs button.active { color: var(--teal); border-bottom-color: var(--teal); }
+.spt-rcol-tabs button:hover:not(.active) { color: var(--ink); }
+
 /* Assignee / detail rows */
 .spt-detail-rows { padding: 10px 14px; border-bottom: 1px solid var(--border); }
 .spt-detail-row {
@@ -1126,6 +1173,11 @@
   gap: 4px;
   font-size: 12px;
   color: var(--ink3);
+}
+.spt-assignee-select {
+  min-height: unset; height: auto; padding: 3px 8px; border-radius: 7px;
+  border: 1.5px solid var(--border); font-size: 12px; font-family: var(--font);
+  background: var(--white); width: auto; max-width: 160px;
 }
 
 /* Tags */
@@ -1185,6 +1237,17 @@
 .spt-tix-th:hover { color: var(--ink); }
 .spt-tix-th--active { color: var(--teal); }
 .spt-tix-th--active svg { vertical-align: -1px; margin-left: 3px; }
+.spt-tix-th--draggable { cursor: grab; display: table-cell; }
+.spt-tix-th--draggable:active { cursor: grabbing; }
+.spt-tix-th--dragover { box-shadow: inset 2px 0 0 var(--teal); background: var(--teal-l); }
+.spt-tix-th-grip { vertical-align: -1px; margin-right: 3px; opacity: 0.35; }
+.spt-tix-th--draggable:hover .spt-tix-th-grip { opacity: 0.7; }
+.spt-col-config-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border: 1px solid var(--border); border-radius: 7px;
+  background: var(--white); color: var(--ink3); cursor: pointer;
+}
+.spt-col-config-btn:hover { background: var(--bg); color: var(--ink); }
 .spt-tix-table td {
   padding: 10px 12px;
   border-bottom: 1px solid var(--border);
@@ -1445,3 +1508,399 @@
   z-index: 1;
   background: var(--white);
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   Bliss Dark Theme Overrides ([data-theme="dark"])
+   Follows Hudumika Design System Tokens
+══════════════════════════════════════════════════════════════════ */
+
+[data-theme="dark"] [data-bliss] .page-layout {
+  background: radial-gradient(ellipse at 50% 0%, rgba(232, 70, 26, 0.03) 0%, transparent 65%), var(--bg);
+}
+
+[data-theme="dark"] .spt-shell {
+  background: var(--bg);
+  color: var(--ink);
+}
+
+[data-theme="dark"] .spt-hdr-wrap {
+  background: var(--white);
+  border-bottom-color: var(--border);
+}
+
+[data-theme="dark"] .spt-hdr-btn {
+  background: var(--white);
+  border-color: var(--border);
+  color: var(--ink2);
+}
+
+[data-theme="dark"] .spt-hdr-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--ink);
+}
+
+[data-theme="dark"] .spt-conv-list,
+[data-theme="dark"] .spt-inbox-nav-pane,
+[data-theme="dark"] .spt-tix-list-pane,
+[data-theme="dark"] .spt-details,
+[data-theme="dark"] .spt-composer,
+[data-theme="dark"] .spt-details-drawer {
+  background: var(--white);
+  border-color: var(--border);
+}
+
+[data-theme="dark"] .spt-thread-hdr,
+[data-theme="dark"] .spt-conv-hdr,
+[data-theme="dark"] .spt-details-hdr,
+[data-theme="dark"] .spt-tix-list-hdr,
+[data-theme="dark"] .spt-ch-tabs {
+  background: #11131c;
+  border-bottom-color: var(--border);
+}
+
+[data-theme="dark"] .spt-tix-list-title,
+[data-theme="dark"] .spt-conv-title,
+[data-theme="dark"] .spt-thread-customer,
+[data-theme="dark"] .spt-details-title,
+[data-theme="dark"] .spt-modal-title {
+  color: var(--ink);
+}
+
+[data-theme="dark"] .spt-inbox-item {
+  color: var(--ink2);
+}
+
+[data-theme="dark"] .spt-inbox-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--ink);
+}
+
+[data-theme="dark"] .spt-inbox-item--active {
+  background: var(--teal-l);
+  color: var(--teal);
+}
+
+[data-theme="dark"] .spt-inbox-count {
+  background: var(--card-sunken);
+  color: var(--ink3);
+}
+
+[data-theme="dark"] .spt-view-toggle {
+  border-color: var(--border);
+}
+
+[data-theme="dark"] .spt-view-toggle button {
+  background: var(--white);
+  color: var(--ink3);
+}
+
+[data-theme="dark"] .spt-view-toggle button.active {
+  background: var(--teal-l);
+  color: var(--teal);
+}
+
+[data-theme="dark"] .spt-conv-row {
+  border-bottom-color: var(--border);
+}
+
+[data-theme="dark"] .spt-conv-row:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+[data-theme="dark"] .spt-conv-row--active {
+  background: var(--teal-l);
+  border-left-color: var(--teal);
+}
+
+[data-theme="dark"] .spt-conv-row-name {
+  color: var(--ink);
+}
+
+[data-theme="dark"] .spt-conv-row-subject {
+  color: var(--ink2);
+}
+
+[data-theme="dark"] .spt-conv-row-preview,
+[data-theme="dark"] .spt-conv-row-time {
+  color: var(--ink3);
+}
+
+[data-theme="dark"] .spt-thread {
+  background: var(--bg);
+  border-color: var(--border);
+}
+
+[data-theme="dark"] .spt-msgs {
+  background: radial-gradient(ellipse at 50% 0%, rgba(232, 70, 26, 0.035) 0%, transparent 65%), #080b10;
+}
+
+[data-theme="dark"] .spt-sys-pill {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: var(--ink3);
+}
+
+[data-theme="dark"] .spt-msg--customer .spt-bubble {
+  background: #141722;
+  color: #e2e8f0;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+[data-theme="dark"] .spt-msg--officer .spt-bubble {
+  background: linear-gradient(135deg, rgba(232, 70, 26, 0.18) 0%, #161c28 100%);
+  color: #f8fafc;
+  border: 1px solid rgba(232, 70, 26, 0.35);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] .spt-note-card {
+  background: rgba(180, 130, 0, 0.07);
+  border-color: rgba(200, 146, 10, 0.35);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+[data-theme="dark"] .spt-note-card-hdr {
+  background: rgba(180, 130, 0, 0.18);
+  border-bottom-color: rgba(200, 146, 10, 0.35);
+  color: var(--gold);
+}
+
+[data-theme="dark"] .spt-note-card-body {
+  color: var(--ink);
+}
+
+[data-theme="dark"] .spt-note-card-ft {
+  color: var(--gold);
+  border-top-color: rgba(200, 146, 10, 0.25);
+}
+
+[data-theme="dark"] .spt-note-badge {
+  background: var(--gold-l);
+  color: var(--gold);
+  border-color: rgba(200, 146, 10, 0.4);
+}
+
+[data-theme="dark"] .spt-compose-ta {
+  color: var(--ink);
+}
+
+[data-theme="dark"] .spt-compose-ta--note {
+  background: rgba(180, 130, 0, 0.12);
+  border-top-color: rgba(200, 146, 10, 0.35);
+  color: var(--ink);
+}
+
+[data-theme="dark"] .spt-subject-input {
+  background: var(--white);
+  color: var(--ink);
+  border-color: var(--border);
+}
+
+[data-theme="dark"] .spt-ch-pill {
+  background: var(--white);
+  border-color: var(--border);
+  color: var(--ink3);
+}
+
+[data-theme="dark"] .spt-ch-pill--active[data-ch="whatsapp"] {
+  border-color: var(--green);
+  background: var(--green-l);
+  color: var(--green);
+}
+
+[data-theme="dark"] .spt-ch-pill--active[data-ch="email"] {
+  border-color: var(--blue);
+  background: var(--blue-l);
+  color: var(--blue);
+}
+
+[data-theme="dark"] .spt-ch-pill--active[data-ch="note"] {
+  border-color: var(--gold);
+  background: var(--gold-l);
+  color: var(--gold);
+}
+
+[data-theme="dark"] .spt-ch-pill--active[data-ch="inapp"] {
+  border-color: var(--teal);
+  background: var(--teal-l);
+  color: var(--teal);
+}
+
+[data-theme="dark"] .spt-ch-pill--active[data-ch="sms"] {
+  border-color: var(--purple);
+  background: var(--purple-l);
+  color: var(--purple);
+}
+
+[data-theme="dark"] .spt-broadcast-btn {
+  background: var(--white);
+  border-color: var(--border);
+  color: var(--ink3);
+}
+
+[data-theme="dark"] .spt-broadcast-btn[data-ch="inapp"].spt-broadcast-btn--active {
+  background: var(--teal-l);
+  color: var(--teal);
+  border-color: var(--teal);
+}
+
+[data-theme="dark"] .spt-broadcast-btn[data-ch="email"].spt-broadcast-btn--active {
+  background: var(--blue-l);
+  color: var(--blue);
+  border-color: var(--blue);
+}
+
+[data-theme="dark"] .spt-broadcast-btn[data-ch="whatsapp"].spt-broadcast-btn--active {
+  background: var(--green-l);
+  color: var(--green);
+  border-color: var(--green);
+}
+
+[data-theme="dark"] .spt-broadcast-btn[data-ch="sms"].spt-broadcast-btn--active {
+  background: var(--purple-l);
+  color: var(--purple);
+  border-color: var(--purple);
+}
+
+[data-theme="dark"] .spt-note-toggle-btn {
+  background: var(--white);
+  border-color: var(--border);
+  color: var(--ink3);
+}
+
+[data-theme="dark"] .spt-note-toggle-btn--active {
+  background: var(--gold-l);
+  color: var(--gold);
+  border-color: var(--gold);
+}
+
+[data-theme="dark"] .spt-status-select {
+  background: var(--white);
+  color: var(--ink);
+  border-color: var(--border);
+}
+
+[data-theme="dark"] .spt-status-select option {
+  background-color: #111218;
+  color: #e2e8f0;
+}
+
+[data-theme="dark"] .spt-status-select--open {
+  background: var(--red-l);
+  color: var(--red);
+  border-color: var(--red);
+}
+
+[data-theme="dark"] .spt-status-select--in-progress {
+  background: var(--gold-l);
+  color: var(--gold);
+  border-color: var(--gold);
+}
+
+[data-theme="dark"] .spt-status-select--resolved {
+  background: var(--green-l);
+  color: var(--green);
+  border-color: var(--green);
+}
+
+[data-theme="dark"] .spt-status-select--closed {
+  background: var(--bg);
+  color: var(--ink3);
+  border-color: var(--border);
+}
+
+[data-theme="dark"] .spt-close-btn {
+  background: var(--white);
+  color: var(--ink2);
+  border-color: var(--border);
+}
+
+[data-theme="dark"] .spt-close-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--ink);
+}
+
+[data-theme="dark"] .spt-assignee-select {
+  background: var(--white);
+  color: var(--ink);
+  border-color: var(--border);
+}
+
+[data-theme="dark"] .spt-assignee-select option {
+  background-color: #111218;
+  color: #e2e8f0;
+}
+
+[data-theme="dark"] .spt-tix-table thead {
+  background: var(--white);
+}
+
+[data-theme="dark"] .spt-tix-table th {
+  color: var(--ink3);
+  border-bottom-color: var(--border);
+}
+
+[data-theme="dark"] .spt-tix-table td {
+  color: var(--ink2);
+  border-bottom-color: var(--border);
+}
+
+[data-theme="dark"] .spt-tix-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+[data-theme="dark"] .spt-tix-td-customer,
+[data-theme="dark"] .spt-tix-subject,
+[data-theme="dark"] .spt-contact-name,
+[data-theme="dark"] .spt-detail-row-val,
+[data-theme="dark"] .spt-attr-val,
+[data-theme="dark"] .spt-rule-label {
+  color: var(--ink);
+}
+
+[data-theme="dark"] .spt-icon-btn {
+  background: var(--white);
+  border-color: var(--border);
+  color: var(--ink3);
+}
+
+[data-theme="dark"] .spt-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--ink);
+}
+
+[data-theme="dark"] .spt-modal {
+  background: var(--white);
+  border-color: var(--border);
+  box-shadow: var(--elev-lg);
+}
+
+[data-theme="dark"] .spt-modal-input,
+[data-theme="dark"] .spt-modal-select,
+[data-theme="dark"] .spt-modal-textarea {
+  background: var(--white);
+  color: var(--ink);
+  border-color: var(--border);
+}
+
+[data-theme="dark"] .spt-modal-cancel {
+  background: var(--white);
+  color: var(--ink);
+  border-color: var(--border);
+}
+
+[data-theme="dark"] .spt-modal-cancel:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="dark"] .spt-details-drawer {
+  background: var(--white);
+  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="dark"] .spt-details-drawer-close {
+  background: var(--white);
+  color: var(--ink2);
+}
+

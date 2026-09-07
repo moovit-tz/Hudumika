@@ -365,24 +365,17 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
 
   // ─── PAYROLL ───────────────────────────────────────────────────────────────
 
-  // Same hr_payroll table GET /v1/hr/payroll (hr.routes.ts) already serves
-  // under a real role gate — this second, differently-shaped read had none
-  // at all, exposing every employee's exact basic_pay/allowances/deductions
-  // for every period to any authenticated tenant member. Matched to that
-  // sibling endpoint's role set (FINANCE included) rather than inventing a
-  // narrower one for the same data.
-  fastify.get('/payroll/runs', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN', 'FINANCE') }, async (request: any, reply) => {
-    try {
-      const tenantId = request.user.tenant_id;
-      return await NexusHRService.getPayrollRuns(tenantId);
-    } catch (err: any) {
-      return reply.status(500).send({ error: err.message });
-    }
-  });
-
-  // POST /payroll/run is gone. It read hr_employments, which has never held a
-  // row, so it could not produce a payslip in any tenant. The engine that
-  // computes PAYE, NSSF, NHIF, WCF and SDL against real bands is /v1/payroll.
+  // Both retired — same reason, same table. GET /payroll/runs read
+  // hr_payroll, the legacy, effectively abandoned payroll table (one stale
+  // row platform-wide, confirmed live): real payroll runs through
+  // payroll_runs/payroll_payslips, which posts to the general ledger on
+  // mark-paid (payroll.routes.ts) and is what PayrollPage/MyPayslipsPage
+  // actually call. POST /payroll/run separately never worked at all — it
+  // read hr_employments, which has never held a row in any tenant.
+  fastify.get('/payroll/runs', async (_request, reply) =>
+    reply.status(410).send({
+      error: 'This payroll path is retired — it read a table nothing posts to the general ledger from. Use GET /v1/payroll/runs.',
+    }));
   fastify.post('/payroll/run', async (_request, reply) =>
     reply.status(410).send({
       error: 'This payroll path never worked — it read a table with no rows. Use POST /v1/payroll/runs.',

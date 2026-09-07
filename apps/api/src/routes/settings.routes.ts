@@ -77,6 +77,12 @@ const SECRET_FIELDS_BY_KEY: Record<string, readonly string[]> = {
   'int-pusher': ['secret'],
   'int-gpswox': ['password'],
   'int-shipsgo': ['shipsgo_api_key', 'ship24_api_key'],
+  // WebRTC TURN relay credential (calls.routes.ts's resolveIceServers) — a
+  // shared secret for the tenant's own TURN server, if they've configured
+  // one to let 1:1 calls and meetings connect across strict/symmetric NATs.
+  // GET /v1/settings has no role gate beyond authentication, so without
+  // this every tenant member (not just admins) would see it in plaintext.
+  turnConfig: ['credential'],
 };
 /** OAuth tokens under settings.email — never sent to the browser at all
  *  (not even masked); only mail-oauth.routes.ts's callback ever writes

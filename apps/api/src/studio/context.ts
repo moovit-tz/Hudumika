@@ -119,6 +119,36 @@ const resolveLinkedTrips: ContextResolver = async (tenantId, event) => {
   return { trips: trips.filter(t => t.created_by).map(t => ({ id: t.id, dispatcherId: t.created_by })) };
 };
 
+/**
+ * Bliss. The four support.* triggers deliberately carry a thin payload
+ * (priority/category/a couple of deltas) the same way shipment.sla_breach
+ * does — the full ticket (ref, subject, customer, assignee) belongs here,
+ * not fattened onto every emit call, for the same reason resolveShipment
+ * exists instead of shipment.service.ts doing it inline.
+ */
+const resolveTicket: ContextResolver = async (tenantId, event) => {
+  if (!event.entityId) return {};
+  const row = await withTenant(tenantId, trx => trx
+    .selectFrom('support_tickets')
+    .select(['id', 'ref_number', 'subject', 'customer_id', 'assigned_to', 'status', 'priority', 'category'])
+    .where('id', '=', event.entityId!)
+    .where('tenant_id', '=', tenantId)
+    .executeTakeFirst());
+  if (!row) return {};
+  return {
+    ticket: {
+      id: row.id,
+      refNumber: row.ref_number,
+      subject: row.subject,
+      customerId: row.customer_id,
+      assignedTo: row.assigned_to,
+      status: row.status,
+      priority: row.priority,
+      category: row.category,
+    },
+  };
+};
+
 const resolveSuspendedLots: ContextResolver = async (tenantId, event) => {
   const shipmentId = (event.payload?.shipmentId as string | undefined) ?? null;
   if (!shipmentId) return {};
@@ -138,6 +168,10 @@ export const CONTEXT_RESOLVERS: Record<string, ContextResolver[]> = {
   'shipment.sla_breach': [resolveShipment],
   'shipment.demurrage_risk': [resolveShipment],
   'declaration.released': [resolveDeclaration, resolveSuspendedLots],
+  'support.ticket_created': [resolveTicket],
+  'support.ticket_reassigned': [resolveTicket],
+  'support.ticket_resolved': [resolveTicket],
+  'support.sla_escalated': [resolveTicket],
 };
 
 /**
@@ -150,6 +184,10 @@ export const CONTEXT_SHAPES: Record<string, string[]> = {
   'shipment.sla_breach':     ['shipment.refNumber', 'shipment.customerId', 'shipment.assignedTo', 'shipment.stage'],
   'shipment.demurrage_risk': ['shipment.refNumber', 'shipment.customerId', 'shipment.assignedTo', 'shipment.freeTimeEnd'],
   'declaration.released':    ['declaration.shipmentId', 'declaration.tancisRef', 'declaration.dutyAmountTzs', 'declaration.billNumber'],
+  'support.ticket_created':    ['ticket.refNumber', 'ticket.subject', 'ticket.customerId', 'ticket.assignedTo', 'ticket.status'],
+  'support.ticket_reassigned': ['ticket.refNumber', 'ticket.subject', 'ticket.customerId', 'ticket.assignedTo', 'ticket.status'],
+  'support.ticket_resolved':   ['ticket.refNumber', 'ticket.subject', 'ticket.customerId', 'ticket.assignedTo', 'ticket.status'],
+  'support.sla_escalated':     ['ticket.refNumber', 'ticket.subject', 'ticket.customerId', 'ticket.assignedTo', 'ticket.status'],
 };
 
 export async function resolveContext(triggerId: string, tenantId: string, event: Pick<DomainEvent, 'entityId' | 'payload'>): Promise<Record<string, unknown>> {

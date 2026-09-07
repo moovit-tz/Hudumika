@@ -7,6 +7,7 @@ import { useMediaDevices } from '../../hooks/useMediaDevices.js';
 import { Popover, PopoverTrigger, PopoverContent } from '../../components/ui/popover.js';
 import { Tip } from '../../components/ui/tooltip.js';
 import { PersonAvatar } from '../../components/PersonAvatar.js';
+import { useMediaQuery } from '../../hooks/useMediaQuery.js';
 
 interface ParticipantState {
   name: string;
@@ -45,6 +46,10 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
 }) {
   const devices = useMediaDevices();
   const isHost = role === 'HOST';
+  // The chat/participants/tools drawer was a fixed 340px column with no
+  // narrow-viewport handling at all — on a phone that's most of the screen,
+  // leaving almost nothing for the video grid it sits beside.
+  const isMobile = useMediaQuery('(max-width: 900px)');
 
   // Core Meeting States
   const [muted, setMuted] = useState(!initialAudioEnabled);
@@ -940,7 +945,9 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
 
         {/* ─── GOOGLE MEET SIDEBAR DRAWER (TOOLS & ADD-ONS / CHAT / DETAILS) ── */}
         {panel !== 'none' && (
-          <div style={{ width: 340, background: '#1e2022', borderLeft: '1px solid #3c4043', borderRadius: 16, display: 'flex', flexDirection: 'column', marginLeft: 16, overflow: 'hidden', zIndex: 20 }}>
+          <div style={isMobile
+            ? { position: 'fixed', inset: 0, background: '#1e2022', display: 'flex', flexDirection: 'column', overflow: 'hidden', zIndex: 200 }
+            : { width: 340, background: '#1e2022', borderLeft: '1px solid #3c4043', borderRadius: 16, display: 'flex', flexDirection: 'column', marginLeft: 16, overflow: 'hidden', zIndex: 20 }}>
             {/* Sidebar Header (only if subPanel is 'none') */}
             {subPanel === 'none' && (
               <div style={{ padding: '14px 18px', borderBottom: '1px solid #3c4043', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -1513,15 +1520,28 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
       </div>
 
       {/* ─── GOOGLE MEET BOTTOM CONTROLS DOCK ───────────────────────────────── */}
-      <div style={{ height: 80, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px', background: '#202124', borderTop: '1px solid #3c4043', zIndex: 10 }}>
-        
+      {/* overflowX so a narrow phone can still reach every control by
+          swiping — this dock was never designed for anything under ~900px
+          (two fixed 240px side columns plus a 9-button center cluster,
+          easily 800px+ of controls with no wrap or collapse of any kind);
+          scrolling guarantees mute/leave are always reachable even before
+          a real mobile-specific redesign of this bar happens. */}
+      <div style={{ height: 80, display: 'flex', alignItems: 'center', justifyContent: isMobile ? 'flex-start' : 'space-between', padding: '0 24px', background: '#202124', borderTop: '1px solid #3c4043', zIndex: 10, overflowX: isMobile ? 'auto' : 'visible', gap: isMobile ? 16 : 0 }}>
+
         {/* Left Control Column: Ask Assistant — a real call to the platform's
             own /v1/ai/chat (whatever provider the tenant configured), not a
-            hardcoded reply pretending to be a specific vendor's model. */}
-        <div style={{ width: 240, display: 'flex', alignItems: 'center', gap: 8 }}>
+            hardcoded reply pretending to be a specific vendor's model.
+            Collapses to an icon-only trigger on mobile — the full search
+            bar alone was 240px, more than half of a phone's width. */}
+        <div style={{ width: isMobile ? 40 : 240, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{ position: 'relative', width: '100%' }}>
             <Popover open={showAskAssistant} onOpenChange={setShowAskAssistant}>
               <PopoverTrigger asChild>
+                {isMobile ? (
+                  <button type="button" style={{ width: 40, height: 40, borderRadius: '50%', background: '#3c4043', border: 'none', color: 'var(--teal)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Icon name="sparkle" size={18} />
+                  </button>
+                ) : (
                 <div style={{ display: 'flex', alignItems: 'center', background: '#3c4043', borderRadius: 24, height: 40, padding: '0 12px 0 36px', width: '100%', cursor: 'pointer' }}>
                   <Icon name="sparkle" size={16} color="var(--teal)" style={{ position: 'absolute', left: 12 }} />
                   <input
@@ -1535,6 +1555,7 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
                     <Icon name="arrowUp" size={14} />
                   </button>
                 </div>
+                )}
               </PopoverTrigger>
               <PopoverContent align="start" side="top" className="w-80 bg-slate-800 border-slate-700 text-slate-100 p-3 rounded-xl shadow-2xl">
                 <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 border-b border-slate-700 pb-1">
@@ -1552,13 +1573,27 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
                   )}
                   {aiBusy && <div className="text-xs text-slate-400">Thinking…</div>}
                 </div>
+                {isMobile && (
+                  <div className="flex items-center gap-2 border-t border-slate-700 pt-2">
+                    <input
+                      value={aiInput}
+                      onChange={e => setAiInput(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && askAssistant()}
+                      placeholder="Ask Assistant…"
+                      style={{ flex: 1, background: '#3c4043', border: 'none', borderRadius: 16, padding: '8px 12px', outline: 'none', color: '#fff', fontSize: 13 }}
+                    />
+                    <button onClick={askAssistant} disabled={aiBusy} style={{ background: 'none', border: 'none', color: 'var(--teal)', padding: 2, display: 'flex', cursor: 'pointer' }}>
+                      <Icon name="arrowUp" size={16} />
+                    </button>
+                  </div>
+                )}
               </PopoverContent>
             </Popover>
           </div>
         </div>
 
         {/* Center Control Column: Meeting Control Capsule */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
           {/* Microphone Mute */}
           <Tip label={muted ? 'Unmute microphone' : 'Mute microphone'}>
             <button
@@ -1676,7 +1711,7 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
         </div>
 
         {/* Right Control Column: transcripts, chat, tools widgets */}
-        <div style={{ width: 240, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
+        <div style={{ width: isMobile ? 'auto' : 240, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
           {/* Recording indicator/control — jumps straight to the real
               Record tool rather than duplicating its own start/stop logic
               (a second control toggling the same state independently was

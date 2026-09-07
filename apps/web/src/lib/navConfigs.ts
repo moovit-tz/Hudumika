@@ -133,20 +133,25 @@ const onepiNav: NavCategory[] = [
 ];
 
 // ── Bliss ─────────────────────────────────────────────────────
+// Not read anywhere — BlissShell.tsx builds and passes its own NAV array to
+// AppSidebar directly, and NAV_CONFIGS below has no importer anywhere in the
+// app. Kept accurate rather than deleted (the whole NAV_CONFIGS map is
+// unused platform-wide, which is a broader dead-code question than one app's
+// audit should resolve) — it used to point at /support/tickets, a route that
+// hasn't matched anything since Bliss moved under /bliss/*.
 
 const blissNav: NavCategory[] = [
   {
-    id: 'tickets',
-    label: 'Tickets',
+    id: 'inbox',
+    label: 'Inbox',
     subtitle: 'Support Requests',
-    root: '/support/tickets',
+    root: '/bliss/inbox',
     icon: 'inbox',
     roles: ALL_STAFF,
-    match: ['/support/tickets', '/support'],
+    match: ['/bliss/inbox', '/bliss'],
     items: [
-      { label: 'All Tickets',   to: '/support/tickets',  icon: 'inbox',         roles: ALL_STAFF },
-      { label: 'Overview',      to: '/support/overview', icon: 'activity',      roles: ALL_STAFF },
-      { label: 'Escalations',   to: '/escalations',      icon: 'alertTriangle', roles: [...MGMT_ROLES, 'SENIOR'] },
+      { label: 'Inbox',         to: '/bliss/inbox',    icon: 'inbox',         roles: ALL_STAFF },
+      { label: 'Overview',      to: '/bliss/overview', icon: 'activity',      roles: ALL_STAFF },
     ],
   },
 ];

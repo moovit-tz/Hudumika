@@ -167,7 +167,12 @@
   border-radius: var(--r);
   flex-wrap: wrap;
   gap: 10px;
+  color: inherit;
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s;
 }
+.ssg-integration-row:hover { border-color: var(--teal); background: var(--teal-l); }
+.ssg-integration-row:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
 
 .ssg-integration-left { display: flex; align-items: center; gap: 16px; }
 .ssg-integration-icon { width: 44px; height: 44px; border-radius: var(--r); display: flex; align-items: center; justify-content: center; }

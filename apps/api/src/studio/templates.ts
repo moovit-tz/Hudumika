@@ -289,6 +289,26 @@ export const TEMPLATES: TemplateDef[] = [
   },
 
   {
+    id: 'sla-escalated-notify-assignee',
+    name: 'SLA escalation notifies the assigned agent',
+    description: 'A ticket crossed its SLA escalation point — notify whoever it\'s assigned to. Fires for every tenant: at a configured threshold if one exists (SupportSettings-era rules still run), otherwise at the deadline itself.',
+    app: 'bliss', icon: 'alert-triangle', color: '#7c3aed',
+    triggerEvent: 'support.sla_escalated',
+    needs: [],
+    nodes: [
+      { id: 'n1', type: 'trigger', title: 'Ticket SLA escalated', eventOrAction: 'support.sla_escalated', position: { x: 80, y: 40 }, config: {} },
+      { id: 'n2', type: 'condition', title: 'Ticket has an assignee', position: { x: 80, y: 190 }, config: { field: 'ticket.assignedTo', operator: 'is_not_empty' } },
+      { id: 'n3', type: 'action', title: 'Notify the assignee', eventOrAction: 'notification.send_in_app', position: { x: 80, y: 340 }, config: { input: {
+        userId: '{{ticket.assignedTo}}', app: 'bliss', type: 'warning',
+        title: 'SLA at risk: {{ticket.refNumber}}',
+        message: '"{{ticket.subject}}" is at {{payload.elapsedPercent}}% of its SLA window.',
+        link: '/bliss/inbox?id={{entityId}}', entityType: 'support_ticket', entityId: '{{entityId}}', entityLabel: '{{ticket.subject}}',
+      } } },
+    ],
+    edges: [edge('n1', 'n2'), edge('n2', 'n3')],
+  },
+
+  {
     id: 'daily-digest',
     name: 'Daily reminder to a named person',
     description: 'A scheduled nudge. Pick who receives it before switching this on.',

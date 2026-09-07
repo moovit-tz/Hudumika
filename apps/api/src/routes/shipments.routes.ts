@@ -18,6 +18,7 @@ import { renderShipmentReportPdf, getOrCreateShareToken } from '../services/ship
 import type { CreateShipmentInput, AdvanceStageInput } from '@hudumika/types';
 import { buildMockResult, trackViaShipsGo, trackViaShip24 } from './tracker.routes.js';
 import { sql } from 'kysely';
+import { broadcastToTenant } from '../lib/ws-broadcast.js';
 
 // Real values — packages/types/src/core.ts.
 const SHIPMENT_TYPES = ['SEA_FCL', 'SEA_LCL', 'AIR', 'ROAD', 'RAIL', 'BULK'] as const;
@@ -729,14 +730,10 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
       );
       
       // Notify clients of change
-      fastify.websocketServer?.clients.forEach((client: any) => {
-        client.send(
-          JSON.stringify({
-            type: 'case.status_changed',
-            caseId: id,
-            stage: stage,
-          })
-        );
+      broadcastToTenant(fastify, user.tenant_id, {
+        type: 'case.status_changed',
+        caseId: id,
+        stage: stage,
       });
 
       return result;
@@ -819,9 +816,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       const verification = evaluateEntryConditions(shipRow as any, docs as any, landing.entryConditions);
 
-      fastify.websocketServer?.clients.forEach((client: any) => {
-        client.send(JSON.stringify({ type: 'case.status_changed', caseId: id, stage: landing.id }));
-      });
+      broadcastToTenant(fastify, user.tenant_id, { type: 'case.status_changed', caseId: id, stage: landing.id });
 
       return {
         success: true, workflowId: target.workflowId, kind: target.kind,
@@ -1713,14 +1708,10 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
       }
 
       // Broadcast websocket message
-      fastify.websocketServer?.clients.forEach((client: any) => {
-        client.send(
-          JSON.stringify({
-            type: 'case.update_posted',
-            caseId: id,
-            message: content,
-          })
-        );
+      broadcastToTenant(fastify, user.tenant_id, {
+        type: 'case.update_posted',
+        caseId: id,
+        message: content,
       });
 
       NotificationService.notifyListeners(user.tenant_id, id, 'MESSAGE_RECEIVED', {

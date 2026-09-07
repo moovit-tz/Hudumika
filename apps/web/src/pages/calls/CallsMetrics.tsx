@@ -1,134 +1,194 @@
-// ─── CallsMetrics.tsx — real usage metrics for calls + meetings ───────────
-// Personal figures are visible to everyone; the tenant-wide trend/leaderboard
-// section only comes back from the API for management roles (calls.routes.ts
-// gates it server-side) — a "who calls the most" ranking visible to every
-// employee reads as surveillance in an HR context, so it isn't rendered at
-// all for anyone the API didn't include it for.
 import React, { useEffect, useState } from 'react';
 import { Bar } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Tooltip, Legend } from 'chart.js';
 import { apiFetch } from '../../lib/api.js';
 import { Icon } from '../../components/Icon.js';
 import { SectionCard } from '../../components/SectionCard.js';
+import { PersonAvatar } from '../../components/PersonAvatar.js';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
 interface Metrics {
   days: number;
-  personal: { calls: number; callsMissed: number; callSeconds: number; meetingsJoined: number; meetingSeconds: number };
+  personal: {
+    calls: number;
+    callsMissed: number;
+    callSeconds: number;
+    meetingsJoined: number;
+    meetingSeconds: number;
+  };
+  // Only present for management roles (SUPER_ADMIN/ADMIN/TENANT_ADMIN/
+  // MANAGER/HR) — GET /v1/calls/metrics omits it entirely for everyone
+  // else, so its absence here is a real permissions signal, not empty data.
   tenant?: {
-    calls: number; callsMissed: number; avgCallSeconds: number; meetings: number;
+    calls: number;
+    callsMissed: number;
+    avgCallSeconds: number;
+    meetings: number;
     dailyTrend: { day: string; calls: number; meetings: number }[];
     topParticipants: { userId: string; name: string; meetings: number; totalSeconds: number }[];
   };
 }
 
-const fmtHrs = (s: number) => { const h = Math.floor(s / 3600); const m = Math.round((s % 3600) / 60); return h > 0 ? `${h}h ${m}m` : `${m}m`; };
+const fmtHrs = (s: number) => {
+  const h = Math.floor(s / 3600);
+  const m = Math.round((s % 3600) / 60);
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+};
 
-// Chart.js paints onto a <canvas> via ctx.fillStyle, which never goes through
-// the DOM's CSS cascade — an unresolved `var(--x)` (or `hsl(var(--x))`) is an
-// invalid Canvas2D color string, so the browser silently drops it and keeps
-// the previous fillStyle (black), rendering both bar series as one solid
-// black block. Resolve the real, theme-aware value ourselves instead.
 function cssVar(name: string, fallback: string) {
   if (typeof window === 'undefined') return fallback;
   const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
   return v || fallback;
 }
 
-function StatCard({ label, value, icon }: { label: string; value: string; icon: string }) {
+function StatCard({ label, value, icon, color = 'var(--teal)', sub }: { label: string; value: string; icon: string; color?: string; sub?: string }) {
   return (
-    <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
-      <div style={{ width: 36, height: 36, borderRadius: 'var(--r)', background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-        <Icon name={icon as any} size={16} color="var(--teal)" />
+    <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 18, display: 'flex', alignItems: 'center', gap: 14, boxShadow: 'var(--elev)' }}>
+      <div style={{ width: 44, height: 44, borderRadius: 'var(--r)', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <Icon name={icon as any} size={20} color={color} />
       </div>
       <div>
-        <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)' }}>{value}</div>
-        <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>{label}</div>
+        <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink)' }}>{value}</div>
+        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink3)' }}>{label}</div>
+        {sub && <div style={{ fontSize: 11, color, fontWeight: 700, marginTop: 2 }}>{sub}</div>}
       </div>
     </div>
   );
 }
 
+/** Real /v1/calls/metrics data only — no fabricated call logs, no CSAT/MOS
+ *  scores (nothing in this codebase measures either), no random-number
+ *  fallback when a fresh tenant genuinely has zero calls yet. A tenant with
+ *  no activity in the period sees real zeros, not an invented "48 calls,
+ *  96.4% answered, 4.8/5.0 CSAT". */
 export function CallsMetrics() {
   const [days, setDays] = useState(30);
   const [data, setData] = useState<Metrics | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setLoading(true);
-    apiFetch(`/v1/calls/metrics?days=${days}`).then(setData).catch(() => setData(null)).finally(() => setLoading(false));
+    setError(null);
+    apiFetch(`/v1/calls/metrics?days=${days}`)
+      .then(setData)
+      .catch((e: any) => { setData(null); setError(e?.message || 'Could not load call metrics.'); })
+      .finally(() => setLoading(false));
   }, [days]);
 
-  if (loading && !data) return <div style={{ fontSize: 12.5, color: 'var(--ink3)', padding: 20 }}>Loading metrics…</div>;
-  if (!data) return <div style={{ fontSize: 12.5, color: 'var(--ink3)', padding: 20 }}>Could not load metrics.</div>;
+  const purpleColor = cssVar('--purple', '#8b5cf6');
+  const greenColor = cssVar('--green', '#10b981');
 
-  const missedRate = data.personal.calls > 0 ? Math.round((data.personal.callsMissed / data.personal.calls) * 100) : 0;
-  const primaryColor = `hsl(${cssVar('--primary', '217 91% 60%')})`;
-  const purpleColor = cssVar('--purple', '#6e40c9');
+  const tenant = data?.tenant;
+  const personal = data?.personal;
+  const answeredPct = tenant && tenant.calls > 0 ? Math.round(((tenant.calls - tenant.callsMissed) / tenant.calls) * 100) : null;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)' }}>Your activity</div>
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: 4 }}>
-          {[7, 30, 90].map(d => (
-            <button key={d} type="button" onClick={() => setDays(d)}
-              style={{ fontSize: 11.5, fontWeight: 600, padding: '4px 10px', borderRadius: 7, border: '1px solid var(--border)', cursor: 'pointer', background: days === d ? 'hsl(var(--primary))' : 'var(--white)', color: days === d ? 'hsl(var(--primary-foreground))' : 'var(--ink2)' }}>
-              {d}d
-            </button>
-          ))}
+      {/* Period Switcher */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
+        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)' }}>Period:</span>
+        {[7, 30, 90].map(d => (
+          <button
+            key={d}
+            type="button"
+            onClick={() => setDays(d)}
+            style={{
+              fontSize: 12, fontWeight: 700, padding: '5px 12px', borderRadius: 'var(--r)',
+              border: '1px solid var(--border)', cursor: 'pointer',
+              background: days === d ? 'hsl(var(--primary))' : 'var(--white)',
+              color: days === d ? 'hsl(var(--primary-foreground))' : 'var(--ink2)',
+              boxShadow: days === d ? 'var(--elev)' : 'none',
+            }}
+          >
+            {d} Days
+          </button>
+        ))}
+      </div>
+
+      {error && (
+        <div style={{ padding: '10px 16px', background: 'var(--red-l)', color: 'var(--red)', fontSize: 13, fontWeight: 600, borderRadius: 'var(--r)' }}>
+          {error}
         </div>
-      </div>
+      )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 }}>
-        <StatCard label="Direct calls" value={String(data.personal.calls)} icon="phone" />
-        <StatCard label="Missed / declined" value={`${data.personal.callsMissed} (${missedRate}%)`} icon="alertCircle" />
-        <StatCard label="Call time" value={fmtHrs(data.personal.callSeconds)} icon="clock" />
-        <StatCard label="Meetings joined" value={String(data.personal.meetingsJoined)} icon="users" />
-        <StatCard label="Meeting time" value={fmtHrs(data.personal.meetingSeconds)} icon="camera" />
-      </div>
-
-      {data.tenant && (
+      {loading ? (
+        <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading metrics…</div>
+      ) : !tenant ? (
         <>
-          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)', marginTop: 8 }}>Team-wide (last {data.days} days)</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 }}>
-            <StatCard label="Total calls" value={String(data.tenant.calls)} icon="phone" />
-            <StatCard label="Total meetings" value={String(data.tenant.meetings)} icon="camera" />
-            <StatCard label="Avg call length" value={fmtHrs(data.tenant.avgCallSeconds)} icon="clock" />
-            <StatCard label="Missed / declined" value={String(data.tenant.callsMissed)} icon="alertCircle" />
+          {/* Non-management roles only get their own numbers back from the
+              API — shown honestly as "your activity", not padded out with
+              tenant-wide figures the endpoint never actually returned. */}
+          <SectionCard title="Your Call & Meeting Activity">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
+              <StatCard label="Your Calls" value={String(personal?.calls ?? 0)} icon="phone" color="var(--green)" />
+              <StatCard label="Missed" value={String(personal?.callsMissed ?? 0)} icon="alertCircle" color="var(--red)" />
+              <StatCard label="Call Time" value={fmtHrs(personal?.callSeconds ?? 0)} icon="clock" color="var(--blue)" />
+              <StatCard label="Meetings Joined" value={String(personal?.meetingsJoined ?? 0)} icon="camera" color={purpleColor} />
+              <StatCard label="Meeting Time" value={fmtHrs(personal?.meetingSeconds ?? 0)} icon="video" color={purpleColor} />
+            </div>
+            <div style={{ marginTop: 14, fontSize: 12, color: 'var(--ink3)' }}>
+              Tenant-wide trends and leaderboards are visible to managers and admins.
+            </div>
+          </SectionCard>
+        </>
+      ) : (
+        <>
+          {/* Top Executive KPI Metrics — all real, from GET /v1/calls/metrics */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
+            <StatCard label="Support Voice Calls" value={String(tenant.calls)} icon="phone" color="var(--green)" sub={answeredPct != null ? `${answeredPct}% Answered` : undefined} />
+            <StatCard label="Video Meetings" value={String(tenant.meetings)} icon="camera" color={purpleColor} />
+            <StatCard label="Avg Call Duration" value={tenant.calls > 0 ? fmtHrs(tenant.avgCallSeconds) : '—'} icon="clock" color="var(--blue)" />
+            <StatCard label="Missed / Declined" value={String(tenant.callsMissed)} icon="alertCircle" color="var(--red)" sub={tenant.calls > 0 ? `${Math.round((tenant.callsMissed / tenant.calls) * 100)}% of calls` : undefined} />
           </div>
 
-          {data.tenant.dailyTrend.length > 0 && (
-            <SectionCard>
-              <div style={{ height: 180 }}>
-              <Bar
-                data={{
-                  labels: data.tenant.dailyTrend.map(d => d.day.slice(5)),
-                  datasets: [
-                    { label: 'Calls', data: data.tenant.dailyTrend.map(d => d.calls), backgroundColor: primaryColor },
-                    { label: 'Meetings', data: data.tenant.dailyTrend.map(d => d.meetings), backgroundColor: purpleColor },
-                  ],
-                }}
-                options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }}
-              />
+          {/* Daily Volume Trend Chart */}
+          <SectionCard title={`Daily Volume Trends — Voice Calls vs Video Meetings (${days} Days)`}>
+            {tenant.dailyTrend.length === 0 ? (
+              <div style={{ padding: 24, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No calls or meetings recorded in this period yet.</div>
+            ) : (
+              <div style={{ height: 220, marginTop: 10 }}>
+                <Bar
+                  data={{
+                    labels: tenant.dailyTrend.map(d => d.day.slice(5)),
+                    datasets: [
+                      { label: 'Support Voice Calls', data: tenant.dailyTrend.map(d => d.calls), backgroundColor: greenColor, borderRadius: 4 },
+                      { label: 'Video Meetings & Rooms', data: tenant.dailyTrend.map(d => d.meetings), backgroundColor: purpleColor, borderRadius: 4 },
+                    ],
+                  }}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { size: 12, weight: 'bold' } } } },
+                    scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+                  }}
+                />
               </div>
-            </SectionCard>
-          )}
+            )}
+          </SectionCard>
 
-          {data.tenant.topParticipants.length > 0 && (
-            <SectionCard title="Most meeting time">
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {data.tenant.topParticipants.map(p => (
-                  <div key={p.userId} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12.5 }}>
-                    <span style={{ flex: 1, color: 'var(--ink)' }}>{p.name}</span>
-                    <span style={{ color: 'var(--ink3)' }}>{p.meetings} meeting{p.meetings === 1 ? '' : 's'}</span>
-                    <span style={{ color: 'var(--ink3)', minWidth: 56, textAlign: 'right' }}>{fmtHrs(p.totalSeconds)}</span>
+          {/* Top Meeting Participants Leaderboard */}
+          <SectionCard title="Most Meeting & Video Time">
+            {tenant.topParticipants.length === 0 ? (
+              <div style={{ padding: 24, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No meeting participation recorded in this period yet.</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {tenant.topParticipants.map(p => (
+                  <div key={p.userId} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <PersonAvatar userId={p.userId} name={p.name} size={34} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{p.name}</div>
+                      <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>{p.meetings} video meeting{p.meetings === 1 ? '' : 's'}</div>
+                    </div>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: purpleColor, fontFamily: 'var(--mono)' }}>
+                      {fmtHrs(p.totalSeconds)}
+                    </div>
                   </div>
                 ))}
               </div>
-            </SectionCard>
-          )}
+            )}
+          </SectionCard>
         </>
       )}
     </div>

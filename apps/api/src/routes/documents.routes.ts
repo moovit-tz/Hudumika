@@ -6,6 +6,7 @@ import { MinioIntegration } from '../integrations/minio.js';
 import { NotificationService } from '../services/notification.service.js';
 import { CloudSync } from '../services/cloud-sync.service.js';
 import { requireRole } from '../middleware/rbac.js';
+import { broadcastToTenant } from '../lib/ws-broadcast.js';
 import type { DocumentType } from '@hudumika/types';
 
 const verifySchema = z.object({
@@ -107,9 +108,7 @@ export async function documentRoutes(fastify: FastifyInstance) {
           }).execute();
         }
 
-        fastify.websocketServer?.clients.forEach((client: any) => {
-          client.send(JSON.stringify({ type: 'case.document_uploaded', caseId: id, documentId: docType }));
-        });
+        broadcastToTenant(fastify, user.tenant_id, { type: 'case.document_uploaded', caseId: id, documentId: docType });
 
         // Mirror the document into the Cloud file manager under
         // Customers ▸ <customer> ▸ <BL>, so it turns up in Drive automatically.

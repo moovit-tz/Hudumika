@@ -1630,99 +1630,23 @@ export async function hrRoutes(fastify: FastifyInstance) {
   // reachable on the API surface, and until now readable by anyone
   // authenticated in the tenant: every employee's basic_pay/allowances/
   // deductions in one call, with no role check at all.
-  fastify.get('/payroll', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN', 'FINANCE') }, async (req) => {
-    const user = req.user;
-    const q = req.query as any;
-    return withTenant(user.tenant_id, async (trx) => {
-      let query = trx.selectFrom('hr_payroll as p')
-        .innerJoin('users as u', 'u.id', 'p.user_id')
-        .select([
-          'p.id', 'p.user_id', 'p.period_month', 'p.period_year',
-          'p.basic_pay', 'p.allowances', 'p.deductions', 'p.status',
-          'p.paid_at', 'p.notes', 'p.created_at',
-          'u.name as employee_name',
-        ])
-        .where('p.tenant_id', '=', user.tenant_id);
-      if (q.month) query = query.where('p.period_month', '=', Number(q.month));
-      if (q.year)  query = query.where('p.period_year',  '=', Number(q.year));
-      return query.orderBy('u.name').execute();
+  // hr_payroll is the legacy, effectively abandoned payroll table (one
+  // stale row platform-wide, confirmed live) — real payroll has run through
+  // payroll_runs/payroll_payslips for a while (the real statutory engine:
+  // PAYE/NSSF/NHIF/WCF/SDL against real bands, with GL posting on mark-paid
+  // — see payroll.routes.ts's POST /runs/:id/mark-paid). Nothing in the
+  // frontend has called these three routes since PayrollPage/MyPayslipsPage
+  // were rewired onto /v1/payroll/* (see HRM.tsx's own comment on that).
+  // Kept as 410s, not silently removed, so a stale client or script is told
+  // where the real thing is rather than getting a bare 404 — same shape as
+  // nexushr.routes.ts's own POST /payroll/run before it.
+  const PAYROLL_GONE = async (_req: any, reply: any) =>
+    reply.status(410).send({
+      error: 'This payroll path is retired — it read/wrote a table nothing posts to the general ledger from. Use /v1/payroll/runs.',
     });
-  });
-
-  fastify.post('/payroll', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
-    const user = req.user;
-    // user_id previously wasn't checked against this tenant at all — a
-    // payroll row could be created against any user_id, including one in a
-    // different tenant (hr_payroll.user_id has no CHECK tying it to
-    // tenant_id, only a bare FK to users(id)).
-    const body = z.object({
-      user_id: z.string().uuid(),
-      period_month: z.number().int().min(1).max(12),
-      period_year: z.number().int().min(2000).max(2200),
-      basic_pay: z.number().min(0),
-      allowances: z.number().min(0).optional(),
-      deductions: z.number().min(0).optional(),
-      status: z.enum(['PENDING', 'PROCESSING', 'PAID']).optional(),
-    }).parse(req.body);
-    return withTenant(user.tenant_id, async (trx) => {
-      const target = await trx.selectFrom('users').select('id')
-        .where('id', '=', body.user_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
-      if (!target) return reply.status(404).send({ error: 'Employee not found' });
-
-      const existing = await trx.selectFrom('hr_payroll').select('id')
-        .where('tenant_id', '=', user.tenant_id)
-        .where('user_id', '=', body.user_id)
-        .where('period_month', '=', body.period_month)
-        .where('period_year',  '=', body.period_year)
-        .executeTakeFirst();
-      if (existing) {
-        return trx.updateTable('hr_payroll').set({
-          basic_pay: body.basic_pay,
-          allowances: body.allowances ?? 0,
-          deductions: body.deductions ?? 0,
-          status: body.status ?? 'PENDING',
-          updated_at: new Date(),
-        }).where('id', '=', existing.id).returningAll().executeTakeFirstOrThrow();
-      }
-      return trx.insertInto('hr_payroll').values({
-        tenant_id: user.tenant_id,
-        user_id: body.user_id,
-        period_month: body.period_month,
-        period_year:  body.period_year,
-        basic_pay:    body.basic_pay,
-        allowances:   body.allowances ?? 0,
-        deductions:   body.deductions ?? 0,
-        status: body.status ?? 'PENDING',
-        created_by: user.sub,
-      }).returningAll().executeTakeFirstOrThrow();
-    });
-  });
-
-  fastify.patch('/payroll/:id', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
-    const user = req.user;
-    const { id } = req.params as any;
-    const body = z.object({
-      status: z.enum(['PENDING', 'PROCESSING', 'PAID']).optional(),
-      basic_pay: z.number().min(0).optional(),
-      allowances: z.number().min(0).optional(),
-      deductions: z.number().min(0).optional(),
-    }).parse(req.body);
-    return withTenant(user.tenant_id, async (trx) => {
-      const upd: Record<string, any> = { updated_at: new Date() };
-      if (body.status !== undefined) {
-        upd.status = body.status;
-        if (body.status === 'PAID') upd.paid_at = new Date();
-      }
-      if (body.basic_pay  !== undefined) upd.basic_pay  = body.basic_pay;
-      if (body.allowances !== undefined) upd.allowances = body.allowances;
-      if (body.deductions !== undefined) upd.deductions = body.deductions;
-      const updated = await trx.updateTable('hr_payroll').set(upd)
-        .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
-        .returningAll().executeTakeFirstOrThrow();
-      if (body.status !== undefined) await logActivity(trx, user.tenant_id, user.sub, `Marked payroll ${body.status.toLowerCase()} for ${updated.period_month}/${updated.period_year}`);
-      return updated;
-    });
-  });
+  fastify.get('/payroll', PAYROLL_GONE);
+  fastify.post('/payroll', PAYROLL_GONE);
+  fastify.patch('/payroll/:id', PAYROLL_GONE);
 
   // ── Recruitment: job openings & candidate pipeline ────────────
 

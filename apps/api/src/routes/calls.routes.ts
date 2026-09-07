@@ -162,9 +162,10 @@ async function resolveIceServers(tenantId: string): Promise<any[]> {
   ];
   const settings = await withTenant(tenantId, async (trx) => {
     const row = await trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', tenantId).executeTakeFirst();
-    return (row?.settings as any) ?? {};
+    const parsed = row?.settings as any;
+    return (typeof parsed === 'string' ? JSON.parse(parsed) : parsed) ?? {};
   });
-  const turn = settings?.calls?.turn;
+  const turn = settings?.turnConfig;
   if (turn?.urls) {
     iceServers.push({ urls: turn.urls, username: turn.username, credential: turn.credential });
   } else if (process.env.TURN_URL) {
@@ -320,9 +321,10 @@ export async function callsRoutes(fastify: FastifyInstance) {
   fastify.get('/config', { preHandler: [fastify.authenticate, requireEntitlement('bliss')] }, async (req: any) => {
     // Public STUN handles same-network / simple-NAT calls on its own. For strict
     // NATs a TURN relay is required — read it from the tenant's own settings
-    // (settings.calls.turn = { urls, username, credential }), then fall back to a
-    // platform-wide one in the environment. The frontend uses whatever we return,
-    // so configuring TURN makes calls work across strict NATs with no code change.
+    // (settings.turnConfig = { urls, username, credential }, set via the Bliss
+    // Telephony page / PATCH /v1/settings), then fall back to a platform-wide
+    // one in the environment. The frontend uses whatever we return, so
+    // configuring TURN makes calls work across strict NATs with no code change.
     const iceServers = await resolveIceServers(req.user.tenant_id);
     return { iceServers, turnConfigured: iceServers.length > 2 };
   });

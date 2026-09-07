@@ -99,7 +99,7 @@ export function GuestMeetingJoin() {
   }
 
   const shellStyle: React.CSSProperties = { position: 'fixed', inset: 0, background: 'linear-gradient(135deg, #0b0f19 0%, #111827 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font)' };
-  const cardStyle: React.CSSProperties = { background: '#111827', borderRadius: 16, border: '1px solid #1f2937', padding: 32, width: 380, textAlign: 'center' };
+  const cardStyle: React.CSSProperties = { background: '#111827', borderRadius: 16, border: '1px solid #1f2937', padding: 32, width: 380, maxWidth: 'calc(100vw - 32px)', boxSizing: 'border-box', textAlign: 'center' };
 
   if (loading) {
     return <div style={shellStyle}><div style={{ color: '#9ca3af', fontSize: 13 }}>Loading meeting…</div></div>;

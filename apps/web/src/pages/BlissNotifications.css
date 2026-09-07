@@ -568,7 +568,7 @@
 }
 
 .bnc-detail-table tr {
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--border);
 }
 
 .bnc-detail-table tr:last-child {

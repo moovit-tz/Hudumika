@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { withTenant } from '../db/client.js';
+import { requireEntitlement } from '../middleware/entitlement.js';
 
 const channelCreateSchema = z.object({
   type: z.enum(['channel', 'dm', 'group']),
@@ -18,6 +19,11 @@ const reactionSchema = z.object({ emoji: z.string().trim().min(1).max(20) });
  */
 export async function chatRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
+  // Team Chat is the other Bliss pillar with no entitlement gate at all —
+  // calls.routes.ts already requires 'bliss'; this file didn't, so a tenant
+  // whose plan excludes Bliss could still use Team Chat purely by being
+  // logged in.
+  fastify.addHook('preHandler', requireEntitlement('bliss'));
 
   // GET /v1/chat/channels — every channel the user belongs to, with unread
   // count and last-message preview.

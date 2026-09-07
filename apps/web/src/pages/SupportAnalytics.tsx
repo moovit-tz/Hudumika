@@ -25,7 +25,7 @@ export const SupportAnalytics: React.FC = () => {
   const resolution = metrics?.resolution ?? 0;
   const sla = metrics?.sla ?? 0;
   const defect = metrics?.defect ?? 0;
-  const escalation = metrics ? Number((metrics.defect / 2).toFixed(1)) : 0;
+  const escalation = metrics?.escalation ?? 0;
 
   if (loading) {
     return <div className="sov-loading">Loading analytics…</div>;
@@ -36,7 +36,7 @@ export const SupportAnalytics: React.FC = () => {
       <div className="sov-container" style={isFullLayout ? { maxWidth: 'none' } : undefined}>
 
         <PageHeader
-          crumbs={['Support', 'Analytics']}
+          crumbs={['Bliss', 'Analytics']}
           titlePlain="Support"
           titleEm="analytics"
           subtitle="Satisfaction, response time, and issue trends for the selected period."
@@ -46,7 +46,7 @@ export const SupportAnalytics: React.FC = () => {
         <div className="sov-kpi-row">
           <KpiCard icon="zap"         label="NPS Score"       value={metrics ? `${metrics.nps.score > 0 ? '+' : ''}${metrics.nps.score}` : '—'} iconBg="var(--teal-l)"  color="var(--teal)"   sub={`${npsTotal} responses`} />
           <KpiCard icon="smile"       label="CSAT Score"      value={metrics ? `${metrics.csat}/5` : '—'}       iconBg="var(--green-l)" color="var(--green)"  sub="Customer satisfaction" />
-          <KpiCard icon="clock"       label="Avg First Reply" value={metrics ? `${metrics.firstReply}h` : '—'}  iconBg="var(--blue-l)"  color="#2563eb"       sub="Target: &lt;2h" />
+          <KpiCard icon="clock"       label="Avg First Reply" value={metrics ? `${metrics.firstReply}h` : '—'}  iconBg="var(--blue-l)"  color="var(--blue)"   sub="Target: &lt;2h" />
           <KpiCard icon="timer"       label="Avg Solve Time"  value={metrics ? `${metrics.resolution}h` : '—'}  iconBg="var(--gold-l)"  color="var(--gold)"   sub="Target: &lt;8h" />
           <KpiCard icon="tasks"       label="SLA Compliance"  value={metrics ? `${metrics.sla}%` : '—'}         iconBg="var(--green-l)" color="var(--green)" />
           <KpiCard icon="warning"     label="Defect Rate"     value={metrics ? `${metrics.defect}%` : '—'}      iconBg="var(--red-l)"   color="var(--red)"    sub="Reopened / escalated" />
@@ -110,7 +110,7 @@ export const SupportAnalytics: React.FC = () => {
           <div className="sov-card">
             <SHdr title="Time & Quality" />
             {[
-              { label: 'Avg Waiting Time', value: `${waiting}h`,    note: 'Before first reply', color: '#2563eb',      target: '< 2h',  ok: waiting <= 2  },
+              { label: 'Avg Waiting Time', value: `${waiting}h`,    note: 'Before first reply', color: 'var(--blue)',  target: '< 2h',  ok: waiting <= 2  },
               { label: 'Avg Solving Time', value: `${resolution}h`, note: 'Open → resolved',    color: 'var(--teal)',  target: '< 8h',  ok: resolution <= 8 },
               { label: 'SLA Compliance',   value: `${sla}%`,        note: 'Within agreed SLA',  color: 'var(--green)', target: '> 90%', ok: sla >= 90    },
               { label: 'Defect Rate',      value: `${defect}%`,     note: 'Reopened / escalated', color: 'var(--red)', target: '< 3%',  ok: defect <= 3   },

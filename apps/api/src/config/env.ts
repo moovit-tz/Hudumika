@@ -72,6 +72,12 @@ const envSchema = z.object({
   META_PHONE_NUMBER_ID: z.string().default('your-phone-number-id'),
   META_VERIFY_TOKEN: z.string().default('your-webhook-verify-token'),
   META_API_VERSION: z.string().default('v21.0'),
+  /** The WhatsApp Business Account (WABA) itself — a different Graph API
+   *  object than the phone number above, and the one template management
+   *  (GET/POST .../message_templates) is scoped to. A placeholder default
+   *  the same way every other META_* credential works: template listing/
+   *  creation is real once this is set, not before. */
+  META_WABA_ID: z.string().default('your-whatsapp-business-account-id'),
   /** Meta app secret used to verify the X-Hub-Signature-256 HMAC on inbound
    *  WhatsApp webhook deliveries. Optional: unset in dev/until a real Meta
    *  app is configured, in which case the signature check is skipped rather

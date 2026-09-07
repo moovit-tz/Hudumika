@@ -41,7 +41,6 @@ const ROUTE_RULES: Array<{ prefix: string; roles: UserRole[] }> = [
   { prefix: '/hrm',               roles: MGMT_ROLES },
   { prefix: '/settings',          roles: MGMT_ROLES },
   { prefix: '/reports',           roles: [...MGMT_ROLES, 'FINANCE'] },
-  { prefix: '/escalations',       roles: [...MGMT_ROLES, 'SENIOR'] },
   // Finance & Sales only
   { prefix: '/finance',           roles: FIN_ROLES },
   { prefix: '/billing',           roles: FIN_ROLES },
