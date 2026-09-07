@@ -13,6 +13,7 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { Popover, PopoverTrigger, PopoverContent } from '../components/ui/popover.js';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog.js';
 import { useMediaQuery } from '../hooks/useMediaQuery.js';
+import { Tip } from '../components/ui/tooltip.js';
 
 // ─── Types (match apps/api/src/routes/chat.routes.ts) ─────────────────────────
 
@@ -297,15 +298,21 @@ export const Chat: React.FC = () => {
         <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <h2 style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)', margin: 0 }}>Messages</h2>
           <div style={{ display: 'flex', gap: 4 }}>
-            <button type="button" onClick={openBrowse} title="Browse channels" style={{ width: 30, height: 30, borderRadius: 8, background: 'var(--card-sunken)', color: 'var(--ink2)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Icon name={"compass" as IconName} size={15} />
-            </button>
-            <button type="button" onClick={() => setCreating('dm')} title="New Direct Message" style={{ width: 30, height: 30, borderRadius: 8, background: 'var(--card-sunken)', color: 'var(--ink2)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Icon name="edit" size={15} />
-            </button>
-            <button type="button" onClick={() => setCreating('channel')} title="New Channel" style={{ width: 30, height: 30, borderRadius: 8, background: 'var(--card-sunken)', color: 'var(--ink2)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Icon name="plus" size={15} />
-            </button>
+            <Tip label="Browse channels">
+              <button type="button" onClick={openBrowse} style={{ width: 30, height: 30, borderRadius: 8, background: 'var(--card-sunken)', color: 'var(--ink2)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Icon name={"compass" as IconName} size={15} />
+              </button>
+            </Tip>
+            <Tip label="New Direct Message">
+              <button type="button" onClick={() => setCreating('dm')} style={{ width: 30, height: 30, borderRadius: 8, background: 'var(--card-sunken)', color: 'var(--ink2)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Icon name="edit" size={15} />
+              </button>
+            </Tip>
+            <Tip label="New Channel">
+              <button type="button" onClick={() => setCreating('channel')} style={{ width: 30, height: 30, borderRadius: 8, background: 'var(--card-sunken)', color: 'var(--ink2)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Icon name="plus" size={15} />
+              </button>
+            </Tip>
           </div>
         </div>
 
@@ -435,9 +442,11 @@ export const Chat: React.FC = () => {
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span>{activeCh.name}</span>
-                    <button type="button" onClick={(e) => toggleFav(activeCh.id, e)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: activeCh.is_favorite ? 'var(--gold)' : 'var(--ink3)' }} title="Favorite">
-                      ★
-                    </button>
+                    <Tip label="Favorite">
+                      <button type="button" onClick={(e) => toggleFav(activeCh.id, e)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: activeCh.is_favorite ? 'var(--gold)' : 'var(--ink3)' }}>
+                        ★
+                      </button>
+                    </Tip>
                   </div>
                   <div style={{ fontSize: 11, color: 'var(--ink3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {activeCh.type === 'dm' ? (activeCh.other_user_role || '') : (activeCh.description || `${activeCh.member_ids.length} members`)}
@@ -447,15 +456,21 @@ export const Chat: React.FC = () => {
 
               {/* Header Right Action Buttons */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <button type="button" onClick={() => navigate('/bliss/calls')} title="Start Voice Call" style={{ width: 34, height: 34, borderRadius: 8, background: 'var(--card-sunken)', border: 'none', color: 'var(--ink2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Icon name="phone" size={16} />
-                </button>
-                <button type="button" onClick={() => navigate('/bliss/calls')} title="Start Video Call" style={{ width: 34, height: 34, borderRadius: 8, background: 'var(--card-sunken)', border: 'none', color: 'var(--ink2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Icon name="camera" size={16} />
-                </button>
-                <button type="button" onClick={() => setShowDetails(v => !v)} title="Toggle Info Drawer" style={{ width: 34, height: 34, borderRadius: 8, background: showDetails ? 'var(--teal-m)' : 'var(--card-sunken)', border: 'none', color: showDetails ? 'var(--teal)' : 'var(--ink2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Icon name="info" size={16} />
-                </button>
+                <Tip label="Start Voice Call">
+                  <button type="button" onClick={() => navigate('/bliss/calls')} style={{ width: 34, height: 34, borderRadius: 8, background: 'var(--card-sunken)', border: 'none', color: 'var(--ink2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Icon name="phone" size={16} />
+                  </button>
+                </Tip>
+                <Tip label="Start Video Call">
+                  <button type="button" onClick={() => navigate('/bliss/calls')} style={{ width: 34, height: 34, borderRadius: 8, background: 'var(--card-sunken)', border: 'none', color: 'var(--ink2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Icon name="camera" size={16} />
+                  </button>
+                </Tip>
+                <Tip label="Toggle Info Drawer">
+                  <button type="button" onClick={() => setShowDetails(v => !v)} style={{ width: 34, height: 34, borderRadius: 8, background: showDetails ? 'var(--teal-m)' : 'var(--card-sunken)', border: 'none', color: showDetails ? 'var(--teal)' : 'var(--ink2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Icon name="info" size={16} />
+                  </button>
+                </Tip>
               </div>
             </header>
 
@@ -557,11 +572,13 @@ export const Chat: React.FC = () => {
                   <div style={{ display: 'flex', gap: 4 }}>
                     {/* Emoji Popover */}
                     <Popover open={showEmoji} onOpenChange={setShowEmoji}>
-                      <PopoverTrigger asChild>
-                        <button type="button" title="Emoji" style={{ width: 30, height: 30, borderRadius: 8, background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <Icon name="smile" size={16} />
-                        </button>
-                      </PopoverTrigger>
+                      <Tip label="Emoji">
+                        <PopoverTrigger asChild>
+                          <button type="button" style={{ width: 30, height: 30, borderRadius: 8, background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <Icon name="smile" size={16} />
+                          </button>
+                        </PopoverTrigger>
+                      </Tip>
                       <PopoverContent align="start" side="top" className="w-auto p-2">
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8,1fr)', gap: 4 }}>
                           {EMOJIS.map(em => (
@@ -780,14 +797,15 @@ function ConversationItem({
         </div>
       </div>
 
-      <button
-        type="button"
-        onClick={(e) => onFav(channel.id, e)}
-        title="Favorite"
-        style={{ background: 'none', border: 'none', cursor: 'pointer', color: channel.is_favorite ? 'var(--gold)' : 'var(--ink3)', flexShrink: 0, fontSize: 13, padding: 0 }}
-      >
-        ★
-      </button>
+      <Tip label="Favorite">
+        <button
+          type="button"
+          onClick={(e) => onFav(channel.id, e)}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', color: channel.is_favorite ? 'var(--gold)' : 'var(--ink3)', flexShrink: 0, fontSize: 13, padding: 0 }}
+        >
+          ★
+        </button>
+      </Tip>
 
       {channel.unread > 0 && (
         <span style={{ fontSize: 9.5, background: 'var(--red)', color: 'hsl(var(--red-foreground))', padding: '1px 6px', borderRadius: 10, fontWeight: 800, flexShrink: 0 }}>
@@ -796,16 +814,17 @@ function ConversationItem({
       )}
 
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button
-            type="button"
-            onClick={(e) => e.stopPropagation()}
-            title="More"
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', flexShrink: 0, padding: 2, display: 'flex' }}
-          >
-            <Icon name="moreVertical" size={14} />
-          </button>
-        </DropdownMenuTrigger>
+        <Tip label="More">
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              onClick={(e) => e.stopPropagation()}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', flexShrink: 0, padding: 2, display: 'flex' }}
+            >
+              <Icon name="moreVertical" size={14} />
+            </button>
+          </DropdownMenuTrigger>
+        </Tip>
         <DropdownMenuContent align="end" className="w-48">
           <DropdownMenuItem onClick={() => onDelete(channel)} className="text-xs cursor-pointer" style={{ color: 'var(--red)' }}>
             {channel.type === 'dm' ? 'Remove conversation' : 'Leave / delete'}
