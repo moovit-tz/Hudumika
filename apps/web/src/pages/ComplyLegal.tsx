@@ -11,6 +11,7 @@ import { ComplyCustomerPicker } from './ComplyCustomerPicker.js';
 import { showConfirm } from '../lib/confirm.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { PersonAvatar, CompanyAvatar } from '../components/PersonAvatar.js';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet.js';
 
 const SPECIALTIES_FILTER = [
   'All', 'Corporate Registration', 'Tax Compliance', 'Employment Law',
@@ -335,59 +336,55 @@ export function ComplyLegal() {
       )}
 
       {/* Profile overlay */}
-      {selected && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 500, display: 'flex', justifyContent: 'flex-end' }} onClick={() => setSelected(null)}>
-          <div
-            style={{ width: 480, maxWidth: '100%', background: 'var(--white)', height: '100%', overflowY: 'auto', boxShadow: '-8px 0 24px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column' }}
-            onClick={e => e.stopPropagation()}
-          >
-            <div style={{ height: 6, background: selected.color }} />
-            <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
-                <CompanyAvatar name={selected.name} size={48} shape="square" />
-                <div>
-                  <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)', marginBottom: 2 }}>{selected.name}</div>
-                  <div style={{ fontSize: 12, color: 'var(--ink3)' }}>{selected.location}</div>
-                </div>
-              </div>
-              <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }} onClick={() => setSelected(null)}>
-                <Icon name="x" size={18} />
-              </button>
-            </div>
-            <div style={{ padding: '20px 24px', flex: 1, display: 'flex', flexDirection: 'column', gap: 20 }}>
-              <p style={{ fontSize: 13.5, color: 'var(--ink2)', lineHeight: 1.6, margin: 0 }}>{selected.description}</p>
-              <div>
-                <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>Specialties</div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                  {selected.specialties.map(s => <span key={s} className="comply-firm-tag">{s}</span>)}
-                </div>
-              </div>
-              <div>
-                <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>Agencies Handled</div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                  {selected.agencies_handled.map(a => <span key={a} className="comply-badge comply-badge--review">{a}</span>)}
-                </div>
-              </div>
-              <div className="comply-grid-2" style={{ gap: 14, marginBottom: 0 }}>
-                {[
-                  { label: 'Rating', val: `${selected.rating} / 5` },
-                  { label: 'Reviews', val: `${selected.review_count} clients` },
-                  { label: 'Founded', val: String(selected.founded_year ?? '—') },
-                  { label: 'Starting Price', val: selected.starting_price_label ?? '—' },
-                ].map(m => (
-                  <div key={m.label}>
-                    <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 3 }}>{m.label}</div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{m.val}</div>
+      <Sheet open={!!selected} onOpenChange={o => { if (!o) setSelected(null); }}>
+        <SheetContent className="w-120 sm:max-w-120 flex flex-col p-0 gap-0">
+          {selected && (
+            <>
+              <div style={{ height: 6, background: selected.color }} />
+              <SheetHeader style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)' }}>
+                <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
+                  <CompanyAvatar name={selected.name} size={48} shape="square" />
+                  <div>
+                    <SheetTitle style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)', marginBottom: 2 }}>{selected.name}</SheetTitle>
+                    <div style={{ fontSize: 12, color: 'var(--ink3)' }}>{selected.location}</div>
                   </div>
-                ))}
+                </div>
+              </SheetHeader>
+              <div style={{ padding: '20px 24px', flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
+                <p style={{ fontSize: 13.5, color: 'var(--ink2)', lineHeight: 1.6, margin: 0 }}>{selected.description}</p>
+                <div>
+                  <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>Specialties</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                    {selected.specialties.map(s => <span key={s} className="comply-firm-tag">{s}</span>)}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>Agencies Handled</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                    {selected.agencies_handled.map(a => <span key={a} className="comply-badge comply-badge--review">{a}</span>)}
+                  </div>
+                </div>
+                <div className="comply-grid-2" style={{ gap: 14, marginBottom: 0 }}>
+                  {[
+                    { label: 'Rating', val: `${selected.rating} / 5` },
+                    { label: 'Reviews', val: `${selected.review_count} clients` },
+                    { label: 'Founded', val: String(selected.founded_year ?? '—') },
+                    { label: 'Starting Price', val: selected.starting_price_label ?? '—' },
+                  ].map(m => (
+                    <div key={m.label}>
+                      <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 3 }}>{m.label}</div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{m.val}</div>
+                    </div>
+                  ))}
+                </div>
+                <button type="button" className="comply-btn-primary" style={{ alignSelf: 'flex-start' }} onClick={() => { const id = selected.id; setSelected(null); navigate(engageUrl(id)); }}>
+                  <Icon name="briefcase" size={13} /> Engage this Firm
+                </button>
               </div>
-              <button type="button" className="comply-btn-primary" style={{ alignSelf: 'flex-start' }} onClick={() => { const id = selected.id; setSelected(null); navigate(engageUrl(id)); }}>
-                <Icon name="briefcase" size={13} /> Engage this Firm
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
 
       {openEngagement && (
         <EngagementDrawer

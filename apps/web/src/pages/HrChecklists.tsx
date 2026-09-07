@@ -4,12 +4,14 @@ import { showAlert } from '../lib/alert.js';
 import { Icon } from '../components/Icon.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { Checkbox } from '../components/ui/checkbox.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { Badge } from '../components/ui/badge.js';
 import { Button } from '../components/ui/button.js';
 import { Input } from '../components/ui/input.js';
 import { SingleSelectFilter } from '../components/ui/filter-dropdown.js';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog.js';
 
 /**
  * Onboarding/offboarding checklists — confirmed absent in the audit ("just
@@ -111,9 +113,6 @@ function ActiveChecklists() {
   );
 }
 
-const overlayStyle: React.CSSProperties = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 };
-const cardStyle: React.CSSProperties = { background: 'var(--white)', borderRadius: 12, padding: 24, width: 480, maxWidth: '94vw', maxHeight: '88vh', overflowY: 'auto', boxShadow: 'var(--elev-lg)' };
-
 function ChecklistDetailModal({ id, onClose, onChanged }: { id: string; onClose: () => void; onChanged: () => void }) {
   const [item, setItem] = useState<any | null>(null);
   const [busy, setBusy] = useState(false);
@@ -135,23 +134,20 @@ function ChecklistDetailModal({ id, onClose, onChanged }: { id: string; onClose:
   }
 
   return (
-    <div style={overlayStyle} onClick={onClose}>
-      <div style={cardStyle} onClick={e => e.stopPropagation()}>
+    <Dialog open onOpenChange={o => { if (!o) onClose(); }}>
+      <DialogContent className="w-120 max-w-[94vw] max-h-[88vh] overflow-y-auto">
         {!item ? (
           <SectionLoading />
         ) : (
           <>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
-              <div>
-                <div style={{ fontSize: 16, fontWeight: 700 }}>{item.employee_name}</div>
-                <div style={{ fontSize: 12, color: 'var(--ink3)' }}>{item.type === 'onboarding' ? 'Onboarding' : 'Offboarding'} checklist</div>
-              </div>
-              <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }} aria-label="Close"><Icon name="x" size={16} /></button>
-            </div>
+            <DialogHeader>
+              <DialogTitle>{item.employee_name}</DialogTitle>
+              <div style={{ fontSize: 12, color: 'var(--ink3)' }}>{item.type === 'onboarding' ? 'Onboarding' : 'Offboarding'} checklist</div>
+            </DialogHeader>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 16 }}>
               {item.items.map((i: any) => (
                 <label key={i.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: busy ? 'default' : 'pointer', padding: '8px 10px', background: 'var(--bg)', borderRadius: 8 }}>
-                  <input type="checkbox" checked={i.done} disabled={busy} onChange={e => toggle(i.id, e.target.checked)} style={{ marginTop: 2, cursor: 'pointer' }} />
+                  <Checkbox checked={i.done} disabled={busy} onCheckedChange={c => toggle(i.id, c === true)} style={{ marginTop: 2 }} />
                   <div>
                     <div style={{ fontSize: 13, color: 'var(--ink)', textDecoration: i.done ? 'line-through' : 'none' }}>{i.label}</div>
                     {i.done && <div style={{ fontSize: 11, color: 'var(--ink3)' }}>Done by {i.done_by_name ?? '—'} · {new Date(i.done_at).toLocaleString()}</div>}
@@ -161,8 +157,8 @@ function ChecklistDetailModal({ id, onClose, onChanged }: { id: string; onClose:
             </div>
           </>
         )}
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

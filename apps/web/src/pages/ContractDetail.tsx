@@ -4,6 +4,7 @@ import { Icon } from '../components/Icon.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { Checkbox } from '../components/ui/checkbox.js';
 import { Button } from '../components/ui/button.js';
 import { Badge } from '../components/ui/badge.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
@@ -198,7 +199,7 @@ export const ContractDetail: React.FC = () => {
           <SectionCard collapsible={false}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--ink2)', cursor: 'pointer' }}>
-              <input type="checkbox" checked={!!contract.deleted_at} onChange={e => patch({ trashed: e.target.checked })} />
+              <Checkbox checked={!!contract.deleted_at} onCheckedChange={c => patch({ trashed: c === true })} />
               Trash
             </label>
             <div>

@@ -3,7 +3,6 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { Icon } from '../components/Icon.js';
-import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 import type { IconName } from '../components/Icon.js';
 import { showAlert } from '../lib/alert.js';
@@ -13,6 +12,7 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { Popover, PopoverTrigger, PopoverContent } from '../components/ui/popover.js';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog.js';
 import { useMediaQuery } from '../hooks/useMediaQuery.js';
+import { Tip } from '../components/ui/tooltip.js';
 
 // ─── Types (match apps/api/src/routes/chat.routes.ts) ─────────────────────────
 
@@ -92,6 +92,7 @@ export const Chat: React.FC = () => {
   const [browseOpen, setBrowseOpen] = useState(false);
   const [browseLoading, setBrowseLoading] = useState(false);
   const [joiningId, setJoiningId] = useState<string | null>(null);
+  const [memberSearch, setMemberSearch] = useState('');
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -297,54 +298,137 @@ export const Chat: React.FC = () => {
         <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <h2 style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)', margin: 0 }}>Messages</h2>
           <div style={{ display: 'flex', gap: 4 }}>
-            <button type="button" onClick={openBrowse} title="Browse channels" style={{ width: 30, height: 30, borderRadius: 8, background: 'var(--card-sunken)', color: 'var(--ink2)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Icon name={"compass" as IconName} size={15} />
-            </button>
-            <button type="button" onClick={() => setCreating('dm')} title="New Direct Message" style={{ width: 30, height: 30, borderRadius: 8, background: 'var(--card-sunken)', color: 'var(--ink2)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Icon name="edit" size={15} />
-            </button>
-            <button type="button" onClick={() => setCreating('channel')} title="New Channel" style={{ width: 30, height: 30, borderRadius: 8, background: 'var(--card-sunken)', color: 'var(--ink2)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Icon name="plus" size={15} />
-            </button>
+            <Tip label="Browse channels">
+              <button type="button" onClick={openBrowse} style={{ width: 30, height: 30, borderRadius: 8, background: 'var(--card-sunken)', color: 'var(--ink2)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Icon name={"compass" as IconName} size={15} />
+              </button>
+            </Tip>
+            <Tip label="New Direct Message">
+              <button type="button" onClick={() => setCreating('dm')} style={{ width: 30, height: 30, borderRadius: 8, background: 'var(--card-sunken)', color: 'var(--ink2)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Icon name="edit" size={15} />
+              </button>
+            </Tip>
+            <Tip label="New Channel">
+              <button type="button" onClick={() => setCreating('channel')} style={{ width: 30, height: 30, borderRadius: 8, background: 'var(--card-sunken)', color: 'var(--ink2)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Icon name="plus" size={15} />
+              </button>
+            </Tip>
           </div>
         </div>
 
-        {/* Search Bar */}
-        <div style={{ padding: '10px 12px 6px' }}>
-          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-            <Icon name="search" size={14} color="var(--ink3)" style={{ position: 'absolute', left: 10 }} />
+        {/* Unified Search & Filter Row */}
+        <div style={{ padding: '8px 12px 6px', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ position: 'relative', flex: 1, display: 'flex', alignItems: 'center' }}>
+            <Icon name="search" size={13} color="var(--ink3)" style={{ position: 'absolute', left: 9, pointerEvents: 'none' }} />
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search conversations…"
-              style={{ width: '100%', height: 34, background: 'var(--card-sunken)', border: '1px solid var(--border2)', borderRadius: 10, paddingLeft: 32, paddingRight: 28, color: 'var(--ink)', fontSize: 12.5, outline: 'none' }}
+              style={{
+                width: '100%',
+                height: 32,
+                background: 'var(--card-sunken)',
+                border: '1px solid var(--border2)',
+                borderRadius: 8,
+                paddingLeft: 28,
+                paddingRight: search ? 24 : 8,
+                color: 'var(--ink)',
+                fontSize: 12,
+                outline: 'none',
+              }}
             />
             {search && (
-              <button type="button" onClick={() => setSearch('')} style={{ position: 'absolute', right: 8, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}>
+              <button
+                type="button"
+                onClick={() => setSearch('')}
+                style={{
+                  position: 'absolute',
+                  right: 6,
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: 'var(--ink3)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: 2,
+                }}
+              >
                 <Icon name="close" size={12} />
               </button>
             )}
           </div>
-        </div>
 
-        {/* Filter Tabs */}
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} variant="segmented">
-        <TabsList style={{ margin: '0 8px' }}>
-          {[
-            { id: 'all', label: 'All' },
-            { id: 'unread', label: 'Unread', badge: totalUnread },
-            { id: 'favorites', label: 'Favorites' },
-            { id: 'groups', label: 'Groups' },
-          ].map(tab => (
-            <TabsTrigger key={tab.id} value={tab.id} style={{ flex: 1, fontSize: 11.5 }}>
-              {tab.label}
-              {tab.badge ? (
-                <span style={{ fontSize: 9, background: 'var(--red)', color: 'hsl(var(--red-foreground))', padding: '1px 5px', borderRadius: 10, fontWeight: 800 }}>{tab.badge}</span>
-              ) : null}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-        </Tabs>
+          <DropdownMenu>
+            <Tip label="Filter conversations">
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  style={{
+                    height: 32,
+                    padding: '0 8px',
+                    borderRadius: 8,
+                    border: activeTab !== 'all' ? '1px solid var(--teal)' : '1px solid var(--border2)',
+                    background: activeTab !== 'all' ? 'var(--teal-l)' : 'var(--card-sunken)',
+                    color: activeTab !== 'all' ? 'var(--teal)' : 'var(--ink2)',
+                    fontSize: 11.5,
+                    fontWeight: 700,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    cursor: 'pointer',
+                    flexShrink: 0,
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <Icon
+                    name={
+                      activeTab === 'favorites' ? 'star' :
+                      activeTab === 'groups' ? 'users' :
+                      activeTab === 'unread' ? 'messageSquare' : 'filter'
+                    }
+                    size={12}
+                    strokeWidth={2}
+                  />
+                  <span>
+                    {activeTab === 'all' ? 'All' :
+                     activeTab === 'unread' ? `Unread${totalUnread ? ` (${totalUnread})` : ''}` :
+                     activeTab === 'favorites' ? 'Favs' : 'Groups'}
+                  </span>
+                  <Icon name="chevronDown" size={10} style={{ opacity: 0.6 }} />
+                </button>
+              </DropdownMenuTrigger>
+            </Tip>
+            <DropdownMenuContent align="end" className="w-44">
+              <DropdownMenuItem onClick={() => setActiveTab('all')} className={activeTab === 'all' ? 'font-bold text-primary' : ''}>
+                <Icon name="layers" size={13} style={{ marginRight: 8 }} />
+                <span style={{ flex: 1 }}>All Chats</span>
+                {activeTab === 'all' && <Icon name="check" size={12} />}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setActiveTab('unread')} className={activeTab === 'unread' ? 'font-bold text-primary' : ''}>
+                <Icon name="messageSquare" size={13} style={{ marginRight: 8 }} />
+                <span style={{ flex: 1 }}>Unread</span>
+                {totalUnread > 0 && (
+                  <span style={{ fontSize: 9.5, background: 'var(--red)', color: '#ffffff', padding: '1px 5px', borderRadius: 8, fontWeight: 800, marginRight: 4 }}>
+                    {totalUnread}
+                  </span>
+                )}
+                {activeTab === 'unread' && <Icon name="check" size={12} />}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setActiveTab('favorites')} className={activeTab === 'favorites' ? 'font-bold text-primary' : ''}>
+                <Icon name="star" size={13} style={{ marginRight: 8 }} />
+                <span style={{ flex: 1 }}>Favorites</span>
+                {favList.length > 0 && <span style={{ fontSize: 10, color: 'var(--ink3)', marginRight: 4 }}>{favList.length}</span>}
+                {activeTab === 'favorites' && <Icon name="check" size={12} />}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setActiveTab('groups')} className={activeTab === 'groups' ? 'font-bold text-primary' : ''}>
+                <Icon name="users" size={13} style={{ marginRight: 8 }} />
+                <span style={{ flex: 1 }}>Groups & Channels</span>
+                {groupList.length > 0 && <span style={{ fontSize: 10, color: 'var(--ink3)', marginRight: 4 }}>{groupList.length}</span>}
+                {activeTab === 'groups' && <Icon name="check" size={12} />}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
 
         {/* Conversations List */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '8px 6px' }}>
@@ -417,7 +501,7 @@ export const Chat: React.FC = () => {
         ) : (
           <>
             {/* Main Stage Header */}
-            <header style={{ height: 58, padding: '0 20px', background: 'var(--white)', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+            <header style={{ height: 64, padding: '0 20px', background: 'var(--white)', borderBottom: '1px solid var(--border)', boxShadow: 'var(--elev-sm)', position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
                 {isMobile && (
                   <button type="button" onClick={() => setActiveId(null)} style={{ background: 'none', border: 'none', padding: 4, cursor: 'pointer', color: 'var(--ink2)', flexShrink: 0 }}>
@@ -425,19 +509,21 @@ export const Chat: React.FC = () => {
                   </button>
                 )}
                 {activeCh.type === 'dm' ? (
-                  <PersonAvatar userId={activeCh.other_user_id} name={activeCh.name} size={36} />
+                  <PersonAvatar userId={activeCh.other_user_id} name={activeCh.name} size={38} />
                 ) : (
-                  <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--teal-l)', color: 'var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Icon name={activeCh.type === 'channel' ? 'hash' : 'users'} size={16} />
+                  <div style={{ width: 38, height: 38, borderRadius: 'var(--r)', background: 'var(--teal-l)', color: 'var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Icon name={activeCh.type === 'channel' ? 'hash' : 'users'} size={17} />
                   </div>
                 )}
 
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span>{activeCh.name}</span>
-                    <button type="button" onClick={(e) => toggleFav(activeCh.id, e)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: activeCh.is_favorite ? 'var(--gold)' : 'var(--ink3)' }} title="Favorite">
-                      ★
-                    </button>
+                    <Tip label="Favorite">
+                      <button type="button" onClick={(e) => toggleFav(activeCh.id, e)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: activeCh.is_favorite ? 'var(--gold)' : 'var(--ink3)' }}>
+                        ★
+                      </button>
+                    </Tip>
                   </div>
                   <div style={{ fontSize: 11, color: 'var(--ink3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {activeCh.type === 'dm' ? (activeCh.other_user_role || '') : (activeCh.description || `${activeCh.member_ids.length} members`)}
@@ -447,15 +533,21 @@ export const Chat: React.FC = () => {
 
               {/* Header Right Action Buttons */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <button type="button" onClick={() => navigate('/bliss/calls')} title="Start Voice Call" style={{ width: 34, height: 34, borderRadius: 8, background: 'var(--card-sunken)', border: 'none', color: 'var(--ink2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Icon name="phone" size={16} />
-                </button>
-                <button type="button" onClick={() => navigate('/bliss/calls')} title="Start Video Call" style={{ width: 34, height: 34, borderRadius: 8, background: 'var(--card-sunken)', border: 'none', color: 'var(--ink2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Icon name="camera" size={16} />
-                </button>
-                <button type="button" onClick={() => setShowDetails(v => !v)} title="Toggle Info Drawer" style={{ width: 34, height: 34, borderRadius: 8, background: showDetails ? 'var(--teal-m)' : 'var(--card-sunken)', border: 'none', color: showDetails ? 'var(--teal)' : 'var(--ink2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Icon name="info" size={16} />
-                </button>
+                <Tip label="Start Voice Call">
+                  <button type="button" onClick={() => navigate('/bliss/calls')} style={{ width: 34, height: 34, borderRadius: 'var(--r)', background: 'var(--card-sunken)', border: 'none', color: 'var(--ink2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Icon name="phone" size={16} />
+                  </button>
+                </Tip>
+                <Tip label="Start Video Call">
+                  <button type="button" onClick={() => navigate('/bliss/calls')} style={{ width: 34, height: 34, borderRadius: 'var(--r)', background: 'var(--card-sunken)', border: 'none', color: 'var(--ink2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Icon name="camera" size={16} />
+                  </button>
+                </Tip>
+                <Tip label="Toggle Info Drawer">
+                  <button type="button" onClick={() => setShowDetails(v => !v)} style={{ width: 34, height: 34, borderRadius: 'var(--r)', background: showDetails ? 'var(--teal-l)' : 'var(--card-sunken)', border: 'none', color: showDetails ? 'var(--teal)' : 'var(--ink2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Icon name="info" size={16} />
+                  </button>
+                </Tip>
               </div>
             </header>
 
@@ -474,21 +566,25 @@ export const Chat: React.FC = () => {
                 return (
                   <React.Fragment key={msg.id}>
                     {showDay && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '8px 0' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '4px 0 8px' }}>
                         <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-                        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', background: 'var(--white)', padding: '2px 10px', borderRadius: 10, border: '1px solid var(--border)' }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', background: 'var(--white)', padding: '3px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', boxShadow: 'var(--elev-sm)' }}>
                           {fd(ts)}
                         </span>
                         <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
                       </div>
                     )}
 
-                    {/* Message Bubble Card */}
-                    <div className="group" style={{ display: 'flex', gap: 12, alignItems: 'flex-start', position: 'relative' }}>
+                    {/* Message Row — hover-highlighted like the rest of the
+                        platform's list rows, not a bubble floating in space */}
+                    <div
+                      className="group hover:bg-(--card-sunken) transition-colors"
+                      style={{ display: 'flex', gap: 12, alignItems: 'flex-start', position: 'relative', margin: '0 -12px', padding: isGrpMsg ? '1px 12px' : '4px 12px', borderRadius: 'var(--r)' }}
+                    >
                       {!isGrpMsg ? (
                         <PersonAvatar userId={msg.author_id} name={msg.author_name} size={36} />
                       ) : (
-                        <div style={{ width: 36 }} />
+                        <div style={{ width: 36, flexShrink: 0 }} />
                       )}
 
                       <div style={{ flex: 1, minWidth: 0 }}>
@@ -496,11 +592,22 @@ export const Chat: React.FC = () => {
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                             <span style={{ fontSize: 13, fontWeight: 800, color: isMe ? 'var(--teal)' : 'var(--ink)' }}>{msg.author_name}</span>
                             <span style={{ fontSize: 10.5, color: 'var(--ink3)' }}>{ft(ts)}</span>
-                            {isMe && <span style={{ fontSize: 9.5, fontWeight: 700, background: 'var(--teal-m)', color: 'var(--teal)', padding: '1px 6px', borderRadius: 4 }}>You</span>}
+                            {isMe && <span style={{ fontSize: 9.5, fontWeight: 700, background: 'var(--teal-l)', color: 'var(--teal)', padding: '1px 6px', borderRadius: 'var(--r-sm)' }}>You</span>}
                           </div>
                         )}
 
-                        <div style={{ background: isMe ? 'var(--teal-m)' : 'var(--card-sunken)', border: isMe ? '1px solid var(--teal)' : '1px solid var(--border2)', borderRadius: 14, padding: '10px 14px', maxWidth: '85%', width: 'fit-content', color: 'var(--ink)', fontSize: 13.5, lineHeight: 1.5 }}>
+                        {/* Asymmetric tail corner (nearest the avatar) reads
+                            as a real speech bubble instead of a uniform pill —
+                            radius comes off the platform's own --r-lg token,
+                            not an invented pixel value. */}
+                        <div style={{
+                          background: isMe ? 'var(--teal-l)' : 'var(--card-sunken)',
+                          borderRadius: 'var(--r-sm) var(--r-lg) var(--r-lg) var(--r-lg)',
+                          padding: '9px 14px', maxWidth: '85%', width: 'fit-content',
+                          color: 'var(--ink)', fontSize: 13.5, lineHeight: 1.55,
+                          boxShadow: isMe ? 'none' : 'var(--elev-sm)',
+                          borderLeft: isMe ? '3px solid var(--teal)' : 'none',
+                        }}>
                           {msg.content}
                         </div>
 
@@ -513,8 +620,8 @@ export const Chat: React.FC = () => {
                                 type="button"
                                 onClick={() => react(msg.id, r.emoji)}
                                 style={{
-                                  display: 'flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 12,
-                                  background: r.mine ? 'var(--teal-m)' : 'var(--card-sunken)', border: r.mine ? '1px solid var(--teal)' : '1px solid var(--border2)',
+                                  display: 'flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 'var(--r-lg)',
+                                  background: r.mine ? 'var(--teal-l)' : 'var(--card-sunken)', border: r.mine ? '1px solid var(--teal)' : '1px solid var(--border2)',
                                   color: r.mine ? 'var(--teal)' : 'var(--ink2)', fontSize: 12, cursor: 'pointer'
                                 }}
                               >
@@ -526,7 +633,7 @@ export const Chat: React.FC = () => {
                       </div>
 
                       {/* Hover Action Bar */}
-                      <div className="opacity-0 group-hover:opacity-100 transition-opacity" style={{ position: 'absolute', right: 10, top: 0, background: 'var(--white)', border: '1px solid var(--border2)', borderRadius: 8, padding: '2px 6px', display: 'flex', gap: 4, boxShadow: 'var(--elev-sm)' }}>
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity" style={{ position: 'absolute', right: 10, top: -6, background: 'var(--white)', border: '1px solid var(--border2)', borderRadius: 'var(--r)', padding: '2px 6px', display: 'flex', gap: 4, boxShadow: 'var(--elev)' }}>
                         {QUICK_REACTIONS.map(em => (
                           <button key={em} type="button" onClick={() => react(msg.id, em)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14 }}>{em}</button>
                         ))}
@@ -540,7 +647,7 @@ export const Chat: React.FC = () => {
 
             {/* Composer Footer */}
             <div style={{ padding: '12px 20px 16px', background: 'var(--white)', borderTop: '1px solid var(--border)', flexShrink: 0 }}>
-              <div style={{ background: 'var(--card-sunken)', border: '1px solid var(--border2)', borderRadius: 14, padding: 8 }}>
+              <div className="focus-within:border-(--teal) focus-within:shadow-[0_0_0_3px_var(--teal-l)]" style={{ background: 'var(--card-sunken)', border: '1px solid var(--border2)', borderRadius: 'var(--r-lg)', padding: 8, transition: 'border-color 0.15s, box-shadow 0.15s' }}>
                 {/* Input Textarea */}
                 <textarea
                   ref={inputRef}
@@ -557,11 +664,13 @@ export const Chat: React.FC = () => {
                   <div style={{ display: 'flex', gap: 4 }}>
                     {/* Emoji Popover */}
                     <Popover open={showEmoji} onOpenChange={setShowEmoji}>
-                      <PopoverTrigger asChild>
-                        <button type="button" title="Emoji" style={{ width: 30, height: 30, borderRadius: 8, background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <Icon name="smile" size={16} />
-                        </button>
-                      </PopoverTrigger>
+                      <Tip label="Emoji">
+                        <PopoverTrigger asChild>
+                          <button type="button" style={{ width: 30, height: 30, borderRadius: 'var(--r)', background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <Icon name="smile" size={16} />
+                          </button>
+                        </PopoverTrigger>
+                      </Tip>
                       <PopoverContent align="start" side="top" className="w-auto p-2">
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8,1fr)', gap: 4 }}>
                           {EMOJIS.map(em => (
@@ -579,10 +688,11 @@ export const Chat: React.FC = () => {
                     onClick={send}
                     disabled={!input.trim() || sending}
                     style={{
-                      height: 32, padding: '0 16px', borderRadius: 8,
+                      height: 32, padding: '0 16px', borderRadius: 'var(--r)',
                       background: input.trim() ? 'hsl(var(--primary))' : 'var(--border2)',
                       color: input.trim() ? 'hsl(var(--primary-foreground))' : 'var(--ink3)', border: 'none', fontWeight: 700, fontSize: 12.5,
                       cursor: input.trim() ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', gap: 6,
+                      transition: 'background 0.15s',
                       boxShadow: input.trim() ? 'var(--elev-sm)' : 'none'
                     }}
                   >
@@ -624,10 +734,160 @@ export const Chat: React.FC = () => {
             {activeCh.type === 'dm' ? (
               activeCh.other_user_role && <div style={{ fontSize: 12, color: 'var(--teal)', fontWeight: 600, marginTop: 2 }}>{activeCh.other_user_role}</div>
             ) : (
-              <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>{activeCh.member_ids.length} member{activeCh.member_ids.length === 1 ? '' : 's'}</div>
+              <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>
+                {activeCh.name.toLowerCase() === 'general' ? staff.length + 1 : (activeCh.member_ids?.length || 1)} member{(activeCh.name.toLowerCase() === 'general' ? staff.length + 1 : (activeCh.member_ids?.length || 1)) === 1 ? '' : 's'}
+              </div>
             )}
             {activeCh.description && <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 8, lineHeight: 1.5 }}>{activeCh.description}</div>}
           </div>
+
+          {/* Members Section for Channels / Groups */}
+          {activeCh.type !== 'dm' && (() => {
+            const isGeneral = activeCh.name.toLowerCase() === 'general';
+            const me = {
+              id: user?.id || 'me',
+              name: user?.name || 'You',
+              role: (user?.role || 'Team Member').replace(/_/g, ' '),
+              email: user?.email,
+              isCurrent: true,
+            };
+            const others = staff
+              .filter(s => isGeneral || (activeCh.member_ids || []).includes(s.id) || activeCh.created_by === s.id)
+              .map(s => ({ ...s, isCurrent: false }));
+            const allMembers = [me, ...others];
+            const filteredMembers = allMembers.filter(m =>
+              !memberSearch.trim() ||
+              m.name.toLowerCase().includes(memberSearch.toLowerCase().trim()) ||
+              m.role.toLowerCase().includes(memberSearch.toLowerCase().trim())
+            );
+
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, flex: 1, minHeight: 0 }}>
+                {/* Section Header */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 4, borderBottom: '1px solid var(--border)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--ink)' }}>Channel Members</span>
+                    <span style={{ fontSize: 10.5, fontWeight: 700, padding: '1px 6px', borderRadius: 10, background: 'var(--teal-l)', color: 'var(--teal)' }}>
+                      {allMembers.length}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Filter Search */}
+                {allMembers.length > 2 && (
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <Icon name="search" size={12} color="var(--ink3)" style={{ position: 'absolute', left: 8 }} />
+                    <input
+                      value={memberSearch}
+                      onChange={e => setMemberSearch(e.target.value)}
+                      placeholder="Filter members…"
+                      style={{ width: '100%', height: 28, background: 'var(--card-sunken)', border: '1px solid var(--border2)', borderRadius: 6, paddingLeft: 26, paddingRight: 8, color: 'var(--ink)', fontSize: 11.5, outline: 'none' }}
+                    />
+                    {memberSearch && (
+                      <button type="button" onClick={() => setMemberSearch('')} style={{ position: 'absolute', right: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 0 }}>
+                        <Icon name="close" size={11} />
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* Member items list */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, overflowY: 'auto', flex: 1 }}>
+                  {filteredMembers.map(m => (
+                    <div
+                      key={m.id}
+                      style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        padding: '6px 8px', borderRadius: 8, background: 'var(--card-sunken)',
+                        border: '1px solid var(--border2)'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                        <div style={{ position: 'relative', flexShrink: 0 }}>
+                          <PersonAvatar name={m.name} userId={m.isCurrent ? user?.id : m.id} size={28} />
+                          <span style={{ position: 'absolute', bottom: -1, right: -1, width: 7, height: 7, borderRadius: '50%', background: '#10b981', border: '1.5px solid var(--white)' }} />
+                        </div>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {m.name}
+                            </span>
+                            {m.isCurrent && (
+                              <span style={{ fontSize: 9.5, padding: '1px 4px', borderRadius: 4, background: 'var(--teal-l)', color: 'var(--teal)', fontWeight: 800 }}>You</span>
+                            )}
+                          </div>
+                          <div style={{ fontSize: 10.5, color: 'var(--ink3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {m.role}
+                          </div>
+                        </div>
+                      </div>
+
+                      {!m.isCurrent && (
+                        <button
+                          type="button"
+                          onClick={() => startDm(m.id)}
+                          title={`Message ${m.name}`}
+                          style={{
+                            background: 'none', border: 'none', cursor: 'pointer',
+                            color: 'var(--ink3)', padding: 4, display: 'flex', alignItems: 'center',
+                            borderRadius: 4, transition: 'color 0.12s'
+                          }}
+                        >
+                          <Icon name="message" size={13} />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* User Details & Actions for DMs */}
+          {activeCh.type === 'dm' && (() => {
+            const otherStaff = staff.find(s => s.id === activeCh.other_user_id);
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 4 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, background: 'var(--card-sunken)', borderRadius: 10, padding: 12, border: '1px solid var(--border2)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12 }}>
+                    <span style={{ color: 'var(--ink3)', fontWeight: 600 }}>Status</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: '#10b981', fontWeight: 700, fontSize: 11.5 }}>
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981' }} /> Online
+                    </span>
+                  </div>
+                  {otherStaff?.email && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12 }}>
+                      <span style={{ color: 'var(--ink3)', fontWeight: 600 }}>Email</span>
+                      <span style={{ color: 'var(--ink)', fontWeight: 600, fontSize: 11.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 150 }}>{otherStaff.email}</span>
+                    </div>
+                  )}
+                  {activeCh.other_user_role && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12 }}>
+                      <span style={{ color: 'var(--ink3)', fontWeight: 600 }}>Role</span>
+                      <span style={{ color: 'var(--ink)', fontWeight: 600, fontSize: 11.5 }}>{activeCh.other_user_role}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/bliss/calls')}
+                    style={{ flex: 1, height: 32, borderRadius: 8, border: '1px solid var(--border2)', background: 'var(--card-sunken)', color: 'var(--ink2)', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                  >
+                    <Icon name="phone" size={13} /> Call
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/bliss/calls')}
+                    style={{ flex: 1, height: 32, borderRadius: 8, border: '1px solid var(--border2)', background: 'var(--card-sunken)', color: 'var(--ink2)', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                  >
+                    <Icon name="camera" size={13} /> Video
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
         </aside>
       )}
 
@@ -780,14 +1040,15 @@ function ConversationItem({
         </div>
       </div>
 
-      <button
-        type="button"
-        onClick={(e) => onFav(channel.id, e)}
-        title="Favorite"
-        style={{ background: 'none', border: 'none', cursor: 'pointer', color: channel.is_favorite ? 'var(--gold)' : 'var(--ink3)', flexShrink: 0, fontSize: 13, padding: 0 }}
-      >
-        ★
-      </button>
+      <Tip label="Favorite">
+        <button
+          type="button"
+          onClick={(e) => onFav(channel.id, e)}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', color: channel.is_favorite ? 'var(--gold)' : 'var(--ink3)', flexShrink: 0, fontSize: 13, padding: 0 }}
+        >
+          ★
+        </button>
+      </Tip>
 
       {channel.unread > 0 && (
         <span style={{ fontSize: 9.5, background: 'var(--red)', color: 'hsl(var(--red-foreground))', padding: '1px 6px', borderRadius: 10, fontWeight: 800, flexShrink: 0 }}>
@@ -796,16 +1057,17 @@ function ConversationItem({
       )}
 
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button
-            type="button"
-            onClick={(e) => e.stopPropagation()}
-            title="More"
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', flexShrink: 0, padding: 2, display: 'flex' }}
-          >
-            <Icon name="moreVertical" size={14} />
-          </button>
-        </DropdownMenuTrigger>
+        <Tip label="More">
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              onClick={(e) => e.stopPropagation()}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', flexShrink: 0, padding: 2, display: 'flex' }}
+            >
+              <Icon name="moreVertical" size={14} />
+            </button>
+          </DropdownMenuTrigger>
+        </Tip>
         <DropdownMenuContent align="end" className="w-48">
           <DropdownMenuItem onClick={() => onDelete(channel)} className="text-xs cursor-pointer" style={{ color: 'var(--red)' }}>
             {channel.type === 'dm' ? 'Remove conversation' : 'Leave / delete'}

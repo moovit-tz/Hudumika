@@ -20,6 +20,7 @@ import { Icon } from '../../components/Icon.js';
 import { SectionLoading } from '../../components/ui/spinner.js';
 import { Button } from '../../components/ui/button.js';
 import { Badge } from '../../components/ui/badge.js';
+import { PersonAvatar } from '../../components/PersonAvatar.js';
 import { showAlert } from '../../lib/alert.js';
 import { showConfirm } from '../../lib/confirm.js';
 
@@ -294,9 +295,7 @@ export function VersionHistoryPanel({ envelopeId, onRestore, onClose }: {
                 background: v.id === selectedId ? 'var(--teal-l)' : 'var(--card-bg)', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 4,
               }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--teal-l)', color: 'var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10.5, fontWeight: 800, flexShrink: 0 }}>
-                  {v.created_by_name.charAt(0).toUpperCase()}
-                </div>
+                <PersonAvatar userId={v.created_by ?? undefined} name={v.created_by_name} size={22} />
                 <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.created_by_name}</span>
               </div>
               <div style={{ fontSize: 11.5, color: 'var(--ink2)' }}>{v.change_summary}</div>

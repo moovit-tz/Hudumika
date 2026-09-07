@@ -5,6 +5,7 @@ import { apiFetch } from '../../lib/api.js';
 import { showAlert } from '../../lib/alert.js';
 import { Icon } from '../../components/Icon.js';
 import { SectionLoading } from '../../components/ui/spinner.js';
+import { Dialog, DialogContent, DialogTitle } from '../../components/ui/dialog.js';
 import './Onsite.css';
 
 const CATEGORIES = ['Domain issue', 'Hosting / VPS issue', 'DNS / SSL issue', 'Deployment failure', 'Billing', 'Other'];
@@ -130,18 +131,13 @@ export function OnsiteSupport() {
         </div>
       )}
 
-      {showForm && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0,0,0,0.5)', zIndex: 1000,
-          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem',
-        }}>
-          <div className="onsite-card" style={{ width: '100%', maxWidth: '520px' }}>
-            <div className="onsite-card-header">
-              <h3 className="onsite-card-title">New support request</h3>
-              <button className="btn btn-sm btn-ghost" onClick={() => setShowForm(false)}>✕</button>
-            </div>
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <Dialog open={showForm} onOpenChange={(o) => { if (!o) setShowForm(false); }}>
+        <DialogContent hideClose className="max-w-130 gap-0" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div className="onsite-card-header">
+            <DialogTitle className="onsite-card-title">New support request</DialogTitle>
+            <button className="btn btn-sm btn-ghost" onClick={() => setShowForm(false)}>✕</button>
+          </div>
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div className="onsite-form-group">
                 <label>Subject *</label>
                 <input
@@ -193,10 +189,9 @@ export function OnsiteSupport() {
                   {submitting ? 'Sending…' : 'Send request'}
                 </button>
               </div>
-            </form>
-          </div>
-        </div>
-      )}
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

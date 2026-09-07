@@ -11,8 +11,10 @@ import { Popover, PopoverAnchor, PopoverContent } from '../components/ui/popover
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '../components/ui/dropdown-menu.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { Badge } from '../components/ui/badge.js';
+import { Checkbox } from '../components/ui/checkbox.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
 import { showAlert } from '../lib/alert.js';
 
 const MODAL_STEPS: { key: 'profile' | 'contact' | 'business' | 'extra'; label: string; icon: IconName }[] = [
@@ -853,10 +855,9 @@ export function Contacts() {
                     <thead>
                       <tr style={{ color: 'var(--ink2)', borderBottom: '1px solid var(--border)', height: 48 }}>
                         <th style={{ width: 48, paddingLeft: 12 }}>
-                          <input
-                            type="checkbox"
+                          <Checkbox
                             checked={filteredContacts.length > 0 && selectedIds.size === filteredContacts.length}
-                            onChange={toggleSelectAll}
+                            onCheckedChange={toggleSelectAll}
                           />
                         </th>
                         <th style={{ padding: '8px 16px', fontWeight: 500 }}>Name</th>
@@ -896,10 +897,9 @@ export function Contacts() {
                             >
                               {/* Checkbox */}
                               <td style={{ paddingLeft: 12 }} onClick={e => e.stopPropagation()}>
-                                <input
-                                  type="checkbox"
+                                <Checkbox
                                   checked={isSelected}
-                                  onChange={() => toggleSelect(contact.id)}
+                                  onCheckedChange={() => toggleSelect(contact.id)}
                                 />
                               </td>
 
@@ -1074,12 +1074,13 @@ export function Contacts() {
         )}
 
       {/* ── CREATE / EDIT CONTACT MODAL ── */}
-      {showEditModal !== null && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', overflowY: 'auto' }}>
-          <form onSubmit={handleSaveContact} style={{ background: 'var(--white)', padding: 32, borderRadius: 8, width: 560, maxWidth: '95%', maxHeight: '90vh', overflowY: 'auto', position: 'relative', margin: '20px 0' }}>
-            <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', margin: '0 0 16px' }}>
+      <Dialog open={showEditModal !== null} onOpenChange={o => { if (!o) setShowEditModal(null); }}>
+        <DialogContent className="max-w-140 gap-0" style={{ padding: 32, maxHeight: '90vh', overflowY: 'auto' }}>
+        {showEditModal !== null && (
+          <form onSubmit={handleSaveContact} style={{ position: 'relative' }}>
+            <DialogTitle style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', margin: '0 0 16px' }}>
               {showEditModal.id ? 'Edit contact' : 'Create contact'}
-            </h3>
+            </DialogTitle>
 
             {/* Step tabs — click any section directly, no strict linear gating */}
             <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid var(--border)', marginBottom: 20 }}>
@@ -1229,11 +1230,9 @@ export function Contacts() {
             {/* Favorite Checkbox */}
             <div style={{ marginBottom: 8 }}>
               <div style={{ display: 'flex', alignItems: 'center', height: 36 }}>
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={formIsFavorite}
-                  onChange={e => setFormIsFavorite(e.target.checked)}
-                  style={{ width: 18, height: 18 }}
+                  onCheckedChange={c => setFormIsFavorite(c === true)}
                 />
                 <span style={{ fontSize: 13, color: 'var(--ink)', marginLeft: 8 }}>Add to favorites</span>
               </div>
@@ -1458,8 +1457,9 @@ export function Contacts() {
               </div>
             </div>
           </form>
-        </div>
-      )}
+        )}
+        </DialogContent>
+      </Dialog>
 
     </div>
   );

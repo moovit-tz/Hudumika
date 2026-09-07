@@ -6,6 +6,7 @@ import { Icon } from '../components/Icon.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { LiveChatWidget } from '../components/LiveChatWidget.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet.js';
 
 /* ── Types ── */
 interface Message {
@@ -320,29 +321,19 @@ function NewTicketModal({ onClose, onCreate, creating }: {
   }
 
   return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 200,
-      background: 'rgba(0,0,0,0.4)', display: 'flex', flexDirection: 'column',
-      justifyContent: 'flex-end',
-    }}>
-      <div style={{
-        background: 'var(--white)', borderRadius: '20px 20px 0 0',
-        padding: '20px 20px 32px', maxHeight: '85vh', overflowY: 'auto',
-      }}>
-        {/* Handle */}
-        <div style={{ width: 40, height: 4, background: 'var(--border)', borderRadius: 99, margin: '0 auto 20px' }} />
+    <Sheet open onOpenChange={o => { if (!o) onClose(); }}>
+      <SheetContent side="bottom" className="rounded-t-[20px] p-0 gap-0 max-h-[85vh] overflow-y-auto">
+        <div style={{ padding: '20px 20px 32px' }}>
+          {/* Handle */}
+          <div style={{ width: 40, height: 4, background: 'var(--border)', borderRadius: 99, margin: '0 auto 20px' }} />
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-          <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--font)' }}>
-            New Support Ticket
-          </span>
-          <button type="button" title="Close" onClick={onClose}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
-            <Icon name="x" size={20} color="var(--ink3)" />
-          </button>
-        </div>
+          <SheetHeader style={{ marginBottom: 20 }}>
+            <SheetTitle style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--font)' }}>
+              New Support Ticket
+            </SheetTitle>
+          </SheetHeader>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {/* Category */}
           <div>
             <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 6, fontFamily: 'var(--font)' }}>
@@ -410,9 +401,10 @@ function NewTicketModal({ onClose, onCreate, creating }: {
             }}>
             {creating ? 'Submitting…' : 'Submit Ticket'}
           </button>
+          </div>
         </div>
-      </div>
-    </div>
+      </SheetContent>
+    </Sheet>
   );
 }
 

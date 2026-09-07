@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { Checkbox } from '../components/ui/checkbox.js';
 import { Icon } from '../components/Icon.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
@@ -107,7 +108,7 @@ export function ActivityMonitorPage() {
               ['captureHeatmap', 'Record pointer heat zones'],
             ] as [keyof Settings, string][]).map(([k, label]) => (
               <label key={k} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: 'var(--ink2)', cursor: 'pointer' }}>
-                <input type="checkbox" checked={!!settings[k]} disabled={saving || (k !== 'enabled' && !settings.enabled)} onChange={e => patchSettings({ [k]: e.target.checked })} />
+                <Checkbox checked={!!settings[k]} disabled={saving || (k !== 'enabled' && !settings.enabled)} onCheckedChange={c => patchSettings({ [k]: c === true })} />
                 {label}
               </label>
             ))}

@@ -8,6 +8,10 @@ import { useAuth } from '../hooks/useAuth.js';
 import { MGMT_ROLES } from '../lib/permissions.js';
 import './SupportSettings.css';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { Checkbox } from '../components/ui/checkbox.js';
+import { Switch } from '../components/ui/switch.js';
+import { Badge } from '../components/ui/badge.js';
+import { Tip } from '../components/ui/tooltip.js';
 import { showConfirm } from '../lib/confirm.js';
 
 type RuleType = 'auto_assign' | 'sla_escalation' | 'status_automation' | 'notification_trigger' | 'whatsapp_keyword';
@@ -101,7 +105,7 @@ function RuleForm({ type, agents, onCancel, onSave, saving }: {
               {agents.length === 0 && <span className="ssg-hint">No eligible agents found for this tenant.</span>}
               {agents.map(a => (
                 <label key={a.id} className="ssg-agent-chip">
-                  <input type="checkbox" checked={agentIds.includes(a.id)} onChange={() => toggleAgent(a.id)} />
+                  <Checkbox checked={agentIds.includes(a.id)} onCheckedChange={() => toggleAgent(a.id)} />
                   {a.name}
                 </label>
               ))}
@@ -224,6 +228,21 @@ export const SupportSettings: React.FC = () => {
 
   useEffect(() => { load(); }, [load]);
 
+  // Real connection status per channel — not a decorative always-on dot.
+  // null = still loading, so the row shows nothing until it actually knows.
+  const [chStatus, setChStatus] = useState<{ whatsapp: boolean | null; email: boolean | null; sms: boolean | null }>({ whatsapp: null, email: null, sms: null });
+  useEffect(() => {
+    apiFetch('/v1/support/whatsapp-metrics')
+      .then((r: any) => setChStatus(s => ({ ...s, whatsapp: !!r?.configured })))
+      .catch(() => setChStatus(s => ({ ...s, whatsapp: false })));
+    apiFetch('/v1/settings')
+      .then((r: any) => setChStatus(s => ({ ...s, email: !!r?.settings?.ticketImap })))
+      .catch(() => setChStatus(s => ({ ...s, email: false })));
+    apiFetch('/v1/sms/gateways')
+      .then((r: any) => setChStatus(s => ({ ...s, sms: (Array.isArray(r?.data) ? r.data : []).some((g: any) => g.active) })))
+      .catch(() => setChStatus(s => ({ ...s, sms: false })));
+  }, []);
+
   async function handleToggle(rule: Rule) {
     try {
       await apiFetch(`/v1/support/rules/${rule.id}`, { method: 'PATCH', body: JSON.stringify({ enabled: !rule.enabled }) });
@@ -260,15 +279,19 @@ export const SupportSettings: React.FC = () => {
   // This card used to be 4 hand-picked "channels," each with a hardcoded
   // active:true/false and a permanently-disabled Manage/Connect button that
   // did nothing — decorative status regardless of whether the tenant had
-  // actually configured anything. Real channel config already exists
-  // elsewhere in the platform; this card now points at the real place for
-  // each, rather than pretending to be a second, non-functional copy of it.
-  // Facebook Messenger is dropped entirely: support_tickets' channel column
-  // has no FACEBOOK value in its schema, so there is nothing real to link —
-  // wiring that in is a real integration project, not a settings toggle.
-  const integrations: { name: string; icon: IconName; color: string; desc: string; to: string }[] = [
-    { name: 'WhatsApp & SMS gateways', icon: 'phone', color: '#25D366', desc: 'Credentials, sender IDs and priority order — managed in the SMS app.', to: '/sms/gateways' },
-    { name: 'Email ticket ingest', icon: 'mail', color: '#0569e3', desc: 'IMAP mailbox that turns incoming email into tickets — configure the mailbox in Settings.', to: '/workspace/settings?s=email' },
+  // actually configured anything. It then collapsed to a "WhatsApp & SMS
+  // gateways" row pointing at /sms/gateways, which configures SMS only —
+  // WhatsApp's real credentials (Meta Cloud API) have nothing to do with
+  // that page, so the link was actively misleading. Each real channel now
+  // gets its own row, its own live status (fetched above, not assumed),
+  // and a link to wherever that channel's actual configuration lives.
+  // Instagram/Facebook/Telegram aren't listed at all — see channelKey()'s
+  // comment in Support.tsx for why (no real backend, would show "sent" on
+  // a message nothing actually delivered).
+  const integrations: { name: string; icon: IconName; color: string; desc: string; to: string; connected: boolean | null }[] = [
+    { name: 'WhatsApp', icon: 'whatsapp', color: '#25D366', desc: 'Meta Cloud API credentials, message templates and the inbound webhook.', to: '/bliss/whatsapp', connected: chStatus.whatsapp },
+    { name: 'Email', icon: 'mail', color: '#0569e3', desc: 'IMAP mailbox that turns incoming email into tickets.', to: '/workspace/settings?s=email', connected: chStatus.email },
+    { name: 'SMS', icon: 'smartphone', color: '#8b5cf6', desc: 'Gateway credentials, sender IDs and priority order — managed in the SMS app.', to: '/sms/gateways', connected: chStatus.sms },
   ];
 
   return (
@@ -304,18 +327,17 @@ export const SupportSettings: React.FC = () => {
 
                 {sectionRules.map(rule => (
                   <div key={rule.id} className="ssg-rule-row">
-                    <label className="ssg-toggle">
-                      <input type="checkbox" checked={rule.enabled} onChange={() => handleToggle(rule)} disabled={!canManage} />
-                      <span className="ssg-toggle-track" />
-                    </label>
+                    <Switch checked={rule.enabled} onCheckedChange={() => handleToggle(rule)} disabled={!canManage} />
                     <div className="ssg-rule-row-body">
                       <div className="ssg-rule-row-name">{rule.name}</div>
                       <div className="ssg-rule-row-summary"><RuleConfigSummary rule={rule} agents={agents} /></div>
                     </div>
                     {canManage && (
-                      <button type="button" className="ssg-rule-delete" title="Delete rule" onClick={() => handleDelete(rule)}>
-                        <Icon name="trash" size={14} />
-                      </button>
+                      <Tip label="Delete rule">
+                        <button type="button" className="ssg-rule-delete" onClick={() => handleDelete(rule)}>
+                          <Icon name="trash" size={14} />
+                        </button>
+                      </Tip>
                     )}
                   </div>
                 ))}
@@ -354,9 +376,31 @@ export const SupportSettings: React.FC = () => {
                 <div className="ssg-integration-desc">{ig.desc}</div>
               </div>
             </div>
-            <Icon name="arrowUpRight" size={16} color="var(--ink3)" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              {ig.connected === null ? (
+                <span style={{ fontSize: 11.5, color: 'var(--ink3)' }}>Checking…</span>
+              ) : (
+                <Badge variant={ig.connected ? 'success' : 'gray'}>{ig.connected ? 'Connected' : 'Not connected'}</Badge>
+              )}
+              <Icon name="arrowUpRight" size={16} color="var(--ink3)" />
+            </div>
           </Link>
         ))}
+
+        {/* Chat (In-App) is the platform's own composer — nothing external
+            to connect, so it gets a status line instead of a Configure link. */}
+        <div className="ssg-integration-row" style={{ cursor: 'default' }}>
+          <div className="ssg-integration-left">
+            <div className="ssg-integration-icon" style={{ background: 'var(--teal-l)' }}>
+              <Icon name="message" size={20} color="var(--teal)" />
+            </div>
+            <div>
+              <div className="ssg-integration-name">Chat (In-App)</div>
+              <div className="ssg-integration-desc">The native reply composer — always available, nothing to connect.</div>
+            </div>
+          </div>
+          <Badge variant="success">Always on</Badge>
+        </div>
       </div>
     </div>
   );

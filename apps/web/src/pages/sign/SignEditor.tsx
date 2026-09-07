@@ -10,6 +10,7 @@ import type { SignFieldType } from '@hudumika/types';
 import { Icon } from '../../components/Icon.js';
 import type { IconName } from '../../components/Icon.js';
 import { Button } from '../../components/ui/button.js';
+import { Checkbox } from '../../components/ui/checkbox.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
 import { Popover, PopoverTrigger, PopoverContent } from '../../components/ui/popover.js';
 import { EntityPicker, type PickerItem } from '../../components/EntityPicker.js';
@@ -605,7 +606,7 @@ export function SignEditor() {
 
           <Tip label="Each recipient must have a phone number on file — they'll choose SMS or WhatsApp to receive their code">
             <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--ink2)', cursor: 'pointer', whiteSpace: 'nowrap', userSelect: 'none' }}>
-              <input type="checkbox" checked={requireOtp} onChange={e => setRequireOtp(e.target.checked)} style={{ accentColor: 'var(--teal)' }} />
+              <Checkbox checked={requireOtp} onCheckedChange={c => setRequireOtp(c === true)} />
               OTP / WhatsApp
             </label>
           </Tip>
@@ -812,9 +813,8 @@ export function SignEditor() {
                 most documents never need it; a real legal attestation by a
                 named licensed advocate/notary, not the tenant's own stamp. */}
             <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--ink2)', cursor: 'pointer', marginTop: 10 }}>
-              <input type="checkbox" checked={!!recipients[activeRecipient]?.is_certifier}
-                onChange={e => setRecipients(prev => prev.map((r, i) => i === activeRecipient ? { ...r, is_certifier: e.target.checked } : r))}
-                style={{ accentColor: 'var(--teal)' }} />
+              <Checkbox checked={!!recipients[activeRecipient]?.is_certifier}
+                onCheckedChange={c => setRecipients(prev => prev.map((r, i) => i === activeRecipient ? { ...r, is_certifier: c === true } : r))} />
               This recipient certifies a true copy (advocate / notary)
             </label>
             {recipients[activeRecipient]?.is_certifier && (
@@ -1057,8 +1057,8 @@ export function SignEditor() {
                   style={{ width: '100%', padding: '7px 10px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--bg)', fontSize: 13, boxSizing: 'border-box' }} />
               </div>
               <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-                <input type="checkbox" checked={selectedFieldData.required}
-                  onChange={e => setFields(prev => prev.map(f => f.id === selectedField ? { ...f, required: e.target.checked } : f))} />
+                <Checkbox checked={selectedFieldData.required}
+                  onCheckedChange={c => setFields(prev => prev.map(f => f.id === selectedField ? { ...f, required: c === true } : f))} />
                 <span style={{ fontSize: 13 }}>Required field</span>
               </label>
               <Button variant="outline" size="sm" onClick={() => removeField(selectedFieldData.id)}

@@ -11,6 +11,7 @@ import {
   type Invoice, type Status,
   invoiceTotals, STATUS_STYLE, mapApiInvoice, fmtTZS,
 } from './Billing.js';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet.js';
 
 /* ── helpers ── */
 function fmtDate(str?: string | null) {
@@ -83,38 +84,34 @@ function DisputeModal({ inv, onClose, onSubmit }: {
   const [reason, setReason] = useState('');
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,0.45)', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ background: 'var(--white)', borderRadius: '20px 20px 0 0', padding: '20px 20px 36px', maxHeight: '80vh', overflowY: 'auto' }}>
-        <div style={{ width: 40, height: 4, background: 'var(--border)', borderRadius: 99, margin: '0 auto 20px' }} />
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-          <div>
-            <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--ink)', fontFamily: 'var(--font)' }}>Dispute Invoice</div>
+    <Sheet open onOpenChange={o => { if (!o) onClose(); }}>
+      <SheetContent side="bottom" className="rounded-t-[20px] p-0 gap-0 max-h-[80vh] overflow-y-auto">
+        <div style={{ padding: '20px 20px 36px' }}>
+          <div style={{ width: 40, height: 4, background: 'var(--border)', borderRadius: 99, margin: '0 auto 20px' }} />
+          <SheetHeader style={{ marginBottom: 16 }}>
+            <SheetTitle style={{ fontSize: 17, fontWeight: 800, color: 'var(--ink)', fontFamily: 'var(--font)' }}>Dispute Invoice</SheetTitle>
             <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>{inv.id}</div>
-          </div>
-          <button type="button" title="Close" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
-            <Icon name="x" size={20} color="var(--ink3)" />
+          </SheetHeader>
+
+          <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 6, fontFamily: 'var(--font)' }}>
+            Reason for dispute
+          </label>
+          <textarea
+            title="Describe the dispute"
+            placeholder="Describe the issue with this invoice…"
+            value={reason}
+            onChange={e => setReason(e.target.value)}
+            rows={4}
+            style={{ width: '100%', resize: 'none', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', padding: '12px 14px', fontSize: 14, fontFamily: 'var(--font)', color: 'var(--ink)', background: 'var(--bg)', outline: 'none', lineHeight: 1.5, boxSizing: 'border-box' as const, marginBottom: 16 }}
+          />
+          <button type="button" title="Submit dispute" onClick={() => { if (reason.trim()) onSubmit(reason.trim()); }}
+            disabled={!reason.trim()}
+            style={{ width: '100%', padding: '14px', background: reason.trim() ? 'var(--red)' : 'var(--border)', color: '#fff', border: 'none', borderRadius: 'var(--r)', fontSize: 15, fontWeight: 700, cursor: reason.trim() ? 'pointer' : 'default', fontFamily: 'var(--font)' }}>
+            Submit Dispute
           </button>
         </div>
-
-        <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 6, fontFamily: 'var(--font)' }}>
-          Reason for dispute
-        </label>
-        <textarea
-          title="Describe the dispute"
-          placeholder="Describe the issue with this invoice…"
-          value={reason}
-          onChange={e => setReason(e.target.value)}
-          rows={4}
-          style={{ width: '100%', resize: 'none', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', padding: '12px 14px', fontSize: 14, fontFamily: 'var(--font)', color: 'var(--ink)', background: 'var(--bg)', outline: 'none', lineHeight: 1.5, boxSizing: 'border-box' as const, marginBottom: 16 }}
-        />
-        <button type="button" title="Submit dispute" onClick={() => { if (reason.trim()) onSubmit(reason.trim()); }}
-          disabled={!reason.trim()}
-          style={{ width: '100%', padding: '14px', background: reason.trim() ? 'var(--red)' : 'var(--border)', color: '#fff', border: 'none', borderRadius: 'var(--r)', fontSize: 15, fontWeight: 700, cursor: reason.trim() ? 'pointer' : 'default', fontFamily: 'var(--font)' }}>
-          Submit Dispute
-        </button>
-      </div>
-    </div>
+      </SheetContent>
+    </Sheet>
   );
 }
 

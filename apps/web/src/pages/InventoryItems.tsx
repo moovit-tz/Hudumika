@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
+import { Checkbox } from '../components/ui/checkbox.js';
 import { Button } from '../components/ui/button.js';
 import { Input } from '../components/ui/input.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
@@ -159,7 +160,7 @@ export function InventoryItems() {
               <Input type="number" min="0" step="any" value={newReorderQty} onChange={e => setNewReorderQty(e.target.value)} placeholder="0" />
             </div>
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: 'var(--ink2)', cursor: 'pointer' }}>
-              <input type="checkbox" checked={newBatchTracked} onChange={e => setNewBatchTracked(e.target.checked)} />
+              <Checkbox checked={newBatchTracked} onCheckedChange={c => setNewBatchTracked(c === true)} />
               Batch/Lot Tracked
             </label>
           </div>

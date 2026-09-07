@@ -8,6 +8,7 @@ import { Combobox } from '../../components/ui/combobox.js';
 import { PageHeader } from '../../components/PageHeader.js';
 import type { OnsiteWebsite, OnsiteDomain } from '@hudumika/types';
 import { Icon } from '../../components/Icon.js';
+import { Dialog, DialogContent, DialogTitle } from '../../components/ui/dialog.js';
 import './Onsite.css';
 
 const WEBSITE_TYPES: { value: string; label: string }[] = [
@@ -387,14 +388,10 @@ function AddWebsiteModal({ onClose, onCreated }: { onClose: () => void; onCreate
   };
 
   return (
-    <div style={{
-      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-      background: 'rgba(0,0,0,0.5)', zIndex: 1000,
-      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem',
-    }}>
-      <div className="onsite-card" style={{ width: '100%', maxWidth: '480px' }}>
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent hideClose className="max-w-120 gap-0" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         <div className="onsite-card-header">
-          <h3 className="onsite-card-title">Add website</h3>
+          <DialogTitle className="onsite-card-title">Add website</DialogTitle>
           <button className="btn btn-sm btn-ghost" onClick={onClose}>✕</button>
         </div>
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -455,7 +452,7 @@ function AddWebsiteModal({ onClose, onCreated }: { onClose: () => void; onCreate
             </button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

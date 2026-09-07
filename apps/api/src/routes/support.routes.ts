@@ -2,7 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import type { Transaction } from 'kysely';
 import { sql } from 'kysely';
 import { z } from 'zod';
-import { db, withTenant, type Database } from '../db/client.js';
+import { withTenant, type Database } from '../db/client.js';
 import { MessagingService } from '../services/messaging.service.js';
 import { requireRole } from '../middleware/rbac.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
@@ -115,7 +115,13 @@ export async function applyAutoAssignRules(trx: Transaction<Database>, tenantId:
 export async function createTicketRow(
   trx: Transaction<Database>,
   tenantId: string,
-  input: { customerId: string; subject: string; description?: string | null; channel: MessageChannel; priority: TicketPriority; category: string; sourceApp?: string | null },
+  input: {
+    customerId: string; subject: string; description?: string | null; channel: MessageChannel; priority: TicketPriority; category: string; sourceApp?: string | null;
+    // Only ever set by a caller that actually has a live HTTP request (the
+    // create-ticket route, the Onsite org portal) — null for every other
+    // caller (IMAP ingest, automations), which have no browser to fingerprint.
+    originIp?: string | null; originUserAgent?: string | null;
+  },
 ) {
   const slaDeadline = new Date(Date.now() + SLA_HOURS[input.priority] * 3600_000);
   let ticket = await trx
@@ -133,6 +139,8 @@ export async function createTicketRow(
       tags: JSON.stringify([]),
       sla_deadline: slaDeadline,
       source_app: input.sourceApp ?? null,
+      origin_ip: input.originIp ?? null,
+      origin_user_agent: input.originUserAgent ?? null,
     })
     .returningAll()
     .executeTakeFirstOrThrow();
@@ -303,6 +311,8 @@ export default async function supportRoutes(fastify: FastifyInstance) {
         priority: b.priority,
         category: b.category,
         sourceApp: b.source_app ?? null,
+        originIp: request.ip,
+        originUserAgent: String(request.headers['user-agent'] || '') || null,
       });
 
       reply.status(201);
@@ -325,6 +335,7 @@ export default async function supportRoutes(fastify: FastifyInstance) {
           'c.phone as customer_phone', 'c.phone_wa as customer_wa',
           'c.contact_name as customer_company',
           'u.name as assigned_to', 'u.id as assigned_to_id',
+          'st.source_app', 'st.origin_ip', 'st.origin_user_agent',
         ])
         .where('st.id', '=', request.params.id)
         .where('st.tenant_id', '=', user.tenant_id)
@@ -728,6 +739,26 @@ Write a professional, empathetic reply to this customer. Be concise (2–4 sente
       const updated = await trx
         .updateTable('support_tickets')
         .set({ group_id: request.body.group_id, updated_at: new Date() })
+        .where('id', '=', request.params.id)
+        .where('tenant_id', '=', user.tenant_id)
+        .returningAll()
+        .executeTakeFirstOrThrow();
+
+      reply.status(200);
+      return updated;
+    });
+  });
+
+  // 8b. Set a ticket's tags — the DetailsPanel tag chip editor used to only
+  // ever call local setState, so every tag an agent added vanished on the
+  // next page load having never reached the database at all.
+  fastify.patch<{ Params: { id: string }; Body: { tags: string[] } }>('/tickets/:id/tags', async (request, reply) => {
+    const user = request.user;
+    const tags = Array.isArray(request.body.tags) ? request.body.tags.map(t => String(t).trim()).filter(Boolean) : [];
+    return withTenant(user.tenant_id, async (trx) => {
+      const updated = await trx
+        .updateTable('support_tickets')
+        .set({ tags: JSON.stringify(tags), updated_at: new Date() })
         .where('id', '=', request.params.id)
         .where('tenant_id', '=', user.tenant_id)
         .returningAll()

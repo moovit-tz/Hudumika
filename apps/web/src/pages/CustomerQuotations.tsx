@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet.js';
 
 /* ── Types ── */
 type QuoteStatus = 'DRAFT' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'CONVERTED' | 'EXPIRED';
@@ -74,36 +75,32 @@ function RejectModal({ quote, onClose, onReject }: {
   const [reason, setReason] = useState('');
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,0.45)', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ background: 'var(--white)', borderRadius: '20px 20px 0 0', padding: '20px 20px 36px' }}>
-        <div style={{ width: 40, height: 4, background: 'var(--border)', borderRadius: 99, margin: '0 auto 20px' }} />
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-          <div>
-            <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--ink)', fontFamily: 'var(--font)' }}>Reject Quote</div>
+    <Sheet open onOpenChange={o => { if (!o) onClose(); }}>
+      <SheetContent side="bottom" className="rounded-t-[20px] p-0 gap-0">
+        <div style={{ padding: '20px 20px 36px' }}>
+          <div style={{ width: 40, height: 4, background: 'var(--border)', borderRadius: 99, margin: '0 auto 20px' }} />
+          <SheetHeader style={{ marginBottom: 16 }}>
+            <SheetTitle style={{ fontSize: 17, fontWeight: 800, color: 'var(--ink)', fontFamily: 'var(--font)' }}>Reject Quote</SheetTitle>
             <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>{quote.quote_number}</div>
-          </div>
-          <button type="button" title="Close" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
-            <Icon name="x" size={20} color="var(--ink3)" />
+          </SheetHeader>
+          <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 6, fontFamily: 'var(--font)' }}>
+            Reason (optional)
+          </label>
+          <textarea
+            title="Rejection reason"
+            placeholder="Let us know why you're rejecting this quote…"
+            value={reason}
+            onChange={e => setReason(e.target.value)}
+            rows={3}
+            style={{ width: '100%', resize: 'none', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', padding: '12px 14px', fontSize: 14, fontFamily: 'var(--font)', color: 'var(--ink)', background: 'var(--bg)', outline: 'none', lineHeight: 1.5, boxSizing: 'border-box' as const, marginBottom: 16 }}
+          />
+          <button type="button" title="Confirm rejection" onClick={() => onReject(reason.trim())}
+            style={{ width: '100%', padding: '14px', background: 'var(--red)', color: '#fff', border: 'none', borderRadius: 'var(--r)', fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)' }}>
+            Reject Quote
           </button>
         </div>
-        <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 6, fontFamily: 'var(--font)' }}>
-          Reason (optional)
-        </label>
-        <textarea
-          title="Rejection reason"
-          placeholder="Let us know why you're rejecting this quote…"
-          value={reason}
-          onChange={e => setReason(e.target.value)}
-          rows={3}
-          style={{ width: '100%', resize: 'none', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', padding: '12px 14px', fontSize: 14, fontFamily: 'var(--font)', color: 'var(--ink)', background: 'var(--bg)', outline: 'none', lineHeight: 1.5, boxSizing: 'border-box' as const, marginBottom: 16 }}
-        />
-        <button type="button" title="Confirm rejection" onClick={() => onReject(reason.trim())}
-          style={{ width: '100%', padding: '14px', background: 'var(--red)', color: '#fff', border: 'none', borderRadius: 'var(--r)', fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)' }}>
-          Reject Quote
-        </button>
-      </div>
-    </div>
+      </SheetContent>
+    </Sheet>
   );
 }
 
@@ -114,33 +111,34 @@ function AcceptModal({ quote, onClose, onAccept }: {
   onAccept: () => void;
 }) {
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,0.45)', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ background: 'var(--white)', borderRadius: '20px 20px 0 0', padding: '20px 20px 36px' }}>
-        <div style={{ width: 40, height: 4, background: 'var(--border)', borderRadius: 99, margin: '0 auto 20px' }} />
-        <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--green-l)', margin: '0 auto 16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Icon name="checkCircle" size={28} color="#059669" />
-        </div>
-        <div style={{ textAlign: 'center', marginBottom: 20 }}>
-          <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)', marginBottom: 8, fontFamily: 'var(--font)' }}>Accept this quote?</div>
-          <div style={{ fontSize: 13, color: 'var(--ink3)', lineHeight: 1.5 }}>
-            You are accepting <strong style={{ color: 'var(--ink)' }}>{quote.quote_number}</strong> for{' '}
-            <strong style={{ color: 'var(--teal)' }}>{fmtAmt(quote.total_amount, quote.currency)}</strong>.
-            {quote.terms && <><br />Terms: {quote.terms}</>}
+    <Sheet open onOpenChange={o => { if (!o) onClose(); }}>
+      <SheetContent side="bottom" className="rounded-t-[20px] p-0 gap-0">
+        <div style={{ padding: '20px 20px 36px' }}>
+          <div style={{ width: 40, height: 4, background: 'var(--border)', borderRadius: 99, margin: '0 auto 20px' }} />
+          <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--green-l)', margin: '0 auto 16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name="checkCircle" size={28} color="#059669" />
+          </div>
+          <div style={{ textAlign: 'center', marginBottom: 20 }}>
+            <SheetTitle style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)', marginBottom: 8, fontFamily: 'var(--font)', textAlign: 'center' }}>Accept this quote?</SheetTitle>
+            <div style={{ fontSize: 13, color: 'var(--ink3)', lineHeight: 1.5 }}>
+              You are accepting <strong style={{ color: 'var(--ink)' }}>{quote.quote_number}</strong> for{' '}
+              <strong style={{ color: 'var(--teal)' }}>{fmtAmt(quote.total_amount, quote.currency)}</strong>.
+              {quote.terms && <><br />Terms: {quote.terms}</>}
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button type="button" title="Cancel" onClick={onClose}
+              style={{ flex: 1, padding: '13px', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)' }}>
+              Cancel
+            </button>
+            <button type="button" title="Accept quote" onClick={onAccept}
+              style={{ flex: 1, padding: '13px', border: 'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)' }}>
+              Yes, Accept
+            </button>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 10 }}>
-          <button type="button" title="Cancel" onClick={onClose}
-            style={{ flex: 1, padding: '13px', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)' }}>
-            Cancel
-          </button>
-          <button type="button" title="Accept quote" onClick={onAccept}
-            style={{ flex: 1, padding: '13px', border: 'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)' }}>
-            Yes, Accept
-          </button>
-        </div>
-      </div>
-    </div>
+      </SheetContent>
+    </Sheet>
   );
 }
 

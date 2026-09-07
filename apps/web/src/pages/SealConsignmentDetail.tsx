@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
+import { Checkbox } from '../components/ui/checkbox.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
@@ -383,7 +384,7 @@ export function SealConsignmentDetail() {
                           </>
                         )}
                         <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: 'var(--ink2)', cursor: 'pointer', height: 38 }}>
-                          <input type="checkbox" checked={line.discrepancy} onChange={e => updateLine(i, { discrepancy: e.target.checked })} />
+                          <Checkbox checked={line.discrepancy} onCheckedChange={c => updateLine(i, { discrepancy: c === true })} />
                           Discrepancy
                         </label>
                         {line.discrepancy && (

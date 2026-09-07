@@ -13,7 +13,7 @@ import { resolveCustomerId } from '../services/customer-identity.service.js';
  */
 const NOTHING = '00000000-0000-0000-0000-000000000000';
 const customerScope = async (u: any) => (await resolveCustomerId(u)) ?? NOTHING;
-import { db, withTenant } from '../db/client.js';
+import { withTenant } from '../db/client.js';
 
 export async function notificationRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);

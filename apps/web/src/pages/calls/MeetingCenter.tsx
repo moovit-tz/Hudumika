@@ -4,9 +4,11 @@ import { apiFetch } from '../../lib/api.js';
 import { useAuth } from '../../hooks/useAuth.js';
 import { Icon } from '../../components/Icon.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
+import { Checkbox } from '../../components/ui/checkbox.js';
 import { PageHeader } from '../../components/PageHeader.js';
 import { SectionCard } from '../../components/SectionCard.js';
 import { Button } from '../../components/ui/button.js';
+import { Tip } from '../../components/ui/tooltip.js';
 import { Badge } from '../../components/ui/badge.js';
 import { DatePicker } from '../../components/ui/date-picker.js';
 import { showAlert } from '../../lib/alert.js';
@@ -262,7 +264,7 @@ export function MeetingCenter() {
             </div>
 
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: 'var(--ink2)', cursor: 'pointer' }}>
-              <input type="checkbox" checked={schedWaitingRoom} onChange={e => setSchedWaitingRoom(e.target.checked)} />
+              <Checkbox checked={schedWaitingRoom} onCheckedChange={c => setSchedWaitingRoom(c === true)} />
               Enable waiting room (host must manually admit each participant)
             </label>
 
@@ -341,13 +343,17 @@ export function MeetingCenter() {
                     </Badge>
                     {!isPast && (
                       <>
-                        <Button variant="outline" size="sm" onClick={() => copyJoinLink(m)} title="Copy join link">
-                          <Icon name="copy" size={13} /> Link
-                        </Button>
-                        {isMine && m.status === 'SCHEDULED' && (
-                          <Button variant="ghost" size="sm" onClick={() => cancelMeeting(m.id)} title="Cancel Meeting">
-                            <Icon name="x" size={13} style={{ color: 'var(--red)' }} />
+                        <Tip label="Copy join link">
+                          <Button variant="outline" size="sm" onClick={() => copyJoinLink(m)}>
+                            <Icon name="copy" size={13} /> Link
                           </Button>
+                        </Tip>
+                        {isMine && m.status === 'SCHEDULED' && (
+                          <Tip label="Cancel Meeting">
+                            <Button variant="ghost" size="sm" onClick={() => cancelMeeting(m.id)}>
+                              <Icon name="x" size={13} style={{ color: 'var(--red)' }} />
+                            </Button>
+                          </Tip>
                         )}
                         <Button variant="default" size="sm" onClick={() => setActiveMeetingId(m.id)}>
                           Join Room

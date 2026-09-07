@@ -8,6 +8,7 @@ import { SectionCard } from '../components/SectionCard.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { SectionLoading } from '../components/ui/spinner.js';
+import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
 
 interface LinkedAgent {
   customer_id: string;
@@ -765,12 +766,10 @@ export const OrgShell: React.FC = () => {
       {/* Link an agent modal — redeem a one-time claim code (customers.routes.ts
           POST /:id/claim-code) issued by a tenant's staff and sent only to
           the real customer's own registered email/WhatsApp. */}
-      {showLinkAgent && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
-          onClick={e => { if (e.target === e.currentTarget) setShowLinkAgent(false); }}>
-          <div style={{ background: 'var(--white)', borderRadius: 12, padding: 24, width: '100%', maxWidth: 420 }}>
+      <Dialog open={showLinkAgent} onOpenChange={o => { if (!o) setShowLinkAgent(false); }}>
+        <DialogContent hideClose className="max-w-105 gap-0" style={{ padding: 24 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-              <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>Link an Agent</span>
+              <DialogTitle style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>Link an Agent</DialogTitle>
               <button type="button" onClick={() => setShowLinkAgent(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
                 <Icon name="x" size={18} color="var(--ink3)" />
               </button>
@@ -786,19 +785,17 @@ export const OrgShell: React.FC = () => {
               style={{ width: '100%', padding: '12px', borderRadius: 'var(--r)', border: 'none', background: claimCode.trim() && !claimingCode ? 'hsl(var(--primary))' : 'var(--border)', color: claimCode.trim() && !claimingCode ? 'hsl(var(--primary-foreground))' : 'var(--ink3)', fontSize: 14, fontWeight: 700, cursor: claimCode.trim() && !claimingCode ? 'pointer' : 'default' }}>
               {claimingCode ? 'Linking…' : 'Link Agent'}
             </button>
-          </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
 
       {/* Request dispatch modal — creates a PENDING seal_dispatch_requests row
           (migration 232) in the warehouse tenant's own data; only that
           tenant's own staff can approve it into a real fulfillment order. */}
-      {dispatchLot && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
-          onClick={e => { if (e.target === e.currentTarget) setDispatchLot(null); }}>
-          <div style={{ background: 'var(--white)', borderRadius: 12, padding: 24, width: '100%', maxWidth: 440 }}>
+      <Dialog open={!!dispatchLot} onOpenChange={o => { if (!o) setDispatchLot(null); }}>
+        <DialogContent hideClose className="max-w-110 gap-0" style={{ padding: 24 }}>
+          {dispatchLot && <>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-              <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>Request Dispatch</span>
+              <DialogTitle style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>Request Dispatch</DialogTitle>
               <button type="button" onClick={() => setDispatchLot(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
                 <Icon name="x" size={18} color="var(--ink3)" />
               </button>
@@ -825,20 +822,19 @@ export const OrgShell: React.FC = () => {
                 {submittingDispatch ? 'Sending…' : 'Send Request'}
               </button>
             </div>
-          </div>
-        </div>
-      )}
+          </>}
+        </DialogContent>
+      </Dialog>
 
       {/* Manage sharing modal — only reachable from a doc where this org
           holds Editor-level access (can_manage_sharing), scoped to removing
           an existing share; see removeShare()'s own comment for why there's
           no "add" picker here. */}
-      {shareDoc && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
-          onClick={e => { if (e.target === e.currentTarget) setShareDoc(null); }}>
-          <div style={{ background: 'var(--white)', borderRadius: 12, padding: 24, width: '100%', maxWidth: 420 }}>
+      <Dialog open={!!shareDoc} onOpenChange={o => { if (!o) setShareDoc(null); }}>
+        <DialogContent hideClose className="max-w-105 gap-0" style={{ padding: 24 }}>
+          {shareDoc && <>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-              <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>Manage Sharing</span>
+              <DialogTitle style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>Manage Sharing</DialogTitle>
               <button type="button" onClick={() => setShareDoc(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
                 <Icon name="x" size={18} color="var(--ink3)" />
               </button>
@@ -866,17 +862,15 @@ export const OrgShell: React.FC = () => {
                 ))}
               </div>
             )}
-          </div>
-        </div>
-      )}
+          </>}
+        </DialogContent>
+      </Dialog>
 
       {/* New ticket modal */}
-      {showNewTicket && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
-          onClick={e => { if (e.target === e.currentTarget) setShowNewTicket(false); }}>
-          <div style={{ background: 'var(--white)', borderRadius: 12, padding: 24, width: '100%', maxWidth: 440 }}>
+      <Dialog open={showNewTicket} onOpenChange={o => { if (!o) setShowNewTicket(false); }}>
+        <DialogContent hideClose className="max-w-110 gap-0" style={{ padding: 24 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
-              <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>New Support Ticket</span>
+              <DialogTitle style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>New Support Ticket</DialogTitle>
               <button type="button" onClick={() => setShowNewTicket(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
                 <Icon name="x" size={18} color="var(--ink3)" />
               </button>
@@ -909,9 +903,8 @@ export const OrgShell: React.FC = () => {
                 {creatingTicket ? 'Submitting…' : 'Submit Ticket'}
               </button>
             </div>
-          </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

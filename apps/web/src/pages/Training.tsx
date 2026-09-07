@@ -5,6 +5,7 @@ import { SectionLoading } from '../components/ui/spinner.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Badge } from '../components/ui/badge.js';
+import { Checkbox } from '../components/ui/checkbox.js';
 import { Combobox, type ComboboxOption } from '../components/ui/combobox.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { Button } from '../components/ui/button.js';
@@ -81,7 +82,7 @@ function CreateCourseDialog({ onClose, onCreated }: { onClose: () => void; onCre
             <div><label style={lbl}>Duration (hours)</label><input type="number" min={0} value={durationHours} onChange={e => setDurationHours(e.target.value)} style={inp} /></div>
             <div>
               <label style={{ ...lbl, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
-                <input type="checkbox" checked={isCert} onChange={e => setIsCert(e.target.checked)} /> Certification
+                <Checkbox checked={isCert} onCheckedChange={c => setIsCert(c === true)} /> Certification
               </label>
               {isCert && <input type="number" min={1} value={validityMonths} onChange={e => setValidityMonths(e.target.value)} placeholder="Valid for (months)" style={inp} />}
             </div>

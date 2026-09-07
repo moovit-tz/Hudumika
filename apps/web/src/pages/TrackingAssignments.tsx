@@ -7,6 +7,7 @@ import { Combobox } from '../components/ui/combobox.js';
 import { DateTimePicker } from '../components/ui/date-picker.js';
 import { showAlert } from '../lib/alert.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
 
 /** Format a Date to "YYYY-MM-DDTHH:mm" in local time — same shape a native
  *  <input type="datetime-local"> value had, so the existing string-based
@@ -207,10 +208,10 @@ const AddAssignmentModal = ({ onClose, onSave }: { onClose: () => void, onSave: 
   const labelStyle = { display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 };
 
   return (
-    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-      <div style={{ background: 'var(--white)', borderRadius: 12, padding: 24, width: 400, boxShadow: 'var(--elev-lg)' }}>
+    <Dialog open onOpenChange={o => { if (!o) onClose(); }}>
+      <DialogContent hideClose className="max-w-100 gap-0" style={{ borderRadius: 12, padding: 24 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-          <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)' }}>Add Assignment</div>
+          <DialogTitle style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)' }}>Add Assignment</DialogTitle>
           <button onClick={onClose} aria-label="Close" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}><Icon name="x" size={20} /></button>
         </div>
 
@@ -259,7 +260,7 @@ const AddAssignmentModal = ({ onClose, onSave }: { onClose: () => void, onSave: 
             {saving ? 'Saving...' : 'Save Assignment'}
           </button>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };

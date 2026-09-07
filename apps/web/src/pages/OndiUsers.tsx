@@ -14,6 +14,7 @@ import {
   DropdownMenuSeparator,
 } from '../components/ui/dropdown-menu.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { Checkbox } from '../components/ui/checkbox.js';
 import { SingleSelectFilter } from '../components/ui/filter-dropdown.js';
 
 interface OndiUser {
@@ -373,7 +374,7 @@ export const OndiUsers: React.FC = () => {
               <thead>
                 <tr>
                   <th style={{ width: 40, textAlign: 'center' }}>
-                    <input type="checkbox" checked={selectedUsers.size === filteredUsers.length && filteredUsers.length > 0} onChange={toggleSelectAll} style={{ cursor: 'pointer' }} />
+                    <Checkbox className="mx-auto" checked={selectedUsers.size === filteredUsers.length && filteredUsers.length > 0} onCheckedChange={toggleSelectAll} />
                   </th>
                   <th>User</th>
                   <th>Email</th>
@@ -389,7 +390,7 @@ export const OndiUsers: React.FC = () => {
                   return (
                     <tr key={u.id} className={isSelected ? 'selected' : ''}>
                       <td style={{ textAlign: 'center' }}>
-                        <input type="checkbox" checked={isSelected} onChange={() => toggleSelectUser(u.id)} style={{ cursor: 'pointer' }} />
+                        <Checkbox className="mx-auto" checked={isSelected} onCheckedChange={() => toggleSelectUser(u.id)} />
                       </td>
                       <td style={{ fontWeight: 700, color: 'var(--ink)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

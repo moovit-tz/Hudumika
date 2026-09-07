@@ -4,6 +4,7 @@ import { Icon } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { Popover, PopoverAnchor, PopoverContent } from '../components/ui/popover.js';
 import { Button } from '../components/ui/button.js';
+import { Checkbox } from '../components/ui/checkbox.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { ReminderPicker } from '../components/ReminderPicker.js';
@@ -432,10 +433,9 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
                     <div className="notes-checklist-builder">
                       {checklist.map(item => (
                         <div key={item.id} className="notes-checklist-item-row">
-                          <input
-                            type="checkbox"
+                          <Checkbox
                             checked={item.completed}
-                            onChange={() => toggleComposerChecklist(item.id)}
+                            onCheckedChange={() => toggleComposerChecklist(item.id)}
                           />
                           <input
                             type="text"
@@ -599,11 +599,10 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
                           )}
                           {labels.map(l => (
                             <label key={l.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', fontSize: 13, cursor: 'pointer' }}>
-                              <input
-                                type="checkbox"
+                              <Checkbox
                                 checked={selectedLabels.includes(l.id)}
-                                onChange={e => {
-                                  if (e.target.checked) setSelectedLabels(prev => [...prev, l.id]);
+                                onCheckedChange={c => {
+                                  if (c === true) setSelectedLabels(prev => [...prev, l.id]);
                                   else setSelectedLabels(prev => prev.filter(id => id !== l.id));
                                 }}
                               />
@@ -820,11 +819,10 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
               <div className="notes-checklist-builder">
                 {editingNote.checklist.map(item => (
                   <div key={item.id} className="notes-checklist-item-row">
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       checked={item.completed}
                       disabled={!editingNote.canEdit}
-                      onChange={() => {
+                      onCheckedChange={() => {
                         const updated = editingNote.checklist.map(c => c.id === item.id ? { ...c, completed: !c.completed } : c);
                         setEditingNote(prev => prev ? { ...prev, checklist: updated } : prev);
                         updateNote(editingNote.id, { checklist: updated });
@@ -984,11 +982,10 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
           <div className="notes-checklist-builder" style={{ margin: '4px 0' }}>
             {note.checklist.slice(0, 5).map(item => (
               <div key={item.id} className="notes-checklist-item-row" onClick={e => e.stopPropagation()}>
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={item.completed}
                   disabled={!note.canEdit}
-                  onChange={() => {
+                  onCheckedChange={() => {
                     const updated = note.checklist.map(c => c.id === item.id ? { ...c, completed: !c.completed } : c);
                     updateNote(note.id, { checklist: updated });
                   }}

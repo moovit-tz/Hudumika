@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from './Icon.js';
+import { Dialog, DialogContent, DialogTitle } from './ui/dialog.js';
 
 interface TicketHit { id: string; ref: string; subject: string; status: string; customer: string | null }
 interface ArticleHit { id: string; title: string; category_id: string | null }
@@ -46,22 +47,24 @@ export function BlissSearch({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 900, background: 'var(--bg)', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: 'var(--white)', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
-        <Icon name="search" size={15} color="var(--ink3)" />
-        <input
-          ref={inputRef}
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          placeholder="Search tickets, chats, knowledge base…"
-          style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: 14, color: 'var(--ink)' }}
-        />
-        <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }} title="Close search">
-          <Icon name="x" size={16} />
-        </button>
-      </div>
+    <Dialog open onOpenChange={o => { if (!o) onClose(); }}>
+      <DialogContent hideClose className="max-w-160 p-0" style={{ display: 'flex', flexDirection: 'column', gap: 0, maxHeight: '80vh', overflow: 'hidden' }}>
+        <DialogTitle className="sr-only">Search</DialogTitle>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: 'var(--white)', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+          <Icon name="search" size={15} color="var(--ink3)" />
+          <input
+            ref={inputRef}
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="Search tickets, chats, knowledge base…"
+            style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: 14, color: 'var(--ink)' }}
+          />
+          <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }} title="Close search">
+            <Icon name="x" size={16} />
+          </button>
+        </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: 14 }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: 14, background: 'var(--bg)' }}>
         {!hasQuery && (
           <div style={{ textAlign: 'center', color: 'var(--ink3)', fontSize: 13, padding: '32px 0' }}>
             Type at least 2 characters to search everything in Bliss.
@@ -120,7 +123,8 @@ export function BlissSearch({ onClose }: { onClose: () => void }) {
             ))}
           </div>
         )}
-      </div>
-    </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

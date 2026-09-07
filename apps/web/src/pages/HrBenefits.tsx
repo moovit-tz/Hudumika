@@ -13,6 +13,7 @@ import { Button } from '../components/ui/button.js';
 import { Input } from '../components/ui/input.js';
 import { Textarea } from '../components/ui/textarea.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog.js';
 
 /**
  * Benefits administration — confirmed entirely absent in the audit (no
@@ -189,9 +190,6 @@ export function HrBenefits() {
   );
 }
 
-const overlayStyle: React.CSSProperties = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 };
-const cardStyle: React.CSSProperties = { background: 'var(--white)', borderRadius: 12, padding: 24, width: 480, maxWidth: '94vw', maxHeight: '88vh', overflowY: 'auto', boxShadow: 'var(--elev-lg)' };
-
 function NewPlanModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
   const [name, setName] = useState('');
   const [type, setType] = useState('health');
@@ -226,10 +224,11 @@ function NewPlanModal({ onClose, onCreated }: { onClose: () => void; onCreated: 
   }
 
   return (
-    <div style={overlayStyle} onClick={onClose}>
-      <form style={cardStyle} onClick={e => e.stopPropagation()} onSubmit={submit}>
-        <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 18 }}>New benefit plan</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+    <Dialog open onOpenChange={o => { if (!o) onClose(); }}>
+      <DialogContent className="w-120 max-w-[94vw] max-h-[88vh] overflow-y-auto">
+      <form onSubmit={submit}>
+        <DialogHeader><DialogTitle>New benefit plan</DialogTitle></DialogHeader>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 14 }}>
           <div>
             <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Plan name</label>
             <Input value={name} onChange={e => setName(e.target.value)} placeholder="AAR Silver Health Cover" required />
@@ -275,7 +274,8 @@ function NewPlanModal({ onClose, onCreated }: { onClose: () => void; onCreated: 
           </div>
         </div>
       </form>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

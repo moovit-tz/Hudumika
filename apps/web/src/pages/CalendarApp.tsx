@@ -18,6 +18,7 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 import { Switch } from '../components/ui/switch.js';
+import { Checkbox } from '../components/ui/checkbox.js';
 import { Popover, PopoverAnchor, PopoverContent } from '../components/ui/popover.js';
 import { Button } from '../components/ui/button.js';
 import { Tip } from '../components/ui/tooltip.js';
@@ -1269,10 +1270,10 @@ export const CalendarApp: React.FC = () => {
       </div>
       
       {/* ── Google Calendar Style Event Editor Modal ── */}
-      {showModal && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,.5)', padding: 16 }}>
-          <div style={{ background: 'var(--white)', borderRadius: 12, width: 'min(860px, 96vw)', maxHeight: '92vh', display: 'flex', flexDirection: 'column', boxShadow: 'var(--elev-lg)', overflow: 'hidden' }}>
+      <Dialog open={showModal} onOpenChange={o => { if (!o) setShowModal(false); }}>
+        <DialogContent hideClose className="max-w-215 w-[96vw] max-h-[92vh] flex flex-col p-0 gap-0 overflow-hidden">
             {/* Top Toolbar */}
+            <DialogTitle className="sr-only">{editingEvent ? 'Edit event' : 'New event'}</DialogTitle>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px', borderBottom: '1px solid var(--border)', background: 'var(--card-bg)' }}>
               <input
                 value={eventTitle}
@@ -1415,11 +1416,11 @@ export const CalendarApp: React.FC = () => {
                         style={{ padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12.5, background: 'var(--white)', color: 'var(--ink)' }}
                       />
                       <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: 'var(--ink)', cursor: 'pointer' }}>
-                        <input type="checkbox" checked={meetingCreateWaitingRoom} onChange={e => setMeetingCreateWaitingRoom(e.target.checked)} />
+                        <Checkbox checked={meetingCreateWaitingRoom} onCheckedChange={c => setMeetingCreateWaitingRoom(c === true)} />
                         Waiting room — you admit each person before they join
                       </label>
                       <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: 'var(--ink)', cursor: 'pointer' }}>
-                        <input type="checkbox" checked={meetingCreateGuestJoin} onChange={e => setMeetingCreateGuestJoin(e.target.checked)} />
+                        <Checkbox checked={meetingCreateGuestJoin} onCheckedChange={c => setMeetingCreateGuestJoin(c === true)} />
                         Allow guests without a Hudumika account
                       </label>
                     </div>
@@ -1517,26 +1518,23 @@ export const CalendarApp: React.FC = () => {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
                     <div style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', letterSpacing: '0.05em' }}>Guest permissions</div>
                     <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: 'var(--ink)', cursor: 'pointer' }}>
-                      <input
-                        type="checkbox"
+                      <Checkbox
                         checked={eventGuestPermissions.modifyEvent}
-                        onChange={e => setEventGuestPermissions(p => ({ ...p, modifyEvent: e.target.checked }))}
+                        onCheckedChange={c => setEventGuestPermissions(p => ({ ...p, modifyEvent: c === true }))}
                       />
                       Modify event
                     </label>
                     <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: 'var(--ink)', cursor: 'pointer' }}>
-                      <input
-                        type="checkbox"
+                      <Checkbox
                         checked={eventGuestPermissions.inviteOthers}
-                        onChange={e => setEventGuestPermissions(p => ({ ...p, inviteOthers: e.target.checked }))}
+                        onCheckedChange={c => setEventGuestPermissions(p => ({ ...p, inviteOthers: c === true }))}
                       />
                       Invite others
                     </label>
                     <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: 'var(--ink)', cursor: 'pointer' }}>
-                      <input
-                        type="checkbox"
+                      <Checkbox
                         checked={eventGuestPermissions.seeGuestList}
-                        onChange={e => setEventGuestPermissions(p => ({ ...p, seeGuestList: e.target.checked }))}
+                        onCheckedChange={c => setEventGuestPermissions(p => ({ ...p, seeGuestList: c === true }))}
                       />
                       See guest list
                     </label>
@@ -1544,10 +1542,8 @@ export const CalendarApp: React.FC = () => {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      )}
-
+        </DialogContent>
+      </Dialog>
       {showTimezoneModal && (
         <TimezoneModal
           value={eventTimezone}
@@ -1810,7 +1806,7 @@ const EventReminderPicker: React.FC<{ value: number[]; onChange: (v: number[]) =
         <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.04em', padding: '4px 6px 6px' }}>Notify me</div>
         {REMINDER_OFFSET_OPTIONS.map(opt => (
           <label key={opt.minutes} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 6px', fontSize: 13, color: 'var(--ink)', cursor: 'pointer' }}>
-            <input type="checkbox" checked={value.includes(opt.minutes)} onChange={() => toggle(opt.minutes)} />
+            <Checkbox checked={value.includes(opt.minutes)} onCheckedChange={() => toggle(opt.minutes)} />
             {opt.label}
           </label>
         ))}
@@ -1969,10 +1965,10 @@ const BookingPagesPanel: React.FC<{ isMobile: boolean; onClose: () => void }> = 
   const inputStyle: React.CSSProperties = { padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13.5, width: '100%', boxSizing: 'border-box' };
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,.4)' }} onClick={onClose}>
-      <div style={{ background: 'var(--white)', borderRadius: 16, width: 'min(560px, 94vw)', maxHeight: '88vh', overflowY: 'auto', padding: isMobile ? 18 : 24, boxShadow: 'var(--elev-lg)' }} onClick={e => e.stopPropagation()}>
+    <Dialog open onOpenChange={o => { if (!o) onClose(); }}>
+      <DialogContent hideClose className="max-w-140 w-[94vw] max-h-[88vh] overflow-y-auto" style={{ padding: isMobile ? 18 : 24 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
-          <h2 style={{ fontSize: 18, fontWeight: 600 }}>{creating ? (editing ? 'Edit booking page' : 'New booking page') : 'Booking pages'}</h2>
+          <DialogTitle style={{ fontSize: 18, fontWeight: 600 }}>{creating ? (editing ? 'Edit booking page' : 'New booking page') : 'Booking pages'}</DialogTitle>
           <button onClick={creating ? () => setCreating(false) : onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', color: 'var(--ink3)' }}>
             <Icon name={creating ? 'chevronLeft' : 'x'} size={18} />
           </button>
@@ -2082,8 +2078,8 @@ const BookingPagesPanel: React.FC<{ isMobile: boolean; onClose: () => void }> = 
             </div>
           </div>
         )}
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 
@@ -2158,10 +2154,10 @@ const CalendarSyncPanel: React.FC<{ isMobile: boolean; onClose: () => void }> = 
   const inputStyle: React.CSSProperties = { padding: '9px 11px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, width: '100%', boxSizing: 'border-box' };
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,.4)' }} onClick={onClose}>
-      <div style={{ background: 'var(--white)', borderRadius: 16, width: 'min(520px, 94vw)', maxHeight: '88vh', overflowY: 'auto', padding: isMobile ? 18 : 24, boxShadow: 'var(--elev-lg)' }} onClick={e => e.stopPropagation()}>
+    <Dialog open onOpenChange={o => { if (!o) onClose(); }}>
+      <DialogContent hideClose className="max-w-130 w-[94vw] max-h-[88vh] overflow-y-auto" style={{ padding: isMobile ? 18 : 24 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-          <h2 style={{ fontSize: 18, fontWeight: 600 }}>Google/Outlook sync</h2>
+          <DialogTitle style={{ fontSize: 18, fontWeight: 600 }}>Google/Outlook sync</DialogTitle>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', color: 'var(--ink3)' }} aria-label="Close"><Icon name="x" size={18} /></button>
         </div>
         <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 18 }}>
@@ -2238,8 +2234,8 @@ const CalendarSyncPanel: React.FC<{ isMobile: boolean; onClose: () => void }> = 
             )}
           </div>
         )}
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 

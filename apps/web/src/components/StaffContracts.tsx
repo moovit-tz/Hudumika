@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from './Icon.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from './ui/select.js';
+import { Checkbox } from './ui/checkbox.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from './ui/date-picker.js';
 import { showAlert } from '../lib/alert.js';
 
@@ -231,7 +232,7 @@ export function StaffEmergencyContacts({ userId, canEdit }: { userId: string; ca
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-end' }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: 'var(--ink2)' }}>
-              <input type="checkbox" checked={form.is_primary} onChange={e => setForm((f: any) => ({ ...f, is_primary: e.target.checked }))} />
+              <Checkbox checked={form.is_primary} onCheckedChange={c => setForm((f: any) => ({ ...f, is_primary: c === true }))} />
               Try this one first
             </label>
           </div>

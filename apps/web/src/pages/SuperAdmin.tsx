@@ -956,8 +956,8 @@ export function CompaniesView() {
                   const enabled = editEnabledApps[app.id] !== false;
                   return (
                     <label key={app.id} style={{ display:'flex', alignItems:'center', gap:7, fontSize:12.5, color:'var(--ink)', cursor:'pointer', padding:'3px 0' }}>
-                      <input type="checkbox" checked={enabled}
-                        onChange={e => setEditEnabledApps(p => ({ ...p, [app.id]: e.target.checked }))} />
+                      <Checkbox checked={enabled}
+                        onCheckedChange={c => setEditEnabledApps(p => ({ ...p, [app.id]: c === true }))} />
                       {app.name}
                     </label>
                   );
@@ -976,8 +976,8 @@ export function CompaniesView() {
                     const granted = editAddonGrants[addon.code] === true;
                     return (
                       <label key={addon.code} style={{ display:'flex', alignItems:'center', gap:7, fontSize:12.5, color:'var(--ink)', cursor:'pointer', padding:'3px 0' }}>
-                        <input type="checkbox" checked={granted}
-                          onChange={e => setEditAddonGrants(p => ({ ...p, [addon.code]: e.target.checked }))} />
+                        <Checkbox checked={granted}
+                          onCheckedChange={c => setEditAddonGrants(p => ({ ...p, [addon.code]: c === true }))} />
                         {addon.name} <span style={{ color:'var(--ink3)' }}>(${addon.monthly}/mo)</span>
                       </label>
                     );

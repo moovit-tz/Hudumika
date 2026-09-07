@@ -3,6 +3,7 @@ import { PageHeader } from '../components/PageHeader.js';
 import { Icon } from '../components/Icon.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { SectionLoading } from '../components/ui/spinner.js';
+import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
 import { apiFetch, apiFetchRaw } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
@@ -127,16 +128,18 @@ export const SuperAdminKyb: React.FC = () => {
         {queue?.length === 0 && <div style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No pending submissions.</div>}
       </SectionCard>
 
-      {previewUrl && (
-        <div onClick={() => { URL.revokeObjectURL(previewUrl); setPreviewUrl(null); }}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, cursor: 'pointer' }}>
-          <img src={previewUrl} alt="KYB document" style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: 8, boxShadow: 'var(--elev-lg)' }} />
-          <button type="button" onClick={() => { URL.revokeObjectURL(previewUrl); setPreviewUrl(null); }}
-            style={{ position: 'absolute', top: 24, right: 24, background: '#fff', border: 'none', borderRadius: '50%', width: 36, height: 36, cursor: 'pointer' }}>
-            <Icon name="x" size={18} />
-          </button>
-        </div>
-      )}
+      <Dialog open={!!previewUrl} onOpenChange={o => { if (!o && previewUrl) { URL.revokeObjectURL(previewUrl); setPreviewUrl(null); } }}>
+        <DialogContent hideClose className="max-w-fit bg-transparent border-none shadow-none p-0 gap-0" style={{ cursor: 'pointer' }}>
+          <DialogTitle className="sr-only">KYB document preview</DialogTitle>
+          {previewUrl && <>
+            <img src={previewUrl} alt="KYB document" style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: 8, boxShadow: 'var(--elev-lg)', display: 'block' }} />
+            <button type="button" onClick={() => { URL.revokeObjectURL(previewUrl); setPreviewUrl(null); }}
+              style={{ position: 'absolute', top: 24, right: 24, background: '#fff', border: 'none', borderRadius: '50%', width: 36, height: 36, cursor: 'pointer' }}>
+              <Icon name="x" size={18} />
+            </button>
+          </>}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

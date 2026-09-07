@@ -2,7 +2,7 @@ import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { MailService } from '../services/mail.service.js';
-import { db, withTenant } from '../db/client.js';
+import { withTenant } from '../db/client.js';
 
 type Folder = 'inbox' | 'sent' | 'drafts' | 'spam' | 'trash';
 const FOLDERS = ['inbox', 'sent', 'drafts', 'spam', 'trash'] as const;

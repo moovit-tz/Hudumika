@@ -15,6 +15,7 @@ import { apiFetch, apiFetchBlob } from '../../lib/api.js';
 import { Icon } from '../../components/Icon.js';
 import type { IconName } from '../../components/Icon.js';
 import { Button } from '../../components/ui/button.js';
+import { Checkbox } from '../../components/ui/checkbox.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
 import { PageLoading } from '../../components/ui/spinner.js';
 import { showAlert } from '../../lib/alert.js';
@@ -504,7 +505,7 @@ export function StirlingPdfTools({ documentSrc, fileName, onExport, onClose, emb
 
                 {active.key === 'flatten' && (
                   <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, cursor: 'pointer' }}>
-                    <input type="checkbox" checked={flattenFormsOnly} onChange={e => setFlattenFormsOnly(e.target.checked)} />
+                    <Checkbox checked={flattenFormsOnly} onCheckedChange={c => setFlattenFormsOnly(c === true)} />
                     Only lock form fields (leave annotations/other interactivity alone)
                   </label>
                 )}

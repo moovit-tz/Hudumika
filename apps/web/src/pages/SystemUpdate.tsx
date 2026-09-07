@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Icon } from '../components/Icon.js';
+import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
 
 /* -- Types -- */
 interface UpdateEntry {
@@ -333,15 +334,14 @@ export const SystemUpdate: React.FC = () => {
       </div>
 
       {/* Confirm modal */}
-      {showConfirm && (
-        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:600, display:'flex', alignItems:'center', justifyContent:'center' }}>
-          <div style={{ background:'var(--white)', borderRadius: 'var(--r)', padding:'28px 32px', width:420, boxShadow: 'var(--elev-lg)' }}>
+      <Dialog open={showConfirm} onOpenChange={o => { if (!o) setShowConfirm(false); }}>
+        <DialogContent className="max-w-105 gap-0" style={{ padding:'28px 32px' }}>
             <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:16 }}>
               <div style={{ width:40, height:40, borderRadius: 'var(--r)', background:'var(--gold-l)', display:'flex', alignItems:'center', justifyContent:'center' }}>
                 <Icon name="alertTriangle" size={20} color="#d97706" />
               </div>
               <div>
-                <div style={{ fontSize:15, fontWeight:700, color:'var(--ink)' }}>Confirm System Update</div>
+                <DialogTitle style={{ fontSize:15, fontWeight:700, color:'var(--ink)' }}>Confirm System Update</DialogTitle>
                 <div style={{ fontSize:12, color:'var(--ink3)' }}>v{CURRENT_VERSION} ? v{LATEST_VERSION}</div>
               </div>
             </div>
@@ -373,9 +373,8 @@ export const SystemUpdate: React.FC = () => {
                 Update Now
               </button>
             </div>
-          </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -4,6 +4,7 @@ import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { EntityPicker, PickerItem } from '../components/EntityPicker.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { Checkbox } from '../components/ui/checkbox.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { BackButton } from '../components/ui/BackButton.js';
@@ -198,7 +199,7 @@ export const FinanceExpenseNew: React.FC = () => {
         </div>
 
         <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer' }}>
-          <input type="checkbox" checked={isRevenue} onChange={e => setIsRevenue(e.target.checked)} />
+          <Checkbox checked={isRevenue} onCheckedChange={c => setIsRevenue(c === true)} />
           Record as Revenue / Income instead
         </label>
 

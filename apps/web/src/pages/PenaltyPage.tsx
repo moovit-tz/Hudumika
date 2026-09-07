@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { usePageSEO } from '../hooks/usePageSEO.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { Checkbox } from '../components/ui/checkbox.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Icon, type IconName } from '../components/Icon.js';
 import { Banner } from '../components/ui/alert.js';
@@ -311,8 +312,7 @@ export const PenaltyPage: React.FC = () => {
                 [noDi,   setNoDi,   'No Destination Inspection permit'],
               ] as const).map(([val, set, label]) => (
                 <label key={label} style={{ display: 'flex', alignItems: 'center', gap: 9, cursor: 'pointer', fontSize: 13, color: 'var(--ink2)', userSelect: 'none' }}>
-                  <input type="checkbox" checked={val} onChange={e => set(e.target.checked)}
-                    style={{ accentColor: 'var(--teal, #0d9488)', width: 15, height: 15, cursor: 'pointer' }} />
+                  <Checkbox checked={val} onCheckedChange={c => set(c === true)} />
                   {label}
                 </label>
               ))}

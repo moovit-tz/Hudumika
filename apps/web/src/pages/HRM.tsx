@@ -7,6 +7,8 @@ import type { IconName } from '../components/Icon.js';
 import { MetricsRow, type MetricCardProps } from '../components/MetricCard.js';
 import { apiFetch, apiDownload } from '../lib/api.js';
 import { Button } from '../components/ui/button.js';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet.js';
+import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
 import { CheckboxRow } from '../components/ui/list-item-row.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { Banner } from '../components/ui/alert.js';
@@ -364,11 +366,10 @@ export function EmployeesPage() {
       )}
 
       {/* -- Invite / Onboard Modal -- */}
-      {showOnboard && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', padding: 32, width: 460, maxWidth: '90%', maxHeight: '90vh', overflowY: 'auto' }}>
+      <Dialog open={showOnboard} onOpenChange={o => { if (!o) setShowOnboard(false); }}>
+        <DialogContent hideClose className="w-115 max-w-[90%] max-h-[90vh] overflow-y-auto gap-0" style={{ padding: 32 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink)', margin: 0 }}>Invite New Staff</h2>
+              <DialogTitle style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink)', margin: 0 }}>Invite New Staff</DialogTitle>
               <button type="button" title="Close" onClick={() => setShowOnboard(false)} style={{ border: 'none', background: 'none', cursor: 'pointer' }}><Icon name="x" size={20} color="var(--ink3)" /></button>
             </div>
             <p style={{ fontSize: 13, color: 'var(--ink3)', margin: '0 0 24px' }}>Sends an email invite. They'll set their own name and password when they accept.</p>
@@ -408,9 +409,8 @@ export function EmployeesPage() {
                 <button type="submit" className="btn btn-primary">Send Invite</button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -1932,13 +1932,11 @@ export function AttendancePage() {
 
       {/* Bulk Assign Drawer */}
       {showBulk && (
-        <>
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 1000 }} onClick={() => setShowBulk(false)} />
-          <div style={{ position: 'fixed', right: 0, top: 0, bottom: 0, width: 400, background: 'var(--white)', zIndex: 1001, boxShadow: '-4px 0 24px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--navy)' }}>Mark Attendance</div>
-              <button type="button" onClick={() => setShowBulk(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}><Icon name="x" size={20} /></button>
-            </div>
+        <Sheet open onOpenChange={o => { if (!o) setShowBulk(false); }}>
+          <SheetContent className="w-100 sm:max-w-100 flex flex-col p-0 gap-0">
+            <SheetHeader style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)' }}>
+              <SheetTitle style={{ fontSize: 16 }}>Mark Attendance</SheetTitle>
+            </SheetHeader>
             <div style={{ padding: 24, flex: 1, overflowY: 'auto' }}>
               <form onSubmit={async e => {
                 e.preventDefault();
@@ -2005,8 +2003,8 @@ export function AttendancePage() {
                 <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>Save Attendance</button>
               </form>
             </div>
-          </div>
-        </>
+          </SheetContent>
+        </Sheet>
       )}
 
       {/* Global styles */}
@@ -2142,13 +2140,11 @@ export function DevicesPage() {
 
       {/* Register Device drawer */}
       {showRegister && (
-        <>
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 1000 }} onClick={() => setShowRegister(false)} />
-          <div style={{ position: 'fixed', right: 0, top: 0, bottom: 0, width: 420, background: 'var(--white)', zIndex: 1001, boxShadow: '-4px 0 24px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--navy)' }}>Register Device</div>
-              <button type="button" onClick={() => setShowRegister(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}><Icon name="x" size={20} /></button>
-            </div>
+        <Sheet open onOpenChange={o => { if (!o) setShowRegister(false); }}>
+          <SheetContent className="w-105 sm:max-w-105 flex flex-col p-0 gap-0">
+            <SheetHeader style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)' }}>
+              <SheetTitle style={{ fontSize: 16 }}>Register Device</SheetTitle>
+            </SheetHeader>
             <div style={{ padding: 24, flex: 1, overflowY: 'auto' }}>
               {justRegistered ? (
                 <div>
@@ -2188,8 +2184,8 @@ export function DevicesPage() {
                 </form>
               )}
             </div>
-          </div>
-        </>
+          </SheetContent>
+        </Sheet>
       )}
 
       {manageDevice && (
@@ -2276,15 +2272,14 @@ function DeviceManageDrawer({ device, staff, onClose, onDeviceChanged }: {
 
   return (
     <>
-      <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 1000 }} onClick={onClose} />
-      <div style={{ position: 'fixed', right: 0, top: 0, bottom: 0, width: 520, background: 'var(--white)', zIndex: 1001, boxShadow: '-4px 0 24px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--navy)' }}>{device.name}</div>
+      <Sheet open onOpenChange={o => { if (!o) onClose(); }}>
+        {/* Sheet's own Close (top-right X) already covers dismissal — no
+            second, custom close button alongside it. */}
+        <SheetContent className="w-130 sm:max-w-130 flex flex-col p-0 gap-0">
+          <SheetHeader style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)' }}>
+            <SheetTitle style={{ fontSize: 16 }}>{device.name}</SheetTitle>
             <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>Serial {device.serial_number} · <DeviceStatusBadge status={device.status} /></div>
-          </div>
-          <button type="button" onClick={onClose} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }} aria-label="Close"><Icon name="x" size={20} /></button>
-        </div>
+          </SheetHeader>
 
         <div style={{ padding: 24, flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 22 }}>
           {/* Simulate punch — no physical hardware reachable here, so this drives
@@ -2384,7 +2379,8 @@ function DeviceManageDrawer({ device, staff, onClose, onDeviceChanged }: {
             )}
           </div>
         </div>
-      </div>
+        </SheetContent>
+      </Sheet>
     </>
   );
 }
@@ -2613,14 +2609,11 @@ export function ShiftsPage() {
       </div>
 
       {/* Bulk Assign Drawer */}
-      {showBulk && (
-        <>
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 1000 }} onClick={() => setShowBulk(false)} />
-          <div style={{ position: 'fixed', right: 0, top: 0, bottom: 0, width: 400, background: 'var(--white)', zIndex: 1001, boxShadow: '-4px 0 24px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--navy)' }}>Assign Bulk Shifts</div>
-              <button type="button" onClick={() => setShowBulk(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}><Icon name="x" size={20} /></button>
-            </div>
+      <Sheet open={showBulk} onOpenChange={o => { if (!o) setShowBulk(false); }}>
+        <SheetContent className="w-100 sm:max-w-100 flex flex-col p-0 gap-0">
+          <SheetHeader style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)' }}>
+            <SheetTitle style={{ fontSize: 16 }}>Assign Bulk Shifts</SheetTitle>
+          </SheetHeader>
             <div style={{ padding: 24, flex: 1, overflowY: 'auto' }}>
               <form onSubmit={async e => {
                 e.preventDefault();
@@ -2678,9 +2671,8 @@ export function ShiftsPage() {
                 <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>Assign Shifts</button>
               </form>
             </div>
-          </div>
-        </>
-      )}
+        </SheetContent>
+      </Sheet>
 
       {/* Global styles for hover */}
       <style dangerouslySetInnerHTML={{__html: `
@@ -3359,16 +3351,16 @@ function PayslipDetailModal({ slip, runName, onClose }: { slip: Payslip; runName
   );
   const lines: any[] = Array.isArray(slip.lines) ? slip.lines : [];
   return (
-    <div style={{ position:'fixed', inset:0, zIndex:1500, background:'rgba(0,0,0,0.4)', backdropFilter:'blur(3px)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }} onClick={onClose}>
-      <div style={{ width:440, maxWidth:'100%', maxHeight:'88vh', overflowY:'auto', background:'var(--white)', borderRadius:16, border:'1px solid var(--border)', boxShadow:'var(--elev-lg)' }} onClick={e => e.stopPropagation()}>
-        <div style={{ padding:'20px 24px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'flex-start', justifyContent:'space-between' }}>
+    <Dialog open onOpenChange={o => { if (!o) onClose(); }}>
+      <DialogContent hideClose className="max-w-110 max-h-[88vh] overflow-y-auto gap-0">
+        <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom: 12 }}>
           <div>
-            <div style={{ fontSize:16, fontWeight:700, color:'var(--ink)' }}>{slip.name}</div>
+            <DialogTitle style={{ fontSize:16 }}>{slip.name}</DialogTitle>
             <div style={{ fontSize:12.5, color:'var(--ink3)' }}>{runName}{slip.email ? ` · ${slip.email}` : ''}</div>
           </div>
           <button type="button" onClick={onClose} title="Close" style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink3)', padding:4 }}><Icon name="x" size={18} /></button>
         </div>
-        <div style={{ padding:'12px 24px 20px' }}>
+        <div>{/* body */}
           <Row label="Basic pay" value={slip.basic_pay} />
           <Row label="Gross pay" value={slip.gross_pay} strong />
           <Row label="Taxable pay" value={slip.taxable_pay} />
@@ -3400,8 +3392,8 @@ function PayslipDetailModal({ slip, runName, onClose }: { slip: Payslip; runName
             </div>
           )}
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -3449,17 +3441,17 @@ function PayComponentsModal({ onClose }: { onClose: () => void }) {
   const isEarn = (dir: string) => String(dir || '').toUpperCase().startsWith('EARN');
 
   return (
-    <div style={{ position:'fixed', inset:0, zIndex:1500, background:'rgba(0,0,0,0.4)', backdropFilter:'blur(3px)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }} onClick={onClose}>
-      <div style={{ width:520, maxWidth:'100%', maxHeight:'88vh', overflowY:'auto', background:'var(--white)', borderRadius:16, border:'1px solid var(--border)', boxShadow:'var(--elev-lg)' }} onClick={e => e.stopPropagation()}>
-        <div style={{ padding:'20px 24px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'flex-start', justifyContent:'space-between' }}>
+    <Dialog open onOpenChange={o => { if (!o) onClose(); }}>
+      <DialogContent hideClose className="max-w-130 max-h-[88vh] overflow-y-auto gap-0">
+        <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom: 14 }}>
           <div>
-            <div style={{ fontSize:16, fontWeight:700, color:'var(--ink)' }}>Employee pay setup</div>
+            <DialogTitle style={{ fontSize:16 }}>Employee pay setup</DialogTitle>
             <div style={{ fontSize:12.5, color:'var(--ink3)' }}>Set the salary components a payroll run reads to calculate pay.</div>
           </div>
           <button type="button" onClick={onClose} title="Close" style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink3)', padding:4 }}><Icon name="x" size={18} /></button>
         </div>
 
-        <div style={{ padding:'16px 24px 22px', display:'flex', flexDirection:'column', gap:14 }}>
+        <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
           <div>
             <label style={ltLabel}>Employee</label>
             <Select value={userId} onValueChange={setUserId}>
@@ -3517,8 +3509,8 @@ function PayComponentsModal({ onClose }: { onClose: () => void }) {
             </div>
           )}
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

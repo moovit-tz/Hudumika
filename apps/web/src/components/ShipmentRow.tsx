@@ -50,11 +50,6 @@ export const ShipmentRow: React.FC<ShipmentRowProps> = ({ shipment, to }) => {
   // Determine if late
   const isLate = shipment.active_risk_types && shipment.active_risk_types.length > 0;
 
-  const getInitials = (name?: string) => {
-    if (!name) return '??';
-    return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
-  };
-
   return (
     <div
       onClick={() => navigate(to)}
@@ -140,24 +135,7 @@ export const ShipmentRow: React.FC<ShipmentRowProps> = ({ shipment, to }) => {
           </Link>
         ) : (
           <>
-            <div
-              className="sro-ava"
-              style={{
-                width: '24px',
-                height: '24px',
-                borderRadius: '50%',
-                background: 'var(--navy2)',
-                color: '#fff',
-                fontSize: '9px',
-                fontWeight: 700,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
-              {getInitials(shipment.assigned_officer_name)}
-            </div>
+            <PersonAvatar name="" size={24} />
             <div className="sro-name" style={{ fontSize: '11.5px', color: 'var(--ink2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               Unassigned
             </div>

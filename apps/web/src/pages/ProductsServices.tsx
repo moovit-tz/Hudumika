@@ -5,7 +5,9 @@ import { PaginationBar } from '../components/PaginationBar.js';
 import { apiFetch } from '../lib/api.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { Checkbox } from '../components/ui/checkbox.js';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet.js';
+import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import { PageHeader } from '../components/PageHeader.js';
@@ -269,9 +271,9 @@ function StatusPill({ status }: { status: 'active' | 'inactive' }) {
 
 function DeleteModal({ name, onConfirm, onCancel }: { name: string; onConfirm: () => void; onCancel: () => void }) {
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', padding: 28, width: 400, boxShadow: 'var(--elev-lg)' }}>
-        <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>Delete Service</div>
+    <Dialog open onOpenChange={o => { if (!o) onCancel(); }}>
+      <DialogContent className="max-w-100 gap-0">
+        <DialogTitle style={{ fontSize: 16, marginBottom: 8 }}>Delete Service</DialogTitle>
         <div style={{ fontSize: 13, color: 'var(--ink2)', marginBottom: 20 }}>
           Are you sure you want to delete <strong>{name}</strong>? This cannot be undone and may affect invoices or quotations referencing this item.
         </div>
@@ -279,8 +281,8 @@ function DeleteModal({ name, onConfirm, onCancel }: { name: string; onConfirm: (
           <button type="button" title="Cancel" onClick={onCancel} style={{ padding: 'var(--ds-btn-py) 18px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--bg)', cursor: 'pointer', fontWeight: 600, fontSize: 13, color: 'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
           <Button type="button" variant="destructive" title="Confirm delete" onClick={onConfirm}>Delete</Button>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -544,18 +546,12 @@ function DetailPanel({ product, onEdit, onDelete, onToggleStatus, onClose }: {
   onClose: () => void;
 }) {
   return (
-    <>
-      <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.25)', zIndex: 400 }} />
-      <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: 380, background: 'var(--white)', zIndex: 401, display: 'flex', flexDirection: 'column', boxShadow: '-8px 0 40px rgba(0,0,0,0.12)' }}>
-        <div style={{ padding: '20px 22px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-          <div>
-            <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--teal)', fontWeight: 700, marginBottom: 4 }}>{product.code}</div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)', lineHeight: 1.3 }}>{product.name}</div>
-          </div>
-          <button type="button" title="Close" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', display: 'flex', padding: 4, flexShrink: 0 }}>
-            <Icon name="x" size={18} />
-          </button>
-        </div>
+    <Sheet open onOpenChange={o => { if (!o) onClose(); }}>
+      <SheetContent className="w-95 sm:max-w-95 flex flex-col p-0 gap-0">
+        <SheetHeader style={{ padding: '20px 22px', borderBottom: '1px solid var(--border)' }}>
+          <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--teal)', fontWeight: 700 }}>{product.code}</div>
+          <SheetTitle style={{ fontSize: 16, lineHeight: 1.3 }}>{product.name}</SheetTitle>
+        </SheetHeader>
 
         <div style={{ flex: 1, overflowY: 'auto', padding: 22 }}>
           {/* Pricing hero */}
@@ -614,8 +610,8 @@ function DetailPanel({ product, onEdit, onDelete, onToggleStatus, onClose }: {
             </button>
           </div>
         </div>
-      </div>
-    </>
+      </SheetContent>
+    </Sheet>
   );
 }
 
@@ -877,7 +873,7 @@ export const ProductsServices: React.FC = () => {
               {!tariffLoading && tariffResults.length === 0 && <div style={{ padding: 20, textAlign: 'center', color: 'var(--ink3)', fontSize: 12.5 }}>No tariff items match.</div>}
               {!tariffLoading && tariffResults.map(r => (
                 <label key={r.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 12px', borderBottom: '1px solid var(--border)', cursor: 'pointer' }}>
-                  <input type="checkbox" checked={tariffSelected.has(r.id)} onChange={() => toggleTariffSelected(r.id)} style={{ marginTop: 3 }} />
+                  <Checkbox checked={tariffSelected.has(r.id)} onCheckedChange={() => toggleTariffSelected(r.id)} style={{ marginTop: 3 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)' }}>{r.item_name}</div>
                     <div style={{ fontSize: 11, color: 'var(--ink3)' }}>

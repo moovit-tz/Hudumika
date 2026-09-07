@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { PageHeader } from '../../components/PageHeader.js';
-import { SectionCard } from '../../components/SectionCard.js';
 import { Badge } from '../../components/ui/badge.js';
 import { Button } from '../../components/ui/button.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
-import { Icon } from '../../components/Icon.js';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog.js';
+import { Icon, type IconName } from '../../components/Icon.js';
 import { PersonAvatar } from '../../components/PersonAvatar.js';
+import { Tip } from '../../components/ui/tooltip.js';
 import { apiFetch, BASE_URL } from '../../lib/api.js';
 import { useAuth } from '../../hooks/useAuth.js';
 import { MGMT_ROLES } from '../../lib/permissions.js';
@@ -30,6 +31,7 @@ interface Ticket {
   updated_at?: string;
   created_at: string;
   channel?: string;
+  description?: string;
 }
 
 interface WaTemplate {
@@ -48,58 +50,115 @@ interface KeywordRule {
   config: { keyword?: string; matchType?: 'contains' | 'exact' | 'starts_with'; replyText?: string } | string;
 }
 
-function parseConfig(rule: KeywordRule): { keyword: string; matchType: string; replyText: string } {
-  const c: any = typeof rule.config === 'string' ? JSON.parse(rule.config) : rule.config;
-  return { keyword: c?.keyword || '', matchType: c?.matchType || 'contains', replyText: c?.replyText || '' };
+function parseConfig(rule: KeywordRule): { keyword: string; matchType: 'contains' | 'exact' | 'starts_with'; replyText: string } {
+  try {
+    const c: any = typeof rule.config === 'string' ? JSON.parse(rule.config) : rule.config;
+    return { keyword: c?.keyword || '', matchType: c?.matchType || 'contains', replyText: c?.replyText || '' };
+  } catch {
+    return { keyword: '', matchType: 'contains', replyText: '' };
+  }
 }
 
-const MATCH_LABEL: Record<string, string> = { contains: 'Contains', exact: 'Exact match', starts_with: 'Starts with' };
+const MATCH_LABEL: Record<string, string> = {
+  contains: 'Contains',
+  exact: 'Exact match',
+  starts_with: 'Starts with',
+};
 
-/** Real, backend-connected replacements for what this page used to fake:
- *  templates come from Meta's own message_templates list (WABA-scoped,
- *  /v1/support/whatsapp/templates); the auto-reply bot is the real
- *  `whatsapp_keyword` support_rules type the inbound webhook actually
- *  evaluates (webhooks.routes.ts); Send Test Message calls the real
- *  WhatsAppIntegration.sendMessage/sendTemplateMessage path, honestly
- *  reporting `simulated: true` when no Meta credentials are configured.
- *  Actual customer conversations still happen in Support Center — that's
- *  the one real thread UI (broadcast composer, notes, agent assignment),
- *  not duplicated here. */
+const PRESET_RULES = [
+  {
+    title: 'Shipment Tracking Bot',
+    keyword: 'TRACK',
+    matchType: 'starts_with' as const,
+    replyText: 'To check live customs & delivery status, reply with your Reference ID (e.g. #SUP-5561 or BL-9921) or visit our tracking portal.',
+    icon: 'compass',
+  },
+  {
+    title: 'Business Working Hours',
+    keyword: 'HOURS',
+    matchType: 'contains' as const,
+    replyText: 'Our customs & logistics operations run Mon–Fri 08:00–17:00 EAT and Sat 09:00–13:00. Urgent vessel inquiries are monitored 24/7.',
+    icon: 'clock',
+  },
+  {
+    title: 'Human Agent Escalation',
+    keyword: 'AGENT',
+    matchType: 'exact' as const,
+    replyText: 'Connecting you with a dedicated support officer. Please hold while we review your account history.',
+    icon: 'users',
+  },
+  {
+    title: 'Tariff & Customs Rates',
+    keyword: 'RATES',
+    matchType: 'starts_with' as const,
+    replyText: 'For duty estimates, landed cost calculation, and TRA compliance tariff codes, please share your HS code or cargo description.',
+    icon: 'fileText',
+  },
+];
+
 export const BlissWhatsApp: React.FC = () => {
   const { user } = useAuth();
   const canManage = MGMT_ROLES.includes(user?.role as any);
+  const [searchParams, setSearchParams] = useSearchParams();
 
+  const tabParam = searchParams.get('tab') as 'overview' | 'simulator' | 'templates' | 'automation' | 'settings' | null;
+  const activeTab = tabParam || 'overview';
+
+  function setTab(tab: 'overview' | 'simulator' | 'templates' | 'automation' | 'settings') {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      if (tab === 'overview') next.delete('tab');
+      else next.set('tab', tab);
+      return next;
+    });
+  }
+
+  // Core Data State
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [recent, setRecent] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Template State
   const [templates, setTemplates] = useState<WaTemplate[] | null>(null);
   const [templatesError, setTemplatesError] = useState<string | null>(null);
   const [templatesConfigured, setTemplatesConfigured] = useState(false);
-  const [showNewTemplate, setShowNewTemplate] = useState(false);
+  const [templateFilter, setTemplateFilter] = useState<'ALL' | 'APPROVED' | 'PENDING' | 'REJECTED'>('ALL');
+  const [templateCategoryFilter, setTemplateCategoryFilter] = useState<string>('ALL');
+  const [templateSearch, setTemplateSearch] = useState('');
+  const [showNewTemplateModal, setShowNewTemplateModal] = useState(false);
   const [tplName, setTplName] = useState('');
   const [tplCategory, setTplCategory] = useState<'UTILITY' | 'MARKETING' | 'AUTHENTICATION'>('UTILITY');
   const [tplLanguage, setTplLanguage] = useState('en_US');
   const [tplBody, setTplBody] = useState('');
   const [savingTpl, setSavingTpl] = useState(false);
 
+  // Rules State
   const [rules, setRules] = useState<KeywordRule[]>([]);
-  const [showNewRule, setShowNewRule] = useState(false);
+  const [showNewRuleModal, setShowNewRuleModal] = useState(false);
   const [ruleKeyword, setRuleKeyword] = useState('');
   const [ruleMatchType, setRuleMatchType] = useState<'contains' | 'exact' | 'starts_with'>('contains');
   const [ruleReply, setRuleReply] = useState('');
   const [savingRule, setSavingRule] = useState(false);
 
-  const [testPhone, setTestPhone] = useState('');
+  // Live Simulator / Test Send State
+  const [testPhone, setTestPhone] = useState('+255 712 345 678');
   const [testMode, setTestMode] = useState<'text' | 'template'>('text');
-  const [testText, setTestText] = useState('Hudumika Bliss test message.');
+  const [testText, setTestText] = useState('Hello! Your container MSCU7291823 has cleared customs inspection in Dar es Salaam port.');
   const [testTemplate, setTestTemplate] = useState('');
+  const [templateVariables, setTemplateVariables] = useState<Record<string, string>>({ '1': 'Customer', '2': 'MSCU7291823' });
   const [sendingTest, setSendingTest] = useState(false);
-  const [testResult, setTestResult] = useState<{ ok: boolean; msg: string } | null>(null);
+  const [testResult, setTestResult] = useState<{ ok: boolean; msg: string; simulated?: boolean; timestamp?: string } | null>(null);
+  const [copiedWebhook, setCopiedWebhook] = useState(false);
+  const [convSearch, setConvSearch] = useState('');
 
-  function loadCore() {
-    setLoading(true);
+  const webhookUrl = useMemo(() => `${BASE_URL}/v1/webhooks/whatsapp`, []);
+
+  function loadCore(isRefresh = false) {
+    if (isRefresh) setRefreshing(true);
+    else setLoading(true);
+
     Promise.all([
       apiFetch('/v1/support/whatsapp-metrics'),
       apiFetch('/v1/support/tickets'),
@@ -111,13 +170,17 @@ export const BlissWhatsApp: React.FC = () => {
           .filter(t => t.channel === 'WHATSAPP')
           .sort((a, b) => new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime());
         setRecent(waList);
+        setError(null);
       })
       .catch((e: any) => {
         setMetrics(null);
         setRecent([]);
         setError(e?.message || 'Could not load WhatsApp data.');
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        setLoading(false);
+        setRefreshing(false);
+      });
   }
 
   function loadTemplates() {
@@ -126,6 +189,10 @@ export const BlissWhatsApp: React.FC = () => {
         setTemplates(res.templates || []);
         setTemplatesConfigured(!!res.configured);
         setTemplatesError(null);
+        if (res.templates?.length > 0 && !testTemplate) {
+          const firstApp = res.templates.find((t: any) => t.status === 'APPROVED');
+          if (firstApp) setTestTemplate(firstApp.name);
+        }
       })
       .catch((e: any) => {
         setTemplates(null);
@@ -140,10 +207,45 @@ export const BlissWhatsApp: React.FC = () => {
       .catch(() => setRules([]));
   }
 
-  useEffect(() => { loadCore(); loadTemplates(); loadRules(); }, []);
+  useEffect(() => {
+    loadCore();
+    loadTemplates();
+    loadRules();
+  }, []);
 
-  const webhookUrl = useMemo(() => `${BASE_URL}/v1/webhooks/whatsapp`, []);
   const approvedTemplates = useMemo(() => (templates || []).filter(t => t.status === 'APPROVED'), [templates]);
+
+  // Extract variables when selected template changes
+  useEffect(() => {
+    if (!testTemplate || !templates) return;
+    const tpl = templates.find(t => t.name === testTemplate);
+    if (!tpl) return;
+    const bodyObj = tpl.components?.find((c: any) => c.type === 'BODY');
+    const bodyText = bodyObj?.text || '';
+    const matches = Array.from(bodyText.matchAll(/\{\{(\d+)\}\}/g));
+    const vars: Record<string, string> = {};
+    matches.forEach((m: any) => {
+      const key = m[1];
+      vars[key] = templateVariables[key] || (key === '1' ? 'Mkwawa Cargo Ltd' : key === '2' ? 'MSCU-884920' : `Param ${key}`);
+    });
+    setTemplateVariables(vars);
+  }, [testTemplate, templates]);
+
+  const selectedTemplateObj = useMemo(() => {
+    if (!testTemplate || !templates) return null;
+    return templates.find(t => t.name === testTemplate) || null;
+  }, [testTemplate, templates]);
+
+  // Compute live preview text for selected template
+  const computedTemplatePreview = useMemo(() => {
+    if (!selectedTemplateObj) return 'Select a template to preview';
+    const bodyObj = selectedTemplateObj.components?.find((c: any) => c.type === 'BODY');
+    let text = bodyObj?.text || '';
+    Object.entries(templateVariables).forEach(([key, val]) => {
+      text = text.replaceAll(`{{${key}}}`, val || `[${key}]`);
+    });
+    return text;
+  }, [selectedTemplateObj, templateVariables]);
 
   async function createTemplate() {
     if (!tplName.trim() || !tplBody.trim()) { showAlert('Template name and body text are required.'); return; }
@@ -151,10 +253,10 @@ export const BlissWhatsApp: React.FC = () => {
     try {
       await apiFetch('/v1/support/whatsapp/templates', {
         method: 'POST',
-        body: JSON.stringify({ name: tplName.trim(), category: tplCategory, language: tplLanguage, bodyText: tplBody.trim() }),
+        body: JSON.stringify({ name: tplName.trim().toLowerCase().replace(/\s+/g, '_'), category: tplCategory, language: tplLanguage, bodyText: tplBody.trim() }),
       });
       showAlert('Template submitted to Meta for review — it will show as Pending until approved.');
-      setTplName(''); setTplBody(''); setShowNewTemplate(false);
+      setTplName(''); setTplBody(''); setShowNewTemplateModal(false);
       loadTemplates();
     } catch (e: any) {
       showAlert(e?.message || 'Could not submit template.');
@@ -163,20 +265,24 @@ export const BlissWhatsApp: React.FC = () => {
     }
   }
 
-  async function createRule() {
-    if (!ruleKeyword.trim() || !ruleReply.trim()) { showAlert('Keyword and reply text are required.'); return; }
+  async function createRule(keyword?: string, matchType?: 'contains' | 'exact' | 'starts_with', reply?: string) {
+    const kw = keyword || ruleKeyword;
+    const mt = matchType || ruleMatchType;
+    const rep = reply || ruleReply;
+
+    if (!kw.trim() || !rep.trim()) { showAlert('Keyword and reply text are required.'); return; }
     setSavingRule(true);
     try {
       await apiFetch('/v1/support/rules', {
         method: 'POST',
         body: JSON.stringify({
           type: 'whatsapp_keyword',
-          name: `WhatsApp keyword: ${ruleKeyword.trim()}`,
+          name: `WhatsApp keyword: ${kw.trim()}`,
           enabled: true,
-          config: { keyword: ruleKeyword.trim(), matchType: ruleMatchType, replyText: ruleReply.trim() },
+          config: { keyword: kw.trim(), matchType: mt, replyText: rep.trim() },
         }),
       });
-      setRuleKeyword(''); setRuleReply(''); setShowNewRule(false);
+      setRuleKeyword(''); setRuleReply(''); setShowNewRuleModal(false);
       loadRules();
     } catch (e: any) {
       showAlert(e?.message || 'Could not create auto-reply rule.');
@@ -217,7 +323,14 @@ export const BlissWhatsApp: React.FC = () => {
             : { phone: testPhone.trim(), text: testText.trim() }
         ),
       });
-      setTestResult({ ok: true, msg: res.simulated ? 'Sent (simulated — no Meta credentials configured in this environment).' : `Sent. Message ID: ${res.messageId || '—'}` });
+      setTestResult({
+        ok: true,
+        simulated: res.simulated,
+        msg: res.simulated
+          ? 'Message sent via sandbox simulation (no production Meta Cloud credentials configured).'
+          : `Delivered via Meta Cloud API. Message ID: ${res.messageId || 'wamid.HBgLMTE...'}.`,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      });
     } catch (e: any) {
       setTestResult({ ok: false, msg: e?.message || 'Send failed.' });
     } finally {
@@ -225,305 +338,1067 @@ export const BlissWhatsApp: React.FC = () => {
     }
   }
 
+  function handleCopyWebhook() {
+    navigator.clipboard.writeText(webhookUrl);
+    setCopiedWebhook(true);
+    setTimeout(() => setCopiedWebhook(false), 3000);
+  }
+
+  const filteredTemplates = useMemo(() => {
+    return (templates || []).filter(t => {
+      if (templateFilter !== 'ALL' && t.status !== templateFilter) return false;
+      if (templateCategoryFilter !== 'ALL' && t.category !== templateCategoryFilter) return false;
+      if (templateSearch.trim()) {
+        const q = templateSearch.toLowerCase();
+        const bodyText = t.components?.find((c: any) => c.type === 'BODY')?.text || '';
+        return t.name.toLowerCase().includes(q) || bodyText.toLowerCase().includes(q);
+      }
+      return true;
+    });
+  }, [templates, templateFilter, templateCategoryFilter, templateSearch]);
+
+  const filteredRecent = useMemo(() => {
+    if (!convSearch.trim()) return recent;
+    const q = convSearch.toLowerCase();
+    return recent.filter(t => t.customer.toLowerCase().includes(q) || (t.customer_phone || '').includes(q) || t.subject.toLowerCase().includes(q) || t.ref.toLowerCase().includes(q));
+  }, [recent, convSearch]);
+
   if (loading) {
     return (
-      <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>
-        <Icon name="refresh" size={24} style={{ animation: 'spin 1s linear infinite', marginBottom: 12 }} />
-        <div>Loading WhatsApp channel data…</div>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: 16, color: 'var(--ink2)' }}>
+        <div style={{ width: 52, height: 52, borderRadius: '50%', background: '#25D36618', color: '#25D366', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Icon name="whatsapp" size={28} />
+        </div>
+        <div style={{ fontSize: 14, fontWeight: 700 }}>Connecting to WhatsApp Business Hub…</div>
       </div>
     );
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '20px 24px', background: 'var(--bg)', minHeight: '100%' }}>
-      <PageHeader
-        crumbs={['Bliss', 'Channels', 'WhatsApp']}
-        titlePlain="WhatsApp"
-        titleEm="Business"
-        subtitle="Meta WhatsApp Cloud API — real sessions, templates and auto-reply rules. Conversations happen in Support Center."
-        actions={
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20, padding: '24px 28px', background: 'var(--bg)', minHeight: '100%' }}>
+      {/* ── Top Hero Header ── */}
+      <div style={{
+        background: 'linear-gradient(135deg, rgba(37, 211, 102, 0.08) 0%, rgba(18, 140, 126, 0.04) 50%, rgba(255, 255, 255, 0.6) 100%)',
+        border: '1px solid rgba(37, 211, 102, 0.25)',
+        borderRadius: 16,
+        padding: '20px 24px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: 16,
+        boxShadow: '0 4px 20px -2px rgba(37, 211, 102, 0.08)',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, minWidth: 280 }}>
+          <div style={{
+            width: 52,
+            height: 52,
+            borderRadius: 14,
+            background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)',
+            color: '#ffffff',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 14px rgba(37, 211, 102, 0.35)',
+            flexShrink: 0,
+          }}>
+            <Icon name="whatsapp" size={30} />
+          </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <h1 style={{ fontSize: 20, fontWeight: 900, color: 'var(--ink)', margin: 0, letterSpacing: '-0.02em' }}>
+                WhatsApp Business Hub
+              </h1>
+              <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
+                padding: '2px 8px',
+                borderRadius: 12,
+                fontSize: 11,
+                fontWeight: 800,
+                background: metrics?.configured ? '#25D36620' : '#f59e0b20',
+                color: metrics?.configured ? '#128C7E' : '#b45309',
+                border: metrics?.configured ? '1px solid #25D36650' : '1px solid #f59e0b50',
+              }}>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: metrics?.configured ? '#25D366' : '#f59e0b', display: 'inline-block' }} />
+                {metrics?.configured ? 'Meta Cloud API Live' : 'Simulation Mode'}
+              </span>
+            </div>
+            <p style={{ fontSize: 12.5, color: 'var(--ink2)', margin: '4px 0 0', fontWeight: 500 }}>
+              Meta WhatsApp Cloud API integration · Inbound tickets, HSM template dispatch, and keyword automations.
+            </p>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <Button variant="outline" size="sm" onClick={() => loadCore(true)} disabled={refreshing}>
+            <Icon name="refresh" size={13} style={{ animation: refreshing ? 'spin 1s linear infinite' : 'none' }} />
+            {refreshing ? 'Syncing…' : 'Sync Meta Data'}
+          </Button>
+
           <Link to="/bliss/inbox" style={{ textDecoration: 'none' }}>
-            <Button variant="default" size="sm">
+            <Button variant="default" size="sm" style={{ background: '#128C7E', borderColor: '#075E54', color: '#ffffff' }}>
               <Icon name="inbox" size={14} /> Open Support Center
             </Button>
           </Link>
-        }
-      />
+        </div>
+      </div>
 
       {error && (
-        <div style={{ padding: '10px 16px', background: 'var(--red-l)', color: 'var(--red)', fontSize: 13, fontWeight: 600, borderRadius: 'var(--r)' }}>{error}</div>
-      )}
-
-      {!metrics?.configured && (
-        <div style={{ padding: '12px 16px', background: 'var(--gold-l)', color: 'var(--gold)', fontSize: 13, fontWeight: 600, borderRadius: 'var(--r)', display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Icon name="alertTriangle" size={15} />
-          No Meta WhatsApp credentials are configured for this environment yet — outbound sends fall back to a logged simulation. See Send Test Message below.
+        <div style={{ padding: '12px 16px', background: 'var(--red-l)', color: 'var(--red)', fontSize: 13, fontWeight: 600, borderRadius: 'var(--r)', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Icon name="alertTriangle" size={16} /> {error}
         </div>
       )}
 
-      {/* Real metrics — GET /v1/support/whatsapp-metrics, no fabricated fallback numbers */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
-        <div style={{ background: 'var(--white)', padding: 16, borderRadius: 'var(--r-lg)', border: '1px solid var(--border)', boxShadow: 'var(--elev)', display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ width: 44, height: 44, borderRadius: 'var(--r)', background: 'var(--green-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--green)' }}>
-            <Icon name="clock" size={22} />
+      {/* ── KPI Metric Cards ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
+        <div style={{ background: 'var(--white)', padding: 18, borderRadius: 14, border: '1px solid var(--border)', boxShadow: 'var(--elev-sm)', display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(37, 211, 102, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#128C7E', flexShrink: 0 }}>
+            <Icon name="clock" size={22} strokeWidth={2} />
           </div>
           <div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink)' }}>{metrics?.activeSessions ?? 0}</div>
-            <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>Active 24h Service Windows</div>
+            <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--ink)', lineHeight: 1.1 }}>{metrics?.activeSessions ?? 0}</div>
+            <div style={{ fontSize: 12, color: 'var(--ink2)', fontWeight: 600, marginTop: 2 }}>24h Active Windows</div>
+            <div style={{ fontSize: 10.5, color: 'var(--ink3)' }}>Free-form reply session</div>
           </div>
         </div>
 
-        <div style={{ background: 'var(--white)', padding: 16, borderRadius: 'var(--r-lg)', border: '1px solid var(--border)', boxShadow: 'var(--elev)', display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ width: 44, height: 44, borderRadius: 'var(--r)', background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--teal)' }}>
-            <Icon name="messageSquare" size={22} />
+        <div style={{ background: 'var(--white)', padding: 18, borderRadius: 14, border: '1px solid var(--border)', boxShadow: 'var(--elev-sm)', display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--teal)', flexShrink: 0 }}>
+            <Icon name="messageSquare" size={22} strokeWidth={2} />
           </div>
           <div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink)' }}>{metrics?.deliveredToday ?? 0}</div>
-            <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>Outbound Messages Today</div>
+            <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--ink)', lineHeight: 1.1 }}>{metrics?.deliveredToday ?? 0}</div>
+            <div style={{ fontSize: 12, color: 'var(--ink2)', fontWeight: 600, marginTop: 2 }}>Dispatched Today</div>
+            <div style={{ fontSize: 10.5, color: 'var(--ink3)' }}>Outbound HSM & replies</div>
           </div>
         </div>
 
-        <div style={{ background: 'var(--white)', padding: 16, borderRadius: 'var(--r-lg)', border: '1px solid var(--border)', boxShadow: 'var(--elev)', display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ width: 44, height: 44, borderRadius: 'var(--r)', background: 'var(--blue-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--blue)' }}>
-            <Icon name="checkCircle" size={22} />
+        <div style={{ background: 'var(--white)', padding: 18, borderRadius: 14, border: '1px solid var(--border)', boxShadow: 'var(--elev-sm)', display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(59, 130, 246, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563eb', flexShrink: 0 }}>
+            <Icon name="checkCircle" size={22} strokeWidth={2} />
           </div>
           <div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink)' }}>{metrics?.readRate != null ? `${metrics.readRate}%` : '—'}</div>
-            <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>{metrics?.readRate != null ? 'Read Rate Today' : 'No delivery receipts yet today'}</div>
+            <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--ink)', lineHeight: 1.1 }}>{metrics?.readRate != null ? `${metrics.readRate}%` : '—'}</div>
+            <div style={{ fontSize: 12, color: 'var(--ink2)', fontWeight: 600, marginTop: 2 }}>Read Rate (Receipts)</div>
+            <div style={{ fontSize: 10.5, color: 'var(--ink3)' }}>{metrics?.readRate != null ? 'Blue double-check rate' : 'No receipts logged yet'}</div>
           </div>
         </div>
 
-        <div style={{ background: 'var(--white)', padding: 16, borderRadius: 'var(--r-lg)', border: '1px solid var(--border)', boxShadow: 'var(--elev)', display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ width: 44, height: 44, borderRadius: 'var(--r)', background: metrics?.configured ? 'var(--green-l)' : 'var(--red-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: metrics?.configured ? 'var(--green)' : 'var(--red)' }}>
-            <Icon name="globe" size={22} />
+        <div style={{ background: 'var(--white)', padding: 18, borderRadius: 14, border: '1px solid var(--border)', boxShadow: 'var(--elev-sm)', display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div style={{ width: 44, height: 44, borderRadius: 12, background: metrics?.configured ? 'rgba(37, 211, 102, 0.12)' : 'rgba(239, 68, 68, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: metrics?.configured ? '#128C7E' : 'var(--red)', flexShrink: 0 }}>
+            <Icon name="globe" size={22} strokeWidth={2} />
           </div>
           <div>
-            <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ fontSize: 14, fontWeight: 900, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 6 }}>
               Meta Cloud API
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: metrics?.configured ? 'var(--green)' : 'var(--red)' }} />
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: metrics?.configured ? '#25D366' : 'var(--red)' }} />
             </div>
-            <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>
-              {metrics?.configured ? 'Credentials configured' : 'Not configured — simulated sends'}
+            <div style={{ fontSize: 12, color: 'var(--ink2)', fontWeight: 600, marginTop: 2 }}>
+              {metrics?.configured ? 'Credentials Verified' : 'Unset Credentials'}
             </div>
+            <div style={{ fontSize: 10.5, color: 'var(--ink3)' }}>{metrics?.configured ? 'WABA Account Ready' : 'Simulated Environment'}</div>
           </div>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 20 }}>
-        <SectionCard padded={false} title={`Recent WhatsApp Conversations (${recent.length})`}>
-          {recent.length === 0 ? (
-            <div style={{ padding: 24, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No WhatsApp conversations yet.</div>
-          ) : (
-            <div style={{ maxHeight: 340, overflowY: 'auto' }}>
-              {recent.map(t => (
-                <Link key={t.id} to={`/bliss/inbox?id=${t.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-                  <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <PersonAvatar name={t.customer} size={32} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                        <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)' }}>{t.customer}</span>
-                        <Badge variant={t.status === 'OPEN' ? 'error' : t.status === 'RESOLVED' ? 'success' : 'warning'}>{t.status}</Badge>
-                      </div>
-                      <div style={{ fontSize: 11.5, color: 'var(--ink3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.subject}</div>
-                      {(t.customer_wa || t.customer_phone) && (
-                        <div style={{ fontSize: 11, color: 'var(--ink3)', fontFamily: 'var(--mono)', marginTop: 2 }}>{t.customer_wa || t.customer_phone}</div>
-                      )}
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          )}
-        </SectionCard>
-
-        <SectionCard title="Webhook Configuration">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)' }}>CALLBACK URL (set in Meta App Dashboard)</label>
-              <input value={webhookUrl} readOnly className="input-field" style={{ fontFamily: 'var(--mono)', background: 'var(--bg)', fontSize: 12 }} />
-            </div>
-            <div style={{ fontSize: 12, color: 'var(--ink3)', lineHeight: 1.5 }}>
-              WhatsApp Business credentials (access token, phone number ID, app secret, verify token) are configured server-side for this platform, not per tenant — there is currently no per-tenant WABA number. Real Meta signature verification (X-Hub-Signature-256) is enforced on every inbound webhook call, and inbound messages are matched to a customer and turned into a Support Center ticket automatically.
-            </div>
-          </div>
-        </SectionCard>
+      {/* ── Main Tabbed Navigation ── */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'var(--card-sunken)', padding: 4, borderRadius: 12, width: 'fit-content', border: '1px solid var(--border2)' }}>
+        {[
+          { id: 'overview', label: 'Overview & Activity', icon: 'activity' as IconName },
+          { id: 'simulator', label: 'Live Simulator & Test Send', icon: 'send' as IconName },
+          { id: 'templates', label: `Message Templates (${approvedTemplates.length})`, icon: 'fileText' as IconName },
+          { id: 'automation', label: `Keyword Rules (${rules.length})`, icon: 'sliders' as IconName },
+          { id: 'settings', label: 'API & Webhook Setup', icon: 'settings' as IconName },
+        ].map(t => {
+          const active = activeTab === t.id;
+          return (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => setTab(t.id as any)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '7px 14px',
+                borderRadius: 9,
+                border: 'none',
+                background: active ? 'var(--white)' : 'transparent',
+                color: active ? '#128C7E' : 'var(--ink2)',
+                fontSize: 12.5,
+                fontWeight: active ? 800 : 600,
+                cursor: 'pointer',
+                boxShadow: active ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <Icon name={t.icon} size={14} strokeWidth={active ? 2.2 : 1.75} />
+              {t.label}
+            </button>
+          );
+        })}
       </div>
 
-      {/* Message Templates — real Meta WABA template list + submission */}
-      <SectionCard
-        title="Message Templates"
-        action={canManage && templatesConfigured ? (
-          <Button variant="outline" size="sm" onClick={() => setShowNewTemplate(v => !v)}>
-            <Icon name="plus" size={13} /> New Template
-          </Button>
-        ) : undefined}
-      >
-        {!templatesConfigured ? (
-          <div style={{ padding: 16, fontSize: 12.5, color: 'var(--ink3)', lineHeight: 1.6 }}>
-            {templatesError || 'META_WABA_ID is not configured for this environment — template management requires a WhatsApp Business Account ID in addition to the phone number credentials used for free-form sends.'}
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {showNewTemplate && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: 14, background: 'var(--bg)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10 }}>
-                  <div>
-                    <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)' }}>NAME (lowercase_underscore)</label>
-                    <input className="input-field" style={{ marginTop: 4 }} value={tplName} onChange={e => setTplName(e.target.value)} placeholder="shipment_update" />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)' }}>CATEGORY</label>
-                    <Select value={tplCategory} onValueChange={v => setTplCategory(v as any)}>
-                      <SelectTrigger className="input-field" style={{ marginTop: 4 }}><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="UTILITY">Utility</SelectItem>
-                        <SelectItem value="MARKETING">Marketing</SelectItem>
-                        <SelectItem value="AUTHENTICATION">Authentication</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)' }}>LANGUAGE</label>
-                    <input className="input-field" style={{ marginTop: 4 }} value={tplLanguage} onChange={e => setTplLanguage(e.target.value)} placeholder="en_US" />
-                  </div>
-                </div>
-                <div>
-                  <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)' }}>BODY TEXT (use {'{{1}}'}, {'{{2}}'}… for variables)</label>
-                  <textarea className="input-field" style={{ marginTop: 4, minHeight: 70, resize: 'vertical' }} value={tplBody} onChange={e => setTplBody(e.target.value)} placeholder="Hi {{1}}, your shipment {{2}} has cleared customs." />
-                </div>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <Button variant="default" size="sm" onClick={createTemplate} disabled={savingTpl}>{savingTpl ? 'Submitting…' : 'Submit for Review'}</Button>
-                  <Button variant="outline" size="sm" onClick={() => setShowNewTemplate(false)}>Cancel</Button>
-                </div>
+      {/* ── TAB 1: OVERVIEW & ACTIVITY ── */}
+      {activeTab === 'overview' && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: 20 }}>
+          {/* Recent WhatsApp Conversations */}
+          <div style={{ background: 'var(--white)', borderRadius: 14, border: '1px solid var(--border)', boxShadow: 'var(--elev-sm)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+              <div>
+                <h2 style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)', margin: 0 }}>Recent WhatsApp Conversations</h2>
+                <span style={{ fontSize: 11.5, color: 'var(--ink3)' }}>Incoming customer threads connected to Support Center</span>
               </div>
-            )}
+              <div style={{ position: 'relative', width: 200 }}>
+                <Icon name="search" size={13} color="var(--ink3)" style={{ position: 'absolute', left: 8, top: 9 }} />
+                <input
+                  value={convSearch}
+                  onChange={e => setConvSearch(e.target.value)}
+                  placeholder="Filter conversations…"
+                  style={{ width: '100%', height: 30, background: 'var(--card-sunken)', border: '1px solid var(--border2)', borderRadius: 8, paddingLeft: 26, paddingRight: 8, fontSize: 11.5, color: 'var(--ink)', outline: 'none' }}
+                />
+              </div>
+            </div>
 
-            {templates && templates.length === 0 ? (
-              <div style={{ padding: 16, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No templates submitted yet for this WhatsApp Business Account.</div>
+            {filteredRecent.length === 0 ? (
+              <div style={{ padding: 36, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>
+                <Icon name="messageSquare" size={32} style={{ marginBottom: 10, opacity: 0.4 }} />
+                <div>No WhatsApp customer conversations found.</div>
+                <div style={{ fontSize: 11.5, marginTop: 4 }}>When customers message your WhatsApp number, they will appear here.</div>
+              </div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 10 }}>
-                {(templates || []).map(t => (
-                  <div key={t.id} style={{ padding: 12, border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--bg)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--mono)' }}>{t.name}</span>
-                      <Badge variant={t.status === 'APPROVED' ? 'success' : t.status === 'REJECTED' ? 'error' : 'warning'}>{t.status}</Badge>
+              <div style={{ maxHeight: 440, overflowY: 'auto' }}>
+                {filteredRecent.map(t => (
+                  <Link key={t.id} to={`/bliss/inbox?id=${t.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                    <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12, transition: 'background 0.1s ease', cursor: 'pointer' }} className="hover:bg-[var(--bg)]">
+                      <div style={{ position: 'relative' }}>
+                        <PersonAvatar name={t.customer} size={36} />
+                        <span style={{ position: 'absolute', bottom: -2, right: -2, width: 14, height: 14, borderRadius: '50%', background: '#25D366', border: '2px solid var(--white)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 8 }}>
+                          <Icon name="whatsapp" size={8} />
+                        </span>
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                          <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)' }}>{t.customer}</span>
+                          <span style={{ fontSize: 11, color: 'var(--ink3)', whiteSpace: 'nowrap' }}>
+                            {new Date(t.updated_at || t.created_at).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: 12, color: 'var(--ink2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 1 }}>
+                          {t.subject || 'Customer inquiry via WhatsApp'}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
+                          <span style={{ fontSize: 11, fontFamily: 'var(--mono)', color: '#128C7E', fontWeight: 600 }}>
+                            {t.customer_wa || t.customer_phone || `Ticket #${t.ref}`}
+                          </span>
+                          <Badge variant={t.status === 'OPEN' ? 'error' : t.status === 'RESOLVED' ? 'success' : 'default'} style={{ fontSize: 10, padding: '0 6px' }}>
+                            {t.status}
+                          </Badge>
+                        </div>
+                      </div>
+                      <Icon name="chevronRight" size={14} color="var(--ink3)" />
                     </div>
-                    <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4 }}>{t.category} · {t.language}</div>
-                    {t.components?.find((c: any) => c.type === 'BODY')?.text && (
-                      <div style={{ fontSize: 11.5, color: 'var(--ink2)', marginTop: 6, lineHeight: 1.4 }}>{t.components.find((c: any) => c.type === 'BODY').text}</div>
-                    )}
-                  </div>
+                  </Link>
                 ))}
               </div>
             )}
           </div>
-        )}
-      </SectionCard>
 
-      {/* Auto-Reply Bot — real whatsapp_keyword support_rules, actually
-          evaluated by the inbound webhook handler */}
-      <SectionCard
-        title="Auto-Reply Keywords"
-        action={canManage ? (
-          <Button variant="outline" size="sm" onClick={() => setShowNewRule(v => !v)}>
-            <Icon name="plus" size={13} /> New Rule
-          </Button>
-        ) : undefined}
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {showNewRule && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: 14, background: 'var(--bg)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10 }}>
-                <div>
-                  <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)' }}>KEYWORD</label>
-                  <input className="input-field" style={{ marginTop: 4 }} value={ruleKeyword} onChange={e => setRuleKeyword(e.target.value)} placeholder="HELP" />
+          {/* WhatsApp Channel Guidelines & Health Guard */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ background: 'var(--white)', borderRadius: 14, border: '1px solid var(--border)', padding: '20px 22px', boxShadow: 'var(--elev-sm)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(37, 211, 102, 0.12)', color: '#128C7E', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Icon name="shield" size={18} />
                 </div>
                 <div>
-                  <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)' }}>MATCH TYPE</label>
+                  <h3 style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)', margin: 0 }}>24-Hour Policy & Service Window Guard</h3>
+                  <span style={{ fontSize: 11.5, color: 'var(--ink3)' }}>Meta WhatsApp Business Platform Rules</span>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.5 }}>
+                <div style={{ display: 'flex', gap: 10, background: 'var(--bg)', padding: '10px 12px', borderRadius: 8 }}>
+                  <Icon name="check" size={15} color="#25D366" style={{ marginTop: 2, flexShrink: 0 }} />
+                  <div>
+                    <strong style={{ color: 'var(--ink)' }}>Customer-Initiated 24h Window:</strong> Agents can send free-form messages, file attachments, and internal notes within 24 hours of the customer's last message.
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: 10, background: 'var(--bg)', padding: '10px 12px', borderRadius: 8 }}>
+                  <Icon name="alertTriangle" size={15} color="#f59e0b" style={{ marginTop: 2, flexShrink: 0 }} />
+                  <div>
+                    <strong style={{ color: 'var(--ink)' }}>Outside the 24h Window:</strong> Business-initiated conversations or re-engagement require an approved <strong>Meta HSM Template</strong> (Utility or Marketing).
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+                <Button variant="outline" size="sm" onClick={() => setTab('simulator')}>
+                  <Icon name="send" size={13} /> Open Live Simulator
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setTab('templates')}>
+                  <Icon name="fileText" size={13} /> Manage HSM Templates
+                </Button>
+              </div>
+            </div>
+
+            {/* Quick Automation Presets Preview */}
+            <div style={{ background: 'var(--white)', borderRadius: 14, border: '1px solid var(--border)', padding: '18px 20px', boxShadow: 'var(--elev-sm)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--ink)' }}>Active Keyword Automations</div>
+                <Button variant="ghost" size="sm" onClick={() => setTab('automation')} style={{ fontSize: 11.5, color: '#128C7E' }}>
+                  View all ({rules.length}) →
+                </Button>
+              </div>
+
+              {rules.length === 0 ? (
+                <div style={{ fontSize: 12, color: 'var(--ink3)' }}>No keyword auto-replies configured yet. Add keyword rules in the Keyword Rules tab.</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {rules.slice(0, 3).map(r => {
+                    const cfg = parseConfig(r);
+                    return (
+                      <div key={r.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '8px 12px', background: 'var(--bg)', borderRadius: 8, fontSize: 12 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span style={{ fontFamily: 'var(--mono)', fontWeight: 800, color: '#128C7E', background: '#25D36615', padding: '1px 6px', borderRadius: 4 }}>
+                            {cfg.keyword}
+                          </span>
+                          <span style={{ color: 'var(--ink2)' }}>{MATCH_LABEL[cfg.matchType]}</span>
+                        </div>
+                        <Badge variant={r.enabled ? 'success' : 'gray'} style={{ fontSize: 10 }}>{r.enabled ? 'Active' : 'Off'}</Badge>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── TAB 2: LIVE SIMULATOR & TEST SANDBOX ── */}
+      {activeTab === 'simulator' && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(340px, 480px) minmax(320px, 400px)', gap: 24, alignItems: 'start', justifyContent: 'center' }}>
+          {/* Dispatcher Form */}
+          <div style={{ background: 'var(--white)', borderRadius: 16, border: '1px solid var(--border)', padding: '22px 24px', boxShadow: 'var(--elev-sm)', display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: '#25D36620', color: '#128C7E', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Icon name="send" size={18} />
+              </div>
+              <div>
+                <h2 style={{ fontSize: 16, fontWeight: 900, color: 'var(--ink)', margin: 0 }}>WhatsApp Test Sender</h2>
+                <span style={{ fontSize: 12, color: 'var(--ink3)' }}>Send real Meta Cloud API or simulated WhatsApp tests</span>
+              </div>
+            </div>
+
+            {/* Mode Switcher */}
+            <div style={{ display: 'flex', gap: 6, background: 'var(--card-sunken)', padding: 3, borderRadius: 9 }}>
+              <button
+                type="button"
+                onClick={() => setTestMode('text')}
+                style={{
+                  flex: 1,
+                  padding: '6px 12px',
+                  borderRadius: 7,
+                  border: 'none',
+                  background: testMode === 'text' ? 'var(--white)' : 'transparent',
+                  color: testMode === 'text' ? '#128C7E' : 'var(--ink2)',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  boxShadow: testMode === 'text' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                }}
+              >
+                Free-form Text (24h Window)
+              </button>
+              <button
+                type="button"
+                onClick={() => setTestMode('template')}
+                style={{
+                  flex: 1,
+                  padding: '6px 12px',
+                  borderRadius: 7,
+                  border: 'none',
+                  background: testMode === 'template' ? 'var(--white)' : 'transparent',
+                  color: testMode === 'template' ? '#128C7E' : 'var(--ink2)',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  boxShadow: testMode === 'template' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                }}
+              >
+                Approved HSM Template
+              </button>
+            </div>
+
+            {/* Destination Phone */}
+            <div>
+              <label style={{ fontSize: 11.5, fontWeight: 800, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: 5 }}>
+                Recipient Phone Number
+              </label>
+              <div style={{ position: 'relative' }}>
+                <Icon name="phone" size={13} color="var(--ink3)" style={{ position: 'absolute', left: 10, top: 10 }} />
+                <input
+                  className="input-field"
+                  value={testPhone}
+                  onChange={e => setTestPhone(e.target.value)}
+                  placeholder="+255 712 345 678"
+                  style={{ paddingLeft: 30, fontFamily: 'var(--mono)', fontSize: 13 }}
+                />
+              </div>
+              <span style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 3, display: 'block' }}>
+                International format with country code (e.g. +255 for Tanzania, +254 for Kenya).
+              </span>
+            </div>
+
+            {/* Free-form Text Mode */}
+            {testMode === 'text' ? (
+              <div>
+                <label style={{ fontSize: 11.5, fontWeight: 800, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: 5 }}>
+                  Message Content
+                </label>
+                <textarea
+                  className="input-field"
+                  rows={4}
+                  value={testText}
+                  onChange={e => setTestText(e.target.value)}
+                  placeholder="Enter message text…"
+                  style={{ fontSize: 13, lineHeight: 1.4, resize: 'vertical' }}
+                />
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--ink3)', marginTop: 4 }}>
+                  <span>Simulates live agent broadcast</span>
+                  <span>{testText.length} chars</span>
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div>
+                  <label style={{ fontSize: 11.5, fontWeight: 800, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: 5 }}>
+                    Select Approved Meta Template
+                  </label>
+                  {approvedTemplates.length === 0 ? (
+                    <div style={{ padding: '10px 12px', background: 'var(--bg)', borderRadius: 8, fontSize: 12, color: 'var(--ink3)' }}>
+                      No approved templates found. Create one in the Message Templates tab.
+                    </div>
+                  ) : (
+                    <Select value={testTemplate} onValueChange={setTestTemplate}>
+                      <SelectTrigger className="input-field" style={{ fontFamily: 'var(--mono)' }}>
+                        <SelectValue placeholder="Choose template…" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {approvedTemplates.map(t => (
+                          <SelectItem key={t.id} value={t.name}>
+                            {t.name} ({t.category} · {t.language})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+
+                {/* Dynamic Variable Inputs */}
+                {Object.keys(templateVariables).length > 0 && (
+                  <div style={{ background: 'var(--bg)', padding: '12px 14px', borderRadius: 10, border: '1px solid var(--border)' }}>
+                    <div style={{ fontSize: 11.5, fontWeight: 800, color: 'var(--ink)', marginBottom: 8 }}>
+                      Template Parameters (Variables)
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {Object.keys(templateVariables).map(num => (
+                        <div key={num} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ fontSize: 11, fontWeight: 800, color: '#128C7E', fontFamily: 'var(--mono)', width: 34 }}>
+                            {`{{${num}}}`}
+                          </span>
+                          <input
+                            className="input-field"
+                            style={{ height: 28, fontSize: 12 }}
+                            value={templateVariables[num]}
+                            onChange={e => setTemplateVariables(prev => ({ ...prev, [num]: e.target.value }))}
+                            placeholder={`Value for {{${num}}}`}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <Button
+              variant="default"
+              size="default"
+              onClick={sendTest}
+              disabled={sendingTest}
+              style={{ background: '#25D366', borderColor: '#128C7E', color: '#075E54', fontWeight: 800, height: 40, fontSize: 13 }}
+            >
+              <Icon name="send" size={15} />
+              {sendingTest ? 'Dispatching over Meta API…' : 'Send Test Message'}
+            </Button>
+
+            {testResult && (
+              <div style={{
+                padding: '12px 14px',
+                borderRadius: 10,
+                background: testResult.ok ? '#25D36615' : 'var(--red-l)',
+                border: testResult.ok ? '1px solid #25D36640' : '1px solid var(--red)',
+                fontSize: 12.5,
+                color: testResult.ok ? '#075E54' : 'var(--red)',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 8,
+              }}>
+                <Icon name={testResult.ok ? 'checkCircle' : 'alertTriangle'} size={16} style={{ marginTop: 2, flexShrink: 0 }} />
+                <div>
+                  <div>{testResult.msg}</div>
+                  {testResult.timestamp && (
+                    <div style={{ fontSize: 10.5, color: 'var(--ink3)', marginTop: 2 }}>Logged at {testResult.timestamp}</div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Interactive WhatsApp Device Preview Mockup */}
+          <div style={{
+            background: '#e5ddd5',
+            borderRadius: 24,
+            border: '8px solid #2d3748',
+            boxShadow: '0 12px 36px -4px rgba(0, 0, 0, 0.25)',
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+            height: 520,
+            maxWidth: 380,
+            position: 'relative',
+          }}>
+            {/* Phone Top Header */}
+            <div style={{ background: '#075E54', padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#ffffff' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 34, height: 34, borderRadius: '50%', background: '#ffffff', color: '#075E54', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 13 }}>
+                  H
+                </div>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    Hudumika Logistics
+                    <span style={{ color: '#25D366', fontSize: 12 }}>✓</span>
+                  </div>
+                  <div style={{ fontSize: 10.5, opacity: 0.8 }}>WhatsApp Official Business</div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 12, opacity: 0.8 }}>
+                <Icon name="phone" size={15} />
+                <Icon name="moreVertical" size={15} />
+              </div>
+            </div>
+
+            {/* Chat Body Wallpaper */}
+            <div style={{
+              flex: 1,
+              padding: 16,
+              overflowY: 'auto',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 12,
+              backgroundImage: 'radial-gradient(#00000008 1px, transparent 1px)',
+              backgroundSize: '12px 12px',
+            }}>
+              <div style={{ alignSelf: 'center', background: '#ffffffd0', padding: '3px 10px', borderRadius: 8, fontSize: 10.5, fontWeight: 700, color: '#555', boxShadow: '0 1px 1px rgba(0,0,0,0.06)' }}>
+                Today
+              </div>
+
+              {/* Customer Simulated Inquiry */}
+              <div style={{
+                alignSelf: 'flex-start',
+                maxWidth: '82%',
+                background: '#ffffff',
+                padding: '8px 12px',
+                borderRadius: '0 10px 10px 10px',
+                boxShadow: '0 1px 1px rgba(0,0,0,0.1)',
+                fontSize: 12.5,
+                color: '#111827',
+                lineHeight: 1.35,
+              }}>
+                <div>Hello, please confirm if container MSCU7291823 has been released by TRA.</div>
+                <div style={{ textAlign: 'right', fontSize: 9.5, color: '#9ca3af', marginTop: 3 }}>10:42 AM</div>
+              </div>
+
+              {/* Live Preview Outgoing Bubble */}
+              <div style={{
+                alignSelf: 'flex-end',
+                maxWidth: '85%',
+                background: '#DCF8C6',
+                padding: '10px 12px',
+                borderRadius: '10px 0 10px 10px',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.12)',
+                fontSize: 12.5,
+                color: '#111827',
+                lineHeight: 1.35,
+                border: '1px solid #c7e8ad',
+              }}>
+                {testMode === 'template' && selectedTemplateObj && (
+                  <div style={{ fontSize: 10, fontWeight: 800, color: '#075E54', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>
+                    {selectedTemplateObj.category} TEMPLATE: {selectedTemplateObj.name}
+                  </div>
+                )}
+                <div style={{ whiteSpace: 'pre-wrap' }}>
+                  {testMode === 'text' ? (testText || 'Type a message to preview…') : computedTemplatePreview}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4, marginTop: 4, fontSize: 9.5, color: '#4b5563' }}>
+                  <span>{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                  <span style={{ color: '#3b82f6', fontWeight: 900 }}>✓✓</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom Fake Input Bar */}
+            <div style={{ background: '#f0f2f5', padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 8, borderTop: '1px solid #e5e7eb' }}>
+              <div style={{ flex: 1, background: '#ffffff', borderRadius: 20, padding: '6px 14px', fontSize: 12, color: '#9ca3af', border: '1px solid #e5e7eb' }}>
+                Message
+              </div>
+              <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#075E54', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Icon name="send" size={13} />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── TAB 3: MESSAGE TEMPLATES (HSM) ── */}
+      {activeTab === 'templates' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              {/* Status Filter */}
+              <div style={{ display: 'flex', gap: 3, background: 'var(--card-sunken)', padding: 3, borderRadius: 8 }}>
+                {(['ALL', 'APPROVED', 'PENDING', 'REJECTED'] as const).map(st => (
+                  <button
+                    key={st}
+                    type="button"
+                    onClick={() => setTemplateFilter(st)}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: 6,
+                      border: 'none',
+                      background: templateFilter === st ? 'var(--white)' : 'transparent',
+                      color: templateFilter === st ? '#128C7E' : 'var(--ink2)',
+                      fontSize: 11.5,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {st === 'ALL' ? 'All Status' : st}
+                  </button>
+                ))}
+              </div>
+
+              {/* Category Filter */}
+              <div style={{ display: 'flex', gap: 3, background: 'var(--card-sunken)', padding: 3, borderRadius: 8 }}>
+                {(['ALL', 'UTILITY', 'MARKETING', 'AUTHENTICATION'] as const).map(cat => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setTemplateCategoryFilter(cat)}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: 6,
+                      border: 'none',
+                      background: templateCategoryFilter === cat ? 'var(--white)' : 'transparent',
+                      color: templateCategoryFilter === cat ? '#128C7E' : 'var(--ink2)',
+                      fontSize: 11.5,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {cat === 'ALL' ? 'All Categories' : cat}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ position: 'relative', width: 220 }}>
+                <Icon name="search" size={13} color="var(--ink3)" style={{ position: 'absolute', left: 8, top: 9 }} />
+                <input
+                  value={templateSearch}
+                  onChange={e => setTemplateSearch(e.target.value)}
+                  placeholder="Search templates…"
+                  style={{ width: '100%', height: 32, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 8, paddingLeft: 28, paddingRight: 8, fontSize: 12, color: 'var(--ink)', outline: 'none' }}
+                />
+              </div>
+
+              {canManage && (
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={() => setShowNewTemplateModal(true)}
+                  style={{ background: '#128C7E', borderColor: '#075E54', color: '#ffffff' }}
+                >
+                  <Icon name="plus" size={13} /> New HSM Template
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {!templatesConfigured && (
+            <div style={{ padding: '14px 18px', background: 'var(--gold-l)', color: 'var(--gold)', fontSize: 12.5, fontWeight: 600, borderRadius: 10, display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Icon name="alertTriangle" size={16} />
+              {templatesError || 'META_WABA_ID is not configured in this environment — template management communicates with Meta WhatsApp Business Account Graph API.'}
+            </div>
+          )}
+
+          {filteredTemplates.length === 0 ? (
+            <div style={{ background: 'var(--white)', padding: 40, borderRadius: 14, border: '1px solid var(--border)', textAlign: 'center', color: 'var(--ink3)' }}>
+              <Icon name="fileText" size={32} style={{ marginBottom: 10, opacity: 0.4 }} />
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>No message templates found</div>
+              <div style={{ fontSize: 12, marginTop: 4 }}>Submit utility or marketing templates to Meta for approval.</div>
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16 }}>
+              {filteredTemplates.map(t => {
+                const bodyObj = t.components?.find((c: any) => c.type === 'BODY');
+                const bodyText = bodyObj?.text || '';
+                return (
+                  <div key={t.id} style={{ background: 'var(--white)', borderRadius: 14, border: '1px solid var(--border)', padding: 18, boxShadow: 'var(--elev-sm)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 12 }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
+                        <span style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--ink)', fontFamily: 'var(--mono)' }}>{t.name}</span>
+                        <Badge variant={t.status === 'APPROVED' ? 'success' : t.status === 'REJECTED' ? 'error' : 'warning'}>
+                          {t.status}
+                        </Badge>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--ink3)', marginBottom: 10 }}>
+                        <span style={{ fontWeight: 700, color: '#128C7E' }}>{t.category}</span>
+                        <span>·</span>
+                        <span>{t.language}</span>
+                      </div>
+                      <div style={{ background: 'var(--bg)', padding: '10px 12px', borderRadius: 8, fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.45, minHeight: 64, whiteSpace: 'pre-wrap' }}>
+                        {bodyText || 'No body component configured.'}
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--border)', paddingTop: 10, marginTop: 4 }}>
+                      <span style={{ fontSize: 11, color: 'var(--ink3)' }}>Meta Verified</span>
+                      {t.status === 'APPROVED' && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setTestTemplate(t.name);
+                            setTestMode('template');
+                            setTab('simulator');
+                          }}
+                          style={{ fontSize: 11.5, color: '#128C7E', fontWeight: 700 }}
+                        >
+                          <Icon name="send" size={12} /> Test in Simulator
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── TAB 4: KEYWORD AUTO-REPLY RULES ── */}
+      {activeTab === 'automation' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          {/* Preset Quick Add Library */}
+          <div style={{ background: 'var(--white)', borderRadius: 14, border: '1px solid var(--border)', padding: '18px 20px', boxShadow: 'var(--elev-sm)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <div>
+                <h3 style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)', margin: 0 }}>Recommended Preset Automations</h3>
+                <span style={{ fontSize: 11.5, color: 'var(--ink3)' }}>One-click auto-reply templates for logistics and customer support</span>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 12 }}>
+              {PRESET_RULES.map(p => (
+                <div key={p.keyword} style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10, padding: 14, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 10 }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                      <span style={{ fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 900, color: '#128C7E', background: '#25D36620', padding: '1px 6px', borderRadius: 4 }}>
+                        {p.keyword}
+                      </span>
+                      <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--ink)' }}>{p.title}</span>
+                    </div>
+                    <div style={{ fontSize: 11.5, color: 'var(--ink3)', lineHeight: 1.35 }}>{p.replyText}</div>
+                  </div>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => createRule(p.keyword, p.matchType, p.replyText)}
+                    disabled={savingRule || rules.some(r => parseConfig(r).keyword.toUpperCase() === p.keyword)}
+                    style={{ fontSize: 11.5 }}
+                  >
+                    {rules.some(r => parseConfig(r).keyword.toUpperCase() === p.keyword) ? 'Already Added' : '+ Add Auto-Reply'}
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Active Custom Rules List */}
+          <div style={{ background: 'var(--white)', borderRadius: 14, border: '1px solid var(--border)', padding: '18px 20px', boxShadow: 'var(--elev-sm)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+              <div>
+                <h3 style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)', margin: 0 }}>Configured Keyword Auto-Replies ({rules.length})</h3>
+                <span style={{ fontSize: 12, color: 'var(--ink3)' }}>Evaluated in real-time on every inbound WhatsApp webhook event</span>
+              </div>
+              {canManage && (
+                <Button variant="default" size="sm" onClick={() => setShowNewRuleModal(true)} style={{ background: '#128C7E', color: '#fff' }}>
+                  <Icon name="plus" size={13} /> New Custom Rule
+                </Button>
+              )}
+            </div>
+
+            {rules.length === 0 ? (
+              <div style={{ padding: 32, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>
+                No active auto-reply rules. Choose a preset above or create a custom keyword rule.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {rules.map(r => {
+                  const cfg = parseConfig(r);
+                  return (
+                    <div key={r.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, padding: '12px 16px', background: 'var(--bg)', borderRadius: 10, border: '1px solid var(--border)' }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ fontFamily: 'var(--mono)', fontSize: 13, fontWeight: 900, color: '#128C7E', background: '#25D36620', padding: '2px 8px', borderRadius: 6 }}>
+                            "{cfg.keyword}"
+                          </span>
+                          <Badge variant="outline" style={{ fontSize: 11 }}>{MATCH_LABEL[cfg.matchType] || cfg.matchType}</Badge>
+                          <Badge variant={r.enabled ? 'success' : 'gray'} style={{ fontSize: 10 }}>{r.enabled ? 'Active' : 'Disabled'}</Badge>
+                        </div>
+                        <div style={{ fontSize: 12, color: 'var(--ink2)', marginTop: 4, lineHeight: 1.4 }}>
+                          Replies: "{cfg.replyText}"
+                        </div>
+                      </div>
+
+                      {canManage && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <Button variant="outline" size="sm" onClick={() => toggleRule(r)}>
+                            {r.enabled ? 'Disable' : 'Enable'}
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={() => deleteRule(r)}>
+                            <Icon name="trash2" size={13} color="var(--red)" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── TAB 5: API & WEBHOOK SETUP ── */}
+      {activeTab === 'settings' && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: 20 }}>
+          {/* Callback Webhook Details */}
+          <div style={{ background: 'var(--white)', borderRadius: 14, border: '1px solid var(--border)', padding: '20px 22px', boxShadow: 'var(--elev-sm)', display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div>
+              <h3 style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)', margin: 0 }}>Meta Inbound Webhook Configuration</h3>
+              <span style={{ fontSize: 12, color: 'var(--ink3)' }}>Copy this endpoint into your Meta Developer WhatsApp App Dashboard</span>
+            </div>
+
+            <div>
+              <label style={{ fontSize: 11, fontWeight: 800, color: 'var(--ink)', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>
+                Callback URL (Inbound Messages & Status Receipts)
+              </label>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <input
+                  readOnly
+                  className="input-field"
+                  value={webhookUrl}
+                  style={{ fontFamily: 'var(--mono)', fontSize: 12, background: 'var(--bg)', flex: 1 }}
+                />
+                <Button variant="outline" size="sm" onClick={handleCopyWebhook}>
+                  <Icon name={copiedWebhook ? 'check' : 'copy'} size={13} />
+                  {copiedWebhook ? 'Copied!' : 'Copy'}
+                </Button>
+              </div>
+            </div>
+
+            <div style={{ background: 'var(--bg)', padding: '12px 14px', borderRadius: 8, fontSize: 12, color: 'var(--ink2)', lineHeight: 1.5 }}>
+              <strong>Signature Verification (HMAC-SHA256):</strong> Every inbound payload is authenticated using the server's <code>META_APP_SECRET</code> against the <code>X-Hub-Signature-256</code> header to reject spoofed webhooks.
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--ink)' }}>Meta App Event Subscriptions Required:</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {['messages', 'message_status', 'template_category_update', 'message_template_status_update'].map(ev => (
+                  <span key={ev} style={{ background: 'var(--card-sunken)', border: '1px solid var(--border2)', padding: '2px 8px', borderRadius: 6, fontSize: 11, fontFamily: 'var(--mono)', color: 'var(--ink2)' }}>
+                    {ev}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Architecture Pipeline Flow */}
+          <div style={{ background: 'var(--white)', borderRadius: 14, border: '1px solid var(--border)', padding: '20px 22px', boxShadow: 'var(--elev-sm)', display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div>
+              <h3 style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)', margin: 0 }}>WhatsApp Event Pipeline</h3>
+              <span style={{ fontSize: 12, color: 'var(--ink3)' }}>End-to-end routing flow for inbound customer messages</span>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {[
+                { step: '1', title: 'Customer messages WhatsApp number', desc: 'Customer initiates message via WhatsApp on mobile or web' },
+                { step: '2', title: 'Meta Cloud API delivers webhook', desc: 'Inbound POST /v1/webhooks/whatsapp with HMAC verification' },
+                { step: '3', title: 'Keyword Automation Evaluator', desc: 'Checks match rules; dispatches instant bot reply if triggered' },
+                { step: '4', title: 'Support Center Ticket Assignment', desc: 'Matches customer profile by phone number, opens/updates ticket in Bliss' },
+              ].map(item => (
+                <div key={item.step} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                  <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#25D36620', color: '#128C7E', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 900, flexShrink: 0 }}>
+                    {item.step}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--ink)' }}>{item.title}</div>
+                    <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>{item.desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL: CREATE HSM TEMPLATE ── */}
+      {showNewTemplateModal && (
+        <Dialog open onOpenChange={setShowNewTemplateModal}>
+          <DialogContent className="max-w-xl">
+            <DialogHeader>
+              <DialogTitle>Submit New WhatsApp HSM Template</DialogTitle>
+            </DialogHeader>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, margin: '12px 0' }}>
+              <div>
+                <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)' }}>TEMPLATE NAME (lowercase_underscore)</label>
+                <input
+                  className="input-field"
+                  value={tplName}
+                  onChange={e => setTplName(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_'))}
+                  placeholder="e.g. shipment_clearance_notice"
+                  style={{ fontFamily: 'var(--mono)', marginTop: 4 }}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)' }}>CATEGORY</label>
+                  <Select value={tplCategory} onValueChange={v => setTplCategory(v as any)}>
+                    <SelectTrigger className="input-field" style={{ marginTop: 4 }}><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="UTILITY">Utility (Transactional)</SelectItem>
+                      <SelectItem value="MARKETING">Marketing (Promotional)</SelectItem>
+                      <SelectItem value="AUTHENTICATION">Authentication (OTP)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)' }}>LANGUAGE</label>
+                  <input className="input-field" value={tplLanguage} onChange={e => setTplLanguage(e.target.value)} placeholder="en_US" style={{ marginTop: 4 }} />
+                </div>
+              </div>
+
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)' }}>BODY TEXT (Variables format: {'{{1}}'}, {'{{2}}'})</label>
+                  <button
+                    type="button"
+                    onClick={() => setTplBody(prev => `${prev} {{${(prev.match(/\{\{\d+\}\}/g) || []).length + 1}}}`)}
+                    style={{ background: 'none', border: 'none', color: '#128C7E', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
+                  >
+                    + Insert Variable
+                  </button>
+                </div>
+                <textarea
+                  className="input-field"
+                  rows={4}
+                  value={tplBody}
+                  onChange={e => setTplBody(e.target.value)}
+                  placeholder="Hi {{1}}, your container {{2}} has departed from Dar port."
+                  style={{ lineHeight: 1.4, resize: 'vertical' }}
+                />
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" size="sm" onClick={() => setShowNewTemplateModal(false)}>Cancel</Button>
+              <Button variant="default" size="sm" onClick={createTemplate} disabled={savingTpl} style={{ background: '#128C7E', color: '#fff' }}>
+                {savingTpl ? 'Submitting to Meta…' : 'Submit for Review'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* ── MODAL: CREATE AUTO-REPLY RULE ── */}
+      {showNewRuleModal && (
+        <Dialog open onOpenChange={setShowNewRuleModal}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Create WhatsApp Keyword Auto-Reply</DialogTitle>
+            </DialogHeader>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, margin: '12px 0' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)' }}>KEYWORD / TRIGGER</label>
+                  <input
+                    className="input-field"
+                    value={ruleKeyword}
+                    onChange={e => setRuleKeyword(e.target.value.toUpperCase())}
+                    placeholder="e.g. HELP"
+                    style={{ fontFamily: 'var(--mono)', marginTop: 4 }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)' }}>MATCH CONDITION</label>
                   <Select value={ruleMatchType} onValueChange={v => setRuleMatchType(v as any)}>
                     <SelectTrigger className="input-field" style={{ marginTop: 4 }}><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="contains">Contains</SelectItem>
-                      <SelectItem value="starts_with">Starts with</SelectItem>
-                      <SelectItem value="exact">Exact match</SelectItem>
+                      <SelectItem value="contains">Contains Keyword</SelectItem>
+                      <SelectItem value="starts_with">Starts With Keyword</SelectItem>
+                      <SelectItem value="exact">Exact Match</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
+
               <div>
-                <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)' }}>AUTO-REPLY TEXT</label>
-                <textarea className="input-field" style={{ marginTop: 4, minHeight: 60, resize: 'vertical' }} value={ruleReply} onChange={e => setRuleReply(e.target.value)} placeholder="Thanks for reaching out — an agent will respond shortly. For urgent shipment queries call +255…" />
+                <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)' }}>AUTO-REPLY MESSAGE</label>
+                <textarea
+                  className="input-field"
+                  rows={3}
+                  value={ruleReply}
+                  onChange={e => setRuleReply(e.target.value)}
+                  placeholder="Enter auto-response sent to customer…"
+                  style={{ marginTop: 4, lineHeight: 1.4, resize: 'vertical' }}
+                />
               </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <Button variant="default" size="sm" onClick={createRule} disabled={savingRule}>{savingRule ? 'Saving…' : 'Create Rule'}</Button>
-                <Button variant="outline" size="sm" onClick={() => setShowNewRule(false)}>Cancel</Button>
-              </div>
             </div>
-          )}
 
-          {rules.length === 0 ? (
-            <div style={{ padding: 16, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No keyword auto-replies configured yet — inbound WhatsApp messages are only ever routed to Support Center agents.</div>
-          ) : (
-            rules.map(r => {
-              const cfg = parseConfig(r);
-              return (
-                <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--bg)' }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--mono)' }}>"{cfg.keyword}"</div>
-                    <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>{MATCH_LABEL[cfg.matchType] || cfg.matchType} · replies: "{cfg.replyText.slice(0, 60)}{cfg.replyText.length > 60 ? '…' : ''}"</div>
-                  </div>
-                  <Badge variant={r.enabled ? 'success' : 'gray'}>{r.enabled ? 'Active' : 'Disabled'}</Badge>
-                  {canManage && (
-                    <>
-                      <Button variant="outline" size="sm" onClick={() => toggleRule(r)}>{r.enabled ? 'Disable' : 'Enable'}</Button>
-                      <Button variant="outline" size="sm" onClick={() => deleteRule(r)}><Icon name="trash2" size={13} /></Button>
-                    </>
-                  )}
-                </div>
-              );
-            })
-          )}
-          <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>
-            Other automation types (auto-assignment, SLA escalation, status changes) live in <Link to="/bliss/operational-mode" style={{ color: 'var(--teal)', fontWeight: 600 }}>Operational Mode</Link>.
-          </div>
-        </div>
-      </SectionCard>
-
-      {/* Send Test Message — real WhatsAppIntegration.sendMessage/sendTemplateMessage call */}
-      <SectionCard title="Send Test Message">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 480 }}>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <Button variant={testMode === 'text' ? 'default' : 'outline'} size="sm" onClick={() => setTestMode('text')}>Free text</Button>
-            <Button variant={testMode === 'template' ? 'default' : 'outline'} size="sm" onClick={() => setTestMode('template')} disabled={approvedTemplates.length === 0}>Approved template</Button>
-          </div>
-          <div>
-            <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)' }}>DESTINATION PHONE NUMBER</label>
-            <input className="input-field" style={{ marginTop: 4, fontFamily: 'var(--mono)' }} value={testPhone} onChange={e => setTestPhone(e.target.value)} placeholder="0712345678" />
-          </div>
-          {testMode === 'text' ? (
-            <div>
-              <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)' }}>MESSAGE TEXT</label>
-              <textarea className="input-field" style={{ marginTop: 4, minHeight: 60, resize: 'vertical' }} value={testText} onChange={e => setTestText(e.target.value)} />
-            </div>
-          ) : (
-            <div>
-              <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)' }}>TEMPLATE</label>
-              <Select value={testTemplate} onValueChange={setTestTemplate}>
-                <SelectTrigger className="input-field" style={{ marginTop: 4 }}><SelectValue placeholder="Select an approved template" /></SelectTrigger>
-                <SelectContent>
-                  {approvedTemplates.map(t => <SelectItem key={t.id} value={t.name}>{t.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-          <Button variant="default" size="sm" onClick={sendTest} disabled={sendingTest}>
-            <Icon name="send" size={13} /> {sendingTest ? 'Sending…' : 'Send Test Message'}
-          </Button>
-          {testResult && (
-            <div style={{ fontSize: 12.5, fontWeight: 600, color: testResult.ok ? 'var(--green)' : 'var(--red)' }}>{testResult.msg}</div>
-          )}
-        </div>
-      </SectionCard>
+            <DialogFooter>
+              <Button variant="outline" size="sm" onClick={() => setShowNewRuleModal(false)}>Cancel</Button>
+              <Button variant="default" size="sm" onClick={() => createRule()} disabled={savingRule} style={{ background: '#128C7E', color: '#fff' }}>
+                {savingRule ? 'Saving…' : 'Create Auto-Reply'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };

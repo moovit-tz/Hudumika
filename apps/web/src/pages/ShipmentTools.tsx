@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { PageHeader } from '../components/PageHeader.js';
+import { Checkbox } from '../components/ui/checkbox.js';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
@@ -600,7 +601,7 @@ export const ShipmentTools: React.FC = () => {
             <div style={{ gridColumn: '1 / -1', display: 'flex', gap: 20, flexWrap: 'wrap', paddingTop: 2 }}>
               {([['pNoPvoc', 'No PVoC/COC certificate', pNoPvoc, setPNoPvoc], ['pNoDi', 'No DI Inspection permit', pNoDi, setPNoDi]] as const).map(([, label, val, set]) => (
                 <label key={label} style={{ display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer', fontSize: 13, color: 'var(--ink2)', userSelect: 'none' }}>
-                  <input type="checkbox" checked={val} onChange={e => set(e.target.checked)} style={{ accentColor: 'var(--red)', width: 15, height: 15, cursor: 'pointer' }} />
+                  <Checkbox checked={val} onCheckedChange={c => set(c === true)} />
                   {label}
                 </label>
               ))}

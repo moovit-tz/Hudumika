@@ -106,10 +106,6 @@ const fmtMoney = (amount: string | null, currency: string | null, period: string
 
 const inp: React.CSSProperties = { width: '100%', boxSizing: 'border-box', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, fontFamily: 'var(--font)', color: 'var(--ink)', background: 'var(--white)' };
 const lbl: React.CSSProperties = { display: 'block', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 4 };
-const modalOverlay: React.CSSProperties = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, overflowY: 'auto' };
-const modalCard: React.CSSProperties = { background: 'var(--white)', borderRadius: 'var(--r)', padding: 28, width: 520, maxWidth: '92vw', boxShadow: 'var(--elev-lg)', maxHeight: '90vh', overflowY: 'auto' };
-const modalTitle: React.CSSProperties = { fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 18 };
-const modalActions: React.CSSProperties = { display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 18 };
 
 function StageBadge({ stage }: { stage: string }) {
   const s = stageInfo(stage);
@@ -166,10 +162,10 @@ function CreateJobModal({ onClose, onCreated }: { onClose: () => void; onCreated
   }
 
   return (
-    <div style={modalOverlay}>
-      <div style={modalCard}>
-        <div style={modalTitle}>New job opening</div>
-        <p style={{ fontSize: 12, color: 'var(--ink3)', marginTop: -12, marginBottom: 18 }}>
+    <Dialog open onOpenChange={o => { if (!o) onClose(); }}>
+      <DialogContent className="w-130 max-w-[92vw] max-h-[90vh] overflow-y-auto">
+        <DialogHeader><DialogTitle>New job opening</DialogTitle></DialogHeader>
+        <p style={{ fontSize: 12, color: 'var(--ink3)', marginTop: -8, marginBottom: 4 }}>
           A lighter path than a requisition — this goes straight to OPEN with no approval step.
         </p>
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -202,13 +198,13 @@ function CreateJobModal({ onClose, onCreated }: { onClose: () => void; onCreated
               <input type="number" min={1} value={openingsCount} onChange={e => setOpeningsCount(e.target.value)} style={inp} />
             </div>
           </div>
-          <div style={modalActions}>
+          <DialogFooter style={{ marginTop: 6 }}>
             <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
             <Button type="submit" disabled={saving || !title.trim()}>{saving ? 'Creating…' : 'Create opening'}</Button>
-          </div>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -236,10 +232,10 @@ function AddCandidateModal({ jobOpeningId, jobTitle, onClose, onCreated }: { job
   }
 
   return (
-    <div style={modalOverlay}>
-      <div style={modalCard}>
-        <div style={modalTitle}>Add candidate</div>
-        <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginTop: -12, marginBottom: 18 }}>Applying to <strong>{jobTitle}</strong> — an existing candidate with this email is reused, not duplicated.</div>
+    <Dialog open onOpenChange={o => { if (!o) onClose(); }}>
+      <DialogContent className="w-130 max-w-[92vw] max-h-[90vh] overflow-y-auto">
+        <DialogHeader><DialogTitle>Add candidate</DialogTitle></DialogHeader>
+        <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginTop: -8, marginBottom: 4 }}>Applying to <strong>{jobTitle}</strong> — an existing candidate with this email is reused, not duplicated.</div>
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div>
             <label style={lbl}>Full name</label>
@@ -259,13 +255,13 @@ function AddCandidateModal({ jobOpeningId, jobTitle, onClose, onCreated }: { job
             <label style={lbl}>Source</label>
             <input value={source} onChange={e => setSource(e.target.value)} placeholder="LinkedIn, referral, walk-in…" style={inp} />
           </div>
-          <div style={modalActions}>
+          <DialogFooter style={{ marginTop: 6 }}>
             <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
             <Button type="submit" disabled={saving || !name.trim()}>{saving ? 'Adding…' : 'Add candidate'}</Button>
-          </div>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -297,10 +293,10 @@ function ScheduleInterviewModal({ application, staff, onClose, onScheduled }: {
   }
 
   return (
-    <div style={modalOverlay}>
-      <div style={modalCard}>
-        <div style={modalTitle}>Schedule interview</div>
-        <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginTop: -12, marginBottom: 18 }}>With <strong>{application.candidate_name}</strong></div>
+    <Dialog open onOpenChange={o => { if (!o) onClose(); }}>
+      <DialogContent className="w-130 max-w-[92vw] max-h-[90vh] overflow-y-auto">
+        <DialogHeader><DialogTitle>Schedule interview</DialogTitle></DialogHeader>
+        <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginTop: -8, marginBottom: 4 }}>With <strong>{application.candidate_name}</strong></div>
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div>
             <label style={lbl}>Date & time</label>
@@ -325,13 +321,13 @@ function ScheduleInterviewModal({ application, staff, onClose, onScheduled }: {
             <label style={lbl}>Notes</label>
             <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} style={{ ...inp, resize: 'vertical' }} />
           </div>
-          <div style={modalActions}>
+          <DialogFooter style={{ marginTop: 6 }}>
             <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
             <Button type="submit" disabled={saving || !when}>{saving ? 'Scheduling…' : 'Schedule'}</Button>
-          </div>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -390,10 +386,10 @@ function CreateRequisitionModal({ staff, onClose, onCreated }: {
   }
 
   return (
-    <div style={modalOverlay}>
-      <div style={modalCard}>
-        <div style={modalTitle}>New requisition</div>
-        <p style={{ fontSize: 12, color: 'var(--ink3)', marginTop: -12, marginBottom: 18 }}>
+    <Dialog open onOpenChange={o => { if (!o) onClose(); }}>
+      <DialogContent className="w-130 max-w-[92vw] max-h-[90vh] overflow-y-auto">
+        <DialogHeader><DialogTitle>New requisition</DialogTitle></DialogHeader>
+        <p style={{ fontSize: 12, color: 'var(--ink3)', marginTop: -8, marginBottom: 4 }}>
           Saved as a draft — submit it for approval when it's ready, and publish it as a job opening once approved.
         </p>
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -476,13 +472,13 @@ function CreateRequisitionModal({ staff, onClose, onCreated }: {
             <label style={lbl}>Requirements</label>
             <textarea value={requirements} onChange={e => setRequirements(e.target.value)} rows={2} style={{ ...inp, resize: 'vertical' }} />
           </div>
-          <div style={modalActions}>
+          <DialogFooter style={{ marginTop: 6 }}>
             <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
             <Button type="submit" disabled={saving || !title.trim()}>{saving ? 'Saving…' : 'Save as draft'}</Button>
-          </div>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -522,9 +518,9 @@ function CreateOfferModal({ applicationId, positionTitle, supersedesOfferId, onC
   }
 
   return (
-    <div style={modalOverlay}>
-      <div style={modalCard}>
-        <div style={modalTitle}>{supersedesOfferId ? 'Revise offer' : 'New offer'}</div>
+    <Dialog open onOpenChange={o => { if (!o) onClose(); }}>
+      <DialogContent className="w-130 max-w-[92vw] max-h-[90vh] overflow-y-auto">
+        <DialogHeader><DialogTitle>{supersedesOfferId ? 'Revise offer' : 'New offer'}</DialogTitle></DialogHeader>
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div>
             <label style={lbl}>Position title</label>
@@ -557,13 +553,13 @@ function CreateOfferModal({ applicationId, positionTitle, supersedesOfferId, onC
               <DatePicker date={expiryDate} onChange={setExpiryDate} triggerClassName="w-full" />
             </div>
           </div>
-          <div style={modalActions}>
+          <DialogFooter style={{ marginTop: 6 }}>
             <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
             <Button type="submit" disabled={saving || !title.trim()}>{saving ? 'Saving…' : 'Save as draft'}</Button>
-          </div>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -617,13 +613,13 @@ function CandidateProfileModal({ candidateId, candidateName, onClose }: { candid
   }
 
   return (
-    <div style={modalOverlay} onClick={onClose}>
-      <div style={modalCard} onClick={e => e.stopPropagation()}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-          <div style={modalTitle}>Candidate profile</div>
+    <Dialog open onOpenChange={o => { if (!o) onClose(); }}>
+      <DialogContent hideClose className="w-130 max-w-[92vw] max-h-[90vh] overflow-y-auto">
+        <DialogHeader style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', textAlign: 'left' }}>
+          <DialogTitle>Candidate profile</DialogTitle>
           <button type="button" onClick={onClose} aria-label="Close" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}><Icon name="x" size={18} /></button>
-        </div>
-        <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginTop: -14, marginBottom: 16 }}>{candidateName}</div>
+        </DialogHeader>
+        <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginTop: -8, marginBottom: 4 }}>{candidateName}</div>
 
         {loading ? <SectionLoading /> : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -656,14 +652,14 @@ function CandidateProfileModal({ candidateId, candidateName, onClose }: { candid
               <label style={lbl}>Education</label>
               <textarea value={education} onChange={e => setEducation(e.target.value)} rows={2} style={{ ...inp, resize: 'vertical' }} />
             </div>
-            <div style={modalActions}>
+            <DialogFooter>
               <Button variant="outline" onClick={onClose}>Close</Button>
               <Button disabled={saving} onClick={save}>{saving ? 'Saving…' : 'Save profile'}</Button>
-            </div>
+            </DialogFooter>
           </div>
         )}
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -782,13 +778,13 @@ function OffersModal({ application, jobTitle, onClose, onChanged }: { applicatio
   }
 
   return (
-    <div style={modalOverlay} onClick={onClose}>
-      <div style={{ ...modalCard, width: 640 }} onClick={e => e.stopPropagation()}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-          <div style={modalTitle}>Offers</div>
+    <Dialog open onOpenChange={o => { if (!o) onClose(); }}>
+      <DialogContent hideClose className="w-160 max-w-[92vw] max-h-[90vh] overflow-y-auto">
+        <DialogHeader style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', textAlign: 'left' }}>
+          <DialogTitle>Offers</DialogTitle>
           <button type="button" onClick={onClose} aria-label="Close" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}><Icon name="x" size={18} /></button>
-        </div>
-        <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginTop: -14, marginBottom: 16 }}>For <strong>{application.candidate_name}</strong></div>
+        </DialogHeader>
+        <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginTop: -8, marginBottom: 4 }}>For <strong>{application.candidate_name}</strong></div>
 
         {loading ? <SectionLoading /> : offers.length === 0 ? (
           <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No offers yet.</div>
@@ -866,8 +862,8 @@ function OffersModal({ application, jobTitle, onClose, onChanged }: { applicatio
             )}
           </DialogContent>
         </Dialog>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

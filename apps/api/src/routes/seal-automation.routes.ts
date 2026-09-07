@@ -117,7 +117,7 @@ async function evaluateRules(trx: Transaction<Database>, tenantId: string) {
           subject: `[Automation: ${rule.name}] ${candidate.description}`,
           description: `Auto-raised by SEAL automation rule "${rule.name}" (${rule.trigger_type}).`,
           channel: 'SYSTEM', priority, category: 'Warehouse Operations', status: 'OPEN',
-          tags: JSON.stringify([]),
+          tags: JSON.stringify([]), source_app: 'seal',
           sla_deadline: new Date(Date.now() + SLA_HOURS[priority] * 3600_000),
         }).returningAll().executeTakeFirstOrThrow();
         resultType = 'ticket'; resultId = ticket.id;

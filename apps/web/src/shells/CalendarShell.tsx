@@ -7,6 +7,7 @@ import { AppHeader } from '../components/AppHeader.js';
 import { CalendarApp } from '../pages/CalendarApp.js';
 import { Icon } from '../components/Icon.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
+import { Checkbox } from '../components/ui/checkbox.js';
 import { fetchPeople, type Person } from '../lib/identity.js';
 import {
   useTodos, useLists, updateTodo, Todo,
@@ -249,7 +250,7 @@ function TodoSidebarContent({ collapsed }: { collapsed: boolean }) {
             { label: 'Holidays', color: 'var(--green)' },
           ].map((item, idx) => (
             <label key={idx} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: 'var(--ink2)', cursor: 'pointer', padding: '3px 0' }}>
-              <input type="checkbox" defaultChecked style={{ accentColor: item.color, width: 14, height: 14, cursor: 'pointer' }} />
+              <Checkbox defaultChecked />
               <span style={{ width: 8, height: 8, borderRadius: '50%', background: item.color, flexShrink: 0 }} />
               <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }}>{item.label}</span>
             </label>
@@ -273,7 +274,7 @@ function TodoSidebarContent({ collapsed }: { collapsed: boolean }) {
             { label: 'Colleague Schedules', color: '#0284c7' },
           ].map((item, idx) => (
             <label key={idx} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: 'var(--ink2)', cursor: 'pointer', padding: '3px 0' }}>
-              <input type="checkbox" defaultChecked style={{ accentColor: item.color, width: 14, height: 14, cursor: 'pointer' }} />
+              <Checkbox defaultChecked />
               <span style={{ width: 8, height: 8, borderRadius: '50%', background: item.color, flexShrink: 0 }} />
               <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }}>{item.label}</span>
             </label>

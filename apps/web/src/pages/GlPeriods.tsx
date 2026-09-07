@@ -9,6 +9,7 @@ import { MetricsRow } from '../components/MetricCard.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
+import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
 
 interface Period {
   id: string; name: string; period_type: 'MONTH' | 'YEAR'; period_start: string; period_end: string;
@@ -158,39 +159,35 @@ export function GlPeriods() {
         </div>
       </div>
 
-      {showNew && (
-        <>
-          <div onClick={() => setShowNew(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div onClick={e => e.stopPropagation()} style={{ background: 'var(--white)', borderRadius: 12, padding: 24, width: 400 }}>
-              <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 16 }}>New Period</div>
-              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 }}>Name</label>
-              <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. FY2026 or August 2026"
-                style={{ width: '100%', padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13, outline: 'none', boxSizing: 'border-box', marginBottom: 14 }} />
-              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 }}>Type</label>
-              <div style={{ marginBottom: 14 }}>
-                <Select value={periodType} onValueChange={v => setPeriodType(v as 'MONTH' | 'YEAR')}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent><SelectItem value="MONTH">Month (lock only)</SelectItem><SelectItem value="YEAR">Fiscal Year (lock + closing entries)</SelectItem></SelectContent>
-                </Select>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12, marginBottom: 16 }}>
-                <div><label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 }}>Start</label><DatePicker date={parseDateOnly(start)} onChange={d => setStart(toDateOnlyString(d) ?? '')} /></div>
-                <div><label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 }}>End</label><DatePicker date={parseDateOnly(end)} onChange={d => setEnd(toDateOnlyString(d) ?? '')} /></div>
-              </div>
-              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowNew(false)}>Cancel</button>
-                <button type="button" className="btn btn-primary btn-sm" onClick={createPeriod}>Create</button>
-              </div>
-            </div>
+      <Dialog open={showNew} onOpenChange={o => { if (!o) setShowNew(false); }}>
+        <DialogContent className="max-w-100 gap-0">
+          <DialogTitle style={{ fontWeight: 800, fontSize: 15, marginBottom: 16 }}>New Period</DialogTitle>
+          <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 }}>Name</label>
+          <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. FY2026 or August 2026"
+            style={{ width: '100%', padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13, outline: 'none', boxSizing: 'border-box', marginBottom: 14 }} />
+          <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 }}>Type</label>
+          <div style={{ marginBottom: 14 }}>
+            <Select value={periodType} onValueChange={v => setPeriodType(v as 'MONTH' | 'YEAR')}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent><SelectItem value="MONTH">Month (lock only)</SelectItem><SelectItem value="YEAR">Fiscal Year (lock + closing entries)</SelectItem></SelectContent>
+            </Select>
           </div>
-        </>
-      )}
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12, marginBottom: 16 }}>
+            <div><label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 }}>Start</label><DatePicker date={parseDateOnly(start)} onChange={d => setStart(toDateOnlyString(d) ?? '')} /></div>
+            <div><label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 }}>End</label><DatePicker date={parseDateOnly(end)} onChange={d => setEnd(toDateOnlyString(d) ?? '')} /></div>
+          </div>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowNew(false)}>Cancel</button>
+            <button type="button" className="btn btn-primary btn-sm" onClick={createPeriod}>Create</button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
-      {reopening && (
-        <>
-          <div onClick={() => setReopening(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div onClick={e => e.stopPropagation()} style={{ background: 'var(--white)', borderRadius: 12, padding: 24, width: 400 }}>
-              <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 6 }}>Reopen "{reopening.name}"</div>
+      <Dialog open={!!reopening} onOpenChange={o => { if (!o) setReopening(null); }}>
+        <DialogContent className="max-w-100 gap-0">
+          {reopening && (
+            <>
+              <DialogTitle style={{ fontWeight: 800, fontSize: 15, marginBottom: 6 }}>Reopen "{reopening.name}"</DialogTitle>
               <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 14 }}>The original close remains on record — reopening doesn't erase it.</div>
               <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 }}>Reason (required)</label>
               <textarea value={reopenReason} onChange={e => setReopenReason(e.target.value)} rows={3}
@@ -199,10 +196,10 @@ export function GlPeriods() {
                 <button type="button" className="btn btn-secondary btn-sm" onClick={() => setReopening(null)}>Cancel</button>
                 <button type="button" className="btn btn-primary btn-sm" onClick={reopenPeriod}>Reopen</button>
               </div>
-            </div>
-          </div>
-        </>
-      )}
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

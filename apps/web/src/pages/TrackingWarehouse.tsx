@@ -9,6 +9,7 @@ import { showConfirm } from '../lib/confirm.js';
 import { showAlert } from '../lib/alert.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
 
 /** Format a Date to "YYYY-MM-DDTHH:mm" in local time — same shape a native
  *  <input type="datetime-local"> value had, so the existing string form
@@ -69,9 +70,9 @@ function AddLocationModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
   }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', padding: 28, width: 420, maxWidth: '92vw', boxShadow: 'var(--elev-lg)' }}>
-        <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 18 }}>Add a storage location</div>
+    <Dialog open onOpenChange={o => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-[min(420px,92vw)] gap-0" style={{ padding: 28 }}>
+        <DialogTitle style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 18 }}>Add a storage location</DialogTitle>
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div style={{ display: 'flex', gap: 10 }}>
             <div style={{ flex: 1 }}><label style={labelStyle}>Code</label><input required value={code} onChange={e => setCode(e.target.value)} placeholder="A-01" style={inputStyle} /></div>
@@ -88,8 +89,8 @@ function AddLocationModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
             </button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -122,9 +123,9 @@ function AddAppointmentModal({ vehicles, onClose, onAdded }: { vehicles: Vehicle
   }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', padding: 28, width: 440, maxWidth: '92vw', boxShadow: 'var(--elev-lg)' }}>
-        <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 18 }}>Schedule a dock appointment</div>
+    <Dialog open onOpenChange={o => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-[min(440px,92vw)] gap-0" style={{ padding: 28 }}>
+        <DialogTitle style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 18 }}>Schedule a dock appointment</DialogTitle>
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div style={{ display: 'flex', gap: 10 }}>
             <div style={{ flex: 1 }}><label style={labelStyle}>Dock number</label><input required value={dockNumber} onChange={e => setDockNumber(e.target.value)} style={inputStyle} /></div>
@@ -155,8 +156,8 @@ function AddAppointmentModal({ vehicles, onClose, onAdded }: { vehicles: Vehicle
             </button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

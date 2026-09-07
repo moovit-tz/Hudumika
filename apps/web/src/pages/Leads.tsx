@@ -10,6 +10,7 @@ import { PersonAvatar } from '../components/PersonAvatar.js';
 import { AvatarPicker } from '../components/AvatarPicker.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { SingleSelectFilter } from '../components/ui/filter-dropdown.js';
+import { Checkbox } from '../components/ui/checkbox.js';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '../components/ui/dropdown-menu.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { showAlert } from '../lib/alert.js';
@@ -1018,7 +1019,7 @@ export const Leads: React.FC = () => {
               <thead>
                 <tr>
                   <Th width={44}>
-                    <input type="checkbox" aria-label="Select all" checked={allChecked} onChange={toggleAll} />
+                    <Checkbox aria-label="Select all" checked={allChecked} onCheckedChange={toggleAll} />
                   </Th>
                   <Th>Lead</Th>
                   <Th>Source</Th>
@@ -1049,8 +1050,8 @@ export const Leads: React.FC = () => {
                     onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
                     onMouseLeave={e => (e.currentTarget.style.background = '')}>
                     <td style={{ padding: '12px 14px' }} onClick={e => e.stopPropagation()}>
-                      <input type="checkbox" aria-label={`Select ${lead.company}`} checked={selectedIds.includes(lead.id)}
-                        onChange={() => setSelectedIds(p => p.includes(lead.id) ? p.filter(x => x !== lead.id) : [...p, lead.id])} />
+                      <Checkbox aria-label={`Select ${lead.company}`} checked={selectedIds.includes(lead.id)}
+                        onCheckedChange={() => setSelectedIds(p => p.includes(lead.id) ? p.filter(x => x !== lead.id) : [...p, lead.id])} />
                     </td>
                     <td style={{ padding: '12px 14px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

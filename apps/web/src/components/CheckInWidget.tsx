@@ -6,6 +6,7 @@ import { useIsMobile } from '../hooks/useIsMobile.js';
 import { useClockIn } from '../contexts/ClockInContext.js';
 import { Switch } from './ui/switch.js';
 import { Tabs, TabsList, TabsTrigger } from './ui/tabs.js';
+import { Dialog, DialogContent } from './ui/dialog.js';
 
 /* ── Types ── */
 interface Task  { id: string; name: string; category: string; is_billable: boolean; color: string }
@@ -192,11 +193,14 @@ export const CheckInWidget: React.FC = () => {
   /* ── Task selector panel ── */
   if (open) {
     return (
-      <div style={{ position: 'fixed', inset: 0, zIndex: 1500, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center' }}
-        onClick={() => setOpen(false)}>
-      <div style={{ width: isMobile ? '100%' : 460, maxWidth: '100%', position: 'relative' }} onClick={e => e.stopPropagation()}>
-        <div style={{ background: 'var(--white)', borderRadius: isMobile ? '16px 16px 0 0' : 16, border: '1px solid var(--border)', boxShadow: 'var(--shadow-lg)', overflow: 'hidden', display: 'flex', flexDirection: 'column', maxHeight: isMobile ? '80vh' : '500px' }}>
-          
+      <Dialog open onOpenChange={o => { if (!o) setOpen(false); }}>
+        <DialogContent
+          hideClose
+          className={isMobile
+            ? 'inset-x-0 bottom-0 top-auto left-0 translate-x-0 translate-y-0 w-full max-w-full rounded-t-2xl rounded-b-none p-0 gap-0'
+            : 'w-115 max-w-full rounded-2xl p-0 gap-0'}
+          style={{ border: '1px solid var(--border)', boxShadow: 'var(--elev-lg)', overflow: 'hidden', display: 'flex', flexDirection: 'column', maxHeight: isMobile ? '80vh' : 500 }}
+        >
           {/* Header */}
           <div style={{ padding: '20px 24px 14px', position: 'relative' }}>
             <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)' }}>
@@ -335,9 +339,8 @@ export const CheckInWidget: React.FC = () => {
               </>
             )}
           </div>
-        </div>
-      </div>
-      </div>
+        </DialogContent>
+      </Dialog>
     );
   }
 

@@ -6,6 +6,8 @@ import { SectionLoading } from '../components/ui/spinner.js';
 import { apiFetch } from '../lib/api.js';
 import { BackButton } from '../components/ui/BackButton.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { Checkbox } from '../components/ui/checkbox.js';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import type { EmpStatus } from '../data/staffData.js';
@@ -1296,15 +1298,15 @@ export const StaffDetail: React.FC = () => {
 
       {/* Edit Profile Modal */}
       {isEditing && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
-          <div style={{ background: 'var(--white)', borderRadius: 12, width: '100%', maxWidth: 700, maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
-            <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0, color: 'var(--ink)' }}>Edit Employee Profile</h2>
+        <Dialog open onOpenChange={o => { if (!o) setIsEditing(false); }}>
+          <DialogContent hideClose className="w-full max-w-175 max-h-[90vh] flex flex-col p-0 gap-0">
+            <DialogHeader style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', textAlign: 'left' }}>
+              <DialogTitle style={{ fontSize: 18 }}>Edit Employee Profile</DialogTitle>
               <button onClick={() => setIsEditing(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}><Icon name="x" size={20} /></button>
-            </div>
-            
+            </DialogHeader>
+
             <div style={{ padding: 24, overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 24 }}>
-              
+
               <div>
                 <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 12, borderBottom: '1px solid var(--border)', paddingBottom: 8 }}>Work Information</h3>
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
@@ -1342,10 +1344,9 @@ export const StaffDetail: React.FC = () => {
                   </div>
                 </div>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 14, fontSize: 12.5, color: 'var(--ink2)', cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={!!editForm.profile.timesheet_exempt}
-                    onChange={e => updateProfileField('timesheet_exempt', e.target.checked)}
+                    onCheckedChange={c => updateProfileField('timesheet_exempt', c === true)}
                   />
                   Exempt from timesheets — hides the clock-in prompt for this person everywhere (header, ESS hub card)
                 </label>
@@ -1563,8 +1564,8 @@ export const StaffDetail: React.FC = () => {
                 {saving ? 'Saving...' : 'Save Profile'}
               </button>
             </div>
-          </div>
-        </div>
+          </DialogContent>
+        </Dialog>
       )}
 
     </div>

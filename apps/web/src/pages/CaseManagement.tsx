@@ -13,6 +13,7 @@ import { Textarea } from '../components/ui/textarea.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { SingleSelectFilter } from '../components/ui/filter-dropdown.js';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog.js';
 
 /**
  * Disciplinary / case management — confirmed entirely absent in the
@@ -125,9 +126,6 @@ export function CaseManagement() {
   );
 }
 
-const overlayStyle: React.CSSProperties = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 };
-const cardStyle: React.CSSProperties = { background: 'var(--white)', borderRadius: 12, padding: 24, width: 560, maxWidth: '94vw', maxHeight: '88vh', overflowY: 'auto', boxShadow: 'var(--elev-lg)' };
-
 function NewCaseModal({ staff, onClose, onCreated }: { staff: Staff[]; onClose: () => void; onCreated: () => void }) {
   const [employeeId, setEmployeeId] = useState('');
   const [caseType, setCaseType] = useState('verbal_warning');
@@ -157,10 +155,11 @@ function NewCaseModal({ staff, onClose, onCreated }: { staff: Staff[]; onClose: 
   }
 
   return (
-    <div style={overlayStyle} onClick={onClose}>
-      <form style={cardStyle} onClick={e => e.stopPropagation()} onSubmit={submit}>
-        <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 18 }}>New case</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+    <Dialog open onOpenChange={o => { if (!o) onClose(); }}>
+      <DialogContent className="w-140 max-w-[94vw] max-h-[88vh] overflow-y-auto">
+      <form onSubmit={submit}>
+        <DialogHeader><DialogTitle>New case</DialogTitle></DialogHeader>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 14 }}>
           <div>
             <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Employee</label>
             <Combobox
@@ -203,7 +202,8 @@ function NewCaseModal({ staff, onClose, onCreated }: { staff: Staff[]; onClose: 
           </div>
         </div>
       </form>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -255,16 +255,15 @@ function CaseDetailModal({ caseId, onClose, onChanged }: { caseId: string; onClo
   }
 
   return (
-    <div style={overlayStyle} onClick={onClose}>
-      <div style={cardStyle} onClick={e => e.stopPropagation()}>
+    <Dialog open onOpenChange={o => { if (!o) onClose(); }}>
+      <DialogContent className="w-140 max-w-[94vw] max-h-[88vh] overflow-y-auto">
         {loading || !item ? (
           <SectionLoading />
         ) : (
           <>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
-              <div style={{ fontSize: 16, fontWeight: 700 }}>{item.title}</div>
-              <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }} aria-label="Close"><Icon name="x" size={16} /></button>
-            </div>
+            <DialogHeader>
+              <DialogTitle>{item.title}</DialogTitle>
+            </DialogHeader>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
               <PersonAvatar userId={item.employee_id} name={item.employee_name} size={22} />
               <span style={{ fontSize: 12.5, color: 'var(--ink2)' }}>{item.employee_name}</span>
@@ -304,8 +303,8 @@ function CaseDetailModal({ caseId, onClose, onChanged }: { caseId: string; onClo
             </div>
           </>
         )}
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

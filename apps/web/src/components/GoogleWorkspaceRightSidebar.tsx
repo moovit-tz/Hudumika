@@ -3,6 +3,7 @@ import { Icon, type IconName } from './Icon.js';
 import { useTodos, addTodo, updateTodo, deleteTodo, useEvents, addEvent, useCurrentCalendarDate, setCurrentCalendarDate, useAppSettings, updateAppSettings } from '../data/calendarStore.js';
 import { PersonAvatar } from './PersonAvatar.js';
 import { Switch } from './ui/switch.js';
+import { Checkbox } from './ui/checkbox.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from './ui/select.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from './ui/date-picker.js';
 import { SectionLoading } from './ui/spinner.js';
@@ -863,7 +864,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                       <input type="time" value={newEventTime} onChange={e => setNewEventTime(e.target.value)} style={{ ...composerInputStyle, flex: 1 }} />
                     </div>
                     <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--ink2)', cursor: 'pointer' }}>
-                      <input type="checkbox" checked={newEventRemind} onChange={e => setNewEventRemind(e.target.checked)} />
+                      <Checkbox checked={newEventRemind} onCheckedChange={c => setNewEventRemind(c === true)} />
                       <Icon name="bell" size={12} /> Remind me 10 min before
                     </label>
                     <div style={{ display: 'flex', gap: 8 }}>

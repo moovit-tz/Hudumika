@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader.js';
+import { Checkbox } from '../components/ui/checkbox.js';
 import { Icon } from '../components/Icon.js';
 import { Banner } from '../components/ui/alert.js';
 import { Badge } from '../components/ui/badge.js';
@@ -342,7 +343,7 @@ export const ReportIssuePage: React.FC = () => {
 
               <div className="ri-field">
                 <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer' }}>
-                  <input type="checkbox" checked={includeContext} onChange={e => setIncludeContext(e.target.checked)} style={{ marginTop: 3 }} />
+                  <Checkbox checked={includeContext} onCheckedChange={c => setIncludeContext(c === true)} style={{ marginTop: 3 }} />
                   <span style={{ fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.55 }}>
                     <strong style={{ color: 'var(--ink)' }}>Send what I was looking at.</strong> Everything below travels with the report so
                     nobody has to ask you to reproduce it. Uncheck to send only the description.

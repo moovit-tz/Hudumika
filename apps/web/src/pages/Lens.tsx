@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { PageHeader } from '../components/PageHeader.js';
+import { Checkbox } from '../components/ui/checkbox.js';
 import { MetricsRow } from '../components/MetricCard.js';
 import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
@@ -8,6 +9,8 @@ import { SectionLoading } from '../components/ui/spinner.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { apiFetch } from '../lib/api.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
+import { Sheet, SheetContent, SheetTitle } from '../components/ui/sheet.js';
 
 type Kind = 'BUG' | 'FEATURE' | 'DEBT' | 'DECISION' | 'QUESTION' | 'RISK';
 type Status = 'OPEN' | 'IN_PROGRESS' | 'BLOCKED' | 'DONE' | 'WONTFIX';
@@ -267,7 +270,7 @@ export function Lens() {
             </Select>
           )}
           <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: 'var(--ink2)' }}>
-            <input type="checkbox" checked={showClosed} onChange={e => setShowClosed(e.target.checked)} />
+            <Checkbox checked={showClosed} onCheckedChange={c => setShowClosed(c === true)} />
             Show closed
           </label>
         </div>
@@ -421,30 +424,28 @@ export function Lens() {
           }} />
       )}
 
-      {closing && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          onClick={() => setClosing(null)}>
-          <div onClick={e => e.stopPropagation()} style={{
-            background: 'var(--white)', borderRadius: 'var(--r)', width: 420, padding: 20, boxShadow: 'var(--elev-lg)',
-            border: '1px solid var(--border)',
-          }}>
-            <h3 style={{ margin: '0 0 16px', fontSize: 16, color: 'var(--ink)' }}>Close {closing.card.ref}</h3>
-            <div style={{ fontSize: 13, color: 'var(--ink2)', marginBottom: 16, lineHeight: 1.5 }}>
-              Closing an item requires a resolution. What happened here? Was it fixed, proven false, or abandoned?
-            </div>
-            <textarea
-              autoFocus
-              value={resolution} onChange={e => setResolution(e.target.value)}
-              placeholder="e.g. Fixed in #123"
-              style={{ ...input, width: '100%', minHeight: 80, marginBottom: 16, resize: 'vertical' }}
-            />
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-              <button type="button" className="btn btn-secondary" onClick={() => setClosing(null)}>Cancel</button>
-              <button type="button" className="btn btn-primary" disabled={!resolution.trim()} onClick={confirmClose}>Close {closing.card.ref}</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Dialog open={!!closing} onOpenChange={o => { if (!o) setClosing(null); }}>
+        <DialogContent className="max-w-105 gap-0">
+          {closing && (
+            <>
+              <DialogTitle style={{ margin: '0 0 16px', fontSize: 16, color: 'var(--ink)' }}>Close {closing.card.ref}</DialogTitle>
+              <div style={{ fontSize: 13, color: 'var(--ink2)', marginBottom: 16, lineHeight: 1.5 }}>
+                Closing an item requires a resolution. What happened here? Was it fixed, proven false, or abandoned?
+              </div>
+              <textarea
+                autoFocus
+                value={resolution} onChange={e => setResolution(e.target.value)}
+                placeholder="e.g. Fixed in #123"
+                style={{ ...input, width: '100%', minHeight: 80, marginBottom: 16, resize: 'vertical' }}
+              />
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setClosing(null)}>Cancel</button>
+                <button type="button" className="btn btn-primary" disabled={!resolution.trim()} onClick={confirmClose}>Close {closing.card.ref}</button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -575,24 +576,15 @@ function Detail({ item, areas, onClose, onPatch, onNote }: {
   const tags = Array.isArray(item.tags) ? item.tags : [];
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 2000, display: 'flex', justifyContent: 'flex-end' }}
-      onClick={onClose}>
-      <div onClick={e => e.stopPropagation()} style={{
-        width: 'min(680px, 100%)', height: '100%', background: 'var(--white)',
-        overflowY: 'auto', borderLeft: '1px solid var(--border)',
-      }}>
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 6 }}>
-              <span style={{ fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 700, color: 'var(--ink3)' }}>{item.ref}</span>
-              <Badge variant={KIND_VARIANT[item.kind]}>{item.kind}</Badge>
-              <Badge variant={CONFIDENCE_VARIANT[item.confidence]}>{item.confidence}</Badge>
-            </div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', lineHeight: 1.35 }}>{item.title}</div>
+    <Sheet open onOpenChange={o => { if (!o) onClose(); }}>
+      <SheetContent className="w-full sm:max-w-170 flex flex-col p-0 gap-0" style={{ overflowY: 'auto' }}>
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 6 }}>
+            <span style={{ fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 700, color: 'var(--ink3)' }}>{item.ref}</span>
+            <Badge variant={KIND_VARIANT[item.kind]}>{item.kind}</Badge>
+            <Badge variant={CONFIDENCE_VARIANT[item.confidence]}>{item.confidence}</Badge>
           </div>
-          <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4, height: 'fit-content' }}>
-            <Icon name="x" size={16} />
-          </button>
+          <SheetTitle style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', lineHeight: 1.35 }}>{item.title}</SheetTitle>
         </div>
 
         <div style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 18 }}>
@@ -702,8 +694,8 @@ function Detail({ item, areas, onClose, onPatch, onNote }: {
             </div>
           </div>
         </div>
-      </div>
-    </div>
+      </SheetContent>
+    </Sheet>
   );
 }
 

@@ -5,6 +5,7 @@ import { apiFetch, apiDownload } from '../lib/api.js';
 import { StatusPill } from '@hudumika/ui';
 import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
+import { Checkbox } from '../components/ui/checkbox.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 import type { IconName } from '../components/Icon.js';
@@ -892,7 +893,11 @@ export const Customers: React.FC = () => {
               <thead>
                 <tr>
                   <Th width={40}>
-                    <input type="checkbox" className="crm-checkbox" checked={allChecked} ref={el => { if (el) el.indeterminate = someChecked && !allChecked; }} onChange={toggleAll} />
+                    {/* Real tri-state via Radix's own 'indeterminate' checked
+                        value, replacing the imperative el.indeterminate ref
+                        hack the native input needed (HTML has no
+                        indeterminate attribute, only a DOM property). */}
+                    <Checkbox checked={allChecked ? true : someChecked ? 'indeterminate' : false} onCheckedChange={toggleAll} />
                   </Th>
                   <Th>Customer</Th>
                   {visibleCols.email   && <Th>Email</Th>}
@@ -925,7 +930,7 @@ export const Customers: React.FC = () => {
                         <tr key={c.id} style={{ background: isChecked ? 'var(--bg)' : 'var(--white)' }}
                           onClick={() => openProfile(c)}>
                           <td style={{ width: 40 }} onClick={e => e.stopPropagation()}>
-                            <input type="checkbox" className="crm-checkbox" aria-label={`Select ${c.name}`} checked={isChecked} onChange={() => toggleRow(c.id)} />
+                            <Checkbox aria-label={`Select ${c.name}`} checked={isChecked} onCheckedChange={() => toggleRow(c.id)} />
                           </td>
                           <td>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

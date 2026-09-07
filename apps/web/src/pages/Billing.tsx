@@ -13,6 +13,7 @@ import { EntityPicker, PickerItem } from '../components/EntityPicker.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Popover, PopoverTrigger, PopoverContent } from '../components/ui/popover.js';
 import { Button } from '../components/ui/button.js';
+import { Checkbox } from '../components/ui/checkbox.js';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import './Billing.css';
@@ -467,10 +468,10 @@ function ImportTimesheetsModal({ shipmentId, shipmentRef, sectionCurrency, onImp
   const selectedTotal = entries.filter(e => selected.has(e.id)).reduce((s, e) => s + timeEntryAmount(e), 0);
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)', padding: 20 }}>
-      <div style={{ background: 'var(--white)', borderRadius: 12, width: '100%', maxWidth: 520, overflow: 'hidden', display: 'flex', flexDirection: 'column', maxHeight: '90vh', boxShadow: 'var(--elev-lg)' }}>
+    <Dialog open onOpenChange={o => { if (!o) onClose(); }}>
+      <DialogContent hideClose className="max-w-130 flex flex-col max-h-[90vh] p-0 gap-0 overflow-hidden">
         <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg)' }}>
-          <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)' }}>Import Timesheets</span>
+          <DialogTitle style={{ fontSize: 14 }}>Import Timesheets</DialogTitle>
           <button type="button" onClick={onClose} style={{ border: 'none', background: 'none', cursor: 'pointer' }} aria-label="Close"><Icon name="x" size={16} color="var(--ink2)" /></button>
         </div>
         <div style={{ padding: 20, overflowY: 'auto' }}>
@@ -490,7 +491,7 @@ function ImportTimesheetsModal({ shipmentId, shipmentRef, sectionCurrency, onImp
             <div style={{ border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
               {entries.map(e => (
                 <label key={e.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderBottom: '1px solid var(--border)', cursor: 'pointer', background: selected.has(e.id) ? 'var(--teal-l)' : 'var(--white)' }}>
-                  <input type="checkbox" checked={selected.has(e.id)} onChange={() => {
+                  <Checkbox checked={selected.has(e.id)} onCheckedChange={() => {
                     setSelected(prev => {
                       const next = new Set(prev);
                       if (next.has(e.id)) next.delete(e.id); else next.add(e.id);
@@ -519,8 +520,8 @@ function ImportTimesheetsModal({ shipmentId, shipmentRef, sectionCurrency, onImp
             <button type="button" onClick={handleImport} disabled={selected.size === 0} style={{ padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 600, cursor: selected.size ? 'pointer' : 'default', opacity: selected.size ? 1 : 0.5, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Import {selected.size} {selected.size === 1 ? 'Entry' : 'Entries'}</button>
           </div>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -1559,7 +1560,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
             {tasks.length === 0 && <div className="inv-tab-empty">No tasks yet.</div>}
             {tasks.map(t => (
               <div key={t.id} className={`inv-task-item${t.done ? ' inv-task-item--done' : ''}`}>
-                <input type="checkbox" checked={t.done} onChange={() => toggleTask(t.id)} className="inv-task-check" title="Toggle task" />
+                <Checkbox checked={t.done} onCheckedChange={() => toggleTask(t.id)} className="mt-0.5" title="Toggle task" />
                 <div className="inv-task-body">
                   <span className="inv-task-desc">{t.description}</span>
                   {t.assignee && <span className="inv-task-assignee">→ {t.assignee}</span>}
@@ -1597,7 +1598,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
             {reminders.length === 0 && <div className="inv-tab-empty">No reminders set.</div>}
             {[...reminders].sort((a, b) => a.remind_date.localeCompare(b.remind_date)).map(r => (
               <div key={r.id} className={`inv-task-item${r.done ? ' inv-task-item--done' : ''}`}>
-                <input type="checkbox" checked={r.done} onChange={() => toggleReminder(r.id)} className="inv-task-check" title="Mark done" />
+                <Checkbox checked={r.done} onCheckedChange={() => toggleReminder(r.id)} className="mt-0.5" title="Mark done" />
                 <div className="inv-task-body">
                   <span className="inv-task-due">{r.remind_date}</span>
                   <span className="inv-task-desc">{r.message}</span>
@@ -2040,7 +2041,11 @@ export const Billing: React.FC = () => {
               <thead>
                 <tr>
                   <th className="th--checkbox">
-                    <input type="checkbox" checked={allFilteredSelected} onChange={toggleSelectAllFiltered} title="Select all" />
+                    {/* .th--checkbox centers via text-align, which only
+                        centers inline-level children — Checkbox's root is
+                        display:grid (block-level), so it needs mx-auto to
+                        land centered instead of flush left in the column. */}
+                    <Checkbox className="mx-auto" checked={allFilteredSelected} onCheckedChange={toggleSelectAllFiltered} title="Select all" />
                   </th>
                   <th className="th--sortable" onClick={() => setSortAsc(v => !v)}>
                     <span>Invoice # <Icon name={sortAsc ? 'arrowUp' : 'arrowDown'} size={11} color="var(--ink3)" /></span>
@@ -2065,7 +2070,7 @@ export const Billing: React.FC = () => {
                       className={isSelected ? 'inv-row--selected' : ''}
                       onClick={() => { if (mode !== 'edit' && mode !== 'create') { setSelectedId(inv.id); setMode('view'); } }}>
                       <td className="th--checkbox" onClick={e => e.stopPropagation()}>
-                        <input type="checkbox" checked={isChecked} onChange={() => toggleSelect(inv.id)} />
+                        <Checkbox className="mx-auto" checked={isChecked} onCheckedChange={() => toggleSelect(inv.id)} />
                       </td>
                       <td><span className="inv-cell-id">{inv.id}</span></td>
                       {!isSplit && (

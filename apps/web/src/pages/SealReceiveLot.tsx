@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Combobox } from '../components/ui/combobox.js';
+import { Checkbox } from '../components/ui/checkbox.js';
 import { DatePicker, toDateOnlyString, parseDateOnly } from '../components/ui/date-picker.js';
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
@@ -257,7 +258,7 @@ export function SealReceiveLot() {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: 'var(--ink2)', cursor: 'pointer' }}>
-              <input type="checkbox" checked={isDangerousGoods} onChange={e => setIsDangerousGoods(e.target.checked)} />
+              <Checkbox checked={isDangerousGoods} onCheckedChange={c => setIsDangerousGoods(c === true)} />
               Dangerous Goods (IMDG)
             </label>
             {isDangerousGoods && (
@@ -273,7 +274,7 @@ export function SealReceiveLot() {
               </div>
             )}
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: 'var(--ink2)', cursor: 'pointer' }}>
-              <input type="checkbox" checked={requiresReefer} onChange={e => setRequiresReefer(e.target.checked)} />
+              <Checkbox checked={requiresReefer} onCheckedChange={c => setRequiresReefer(c === true)} />
               Requires Reefer (Temperature-Controlled)
             </label>
             {requiresReefer && (

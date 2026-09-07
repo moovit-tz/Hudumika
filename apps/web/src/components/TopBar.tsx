@@ -16,6 +16,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from './ui/dropdown-menu.js';
+import { Dialog, DialogContent } from './ui/dialog.js';
 
 /* ── AI Search Modal ── */
 const QUICK_CHIPS = [
@@ -53,12 +54,6 @@ function AISearchModal({ onClose }: { onClose: () => void }) {
   useEffect(() => { inputRef.current?.focus(); }, []);
 
   useEffect(() => {
-    const fn = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    document.addEventListener('keydown', fn);
-    return () => document.removeEventListener('keydown', fn);
-  }, [onClose]);
-
-  useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     if (query.trim().length < 2) { setResults({}); setSearching(false); return; }
     setSearching(true);
@@ -86,22 +81,12 @@ function AISearchModal({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div
-      style={{
-        position: 'fixed', inset: 0, zIndex: 900,
-        background: 'rgba(0,0,0,.45)', backdropFilter: 'blur(3px)',
-        display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
-        paddingTop: 80,
-      }}
-      onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}
-    >
-      <div style={{
-        width: '100%', maxWidth: 600,
-        background: 'var(--white)', borderRadius: 'var(--r)',
-        border: '1px solid var(--border)',
-        boxShadow: 'var(--elev-lg)',
-        overflow: 'hidden',
-      }}>
+    <Dialog open onOpenChange={o => { if (!o) onClose(); }}>
+      <DialogContent
+        hideClose
+        className="max-w-150 top-20 translate-y-0 gap-0"
+        style={{ padding: 0, overflow: 'hidden' }}
+      >
         {/* Input row */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 18px', borderBottom: '1px solid var(--border)' }}>
           <div style={{
@@ -251,12 +236,14 @@ function AISearchModal({ onClose }: { onClose: () => void }) {
           <span><kbd style={{ fontFamily: 'var(--mono)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 4, padding: '1px 5px' }}>ESC</kbd> to close</span>
           {hasResults && <span style={{ marginLeft: 'auto' }}>{totalResults} result{totalResults === 1 ? '' : 's'}</span>}
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
-/* ── Clock-In Multi-Step Modal ── */
+/* ── Clock-In Multi-Step Modal ── (currently unreferenced — no live call
+   site renders this component; left as hand-rolled since migrating dead
+   code isn't useful, flagged here for whoever wires it up next) */
 interface ClockInRef { jobId: string; jobTitle: string; bl?: string; steps: Stage[] }
 
 function ClockInModal({ onClose, onConfirm }: {

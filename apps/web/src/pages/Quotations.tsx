@@ -8,6 +8,7 @@ import { getCompany, useCompany } from '../data/companyStore.js';
 import { useIsDarkMode } from '../hooks/useIsDarkMode.js';
 import { useCurrency } from '../hooks/useCurrency.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { PersonAvatar } from '../components/PersonAvatar.js';
 import { FormPage } from '../components/FormPage.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from '../components/ui/popover.js';
@@ -15,6 +16,7 @@ import { Button } from '../components/ui/button.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
+import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
 
 // -- Types ---------------------------------------------------------------------
 
@@ -195,12 +197,8 @@ function initials(name: string) { return name.split(' ').slice(0,2).map(w=>w[0]?
 
 // -- Shared UI -----------------------------------------------------------------
 
-function Av({ name, size=36 }: { name:string; size?:number }) {
-  return (
-    <div style={{ background:acolor(name), width:size, height:size, borderRadius:'50%', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:800, flexShrink:0, fontSize:size*0.36, letterSpacing:'-0.02em' }}>
-      {initials(name)}
-    </div>
-  );
+function Av({ name, size=36, customerId }: { name:string; size?:number; customerId?: string }) {
+  return <PersonAvatar userId={customerId} kind="customers" name={name} size={size} />;
 }
 
 const STATUS_VARIANT: Record<StatusKey, 'gray' | 'warning' | 'success' | 'error' | 'info'> = {
@@ -225,9 +223,9 @@ function SHdr({ title, action }: { title:string; action?:React.ReactNode }) {
 function RejectModal({ onConfirm, onCancel }: { onConfirm:(r:string)=>void; onCancel:()=>void }) {
   const [reason, setReason] = useState('');
   return (
-    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', zIndex:1000, display:'flex', alignItems:'center', justifyContent:'center' }}>
-      <div style={{ background:'var(--white)', borderRadius: 'var(--r)', padding:28, width:440, boxShadow: 'var(--elev-lg)' }}>
-        <div style={{ fontSize:16, fontWeight:700, color:'var(--ink)', marginBottom:6 }}>Reject Quotation</div>
+    <Dialog open onOpenChange={o => { if (!o) onCancel(); }}>
+      <DialogContent className="max-w-110 gap-0">
+        <DialogTitle style={{ fontSize:16, fontWeight:700, color:'var(--ink)', marginBottom:6 }}>Reject Quotation</DialogTitle>
         <div style={{ fontSize:13, color:'var(--ink2)', marginBottom:16 }}>Provide a reason. This will be logged on the quote record.</div>
         <textarea title="Rejection reason" placeholder="Enter rejection reason..." value={reason} onChange={e=>setReason(e.target.value)} rows={4}
           style={{ width:'100%', padding:'10px 12px', border:'1px solid var(--border)', borderRadius: 'var(--r)', fontSize:13, resize:'vertical', boxSizing:'border-box' as const, fontFamily:'inherit', outline:'none' }} />
@@ -237,8 +235,8 @@ function RejectModal({ onConfirm, onCancel }: { onConfirm:(r:string)=>void; onCa
             Reject Quote
           </Button>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -246,10 +244,10 @@ function SendModal({ quote, onSend, onCancel }: { quote:Quote; onSend:(email:str
   const [email, setEmail] = useState(quote.customer_email??'');
   const [msg, setMsg] = useState(`Dear ${quote.customer_name},\n\nPlease find attached our quotation ${quote.quote_number} for your review. We look forward to your confirmation.\n\nBest regards,\n${getCompany().name}`);
   return (
-    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', zIndex:1000, display:'flex', alignItems:'center', justifyContent:'center' }}>
-      <div style={{ background:'var(--white)', borderRadius: 'var(--r)', padding:28, width:480, boxShadow: 'var(--elev-lg)' }}>
+    <Dialog open onOpenChange={o => { if (!o) onCancel(); }}>
+      <DialogContent hideClose className="max-w-120 gap-0">
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20 }}>
-          <div style={{ fontSize:16, fontWeight:700, color:'var(--ink)' }}>Send Quotation to Customer</div>
+          <DialogTitle style={{ fontSize:16, fontWeight:700, color:'var(--ink)' }}>Send Quotation to Customer</DialogTitle>
           <button type="button" title="Close" onClick={onCancel} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink3)' }}><Icon name="x" size={18}/></button>
         </div>
         <label style={{ fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:4 }}>Recipient Email</label>
@@ -265,8 +263,8 @@ function SendModal({ quote, onSend, onCancel }: { quote:Quote; onSend:(email:str
             <Icon name="send" size={13}/> Send Quote
           </button>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -843,7 +841,7 @@ function QuoteFormView({ mode, initial, customers, leads, onSave, onCancel, isMo
               <SHdr title="Bill To"/>
               <div style={{ padding:16 }}>
                 <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:10 }}>
-                  <Av name={f.customer_name} size={36}/>
+                  <Av name={f.customer_name} customerId={f.customer_id} size={36}/>
                   <div>
                     <div style={{ fontWeight:700, fontSize:13 }}>{f.customer_name}</div>
                     {f.customer_company&&<div style={{ fontSize:11.5, color:'var(--ink3)' }}>{f.customer_company}</div>}
@@ -926,7 +924,7 @@ function QuoteDetailView({ quote, onBack, onEdit, onStatusChange, onConvert, onS
                     <div style={{ fontFamily:'monospace', fontSize:13, color:'var(--teal)', fontWeight:700, marginBottom:4 }}>{quote.quote_number}</div>
                     <h2 style={{ fontSize:21, fontWeight:800, color:'var(--ink)', margin:'0 0 6px' }}>{quote.title}</h2>
                     <div style={{ fontSize:13, color:'var(--ink2)', display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
-                      <Av name={quote.customer_name} size={20}/>
+                      <Av name={quote.customer_name} customerId={quote.customer_id} size={20}/>
                       <strong>{quote.customer_name}</strong>
                       {quote.customer_company&&<span style={{ color:'var(--ink3)' }}> – {quote.customer_company}</span>}
                       <span style={{ color:'var(--ink3)' }}> –</span>
@@ -1078,7 +1076,7 @@ function QuoteDetailView({ quote, onBack, onEdit, onStatusChange, onConvert, onS
               <SHdr title="Bill To"/>
               <div style={{ padding:16 }}>
                 <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:12 }}>
-                  <Av name={quote.customer_name} size={38}/>
+                  <Av name={quote.customer_name} customerId={quote.customer_id} size={38}/>
                   <div><div style={{ fontWeight:700, fontSize:13 }}>{quote.customer_name}</div>{quote.customer_company&&<div style={{ fontSize:11.5, color:'var(--ink3)' }}>{quote.customer_company}</div>}</div>
                 </div>
                 {quote.customer_email&&<a href={`mailto:${quote.customer_email}`} style={{ display:'flex', alignItems:'center', gap:6, fontSize:12.5, color:'var(--blue)', textDecoration:'none', marginBottom:6 }}><Icon name="mail" size={12} color="var(--blue)"/>{quote.customer_email}</a>}
@@ -1266,7 +1264,7 @@ export const Quotations: React.FC = () => {
                         onMouseEnter={e=>(e.currentTarget.style.background='var(--bg)')} onMouseLeave={e=>(e.currentTarget.style.background='')}>
                         <td style={{ padding:'11px 14px', fontWeight:700, fontFamily:'monospace', color:'var(--teal)', whiteSpace:'nowrap' }}>{q.quote_number}</td>
                         <td style={{ padding:'11px 14px', fontWeight:600, maxWidth:200, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{q.title}</td>
-                        <td style={{ padding:'11px 14px' }}><div style={{ display:'flex', alignItems:'center', gap:7 }}><Av name={q.customer_name} size={24}/>{q.customer_name}</div></td>
+                        <td style={{ padding:'11px 14px' }}><div style={{ display:'flex', alignItems:'center', gap:7 }}><Av name={q.customer_name} customerId={q.customer_id} size={24}/>{q.customer_name}</div></td>
                         <td style={{ padding:'11px 14px', fontSize:12, color:'var(--ink2)', whiteSpace:'nowrap' }}>{q.origin_port && q.destination_port ? `${q.origin_port} → ${q.destination_port}` : (q.origin_port || q.destination_port || '—')}</td>
                         <td style={{ padding:'11px 14px', fontWeight:700, whiteSpace:'nowrap' }}>{fmt(q.total_amount,q.currency)}</td>
                         <td style={{ padding:'11px 14px' }}><StatusBadge status={q.status}/></td>

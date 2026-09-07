@@ -4,6 +4,7 @@ import { apiFetch } from '../../lib/api.js';
 import { showAlert } from '../../lib/alert.js';
 import { Icon } from '../../components/Icon.js';
 import { PageHeader } from '../../components/PageHeader.js';
+import { Dialog, DialogContent, DialogTitle } from '../../components/ui/dialog.js';
 import './Onsite.css';
 
 export function OnsiteTransfers() {
@@ -71,18 +72,13 @@ export function OnsiteTransfers() {
       </div>
 
       {/* Transfer Modal */}
-      {showModal && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0,0,0,0.5)', zIndex: 1000,
-          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem'
-        }}>
-          <div className="onsite-card" style={{ width: '100%', maxWidth: '480px' }}>
-            <div className="onsite-card-header">
-              <h3 className="onsite-card-title">Transfer Domain to Onsite</h3>
-              <button className="btn btn-sm btn-ghost" onClick={() => setShowModal(false)}>✕</button>
-            </div>
-            <form onSubmit={handleInitiateTransfer} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <Dialog open={showModal} onOpenChange={(o) => { if (!o) setShowModal(false); }}>
+        <DialogContent hideClose className="max-w-120 gap-0" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div className="onsite-card-header">
+            <DialogTitle className="onsite-card-title">Transfer Domain to Onsite</DialogTitle>
+            <button className="btn btn-sm btn-ghost" onClick={() => setShowModal(false)}>✕</button>
+          </div>
+          <form onSubmit={handleInitiateTransfer} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div className="onsite-form-group">
                 <label>Domain Name to Transfer *</label>
                 <input
@@ -112,10 +108,9 @@ export function OnsiteTransfers() {
                   {submitting ? 'Transferring…' : 'Initiate Transfer'}
                 </button>
               </div>
-            </form>
-          </div>
-        </div>
-      )}
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

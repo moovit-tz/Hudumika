@@ -9,6 +9,7 @@ import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Button } from '../components/ui/button.js';
+import { Tip } from '../components/ui/tooltip.js';
 import { Badge } from '../components/ui/badge.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 
@@ -406,24 +407,26 @@ export function Calls() {
                     </div>
 
                     <div style={{ display: 'flex', gap: 8 }}>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={!isOnline || callState !== 'idle'}
-                        onClick={() => startCall(p, 'VOICE')}
-                        title="Start Voice Call"
-                      >
-                        <Icon name="phone" size={14} color="var(--green)" /> Call Voice
-                      </Button>
-                      <Button
-                        variant="default"
-                        size="sm"
-                        disabled={!isOnline || callState !== 'idle'}
-                        onClick={() => startCall(p, 'VIDEO')}
-                        title="Start Video Call"
-                      >
-                        <Icon name="camera" size={14} /> Start Video
-                      </Button>
+                      <Tip label="Start Voice Call">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={!isOnline || callState !== 'idle'}
+                          onClick={() => startCall(p, 'VOICE')}
+                        >
+                          <Icon name="phone" size={14} color="var(--green)" /> Call Voice
+                        </Button>
+                      </Tip>
+                      <Tip label="Start Video Call">
+                        <Button
+                          variant="default"
+                          size="sm"
+                          disabled={!isOnline || callState !== 'idle'}
+                          onClick={() => startCall(p, 'VIDEO')}
+                        >
+                          <Icon name="camera" size={14} /> Start Video
+                        </Button>
+                      </Tip>
                     </div>
                   </div>
                 );

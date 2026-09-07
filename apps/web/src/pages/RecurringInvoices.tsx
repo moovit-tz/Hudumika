@@ -12,6 +12,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { useTaxCodes } from '../data/taxCodeData.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet.js';
 
 type Freq = 'WEEKLY' | 'MONTHLY' | 'QUARTERLY' | 'ANNUAL';
 type State = 'ACTIVE' | 'PAUSED' | 'ENDED';
@@ -88,16 +89,12 @@ function RecurFormPanel({ initial, onSave, onClose }: { initial: RecurringInvoic
   }
 
   return (
-    <>
-      <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 400 }} />
-      <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: 480, background: 'var(--white)', zIndex: 401, display: 'flex', flexDirection: 'column', boxShadow: '-8px 0 40px rgba(0,0,0,0.14)' }}>
-        <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <div style={{ fontWeight: 800, fontSize: 15, color: 'var(--ink)' }}>{initial ? 'Edit Recurring Invoice' : 'New Recurring Invoice'}</div>
-            <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>Auto-generates invoices on schedule</div>
-          </div>
-          <button type="button" title="Close" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', display: 'flex', padding: 4 }}><Icon name="x" size={18} /></button>
-        </div>
+    <Sheet open onOpenChange={o => { if (!o) onClose(); }}>
+      <SheetContent className="w-120 sm:max-w-120 flex flex-col p-0 gap-0">
+        <SheetHeader style={{ padding: '18px 22px', borderBottom: '1px solid var(--border)' }}>
+          <SheetTitle style={{ fontWeight: 800, fontSize: 15, color: 'var(--ink)' }}>{initial ? 'Edit Recurring Invoice' : 'New Recurring Invoice'}</SheetTitle>
+          <div style={{ fontSize: 12, color: 'var(--ink3)' }}>Auto-generates invoices on schedule</div>
+        </SheetHeader>
         <div style={{ flex: 1, overflowY: 'auto', padding: '18px 22px' }}>
           <div style={{ marginBottom: 14 }}><label style={lbl}>Template Name *</label><input type="text" placeholder="e.g. Monthly Retainer" value={name} onChange={e => setName(e.target.value)} style={inp} /></div>
           <div style={{ marginBottom: 14 }}>
@@ -138,8 +135,8 @@ function RecurFormPanel({ initial, onSave, onClose }: { initial: RecurringInvoic
           <button type="button" className="btn btn-secondary btn-sm" onClick={onClose}>Cancel</button>
           <button type="button" className="btn btn-primary btn-sm" disabled={saving} onClick={submit}>{saving ? 'Saving…' : 'Save Template'}</button>
         </div>
-      </div>
-    </>
+      </SheetContent>
+    </Sheet>
   );
 }
 

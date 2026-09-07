@@ -13,6 +13,7 @@ import {
 import type { ActionKind, StatusKind } from '../components/flow/FlowNodes.js';
 import { Popover, PopoverContent, PopoverAnchor } from '../components/ui/popover.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { Checkbox } from '../components/ui/checkbox.js';
 import { apiFetch } from '../lib/api.js';
 import { PageHeader } from '../components/PageHeader.js';
 
@@ -608,7 +609,7 @@ function SetupFields({ selectedNode, updateNode, updateConfig }: {
               </Select>
             </div>
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--ink)', cursor: 'pointer' }}>
-              <input type="checkbox" checked={!!cfg.notify} onChange={e => updateConfig('notify', e.target.checked)} />
+              <Checkbox checked={!!cfg.notify} onCheckedChange={c => updateConfig('notify', c === true)} />
               Notify assignee
             </label>
           </>

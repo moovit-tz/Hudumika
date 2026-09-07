@@ -8,6 +8,8 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Icon } from '../../components/Icon.js';
 import { BASE_URL } from '../../lib/api.js';
 import { Button } from '../../components/ui/button.js';
+import { Checkbox } from '../../components/ui/checkbox.js';
+import { PersonAvatar } from '../../components/PersonAvatar.js';
 import { Tabs, TabsList, TabsTrigger } from '../../components/ui/tabs.js';
 import { SignaturePad } from '../../components/SignaturePad.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../../components/ui/date-picker.js';
@@ -662,9 +664,11 @@ export function SignPublicPage() {
           <div className="sign-public-sidebar-header">
             <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--ink3)', marginBottom: 6 }}>Signing Identity</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--teal-l)', border: '1px solid var(--teal-m)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: 'var(--teal)', fontSize: 14 }}>
-                {data.recipient.name.charAt(0).toUpperCase()}
-              </div>
+              {/* An external signer, not necessarily a Hudumika account —
+                  name-only is the correct rendering here, not a fallback
+                  (and this page is unauthenticated, so there's no session to
+                  fetch a real photo with even if a userId existed). */}
+              <PersonAvatar name={data.recipient.name} size={36} />
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{data.recipient.name}</div>
                 <div style={{ fontSize: 12, color: 'var(--ink3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{data.recipient.email}</div>
@@ -749,8 +753,8 @@ export function SignPublicPage() {
                 </label>
                 {field.field_type === 'checkbox' ? (
                   <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: '8px 10px', background: 'var(--bg)', borderRadius: 6, border: '1px solid var(--border)' }}>
-                    <input type="checkbox" checked={!!fieldValues[field.id]}
-                      onChange={e => setFieldValues(prev => ({ ...prev, [field.id]: e.target.checked ? 'true' : '' }))} style={{ accentColor: 'var(--teal)' }} />
+                    <Checkbox checked={!!fieldValues[field.id]}
+                      onCheckedChange={c => setFieldValues(prev => ({ ...prev, [field.id]: c === true ? 'true' : '' }))} />
                     <span style={{ fontSize: 12.5, color: 'var(--ink)', fontWeight: 500 }}>{field.placeholder ?? 'I agree to the terms'}</span>
                   </label>
                 ) : field.field_type === 'date' ? (

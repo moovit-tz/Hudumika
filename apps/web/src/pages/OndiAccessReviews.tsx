@@ -6,6 +6,7 @@ import { SectionCard } from '../components/SectionCard.js';
 import { Icon } from '../components/Icon.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { Badge } from '../components/ui/badge.js';
+import { Checkbox } from '../components/ui/checkbox.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 
@@ -237,7 +238,7 @@ export const OndiAccessReviewDetail: React.FC = () => {
 
       {pending.length > 0 && campaign?.status === 'active' && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 18px', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 10, boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
-          <input type="checkbox" checked={selected.size === pending.length && pending.length > 0} onChange={toggleAll} style={{ cursor: 'pointer' }} />
+          <Checkbox checked={selected.size === pending.length && pending.length > 0} onCheckedChange={toggleAll} />
           <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{selected.size > 0 ? `${selected.size} grants selected` : `Select all ${pending.length} pending grants`}</span>
           <div style={{ flex: 1 }} />
           <button type="button" disabled={selected.size === 0 || busy} onClick={() => decideBulk('approved')}
@@ -257,7 +258,7 @@ export const OndiAccessReviewDetail: React.FC = () => {
         {items?.map((item, i, arr) => (
           <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 20px', borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none' }}>
             {item.decision === 'pending' && campaign?.status === 'active' && (
-              <input type="checkbox" checked={selected.has(item.id)} onChange={() => toggle(item.id)} style={{ cursor: 'pointer' }} />
+              <Checkbox checked={selected.has(item.id)} onCheckedChange={() => toggle(item.id)} />
             )}
             <PersonAvatar userId={item.user_id} name={item.user_name} size={34} />
             <div style={{ flex: 1, minWidth: 0 }}>

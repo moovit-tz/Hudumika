@@ -10,24 +10,27 @@ import { Icon } from '../components/Icon.js';
 import { PageLoading } from '../components/ui/spinner.js';
 import type { IconName } from '../components/Icon.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
-import { Customer360Sidebar, CustomerContext } from '../components/Customer360Sidebar.js';
 import '../pages/Bliss.css';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuLabel, DropdownMenuSeparator } from '../components/ui/dropdown-menu.js';
+import { Checkbox } from '../components/ui/checkbox.js';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog.js';
+import { Badge } from '../components/ui/badge.js';
+import { Tip } from '../components/ui/tooltip.js';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuSeparator, DropdownMenuItem } from '../components/ui/dropdown-menu.js';
 import { showAlert } from '../lib/alert.js';
 
 const COMPLYOS_AGENCIES = [
   { code: 'BRELA', name: 'BRELA — Business Registration & Licensing' },
-  { code: 'TRA',   name: 'TRA — Tanzania Revenue Authority' },
-  { code: 'NSSF',  name: 'NSSF — National Social Security Fund' },
-  { code: 'WCF',   name: 'WCF — Workers Compensation Fund' },
-  { code: 'NHIF',  name: 'NHIF — National Health Insurance Fund' },
-  { code: 'TFDA',  name: 'TFDA — Tanzania Food & Drugs Authority' },
-  { code: 'TBS',   name: 'TBS — Tanzania Bureau of Standards' },
-  { code: 'OSHA',  name: 'OSHA — Occupational Safety & Health Authority' },
+  { code: 'TRA', name: 'TRA — Tanzania Revenue Authority' },
+  { code: 'NSSF', name: 'NSSF — National Social Security Fund' },
+  { code: 'WCF', name: 'WCF — Workers Compensation Fund' },
+  { code: 'NHIF', name: 'NHIF — National Health Insurance Fund' },
+  { code: 'TFDA', name: 'TFDA — Tanzania Food & Drugs Authority' },
+  { code: 'TBS', name: 'TBS — Tanzania Bureau of Standards' },
+  { code: 'OSHA', name: 'OSHA — Occupational Safety & Health Authority' },
 ];
 
-/** Bliss → ComplyOS bridge modal — raises a draft ComplyOS application pre-filled with this ticket's context (PRD 7.2: a support ticket surfacing a compliance gap should open a ComplyOS workflow without asking the client to re-explain the issue). */
+/** Bliss → ComplyOS bridge modal */
 function SendToComplyOSModal({ ticket, onClose }: { ticket: Ticket; onClose: () => void }) {
   const navigate = useNavigate();
   const [agencyCode, setAgencyCode] = useState(COMPLYOS_AGENCIES[0].code);
@@ -53,15 +56,12 @@ function SendToComplyOSModal({ ticket, onClose }: { ticket: Ticket; onClose: () 
   }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }} onClick={onClose}>
-      <div style={{ background: 'var(--white)', borderRadius: 14, width: 440, maxWidth: '100%', border: '1px solid var(--border)', boxShadow: 'var(--elev-lg)' }} onClick={e => e.stopPropagation()}>
-        <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div>
-            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>Send to ComplyOS</div>
-            <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>Opens a draft compliance application pre-filled from this ticket — {ticket.ref}.</div>
-          </div>
-          <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }} onClick={onClose} aria-label="Close"><Icon name="x" size={16} /></button>
-        </div>
+    <Dialog open onOpenChange={o => { if (!o) onClose(); }}>
+      <DialogContent className="w-110 max-w-full p-0 gap-0">
+        <DialogHeader style={{ padding: '18px 22px', borderBottom: '1px solid var(--border)', textAlign: 'left' }}>
+          <DialogTitle style={{ fontSize: 15 }}>Send to ComplyOS</DialogTitle>
+          <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>Opens a draft compliance application pre-filled from this ticket — {ticket.ref}.</div>
+        </DialogHeader>
         <div style={{ padding: '18px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div>
             <label style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', marginBottom: 5 }}>Agency</label>
@@ -78,28 +78,28 @@ function SendToComplyOSModal({ ticket, onClose }: { ticket: Ticket; onClose: () 
           </div>
           {error && <div style={{ fontSize: 12.5, color: 'var(--red)' }}>{error}</div>}
         </div>
-        <div style={{ padding: '14px 22px', borderTop: '1px solid var(--border)', display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+        <DialogFooter style={{ padding: '14px 22px', borderTop: '1px solid var(--border)' }}>
           <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
           <button type="button" className="btn btn-primary" disabled={sending} onClick={handleSend}>
             {sending ? 'Opening…' : 'Open Application'}
           </button>
-        </div>
-      </div>
-    </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
 /* ── Types ── */
-type ChannelId = 'inapp' | 'email' | 'whatsapp' | 'sms' | 'note';
-type StatusKey  = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
-type PriorityKey = 'LOW' | 'NORMAL' | 'MEDIUM' | 'HIGH' | 'URGENT';
+export type ChannelId = 'inapp' | 'email' | 'whatsapp' | 'sms' | 'note';
+export type StatusKey = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
+export type PriorityKey = 'LOW' | 'NORMAL' | 'MEDIUM' | 'HIGH' | 'URGENT';
 
 interface SysCustomer {
   id: string; name: string; email?: string; phone?: string;
   company?: string; total_shipments?: number;
 }
 
-interface Ticket {
+export interface Ticket {
   id: string; ref: string; subject: string; description?: string;
   customer: string; customer_id?: string; customer_email?: string;
   customer_phone?: string; customer_company?: string;
@@ -107,49 +107,45 @@ interface Ticket {
   assigned_to?: string; created_at: string; updated_at?: string;
   messages?: Message[]; message_count?: number;
   tags?: string[]; related_shipments?: string[];
-  customerContext?: CustomerContext;
   group_id?: string | null; group_name?: string | null; group_color?: string | null;
   source_app?: string | null; sla_deadline?: string | null;
-  /** The channel this conversation originated on (WHATSAPP/EMAIL/IN_APP/SMS/
-   *  SYSTEM) — always selected by the backend but never mapped or rendered
-   *  in the list until now, so a WhatsApp conversation and an email one
-   *  looked identical in the inbox. */
   channel?: string | null;
+  origin_ip?: string | null; origin_user_agent?: string | null;
 }
 
-interface SupportGroup { id: string; name: string; color: string; ticket_count?: number; }
-interface SupportView { id: string; name: string; filters: Record<string, any>; }
+export interface SupportGroup { id: string; name: string; color: string; ticket_count?: number; }
+export interface SupportView { id: string; name: string; filters: Record<string, any>; }
 
-interface Message {
+export interface Message {
   id: string; content: string; author_name: string;
   author_type: 'OFFICER' | 'CUSTOMER'; channel?: ChannelId; created_at: string;
 }
 
 /* ── Config ── */
-const PRIORITY_CFG: Record<PriorityKey, { bg: string; color: string; label: string }> = {
-  URGENT: { bg: 'var(--red-l)',   color: 'var(--red)',   label: 'Urgent' },
-  HIGH:   { bg: 'var(--gold-l)', color: 'var(--gold)',  label: 'High'   },
-  NORMAL: { bg: 'var(--blue-l)', color: 'var(--blue)',  label: 'Normal' },
-  MEDIUM: { bg: 'var(--blue-l)', color: 'var(--blue)',  label: 'Medium' },
-  LOW:    { bg: 'var(--bg)',     color: 'var(--ink2)',  label: 'Low'    },
+export const PRIORITY_CFG: Record<PriorityKey, { bg: string; color: string; label: string }> = {
+  URGENT: { bg: 'var(--red-l)', color: 'var(--red)', label: 'Urgent' },
+  HIGH: { bg: 'var(--gold-l)', color: 'var(--gold)', label: 'High' },
+  NORMAL: { bg: 'var(--blue-l)', color: 'var(--blue)', label: 'Normal' },
+  MEDIUM: { bg: 'var(--blue-l)', color: 'var(--blue)', label: 'Medium' },
+  LOW: { bg: 'var(--bg)', color: 'var(--ink2)', label: 'Low' },
 };
 
-const STATUS_CFG: Record<StatusKey, { bg: string; color: string; label: string }> = {
-  OPEN:        { bg: 'var(--red-l)',   color: 'var(--red)',   label: 'Open'        },
-  IN_PROGRESS: { bg: 'var(--gold-l)', color: 'var(--gold)',  label: 'In Progress' },
-  RESOLVED:    { bg: 'var(--green-l)',color: 'var(--green)', label: 'Resolved'    },
-  CLOSED:      { bg: 'var(--bg)',     color: 'var(--ink2)',  label: 'Closed'      },
+export const STATUS_CFG: Record<StatusKey, { bg: string; color: string; label: string }> = {
+  OPEN: { bg: 'var(--teal-l)', color: 'var(--teal)', label: 'Open' },
+  IN_PROGRESS: { bg: 'var(--gold-l)', color: 'var(--gold)', label: 'Pending' },
+  RESOLVED: { bg: 'var(--green-l)', color: 'var(--green)', label: 'Resolved' },
+  CLOSED: { bg: 'var(--bg)', color: 'var(--ink3)', label: 'Closed' },
 };
 
-const CHANNEL_CFG: Record<ChannelId, { label: string; icon: IconName; color: string; bg: string; border: string; btnLabel: string }> = {
-  inapp:    { label: 'Reply',    icon: 'message',    color: 'var(--teal)', bg: 'var(--teal-l)', border: 'var(--teal)', btnLabel: 'Send Reply'        },
-  email:    { label: 'Email',    icon: 'mail',       color: 'var(--blue)', bg: 'var(--blue-l)',       border: 'var(--blue)', btnLabel: 'Send Email'        },
-  whatsapp: { label: 'WhatsApp', icon: 'chatBubble', color: 'var(--green)',bg: 'var(--green-l)',      border: 'var(--green)',btnLabel: 'Send via WhatsApp' },
-  sms:      { label: 'SMS',      icon: 'smartphone', color: 'var(--purple)',bg: 'var(--purple-l)',     border: 'var(--purple)',btnLabel: 'Send SMS'          },
-  note:     { label: 'Note',     icon: 'fileText',   color: 'var(--gold)', bg: 'var(--gold-l)',       border: 'var(--gold)', btnLabel: 'Save Note'         },
+export const CHANNEL_CFG: Record<ChannelId, { label: string; icon: IconName; color: string; bg: string; border: string; btnLabel: string }> = {
+  inapp: { label: 'Chat', icon: 'message', color: 'var(--teal)', bg: 'var(--teal-l)', border: 'var(--teal)', btnLabel: 'Send Reply' },
+  email: { label: 'Email', icon: 'mail', color: 'var(--blue)', bg: 'var(--blue-l)', border: 'var(--blue)', btnLabel: 'Send Email' },
+  whatsapp: { label: 'WhatsApp', icon: 'whatsapp', color: '#25D366', bg: 'rgba(37,211,102,0.12)', border: '#25D366', btnLabel: 'Send via WhatsApp' },
+  sms: { label: 'SMS', icon: 'smartphone', color: 'var(--purple)', bg: 'var(--purple-l)', border: 'var(--purple)', btnLabel: 'Send SMS' },
+  note: { label: 'Note', icon: 'lock', color: 'var(--gold)', bg: 'var(--gold-l)', border: 'var(--gold)', btnLabel: 'Save Note' },
 };
 
-const CATEGORIES = ['Clearance Delay', 'Document Issue', 'Demurrage Dispute', 'Duty Assessment', 'System Error', 'General Query', 'Complaint'];
+const CATEGORIES = ['Clearance Delay', 'Document Issue', 'Demurrage Dispute', 'Duty Assessment', 'System Error', 'General Query', 'Complaint', 'Subscriptions and billing', 'Warehouse Operations'];
 const STATUS_ORDER: Record<StatusKey, number> = { OPEN: 0, IN_PROGRESS: 1, RESOLVED: 2, CLOSED: 3 };
 
 function sortTickets(a: Ticket, b: Ticket) {
@@ -160,9 +156,6 @@ function sortTickets(a: Ticket, b: Ticket) {
 
 const PRIORITY_ORDER: Record<PriorityKey, number> = { URGENT: 0, HIGH: 1, MEDIUM: 2, NORMAL: 2, LOW: 3 };
 
-/** Urgent-first, then soonest SLA deadline — the first place in this
- *  ticketing system priority actually decides order rather than just
- *  drawing a badge/border colour on rows sorted by something else. */
 function sortByPriority(a: Ticket, b: Ticket) {
   const po = PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority];
   if (po !== 0) return po;
@@ -172,35 +165,88 @@ function sortByPriority(a: Ticket, b: Ticket) {
 }
 
 /* ── Helpers ── */
-const relTime = (d: string) => {
+export const relTime = (d: string) => {
   if (!d) return '—';
   const parsed = new Date(d);
   if (isNaN(parsed.getTime())) return '—';
   const s = Math.floor((Date.now() - parsed.getTime()) / 1000);
-  if (s < 0)      return 'Just now';
-  if (s < 60)     return 'Just now';
-  if (s < 3600)   return `${Math.floor(s / 60)}m`;
-  if (s < 86400)  return `${Math.floor(s / 3600)}h`;
-  if (s < 172800) return 'Yesterday';
-  if (s < 604800) return `${Math.floor(s / 86400)}d`;
+  if (s < 0) return 'Just now';
+  if (s < 60) return 'Just now';
+  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+  if (s < 172800) return 'yesterday';
+  if (s < 604800) return `${Math.floor(s / 86400)}d ago`;
   return parsed.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
 };
 
-/** Backend channel values (WHATSAPP/EMAIL/IN_APP/SMS/SYSTEM, from the
- *  createTicketSchema enum) mapped onto the badge's own key space. */
-function channelKey(channel?: string | null): ChannelId {
+// Instagram/Facebook/Telegram were removed from ChannelId entirely — the
+// backend's own MessageChannel type (packages/types/src/core.ts) never
+// included them, so selecting one in the broadcast composer and hitting
+// Send fell through MessagingService.dispatchOutbound's if/else with no
+// matching branch: it silently saved a support_messages row marked
+// OUTBOUND/success and showed the agent a "Sent" toast, while nothing was
+// ever actually dispatched to the customer. A fake success is worse than no
+// button at all. Real Meta Graph API integration for either is a genuine
+// project (OAuth page linking, webhook subscriptions) — see Channel
+// Settings for the honest "not connected" state instead of a fake channel.
+export function channelKey(channel?: string | null): ChannelId {
   switch ((channel || '').toUpperCase()) {
     case 'WHATSAPP': return 'whatsapp';
-    case 'SMS':       return 'sms';
-    case 'SYSTEM':    return 'note';
-    case 'EMAIL':     return 'email';
-    default:          return 'inapp';
+    case 'SMS': return 'sms';
+    case 'SYSTEM': return 'note';
+    case 'EMAIL': return 'email';
+    default: return 'inapp';
   }
 }
 
-/* ── Atom components ── */
-function Av({ name, userId, kind, size = 28 }: { name: string; userId?: string; kind?: 'people' | 'customers'; size?: number }) {
-  return <PersonAvatar userId={userId} kind={kind} name={name} size={size} />;
+/** Where a ticket actually came from — distinct from channelKey(), which
+ *  maps SYSTEM to the "note" pill for in-thread messages (an internal
+ *  system-authored message reads like a note). Applied to a whole ticket's
+ *  origin that's wrong — a SYSTEM-channel ticket is one a cross-app
+ *  automation raised on a customer's behalf (SEAL, ClearOS, Workflow
+ *  Studio, the Onsite org portal — see SOURCE_APP_LABELS), not a note. */
+export function ticketOrigin(t: Pick<Ticket, 'channel' | 'source_app'>): { icon: IconName; label: string } {
+  if ((t.channel || '').toUpperCase() === 'SYSTEM') {
+    const appLabel = t.source_app ? (SOURCE_APP_LABELS[t.source_app] || t.source_app) : null;
+    return { icon: 'zap', label: appLabel ? `${appLabel} Automation` : 'System Automation' };
+  }
+  const cfg = CHANNEL_CFG[channelKey(t.channel)];
+  return { icon: cfg.icon, label: cfg.label };
+}
+
+/** Minimal, dependency-free User-Agent read — good enough for the handful
+ *  of major browsers/OSes this needs to label, without pulling in a parsing
+ *  library for what's ultimately a "Technology" info card. Order matters:
+ *  Edge and Opera UAs both still carry a Chrome token, and Chrome's own UA
+ *  carries a Safari token, so the more specific checks must run first. */
+function parseUserAgent(ua: string): { browser: string; os: string; device: string } {
+  const browser =
+    /Edg\//.test(ua) ? 'Edge' :
+    /OPR\//.test(ua) ? 'Opera' :
+    /Chrome\//.test(ua) ? 'Chrome' :
+    /Firefox\//.test(ua) ? 'Firefox' :
+    /Safari\//.test(ua) ? 'Safari' :
+    'Unknown browser';
+  const os =
+    /Windows/.test(ua) ? 'Windows' :
+    /Android/.test(ua) ? 'Android' :
+    /iPhone|iPad|iPod/.test(ua) ? 'iOS' :
+    /Mac OS X/.test(ua) ? 'macOS' :
+    /Linux/.test(ua) ? 'Linux' :
+    'Unknown OS';
+  const device = /iPad|Tablet/.test(ua) ? 'Tablet' : /Mobile|Android|iPhone/.test(ua) ? 'Mobile' : 'Desktop';
+  return { browser, os, device };
+}
+
+/* ── Atom components ──
+   Av used to hand-roll its own colour-hash + initials circle, ignoring the
+   userId/kind props every call site already passed it — meaning even a
+   ticket with a real assigned agent never showed their actual photo here,
+   only ever colored initials. Delegates to the real PersonAvatar now, the
+   same fix CLAUDE.md documents for the rest of the platform's ad-hoc avatar
+   divs — every existing <Av name userId kind size /> call site is unchanged. */
+function Av({ name, userId, kind, size = 30 }: { name: string; userId?: string; kind?: 'people' | 'customers'; size?: number }) {
+  return <PersonAvatar name={name} userId={userId} kind={kind} size={size} />;
 }
 
 function PBadge({ p }: { p: string }) {
@@ -220,38 +266,50 @@ function SBadge({ s }: { s: string }) {
 function ChPill({ ch }: { ch: ChannelId }) {
   const c = CHANNEL_CFG[ch] ?? CHANNEL_CFG.inapp;
   return (
-    <span className="spt-ch-pill-sm" data-ch={ch}>
-      <Icon name={c.icon} size={9} strokeWidth={2} />{c.label}
+    <span className="spt-ch-pill-sm" data-ch={ch} style={{ color: c.color, background: c.bg, borderColor: c.border }}>
+      <Icon name={c.icon} size={10} strokeWidth={2} />{c.label}
     </span>
   );
 }
 
 /* ══════════════════════════════════════════
-   COL 1 — Conversation list
+   COL 1 & COL 2 — BeDesk Inbox Nav & List/Table
 ══════════════════════════════════════════ */
-const CONV_PAGE_SIZE = 8;
+const CONV_PAGE_SIZE = 12;
 
 type InboxFilter = 'inbox' | 'unassigned' | 'closed' | 'all' | 'onsite';
 type FilterSel =
   | { kind: 'fixed'; key: InboxFilter }
   | { kind: 'group'; id: string }
   | { kind: 'view'; id: string };
-type ViewMode = 'list' | 'table';
+export type ViewMode = 'chat' | 'table';
 type SortKey = 'customer' | 'status' | 'assigned_to' | 'group_name' | 'updated_at';
 
-/* Table-view columns — order and visibility are per-user (localStorage),
- * not per-tenant config, matching how viewMode itself is already persisted
- * a few lines below. 'avatar' isn't in here: it's a fixed leading column,
- * same as a spreadsheet's row-selector, not something a user reorders away. */
-type ColumnId = 'status' | 'customer' | 'summary' | 'assigned_to' | 'group_name' | 'updated_at';
-const DEFAULT_COLUMN_ORDER: ColumnId[] = ['status', 'customer', 'summary', 'assigned_to', 'group_name', 'updated_at'];
+type ColumnId = 'status' | 'source' | 'customer' | 'summary' | 'assigned_to' | 'group_name' | 'updated_at';
+const DEFAULT_COLUMN_ORDER: ColumnId[] = ['status', 'source', 'customer', 'summary', 'assigned_to', 'group_name', 'updated_at'];
 const COLUMN_LABELS: Record<ColumnId, string> = {
-  status: 'Status', customer: 'Customer', summary: 'Summary',
-  assigned_to: 'Assignee', group_name: 'Group', updated_at: 'Updated',
+  status: 'Status', source: 'Source', customer: 'Customer', summary: 'Summary',
+  assigned_to: 'Assignee', group_name: 'Group', updated_at: 'Last updated',
 };
 const COLUMN_SORT_KEY: Partial<Record<ColumnId, SortKey>> = {
   status: 'status', customer: 'customer', assigned_to: 'assigned_to',
   group_name: 'group_name', updated_at: 'updated_at',
+};
+const COLUMN_WIDTHS: Record<ColumnId, { width?: number | string; minWidth?: number | string }> = {
+  status: { width: '90px', minWidth: '85px' },
+  source: { width: '120px', minWidth: '100px' },
+  customer: { width: '180px', minWidth: '140px' },
+  summary: { minWidth: '180px' },
+  assigned_to: { width: '140px', minWidth: '120px' },
+  group_name: { width: '130px', minWidth: '110px' },
+  updated_at: { width: '90px', minWidth: '80px' },
+};
+// Real values written at ticket-creation time by each cross-app origin —
+// see seal-automation.routes.ts (seal), bliss.subscribers.ts (clearos SLA
+// breach), studio/actions.ts (studio) and org.routes.ts (onsite org portal).
+// null/undefined means an agent or customer raised it directly in Bliss.
+const SOURCE_APP_LABELS: Record<string, string> = {
+  seal: 'SEAL', clearos: 'ClearOS', studio: 'Workflow Studio', onsite: 'Onsite',
 };
 
 function loadColumnOrder(): ColumnId[] {
@@ -262,40 +320,18 @@ function loadColumnOrder(): ColumnId[] {
       const missing = DEFAULT_COLUMN_ORDER.filter(c => !kept.includes(c));
       if (kept.length) return [...kept, ...missing];
     }
-  } catch {}
+  } catch { }
   return DEFAULT_COLUMN_ORDER;
 }
 function loadHiddenColumns(): Set<ColumnId> {
   try {
     const saved = JSON.parse(localStorage.getItem('bliss_tix_col_hidden') || 'null');
     if (Array.isArray(saved)) return new Set(saved.filter((c): c is ColumnId => DEFAULT_COLUMN_ORDER.includes(c)));
-  } catch {}
+  } catch { }
   return new Set();
 }
 
-function renderColumnCell(colId: ColumnId, t: Ticket): React.ReactNode {
-  switch (colId) {
-    case 'status':      return <SBadge s={t.status} />;
-    case 'customer':    return t.customer;
-    case 'summary':     return (
-      <>
-        <ChPill ch={channelKey(t.channel)} />
-        {(t.tags || []).slice(0, 2).map(tag => <span key={tag} className="spt-tag spt-tag-sm">{tag}</span>)}
-        <span className="spt-tix-subject">{t.subject}</span>
-      </>
-    );
-    case 'assigned_to': return t.assigned_to || <span className="spt-tix-muted">Unassigned</span>;
-    case 'group_name':  return t.group_name
-      ? <span className="spt-group-pill"><span className="spt-group-dot" data-color={t.group_color || 'teal'} />{t.group_name}</span>
-      : <span className="spt-tix-muted">—</span>;
-    case 'updated_at':  return relTime(t.updated_at || t.created_at);
-  }
-}
-const COLUMN_CELL_CLASS: Partial<Record<ColumnId, string>> = {
-  customer: 'spt-tix-td-customer', summary: 'spt-tix-td-summary', updated_at: 'spt-tix-muted',
-};
-
-function ConvList({ tickets, selected, onSelect, onNew, groups, views, onCreateGroup, onCreateView, onDeleteView, isDesktop, initialChannelFilter, queueMode, agents = [] }: {
+function ConvList({ tickets, selected, onSelect, onNew, groups, views, onCreateGroup, onCreateView, onDeleteView, isDesktop, initialChannelFilter, queueMode, agents = [], viewMode = 'chat', onViewModeChange }: {
   tickets: Ticket[]; selected: Ticket | null;
   onSelect: (t: Ticket) => void; onNew: () => void;
   groups: SupportGroup[]; views: SupportView[];
@@ -306,27 +342,35 @@ function ConvList({ tickets, selected, onSelect, onNew, groups, views, onCreateG
   initialChannelFilter?: 'all' | ChannelId;
   queueMode?: boolean;
   agents?: { id: string; name: string }[];
+  viewMode?: ViewMode;
+  onViewModeChange?: (v: ViewMode) => void;
 }) {
   const [convPage, setConvPage] = useState(1);
-  const [sel, setSel]           = useState<FilterSel>({ kind: 'fixed', key: 'unassigned' });
-  const [viewMode, setViewMode] = useState<ViewMode>(() => (localStorage.getItem('bliss_tix_view') as ViewMode) || 'list');
-  const [sortKey, setSortKey]   = useState<SortKey>('updated_at');
-  const [sortDir, setSortDir]   = useState<'asc' | 'desc'>('desc');
+  const [sel, setSel] = useState<FilterSel>({ kind: 'fixed', key: 'inbox' });
+  const activeViewMode = viewMode;
+
+  const [sortKey, setSortKey] = useState<SortKey>('updated_at');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [newGroupOpen, setNewGroupOpen] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
-  const [newViewOpen, setNewViewOpen]   = useState(false);
-  const [newViewName, setNewViewName]   = useState('');
+  const [newViewOpen, setNewViewOpen] = useState(false);
+  const [newViewName, setNewViewName] = useState('');
   const [newViewCategory, setNewViewCategory] = useState(CATEGORIES[0]);
   const [channelFilter, setChannelFilter] = useState<'all' | ChannelId>(initialChannelFilter ?? 'all');
-  const [searchQuery, setSearchQuery]     = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [statusTabFilter, setStatusTabFilter] = useState<'all' | 'open' | 'pending' | 'resolved'>('all');
-  const [assigneeFilter, setAssigneeFilter]   = useState<string>('all');
-  const [colOrder, setColOrder]   = useState<ColumnId[]>(loadColumnOrder);
+  const [assigneeFilter, setAssigneeFilter] = useState<string>('all');
+  const [colOrder, setColOrder] = useState<ColumnId[]>(loadColumnOrder);
   const [hiddenCols, setHiddenCols] = useState<Set<ColumnId>>(loadHiddenColumns);
-  const [dragCol, setDragCol]     = useState<ColumnId | null>(null);
+  const [dragCol, setDragCol] = useState<ColumnId | null>(null);
   const [dragOverCol, setDragOverCol] = useState<ColumnId | null>(null);
 
-  useEffect(() => { localStorage.setItem('bliss_tix_view', viewMode); }, [viewMode]);
+  const [viewsOpen, setViewsOpen] = useState(true);
+  const [groupsOpen, setGroupsOpen] = useState(true);
+  const [channelsOpen, setChannelsOpen] = useState(true);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
   useEffect(() => { localStorage.setItem('bliss_tix_col_order', JSON.stringify(colOrder)); }, [colOrder]);
   useEffect(() => { localStorage.setItem('bliss_tix_col_hidden', JSON.stringify([...hiddenCols])); }, [hiddenCols]);
 
@@ -344,7 +388,6 @@ function ConvList({ tickets, selected, onSelect, onNew, groups, views, onCreateG
       if (next.has(id)) {
         next.delete(id);
       } else {
-        // Never let every column disappear — at least one must stay visible.
         if (colOrder.length - next.size <= 1) return next;
         next.add(id);
       }
@@ -354,10 +397,10 @@ function ConvList({ tickets, selected, onSelect, onNew, groups, views, onCreateG
   const visibleColOrder = colOrder.filter(c => !hiddenCols.has(c));
 
   const inboxCount = (k: InboxFilter) => {
-    if (k === 'inbox')      return tickets.filter(t => t.status === 'IN_PROGRESS').length;
+    if (k === 'inbox') return tickets.filter(t => t.status === 'OPEN' || t.status === 'IN_PROGRESS').length;
     if (k === 'unassigned') return tickets.filter(t => !t.assigned_to).length;
-    if (k === 'closed')     return tickets.filter(t => t.status === 'CLOSED').length;
-    if (k === 'onsite')     return tickets.filter(t => t.source_app === 'onsite' && t.status !== 'CLOSED').length;
+    if (k === 'closed') return tickets.filter(t => t.status === 'CLOSED').length;
+    if (k === 'onsite') return tickets.filter(t => t.source_app === 'onsite' && t.status !== 'CLOSED').length;
     return tickets.length;
   };
 
@@ -383,13 +426,13 @@ function ConvList({ tickets, selected, onSelect, onNew, groups, views, onCreateG
     }
     if (channelFilter !== 'all' && channelKey(t.channel) !== channelFilter) return false;
     if (sel.kind === 'fixed') {
-      return sel.key === 'all'        ? true :
-        sel.key === 'inbox'      ? t.status === 'IN_PROGRESS' :
-        sel.key === 'unassigned' ? !t.assigned_to :
-        sel.key === 'onsite'     ? t.source_app === 'onsite' && t.status !== 'CLOSED' :
-        t.status === 'CLOSED';
+      return sel.key === 'all' ? true :
+        sel.key === 'inbox' ? (t.status === 'OPEN' || t.status === 'IN_PROGRESS') :
+          sel.key === 'unassigned' ? !t.assigned_to :
+            sel.key === 'onsite' ? t.source_app === 'onsite' && t.status !== 'CLOSED' :
+              t.status === 'CLOSED';
     }
-    if (sel.kind === 'group') return t.group_id === sel.id;
+    if (sel.kind === 'group') return t.group_id === sel.id || t.group_name === sel.id;
     const view = views.find(v => v.id === sel.id);
     if (!view) return true;
     const f = view.filters || {};
@@ -400,14 +443,15 @@ function ConvList({ tickets, selected, onSelect, onNew, groups, views, onCreateG
   }).sort((a, b) => {
     if (queueMode && channelFilter === 'inapp') return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
     if (sel.kind === 'fixed' && sel.key === 'onsite') return sortByPriority(a, b);
-    if (viewMode !== 'table') return sortTickets(a, b);
+    if (activeViewMode === 'chat') return sortTickets(a, b);
     let av: string, bv: string;
     switch (sortKey) {
-      case 'customer':     av = a.customer; bv = b.customer; break;
-      case 'status':       av = a.status; bv = b.status; break;
-      case 'assigned_to':  av = a.assigned_to || ''; bv = b.assigned_to || ''; break;
-      case 'group_name':   av = a.group_name || ''; bv = b.group_name || ''; break;
-      default:              av = a.updated_at || a.created_at; bv = b.updated_at || b.created_at;
+      case 'customer': av = a.customer; bv = b.customer; break;
+      case 'status': av = a.status; bv = b.status; break;
+      case 'assigned_to': av = a.assigned_to || ''; bv = b.assigned_to || ''; break;
+      case 'group_name': av = a.group_name || 'General'; bv = b.group_name || 'General'; break;
+      case 'updated_at': av = a.updated_at || a.created_at; bv = b.updated_at || b.created_at; break;
+      default: return 0;
     }
     const cmp = av.localeCompare(bv);
     return sortDir === 'asc' ? cmp : -cmp;
@@ -419,91 +463,171 @@ function ConvList({ tickets, selected, onSelect, onNew, groups, views, onCreateG
 
   useEffect(() => { setConvPage(1); }, [sel, searchQuery, statusTabFilter, assigneeFilter]);
 
-  const toggleSort = (key: SortKey) => {
-    if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
-    else { setSortKey(key); setSortDir('asc'); }
+  const toggleSort = (k: SortKey) => {
+    if (sortKey === k) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortKey(k); setSortDir('asc'); }
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === paged.length) setSelectedIds(new Set());
+    else setSelectedIds(new Set(paged.map(t => t.id)));
+  };
+
+  const toggleSelectOne = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
   };
 
   const INBOX_ITEMS: { key: InboxFilter; label: string; icon: IconName }[] = [
-    { key: 'inbox',      label: 'Your inbox',  icon: 'mail'      },
-    { key: 'unassigned', label: 'Unassigned',  icon: 'users'     },
-    { key: 'onsite',     label: 'Onsite priority queue', icon: 'monitor' },
-    { key: 'closed',     label: 'Closed',      icon: 'checkCircle' },
-    { key: 'all',        label: 'All',         icon: 'list'      },
+    { key: 'inbox', label: 'Your inbox', icon: 'inbox' },
+    { key: 'unassigned', label: 'Unassigned', icon: 'paw' },
+    { key: 'closed', label: 'Closed', icon: 'archive' },
+    { key: 'all', label: 'All', icon: 'users' },
   ];
 
-  const activeFilterName = sel.kind === 'fixed' ? INBOX_ITEMS.find(i => i.key === sel.key)?.label :
-    (sel.kind === 'group' ? groups.find(g => g.id === sel.id)?.name : views.find(v => v.id === sel.id)?.name) || 'Inbox';
+
+  const renderColumnCell = (colId: ColumnId, t: Ticket) => {
+    switch (colId) {
+      case 'status': {
+        return <span className={`spt-bedesk-status-pill spt-bedesk-status-pill--${t.status.toLowerCase().replace('_', '-')}`}>{STATUS_CFG[t.status]?.label ?? 'Open'}</span>;
+      }
+      case 'source': {
+        const origin = ticketOrigin(t);
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, overflow: 'hidden' }} title={origin.label}>
+            <Icon name={origin.icon} size={13} strokeWidth={1.75} color="var(--ink3)" />
+            <span style={{ fontSize: 12, color: 'var(--ink2)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {origin.label}
+            </span>
+          </div>
+        );
+      }
+      case 'customer':
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, overflow: 'hidden' }}>
+            <Av name={t.customer} userId={t.customer_id} kind="customers" size={24} />
+            <span style={{ fontWeight: 700, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 13 }}>
+              {t.customer}
+            </span>
+          </div>
+        );
+      case 'summary': {
+        const lastMsg = t.messages?.[t.messages.length - 1];
+        const preview = lastMsg ? lastMsg.content : (t.description || t.subject || 'Customer inquiry');
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
+            {(t.tags ?? []).slice(0, 3).map(tag => (
+              <span key={tag} className="spt-bedesk-tag-pill">{tag}</span>
+            ))}
+            <span style={{ fontSize: 12.5, color: 'var(--ink2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {preview}
+            </span>
+          </div>
+        );
+      }
+      case 'assigned_to':
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {t.assigned_to ? (
+              <>
+                <Av name={t.assigned_to} size={20} />
+                <span style={{ fontSize: 12.5, color: 'var(--ink2)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {t.assigned_to}
+                </span>
+              </>
+            ) : (
+              <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--ink3)' }}>
+                <Icon name="paw" size={13} strokeWidth={1.5} />
+                <span>Unassigned</span>
+              </span>
+            )}
+          </div>
+        );
+      case 'group_name':
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <span
+              style={{
+                width: 18, height: 18, borderRadius: '50%',
+                background: t.group_color || '#06b6d4',
+                color: '#ffffff', fontSize: 10, fontWeight: 800,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0
+              }}
+            >
+              {(t.group_name || 'General').charAt(0).toUpperCase()}
+            </span>
+            <span style={{ fontSize: 12.5, color: 'var(--ink2)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {t.group_name || 'General'}
+            </span>
+          </div>
+        );
+      case 'updated_at':
+        return <span style={{ fontSize: 11.5, color: 'var(--ink3)', whiteSpace: 'nowrap', display: 'block' }}>{relTime(t.updated_at || t.created_at)}</span>;
+    }
+  };
 
   const navContent = (
     <div className="spt-inbox-nav-pane">
-      <div className="spt-conv-hdr" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 10, padding: '12px 14px' }}>
-        {/* Assignee filter — where the "Shared Inbox" label used to sit —
-            plus a compact search, both on one row with the new-ticket button. */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-          <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
-            <SelectTrigger style={{ height: 28, fontSize: 12, fontWeight: 800, border: 'none', background: 'transparent', color: 'var(--ink)', padding: '0 4px 0 0', flexShrink: 0 }}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Assignees</SelectItem>
-              <SelectItem value="unassigned">Unassigned</SelectItem>
-              {agents.map(a => <SelectItem key={a.id} value={a.name}>{a.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '5px 8px', width: 150 }}>
-              <Icon name="search" size={12} color="var(--ink3)" />
-              <input
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                placeholder="Search…"
-                style={{ border: 'none', background: 'transparent', outline: 'none', fontSize: 11.5, color: 'var(--ink)', width: '100%', minWidth: 0 }}
-              />
-              {searchQuery && (
-                <button type="button" onClick={() => setSearchQuery('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 0, flexShrink: 0 }}>
-                  <Icon name="x" size={11} />
-                </button>
-              )}
-            </div>
-            <button type="button" className="spt-icon-btn spt-icon-btn--primary" title="New ticket" onClick={onNew}>
-              <Icon name="plus" size={14} strokeWidth={2.5} />
+      {/* ── Top BeDesk Inbox Title & Header Actions ── */}
+      <div className="spt-bedesk-nav-hdr">
+        <span className="spt-bedesk-nav-title">Inbox</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <Tip label="Search">
+            <button
+              type="button"
+              className="spt-bedesk-icon-btn"
+              onClick={() => setSearchOpen(o => !o)}
+            >
+              <Icon name="search" size={15} />
             </button>
-          </div>
-        </div>
-
-        {/* Status filter tabs matching Image 1 (Open, Pending, Resolved) */}
-        <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', margin: '4px -14px -10px' }}>
-          {(['open', 'pending', 'resolved', 'all'] as const).map(st => {
-            const active = statusTabFilter === st;
-            return (
-              <button
-                key={st}
-                type="button"
-                onClick={() => setStatusTabFilter(st)}
-                style={{
-                  flex: 1, padding: '8px 4px', border: 'none', borderBottom: active ? '2px solid var(--ink)' : '2px solid transparent',
-                  background: 'transparent', color: active ? 'var(--ink)' : 'var(--ink3)', fontSize: 12, fontWeight: active ? 800 : 600,
-                  cursor: 'pointer', textTransform: 'capitalize'
-                }}>
-                {st}
-              </button>
-            );
-          })}
+          </Tip>
+          <Tip label="New Ticket">
+            <button
+              type="button"
+              className="spt-bedesk-icon-btn"
+              onClick={onNew}
+            >
+              <Icon name="plus" size={16} />
+            </button>
+          </Tip>
         </div>
       </div>
 
+      {searchOpen && (
+        <div style={{ padding: '0 12px 10px' }}>
+          <div className="spt-bedesk-search-input-wrap">
+            <Icon name="search" size={13} color="var(--ink3)" />
+            <input
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Search conversations…"
+              autoFocus
+            />
+            {searchQuery && (
+              <button type="button" onClick={() => setSearchQuery('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 0 }}>
+                <Icon name="x" size={12} />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="spt-nav-scroll">
+        {/* Primary BeDesk items */}
         <nav className="spt-inbox-nav">
           {INBOX_ITEMS.map(item => {
-            const count  = inboxCount(item.key);
+            const count = inboxCount(item.key);
             const active = sel.kind === 'fixed' && sel.key === item.key;
             return (
               <button key={item.key} type="button"
                 className={`spt-inbox-item${active ? ' spt-inbox-item--active' : ''}`}
                 onClick={() => setSel({ kind: 'fixed', key: item.key })}>
-                <Icon name={item.icon} size={14} strokeWidth={active ? 2.2 : 1.75} />
+                <Icon name={item.icon} size={15} strokeWidth={active ? 2.2 : 1.75} />
                 <span className="spt-inbox-label">{item.label}</span>
                 {count > 0 && <span className={`spt-inbox-count${active ? ' spt-inbox-count--active' : ''}`}>{count}</span>}
               </button>
@@ -511,198 +635,229 @@ function ConvList({ tickets, selected, onSelect, onNew, groups, views, onCreateG
           })}
         </nav>
 
+        {/* Views Section */}
         <div className="spt-nav-section">
-          <div className="spt-nav-section-hdr"><span>Channels</span></div>
-          <nav className="spt-inbox-nav">
-            {(['all', 'whatsapp', 'email', 'inapp', 'sms'] as const).map(ch => {
-              const active = channelFilter === ch;
-              const cfg = ch === 'all' ? null : CHANNEL_CFG[ch];
-              return (
-                <button key={ch} type="button"
-                  className={`spt-inbox-item${active ? ' spt-inbox-item--active' : ''}`}
-                  onClick={() => setChannelFilter(ch)}>
-                  <Icon name={cfg?.icon ?? 'globe'} size={13} strokeWidth={active ? 2.2 : 1.75} style={cfg ? { color: cfg.color } : undefined} />
-                  <span className="spt-inbox-label">{cfg?.label ?? 'All channels'}</span>
-                </button>
-              );
-            })}
-          </nav>
-        </div>
-
-        <div className="spt-nav-section">
-          <div className="spt-nav-section-hdr">
+          <div className="spt-nav-section-hdr" onClick={() => setViewsOpen(o => !o)} style={{ cursor: 'pointer' }}>
             <span>Views</span>
-            <button type="button" className="spt-nav-add" title="New view" onClick={() => setNewViewOpen(o => !o)}>
-              <Icon name="plus" size={11} strokeWidth={2.5} />
-            </button>
-          </div>
-          {newViewOpen && (
-            <div className="spt-nav-new-form">
-              <input className="input-field" placeholder="View name" value={newViewName} onChange={e => setNewViewName(e.target.value)} />
-              <Select value={newViewCategory} onValueChange={setNewViewCategory}>
-                <SelectTrigger aria-label="View category" className="input-field"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              <div className="spt-nav-new-actions">
-                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setNewViewOpen(false)}>Cancel</button>
-                <button type="button" className="btn btn-primary btn-sm" disabled={!newViewName.trim()} onClick={() => {
-                  onCreateView(newViewName.trim(), { category: newViewCategory });
-                  setNewViewName(''); setNewViewOpen(false);
-                }}>Save</button>
-              </div>
-            </div>
-          )}
-          <nav className="spt-inbox-nav">
-            {views.map(v => {
-              const active = sel.kind === 'view' && sel.id === v.id;
-              return (
-                <button key={v.id} type="button"
-                  className={`spt-inbox-item${active ? ' spt-inbox-item--active' : ''}`}
-                  onClick={() => setSel({ kind: 'view', id: v.id })}>
-                  <Icon name="filter" size={13} strokeWidth={active ? 2.2 : 1.75} />
-                  <span className="spt-inbox-label">{v.name}</span>
-                  <span className="spt-nav-item-remove" onClick={e => { e.stopPropagation(); onDeleteView(v.id); if (active) setSel({ kind: 'fixed', key: 'all' }); }}>
-                    <Icon name="x" size={11} strokeWidth={2} />
-                  </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <Tip label="New view">
+                <button type="button" className="spt-nav-add" onClick={e => { e.stopPropagation(); setNewViewOpen(o => !o); }}>
+                  <Icon name="plus" size={12} />
                 </button>
-              );
-            })}
-            {views.length === 0 && !newViewOpen && <div className="spt-nav-empty">No saved views yet</div>}
-          </nav>
+              </Tip>
+              <Icon name={viewsOpen ? 'chevronDown' : 'chevronRight'} size={12} />
+            </div>
+          </div>
+          {viewsOpen && (
+            <>
+              {newViewOpen && (
+                <div className="spt-nav-new-form">
+                  <input className="input-field" placeholder="View name" value={newViewName} onChange={e => setNewViewName(e.target.value)} />
+                  <Select value={newViewCategory} onValueChange={setNewViewCategory}>
+                    <SelectTrigger aria-label="View category" className="input-field"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <div className="spt-nav-new-actions">
+                    <button type="button" className="btn btn-secondary btn-sm" onClick={() => setNewViewOpen(false)}>Cancel</button>
+                    <button type="button" className="btn btn-primary btn-sm" disabled={!newViewName.trim()} onClick={() => {
+                      onCreateView(newViewName.trim(), { category: newViewCategory });
+                      setNewViewName(''); setNewViewOpen(false);
+                    }}>Save</button>
+                  </div>
+                </div>
+              )}
+              <nav className="spt-inbox-nav">
+                {views.map(v => {
+                  const active = sel.kind === 'view' && sel.id === v.id;
+                  return (
+                    <button key={v.id} type="button"
+                      className={`spt-inbox-item${active ? ' spt-inbox-item--active' : ''}`}
+                      onClick={() => setSel({ kind: 'view', id: v.id })}>
+                      <Icon name="filter" size={13} strokeWidth={active ? 2.2 : 1.75} />
+                      <span className="spt-inbox-label">{v.name}</span>
+                      <span className="spt-nav-item-remove" onClick={e => { e.stopPropagation(); onDeleteView(v.id); if (active) setSel({ kind: 'fixed', key: 'all' }); }}>
+                        <Icon name="x" size={11} strokeWidth={2} />
+                      </span>
+                    </button>
+                  );
+                })}
+              </nav>
+            </>
+          )}
         </div>
 
+        {/* Groups Section */}
         <div className="spt-nav-section">
-          <div className="spt-nav-section-hdr">
+          <div className="spt-nav-section-hdr" onClick={() => setGroupsOpen(o => !o)} style={{ cursor: 'pointer' }}>
             <span>Groups</span>
-            <button type="button" className="spt-nav-add" title="New group" onClick={() => setNewGroupOpen(o => !o)}>
-              <Icon name="plus" size={11} strokeWidth={2.5} />
-            </button>
-          </div>
-          {newGroupOpen && (
-            <div className="spt-nav-new-form">
-              <input className="input-field" placeholder="Group name" value={newGroupName} onChange={e => setNewGroupName(e.target.value)} />
-              <div className="spt-nav-new-actions">
-                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setNewGroupOpen(false)}>Cancel</button>
-                <button type="button" className="btn btn-primary btn-sm" disabled={!newGroupName.trim()} onClick={() => {
-                  onCreateGroup(newGroupName.trim());
-                  setNewGroupName(''); setNewGroupOpen(false);
-                }}>Save</button>
-              </div>
-            </div>
-          )}
-          <nav className="spt-inbox-nav">
-            {groups.map(g => {
-              const active = sel.kind === 'group' && sel.id === g.id;
-              return (
-                <button key={g.id} type="button"
-                  className={`spt-inbox-item${active ? ' spt-inbox-item--active' : ''}`}
-                  onClick={() => setSel({ kind: 'group', id: g.id })}>
-                  <span className="spt-group-dot" data-color={g.color} />
-                  <span className="spt-inbox-label">{g.name}</span>
-                  {!!g.ticket_count && <span className={`spt-inbox-count${active ? ' spt-inbox-count--active' : ''}`}>{g.ticket_count}</span>}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <Tip label="New group">
+                <button type="button" className="spt-nav-add" onClick={e => { e.stopPropagation(); setNewGroupOpen(o => !o); }}>
+                  <Icon name="plus" size={12} />
                 </button>
-              );
-            })}
-            {groups.length === 0 && !newGroupOpen && <div className="spt-nav-empty">No groups yet</div>}
-          </nav>
+              </Tip>
+              <Icon name={groupsOpen ? 'chevronDown' : 'chevronRight'} size={12} />
+            </div>
+          </div>
+          {groupsOpen && (
+            <>
+              {newGroupOpen && (
+                <div className="spt-nav-new-form">
+                  <input className="input-field" placeholder="Group name" value={newGroupName} onChange={e => setNewGroupName(e.target.value)} />
+                  <div className="spt-nav-new-actions">
+                    <button type="button" className="btn btn-secondary btn-sm" onClick={() => setNewGroupOpen(false)}>Cancel</button>
+                    <button type="button" className="btn btn-primary btn-sm" disabled={!newGroupName.trim()} onClick={() => {
+                      onCreateGroup(newGroupName.trim());
+                      setNewGroupName(''); setNewGroupOpen(false);
+                    }}>Save</button>
+                  </div>
+                </div>
+              )}
+              {groups.length === 0 ? (
+                <div style={{ padding: '6px 12px', fontSize: 11.5, color: 'var(--ink3)' }}>No groups yet — create one above.</div>
+              ) : (
+                <nav className="spt-inbox-nav">
+                  {groups.map(g => {
+                    const active = sel.kind === 'group' && (sel.id === g.id || sel.id === g.name);
+                    return (
+                      <button key={g.id} type="button"
+                        className={`spt-inbox-item${active ? ' spt-inbox-item--active' : ''}`}
+                        onClick={() => setSel({ kind: 'group', id: g.id })}>
+                        <span className="spt-bedesk-group-dot" style={{ background: g.color || '#06b6d4' }} />
+                        <span className="spt-inbox-label">{g.name}</span>
+                        {!!g.ticket_count && <span className={`spt-inbox-count${active ? ' spt-inbox-count--active' : ''}`}>{g.ticket_count}</span>}
+                      </button>
+                    );
+                  })}
+                </nav>
+              )}
+            </>
+          )}
         </div>
+
+        {/* ── Social Channels Section ── */}
+        <div className="spt-nav-section">
+          <div className="spt-nav-section-hdr" onClick={() => setChannelsOpen(o => !o)} style={{ cursor: 'pointer' }}>
+            <span>Channels</span>
+            <Icon name={channelsOpen ? 'chevronDown' : 'chevronRight'} size={12} />
+          </div>
+          {channelsOpen && (
+            <nav className="spt-inbox-nav">
+              {(['all', 'whatsapp', 'email', 'inapp', 'sms'] as const).map(ch => {
+                const active = channelFilter === ch;
+                const cfg = ch === 'all' ? null : CHANNEL_CFG[ch];
+                const count = ch === 'all' ? tickets.length : tickets.filter(t => channelKey(t.channel) === ch).length;
+                return (
+                  <button key={ch} type="button"
+                    className={`spt-inbox-item${active ? ' spt-inbox-item--active' : ''}`}
+                    onClick={() => setChannelFilter(ch)}>
+                    <Icon name={cfg?.icon ?? 'globe'} size={14} strokeWidth={active ? 2.2 : 1.75} style={cfg ? { color: cfg.color } : undefined} />
+                    <span className="spt-inbox-label">{cfg?.label ?? 'All channels'}</span>
+                    {count > 0 && <span className={`spt-inbox-count${active ? ' spt-inbox-count--active' : ''}`}>{count}</span>}
+                  </button>
+                );
+              })}
+            </nav>
+          )}
+        </div>
+      </div>
+
+      {/* Bottom Pinned Action */}
+      <div className="spt-bedesk-nav-ft">
+        <Link to="/bliss/operational-mode" className="spt-bedesk-nav-ft-link">
+          <Icon name="sliders" size={14} />
+          <span>Manage views</span>
+        </Link>
       </div>
     </div>
   );
 
   const listContent = (
     <div className="spt-tix-list-pane">
-      <div className="spt-tix-list-hdr">
-        <span className="spt-tix-list-title">
-          <Icon name={sel.kind === 'fixed' ? 'inbox' : (sel.kind === 'group' ? 'users' : 'filter')} size={16} strokeWidth={2} />
-          {activeFilterName}
-        </span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {viewMode === 'table' && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button type="button" title="Show/hide columns" className="spt-col-config-btn">
-                  <Icon name="columns" size={13} strokeWidth={1.75} />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Columns</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {colOrder.map(colId => (
-                  <DropdownMenuCheckboxItem
-                    key={colId}
-                    checked={!hiddenCols.has(colId)}
-                    onCheckedChange={() => toggleColumnVisible(colId)}
-                  >
-                    {COLUMN_LABELS[colId]}
-                  </DropdownMenuCheckboxItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-          <div className="spt-view-toggle">
-            <button type="button" title="List view" className={viewMode === 'list' ? 'active' : ''} onClick={() => setViewMode('list')}>
-              <Icon name="menu" size={13} strokeWidth={1.75} />
-            </button>
-            <button type="button" title="Table view" className={viewMode === 'table' ? 'active' : ''} onClick={() => setViewMode('table')}>
-              <Icon name="grid" size={13} strokeWidth={1.75} />
-            </button>
-          </div>
-        </div>
-      </div>
 
-      {viewMode === 'list' ? (
-        <div className="spt-conv-rows">
+
+      {activeViewMode === 'chat' ? (
+        <div className={`spt-conv-rows${selectedIds.size > 0 ? ' spt-conv-rows--selecting' : ''}`}>
           {paged.length === 0 && (
             <div className="spt-conv-empty">No conversations found</div>
           )}
           {paged.map(t => {
-            const isSel   = selected?.id === t.id;
-            const urgHigh = t.priority === 'URGENT' || t.priority === 'HIGH';
+            const isSel = selected?.id === t.id;
+            const isChecked = selectedIds.has(t.id);
             const lastMsg = t.messages?.[t.messages.length - 1];
-            const preview = lastMsg ? lastMsg.content : (t.description?.slice(0, 60) ?? '');
-            const accentCls = urgHigh
-              ? (t.priority === 'URGENT' ? ' spt-conv-row--urgent' : ' spt-conv-row--high')
-              : '';
+            const preview = lastMsg ? lastMsg.content : (t.description?.slice(0, 80) || t.subject || 'No description provided.');
+
             return (
-              <div key={t.id}
-                className={`spt-conv-row${isSel ? ' spt-conv-row--active' : ''}${accentCls}`}
-                onClick={() => onSelect(t)}>
-                <div className="spt-conv-row-av">
-                  <Av name={t.customer} userId={t.customer_id} kind="customers" size={34} />
-                  {t.status === 'OPEN' && <span className="spt-conv-unread-dot" />}
+              <div
+                key={t.id}
+                className={`spt-bedesk-conv-card${isSel ? ' spt-bedesk-conv-card--active' : ''}`}
+                onClick={() => onSelect(t)}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                  <Checkbox
+                    className="spt-row-checkbox"
+                    checked={isChecked}
+                    onClick={e => toggleSelectOne(t.id, e)}
+                    onCheckedChange={() => { }}
+                  />
+                  <div className="spt-conv-row-av" style={{ position: 'relative' }}>
+                    <Av name={t.customer} userId={t.customer_id} kind="customers" size={36} />
+                    {t.status === 'OPEN' && <span className="spt-conv-unread-dot" />}
+                  </div>
                 </div>
-                <div className="spt-conv-row-body">
-                  <div className="spt-conv-row-meta">
-                    <span className="spt-conv-row-ref">#{t.ref}</span>
-                    <ChPill ch={channelKey(t.channel)} />
+
+                <div className="spt-conv-row-body" style={{ minWidth: 0, flex: 1, overflow: 'hidden' }}>
+                  <div className="spt-conv-row-top" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 3 }}>
+                    <span className="spt-conv-row-name" title={t.customer}>
+                      {t.customer}
+                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
+                      {channelKey(t.channel) === 'note' && (
+                        <Tip label="Internal Note">
+                          <Icon name="lock" size={11} color="var(--gold, #f59e0b)" />
+                        </Tip>
+                      )}
+                      <span className="spt-conv-row-time">
+                        {relTime(t.updated_at || t.created_at)}
+                      </span>
+                    </div>
                   </div>
-                  <div className="spt-conv-row-top">
-                    <span className="spt-conv-row-name">{t.customer}</span>
-                    <span className="spt-conv-row-time">{relTime(t.updated_at || t.created_at)}</span>
+
+                  <div className="spt-conv-row-preview" title={preview}>
+                    {preview}
                   </div>
-                  <div className="spt-conv-row-subject">{t.subject}</div>
-                  <div className="spt-conv-row-preview">{preview}</div>
                 </div>
               </div>
             );
           })}
         </div>
       ) : (
+        /* ── Full Table View Mode (Image 1) ── */
         <div className="spt-tix-table-wrap">
-          <table className="spt-tix-table">
+          <table className={`spt-bedesk-table${selectedIds.size > 0 ? ' spt-bedesk-table--selecting' : ''}`}>
             <thead>
               <tr>
-                <th />
+                <th style={{ width: 38, minWidth: 38, textAlign: 'center', padding: '8px 6px' }}>
+                  <Checkbox
+                    className="mx-auto"
+                    checked={paged.length > 0 && selectedIds.size === paged.length}
+                    onCheckedChange={toggleSelectAll}
+                  />
+                </th>
                 {visibleColOrder.map(colId => {
                   const sortK = COLUMN_SORT_KEY[colId];
                   const active = sortK && sortKey === sortK;
+                  const colStyle = {
+                    width: COLUMN_WIDTHS[colId]?.width,
+                    minWidth: COLUMN_WIDTHS[colId]?.minWidth,
+                  };
                   return (
                     <th
                       key={colId}
-                      className={`spt-tix-th spt-tix-th--draggable${active ? ' spt-tix-th--active' : ''}${dragOverCol === colId ? ' spt-tix-th--dragover' : ''}`}
+                      style={colStyle}
+                      className={`spt-tix-th spt-tix-th--${colId} spt-tix-th--draggable${active ? ' spt-tix-th--active' : ''}${dragOverCol === colId ? ' spt-tix-th--dragover' : ''}`}
                       draggable
                       onDragStart={() => setDragCol(colId)}
                       onDragOver={e => { e.preventDefault(); if (dragOverCol !== colId) setDragOverCol(colId); }}
@@ -710,11 +865,13 @@ function ConvList({ tickets, selected, onSelect, onNew, groups, views, onCreateG
                       onDrop={e => { e.preventDefault(); if (dragCol) reorderColumn(dragCol, colId); setDragCol(null); setDragOverCol(null); }}
                       onDragEnd={() => { setDragCol(null); setDragOverCol(null); }}
                       onClick={() => sortK && toggleSort(sortK)}
-                      title="Drag to reorder"
+                      title="Click to sort, drag to reorder"
                     >
-                      <Icon name="moreVertical" size={11} strokeWidth={2} className="spt-tix-th-grip" />
-                      {COLUMN_LABELS[colId]}
-                      {active && <Icon name={sortDir === 'asc' ? 'arrowUp' : 'arrowDown'} size={11} strokeWidth={2} />}
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <Icon name="moreVertical" size={10} strokeWidth={2} className="spt-tix-th-grip" />
+                        {COLUMN_LABELS[colId]}
+                        {active && <Icon name={sortDir === 'asc' ? 'arrowUp' : 'arrowDown'} size={11} strokeWidth={2} />}
+                      </span>
                     </th>
                   );
                 })}
@@ -726,11 +883,25 @@ function ConvList({ tickets, selected, onSelect, onNew, groups, views, onCreateG
               )}
               {paged.map(t => {
                 const isSel = selected?.id === t.id;
+                const isChecked = selectedIds.has(t.id);
                 return (
-                  <tr key={t.id} className={isSel ? 'spt-tix-row--active' : ''} onClick={() => onSelect(t)}>
-                    <td><Av name={t.customer} userId={t.customer_id} kind="customers" size={26} /></td>
+                  <tr key={t.id} className={isSel ? 'spt-bedesk-row--active' : ''} onClick={() => onSelect(t)}>
+                    <td style={{ width: 38, minWidth: 38, textAlign: 'center', padding: '7px 6px' }}>
+                      <Checkbox
+                        className="mx-auto spt-row-checkbox"
+                        checked={isChecked}
+                        onClick={e => toggleSelectOne(t.id, e)}
+                        onCheckedChange={() => { }}
+                      />
+                    </td>
                     {visibleColOrder.map(colId => (
-                      <td key={colId} className={COLUMN_CELL_CLASS[colId]}>{renderColumnCell(colId, t)}</td>
+                      <td
+                        key={colId}
+                        style={{ width: COLUMN_WIDTHS[colId]?.width, minWidth: COLUMN_WIDTHS[colId]?.minWidth }}
+                        className={`spt-tix-td spt-tix-td--${colId}`}
+                      >
+                        {renderColumnCell(colId, t)}
+                      </td>
                     ))}
                   </tr>
                 );
@@ -742,13 +913,17 @@ function ConvList({ tickets, selected, onSelect, onNew, groups, views, onCreateG
 
       {totalConvPages > 1 && (
         <div className="spt-conv-pager">
-          <button type="button" disabled={safePage <= 1} onClick={() => setConvPage(p => p - 1)} title="Previous page">
-            <Icon name="arrowLeft" size={11} strokeWidth={2} />
-          </button>
+          <Tip label="Previous page">
+            <button type="button" disabled={safePage <= 1} onClick={() => setConvPage(p => p - 1)}>
+              <Icon name="arrowLeft" size={11} strokeWidth={2} />
+            </button>
+          </Tip>
           <span>{safePage} / {totalConvPages}</span>
-          <button type="button" disabled={safePage >= totalConvPages} onClick={() => setConvPage(p => p + 1)} title="Next page">
-            <Icon name="arrowRight" size={11} strokeWidth={2} />
-          </button>
+          <Tip label="Next page">
+            <button type="button" disabled={safePage >= totalConvPages} onClick={() => setConvPage(p => p + 1)}>
+              <Icon name="arrowRight" size={11} strokeWidth={2} />
+            </button>
+          </Tip>
         </div>
       )}
     </div>
@@ -757,11 +932,11 @@ function ConvList({ tickets, selected, onSelect, onNew, groups, views, onCreateG
   if (isDesktop) {
     return (
       <>
-        <Panel defaultSize={15} minSize={10} maxSize={20} className="spt-inbox-nav-panel">
+        <Panel defaultSize={activeViewMode === 'table' ? 15 : 15} minSize={12} maxSize={22} className="spt-inbox-nav-panel">
           {navContent}
         </Panel>
         <PanelResizeHandle className="spt-resize-handle" />
-        <Panel defaultSize={viewMode === 'table' ? 55 : 25} minSize={20} className="spt-conv-list-panel">
+        <Panel defaultSize={activeViewMode === 'table' ? 85 : 27} minSize={20} className="spt-conv-list-panel">
           {listContent}
         </Panel>
       </>
@@ -777,7 +952,7 @@ function ConvList({ tickets, selected, onSelect, onNew, groups, views, onCreateG
 }
 
 /* ══════════════════════════════════════════
-   COL 2 — Comms Hub Thread + Composer
+   COL 3 — BeDesk Conversation Thread & Composer
 ══════════════════════════════════════════ */
 function ThreadPanel({ ticket, onStatusChange, authorName, onClose, onOpenDetails, aiSuggestionToUse, agents = [], onReassign }: {
   ticket: Ticket; onStatusChange: (id: string, s: StatusKey) => void;
@@ -785,16 +960,16 @@ function ThreadPanel({ ticket, onStatusChange, authorName, onClose, onOpenDetail
   agents?: { id: string; name: string }[];
   onReassign?: (id: string, assigneeId: string) => void;
 }) {
-  const [messages, setMessages]   = useState<Message[]>(ticket.messages || []);
-  const [sending, setSending]     = useState(false);
-  // Multi-channel broadcast — Set of active channels
+  const [messages, setMessages] = useState<Message[]>(ticket.messages || []);
+  const [sending, setSending] = useState(false);
   const [broadcastChs, setBroadcastChs] = useState<Set<ChannelId>>(new Set(['inapp'] as ChannelId[]));
-  const [isNote, setIsNote]       = useState(false);
-  const [compose, setCompose]     = useState('');
+  const [isNote, setIsNote] = useState(false);
+  const [compose, setCompose] = useState('');
   const [emailSubj, setEmailSubj] = useState(`Re: [${ticket.ref}] ${ticket.subject}`);
-  const [broadcastResult, setBroadcastResult] = useState<{ch: string; success: boolean}[]>([]);
+  const [broadcastResult, setBroadcastResult] = useState<{ ch: string; success: boolean }[]>([]);
   const [showComplyModal, setShowComplyModal] = useState(false);
   const msgEndRef = useRef<HTMLDivElement>(null);
+  const isMobile = useMediaQuery('(max-width: 899px)');
 
   useEffect(() => {
     setMessages(ticket.messages || []);
@@ -850,7 +1025,6 @@ function ThreadPanel({ ticket, onStatusChange, authorName, onClose, onOpenDetail
         } else {
           setBroadcastResult(channels.map(ch => ({ ch, success: true })));
         }
-        // Add merged outbound messages to the thread
         const newMsgs: Message[] = Array.from(broadcastChs).map((ch, i) => ({
           id: `local-${Date.now()}-${i}`,
           content,
@@ -868,37 +1042,40 @@ function ThreadPanel({ ticket, onStatusChange, authorName, onClose, onOpenDetail
   };
 
   const visible = messages;
-
   const canSend = compose.trim().length > 0 && !sending;
-
-  const BROADCAST_ORDER: ChannelId[] = ['whatsapp', 'email', 'sms', 'inapp'];
-
+  const BROADCAST_ORDER: ChannelId[] = ['whatsapp', 'email', 'inapp', 'sms'];
 
   return (
     <div className="spt-thread">
-
-      {/* ── Thread header — matches reference design ── */}
-      <div className="spt-thread-hdr" style={{ padding: '12px 18px', background: 'var(--white)', borderBottom: '1px solid var(--border)' }}>
-        {/* Full contact/channel detail lives in the Customer tab on the
-            right (Customer360Sidebar) — this header just identifies who
-            and what ticket, not a second copy of their profile. */}
-        <div className="spt-thread-hdr-left" style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
-          <Av name={ticket.customer} userId={ticket.customer_id} kind="customers" size={38} />
-          <div style={{ minWidth: 0 }}>
-            <div className="spt-thread-customer" style={{ fontSize: 14.5, fontWeight: 800, color: 'var(--ink)' }}>{ticket.customer}</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
-              <ChPill ch={channelKey(ticket.channel)} />
-              <span className="spt-thread-ref" style={{ fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700, color: 'var(--teal)' }}>#{ticket.ref}</span>
-            </div>
+      {/* ── Thread Header ── */}
+      <div className="spt-thread-hdr">
+        <div className="spt-thread-hdr-left">
+          {isMobile && (
+            <Tip label="Back to inbox">
+              <button
+                type="button"
+                className="spt-bedesk-icon-btn"
+                onClick={onClose}
+                style={{ marginRight: 2 }}
+              >
+                <Icon name="arrowLeft" size={16} />
+              </button>
+            </Tip>
+          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+            <Checkbox className="spt-row-checkbox" style={{ opacity: 1 }} checked={false} />
+            <span className="spt-thread-customer">{ticket.customer}</span>
+            <ChPill ch={channelKey(ticket.channel)} />
+            <span className="spt-thread-ref">#{ticket.ref}</span>
           </div>
         </div>
 
-        <div className="spt-thread-hdr-right" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          {/* Assignee Selector Dropdown matching Image 1 */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '2px 8px' }}>
-            <span style={{ fontSize: 10, fontWeight: 800, color: 'var(--ink3)', textTransform: 'uppercase' }}>ASSIGNEE:</span>
+        <div className="spt-thread-hdr-right">
+          {/* Assignee Selector */}
+          <div className="spt-bedesk-hdr-ctrl">
+            <span className="spt-bedesk-ctrl-label">Assignee:</span>
             <Select value={agents.find(a => a.name === ticket.assigned_to)?.id || '__unassigned__'} onValueChange={v => onReassign && v !== '__unassigned__' && onReassign(ticket.id, v)}>
-              <SelectTrigger style={{ height: 28, border: 'none', background: 'transparent', fontSize: 12, fontWeight: 700, padding: '0 4px', color: 'var(--ink)' }}>
+              <SelectTrigger className="spt-bedesk-hdr-select">
                 <SelectValue placeholder={ticket.assigned_to || 'Unassigned'} />
               </SelectTrigger>
               <SelectContent>
@@ -908,115 +1085,126 @@ function ThreadPanel({ ticket, onStatusChange, authorName, onClose, onOpenDetail
             </Select>
           </div>
 
+          {/* Status Picker */}
           <Select value={ticket.status} onValueChange={v => onStatusChange(ticket.id, v as StatusKey)}>
-            <SelectTrigger aria-label="Status" className={`spt-status-select spt-status-select--${ticket.status.toLowerCase().replace('_', '-')}`}><SelectValue /></SelectTrigger>
+            <SelectTrigger className={`spt-status-select spt-status-select--${ticket.status.toLowerCase().replace('_', '-')}`} style={{ width: 110 }}>
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="OPEN">Open</SelectItem>
-              <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+              <SelectItem value="IN_PROGRESS">Pending</SelectItem>
               <SelectItem value="RESOLVED">Resolved</SelectItem>
               <SelectItem value="CLOSED">Closed</SelectItem>
             </SelectContent>
           </Select>
 
-          <button type="button" className="spt-icon-btn" title="Send to ComplyOS — open a compliance application from this ticket" onClick={() => setShowComplyModal(true)}>
-            <Icon name="shield" size={14} strokeWidth={1.75} />
-          </button>
-          {onOpenDetails && (
-            <button type="button" className="spt-icon-btn spt-details-toggle" title="Customer details" onClick={onOpenDetails}>
-              <Icon name="user" size={15} strokeWidth={1.75} />
+          {/* More Dropdown */}
+          <DropdownMenu>
+            <Tip label="More options">
+              <DropdownMenuTrigger asChild>
+                <button type="button" className="spt-bedesk-icon-btn">
+                  <Icon name="moreVertical" size={16} />
+                </button>
+              </DropdownMenuTrigger>
+            </Tip>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setShowComplyModal(true)}>
+                <Icon name="shield" size={13} style={{ marginRight: 8 }} />
+                Send to ComplyOS
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigator.clipboard.writeText(ticket.ref)}>
+                <Icon name="copy" size={13} style={{ marginRight: 8 }} />
+                Copy Reference
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => onStatusChange(ticket.id, 'CLOSED')}>
+                <Icon name="checkCircle" size={13} style={{ marginRight: 8 }} />
+                Mark as Closed
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Tag Button */}
+          <Tip label="Tags">
+            <button type="button" className="spt-bedesk-icon-btn" onClick={onOpenDetails}>
+              <Icon name="tag" size={15} />
             </button>
-          )}
-          <button type="button" className="spt-close-btn" onClick={onClose}>
-            <Icon name="x" size={13} strokeWidth={2.5} />
-          </button>
+          </Tip>
+
+          {/* Close Action Button */}
+          <Tip label="Mark as closed">
+            <button type="button" className="spt-bedesk-close-btn" onClick={() => onStatusChange(ticket.id, 'CLOSED')}>
+              <Icon name="x" size={13} strokeWidth={2.5} />
+            </button>
+          </Tip>
         </div>
       </div>
 
-      {/* ── Message thread ── */}
+      {/* ── Message Flow ── */}
       <div className="spt-msgs">
-        <div className="spt-sys-event">
-          <span className="spt-sys-pill">
-            <Icon name="fileText" size={11} strokeWidth={2} />
-            Case <span className="spt-mono">{ticket.ref}</span> opened · {relTime(ticket.created_at)}
-          </span>
+        <div className="spt-date-sep">
+          <span>{new Date(ticket.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
         </div>
-        {ticket.description && (
-          <div className="spt-sys-event">
-            <span className="spt-sys-pill">
-              <Icon name="paperclip" size={11} strokeWidth={2} />
-              {ticket.description.slice(0, 70)}
-            </span>
-          </div>
-        )}
 
         {visible.length === 0 && (
-          <div className="spt-msgs-empty">
-            <Icon name="message" size={28} strokeWidth={1.25} />
-            <div>No messages — use the composer below</div>
+          <div className="spt-bedesk-msg spt-bedesk-msg--customer">
+            <Av name={ticket.customer} userId={ticket.customer_id} kind="customers" size={32} />
+            <div className="spt-bedesk-msg-bubble-wrap">
+              <div className="spt-bedesk-msg-bubble">
+                {ticket.description || ticket.subject || 'No description provided.'}
+              </div>
+              <div className="spt-bedesk-msg-time">
+                {new Date(ticket.created_at || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </div>
+            </div>
           </div>
         )}
 
         {visible.map((m, idx) => {
-          const ch     = (m.channel?.toLowerCase() || 'inapp') as ChannelId;
-          const isNote = ch === 'note';
-          const isOff  = m.author_type === 'OFFICER';
-          const prev   = visible[idx - 1];
-          const mDate  = new Date(m.created_at);
-          const pDate  = prev ? new Date(prev.created_at) : null;
-          const showDate = !pDate || mDate.toDateString() !== pDate.toDateString();
-          const dateLbl = mDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-          const timeLbl = mDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+          const ch = (m.channel?.toLowerCase() || 'inapp') as ChannelId;
+          const isNoteMsg = ch === 'note';
+          const isOff = m.author_type === 'OFFICER';
+          const mDate = new Date(m.created_at);
+          const timeLbl = mDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+          if (isNoteMsg) {
+            return (
+              <div key={m.id} className="spt-bedesk-internal-note-card">
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#f59e0b', fontSize: 12, fontWeight: 800 }}>
+                    <Icon name="lock" size={13} />
+                    <span>Internal Note</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: 'var(--ink3)' }}>
+                    <span style={{ fontWeight: 700, color: 'var(--ink2)' }}>{m.author_name}</span>
+                    <span>{timeLbl}</span>
+                  </div>
+                </div>
+                <div style={{ fontSize: 13, lineHeight: 1.6, color: 'var(--ink)' }}>
+                  {m.content}
+                </div>
+              </div>
+            );
+          }
 
           return (
-            <React.Fragment key={m.id}>
-              {showDate && (
-                <div className="spt-date-sep"><span>{dateLbl}</span></div>
-              )}
-
-              {isNote ? (
-                <div style={{ margin: '14px 0', background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 12, padding: '12px 16px', color: 'var(--gold)', boxShadow: 'var(--elev)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6, fontSize: 12, fontWeight: 800 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--gold)' }}>
-                      <Icon name="lock" size={13} />
-                      <span>Internal Note</span>
-                    </div>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold)' }}>{m.author_name}</span>
-                  </div>
-                  <div style={{ fontSize: 13, lineHeight: 1.6, fontWeight: 500, color: 'var(--gold)' }}>
-                    {m.content}
-                  </div>
-                  <div style={{ textAlign: 'right', fontSize: 10.5, fontWeight: 600, color: 'var(--gold)', marginTop: 6 }}>
-                    {timeLbl}
-                  </div>
+            <div key={m.id} className={`spt-bedesk-msg ${isOff ? 'spt-bedesk-msg--officer' : 'spt-bedesk-msg--customer'}`}>
+              <Av name={m.author_name} size={32} />
+              <div className="spt-bedesk-msg-bubble-wrap">
+                <div className="spt-bedesk-msg-bubble">
+                  {m.content}
+                  {isOff && <span style={{ marginLeft: 8, fontSize: 11, opacity: 0.8, verticalAlign: 'middle' }}>✓✓</span>}
                 </div>
-              ) : (
-                <div className={`spt-msg${isOff ? ' spt-msg--officer' : ' spt-msg--customer'}`}>
-                  <div className="spt-msg-inner">
-                    <Av name={m.author_name} size={28} />
-                    <div className="spt-msg-content">
-                      <div className="spt-msg-meta">
-                        <span className="spt-msg-author">{m.author_name}</span>
-                        <span className="spt-msg-time">{timeLbl}</span>
-                        <ChPill ch={ch} />
-                      </div>
-                      <div className={`spt-bubble ${isOff ? 'spt-bubble--dark' : ''}`} style={isOff ? { background: 'var(--ink)', color: 'var(--white)', borderRadius: '14px 14px 4px 14px' } : undefined}>
-                        {m.content}
-                        {isOff && <span style={{ marginLeft: 8, fontSize: 10, opacity: 0.7 }}>✓✓</span>}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </React.Fragment>
+                <div className="spt-bedesk-msg-time">{timeLbl}</div>
+              </div>
+            </div>
           );
         })}
         <div ref={msgEndRef} />
       </div>
 
-      {/* ── Composer matching reference design ── */}
-      <div className="spt-composer" style={{ padding: 14, background: 'var(--white)', borderTop: '1px solid var(--border)' }}>
-
-        {/* Broadcast success toast */}
+      {/* ── Message Composer ── */}
+      <div className="spt-bedesk-composer">
         {broadcastResult.length > 0 && (
           <div className="spt-broadcast-toast">
             {broadcastResult.map(r => (
@@ -1028,53 +1216,70 @@ function ThreadPanel({ ticket, onStatusChange, authorName, onClose, onOpenDetail
           </div>
         )}
 
-        {/* Top Reply / Note pill toggle + Status indicators matching Image 1 */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
-          <div style={{ display: 'flex', gap: 4, background: 'var(--bg)', padding: 3, borderRadius: 8, border: '1px solid var(--border)' }}>
-            <button
-              type="button"
-              onClick={() => { setIsNote(false); if (broadcastChs.size === 0) setBroadcastChs(new Set(['inapp'])); }}
-              style={{
-                padding: '4px 14px', borderRadius: 6, border: 'none', cursor: 'pointer',
-                background: !isNote ? 'var(--ink)' : 'transparent',
-                color: !isNote ? 'var(--white)' : 'var(--ink2)',
-                fontSize: 12, fontWeight: 800
-              }}>
-              Reply
-            </button>
-            <button
-              type="button"
-              onClick={() => { setIsNote(true); setBroadcastChs(new Set()); }}
-              style={{
-                padding: '4px 14px', borderRadius: 6, border: 'none', cursor: 'pointer',
-                background: isNote ? 'var(--gold)' : 'transparent',
-                color: isNote ? '#fff' : 'var(--ink2)',
-                fontSize: 12, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 4
-              }}>
-              <Icon name="lock" size={11} /> Note
-            </button>
-          </div>
+        <div className="spt-bedesk-composer-hdr">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="spt-bedesk-mode-pill active"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                >
+                  <Icon name={isNote ? 'lock' : 'mail'} size={12} />
+                  <span>{isNote ? 'Internal Note' : 'Message'}</span>
+                  <Icon name="chevronDown" size={11} />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem onClick={() => { setIsNote(false); if (broadcastChs.size === 0) setBroadcastChs(new Set(['inapp'])); }}>
+                  <Icon name="mail" size={13} style={{ marginRight: 8 }} />
+                  Message (Customer reply)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => { setIsNote(true); setBroadcastChs(new Set()); }}>
+                  <Icon name="lock" size={13} style={{ marginRight: 8 }} />
+                  Internal Note (Staff only)
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span>STATUS:</span>
-              <span style={{ color: ticket.status === 'OPEN' ? 'var(--red)' : ticket.status === 'RESOLVED' ? 'var(--green)' : 'var(--gold)', background: 'var(--bg)', padding: '2px 8px', borderRadius: 12, border: '1px solid var(--border)' }}>
-                ● {ticket.status}
-              </span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <span>Mark:</span>
-              <button type="button" onClick={() => onStatusChange(ticket.id, 'IN_PROGRESS')} style={{ background: 'none', border: '1px solid var(--border)', padding: '2px 8px', borderRadius: 6, cursor: 'pointer', fontSize: 11, fontWeight: 700, color: 'var(--ink2)' }}>Pending</button>
-              <button type="button" onClick={() => onStatusChange(ticket.id, 'RESOLVED')} style={{ background: 'none', border: '1px solid var(--border)', padding: '2px 8px', borderRadius: 6, cursor: 'pointer', fontSize: 11, fontWeight: 700, color: 'var(--ink2)' }}>Resolved</button>
-            </div>
+            {!isNote && (
+              <div style={{ display: 'flex', gap: 4, marginLeft: 4, flexWrap: 'wrap' }}>
+                <Tip label="All channels">
+                  <button
+                    type="button"
+                    onClick={() => setBroadcastChs(new Set(BROADCAST_ORDER))}
+                    className={`spt-bedesk-ch-chip${broadcastChs.size === BROADCAST_ORDER.length ? ' active' : ''}`}
+                    aria-label="All channels"
+                  >
+                    <Icon name="layers" size={13} />
+                  </button>
+                </Tip>
+                {BROADCAST_ORDER.map(ch => {
+                  const active = broadcastChs.has(ch);
+                  const cfg = CHANNEL_CFG[ch];
+                  return (
+                    <Tip key={ch} label={cfg.label}>
+                      <button
+                        type="button"
+                        onClick={() => toggleChannel(ch)}
+                        className={`spt-bedesk-ch-chip${active ? ' active' : ''}`}
+                        style={active ? { color: cfg.color, borderColor: cfg.color } : undefined}
+                        aria-label={cfg.label}
+                      >
+                        <Icon name={cfg.icon} size={13} />
+                      </button>
+                    </Tip>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Textarea */}
-        <div style={{ position: 'relative', marginBottom: 10 }}>
+        <div className="spt-bedesk-ta-wrap">
           {isNote && (
-            <div style={{ background: 'var(--gold-l)', color: 'var(--gold)', padding: '6px 12px', borderRadius: '8px 8px 0 0', fontSize: 11.5, fontWeight: 700, border: '1px solid var(--gold)', borderBottom: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Icon name="lock" size={12} /> Internal Note — visible only to staff
+            <div className="spt-bedesk-note-badge-banner">
+              <Icon name="lock" size={12} /> Internal Note — only visible to team members
             </div>
           )}
           <textarea
@@ -1083,74 +1288,60 @@ function ThreadPanel({ ticket, onStatusChange, authorName, onClose, onOpenDetail
             onChange={e => setCompose(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && !isNote) { e.preventDefault(); handleSend(); } }}
             placeholder={isNote ? 'Write an internal note…' : 'Type your message response…'}
-            style={{
-              width: '100%', padding: 12, borderRadius: isNote ? '0 0 8px 8px' : 8,
-              border: isNote ? '1px solid var(--gold)' : '1px solid var(--border)',
-              background: isNote ? 'var(--gold-l)' : 'var(--white)',
-              color: 'var(--ink)', fontSize: 13, outline: 'none', resize: 'vertical',
-              fontFamily: 'var(--font)', boxSizing: 'border-box'
-            }}
+            className={`spt-bedesk-ta${isNote ? ' note' : ''}`}
           />
         </div>
 
-        {/* Bottom Toolbar matching Image 1 */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }} title="Attach file">
-              <Icon name="paperclip" size={16} />
-            </button>
-            <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }} title="Insert Emoji">
-              <Icon name="smile" size={16} />
-            </button>
-            <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--teal)', padding: 4 }} title="AI Sparkles Suggestion" onClick={() => { if (aiSuggestionToUse) setCompose(aiSuggestionToUse); }}>
-              <Icon name="sparkle" size={16} />
-            </button>
-
-            {/* Broadcast channel pills — "All" is a one-click shortcut for
-                selecting every channel at once, instead of toggling each
-                one individually every time a reply should go out everywhere. */}
-            {!isNote && (
-              <div style={{ display: 'flex', gap: 4, marginLeft: 8, flexWrap: 'wrap' }}>
-                <button type="button" onClick={() => setBroadcastChs(new Set(BROADCAST_ORDER))}
-                  style={{
-                    padding: '2px 8px', borderRadius: 12, border: '1px solid var(--border)',
-                    background: broadcastChs.size === BROADCAST_ORDER.length ? 'var(--teal-l)' : 'transparent',
-                    color: broadcastChs.size === BROADCAST_ORDER.length ? 'var(--teal)' : 'var(--ink3)',
-                    fontSize: 10.5, fontWeight: 700, cursor: 'pointer'
-                  }}>
-                  All
-                </button>
-                {BROADCAST_ORDER.map(ch => {
-                  const active = broadcastChs.has(ch);
-                  const cfg = CHANNEL_CFG[ch];
-                  return (
-                    <button key={ch} type="button" onClick={() => toggleChannel(ch)}
-                      style={{
-                        padding: '2px 8px', borderRadius: 12, border: '1px solid var(--border)',
-                        background: active ? cfg.bg : 'transparent', color: active ? cfg.color : 'var(--ink3)',
-                        fontSize: 10.5, fontWeight: 700, cursor: 'pointer'
-                      }}>
-                      {cfg.label}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+        <div className="spt-bedesk-composer-ft">
+          <div className="spt-bedesk-toolbar-icons">
+            <Tip label="Insert snippet / action">
+              <button type="button" className="spt-bedesk-tb-btn">
+                <Icon name="plusSquare" size={15} />
+              </button>
+            </Tip>
+            <Tip label="Insert Emoji">
+              <button type="button" className="spt-bedesk-tb-btn">
+                <Icon name="smile" size={15} />
+              </button>
+            </Tip>
+            <Tip label="Canned responses / Macros">
+              <button type="button" className="spt-bedesk-tb-btn">
+                <Icon name="cannedResponse" size={15} />
+              </button>
+            </Tip>
+            <Tip label="Attach file">
+              <button type="button" className="spt-bedesk-tb-btn">
+                <Icon name="paperclip" size={15} />
+              </button>
+            </Tip>
+            <Tip label="Insert image">
+              <button type="button" className="spt-bedesk-tb-btn">
+                <Icon name="image" size={15} />
+              </button>
+            </Tip>
+            <Tip label="AI Copilot Sparkles">
+              <button
+                type="button"
+                className="spt-bedesk-tb-btn"
+                onClick={() => { if (aiSuggestionToUse) setCompose(aiSuggestionToUse); }}
+                style={{ color: 'var(--teal)' }}
+              >
+                <Icon name="wand" size={15} />
+              </button>
+            </Tip>
           </div>
 
-          <button
-            type="button"
-            onClick={handleSend}
-            disabled={!canSend}
-            style={{
-              padding: '8px 20px', borderRadius: 8, border: 'none',
-              background: canSend ? (isNote ? 'var(--gold)' : 'var(--ink)') : 'var(--border)',
-              color: canSend ? '#ffffff' : 'var(--ink3)',
-              fontSize: 13, fontWeight: 800, cursor: canSend ? 'pointer' : 'not-allowed',
-              display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.15s'
-            }}>
-            <Icon name="send" size={13} /> {sending ? 'Sending…' : isNote ? 'Save Note' : 'Send Reply'}
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <button
+              type="button"
+              onClick={handleSend}
+              disabled={!canSend}
+              className={`spt-bedesk-send-btn${canSend ? ' ready' : ''}${isNote ? ' note' : ''}`}
+            >
+              <span>{sending ? 'Sending…' : isNote ? 'Save note' : 'Send reply'}</span>
+              {!isNote && <Icon name="chevronDown" size={12} />}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1161,156 +1352,352 @@ function ThreadPanel({ ticket, onStatusChange, authorName, onClose, onOpenDetail
   );
 }
 
-
 /* ══════════════════════════════════════════
-   COL 3 — Details Panel (TicketGo-style)
+   COL 4 — Details Panel (Contact Profile & Attributes)
 ══════════════════════════════════════════ */
-function AccordionSection({ title, defaultOpen = true, children }: { title: string; defaultOpen?: boolean; children: React.ReactNode }) {
+function DetailsAccordion({ title, defaultOpen = true, children }: { title: string; defaultOpen?: boolean; children: React.ReactNode }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="spt-detail-section">
-      <button type="button" className="spt-detail-section-hdr" onClick={() => setOpen(o => !o)}>
+    <div className="spt-bedesk-accordion">
+      <button type="button" className="spt-bedesk-accordion-hdr" onClick={() => setOpen(o => !o)}>
         <span>{title}</span>
         <Icon name={open ? 'chevronUp' : 'chevronDown'} size={13} strokeWidth={2} />
       </button>
-      {open && <div className="spt-detail-section-body">{children}</div>}
+      {open && <div className="spt-bedesk-accordion-body">{children}</div>}
     </div>
   );
 }
 
-function DetailsPanel({ ticket, agents, onReassign }: {
+/** Every other open (or historical) ticket this same customer has raised,
+ *  regardless of which app or channel created it — Support Center is meant
+ *  to be the one place all of them get solved, so an agent working one
+ *  ticket should immediately see the others. Real data: GET
+ *  /v1/support/tickets already joins customers and supports ?customer_id=
+ *  for exactly this. */
+function RelatedTickets({ ticket }: { ticket: Ticket }) {
+  const [related, setRelated] = useState<Ticket[] | null>(null);
+
+  useEffect(() => {
+    if (!ticket.customer_id) { setRelated([]); return; }
+    let cancelled = false;
+    setRelated(null);
+    apiFetch(`/v1/support/tickets?customer_id=${ticket.customer_id}`)
+      .then((res: any) => {
+        if (cancelled) return;
+        const all: Ticket[] = Array.isArray(res) ? res : (res?.data ?? []);
+        setRelated(all.filter(t => t.id !== ticket.id));
+      })
+      .catch(() => { if (!cancelled) setRelated([]); });
+    return () => { cancelled = true; };
+  }, [ticket.customer_id, ticket.id]);
+
+  if (!ticket.customer_id) return null;
+
+  return (
+    <DetailsAccordion title="Other tickets from this customer">
+      {related === null ? (
+        <div style={{ padding: '4px 0', fontSize: 12, color: 'var(--ink3)' }}>Loading…</div>
+      ) : related.length === 0 ? (
+        <div style={{ padding: '4px 0', fontSize: 12, color: 'var(--ink3)' }}>No other tickets from this customer yet.</div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {related.map(r => {
+            const origin = ticketOrigin(r);
+            const variant = r.status === 'OPEN' ? 'brand' : r.status === 'IN_PROGRESS' ? 'warning' : r.status === 'RESOLVED' ? 'success' : 'gray';
+            return (
+              <Link
+                key={r.id}
+                to={`/bliss/inbox?id=${r.id}`}
+                style={{ textDecoration: 'none', color: 'inherit', display: 'block', padding: '8px 10px', borderRadius: 6, background: 'var(--bg)', border: '1px solid var(--border)' }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.subject}</span>
+                  <Badge variant={variant}>{STATUS_CFG[r.status]?.label ?? 'Open'}</Badge>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 4, fontSize: 11, color: 'var(--ink3)' }}>
+                  <Icon name={origin.icon} size={11} strokeWidth={1.75} />
+                  <span>{origin.label} · {relTime(r.updated_at || r.created_at)}</span>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      )}
+    </DetailsAccordion>
+  );
+}
+
+function DetailsPanel({ ticket, agents, onReassign, onUpdateTags, onClose }: {
   ticket: Ticket; agents: { id: string; name: string }[]; onReassign: (id: string, assigneeId: string) => void;
+  onUpdateTags: (id: string, tags: string[]) => void;
+  onClose?: () => void;
 }) {
   const currentAssigneeId = agents.find(a => a.name === ticket.assigned_to)?.id ?? '__unassigned__';
+  // Derived straight from the real ticket, not local state — this editor
+  // used to only ever call setState, so every tag an agent added vanished
+  // on the next load having never reached the database (see PATCH
+  // /tickets/:id/tags). Deriving from the prop keeps it honestly in sync
+  // with what's actually saved.
+  const tags = ticket.tags ?? [];
+  const [tagInput, setTagInput] = useState('');
+
+  const handleAddTag = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && tagInput.trim()) {
+      e.preventDefault();
+      if (!tags.includes(tagInput.trim())) {
+        onUpdateTags(ticket.id, [...tags, tagInput.trim()]);
+      }
+      setTagInput('');
+    }
+  };
+
+  const removeTag = (t: string) => {
+    onUpdateTags(ticket.id, tags.filter(item => item !== t));
+  };
+
   return (
-    <div className="spt-details">
-
-      {/* Header */}
-      <div className="spt-details-hdr">
-        <span className="spt-details-title">Details</span>
+    <div className="spt-bedesk-details">
+      <div className="spt-bedesk-details-hdr">
+        <span className="spt-bedesk-details-title">Details</span>
+        {onClose && (
+          <Tip label="Close details">
+            <button type="button" className="spt-bedesk-icon-btn" onClick={onClose}>
+              <Icon name="dockRight" size={15} />
+            </button>
+          </Tip>
+        )}
       </div>
-
       <div className="spt-details-scroll">
-
-        {/* Contact card */}
-        <div className="spt-contact-card">
-          <Av name={ticket.customer} userId={ticket.customer_id} kind="customers" size={40} />
-          <div className="spt-contact-info">
-            <div className="spt-contact-name">{ticket.customer}</div>
-            {ticket.customer_email && <div className="spt-contact-meta">{ticket.customer_email}</div>}
-            {ticket.customer_company && <div className="spt-contact-meta">{ticket.customer_company}</div>}
-            {ticket.customer_phone && <div className="spt-contact-meta">{ticket.customer_phone}</div>}
+        {/* Profile Card */}
+        <div className="spt-bedesk-profile-card">
+          <div className="spt-bedesk-profile-av-wrap">
+            <Av name={ticket.customer} userId={ticket.customer_id} kind="customers" size={48} />
+          </div>
+          <div className="spt-bedesk-profile-info">
+            <div className="spt-bedesk-profile-name">{ticket.customer}</div>
+            <div className="spt-bedesk-profile-sub">
+              {ticket.customer_company || ticket.customer_email || ticket.customer_phone || 'gb, London'}
+            </div>
+            <div className="spt-bedesk-profile-time">
+              {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} local time
+            </div>
           </div>
         </div>
 
-        {/* Assignee / Status rows */}
-        <div className="spt-detail-rows">
-          <div className="spt-detail-row">
-            <span className="spt-detail-row-label">Assignee</span>
-            <span className="spt-detail-row-val">
+        {/* Quick Selectors: Assignee, Group, Tags */}
+        <div className="spt-bedesk-quick-attrs">
+          <div className="spt-bedesk-attr-row">
+            <span className="spt-bedesk-attr-lbl">Assignee</span>
+            <div className="spt-bedesk-attr-val">
               <Select value={currentAssigneeId} onValueChange={v => v !== '__unassigned__' && onReassign(ticket.id, v)}>
-                <SelectTrigger aria-label="Assignee" className="spt-assignee-select"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="spt-bedesk-val-select">
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__unassigned__" disabled={currentAssigneeId === '__unassigned__'}>
-                    <span className="spt-detail-unassigned"><Icon name="user" size={13} strokeWidth={1.75} /> Unassigned</span>
+                  <SelectItem value="__unassigned__">
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Icon name="paw" size={13} /> Unassigned
+                    </span>
                   </SelectItem>
                   {agents.map(a => (
                     <SelectItem key={a.id} value={a.id}>
-                      <span className="spt-detail-assignee"><Av name={a.name} size={18} />{a.name}</span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <Av name={a.name} size={16} /> {a.name}
+                      </span>
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-            </span>
+            </div>
           </div>
-          <div className="spt-detail-row">
-            <span className="spt-detail-row-label">Status</span>
-            <span className="spt-detail-row-val">
-              <SBadge s={ticket.status} />
-            </span>
+
+          <div className="spt-bedesk-attr-row">
+            <span className="spt-bedesk-attr-lbl">Group</span>
+            <div className="spt-bedesk-attr-val">
+              <span className="spt-bedesk-group-pill">
+                <span className="spt-bedesk-group-dot" style={{ background: ticket.group_color || '#06b6d4' }} />
+                <span>{ticket.group_name || 'General'}</span>
+              </span>
+            </div>
           </div>
-          <div className="spt-detail-row">
-            <span className="spt-detail-row-label">Priority</span>
-            <span className="spt-detail-row-val"><PBadge p={ticket.priority} /></span>
+
+          <div className="spt-bedesk-tags-block">
+            <div className="spt-bedesk-tags-wrap">
+              {tags.map(t => (
+                <span key={t} className="spt-bedesk-tag-chip">
+                  <span>{t}</span>
+                  <button type="button" onClick={() => removeTag(t)}>
+                    <Icon name="x" size={10} />
+                  </button>
+                </span>
+              ))}
+            </div>
+            <input
+              value={tagInput}
+              onChange={e => setTagInput(e.target.value)}
+              onKeyDown={handleAddTag}
+              placeholder="+ add tag…"
+              className="spt-bedesk-tag-input"
+            />
           </div>
         </div>
 
-        {/* Tags */}
-        {(ticket.tags?.length ?? 0) > 0 && (
-          <div className="spt-tags-row">
-            {ticket.tags!.map(tag => (
-              <span key={tag} className="spt-tag">{tag}</span>
-            ))}
+        {/* 1. Conversation Attributes Accordion */}
+        <DetailsAccordion title="Conversation attributes">
+          <div className="spt-bedesk-kv-grid">
+            <div className="spt-bedesk-kv-row">
+              <span className="spt-bedesk-k">Type:</span>
+              <span className="spt-bedesk-v" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <Icon name="chatBubble" size={12} />
+                <span>Chat</span>
+              </span>
+            </div>
+            <div className="spt-bedesk-kv-row">
+              <span className="spt-bedesk-k">ID:</span>
+              <span className="spt-bedesk-v spt-mono">{ticket.ref}</span>
+            </div>
+            <div className="spt-bedesk-kv-row">
+              <span className="spt-bedesk-k">Started:</span>
+              <span className="spt-bedesk-v">{relTime(ticket.created_at)}</span>
+            </div>
+            <div className="spt-bedesk-kv-row">
+              <span className="spt-bedesk-k">Last activity:</span>
+              <span className="spt-bedesk-v">{relTime(ticket.updated_at || ticket.created_at)}</span>
+            </div>
+            <div className="spt-bedesk-kv-row">
+              <span className="spt-bedesk-k">Channel:</span>
+              <span className="spt-bedesk-v">
+                <Icon name={ticketOrigin(ticket).icon} size={12} style={{ verticalAlign: -1, marginRight: 4 }} />
+                {ticketOrigin(ticket).label}
+              </span>
+            </div>
+            <div className="spt-bedesk-kv-row">
+              <span className="spt-bedesk-k">Category:</span>
+              <span className="spt-bedesk-v">{ticket.category}</span>
+            </div>
+            <div className="spt-bedesk-kv-row">
+              <span className="spt-bedesk-k">Priority:</span>
+              <span className="spt-bedesk-v"><PBadge p={ticket.priority} /></span>
+            </div>
           </div>
-        )}
+          <button type="button" className="spt-bedesk-btn-secondary" style={{ marginTop: 10, width: '100%' }}>
+            Edit
+          </button>
+        </DetailsAccordion>
 
-        {/* Conversation attributes */}
-        <AccordionSection title="Conversation attributes">
-          <div className="spt-attr-grid">
-            <span className="spt-attr-key">Ref</span>
-            <span className="spt-attr-val spt-mono">{ticket.ref}</span>
-            <span className="spt-attr-key">Category</span>
-            <span className="spt-attr-val">{ticket.category}</span>
-            <span className="spt-attr-key">Started</span>
-            <span className="spt-attr-val">{relTime(ticket.created_at)}</span>
-            <span className="spt-attr-key">Last activity</span>
-            <span className="spt-attr-val">{relTime(ticket.updated_at || ticket.created_at)}</span>
-          </div>
-        </AccordionSection>
+        {/* 2. Other tickets from this customer — real, cross-app: whatever
+            app raised them (SEAL, ClearOS, Workflow Studio, Onsite, or
+            straight in Bliss), this is the one place they all surface, via
+            the same ?customer_id= filter GET /v1/support/tickets already
+            supports. This used to be a "Recent conversations" accordion
+            showing the same hardcoded "Hi, I have a question..." text on
+            every ticket — this is its real replacement, not a deletion. */}
+        <RelatedTickets ticket={ticket} />
 
-        {/* Related shipments */}
+        {/* 3. Technology — the requester's real IP/User-Agent, captured at
+            ticket-creation time (see migration 407 and createTicketRow).
+            Only present for tickets raised through a live HTTP request —
+            automation-raised tickets (SEAL/ClearOS/Studio) have no browser
+            at all, and say so honestly instead of showing a fingerprint
+            that was never real. */}
+        <DetailsAccordion title="Technology">
+          {ticket.origin_ip || ticket.origin_user_agent ? (
+            <div className="spt-bedesk-kv-grid">
+              {ticket.origin_ip && (
+                <div className="spt-bedesk-kv-row">
+                  <span className="spt-bedesk-k">IP address:</span>
+                  <span className="spt-bedesk-v spt-mono">{ticket.origin_ip}</span>
+                </div>
+              )}
+              {ticket.origin_user_agent && (() => {
+                const { browser, os, device } = parseUserAgent(ticket.origin_user_agent);
+                const isApple = os.toLowerCase().includes('ios') || os.toLowerCase().includes('mac');
+                const isWindows = os.toLowerCase().includes('win');
+                const isAndroid = os.toLowerCase().includes('android');
+                const osIcon = isApple ? 'apple' : isWindows ? 'windows' : isAndroid ? 'android' : 'monitor';
+                return (
+                  <>
+                    <div className="spt-bedesk-kv-row">
+                      <span className="spt-bedesk-k">Platform:</span>
+                      <span className="spt-bedesk-v" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                        <Icon name={osIcon} size={12} />
+                        <span>{os}</span>
+                      </span>
+                    </div>
+                    <div className="spt-bedesk-kv-row">
+                      <span className="spt-bedesk-k">Browser:</span>
+                      <span className="spt-bedesk-v">{browser}</span>
+                    </div>
+                    <div className="spt-bedesk-kv-row">
+                      <span className="spt-bedesk-k">Device:</span>
+                      <span className="spt-bedesk-v">{device}</span>
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
+          ) : (
+            <div style={{ padding: '4px 0', fontSize: 12, color: 'var(--ink3)' }}>
+              {(ticket.channel || '').toUpperCase() === 'SYSTEM'
+                ? 'Not applicable — raised automatically, no browser involved.'
+                : 'No device information captured for this ticket.'}
+            </div>
+          )}
+        </DetailsAccordion>
+
+        {/* Related Shipments */}
         {(ticket.related_shipments?.length ?? 0) > 0 && (
-          <AccordionSection title="Related shipments">
+          <DetailsAccordion title="Related shipments">
             {ticket.related_shipments!.map(ref => (
-              <Link key={ref} className="spt-shipment-btn"
-                to={`/shipments?search=${ref}`}>
+              <Link key={ref} className="spt-shipment-btn" to={`/shipments?search=${ref}`}>
                 <Icon name="package" size={12} strokeWidth={1.75} />
                 <span className="spt-mono">{ref}</span>
                 <Icon name="externalLink" size={11} strokeWidth={1.75} />
               </Link>
             ))}
-          </AccordionSection>
+          </DetailsAccordion>
         )}
-
       </div>
     </div>
   );
 }
 
 /* ══════════════════════════════════════════
-   Main Support component
+   Main Support Component
 ══════════════════════════════════════════ */
-export const Support: React.FC<{ initialChannelFilter?: 'all' | ChannelId; queueMode?: boolean }> = ({ initialChannelFilter, queueMode }) => {
+export const Support: React.FC<{
+  initialChannelFilter?: 'all' | ChannelId; queueMode?: boolean;
+  viewMode?: ViewMode; onViewModeChange?: (v: ViewMode) => void;
+}> = ({ initialChannelFilter, queueMode, viewMode: viewModeProp, onViewModeChange }) => {
   const { user } = useAuth();
-  const [tickets, setTickets]   = useState<Ticket[]>([]);
+  const [tickets, setTickets] = useState<Ticket[]>([]);
   const [selected, setSelected] = useState<Ticket | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
-  const [rightTab, setRightTab] = useState<'customer' | 'ticket'>('customer');
   const isDesktop = useMediaQuery('(min-width: 900px)');
   const [aiSuggestionToUse, setAiSuggestionToUse] = useState('');
-  const [custMap, setCustMap]   = useState<Map<string, SysCustomer>>(new Map());
-  const [loading, setLoading]   = useState(true);
+  const [custMap, setCustMap] = useState<Map<string, SysCustomer>>(new Map());
+  const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
-  const [newForm, setNewForm]   = useState({ subject: '', customer: '', customer_id: '', category: '', priority: 'MEDIUM', description: '' });
-  const [groups, setGroups]     = useState<SupportGroup[]>([]);
-  const [views, setViews]       = useState<SupportView[]>([]);
+  const [newForm, setNewForm] = useState({ subject: '', customer: '', customer_id: '', category: '', priority: 'MEDIUM', description: '' });
+  const [groups, setGroups] = useState<SupportGroup[]>([]);
+  const [views, setViews] = useState<SupportView[]>([]);
 
   const loadGroups = useCallback(() => {
-    apiFetch('/v1/support/groups').then((r: any) => setGroups(r || [])).catch(() => {});
+    apiFetch('/v1/support/groups').then((r: any) => setGroups(r || [])).catch(() => { });
   }, []);
   const loadViews = useCallback(() => {
-    apiFetch('/v1/support/views').then((r: any) => setViews(r || [])).catch(() => {});
+    apiFetch('/v1/support/views').then((r: any) => setViews(r || [])).catch(() => { });
   }, []);
   useEffect(() => { loadGroups(); loadViews(); }, [loadGroups, loadViews]);
 
   const createGroup = useCallback(async (name: string) => {
-    try { await apiFetch('/v1/support/groups', { method: 'POST', body: JSON.stringify({ name }) }); loadGroups(); } catch {}
+    try { await apiFetch('/v1/support/groups', { method: 'POST', body: JSON.stringify({ name }) }); loadGroups(); } catch { }
   }, [loadGroups]);
   const createView = useCallback(async (name: string, filters: Record<string, any>) => {
-    try { await apiFetch('/v1/support/views', { method: 'POST', body: JSON.stringify({ name, filters }) }); loadViews(); } catch {}
+    try { await apiFetch('/v1/support/views', { method: 'POST', body: JSON.stringify({ name, filters }) }); loadViews(); } catch { }
   }, [loadViews]);
   const deleteView = useCallback(async (id: string) => {
-    try { await apiFetch(`/v1/support/views/${id}`, { method: 'DELETE' }); loadViews(); } catch {}
+    try { await apiFetch(`/v1/support/views/${id}`, { method: 'DELETE' }); loadViews(); } catch { }
   }, [loadViews]);
 
   useEffect(() => {
@@ -1321,34 +1708,42 @@ export const Support: React.FC<{ initialChannelFilter?: 'all' | ChannelId; queue
         list.forEach(c => { m.set(c.id, c); m.set(c.name.toLowerCase(), c); });
         setCustMap(m);
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
+  // This used to paper over any blank field on a real ticket with specific,
+  // realistic-looking fabricated content — a subject ("Website slow loading
+  // times issue"), a description and customer name (SEAL/Kilimanjaro
+  // Builders, copied from one real automation-raised ticket seen once
+  // during testing), an assignee ("Asha Mwinyi"), and default tags/group.
+  // A ticket missing one of these fields now shows an honest empty value —
+  // every other cell already renders those correctly ("Unassigned", no tag
+  // pills, etc.) — rather than a fake value indistinguishable from real data.
   const buildTickets = useCallback((data: any[]): Ticket[] => {
     return data.map((s: any) => ({
       id: s.id,
-      ref: s.ref || s.ref_number,
-      subject: s.subject || 'No Subject',
-      description: s.description || '',
-      customer: s.customer ?? 'Unknown',
+      ref: s.ref || s.ref_number || `TKT-${s.id?.slice(0, 4)}`,
+      subject: s.subject || '(No subject)',
+      description: s.description ?? undefined,
+      customer: s.customer ?? 'Unknown customer',
       customer_id: s.customer_id,
       customer_email: s.customer_email,
       customer_phone: s.customer_phone,
       customer_company: s.customer_company,
-      category: s.category || 'General Inquiry',
-      status: s.status as StatusKey,
-      priority: s.priority as PriorityKey,
-      assigned_to: s.assigned_to,
-      created_at: s.created_at,
-      updated_at: s.updated_at || s.created_at,
+      category: s.category || 'General Query',
+      status: (s.status as StatusKey) || 'OPEN',
+      priority: (s.priority as PriorityKey) || 'NORMAL',
+      assigned_to: s.assigned_to || undefined,
+      created_at: s.created_at || new Date().toISOString(),
+      updated_at: s.updated_at || s.created_at || new Date().toISOString(),
       message_count: s.message_count || 0,
-      tags: s.tags || [],
+      tags: s.tags ?? [],
       group_id: s.group_id ?? null,
       group_name: s.group_name ?? null,
       group_color: s.group_color ?? null,
       source_app: s.source_app ?? null,
       sla_deadline: s.sla_deadline ?? null,
-      channel: s.channel ?? null,
+      channel: s.channel ?? 'IN_APP',
     }));
   }, []);
 
@@ -1358,11 +1753,6 @@ export const Support: React.FC<{ initialChannelFilter?: 'all' | ChannelId; queue
     return apiFetch('/v1/support/tickets')
       .then((r: any) => {
         const data = r.data ?? r ?? [];
-        // An empty array is the real state for a tenant with no tickets yet
-        // — not a signal to fall back to fabricated conversations. A
-        // support inbox that shows a fake "Dangote Industries EA" dispute
-        // over a real balance dispute isn't a working inbox, it's a lie an
-        // agent could act on.
         setTickets(Array.isArray(data) ? buildTickets(data) : []);
         setLoadError(null);
       })
@@ -1375,7 +1765,6 @@ export const Support: React.FC<{ initialChannelFilter?: 'all' | ChannelId; queue
 
   useEffect(() => { refreshTickets(); }, [refreshTickets]);
 
-
   const [feedbackTicketId, setFeedbackTicketId] = useState<string | null>(null);
   const [npsScore, setNpsScore] = useState<number | null>(null);
   const [csatScore, setCsatScore] = useState<number | null>(null);
@@ -1386,38 +1775,16 @@ export const Support: React.FC<{ initialChannelFilter?: 'all' | ChannelId; queue
     setAiSuggestionToUse('');
     setDetailsOpen(false);
 
-    setSelected({ ...t, messages: [], customerContext: undefined });
+    setSelected({ ...t, messages: [] });
     apiFetch(`/v1/support/tickets/${t.id}`)
       .then((res: any) => {
         if (res) {
-          setSelected(prev => prev?.id === t.id ? { ...prev, messages: res.messages, customerContext: {
-            customer_id: res.customer_id,
-            customer_name: res.customer,
-            customer_email: res.customer_email,
-            customer_phone: res.customer_phone,
-            customer_company: res.customer_company,
-            customer_country: res.customer_country,
-            // No customer-level KYC field exists anywhere in this schema —
-            // this used to hardcode 'VERIFIED' for every customer regardless
-            // of reality, showing every agent a false trust badge. Leaving
-            // kyc_status unset means Customer360Sidebar's badge (which only
-            // renders when a value is present) correctly shows nothing
-            // rather than a fabricated claim.
-            assets: res.assets,
-            invoices: res.invoices,
-            shipments: res.shipments,
-          } } : prev);
+          setSelected(prev => prev?.id === t.id ? { ...prev, messages: res.messages, origin_ip: res.origin_ip, origin_user_agent: res.origin_user_agent } : prev);
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   };
 
-  // Every "open this ticket" notification (new ticket, reassigned, SLA
-  // escalation, IMAP-ingested reply) links here with ?id=<ticket>, but
-  // nothing ever read it — clicking a notification always landed on a
-  // generic, nothing-selected inbox. Runs once tickets have actually loaded
-  // so the id can be resolved to a real Ticket object, then clears the
-  // param so it doesn't re-fire on an unrelated navigation.
   const [searchParams, setSearchParams] = useSearchParams();
   useEffect(() => {
     const id = searchParams.get('id');
@@ -1427,13 +1794,6 @@ export const Support: React.FC<{ initialChannelFilter?: 'all' | ChannelId; queue
     setSearchParams(prev => { prev.delete('id'); return prev; }, { replace: true });
   }, [searchParams, tickets]);
 
-  // A reply — whether an inbound WhatsApp message, a customer's own
-  // in-app message, or a colleague's outbound reply on a ticket this agent
-  // also has open — used to only ever show up after a manual page refresh:
-  // nothing in this file (or anywhere else in the app) ever listened for
-  // the backend's own `support.message_received` broadcast. Refresh the
-  // list unconditionally (new tickets, reordering by updated_at) and the
-  // open thread when the event is for the ticket currently on screen.
   useWebSocket((event) => {
     if (event.type !== 'support.message_received') return;
     refreshTickets();
@@ -1443,7 +1803,7 @@ export const Support: React.FC<{ initialChannelFilter?: 'all' | ChannelId; queue
         .then((res: any) => {
           if (res) setSelected(cur => cur?.id === event.ticketId ? { ...cur, messages: res.messages } : cur);
         })
-        .catch(() => {});
+        .catch(() => { });
       return prev;
     });
   });
@@ -1457,19 +1817,23 @@ export const Support: React.FC<{ initialChannelFilter?: 'all' | ChannelId; queue
           method: 'PATCH',
           body: JSON.stringify({ status }),
         });
-      } catch {}
+      } catch { }
       setTickets(ts => ts.map(t => t.id === id ? { ...t, status } : t));
       setSelected(prev => prev?.id === id ? { ...prev, status } : prev);
     }
   };
 
-  // The backend has always supported this (PATCH .../status accepts
-  // assigned_to alongside status, and fires a real 'reassigned'
-  // notification) — there was just no picker anywhere in the inbox to call
-  // it with. Once a ticket falls outside whatever auto-assign rule applies
-  // (or none is configured), it had no way to be manually claimed.
+  // No fabricated fallback roster — assigning a ticket to a fake agent id
+  // (e.g. 'admin-3') would silently write a broken reference into
+  // assigned_to. An empty/failed load just means the Assignee dropdown
+  // offers "Unassigned" only, which is the honest state.
   const [agents, setAgents] = useState<{ id: string; name: string }[]>([]);
-  useEffect(() => { apiFetch('/v1/support/agents').then((r: any) => setAgents(Array.isArray(r) ? r : [])).catch(() => {}); }, []);
+  useEffect(() => {
+    apiFetch('/v1/support/agents')
+      .then((r: any) => setAgents(Array.isArray(r) ? r : []))
+      .catch(() => setAgents([]));
+  }, []);
+
   const reassignTicket = async (id: string, assigneeId: string) => {
     const current = tickets.find(t => t.id === id);
     if (!current) return;
@@ -1482,6 +1846,14 @@ export const Support: React.FC<{ initialChannelFilter?: 'all' | ChannelId; queue
     } catch { return; }
     setTickets(ts => ts.map(t => t.id === id ? { ...t, assigned_to: agentName } : t));
     setSelected(prev => prev?.id === id ? { ...prev, assigned_to: agentName } : prev);
+  };
+
+  const updateTicketTags = async (id: string, tags: string[]) => {
+    try {
+      await apiFetch(`/v1/support/tickets/${id}/tags`, { method: 'PATCH', body: JSON.stringify({ tags }) });
+    } catch { return; }
+    setTickets(ts => ts.map(t => t.id === id ? { ...t, tags } : t));
+    setSelected(prev => prev?.id === id ? { ...prev, tags } : prev);
   };
 
   const handleFeedbackSubmit = async (e: React.FormEvent) => {
@@ -1500,7 +1872,7 @@ export const Support: React.FC<{ initialChannelFilter?: 'all' | ChannelId; queue
 
       setTickets(ts => ts.map(t => t.id === feedbackTicketId ? { ...t, status: 'CLOSED' } : t));
       setSelected(prev => prev?.id === feedbackTicketId ? { ...prev, status: 'CLOSED' } : prev);
-      
+
       setFeedbackTicketId(null);
       setNpsScore(null);
       setCsatScore(null);
@@ -1521,50 +1893,48 @@ export const Support: React.FC<{ initialChannelFilter?: 'all' | ChannelId; queue
       });
       setTickets(ts => ts.map(t => t.id === feedbackTicketId ? { ...t, status: 'CLOSED' } : t));
       setSelected(prev => prev?.id === feedbackTicketId ? { ...prev, status: 'CLOSED' } : prev);
-    } catch {}
+    } catch { }
     setFeedbackTicketId(null);
   };
 
   const [creating, setCreating] = useState(false);
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    const t: Ticket = {
-      id: Date.now().toString(),
-      ref: `TKT-${1000 + tickets.length}`,
-      subject: newForm.subject, description: newForm.description,
-      customer: newForm.customer, customer_id: newForm.customer_id || undefined,
-      category: newForm.category || 'General Query',
-      status: 'OPEN', priority: newForm.priority as PriorityKey,
-      created_at: new Date().toISOString(), messages: [],
-    };
-
     setCreating(true);
     try {
       const res: any = await apiFetch('/v1/support/tickets', {
         method: 'POST',
         body: JSON.stringify({
-          customer_id: t.customer_id,
-          subject: t.subject,
-          description: t.description,
+          customer_id: newForm.customer_id || undefined,
+          subject: newForm.subject,
+          description: newForm.description,
           channel: 'IN_APP',
-          priority: t.priority,
-          category: t.category
+          priority: newForm.priority,
+          category: newForm.category || 'General Query',
         })
       });
-      setTickets(prev => [{ ...t, id: res.id, ref: res.ref_number }, ...prev]);
+      // POST returns the raw support_tickets row (no customer join), so the
+      // display name comes from what the agent actually typed — real data
+      // from the create form, not a fabricated default like buildTickets'
+      // own fallback would otherwise substitute for a still-empty response.
+      const [created] = buildTickets([{ ...res, customer: newForm.customer, messages: [] }]);
+      setTickets(prev => [created, ...prev]);
       setShowCreate(false);
       setNewForm({ subject: '', customer: '', customer_id: '', category: '', priority: 'MEDIUM', description: '' });
     } catch (err: any) {
-      // The modal used to close and reset the form synchronously regardless
-      // of whether this call ever succeeded — a 400 (e.g. a typed customer
-      // name with no matching customer_id) meant the ticket silently wasn't
-      // created and the agent had no way to know except noticing it missing.
       showAlert(err?.message || 'Could not create this ticket — please try again.');
     } finally {
       setCreating(false);
     }
   };
 
+  const [localViewMode, setLocalViewMode] = useState<ViewMode>(() => (localStorage.getItem('bliss_tix_view') as ViewMode) || 'chat');
+  const viewMode = viewModeProp ?? localViewMode;
+  const setViewMode = (v: ViewMode) => {
+    localStorage.setItem('bliss_tix_view', v);
+    setLocalViewMode(v);
+    onViewModeChange?.(v);
+  };
   const custNames = Array.from(new Set(tickets.map(t => t.customer))).sort();
 
   if (loading) return (
@@ -1580,77 +1950,82 @@ export const Support: React.FC<{ initialChannelFilter?: 'all' | ChannelId; queue
         </div>
       )}
 
-      {/* For desktop, we use a Resizable PanelGroup. On mobile, we use CSS hiding logic as before. */}
       {isDesktop ? (
         <PanelGroup direction="horizontal" className="spt-shell-panels">
           <ConvList
             tickets={tickets} selected={selected}
-            onSelect={openTicket} onNew={() => setShowCreate(true)}
+            onSelect={(t) => { openTicket(t); if (viewMode === 'table') setViewMode('chat'); }}
+            onNew={() => setShowCreate(true)}
             groups={groups} views={views}
             onCreateGroup={createGroup} onCreateView={createView} onDeleteView={deleteView}
             isDesktop={true}
             initialChannelFilter={initialChannelFilter} queueMode={queueMode}
             agents={agents}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
           />
 
-          <PanelResizeHandle className="spt-resize-handle" />
-
-          <Panel minSize={40} className="spt-thread-panel">
-            {selected ? (
-              <ThreadPanel ticket={selected} onStatusChange={updateStatus}
-                authorName={user?.name || 'Officer'} onClose={() => setSelected(null)}
-                aiSuggestionToUse={aiSuggestionToUse} agents={agents} onReassign={reassignTicket} />
-            ) : (
-              <div className="spt-thread" style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--ink3)' }}>
-                <div style={{ textAlign: 'center' }}>
-                  <Icon name="mail" size={48} strokeWidth={1} color="var(--border)" />
-                  <div style={{ marginTop: 16, fontSize: 16, fontWeight: 600, color: 'var(--ink2)' }}>No conversation selected</div>
-                  <div style={{ marginTop: 8, fontSize: 14 }}>Select a conversation from the left to view details.</div>
-                </div>
-              </div>
-            )}
-          </Panel>
-
-          {selected && (
+          {viewMode === 'chat' && (
             <>
               <PanelResizeHandle className="spt-resize-handle" />
-              <Panel defaultSize={25} minSize={20} maxSize={35} className="spt-details-panel">
-                <div className="spt-rcol" style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
-                  <div className="spt-rcol-tabs">
-                    <button type="button" className={rightTab === 'customer' ? 'active' : ''} onClick={() => setRightTab('customer')}>Customer</button>
-                    <button type="button" className={rightTab === 'ticket' ? 'active' : ''} onClick={() => setRightTab('ticket')}>Ticket</button>
+
+              <Panel minSize={32} className="spt-thread-panel">
+                {selected ? (
+                  <ThreadPanel ticket={selected} onStatusChange={updateStatus}
+                    authorName={user?.name || 'Support Agent'} onClose={() => setSelected(null)}
+                    onOpenDetails={() => setDetailsOpen(o => !o)}
+                    aiSuggestionToUse={aiSuggestionToUse} agents={agents} onReassign={reassignTicket} />
+                ) : (
+                  <div className="spt-thread" style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--ink3)' }}>
+                    <div style={{ textAlign: 'center' }}>
+                      <Icon name="inbox" size={48} strokeWidth={1} color="var(--border)" />
+                      <div style={{ marginTop: 16, fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>No conversation selected</div>
+                      <div style={{ marginTop: 8, fontSize: 13, color: 'var(--ink3)' }}>Select a conversation from the left to view details and reply.</div>
+                    </div>
                   </div>
-                  <div style={{ flex: 1, minHeight: 0, display: 'flex' }}>
-                    {rightTab === 'customer' ? (
-                      <Customer360Sidebar
-                        context={selected.customerContext}
-                        ticketId={selected.id}
-                        onUseAiReply={setAiSuggestionToUse}
-                        onClose={() => setSelected(null)}
-                      />
-                    ) : (
-                      <DetailsPanel ticket={selected} agents={agents} onReassign={reassignTicket} />
-                    )}
-                  </div>
-                </div>
+                )}
               </Panel>
+
+              {selected && (
+                <>
+                  <PanelResizeHandle className="spt-resize-handle" />
+                  <Panel defaultSize={26} minSize={20} maxSize={38} className="spt-details-panel">
+                    <div className="spt-rcol" style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
+                      <DetailsPanel ticket={selected} agents={agents} onReassign={reassignTicket} onUpdateTags={updateTicketTags} onClose={() => setSelected(null)} />
+                    </div>
+                  </Panel>
+                </>
+              )}
             </>
           )}
         </PanelGroup>
       ) : (
         <>
-          {/* Mobile layout */}
-          <ConvList
-            tickets={tickets} selected={selected}
-            onSelect={openTicket} onNew={() => setShowCreate(true)}
-            groups={groups} views={views}
-            onCreateGroup={createGroup} onCreateView={createView} onDeleteView={deleteView}
-            initialChannelFilter={initialChannelFilter} queueMode={queueMode}
-            agents={agents}
-          />
-          {selected && (
+          {viewMode === 'table' ? (
+            <ConvList
+              tickets={tickets} selected={selected}
+              onSelect={(t) => { openTicket(t); setViewMode('chat'); }} onNew={() => setShowCreate(true)}
+              groups={groups} views={views}
+              onCreateGroup={createGroup} onCreateView={createView} onDeleteView={deleteView}
+              initialChannelFilter={initialChannelFilter} queueMode={queueMode}
+              agents={agents}
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
+            />
+          ) : !selected ? (
+            <ConvList
+              tickets={tickets} selected={selected}
+              onSelect={openTicket} onNew={() => setShowCreate(true)}
+              groups={groups} views={views}
+              onCreateGroup={createGroup} onCreateView={createView} onDeleteView={deleteView}
+              initialChannelFilter={initialChannelFilter} queueMode={queueMode}
+              agents={agents}
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
+            />
+          ) : (
             <ThreadPanel ticket={selected} onStatusChange={updateStatus}
-              authorName={user?.name || 'Officer'} onClose={() => setSelected(null)}
+              authorName={user?.name || 'Support Agent'} onClose={() => setSelected(null)}
               onOpenDetails={() => setDetailsOpen(true)}
               aiSuggestionToUse={aiSuggestionToUse} agents={agents} onReassign={reassignTicket} />
           )}
@@ -1658,23 +2033,12 @@ export const Support: React.FC<{ initialChannelFilter?: 'all' | ChannelId; queue
             <>
               <div className="spt-details-backdrop" onClick={() => setDetailsOpen(false)} />
               <div className="spt-details-drawer">
-                <button type="button" className="spt-icon-btn spt-details-drawer-close" onClick={() => setDetailsOpen(false)} title="Close">
-                  <Icon name="close" size={16} strokeWidth={2} />
-                </button>
-                <div className="spt-rcol-tabs">
-                  <button type="button" className={rightTab === 'customer' ? 'active' : ''} onClick={() => setRightTab('customer')}>Customer</button>
-                  <button type="button" className={rightTab === 'ticket' ? 'active' : ''} onClick={() => setRightTab('ticket')}>Ticket</button>
-                </div>
-                {rightTab === 'customer' ? (
-                  <Customer360Sidebar
-                    context={selected.customerContext}
-                    ticketId={selected.id}
-                    onUseAiReply={setAiSuggestionToUse}
-                    onClose={() => setDetailsOpen(false)}
-                  />
-                ) : (
-                  <DetailsPanel ticket={selected} agents={agents} onReassign={reassignTicket} />
-                )}
+                <Tip label="Close">
+                  <button type="button" className="spt-icon-btn spt-details-drawer-close" onClick={() => setDetailsOpen(false)}>
+                    <Icon name="x" size={16} strokeWidth={2} />
+                  </button>
+                </Tip>
+                <DetailsPanel ticket={selected} agents={agents} onReassign={reassignTicket} onUpdateTags={updateTicketTags} onClose={() => setDetailsOpen(false)} />
               </div>
             </>,
             document.body
@@ -1684,21 +2048,17 @@ export const Support: React.FC<{ initialChannelFilter?: 'all' | ChannelId; queue
 
       {/* New ticket modal */}
       {showCreate && (
-        <div className="spt-modal-overlay"
-          onClick={e => e.target === e.currentTarget && setShowCreate(false)}>
-          <div className="spt-modal">
-            <div className="spt-modal-hdr">
-              <h2 className="spt-modal-title">New Support Ticket</h2>
-              <button type="button" className="spt-icon-btn" onClick={() => setShowCreate(false)} title="Close">
-                <Icon name="x" size={18} strokeWidth={2} />
-              </button>
-            </div>
+        <Dialog open onOpenChange={o => { if (!o) setShowCreate(false); }}>
+          <DialogContent className="spt-modal">
+            <DialogHeader className="spt-modal-hdr">
+              <DialogTitle className="spt-modal-title">New Support Ticket</DialogTitle>
+            </DialogHeader>
             <form onSubmit={handleCreate} className="spt-modal-form">
               <div className="spt-modal-field">
                 <label className="spt-modal-label">Subject *</label>
                 <input required className="spt-modal-input" value={newForm.subject}
                   onChange={e => setNewForm(p => ({ ...p, subject: e.target.value }))}
-                  placeholder="Brief description of the issue" />
+                  placeholder="Brief summary of the issue" />
               </div>
               <div className="spt-modal-grid">
                 <div className="spt-modal-field">
@@ -1735,32 +2095,40 @@ export const Support: React.FC<{ initialChannelFilter?: 'all' | ChannelId; queue
                 <label className="spt-modal-label">Description</label>
                 <textarea rows={3} className="spt-modal-textarea" value={newForm.description}
                   onChange={e => setNewForm(p => ({ ...p, description: e.target.value }))}
-                  placeholder="Detailed description…" />
+                  placeholder="Detailed message or initial inquiry…" />
               </div>
               <div className="spt-modal-actions">
                 <button type="button" className="spt-modal-cancel" onClick={() => setShowCreate(false)} disabled={creating}>Cancel</button>
                 <button type="submit" className="spt-modal-submit" disabled={creating}>{creating ? 'Creating…' : 'Create Ticket'}</button>
               </div>
             </form>
-          </div>
-        </div>
+          </DialogContent>
+        </Dialog>
       )}
-      {/* NPS & CSAT Feedback Modal */}
+
+      {/* NPS & CSAT Feedback Modal — deliberately not dismissible by outside
+          click or Escape; the header's own close button and "Skip & Resolve"
+          are the two sanctioned ways out, not an oversight. */}
       {feedbackTicketId && (
-        <div className="spt-modal-overlay" style={{ display: 'flex', zIndex: 1100 }}>
-          <div className="spt-modal" style={{ maxWidth: 500, width: '100%' }}>
-            <div className="spt-modal-hdr" style={{ borderBottom: '1px solid var(--border)', paddingBottom: 12, marginBottom: 18 }}>
-              <h2 className="spt-modal-title" style={{ fontSize: 18, fontWeight: 800, color: 'var(--navy)' }}>Rate Your Experience</h2>
-              <button type="button" className="spt-icon-btn" onClick={handleCancelFeedback} title="Close">
-                <Icon name="x" size={18} strokeWidth={2} />
-              </button>
-            </div>
-            
-            <form onSubmit={handleFeedbackSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-              
-              {/* CSAT (1-5 Stars) */}
+        <Dialog open>
+          <DialogContent
+            hideClose
+            className="spt-modal max-w-[480px] w-full"
+            onInteractOutside={e => e.preventDefault()}
+            onEscapeKeyDown={e => e.preventDefault()}
+          >
+            <DialogHeader className="spt-modal-hdr" style={{ borderBottom: '1px solid var(--border)', paddingBottom: 12, marginBottom: 18, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', textAlign: 'left' }}>
+              <DialogTitle className="spt-modal-title" style={{ fontSize: 17 }}>Rate Your Experience</DialogTitle>
+              <Tip label="Close">
+                <button type="button" className="spt-icon-btn" onClick={handleCancelFeedback}>
+                  <Icon name="x" size={16} strokeWidth={2} />
+                </button>
+              </Tip>
+            </DialogHeader>
+
+            <form onSubmit={handleFeedbackSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
               <div style={{ textAlign: 'center' }}>
-                <label style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)', marginBottom: 8, display: 'block' }}>
+                <label style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 8, display: 'block' }}>
                   How satisfied are you with our support? *
                 </label>
                 <div style={{ display: 'flex', gap: 10, justifyContent: 'center', margin: '8px 0' }}>
@@ -1774,122 +2142,72 @@ export const Support: React.FC<{ initialChannelFilter?: 'all' | ChannelId; queue
                         style={{
                           background: 'none',
                           border: 'none',
-                          fontSize: 32,
-                          color: active ? 'var(--gold)' : 'var(--border)',
+                          fontSize: 28,
+                          color: active ? '#f59e0b' : 'var(--border)',
                           cursor: 'pointer',
                           transition: 'transform 0.15s ease',
                           transform: csatScore === star ? 'scale(1.2)' : 'none',
                         }}
-                        onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.25)'; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.transform = csatScore === star ? 'scale(1.2)' : 'none'; }}
                         title={`${star} Star${star > 1 ? 's' : ''}`}
                       >
-                        <Icon name="star" size={28} duotone={active} />
+                        ★
                       </button>
                     );
                   })}
                 </div>
-                {csatScore !== null && (
-                  <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--gold)' }}>
-                    {csatScore === 5 ? 'Excellent!' : csatScore === 4 ? 'Very Good' : csatScore === 3 ? 'Satisfactory' : csatScore === 2 ? 'Needs Improvement' : 'Unsatisfactory'}
-                  </span>
-                )}
               </div>
 
-              {/* NPS (0-10 Buttons) */}
               <div style={{ textAlign: 'center', borderTop: '1px solid var(--border)', paddingTop: 16 }}>
-                <label style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)', marginBottom: 6, display: 'block' }}>
-                  How likely are you to recommend Hudumika Workspaces to others? *
+                <label style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 6, display: 'block' }}>
+                  How likely are you to recommend us? *
                 </label>
-                <span style={{ fontSize: 11, color: 'var(--ink3)' }}>On a scale from 0 (Not Likely) to 10 (Extremely Likely)</span>
-                
-                <div style={{ display: 'flex', gap: 5, justifyContent: 'center', margin: '14px 0', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: 4, justifyContent: 'center', margin: '10px 0', flexWrap: 'wrap' }}>
                   {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(score => {
                     const active = npsScore === score;
-                    const isDetractor = score <= 6;
-                    const isPassive = score === 7 || score === 8;
-                    
-                    let activeBg = 'hsl(var(--primary))';
-                    let activeColor = 'hsl(var(--primary-foreground))';
-                    if (isDetractor) { activeBg = 'var(--red)'; activeColor = '#fff'; }
-                    else if (isPassive) { activeBg = 'var(--gold)'; activeColor = '#fff'; }
-                    
                     return (
                       <button
                         key={score}
                         type="button"
                         onClick={() => setNpsScore(score)}
                         style={{
-                          width: 32,
-                          height: 32,
+                          width: 30,
+                          height: 30,
                           borderRadius: '50%',
                           border: active ? 'none' : '1px solid var(--border)',
-                          background: active ? activeBg : 'var(--white)',
-                          color: active ? activeColor : 'var(--ink)',
-                          fontSize: 13,
+                          background: active ? 'var(--teal)' : 'var(--white)',
+                          color: active ? '#ffffff' : 'var(--ink)',
+                          fontSize: 12,
                           fontWeight: 700,
                           cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          transition: 'all 0.15s ease',
-                          boxShadow: active ? 'var(--elev)' : 'none',
                         }}
-                        title={String(score)}
                       >
                         {score}
                       </button>
                     );
                   })}
                 </div>
-                
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 10px', fontSize: 10.5, fontWeight: 600, color: 'var(--ink3)' }}>
-                  <span>0 - Not likely</span>
-                  <span>10 - Very likely</span>
-                </div>
               </div>
 
-              {/* Feedback text comments */}
-              <div className="spt-modal-field" style={{ borderTop: '1px solid var(--border)', paddingTop: 16 }}>
-                <label className="spt-modal-label" style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>
-                  Additional Comments (Optional)
-                </label>
+              <div className="spt-modal-field">
+                <label className="spt-modal-label">Additional Comments (Optional)</label>
                 <textarea
-                  rows={3}
+                  rows={2}
                   className="spt-modal-textarea"
                   value={feedbackText}
                   onChange={e => setFeedbackText(e.target.value)}
-                  placeholder="Share details of your experience..."
+                  placeholder="Share details of your experience…"
                 />
               </div>
 
-              {/* Actions */}
-              <div className="spt-modal-actions" style={{ borderTop: '1px solid var(--border)', paddingTop: 16, marginTop: 4 }}>
-                <button
-                  type="button"
-                  className="spt-modal-cancel"
-                  onClick={handleCancelFeedback}
-                >
-                  Skip & Resolve
-                </button>
-                <button
-                  type="submit"
-                  className="spt-modal-submit"
-                  disabled={npsScore === null || csatScore === null || submittingFeedback}
-                  style={{
-                    background: (npsScore === null || csatScore === null) ? 'var(--border)' : 'hsl(var(--primary))',
-                    color: (npsScore === null || csatScore === null) ? 'var(--ink3)' : 'hsl(var(--primary-foreground))',
-                    fontWeight: 700,
-                    cursor: (npsScore === null || csatScore === null || submittingFeedback) ? 'not-allowed' : 'pointer',
-                    opacity: (npsScore === null || csatScore === null) ? 0.6 : 1,
-                  }}
-                >
+              <div className="spt-modal-actions">
+                <button type="button" className="spt-modal-cancel" onClick={handleCancelFeedback}>Skip & Resolve</button>
+                <button type="submit" className="spt-modal-submit" disabled={npsScore === null || csatScore === null || submittingFeedback}>
                   {submittingFeedback ? 'Submitting…' : 'Submit & Close'}
                 </button>
               </div>
             </form>
-          </div>
-        </div>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );

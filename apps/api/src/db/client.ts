@@ -4077,6 +4077,12 @@ export interface SupportTicketsTable {
   // Real project link (M13, migration 324) — nullable, a ticket doesn't
   // have to be about any particular project.
   project_id: string | null;
+  /** Requester's IP/User-Agent at ticket-creation time, captured only where
+   *  a real HTTP request exists (customer/staff-created, the Onsite org
+   *  portal) — null for automation-raised tickets, which have no browser.
+   *  See migration 407_support_tickets_origin_capture.sql. */
+  origin_ip: string | null;
+  origin_user_agent: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }

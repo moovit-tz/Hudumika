@@ -8,6 +8,7 @@ import { Tabs, TabsList, TabsTrigger } from "../components/ui/tabs.js";
 import { Spinner } from "../components/ui/spinner.js";
 import { Button } from "../components/ui/button.js";
 import { Badge } from "../components/ui/badge.js";
+import { Tip } from "../components/ui/tooltip.js";
 import "./BlissNotifications.css";
 
 const PAGE_SIZE = 30;
@@ -324,9 +325,11 @@ function NotifDetail({ n, onClose }: { n: any; onClose: () => void }) {
             <span className="bnc-tag" style={{ background: `${cfg.color}18`, color: cfg.color }}>{n.type ?? "info"}</span>
           </div>
         </div>
-        <button className="bnc-icon-btn" title="Close" onClick={onClose}>
-          <Icon name="x" size={16} />
-        </button>
+        <Tip label="Close">
+          <button className="bnc-icon-btn" onClick={onClose}>
+            <Icon name="x" size={16} />
+          </button>
+        </Tip>
       </div>
 
       {n.message && (

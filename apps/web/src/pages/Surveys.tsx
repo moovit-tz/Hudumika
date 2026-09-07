@@ -7,11 +7,13 @@ import { Icon } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Badge } from '../components/ui/badge.js';
+import { Checkbox } from '../components/ui/checkbox.js';
 import { Button } from '../components/ui/button.js';
 import { Input } from '../components/ui/input.js';
 import { Textarea } from '../components/ui/textarea.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
+import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
 
 /**
  * Employee surveys — pulse checks, engagement, exit/onboarding feedback.
@@ -131,8 +133,6 @@ export function Surveys() {
   );
 }
 
-const overlayStyle: React.CSSProperties = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 };
-const cardStyle: React.CSSProperties = { background: 'var(--white)', borderRadius: 12, padding: 24, width: 520, maxWidth: '94vw', maxHeight: '88vh', overflowY: 'auto', boxShadow: 'var(--elev-lg)' };
 
 function NewSurveyModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
   const [title, setTitle] = useState('');
@@ -180,9 +180,10 @@ function NewSurveyModal({ onClose, onCreated }: { onClose: () => void; onCreated
   }
 
   return (
-    <div style={overlayStyle} onClick={onClose}>
-      <form style={cardStyle} onClick={e => e.stopPropagation()} onSubmit={submit}>
-        <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 18 }}>New survey</div>
+    <Dialog open onOpenChange={o => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-130 max-h-[88vh] overflow-y-auto gap-0">
+      <form onSubmit={submit}>
+        <DialogTitle style={{ fontSize: 16, marginBottom: 18 }}>New survey</DialogTitle>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div>
             <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Title</label>
@@ -198,7 +199,7 @@ function NewSurveyModal({ onClose, onCreated }: { onClose: () => void; onCreated
               <DatePicker date={parseDateOnly(endsAt)} onChange={d => setEndsAt(toDateOnlyString(d))} />
             </div>
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: 'var(--ink2)', paddingTop: 22 }}>
-              <input type="checkbox" checked={isAnonymous} onChange={e => setIsAnonymous(e.target.checked)} />
+              <Checkbox checked={isAnonymous} onCheckedChange={c => setIsAnonymous(c === true)} />
               Anonymous responses
             </label>
           </div>
@@ -251,7 +252,8 @@ function NewSurveyModal({ onClose, onCreated }: { onClose: () => void; onCreated
           </div>
         </div>
       </form>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -276,9 +278,10 @@ function AnswerModal({ survey, onClose, onSubmitted }: { survey: SurveyInstance;
   }
 
   return (
-    <div style={overlayStyle} onClick={onClose}>
-      <form style={cardStyle} onClick={e => e.stopPropagation()} onSubmit={submit}>
-        <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>{survey.title}</div>
+    <Dialog open onOpenChange={o => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-130 max-h-[88vh] overflow-y-auto gap-0">
+      <form onSubmit={submit}>
+        <DialogTitle style={{ fontSize: 16, marginBottom: 4 }}>{survey.title}</DialogTitle>
         {survey.is_anonymous && <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 16 }}>Your response is anonymous — nothing links it back to your account.</div>}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {survey.questions.map((q, i) => (
@@ -315,15 +318,16 @@ function AnswerModal({ survey, onClose, onSubmitted }: { survey: SurveyInstance;
           </div>
         </div>
       </form>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
 function ResultsModal({ results, onClose }: { results: any; onClose: () => void }) {
   return (
-    <div style={overlayStyle} onClick={onClose}>
-      <div style={cardStyle} onClick={e => e.stopPropagation()}>
-        <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>{results.title}</div>
+    <Dialog open onOpenChange={o => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-130 max-h-[88vh] overflow-y-auto gap-0">
+        <DialogTitle style={{ fontSize: 16, marginBottom: 4 }}>{results.title}</DialogTitle>
         <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 16 }}>
           {results.response_count} response{results.response_count === 1 ? '' : 's'}
           {results.is_anonymous ? ' · anonymous — no respondent names are recorded' : ''}
@@ -349,8 +353,8 @@ function ResultsModal({ results, onClose }: { results: any; onClose: () => void 
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
           <Button variant="outline" onClick={onClose}>Close</Button>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

@@ -5,11 +5,13 @@ import { Icon } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Button } from '../components/ui/button.js';
+import { Tip } from '../components/ui/tooltip.js';
 import { Badge } from '../components/ui/badge.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { useFullLayout } from '../hooks/useFullLayout.js';
 import { useSupportMetrics, PeriodSwitcher, type AgentStat } from './SupportOverviewShared.js';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog.js';
 
 interface ExtendedAgentStat extends AgentStat {
   role?: string;
@@ -397,12 +399,16 @@ export const SupportTeam: React.FC = () => {
 
                         <td style={{ padding: '12px 14px', textAlign: 'right' }}>
                           <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                            <Button variant="outline" size="sm" onClick={() => setSelectedAgent(a)} title="Agent Performance Breakdown">
-                              <Icon name="user" size={13} /> Inspect
-                            </Button>
-                            <Button variant="default" size="sm" onClick={() => navigate(`/bliss/calls`)} title="Direct WebRTC Voice/Video Call">
-                              <Icon name="phone" size={13} />
-                            </Button>
+                            <Tip label="Agent Performance Breakdown">
+                              <Button variant="outline" size="sm" onClick={() => setSelectedAgent(a)}>
+                                <Icon name="user" size={13} /> Inspect
+                              </Button>
+                            </Tip>
+                            <Tip label="Direct WebRTC Voice/Video Call">
+                              <Button variant="default" size="sm" onClick={() => navigate(`/bliss/calls`)}>
+                                <Icon name="phone" size={13} />
+                              </Button>
+                            </Tip>
                           </div>
                         </td>
                       </tr>
@@ -484,22 +490,21 @@ export const SupportTeam: React.FC = () => {
 
       {/* AGENT DETAILED INSPECT MODAL */}
       {selectedAgent && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div style={{ background: 'var(--white)', borderRadius: 'var(--r-lg)', width: '100%', maxWidth: 540, boxShadow: 'var(--elev-lg)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            
+        <Dialog open onOpenChange={o => { if (!o) setSelectedAgent(null); }}>
+          <DialogContent hideClose className="w-full max-w-135 p-0 gap-0 overflow-hidden">
             {/* Modal Top Header */}
-            <div style={{ padding: '18px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg)' }}>
+            <DialogHeader style={{ padding: '18px 20px', borderBottom: '1px solid var(--border)', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg)', textAlign: 'left' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <PersonAvatar name={selectedAgent.name} userId={selectedAgent.id} size={44} />
                 <div>
-                  <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)' }}>{selectedAgent.name}</div>
+                  <DialogTitle style={{ fontSize: 16 }}>{selectedAgent.name}</DialogTitle>
                   <div style={{ fontSize: 12, color: 'var(--ink3)' }}>{selectedAgent.role} • {selectedAgent.department}</div>
                 </div>
               </div>
               <Button variant="ghost" size="sm" onClick={() => setSelectedAgent(null)} style={{ padding: 4 }}>
                 <Icon name="close" size={18} />
               </Button>
-            </div>
+            </DialogHeader>
 
             {/* Modal Body */}
             <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -552,8 +557,8 @@ export const SupportTeam: React.FC = () => {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );

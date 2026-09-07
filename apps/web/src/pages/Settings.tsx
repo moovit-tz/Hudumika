@@ -8,6 +8,7 @@ import type { IconName } from '../components/Icon.js';
 import { getCompany, setCompany } from '../data/companyStore.js';
 import { apiFetch } from '../lib/api.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { Checkbox } from '../components/ui/checkbox.js';
 import { MetricsRow } from '../components/MetricCard.js';
 import type { MetricCardProps } from '../components/MetricCard.js';
 import { refreshTenantLocale } from '../lib/tenantLocale.js';
@@ -2818,7 +2819,7 @@ const ApiKeysSection: React.FC = () => {
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 6 }}>
                     {API_SCOPE_OPTIONS.map(scope => (
                       <label key={scope} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'pointer' }}>
-                        <input type="checkbox" checked={newScopes.includes(scope)} onChange={() => toggleScope(scope)} />
+                        <Checkbox checked={newScopes.includes(scope)} onCheckedChange={() => toggleScope(scope)} />
                         {scope}
                       </label>
                     ))}

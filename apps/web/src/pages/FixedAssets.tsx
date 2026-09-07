@@ -8,6 +8,8 @@ import { PageHeader } from '../components/PageHeader.js';
 import { MetricsRow } from '../components/MetricCard.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet.js';
+import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
 
 const CATEGORIES = ['OFFICE_EQUIPMENT', 'MOTOR_VEHICLE', 'IT_EQUIPMENT', 'FURNITURE', 'MACHINERY', 'OTHER'];
 const CATEGORY_LABEL: Record<string, string> = { OFFICE_EQUIPMENT: 'Office Equipment', MOTOR_VEHICLE: 'Motor Vehicle', IT_EQUIPMENT: 'IT Equipment', FURNITURE: 'Furniture', MACHINERY: 'Machinery', OTHER: 'Other' };
@@ -48,13 +50,11 @@ function NewAssetPanel({ onSave, onClose }: { onSave: (data: any) => Promise<voi
   }
 
   return (
-    <>
-      <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 400 }} />
-      <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: 460, background: 'var(--white)', zIndex: 401, display: 'flex', flexDirection: 'column', boxShadow: '-8px 0 40px rgba(0,0,0,0.14)' }}>
-        <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ fontWeight: 800, fontSize: 15, color: 'var(--ink)' }}>New Fixed Asset</div>
-          <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', display: 'flex', padding: 4 }} aria-label="Close"><Icon name="x" size={18} /></button>
-        </div>
+    <Sheet open onOpenChange={o => { if (!o) onClose(); }}>
+      <SheetContent className="w-115 sm:max-w-115 flex flex-col p-0 gap-0">
+        <SheetHeader style={{ padding: '18px 22px', borderBottom: '1px solid var(--border)' }}>
+          <SheetTitle style={{ fontWeight: 800, fontSize: 15, color: 'var(--ink)' }}>New Fixed Asset</SheetTitle>
+        </SheetHeader>
         <div style={{ flex: 1, overflowY: 'auto', padding: '18px 22px' }}>
           <div style={{ marginBottom: 14 }}><label style={lbl}>Asset Name *</label><input style={inp} value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Toyota Hilux — KDX 123A" /></div>
           <div style={{ marginBottom: 14 }}>
@@ -78,8 +78,8 @@ function NewAssetPanel({ onSave, onClose }: { onSave: (data: any) => Promise<voi
           <button type="button" className="btn btn-secondary btn-sm" onClick={onClose}>Cancel</button>
           <button type="button" className="btn btn-primary btn-sm" disabled={saving} onClick={submit}>{saving ? 'Saving…' : 'Add Asset'}</button>
         </div>
-      </div>
-    </>
+      </SheetContent>
+    </Sheet>
   );
 }
 
@@ -233,32 +233,32 @@ export function FixedAssets() {
 
       {showForm && <NewAssetPanel onSave={handleSave} onClose={() => setShowForm(false)} />}
 
-      {scheduleFor && (
-        <>
-          <div onClick={() => setScheduleFor(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 400 }} />
-          <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: 460, background: 'var(--white)', zIndex: 401, display: 'flex', flexDirection: 'column', boxShadow: '-8px 0 40px rgba(0,0,0,0.14)' }}>
-            <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ fontWeight: 800, fontSize: 15, color: 'var(--ink)' }}>{scheduleFor.name}</div>
-              <button type="button" onClick={() => setScheduleFor(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', display: 'flex', padding: 4 }}><Icon name="x" size={18} /></button>
-            </div>
-            <div style={{ flex: 1, overflowY: 'auto', padding: '10px 0' }}>
-              {schedule.map((s, i) => (
-                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 22px', borderBottom: '1px solid var(--border)', fontSize: 12.5 }}>
-                  <span style={{ color: 'var(--ink2)' }}>{s.period}</span>
-                  <span style={{ fontFamily: 'var(--mono)', fontWeight: 600 }}>{fmt(s.amount)}</span>
-                  <span style={{ fontFamily: 'var(--mono)', color: 'var(--ink3)' }}>{fmt(s.net_book_value)} NBV</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </>
-      )}
+      <Sheet open={!!scheduleFor} onOpenChange={o => { if (!o) setScheduleFor(null); }}>
+        <SheetContent className="w-115 sm:max-w-115 flex flex-col p-0 gap-0">
+          {scheduleFor && (
+            <>
+              <SheetHeader style={{ padding: '18px 22px', borderBottom: '1px solid var(--border)' }}>
+                <SheetTitle style={{ fontWeight: 800, fontSize: 15, color: 'var(--ink)' }}>{scheduleFor.name}</SheetTitle>
+              </SheetHeader>
+              <div style={{ flex: 1, overflowY: 'auto', padding: '10px 0' }}>
+                {schedule.map((s, i) => (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 22px', borderBottom: '1px solid var(--border)', fontSize: 12.5 }}>
+                    <span style={{ color: 'var(--ink2)' }}>{s.period}</span>
+                    <span style={{ fontFamily: 'var(--mono)', fontWeight: 600 }}>{fmt(s.amount)}</span>
+                    <span style={{ fontFamily: 'var(--mono)', color: 'var(--ink3)' }}>{fmt(s.net_book_value)} NBV</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
 
-      {disposing && (
-        <>
-          <div onClick={() => setDisposing(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div onClick={e => e.stopPropagation()} style={{ background: 'var(--white)', borderRadius: 12, padding: 24, width: 380 }}>
-              <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 6 }}>Dispose "{disposing.name}"</div>
+      <Dialog open={!!disposing} onOpenChange={o => { if (!o) setDisposing(null); }}>
+        <DialogContent className="max-w-95 gap-0">
+          {disposing && (
+            <>
+              <DialogTitle style={{ fontWeight: 800, fontSize: 15, marginBottom: 6 }}>Dispose "{disposing.name}"</DialogTitle>
               <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 16 }}>Net book value: {fmt(disposing.net_book_value)}. This posts the disposal to the ledger, including any gain or loss.</div>
               <label style={lbl}>Disposal Proceeds</label>
               <input type="number" min={0} style={inp} value={disposalProceeds} onChange={e => setDisposalProceeds(parseFloat(e.target.value) || 0)} />
@@ -266,10 +266,10 @@ export function FixedAssets() {
                 <button type="button" className="btn btn-secondary btn-sm" onClick={() => setDisposing(null)}>Cancel</button>
                 <button type="button" className="btn btn-primary btn-sm" onClick={handleDispose}>Confirm Disposal</button>
               </div>
-            </div>
-          </div>
-        </>
-      )}
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

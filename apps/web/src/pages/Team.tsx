@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader.js';
+import { Checkbox } from '../components/ui/checkbox.js';
 import { Icon } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
@@ -127,7 +128,7 @@ function CustomerAccessCard({ canManage }: { canManage: boolean }) {
         <div style={{ fontSize: 12, color: 'var(--ink3)' }}>Lets customers log in (phone OTP) to view their invoices, shipments and tickets.</div>
       </div>
       <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: 'var(--ink2)', cursor: canManage ? 'pointer' : 'default' }}>
-        <input type="checkbox" checked={portal} disabled={!canManage || saving} onChange={e => toggle(e.target.checked)} />
+        <Checkbox checked={portal} disabled={!canManage || saving} onCheckedChange={c => toggle(c === true)} />
         {portal ? 'Enabled' : 'Disabled'}
       </label>
     </div>

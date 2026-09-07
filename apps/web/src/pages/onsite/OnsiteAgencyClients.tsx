@@ -5,6 +5,7 @@ import { showAlert } from '../../lib/alert.js';
 import { showConfirm } from '../../lib/confirm.js';
 import { apiFetch } from '../../lib/api.js';
 import { Icon } from '../../components/Icon.js';
+import { Dialog, DialogContent, DialogTitle } from '../../components/ui/dialog.js';
 import { slugify } from '../onboarding/types.js';
 import type { AgencyManagedClient, SubdomainCheckResponse } from '@hudumika/types';
 import './Onsite.css';
@@ -199,14 +200,10 @@ function NewClientModal({ onClose, onCreated }: { onClose: () => void; onCreated
   };
 
   return (
-    <div style={{
-      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-      background: 'rgba(0,0,0,0.5)', zIndex: 1000,
-      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem',
-    }}>
-      <div className="onsite-card" style={{ width: '100%', maxWidth: '480px' }}>
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent hideClose className="max-w-120 gap-0" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         <div className="onsite-card-header">
-          <h3 className="onsite-card-title">New client</h3>
+          <DialogTitle className="onsite-card-title">New client</DialogTitle>
           <button className="btn btn-sm btn-ghost" onClick={onClose}>✕</button>
         </div>
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -261,7 +258,7 @@ function NewClientModal({ onClose, onCreated }: { onClose: () => void; onCreated
             </button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

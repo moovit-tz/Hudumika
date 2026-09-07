@@ -37,7 +37,7 @@ registerSubscriber('shipment.sla_breach', async (tenantId, event) => {
       subject: `[Auto] SLA breach on shipment ${shipment.ref_number}`,
       description: `Shipment ${shipment.ref_number} exceeded its SLA deadline at stage "${shipment.stage}" (${event.payload.hoursExceeded ?? '?'} hours over). Auto-raised by ClearOS.`,
       channel: 'SYSTEM', priority: 'HIGH', category: 'Clearance Operations', status: 'OPEN',
-      tags: JSON.stringify(['clearos', 'sla-breach']),
+      tags: JSON.stringify(['clearos', 'sla-breach']), source_app: 'clearos',
       sla_deadline: new Date(Date.now() + SLA_HOURS.HIGH * 3600_000),
     }).execute();
   });

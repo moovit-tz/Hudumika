@@ -7,6 +7,7 @@ import { useCurrency } from '../hooks/useCurrency.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { MetricsRow } from '../components/MetricCard.js';
 import { Combobox, type ComboboxOption } from '../components/ui/combobox.js';
+import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -267,25 +268,21 @@ export function Budgets() {
         </>
       )}
 
-      {showNew && (
-        <>
-          <div onClick={() => setShowNew(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div onClick={e => e.stopPropagation()} style={{ background: 'var(--white)', borderRadius: 12, padding: 24, width: 360 }}>
-              <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 16 }}>New Budget</div>
-              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 }}>Name</label>
-              <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="e.g. FY2026 Operating Budget"
-                style={{ width: '100%', padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13, outline: 'none', boxSizing: 'border-box', marginBottom: 14 }} />
-              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 }}>Fiscal Year</label>
-              <input type="number" value={newYear} onChange={e => setNewYear(parseInt(e.target.value) || newYear)}
-                style={{ width: '100%', padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13, outline: 'none', boxSizing: 'border-box' }} />
-              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 18 }}>
-                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowNew(false)}>Cancel</button>
-                <button type="button" className="btn btn-primary btn-sm" onClick={createBudget}>Create</button>
-              </div>
-            </div>
+      <Dialog open={showNew} onOpenChange={o => { if (!o) setShowNew(false); }}>
+        <DialogContent className="max-w-90 gap-0" style={{ padding: 24 }}>
+          <DialogTitle style={{ fontWeight: 800, fontSize: 15, marginBottom: 16 }}>New Budget</DialogTitle>
+          <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 }}>Name</label>
+          <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="e.g. FY2026 Operating Budget"
+            style={{ width: '100%', padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13, outline: 'none', boxSizing: 'border-box', marginBottom: 14 }} />
+          <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 }}>Fiscal Year</label>
+          <input type="number" value={newYear} onChange={e => setNewYear(parseInt(e.target.value) || newYear)}
+            style={{ width: '100%', padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13, outline: 'none', boxSizing: 'border-box' }} />
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 18 }}>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowNew(false)}>Cancel</button>
+            <button type="button" className="btn btn-primary btn-sm" onClick={createBudget}>Create</button>
           </div>
-        </>
-      )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

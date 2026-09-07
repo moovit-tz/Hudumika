@@ -373,6 +373,8 @@ export async function orgRoutes(fastify: FastifyInstance) {
         subject: b.subject!.trim(), description: b.description || null,
         channel: 'IN_APP', priority, category: b.category || 'Other',
         status: 'OPEN', tags: JSON.stringify([]), sla_deadline: slaDeadline,
+        source_app: 'onsite',
+        origin_ip: req.ip, origin_user_agent: String(req.headers['user-agent'] || '') || null,
       }).returningAll().executeTakeFirstOrThrow();
 
       const assignedTo = await applyAutoAssignRules(trx, tenant_id, ticket);

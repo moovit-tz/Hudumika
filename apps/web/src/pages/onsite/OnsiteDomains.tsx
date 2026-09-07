@@ -5,6 +5,7 @@ import type { OnsiteDomain } from '@hudumika/types';
 import { Icon } from '../../components/Icon.js';
 import { Banner } from '../../components/ui/alert.js';
 import { Switch } from '../../components/ui/switch.js';
+import { Checkbox } from '../../components/ui/checkbox.js';
 import { PageHeader } from '../../components/PageHeader.js';
 import {
   Select,
@@ -116,8 +117,8 @@ export function OnsiteDomains() {
   }, [displayDomains, searchQuery, statusFilter, sortOrder]);
 
   // Select all handler
-  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.checked) {
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
       setSelectedIds(new Set(filteredDomains.map(d => d.id)));
     } else {
       setSelectedIds(new Set());
@@ -474,10 +475,9 @@ export function OnsiteDomains() {
                   <thead>
                     <tr>
                       <th style={{ width: '40px', paddingLeft: '1.25rem' }}>
-                        <input
-                          type="checkbox"
+                        <Checkbox
                           checked={selectedIds.size === filteredDomains.length && filteredDomains.length > 0}
-                          onChange={handleSelectAll}
+                          onCheckedChange={c => handleSelectAll(c === true)}
                         />
                       </th>
                       <th>Domain Name</th>
@@ -496,10 +496,9 @@ export function OnsiteDomains() {
                       return (
                         <tr key={d.id}>
                           <td style={{ paddingLeft: '1.25rem' }}>
-                            <input
-                              type="checkbox"
+                            <Checkbox
                               checked={selectedIds.has(d.id)}
-                              onChange={() => handleSelectOne(d.id)}
+                              onCheckedChange={() => handleSelectOne(d.id)}
                             />
                           </td>
                           <td>

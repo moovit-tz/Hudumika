@@ -2,9 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { usePageSEO } from '../hooks/usePageSEO.js';
 import { apiFetch, apiDownload } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
+import { Checkbox } from '../components/ui/checkbox.js';
 import type { IconName } from '../components/Icon.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
+import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
 
 /* ── File type → icon/colour — same mapping as the staff-side Customers.tsx
    Documents tab, kept as its own small copy rather than a shared import
@@ -191,27 +193,28 @@ export const CustomerDocuments: React.FC = () => {
         )}
       </div>
 
-      {shareFile && linkedOrg && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
-          onClick={e => { if (e.target === e.currentTarget) setShareFile(null); }}>
-          <div style={{ background: 'var(--white)', borderRadius: 12, padding: 24, width: '100%', maxWidth: 380 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-              <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>Share</span>
-              <button type="button" onClick={() => setShareFile(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
-                <Icon name="x" size={18} color="var(--ink3)" />
-              </button>
-            </div>
-            <p style={{ fontSize: 13, color: 'var(--ink2)', marginTop: 0, marginBottom: 18, lineHeight: 1.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {shareFile.name}
-            </p>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: sharingBusy ? 'default' : 'pointer' }}>
-              <input type="checkbox" checked={isSharedWithOrg(shareFile)} disabled={sharingBusy}
-                onChange={e => handleToggleOrgShare(e.target.checked)} style={{ width: 16, height: 16 }} />
-              <span style={{ fontSize: 13.5, color: 'var(--ink)' }}>Also visible to <strong>{linkedOrg.name}</strong></span>
-            </label>
-          </div>
-        </div>
-      )}
+      <Dialog open={!!(shareFile && linkedOrg)} onOpenChange={o => { if (!o) setShareFile(null); }}>
+        <DialogContent hideClose className="max-w-95 gap-0" style={{ padding: 24 }}>
+          {shareFile && linkedOrg && (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                <DialogTitle style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>Share</DialogTitle>
+                <button type="button" onClick={() => setShareFile(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+                  <Icon name="x" size={18} color="var(--ink3)" />
+                </button>
+              </div>
+              <p style={{ fontSize: 13, color: 'var(--ink2)', marginTop: 0, marginBottom: 18, lineHeight: 1.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {shareFile.name}
+              </p>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: sharingBusy ? 'default' : 'pointer' }}>
+                <Checkbox checked={isSharedWithOrg(shareFile)} disabled={sharingBusy}
+                  onCheckedChange={c => handleToggleOrgShare(c === true)} />
+                <span style={{ fontSize: 13.5, color: 'var(--ink)' }}>Also visible to <strong>{linkedOrg.name}</strong></span>
+              </label>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

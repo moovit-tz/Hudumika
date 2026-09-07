@@ -1,7 +1,7 @@
 import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { db, withTenant } from '../db/client.js';
+import { withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import { getNextDocNumber } from '../lib/doc-numbering.js';
 import { isTaxCodeUserError, resolveTaxCode } from '../services/tax-code.service.js';

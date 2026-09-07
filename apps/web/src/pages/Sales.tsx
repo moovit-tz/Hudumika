@@ -10,6 +10,8 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { useTaxCodes } from '../data/taxCodeData.js';
+import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
+import { Sheet, SheetContent, SheetTitle } from '../components/ui/sheet.js';
 
 // ─── constants ────────────────────────────────────────────────────────────────
 
@@ -102,16 +104,16 @@ function Toast({ msg, kind, onClose }: { msg: string; kind: 'success' | 'error';
 
 function ConfirmDialog({ msg, onConfirm, onCancel }: { msg: string; onConfirm: () => void; onCancel: () => void }) {
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}>
-      <div style={{ background: 'var(--white)', borderRadius: 12, padding: 28, width: 380, maxWidth: '92vw', boxSizing: 'border-box', boxShadow: 'var(--elev-lg)' }}>
-        <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 10 }}>Confirm</div>
+    <Dialog open onOpenChange={o => { if (!o) onCancel(); }}>
+      <DialogContent className="max-w-95 gap-0">
+        <DialogTitle style={{ fontWeight: 700, fontSize: 15, marginBottom: 10 }}>Confirm</DialogTitle>
         <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 22 }}>{msg}</div>
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
           <button type="button" className="btn btn-secondary" onClick={onCancel}>Cancel</button>
           <button type="button" className="btn btn-primary" style={{ background: 'var(--red)', borderColor: 'var(--red)' }} onClick={onConfirm}>Delete</button>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -144,9 +146,9 @@ function StatusModal({
   }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}>
-      <div style={{ background: 'var(--white)', borderRadius: 12, padding: 28, width: 380, maxWidth: '92vw', boxSizing: 'border-box' }}>
-        <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 14 }}>Change Status</div>
+    <Dialog open onOpenChange={o => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-95 gap-0">
+        <DialogTitle style={{ fontWeight: 700, fontSize: 15, marginBottom: 14 }}>Change Status</DialogTitle>
         <div style={{ marginBottom: 14 }}>
           <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>New Status</label>
           <Select value={status} onValueChange={setStatus}>
@@ -167,8 +169,8 @@ function StatusModal({
           <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
           <button type="button" className="btn btn-primary" onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Update'}</button>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -200,9 +202,12 @@ function DetailPanel({
 
   if (loading) {
     return (
-      <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1500 }}>
-        <div style={{ background: 'var(--white)', borderRadius: 12 }}><SectionLoading /></div>
-      </div>
+      <Dialog open onOpenChange={o => { if (!o) onClose(); }}>
+        <DialogContent className="max-w-fit gap-0 p-0" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <DialogTitle className="sr-only">Loading quotation</DialogTitle>
+          <SectionLoading />
+        </DialogContent>
+      </Dialog>
     );
   }
 
@@ -211,18 +216,15 @@ function DetailPanel({
   const stageColor = STAGES.find(s => s.key === quote.status)?.color || 'var(--ink3)';
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-end', zIndex: 1500 }}>
-      <div style={{ background: 'var(--white)', width: 560, maxWidth: '95vw', height: '100vh', overflowY: 'auto', boxShadow: '-4px 0 32px rgba(0,0,0,0.16)', display: 'flex', flexDirection: 'column' }}>
+    <Sheet open onOpenChange={o => { if (!o) onClose(); }}>
+      <SheetContent className="w-140 sm:max-w-140 flex flex-col p-0 gap-0" style={{ overflowY: 'auto' }}>
         {/* Panel header */}
         <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10, background: 'var(--white)', position: 'sticky', top: 0, zIndex: 2 }}>
           <div style={{ width: 10, height: 10, borderRadius: '50%', background: stageColor, flexShrink: 0 }} />
           <div style={{ flex: 1 }}>
             <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--teal)' }}>{quote.quote_number}</div>
-            <div style={{ fontWeight: 700, fontSize: 15 }}>{quote.title}</div>
+            <SheetTitle style={{ fontWeight: 700, fontSize: 15 }}>{quote.title}</SheetTitle>
           </div>
-          <button type="button" title="Close" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}>
-            <Icon name="x" size={18} />
-          </button>
         </div>
 
         {/* Action buttons */}
@@ -348,8 +350,8 @@ function DetailPanel({
             </div>
           )}
         </div>
-      </div>
-    </div>
+      </SheetContent>
+    </Sheet>
   );
 }
 
@@ -493,11 +495,11 @@ function QuoteModal({
   };
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1500 }}>
-      <div style={{ background: 'var(--white)', borderRadius: 12, width: 720, maxWidth: '95vw', maxHeight: '92vh', overflowY: 'auto', boxShadow: 'var(--elev-lg)', boxSizing: 'border-box' }}>
+    <Dialog open onOpenChange={o => { if (!o) onClose(); }}>
+      <DialogContent hideClose className="max-w-180 gap-0 p-0" style={{ maxHeight: '92vh', overflowY: 'auto' }}>
         {/* Modal header */}
         <div style={{ padding: '16px 22px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, background: 'var(--white)', zIndex: 2 }}>
-          <div style={{ fontWeight: 700, fontSize: 15 }}>{isEdit ? 'Edit Quotation' : 'New Quotation'}</div>
+          <DialogTitle style={{ fontWeight: 700, fontSize: 15 }}>{isEdit ? 'Edit Quotation' : 'New Quotation'}</DialogTitle>
           <button type="button" title="Close" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}>
             <Icon name="x" size={18} />
           </button>
@@ -676,8 +678,8 @@ function QuoteModal({
             </button>
           </div>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

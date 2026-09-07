@@ -1,7 +1,7 @@
 import { requireEntitlement, requireAnyEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { db, withTenant } from '../db/client.js';
+import { withTenant } from '../db/client.js';
 import { FinanceService } from '../services/finance.service.js';
 import { requireRole } from '../middleware/rbac.js';
 import { computeVatReturn } from '../services/vat-return.service.js';

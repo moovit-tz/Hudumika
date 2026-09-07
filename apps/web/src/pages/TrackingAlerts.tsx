@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { Checkbox } from '../components/ui/checkbox.js';
 
 interface Vehicle { id: string; name: string }
 interface Alert {
@@ -51,7 +52,7 @@ export const TrackingAlerts: React.FC = () => {
           />
         </div>
         <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--ink2)', cursor: 'pointer' }}>
-          <input type="checkbox" checked={showAcknowledged} onChange={e => setShowAcknowledged(e.target.checked)} />
+          <Checkbox checked={showAcknowledged} onCheckedChange={c => setShowAcknowledged(c === true)} />
           Show acknowledged
         </label>
       </div>

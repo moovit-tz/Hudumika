@@ -11,6 +11,7 @@ import { showAlert } from '../../lib/alert.js';
 import './Workflows.css';
 import { ClearanceWorkflowInsights } from './ClearanceWorkflowInsights.js';
 import { showConfirm } from '../../lib/confirm.js';
+import { Switch } from '../../components/ui/switch.js';
 
 function uid() { return `${Date.now()}-${Math.random().toString(36).slice(2,6)}`; }
 
@@ -196,7 +197,7 @@ function I({n,s=14,c='currentColor'}:{n:string;s?:number;c?:string}) {
 }
 
 function Toggle({on,set}:{on:boolean; set:(v:boolean)=>void}) {
-  return <label className="wfb-toggle"><input type="checkbox" checked={on} onChange={e=>set(e.target.checked)}/><span className="wfb-toggle-slider"/></label>;
+  return <Switch checked={on} onCheckedChange={v => set(v === true)} />;
 }
 
 /* ══ Right Panel ════════════════════════════════════════════ */

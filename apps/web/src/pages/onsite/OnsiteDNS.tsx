@@ -7,6 +7,7 @@ import { useParams, Link } from 'react-router-dom';
 import { apiFetch, apiFetchRaw } from '../../lib/api.js';
 import type { OnsiteDnsRecord, DnsPropagationResult } from '@hudumika/types';
 import { Icon } from '../../components/Icon.js';
+import { Dialog, DialogContent, DialogTitle } from '../../components/ui/dialog.js';
 import './Onsite.css';
 
 export function OnsiteDNS() {
@@ -316,18 +317,13 @@ export function OnsiteDNS() {
       )}
 
       {/* Add Record Modal */}
-      {showAddModal && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0,0,0,0.5)', zIndex: 1000,
-          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem'
-        }}>
-          <div className="onsite-card" style={{ width: '100%', maxWidth: '520px' }}>
-            <div className="onsite-card-header">
-              <h3 className="onsite-card-title">Add DNS Record</h3>
-              <button className="btn btn-sm btn-ghost" onClick={() => setShowAddModal(false)}>✕</button>
-            </div>
-            <form onSubmit={handleAddRecord} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <Dialog open={showAddModal} onOpenChange={(o) => { if (!o) setShowAddModal(false); }}>
+        <DialogContent hideClose className="max-w-130 gap-0" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div className="onsite-card-header">
+            <DialogTitle className="onsite-card-title">Add DNS Record</DialogTitle>
+            <button className="btn btn-sm btn-ghost" onClick={() => setShowAddModal(false)}>✕</button>
+          </div>
+          <form onSubmit={handleAddRecord} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '1rem' }}>
                 <div className="onsite-form-group">
                   <label>Type *</label>
@@ -402,179 +398,172 @@ export function OnsiteDNS() {
                   {submitting ? 'Saving…' : 'Save Record'}
                 </button>
               </div>
-            </form>
-          </div>
-        </div>
-      )}
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Propagation Check Modal */}
-      {checkRecord && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0,0,0,0.5)', zIndex: 1000,
-          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem'
-        }}>
-          <div className="onsite-card" style={{ width: '100%', maxWidth: '520px' }}>
-            <div className="onsite-card-header">
-              <h3 className="onsite-card-title">DNS Propagation Probe</h3>
-              <button className="btn btn-sm btn-ghost" onClick={() => setCheckRecord(null)}>✕</button>
-            </div>
-            <p style={{ fontSize: '0.875rem', color: 'var(--ink-muted)' }}>
-              Checking global propagation for <strong>{checkRecord.type}</strong> <code>{checkRecord.name}</code>:
-            </p>
-
-            {checking ? (
-              <p style={{ padding: '1rem 0' }}>Querying Cloudflare and Google DoH resolvers…</p>
-            ) : propResults ? (
-              <div className="onsite-table-wrapper">
-                <table className="onsite-table">
-                  <thead>
-                    <tr>
-                      <th>Resolver</th>
-                      <th>Observed Value</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {propResults.map((r, i) => (
-                      <tr key={i}>
-                        <td style={{ fontWeight: 600 }}>{r.resolver}</td>
-                        <td className="onsite-mono">{r.actual || 'No record'}</td>
-                        <td>
-                          {r.propagated ? (
-                            <span className="onsite-badge succeeded">✓ Propagated</span>
-                          ) : (
-                            <span className="onsite-badge pending">Pending</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+      <Dialog open={!!checkRecord} onOpenChange={(o) => { if (!o) setCheckRecord(null); }}>
+        <DialogContent hideClose className="max-w-130 gap-0" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {checkRecord && (
+            <>
+              <div className="onsite-card-header">
+                <DialogTitle className="onsite-card-title">DNS Propagation Probe</DialogTitle>
+                <button className="btn btn-sm btn-ghost" onClick={() => setCheckRecord(null)}>✕</button>
               </div>
-            ) : null}
+              <p style={{ fontSize: '0.875rem', color: 'var(--ink-muted)' }}>
+                Checking global propagation for <strong>{checkRecord.type}</strong> <code>{checkRecord.name}</code>:
+              </p>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
-              <button className="btn btn-secondary" onClick={() => setCheckRecord(null)}>
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+              {checking ? (
+                <p style={{ padding: '1rem 0' }}>Querying Cloudflare and Google DoH resolvers…</p>
+              ) : propResults ? (
+                <div className="onsite-table-wrapper">
+                  <table className="onsite-table">
+                    <thead>
+                      <tr>
+                        <th>Resolver</th>
+                        <th>Observed Value</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {propResults.map((r, i) => (
+                        <tr key={i}>
+                          <td style={{ fontWeight: 600 }}>{r.resolver}</td>
+                          <td className="onsite-mono">{r.actual || 'No record'}</td>
+                          <td>
+                            {r.propagated ? (
+                              <span className="onsite-badge succeeded">✓ Propagated</span>
+                            ) : (
+                              <span className="onsite-badge pending">Pending</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : null}
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
+                <button className="btn btn-secondary" onClick={() => setCheckRecord(null)}>
+                  Close
+                </button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
       {/* ── Import a zone file ──
           Two steps deliberately: the preview writes nothing, so a paste can be
           read before it changes how a domain resolves. */}
-      {showImport && (
-        <div className="onsite-modal-backdrop" onClick={() => setShowImport(false)}>
-          <div className="onsite-card" style={{ width: '100%', maxWidth: '640px' }} onClick={e => e.stopPropagation()}>
-            <h3 style={{ marginTop: 0 }}>Import a zone file</h3>
-            <p style={{ color: 'var(--ink-muted)', fontSize: '0.8125rem' }}>
-              Paste a BIND zone file. Nothing is written until you apply it, and
-              records already present are left alone rather than duplicated.
-            </p>
-            <textarea
-              value={importText}
-              onChange={e => { setImportText(e.target.value); setImportPlan(null); }}
-              rows={10}
-              spellCheck={false}
-              placeholder={'@\t3600\tIN\tA\t203.0.113.10\nwww\t3600\tIN\tCNAME\texample.com.'}
-              style={{ width: '100%', fontFamily: 'var(--mono)', fontSize: '0.8125rem', padding: '0.5rem' }}
-            />
+      <Dialog open={showImport} onOpenChange={(o) => { if (!o) { setShowImport(false); setImportPlan(null); } }}>
+        <DialogContent className="max-w-160 gap-0" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <DialogTitle style={{ marginTop: 0 }}>Import a zone file</DialogTitle>
+          <p style={{ color: 'var(--ink-muted)', fontSize: '0.8125rem' }}>
+            Paste a BIND zone file. Nothing is written until you apply it, and
+            records already present are left alone rather than duplicated.
+          </p>
+          <textarea
+            value={importText}
+            onChange={e => { setImportText(e.target.value); setImportPlan(null); }}
+            rows={10}
+            spellCheck={false}
+            placeholder={'@\t3600\tIN\tA\t203.0.113.10\nwww\t3600\tIN\tCNAME\texample.com.'}
+            style={{ width: '100%', fontFamily: 'var(--mono)', fontSize: '0.8125rem', padding: '0.5rem' }}
+          />
 
-            {importPlan && (
-              <div style={{ marginTop: '0.75rem' }}>
-                <div style={{ fontWeight: 600 }}>
-                  {importPlan.create} to add · {importPlan.unchanged} already present
-                  {importPlan.errors?.length ? ` · ${importPlan.errors.length} line(s) unreadable` : ''}
-                </div>
-                {importPlan.errors?.length > 0 && (
-                  <ul style={{ color: '#ef4444', fontSize: '0.8125rem', marginTop: '0.5rem' }}>
-                    {importPlan.errors.slice(0, 8).map((e: any) => (
-                      <li key={e.line}>Line {e.line}: {e.error}</li>
-                    ))}
-                  </ul>
-                )}
+          {importPlan && (
+            <div style={{ marginTop: '0.75rem' }}>
+              <div style={{ fontWeight: 600 }}>
+                {importPlan.create} to add · {importPlan.unchanged} already present
+                {importPlan.errors?.length ? ` · ${importPlan.errors.length} line(s) unreadable` : ''}
               </div>
-            )}
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '1rem' }}>
-              <button className="btn btn-ghost" onClick={() => { setShowImport(false); setImportPlan(null); }}>Cancel</button>
-              <button className="btn btn-secondary" disabled={importBusy || !importText.trim()} onClick={previewImport}>
-                {importBusy ? 'Reading…' : 'Preview'}
-              </button>
-              <button className="btn btn-primary"
-                disabled={importBusy || !importPlan || importPlan.errors?.length > 0 || importPlan.create === 0}
-                onClick={applyImport}>
-                {importPlan ? `Add ${importPlan.create} record(s)` : 'Apply'}
-              </button>
+              {importPlan.errors?.length > 0 && (
+                <ul style={{ color: '#ef4444', fontSize: '0.8125rem', marginTop: '0.5rem' }}>
+                  {importPlan.errors.slice(0, 8).map((e: any) => (
+                    <li key={e.line}>Line {e.line}: {e.error}</li>
+                  ))}
+                </ul>
+              )}
             </div>
+          )}
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '1rem' }}>
+            <button className="btn btn-ghost" onClick={() => { setShowImport(false); setImportPlan(null); }}>Cancel</button>
+            <button className="btn btn-secondary" disabled={importBusy || !importText.trim()} onClick={previewImport}>
+              {importBusy ? 'Reading…' : 'Preview'}
+            </button>
+            <button className="btn btn-primary"
+              disabled={importBusy || !importPlan || importPlan.errors?.length > 0 || importPlan.create === 0}
+              onClick={applyImport}>
+              {importPlan ? `Add ${importPlan.create} record(s)` : 'Apply'}
+            </button>
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
 
       {/* ── Quick setup ──
           A template generates records and stops; applying them is a separate,
           explicit step (ONSITE.md section 15). */}
-      {showTemplates && (
-        <div className="onsite-modal-backdrop" onClick={() => setShowTemplates(false)}>
-          <div className="onsite-card" style={{ width: '100%', maxWidth: '620px' }} onClick={e => e.stopPropagation()}>
-            <h3 style={{ marginTop: 0 }}>Quick setup</h3>
-            <p style={{ color: 'var(--ink-muted)', fontSize: '0.8125rem' }}>
-              Generates the records a common setup needs. Review them before they are added.
-            </p>
+      <Dialog open={showTemplates} onOpenChange={(o) => { if (!o) { setShowTemplates(false); setTemplatePreview(null); } }}>
+        <DialogContent className="max-w-155 gap-0" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <DialogTitle style={{ marginTop: 0 }}>Quick setup</DialogTitle>
+          <p style={{ color: 'var(--ink-muted)', fontSize: '0.8125rem' }}>
+            Generates the records a common setup needs. Review them before they are added.
+          </p>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              {templates.map(t => (
-                <label key={t.id} style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start', cursor: 'pointer' }}>
-                  <input type="radio" name="tpl" checked={templateId === t.id}
-                    onChange={() => { setTemplateId(t.id); setTemplatePreview(null); }} />
-                  <span>
-                    <span style={{ fontWeight: 600 }}>{t.label}</span>
-                    <span style={{ display: 'block', color: 'var(--ink-muted)', fontSize: '0.8125rem' }}>{t.description}</span>
-                  </span>
-                </label>
-              ))}
-            </div>
-
-            {templates.find(t => t.id === templateId)?.inputs?.map((i: any) => (
-              <div key={i.key} style={{ marginTop: '0.75rem' }}>
-                <label className="seal-field-label">{i.label}</label>
-                <input className="input-field" placeholder={i.placeholder}
-                  value={templateVars[i.key] ?? ''}
-                  onChange={e => { setTemplateVars(v => ({ ...v, [i.key]: e.target.value })); setTemplatePreview(null); }} />
-              </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            {templates.map(t => (
+              <label key={t.id} style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start', cursor: 'pointer' }}>
+                <input type="radio" name="tpl" checked={templateId === t.id}
+                  onChange={() => { setTemplateId(t.id); setTemplatePreview(null); }} />
+                <span>
+                  <span style={{ fontWeight: 600 }}>{t.label}</span>
+                  <span style={{ display: 'block', color: 'var(--ink-muted)', fontSize: '0.8125rem' }}>{t.description}</span>
+                </span>
+              </label>
             ))}
-
-            {templatePreview && (
-              <table className="onsite-table" style={{ marginTop: '1rem' }}>
-                <thead><tr><th>Name</th><th>Type</th><th>Value</th><th>TTL</th></tr></thead>
-                <tbody>
-                  {templatePreview.map((r: any, i: number) => (
-                    <tr key={i}>
-                      <td className="onsite-mono">{r.name}</td>
-                      <td>{r.type}{r.priority != null ? ` (${r.priority})` : ''}</td>
-                      <td className="onsite-mono" style={{ wordBreak: 'break-all' }}>{r.value}</td>
-                      <td>{r.ttl}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '1rem' }}>
-              <button className="btn btn-ghost" onClick={() => { setShowTemplates(false); setTemplatePreview(null); }}>Cancel</button>
-              <button className="btn btn-secondary" disabled={!templateId || templateBusy}
-                onClick={() => previewTemplate(templateId)}>
-                {templateBusy ? 'Building…' : 'Preview records'}
-              </button>
-              <button className="btn btn-primary" disabled={!templatePreview || templateBusy} onClick={applyTemplate}>
-                Add {templatePreview ? `${templatePreview.length} ` : ''}record(s)
-              </button>
-            </div>
           </div>
-        </div>
-      )}
+
+          {templates.find(t => t.id === templateId)?.inputs?.map((i: any) => (
+            <div key={i.key} style={{ marginTop: '0.75rem' }}>
+              <label className="seal-field-label">{i.label}</label>
+              <input className="input-field" placeholder={i.placeholder}
+                value={templateVars[i.key] ?? ''}
+                onChange={e => { setTemplateVars(v => ({ ...v, [i.key]: e.target.value })); setTemplatePreview(null); }} />
+            </div>
+          ))}
+
+          {templatePreview && (
+            <table className="onsite-table" style={{ marginTop: '1rem' }}>
+              <thead><tr><th>Name</th><th>Type</th><th>Value</th><th>TTL</th></tr></thead>
+              <tbody>
+                {templatePreview.map((r: any, i: number) => (
+                  <tr key={i}>
+                    <td className="onsite-mono">{r.name}</td>
+                    <td>{r.type}{r.priority != null ? ` (${r.priority})` : ''}</td>
+                    <td className="onsite-mono" style={{ wordBreak: 'break-all' }}>{r.value}</td>
+                    <td>{r.ttl}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '1rem' }}>
+            <button className="btn btn-ghost" onClick={() => { setShowTemplates(false); setTemplatePreview(null); }}>Cancel</button>
+            <button className="btn btn-secondary" disabled={!templateId || templateBusy}
+              onClick={() => previewTemplate(templateId)}>
+              {templateBusy ? 'Building…' : 'Preview records'}
+            </button>
+            <button className="btn btn-primary" disabled={!templatePreview || templateBusy} onClick={applyTemplate}>
+              Add {templatePreview ? `${templatePreview.length} ` : ''}record(s)
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
     </div>
   );

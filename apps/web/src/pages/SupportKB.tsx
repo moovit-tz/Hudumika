@@ -4,11 +4,13 @@ import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Badge } from '../components/ui/badge.js';
 import { Button } from '../components/ui/button.js';
+import { Tip } from '../components/ui/tooltip.js';
 import { Icon } from '../components/Icon.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { SectionLoading } from '../components/ui/spinner.js';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog.js';
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 
@@ -400,15 +402,21 @@ export const SupportKB: React.FC = () => {
                       </td>
                       <td style={{ padding: '12px 14px', textAlign: 'right' }}>
                         <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                          <Button variant="outline" size="sm" onClick={() => setPreviewArticle(a)} title="Preview Article">
-                            <Icon name="eye" size={13} />
-                          </Button>
-                          <Button variant="outline" size="sm" onClick={() => openEditModal(a)} title="Edit Article">
-                            <Icon name="edit" size={13} />
-                          </Button>
-                          <Button variant="ghost" size="sm" onClick={() => deleteArticle(a.id)} title="Delete Article">
-                            <Icon name="trash" size={13} style={{ color: 'var(--red)' }} />
-                          </Button>
+                          <Tip label="Preview Article">
+                            <Button variant="outline" size="sm" onClick={() => setPreviewArticle(a)}>
+                              <Icon name="eye" size={13} />
+                            </Button>
+                          </Tip>
+                          <Tip label="Edit Article">
+                            <Button variant="outline" size="sm" onClick={() => openEditModal(a)}>
+                              <Icon name="edit" size={13} />
+                            </Button>
+                          </Tip>
+                          <Tip label="Delete Article">
+                            <Button variant="ghost" size="sm" onClick={() => deleteArticle(a.id)}>
+                              <Icon name="trash" size={13} style={{ color: 'var(--red)' }} />
+                            </Button>
+                          </Tip>
                         </div>
                       </td>
                     </tr>
@@ -496,16 +504,16 @@ export const SupportKB: React.FC = () => {
 
       {/* CREATE / EDIT ARTICLE MODAL */}
       {showArticleModal && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div style={{ background: 'var(--white)', borderRadius: 'var(--r-lg)', width: '100%', maxWidth: 540, boxShadow: 'var(--elev-lg)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg)' }}>
-              <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)' }}>
+        <Dialog open onOpenChange={o => { if (!o) setShowArticleModal(false); }}>
+          <DialogContent hideClose className="w-full max-w-135 p-0 gap-0 overflow-hidden">
+            <DialogHeader style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg)', textAlign: 'left' }}>
+              <DialogTitle style={{ fontSize: 16 }}>
                 {editingArticleId ? 'Edit Article' : 'Publish New Knowledge Article'}
-              </div>
+              </DialogTitle>
               <Button variant="ghost" size="sm" onClick={() => setShowArticleModal(false)} style={{ padding: 4 }}>
                 <Icon name="x" size={16} />
               </Button>
-            </div>
+            </DialogHeader>
 
             <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>
@@ -559,20 +567,20 @@ export const SupportKB: React.FC = () => {
                 </Button>
               </div>
             </div>
-          </div>
-        </div>
+          </DialogContent>
+        </Dialog>
       )}
 
       {/* CREATE CATEGORY MODAL */}
       {showCategoryModal && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div style={{ background: 'var(--white)', borderRadius: 'var(--r-lg)', width: '100%', maxWidth: 440, boxShadow: 'var(--elev-lg)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg)' }}>
-              <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)' }}>Create Topic Category</div>
+        <Dialog open onOpenChange={o => { if (!o) setShowCategoryModal(false); }}>
+          <DialogContent hideClose className="w-full max-w-110 p-0 gap-0 overflow-hidden">
+            <DialogHeader style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg)', textAlign: 'left' }}>
+              <DialogTitle style={{ fontSize: 16 }}>Create Topic Category</DialogTitle>
               <Button variant="ghost" size="sm" onClick={() => setShowCategoryModal(false)} style={{ padding: 4 }}>
                 <Icon name="x" size={16} />
               </Button>
-            </div>
+            </DialogHeader>
 
             <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>
@@ -602,14 +610,14 @@ export const SupportKB: React.FC = () => {
                 </Button>
               </div>
             </div>
-          </div>
-        </div>
+          </DialogContent>
+        </Dialog>
       )}
 
       {/* PREVIEW ARTICLE MODAL */}
       {previewArticle && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div style={{ background: 'var(--white)', borderRadius: 'var(--r-lg)', width: '100%', maxWidth: 600, boxShadow: 'var(--elev-lg)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <Dialog open onOpenChange={o => { if (!o) setPreviewArticle(null); }}>
+          <DialogContent hideClose className="w-full max-w-150 p-0 gap-0 overflow-hidden">
             <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Badge variant="brand">{previewArticle.category_name || 'General'}</Badge>
@@ -621,7 +629,7 @@ export const SupportKB: React.FC = () => {
             </div>
 
             <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 14, overflowY: 'auto', maxHeight: '70vh' }}>
-              <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink)' }}>{previewArticle.title}</div>
+              <DialogTitle style={{ fontSize: 20 }}>{previewArticle.title}</DialogTitle>
               <div style={{ fontSize: 11.5, color: 'var(--ink3)', borderBottom: '1px solid var(--border)', paddingBottom: 10 }}>
                 Views: <strong>{previewArticle.views}</strong> • Last Updated: <strong>{previewArticle.updated_at ? new Date(previewArticle.updated_at).toLocaleString() : 'Recently'}</strong>
               </div>
@@ -629,8 +637,8 @@ export const SupportKB: React.FC = () => {
                 {previewArticle.content || 'No article body content.'}
               </div>
             </div>
-          </div>
-        </div>
+          </DialogContent>
+        </Dialog>
       )}
 
     </div>

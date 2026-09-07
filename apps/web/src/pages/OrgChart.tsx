@@ -26,6 +26,7 @@ import { Combobox } from '../components/ui/combobox.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { showConfirm } from '../lib/confirm.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog.js';
 
 /* ─── Types ─────────────────────────────────────────────── */
 interface OrgNode {
@@ -771,24 +772,22 @@ export const OrgChart: React.FC = () => {
 
       {/* ── Add Node Modal ── */}
       {showAdd && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.4)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ background: 'var(--white)', borderRadius: 14, padding: '24px 28px', width: 440,
-            boxShadow: 'var(--elev-lg)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+        <Dialog open onOpenChange={o => { if (!o) setShowAdd(false); }}>
+          <DialogContent hideClose className="w-110">
+            <DialogHeader style={{ flexDirection: 'row', alignItems: 'center', gap: 10, textAlign: 'left' }}>
               <div style={{ width: 36, height: 36, borderRadius: 'var(--r)', background: addForm.color + '18',
-                display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Icon name="userPlus" size={17} color={addForm.color} />
               </div>
               <div>
-                <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>Add Person / Role</div>
+                <DialogTitle style={{ fontSize: 15 }}>Add Person / Role</DialogTitle>
                 <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>Create a custom node or import from Staff Directory</div>
               </div>
               <button type="button" title="Close" onClick={() => setShowAdd(false)}
                 style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}>
                 <Icon name="x" size={16} />
               </button>
-            </div>
+            </DialogHeader>
 
             {/* Import from Staff selector */}
             {staffList.length > 0 && (
@@ -862,8 +861,8 @@ export const OrgChart: React.FC = () => {
                 {saving ? 'Adding…' : 'Add to Chart'}
               </button>
             </div>
-          </div>
-        </div>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );

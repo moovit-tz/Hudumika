@@ -4,6 +4,7 @@ import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Combobox } from '../components/ui/combobox.js';
+import { CheckboxRow } from '../components/ui/list-item-row.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import './TrackingNewExpense.css';
 import { PageHeader } from '../components/PageHeader.js';
@@ -188,19 +189,15 @@ export const TrackingNewExpense: React.FC = () => {
               />
             </div>
 
-            <label className="exp-radio-label" style={{ marginTop: 8 }}>
-              <input
-                type="checkbox"
-                className="exp-radio-input"
+            <div style={{ marginTop: 8 }}>
+              <CheckboxRow
+                title="Bill to customer"
+                description={form.trip_id ? 'Recovers this cost on the trip’s customer invoice.' : 'Link a trip first to make this billable.'}
                 checked={form.billable}
                 disabled={!form.trip_id}
-                onChange={e => setForm({...form, billable: e.target.checked})}
+                onCheckedChange={c => setForm({...form, billable: c})}
               />
-              <div className="exp-radio-text-group">
-                <div className="exp-radio-title">Bill to customer</div>
-                <div className="exp-radio-desc">{form.trip_id ? 'Recovers this cost on the trip’s customer invoice.' : 'Link a trip first to make this billable.'}</div>
-              </div>
-            </label>
+            </div>
           </div>
 
           <div className="exp-section">

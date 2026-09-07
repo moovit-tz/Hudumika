@@ -6,6 +6,7 @@ import { Combobox } from '../components/ui/combobox.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
 
 interface Vehicle { id: string; name: string }
 interface Driver { id: string; name: string }
@@ -46,9 +47,9 @@ function AddReminderModal({ vehicles, drivers, onClose, onAdded }: {
   }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', padding: 28, width: 440, maxWidth: '92vw', boxShadow: 'var(--elev-lg)' }}>
-        <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 18 }}>Add a reminder</div>
+    <Dialog open onOpenChange={o => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-[min(440px,92vw)] gap-0" style={{ padding: 28 }}>
+        <DialogTitle style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 18 }}>Add a reminder</DialogTitle>
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div><label style={labelStyle}>Title</label><input required value={title} onChange={e => setTitle(e.target.value)} style={inputStyle} /></div>
           <div style={{ display: 'flex', gap: 10 }}>
@@ -90,8 +91,8 @@ function AddReminderModal({ vehicles, drivers, onClose, onAdded }: {
             </button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

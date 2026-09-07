@@ -8,6 +8,7 @@ import { PersonAvatar } from '../components/PersonAvatar.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { Button } from '../components/ui/button.js';
 import { Badge } from '../components/ui/badge.js';
+import { Checkbox } from '../components/ui/checkbox.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { EntityPicker, type PickerItem } from '../components/EntityPicker.js';
@@ -21,6 +22,7 @@ import { FileUploader } from '../components/ui/file-uploader.js';
 import { MentionInput, type MentionUser } from '../components/MentionInput.js';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuCheckboxItem } from '../components/ui/dropdown-menu.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { Sheet, SheetContent, SheetTitle } from '../components/ui/sheet.js';
 
 // Standalone Projects app (HuduPlus+, entitlement key 'projects' — migration
 // 313) — Projects/Milestones are real, tenant-shared entities (migration
@@ -1079,7 +1081,7 @@ export const ProjectsApp: React.FC = () => {
                 />
                 {boardView === 'milestone' && (
                   <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--ink2)', cursor: 'pointer' }}>
-                    <input type="checkbox" checked={excludeCompletedMs} onChange={e => setExcludeCompletedMs(e.target.checked)} />
+                    <Checkbox checked={excludeCompletedMs} onCheckedChange={c => setExcludeCompletedMs(c === true)} />
                     Exclude Completed Tasks
                   </label>
                 )}
@@ -1154,9 +1156,9 @@ export const ProjectsApp: React.FC = () => {
                   <thead>
                     <tr style={{ borderBottom: '1px solid var(--border)', textAlign: 'left' }}>
                       <th style={{ padding: '10px 12px', width: 30 }}>
-                        <input type="checkbox"
+                        <Checkbox
                           checked={sortedTasks.length > 0 && selectedTaskIds.size === sortedTasks.length}
-                          onChange={e => setSelectedTaskIds(e.target.checked ? new Set(sortedTasks.map(t => t.id)) : new Set())}
+                          onCheckedChange={c => setSelectedTaskIds(c === true ? new Set(sortedTasks.map(t => t.id)) : new Set())}
                         />
                       </th>
                       {([['title', 'Name'], ['status', 'Status'], ['due', 'Due'], ['priority', 'Priority']] as const).map(([key, label]) => (
@@ -1175,7 +1177,7 @@ export const ProjectsApp: React.FC = () => {
                       return (
                         <tr key={t.id} style={{ borderBottom: '1px solid var(--border)' }}>
                           <td style={{ padding: '9px 12px' }} onClick={e => e.stopPropagation()}>
-                            <input type="checkbox" checked={selectedTaskIds.has(t.id)} onChange={() => toggleTaskSelected(t.id)} />
+                            <Checkbox checked={selectedTaskIds.has(t.id)} onCheckedChange={() => toggleTaskSelected(t.id)} />
                           </td>
                           <td style={{ padding: '9px 12px', fontWeight: 600, color: 'var(--ink)', cursor: 'pointer' }} onClick={() => setDetailTaskId(t.id)}>
                             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
@@ -1478,7 +1480,7 @@ export const ProjectsApp: React.FC = () => {
                         <span style={{ fontSize: 11, color: 'var(--ink4)' }}>{f.size ? `${(f.size / 1024).toFixed(0)} KB` : ''}</span>
                         {!viewAsCustomer && selected.customer_id && (
                           <label title="Share this file with the project's customer via the real Drive sharing mechanism" style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11.5, color: 'var(--ink3)', cursor: 'pointer' }}>
-                            <input type="checkbox" checked={isVisible} onChange={e => toggleFileVisibleToCustomer(f, e.target.checked)} />
+                            <Checkbox checked={isVisible} onCheckedChange={c => toggleFileVisibleToCustomer(f, c === true)} />
                             Visible to customer
                           </label>
                         )}
@@ -1528,9 +1530,7 @@ export const ProjectsApp: React.FC = () => {
             ) : (
               discussions.map(d => (
                 <div key={d.id} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-                  <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'var(--teal-l)', color: 'var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10.5, fontWeight: 700, flexShrink: 0 }}>
-                    {initials(d.author_name)}
-                  </div>
+                  <PersonAvatar userId={d.author_id} name={d.author_name} size={26} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
                       <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)' }}>{d.author_name}</span>
@@ -1834,13 +1834,10 @@ function TaskDetailDrawer({ task, milestones, otherTasks, onClose, onDelete }: {
   }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', justifyContent: 'flex-end' }}>
-      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.25)' }} />
-      <div style={{ position: 'relative', width: 380, maxWidth: '100%', height: '100%', background: 'var(--white)', boxShadow: '-4px 0 24px rgba(0,0,0,0.08)', display: 'flex', flexDirection: 'column', padding: 20, gap: 14, overflowY: 'auto' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Task</span>
-          <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', display: 'flex' }} aria-label="Close"><Icon name="x" size={16} /></button>
-        </div>
+    <Sheet open onOpenChange={o => { if (!o) onClose(); }}>
+      <SheetContent className="w-95 sm:max-w-95 flex flex-col p-0 gap-0">
+        <div style={{ display: 'flex', flexDirection: 'column', padding: 20, gap: 14, overflowY: 'auto', height: '100%' }}>
+        <SheetTitle style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Task</SheetTitle>
         <textarea
           defaultValue={task.title}
           onBlur={e => { if (e.target.value.trim() && e.target.value !== task.title) updateTodo(task.id, { title: e.target.value.trim() }); }}
@@ -1876,7 +1873,7 @@ function TaskDetailDrawer({ task, milestones, otherTasks, onClose, onDelete }: {
         </div>
         <div>
           <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--ink2)', cursor: 'pointer', marginBottom: task.isBillable ? 6 : 0 }}>
-            <input type="checkbox" checked={!!task.isBillable} onChange={e => updateTodo(task.id, { isBillable: e.target.checked })} />
+            <Checkbox checked={!!task.isBillable} onCheckedChange={c => updateTodo(task.id, { isBillable: c === true })} />
             Billable
           </label>
           {task.isBillable && (
@@ -1931,15 +1928,15 @@ function TaskDetailDrawer({ task, milestones, otherTasks, onClose, onDelete }: {
           />
         </div>
         <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--ink2)', cursor: 'pointer' }}>
-          <input type="checkbox" checked={!!task.isPrivate} onChange={e => updateTodo(task.id, { isPrivate: e.target.checked })} />
+          <Checkbox checked={!!task.isPrivate} onCheckedChange={c => updateTodo(task.id, { isPrivate: c === true })} />
           Private task (hidden from other project members)
         </label>
 
         <div>
           <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--ink2)', cursor: 'pointer', marginBottom: task.recurrenceRule ? 8 : 0 }}>
-            <input
-              type="checkbox" checked={!!task.recurrenceRule}
-              onChange={e => updateTodo(task.id, { recurrenceRule: e.target.checked ? { freq: 'weekly', interval: 1 } : null })}
+            <Checkbox
+              checked={!!task.recurrenceRule}
+              onCheckedChange={c => updateTodo(task.id, { recurrenceRule: c === true ? { freq: 'weekly', interval: 1 } : null })}
             />
             Repeats
           </label>
@@ -2055,7 +2052,8 @@ function TaskDetailDrawer({ task, milestones, otherTasks, onClose, onDelete }: {
         <Button variant="outline" size="sm" onClick={onDelete} style={{ marginTop: 'auto', color: 'var(--red)', borderColor: 'var(--red)' }}>
           <Icon name="trash" size={13} /> Delete task
         </Button>
-      </div>
-    </div>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }

@@ -10,8 +10,10 @@ import { UpgradeNotice } from '../components/UpgradeNotice.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 import { Badge } from '../components/ui/badge.js';
+import { Checkbox } from '../components/ui/checkbox.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { useEntitlements } from '../hooks/useEntitlements.js';
+import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
 
 // The three real Studio triggers OAuth/SSO events emit (studio/triggers.ts) —
 // a Studio automation bound to one of these actually fires when this exact
@@ -68,9 +70,9 @@ function AddClientModal({ onClose, onAdded }: { onClose: () => void; onAdded: ()
   const labelStyle: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 };
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', padding: 28, width: 460, maxWidth: '92vw', boxShadow: 'var(--elev-lg)' }}>
-        <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Add SSO Client Application</div>
+    <Dialog open onOpenChange={o => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-115 gap-0">
+        <DialogTitle style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Add SSO Client Application</DialogTitle>
         <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 18 }}>Configure an external app (relying party) to authenticate users using Ondi.</div>
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div>
@@ -94,7 +96,7 @@ function AddClientModal({ onClose, onAdded }: { onClose: () => void; onAdded: ()
             <input value={logoUrl} onChange={e => setLogoUrl(e.target.value)} placeholder="https://company.com/logo.png" style={inputStyle} />
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
-            <input type="checkbox" id="firstParty" checked={firstParty} onChange={e => setFirstParty(e.target.checked)} style={{ cursor: 'pointer' }} />
+            <Checkbox id="firstParty" checked={firstParty} onCheckedChange={c => setFirstParty(c === true)} />
             <label htmlFor="firstParty" style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer' }}>First-party application (Bypasses user consent screen)</label>
           </div>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>
@@ -104,8 +106,8 @@ function AddClientModal({ onClose, onAdded }: { onClose: () => void; onAdded: ()
             </button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -146,9 +148,9 @@ function AddProviderModal({ onClose, onAdded, onStartSaml }: { onClose: () => vo
   const labelStyle: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 };
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', padding: 28, width: 460, maxWidth: '92vw', boxShadow: 'var(--elev-lg)' }}>
-        <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Add identity provider</div>
+    <Dialog open onOpenChange={o => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-115 gap-0">
+        <DialogTitle style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Add identity provider</DialogTitle>
         <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 18 }}>
           {type === 'SAML'
             ? 'Real assertion handling, walked through step by step — including sending your side to the IdP before it asks for theirs.'
@@ -195,8 +197,8 @@ function AddProviderModal({ onClose, onAdded, onStartSaml }: { onClose: () => vo
             </button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -337,10 +339,10 @@ function SamlSetupWizard({ existing, initialName, onClose, onSaved }: { existing
   const STEP_ORDER: SamlWizardStep[] = ['basics', 'your-side', 'their-side', 'test'];
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', padding: 28, width: 560, maxWidth: '94vw', maxHeight: '88vh', overflowY: 'auto', boxShadow: 'var(--elev-lg)' }}>
+    <Dialog open onOpenChange={o => { if (!o) onClose(); }}>
+      <DialogContent hideClose className="max-w-140 gap-0" style={{ maxHeight: '88vh', overflowY: 'auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
-          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>{existing ? `Finish setup — ${existing.name}` : 'Connect a SAML identity provider'}</div>
+          <DialogTitle style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>{existing ? `Finish setup — ${existing.name}` : 'Connect a SAML identity provider'}</DialogTitle>
           <button type="button" onClick={onClose} aria-label="Close" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}><Icon name="x" size={18} /></button>
         </div>
 
@@ -454,7 +456,7 @@ function SamlSetupWizard({ existing, initialName, onClose, onSaved }: { existing
               </a>
             </div>
             <label style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', cursor: 'pointer' }}>
-              <input type="checkbox" checked={enabled} onChange={toggleEnabledHere} />
+              <Checkbox checked={enabled} onCheckedChange={toggleEnabledHere} />
               <span style={{ fontSize: 12.5, color: 'var(--ink)' }}><strong>Enable this provider</strong> — staff at your domain can sign in through it immediately.</span>
             </label>
             <CopyRow label="ACS / Reply URL" value={acsUrl} />
@@ -465,8 +467,8 @@ function SamlSetupWizard({ existing, initialName, onClose, onSaved }: { existing
             </div>
           </div>
         )}
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

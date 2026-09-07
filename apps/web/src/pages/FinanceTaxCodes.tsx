@@ -7,6 +7,7 @@ import { Icon } from '../components/Icon.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 import { Banner } from '../components/ui/alert.js';
 import { Badge } from '../components/ui/badge.js';
+import { Checkbox } from '../components/ui/checkbox.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { showConfirm } from '../lib/confirm.js';
@@ -209,8 +210,8 @@ function ComponentEditor({ taxCodeId, jurisdiction, zeroKind }: {
                         </Select>
                       </td>
                       <td style={{ width: 90, textAlign: 'center' }}>
-                        <input type="checkbox" checked={r.recoverable}
-                          onChange={e => update(i, { recoverable: e.target.checked })} />
+                        <Checkbox className="mx-auto" checked={r.recoverable}
+                          onCheckedChange={c => update(i, { recoverable: c === true })} />
                       </td>
                       <td style={{ width: 90, fontSize: 12, color: 'var(--ink3)', whiteSpace: 'nowrap' }}>
                         {preview.lines[i]?.base.toFixed(2)}
@@ -453,8 +454,8 @@ function TaxCodeForm({ code, onClose, onSaved }: {
 
         <F label="Default for new lines" col2>
           <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--ink2)' }}>
-            <input type="checkbox" checked={form.isDefault}
-              onChange={e => set('isDefault', e.target.checked)} />
+            <Checkbox checked={form.isDefault}
+              onCheckedChange={c => set('isDefault', c === true)} />
             Pre-select this treatment on new products and invoice lines
           </label>
         </F>

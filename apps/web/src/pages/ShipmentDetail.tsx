@@ -10,6 +10,7 @@ import { Spinner, PageLoading } from '../components/ui/spinner.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { Banner } from '../components/ui/alert.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { Checkbox } from '../components/ui/checkbox.js';
 import { RelatedRecordsPanel } from '../components/RelatedRecordsPanel.js';
 import { Tip } from '../components/ui/tooltip.js';
 import type { IconName } from '../components/Icon.js';
@@ -42,6 +43,7 @@ import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/da
 import { Popover, PopoverTrigger, PopoverContent } from '../components/ui/popover.js';
 import { HoverCard, HoverCardTrigger, HoverCardContent } from '../components/ui/hover-card.js';
 import { SwitchRow } from '../components/ui/list-item-row.js';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet.js';
 
 // ─── Clock-in gate ───────────────────────────────────────────────────────────
 
@@ -400,14 +402,12 @@ async function shareShipmentReportLink(id: string) {
  * an account rather than a gap to paper over.
  */
 function Av({ name, size = 32, userId }: { name: string; size?: number; userId?: string | null }) {
-  if (userId && isUUID(userId)) {
-    return <PersonAvatar userId={userId} name={name} size={size} />;
-  }
-  return (
-    <div style={{ width: size, height: size, borderRadius: '50%', background: avatarBg(name), color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: size * 0.36, fontWeight: 700, flexShrink: 0, fontFamily: 'var(--font)' }}>
-      {initials(name)}
-    </div>
-  );
+  // PersonAvatar already draws exactly this fallback — deterministic colored
+  // initials — when userId is absent, so there is nothing left for this
+  // wrapper to hand-roll; isUUID still guards against the legacy paths
+  // (see memberId/taskId comment above) where "userId" is really just the
+  // name string again, not a real account id to fetch a photo for.
+  return <PersonAvatar userId={userId && isUUID(userId) ? userId : undefined} name={name} size={size} />;
 }
 
 // ─── TANCIS Form helpers ──────────────────────────────────────────────────────
@@ -1605,7 +1605,7 @@ function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Clearance
               {/* The HS code is never carried over silently. */}
               {prefill.needsConfirmation?.length > 0 && (
                 <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginTop: 9, fontSize: 11.5, color: 'var(--ink2)', cursor: 'pointer' }}>
-                  <input type="checkbox" checked={applyHs} onChange={e => setApplyHs(e.target.checked)} style={{ marginTop: 2 }} />
+                  <Checkbox checked={applyHs} onCheckedChange={c => setApplyHs(c === true)} style={{ marginTop: 2 }} />
                   <span>
                     Also use HS code <strong>{prefill.needsConfirmation[0].value}</strong> from the shipment.
                     <span style={{ display: 'block', color: 'var(--ink3)' }}>{prefill.needsConfirmation[0].note}</span>
@@ -1771,7 +1771,7 @@ function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Clearance
               <DField label="Exchange Rate (TZS)"><DInput value={financial.exchange_rate} onChange={v => setFinancial(f => ({ ...f, exchange_rate: v }))} placeholder="2560" mono /></DField>
               <DField label="Self Assessment">
                 <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'pointer', paddingTop: 6 }}>
-                  <input type="checkbox" checked={financial.self_assessment} onChange={e => setFinancial(f => ({ ...f, self_assessment: e.target.checked }))} style={{ accentColor: 'var(--teal)' }} /> Yes
+                  <Checkbox checked={financial.self_assessment} onCheckedChange={c => setFinancial(f => ({ ...f, self_assessment: c === true }))} /> Yes
                 </label>
               </DField>
             </div>
@@ -1822,7 +1822,7 @@ function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Clearance
             <DField label="Vessel Name"><DInput value={transport.vessel_name} onChange={v => setTransport(t => ({ ...t, vessel_name: v }))} placeholder="EVER VIM" /></DField>
             <DField label="Partial B/L">
               <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'pointer', paddingTop: 6 }}>
-                <input type="checkbox" checked={transport.partial_bl} onChange={e => setTransport(t => ({ ...t, partial_bl: e.target.checked }))} style={{ accentColor: 'var(--teal)' }} /> Yes
+                <Checkbox checked={transport.partial_bl} onCheckedChange={c => setTransport(t => ({ ...t, partial_bl: c === true }))} /> Yes
               </label>
             </DField>
             <DField label="Port of Loading"><DInput value={transport.shipment_place} onChange={v => setTransport(t => ({ ...t, shipment_place: v }))} placeholder="CNQIN — Qingdao" /></DField>
@@ -2585,7 +2585,7 @@ function TasksTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
                   <td style={{ padding: '10px 14px' }}>
                     <div style={{ display: 'flex', gap: 3 }}>
                       {task.assignees.slice(0, 3).map(a => (
-                        <div key={a} title={a} style={{ width: 24, height: 24, borderRadius: '50%', background: avatarBg(a), color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700 }}>{initials(a)}</div>
+                        <Av key={a} name={a} size={24} />
                       ))}
                       {task.assignees.length > 3 && <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'var(--border)', color: 'var(--ink3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700 }}>+{task.assignees.length - 3}</div>}
                     </div>
@@ -2804,7 +2804,7 @@ function TimesheetsTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: 
               <tr key={entry.id} style={{ borderBottom: '1px solid var(--border)', background: i % 2 === 0 ? 'var(--white)' : 'var(--bg)' }}>
                 <td style={{ padding: '10px 16px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div style={{ width: 26, height: 26, borderRadius: '50%', background: avatarBg(entry.memberName), color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, flexShrink: 0 }}>{initials(entry.memberName)}</div>
+                    <Av name={entry.memberName} userId={entry.memberId} size={26} />
                     <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{entry.memberName}</span>
                   </div>
                 </td>
@@ -3787,12 +3787,10 @@ function StaffPickerModal({ jobId, shipmentId, isLive, onRefresh, existing, onCl
   const [staff, setStaff]           = useState<Employee[]>([]);
   const [staffLoading, setStaffLoading] = useState(true);
   const [staffError, setStaffError] = useState(false);
-  const [visible, setVisible]       = useState(false);
-
-  // Slide-in drawer: mount off-screen, then animate in. requestClose() reverses
-  // the animation before actually unmounting (via onClose) so it slides back out.
-  useEffect(() => { const t = setTimeout(() => setVisible(true), 10); return () => clearTimeout(t); }, []);
-  function requestClose() { setVisible(false); setTimeout(onClose, 220); }
+  // Slide-in drawer — Sheet (Radix) now owns mount/animate-in and
+  // animate-out-then-close itself; requestClose is kept as a name since a
+  // couple of call sites below delay it after a "Saved!" confirmation.
+  function requestClose() { onClose(); }
 
   useEffect(() => {
     setStaffLoading(true);
@@ -4022,34 +4020,23 @@ function StaffPickerModal({ jobId, shipmentId, isLive, onRefresh, existing, onCl
 
   // Slide-in drawer anchored to the right edge — wider than the 248px sidebar
   // column it's triggered from, and "light": no dark backdrop dimming the rest
-  // of the page, just a transparent click-outside-to-close catcher.
+  // of the page, just a transparent click-outside-to-close catcher (via
+  // Sheet's overlayClassName escape hatch, see ui/sheet.tsx).
   return (
-    <>
-      <div onClick={requestClose} aria-hidden style={{ position: 'fixed', inset: 0, zIndex: 1400, background: 'transparent' }} />
-      <div style={{
-        position: 'fixed', top: 0, right: 0, height: '100vh', width: 420, maxWidth: '92vw', zIndex: 1401,
-        background: 'var(--white)', borderLeft: '1px solid var(--border)', boxShadow: '-8px 0 32px rgba(15,23,42,0.12)',
-        display: 'flex', flexDirection: 'column', overflow: 'hidden',
-        transform: visible ? 'translateX(0)' : 'translateX(100%)',
-        transition: 'transform 0.22s cubic-bezier(0.4,0,0.2,1)',
-      }}>
+    <Sheet open onOpenChange={o => { if (!o) requestClose(); }}>
+      <SheetContent overlayClassName="bg-transparent" className="w-105 max-w-[92vw] flex flex-col p-0 gap-0">
 
         {/* Header */}
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
-          <div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>
-              {listenerType === 'customer' ? 'Add Customer Listener' : mode === 'assign' ? 'Assign Team Member' : 'Tag Internal Staff'}
-            </div>
-            <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>
-              {listenerType === 'customer'
-                ? `Customer declared for this shipment: ${declaredCustomer?.name || 'Shipment Customer'}`
-                : 'Select team members to notify and assign to this shipment'}
-            </div>
+        <SheetHeader style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+          <SheetTitle style={{ fontSize: 15 }}>
+            {listenerType === 'customer' ? 'Add Customer Listener' : mode === 'assign' ? 'Assign Team Member' : 'Tag Internal Staff'}
+          </SheetTitle>
+          <div style={{ fontSize: 12, color: 'var(--ink3)' }}>
+            {listenerType === 'customer'
+              ? `Customer declared for this shipment: ${declaredCustomer?.name || 'Shipment Customer'}`
+              : 'Select team members to notify and assign to this shipment'}
           </div>
-          <button type="button" title="Close" onClick={requestClose} style={{ background: 'var(--bg)', border: 'none', borderRadius: 'var(--r)', cursor: 'pointer', padding: 6, display: 'flex', flexShrink: 0 }}>
-            <Icon name="x" size={16} color="var(--ink2)" />
-          </button>
-        </div>
+        </SheetHeader>
 
         {/* Search */}
         <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border)' }}>
@@ -4130,8 +4117,8 @@ function StaffPickerModal({ jobId, shipmentId, isLive, onRefresh, existing, onCl
             </button>
           </div>
         </div>
-      </div>
-    </>
+      </SheetContent>
+    </Sheet>
   );
 }
 

@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import { db, withTenant } from '../db/client.js';
+import { withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import { requireRoleOrOrgPermission, ORG_PERMISSIONS } from '../lib/org-rbac.js';
 import { Redis } from 'ioredis';

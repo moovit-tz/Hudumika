@@ -6,6 +6,7 @@ import { useComplyAgencyDirectory } from '../hooks/useComply.js';
 import type { CompAgencyDirectoryEntry } from '@hudumika/types';
 import './ComplyOS.css';
 import { PageHeader } from '../components/PageHeader.js';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet.js';
 
 type Agency = CompAgencyDirectoryEntry;
 
@@ -89,55 +90,49 @@ export function ComplyAgencies() {
       </div>
 
       {/* Detail panel */}
-      {selected && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 500, display: 'flex', justifyContent: 'flex-end' }} onClick={() => setSelected(null)}>
-          <div
-            style={{ width: 420, maxWidth: '100%', background: 'var(--white)', height: '100%', overflowY: 'auto', boxShadow: '-8px 0 24px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column' }}
-            onClick={e => e.stopPropagation()}
-          >
-            <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <div>
-                <div style={{ fontSize: 18, fontWeight: 900, color: 'var(--ink)', marginBottom: 4 }}>{selected.code}</div>
+      <Sheet open={!!selected} onOpenChange={o => { if (!o) setSelected(null); }}>
+        <SheetContent className="w-105 sm:max-w-105 flex flex-col p-0 gap-0">
+          {selected && (
+            <>
+              <SheetHeader style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)' }}>
+                <SheetTitle style={{ fontSize: 18, fontWeight: 900, color: 'var(--ink)', marginBottom: 4 }}>{selected.code}</SheetTitle>
                 <div style={{ fontSize: 13, color: 'var(--ink2)' }}>{selected.name}</div>
-              </div>
-              <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }} onClick={() => setSelected(null)}>
-                <Icon name="x" size={18} />
-              </button>
-            </div>
-            <div style={{ padding: '20px 24px', flex: 1, display: 'flex', flexDirection: 'column', gap: 20 }}>
-              <div className="comply-grid-2" style={{ gap: 14, marginBottom: 0 }}>
-                {[
-                  { label: 'Category', val: selected.category },
-                  { label: 'Location', val: selected.location },
-                  { label: 'Phone', val: selected.phone },
-                  { label: 'Website', val: selected.website },
-                  { label: 'Turnaround', val: selected.turnaround },
-                  { label: 'Portal', val: PORTAL_TYPE_LABEL[selected.portal_type] },
-                ].map(m => (
-                  <div key={m.label}>
-                    <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 3 }}>{m.label}</div>
-                    <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)' }}>{m.val}</div>
-                  </div>
-                ))}
-              </div>
-              <div>
-                <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>Obligations</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {selected.obligations.map(o => (
-                    <div key={o} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', background: 'var(--bg)', borderRadius: 8, border: '1px solid var(--border)' }}>
-                      <Icon name="fileText" size={13} />
-                      <span style={{ fontSize: 13, color: 'var(--ink)' }}>{o}</span>
+              </SheetHeader>
+              <div style={{ padding: '20px 24px', flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
+                <div className="comply-grid-2" style={{ gap: 14, marginBottom: 0 }}>
+                  {[
+                    { label: 'Category', val: selected.category },
+                    { label: 'Location', val: selected.location },
+                    { label: 'Phone', val: selected.phone },
+                    { label: 'Website', val: selected.website },
+                    { label: 'Turnaround', val: selected.turnaround },
+                    { label: 'Portal', val: PORTAL_TYPE_LABEL[selected.portal_type] },
+                  ].map(m => (
+                    <div key={m.label}>
+                      <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 3 }}>{m.label}</div>
+                      <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)' }}>{m.val}</div>
                     </div>
                   ))}
                 </div>
+                <div>
+                  <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>Obligations</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {selected.obligations.map(o => (
+                      <div key={o} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', background: 'var(--bg)', borderRadius: 8, border: '1px solid var(--border)' }}>
+                        <Icon name="fileText" size={13} />
+                        <span style={{ fontSize: 13, color: 'var(--ink)' }}>{o}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <Link to="/complyos/applications" className="comply-btn-primary" style={{ alignSelf: 'flex-start' }} onClick={() => setSelected(null)}>
+                  <Icon name="plus" size={13} /> Start Application
+                </Link>
               </div>
-              <Link to="/complyos/applications" className="comply-btn-primary" style={{ alignSelf: 'flex-start' }} onClick={() => setSelected(null)}>
-                <Icon name="plus" size={13} /> Start Application
-              </Link>
-            </div>
-          </div>
-        </div>
-      )}
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

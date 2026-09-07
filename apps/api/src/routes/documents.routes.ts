@@ -1,7 +1,7 @@
 import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { db, withTenant } from '../db/client.js';
+import { withTenant } from '../db/client.js';
 import { MinioIntegration } from '../integrations/minio.js';
 import { NotificationService } from '../services/notification.service.js';
 import { CloudSync } from '../services/cloud-sync.service.js';

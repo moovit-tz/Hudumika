@@ -7,6 +7,7 @@ import { useCurrency } from '../hooks/useCurrency.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { MetricsRow } from '../components/MetricCard.js';
 import { FileUploader } from '../components/ui/file-uploader.js';
+import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
 
 interface Statement {
   id: string; bank_name: string | null; account_code: string;
@@ -213,30 +214,26 @@ export function BankReconciliation() {
       </div>
 
       {/* Import modal */}
-      {showImport && (
-        <>
-          <div onClick={() => setShowImport(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div onClick={e => e.stopPropagation()} style={{ background: 'var(--white)', borderRadius: 12, padding: 24, width: 440 }}>
-              <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 6 }}>Import Bank Statement</div>
-              <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 16 }}>CSV with Date, Description, and Amount (or separate Debit/Credit) columns.</div>
-              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 }}>Bank Name (optional)</label>
-              <input value={bankName} onChange={e => setBankName(e.target.value)} placeholder="e.g. CRDB Bank"
-                style={{ width: '100%', padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13, outline: 'none', boxSizing: 'border-box', marginBottom: 16 }} />
-              <FileUploader accept=".csv" multiple={false} onUpload={handleUpload} uploadingFiles={importing ? [{ id: '1', name: 'Uploading…', size: 0, progress: 60, status: 'uploading' }] : []} onRemoveFile={() => {}} />
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
-                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowImport(false)}>Cancel</button>
-              </div>
-            </div>
+      <Dialog open={showImport} onOpenChange={o => { if (!o) setShowImport(false); }}>
+        <DialogContent className="max-w-110 gap-0" style={{ padding: 24 }}>
+          <DialogTitle style={{ fontWeight: 800, fontSize: 15, marginBottom: 6 }}>Import Bank Statement</DialogTitle>
+          <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 16 }}>CSV with Date, Description, and Amount (or separate Debit/Credit) columns.</div>
+          <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 }}>Bank Name (optional)</label>
+          <input value={bankName} onChange={e => setBankName(e.target.value)} placeholder="e.g. CRDB Bank"
+            style={{ width: '100%', padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13, outline: 'none', boxSizing: 'border-box', marginBottom: 16 }} />
+          <FileUploader accept=".csv" multiple={false} onUpload={handleUpload} uploadingFiles={importing ? [{ id: '1', name: 'Uploading…', size: 0, progress: 60, status: 'uploading' }] : []} onRemoveFile={() => {}} />
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowImport(false)}>Cancel</button>
           </div>
-        </>
-      )}
+        </DialogContent>
+      </Dialog>
 
       {/* Match picker */}
-      {pendingLine && (
-        <>
-          <div onClick={() => setPendingLine(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div onClick={e => e.stopPropagation()} style={{ background: 'var(--white)', borderRadius: 12, padding: 24, width: 480, maxHeight: '70vh', display: 'flex', flexDirection: 'column' }}>
-              <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 4 }}>Match "{pendingLine.description}"</div>
+      <Dialog open={!!pendingLine} onOpenChange={o => { if (!o) setPendingLine(null); }}>
+        <DialogContent className="max-w-120 gap-0" style={{ padding: 24, maxHeight: '70vh', display: 'flex', flexDirection: 'column' }}>
+          {pendingLine && (
+            <>
+              <DialogTitle style={{ fontWeight: 800, fontSize: 15, marginBottom: 4 }}>Match "{pendingLine.description}"</DialogTitle>
               <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 14 }}>{new Date(pendingLine.txn_date).toLocaleDateString('en-GB')} · {fmt(pendingLine.amount)}</div>
               <div style={{ overflowY: 'auto', flex: 1 }}>
                 {availableCandidates.length === 0 ? (
@@ -258,10 +255,10 @@ export function BankReconciliation() {
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
                 <button type="button" className="btn btn-secondary btn-sm" onClick={() => setPendingLine(null)}>Cancel</button>
               </div>
-            </div>
-          </div>
-        </>
-      )}
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

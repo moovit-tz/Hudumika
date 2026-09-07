@@ -4,6 +4,7 @@ import { Icon, IconName } from '../components/Icon.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { Sheet, SheetContent, SheetTitle } from '../components/ui/sheet.js';
 
 interface Dashboard {
   period: string;
@@ -166,14 +167,10 @@ export function HuduBIDashboard() {
       )}
 
       {/* Explain drawer */}
-      {showExplain && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', justifyContent: 'flex-end' }}>
-          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(2px)' }} onClick={() => setShowExplain(false)} />
-          <div style={{ position: 'relative', width: 420, maxWidth: '100%', background: 'var(--white)', borderLeft: '1px solid var(--border)', boxShadow: '-10px 0 25px rgba(0,0,0,0.12)', padding: 24, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>How this is computed</div>
-              <button type="button" onClick={() => setShowExplain(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}><Icon name="x" size={18} /></button>
-            </div>
+      <Sheet open={showExplain} onOpenChange={o => { if (!o) setShowExplain(false); }}>
+        <SheetContent className="w-105 sm:max-w-105 flex flex-col p-0 gap-0">
+          <div style={{ padding: 24, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <SheetTitle style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>How this is computed</SheetTitle>
             {explain ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {([['Method', explain.modelName], ['What it does', explain.description], ['Basis', explain.rationale], ['Note', explain.note]] as const).map(([label, val]) => val && (
@@ -185,8 +182,8 @@ export function HuduBIDashboard() {
               </div>
             ) : <SectionLoading />}
           </div>
-        </div>
-      )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

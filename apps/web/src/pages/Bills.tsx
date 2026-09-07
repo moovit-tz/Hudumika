@@ -16,6 +16,8 @@ import { Combobox } from '../components/ui/combobox.js';
 import { SingleSelectFilter } from '../components/ui/filter-dropdown.js';
 import { Button } from '../components/ui/button.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
+import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet.js';
 import { showAlert } from '../lib/alert.js';
 import { useTaxCodes } from '../data/taxCodeData.js';
 
@@ -224,9 +226,9 @@ function PayModal({ bill, onPay, onClose }: {
   const inp: React.CSSProperties = { width:'100%', padding:'9px 12px', border:'1px solid var(--border)', borderRadius: 'var(--r)', fontSize:13, outline:'none', background:'var(--white)', boxSizing:'border-box' as const, color:'var(--ink)', fontFamily:'inherit' };
   const lbl: React.CSSProperties = { fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:5 };
   return (
-    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', zIndex:1000, display:'flex', alignItems:'center', justifyContent:'center' }}>
-      <div style={{ background:'var(--white)', borderRadius: 'var(--r)', padding:28, width:440, boxShadow: 'var(--elev-lg)' }}>
-        <div style={{ fontSize:16, fontWeight:800, color:'var(--ink)', marginBottom:4 }}>Record Payment</div>
+    <Dialog open onOpenChange={o => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-110 gap-0" style={{ padding:28 }}>
+        <DialogTitle style={{ fontSize:16, fontWeight:800, color:'var(--ink)', marginBottom:4 }}>Record Payment</DialogTitle>
         <div style={{ fontSize:13, color:'var(--ink3)', marginBottom:20 }}>{bill.bill_number} · Balance: <strong>{fmt(balance, bill.currency)}</strong></div>
         <div style={{ marginBottom:14 }}>
           <label style={lbl}>Payment Amount *</label>
@@ -255,8 +257,8 @@ function PayModal({ bill, onPay, onClose }: {
             Confirm Payment
           </button>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -527,16 +529,12 @@ function RecurFormView({ initial, suppliers, onSupplierCreated, onSave, onClose 
   const lbl: React.CSSProperties = { fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:5 };
   const total = f.amount * (1 + f.tax_rate / 100);
   return (
-    <>
-      <div onClick={onClose} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.3)', zIndex:400 }} />
-      <div style={{ position:'fixed', top:0, right:0, bottom:0, width:480, background:'var(--white)', zIndex:401, display:'flex', flexDirection:'column', boxShadow:'-8px 0 40px rgba(0,0,0,0.14)' }}>
-        <div style={{ padding:'18px 22px', borderBottom:'1px solid var(--border)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-          <div>
-            <div style={{ fontWeight:800, fontSize:15, color:'var(--ink)' }}>{initial ? 'Edit Recurring Bill' : 'New Recurring Bill'}</div>
-            <div style={{ fontSize:12, color:'var(--ink3)', marginTop:2 }}>Auto-generates bills on schedule</div>
-          </div>
-          <button type="button" title="Close" onClick={onClose} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink3)', display:'flex', padding:4 }}><Icon name="x" size={18} /></button>
-        </div>
+    <Sheet open onOpenChange={o => { if (!o) onClose(); }}>
+      <SheetContent className="w-120 sm:max-w-120 flex flex-col p-0 gap-0">
+        <SheetHeader style={{ padding:'18px 22px', borderBottom:'1px solid var(--border)' }}>
+          <SheetTitle style={{ fontWeight:800, fontSize:15, color:'var(--ink)' }}>{initial ? 'Edit Recurring Bill' : 'New Recurring Bill'}</SheetTitle>
+          <div style={{ fontSize:12, color:'var(--ink3)', marginTop:2 }}>Auto-generates bills on schedule</div>
+        </SheetHeader>
         <div style={{ flex:1, overflowY:'auto', padding:'18px 22px' }}>
           <div style={{ marginBottom:14 }}><label style={lbl}>Template Name *</label><input type="text" title="Name" placeholder="e.g. Monthly Retainer" value={f.name} onChange={e => set('name', e.target.value)} style={inp} /></div>
           <div style={{ marginBottom:14 }}>
@@ -595,8 +593,8 @@ function RecurFormView({ initial, suppliers, onSupplierCreated, onSave, onClose 
             <Icon name="save" size={13} /> {initial ? 'Update' : 'Create'}
           </button>
         </div>
-      </div>
-    </>
+      </SheetContent>
+    </Sheet>
   );
 }
 
@@ -1118,18 +1116,20 @@ export const Bills: React.FC = () => {
         <PayModal bill={payTarget} onClose={() => setPayTarget(null)}
           onPay={(a,d,m,r,n) => handlePay(payTarget, a, d, m, r, n)} />
       )}
-      {voidTarget && (
-        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.4)', zIndex:1000, display:'flex', alignItems:'center', justifyContent:'center' }}>
-          <div style={{ background:'var(--white)', borderRadius: 'var(--r)', padding:28, width:400 }}>
-            <div style={{ fontSize:16, fontWeight:700, marginBottom:8 }}>Void Bill</div>
-            <div style={{ fontSize:13, color:'var(--ink2)', marginBottom:20 }}>Void <strong>{voidTarget.bill_number}</strong>? This cannot be undone. Payments already recorded will remain.</div>
-            <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
-              <button type="button" title="Cancel" onClick={() => setVoidTarget(null)} style={{ padding:'var(--ds-btn-py) 18px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:13, color:'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
-              <Button type="button" variant="destructive" title="Confirm void" onClick={() => handleVoid(voidTarget)}>Void Bill</Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Dialog open={!!voidTarget} onOpenChange={o => { if (!o) setVoidTarget(null); }}>
+        <DialogContent className="max-w-100 gap-0" style={{ padding:28 }}>
+          {voidTarget && (
+            <>
+              <DialogTitle style={{ fontSize:16, fontWeight:700, marginBottom:8 }}>Void Bill</DialogTitle>
+              <div style={{ fontSize:13, color:'var(--ink2)', marginBottom:20 }}>Void <strong>{voidTarget.bill_number}</strong>? This cannot be undone. Payments already recorded will remain.</div>
+              <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
+                <button type="button" title="Cancel" onClick={() => setVoidTarget(null)} style={{ padding:'var(--ds-btn-py) 18px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:13, color:'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
+                <Button type="button" variant="destructive" title="Confirm void" onClick={() => handleVoid(voidTarget)}>Void Bill</Button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
       {showRecurForm && (
         <RecurFormView initial={formRecur ?? undefined} suppliers={suppliers} onSupplierCreated={handleSupplierCreated} onSave={handleSaveRecur} onClose={() => { setShowRecurForm(false); setFormRecur(null); }} />
       )}

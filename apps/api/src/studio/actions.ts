@@ -148,6 +148,7 @@ export const ACTIONS: ActionDef[] = [
           category: input.category,
           status: 'OPEN',
           tags: JSON.stringify(input.tags),
+          source_app: 'studio',
           sla_deadline: new Date(Date.now() + (SLA_HOURS[input.priority] ?? 24) * 3600_000),
         }).returning('id').executeTakeFirstOrThrow();
 

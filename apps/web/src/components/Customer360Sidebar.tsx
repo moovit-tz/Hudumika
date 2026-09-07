@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from './Icon.js';
 import { Badge } from './ui/badge.js';
+import { Switch } from './ui/switch.js';
+import { PersonAvatar } from './PersonAvatar.js';
 import type { IconName } from './Icon.js';
 import './Customer360Sidebar.css';
 
@@ -76,13 +78,14 @@ const INV_STATUS_COLORS: Record<string, string> = {
 };
 
 export function Customer360Sidebar({
-  context, ticketId, onUseAiReply, onClose, onUpdateCustomer,
+  context, ticketId, onUseAiReply, onClose, onUpdateCustomer, hideHeader,
 }: {
   context?: CustomerContext;
   ticketId?: string;
   onUseAiReply?: (text: string) => void;
   onClose?: () => void;
   onUpdateCustomer?: (updated: Partial<CustomerContext>) => void;
+  hideHeader?: boolean;
 }) {
   const [tab, setTab] = useState<Tab>('profile');
   const [aiLoading, setAiLoading] = useState(false);
@@ -189,32 +192,34 @@ export function Customer360Sidebar({
     );
   }
 
-  const { customer_name, customer_email, customer_phone, customer_wa, customer_company,
+  const { customer_id, customer_name, customer_email, customer_phone, customer_wa, customer_company,
     customer_country, kyc_status, invoices = [], shipments = [] } = context;
 
   return (
     <div className="c360-root" style={{ display: 'flex', flexDirection: 'column', height: '100%', fontFamily: 'var(--font)', background: 'var(--white)', borderLeft: '1px solid var(--border)', overflowY: 'auto' }}>
       
       {/* ── Top Bar Header ── */}
-      <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--white)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Icon name="user" size={16} color="var(--teal)" strokeWidth={2} />
-          <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.01em' }}>Contact Profile Details</span>
+      {!hideHeader && (
+        <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--white)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Icon name="user" size={16} color="var(--teal)" strokeWidth={2} />
+            <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.01em' }}>Contact Profile Details</span>
+          </div>
+          {onClose && (
+            <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }} title="Close details">
+              <Icon name="x" size={16} />
+            </button>
+          )}
         </div>
-        {onClose && (
-          <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }} title="Close details">
-            <Icon name="x" size={16} />
-          </button>
-        )}
-      </div>
+      )}
 
       {/* ── Big Contact Header Profile Card ── */}
       <div style={{ padding: '20px 18px', textAlign: 'center', borderBottom: '1px solid var(--border)', background: 'var(--bg)' }}>
-        <div style={{ position: 'relative', width: 64, height: 64, margin: '0 auto 12px' }}>
-          <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: 'linear-gradient(135deg, var(--teal), #6366f1)', color: '#fff', fontSize: 24, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(13, 148, 136, 0.25)' }}>
-            {customer_name?.charAt(0)?.toUpperCase()}
-          </div>
-          <span style={{ position: 'absolute', bottom: 2, right: 2, width: 14, height: 14, borderRadius: '50%', background: '#10b981', border: '2px solid var(--white)' }} title="Online" />
+        {/* The hardcoded green "Online" dot this used to draw was never real
+            — a customer has no login session to be online in, so PersonAvatar
+            correctly shows none at all (kind='customers') rather than a lie. */}
+        <div style={{ width: 64, height: 64, margin: '0 auto 12px' }}>
+          <PersonAvatar userId={customer_id} kind="customers" name={customer_name || 'Customer'} size={64} />
         </div>
 
         <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)', marginBottom: 2 }}>{customer_name}</div>
@@ -282,19 +287,7 @@ export function Customer360Sidebar({
                   <Icon name="sparkle" size={14} color="var(--teal)" />
                   <span style={{ fontSize: 11.5, fontWeight: 800, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>AI Assistant Control</span>
                 </div>
-                <label style={{ position: 'relative', display: 'inline-block', width: 36, height: 20, cursor: 'pointer' }}>
-                  <input type="checkbox" checked={aiCopilotActive} onChange={e => setAiCopilotActive(e.target.checked)} style={{ opacity: 0, width: 0, height: 0 }} />
-                  <span style={{
-                    position: 'absolute', inset: 0, borderRadius: 20,
-                    background: aiCopilotActive ? 'var(--teal)' : 'var(--border)',
-                    transition: '0.2s ease-in-out'
-                  }}>
-                    <span style={{
-                      position: 'absolute', content: '""', height: 14, width: 14, left: aiCopilotActive ? 18 : 3, bottom: 3,
-                      background: '#fff', borderRadius: '50%', transition: '0.2s ease-in-out'
-                    }} />
-                  </span>
-                </label>
+                <Switch checked={aiCopilotActive} onCheckedChange={c => setAiCopilotActive(c === true)} />
               </div>
               <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>
                 {aiCopilotActive ? 'AI Copilot Chat auto-suggests replies & drafts.' : 'Auto-reply disabled for this contact.'}

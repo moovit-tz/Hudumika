@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import './OndiPages.css';
 import { apiFetch } from '../lib/api.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { Checkbox } from '../components/ui/checkbox.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Icon } from '../components/Icon.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
@@ -410,12 +411,10 @@ export const OndiPolicies: React.FC = () => {
                     </div>
 
                     <label style={{ display: 'inline-flex', alignItems: 'center', cursor: canManagePolicies ? 'pointer' : 'default' }}>
-                      <input
-                        type="checkbox"
+                      <Checkbox
                         checked={pol.enabled}
                         disabled={!canManagePolicies}
-                        onChange={() => toggleCustomPolicy(pol.id)}
-                        style={{ width: 18, height: 18, accentColor: 'var(--teal)', cursor: 'pointer' }}
+                        onCheckedChange={() => toggleCustomPolicy(pol.id)}
                       />
                     </label>
                   </div>

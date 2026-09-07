@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { Checkbox } from '../components/ui/checkbox.js';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet.js';
@@ -4709,7 +4710,7 @@ export const LandedCostPage: React.FC = () => {
                     Special Excise — Finance Act 2026 (July update)
                   </label>
                   <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--ink)', cursor: 'pointer', marginBottom: isUsedVehicle ? 10 : 0 }}>
-                    <input type="checkbox" checked={isUsedVehicle} onChange={e => setIsUsedVehicle(e.target.checked)} />
+                    <Checkbox checked={isUsedVehicle} onCheckedChange={c => setIsUsedVehicle(c === true)} />
                     This is a used motor vehicle
                   </label>
                   {isUsedVehicle && (
@@ -4720,7 +4721,7 @@ export const LandedCostPage: React.FC = () => {
                     </div>
                   )}
                   <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--ink)', cursor: 'pointer' }}>
-                    <input type="checkbox" checked={isClogs} onChange={e => setIsClogs(e.target.checked)} />
+                    <Checkbox checked={isClogs} onCheckedChange={c => setIsClogs(c === true)} />
                     This is plastic or rubber clogs footwear
                   </label>
                   <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 8, lineHeight: 1.5 }}>
@@ -4761,8 +4762,8 @@ export const LandedCostPage: React.FC = () => {
                             {/* Excluding is a decision the user makes and can undo,
                                 not something the importer does behind their back. */}
                             <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: row.excluded ? 'var(--ink3)' : 'var(--ink2)', cursor: 'pointer' }}>
-                              <input type="checkbox" checked={!row.excluded}
-                                onChange={e => updateRow(row.id, { excluded: !e.target.checked })} />
+                              <Checkbox checked={!row.excluded}
+                                onCheckedChange={c => updateRow(row.id, { excluded: c !== true })} />
                               {row.excluded ? 'Excluded' : 'Include'}
                             </label>
                             <button type="button" onClick={() => removeRow(row.id)} disabled={multiItems.length === 1}

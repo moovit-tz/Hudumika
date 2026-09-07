@@ -7,6 +7,7 @@ import { Link } from 'react-router-dom';
 import { apiFetch } from '../../lib/api.js';
 import type { OnsiteApplication } from '@hudumika/types';
 import { Icon } from '../../components/Icon.js';
+import { Dialog, DialogContent, DialogTitle } from '../../components/ui/dialog.js';
 import './Onsite.css';
 
 export function OnsiteApplications() {
@@ -204,18 +205,13 @@ export function OnsiteApplications() {
       )}
 
       {/* Add App Modal */}
-      {showAddModal && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0,0,0,0.5)', zIndex: 1000,
-          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem'
-        }}>
-          <div className="onsite-card" style={{ width: '100%', maxWidth: '520px' }}>
-            <div className="onsite-card-header">
-              <h3 className="onsite-card-title">Deploy Application</h3>
-              <button className="btn btn-sm btn-ghost" onClick={() => setShowAddModal(false)}>✕</button>
-            </div>
-            <form onSubmit={handleCreateApp} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <Dialog open={showAddModal} onOpenChange={(o) => { if (!o) setShowAddModal(false); }}>
+        <DialogContent hideClose className="max-w-130 gap-0" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div className="onsite-card-header">
+            <DialogTitle className="onsite-card-title">Deploy Application</DialogTitle>
+            <button className="btn btn-sm btn-ghost" onClick={() => setShowAddModal(false)}>✕</button>
+          </div>
+          <form onSubmit={handleCreateApp} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div className="onsite-form-group">
                 <label>Application Name *</label>
                 <input
@@ -283,10 +279,9 @@ export function OnsiteApplications() {
                   {submitting ? 'Creating…' : 'Create & Deploy'}
                 </button>
               </div>
-            </form>
-          </div>
-        </div>
-      )}
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
