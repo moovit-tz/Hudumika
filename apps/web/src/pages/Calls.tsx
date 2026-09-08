@@ -391,7 +391,7 @@ export function Calls() {
       }}>
         {/* Metric 1: Colleagues Online */}
         <div style={{
-          background: 'var(--card)',
+          background: 'var(--card-bg, var(--white))',
           padding: '14px 16px',
           borderRadius: 'var(--r, 14px)',
           border: '1px solid var(--border)',
@@ -414,7 +414,7 @@ export function Calls() {
 
         {/* Metric 2: Recent Direct Log */}
         <div style={{
-          background: 'var(--card)',
+          background: 'var(--card-bg, var(--white))',
           padding: '14px 16px',
           borderRadius: 'var(--r, 14px)',
           border: '1px solid var(--border)',
@@ -437,7 +437,7 @@ export function Calls() {
 
         {/* Metric 3: Signaling Gateway */}
         <div style={{
-          background: 'var(--card)',
+          background: 'var(--card-bg, var(--white))',
           padding: '14px 16px',
           borderRadius: 'var(--r, 14px)',
           border: '1px solid var(--border)',
@@ -468,7 +468,7 @@ export function Calls() {
           fixed in MeetingCenter.tsx's toolbar. Wrapping can never hide a
           control. ── */}
       <div style={{
-        background: 'var(--card)',
+        background: 'var(--card-bg, var(--white))',
         borderRadius: 'var(--r, 14px)',
         border: '1px solid var(--border)',
         boxShadow: 'var(--elev-sm)',
@@ -526,7 +526,7 @@ export function Calls() {
         }}>
           {/* Main Directory Column */}
           <div style={{
-            background: 'var(--card)',
+            background: 'var(--card-bg, var(--white))',
             borderRadius: 'var(--r, 16px)',
             border: '1px solid var(--border)',
             boxShadow: 'var(--elev-sm)',
@@ -611,7 +611,7 @@ export function Calls() {
                         padding: isMobile ? '12px 14px' : '14px 18px',
                         borderRadius: 'var(--r, 12px)',
                         border: '1px solid var(--border)',
-                        background: 'var(--card)',
+                        background: 'var(--card-bg, var(--white))',
                         boxShadow: 'var(--elev-sm)',
                         flexDirection: isMobile ? 'column' : 'row',
                         gap: isMobile ? 12 : 14,
@@ -706,7 +706,7 @@ export function Calls() {
 
           {/* Right Sidebar: Recent Activity Feed */}
           <div style={{
-            background: 'var(--card)',
+            background: 'var(--card-bg, var(--white))',
             borderRadius: 'var(--r, 16px)',
             border: '1px solid var(--border)',
             boxShadow: 'var(--elev-sm)',
@@ -784,7 +784,7 @@ export function Calls() {
       {/* ── TAB 2: CALL LOGS & HISTORY (Hybrid Desktop Table + Mobile Cards) ── */}
       {tab === 'history' && (
         <div style={{
-          background: 'var(--card)',
+          background: 'var(--card-bg, var(--white))',
           borderRadius: 'var(--r, 16px)',
           border: '1px solid var(--border)',
           boxShadow: 'var(--elev-sm)',
@@ -1055,7 +1055,7 @@ export function Calls() {
           padding: isMobile ? '8px 0' : '16px 0',
         }}>
           <div style={{
-            background: 'var(--card)',
+            background: 'var(--card-bg, var(--white))',
             borderRadius: 'var(--r, 20px)',
             border: '1px solid var(--border)',
             boxShadow: 'var(--elev-sm)',
@@ -1133,7 +1133,7 @@ export function Calls() {
                       alignItems: 'center',
                       justifyContent: 'space-between',
                       padding: '6px 10px',
-                      background: 'var(--card)',
+                      background: 'var(--card-bg, var(--white))',
                       border: '1px solid var(--border)',
                       borderRadius: 6,
                       fontSize: 12,
@@ -1231,7 +1231,7 @@ export function Calls() {
           padding: 16,
         }}>
           <div style={{
-            background: 'var(--card)',
+            background: 'var(--card-bg, var(--white))',
             borderRadius: 'var(--r, 24px)',
             padding: 32,
             width: '100%',

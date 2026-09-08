@@ -333,8 +333,8 @@ export const Chat: React.FC = () => {
       {(!isMobile || !activeId) && (
       <aside style={{ width: isMobile ? '100%' : 280, flexShrink: 0, background: 'var(--white)', borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         {/* Sidebar Header */}
-        <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <h2 style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)', margin: 0 }}>Messages</h2>
+        <div style={{ height: 50, padding: '0 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxSizing: 'border-box', flexShrink: 0, background: 'var(--card-bg, var(--white))' }}>
+          <h2 style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)', margin: 0 }}>Messages</h2>
           <div style={{ display: 'flex', gap: 4 }}>
             <Tip label="Browse channels">
               <button type="button" onClick={openBrowse} style={{ width: 30, height: 30, borderRadius: 8, background: 'var(--card-sunken)', color: 'var(--ink2)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -539,51 +539,51 @@ export const Chat: React.FC = () => {
         ) : (
           <>
             {/* Main Stage Header */}
-            <header style={{ height: 64, padding: '0 20px', background: 'var(--white)', borderBottom: '1px solid var(--border)', boxShadow: 'var(--elev-sm)', position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+            <header style={{ height: 50, padding: '0 16px', background: 'var(--card-bg, var(--white))', borderBottom: '1px solid var(--border)', position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0, boxSizing: 'border-box' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
                 {isMobile && (
                   <button type="button" onClick={() => setActiveId(null)} style={{ background: 'none', border: 'none', padding: 4, cursor: 'pointer', color: 'var(--ink2)', flexShrink: 0 }}>
                     <Icon name="arrowLeft" size={18} />
                   </button>
                 )}
                 {activeCh.type === 'dm' ? (
-                  <PersonAvatar userId={activeCh.other_user_id} name={activeCh.name} size={38} />
+                  <PersonAvatar userId={activeCh.other_user_id} name={activeCh.name} size={32} />
                 ) : (
-                  <div style={{ width: 38, height: 38, borderRadius: 'var(--r)', background: 'var(--teal-l)', color: 'var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <Icon name={activeCh.type === 'channel' ? 'hash' : 'users'} size={17} />
+                  <div style={{ width: 32, height: 32, borderRadius: 'var(--r)', background: 'var(--teal-l)', color: 'var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Icon name={activeCh.type === 'channel' ? 'hash' : 'users'} size={15} />
                   </div>
                 )}
 
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span>{activeCh.name}</span>
+                  <div style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 6, lineHeight: 1.2 }}>
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{activeCh.name}</span>
                     <Tip label="Favorite">
-                      <button type="button" onClick={(e) => toggleFav(activeCh.id, e)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: activeCh.is_favorite ? 'var(--gold)' : 'var(--ink3)' }}>
+                      <button type="button" onClick={(e) => toggleFav(activeCh.id, e)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: activeCh.is_favorite ? 'var(--gold)' : 'var(--ink3)', fontSize: 13, padding: 0, lineHeight: 1 }}>
                         ★
                       </button>
                     </Tip>
                   </div>
-                  <div style={{ fontSize: 11, color: 'var(--ink3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <div style={{ fontSize: 11, color: 'var(--ink3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.2 }}>
                     {activeCh.type === 'dm' ? (activeCh.other_user_role || '') : (activeCh.description || `${activeCh.member_ids.length} members`)}
                   </div>
                 </div>
               </div>
 
               {/* Header Right Action Buttons */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <Tip label="Start Voice Call">
-                  <button type="button" onClick={() => startCallWith(activeCh.type === 'dm' ? activeCh.other_user_id : null, 'VOICE')} style={{ width: 34, height: 34, borderRadius: 'var(--r)', background: 'var(--card-sunken)', border: 'none', color: 'var(--ink2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Icon name="phone" size={16} />
+                  <button type="button" onClick={() => startCallWith(activeCh.type === 'dm' ? activeCh.other_user_id : null, 'VOICE')} style={{ width: 30, height: 30, borderRadius: 'var(--r)', background: 'var(--card-sunken)', border: 'none', color: 'var(--ink2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Icon name="phone" size={15} />
                   </button>
                 </Tip>
                 <Tip label="Start Video Call">
-                  <button type="button" onClick={() => startCallWith(activeCh.type === 'dm' ? activeCh.other_user_id : null, 'VIDEO')} style={{ width: 34, height: 34, borderRadius: 'var(--r)', background: 'var(--card-sunken)', border: 'none', color: 'var(--ink2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Icon name="camera" size={16} />
+                  <button type="button" onClick={() => startCallWith(activeCh.type === 'dm' ? activeCh.other_user_id : null, 'VIDEO')} style={{ width: 30, height: 30, borderRadius: 'var(--r)', background: 'var(--card-sunken)', border: 'none', color: 'var(--ink2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Icon name="camera" size={15} />
                   </button>
                 </Tip>
                 <Tip label="Toggle Info Drawer">
-                  <button type="button" onClick={() => setShowDetails(v => !v)} style={{ width: 34, height: 34, borderRadius: 'var(--r)', background: showDetails ? 'var(--teal-l)' : 'var(--card-sunken)', border: 'none', color: showDetails ? 'var(--teal)' : 'var(--ink2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Icon name="info" size={16} />
+                  <button type="button" onClick={() => setShowDetails(v => !v)} style={{ width: 30, height: 30, borderRadius: 'var(--r)', background: showDetails ? 'var(--teal-l)' : 'var(--card-sunken)', border: 'none', color: showDetails ? 'var(--teal)' : 'var(--ink2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Icon name="info" size={15} />
                   </button>
                 </Tip>
               </div>
@@ -644,7 +644,6 @@ export const Chat: React.FC = () => {
                           padding: '9px 14px', maxWidth: '85%', width: 'fit-content',
                           color: 'var(--ink)', fontSize: 13.5, lineHeight: 1.55,
                           boxShadow: isMe ? 'none' : 'var(--elev-sm)',
-                          borderLeft: isMe ? '3px solid var(--teal)' : 'none',
                         }}>
                           {msg.content}
                         </div>
@@ -749,15 +748,17 @@ export const Chat: React.FC = () => {
              next to a phone-width thread). ─────────────────────────────── */}
       {showDetails && activeCh && (
         <aside style={isMobile
-          ? { position: 'fixed', inset: 0, zIndex: 200, background: 'var(--white)', display: 'flex', flexDirection: 'column', overflowY: 'auto', padding: 16, gap: 16 }
-          : { width: 280, flexShrink: 0, background: 'var(--white)', borderLeft: '1px solid var(--border)', display: 'flex', flexDirection: 'column', overflowY: 'auto', padding: 16, gap: 16 }}>
+          ? { position: 'fixed', inset: 0, zIndex: 200, background: 'var(--card-bg, var(--white))', display: 'flex', flexDirection: 'column', overflow: 'hidden' }
+          : { width: 280, flexShrink: 0, background: 'var(--card-bg, var(--white))', borderLeft: '1px solid var(--border)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           {/* Header */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ height: 50, padding: '0 16px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0, boxSizing: 'border-box', background: 'var(--card-bg, var(--white))' }}>
             <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)' }}>{activeCh.type === 'dm' ? 'User Details' : 'Channel Details'}</span>
-            <button type="button" onClick={() => setShowDetails(false)} style={{ background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer' }}>
+            <button type="button" onClick={() => setShowDetails(false)} style={{ background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Icon name="close" size={16} />
             </button>
           </div>
+
+          <div style={{ flex: 1, overflowY: 'auto', padding: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
 
           {/* Profile Card */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', background: 'var(--card-sunken)', borderRadius: 16, padding: 18, border: '1px solid var(--border2)' }}>
@@ -928,6 +929,7 @@ export const Chat: React.FC = () => {
               </div>
             );
           })()}
+          </div>
         </aside>
       )}
 

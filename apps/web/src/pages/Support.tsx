@@ -163,7 +163,15 @@ export const STATUS_CFG: Record<StatusKey, { bg: string; color: string; label: s
 };
 
 export const CHANNEL_CFG: Record<ChannelId, { label: string; icon: IconName; color: string; bg: string; border: string; btnLabel: string }> = {
-  inapp: { label: 'Chat', icon: 'message', color: 'var(--teal)', bg: 'var(--teal-l)', border: 'var(--teal)', btnLabel: 'Send Reply' },
+  // Fixed indigo, not var(--teal) — --teal is the tenant/app's own brand
+  // accent (CLAUDE.md: "the per-app accent, not a fixed colour") and can be
+  // anything a tenant picks, including a near-black navy — which is exactly
+  // what Bliss's own accent resolves to. That made this pill render as a
+  // heavy dark chip next to WhatsApp/Email/SMS's soft, evenly-saturated
+  // ones (all fixed hues themselves), the mismatch the "chat bubbles" report
+  // was pointing at. A channel identity is categorical, not brand — same
+  // reasoning as Badge's semantic variants staying off --teal.
+  inapp: { label: 'Chat', icon: 'message', color: '#6366F1', bg: 'rgba(99,102,241,0.12)', border: '#6366F1', btnLabel: 'Send Reply' },
   email: { label: 'Email', icon: 'mail', color: 'var(--blue)', bg: 'var(--blue-l)', border: 'var(--blue)', btnLabel: 'Send Email' },
   whatsapp: { label: 'WhatsApp', icon: 'whatsapp', color: '#25D366', bg: 'rgba(37,211,102,0.12)', border: '#25D366', btnLabel: 'Send via WhatsApp' },
   sms: { label: 'SMS', icon: 'smartphone', color: 'var(--purple)', bg: 'var(--purple-l)', border: 'var(--purple)', btnLabel: 'Send SMS' },
@@ -298,9 +306,11 @@ function SBadge({ s }: { s: string }) {
 function ChPill({ ch }: { ch: ChannelId }) {
   const c = CHANNEL_CFG[ch] ?? CHANNEL_CFG.inapp;
   return (
-    <span className="spt-ch-pill-sm" data-ch={ch} style={{ color: c.color, background: c.bg, borderColor: c.border }}>
-      <Icon name={c.icon} size={10} strokeWidth={2} />{c.label}
-    </span>
+    <Tip label={c.label}>
+      <span className="spt-ch-pill-sm" data-ch={ch} aria-label={c.label} style={{ color: c.color, background: c.bg, borderColor: c.border }}>
+        <Icon name={c.icon} size={11} strokeWidth={2} />
+      </span>
+    </Tip>
   );
 }
 
@@ -1189,13 +1199,34 @@ function ThreadPanel({ ticket, authorName, onClose, onOpenDetails, aiSuggestionT
   }
 
   useEffect(() => {
-    setMessages(ticket.messages || []);
     setEmailSubj(`Re: [${ticket.ref}] ${ticket.subject}`);
     setCompose('');
     setBroadcastChs(new Set(['inapp'] as ChannelId[]));
     setIsNote(false);
     setBroadcastResult([]);
   }, [ticket.id]); // eslint-disable-line
+
+  // Real fetched thread data arrives in two waves and can keep arriving:
+  // openTicket()'s own `{ ...t, messages: [] }` optimistic placeholder,
+  // then the real GET /tickets/:id response once it resolves, and again
+  // whenever useWebSocket's support.message_received handler re-fetches
+  // this same ticket. ticket.messages is a fresh array reference each of
+  // those times even though ticket.id never changes, so it can't live in
+  // the [ticket.id]-only effect above without also wiping the compose
+  // draft/channel selection on every WS refetch — but leaving it out
+  // entirely (the bug this replaces) meant the fetched thread never
+  // reached the screen at all: messages state was seeded once from
+  // openTicket's empty placeholder and then never updated again, so a
+  // ticket's real history (older notes included) stayed invisible no
+  // matter how long the fetch had to resolve, and a just-sent message
+  // that genuinely persisted server-side looked lost on the next reload.
+  // Never fires from handleSend's own local optimistic append, since that
+  // only calls setMessages — the ticket prop and its .messages reference
+  // are untouched until the server-authoritative refetch lands, which is
+  // what should supersede the local optimistic entries with real ids.
+  useEffect(() => {
+    setMessages(ticket.messages || []);
+  }, [ticket.id, ticket.messages]);
 
   useEffect(() => {
     if (aiSuggestionToUse) {
@@ -1362,6 +1393,17 @@ function ThreadPanel({ ticket, authorName, onClose, onOpenDetails, aiSuggestionT
           <span>{new Date(ticket.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
         </div>
 
+        {/* This only ever covers a ticket with truly zero messages (rare —
+            a brand-new, unreplied ticket). It used to also be the ONLY
+            place a customer's opening inquiry on any non-WhatsApp-origin
+            ticket appeared at all, because createTicketRow() saved it only
+            to this row's own `description` column, never as a real
+            support_messages row — so the description silently disappeared
+            the moment anyone replied and this condition went false. Fixed
+            at the source instead of here: createTicketRow now inserts a
+            real message for it (support.routes.ts), and a one-time backfill
+            did the same for every ticket already affected — so this stays
+            the simple, honestly-empty-thread fallback it looks like. */}
         {visible.length === 0 && (
           <div className="spt-bedesk-msg spt-bedesk-msg--customer">
             <Av name={ticket.customer} userId={ticket.customer_id} kind="customers" size={32} />
@@ -1455,16 +1497,44 @@ function ThreadPanel({ ticket, authorName, onClose, onOpenDetails, aiSuggestionT
 
       {/* ── Message Composer ── */}
       <div className="spt-bedesk-composer">
-        {broadcastResult.length > 0 && (
-          <div className="spt-broadcast-toast">
-            {broadcastResult.map(r => (
-              <span key={r.ch} className={`spt-broadcast-toast-chip${r.success ? '' : ' spt-broadcast-toast-chip--fail'}`}>
-                {r.success ? '✓' : '✗'} {r.ch}
-              </span>
-            ))}
-            <span className="spt-broadcast-toast-label">Sent!</span>
-          </div>
-        )}
+        {broadcastResult.length > 0 && (() => {
+          const allOk = broadcastResult.every(r => r.success);
+          const anyOk = broadcastResult.some(r => r.success);
+          const state = allOk ? 'success' : anyOk ? 'partial' : 'fail';
+          const failed = broadcastResult.filter(r => !r.success);
+          return (
+            // Floats above the composer instead of the old edge-to-edge
+            // banner — a toast, not an inline alert row that permanently
+            // shifted the toolbar down. Successful channels reuse ChPill
+            // itself — same icon-only chip + hover tooltip the message
+            // bubble's own channel row now shows — so this notification and
+            // the bubble it's confirming read as one visual language. A
+            // failed channel gets the same treatment in red rather than a
+            // separate icon+text chip shape, which no longer fits ChPill's
+            // icon-only sizing now that the label moved into the tooltip.
+            <div key={broadcastResult.map(r => r.ch).join(',')} className="spt-broadcast-toast" data-state={state}>
+              <div className="spt-broadcast-toast-icon">
+                <Icon name={allOk ? 'checkCircle' : anyOk ? 'alertCircle' : 'xCircle'} size={18} strokeWidth={2} />
+              </div>
+              <div className="spt-broadcast-toast-body">
+                <div className="spt-broadcast-toast-label">
+                  {allOk ? 'Message sent' : anyOk ? 'Sent to some channels' : 'Message failed to send'}
+                </div>
+                <div className="spt-broadcast-toast-chips">
+                  {broadcastResult.filter(r => r.success).map(r => <ChPill key={r.ch} ch={channelKey(r.ch)} />)}
+                  {failed.map(r => (
+                    <Tip key={r.ch} label={`${CHANNEL_CFG[channelKey(r.ch)].label} — failed to send`}>
+                      <span className="spt-ch-pill-sm spt-ch-pill-sm--fail" aria-label={`${CHANNEL_CFG[channelKey(r.ch)].label} failed`}>
+                        <Icon name="x" size={11} strokeWidth={2} />
+                      </span>
+                    </Tip>
+                  ))}
+                </div>
+              </div>
+              <div className="spt-broadcast-toast-progress" />
+            </div>
+          );
+        })()}
 
         <div className="spt-bedesk-composer-hdr">
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
@@ -1813,7 +1883,14 @@ function EditAttributesDialog({ open, onClose, ticket, onSave }: {
         <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div>
             <label style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', marginBottom: 5 }}>Subject</label>
-            <input className="input-field" value={subject} onChange={e => setSubject(e.target.value)} maxLength={300} />
+            <input
+              className="input-field"
+              value={subject}
+              onChange={e => { setSubject(e.target.value); if (error) setError(''); }}
+              maxLength={300}
+              style={error ? { borderColor: 'var(--red)' } : undefined}
+              aria-invalid={!!error}
+            />
           </div>
           <div>
             <label style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', marginBottom: 5 }}>Category</label>

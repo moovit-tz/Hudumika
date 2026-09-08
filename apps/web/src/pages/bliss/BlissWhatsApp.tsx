@@ -438,7 +438,7 @@ export const BlissWhatsApp: React.FC = () => {
       }}>
         {/* Metric 1 */}
         <div style={{
-          background: 'var(--card)',
+          background: 'var(--card-bg, var(--white))',
           padding: '16px 18px',
           borderRadius: 'var(--r)',
           border: '1px solid var(--border)',
@@ -459,7 +459,7 @@ export const BlissWhatsApp: React.FC = () => {
 
         {/* Metric 2 */}
         <div style={{
-          background: 'var(--card)',
+          background: 'var(--card-bg, var(--white))',
           padding: '16px 18px',
           borderRadius: 'var(--r)',
           border: '1px solid var(--border)',
@@ -480,7 +480,7 @@ export const BlissWhatsApp: React.FC = () => {
 
         {/* Metric 3 */}
         <div style={{
-          background: 'var(--card)',
+          background: 'var(--card-bg, var(--white))',
           padding: '16px 18px',
           borderRadius: 'var(--r)',
           border: '1px solid var(--border)',
@@ -501,7 +501,7 @@ export const BlissWhatsApp: React.FC = () => {
 
         {/* Metric 4 */}
         <div style={{
-          background: 'var(--card)',
+          background: 'var(--card-bg, var(--white))',
           padding: '16px 18px',
           borderRadius: 'var(--r)',
           border: '1px solid var(--border)',
@@ -561,7 +561,7 @@ export const BlissWhatsApp: React.FC = () => {
         }}>
           {/* Recent WhatsApp Conversations */}
           <div style={{
-            background: 'var(--card)',
+            background: 'var(--card-bg, var(--white))',
             borderRadius: 'var(--r)',
             border: '1px solid var(--border)',
             boxShadow: 'var(--elev-sm)',
@@ -654,7 +654,7 @@ export const BlissWhatsApp: React.FC = () => {
           {/* WhatsApp Channel Guidelines & Health Guard */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div style={{
-              background: 'var(--card)',
+              background: 'var(--card-bg, var(--white))',
               borderRadius: 'var(--r)',
               border: '1px solid var(--border)',
               padding: '18px 20px',
@@ -698,7 +698,7 @@ export const BlissWhatsApp: React.FC = () => {
 
             {/* Quick Automation Presets Preview */}
             <div style={{
-              background: 'var(--card)',
+              background: 'var(--card-bg, var(--white))',
               borderRadius: 'var(--r)',
               border: '1px solid var(--border)',
               padding: '18px 20px',
@@ -757,7 +757,7 @@ export const BlissWhatsApp: React.FC = () => {
         }}>
           {/* Dispatcher Form */}
           <div style={{
-            background: 'var(--card)',
+            background: 'var(--card-bg, var(--white))',
             borderRadius: 'var(--r)',
             border: '1px solid var(--border)',
             padding: isMobile ? '16px' : '22px 24px',
@@ -962,7 +962,7 @@ export const BlissWhatsApp: React.FC = () => {
               gap: 12,
               background: 'var(--bg)',
             }}>
-              <div style={{ alignSelf: 'center', background: 'var(--card)', padding: '3px 10px', borderRadius: 'var(--r-sm)', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', border: '1px solid var(--border)' }}>
+              <div style={{ alignSelf: 'center', background: 'var(--card-bg, var(--white))', padding: '3px 10px', borderRadius: 'var(--r-sm)', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', border: '1px solid var(--border)' }}>
                 Today
               </div>
 
@@ -970,7 +970,7 @@ export const BlissWhatsApp: React.FC = () => {
               <div style={{
                 alignSelf: 'flex-start',
                 maxWidth: '82%',
-                background: 'var(--card)',
+                background: 'var(--card-bg, var(--white))',
                 padding: '8px 12px',
                 borderRadius: '0 10px 10px 10px',
                 boxShadow: 'var(--elev-sm)',
@@ -1012,7 +1012,7 @@ export const BlissWhatsApp: React.FC = () => {
             </div>
 
             {/* Bottom Fake Input Bar */}
-            <div style={{ background: 'var(--card)', padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 8, borderTop: '1px solid var(--border)' }}>
+            <div style={{ background: 'var(--card-bg, var(--white))', padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 8, borderTop: '1px solid var(--border)' }}>
               <div style={{ flex: 1, background: 'var(--card-sunken)', borderRadius: 20, padding: '6px 14px', fontSize: 12, color: 'var(--ink3)', border: '1px solid var(--border)' }}>
                 Message
               </div>
@@ -1029,7 +1029,7 @@ export const BlissWhatsApp: React.FC = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {/* Top Filter & Search Toolbar */}
           <div style={{
-            background: 'var(--card)',
+            background: 'var(--card-bg, var(--white))',
             borderRadius: 'var(--r)',
             border: '1px solid var(--border)',
             boxShadow: 'var(--elev-sm)',
@@ -1114,7 +1114,7 @@ export const BlissWhatsApp: React.FC = () => {
 
           {filteredTemplates.length === 0 ? (
             <div style={{
-              background: 'var(--card)',
+              background: 'var(--card-bg, var(--white))',
               padding: 40,
               borderRadius: 'var(--r)',
               border: '1px solid var(--border)',
@@ -1139,7 +1139,7 @@ export const BlissWhatsApp: React.FC = () => {
                 const bodyText = bodyObj?.text || '';
                 return (
                   <div key={t.id} style={{
-                    background: 'var(--card)',
+                    background: 'var(--card-bg, var(--white))',
                     borderRadius: 'var(--r)',
                     border: '1px solid var(--border)',
                     padding: 18,
@@ -1206,7 +1206,7 @@ export const BlissWhatsApp: React.FC = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           {/* Preset Quick Add Library */}
           <div style={{
-            background: 'var(--card)',
+            background: 'var(--card-bg, var(--white))',
             borderRadius: 'var(--r)',
             border: '1px solid var(--border)',
             padding: '18px 20px',
@@ -1261,7 +1261,7 @@ export const BlissWhatsApp: React.FC = () => {
 
           {/* Active Custom Rules List */}
           <div style={{
-            background: 'var(--card)',
+            background: 'var(--card-bg, var(--white))',
             borderRadius: 'var(--r)',
             border: '1px solid var(--border)',
             padding: '18px 20px',
@@ -1340,7 +1340,7 @@ export const BlissWhatsApp: React.FC = () => {
         }}>
           {/* Callback Webhook Details */}
           <div style={{
-            background: 'var(--card)',
+            background: 'var(--card-bg, var(--white))',
             borderRadius: 'var(--r)',
             border: '1px solid var(--border)',
             padding: '20px 22px',
@@ -1398,7 +1398,7 @@ export const BlissWhatsApp: React.FC = () => {
 
           {/* Architecture Pipeline Flow */}
           <div style={{
-            background: 'var(--card)',
+            background: 'var(--card-bg, var(--white))',
             borderRadius: 'var(--r)',
             border: '1px solid var(--border)',
             padding: '20px 22px',

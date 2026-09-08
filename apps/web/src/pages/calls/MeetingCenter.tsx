@@ -525,7 +525,7 @@ export function MeetingCenter() {
       }}>
         {/* Stat 1: Total Meetings */}
         <div style={{
-          background: 'var(--card)',
+          background: 'var(--card-bg, var(--white))',
           padding: '14px 16px',
           borderRadius: 'var(--r)',
           border: '1px solid var(--border)',
@@ -548,7 +548,7 @@ export function MeetingCenter() {
 
         {/* Stat 2: Active Happening Now */}
         <div style={{
-          background: 'var(--card)',
+          background: 'var(--card-bg, var(--white))',
           padding: '14px 16px',
           borderRadius: 'var(--r)',
           border: '1px solid var(--border)',
@@ -571,7 +571,7 @@ export function MeetingCenter() {
 
         {/* Stat 3: Scheduled / Upcoming */}
         <div style={{
-          background: 'var(--card)',
+          background: 'var(--card-bg, var(--white))',
           padding: '14px 16px',
           borderRadius: 'var(--r)',
           border: '1px solid var(--border)',
@@ -594,7 +594,7 @@ export function MeetingCenter() {
 
         {/* Join by Code Card */}
         <div style={{
-          background: 'var(--card)',
+          background: 'var(--card-bg, var(--white))',
           padding: '12px 16px',
           borderRadius: 'var(--r)',
           border: '1px solid var(--border)',
@@ -644,7 +644,7 @@ export function MeetingCenter() {
           Export silently scrolled off-screen with no visible way to reach it. Wrapping is
           the only option that can never hide a control. ── */}
       <div style={{
-        background: 'var(--card)',
+        background: 'var(--card-bg, var(--white))',
         borderRadius: 'var(--r)',
         border: '1px solid var(--border)',
         boxShadow: 'var(--elev-sm)',
@@ -758,7 +758,7 @@ export function MeetingCenter() {
       {/* ── Date-Grouped Meeting Cards List (Meetly Style) ── */}
       {loadingMeetings ? (
         <div style={{
-          background: 'var(--card)',
+          background: 'var(--card-bg, var(--white))',
           borderRadius: 'var(--r)',
           border: '1px solid var(--border)',
           padding: 48,
@@ -771,7 +771,7 @@ export function MeetingCenter() {
         </div>
       ) : groupedMeetings.length === 0 ? (
         <div style={{
-          background: 'var(--card)',
+          background: 'var(--card-bg, var(--white))',
           borderRadius: 'var(--r)',
           border: '1px solid var(--border)',
           padding: 48,
@@ -837,7 +837,7 @@ export function MeetingCenter() {
                       key={m.id}
                       id={`meeting-card-${m.id}`}
                       style={{
-                        background: 'var(--card)',
+                        background: 'var(--card-bg, var(--white))',
                         border: '1px solid var(--border)',
                         borderRadius: 'var(--r)',
                         boxShadow: 'var(--elev-sm)',
@@ -1301,7 +1301,7 @@ export function MeetingCenter() {
                   height: 30,
                   borderRadius: 'var(--r-sm)',
                   border: p === meetingsPage ? 'none' : '1px solid var(--border)',
-                  background: p === meetingsPage ? 'hsl(var(--primary))' : 'var(--card)',
+                  background: p === meetingsPage ? 'hsl(var(--primary))' : 'var(--card-bg, var(--white))',
                   color: p === meetingsPage ? 'hsl(var(--primary-foreground))' : 'var(--ink2)',
                   fontSize: 12,
                   fontWeight: p === meetingsPage ? 800 : 600,

@@ -132,6 +132,14 @@ export function AppSidebar({ appId, sections, beforeNav, fillNav, afterNav, load
   const [collapsed, setCollapsed] = useState(() => {
     return localStorage.getItem(`${appId}-sidebar-closed-user`) === 'true';
   });
+  // `collapsed` is the desktop rail's own persisted preference — real for a
+  // rail sharing the screen with page content, meaningless for the mobile
+  // drawer (a full-screen overlay with nothing beside it to make room for).
+  // Every rendering branch below reads this, not the raw state, so a user
+  // who's ever collapsed an app's desktop sidebar still gets a fully
+  // labeled drawer on mobile for that same app instead of an unlabeled
+  // icon rail with no way to tell what anything is.
+  const railCollapsed = collapsed && !mobileOpen;
   const [openSections, setOpenSections] = useState<Record<string, boolean>>(() => {
     const initial: Record<string, boolean> = {};
     for (const section of sections) {
@@ -291,7 +299,7 @@ export function AppSidebar({ appId, sections, beforeNav, fillNav, afterNav, load
               <Icon name={appIcon} size={16} color="#fff" strokeWidth={2} />
             )}
           </div>
-          {!collapsed && (
+          {!railCollapsed && (
             <div className="app-sb-brand-text">
               <div className="app-sb-brand-name">{appLabel}</div>
               {appSubtitle && <div className="app-sb-brand-sub">{appSubtitle}</div>}
@@ -299,25 +307,30 @@ export function AppSidebar({ appId, sections, beforeNav, fillNav, afterNav, load
           )}
         </div>
 
-        {/* ── Collapse / expand toggle — floats on the right edge ── */}
-        <button
-          type="button"
-          className="app-sb-toggle"
-          onClick={toggleCollapse}
-          title={collapsed ? t('sidebar.expand') : t('sidebar.collapse')}
-        >
-          <Icon name={collapsed ? 'chevronRight' : 'chevronLeft'} size={11} color="var(--ink)" strokeWidth={2.5} />
-        </button>
+        {/* ── Collapse / expand toggle — floats on the right edge. Hidden on
+            mobile: "collapse" is a desktop-rail concept (share less width
+            with page content), and there's no page content beside a
+            full-screen drawer to share width with. */}
+        {!mobileOpen && (
+          <button
+            type="button"
+            className="app-sb-toggle"
+            onClick={toggleCollapse}
+            title={collapsed ? t('sidebar.expand') : t('sidebar.collapse')}
+          >
+            <Icon name={collapsed ? 'chevronRight' : 'chevronLeft'} size={11} color="var(--ink)" strokeWidth={2.5} />
+          </button>
+        )}
 
         {/* ── Fill-nav slot: replaces beforeNav + nav, takes flex: 1 ── */}
         {fillNav ? (
           <div className="app-sb-fill-nav">
-            {fillNav({ collapsed })}
+            {fillNav({ collapsed: railCollapsed })}
           </div>
         ) : (
           <>
             {/* ── Before-nav slot (e.g. Compose button) ── */}
-            {beforeNav?.({ collapsed })}
+            {beforeNav?.({ collapsed: railCollapsed })}
 
             {/* ── Nav ── */}
             <nav className="app-sb-nav">
@@ -326,7 +339,7 @@ export function AppSidebar({ appId, sections, beforeNav, fillNav, afterNav, load
                   {[80, 65, 90, 70, 85, 60, 75].map((w, idx) => (
                     <div key={idx} className="app-sb-skeleton-item">
                       <div className="app-sb-skeleton-icon skeleton-shimmer" />
-                      {!collapsed && (
+                      {!railCollapsed && (
                         <div
                           className="app-sb-skeleton-text skeleton-shimmer"
                           style={{ width: `${w}%` }}
@@ -341,7 +354,7 @@ export function AppSidebar({ appId, sections, beforeNav, fillNav, afterNav, load
                   const isOpen = !section.title || (openSections[section.title] ?? true);
                   return (
                   <div key={si} className="app-sb-section-group">
-                    {section.title && !collapsed && (
+                    {section.title && !railCollapsed && (
                       <div
                         className={`app-sb-section-hdr${isCollapsible ? ' app-sb-section-hdr--collapsible' : ''}`}
                         onClick={isCollapsible ? () => toggleSection(section.title!) : undefined}
@@ -350,7 +363,7 @@ export function AppSidebar({ appId, sections, beforeNav, fillNav, afterNav, load
                         {isCollapsible && <span className="app-sb-section-toggle">{isOpen ? '−' : '+'}</span>}
                       </div>
                     )}
-                    {(isOpen || collapsed) && section.items.map(item => {
+                    {(isOpen || railCollapsed) && section.items.map(item => {
                       const active = isActive(item.path, item.exact);
                       const hasChildren = !!item.children?.length;
                       const isPending = pendingPath === item.path;
@@ -362,7 +375,7 @@ export function AppSidebar({ appId, sections, beforeNav, fillNav, afterNav, load
                             to={item.path}
                             className={`app-sb-item${active ? ' app-sb-item--active' : ''}${isPending ? ' app-sb-item--pending' : ''}`}
                             onClick={() => handleItemClick(item.path)}
-                            title={collapsed ? item.label : undefined}
+                            title={railCollapsed ? item.label : undefined}
                           >
                             <span className="app-sb-item-icon">
                               {isPending ? (
@@ -371,7 +384,7 @@ export function AppSidebar({ appId, sections, beforeNav, fillNav, afterNav, load
                                 <Icon name={item.icon} size={16} strokeWidth={active ? 2.2 : 1.8} />
                               )}
                             </span>
-                            {!collapsed && (
+                            {!railCollapsed && (
                               <>
                                 <span className="app-sb-item-label">{item.label}</span>
                                 {item.badge && (
@@ -392,7 +405,7 @@ export function AppSidebar({ appId, sections, beforeNav, fillNav, afterNav, load
                       // (OPERATIONS, TOOLS, ...) behave.
                       const isParentOpen = openParents[item.path] ?? hasActiveDescendant(item);
 
-                      if (collapsed) {
+                      if (railCollapsed) {
                         // Icon rail: children never render, so fall back to a
                         // plain navigable icon like a leaf item.
                         return (
@@ -457,14 +470,14 @@ export function AppSidebar({ appId, sections, beforeNav, fillNav, afterNav, load
                   );
                 })
               )}
-              {afterNav?.({ collapsed })}
+              {afterNav?.({ collapsed: railCollapsed })}
             </nav>
           </>
         )}
 
         {/* ── Footer — Subscription Box ── */}
         <div className="app-sb-sub-footer">
-          {!collapsed ? (
+          {!railCollapsed ? (
             <div className="app-sb-sub-box">
               <div 
                 className="app-sb-sub-header" 
@@ -501,12 +514,21 @@ export function AppSidebar({ appId, sections, beforeNav, fillNav, afterNav, load
   }
 
   if (mobileOpen) {
+    // Never collapsed here, regardless of the desktop rail's own persisted
+    // preference (`${appId}-sidebar-closed-user`) — that's a "save
+    // horizontal space next to page content" choice that only makes sense
+    // for a rail sharing the screen with content. The mobile drawer is a
+    // full-screen overlay with no content beside it to make room for, so
+    // inheriting `collapsed` just meant anyone who'd ever collapsed an
+    // app's desktop sidebar got an icon-only, unlabeled drawer on mobile
+    // for that same app — every label gone, nothing to say what any icon
+    // was, with all the screen width a labeled drawer needs sitting unused.
     return createPortal(
       <>
         <div className="app-sb-backdrop" onClick={() => setMobileOpen(false)} />
         <aside
           ref={sidebarRef}
-          className={`app-sidebar app-sidebar--mobile-open${collapsed ? ' app-sidebar--collapsed' : ''}`}
+          className="app-sidebar app-sidebar--mobile-open"
         >
           {renderContent()}
         </aside>

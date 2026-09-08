@@ -107,7 +107,7 @@ export const SuperAdminKyb: React.FC = () => {
                 <td style={{ padding: '10px 14px' }}>
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                     <button type="button" onClick={() => viewDocument(row.id)} disabled={previewLoading === row.id}
-                      style={{ fontSize: 11, fontWeight: 700, borderRadius: 20, padding: 'var(--ds-btn-py-xs) 10px', border: '1px solid var(--border)', cursor: 'pointer', background: 'var(--card)', color: 'var(--ink2)' }}>
+                      style={{ fontSize: 11, fontWeight: 700, borderRadius: 20, padding: 'var(--ds-btn-py-xs) 10px', border: '1px solid var(--border)', cursor: 'pointer', background: 'var(--card-bg, var(--white))', color: 'var(--ink2)' }}>
                       {previewLoading === row.id ? '…' : 'View'}
                     </button>
                     <button type="button" onClick={() => approve(row)} disabled={busyId === row.id}

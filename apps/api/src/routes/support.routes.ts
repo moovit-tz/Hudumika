@@ -150,6 +150,38 @@ export async function createTicketRow(
     .returningAll()
     .executeTakeFirstOrThrow();
 
+  // The customer's opening inquiry used to live ONLY on this row's own
+  // `description` column — every caller (manual "New Ticket", the customer
+  // portal, IMAP email ingest, project-linked tickets) relied on the
+  // frontend rendering `ticket.description` as a fake first bubble, but
+  // only for as long as the thread had zero real messages. The moment
+  // anyone replied, that condition went false and the customer's actual
+  // opening message disappeared from the conversation for good — still
+  // sitting in the column, never shown again. A WhatsApp-webhook-originated
+  // ticket never had this bug, because its first message was always a real
+  // support_messages row from the start; giving every other origin the
+  // same real row is the fix, not a smarter frontend fallback.
+  if (input.description?.trim()) {
+    const customer = await trx.selectFrom('customers').select('name')
+      .where('id', '=', input.customerId).where('tenant_id', '=', tenantId).executeTakeFirst();
+    // Mirrors channelKey()'s own mapping (Support.tsx) for which pill a
+    // message shows under, EXCEPT 'SYSTEM' — that maps to the internal-note
+    // card there, which this opening inquiry never rendered as; INAPP
+    // keeps it a plain customer bubble like every other origin.
+    const msgChannel = input.channel === 'WHATSAPP' || input.channel === 'EMAIL' || input.channel === 'SMS'
+      ? input.channel : 'INAPP';
+    await trx.insertInto('support_messages').values({
+      tenant_id: tenantId,
+      ticket_id: ticket.id,
+      author_id: input.customerId,
+      author_name: customer?.name || 'Customer',
+      author_type: 'CUSTOMER',
+      channel: msgChannel,
+      direction: 'INBOUND',
+      content: input.description.trim(),
+    } as any).execute();
+  }
+
   const assignedTo = await applyAutoAssignRules(trx, tenantId, ticket);
   if (assignedTo) ticket = { ...ticket, assigned_to: assignedTo };
 

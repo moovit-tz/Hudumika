@@ -413,15 +413,18 @@
 }
 
 /* Channel pill (message meta) */
+/* Icon-only now (a Tip carries the channel name on hover/focus) — was an
+   icon+text pill, which repeated the same four words next to every message
+   in a thread that's mostly one or two channels throughout. */
 .spt-ch-pill-sm {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  padding: var(--badge-py-sm) var(--badge-px-sm);
-  border-radius: var(--r);
-  font-size: var(--badge-fs-sm);
-  font-weight: 700;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--r-sm);
   border: 1px solid transparent;
+  flex-shrink: 0;
 }
 
 .spt-ch-pill-sm[data-ch="inapp"] {
@@ -625,7 +628,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 14px;
+  padding: 12px 14px;
   border: none;
   background: none;
   cursor: pointer;
@@ -710,22 +713,20 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 18px 14px 10px;
+  padding: 0 14px;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--ink3);
-}
-
-/* Views/Groups/Channels — the sections after the fixed Inbox list — read
-   as cramped against how much empty sidebar sits below them once there
-   are only a handful of items (a lone group, four channels). Taller rows
-   than the Inbox list's own .spt-inbox-item use, not just more section
-   padding, so the extra room actually shows up between entries instead
-   of only at the section's own top/bottom edge. */
-.spt-nav-section .spt-inbox-item {
-  padding: 12px 14px;
+  /* Same stated height as .spt-bedesk-nav-hdr (this pane's own top header)
+     and the cross-column 50px (.spt-thread-hdr, .spt-bedesk-details-hdr,
+     the filter bar) — Views/Groups/Channels previously sized purely off
+     their own padding+content, which put Channels (icon+chevron only, no
+     "+" add button) a full 1.5px under Views/Groups (which have one),
+     despite sharing this exact class. */
+  height: 50px;
+  box-sizing: border-box;
 }
 
 .spt-nav-add {
@@ -1640,35 +1641,96 @@
   color: hsl(var(--primary-foreground));
 }
 
-/* ── Broadcast success toast ── */
+/* ── Broadcast result toast — a floating card above the composer (the
+   platform's own overlay bar: rounded, elevated, a hairline ring) instead
+   of the old edge-to-edge banner that permanently shoved the toolbar down
+   for as long as it was visible. Color + icon track data-state so a
+   broadcast that failed on every channel doesn't render inside a card
+   still tinted "success" green. Anchored off .spt-bedesk-composer, which
+   is given position:relative below. */
 .spt-broadcast-toast {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 100%;
+  margin-bottom: 10px;
   display: flex;
-  gap: 6px;
-  align-items: center;
-  padding: 6px 12px;
-  background: var(--green-l);
-  border-bottom: 1px solid var(--green);
-  flex-wrap: wrap;
-}
-
-.spt-broadcast-toast-chip {
-  font-size: var(--badge-fs-sm);
-  font-weight: 700;
-  color: var(--green);
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
   background: var(--white);
-  padding: var(--badge-py-sm) var(--badge-px-sm);
-  border-radius: 10px;
+  border-radius: var(--r);
+  box-shadow: var(--elev);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--green);
+  overflow: hidden;
+  z-index: 5;
+  animation: spt-toast-in 240ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.spt-broadcast-toast-chip--fail {
-  color: var(--red);
+.spt-broadcast-toast[data-state="partial"] { border-left-color: var(--gold); }
+.spt-broadcast-toast[data-state="fail"] { border-left-color: var(--red); }
+
+.spt-broadcast-toast-icon {
+  flex-shrink: 0;
+  color: var(--green);
+  margin-top: 1px;
+}
+
+.spt-broadcast-toast[data-state="partial"] .spt-broadcast-toast-icon { color: var(--gold); }
+.spt-broadcast-toast[data-state="fail"] .spt-broadcast-toast-icon { color: var(--red); }
+
+.spt-broadcast-toast-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
 }
 
 .spt-broadcast-toast-label {
-  font-size: 10px;
-  color: var(--green);
-  font-weight: 600;
-  margin-left: 4px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.spt-broadcast-toast-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.spt-ch-pill-sm--fail {
+  color: var(--red);
+  background: var(--red-l);
+  border-color: var(--red);
+}
+
+/* Thin countdown bar, timed to handleSend's 5s auto-clear — a quieter,
+   more legible "this will dismiss itself" cue than an abrupt disappearance. */
+.spt-broadcast-toast-progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: var(--green);
+  opacity: 0.55;
+  transform-origin: left center;
+  animation: spt-toast-progress 5000ms linear forwards;
+}
+
+.spt-broadcast-toast[data-state="partial"] .spt-broadcast-toast-progress { background: var(--gold); }
+.spt-broadcast-toast[data-state="fail"] .spt-broadcast-toast-progress { background: var(--red); }
+
+@keyframes spt-toast-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes spt-toast-progress {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
 }
 
 /* ── Broadcast channel toggles + Internal Note toggle ── */
@@ -3226,6 +3288,7 @@
 
 /* Composer Area */
 .spt-bedesk-composer {
+  position: relative; /* anchors the floating .spt-broadcast-toast above it */
   border-top: 1px solid var(--border);
   background: var(--white);
   padding: 12px 16px;
