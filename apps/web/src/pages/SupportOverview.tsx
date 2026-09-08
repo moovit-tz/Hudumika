@@ -148,6 +148,14 @@ export const SupportOverview: React.FC = () => {
           <KpiCard icon="warning"     label="Defect Rate"     value={metrics ? `${metrics.defect}%` : '—'}      iconBg="var(--red-l)"   color="var(--red)"    sub="Reopened / escalated" />
         </div>
 
+        {/* These are the same numbers registered in the platform Metric
+            Registry (bliss.sla_compliance, bliss.csat, ...) — one link out
+            to where they can be compared against every other app's metrics,
+            queried, or dropped onto a dashboard. */}
+        <Link to="/hudubi/metrics?app=bliss" className="sov-hudubi-link" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none' }}>
+          Explore these metrics in HuduBI <Icon name="arrowRight" size={13} />
+        </Link>
+
         <div className="sov-charts-row sov-charts-row--3">
           <div className="sov-card">
             <SHdr title="Net Promoter Score" />

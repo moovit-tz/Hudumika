@@ -36,6 +36,8 @@ import { runTaskRecurrenceJob } from './task-recurrence.job.js';
 import { runFixedAssetDepreciationJob } from './fixed-asset-depreciation.job.js';
 import { runFxRateSyncJob } from './fx-rate-sync.job.js';
 import { runMeetingDurationLimitJob } from './meeting-duration-limit.job.js';
+import { runMetricAlertsJob } from './metric-alerts.job.js';
+import { runDataQualityJob } from './data-quality.job.js';
 
 /**
  * Real registry of every background job this file actually schedules —
@@ -52,6 +54,8 @@ import { runMeetingDurationLimitJob } from './meeting-duration-limit.job.js';
 export const JOB_REGISTRY: { name: string; schedule: string; fallbackOnly?: boolean }[] = [
   { name: 'Risk Scans', schedule: 'Every 15 minutes' },
   { name: 'SLA Escalation & Status Automation', schedule: 'Every 15 minutes' },
+  { name: 'Metric Alert Evaluation', schedule: 'Every 15 minutes' },
+  { name: 'Data Quality Checks', schedule: 'Daily at 03:30' },
   { name: 'Missing Document Reminders', schedule: 'Every 24 hours' },
   { name: 'Daily Status Automation', schedule: 'Daily at 08:00' },
   { name: 'Stale Check-in Sweep', schedule: 'Hourly, 5 past' },
@@ -247,6 +251,10 @@ function startBullMQ(): void {
           await runTRAZReportJob();
         } else if (job.name === 'support-rules') {
           await runSupportRulesJob();
+        } else if (job.name === 'metric-alerts') {
+          await runMetricAlertsJob();
+        } else if (job.name === 'data-quality') {
+          await runDataQualityJob();
         } else if (job.name === 'workflow-learning') {
           await runWorkflowLearningJob();
         } else if (job.name === 'cloud-trash-expiry') {
@@ -402,6 +410,14 @@ function startBullMQ(): void {
 
     reminderQueue.add('support-rules', {}, {
       repeat: { every: 15 * 60 * 1000 } // Every 15 minutes — SLA escalation + status automation
+    }).catch(console.error);
+
+    reminderQueue.add('metric-alerts', {}, {
+      repeat: { every: 15 * 60 * 1000 } // Every 15 minutes — same cadence as SLA escalation
+    }).catch(console.error);
+
+    reminderQueue.add('data-quality', {}, {
+      repeat: { pattern: '30 3 * * *' } // Daily at 3:30 AM
     }).catch(console.error);
 
     reminderQueue.add('doc-reminder', {}, {
@@ -579,6 +595,8 @@ function startIntervalFallback(): void {
   runComplyRenewalJob().catch(console.error);
   runComplyExpiryReminderJob().catch(console.error);
   runSupportRulesJob().catch(console.error);
+  runMetricAlertsJob().catch(console.error);
+  runDataQualityJob().catch(console.error);
   runGpswoxSyncJob().catch(console.error);
   runWorkflowCommQueueJob().catch(console.error);
   runMailOutboxJob().catch(console.error);
@@ -600,6 +618,7 @@ function startIntervalFallback(): void {
   fallbackTimer = setInterval(() => {
     runRiskScanJob().catch(console.error);
     runSupportRulesJob().catch(console.error);
+    runMetricAlertsJob().catch(console.error);
   }, 10 * 60 * 1000); // Poll every 10 minutes in fallback mode
 
   // Notes reminders — every 5 minutes, same reasoning as the BullMQ
@@ -645,6 +664,7 @@ function startIntervalFallback(): void {
     // Redis/BullMQ is unavailable (standalone dev), so a same-day drift from
     // the real 21:00 EAT target is an acceptable gap, not a production risk.
     runDailyShipmentReportJob().catch(console.error);
+    runDataQualityJob().catch(console.error);
     runSignExpiryJob().catch(console.error);
     runSignReminderJob().catch(console.error);
     runNotesPurgeJob().catch(console.error);

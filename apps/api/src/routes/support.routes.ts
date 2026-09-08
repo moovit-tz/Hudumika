@@ -12,6 +12,7 @@ import type { MessageChannel, TicketPriority, TicketStatus, UserRole } from '@hu
 import { broadcastToTenant } from '../lib/ws-broadcast.js';
 import { WhatsAppIntegration } from '../integrations/whatsapp.js';
 import { emitDomainEvent } from '../services/domain-events.service.js';
+import { computeBlissKpis } from '../services/support-metrics.service.js';
 
 // The two endpoints CUSTOMER_ALLOWED_ROUTES below actually lets a CUSTOMER
 // login reach (create ticket, reply) — the only ones in this file where the
@@ -1115,63 +1116,23 @@ Write a professional, empathetic reply to this customer. Be concise (2–4 sente
         .where('created_at', '>=', cutoff)
         .execute();
 
-      const total = tickets.length;
-      const open = tickets.filter(t => t.status === 'OPEN').length;
-      const inProgress = tickets.filter(t => t.status === 'IN_PROGRESS').length;
-      const resolved = tickets.filter(t => t.status === 'RESOLVED').length;
-      const closed = tickets.filter(t => t.status === 'CLOSED').length;
-      const urgent = tickets.filter(t => t.priority === 'URGENT').length;
+      // The scalar KPIs (counts, CSAT, first-reply/resolution time, SLA
+      // compliance, defect/escalation rate) are computed once in
+      // support-metrics.service.ts and shared with the Metric Registry
+      // (metrics-registry.service.ts, metric keys bliss.*), so this
+      // dashboard and every other consumer read the same numbers.
+      const kpis = await computeBlissKpis(trx, user.tenant_id, days);
+      const {
+        total, open, inProgress, resolved, closed, urgent, nps,
+        csat: csatAvg, firstReply: avgFirstReply, resolution: avgSolveTime,
+        sla: slaCompliance, defect: defectRate, escalation: escalationRate,
+      } = kpis;
+      const npsScore = nps.score, promoters = nps.promoters, passives = nps.passives, detractors = nps.detractors, totalNpsCount = nps.total;
 
-      const surveyTickets = tickets.filter(t => t.nps_score !== null && t.nps_score !== undefined);
-      const totalNpsCount = surveyTickets.length;
-      let npsScore = 0, promoters = 0, passives = 0, detractors = 0;
-      if (totalNpsCount > 0) {
-        const promoterCount  = surveyTickets.filter(t => t.nps_score! >= 9).length;
-        const passiveCount   = surveyTickets.filter(t => t.nps_score! >= 7 && t.nps_score! <= 8).length;
-        const detractorCount = surveyTickets.filter(t => t.nps_score! <= 6).length;
-        promoters  = Math.round((promoterCount  / totalNpsCount) * 100);
-        passives   = Math.round((passiveCount   / totalNpsCount) * 100);
-        detractors = Math.round((detractorCount / totalNpsCount) * 100);
-        npsScore = promoters - detractors;
-      }
-
-      const csatTickets = tickets.filter(t => t.csat_score !== null && t.csat_score !== undefined);
-      const csatAvg = csatTickets.length > 0
-        ? Number((csatTickets.reduce((acc, t) => acc + t.csat_score!, 0) / csatTickets.length).toFixed(1))
-        : 0;
-
+      // Re-derived locally (cheap over an already-fetched, period-bounded
+      // array) only for the histogram below — computeBlissKpis returns the
+      // aggregate average, not the per-ticket list this chart needs.
       const replyTickets = tickets.filter(t => t.first_reply_time_seconds !== null && t.first_reply_time_seconds !== undefined);
-      const avgFirstReply = replyTickets.length > 0
-        ? Number((replyTickets.reduce((acc, t) => acc + t.first_reply_time_seconds!, 0) / replyTickets.length / 3600).toFixed(1))
-        : 0;
-
-      const solveTickets = tickets.filter(t => t.resolution_time_seconds !== null && t.resolution_time_seconds !== undefined);
-      const avgSolveTime = solveTickets.length > 0
-        ? Number((solveTickets.reduce((acc, t) => acc + t.resolution_time_seconds!, 0) / solveTickets.length / 3600).toFixed(1))
-        : 0;
-
-      let slaCompliantCount = 0, slaEvaluatedCount = 0;
-      for (const t of tickets) {
-        if (t.sla_deadline) {
-          slaEvaluatedCount++;
-          const deadlineTime = new Date(t.sla_deadline).getTime();
-          const resolutionTime = t.resolved_at ? new Date(t.resolved_at).getTime() : Date.now();
-          if (resolutionTime <= deadlineTime) slaCompliantCount++;
-        }
-      }
-      const slaCompliance = slaEvaluatedCount > 0 ? Number(((slaCompliantCount / slaEvaluatedCount) * 100).toFixed(1)) : 100;
-
-      const defectCount = tickets.filter(t =>
-        t.sla_deadline && t.resolved_at && new Date(t.resolved_at).getTime() > new Date(t.sla_deadline).getTime()
-      ).length;
-      const defectRate = total > 0 ? Number(((defectCount / total) * 100).toFixed(1)) : 0;
-
-      // Real escalation rate — sla_escalated_at is stamped by the actual
-      // sla_escalation rule job (support-rules.job.ts), not derived from
-      // another metric. Used to be `defectRate / 2` on the frontend, a
-      // number with no relationship to anything escalation actually means.
-      const escalatedCount = tickets.filter(t => t.sla_escalated_at != null).length;
-      const escalationRate = total > 0 ? Number(((escalatedCount / total) * 100).toFixed(1)) : 0;
 
       // Daily volume (last 14 days)
       const dailyBars: number[] = [];

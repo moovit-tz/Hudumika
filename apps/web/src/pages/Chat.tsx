@@ -42,7 +42,23 @@ interface ApiMessage {
   content: string;
   created_at: string;
   reactions: ApiReaction[];
+  // Latest CHAT-subject case_escalations row for this message, if any —
+  // see escalations.routes.ts (migration 412 widened it beyond case-only).
+  escalation: { id: string; status: 'PENDING' | 'IN_PROGRESS' | 'RESOLVED' } | null;
 }
+
+// Mirrors escalations.routes.ts's own RESOLVE_ROLES — a role at or above
+// this tier is who a chat message actually escalates *to*, so offering the
+// action to someone already in that tier (escalate to a peer/yourself)
+// doesn't make sense. The backend is the real authority on who's allowed to
+// post one; this only decides whether to show the button.
+const ESCALATION_RESOLVE_ROLES = new Set(['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'SENIOR']);
+
+const ESCALATION_STATUS_CFG: Record<'PENDING' | 'IN_PROGRESS' | 'RESOLVED', { label: string; bg: string; color: string }> = {
+  PENDING: { label: 'Escalated', bg: 'var(--red-l)', color: 'var(--red)' },
+  IN_PROGRESS: { label: 'Escalated · in progress', bg: 'var(--gold-l)', color: 'var(--gold)' },
+  RESOLVED: { label: 'Escalation resolved', bg: 'var(--green-l)', color: 'var(--green)' },
+};
 
 interface StaffOpt { id: string; name: string; role: string; email?: string; }
 interface BrowseChannel { id: string; type: 'channel' | 'group'; name: string; description: string | null; member_count: number; }
@@ -112,6 +128,9 @@ export const Chat: React.FC = () => {
   const [browseLoading, setBrowseLoading] = useState(false);
   const [joiningId, setJoiningId] = useState<string | null>(null);
   const [memberSearch, setMemberSearch] = useState('');
+  const [escalating, setEscalating] = useState<ApiMessage | null>(null);
+  const [escalateNote, setEscalateNote] = useState('');
+  const [escalateSubmitting, setEscalateSubmitting] = useState(false);
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -229,6 +248,38 @@ export const Chat: React.FC = () => {
     }));
     try { await apiFetch(`/v1/chat/messages/${msgId}/reactions`, { method: 'POST', body: JSON.stringify({ emoji }) }); }
     catch { loadMessages(activeId!); }
+  }
+
+  // Escalate a message to a higher-level role (SENIOR/MANAGER/ADMIN/
+  // TENANT_ADMIN/SUPER_ADMIN) — posts into the same case_escalations table
+  // Escalations.tsx already reads, tagged subjectType: 'CHAT' (migration
+  // 412). Every resolver-tier user in the tenant gets a real notification,
+  // not just a row nobody's told about.
+  async function submitEscalation() {
+    if (!escalating || !activeCh || escalateSubmitting) return;
+    setEscalateSubmitting(true);
+    try {
+      await apiFetch('/v1/escalations', {
+        method: 'POST',
+        body: JSON.stringify({
+          subjectType: 'CHAT',
+          channelId: activeCh.id,
+          channelName: activeCh.type === 'dm' ? `DM with ${activeCh.name}` : activeCh.name,
+          messageId: escalating.id,
+          messageSnippet: escalating.content.slice(0, 200),
+          reason: 'Escalated from Team Chat',
+          note: escalateNote.trim() || undefined,
+        }),
+      });
+      setMessages(p => p.map(m => m.id === escalating.id ? { ...m, escalation: { id: 'pending', status: 'PENDING' } } : m));
+      setEscalating(null);
+      setEscalateNote('');
+      loadMessages(activeCh.id);
+    } catch (err: any) {
+      showAlert(err?.message || 'Could not escalate this message — please try again.');
+    } finally {
+      setEscalateSubmitting(false);
+    }
   }
 
   // Create Channel / Group
@@ -667,13 +718,41 @@ export const Chat: React.FC = () => {
                             ))}
                           </div>
                         )}
+
+                        {/* Escalation badge — the target audience (anyone at
+                            or above SENIOR) finds this from their own bell
+                            notification; this badge is what tells everyone
+                            else in the channel it was already raised, so a
+                            second person doesn't escalate the same message. */}
+                        {msg.escalation && (
+                          <div style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 6,
+                            padding: '2px 9px', borderRadius: 'var(--r-sm)', fontSize: 11, fontWeight: 700,
+                            background: ESCALATION_STATUS_CFG[msg.escalation.status].bg,
+                            color: ESCALATION_STATUS_CFG[msg.escalation.status].color,
+                          }}>
+                            <Icon name="siren" size={11} />
+                            {ESCALATION_STATUS_CFG[msg.escalation.status].label}
+                          </div>
+                        )}
                       </div>
 
                       {/* Hover Action Bar */}
-                      <div className="opacity-0 group-hover:opacity-100 transition-opacity" style={{ position: 'absolute', right: 10, top: -6, background: 'var(--white)', border: '1px solid var(--border2)', borderRadius: 'var(--r)', padding: '2px 6px', display: 'flex', gap: 4, boxShadow: 'var(--elev)' }}>
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity" style={{ position: 'absolute', right: 10, top: -6, background: 'var(--white)', border: '1px solid var(--border2)', borderRadius: 'var(--r)', padding: '2px 6px', display: 'flex', gap: 4, alignItems: 'center', boxShadow: 'var(--elev)' }}>
                         {QUICK_REACTIONS.map(em => (
                           <button key={em} type="button" onClick={() => react(msg.id, em)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14 }}>{em}</button>
                         ))}
+                        {!ESCALATION_RESOLVE_ROLES.has(user?.role || '') && !msg.escalation && (
+                          <>
+                            <div style={{ width: 1, height: 16, background: 'var(--border2)' }} />
+                            <Tip label="Escalate to a manager/senior">
+                              <button type="button" onClick={() => { setEscalating(msg); setEscalateNote(''); }}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', display: 'flex', alignItems: 'center', padding: 2 }}>
+                                <Icon name="siren" size={14} />
+                              </button>
+                            </Tip>
+                          </>
+                        )}
                       </div>
                     </div>
                   </React.Fragment>
@@ -1038,6 +1117,49 @@ export const Chat: React.FC = () => {
               </div>
             ))}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Escalate message — posts into the same escalations pipeline
+          Escalations.tsx (Bliss ▸ Escalations) already shows to
+          SENIOR/MANAGER/ADMIN/TENANT_ADMIN, tagged as a CHAT escalation
+          (migration 412). */}
+      <Dialog open={!!escalating} onOpenChange={(o) => { if (!o) { setEscalating(null); setEscalateNote(''); } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Escalate to a manager/senior</DialogTitle>
+          </DialogHeader>
+          {escalating && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ fontSize: 12, color: 'var(--ink2)', background: 'var(--card-sunken)', borderRadius: 'var(--r)', padding: '8px 10px', borderLeft: '3px solid var(--teal)' }}>
+                <span style={{ fontWeight: 700 }}>{escalating.author_name}: </span>
+                {escalating.content.length > 160 ? escalating.content.slice(0, 160) + '…' : escalating.content}
+              </div>
+              <div>
+                <label style={labelStyle}>What does the escalation need? (optional)</label>
+                <textarea
+                  value={escalateNote}
+                  onChange={e => setEscalateNote(e.target.value)}
+                  placeholder="Add context for whoever picks this up…"
+                  rows={3}
+                  style={{ width: '100%', padding: '8px 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: 13, background: 'var(--card-sunken)', color: 'var(--ink)', resize: 'vertical', boxSizing: 'border-box' }}
+                />
+              </div>
+              <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>
+                Every Senior, Manager and Admin in this workspace will be notified — this doesn't leave the channel or notify anyone else in it beyond the badge shown on the message.
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <button type="button" onClick={() => setEscalating(null)}
+              style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', cursor: 'pointer', fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+              Cancel
+            </button>
+            <button type="button" onClick={submitEscalation} disabled={escalateSubmitting}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'var(--red)', color: 'var(--white)', fontFamily: 'var(--font)', fontWeight: 600, cursor: escalateSubmitting ? 'default' : 'pointer', opacity: escalateSubmitting ? 0.7 : 1, fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+              <Icon name="siren" size={14} /> {escalateSubmitting ? 'Escalating…' : 'Escalate'}
+            </button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

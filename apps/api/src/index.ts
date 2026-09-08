@@ -75,6 +75,7 @@ import { fxRateRoutes } from './routes/fx-rates.routes.js';
 import { glPeriodRoutes } from './routes/gl-periods.routes.js';
 import { paymentRoutes }  from './routes/payments.routes.js';
 import { chatRoutes } from './routes/chat.routes.js';
+import escalationsRoutes from './routes/escalations.routes.js';
 import { productRoutes }  from './routes/products.routes.js';
 import { taxCodeRoutes }  from './routes/tax-codes.routes.js';
 import { vatPeriodRoutes } from './routes/vat-periods.routes.js';
@@ -139,6 +140,8 @@ import { inventoryStockRoutes } from './routes/inventory-stock.routes.js';
 import { inventoryCountsRoutes } from './routes/inventory-counts.routes.js';
 import { inventoryTasksRoutes } from './routes/inventory-tasks.routes.js';
 import { hudubiRoutes } from './routes/hudubi.routes.js';
+import { metricsRoutes } from './routes/metrics.routes.js';
+import { dataQualityRoutes } from './routes/data-quality.routes.js';
 import { cmsRoutes } from './routes/cms.routes.js';
 import { complyOcrRoutes } from './routes/comply-ocr.routes.js';
 import { complyLegalRoutes } from './routes/comply-legal.routes.js';
@@ -533,6 +536,12 @@ export async function registerApp() {
     await server.register(glPeriodRoutes, { prefix: '/v1/finance/gl-periods' });
     await server.register(paymentRoutes,  { prefix: '/v1/payments' });
     await server.register(chatRoutes, { prefix: '/v1/chat' });
+    // Backs Escalations.tsx (migration 406, widened by 412 to also cover a
+    // Team Chat escalation) — the route file existed with a real table
+    // behind it but was never actually mounted, so every call this page
+    // ever made 404'd silently (apiFetch's .catch(() => setItems([])))
+    // and it looked merely "empty" rather than broken.
+    await server.register(escalationsRoutes, { prefix: '/v1/escalations' });
     await server.register(productRoutes,  { prefix: '/v1/products' });
     await server.register(taxCodeRoutes,  { prefix: '/v1/tax-codes' });
     await server.register(vatPeriodRoutes, { prefix: '/v1/vat-periods' });
@@ -598,6 +607,8 @@ export async function registerApp() {
     await server.register(inventoryCountsRoutes, { prefix: '/v1/inventory' });
     await server.register(inventoryTasksRoutes, { prefix: '/v1/inventory' });
     await server.register(hudubiRoutes, { prefix: '/v1/hudubi' });
+    await server.register(metricsRoutes, { prefix: '/v1/metrics' });
+    await server.register(dataQualityRoutes, { prefix: '/v1/superadmin/data-quality' });
     await server.register(cmsRoutes, { prefix: '/v1/cms' });
     await server.register(complyOcrRoutes, { prefix: '/v1/comply/ocr' });
     await server.register(complyLegalRoutes, { prefix: '/v1/comply/legal' });

@@ -264,6 +264,21 @@ export async function chatRoutes(fastify: FastifyInstance) {
         reactionsByMessage.set(r.message_id, arr);
       }
 
+      // Escalation flag per message — see escalations.routes.ts (migration
+      // 412 widened case_escalations to also cover a CHAT subject). Latest
+      // escalation per message only; a resolved one and a later re-escalate
+      // shouldn't both show a badge.
+      const escalations = messageIds.length > 0
+        ? await trx.selectFrom('case_escalations').select(['id', 'message_id', 'status'])
+            .where('subject_type', '=', 'CHAT').where('message_id', 'in', messageIds)
+            .where('tenant_id', '=', user.tenant_id)
+            .orderBy('escalated_at', 'desc').execute()
+        : [];
+      const escalationByMessage = new Map<string, { id: string; status: string }>();
+      for (const e of escalations) {
+        if (e.message_id && !escalationByMessage.has(e.message_id)) escalationByMessage.set(e.message_id, { id: e.id, status: e.status });
+      }
+
       return {
         data: messages.map((m) => {
           const msgReactions = reactionsByMessage.get(m.id) ?? [];
@@ -277,6 +292,7 @@ export async function chatRoutes(fastify: FastifyInstance) {
           return {
             id: m.id, author_id: m.author_id, author_name: authorMap.get(m.author_id) ?? 'Unknown',
             content: m.content, created_at: m.created_at, reactions: [...byEmoji.values()],
+            escalation: escalationByMessage.get(m.id) ?? null,
           };
         }),
       };

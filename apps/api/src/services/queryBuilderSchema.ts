@@ -144,6 +144,34 @@ export const ALLOWED_TABLES: AllowedTable[] = [
       col('created_at', 'Created At', 'date'),
     ],
   },
+  {
+    // The cross-app event log every first-party app already writes to via
+    // emitDomainEvent() — see migration 129_domain_events.sql. `payload`
+    // (arbitrary JSONB, one column per event type's own shape) is
+    // deliberately excluded from this allowlist: it can carry
+    // event-specific detail nobody has vetted column-by-column the way
+    // every other table here was, so it stays out until it earns a
+    // structured, reviewed projection the same way the rest of this file's
+    // columns did.
+    table: 'domain_events', label: 'Domain Events', category: 'Metrics & Telemetry',
+    columns: [
+      col('id', 'ID'), col('tenant_id', 'Tenant'), col('event_type', 'Event Type'),
+      col('source_app', 'Source App'), col('entity_type', 'Entity Type'), col('entity_id', 'Entity ID'),
+      col('actor_id', 'Actor'), col('created_at', 'Occurred At', 'date'),
+    ],
+  },
+  {
+    // The Metric Registry's catalog (migration 411_metric_registry.sql) —
+    // definitions only, never a computed value, so every column here is
+    // safe to expose: there is no per-tenant figure in this table.
+    table: 'metric_definitions', label: 'Metric Definitions', category: 'Metrics & Telemetry',
+    columns: [
+      col('id', 'ID'), col('metric_key', 'Metric Key'), col('name', 'Name'), col('app', 'App'),
+      col('module', 'Module'), col('domain', 'Domain'), col('kind', 'Kind'), col('unit', 'Unit'),
+      col('owner', 'Owner'), col('visibility', 'Visibility'), col('status', 'Status'),
+      col('created_at', 'Created At', 'date'),
+    ],
+  },
 ];
 
 export function findAllowedTable(table: string): AllowedTable | undefined {

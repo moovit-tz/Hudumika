@@ -41,6 +41,7 @@ import { BlissInbox }     from './pages/bliss/BlissInbox.js';
 import { SupportOverview }from './pages/SupportOverview.js';
 import { FileBrowser }    from './pages/cloud/FileBrowser.js';
 import { Chat }           from './pages/Chat.js';
+import { Escalations }    from './pages/Escalations.js';
 import { ToolsOverview }  from './pages/ToolsOverview.js';
 import { LandedCostPage } from './pages/LandedCostPage.js';
 import { CompliancePage } from './pages/CompliancePage.js';
@@ -518,6 +519,12 @@ const AppContentBody: React.FC = () => {
             <Route path="/support/tickets"  element={<BlissInbox />} />
             <Route path="/support"          element={<SupportOverview />} />
             <Route path="/chat"             element={<Chat />} />
+            {/* Escalations.tsx (real backend: migration 406/412,
+                escalations.routes.ts) had a fully-built page and table but
+                was never actually routed anywhere — navConfigs.ts already
+                listed '/escalations' in the Tools section's match prefixes,
+                just missing both this <Route> and the nav item itself. */}
+            <Route path="/escalations"      element={<Escalations />} />
             <Route path="/profile"          element={<UserProfile />} />
             <Route path="/tools/overview"   element={<ToolsOverview />} />
             <Route path="/carbon-credits"   element={<CarbonCreditsPage />} />

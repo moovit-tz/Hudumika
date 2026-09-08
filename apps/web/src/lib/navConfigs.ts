@@ -59,6 +59,7 @@ const clearosNav: NavCategory[] = [
       { label: 'File Manager', to: '/documents',      icon: 'folder',     roles: ALL_STAFF },
       { label: 'Support',      to: '/support',        icon: 'headphones', roles: ALL_STAFF },
       { label: 'Chat',         to: '/chat',           icon: 'chatBubble', roles: ALL_STAFF },
+      { label: 'Escalations',  to: '/escalations',    icon: 'siren',      roles: ALL_STAFF },
     ],
   },
 ];

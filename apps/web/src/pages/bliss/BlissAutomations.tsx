@@ -5,6 +5,7 @@ import { Badge } from '../../components/ui/badge.js';
 import { Button } from '../../components/ui/button.js';
 import { Icon } from '../../components/Icon.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
+import { Checkbox } from '../../components/ui/checkbox.js';
 import { useMediaQuery } from '../../hooks/useMediaQuery.js';
 import { apiFetch } from '../../lib/api.js';
 import { useAuth } from '../../hooks/useAuth.js';
@@ -118,8 +119,11 @@ function CreateRuleForm({ agents, onCancel, onSave, saving }: {
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 {agents.length === 0 && <span style={{ fontSize: 12, color: 'var(--ink3)' }}>No eligible agents found.</span>}
                 {agents.map(a => (
-                  <label key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12.5, border: '1px solid var(--border)', borderRadius: 999, padding: '4px 10px' }}>
-                    <input type="checkbox" checked={agentIds.includes(a.id)} onChange={() => setAgentIds(prev => prev.includes(a.id) ? prev.filter(x => x !== a.id) : [...prev, a.id])} />
+                  <label key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, border: '1px solid var(--border)', borderRadius: 999, padding: '4px 10px', cursor: 'pointer' }}>
+                    <Checkbox
+                      checked={agentIds.includes(a.id)}
+                      onCheckedChange={() => setAgentIds(prev => prev.includes(a.id) ? prev.filter(x => x !== a.id) : [...prev, a.id])}
+                    />
                     {a.name}
                   </label>
                 ))}

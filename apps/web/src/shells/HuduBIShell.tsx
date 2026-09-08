@@ -15,12 +15,14 @@ import { HuduBIDashboard } from '../pages/HuduBIDashboard.js';
 import { HuduBIDashboardBuilder } from '../pages/HuduBIDashboardBuilder.js';
 import { HuduBIAnalytics } from '../pages/HuduBIAnalytics.js';
 import { HuduBIDataSources } from '../pages/HuduBIDataSources.js';
+import { HuduBIMetricExplorer } from '../pages/HuduBIMetricExplorer.js';
 import { HuduBIModels } from '../pages/HuduBIModels.js';
 import { SuperAdminReports } from '../pages/SuperAdminReports.js';
 import { SuperAdminTradeWizardAnalytics } from '../pages/SuperAdminTradeWizardAnalytics.js';
 import { SuperAdminQueryBuilder } from '../pages/SuperAdminQueryBuilder.js';
 import { SuperAdminCalculations } from '../pages/SuperAdminCalculations.js';
 import { SuperAdminIntelligence } from '../pages/SuperAdminIntelligence.js';
+import { HuduBIDataQuality } from '../pages/HuduBIDataQuality.js';
 
 // Paths whose data is cross-tenant (dbPlatform, SUPER_ADMIN-only) rather than
 // the viewer's own workspace — same set the "PLATFORM · SUPER ADMIN" nav
@@ -31,6 +33,7 @@ const PLATFORM_PATHS = new Set([
   '/hudubi/query-builder',
   '/hudubi/calculations',
   '/hudubi/intelligence',
+  '/hudubi/data-quality',
 ]);
 
 function buildNav(isSuperAdmin: boolean): SidebarSection[] {
@@ -47,6 +50,12 @@ function buildNav(isSuperAdmin: boolean): SidebarSection[] {
       title: 'ANALYTICS',
       items: [
         { label: 'Reports & KPI Center', icon: 'barChart2', path: '/hudubi/analytics' },
+      ],
+    },
+    {
+      title: 'METRICS',
+      items: [
+        { label: 'Metric Explorer', icon: 'search', path: '/hudubi/metrics' },
       ],
     },
     {
@@ -72,6 +81,7 @@ function buildNav(isSuperAdmin: boolean): SidebarSection[] {
         { label: 'Query Builder',        icon: 'terminal',   path: '/hudubi/query-builder' },
         { label: 'Landed Cost Activity', icon: 'package',    path: '/hudubi/calculations' },
         { label: 'Intelligence',         icon: 'sparkle',    path: '/hudubi/intelligence' },
+        { label: 'Data Quality',         icon: 'shield',      path: '/hudubi/data-quality' },
       ],
     });
   }
@@ -108,6 +118,7 @@ export function HuduBIShell() {
                 <Route index element={<HuduBIDashboard />} />
                 <Route path="builder" element={<HuduBIDashboardBuilder />} />
                 <Route path="analytics" element={<HuduBIAnalytics />} />
+                <Route path="metrics" element={<HuduBIMetricExplorer />} />
                 <Route path="data-sources" element={<HuduBIDataSources />} />
                 <Route path="models" element={<HuduBIModels />} />
                 <Route path="reports" element={<RequireRoles roles={['SUPER_ADMIN']}><SuperAdminReports /></RequireRoles>} />
@@ -115,6 +126,7 @@ export function HuduBIShell() {
                 <Route path="query-builder" element={<RequireRoles roles={['SUPER_ADMIN']}><SuperAdminQueryBuilder /></RequireRoles>} />
                 <Route path="calculations" element={<RequireRoles roles={['SUPER_ADMIN']}><SuperAdminCalculations /></RequireRoles>} />
                 <Route path="intelligence" element={<RequireRoles roles={['SUPER_ADMIN']}><SuperAdminIntelligence /></RequireRoles>} />
+                <Route path="data-quality" element={<RequireRoles roles={['SUPER_ADMIN']}><HuduBIDataQuality /></RequireRoles>} />
               </Route>
               <Route path="*" element={<Navigate to="/hudubi" replace />} />
             </Routes>

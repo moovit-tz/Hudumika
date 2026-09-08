@@ -1045,6 +1045,80 @@ export interface DomainEventsTable {
   created_at: Generated<Date>;
 }
 
+/** See migration 411_metric_registry.sql's header — the cross-app metric
+ *  catalog. Not tenant-scoped: this holds definitions, never a computed
+ *  value, so there is nothing here for RLS to isolate. */
+export interface MetricDefinitionsTable {
+  id: Generated<string>;
+  metric_key: string;
+  name: string;
+  description: string;
+  app: string;
+  module: string | null;
+  domain: string;
+  kind: 'declarative' | 'special';
+  config: unknown; // JSONB
+  unit: string;
+  format: string;
+  owner: string | null;
+  visibility: 'standard' | 'restricted';
+  status: 'active' | 'deprecated';
+  version: Generated<number>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+/** See migration 414_metric_alerts.sql. Tenant-scoped, RLS-forced —
+ *  a threshold an ADMIN sets is real tenant configuration, unlike
+ *  MetricDefinitionsTable's global, unscoped catalog rows. */
+export interface MetricAlertRulesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  metric_key: string;
+  name: string;
+  comparator: 'below' | 'above';
+  threshold: number;
+  window_days: Generated<number>;
+  severity: 'info' | 'warning' | 'critical';
+  notify_roles: unknown; // JSONB string[]
+  enabled: Generated<boolean>;
+  last_state: Generated<'ok' | 'breach'>;
+  last_evaluated_at: Date | null;
+  last_fired_at: Date | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface MetricAlertEventsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  rule_id: string;
+  metric_key: string;
+  event_type: 'breach' | 'recovery';
+  value: number;
+  threshold: number;
+  severity: string;
+  notified_user_ids: unknown; // JSONB string[]
+  created_at: Generated<Date>;
+}
+
+/** See migration 415_data_quality_findings.sql — cross-tenant, no RLS by
+ *  design (a platform engineering surface, not tenant data). */
+export interface DataQualityFindingsTable {
+  id: Generated<string>;
+  run_id: string;
+  run_at: Generated<Date>;
+  tenant_id: string | null;
+  check_key: string;
+  severity: 'info' | 'warning' | 'critical';
+  table_name: string;
+  finding_count: number;
+  sample_ids: unknown; // JSONB string[]
+  description: string;
+  created_at: Generated<Date>;
+}
+
 export interface SealFulfillmentOrdersTable {
   id: Generated<string>;
   tenant_id: string;
@@ -4102,12 +4176,22 @@ export interface SupportRulesTable {
   updated_at: Generated<Date>;
 }
 
+// Migration 412 made this subject-agnostic (was CASE-only) — an escalation
+// is either a shipment/customs CASE (case_id/case_ref/goods_desc) or a Team
+// CHAT message (channel_id/channel_name/message_id/message_snippet),
+// discriminated by subject_type. See that migration's own header comment
+// for why this extends the existing table rather than adding a parallel one.
 export interface CaseEscalationsTable {
   id: Generated<string>;
   tenant_id: string;
+  subject_type: Generated<'CASE' | 'CHAT'>;
   case_id: string | null;
-  case_ref: string;
+  case_ref: string | null;
   goods_desc: string | null;
+  channel_id: string | null;
+  channel_name: string | null;
+  message_id: string | null;
+  message_snippet: string | null;
   reason: string;
   note: string | null;
   escalated_by: string;
@@ -4620,6 +4704,10 @@ export interface Database {
   seal_yard_slots: SealYardSlotsTable;
   seal_ledger_anchors: SealLedgerAnchorsTable;
   domain_events: DomainEventsTable;
+  metric_definitions: MetricDefinitionsTable;
+  metric_alert_rules: MetricAlertRulesTable;
+  metric_alert_events: MetricAlertEventsTable;
+  data_quality_findings: DataQualityFindingsTable;
   seal_tasks: SealTasksTable;
   seal_equipment: SealEquipmentTable;
   seal_equipment_maintenance_records: SealEquipmentMaintenanceRecordsTable;
